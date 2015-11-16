@@ -43,10 +43,12 @@ if 'build' in sys.argv:
 for arg in sys.argv:
     if '--home' in arg:
         homeSys = True
-        
+    if '--old-and-unmanageable' in arg:
+        useEgg = True
+
 if not homeSys and ossiehome != None and not buildArg:
     sys.argv.append('--home='+ossiehome)
-if not ('--old-and-unmanageable' in sys.argv) and not buildArg:
+if not useEgg and not buildArg:
     sys.argv.append('--old-and-unmanageable')
 
 setup(name='redhawk-codegen',
