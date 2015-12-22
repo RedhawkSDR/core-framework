@@ -1,4 +1,13 @@
 New Feature list
+May-December 2015
+- DeviceManager/DomainManager properties available through Python interface
+- Added affinity support to the framework libraries to assist with the deployment of resources by application factories and nodes.
+- Python property change listeners are passed complex values rather than dictionaries
+- Property change listener triggered only when the value changes
+- SIGUSR1 can be used for the Domain Manager to close all open file handles
+- When a component dies in the sandbox, it is reported
+- getPortSet supported by the Application
+- Busy FEI devices are skipped if a listener is being allocated
 January/February/March/April 2015
 - Connection Manager
 - createApplication call on DomainManager object (do not have to install application and call create on ApplicationFactory object)
