@@ -222,21 +222,6 @@ public abstract class ${classname} extends ${superClass} {
     }
 
 /*{% endif %}*/
-    public void start() throws CF.ResourcePackage.StartError
-    {
-/*{% for port in component.ports if port.start %}*/
-        this.${port.javaname}.${port.start};
-/*{% endfor %}*/
-        super.start();
-    }
-
-    public void stop() throws CF.ResourcePackage.StopError
-    {
-/*{% for port in component.ports if port.stop %}*/
-        this.${port.javaname}.${port.stop};
-/*{% endfor %}*/
-        super.stop();
-    }
 /*{% if component.hasmultioutport %}*/
 
     protected void connectionTableChanged (List<connection_descriptor_struct> oldValue, List<connection_descriptor_struct> newValue)
