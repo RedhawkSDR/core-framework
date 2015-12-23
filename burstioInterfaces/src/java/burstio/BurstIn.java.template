@@ -7,9 +7,9 @@ package burstio;
 
 import burstio.traits.@name@Traits;
 
-import org.ossie.component.PortBase;
+import org.ossie.component.StartablePort;
 
-public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<BURSTIO.@name@Burst>, PortBase
+public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<BURSTIO.@name@Burst>, StartablePort
 {
     private final InPortImpl<BURSTIO.@name@Burst> impl_;
 
@@ -21,6 +21,16 @@ public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<
     public String getName ()
     {
         return this.impl_.getName();
+    }
+
+    public void startPort ()
+    {
+        start();
+    }
+
+    public void stopPort ()
+    {
+        stop();
     }
 
     public void start ()

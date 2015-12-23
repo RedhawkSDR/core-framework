@@ -33,15 +33,15 @@ import org.omg.CORBA.MARSHAL;
 
 import org.apache.log4j.Logger;
 
+import org.ossie.component.StartablePort;
 import org.ossie.properties.IProperty;
 import org.ossie.properties.StructDef;
 
 import burstio.stats.SenderStatistics;
 import burstio.traits.BurstTraits;
 
-import org.ossie.component.PortBase;
 
-abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA implements PortBase {
+abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA implements StartablePort {
     public static final int DEFAULT_MAX_BURSTS = 100;
     public static final int DEFAULT_LATENCY_THRESHOLD = 10000; // 10000 us = 10ms
 
@@ -444,6 +444,11 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
         this.running_ = true;
     }
 
+    public void startPort ()
+    {
+        start();
+    }
+
     public void stop ()
     {
         synchronized (this) {
@@ -454,6 +459,11 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
             this.running_ = false;
         }
         this.flush();
+    }
+
+    public void stopPort ()
+    {
+        stop();
     }
 
     public BULKIO.PortUsageType state ()

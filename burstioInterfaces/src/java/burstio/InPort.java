@@ -19,8 +19,6 @@
  */
 package burstio;
 
-import org.ossie.component.PortBase;
-
 public interface InPort<E>
 {
 
