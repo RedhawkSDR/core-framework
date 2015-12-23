@@ -108,7 +108,8 @@ ossie_jar_SOURCE = src/org/ossie/component/AllocCapacity.java \
 		   src/org/ossie/component/ThreadedResource.java \
 		   src/org/ossie/component/Service.java \
 		   src/org/ossie/component/UsesPort.java \
-           src/org/ossie/component/PortBase.java \
+	           src/org/ossie/component/PortBase.java \
+	           src/org/ossie/component/StartablePort.java \
 		   src/org/ossie/logging/logging.java \
 		   src/org/ossie/logging/RH_LogEventAppender.java \
 		   src/org/ossie/events/Consumer_i.java \

@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.io.FileOutputStream;
@@ -258,6 +259,44 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
     }
     
     /**
+     * Start processing for any ports that support it.
+     */
+    protected void startPorts() {
+        for (StartablePort port : getStartablePorts()) {
+            port.startPort();
+        }
+    }
+
+    /**
+     * Stop processing for any ports that support it. If there are any calls on
+     * the port that are blocking, this should cause them to return immediately.
+     */
+    protected void stopPorts() {
+        for (StartablePort port : getStartablePorts()) {
+            port.stopPort();
+        }
+    }
+
+    /**
+     * Returns a list of the registered ports that support the StartablePort
+     * interface.
+     */
+    private List<StartablePort> getStartablePorts() {
+        List<StartablePort> startablePorts = new ArrayList<StartablePort>();
+        for (Servant servant : this.portServants.values()) {
+            if (servant instanceof StartablePort) {
+                startablePorts.add((StartablePort) servant);
+            }
+        }
+        for (omnijni.Servant servant : this.nativePorts.values()) {
+            if (servant instanceof StartablePort) {
+                startablePorts.add((StartablePort) servant);
+            }
+        }
+        return startablePorts;
+    }
+
+    /**
      * Default Constructor that automatically sets parameters for the Sun ORB
      * and the JacORB ORB.
      * 
@@ -335,6 +374,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         // While we are starting or stopping don't let anything else occur
         logger.trace("start()");
         synchronized (this) {
+            startPorts();
             this._started = true;
             if (processingThread == null) {
                 processingThread = new Thread(this);
@@ -351,6 +391,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         logger.trace("stop()");
         synchronized (this) {
             if (processingThread != null) {
+                stopPorts();
                 this._started = false;
                 try {
                     processingThread.interrupt();
