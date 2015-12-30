@@ -514,7 +514,7 @@ public class InUInt16Port extends BULKIO.jni.dataUshortPOA implements org.ossie.
 
 	public String getDirection()
 	{
-		return "Provides";
+		return CF.PortSet.DIRECTION_PROVIDES;
 	}
 
 }

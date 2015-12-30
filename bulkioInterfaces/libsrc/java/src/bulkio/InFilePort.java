@@ -518,7 +518,7 @@ public class InFilePort extends BULKIO.jni.dataFilePOA implements PortBase {
     }
 
     public String getDirection() {
-        return "Provides";
+        return CF.PortSet.DIRECTION_PROVIDES;
     }
 
     public String getRepid() {

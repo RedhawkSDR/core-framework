@@ -521,7 +521,7 @@ public class InDoublePort extends BULKIO.jni.dataDoublePOA implements org.ossie.
 
 	public String getDirection()
 	{
-		return "Provides";
+		return CF.PortSet.DIRECTION_PROVIDES;
 	}
 
 }

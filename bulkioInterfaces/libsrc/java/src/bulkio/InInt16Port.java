@@ -514,7 +514,7 @@ public class InInt16Port extends BULKIO.jni.dataShortPOA implements org.ossie.co
 
 	public String getDirection()
 	{
-		return "Provides";
+		return CF.PortSet.DIRECTION_PROVIDES;
 	}
 }
 

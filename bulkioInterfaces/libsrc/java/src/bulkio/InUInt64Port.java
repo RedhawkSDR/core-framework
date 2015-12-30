@@ -519,7 +519,7 @@ public class InUInt64Port extends BULKIO.jni.dataUlongLongPOA implements org.oss
 
 	public String getDirection()
 	{
-		return "Provides";
+		return CF.PortSet.DIRECTION_PROVIDES;
 	}
 	
 }

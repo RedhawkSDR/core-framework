@@ -208,6 +208,6 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
 
 	public String getDirection()
 	{
-		return "Uses";
+		return CF.PortSet.DIRECTION_USES;
 	}
 }

@@ -524,7 +524,7 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
 
 	public String getDirection()
 	{
-		return "Provides";
+		return CF.PortSet.DIRECTION_PROVIDES;
 	}
 
 }

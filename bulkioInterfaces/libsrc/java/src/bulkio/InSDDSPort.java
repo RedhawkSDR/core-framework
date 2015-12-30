@@ -453,7 +453,7 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements org.ossie.comp
 
 	public String getDirection()
 	{
-		return "Provides";
+		return CF.PortSet.DIRECTION_PROVIDES;
 	}
 
 }

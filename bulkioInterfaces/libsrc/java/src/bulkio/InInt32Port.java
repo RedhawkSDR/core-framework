@@ -519,7 +519,7 @@ public class InInt32Port extends BULKIO.jni.dataLongPOA implements org.ossie.com
 
 	public String getDirection()
 	{
-		return "Provides";
+		return CF.PortSet.DIRECTION_PROVIDES;
 	}
 
 }

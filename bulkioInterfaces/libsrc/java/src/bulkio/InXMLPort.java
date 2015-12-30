@@ -518,7 +518,7 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
 
     public String getDirection()
     {
-        return "Provides";
+        return CF.PortSet.DIRECTION_PROVIDES;
     }
 
 }

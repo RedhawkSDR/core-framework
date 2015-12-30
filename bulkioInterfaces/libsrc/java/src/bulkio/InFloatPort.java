@@ -527,7 +527,7 @@ public class InFloatPort extends BULKIO.jni.dataFloatPOA implements org.ossie.co
 
 	public String getDirection()
 	{
-		return "Provides";
+		return CF.PortSet.DIRECTION_PROVIDES;
 	}
 
 }

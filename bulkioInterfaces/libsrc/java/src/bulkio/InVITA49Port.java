@@ -453,7 +453,7 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
 
 	public String getDirection()
 	{
-		return "Provides";
+		return CF.PortSet.DIRECTION_PROVIDES;
 	}
 
 }
