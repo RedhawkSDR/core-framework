@@ -242,13 +242,13 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         return null;
     }
 
-	public String getRepid()
-	{
-		return "IDL:ExtendedEvent/MessageEvent:1.0";
-	}
+    public String getRepid()
+    {
+        return ExtendedEvent.MessageEventHelper.id();
+    }
 
-	public String getDirection()
-	{
-		return "Uses";
-	}
+    public String getDirection()
+    {
+        return CF.PortSet.DIRECTION_USES;
+    }
 }

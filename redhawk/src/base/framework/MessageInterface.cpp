@@ -171,12 +171,12 @@ void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any&
 
 std::string MessageConsumerPort::getRepid() const 
 {
-	return "IDL:ExtendedEvent/MessageEvent:1.0";
+    return ExtendedEvent::MessageEvent::_PD_repoId;
 }
 
 std::string MessageConsumerPort::getDirection() const 
 {
-	return "Bidir";
+    return CF::PortSet::DIRECTION_BIDIR;
 }
 
 MessageSupplierPort::MessageSupplierPort (std::string port_name) :
@@ -246,5 +246,5 @@ void MessageSupplierPort::extendConsumers(std::string consumer_id, CosEventChann
 
 std::string MessageSupplierPort::getRepid() const 
 {
-	return "IDL:ExtendedEvent/MessageEvent:1.0";
+    return ExtendedEvent::MessageEvent::_PD_repoId;
 }

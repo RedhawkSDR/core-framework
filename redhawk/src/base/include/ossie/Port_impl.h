@@ -352,7 +352,7 @@ public:
     // Return the direction (uses/provides) for this Port
     virtual std::string getDirection () const 
     {
-        return "Uses";	
+        return CF::PortSet::DIRECTION_USES;
     }
 
 protected:
@@ -376,7 +376,7 @@ public:
     // Return the direction (uses/provides) for this Port
     virtual std::string getDirection () const 
     {
-        return "Provides";	
+        return CF::PortSet::DIRECTION_PROVIDES;
     }
 };
 

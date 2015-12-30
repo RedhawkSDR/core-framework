@@ -466,12 +466,12 @@ class Resource(object):
            description = portdef.__doc__
            direction = ''
            if isinstance(portdef, usesport):
-               direction = 'Uses'
+               direction = CF.PortSet.DIRECTION_USES
            elif isinstance(portdef, providesport):
                if repid == 'IDL:ExtendedEvent/MessageEvent:1.0':
-                   direction = 'Bidir'
+                   direction = CF.PortSet.DIRECTION_BIDIR
                else:
-                   direction = 'Provides'
+                   direction = CF.PortSet.DIRECTION_PROVIDES
            info = CF.PortSet.PortInfoType(obj_ptr, name, repid, description, direction)
            portList.append(info)
 

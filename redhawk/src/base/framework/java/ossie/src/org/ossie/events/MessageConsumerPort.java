@@ -148,15 +148,15 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
         this.logger = logger;
     }
 
-	public String getRepid()
-	{
-		return "IDL:ExtendedEvent/MessageEvent:1.0";
-	}
+    public String getRepid()
+    {
+        return ExtendedEvent.MessageEventHelper.id();
+    }
 
-	public String getDirection()
-	{
-		return "Bidir";
-	}
+    public String getDirection()
+    {
+        return CF.PortSet.DIRECTION_BIDIR;
+    }
 
     /**
      * Register a listener for a message.

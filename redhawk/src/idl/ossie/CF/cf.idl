@@ -888,6 +888,12 @@ module CF {
         string description;
         string direction;
       };
+      /* Constant for PortInfoType direction field for provides ports */
+      const string DIRECTION_PROVIDES = "Provides";
+      /* Constant for PortInfoType direction field for uses ports */
+      const string DIRECTION_USES = "Uses";
+      /* Constant for PortInfoType direction field for bi-directional ports */
+      const string DIRECTION_BIDIR = "Bidir";
       /* The PortInfoSequence type defines an unbounded sequence of ports' information for getPortSet function. */
       typedef sequence <PortInfoType> PortInfoSequence;
       /* The getPortSet operation provides a mechanism to obtain information about all ports in the resource. */
