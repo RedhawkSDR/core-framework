@@ -98,13 +98,13 @@ public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<
         this.impl_.flush();
     }
 
-	public String getRepid ()
-	{
-		return BURSTIO.burst@name@Helper.id();
-	}
+    public String getRepid ()
+    {
+        return BURSTIO.burst@name@Helper.id();
+    }
 
-	public String getDirection ()
-	{
-		return "Provides";
-	}
+    public String getDirection ()
+    {
+        return CF.PortSet.DIRECTION_PROVIDES;
+    }
 }

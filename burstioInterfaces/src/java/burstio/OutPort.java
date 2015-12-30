@@ -538,7 +538,7 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
 
 	public String getDirection ()
 	{
-		return "Uses";
+		return CF.PortSet.DIRECTION_USES;
 	}
 
     protected void sendBursts(B[] bursts, long startTime, float queueDepth, final String streamID)
