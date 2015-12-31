@@ -44,9 +44,6 @@ import org.ossie.properties.*;
  */
 public class OutFilePort extends OutPortBase<dataFileOperations> {
 
-    protected List<connection_descriptor_struct> filterTable = null;
-
-
     public OutFilePort(String portName ){
 	this( portName, null, null );
     }
@@ -63,7 +60,6 @@ public class OutFilePort extends OutPortBase<dataFileOperations> {
 		       Logger logger,
 		       ConnectionEventListener  eventCB ) {
         super(portName, logger, eventCB);
-        filterTable = null;
         if ( this.logger != null ) {
             this.logger.debug( "bulkio.OutPort CTOR port: " + portName ); 
         }

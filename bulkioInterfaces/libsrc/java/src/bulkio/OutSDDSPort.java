@@ -66,8 +66,6 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
      */
     protected SDDSStreamContainer streamContainer;
 
-    protected List<connection_descriptor_struct> filterTable = null;
-
     public OutSDDSPort(String portName ){
 	this( portName, null, null );
     }
@@ -84,7 +82,6 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
 		       Logger logger,
 		       ConnectionEventListener  eventCB ) {
         super(portName, logger, eventCB);
-        this.filterTable = null;
         this.streamContainer = new SDDSStreamContainer();
         this.userId = new String("defaultUserId");
 	if ( this.logger != null ) {
@@ -218,7 +215,7 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
     }
 
     public void updateConnectionFilter(List<connection_descriptor_struct> _filterTable) {
-        this.filterTable = _filterTable;
+        super.updateConnectionFilter(_filterTable);
 
         //1. loop over fitlerTable
         //   A. ignore other port names

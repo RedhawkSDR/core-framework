@@ -44,9 +44,6 @@ import org.ossie.properties.*;
  */
 public class OutXMLPort extends OutPortBase<dataXMLOperations> {
 
-    protected List<connection_descriptor_struct> filterTable = null;
-
-
     public OutXMLPort(String portName ){
 	this( portName, null, null );
     }
@@ -63,7 +60,6 @@ public class OutXMLPort extends OutPortBase<dataXMLOperations> {
 		       Logger logger,
 		       ConnectionEventListener  eventCB ) {
         super(portName, logger, eventCB);
-        filterTable = null;
 	if ( this.logger != null ) {
 	    this.logger.debug( "bulkio.OutPort CTOR port: " + portName ); 
 	}
@@ -180,10 +176,6 @@ public class OutXMLPort extends OutPortBase<dataXMLOperations> {
 	}
         return;
     }
-
-    public void updateConnectionFilter(List<connection_descriptor_struct> _filterTable) {
-        this.filterTable = _filterTable;
-    };
 
     public void pushPacket(String data, PrecisionUTCTime time, boolean endOfStream, String streamID) {
 	pushPacket( data, endOfStream, streamID );

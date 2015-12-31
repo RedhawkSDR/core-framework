@@ -75,6 +75,11 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
      */
     protected final Map<String,SriMapStruct> currentSRIs = new HashMap<String,SriMapStruct>();
 
+    /**
+     * Table of port names, connection IDs and stream IDs for connection-based routing
+     */
+    protected List<connection_descriptor_struct> filterTable = null;
+
     protected OutPortBase(String portName) {
         this(portName, null, null);
     }
@@ -209,5 +214,47 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
     public String getDirection()
     {
         return CF.PortSet.DIRECTION_USES;
+    }
+
+    public void updateConnectionFilter(List<connection_descriptor_struct> filterTable) {
+        this.filterTable = filterTable;
+    }
+
+    protected boolean isStreamRoutedToConnection(final String streamID, final String connectionID)
+    {
+        // Is this port listed in the filter table?
+        boolean portListed = false;
+
+        // Check the filter table for this stream/connection pair.
+        for (connection_descriptor_struct filter : bulkio.utils.emptyIfNull(this.filterTable)) {
+            // Ignore filters for other ports
+            if (!this.name.equals(filter.port_name.getValue())) {
+                continue;
+            }
+            // Filtering is in effect for this port
+            portListed = true;
+
+            if (connectionID.equals(filter.connection_id.getValue()) &&
+                streamID.equals(filter.stream_id.getValue())) {
+                if (logger != null) {
+                    logger.trace("OutPort FilterMatch port:" + this.name + " connection:" + connectionID +
+                                 " streamID:" + streamID);
+                }
+                return true;
+            }
+        }
+
+        // If the port was not listed and we made it to here, there is no
+        // filter in effect, so send the packet or SRI; otherwise, it was
+        // listed and there is no route.
+        if (!portListed) {
+            if (logger != null) {
+                logger.trace("OutPort NO Filter port:" + this.name + " connection:" + connectionID +
+                             " streamID:" + streamID);
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 }

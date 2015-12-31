@@ -66,8 +66,6 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
      */
     protected VITA49StreamContainer streamContainer;
 
-    protected List<connection_descriptor_struct> filterTable = null;
-
     public OutVITA49Port(String portName ){
 	this( portName, null, null );
     }
@@ -218,7 +216,7 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
     }
 
     public void updateConnectionFilter(List<connection_descriptor_struct> _filterTable) {
-        this.filterTable = _filterTable;
+        super.updateConnectionFilter(_filterTable);
 
         //1. loop over fitlerTable
         //   A. ignore other port names
