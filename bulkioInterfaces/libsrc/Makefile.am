@@ -112,23 +112,13 @@ JAVA_SRCDIR := $(JAVA_DIR)/src
 JAVA_SRCS := Const.java \
 DataTransfer.java \
 InCharPort.java \
-InDoublePort.java \
 InFilePort.java \
-InFloatPort.java \
-InInt16Port.java \
-InInt32Port.java \
-InInt64Port.java \
-InInt8Port.java \
 InLongLongPort.java \
 InLongPort.java \
 InOctetPort.java \
 InSDDSPort.java \
 InVITA49Port.java \
 InShortPort.java \
-InUInt16Port.java \
-InUInt32Port.java \
-InUInt64Port.java \
-InUInt8Port.java \
 InULongLongPort.java \
 InULongPort.java \
 InUShortPort.java \
@@ -179,10 +169,26 @@ time/Comparator.java \
 time/DefaultComparator.java \
 time/utils.java
 
+# Input ports are generated via sed for ease of maintenance
+$(JAVA_SRCDIR)/bulkio/In%Port.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/InPort.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/InPort.java.template > $@
+
+JAVA_BUILT_SOURCE =  $(JAVA_SRCDIR)/bulkio/InDoublePort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InFloatPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt16Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt32Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt64Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt8Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt16Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt32Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt64Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt8Port.java
+
+
 java_JARFILES = bulkio.jar
 java_DATA = bulkio.src.jar
 
-bulkio_jar_SOURCE = $(addprefix $(JAVA_SRCDIR)/bulkio/,$(JAVA_SRCS))
+bulkio_jar_SOURCE = $(addprefix $(JAVA_SRCDIR)/bulkio/,$(JAVA_SRCS)) $(JAVA_BUILT_SOURCE)
 bulkio_jar_CLASSPATH = $(OSSIE_CLASSPATH):$(top_builddir)/BULKIOInterfaces.jar
 bulkio_jar_MANIFEST = $(JAVA_DIR)/META-INF/MANIFEST.MF
 
@@ -191,7 +197,8 @@ bulkio.jar: $(top_builddir)/BULKIOInterfaces.jar
 bulkio.src.jar: $(JAVA_DIR)/META-INF/MANIFEST.MF.src $(bulkio_jar_SOURCE)
 	$(RH_V_JAR)$(JAR) cmf $< $@ -C $(JAVA_SRCDIR) .
 
-CLEANFILES = bulkio.src.jar
+BUILT_SOURCES = $(JAVA_BUILT_SOURCE)
+CLEANFILES = bulkio.src.jar $(BUILT_SOURCES)
 
 endif
 

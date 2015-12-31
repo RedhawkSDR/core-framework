@@ -17,6 +17,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+/*
+ * WARNING: This file is generated from InPort.java.template.
+ *          Do not modify directly.
+ */
 package bulkio;
 
 import java.util.ArrayList;
@@ -26,7 +30,6 @@ import java.util.Iterator;
 import java.util.Map;
 import org.omg.CORBA.TCKind;
 import org.ossie.properties.AnyUtils;
-import org.apache.log4j.Logger;
 import CF.DataType;
 import java.util.ArrayDeque;
 import java.util.concurrent.Semaphore;
@@ -35,27 +38,27 @@ import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
 import BULKIO.PortStatistics;
 import BULKIO.PortUsageType;
-
+import org.apache.log4j.Logger;
 
 import bulkio.sriState;
 import bulkio.linkStatistics;
 import bulkio.DataTransfer;
-import bulkio.Int8Size;
+import bulkio.@name@Size;
 
 import org.ossie.component.PortBase;
 
 /**
  * 
  */
-public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.component.PortBase {
+public class In@name@Port extends BULKIO.jni.@idl@POA implements org.ossie.component.PortBase {
 
     /**
      * A class to hold packet data.
      * 
      */
-    public class Packet extends DataTransfer < char[] > {
+    public class Packet extends DataTransfer < @type@[] > {
 
-	public Packet( char[] data, PrecisionUTCTime time, boolean endOfStream, String streamID, StreamSRI H, boolean sriChanged, boolean inputQueueFlushed ) {
+	public Packet(@type@[] data, PrecisionUTCTime time, boolean endOfStream, String streamID, StreamSRI H, boolean sriChanged, boolean inputQueueFlushed ) {
 	    super(data,time,endOfStream,streamID,H,sriChanged,inputQueueFlushed); 
 	};
     };
@@ -110,53 +113,54 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
      */
     protected boolean blocking;
 
-
     /**
      *
      */
-    protected Logger                  logger = null;
+    protected Logger   logger = null;
 
     protected bulkio.sri.Comparator    sri_cmp;
 
-    protected bulkio.SriListener       sriCallback;
+    protected bulkio.SriListener   sriCallback;
+
 
     /**
      * This queue stores all packets received from pushPacket.
      * 
      */
-    private ArrayDeque< Packet >       workQueue;
+    private ArrayDeque< Packet > workQueue;
     
+
     /**
      * 
      */
-    public InInt8Port( String portName ) {
+    public In@name@Port( String portName ) {
 	this( portName, null, new bulkio.sri.DefaultComparator(), null );
     }
 
-    public InInt8Port( String portName,
+    public In@name@Port( String portName,
 		       bulkio.sri.Comparator compareSRI ){
 	this( portName, null, compareSRI, null );
     }
 
-    public InInt8Port( String portName, 
+    public In@name@Port( String portName, 
 			bulkio.sri.Comparator compareSRI, 
 			bulkio.SriListener sriCallback
 		       ) {
 	this( portName, null, compareSRI, sriCallback );
     }
 
-    public InInt8Port( String portName, Logger logger ) {
+    public In@name@Port( String portName, Logger logger ) {
 	this( portName, logger, new bulkio.sri.DefaultComparator(), null );
     }
 
-    public InInt8Port( String portName, 
+    public In@name@Port( String portName, 
 		       Logger logger,
 		       bulkio.sri.Comparator compareSRI, 
 		       bulkio.SriListener sriCallback ) {
 
         this.name = portName;
 	this.logger = logger;
-        this.stats = new linkStatistics(this.name, new Int8Size() );
+        this.stats = new linkStatistics(this.name, new @name@Size() );
         this.sriUpdateLock = new Object();
         this.statUpdateLock = new Object();
         this.currentHs = new HashMap<String, sriState>();
@@ -173,8 +177,7 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
 
 	if ( this.logger != null ) {
 	    this.logger.debug( "bulkio::InPort CTOR port: " + portName ); 
-	}
-
+	}	
     }
 
     public void setLogger( Logger newlogger ){
@@ -182,7 +185,6 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
 	    logger = newlogger;
 	}
     }
-
 
     /**
      * 
@@ -200,6 +202,8 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
         return this.name;
     }
      
+
+
     /**
      * 
      */
@@ -274,6 +278,7 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
         }
     }
 
+
     /**
      * 
      */
@@ -329,7 +334,6 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
                 }
             }
         }
-
 	if ( logger != null ) {
 	    logger.trace("bulkio.InPort pushSRI  EXIT (port=" + name +")" );
 	}
@@ -340,12 +344,11 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
     /**
      * 
      */
-    public void pushPacket( char[] data, PrecisionUTCTime time, boolean eos, String streamID) 
+    public void pushPacket(@type@[] data, PrecisionUTCTime time, boolean eos, String streamID) 
     {
 	if ( logger != null ) {
 	    logger.trace("bulkio.InPort pushPacket ENTER (port=" + name +")" );
 	}
-
         synchronized (this.dataBufferLock) {
             if (this.maxQueueDepth == 0) {
 		if ( logger != null ) {
@@ -399,11 +402,9 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
         } else {
             synchronized (this.dataBufferLock) {
                 if (this.workQueue.size() == this.maxQueueDepth) {
-
 		    if ( logger != null ) {
 			logger.debug( "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE"  + this.workQueue.size() + ")" );
 		    }
-
                     boolean sriChangedHappened = false;
                     boolean flagEOS = false;
                     for (Iterator< Packet > itr = this.workQueue.iterator(); itr.hasNext();) {
@@ -431,7 +432,6 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
                     p = new Packet(data, time, eos, streamID, tmpH, sriChanged, false);
                     this.stats.update(data.length, this.workQueue.size()/(float)this.maxQueueDepth, eos, streamID, false);
                 }
-
 		if ( logger != null ) {
 		    logger.trace( "bulkio::InPort pushPacket NEW Packet (QUEUE=" + workQueue.size() + ")");
 		}
@@ -439,7 +439,6 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
                 this.dataSem.release();
             }
         }
-
 
 	if ( logger != null ) {
 	    logger.trace("bulkio.InPort pushPacket EXIT (port=" + name +")" );
@@ -519,7 +518,7 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
 
 	public String getRepid()
 	{
-		return BULKIO.dataCharHelper.id();
+		return BULKIO.@idl@Helper.id();
 	}
 
 	public String getDirection()
