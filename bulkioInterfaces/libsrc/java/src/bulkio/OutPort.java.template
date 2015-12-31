@@ -24,12 +24,14 @@
 package bulkio;
 
 import java.util.Arrays;
+
 import org.apache.log4j.Logger;
+
 import BULKIO.PrecisionUTCTime;
 import BULKIO.@idl@Operations;
 
 /**
- * 
+ * BulkIO output port implementation for @idl@.
  */
 public class Out@name@Port extends OutDataPort<@idl@Operations,@type@[]> {
 
@@ -44,7 +46,7 @@ public class Out@name@Port extends OutDataPort<@idl@Operations,@type@[]> {
     public Out@name@Port(String portName, Logger logger, ConnectionEventListener eventCB) {
         super(portName, logger, eventCB, new @name@Size());
         if (this.logger != null) {
-            this.logger.debug("bulkio.OutPort CTOR port: " + portName); 
+            this.logger.debug("bulkio.OutPort CTOR port: " + portName);
         }
     }
 
@@ -69,8 +71,8 @@ public class Out@name@Port extends OutDataPort<@idl@Operations,@type@[]> {
         return new @type@[0];
     }
 
-	public String getRepid() {
-		return BULKIO.@idl@Helper.id();
-	}
+    public String getRepid() {
+        return BULKIO.@idl@Helper.id();
+    }
 }
 
