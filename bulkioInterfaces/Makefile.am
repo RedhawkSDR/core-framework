@@ -240,7 +240,6 @@ build/java/META-INF/MANIFEST.MF: Makefile.am BULKIOInterfaces.filelist
 	@find $(IDLJ_SRC_DEST) -mindepth 1 -type d | sed 's/src\/java\///' | sed 's/\//./g' | sed 's/^/ /' | sed -e '$$ ! s/$$/,/' >> $@
 
 java_JARFILES = BULKIOInterfaces.jar
-java_DATA = BULKIOInterfaces.src.jar
 
 IDLJFLAGS = -i idl -i $(OSSIE_IDLDIR) -I $(OMNICOS_IDLDIR) -I $(OMNIORB_IDLDIR)
 IDLJNIFLAGS = -I idl -I $(OSSIE_IDLDIR) -I $(OMNICOS_IDLDIR) -I $(OMNIORB_IDLDIR) -Wblibname=bulkiojni
@@ -256,21 +255,10 @@ idljni_IDLSRC = $(IDL_FILES)
 BULKIOInterfaces_jar_SOURCE = $(idlj_SOURCE) $(idljni_SOURCE)
 BULKIOInterfaces_jar_CLASSPATH = $(OSSIE_CLASSPATH)
 BULKIOInterfaces_jar_MANIFEST = build/java/META-INF/MANIFEST.MF
+BULKIOInterfaces_jar_JAVACFLAGS = -g
+BULKIOInterfaces_jar_JARADD = -C $(IDLJ_SRC_DEST) .
 
-src/java/META-INF/MANIFEST.MF: Makefile
-	@mkdir -p src/java/META-INF
-	@rm -f $@
-	@echo "Bundle-ManifestVersion: 2" >> $@
-	@echo "Bundle-Name: $(BUNDLE_NAME) Source" >> $@
-	@echo "Bundle-SymbolicName: $(BUNDLE_SYMBOLIC_NAME).src" >> $@
-	@echo "Bundle-Version: $(BUNDLE_VERSION).$(BUNDLE_QUALIFIER)" >> $@
-	@echo "Bundle-Vendor: $(BUNDLE_VENDOR)" >> $@
-	@echo "Eclipse-SourceBundle: $(BUNDLE_SYMBOLIC_NAME);version=$(BUNDLE_VERSION).$(BUNDLE_QUALIFIER)" >> $@
-
-CLEANFILES =  BULKIOInterfaces.src.jar src/java/META-INF/MANIFEST.MF $(BULKIOInterfaces_jar_MANIFEST)
-
-BULKIOInterfaces.src.jar: src/java/META-INF/MANIFEST.MF $(BULKIOInterfaces_jar_SOURCE)
-	$(RH_V_JAR)$(JAR) cMf $@ -C $(IDLJ_SRC_DEST) .
+CLEANFILES = $(BULKIOInterfaces_jar_MANIFEST)
 
 # JNI library must be built after the current directory (see SUBDIRS above)
 SUBDIRS += jni

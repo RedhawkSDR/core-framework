@@ -156,7 +156,7 @@ public class linkStatistics  {
 	    this.runningStats.timeSinceLastCall = (float)(secs - front_sec);
 	    this.runningStats.bitsPerSecond = (float)((totalData * this.bitSize) / totalTime);
 	    this.runningStats.elementsPerSecond = (float)(totalData / totalTime);
-	    this.runningStats.averageQueueDepth = (float)(queueSize / receivedSize);
+	    this.runningStats.averageQueueDepth = queueSize / receivedSize;
 	    this.runningStats.callsPerSecond = (float)((receivedSize - 1) / totalTime);
 	    this.runningStats.streamIDs = this.activeStreamIDs.toArray(new String[0]);
 	    if (flushTime != 0.0) {

@@ -39,7 +39,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
     /**
      * Size of a single element
      */
-    protected final SizeOf sizeof;
+    protected final SizeOf< ? > sizeof;
 
     /**
      * CORBA transfer limit in samples
@@ -48,7 +48,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
 
     protected List<connection_descriptor_struct> filterTable = null;
 
-    protected OutDataPort(String portName, Logger logger, ConnectionEventListener connectionListener, SizeOf size) {
+    protected OutDataPort(String portName, Logger logger, ConnectionEventListener connectionListener, SizeOf< ? > size) {
         super(portName, logger, connectionListener);
         this.sizeof = size;
         // Make sure max samples per push is even so that complex data case is

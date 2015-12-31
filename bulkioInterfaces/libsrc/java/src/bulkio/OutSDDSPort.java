@@ -351,7 +351,6 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
         String streamId;
         Set<String> streamConnIds = new HashSet<String>(); 
         Set<String> currentSRIConnIds = new HashSet<String>();
-        Iterator connIdIter;
 
         // Iterate through all registered streams
         for (SDDSStream s: this.streamContainer.getStreams()){

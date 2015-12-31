@@ -139,7 +139,7 @@ AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 AC_CONFIG_FILES([bulkioInterfaces.pc setup.py Makefile jni/Makefile])
 if test "$enable_base_classes" != "no"; then
   if test "$HAVE_JAVASUPPORT = yes"; then
-    AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF libsrc/java/META-INF/MANIFEST.MF.src])
+    AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF])
   fi
   AC_CONFIG_FILES([libsrc/Makefile libsrc/bulkio.pc])
 fi

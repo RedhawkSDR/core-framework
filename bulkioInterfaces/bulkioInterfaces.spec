@@ -83,9 +83,7 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %endif
 %if %{with java}
 %{_prefix}/lib/BULKIOInterfaces.jar
-%{_prefix}/lib/BULKIOInterfaces.src.jar
 %{_prefix}/lib/bulkio.jar
-%{_prefix}/lib/bulkio.src.jar
 %{_prefix}/%{_lib}/libbulkiojni.*
 %endif
 

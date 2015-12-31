@@ -189,19 +189,17 @@ JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt8Port.java
 
 
 java_JARFILES = bulkio.jar
-java_DATA = bulkio.src.jar
 
 bulkio_jar_SOURCE = $(addprefix $(JAVA_SRCDIR)/bulkio/,$(JAVA_SRCS)) $(JAVA_BUILT_SOURCE)
 bulkio_jar_CLASSPATH = $(OSSIE_CLASSPATH):$(top_builddir)/BULKIOInterfaces.jar
 bulkio_jar_MANIFEST = $(JAVA_DIR)/META-INF/MANIFEST.MF
+bulkio_jar_JARADD = -C $(JAVA_SRCDIR) bulkio
+bulkio_jar_JAVACFLAGS = -g -Xlint
 
 bulkio.jar: $(top_builddir)/BULKIOInterfaces.jar
 
-bulkio.src.jar: $(JAVA_DIR)/META-INF/MANIFEST.MF.src $(bulkio_jar_SOURCE)
-	$(RH_V_JAR)$(JAR) cmf $< $@ -C $(JAVA_SRCDIR) .
-
 BUILT_SOURCES = $(JAVA_BUILT_SOURCE)
-CLEANFILES = bulkio.src.jar $(BUILT_SOURCES)
+CLEANFILES = $(BUILT_SOURCES)
 
 endif
 

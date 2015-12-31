@@ -351,7 +351,6 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
         String streamId;
         Set<String> streamConnIds = new HashSet<String>(); 
         Set<String> currentSRIConnIds = new HashSet<String>();
-        Iterator connIdIter;
 
         // Iterate through all registered streams
         for (VITA49Stream s: this.streamContainer.getStreams()){

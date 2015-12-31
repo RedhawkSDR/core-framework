@@ -28,14 +28,13 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 import ExtendedCF.UsesConnection;
+import org.ossie.component.PortBase;
 
 import BULKIO.PortUsageType;
 import BULKIO.StreamSRI;
 import BULKIO.UsesPortStatistics;
 
-import org.ossie.component.PortBase;
-
-public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPOA implements org.ossie.component.PortBase {
+public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPOA implements PortBase {
     /**
      * Name within the component
      */
@@ -129,6 +128,7 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
     /**
      * @deprecated
      */
+    @Deprecated
     public HashMap<String,E> getPorts() {
         return new HashMap<String,E>();
     }
@@ -201,13 +201,13 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
         return sriList.toArray(new StreamSRI[0]);
     }
 
-	public String getRepid()
-	{
-		return "IDL:CORBA/Object:1.0";
-	}
+    public String getRepid()
+    {
+        return "IDL:CORBA/Object:1.0";
+    }
 
-	public String getDirection()
-	{
-		return CF.PortSet.DIRECTION_USES;
-	}
+    public String getDirection()
+    {
+        return CF.PortSet.DIRECTION_USES;
+    }
 }
