@@ -31,12 +31,6 @@ import BULKIO.StreamSRI;
 
 public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extends OutPortBase<E> {
     /**
-     * CORBA transfer limit in bytes
-     */
-    // Multiply by some number < 1 to leave some margin for the CORBA header
-    protected static final int MAX_PAYLOAD_SIZE = (int)(Const.MAX_TRANSFER_BYTES * 0.9);
-
-    /**
      * Size of a single element
      */
     protected final SizeOf< ? > sizeof;
@@ -49,9 +43,6 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
     protected OutDataPort(String portName, Logger logger, ConnectionEventListener connectionListener, SizeOf< ? > size) {
         super(portName, logger, connectionListener);
         this.sizeof = size;
-        // Make sure max samples per push is even so that complex data case is
-        // handled properly
-        this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/this.sizeof.sizeof()) & 0xFFFFFFFE;
     }
 
     /**
@@ -167,12 +158,17 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
                 this.pushSRI(header);
             }
 
-            pushOversizedPacket(data, time, endOfStream, streamID);
+            doPushPacket(data, time, endOfStream, streamID);
         }
 
         if (logger != null) {
             logger.trace("bulkio.OutPort pushPacket  EXIT (port=" + this.name +")");
         }
+    }
+
+    protected void doPushPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
+    {
+        pushSinglePacket(data, time, endOfStream, streamID);
     }
 
     /**
@@ -347,7 +343,6 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
 
     protected abstract E narrow(org.omg.CORBA.Object obj);
     protected abstract void sendPacket(E port, A data, PrecisionUTCTime time, boolean endOfStream, String streamID);
-    protected abstract A copyOfRange(A array, int start, int end);
     protected abstract int arraySize(A array);
     protected abstract A emptyArray();
 }

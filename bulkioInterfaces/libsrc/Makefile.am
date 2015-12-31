@@ -132,6 +132,7 @@ OutLongPort.java \
 OutOctetPort.java \
 OutPortBase.java \
 OutSDDSPort.java \
+OutStreamPort.java \
 OutVITA49Port.java \
 OutShortPort.java \
 OutULongLongPort.java \
