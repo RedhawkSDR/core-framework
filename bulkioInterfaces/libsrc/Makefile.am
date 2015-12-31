@@ -126,13 +126,7 @@ InXMLPort.java \
 linkStatistics.java \
 OutCharPort.java \
 OutDataPort.java \
-OutDoublePort.java \
 OutFilePort.java \
-OutFloatPort.java \
-OutInt16Port.java \
-OutInt32Port.java \
-OutInt64Port.java \
-OutInt8Port.java \
 OutLongLongPort.java \
 OutLongPort.java \
 OutOctetPort.java \
@@ -140,10 +134,6 @@ OutPortBase.java \
 OutSDDSPort.java \
 OutVITA49Port.java \
 OutShortPort.java \
-OutUInt16Port.java \
-OutUInt32Port.java \
-OutUInt64Port.java \
-OutUInt8Port.java \
 OutULongLongPort.java \
 OutULongPort.java \
 OutUShortPort.java \
@@ -169,9 +159,12 @@ time/Comparator.java \
 time/DefaultComparator.java \
 time/utils.java
 
-# Input ports are generated via sed for ease of maintenance
+# Numeric ports are generated via sed for ease of maintenance
 $(JAVA_SRCDIR)/bulkio/In%Port.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/InPort.java.template
 	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/InPort.java.template > $@
+
+$(JAVA_SRCDIR)/bulkio/Out%Port.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/OutPort.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/OutPort.java.template > $@
 
 JAVA_BUILT_SOURCE =  $(JAVA_SRCDIR)/bulkio/InDoublePort.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InFloatPort.java
@@ -183,6 +176,16 @@ JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt16Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt32Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt64Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt8Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutDoublePort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutFloatPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt16Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt32Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt64Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt8Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt16Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt32Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt64Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt8Port.java
 
 
 java_JARFILES = bulkio.jar

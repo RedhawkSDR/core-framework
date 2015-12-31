@@ -8,3 +8,13 @@ InUInt16Port.java
 InUInt32Port.java
 InUInt64Port.java
 InUInt8Port.java
+OutDoublePort.java
+OutFloatPort.java
+OutInt16Port.java
+OutInt32Port.java
+OutInt64Port.java
+OutInt8Port.java
+OutUInt16Port.java
+OutUInt32Port.java
+OutUInt64Port.java
+OutUInt8Port.java
