@@ -155,7 +155,7 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
 		       bulkio.SriListener sriCallback ){
         this.name = portName;
 	this.logger = logger;
-        this.stats = new linkStatistics(this.name, new Int8Size() );
+        this.stats = new linkStatistics(this.name, 1);
         this.sriUpdateLock = new Object();
         this.statUpdateLock = new Object();
         this.currentHs = new HashMap<String, sriState>();

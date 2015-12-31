@@ -142,7 +142,7 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements org.ossie.comp
 		       bulkio.time.Comparator   timeCmp )
     {
 	this.name = portName;
-        this.stats = new linkStatistics(this.name, new Int8Size() );
+        this.stats = new linkStatistics(this.name, 1);
 	this.sriUpdateLock = new Object();
 	this.statUpdateLock = new Object();
 	this.attachedStreamMap = new HashMap<String, SDDSStreamDefinition>();

@@ -61,12 +61,9 @@ public class linkStatistics  {
     protected double flushTime;
     /** @generated */
     protected String portName;
-        
-    /**
-     * @generated
-     */
-    public linkStatistics(String portName, SizeOf<?> dataum ) {
-	this.sizeof = dataum.sizeof();
+
+    public linkStatistics(String portName, int sizeof) {
+	this.sizeof = sizeof;
 	this.enabled = true;
 	this.bitSize = this.sizeof * 8.0;
 	this.historyWindow = 10;
@@ -87,6 +84,11 @@ public class linkStatistics  {
 	for (int i = 0; i < historyWindow; ++i) {
 	    this.receivedStatistics[i] = new statPoint();
 	}
+    }
+
+    @Deprecated
+    public linkStatistics(String portName, SizeOf<?> dataum) {
+	this(portName, dataum.sizeof());
     }
 
     public List< String > getActiveStreamIDs() {

@@ -404,7 +404,7 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
             }
             this.outConnections.put(connectionId, port);
             this.active = true;
-            this.stats.put(connectionId, new linkStatistics( this.name, new Int8Size() ) );
+            this.stats.put(connectionId, new linkStatistics(this.name, 1));
 
             boolean portListed = false;
 

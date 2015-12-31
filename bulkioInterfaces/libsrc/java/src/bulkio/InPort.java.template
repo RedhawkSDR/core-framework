@@ -155,7 +155,7 @@ public class In@name@Port extends BULKIO.jni.@idl@POA implements org.ossie.compo
 
         this.name = portName;
         this.logger = logger;
-        this.stats = new linkStatistics(this.name, new @name@Size() );
+        this.stats = new linkStatistics(this.name, @size@);
         this.sriUpdateLock = new Object();
         this.statUpdateLock = new Object();
         this.currentHs = new HashMap<String, sriState>();

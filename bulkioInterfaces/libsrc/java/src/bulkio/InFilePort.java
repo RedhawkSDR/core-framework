@@ -160,7 +160,7 @@ public class InFilePort extends BULKIO.jni.dataFilePOA implements PortBase {
 
         this.name = portName;
 	this.logger = logger;
-        this.stats = new linkStatistics(this.name, new Int8Size() );
+        this.stats = new linkStatistics(this.name, 1);
         this.sriUpdateLock = new Object();
         this.statUpdateLock = new Object();
         this.currentHs = new HashMap<String, sriState>();

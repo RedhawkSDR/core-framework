@@ -16,11 +16,11 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
      */
     protected final int maxSamplesPerPush;
 
-    protected OutStreamPort(String portName, Logger logger, ConnectionEventListener connectionListener, SizeOf< ? > size) {
+    protected OutStreamPort(String portName, Logger logger, ConnectionEventListener connectionListener, int size) {
         super(portName, logger, connectionListener, size);
         // Make sure max samples per push is even so that complex data case is
         // handled properly
-        this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/this.sizeof.sizeof()) & 0xFFFFFFFE;
+        this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/this.sizeof) & 0xFFFFFFFE;
     }
 
     protected void doPushPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID) {

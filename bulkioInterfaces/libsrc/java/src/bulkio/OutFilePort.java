@@ -39,7 +39,7 @@ public class OutFilePort extends OutDataPort<dataFileOperations,String> {
     }
 
     public OutFilePort(String portName, Logger logger, ConnectionEventListener eventCB) {
-        super(portName, logger, eventCB, new Int8Size());
+        super(portName, logger, eventCB, 1);
         if (this.logger != null) {
             this.logger.debug("bulkio.OutPort CTOR port: " + portName);
         }

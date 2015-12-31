@@ -33,7 +33,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
     /**
      * Size of a single element
      */
-    protected final SizeOf< ? > sizeof;
+    protected final int sizeof;
 
     /**
      * CORBA transfer limit in samples

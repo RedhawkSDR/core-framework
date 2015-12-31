@@ -405,7 +405,7 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
             }
             this.outConnections.put(connectionId, port);
             this.active = true;
-            this.stats.put(connectionId, new linkStatistics( this.name, new Int8Size() ) );
+            this.stats.put(connectionId, new linkStatistics(this.name, 1));
 
             boolean portListed = false;
 
