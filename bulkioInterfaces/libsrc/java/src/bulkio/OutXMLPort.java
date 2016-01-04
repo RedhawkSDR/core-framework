@@ -49,6 +49,13 @@ public class OutXMLPort extends OutDataPort<dataXMLOperations,String> {
         return BULKIO.dataXMLHelper.id();
     }
 
+    public void pushPacket(String data, boolean endOfStream, String streamID)
+    {
+        // Pass a null timestamp; it will never be referenced in the base class
+        // and can be safely dropped in sendPacket().
+        super.pushPacket(data, null, endOfStream, streamID);
+    }
+
     protected dataXMLOperations narrow(org.omg.CORBA.Object obj) {
         return BULKIO.dataXMLHelper.narrow(obj);
     }

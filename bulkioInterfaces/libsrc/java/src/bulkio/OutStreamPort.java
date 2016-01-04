@@ -23,7 +23,15 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
         this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/this.sizeof) & 0xFFFFFFFE;
     }
 
-    protected void doPushPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID) {
+    /**
+     * Sends an array of samples.
+     */
+    public void pushPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
+    {
+        super.pushPacket(data, time, endOfStream, streamID);
+    }
+
+    protected void pushPacketData(A data, PrecisionUTCTime time, boolean endOfStream, String streamID) {
         pushOversizedPacket(data, time, endOfStream, streamID);
     }
 

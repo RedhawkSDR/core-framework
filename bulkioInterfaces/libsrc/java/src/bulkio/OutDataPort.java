@@ -145,7 +145,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
     /**
      * Sends an array of samples.
      */
-    public void pushPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
+    protected void pushPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
     {
         if (logger != null) {
             logger.trace("bulkio.OutPort pushPacket  ENTER (port=" + this.name +")");
@@ -158,7 +158,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
                 this.pushSRI(header);
             }
 
-            doPushPacket(data, time, endOfStream, streamID);
+            pushPacketData(data, time, endOfStream, streamID);
         }
 
         if (logger != null) {
@@ -166,7 +166,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
         }
     }
 
-    protected void doPushPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
+    protected void pushPacketData(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
     {
         pushSinglePacket(data, time, endOfStream, streamID);
     }

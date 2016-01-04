@@ -49,6 +49,11 @@ public class OutFilePort extends OutDataPort<dataFileOperations,String> {
         return BULKIO.dataFileHelper.id();
     }
 
+    public void pushPacket(String data, PrecisionUTCTime time, boolean endOfStream, String streamID)
+    {
+        super.pushPacket(data, time, endOfStream, streamID);
+    }
+
     protected dataFileOperations narrow(org.omg.CORBA.Object obj) {
         return BULKIO.dataFileHelper.narrow(obj);
     }
