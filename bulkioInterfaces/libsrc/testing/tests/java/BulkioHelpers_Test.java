@@ -333,7 +333,7 @@ public class BulkioHelpers_Test {
         // Negative fractional seconds have whole portion, but seconds whole seconds have
         // fractional portion with larger magnitude than remaining fractional seconds 
         time.twsec = 100.75;
-time.tfsec = -2.5;
+        time.tfsec = -2.5;
         bulkio.time.utils.normalize(time);
         assertTimeEquals("Normalizing both with negative fractional > 1", bulkio.time.utils.create(98.0, 0.25), time);
     }
