@@ -18,22 +18,18 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-
-import numpy
-from numpy import *
-import platform
-import bluefile  
-
-from ossie.cf import CF
-import ossie.properties
-from ossie.cf import CF, CF__POA
-from new import classobj
-import array
-import ossie.utils.bulkio.bulkio_helpers as bulkio_helpers
 import os
 import threading
 import time
-import logging
+import numpy
+from new import classobj
+
+from ossie.cf import CF, CF__POA
+import ossie.properties
+from ossie.utils.bulkio import bulkio_helpers
+from ossie.utils.log4py import logging
+
+import bluefile
 try:
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
 except:
@@ -41,8 +37,6 @@ except:
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
-
-arch = platform.machine()
 
 def hdr_to_sri(hdr, stream_id):
     """
@@ -315,9 +309,9 @@ class BlueFileReader(object):
         if hdr['format'].startswith('C'):
             data = data.flatten()
             if hdr['format'].endswith('F'):
-                data = data.view(float32)
+                data = data.view(numpy.float32)
             elif hdr['format'].endswith('D'):
-                data = data.view(float64)
+                data = data.view(numpy.float64)
 
         sz = len(data)      
         self.done = False
