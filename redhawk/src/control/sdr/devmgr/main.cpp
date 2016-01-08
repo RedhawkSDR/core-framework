@@ -78,17 +78,6 @@ static void shutdown (void)
 }
 
 
-// System Signal Interrupt Handler will allow proper ORB shutdown
-void signal_catcher( int sig )
-{
-    // IMPORTANT Don't call exit(...) in this function
-    // issue all CORBA calls that you need for cleanup here before calling ORB shutdown
-    if ((( sig == SIGINT ) || (sig == SIGQUIT) || (sig == SIGTERM))) {
-        shutdown();
-    }
-}
-
-
 static void child_exit (int sig)
 {
     pid_t pid;
