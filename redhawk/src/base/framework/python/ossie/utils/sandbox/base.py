@@ -253,8 +253,12 @@ class Sandbox(object):
         execparams, initProps, configure = self._sortOverrides(prf, execparams, configure)
 
         # Determine the class for the component type and create a new instance.
-        return self._launch(profile, spd, scd, prf, instanceName, refid, impl, execparams,
-                            initProps, initialize, configure, debugger, window, timeout)
+        comp = self._create(profile, spd, scd, prf, instanceName, refid, impl)
+
+        # Launch the entry point (handled by subclass).
+        self._launch(comp, execparams, initProps, initialize, configure, debugger, window, timeout)
+
+        return comp
 
     def shutdown(self):
         # Clean up any event channels created by this sandbox instance.
@@ -366,7 +370,16 @@ class SandboxComponent(ComponentBase):
             self._propRef[str(prop.id)] = prop.defValue
 
         self.__ports = None
+
+        self._parseComponentXMLFiles()
+        self._buildAPI()
         
+    def _getExecparams(self):
+        execparams = dict((str(ep.id), ep.defValue) for ep in self._getPropertySet(kinds=('execparam',), includeNil=False))
+        for prop in self._getPropertySet(kinds=('property',), includeNil=False, commandline=True):
+            execparams[str(prop.id)] = prop.defValue
+        return execparams
+
     def _readProfile(self):
         sdrRoot = self._sandbox.getSdrRoot()
         self._spd, self._scd, self._prf = sdrRoot.readProfile(self._profile)

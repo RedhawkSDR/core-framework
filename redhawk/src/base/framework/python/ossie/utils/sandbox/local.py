@@ -95,12 +95,8 @@ class LocalSdrRoot(SdrRoot):
 
 
 class LocalMixin(object):
-    def __init__(self, execparams, debugger, window, timeout):
+    def __init__(self):
         self._process = None
-        self._execparams = execparams
-        self._debugger = debugger
-        self._window = window
-        self._timeout = timeout
 
     def _launch(self):
         launchFactory = self.__launcher__(self._profile, self._refid, self._instanceName, self._sandbox)
@@ -130,21 +126,9 @@ class LocalMixin(object):
             return False
 
 class LocalSandboxComponent(SandboxComponent, LocalMixin):
-    def __init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl,
-                 execparams, debugger, window, timeout):
+    def __init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl):
         SandboxComponent.__init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl)
-        LocalMixin.__init__(self, execparams, debugger, window, timeout)
-
-        self._kick()
-
-        self._parseComponentXMLFiles()
-        self._buildAPI()
-
-    def _getExecparams(self):
-        execparams = dict((str(ep.id), ep.defValue) for ep in self._getPropertySet(kinds=('execparam',), includeNil=False))
-        commandline_property = dict((str(ep.id), ep.defValue) for ep in self._getPropertySet(kinds=('property',), includeNil=False,commandline=True))
-        execparams.update(commandline_property)
-        return execparams
+        LocalMixin.__init__(self)
 
     def releaseObject(self):
         try:
@@ -196,14 +180,14 @@ class LocalDevice(LocalSandboxComponent, Device):
 class LocalService(Service, LocalMixin):
     __launcher__ = launcher.ServiceLauncher
     
-    def __init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl,
-                 execparams, debugger, window, timeout):
+    def __init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl):
         self._sandbox = sdrroot
         Service.__init__(self, None, profile, spd, scd, prf, instanceName, refid, impl)
-        LocalMixin.__init__(self, execparams, debugger, window, timeout)
+        LocalMixin.__init__(self)
+
+    def _kick(self):
         self.ref = self._launch()
         self.populateMemberFunctions()
-        
         self._sandbox._addService(self)
 
     def _getExecparams(self):
@@ -272,12 +256,19 @@ class LocalSandbox(Sandbox):
                 return False
         return True
 
-    def _launch(self, profile, spd, scd, prf, instanceName, refid, impl, execparams,
-                initProps, initialize, configProps, debugger, window, timeout):
+    def _create(self, profile, spd, scd, prf, instanceName, refid, impl):
         # Determine the class for the component type and create a new instance.
         comptype = scd.get_componenttype()
         clazz = self.__comptypes__[comptype]
-        comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, execparams, debugger, window, timeout)
+        return clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
+
+    def _launch(self, comp, execparams, initProps, initialize, configProps, debugger, window, timeout):
+        # Store the launch configuration in the component and kick it
+        comp._execparams = execparams
+        comp._debugger = debugger
+        comp._window = window
+        comp._timeout = timeout
+        comp._kick()
 
         try:
             # Occasionally, when a lot of components are launched from the
@@ -294,8 +285,8 @@ class LocalSandbox(Sandbox):
             pass
 
         # Services don't get initialized or configured
-        if comptype == 'service':
-            return comp
+        if not hasattr(comp, 'initialize'):
+            return
 
         # Initialize the component unless asked not to.
         if initialize:
@@ -321,8 +312,6 @@ class LocalSandbox(Sandbox):
                 comp.configure(initvals)
             except:
                 log.exception('Failure in component configuration')
-
-        return comp
 
     def getComponents(self):
         return self.__components.values()

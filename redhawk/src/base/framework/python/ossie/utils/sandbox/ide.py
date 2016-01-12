@@ -81,10 +81,8 @@ class IDESdrRoot(SdrRoot):
 
 
 class IDEMixin(object):
-    def __init__(self, execparams, initProps, configProps):
-        self._execparams = execparams
-        self._initProps = initProps
-        self._configProps = configProps
+    def __init__(self):
+        self._execparams = {}
 
     def _launch(self):
         # Pack the execparams into an array of string-valued properties
@@ -105,23 +103,15 @@ class IDEMixin(object):
 
         return ref
 
-    def _getExecparams(self):
-        return {}
-
     def _terminate(self):
         pass
 
 
 class IDESandboxComponent(SandboxComponent, IDEMixin):
-    def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl, execparams,
-                 initProps, configProps):
-        SandboxComponent.__init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl)
-        IDEMixin.__init__(self, execparams, initProps, configProps)
-        self._parseComponentXMLFiles()
-        self._buildAPI()
 
-    def _getExecparams(self):
-        return dict((str(ep.id), ep.defValue) for ep in self._getPropertySet(kinds=('execparam',), includeNil=False))
+    def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl):
+        SandboxComponent.__init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl)
+        IDEMixin.__init__(self)
 
 
 class IDEComponent(IDESandboxComponent, Resource):
@@ -189,13 +179,14 @@ class IDESandbox(Sandbox):
         # "valid"
         return True
 
-    def _launch(self, profile, spd, scd, prf, instanceName, refid, impl, execparams,
-                initProps, initialize, configProps, debugger, window, timeout):
+    def _create(self, profile, spd, scd, prf, instanceName, refid, impl):
         # Determine the class for the component type and create a new instance.
         clazz = self.__comptypes__[scd.get_componenttype()]
-        comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, execparams, initProps, configProps)
+        return clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
+
+    def _launch(self, comp, execparams, initProps, initialize, configProps, debugger, window, timeout):
+        comp._execparams = execparams
         comp._kick()
-        return comp
 
     def _createResource(self, profile, name, qualifiers=[]):
         log.debug("Creating resource '%s' with profile '%s'", name, profile)
@@ -257,10 +248,9 @@ class IDESandbox(Sandbox):
                 # ask the resource itself.
                 profile = resource._get_softwareProfile()
 
-                # Create the component/device sandbox wrapper, disabling the
-                # automatic launch since it is already running
+                # Create the component/device sandbox wrapper
                 spd, scd, prf = self.getSdrRoot().readProfile(profile)
-                comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, {}, {}, {})
+                comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
                 comp.ref = resource
                 self.__components[instanceName] = comp
             except Exception, e:
