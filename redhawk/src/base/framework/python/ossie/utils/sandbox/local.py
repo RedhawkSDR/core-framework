@@ -196,10 +196,6 @@ class LocalFactory(SandboxFactory):
         return self.getReference(comp)
 
     def setup(self, comp):
-        # Services don't get initialized or configured
-        if not hasattr(comp, 'initialize'):
-            return
-
         # Initialize the component unless asked not to.
         if self._initialize:
             # Set initial property values for 'property' kind properties
@@ -286,6 +282,10 @@ class LocalDeviceFactory(LocalFactory):
 
 
 class LocalServiceFactory(LocalFactory):
+    def setup(self, service):
+        # Services don't get initialized or configured
+        return
+
     def getReference(self, service):
         return DeviceManagerStub.instance().getService(service._instanceName)
 
