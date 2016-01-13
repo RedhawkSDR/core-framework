@@ -20,7 +20,6 @@
 
 import os
 import logging
-import warnings as _warnings
 import time
 
 from ossie import parsers
@@ -28,11 +27,9 @@ from ossie.cf import CF
 from ossie import properties as _properties
 from ossie.utils import log4py
 from ossie.utils import weakobj
-from ossie.utils.model import PortSupplier, PropertySet, ComponentBase, CorbaObject
-from ossie.utils.model import Service, Resource, Device
-from ossie.utils.model.connect import ConnectionManager
 from ossie.utils.uuid import uuid4
-from ossie.utils.sandbox.events import EventChannel
+
+from model import SandboxComponent, SandboxDevice, SandboxEventChannel
 
 log = logging.getLogger(__name__)
 
@@ -365,148 +362,3 @@ class SandboxFactory(object):
 
     def terminate(self, comp):
         raise NotImplementedError('terminate')
-
-
-class SandboxResource(ComponentBase):
-    def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl):
-        super(SandboxResource,self).__init__(spd, scd, prf, instanceName, refid, impl)
-        self._sandbox = sandbox
-        self._profile = profile
-        self._componentName = spd.get_name()
-        self._propRef = {}
-        self._configRef = {}
-        self._msgSupplierHelper = None
-        for prop in self._getPropertySet(kinds=('configure',), modes=('readwrite', 'writeonly'), includeNil=False):
-            if prop.defValue is None:
-                continue
-            self._configRef[str(prop.id)] = prop.defValue
-        for prop in self._getPropertySet(kinds=('property',), includeNil=False, commandline=False):
-            if prop.defValue is None:
-                continue
-            self._propRef[str(prop.id)] = prop.defValue
-
-        self.__ports = None
-
-        self._parseComponentXMLFiles()
-        self._buildAPI()
-        
-    def _getExecparams(self):
-        execparams = dict((str(ep.id), ep.defValue) for ep in self._getPropertySet(kinds=('execparam',), includeNil=False))
-        for prop in self._getPropertySet(kinds=('property',), includeNil=False, commandline=True):
-            execparams[str(prop.id)] = prop.defValue
-        return execparams
-
-    def _readProfile(self):
-        sdrRoot = self._sandbox.getSdrRoot()
-        self._spd, self._scd, self._prf = sdrRoot.readProfile(self._profile)
-
-    def _kick(self):
-        self.ref = self._factory.launch(self)
-        self._factory.setup(self)
-        self._sandbox._registerComponent(self)
-
-    @property
-    def _ports(self):
-        #DEPRECATED: replaced with ports
-        _warnings.warn("'_ports' is deprecated", DeprecationWarning)
-        return self.ports
- 
-    @property
-    def ports(self):
-        if self.__ports == None:
-            self.__ports = self._populatePorts()
-        return self.__ports
-        
-    def reset(self):
-        self.releaseObject()
-        self._readProfile()
-        self._kick()
-        self.initialize()
-        self._parseComponentXMLFiles()
-        self._buildAPI()
-        # Clear cached ports list
-        self.__ports = None
-
-    def releaseObject(self):
-        # Break any connections involving this component.
-        manager = ConnectionManager.instance()
-        for _identifier, (identifier, uses, provides) in manager.getConnections().items():
-            if uses.hasComponent(self) or provides.hasComponent(self):
-                manager.breakConnection(identifier, uses)
-                manager.unregisterConnection(identifier, uses)
-        self._sandbox._unregisterComponent(self)
-
-        # Call superclass release, which calls the CORBA method.
-        super(SandboxResource,self).releaseObject()
-
-        # Allow the launch factory to peform any follow-up cleanup.
-        if self._factory:
-            self._factory.terminate(self)
-
-    def api(self):
-        '''
-        Inspect interfaces and properties for the component
-        '''
-        print "Component [" + str(self._componentName) + "]:"
-        PortSupplier.api(self)
-        PropertySet.api(self)
-
-    def sendMessage(self, msg, msgId=None, msgPort=None, restrict=True ):
-        """
-        send a message out a component's message event port
-        
-        msg : dictionary of information to send or an any object
-        msgId : select a specific message structure property from the component, if None will 
-                choose first available message property structure for the component
-        msgPort : select a specified message event port to use, if None will try to autoselect
-        restrict : if True, will restrict msgId to only those message ids defined by the component
-                   if False, will allow for ad-hoc message to be sent
-        """
-        if self._msgSupplierHelper == None:
-            import ossie.utils
-            self._msgSupplierHelper = ossie.utils.sb.io_helpers.MsgSupplierHelper(self)
-        if self.ref and self.ref._get_started() == True and self._msgSupplierHelper: 
-            return self._msgSupplierHelper.sendMessage( msg, msgId, msgPort, restrict )
-        return False
-
-class SandboxComponent(SandboxResource, Resource):
-    def __init__(self, *args, **kwargs):
-        Resource.__init__(self)
-        SandboxResource.__init__(self, *args, **kwargs)
-
-    def __repr__(self):
-        return "<%s component '%s' at 0x%x>" % (self._sandbox.getType(), self._instanceName, id(self))
-
-
-class SandboxDevice(SandboxResource, Device):
-    def __init__(self, *args, **kwargs):
-        Device.__init__(self)
-        SandboxResource.__init__(self, *args, **kwargs)
-
-        Device._buildAPI(self)
-
-    def __repr__(self):
-        return "<%s device '%s' at 0x%x>" % (self._sandbox.getType(), self._instanceName, id(self))
-
-    def api(self):
-        SandboxResource.api(self)
-        print
-        Device.api(self)
-
-
-class SandboxEventChannel(EventChannel, CorbaObject):
-    def __init__(self, name, sandbox):
-        EventChannel.__init__(self, name)
-        CorbaObject.__init__(self)
-        self._sandbox = sandbox
-        self._instanceName = name
-
-    def destroy(self):
-        # Break any connections involving this event channel.
-        manager = ConnectionManager.instance()
-        for _identifier, (identifier, uses, provides) in manager.getConnections().items():
-            if provides.hasComponent(self):
-                manager.breakConnection(identifier, uses)
-                manager.unregisterConnection(identifier, uses)
-        self._sandbox._removeEventChannel(self._instanceName)
-        EventChannel.destroy(self)
