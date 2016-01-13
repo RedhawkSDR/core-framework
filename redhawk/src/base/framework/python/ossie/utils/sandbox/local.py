@@ -25,11 +25,20 @@ import time
 import copy
 import pydoc
 
+from omniORB import CORBA
+
 from ossie import parsers
 from ossie.utils.model.connect import ConnectionManager
 
 from base import SdrRoot, Sandbox, SandboxFactory
+from devmgr import DeviceManagerStub
+from naming import NamingContextStub
 import launcher
+
+# Prepare the ORB
+orb = CORBA.ORB_init()
+poa = orb.resolve_initial_references("RootPOA")
+poa._get_the_POAManager().activate()
 
 log = logging.getLogger(__name__)
 
@@ -97,19 +106,47 @@ class LocalFactory(SandboxFactory):
         self._execparams = execparams
         self._debugger = debugger
         self._window = window
-        self._timeout = timeout
         self._initProps = initProps
         self._initialize = initialize
         self._configProps = configProps
 
+        # Provided timeout takes precedence
+        if timeout is None:
+            # Default timeout depends on whether the debugger might increase
+            # the startup time
+            if debugger: # and debugger.modifiesCommand():
+                timeout = 60.0
+            else:
+                timeout = 10.0
+        self._timeout = timeout
+
     def launch(self, comp):
-        launchFactory = self.__launcher__(comp._profile, comp._refid, comp._instanceName, comp._sandbox)
+        # Build up the full set of command line arguments
         execparams = comp._getExecparams()
         execparams.update(self._execparams)
-        proc, ref = launchFactory.execute(comp._spd, comp._impl, execparams, self._debugger, self._window, self._timeout)
-        # Store the process on the component proxy
-        comp._process = proc
-        return ref
+        execparams.update(self._getRequiredExecparams(comp))
+
+        launchFactory = launcher.LocalLauncher(comp._profile, comp._instanceName, comp._sandbox)
+        process = launchFactory.execute(comp._spd, comp._impl, execparams, self._debugger, self._window)
+
+        # Wait for the component to register with the virtual naming service or
+        # DeviceManager.
+        timeout = self._timeout
+        sleepIncrement = 0.1
+        while self.getReference(comp) is None:
+            if not process.isAlive():
+                raise RuntimeError, "%s '%s' terminated before registering with virtual environment" % (self._getType(), comp._instanceName)
+            time.sleep(sleepIncrement)
+            timeout -= sleepIncrement
+            if timeout < 0:
+                process.terminate()
+                raise RuntimeError, "%s '%s' did not register with virtual environment"  % (self._getType(), comp._instanceName)
+
+        # Store the process on the component proxy.
+        comp._process = process
+
+        # Return the now-resolved CORBA reference.
+        return self.getReference(comp)
 
     def setup(self, comp):
         # Services don't get initialized or configured
@@ -156,13 +193,64 @@ class LocalFactory(SandboxFactory):
 
 
 class LocalComponentFactory(LocalFactory):
-    __launcher__ = launcher.ResourceLauncher
+    def launch(self, *args, **kwargs):
+        self.__namingContext = NamingContextStub()
+        log.trace('Activating virtual NamingContext')
+        namingContextId = poa.activate_object(self.__namingContext)
+        try:
+            return LocalFactory.launch(self, *args, **kwargs)
+        finally:
+            log.trace('Deactivating virtual NamingContext')
+            poa.deactivate_object(namingContextId)
+            del self.__namingContext
+
+    def getReference(self, component):
+        return self.__namingContext.getObject(component._instanceName)
+
+    def _getRequiredExecparams(self, component):
+        return {'COMPONENT_IDENTIFIER': component._refid,
+                'NAMING_CONTEXT_IOR': orb.object_to_string(self.__namingContext._this()),
+                'PROFILE_NAME': component._profile,
+                'NAME_BINDING': component._instanceName}
+
+    def _getType(self):
+        return 'resource'
+
 
 class LocalDeviceFactory(LocalFactory):
-    __launcher__ = launcher.DeviceLauncher
+    def getReference(self, device):
+        return DeviceManagerStub.instance().getDevice(device._refid)
+
+    def _getRequiredExecparams(self, device):
+        devmgr_stub = DeviceManagerStub.instance()
+        devmgr_ior = orb.object_to_string(devmgr_stub._this())
+        # Create (or reuse) IDM channel.
+        idm_channel = device._sandbox.createEventChannel('IDM_Channel')
+        idm_ior = orb.object_to_string(idm_channel.ref)
+
+        return {'DEVICE_ID': device._refid,
+                'DEVICE_LABEL': device._instanceName,
+                'DEVICE_MGR_IOR': devmgr_ior,
+                'IDM_CHANNEL_IOR': idm_ior,
+                'PROFILE_NAME': device._profile}
+
+    def _getType(self):
+        return 'device'
+
 
 class LocalServiceFactory(LocalFactory):
-    __launcher__ = launcher.ServiceLauncher
+    def getReference(self, service):
+        return DeviceManagerStub.instance().getService(service._instanceName)
+
+    def _getRequiredExecparams(self, service):
+        devmgr_stub = DeviceManagerStub.instance()
+        devmgr_ior = orb.object_to_string(devmgr_stub._this())
+
+        return {'DEVICE_MGR_IOR': devmgr_ior,
+                'SERVICE_NAME': service._instanceName}
+
+    def _getType(self):
+        return 'service'
 
 
 class LocalSandbox(Sandbox):

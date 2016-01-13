@@ -27,23 +27,14 @@ import threading
 import tempfile
 import subprocess
 
-from omniORB import CORBA, URI
-
 from ossie.utils import log4py
 from ossie import parsers
 from ossie.utils.popen import Popen
 
-from devmgr import DeviceManagerStub
-from naming import NamingContextStub
 from debugger import GDB, PDB, Valgrind
 from terminal import XTerm
 
 __all__ = ('ResourceLauncher', 'DeviceLauncher', 'ServiceLauncher')
-
-# Prepare the ORB
-orb = CORBA.ORB_init()
-poa = orb.resolve_initial_references("RootPOA")
-poa._get_the_POAManager().activate()
 
 log = logging.getLogger(__name__)
 
@@ -125,12 +116,15 @@ class DebuggerProcess(object):
         self.__debugger.terminate()
         self.__child.terminate()
 
+    def isAlive(self):
+        return self.__child.isAlive()
+
+
 class LocalLauncher(object):
-    def __init__(self, profile, identifier, name, sandbox):
+    def __init__(self, profile, name, sandbox):
         self._sandbox = sandbox
         self._profile = profile
         self._xmlpath = os.path.dirname(self._profile)
-        self._identifier = identifier
         self._name = name
 
     def _selectImplementation(self, spd):
@@ -152,7 +146,7 @@ class LocalLauncher(object):
             entry_point = os.path.join(self._xmlpath, entry_point)
         return entry_point
 
-    def execute(self, spd, impl, execparams, debugger, window, timeout=None):
+    def execute(self, spd, impl, execparams, debugger, window):
         # Find a suitable implementation.
         if impl:
             implementation = self._getImplementation(spd, impl)
@@ -174,9 +168,6 @@ class LocalLauncher(object):
 
         for varname in ('LD_LIBRARY_PATH', 'PYTHONPATH', 'CLASSPATH'):
             log.trace('%s=%s', varname, environment.get(varname, ''))
-
-        # Get required execparams based on the component type
-        execparams.update(self._getRequiredExecparams())
 
         # Convert execparams into arguments.
         arguments = []
@@ -205,7 +196,6 @@ class LocalLauncher(object):
         if debugger and debugger.modifiesCommand():
             # Run the command in the debugger.
             command, arguments = debugger.wrap(entry_point, arguments)
-            default_timeout = 60.0
             if debugger.isInteractive() and not debugger.canAttach():
                 if not window:
                     window = XTerm()
@@ -213,11 +203,6 @@ class LocalLauncher(object):
         else:
             # Run the command directly.
             command = entry_point
-            default_timeout = 10.0
-
-        # Provided timeout takes precedence
-        if timeout is None:
-            timeout = default_timeout
 
         stdout = None
         if window_mode == 'monitor':
@@ -237,21 +222,6 @@ class LocalLauncher(object):
             command, arguments = window.command(command, arguments)
         process = LocalProcess(command, arguments, environment, stdout)
 
-        # Wait for the component to register with the virtual naming service or
-        # DeviceManager.
-        sleepIncrement = 0.1
-        while self.getReference() is None:
-            if not process.isAlive():
-                raise RuntimeError, "%s '%s' terminated before registering with virtual environment" % (self._getType(), self._name)
-            time.sleep(sleepIncrement)
-            timeout -= sleepIncrement
-            if timeout < 0:
-                process.terminate()
-                raise RuntimeError, "%s '%s' did not register with virtual environment"  % (self._getType(), self._name)
-
-        # Store the CORBA reference.
-        ref = self.getReference()
-
         # Attach a debugger to the process.
         if debugger and debugger.canAttach():
             if not window:
@@ -261,7 +231,7 @@ class LocalLauncher(object):
             debug_process = LocalProcess(debug_command, debug_args)
             process = DebuggerProcess(debug_process, process)
 
-        return process, ref
+        return process
 
     # this function checks that the base dependencies match an impl exactly
     def _equalDeps(self, base, impl):
@@ -403,60 +373,3 @@ class LocalLauncher(object):
                 return
             oldvalue.insert(0,value)
             env[keyname] = ':'.join(oldvalue)
-
-class ResourceLauncher(LocalLauncher):
-    def __init__(self, profile, identifier, name, sdrroot):
-        super(ResourceLauncher,self).__init__(profile, identifier, name, sdrroot)
-        self.__namingContext = NamingContextStub()
-        log.trace('Activating virtual NamingContext')
-        self.__namingContextId = poa.activate_object(self.__namingContext)
-
-    def __del__(self):
-        log.trace('Deactivating virtual NamingContext')
-        poa.deactivate_object(self.__namingContextId)
-
-    def getReference(self):
-        return self.__namingContext.getObject(self._name)
-
-    def _getRequiredExecparams(self):
-        return {'COMPONENT_IDENTIFIER': self._identifier,
-                'NAMING_CONTEXT_IOR': orb.object_to_string(self.__namingContext._this()),
-                'PROFILE_NAME': self._profile,
-                'NAME_BINDING': self._name}
-
-    def _getType(self):
-        return 'resource'
-
-class ServiceLauncher(LocalLauncher):
-    def getReference(self):
-        return DeviceManagerStub.instance().getService(self._name)
-
-    def _getRequiredExecparams(self):
-        devmgr_stub = DeviceManagerStub.instance()
-        devmgr_ior = orb.object_to_string(devmgr_stub._this())
-
-        return {'DEVICE_MGR_IOR': devmgr_ior,
-                'SERVICE_NAME': self._name}
-
-    def _getType(self):
-        return 'service'
-
-class DeviceLauncher(LocalLauncher):
-    def getReference(self):
-        return DeviceManagerStub.instance().getDevice(self._identifier)
-
-    def _getRequiredExecparams(self):
-        devmgr_stub = DeviceManagerStub.instance()
-        devmgr_ior = orb.object_to_string(devmgr_stub._this())
-        # Create (or reuse) IDM channel.
-        idm_channel = self._sandbox.createEventChannel('IDM_Channel')
-        idm_ior = orb.object_to_string(idm_channel.ref)
-
-        return {'DEVICE_ID': self._identifier,
-                'DEVICE_LABEL': self._name,
-                'DEVICE_MGR_IOR': devmgr_ior,
-                'IDM_CHANNEL_IOR': idm_ior,
-                'PROFILE_NAME': self._profile}
-
-    def _getType(self):
-        return 'device'
