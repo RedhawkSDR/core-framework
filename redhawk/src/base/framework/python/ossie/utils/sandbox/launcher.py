@@ -52,17 +52,18 @@ class LocalProcess(object):
                                preexec_fn=os.setpgrp)
         self.__tracker = None
         self.__callback = None
+        self.__children = []
     
     def setTerminationCallback(self, callback):
         if not self.__tracker:
             # Nothing is currently waiting for notification, start monitor.
             name = 'process-%d-tracker' % self.pid()
-            self.__tracker = threading.Thread(name=name, target=self.monitorChild)
+            self.__tracker = threading.Thread(name=name, target=self._monitorProcess)
             self.__tracker.daemon = True
             self.__tracker.start()
         self.__callback = callback
 
-    def monitorChild(self):
+    def _monitorProcess(self):
         try:
             status = self.__process.wait()
         except:
@@ -72,6 +73,10 @@ class LocalProcess(object):
             self.__callback(self.pid(), status)
 
     def terminate(self):
+        for child in self.__children:
+            child.terminate()
+        self.__children = []
+
         for sig, timeout in self.STOP_SIGNALS:
             try:
                 log.debug('Killing process group %s with signal %s', self.__process.pid, sig)
@@ -103,18 +108,8 @@ class LocalProcess(object):
     def isAlive(self):
         return self.__process and self.__process.poll() is None
 
-
-class DebuggerProcess(object):
-    def __init__(self, debugger, child):
-        self.__debugger = debugger
-        self.__child = child
-
-    def terminate(self):
-        self.__debugger.terminate()
-        self.__child.terminate()
-
-    def isAlive(self):
-        return self.__child.isAlive()
+    def addChild(self, process):
+        self.__children.append(process)
 
 
 class LocalLauncher(object):

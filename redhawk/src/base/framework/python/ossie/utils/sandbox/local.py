@@ -196,7 +196,7 @@ class LocalFactory(SandboxFactory):
             debug_command, debug_args = debugger.attach(process)
             debug_command, debug_args = window.command(debug_command, debug_args)
             debug_process = launcher.LocalProcess(debug_command, debug_args)
-            process = launcher.DebuggerProcess(debug_process, process)
+            process.addChild(debug_process)
 
         # Store the process on the component proxy.
         comp._process = process
