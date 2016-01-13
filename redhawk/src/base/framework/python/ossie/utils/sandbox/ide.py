@@ -34,7 +34,8 @@ from ossie.cf import CF
 
 from ossie.utils.model import CorbaObject
 
-from base import SdrRoot, Sandbox, SandboxComponent, SandboxDevice, SandboxFactory
+from base import SdrRoot, Sandbox, SandboxFactory
+from model import SandboxComponent, SandboxDevice
 
 log = logging.getLogger(__name__)
 

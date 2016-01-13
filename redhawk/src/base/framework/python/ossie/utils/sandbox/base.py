@@ -19,13 +19,9 @@
 #
 
 import os
-import logging
-import time
 
 from ossie import parsers
-from ossie.cf import CF
-from ossie import properties as _properties
-from ossie.utils import log4py
+from ossie.utils.log4py import logging
 from ossie.utils import weakobj
 from ossie.utils.uuid import uuid4
 

@@ -23,14 +23,13 @@ import logging
 import fnmatch
 import time
 import copy
-import warnings
+import pydoc
 
 from ossie import parsers
 from ossie.utils.model.connect import ConnectionManager
 
 from base import SdrRoot, Sandbox, SandboxFactory
 import launcher
-import pydoc
 
 log = logging.getLogger(__name__)
 
