@@ -27,10 +27,30 @@ from ossie.utils.model.connect import ConnectionManager
 
 from ossie.utils.sandbox.events import EventChannel
 
-class SandboxResource(ComponentBase):
-    def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl):
-        super(SandboxResource,self).__init__(spd, scd, prf, instanceName, refid, impl)
+class SandboxMixin(object):
+    def __init__(self, sandbox):
         self._sandbox = sandbox
+
+    def _kick(self):
+        self.ref = self._factory.launch(self)
+        self._factory.setup(self)
+        self._register()
+
+    def _terminate(self):
+        if self._factory:
+            self._factory.terminate(self)
+
+    def _register(self):
+        raise NotImplemented('_register')
+
+    def _getExecparams(self):
+        raise NotImplemented('_getExecparams')
+
+
+class SandboxResource(ComponentBase, SandboxMixin):
+    def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl):
+        ComponentBase.__init__(self, spd, scd, prf, instanceName, refid, impl)
+        SandboxMixin.__init__(self, sandbox)
         self._profile = profile
         self._componentName = spd.get_name()
         self._propRef = {}
@@ -59,9 +79,7 @@ class SandboxResource(ComponentBase):
         sdrRoot = self._sandbox.getSdrRoot()
         self._spd, self._scd, self._prf = sdrRoot.readProfile(self._profile)
 
-    def _kick(self):
-        self.ref = self._factory.launch(self)
-        self._factory.setup(self)
+    def _register(self):
         self._sandbox._registerComponent(self)
 
     @property
@@ -99,8 +117,7 @@ class SandboxResource(ComponentBase):
         super(SandboxResource,self).releaseObject()
 
         # Allow the launch factory to peform any follow-up cleanup.
-        if self._factory:
-            self._factory.terminate(self)
+        SandboxMixin._terminate(self)
 
     def api(self):
         '''
@@ -136,20 +153,14 @@ class SandboxDevice(SandboxResource, Device):
         Device.api(self)
 
 
-class SandboxService(Service):
+class SandboxService(Service, SandboxMixin):
     def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl):
-        self._sandbox = sandbox
         Service.__init__(self, None, profile, spd, scd, prf, instanceName, refid, impl)
+        SandboxMixin.__init__(self, sandbox)
 
-    def _kick(self):
-        self.ref = self._factory.launch(self)
-        self._factory.setup(self)
+    def _register(self):
         self.populateMemberFunctions()
         self._sandbox._addService(self)
-
-    def _terminate(self):
-        if self._factory:
-            self._factory.terminate(self)
 
     def _getExecparams(self):
         if not self._prf:
