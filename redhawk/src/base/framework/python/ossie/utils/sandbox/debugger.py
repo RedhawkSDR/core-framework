@@ -50,7 +50,7 @@ class GDB(Debugger):
         return self._attach
 
     def attach(self, process):
-        return self.command, [process.command(), str(process.pid())]
+        return self.command, ['-p', str(process.pid())]
 
     def wrap(self, command, arguments):
         return self.command, ['--args', command] + arguments
