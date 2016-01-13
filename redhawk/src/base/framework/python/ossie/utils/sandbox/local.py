@@ -208,7 +208,7 @@ class LocalFactory(SandboxFactory):
         # Initialize the component unless asked not to.
         if self._initialize:
             # Set initial property values for 'property' kind properties
-            initvals = copy.deepcopy(comp._propRef)
+            initvals = comp._getInitializeProperties()
             initvals.update(self._initProps)
             try:
                 comp.initializeProperties(initvals)
@@ -221,9 +221,8 @@ class LocalFactory(SandboxFactory):
         # Configure component with default values unless requested not to (e.g.,
         # when launched from a SAD file).
         if self._configProps is not None:
-            # Make a copy of the default properties, and update with any passed-in
-            # properties that were not already passed to initializeProperties()
-            initvals = copy.deepcopy(comp._configRef)
+            # Set initial configuration properties (pre-2.0 components)
+            initvals = comp._getInitialConfigureProperties()
             initvals.update(self._configProps)
             try:
                 comp.configure(initvals)

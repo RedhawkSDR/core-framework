@@ -53,26 +53,32 @@ class SandboxResource(ComponentBase, SandboxMixin):
         SandboxMixin.__init__(self, sandbox)
         self._profile = profile
         self._componentName = spd.get_name()
-        self._propRef = {}
-        self._configRef = {}
-        for prop in self._getPropertySet(kinds=('configure',), modes=('readwrite', 'writeonly'), includeNil=False):
-            if prop.defValue is None:
-                continue
-            self._configRef[str(prop.id)] = prop.defValue
-        for prop in self._getPropertySet(kinds=('property',), includeNil=False, commandline=False):
-            if prop.defValue is None:
-                continue
-            self._propRef[str(prop.id)] = prop.defValue
 
         self.__ports = None
 
         self._parseComponentXMLFiles()
         self._buildAPI()
-        
+
+    def _getInitializeProperties(self):
+        properties = {}
+        for prop in self._getPropertySet(kinds=('property',), includeNil=False, commandline=False):
+            if prop.defValue is None:
+                continue
+            properties[prop.id] = prop.defValue
+        return properties
+
+    def _getInitialConfigureProperties(self):
+        properties = {}
+        for prop in self._getPropertySet(kinds=('configure',), modes=('readwrite', 'writeonly'), includeNil=False):
+            if prop.defValue is None:
+                continue
+            properties[prop.id] = prop.defValue
+        return properties
+
     def _getExecparams(self):
         execparams = dict((str(ep.id), ep.defValue) for ep in self._getPropertySet(kinds=('execparam',), includeNil=False))
         for prop in self._getPropertySet(kinds=('property',), includeNil=False, commandline=True):
-            execparams[str(prop.id)] = prop.defValue
+            execparams[prop.id] = prop.defValue
         return execparams
 
     def _readProfile(self):

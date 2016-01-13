@@ -813,7 +813,7 @@ def loadSADFile(filename, props={}):
                 if len(launchedComponents) > 0:
                     for comp in launchedComponents:
                         if instanceID == comp._refid:
-                            componentProps = comp._configRef
+                            componentProps = comp._getInitialConfigureProperties()
                             if instanceID == assemblyControllerRefid:
                                 assemblyController = True
                             sandboxComponent = comp
