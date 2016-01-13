@@ -50,26 +50,24 @@ class LocalProcess(object):
                                cwd=os.getcwd(), env=environment,
                                stdout=stdout, stderr=subprocess.STDOUT,
                                preexec_fn=os.setpgrp)
-        self.__tracker = threading.Thread(target=self.monitorChild)
-        self.__tracker.daemon = True
-        self.__tracker.start()
+        self.__callback = None
     
+    def setTerminationCallback(self, callback):
+        if not self.__callback:
+            # Nothing is currently waiting for notification, start monitor.
+            tracker = threading.Thread(target=self.monitorChild)
+            tracker.daemon = True
+            tracker.start()
+        self.__callback = callback
+
     def monitorChild(self):
-        pid = self.__process.pid
         try:
-          self.__process.communicate()[0]
-          if self.__terminateRequested or self.__process.returncode == 0:
-              return
-          for idx in range(len(self.__arguments)):
-              if self.__arguments[idx] == 'NAME_BINDING':
-                  if len(self.__arguments)>=idx+1:
-                      print 'Component '+self.__arguments[idx+1]+' (pid='+str(pid)+') has died'
-                  else:
-                      print 'Component with process id '+str(pid)+'has died'
+            status = self.__process.wait()
         except:
-            if self.__terminateRequested or self.__process.returncode == 0:
-                return
-            print 'Component with process id '+str(pid)+'has died'
+            # If wait fails, don't bother with notification.
+            return
+        if self.__callback:
+            self.__callback(self.pid(), status)
 
     def terminate(self):
         for sig, timeout in self.STOP_SIGNALS:

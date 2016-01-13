@@ -159,6 +159,15 @@ class LocalFactory(SandboxFactory):
         process = launcher.launchSoftpkg(comp._profile, comp._sandbox, comp._spd,
                                          comp._impl, execparams, debugger, window)
 
+        # Set up a callback to notify when the component exits abnormally.
+        name = comp._instanceName
+        def terminate_callback(pid, status):
+            if status > 0:
+                print 'Component %s (pid=%d) exited with status %d' % (name, pid, status)
+            elif status < 0:
+                print 'Component %s (pid=%d) terminated with signal %d' % (name, pid, -status)
+        process.setTerminationCallback(terminate_callback)
+
         # Wait for the component to register with the virtual naming service or
         # DeviceManager.
         if self._timeout is None:
