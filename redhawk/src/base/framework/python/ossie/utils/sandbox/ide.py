@@ -143,11 +143,7 @@ class IDESandbox(Sandbox):
             return IDEFactory(execparams, debugger, window, timeout)
         return None
 
-    def _launch(self, comp, execparams, initProps, initialize, configProps, debugger, window, timeout):
-        comp._execparams = execparams
-        comp._kick()
-
-    def _createResource(self, profile, name, qualifiers=[]):
+    def _createResource(self, profile, name, execparams={}, impl=None):
         log.debug("Creating resource '%s' with profile '%s'", name, profile)
 
         rescFactory = self.__ide.getResourceFactoryByProfile(profile)

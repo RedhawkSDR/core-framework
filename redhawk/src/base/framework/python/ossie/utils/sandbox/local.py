@@ -243,36 +243,6 @@ class LocalSandbox(Sandbox):
             raise NotImplementedError("No support for component type '%s'" % comptype)
         return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout)
 
-    def _launch(self, comp, execparams, initProps, initialize, configProps, debugger, window, timeout):
-        # Services don't get initialized or configured
-        if not hasattr(comp, 'initialize'):
-            return
-
-        # Initialize the component unless asked not to.
-        if initialize:
-            # Set initial property values for 'property' kind properties
-            initvals = copy.deepcopy(comp._propRef)
-            initvals.update(initProps)
-            try:
-                comp.initializeProperties(initvals)
-            except:
-                log.exception('Failure in component property initialization')
-
-            # Actually initialize the component
-            comp.initialize()
-
-        # Configure component with default values unless requested not to (e.g.,
-        # when launched from a SAD file).
-        if configProps is not None:
-            # Make a copy of the default properties, and update with any passed-in
-            # properties that were not already passed to initializeProperties()
-            initvals = copy.deepcopy(comp._configRef)
-            initvals.update(configProps)
-            try:
-                comp.configure(initvals)
-            except:
-                log.exception('Failure in component configuration')
-
     def getComponents(self):
         return self.__components.values()
 
