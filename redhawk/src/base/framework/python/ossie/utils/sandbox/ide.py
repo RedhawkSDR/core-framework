@@ -140,7 +140,7 @@ class IDESandbox(Sandbox):
 
     def _createFactory(self, comptype, execparams, initProps, initialize, configProps, debugger, window, timeout):
         if comptype in ('resource', 'device', 'loadabledevice', 'executabledevice'):
-            return IDEFactory(execparams, debugger, window, timeout)
+            return IDEFactory(execparams)
         return None
 
     def _createResource(self, profile, name, execparams={}, impl=None):
