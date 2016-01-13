@@ -50,14 +50,16 @@ class LocalProcess(object):
                                cwd=os.getcwd(), env=environment,
                                stdout=stdout, stderr=subprocess.STDOUT,
                                preexec_fn=os.setpgrp)
+        self.__tracker = None
         self.__callback = None
     
     def setTerminationCallback(self, callback):
-        if not self.__callback:
+        if not self.__tracker:
             # Nothing is currently waiting for notification, start monitor.
-            tracker = threading.Thread(target=self.monitorChild)
-            tracker.daemon = True
-            tracker.start()
+            name = 'process-%d-tracker' % self.pid()
+            self.__tracker = threading.Thread(name=name, target=self.monitorChild)
+            self.__tracker.daemon = True
+            self.__tracker.start()
         self.__callback = callback
 
     def monitorChild(self):
