@@ -192,7 +192,7 @@ class LocalFactory(SandboxFactory):
         # Attach a debugger to the process.
         if debugger and debugger.canAttach():
             if not window:
-                window = XTerm('%s (%s)' % (debugger.name(), comp._instanceName))
+                window = terminal.XTerm('%s (%s)' % (debugger.name(), comp._instanceName))
             debug_command, debug_args = debugger.attach(process)
             debug_command, debug_args = window.command(debug_command, debug_args)
             debug_process = launcher.LocalProcess(debug_command, debug_args)
