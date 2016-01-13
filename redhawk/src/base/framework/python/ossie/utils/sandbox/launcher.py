@@ -31,9 +31,7 @@ from ossie.utils import log4py
 from ossie import parsers
 from ossie.utils.popen import Popen
 
-from terminal import XTerm
-
-__all__ = ('ResourceLauncher', 'DeviceLauncher', 'ServiceLauncher')
+__all__ = ('LocalProcess', 'launchSoftpkg')
 
 log = logging.getLogger(__name__)
 
@@ -120,11 +118,10 @@ class DebuggerProcess(object):
 
 
 class LocalLauncher(object):
-    def __init__(self, profile, name, sandbox):
+    def __init__(self, profile, sandbox):
         self._sandbox = sandbox
         self._profile = profile
         self._xmlpath = os.path.dirname(self._profile)
-        self._name = name
 
     def _selectImplementation(self, spd):
         for implementation in spd.get_implementation():
@@ -182,8 +179,6 @@ class LocalLauncher(object):
             # Run the command in the debugger.
             command, arguments = debugger.wrap(entry_point, arguments)
             if debugger.isInteractive() and not debugger.canAttach():
-                if not window:
-                    window = XTerm()
                 window_mode = 'direct'
         else:
             # Run the command directly.
@@ -196,7 +191,7 @@ class LocalLauncher(object):
                 tempdir = tempfile.mkdtemp()
                 fifoname = os.path.join(tempdir, 'fifo')
                 os.mkfifo(fifoname)
-                window_command, window_args = window.command('/usr/bin/tail', ['-n', '+0', '-f', fifoname], self._name)
+                window_command, window_args = window.command('/usr/bin/tail', ['-n', '+0', '-f', fifoname])
                 window_proc = LocalProcess(window_command, window_args)
                 stdout = open(fifoname, 'w')
                 os.unlink(fifoname)
@@ -206,15 +201,6 @@ class LocalLauncher(object):
             # Run the command directly in a window (typically, in the debugger).
             command, arguments = window.command(command, arguments)
         process = LocalProcess(command, arguments, environment, stdout)
-
-        # Attach a debugger to the process.
-        if debugger and debugger.canAttach():
-            if not window:
-                window = XTerm()
-            debug_command, debug_args = debugger.attach(process)
-            debug_command, debug_args = window.command(debug_command, debug_args)
-            debug_process = LocalProcess(debug_command, debug_args)
-            process = DebuggerProcess(debug_process, process)
 
         return process
 
@@ -359,6 +345,6 @@ class LocalLauncher(object):
             oldvalue.insert(0,value)
             env[keyname] = ':'.join(oldvalue)
 
-def launchSoftpkg(profile, name, sandbox, spd, impl, execparams, debugger, window):
-    launcher = LocalLauncher(profile, name, sandbox)
+def launchSoftpkg(profile, sandbox, spd, impl, execparams, debugger, window):
+    launcher = LocalLauncher(profile, sandbox)
     return launcher.execute(spd, impl, execparams, debugger, window)

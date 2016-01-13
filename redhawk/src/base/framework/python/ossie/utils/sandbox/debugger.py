@@ -55,6 +55,9 @@ class GDB(Debugger):
     def wrap(self, command, arguments):
         return self.command, ['--args', command] + arguments
 
+    def name(self):
+        return 'gdb'
+
 class PDB(Debugger):
     def __init__(self):
         super(PDB,self).__init__(PDB.findPDB())
@@ -73,6 +76,8 @@ class PDB(Debugger):
                 return filename
         raise RuntimeError, 'pdb cannot be found'
 
+    def name(self):
+        return 'pdb'
 
 class Valgrind(Debugger):
     def __init__(self, quiet=False, verbose=False, **opts):
@@ -102,3 +107,5 @@ class Valgrind(Debugger):
     def wrap(self, command, arguments):
         return self.command, self.arguments + [command] + arguments
 
+    def name(self):
+        return 'valgrind'

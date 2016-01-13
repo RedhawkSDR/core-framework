@@ -35,6 +35,7 @@ from devmgr import DeviceManagerStub
 from naming import NamingContextStub
 import launcher
 from debugger import GDB, PDB, Valgrind
+import terminal
 
 # Prepare the ORB
 orb = CORBA.ORB_init()
@@ -134,8 +135,29 @@ class LocalFactory(SandboxFactory):
                 log.warning('Cannot run debugger %s (%s)', debugger, e)
                 debugger = None
 
-        process = launcher.launchSoftpkg(comp._profile, comp._instanceName, comp._sandbox, comp._spd,
-                                         comp._impl, execparams, debugger, self._window)
+        # If using an interactive debugger that directly runs the command, put
+        # it in a window so it doesn't compete for the terminal.
+        window = self._window
+        if debugger and debugger.modifiesCommand():
+            if debugger.isInteractive() and not debugger.canAttach():
+                if not window:
+                    window = 'xterm'
+
+        # Allow symbolic names for windows
+        if isinstance(window, basestring):
+            try:
+                if window == 'xterm':
+                    window = terminal.XTerm(comp._instanceName)
+                elif window == 'gnome-terminal':
+                    window = terminal.GnomeTerm(comp._instanceName)
+                else:
+                    raise RuntimeError, 'not supported'
+            except Exception, e:
+                log.warning('Cannot run terminal %s (%s)', window, e)
+                debugger = None
+
+        process = launcher.launchSoftpkg(comp._profile, comp._sandbox, comp._spd,
+                                         comp._impl, execparams, debugger, window)
 
         # Wait for the component to register with the virtual naming service or
         # DeviceManager.
@@ -157,6 +179,15 @@ class LocalFactory(SandboxFactory):
             if timeout < 0:
                 process.terminate()
                 raise RuntimeError, "%s '%s' did not register with virtual environment"  % (self._getType(), comp._instanceName)
+
+        # Attach a debugger to the process.
+        if debugger and debugger.canAttach():
+            if not window:
+                window = XTerm('%s (%s)' % (debugger.name(), comp._instanceName))
+            debug_command, debug_args = debugger.attach(process)
+            debug_command, debug_args = window.command(debug_command, debug_args)
+            debug_process = launcher.LocalProcess(debug_command, debug_args)
+            process = launcher.DebuggerProcess(debug_process, process)
 
         # Store the process on the component proxy.
         comp._process = process
