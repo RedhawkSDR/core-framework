@@ -29,7 +29,7 @@ from ossie.utils import log4py
 from ossie.utils import weakobj
 from ossie.utils.uuid import uuid4
 
-from model import SandboxComponent, SandboxDevice, SandboxEventChannel
+from model import SandboxComponent, SandboxDevice, SandboxService, SandboxEventChannel
 
 log = logging.getLogger(__name__)
 
@@ -236,6 +236,8 @@ class Sandbox(object):
             clazz = SandboxComponent
         elif comptype in ('device', 'loadabledevice', 'executabledevice'):
             clazz = SandboxDevice
+        elif comptype == 'service':
+            clazz = SandboxService
         else:
             raise NotImplementedError("No support for component type '%s'" % comptype)
 
@@ -256,7 +258,11 @@ class Sandbox(object):
 
         # Determine the class for the component type and create a new instance.
         comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
-        comp._factory = self._createFactory(comptype, execparams, initProps, initialize, configure, debugger, window, timeout)
+        factory = self._createFactory(comptype, execparams, initProps, initialize, configure, debugger, window, timeout)
+        if not factory:
+            raise NotImplementedError("No support for component type '%s'" % comptype)
+        comp._factory = factory
+
         # Launch the component
         comp._kick()
 

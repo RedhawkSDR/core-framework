@@ -26,7 +26,6 @@ import copy
 import warnings
 
 from ossie import parsers
-from ossie.utils.model import Service
 from ossie.utils.model.connect import ConnectionManager
 
 from base import SdrRoot, Sandbox, SandboxFactory
@@ -166,37 +165,6 @@ class LocalDeviceFactory(LocalFactory):
 class LocalServiceFactory(LocalFactory):
     __launcher__ = launcher.ServiceLauncher
 
-class LocalService(Service):
-    def __init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl):
-        self._sandbox = sdrroot
-        Service.__init__(self, None, profile, spd, scd, prf, instanceName, refid, impl)
-
-    def _kick(self):
-        self.ref = self._launch()
-        self.populateMemberFunctions()
-        self._sandbox._addService(self)
-
-    def _getExecparams(self):
-        if not self._prf:
-            return {}
-        execparams = {}
-        for prop in self._prf.get_simple():
-            # Skip non-execparam properties
-            kinds = set(k.get_kindtype() for k in prop.get_kind())
-            if ('execparam' not in kinds) and ('property' not in kinds):
-                continue
-            if 'property' in kinds:
-                if prop.get_commandline() == 'false':
-                    continue
-            # Only include properties with values
-            value = prop.get_value()
-            if value is not None:
-                execparams[prop.get_id()] = value
-        return execparams
-
-    def __repr__(self):
-        return "<local service '%s' at 0x%x>" % (self._instanceName, id(self))
-
 
 class LocalSandbox(Sandbox):
     def __init__(self, sdrroot):
@@ -239,8 +207,10 @@ class LocalSandbox(Sandbox):
             clazz = LocalComponentFactory
         elif comptype in ('device', 'loadabledevice', 'executabledevice'):
             clazz = LocalDeviceFactory
+        elif comptype == 'service':
+            clazz = LocalServiceFactory
         else:
-            raise NotImplementedError("No support for component type '%s'" % comptype)
+            return None
         return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout)
 
     def getComponents(self):

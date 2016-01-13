@@ -22,7 +22,7 @@ import warnings
 
 from ossie.utils.model import CorbaObject
 from ossie.utils.model import PortSupplier, PropertySet, ComponentBase
-from ossie.utils.model import Resource, Device
+from ossie.utils.model import Resource, Device, Service
 from ossie.utils.model.connect import ConnectionManager
 
 from ossie.utils.sandbox.events import EventChannel
@@ -134,6 +134,43 @@ class SandboxDevice(SandboxResource, Device):
         SandboxResource.api(self)
         print
         Device.api(self)
+
+
+class SandboxService(Service):
+    def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl):
+        self._sandbox = sandbox
+        Service.__init__(self, None, profile, spd, scd, prf, instanceName, refid, impl)
+
+    def _kick(self):
+        self.ref = self._factory.launch(self)
+        self._factory.setup(self)
+        self.populateMemberFunctions()
+        self._sandbox._addService(self)
+
+    def _terminate(self):
+        if self._factory:
+            self._factory.terminate(self)
+
+    def _getExecparams(self):
+        if not self._prf:
+            return {}
+        execparams = {}
+        for prop in self._prf.get_simple():
+            # Skip non-execparam properties
+            kinds = set(k.get_kindtype() for k in prop.get_kind())
+            if ('execparam' not in kinds) and ('property' not in kinds):
+                continue
+            if 'property' in kinds:
+                if prop.get_commandline() != 'true':
+                    continue
+            # Only include properties with values
+            value = prop.get_value()
+            if value is not None:
+                execparams[prop.get_id()] = value
+        return execparams
+
+    def __repr__(self):
+        return "<%s service '%s' at 0x%x>" % (self._instanceName, self._sandbox.getType(), id(self))
 
 
 class SandboxEventChannel(EventChannel, CorbaObject):
