@@ -152,9 +152,6 @@ class LocalLauncher(object):
             entry_point = os.path.join(self._xmlpath, entry_point)
         return entry_point
 
-    def _getDomainPath(self):
-        return {"DOM_PATH" : "/dom/sandbox/"}
-
     def execute(self, spd, impl, execparams, debugger, window, timeout=None):
         # Find a suitable implementation.
         if impl:
@@ -180,14 +177,6 @@ class LocalLauncher(object):
 
         # Get required execparams based on the component type
         execparams.update(self._getRequiredExecparams())
-
-        '''
-        execparams.update(self._getDomainPath())
-        if execparams.has_key('LOGGING_CONFIG_URI'):
-            if execparams['LOGGING_CONFIG_URI'].find("sca:") == 0:
-                execparams['LOGGING_CONFIG_URI'] += "?fs=" + orb.object_to_string(self.__namingContext._this()),DeviceManagerStub
-                pass
-        '''
 
         # Convert execparams into arguments.
         arguments = []
