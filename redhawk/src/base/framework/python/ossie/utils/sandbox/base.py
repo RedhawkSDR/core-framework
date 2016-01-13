@@ -29,6 +29,7 @@ from ossie import properties as _properties
 from ossie.utils import log4py
 from ossie.utils import weakobj
 from ossie.utils.model import PortSupplier, PropertySet, ComponentBase, CorbaObject
+from ossie.utils.model import Service, Resource, Device
 from ossie.utils.model.connect import ConnectionManager
 from ossie.utils.uuid import uuid4
 from ossie.utils.sandbox.events import EventChannel
@@ -234,8 +235,12 @@ class Sandbox(object):
 
         # Check that we can launch the component.
         comptype = scd.get_componenttype()
-        if comptype not in self.__comptypes__:
-            raise NotImplementedError, "No support for component type '%s'" % comptype
+        if comptype == 'resource':
+            clazz = SandboxComponent
+        elif comptype in ('device', 'loadabledevice', 'executabledevice'):
+            clazz = SandboxDevice
+        else:
+            raise NotImplementedError("No support for component type '%s'" % comptype)
 
         # Generate/check instance name.
         if not instanceName:
@@ -253,10 +258,10 @@ class Sandbox(object):
         execparams, initProps, configure = self._sortOverrides(prf, execparams, configure)
 
         # Determine the class for the component type and create a new instance.
-        comp = self._create(profile, spd, scd, prf, instanceName, refid, impl)
-
-        # Launch the entry point (handled by subclass).
-        self._launch(comp, execparams, initProps, initialize, configure, debugger, window, timeout)
+        comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
+        comp._factory = self._createFactory(comptype, execparams, initProps, initialize, configure, debugger, window, timeout)
+        # Launch the component
+        comp._kick()
 
         return comp
 
@@ -351,9 +356,20 @@ class Sandbox(object):
             yield prop, self._getInitializationStage(prop, prop.get_configurationkind())
 
 
-class SandboxComponent(ComponentBase):
+class SandboxFactory(object):
+    def launch(self, comp):
+        raise NotImplementedError('launch')
+
+    def setup(self, comp):
+        raise NotImplementedError('setup')
+
+    def terminate(self, comp):
+        raise NotImplementedError('terminate')
+
+
+class SandboxResource(ComponentBase):
     def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl):
-        super(SandboxComponent,self).__init__(spd, scd, prf, instanceName, refid, impl)
+        super(SandboxResource,self).__init__(spd, scd, prf, instanceName, refid, impl)
         self._sandbox = sandbox
         self._profile = profile
         self._componentName = spd.get_name()
@@ -385,7 +401,8 @@ class SandboxComponent(ComponentBase):
         self._spd, self._scd, self._prf = sdrRoot.readProfile(self._profile)
 
     def _kick(self):
-        self.ref = self._launch()
+        self.ref = self._factory.launch(self)
+        self._factory.setup(self)
         self._sandbox._registerComponent(self)
 
     @property
@@ -418,7 +435,13 @@ class SandboxComponent(ComponentBase):
                 manager.breakConnection(identifier, uses)
                 manager.unregisterConnection(identifier, uses)
         self._sandbox._unregisterComponent(self)
-        super(SandboxComponent,self).releaseObject()
+
+        # Call superclass release, which calls the CORBA method.
+        super(SandboxResource,self).releaseObject()
+
+        # Allow the launch factory to peform any follow-up cleanup.
+        if self._factory:
+            self._factory.terminate(self)
 
     def api(self):
         '''
@@ -445,6 +468,31 @@ class SandboxComponent(ComponentBase):
         if self.ref and self.ref._get_started() == True and self._msgSupplierHelper: 
             return self._msgSupplierHelper.sendMessage( msg, msgId, msgPort, restrict )
         return False
+
+class SandboxComponent(SandboxResource, Resource):
+    def __init__(self, *args, **kwargs):
+        Resource.__init__(self)
+        SandboxResource.__init__(self, *args, **kwargs)
+
+    def __repr__(self):
+        return "<%s component '%s' at 0x%x>" % (self._sandbox.getType(), self._instanceName, id(self))
+
+
+class SandboxDevice(SandboxResource, Device):
+    def __init__(self, *args, **kwargs):
+        Device.__init__(self)
+        SandboxResource.__init__(self, *args, **kwargs)
+
+        Device._buildAPI(self)
+
+    def __repr__(self):
+        return "<%s device '%s' at 0x%x>" % (self._sandbox.getType(), self._instanceName, id(self))
+
+    def api(self):
+        SandboxResource.api(self)
+        print
+        Device.api(self)
+
 
 class SandboxEventChannel(EventChannel, CorbaObject):
     def __init__(self, name, sandbox):

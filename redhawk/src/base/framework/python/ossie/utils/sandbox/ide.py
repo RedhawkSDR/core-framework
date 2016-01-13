@@ -32,9 +32,9 @@ if not hasattr(ExtendedCF, 'Sandbox'):
     from ossie.cf import ExtendedCF
 from ossie.cf import CF
 
-from ossie.utils.model import Resource, Device, CorbaObject
+from ossie.utils.model import CorbaObject
 
-from base import SdrRoot, Sandbox, SandboxComponent
+from base import SdrRoot, Sandbox, SandboxComponent, SandboxDevice, SandboxFactory
 
 log = logging.getLogger(__name__)
 
@@ -80,62 +80,26 @@ class IDESdrRoot(SdrRoot):
         return 'REDHAWK IDE virtual SDR'
 
 
-class IDEMixin(object):
-    def __init__(self):
-        self._execparams = {}
+class IDEFactory(SandboxFactory):
+    def __init__(self, execparams):
+        self._execparams = execparams
 
-    def _launch(self):
-        # Pack the execparams into an array of string-valued properties
-        properties = [CF.DataType(k, to_any(str(v))) for k, v in self._execparams.iteritems()]
-        # Pack the remaining props by having the component do the conversion
-        properties.extend(self._itemToDataType(k,v) for k,v in self._initProps.iteritems())
-        properties.extend(self._itemToDataType(k,v) for k,v in self._configProps.iteritems())
+    def launch(self, comp):
+        execparams = comp._getExecparams()
+        execparams.update(self._execparams)
 
-        # Tell the IDE to launch a specific implementation, if given
-        if self._impl is not None:
-            properties.append(CF.DataType('__implementationID', to_any(self._impl)))
-
-        ref = self._sandbox._createResource(self._profile, self._instanceName, properties)
-
+        ref = comp._sandbox._createResource(comp._profile, comp._instanceName, execparams, comp._impl)
         # The IDE sandbox API only allows us to specify the instance name, not
         # the identifier, so update by querying the component itself
-        self._refid = ref._get_identifier()
+        comp._refid = ref._get_identifier()
 
         return ref
 
-    def _terminate(self):
+    def setup(self, comp):
         pass
 
-
-class IDESandboxComponent(SandboxComponent, IDEMixin):
-
-    def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl):
-        SandboxComponent.__init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl)
-        IDEMixin.__init__(self)
-
-
-class IDEComponent(IDESandboxComponent, Resource):
-    def __init__(self, *args, **kwargs):
-        Resource.__init__(self)
-        IDESandboxComponent.__init__(self, *args, **kwargs)
-
-    def __repr__(self):
-        return "<IDE component '%s' at 0x%x>" % (self._instanceName, id(self))
-    
-
-class IDEDevice(IDESandboxComponent, Device):
-    def __init__(self, *args, **kwargs):
-        Device.__init__(self)
-        IDESandboxComponent.__init__(self, *args, **kwargs)
-        Device._buildAPI(self)
-
-    def __repr__(self):
-        return "<IDE device '%s' at 0x%x>" % (self._instanceName, id(self))
-
-    def api(self):
-        IDESandboxComponent.api(self)
-        print
-        Device.api(self)
+    def terminate(self, comp):
+        pass
 
 
 class IDEService(CorbaObject):
@@ -148,11 +112,6 @@ class IDEService(CorbaObject):
 
 
 class IDESandbox(Sandbox):
-    __comptypes__ = {
-        'resource': IDEComponent,
-        'device':   IDEDevice,
-        }
-
     def __init__(self, ideRef):
         super(IDESandbox, self).__init__()
         self.__ide = ideRef
@@ -179,10 +138,10 @@ class IDESandbox(Sandbox):
         # "valid"
         return True
 
-    def _create(self, profile, spd, scd, prf, instanceName, refid, impl):
-        # Determine the class for the component type and create a new instance.
-        clazz = self.__comptypes__[scd.get_componenttype()]
-        return clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
+    def _createFactory(self, comptype, execparams, initProps, initialize, configProps, debugger, window, timeout):
+        if comptype in ('resource', 'device', 'loadabledevice', 'executabledevice'):
+            return IDEFactory(execparams, debugger, window, timeout)
+        return None
 
     def _launch(self, comp, execparams, initProps, initialize, configProps, debugger, window, timeout):
         comp._execparams = execparams
@@ -221,12 +180,12 @@ class IDESandbox(Sandbox):
             try:
                 resource = desc.resource
                 if resource._is_a('IDL:CF/Device:1.0'):
-                    clazz = IDEDevice
+                    clazz = SandboxDevice
                     refid = resource._get_identifier()
                     instanceName = resource._get_label()
                     impl = self.__ide._get_deviceManager().getComponentImplementationId(refid)
                 else:
-                    clazz = IDEComponent
+                    clazz = SandboxComponent
                     refid = resource._get_identifier()
                     if ':DCE:' in refid:
                         # Components launched from the Python console have the
@@ -372,3 +331,6 @@ class IDESandbox(Sandbox):
     def getServices(self):
         self._scanServices()
         return self.__services.values()
+
+    def getType(self):
+        return 'IDE'

@@ -26,10 +26,10 @@ import copy
 import warnings
 
 from ossie import parsers
-from ossie.utils.model import Service, Resource, Device
+from ossie.utils.model import Service
 from ossie.utils.model.connect import ConnectionManager
 
-from base import SdrRoot, Sandbox, SandboxComponent
+from base import SdrRoot, Sandbox, SandboxFactory
 import launcher
 import pydoc
 
@@ -94,96 +94,82 @@ class LocalSdrRoot(SdrRoot):
         return super(LocalSdrRoot,self).findProfile(descriptor, objType=objType)
 
 
-class LocalMixin(object):
-    def __init__(self):
-        self._process = None
+class LocalFactory(SandboxFactory):
+    def __init__(self, execparams, initProps, initialize, configProps, debugger, window, timeout):
+        self._execparams = execparams
+        self._debugger = debugger
+        self._window = window
+        self._timeout = timeout
+        self._initProps = initProps
+        self._initialize = initialize
+        self._configProps = configProps
 
-    def _launch(self):
-        launchFactory = self.__launcher__(self._profile, self._refid, self._instanceName, self._sandbox)
-        execparams = self._getExecparams()
+    def launch(self, comp):
+        launchFactory = self.__launcher__(comp._profile, comp._refid, comp._instanceName, comp._sandbox)
+        execparams = comp._getExecparams()
         execparams.update(self._execparams)
-        proc, ref = launchFactory.execute(self._spd, self._impl, execparams, self._debugger, self._window, self._timeout)
-        self._process = proc
-        self._pid = self._process.pid()
+        proc, ref = launchFactory.execute(comp._spd, comp._impl, execparams, self._debugger, self._window, self._timeout)
+        # Store the process on the component proxy
+        comp._process = proc
         return ref
-    
-    def _requestTermination(self):
-        self._process.requestTermination()
 
-    def _getExecparams(self):
-        return {}
+    def setup(self, comp):
+        # Services don't get initialized or configured
+        if not hasattr(comp, 'initialize'):
+            return
 
-    def _terminate(self):
-        if self._process:
+        # Initialize the component unless asked not to.
+        if self._initialize:
+            # Set initial property values for 'property' kind properties
+            initvals = copy.deepcopy(comp._propRef)
+            initvals.update(self._initProps)
+            try:
+                comp.initializeProperties(initvals)
+            except:
+                log.exception('Failure in component property initialization')
+
+            # Actually initialize the component
+            comp.initialize()
+
+        # Configure component with default values unless requested not to (e.g.,
+        # when launched from a SAD file).
+        if self._configProps is not None:
+            # Make a copy of the default properties, and update with any passed-in
+            # properties that were not already passed to initializeProperties()
+            initvals = copy.deepcopy(comp._configRef)
+            initvals.update(self._configProps)
+            try:
+                comp.configure(initvals)
+            except:
+                log.exception('Failure in component configuration')
+
+    def terminate(self, comp):
+        if comp._process:
+            # Give the process a little time (50ms) to exit after releaseObject()
+            # returns before sending termination signals
+            timeout = 50e-3
+            end = time.time() + timeout
+            while comp._process.isAlive() and time.time() < end:
+                time.sleep(1e-3)
+
             # Kill child process (may be multiple processes in the case of a debugger)
-            self._process.terminate()
-            self._process = None
-
-    def _processAlive(self):
-        if self._process:
-            return self._process.isAlive()
-        else:
-            return False
-
-class LocalSandboxComponent(SandboxComponent, LocalMixin):
-    def __init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl):
-        SandboxComponent.__init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl)
-        LocalMixin.__init__(self)
-
-    def releaseObject(self):
-        try:
-            self._requestTermination()
-            super(LocalSandboxComponent,self).releaseObject()
-        except:
-            # Tolerate exceptions (e.g., the object has already been released)
-            # and continue on to ensure that the process still gets terminated.
-            pass
-
-        # Give the process a little time (50ms) to exit after releaseObject()
-        # returns before sending termination signals
-        timeout = 50e-3
-        end = time.time() + timeout
-        while self._processAlive() and time.time() < end:
-            time.sleep(1e-3)
-
-        self._terminate()
+            comp._process.terminate()
+            comp._process = None
 
 
-class LocalComponent(LocalSandboxComponent, Resource):
+class LocalComponentFactory(LocalFactory):
     __launcher__ = launcher.ResourceLauncher
 
-    def __init__(self, *args, **kwargs):
-        Resource.__init__(self)
-        LocalSandboxComponent.__init__(self, *args, **kwargs)
-    def __repr__(self):
-        return "<local component '%s' at 0x%x>" % (self._instanceName, id(self))
-
-
-class LocalDevice(LocalSandboxComponent, Device):
+class LocalDeviceFactory(LocalFactory):
     __launcher__ = launcher.DeviceLauncher
 
-    def __init__(self, *args, **kwargs):
-        Device.__init__(self)
-        LocalSandboxComponent.__init__(self, *args, **kwargs)
-
-        Device._buildAPI(self)
-
-    def __repr__(self):
-        return "<local device '%s' at 0x%x>" % (self._instanceName, id(self))
-
-    def api(self):
-        LocalSandboxComponent.api(self)
-        print
-        Device.api(self)
-
-
-class LocalService(Service, LocalMixin):
+class LocalServiceFactory(LocalFactory):
     __launcher__ = launcher.ServiceLauncher
-    
+
+class LocalService(Service):
     def __init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl):
         self._sandbox = sdrroot
         Service.__init__(self, None, profile, spd, scd, prf, instanceName, refid, impl)
-        LocalMixin.__init__(self)
 
     def _kick(self):
         self.ref = self._launch()
@@ -213,14 +199,6 @@ class LocalService(Service, LocalMixin):
 
 
 class LocalSandbox(Sandbox):
-    __comptypes__ = {
-        'resource':         LocalComponent,
-        'device':           LocalDevice,
-        'loadabledevice':   LocalDevice,
-        'executabledevice': LocalDevice,
-        'service':          LocalService
-        }
-    
     def __init__(self, sdrroot):
         super(LocalSandbox, self).__init__()
         self.__components = {}
@@ -256,34 +234,16 @@ class LocalSandbox(Sandbox):
                 return False
         return True
 
-    def _create(self, profile, spd, scd, prf, instanceName, refid, impl):
-        # Determine the class for the component type and create a new instance.
-        comptype = scd.get_componenttype()
-        clazz = self.__comptypes__[comptype]
-        return clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
+    def _createFactory(self, comptype, execparams, initProps, initialize, configProps, debugger, window, timeout):
+        if comptype == 'resource':
+            clazz = LocalComponentFactory
+        elif comptype in ('device', 'loadabledevice', 'executabledevice'):
+            clazz = LocalDeviceFactory
+        else:
+            raise NotImplementedError("No support for component type '%s'" % comptype)
+        return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout)
 
     def _launch(self, comp, execparams, initProps, initialize, configProps, debugger, window, timeout):
-        # Store the launch configuration in the component and kick it
-        comp._execparams = execparams
-        comp._debugger = debugger
-        comp._window = window
-        comp._timeout = timeout
-        comp._kick()
-
-        try:
-            # Occasionally, when a lot of components are launched from the
-            # sandbox, omniORB may have a cached connection where the other end
-            # has terminated (this is particularly a problem with Java, because
-            # the Sun ORB never closes connections on shutdown). If the new
-            # component just happens to have the same TCP/IP address and port,
-            # the first time we try to reach the component, it will get a
-            # CORBA.COMM_FAILURE exception even though the reference is valid.
-            # In this case, a call to _non_existent() should cause omniORB to
-            # clean up the stale socket, and subsequent calls behave normally.
-            comp.ref._non_existent()
-        except:
-            pass
-
         # Services don't get initialized or configured
         if not hasattr(comp, 'initialize'):
             return
@@ -468,3 +428,6 @@ class LocalSandbox(Sandbox):
                         output_text += '%-30s%-30s%-30s%-30s\n' % (v1,v2,v3,v4)
                     output_text += "\n"
         pydoc.pager(output_text)
+
+    def getType(self):
+        return "local"
