@@ -34,6 +34,7 @@ from base import SdrRoot, Sandbox, SandboxFactory
 from devmgr import DeviceManagerStub
 from naming import NamingContextStub
 import launcher
+from debugger import GDB, PDB, Valgrind
 
 # Prepare the ORB
 orb = CORBA.ORB_init()
@@ -109,15 +110,6 @@ class LocalFactory(SandboxFactory):
         self._initProps = initProps
         self._initialize = initialize
         self._configProps = configProps
-
-        # Provided timeout takes precedence
-        if timeout is None:
-            # Default timeout depends on whether the debugger might increase
-            # the startup time
-            if debugger: # and debugger.modifiesCommand():
-                timeout = 60.0
-            else:
-                timeout = 10.0
         self._timeout = timeout
 
     def launch(self, comp):
@@ -126,12 +118,36 @@ class LocalFactory(SandboxFactory):
         execparams.update(self._execparams)
         execparams.update(self._getRequiredExecparams(comp))
 
-        launchFactory = launcher.LocalLauncher(comp._profile, comp._instanceName, comp._sandbox)
-        process = launchFactory.execute(comp._spd, comp._impl, execparams, self._debugger, self._window)
+        # Set up the debugger if requested
+        debugger = self._debugger
+        if isinstance(debugger, basestring):
+            try:
+                if debugger == 'pdb':
+                    debugger = PDB()
+                elif debugger == 'gdb':
+                    debugger = GDB()
+                elif debugger == 'valgrind':
+                    debugger = Valgrind()
+                else:
+                    raise RuntimeError, 'not supported'
+            except Exception, e:
+                log.warning('Cannot run debugger %s (%s)', debugger, e)
+                debugger = None
+
+        process = launcher.launchSoftpkg(comp._profile, comp._instanceName, comp._sandbox, comp._spd,
+                                         comp._impl, execparams, debugger, self._window)
 
         # Wait for the component to register with the virtual naming service or
         # DeviceManager.
-        timeout = self._timeout
+        if self._timeout is None:
+            # Default timeout depends on whether the debugger might increase
+            # the startup time
+            if debugger and debugger.modifiesCommand():
+                timeout = 60.0
+            else:
+                timeout = 10.0
+        else:
+            timeout = self._timeout
         sleepIncrement = 0.1
         while self.getReference(comp) is None:
             if not process.isAlive():

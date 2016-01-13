@@ -31,7 +31,6 @@ from ossie.utils import log4py
 from ossie import parsers
 from ossie.utils.popen import Popen
 
-from debugger import GDB, PDB, Valgrind
 from terminal import XTerm
 
 __all__ = ('ResourceLauncher', 'DeviceLauncher', 'ServiceLauncher')
@@ -173,20 +172,6 @@ class LocalLauncher(object):
         arguments = []
         for name, value in execparams.iteritems():
             arguments += [name, str(value)]
-
-        if isinstance(debugger,basestring):
-            try:
-                if debugger == 'pdb':
-                    debugger = PDB()
-                elif debugger == 'gdb':
-                    debugger = GDB()
-                elif debugger == 'valgrind':
-                    debugger = Valgrind()
-                else:
-                    raise RuntimeError, 'not supported'
-            except Exception, e:
-                log.warning('Cannot run debugger %s (%s)', debugger, e)
-                debugger = None
 
         if window:
             window_mode = 'monitor'
@@ -373,3 +358,7 @@ class LocalLauncher(object):
                 return
             oldvalue.insert(0,value)
             env[keyname] = ':'.join(oldvalue)
+
+def launchSoftpkg(profile, name, sandbox, spd, impl, execparams, debugger, window):
+    launcher = LocalLauncher(profile, name, sandbox)
+    return launcher.execute(spd, impl, execparams, debugger, window)
