@@ -218,7 +218,16 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertFalse('cmdline' in comp.initialize_props)
         comp.releaseObject()
 
-        # Test with (correct) overrides
+        # Test with overrides
+        comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml',
+                         properties={'cmdline':'override', 'initial':'override'})
+        self.assertFalse('initial' in comp.cmdline_args)
+        self.assertFalse('cmdline' in comp.initialize_props)
+        self.assertEquals('override', comp.cmdline)
+        self.assertEquals('override', comp.initial)
+        comp.releaseObject()
+
+        # Test with overrides in deprecated 'execparams' and 'configure' arguments
         comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml',
                          execparams={'cmdline':'override'}, configure={'initial':'override'})
         self.assertFalse('initial' in comp.cmdline_args)
@@ -227,17 +236,13 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals('override', comp.initial)
         comp.releaseObject()
 
-        # Test with misplaced command line property
+        # Test with misplaced command line property in deprecated 'configure' argument
         comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml',
                          configure={'cmdline':'override'})
         self.assertFalse('initial' in comp.cmdline_args)
         self.assertFalse('cmdline' in comp.initialize_props)
         self.assertEquals('override', comp.cmdline)
         comp.releaseObject()
-
-        # A non-command line property in the wrong override should throw an exception
-        self.assertRaises(ValueError, sb.launch, 'sdr/dom/components/property_init/property_init.spd.xml',
-                          execparams={'initial':'override'})
 
     def test_nestedSoftPkgDeps(self):
         cwd = os.getcwd()

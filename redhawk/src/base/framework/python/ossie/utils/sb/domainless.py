@@ -722,7 +722,8 @@ def loadSADFile(filename, props={}):
                         simple_exec_vals[container.id] = container.value
                 try:
                     # NB: Explicitly request no configure call is made on the component
-                    newComponent = launch(componentName, instanceName,instanceID,configure=None,execparams=simple_exec_vals, objType="components")
+                    newComponent = launch(componentName, instanceName, instanceID, configure=False,
+                                          properties=simple_exec_vals, objType="component")
                     launchedComponents.append(newComponent)
                 except Exception as e:
                     msg = "Failed to launch component '%s', REASON: %s" %  (instanceName, str(e))
@@ -1135,8 +1136,8 @@ def release():
     _getSandbox().shutdown()
 
 def launch(descriptor, instanceName=None, refid=None, impl=None,
-           debugger=None, window=None, execparams={}, configure={},
-           initialize=True, timeout=None, objType=None):
+           debugger=None, window=None, execparams={}, configure=True,
+           initialize=True, timeout=None, objType=None, properties={}):
     """
     Execute a softpkg, returning a proxy object. This is a factory function
     that may return a component, device or service depending on the SPD.
@@ -1160,22 +1161,49 @@ def launch(descriptor, instanceName=None, refid=None, impl=None,
       window       - Terminal to receive command input/output. If not given,
                      output will be directed to stdout, and component will not
                      receive input.
-      execparams   - Execparams to override on component execution.
-      configure    - If a dictionary, a set of key/value pairs to override the
-                     initial configuration values of the component.
-                     If None, defer configuration of the component to the
-                     caller (generally used by loadSADFile).
+      properties   - Dictionary of key/value pairs to override the initial
+                     property values of the component.
+      configure    - If true, call configure() with the default values for
+                     properties of kind 'configure' after launching the
+                     component.
+                     If false, defer configuration to the caller (generally
+                     used by loadSADFile).
+                     DEPRECATED: If a dictionary, a set of key/value pairs
+                     to override the initial configuration values of the
+                     component. All property kinds should be included in the
+                     'properties' argument.
       initialize   - If true, call initialize() after launching the component.
-                     If false, defer initialization to ther caller.
+                     If false, defer initialization to the caller.
       timeout      - Time, in seconds, to wait for launch to complete. If not
                      given, the default is 10 seconds, except when running with
                      a debugger, in which case the default is 60 seconds.
       objType      - The type that you would like to launch. Options are
                      component, device, or service.  If not given, all 
                      types will be searched for with the descriptor given.
-   """
-    return _getSandbox().launch(descriptor, instanceName, refid, impl, debugger,
-                                window, execparams, configure, initialize, timeout, objType)
+
+    Deprecated arguments:
+      execparams   - Execparams to override on component execution. All property
+                     kinds should included in the 'properties' argument.
+    """
+    # Check for deprecation conditions
+    if isinstance(configure, dict) or execparams:
+        if properties:
+            raise ValueError("'properties' argument cannot be mixed with 'configure' overrides or 'execparams'")
+        # Combine the overrides from configure and execparams into a single
+        # properties dictionary, with the latter having precedence
+        properties = {}
+        if isinstance(configure, dict):
+            warnings.warn("'configure' argument is deprecated for property overrides; use 'properties'.", DeprecationWarning)
+            properties.update(configure)
+            configure = True
+        if execparams:
+            warnings.warn("'execparams' argument is deprecated; use 'properties'.", DeprecationWarning)
+            properties.update(execparams)
+
+    return _getSandbox().launch(descriptor=descriptor, instanceName=instanceName, refid=refid,
+                                impl=impl, debugger=debugger, window=window, properties=properties,
+                                initialize=initialize, configure=configure, timeout=timeout,
+                                objType=objType)
 
 def createEventChannel(name, exclusive=False):
     """

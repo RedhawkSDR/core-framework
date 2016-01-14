@@ -214,7 +214,7 @@ class Sandbox(object):
             component.reset()
 
     def launch(self, descriptor, instanceName=None, refid=None, impl=None,
-               debugger=None, window=None, execparams={}, configure={},
+               debugger=None, window=None, properties={}, configure=True,
                initialize=True, timeout=None, objType=None):
         sdrRoot = self.getSdrRoot()
 
@@ -251,11 +251,13 @@ class Sandbox(object):
             raise ValueError, "User-specified identifier '%s' already in use" % (refid,)
 
         # If possible, determine the correct placement of properties
-        execparams, initProps, configure = self._sortOverrides(prf, execparams, configure)
+        execparams, initProps, configProps = self._sortOverrides(prf, properties)
+        if not configure:
+            configProps = None
 
         # Determine the class for the component type and create a new instance.
         comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
-        launcher = self._createLauncher(comptype, execparams, initProps, initialize, configure, debugger, window, timeout)
+        launcher = self._createLauncher(comptype, execparams, initProps, initialize, configProps, debugger, window, timeout)
         if not launcher:
             raise NotImplementedError("No support for component type '%s'" % comptype)
         comp._launcher = launcher
@@ -271,16 +273,10 @@ class Sandbox(object):
             channel.destroy()
         self._eventChannels = {}
 
-    def catalog(self, searchPath=None, objType="components"):
-        files = {}
-        for profile in self.getSdrRoot().readProfiles(objType, searchPath):
-            files[profile['name']] = profile['profile']
-        return files
-
-    def _sortOverrides(self, prf, execparams, configure):
+    def _sortOverrides(self, prf, properties):
         if not prf:
-            # No PRF file, assume the properties are correct as-is
-            return execparams, {}, configure
+            # No PRF file, assume all properties are execparams.
+            return properties, {}, {}
 
         # Classify the PRF properties by which stage of initialization they get
         # set: 'commandline', 'initialize', 'configure' or None (not settable).
@@ -293,34 +289,29 @@ class Sandbox(object):
                 if not name in stages:
                     stages[name] = stage
 
-        # Check properties that do not belong in execparams
-        arguments = {}
-        for key, value in execparams.iteritems():
-            if key in stages and stages[key] != 'commandline':
-                raise ValueError("Non-command line property '%s' given in execparams" % key)
-            arguments[key] = value
+        # Add in system-defined execparams that users are allowed to override
+        stages['DEBUG_LEVEL'] = 'commandline'
+        stages['LOGGING_CONFIG_URI'] = 'commandline'
 
-        # Sort configure properties into the appropriate stage of initialization
+        # Sort properties into the appropriate stage of initialization
+        execparams = {}
         initProps = {}
-        if configure is not None:
-            configProps = {}
-            for key, value in configure.iteritems():
-                if not key in stages:
-                    log.warning("Unknown property '%s'" , key)
-                    continue
-                stage = stages[key]
-                if stage == 'commandline':
-                    arguments[key] = value
-                elif stage == 'initialize':
-                    initProps[key] = value
-                elif stage == 'configure':
-                    configProps[key] = value
-                else:
-                    log.warning("Property '%s' cannot be set at launch", key)
-        else:
-            configProps = None
+        configProps = {}
+        for key, value in properties.iteritems():
+            if not key in stages:
+                log.warning("Unknown property '%s'" , key)
+                continue
+            stage = stages[key]
+            if stage == 'commandline':
+                execparams[key] = value
+            elif stage == 'initialize':
+                initProps[key] = value
+            elif stage == 'configure':
+                configProps[key] = value
+            else:
+                log.warning("Property '%s' cannot be set at launch", key)
 
-        return arguments, initProps, configProps
+        return execparams, initProps, configProps
 
     def _getInitializationStage(self, prop, kinds, commandline=False):
         # Helper method to classify the initialization stage for a particular
