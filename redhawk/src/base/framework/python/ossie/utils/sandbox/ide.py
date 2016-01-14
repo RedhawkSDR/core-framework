@@ -34,7 +34,7 @@ from ossie.cf import CF
 
 from ossie.utils.model import CorbaObject
 
-from base import SdrRoot, Sandbox, SandboxFactory
+from base import SdrRoot, Sandbox, SandboxLauncher
 from model import SandboxComponent, SandboxDevice
 
 log = logging.getLogger(__name__)
@@ -81,7 +81,7 @@ class IDESdrRoot(SdrRoot):
         return 'REDHAWK IDE virtual SDR'
 
 
-class IDEFactory(SandboxFactory):
+class IDELauncher(SandboxLauncher):
     def __init__(self, execparams):
         self._execparams = execparams
 
@@ -139,9 +139,9 @@ class IDESandbox(Sandbox):
         # "valid"
         return True
 
-    def _createFactory(self, comptype, execparams, initProps, initialize, configProps, debugger, window, timeout):
+    def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger, window, timeout):
         if comptype in ('resource', 'device', 'loadabledevice', 'executabledevice'):
-            return IDEFactory(execparams)
+            return IDELauncher(execparams)
         return None
 
     def _createResource(self, profile, name, execparams={}, impl=None):

@@ -32,13 +32,13 @@ class SandboxMixin(object):
         self._sandbox = sandbox
 
     def _kick(self):
-        self.ref = self._factory.launch(self)
-        self._factory.setup(self)
+        self.ref = self._launcher.launch(self)
+        self._launcher.setup(self)
         self._register()
 
     def _terminate(self):
-        if self._factory:
-            self._factory.terminate(self)
+        if self._launcher:
+            self._launcher.terminate(self)
 
     def _register(self):
         raise NotImplemented('_register')
@@ -122,7 +122,7 @@ class SandboxResource(ComponentBase, SandboxMixin):
         # Call superclass release, which calls the CORBA method.
         super(SandboxResource,self).releaseObject()
 
-        # Allow the launch factory to peform any follow-up cleanup.
+        # Allow the launcher to peform any follow-up cleanup.
         SandboxMixin._terminate(self)
 
     def api(self):

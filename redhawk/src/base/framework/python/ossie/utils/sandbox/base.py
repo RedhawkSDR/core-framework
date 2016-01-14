@@ -254,10 +254,10 @@ class Sandbox(object):
 
         # Determine the class for the component type and create a new instance.
         comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
-        factory = self._createFactory(comptype, execparams, initProps, initialize, configure, debugger, window, timeout)
-        if not factory:
+        launcher = self._createLauncher(comptype, execparams, initProps, initialize, configure, debugger, window, timeout)
+        if not launcher:
             raise NotImplementedError("No support for component type '%s'" % comptype)
-        comp._factory = factory
+        comp._launcher = launcher
 
         # Launch the component
         comp._kick()
@@ -355,7 +355,7 @@ class Sandbox(object):
             yield prop, self._getInitializationStage(prop, prop.get_configurationkind())
 
 
-class SandboxFactory(object):
+class SandboxLauncher(object):
     def launch(self, comp):
         raise NotImplementedError('launch')
 

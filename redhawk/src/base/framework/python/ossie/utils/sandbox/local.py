@@ -30,7 +30,7 @@ from omniORB import CORBA
 from ossie import parsers
 from ossie.utils.model.connect import ConnectionManager
 
-from base import SdrRoot, Sandbox, SandboxFactory
+from base import SdrRoot, Sandbox, SandboxLauncher
 from devmgr import DeviceManagerStub
 from naming import NamingContextStub
 import launcher
@@ -103,7 +103,7 @@ class LocalSdrRoot(SdrRoot):
         return super(LocalSdrRoot,self).findProfile(descriptor, objType=objType)
 
 
-class LocalFactory(SandboxFactory):
+class LocalLauncher(SandboxLauncher):
     def __init__(self, execparams, initProps, initialize, configProps, debugger, window, timeout):
         self._execparams = execparams
         self._debugger = debugger
@@ -243,13 +243,13 @@ class LocalFactory(SandboxFactory):
             comp._process = None
 
 
-class LocalComponentFactory(LocalFactory):
+class LocalComponentLauncher(LocalLauncher):
     def launch(self, *args, **kwargs):
         self.__namingContext = NamingContextStub()
         log.trace('Activating virtual NamingContext')
         namingContextId = poa.activate_object(self.__namingContext)
         try:
-            return LocalFactory.launch(self, *args, **kwargs)
+            return LocalLauncher.launch(self, *args, **kwargs)
         finally:
             log.trace('Deactivating virtual NamingContext')
             poa.deactivate_object(namingContextId)
@@ -268,7 +268,7 @@ class LocalComponentFactory(LocalFactory):
         return 'resource'
 
 
-class LocalDeviceFactory(LocalFactory):
+class LocalDeviceLauncher(LocalLauncher):
     def getReference(self, device):
         return DeviceManagerStub.instance().getDevice(device._refid)
 
@@ -289,7 +289,7 @@ class LocalDeviceFactory(LocalFactory):
         return 'device'
 
 
-class LocalServiceFactory(LocalFactory):
+class LocalServiceLauncher(LocalLauncher):
     def setup(self, service):
         # Services don't get initialized or configured
         return
@@ -344,13 +344,13 @@ class LocalSandbox(Sandbox):
                 return False
         return True
 
-    def _createFactory(self, comptype, execparams, initProps, initialize, configProps, debugger, window, timeout):
+    def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger, window, timeout):
         if comptype == 'resource':
-            clazz = LocalComponentFactory
+            clazz = LocalComponentLauncher
         elif comptype in ('device', 'loadabledevice', 'executabledevice'):
-            clazz = LocalDeviceFactory
+            clazz = LocalDeviceLauncher
         elif comptype == 'service':
-            clazz = LocalServiceFactory
+            clazz = LocalServiceLauncher
         else:
             return None
         return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout)
