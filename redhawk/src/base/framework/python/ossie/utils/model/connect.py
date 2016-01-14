@@ -41,7 +41,11 @@ class PortEndpoint(Endpoint):
         return self.port['Port Interface']
 
     def hasComponent(self, component):
-        return self.supplier._refid == component._refid
+        try:
+            return self.supplier._refid == component._refid
+        except AttributeError:
+            # Other object is not a port supplier
+            return False
 
     def getRefid(self):
         return self.supplier._refid
@@ -67,7 +71,11 @@ class ComponentEndpoint(Endpoint):
         return 'IDL:CF/Resource:1.0'
 
     def hasComponent(self, component):
-        return self.component._refid == component._refid
+        try:
+            return self.component._refid == component._refid
+        except AttributeError:
+            # Other object is not a component
+            return False
 
     def getRefid(self):
         return self.component._refid

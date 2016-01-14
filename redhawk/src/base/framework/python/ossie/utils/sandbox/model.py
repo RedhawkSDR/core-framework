@@ -23,7 +23,6 @@ import warnings
 from ossie.utils.model import CorbaObject
 from ossie.utils.model import PortSupplier, PropertySet, ComponentBase
 from ossie.utils.model import Resource, Device, Service
-from ossie.utils.model.connect import ConnectionManager
 
 from ossie.utils.sandbox.events import EventChannel
 
@@ -112,11 +111,7 @@ class SandboxResource(ComponentBase, SandboxMixin):
 
     def releaseObject(self):
         # Break any connections involving this component.
-        manager = ConnectionManager.instance()
-        for identifier, (uses, provides) in manager.getConnections().items():
-            if uses.hasComponent(self) or provides.hasComponent(self):
-                manager.breakConnection(identifier)
-                manager.unregisterConnection(identifier)
+        self._sandbox._breakConnections(self)
         self._sandbox._unregisterComponent(self)
 
         # Call superclass release, which calls the CORBA method.
@@ -199,10 +194,6 @@ class SandboxEventChannel(EventChannel, CorbaObject):
 
     def destroy(self):
         # Break any connections involving this event channel.
-        manager = ConnectionManager.instance()
-        for identifier, (uses, provides) in manager.getConnections().items():
-            if provides.hasComponent(self):
-                manager.breakConnection(identifier)
-                manager.unregisterConnection(identifier)
+        self._sandbox._breakConnections(self)
         self._sandbox._removeEventChannel(self._instanceName)
         EventChannel.destroy(self)

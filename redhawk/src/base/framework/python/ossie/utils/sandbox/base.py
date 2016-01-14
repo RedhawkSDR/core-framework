@@ -23,6 +23,7 @@ import os
 from ossie import parsers
 from ossie.utils.log4py import logging
 from ossie.utils import weakobj
+from ossie.utils.model.connect import ConnectionManager
 from ossie.utils.uuid import uuid4
 
 from model import SandboxComponent, SandboxDevice, SandboxService, SandboxEventChannel
@@ -353,6 +354,14 @@ class Sandbox(object):
             yield prop, self._getInitializationStage(prop, prop.get_configurationkind())
         for prop in prf.get_structsequence():
             yield prop, self._getInitializationStage(prop, prop.get_configurationkind())
+
+    def _breakConnections(self, target):
+        # Break any connections involving this object.
+        manager = ConnectionManager.instance()
+        for identifier, (uses, provides) in manager.getConnections().items():
+            if uses.hasComponent(target) or provides.hasComponent(target):
+                manager.breakConnection(identifier)
+                manager.unregisterConnection(identifier)
 
 
 class SandboxLauncher(object):
