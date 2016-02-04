@@ -21,8 +21,7 @@
 AC_INIT(bulkioInterfaces, 2.0.4)
 AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [3:0:1])
 
-#AM_INIT_AUTOMAKE([nostdinc subdir-objects])
-AM_INIT_AUTOMAKE([nostdinc])
+AM_INIT_AUTOMAKE([nostdinc subdir-objects])
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
