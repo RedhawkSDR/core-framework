@@ -75,6 +75,8 @@ if test x"$HAVE_EXPAT" = xno ; then
 fi
 
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.0.0])
+OMNIORB_INCLUDEDIR=`pkg-config --variable=includedir omniORB4`
+AC_SUBST(OMNIORB_INCLUDEDIR)
 PKG_CHECK_MODULES([OMNITHREAD], [omnithread3 >= 4.0.0])
 PKG_CHECK_MODULES([OMNIDYNAMIC], [omniDynamic4 >= 4.0.0])
 

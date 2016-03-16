@@ -223,6 +223,22 @@ namespace ossie {
         // Set up a handler for retrying calls to the provided object on a COMM_FAILURE exception.
         void setObjectCommFailureRetries (CORBA::Object_ptr obj, int numRetries);
 
+        namespace internal {
+            // Implementation of reference-to-servant lookup for generic type
+            PortableServer::ServantBase* getLocalServant(CORBA::Object_ptr object);
+        }
+
+        // If the object reference is to a servant in this process space, return a pointer to
+        // the local servant; otherwise, return a null pointer
+        template <class T>
+        T* getLocalServant(CORBA::Object_ptr object) {
+            PortableServer::ServantBase* servant = internal::getLocalServant(object);
+            if (servant) {
+                return dynamic_cast<T*>(servant);
+            }
+            return 0;
+        }
+
         // Mapping of C++ types to type codes.
         template <typename T>
         static CORBA::TypeCode_ptr TypeCode (void)
