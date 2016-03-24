@@ -19,7 +19,6 @@
  */
 #ifdef   HAVE_LOG4CXX
 #include <iostream>
-#include <apr_file_io.h>
 #include <log4cxx/helpers/loglog.h>
 #include <log4cxx/helpers/optionconverter.h>
 #include <log4cxx/helpers/synchronized.h>
@@ -32,10 +31,7 @@
 #include <log4cxx/rolling/rolloverdescription.h>
 #include <log4cxx/rolling/fixedwindowrollingpolicy.h>
 #include <log4cxx/rolling/sizebasedtriggeringpolicy.h>
-#if !defined(LOG4CXX)
-#define LOG4CXX 1
-#endif
-#include <log4cxx/helpers/aprinitializer.h>
+
 
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
@@ -185,7 +181,7 @@ int  RH_SyncRollingAppender::_get_mem( const std::string &fname) {
   
   region.swap(tregion);
 
-  return 0;
+  return retval;
 }
 
 

@@ -4,8 +4,9 @@ TESTS = appender_test proc_log cleanmem
 check_PROGRAMS = $(TESTS)
 logger_top=../../../base/framework/logging
 logger_libsrc=$(logger_top)
-logger_lib_SRC=$(logger_libsrc)/RH_SyncRollingAppender.cpp
-logger_lib_INC=-I$(logger_libsrc)
+#logger_lib_INC=-I$(logger_libsrc)
+logger_lib_SRC=../../../base/framework/logging/RH_SyncRollingAppender.cpp
+logger_lib_INC=-I../../../base/framework/logging
 
 appender_test_SOURCES = appender_test.cpp test_suites.cpp $(logger_lib_SRC) 
 

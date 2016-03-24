@@ -49,6 +49,7 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
                         logging/rh_logger.cpp \
                         logging/StringInputStream.cpp \
                         logging/RH_LogEventAppender.cpp \
+                        logging/RH_SyncRollingAppender.cpp \
                         EventChannelSupport.cpp \
 	                Events.cpp \
 			Component.cpp \
