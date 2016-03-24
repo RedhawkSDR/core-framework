@@ -1,0 +1,13 @@
+#
+#
+logging_top=../..
+logging_libsrc_top=$logging_top/libsrc
+export LD_LIBRARY_PATH=$logging_top/idl/.libs:$logging_libsrc_top/.libs:${LD_LIBRARY_PATH}
+make  appender_test 
+make  proc_log
+make  cleanmem
+
+./appender_test test_one
+
+./cleanmem  MP_RedhawkTest
+
