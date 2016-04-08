@@ -275,6 +275,30 @@ void OutputStream<PortTraits>::eraseKeyword(const std::string& name)
 }
 
 template <class PortTraits>
+void OutputStream<PortTraits>::write(const scalar_buffer& data, const BULKIO::PrecisionUTCTime& time)
+{
+  _impl->write(data.data(), data.size(), time);
+}
+
+template <class PortTraits>
+void OutputStream<PortTraits>::write(const scalar_buffer& data, const std::list<bulkio::SampleTimestamp>& times)
+{
+  _impl->write(data.data(), data.size(), times);
+}
+
+template <class PortTraits>
+void OutputStream<PortTraits>::write(const complex_buffer& data, const BULKIO::PrecisionUTCTime& time)
+{
+  _impl->write(data.data(), data.size(), time);
+}
+
+template <class PortTraits>
+void OutputStream<PortTraits>::write(const complex_buffer& data, const std::list<bulkio::SampleTimestamp>& times)
+{
+  _impl->write(data.data(), data.size(), times);
+}
+
+template <class PortTraits>
 void OutputStream<PortTraits>::write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
 {
   _impl->write(data, count, time);

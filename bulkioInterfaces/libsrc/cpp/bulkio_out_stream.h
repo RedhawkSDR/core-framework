@@ -26,6 +26,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include <ossie/PropertyMap.h>
+#include <ossie/shared_buffer.h>
 #include <BULKIO/bulkioDataTypes.h>
 
 #include "bulkio_traits.h"
@@ -41,6 +42,9 @@ namespace bulkio {
   public:
     typedef typename PortTraits::DataTransferTraits::NativeDataType ScalarType;
     typedef std::complex<ScalarType> ComplexType;
+
+    typedef redhawk::read_buffer<ScalarType> scalar_buffer;
+    typedef redhawk::read_buffer<ComplexType> complex_buffer;
         
     OutputStream();
 
@@ -83,6 +87,42 @@ namespace bulkio {
     {
       write(&data[0], data.size(), times);
     }
+
+    /**
+     * @brief  Write scalar data to the stream.
+     * @param data  The %read_buffer to write.
+     * @param time  The timestamp of the first sample.
+     */
+    void write(const scalar_buffer& data, const BULKIO::PrecisionUTCTime& time);
+
+    /**
+     * @brief  Write scalar data to the stream.
+     * @param data  The %read_buffer to write.
+     * @param times  A list of sample timestamps. Sample offsets must be in
+     *               increasing order, starting at 0.
+     *
+     * Writes a buffer of data with multiple timestamps, breaking up the data
+     * into chunks at the SampleTimestamp offsets.
+     */
+    void write(const scalar_buffer& data, const std::list<bulkio::SampleTimestamp>& times);
+
+    /**
+     * @brief  Write complex data to the stream.
+     * @param data  The %read_buffer to write.
+     * @param time  The timestamp of the first sample.
+     */
+    void write(const complex_buffer& data, const BULKIO::PrecisionUTCTime& time);
+
+    /**
+     * @brief  Write complex data to the stream.
+     * @param data  The %read_buffer to write.
+     * @param times  A list of sample timestamps. Sample offsets must be in
+     *               increasing order, starting at 0.
+     *
+     * Writes a buffer of data with multiple timestamps, breaking up the data
+     * into chunks at the SampleTimestamp offsets.
+     */
+    void write(const complex_buffer& data, const std::list<bulkio::SampleTimestamp>& times);
 
     void write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time);
     void write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
