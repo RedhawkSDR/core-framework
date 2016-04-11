@@ -30,6 +30,9 @@ public:
   typedef std::complex<ScalarType> ComplexType;
   typedef typename PortTraits::DataTransferTraits::TransportType TransportType;
 
+  typedef typename OutputStream<PortTraits>::ScalarBuffer ScalarBuffer;
+  typedef typename OutputStream<PortTraits>::ComplexBuffer ComplexBuffer;
+
   Impl(const std::string& streamID, bulkio::OutPort<PortTraits>* port) :
     _streamID(streamID),
     _port(port),
@@ -95,6 +98,46 @@ public:
   {
     redhawk::PropertyMap::cast(_sri.keywords).erase(name);
     _sriUpdated = true;
+  }
+
+  void write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
+  {
+    if (_sriUpdated) {
+      _port->pushSRI(_sri);
+      _sriUpdated = false;
+    }
+    // TODO: Enable buffer transfer
+    _send(reinterpret_cast<const TransportType*>(data.data()), data.size(), time, false);
+  }
+
+  void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
+  {
+    if (_sri.mode == 0) {
+      throw std::logic_error("stream mode is not complex");
+    }
+    write(ScalarBuffer::recast(data), time);
+  }
+
+  template <class Sample>
+  void write(const redhawk::read_buffer<Sample>& data, const std::list<bulkio::SampleTimestamp>& times)
+  {
+    std::list<bulkio::SampleTimestamp>::const_iterator timestamp = times.begin();
+    if (timestamp == times.end()) {
+      throw std::logic_error("no timestamps given");
+    }
+
+    size_t first = 0;
+    while (first < data.size()) {
+      size_t last = 0;
+      const BULKIO::PrecisionUTCTime& when = timestamp->time;
+      if (++timestamp == times.end()) {
+        last = data.size();
+      } else {
+        last = timestamp->offset;
+      }
+      write(data.slice(first, last), when);
+      first = last;
+    }
   }
 
   template <class Sample>
@@ -275,27 +318,27 @@ void OutputStream<PortTraits>::eraseKeyword(const std::string& name)
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const scalar_buffer& data, const BULKIO::PrecisionUTCTime& time)
+void OutputStream<PortTraits>::write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
 {
-  _impl->write(data.data(), data.size(), time);
+  _impl->write(data, time);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const scalar_buffer& data, const std::list<bulkio::SampleTimestamp>& times)
+void OutputStream<PortTraits>::write(const ScalarBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
 {
-  _impl->write(data.data(), data.size(), times);
+  _impl->write(data, times);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const complex_buffer& data, const BULKIO::PrecisionUTCTime& time)
+void OutputStream<PortTraits>::write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
 {
-  _impl->write(data.data(), data.size(), time);
+  _impl->write(data, time);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const complex_buffer& data, const std::list<bulkio::SampleTimestamp>& times)
+void OutputStream<PortTraits>::write(const ComplexBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
 {
-  _impl->write(data.data(), data.size(), times);
+  _impl->write(data, times);
 }
 
 template <class PortTraits>
