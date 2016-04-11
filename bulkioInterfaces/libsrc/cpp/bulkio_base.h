@@ -162,7 +162,7 @@ namespace bulkio {
   {
   public:
 
-      linkStatistics( std::string &portName, const int nbytes=1 );
+      linkStatistics(const std::string& portName, const int nbytes=1);
 
       linkStatistics();
 

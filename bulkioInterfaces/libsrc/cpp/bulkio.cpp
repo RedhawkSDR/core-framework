@@ -99,7 +99,7 @@ namespace  bulkio {
   }
 
 
-  linkStatistics::linkStatistics( std::string &portName , const int nbytes ):
+  linkStatistics::linkStatistics(const std::string &portName, const int nbytes):
     portName(portName),
     nbytes(nbytes)
   {
