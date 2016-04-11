@@ -307,6 +307,7 @@ namespace bulkio {
     {
     public:
       virtual ~PortConnection() { };
+      virtual void pushSRI(const BULKIO::StreamSRI& sri);
       virtual void pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) = 0;
     };
 
@@ -321,8 +322,7 @@ namespace bulkio {
     //
     // _pushSRI - method to push given SRI to a specific connections
     //
-    void _pushSRI( typename ConnectionsList::iterator connPair, SriMapStruct &sri_ctx);
-    void _pushSRI( const std::string &connectionId, SriMapStruct &sri_ctx);
+    void _pushSRI(typename TransportMap::iterator connPair, SriMapStruct &sri_ctx);
 
     LOGGER_PTR                                logger;
     std::vector<connection_descriptor_struct> filterTable;

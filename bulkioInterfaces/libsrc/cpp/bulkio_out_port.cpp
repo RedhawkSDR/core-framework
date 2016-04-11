@@ -41,6 +41,11 @@ namespace  bulkio {
     {
     }
 
+    virtual void pushSRI(BULKIO::StreamSRI& sri)
+    {
+      _port->pushSRI(sri);
+    }
+
     virtual void pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T,
                             bool EOS, const std::string& streamID)
     {
@@ -72,6 +77,11 @@ namespace  bulkio {
     ~LocalConnection()
     {
       _port->_remove_ref();
+    }
+
+    virtual void pushSRI(BULKIO::StreamSRI& sri)
+    {
+      _port->pushSRI(sri);
     }
 
     virtual void pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T,
@@ -166,8 +176,6 @@ namespace  bulkio {
     TRACE_ENTER(logger, "OutPort::pushSRI" );
 
 
-    typename ConnectionsList::iterator i;
-
     SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
 
     std::string sid( H.streamID );
@@ -188,22 +196,25 @@ namespace  bulkio {
    }
 
     if (active) {
-      for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-        if (!_isStreamRoutedToConnection(sid, i->second)) {
+      typename TransportMap::iterator port;
+
+      for (port = _transportMap.begin(); port != _transportMap.end(); ++port) {
+        if (!_isStreamRoutedToConnection(sid, port->first)) {
           continue;
         }
 
-        LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << i->second << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
+        LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << port->first << " SRI streamID:"
+                  << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta);
         try {
-          i->first->pushSRI(H);
-          sri_iter->second.connections.insert( i->second );
+          port->second->pushSRI(H);
+          sri_iter->second.connections.insert(port->first);
         } catch(...) {
-          LOG_ERROR( logger, "PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << i->second );
+          LOG_ERROR(logger, "PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << port->first);
         }
       }
     }
 
-    TRACE_EXIT(logger, "OutPort::pushSRI" );
+    TRACE_EXIT(logger, "OutPort::pushSRI");
     return;
   }
 
@@ -276,27 +287,26 @@ namespace  bulkio {
       const size_t length = _dataLength(data);
 
       if (active) {
-        typename  ConnectionsList::iterator port;
-        for (port = outConnections.begin(); port != outConnections.end(); port++) {
+        typename TransportMap::iterator port;
+        for (port = _transportMap.begin(); port != _transportMap.end(); ++port) {
           // Check whether filtering is enabled and if this connection should
           // receive the stream
-          if (!_isStreamRoutedToConnection(streamID, port->second)) {
+          if (!_isStreamRoutedToConnection(streamID, port->first)) {
             continue;
           }
 
-          if ( sri_iter != currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-            this->_pushSRI( port, sri_iter->second );
+          if ((sri_iter != currentSRIs.end()) && (sri_iter->second.connections.count(port->first) == 0)) {
+            this->_pushSRI(port, sri_iter->second);
           }
 
           try {
-            typename TransportMap::iterator transport = _transportMap.find(port->second);
-            transport->second->pushPacket(data, T, EOS, streamID);
-            if ( stats.count(port->second) == 0 ) {
-              stats.insert( std::make_pair(port->second, linkStatistics( name, sizeof(NativeType) ) ) );
+            port->second->pushPacket(data, T, EOS, streamID);
+            if (stats.count(port->first) == 0 ) {
+              stats.insert( std::make_pair(port->first, linkStatistics( name, sizeof(NativeType) ) ) );
             }
-            stats[port->second].update(length, 0, EOS, streamID);
+            stats[port->first].update(length, 0, EOS, streamID);
           } catch(...) {
-            LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
+            LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->first );
           }
         }
       }
@@ -469,45 +479,19 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
-  void  OutPortBase< PortTraits >::_pushSRI( typename ConnectionsList::iterator connPair, SriMapStruct &sri_ctx)
+  void  OutPortBase< PortTraits >::_pushSRI(typename TransportMap::iterator connPair, SriMapStruct &sri_ctx)
   {
-    TRACE_ENTER(logger, "OutPort::_pushSRI" );
-
-    // assume parent will lock us...
-    if ( connPair != outConnections.end() ) {
-
-      // push SRI over port instance
-      try {
-	connPair->first->pushSRI(sri_ctx.sri);
-	sri_ctx.connections.insert( connPair->second );
-	LOG_TRACE( logger, "_pushSRI()  connection_id/streamID " << connPair->second << "/" << sri_ctx.sri.streamID );
-      } catch(...) {
-	LOG_ERROR( logger, "_pushSRI() PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << connPair->second );
-      }      
-    }
-
-    TRACE_EXIT(logger, "OutPort::_pushSRI" );
-    return;
+    TRACE_ENTER(logger, "OutPort::_pushSRI");
+    // push SRI over port instance
+    try {
+      connPair->second->pushSRI(sri_ctx.sri);
+      sri_ctx.connections.insert(connPair->first);
+      LOG_TRACE(logger, "_pushSRI()  connection_id/streamID " << connPair->first << "/" << sri_ctx.sri.streamID);
+    } catch(...) {
+      LOG_ERROR(logger, "_pushSRI() PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << connPair->first);
+    }      
+    TRACE_EXIT(logger, "OutPort::_pushSRI");
   }
-
-
-  template < typename PortTraits >
-  void  OutPortBase< PortTraits >::_pushSRI( const std::string &connectionId, SriMapStruct &sri_ctx)
-  {
-    TRACE_ENTER(logger, "OutPort::_pushSRI" );
-
-    typename ConnectionsList::iterator i;
-
-    for ( i=outConnections.begin(); i != outConnections.end(); i++ ) {
-      if ( i->second == connectionId ) {
-	this->_pushSRI( i, sri_ctx );
-	break;
-      }
-    }
-    TRACE_EXIT(logger, "OutPort::_pushSRI" );
-    return;
-  }
-
 
   template < typename PortTraits >
   bulkio::SriMap  OutPortBase< PortTraits >::getCurrentSRI()
