@@ -438,6 +438,8 @@ namespace bulkio {
     //
     typedef OutputStream<PortTraits> StreamType;
 
+    typedef redhawk::read_buffer<NativeType> ScalarBuffer;
+
     //
     // OutPort Creates a uses port object for publishing data to the framework
     //
@@ -508,6 +510,8 @@ namespace bulkio {
      */
     void pushPacket( const DataBufferType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
+    void pushPacket(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID, bool shared);
+
     // Create a new stream based on a stream ID
     StreamType createStream(const std::string& streamID);
     // Create a new stream based on an SRI instance
@@ -517,12 +521,11 @@ namespace bulkio {
   protected:
     using OutPortBase<PortTraits>::logger;
 
-    void _pushOversizedPacket(
-            const TransportType*            buffer,
-            size_t                          size,
-            const BULKIO::PrecisionUTCTime& T,
-            bool                            EOS,
-            const std::string&              streamID);
+    void _pushOversizedPacket(const ScalarBuffer& buffer,
+                              const BULKIO::PrecisionUTCTime& T,
+                              bool EOS,
+                              const std::string& streamID,
+                              bool shared);
   };
 
   //

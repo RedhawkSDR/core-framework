@@ -107,8 +107,7 @@ public:
       _port->pushSRI(_sri);
       _sriUpdated = false;
     }
-    // TODO: Enable buffer transfer
-    _send(reinterpret_cast<const TransportType*>(data.data()), data.size(), time, false);
+    _port->pushPacket(data, time, false, _streamID, shared);
   }
 
   void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time, bool shared)

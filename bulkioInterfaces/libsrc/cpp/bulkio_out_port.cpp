@@ -643,15 +643,17 @@ namespace  bulkio {
    * the last sub-packet, who uses the input EOS argument.
    */
   template < typename PortTraits >
-  void OutPort< PortTraits>::_pushOversizedPacket(
-          const TransportType*      buffer,
-          size_t                    size,
-          const BULKIO::PrecisionUTCTime& T,
-          bool                      EOS,
-          const std::string&        streamID)
+  void OutPort< PortTraits>::_pushOversizedPacket(const ScalarBuffer& data,
+                                                  const BULKIO::PrecisionUTCTime& T,
+                                                  bool EOS,
+                                                  const std::string& streamID,
+                                                  bool shared)
   {
       // don't want to process while command information is coming in
       SCOPED_LOCK lock(this->updatingPortsLock);
+
+      const TransportType* buffer = reinterpret_cast<const TransportType*>(data.data());
+      size_t size = data.size();
 
       // Multiply by some number < 1 to leave some margin for the CORBA header
       const size_t maxPayloadSize    = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
@@ -731,10 +733,8 @@ namespace  bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    // Use const alias to start of buffer and defer to pointer-based push
-    const TransportType* buffer = reinterpret_cast<const TransportType*>(&data[0]);
-    const size_t size = data.size();
-    pushPacket(buffer, size, T, EOS, streamID);
+    ScalarBuffer buffer(&data[0], data.size(), null_deleter());
+    _pushOversizedPacket(buffer, T, EOS, streamID, false);
   }
   
   template < typename PortTraits >
@@ -744,10 +744,8 @@ namespace  bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    // Use const alias to start of buffer and defer to pointer-based push
-    const TransportType* buffer = reinterpret_cast<const TransportType*>(&data[0]);
-    const size_t size = data.size();
-    pushPacket(buffer, size, T, EOS, streamID);
+    ScalarBuffer buffer(const_cast<NativeType*>(&data[0]), data.size(), null_deleter());
+    _pushOversizedPacket(buffer, T, EOS, streamID, false);
   }
 
   template < typename PortTraits >
@@ -756,12 +754,21 @@ namespace  bulkio {
           size_t                    size,
           const BULKIO::PrecisionUTCTime& T,
           bool                      EOS,
-          const std::string&        streamID) {
+          const std::string&        streamID)
+  {
+    ScalarBuffer buffer((NativeType*)data, size, null_deleter());
+    _pushOversizedPacket(buffer, T, EOS, streamID, false);
+  }
 
+  template < typename PortTraits >
+  void OutPort< PortTraits >::pushPacket(const ScalarBuffer& data,
+                                         const BULKIO::PrecisionUTCTime& T,
+                                         bool EOS,
+                                         const std::string& streamID, 
+                                         bool shared)
+  {
     TRACE_ENTER(logger, "OutPort::pushPacket" );
-
-    _pushOversizedPacket(data, size, T, EOS, streamID);
-
+    _pushOversizedPacket(data, T, EOS, streamID, shared);
     TRACE_EXIT(logger, "OutPort::pushPacket" );
   }
 
