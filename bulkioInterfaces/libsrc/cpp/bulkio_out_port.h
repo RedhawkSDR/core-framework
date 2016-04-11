@@ -264,13 +264,6 @@ namespace bulkio {
 
 	std::string getRepid () const;
 
-  protected:
-
-
-    // Map of stream ids and statistic object
-    typedef typename  std::map<std::string, linkStatistics  >    _StatsMap;
-
-  public:
     //
     // List of SRIs sent out by this port
     //
@@ -283,25 +276,11 @@ namespace bulkio {
     bool                                     recConnectionsRefresh;
 
     //
-    //  Set of statistical collector objects for each stream id
-    //
-    _StatsMap                                 stats;
-
-    //
     // Lookup table for connections to input ports in the same process space
     //
     typedef InPort<PortTraits> LocalPortType;
 
-    class PortConnection
-    {
-    public:
-      virtual ~PortConnection() { };
-      virtual void pushSRI(const BULKIO::StreamSRI& sri) = 0;
-      virtual void pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) = 0;
-      virtual void sendEOS(const std::string& streamID) = 0;
-      virtual PortPtrType objref() = 0;
-    };
-
+    class PortConnection;
     class RemoteConnection;
     class LocalConnection;
 
@@ -347,21 +326,6 @@ namespace bulkio {
             const BULKIO::PrecisionUTCTime& T,
             bool                            EOS,
             const std::string&              streamID);
-
-    //
-    // Sends an end-of-stream packet for the given stream to a particular port,
-    // for use when disconnecting; enables XML and File specialization for
-    // consistent end-of-stream behavior
-    //
-    void _sendEOS(PortPtrType        port,
-                  const std::string& streamID);
-
-    //
-    // Returns the total number of elements of data in a pushPacket call, for
-    // statistical tracking; enables XML and File specialization, which have
-    // different notions of size
-    //
-    size_t _dataLength(PushArgumentType data);
   };
 
   
