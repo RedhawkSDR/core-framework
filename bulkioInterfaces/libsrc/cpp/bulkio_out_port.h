@@ -296,7 +296,7 @@ namespace bulkio {
     {
     public:
       virtual ~PortConnection() { };
-      virtual void pushSRI(const BULKIO::StreamSRI& sri);
+      virtual void pushSRI(const BULKIO::StreamSRI& sri) = 0;
       virtual void pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) = 0;
       virtual void sendEOS(const std::string& streamID) = 0;
       virtual PortPtrType objref() = 0;

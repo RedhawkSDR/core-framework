@@ -41,7 +41,7 @@ namespace  bulkio {
     {
     }
 
-    virtual void pushSRI(BULKIO::StreamSRI& sri)
+    virtual void pushSRI(const BULKIO::StreamSRI& sri)
     {
       _port->pushSRI(sri);
     }
@@ -95,7 +95,7 @@ namespace  bulkio {
       _port->_remove_ref();
     }
 
-    virtual void pushSRI(BULKIO::StreamSRI& sri)
+    virtual void pushSRI(const BULKIO::StreamSRI& sri)
     {
       _port->pushSRI(sri);
     }
