@@ -24,6 +24,7 @@
 #include "bulkio_out_port.h"
 #include "bulkio_p.h"
 #include "bulkio_time_operators.h"
+#include "bulkio_in_port.h"
 
 // Suppress warnings for access to "deprecated" currentSRI member--it's the
 // public access that's deprecated, not the member itself
@@ -171,6 +172,17 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
+  void OutPortBase< PortTraits >::_pushPacketToPort(
+          LocalPortType*                  port,
+          PushArgumentType                data,
+          const BULKIO::PrecisionUTCTime& T,
+          bool                            EOS,
+          const char*                     streamID)
+  {
+    port->pushPacket(data, T, EOS, streamID);
+  }
+
+  template < typename PortTraits >
   void OutPortBase< PortTraits >::_sendEOS(
           PortPtrType        port,
           const std::string& streamID)
@@ -231,7 +243,12 @@ namespace  bulkio {
           }
 
           try {
-            _pushPacketToPort(port->first, data, T, EOS, streamID.c_str());
+            typename LocalPortMap::iterator local = localPorts.find(port->second);
+            if (local != localPorts.end()) {
+              _pushPacketToPort(local->second, data, T, EOS, streamID.c_str());
+            } else {
+              _pushPacketToPort(port->first, data, T, EOS, streamID.c_str());
+            }
             if ( stats.count(port->second) == 0 ) {
               stats.insert( std::make_pair(port->second, linkStatistics( name, sizeof(NativeType) ) ) );
             }
@@ -321,6 +338,15 @@ namespace  bulkio {
         LOG_ERROR( logger, "CONNECT FAILED: UNABLE TO NARROW ENDPOINT,  USES PORT:" << name );
         throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
+
+      LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
+      if (local_port) {
+          LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
+                    << " for connection " << connectionId);
+          local_port->_add_ref();
+          localPorts[connectionId] = local_port;
+      }
+
       outConnections.push_back(std::make_pair(port, connectionId));
       active = true;
       recConnectionsRefresh = true;
@@ -371,6 +397,13 @@ namespace  bulkio {
         LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
         stats.erase(ii->second);
         outConnections.erase(ii);
+
+        typename LocalPortMap::iterator local = localPorts.find(connectionId);
+        if (local != localPorts.end()) {
+          LocalPortType* local_port = local->second;
+          localPorts.erase(local);
+          local_port->_remove_ref();
+        }
         break;
       }
     
@@ -510,6 +543,17 @@ namespace  bulkio {
     port->pushPacket(data, EOS, streamID);
   }
 
+  template <>
+  void OutPortBase< XMLPortTraits >::_pushPacketToPort(
+          InPort<XMLPortTraits>*          port,
+          const char*                     data,
+          const BULKIO::PrecisionUTCTime& T,
+          bool                            EOS,
+          const char*                     streamID)
+  {
+    port->pushPacket((bulkio::Char*)data, T, EOS, streamID);
+  }
+
   
   template <>
   void OutPortBase< XMLPortTraits >::_sendEOS(
@@ -533,6 +577,17 @@ namespace  bulkio {
   /*
    * Specializations of base class methods for dataFile ports
    */
+
+  template <>
+  void OutPortBase< FilePortTraits >::_pushPacketToPort(
+          LocalPortType*                  port,
+          PushArgumentType                data,
+          const BULKIO::PrecisionUTCTime& T,
+          bool                            EOS,
+          const char*                     streamID)
+  {
+    port->pushPacket((bulkio::Char*)data, T, EOS, streamID);
+  }
 
   template <>
   void OutPortBase< FilePortTraits >::_sendEOS(
