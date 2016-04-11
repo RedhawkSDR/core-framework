@@ -302,8 +302,21 @@ namespace bulkio {
     // Lookup table for connections to input ports in the same process space
     //
     typedef InPort<PortTraits> LocalPortType;
-    typedef std::map<std::string,LocalPortType*> LocalPortMap;
-    LocalPortMap localPorts;
+
+    class PortConnection
+    {
+    public:
+      virtual ~PortConnection() { };
+      virtual void pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) = 0;
+    };
+
+    class RemoteConnection;
+    class LocalConnection;
+
+    virtual PortConnection* _createConnection(PortPtrType port, const std::string& connectionId);
+
+    typedef std::map<std::string,PortConnection*> TransportMap;
+    TransportMap _transportMap;
 
     //
     // _pushSRI - method to push given SRI to a specific connections
@@ -351,27 +364,6 @@ namespace bulkio {
     //
     void _sendEOS(PortPtrType        port,
                   const std::string& streamID);
-
-    //
-    // Low-level push of data and metadata to the given port; enables XML and
-    // File specialization for consistent high-level pushPacket behavior
-    // 
-    void _pushPacketToPort(
-            PortPtrType                     port,
-            PushArgumentType                data,
-            const BULKIO::PrecisionUTCTime& T,
-            bool                            EOS,
-            const char*                     streamID);
-
-    //
-    // In-process version of _pushPacketToPort, skips middleware
-    //
-    void _pushPacketToPort(
-            LocalPortType*                  port,
-            PushArgumentType                data,
-            const BULKIO::PrecisionUTCTime& T,
-            bool                            EOS,
-            const char*                     streamID);
 
     //
     // Returns the total number of elements of data in a pushPacket call, for

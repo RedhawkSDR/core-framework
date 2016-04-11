@@ -32,6 +32,74 @@
 
 namespace  bulkio {
 
+  template <typename PortTraits>
+  class OutPortBase<PortTraits>::RemoteConnection : public OutPortBase<PortTraits>::PortConnection
+  {
+  public:
+    RemoteConnection(PortPtrType port) :
+      _port(PortType::_duplicate(port))
+    {
+    }
+
+    virtual void pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T,
+                            bool EOS, const std::string& streamID)
+    {
+      _port->pushPacket(data, T, EOS, streamID.c_str());
+    }
+
+  protected:
+    PortVarType _port;
+  };
+
+  template <>
+  void OutPortBase<XMLPortTraits>::RemoteConnection::pushPacket(PushArgumentType data,
+                                                                const BULKIO::PrecisionUTCTime& /* unused */,
+                                                                bool EOS, const std::string& streamID)
+  {
+    _port->pushPacket(data, EOS, streamID.c_str());
+  }
+
+  template <typename PortTraits>
+  class OutPortBase<PortTraits>::LocalConnection : public OutPortBase<PortTraits>::PortConnection
+  {
+  public:
+    LocalConnection(LocalPortType* port) :
+      _port(port)
+    {
+      _port->_add_ref();
+    }
+
+    ~LocalConnection()
+    {
+      _port->_remove_ref();
+    }
+
+    virtual void pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T,
+                            bool EOS, const std::string& streamID)
+    {
+      _port->pushPacket(data, T, EOS, streamID.c_str());
+    }
+
+  protected:
+    LocalPortType* _port;
+  };
+
+  template <>
+  void OutPortBase<FilePortTraits>::LocalConnection::pushPacket(PushArgumentType data,
+                                                                const BULKIO::PrecisionUTCTime& T,
+                                                                bool EOS, const std::string& streamID)
+  {
+    _port->pushPacket((bulkio::Char*)data, T, EOS, streamID.c_str());
+  }
+
+  template <>
+  void OutPortBase<XMLPortTraits>::LocalConnection::pushPacket(PushArgumentType data,
+                                                               const BULKIO::PrecisionUTCTime& T,
+                                                               bool EOS, const std::string& streamID)
+  {
+    _port->pushPacket((bulkio::Char*)data, T, EOS, streamID.c_str());
+  }
+
   /*
      OutPort Constructor
 
@@ -161,28 +229,6 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
-  void OutPortBase< PortTraits >::_pushPacketToPort(
-          PortPtrType                     port,
-          PushArgumentType                data,
-          const BULKIO::PrecisionUTCTime& T,
-          bool                            EOS,
-          const char*                     streamID)
-  {
-    port->pushPacket(data, T, EOS, streamID);
-  }
-
-  template < typename PortTraits >
-  void OutPortBase< PortTraits >::_pushPacketToPort(
-          LocalPortType*                  port,
-          PushArgumentType                data,
-          const BULKIO::PrecisionUTCTime& T,
-          bool                            EOS,
-          const char*                     streamID)
-  {
-    port->pushPacket(data, T, EOS, streamID);
-  }
-
-  template < typename PortTraits >
   void OutPortBase< PortTraits >::_sendEOS(
           PortPtrType        port,
           const std::string& streamID)
@@ -243,12 +289,8 @@ namespace  bulkio {
           }
 
           try {
-            typename LocalPortMap::iterator local = localPorts.find(port->second);
-            if (local != localPorts.end()) {
-              _pushPacketToPort(local->second, data, T, EOS, streamID.c_str());
-            } else {
-              _pushPacketToPort(port->first, data, T, EOS, streamID.c_str());
-            }
+            typename TransportMap::iterator transport = _transportMap.find(port->second);
+            transport->second->pushPacket(data, T, EOS, streamID);
             if ( stats.count(port->second) == 0 ) {
               stats.insert( std::make_pair(port->second, linkStatistics( name, sizeof(NativeType) ) ) );
             }
@@ -339,13 +381,7 @@ namespace  bulkio {
         throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
 
-      LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
-      if (local_port) {
-          LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
-                    << " for connection " << connectionId);
-          local_port->_add_ref();
-          localPorts[connectionId] = local_port;
-      }
+      _transportMap[connectionId] = _createConnection(port, connectionId);
 
       outConnections.push_back(std::make_pair(port, connectionId));
       active = true;
@@ -358,6 +394,22 @@ namespace  bulkio {
 
     TRACE_EXIT(logger, "OutPort::connectPort" );
   }
+
+
+  template < typename PortTraits >
+  typename OutPortBase< PortTraits >::PortConnection*
+  OutPortBase< PortTraits >::_createConnection(PortPtrType port, const std::string& connectionId)
+  {
+      LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
+      if (local_port) {
+        LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
+                  << " for connection " << connectionId);
+        return new LocalConnection(local_port);
+      } else {
+        return new RemoteConnection(port);
+      }
+  }
+  
 
 
   template < typename PortTraits >
@@ -398,11 +450,10 @@ namespace  bulkio {
         stats.erase(ii->second);
         outConnections.erase(ii);
 
-        typename LocalPortMap::iterator local = localPorts.find(connectionId);
-        if (local != localPorts.end()) {
-          LocalPortType* local_port = local->second;
-          localPorts.erase(local);
-          local_port->_remove_ref();
+        typename TransportMap::iterator transport = _transportMap.find(connectionId);
+        if (transport != _transportMap.end()) {
+          delete transport->second;
+          _transportMap.erase(transport);
         }
         break;
       }
@@ -533,29 +584,6 @@ namespace  bulkio {
    */
 
   template <>
-  void OutPortBase< XMLPortTraits >::_pushPacketToPort(
-          BULKIO::dataXML_ptr             port,
-          const char*                     data,
-          const BULKIO::PrecisionUTCTime& /*unused*/,
-          bool                            EOS,
-          const char*                     streamID)
-  {
-    port->pushPacket(data, EOS, streamID);
-  }
-
-  template <>
-  void OutPortBase< XMLPortTraits >::_pushPacketToPort(
-          InPort<XMLPortTraits>*          port,
-          const char*                     data,
-          const BULKIO::PrecisionUTCTime& T,
-          bool                            EOS,
-          const char*                     streamID)
-  {
-    port->pushPacket((bulkio::Char*)data, T, EOS, streamID);
-  }
-
-  
-  template <>
   void OutPortBase< XMLPortTraits >::_sendEOS(
           BULKIO::dataXML_ptr port,
           const std::string&  streamID)
@@ -578,26 +606,6 @@ namespace  bulkio {
    * Specializations of base class methods for dataFile ports
    */
 
-  template <>
-  void OutPortBase< FilePortTraits >::_pushPacketToPort(
-          LocalPortType*                  port,
-          PushArgumentType                data,
-          const BULKIO::PrecisionUTCTime& T,
-          bool                            EOS,
-          const char*                     streamID)
-  {
-    port->pushPacket((bulkio::Char*)data, T, EOS, streamID);
-  }
-
-  template <>
-  void OutPortBase< FilePortTraits >::_sendEOS(
-          BULKIO::dataFile_ptr port,
-          const std::string&   streamID)
-  {
-    port->pushPacket("", bulkio::time::utils::notSet(), true, streamID.c_str());
-  }
-
- 
   template <>
   size_t OutPortBase< FilePortTraits >::_dataLength(const char* /*unused*/)
   {
