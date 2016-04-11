@@ -52,6 +52,16 @@ namespace  bulkio {
       _port->pushPacket(data, T, EOS, streamID.c_str());
     }
 
+    virtual void sendEOS(const std::string& streamID)
+    {
+      _port->pushPacket(PortSequenceType(), bulkio::time::utils::notSet(), true, streamID.c_str());
+    }
+
+    virtual PortPtrType objref()
+    {
+      return PortType::_duplicate(_port);
+    }
+
   protected:
     PortVarType _port;
   };
@@ -62,6 +72,12 @@ namespace  bulkio {
                                                                 bool EOS, const std::string& streamID)
   {
     _port->pushPacket(data, EOS, streamID.c_str());
+  }
+
+  template <>
+  void OutPortBase<XMLPortTraits>::RemoteConnection::sendEOS(const std::string& streamID)
+  {
+    _port->pushPacket("", true, streamID.c_str());
   }
 
   template <typename PortTraits>
@@ -88,6 +104,16 @@ namespace  bulkio {
                             bool EOS, const std::string& streamID)
     {
       _port->pushPacket(data, T, EOS, streamID.c_str());
+    }
+
+    virtual void sendEOS(const std::string& streamID)
+    {
+      _port->pushPacket(PortSequenceType(), bulkio::time::utils::notSet(), true, streamID.c_str());
+    }
+
+    virtual PortPtrType objref()
+    {
+      return _port->_this();
     }
 
   protected:
@@ -133,10 +159,6 @@ namespace  bulkio {
       _disconnectCB = boost::shared_ptr< ConnectionEventListener >( disconnectCB, null_deleter() );
     }
 
-
-    recConnectionsRefresh = false;
-    recConnections.length(0);
-
     LOG_DEBUG( logger, "bulkio::OutPort::CTOR port:" << name );
 
   }
@@ -157,9 +179,6 @@ namespace  bulkio {
     if ( disconnectCB ) {
       _disconnectCB = boost::shared_ptr< ConnectionEventListener >( disconnectCB, null_deleter() );
     }
-
-    recConnectionsRefresh = false;
-    recConnections.length(0);
 
   }
 
@@ -322,14 +341,15 @@ namespace  bulkio {
 
 
   template < typename PortTraits >
-  BULKIO::UsesPortStatisticsSequence *  OutPortBase< PortTraits >::statistics()
+  BULKIO::UsesPortStatisticsSequence* OutPortBase< PortTraits >::statistics()
   {
     SCOPED_LOCK   lock(updatingPortsLock);
     BULKIO::UsesPortStatisticsSequence_var recStat = new BULKIO::UsesPortStatisticsSequence();
-    recStat->length(outConnections.size());
-    for (unsigned int i = 0; i < outConnections.size(); i++) {
-      recStat[i].connectionId = CORBA::string_dup(outConnections[i].second.c_str());
-      recStat[i].statistics = stats[outConnections[i].second].retrieve();
+    recStat->length(_transportMap.size());
+    size_t index = 0;
+    for (typename _StatsMap::iterator ii = stats.begin(); ii != stats.end(); ++ii, ++index) {
+      recStat[index].connectionId = ii->first.c_str();
+      recStat[index].statistics = ii->second.retrieve();
     }
     return recStat._retn();
   }
@@ -338,20 +358,18 @@ namespace  bulkio {
   BULKIO::PortUsageType OutPortBase< PortTraits >::state()
   {
     SCOPED_LOCK lock(updatingPortsLock);
-    if (outConnections.size() > 0) {
-      return BULKIO::ACTIVE;
-    } else {
+    if (_transportMap.empty()) {
       return BULKIO::IDLE;
+    } else {
+      return BULKIO::ACTIVE;
     }
-
-    return BULKIO::BUSY;
   }
 
   template < typename PortTraits >
   void OutPortBase< PortTraits >::enableStats(bool enable)
   {
-    for (unsigned int i = 0; i < outConnections.size(); i++) {
-      stats[outConnections[i].second].setEnabled(enable);
+    for (typename _StatsMap::iterator ii = stats.begin(); ii != stats.end(); ++ii) {
+      ii->second.setEnabled(enable);
     }
   }
 
@@ -360,16 +378,13 @@ namespace  bulkio {
   ExtendedCF::UsesConnectionSequence * OutPortBase< PortTraits >::connections()
   {
     SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
-    if (recConnectionsRefresh) {
-      recConnections.length(outConnections.size());
-      for (unsigned int i = 0; i < outConnections.size(); i++) {
-        recConnections[i].connectionId = CORBA::string_dup(outConnections[i].second.c_str());
-        recConnections[i].port = CORBA::Object::_duplicate(outConnections[i].first);
-      }
-      recConnectionsRefresh = false;
+    ExtendedCF::UsesConnectionSequence_var retVal = new ExtendedCF::UsesConnectionSequence();
+    for (typename TransportMap::iterator port = _transportMap.begin(); port != _transportMap.end(); ++port) {
+      ExtendedCF::UsesConnection conn;
+      conn.connectionId = port->first.c_str();
+      conn.port = port->second->objref();
+      ossie::corba::push_back(retVal, conn);
     }
-    ExtendedCF::UsesConnectionSequence_var retVal = new ExtendedCF::UsesConnectionSequence(recConnections);
-    // NOTE: You must delete the object that this function returns!
     return retVal._retn();
   }
 
@@ -393,9 +408,7 @@ namespace  bulkio {
 
       _transportMap[connectionId] = _createConnection(port, connectionId);
 
-      outConnections.push_back(std::make_pair(port, connectionId));
       active = true;
-      recConnectionsRefresh = true;
 
       LOG_DEBUG( logger, "CONNECTION ESTABLISHED,  PORT/CONNECTION_ID:" << name << "/" << connectionId );
 
@@ -430,22 +443,17 @@ namespace  bulkio {
       SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
 
       const std::string cid(connectionId);
-      for (typename ConnectionsList::iterator ii = outConnections.begin(); ii != outConnections.end(); ++ii) {
-        if (ii->second != connectionId) {
-          continue;
-        }
-
-        typename OutPortSriMap::iterator cSRIs = currentSRIs.begin();
-
-        // send an EOS for every connection that's listed for this SRI
-        for (; cSRIs!=currentSRIs.end(); cSRIs++) {
-          std::string cSriSid(cSRIs->second.sri.streamID);
+      typename TransportMap::iterator port = _transportMap.find(connectionId);
+      if (port != _transportMap.end()) {
+        // Send an EOS for every connection that's listed for this SRI
+        for (typename OutPortSriMap::iterator cSRIs = currentSRIs.begin(); cSRIs!=currentSRIs.end(); cSRIs++) {
+          const std::string stream_id(cSRIs->second.sri.streamID);
 
           // Check if we have sent out sri/data to the connection
-          if ( cSRIs->second.connections.count( cid ) != 0 ) {
-            if (_isStreamRoutedToConnection(cSriSid, cid)) {
+          if (cSRIs->second.connections.count( cid ) != 0) {
+            if (_isStreamRoutedToConnection(stream_id, cid)) {
               try {
-                _sendEOS(ii->first, cSriSid);
+                port->second->sendEOS(stream_id);
               } catch (...) {
                 // Ignore all exceptions; the receiver may be dead
               }
@@ -456,24 +464,20 @@ namespace  bulkio {
           cSRIs->second.connections.erase( cid );
 
         }
-        LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
-        stats.erase(ii->second);
-        outConnections.erase(ii);
 
-        typename TransportMap::iterator transport = _transportMap.find(connectionId);
-        if (transport != _transportMap.end()) {
-          delete transport->second;
-          _transportMap.erase(transport);
+        LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
+        stats.erase(port->first);
+        delete port->second;
+        _transportMap.erase(port);
+
+        if (_transportMap.empty()) {
+          active = false;
         }
-        break;
       }
-    
-      if (outConnections.size() == 0) {
-        active = false;
-      }
-      recConnectionsRefresh = true;
     }
-    if (_disconnectCB) (*_disconnectCB)(connectionId);
+    if (_disconnectCB) {
+      (*_disconnectCB)(connectionId);
+    }
 
     TRACE_EXIT(logger, "OutPort::disconnectPort" );
   }
@@ -521,8 +525,14 @@ namespace  bulkio {
   template < typename PortTraits >
   typename OutPortBase< PortTraits >::ConnectionsList  OutPortBase< PortTraits >::getConnections()
   {
-      SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
-      return outConnections;
+    SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
+    ConnectionsList outConnections;
+
+    for (typename TransportMap::iterator port = _transportMap.begin(); port != _transportMap.end(); ++port) {
+      outConnections.push_back(std::make_pair(port->second->objref(), port->first));
+    }
+
+    return outConnections;
   }
 
 

@@ -257,7 +257,7 @@ namespace bulkio {
     // Allow access to the port's connection list
     //
     virtual ConnectionsList __attribute__ ((deprecated)) _getConnections() {
-      return outConnections;
+      return getConnections();
     }
 
     void setLogger( LOGGER_PTR newLogger );
@@ -277,17 +277,6 @@ namespace bulkio {
     OutPortSriMap                            currentSRIs __attribute__ ((deprecated));
 
   protected:
-    //
-    // List of Port connections and connection identifiers
-    //
-    ConnectionsList                          outConnections;
-
-    //
-    // List of connections returned by connections() method.  Used to increase efficiency when there a large amount
-    // of connections for a port.
-    //
-    ExtendedCF::UsesConnectionSequence       recConnections;
-
     //
     //
     //
@@ -309,6 +298,8 @@ namespace bulkio {
       virtual ~PortConnection() { };
       virtual void pushSRI(const BULKIO::StreamSRI& sri);
       virtual void pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) = 0;
+      virtual void sendEOS(const std::string& streamID) = 0;
+      virtual PortPtrType objref() = 0;
     };
 
     class RemoteConnection;
