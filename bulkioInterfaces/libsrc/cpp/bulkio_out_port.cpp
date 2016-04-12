@@ -607,13 +607,7 @@ namespace bulkio {
   }
 
 
-  void OutFilePort::pushPacket( const char* URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
-  {
-    _pushSinglePacket(URL, true, T, EOS, streamID);
-  }
-
-
-  void OutFilePort::pushPacket( const std::string& URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
+  void OutFilePort::pushPacket(const std::string& URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
     _pushSinglePacket(URL, true, T, EOS, streamID);
   }
@@ -649,11 +643,6 @@ namespace bulkio {
     _pushSinglePacket(data, true, T, EOS, streamID);
   }
 
-
-  void OutXMLPort::pushPacket(const char *data, bool EOS, const std::string& streamID)
-  {
-    this->pushPacket(std::string(data), EOS, streamID);
-  }
 
   void OutXMLPort::pushPacket(const std::string& data, bool EOS, const std::string& streamID)
   {

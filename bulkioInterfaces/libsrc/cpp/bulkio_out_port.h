@@ -563,21 +563,6 @@ namespace bulkio {
      * pushPacket
      *     maps to dataFile BULKIO method call for passing the URL of a file
      *
-     *  data: char string containing the file URL to send out
-     *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
-     *    tcmode: timecode mode
-     *    tcstatus: timecode status
-     *    toff: fractional sample offset
-     *    twsec: J1970 GMT
-     *    tfsec: fractional seconds: 0.0 to 1.0
-     *  EOS: end-of-stream flag
-     *  streamID: stream identifier
-     */
-    void pushPacket(const char *URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-    /*
-     * pushPacket
-     *     maps to dataFile BULKIO method call for passing the URL of a file
-     *
      *  data: string containing the file URL to send out
      *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
      *    tcmode: timecode mode
@@ -661,16 +646,6 @@ namespace bulkio {
      * DEPRECATED: maps to dataFile BULKIO method call for passing strings of data 
      */
     void pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-
-    /*
-     * pushPacket
-     *     maps to dataXML BULKIO method call for passing an XML-formatted string
-     *
-     *  data: character string containing the XML data to send out
-     *  EOS: end-of-stream flag
-     *  streamID: stream identifier
-     */
-    void pushPacket(const char *data, bool EOS, const std::string& streamID);
 
     /*
      * pushPacket
