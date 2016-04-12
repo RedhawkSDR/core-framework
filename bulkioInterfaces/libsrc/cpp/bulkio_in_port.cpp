@@ -210,7 +210,7 @@ namespace  bulkio {
 
 
   template < typename PortTraits >
-  void  InPortBase< PortTraits >::queuePacket(const PushArgumentType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+  void  InPortBase< PortTraits >::queuePacket(const PushArgumentType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID)
   {
 
     TRACE_ENTER( logger, "InPort::pushPacket"  );
@@ -223,7 +223,7 @@ namespace  bulkio {
       return;
     }
 
-    BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, false, 0};
+    BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID.c_str(), false, 0};
     bool sriChanged = false;
     bool portBlocking = false;
 
@@ -231,7 +231,7 @@ namespace  bulkio {
     {
       SCOPED_LOCK lock(sriUpdateLock);
 
-      currH = currentHs.find(std::string(streamID));
+      currH = currentHs.find(streamID);
       if (currH != currentHs.end()) {
         tmpH = currH->second.first;
         sriChanged = currH->second.second;
@@ -260,7 +260,7 @@ namespace  bulkio {
       SCOPED_LOCK lock(dataBufferLock);
       LOG_TRACE( logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << workQueue.size()+1 << ")" );
       stats->update(length, (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, false);
-      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, false);
+      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID.c_str(), tmpH, sriChanged, false);
       workQueue.push_back(tmpIn);
       dataAvailable.notify_all();
     } else {
@@ -290,7 +290,7 @@ namespace  bulkio {
 
       LOG_DEBUG( logger, "bulkio::InPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
       stats->update(length, (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
-      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, flushToReport);
+      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID.c_str(), tmpH, sriChanged, flushToReport);
       workQueue.push_back(tmpIn);
       dataAvailable.notify_all();
     }
@@ -657,6 +657,14 @@ namespace  bulkio {
   void InPort< PortTraits >::pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
     this->queuePacket(data, T, EOS, streamID);
+  }
+
+  template < typename PortTraits >
+  void InPort< PortTraits >::pushPacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
+  {
+    const TransportType* ptr = reinterpret_cast<const TransportType*>(data.data());
+    const PortSequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
+    this->queuePacket(buffer, T, EOS, streamID.c_str());
   }
 
   template < typename PortTraits >

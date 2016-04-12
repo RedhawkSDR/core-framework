@@ -130,7 +130,6 @@ namespace bulkio {
     typedef typename PortTraits::PortType PortType;
     typedef typename PortType::_ptr_type PortPtrType;
     typedef typename PortTraits::TransportType TransportType;
-    typedef typename PortTraits::SequenceType PortSequenceType;
     typedef typename PortTraits::SharedBufferType SharedBufferType;
 
     ChunkingConnection(const std::string& name, PortPtrType port) :
@@ -237,7 +236,7 @@ namespace bulkio {
                              bool EOS,
                              const std::string& streamID)
     {
-      //_port->pushPacket(data, T, EOS, streamID.c_str());
+      _port->pushPacket(data, T, EOS, streamID);
     }
 
     LocalPortType* _port;

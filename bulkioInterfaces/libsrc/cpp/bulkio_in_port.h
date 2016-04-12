@@ -324,7 +324,7 @@ namespace bulkio {
     // Queues a packet received via pushPacket; in most cases, this method maps
     // exactly to pushPacket, except for dataFile
     //
-    void queuePacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
+    void queuePacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
 
     //
     // Returns a pointer to the first packet in the queue, blocking for up to
@@ -369,6 +369,9 @@ namespace bulkio {
 
     // Transport Sequence Type use to during push packet
     typedef typename Traits::SequenceType    PortSequenceType;
+
+    // Shared buffer type used for local transfers
+    typedef typename Traits::SharedBufferType SharedBufferType;
 
     //
     // Transport type used by this port
@@ -424,6 +427,9 @@ namespace bulkio {
     // @param EOS  - indicator that the stream has ended, (stream is identified by streamID)
     // @param streamID - name of the stream the vector and stream context data are associated with
     virtual void pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
+
+    // Local non-copying transfer
+    void pushPacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
     //
     // Stream-based input API
