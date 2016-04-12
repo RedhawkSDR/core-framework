@@ -40,6 +40,8 @@ namespace bulkio {
 
   template <typename PortTraits> class InPort;
 
+  template <typename PortTraits> class PortConnection;
+
   //
   //  OutPortBase
   //
@@ -279,15 +281,12 @@ namespace bulkio {
     // Lookup table for connections to input ports in the same process space
     //
     typedef InPort<PortTraits> LocalPortType;
+    typedef PortConnection<PortTraits> PortConnectionType;
 
-    class PortConnection;
-    class RemoteConnection;
-    class LocalConnection;
+    virtual PortConnectionType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
+    virtual PortConnectionType* _createLocalConnection(LocalPortType* port, const std::string& connectionId);
 
-    virtual RemoteConnection* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
-    virtual LocalConnection* _createLocalConnection(LocalPortType* port, const std::string& connectionId);
-
-    typedef std::map<std::string,PortConnection*> TransportMap;
+    typedef std::map<std::string,PortConnectionType*> TransportMap;
     TransportMap _transportMap;
 
     //
@@ -469,11 +468,9 @@ namespace bulkio {
   protected:
     using OutPortBase<PortTraits>::logger;
     typedef typename OutPortBase<PortTraits>::PortPtrType PortPtrType;
-    typedef typename OutPortBase<PortTraits>::RemoteConnection RemoteConnection;
+    typedef typename OutPortBase<PortTraits>::PortConnectionType PortConnectionType;
 
-    class ChunkingConnection;
-
-    virtual RemoteConnection* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
+    virtual PortConnectionType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
   };
 
   //

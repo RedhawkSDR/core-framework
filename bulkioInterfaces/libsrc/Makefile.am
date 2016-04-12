@@ -45,7 +45,8 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/bulkio_time_helpers.cpp \
     cpp/bulkio_time_operators.cpp \
     cpp/bulkio_datablock.cpp \
-    cpp/bulkio_p.h
+    cpp/bulkio_p.h \
+    cpp/bulkio_connection.hpp
 
 ## Define the list of public header files and their install location.
 library_includedir = $(includedir)/bulkio
