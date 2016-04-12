@@ -30,7 +30,7 @@
 // public access that's deprecated, not the member itself
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-namespace  bulkio {
+namespace bulkio {
 
   template <typename PortTraits>
   class OutPortBase<PortTraits>::PortConnection
@@ -45,8 +45,12 @@ namespace  bulkio {
 
     virtual void pushSRI(const BULKIO::StreamSRI& sri) = 0;
 
-    virtual void pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
+    virtual void pushPacket(PushArgumentType data,
+                            const BULKIO::PrecisionUTCTime& T,
+                            bool EOS,
+                            const BULKIO::StreamSRI& sri)
     {
+      const std::string streamID(sri.streamID);
       this->_pushPacket(data, T, EOS, streamID);
       stats.update(this->_dataLength(data), 0, EOS, streamID);
     }
@@ -66,7 +70,10 @@ namespace  bulkio {
     linkStatistics stats;
 
   protected:
-    virtual void _pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) = 0;
+    virtual void _pushPacket(PushArgumentType data,
+                             const BULKIO::PrecisionUTCTime& T,
+                             bool EOS,
+                             const std::string& streamID) = 0;
 
     //
     // Returns the total number of elements of data in a pushPacket call, for
@@ -115,8 +122,10 @@ namespace  bulkio {
     }
 
   protected:
-    virtual void _pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T,
-                            bool EOS, const std::string& streamID)
+    virtual void _pushPacket(PushArgumentType data,
+                             const BULKIO::PrecisionUTCTime& T,
+                             bool EOS,
+                             const std::string& streamID)
     {
       _port->pushPacket(data, T, EOS, streamID.c_str());
     }
@@ -127,7 +136,8 @@ namespace  bulkio {
   template <>
   void OutPortBase<XMLPortTraits>::RemoteConnection::_pushPacket(PushArgumentType data,
                                                                  const BULKIO::PrecisionUTCTime& /* unused */,
-                                                                 bool EOS, const std::string& streamID)
+                                                                 bool EOS,
+                                                                 const std::string& streamID)
   {
     _port->pushPacket(data, EOS, streamID.c_str());
   }
@@ -159,8 +169,10 @@ namespace  bulkio {
     }
 
   protected:
-    virtual void _pushPacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T,
-                             bool EOS, const std::string& streamID)
+    virtual void _pushPacket(PushArgumentType data,
+                             const BULKIO::PrecisionUTCTime& T,
+                             bool EOS,
+                             const std::string& streamID)
     {
       _port->pushPacket(data, T, EOS, streamID.c_str());
     }
@@ -170,16 +182,18 @@ namespace  bulkio {
 
   template <>
   void OutPortBase<FilePortTraits>::LocalConnection::_pushPacket(PushArgumentType data,
-                                                                const BULKIO::PrecisionUTCTime& T,
-                                                                bool EOS, const std::string& streamID)
+                                                                 const BULKIO::PrecisionUTCTime& T,
+                                                                 bool EOS,
+                                                                 const std::string& streamID)
   {
     _port->pushPacket((bulkio::Char*)data, T, EOS, streamID.c_str());
   }
 
   template <>
   void OutPortBase<XMLPortTraits>::LocalConnection::_pushPacket(PushArgumentType data,
-                                                               const BULKIO::PrecisionUTCTime& T,
-                                                               bool EOS, const std::string& streamID)
+                                                                const BULKIO::PrecisionUTCTime& T,
+                                                                bool EOS,
+                                                                 const std::string& streamID)
   {
     _port->pushPacket((bulkio::Char*)data, T, EOS, streamID.c_str());
   }
@@ -345,12 +359,12 @@ namespace  bulkio {
             continue;
           }
 
-          if ((sri_iter != currentSRIs.end()) && (sri_iter->second.connections.count(port->first) == 0)) {
+          if (sri_iter->second.connections.count(port->first) == 0) {
             this->_pushSRI(port, sri_iter->second);
           }
 
           try {
-            port->second->pushPacket(data, T, EOS, streamID);
+            port->second->pushPacket(data, T, EOS, sri_iter->second.sri);
           } catch(...) {
             LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->first );
           }
@@ -434,7 +448,14 @@ namespace  bulkio {
         throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
 
-      _transportMap[connectionId] = _createConnection(port, connectionId);
+      LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
+      if (local_port) {
+        LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
+                  << " for connection " << connectionId);
+        _transportMap[connectionId] = _createLocalConnection(local_port, connectionId);
+      } else {
+        _transportMap[connectionId] = _createRemoteConnection(port, connectionId);
+      }
 
       active = true;
 
@@ -448,20 +469,20 @@ namespace  bulkio {
 
 
   template < typename PortTraits >
-  typename OutPortBase< PortTraits >::PortConnection*
-  OutPortBase< PortTraits >::_createConnection(PortPtrType port, const std::string& connectionId)
+  typename OutPortBase< PortTraits >::RemoteConnection*
+  OutPortBase< PortTraits >::_createRemoteConnection(PortPtrType port, const std::string& connectionId)
   {
-      LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
-      if (local_port) {
-        LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
-                  << " for connection " << connectionId);
-        return new LocalConnection(name, local_port);
-      } else {
-        return new RemoteConnection(name, port);
-      }
+    return new RemoteConnection(name, port);
+  }
+
+
+  template < typename PortTraits >
+  typename OutPortBase< PortTraits >::LocalConnection*
+  OutPortBase< PortTraits >::_createLocalConnection(LocalPortType* port, const std::string& connectionId)
+  {
+    return new LocalConnection(name, port);
   }
   
-
 
   template < typename PortTraits >
   void OutPortBase< PortTraits >::disconnectPort(const char* connectionId)
@@ -631,38 +652,36 @@ namespace  bulkio {
   }
 
 
-  /*
-   * Push a packet whose payload cannot fit within the CORBA limit.
-   * The packet is broken down into sub-packets and sent via multiple pushPacket
-   * calls.  The EOS is set to false for all of the sub-packets, except for
-   * the last sub-packet, who uses the input EOS argument.
-   */
-  template < typename PortTraits >
-  void OutPort< PortTraits>::_pushOversizedPacket(const ScalarBuffer& data,
-                                                  const BULKIO::PrecisionUTCTime& T,
-                                                  bool EOS,
-                                                  const std::string& streamID,
-                                                  bool shared)
+  template <typename PortTraits>
+  class OutPort<PortTraits>::ChunkingConnection : public OutPortBase<PortTraits>::RemoteConnection
   {
-      // don't want to process while command information is coming in
-      SCOPED_LOCK lock(this->updatingPortsLock);
-
-      const TransportType* buffer = reinterpret_cast<const TransportType*>(data.data());
-      size_t size = data.size();
-
+  public:
+    ChunkingConnection(const std::string& name, PortPtrType port) :
+      OutPortBase<PortTraits>::RemoteConnection(name, port)      
+    {
       // Multiply by some number < 1 to leave some margin for the CORBA header
       const size_t maxPayloadSize    = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
-
-      size_t maxSamplesPerPush = maxPayloadSize/sizeof(TransportType);
-      typename OutPortSriMap::iterator sri_iter;
-      sri_iter = currentSRIs.find( streamID );
-      // Determine xdelta for this streamID to be used for time increment for subpackets
-      double xdelta = 0.0;
-      size_t itemSize = 1;
-      if ( sri_iter != currentSRIs.end() ) {
-          xdelta = sri_iter->second.sri.xdelta;
-          itemSize = sri_iter->second.sri.mode?2:1;
+      maxSamplesPerPush = maxPayloadSize/sizeof(TransportType);
+      // Make sure maxSamplesPerPush is even so that complex data case is
+      // handled properly
+      if (maxSamplesPerPush%2 != 0){
+          maxSamplesPerPush--;
       }
+    }
+
+    /*
+     * Push a packet whose payload may not fit within the CORBA limit. The
+     * packet is broken down into sub-packets and sent via multiple pushPacket
+     * calls.  The EOS is set to false for all of the sub-packets, except for
+     * the last sub-packet, which uses the input EOS argument.
+     */
+    virtual void pushPacket(const PortSequenceType& data,
+                            const BULKIO::PrecisionUTCTime& T,
+                            bool EOS,
+                            const BULKIO::StreamSRI& sri)
+    {
+      double xdelta = sri.xdelta;
+      size_t itemSize = sri.mode?2:1;
 
       if ( sri_iter != currentSRIs.end() ) {
         if (sri_iter->second.sri.subsize == 0) {
@@ -686,38 +705,50 @@ namespace  bulkio {
 
       // Always do at least one push (may be empty), ensuring that all samples
       // are pushed
-      size_t samplesRemaining = size;
+      const TransportType* buffer = data.get_buffer();
+      size_t samplesRemaining = data.length();
 
       // Initialize time of first subpacket
       BULKIO::PrecisionUTCTime packetTime = T;
       
       do {
-          // Don't send more samples than are remaining
-          const size_t pushSize = std::min(samplesRemaining, maxSamplesPerPush);
-          samplesRemaining -= pushSize;
+        // Don't send more samples than are remaining
+        const size_t pushSize = std::min(samplesRemaining, maxSamplesPerPush);
+        samplesRemaining -= pushSize;
 
-          // Send end-of-stream as false for all sub-packets except for the
-          // last one (when there are no samples remaining after this push),
-          // which gets the input EOS.
-          bool packetEOS = false;
-          if (samplesRemaining == 0) {
-              packetEOS = EOS;
-          }
+        // Send end-of-stream as false for all sub-packets except for the
+        // last one (when there are no samples remaining after this push),
+        // which gets the input EOS.
+        bool packetEOS = false;
+        if (samplesRemaining == 0) {
+          packetEOS = EOS;
+        }
 
-          // Wrap a non-owning CORBA sequence (last argument is whether to free
-          // the buffer on destruction) around this sub-packet's data
-          const PortSequenceType subPacket(pushSize, pushSize, const_cast<TransportType*>(buffer), false);
-          LOG_TRACE(logger,"_pushOversizedPacket calling pushPacket with pushSize " << pushSize << " and packetTime twsec: " << packetTime.twsec << " tfsec: " << packetTime.tfsec)
-          this->_pushPacketLocked(subPacket, packetTime, packetEOS, streamID);
+        // Wrap a non-owning CORBA sequence (last argument is whether to free
+        // the buffer on destruction) around this sub-packet's data
+        const PortSequenceType subPacket(pushSize, pushSize, const_cast<TransportType*>(buffer), false);
+        OutPortBase<PortTraits>::RemoteConnection::pushPacket(subPacket, packetTime, packetEOS, sri);
 
-          // Synthesize the next packet timestamp
-          if (packetTime.tcstatus == BULKIO::TCS_VALID) {
-              packetTime += (pushSize/itemSize)* xdelta;
-          }
+        // Synthesize the next packet timestamp
+        if (packetTime.tcstatus == BULKIO::TCS_VALID) {
+          packetTime += (pushSize/itemSize)* xdelta;
+        }
 
-          // Advance buffer to next sub-packet boundary
-          buffer += pushSize;
+        // Advance buffer to next sub-packet boundary
+        buffer += pushSize;
       } while (samplesRemaining > 0);
+    }
+
+  private:
+    size_t maxSamplesPerPush;
+  };
+
+
+  template <typename PortTraits>
+  typename  OutPortBase<PortTraits>::RemoteConnection*
+  OutPort<PortTraits>::_createRemoteConnection(PortPtrType port, const std::string& connectionId)
+  {
+    return new ChunkingConnection(this->name, port);
   }
 
 
@@ -728,8 +759,8 @@ namespace  bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    ScalarBuffer buffer(&data[0], data.size(), null_deleter());
-    _pushOversizedPacket(buffer, T, EOS, streamID, false);
+    const PortSequenceType buffer(data.size(), data.size(), reinterpret_cast<TransportType*>(&data[0]), false);
+    this->_pushPacketLocked(buffer, T, EOS, streamID);
   }
   
   template < typename PortTraits >
@@ -739,8 +770,9 @@ namespace  bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    ScalarBuffer buffer(const_cast<NativeType*>(&data[0]), data.size(), null_deleter());
-    _pushOversizedPacket(buffer, T, EOS, streamID, false);
+    const TransportType* ptr = reinterpret_cast<const TransportType*>(&data[0]);
+    const PortSequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
+    this->_pushPacketLocked(buffer, T, EOS, streamID);
   }
 
   template < typename PortTraits >
@@ -751,8 +783,8 @@ namespace  bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    ScalarBuffer buffer((NativeType*)data, size, null_deleter());
-    _pushOversizedPacket(buffer, T, EOS, streamID, false);
+    const PortSequenceType buffer(size, size, const_cast<TransportType*>(data), false);
+    this->_pushPacketLocked(buffer, T, EOS, streamID);
   }
 
   template < typename PortTraits >
@@ -762,9 +794,9 @@ namespace  bulkio {
                                          const std::string& streamID, 
                                          bool shared)
   {
-    TRACE_ENTER(logger, "OutPort::pushPacket" );
-    _pushOversizedPacket(data, T, EOS, streamID, shared);
-    TRACE_EXIT(logger, "OutPort::pushPacket" );
+    const TransportType* ptr = reinterpret_cast<const TransportType*>(data.data());
+    const PortSequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
+    this->_pushPacketLocked(buffer, T, EOS, streamID);
   }
 
   template < typename PortTraits >

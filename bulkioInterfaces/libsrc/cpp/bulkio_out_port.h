@@ -284,7 +284,8 @@ namespace bulkio {
     class RemoteConnection;
     class LocalConnection;
 
-    virtual PortConnection* _createConnection(PortPtrType port, const std::string& connectionId);
+    virtual RemoteConnection* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
+    virtual LocalConnection* _createLocalConnection(LocalPortType* port, const std::string& connectionId);
 
     typedef std::map<std::string,PortConnection*> TransportMap;
     TransportMap _transportMap;
@@ -467,12 +468,12 @@ namespace bulkio {
 
   protected:
     using OutPortBase<PortTraits>::logger;
+    typedef typename OutPortBase<PortTraits>::PortPtrType PortPtrType;
+    typedef typename OutPortBase<PortTraits>::RemoteConnection RemoteConnection;
 
-    void _pushOversizedPacket(const ScalarBuffer& buffer,
-                              const BULKIO::PrecisionUTCTime& T,
-                              bool EOS,
-                              const std::string& streamID,
-                              bool shared);
+    class ChunkingConnection;
+
+    virtual RemoteConnection* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
   };
 
   //
