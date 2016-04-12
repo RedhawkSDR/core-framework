@@ -88,6 +88,11 @@ namespace bulkio {
     typedef typename Traits::PushType         PushArgumentType;
 
     //
+    // Shared buffer type used to transfer data without copies, where possible
+    //
+    typedef typename Traits::SharedBufferType SharedBufferType;
+
+    //
     // Data type of items passed into the pushPacket method
     //
     typedef typename Traits::NativeType       NativeType;
@@ -310,22 +315,11 @@ namespace bulkio {
     // will never break a push into multiple packets (XML, File); acquires and
     // releases the port lock
     //
-    void _pushSinglePacket(
-            PushArgumentType                data,
-            const BULKIO::PrecisionUTCTime& T,
-            bool                            EOS,
-            const std::string&              streamID);
-
-    //
-    // Sends the given data and metadata to all appropriate connections and
-    // updates the associated SRI if necessary (or creates one if it does not
-    // exist); must be called with the port lock held
-    //
-    void _pushPacketLocked(
-            PushArgumentType                data,
-            const BULKIO::PrecisionUTCTime& T,
-            bool                            EOS,
-            const std::string&              streamID);
+    void _pushSinglePacket(const SharedBufferType& data,
+                           bool shared,
+                           const BULKIO::PrecisionUTCTime& T,
+                           bool EOS,
+                           const std::string& streamID);
   };
 
   
@@ -385,7 +379,7 @@ namespace bulkio {
     //
     typedef OutputStream<PortTraits> StreamType;
 
-    typedef redhawk::read_buffer<NativeType> ScalarBuffer;
+    typedef typename Traits::SharedBufferType SharedBufferType;
 
     //
     // OutPort Creates a uses port object for publishing data to the framework
@@ -457,7 +451,7 @@ namespace bulkio {
      */
     void pushPacket( const DataBufferType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
-    void pushPacket(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID, bool shared);
+    void pushPacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID, bool shared);
 
     // Create a new stream based on a stream ID
     StreamType createStream(const std::string& streamID);

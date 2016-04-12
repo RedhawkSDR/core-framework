@@ -4,10 +4,9 @@ namespace bulkio {
   class PortConnection
   {
   public:
-    typedef typename PortTraits::PushType PushArgumentType;
-    typedef typename PortTraits::SequenceType PortSequenceType;
     typedef typename PortTraits::PortType::_ptr_type PortPtrType;
     typedef typename PortTraits::NativeType NativeType;
+    typedef typename PortTraits::SharedBufferType SharedBufferType;
 
     PortConnection(const std::string& name) :
       stats(name, sizeof(NativeType))
@@ -18,7 +17,7 @@ namespace bulkio {
 
     virtual void pushSRI(const BULKIO::StreamSRI& sri) = 0;
 
-    virtual void pushPacket(PushArgumentType data,
+    virtual void pushPacket(const SharedBufferType& data,
                             const BULKIO::PrecisionUTCTime& T,
                             bool EOS,
                             const BULKIO::StreamSRI& sri)
@@ -35,7 +34,7 @@ namespace bulkio {
     //
     void sendEOS(const std::string& streamID)
     {
-      this->_pushPacket(PortSequenceType(), bulkio::time::utils::notSet(), true, streamID);
+      this->_pushPacket(SharedBufferType(), bulkio::time::utils::notSet(), true, streamID);
     }
 
     virtual PortPtrType objref() = 0;
@@ -43,7 +42,7 @@ namespace bulkio {
     linkStatistics stats;
 
   protected:
-    virtual void _pushPacket(PushArgumentType data,
+    virtual void _pushPacket(const SharedBufferType& data,
                              const BULKIO::PrecisionUTCTime& T,
                              bool EOS,
                              const std::string& streamID) = 0;
@@ -53,23 +52,14 @@ namespace bulkio {
     // statistical tracking; enables XML and File specialization, which have
     // different notions of size
     //
-    size_t _dataLength(PushArgumentType data)
+    size_t _dataLength(const SharedBufferType& data)
     {
-      return data.length();
+      return data.size();
     }
   };
 
   template <>
-  size_t PortConnection<XMLPortTraits>::_dataLength(const char* data)
-  {
-    if (!data) {
-      return 0;
-    }
-    return strlen(data);
-  }
-
-  template <>
-  size_t PortConnection<FilePortTraits>::_dataLength(const char* /*unused*/)
+  size_t PortConnection<FilePortTraits>::_dataLength(const std::string& /*unused*/)
   {
     return 1;
   }
@@ -81,7 +71,9 @@ namespace bulkio {
     typedef typename PortTraits::PortVarType PortVarType;
     typedef typename PortTraits::PortType PortType;
     typedef typename PortType::_ptr_type PortPtrType;
-    typedef typename PortTraits::PushType PushArgumentType;
+    typedef typename PortTraits::SharedBufferType SharedBufferType;
+    typedef typename PortTraits::SequenceType PortSequenceType;
+    typedef typename PortTraits::TransportType TransportType;
 
     RemoteConnection(const std::string& name, PortPtrType port) :
       PortConnection<PortTraits>(name),
@@ -100,24 +92,35 @@ namespace bulkio {
     }
 
   protected:
-    virtual void _pushPacket(PushArgumentType data,
+    virtual void _pushPacket(const SharedBufferType& data,
                              const BULKIO::PrecisionUTCTime& T,
                              bool EOS,
                              const std::string& streamID)
     {
-      _port->pushPacket(data, T, EOS, streamID.c_str());
+      const TransportType* ptr = reinterpret_cast<const TransportType*>(data.data());
+      const PortSequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
+      _port->pushPacket(buffer, T, EOS, streamID.c_str());
     }
 
     PortVarType _port;
   };
 
   template <>
-  void RemoteConnection<XMLPortTraits>::_pushPacket(PushArgumentType data,
+  void RemoteConnection<FilePortTraits>::_pushPacket(const std::string& data,
+                                                     const BULKIO::PrecisionUTCTime& T,
+                                                     bool EOS,
+                                                     const std::string& streamID)
+  {
+    _port->pushPacket(data.c_str(), T, EOS, streamID.c_str());
+  }
+
+  template <>
+  void RemoteConnection<XMLPortTraits>::_pushPacket(const std::string& data,
                                                     const BULKIO::PrecisionUTCTime& /* unused */,
                                                     bool EOS,
                                                     const std::string& streamID)
   {
-    _port->pushPacket(data, EOS, streamID.c_str());
+    _port->pushPacket(data.c_str(), EOS, streamID.c_str());
   }
 
   template <typename PortTraits>
@@ -128,6 +131,7 @@ namespace bulkio {
     typedef typename PortType::_ptr_type PortPtrType;
     typedef typename PortTraits::TransportType TransportType;
     typedef typename PortTraits::SequenceType PortSequenceType;
+    typedef typename PortTraits::SharedBufferType SharedBufferType;
 
     ChunkingConnection(const std::string& name, PortPtrType port) :
       RemoteConnection<PortTraits>(name, port)      
@@ -148,7 +152,7 @@ namespace bulkio {
      * calls.  The EOS is set to false for all of the sub-packets, except for
      * the last sub-packet, which uses the input EOS argument.
      */
-    virtual void pushPacket(const PortSequenceType& data,
+    virtual void pushPacket(const SharedBufferType& data,
                             const BULKIO::PrecisionUTCTime& T,
                             bool EOS,
                             const BULKIO::StreamSRI& sri)
@@ -158,8 +162,8 @@ namespace bulkio {
 
       // Always do at least one push (may be empty), ensuring that all samples
       // are pushed
-      const TransportType* buffer = data.get_buffer();
-      size_t samplesRemaining = data.length();
+      size_t first = 0;
+      size_t samplesRemaining = data.size();
 
       // Initialize time of first subpacket
       BULKIO::PrecisionUTCTime packetTime = T;
@@ -177,9 +181,8 @@ namespace bulkio {
           packetEOS = EOS;
         }
 
-        // Wrap a non-owning CORBA sequence (last argument is whether to free
-        // the buffer on destruction) around this sub-packet's data
-        const PortSequenceType subPacket(pushSize, pushSize, const_cast<TransportType*>(buffer), false);
+        // Take the next slice of the input buffer.
+        SharedBufferType subPacket = data.slice(first, first + pushSize);
         RemoteConnection<PortTraits>::pushPacket(subPacket, packetTime, packetEOS, sri);
 
         // Synthesize the next packet timestamp
@@ -188,7 +191,7 @@ namespace bulkio {
         }
 
         // Advance buffer to next sub-packet boundary
-        buffer += pushSize;
+        first += pushSize;
       } while (samplesRemaining > 0);
     }
 
@@ -201,10 +204,10 @@ namespace bulkio {
   class LocalConnection : public PortConnection<PortTraits>
   {
   public:
-    typedef typename PortTraits::PushType PushArgumentType;
     typedef typename PortTraits::PortType PortType;
     typedef typename PortType::_ptr_type PortPtrType;
     typedef InPort<PortTraits> LocalPortType;
+    typedef typename PortTraits::SharedBufferType SharedBufferType;
 
     LocalConnection(const std::string& name, LocalPortType* port) :
       PortConnection<PortTraits>(name),
@@ -229,33 +232,33 @@ namespace bulkio {
     }
 
   protected:
-    virtual void _pushPacket(PushArgumentType data,
+    virtual void _pushPacket(const SharedBufferType& data,
                              const BULKIO::PrecisionUTCTime& T,
                              bool EOS,
                              const std::string& streamID)
     {
-      _port->pushPacket(data, T, EOS, streamID.c_str());
+      //_port->pushPacket(data, T, EOS, streamID.c_str());
     }
 
     LocalPortType* _port;
   };
 
   template <>
-  void LocalConnection<FilePortTraits>::_pushPacket(PushArgumentType data,
+  void LocalConnection<FilePortTraits>::_pushPacket(const std::string& data,
                                                     const BULKIO::PrecisionUTCTime& T,
                                                     bool EOS,
                                                     const std::string& streamID)
   {
-    _port->pushPacket((bulkio::Char*)data, T, EOS, streamID.c_str());
+    _port->pushPacket((bulkio::Char*)data.c_str(), T, EOS, streamID.c_str());
   }
 
   template <>
-  void LocalConnection<XMLPortTraits>::_pushPacket(PushArgumentType data,
+  void LocalConnection<XMLPortTraits>::_pushPacket(const std::string& data,
                                                    const BULKIO::PrecisionUTCTime& T,
                                                    bool EOS,
                                                    const std::string& streamID)
   {
-    _port->pushPacket((bulkio::Char*)data, T, EOS, streamID.c_str());
+    _port->pushPacket((bulkio::Char*)data.c_str(), T, EOS, streamID.c_str());
   }
 
 }

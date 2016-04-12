@@ -158,61 +158,52 @@ namespace bulkio {
 
   template < typename PortTraits >
   void OutPortBase< PortTraits >::_pushSinglePacket(
-          PushArgumentType                data,
+          const SharedBufferType&         data,
+          bool                            shared,
           const BULKIO::PrecisionUTCTime& T,
           bool                            EOS,
           const std::string&              streamID)
   {
     // don't want to process while command information is coming in
     SCOPED_LOCK lock(this->updatingPortsLock);
-    _pushPacketLocked(data, T, EOS, streamID);
-  }
 
-  template < typename PortTraits >
-  void OutPortBase< PortTraits >::_pushPacketLocked(
-          PushArgumentType                data,
-          const BULKIO::PrecisionUTCTime& T,
-          bool                            EOS,
-          const std::string&              streamID)
-  {
-      // grab SRI context 
-      typename OutPortSriMap::iterator sri_iter =  currentSRIs.find( streamID );
-      if (sri_iter == currentSRIs.end()) {
-        // No SRI associated with the stream ID, create a default one and add
-        // it to the list; it will get pushed to downstream connections below
-        SriMapStruct sri_ctx(bulkio::sri::create(streamID));
-        // need to use insert since we do not have default CTOR for SriMapStruct
-        sri_iter = currentSRIs.insert(std::make_pair(streamID, sri_ctx)).first;
-      }
+    // grab SRI context 
+    typename OutPortSriMap::iterator sri_iter =  currentSRIs.find( streamID );
+    if (sri_iter == currentSRIs.end()) {
+      // No SRI associated with the stream ID, create a default one and add
+      // it to the list; it will get pushed to downstream connections below
+      SriMapStruct sri_ctx(bulkio::sri::create(streamID));
+      // need to use insert since we do not have default CTOR for SriMapStruct
+      sri_iter = currentSRIs.insert(std::make_pair(streamID, sri_ctx)).first;
+    }
 
-      if (active) {
-        typename TransportMap::iterator port;
-        for (port = _transportMap.begin(); port != _transportMap.end(); ++port) {
-          // Check whether filtering is enabled and if this connection should
-          // receive the stream
-          if (!_isStreamRoutedToConnection(streamID, port->first)) {
-            continue;
-          }
+    if (active) {
+      typename TransportMap::iterator port;
+      for (port = _transportMap.begin(); port != _transportMap.end(); ++port) {
+        // Check whether filtering is enabled and if this connection should
+        // receive the stream
+        if (!_isStreamRoutedToConnection(streamID, port->first)) {
+          continue;
+        }
 
-          if (sri_iter->second.connections.count(port->first) == 0) {
-            this->_pushSRI(port, sri_iter->second);
-          }
+        if (sri_iter->second.connections.count(port->first) == 0) {
+          this->_pushSRI(port, sri_iter->second);
+        }
 
-          try {
-            port->second->pushPacket(data, T, EOS, sri_iter->second.sri);
-          } catch(...) {
-            LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->first );
-          }
+        try {
+          port->second->pushPacket(data, T, EOS, sri_iter->second.sri);
+        } catch(...) {
+          LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->first );
         }
       }
+    }
 
-      // if we have end of stream removed old sri
-      try {
-        if ( EOS ) currentSRIs.erase(streamID);
-      }
-      catch(...){
-      }
-
+    // if we have end of stream removed old sri
+    try {
+      if ( EOS ) currentSRIs.erase(streamID);
+    }
+    catch(...){
+    }
   }
 
 
@@ -502,8 +493,8 @@ namespace bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    const PortSequenceType buffer(data.size(), data.size(), reinterpret_cast<TransportType*>(&data[0]), false);
-    this->_pushPacketLocked(buffer, T, EOS, streamID);
+    SharedBufferType buffer(&data[0], data.size(), null_deleter());
+    this->_pushSinglePacket(buffer, false, T, EOS, streamID);
   }
   
   template < typename PortTraits >
@@ -513,9 +504,8 @@ namespace bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    const TransportType* ptr = reinterpret_cast<const TransportType*>(&data[0]);
-    const PortSequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
-    this->_pushPacketLocked(buffer, T, EOS, streamID);
+    SharedBufferType buffer(const_cast<NativeType*>(&data[0]), data.size(), null_deleter());
+    this->_pushSinglePacket(buffer, false, T, EOS, streamID);
   }
 
   template < typename PortTraits >
@@ -526,20 +516,19 @@ namespace bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    const PortSequenceType buffer(size, size, const_cast<TransportType*>(data), false);
-    this->_pushPacketLocked(buffer, T, EOS, streamID);
+    TransportType* ptr = const_cast<TransportType*>(data);
+    SharedBufferType buffer(reinterpret_cast<NativeType*>(ptr), size, null_deleter());
+    this->_pushSinglePacket(buffer, false, T, EOS, streamID);
   }
 
   template < typename PortTraits >
-  void OutPort< PortTraits >::pushPacket(const ScalarBuffer& data,
+  void OutPort< PortTraits >::pushPacket(const SharedBufferType& data,
                                          const BULKIO::PrecisionUTCTime& T,
                                          bool EOS,
                                          const std::string& streamID, 
                                          bool shared)
   {
-    const TransportType* ptr = reinterpret_cast<const TransportType*>(data.data());
-    const PortSequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
-    this->_pushPacketLocked(buffer, T, EOS, streamID);
+    this->_pushSinglePacket(data, true, T, EOS, streamID);
   }
 
   template < typename PortTraits >
@@ -620,19 +609,19 @@ namespace bulkio {
 
   void OutFilePort::pushPacket( const char* URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
-    _pushSinglePacket(URL, T, EOS, streamID);
+    _pushSinglePacket(URL, true, T, EOS, streamID);
   }
 
 
   void OutFilePort::pushPacket( const std::string& URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
-    _pushSinglePacket(URL.c_str(), T, EOS, streamID);
+    _pushSinglePacket(URL, true, T, EOS, streamID);
   }
 
 
   void OutFilePort::pushPacket( const char *data, bool EOS, const std::string& streamID)
   {
-    _pushSinglePacket(data, bulkio::time::utils::now(), EOS, streamID);
+    _pushSinglePacket(data, true, bulkio::time::utils::now(), EOS, streamID);
   }
 
 
@@ -655,27 +644,23 @@ namespace bulkio {
   }
 
 
-  void OutXMLPort::pushPacket( const char *data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
+  void OutXMLPort::pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
-    _pushSinglePacket(data, T, EOS, streamID);
+    _pushSinglePacket(data, true, T, EOS, streamID);
   }
 
 
-  void OutXMLPort::pushPacket( const char *data, bool EOS, const std::string& streamID)
+  void OutXMLPort::pushPacket(const char *data, bool EOS, const std::string& streamID)
+  {
+    this->pushPacket(std::string(data), EOS, streamID);
+  }
+
+  void OutXMLPort::pushPacket(const std::string& data, bool EOS, const std::string& streamID)
   {
     // The time argument is never dereferenced for dataXML, so it is safe to
     // pass a null
     BULKIO::PrecisionUTCTime* time = 0;
-    _pushSinglePacket(data, *time, EOS, streamID);
-  }
-
-
-  void OutXMLPort::pushPacket( const std::string& data, bool EOS, const std::string& streamID)
-  {
-    // The time argument is never dereferenced for dataXML, so it is safe to
-    // pass a null
-    BULKIO::PrecisionUTCTime* time = 0;
-    _pushSinglePacket(data.c_str(), *time, EOS, streamID);
+    _pushSinglePacket(data, true, *time, EOS, streamID);
   }
 
 

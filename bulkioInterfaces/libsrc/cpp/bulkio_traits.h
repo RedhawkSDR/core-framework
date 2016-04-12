@@ -25,6 +25,7 @@
 
 #include <ossie/Port_impl.h> // for _seqVector
 #include <ossie/PropertyMap.h>
+#include <ossie/shared_buffer.h>
 
 #include "BULKIO_Interfaces.h"
 #include "bulkio_base.h"
@@ -49,13 +50,15 @@ template < typename TT, typename AT=_seqVector::seqVectorAllocator< TT > >
 // Traits template definition used to define input and output types used the port
 // classes
 //
-template < typename PST, typename TT, typename NDT=TT, class DBT=std::vector< NDT >, class PAT=const PST& >
+template < typename PST, typename TT, typename NDT=TT, class DBT=std::vector< NDT >, class PAT=const PST&,
+           class SBT=redhawk::read_buffer<NDT> >
 struct DataTransferTraits {
   typedef PST   PortSequenceType;                           // Port Sequence type used by middleware
   typedef PAT   PushArgumentType;                           // Type of data argument to pushPacket
   typedef TT    TransportType;                              // Transport Type contained in the Port Sequence container
   typedef NDT   NativeDataType;                             // Native c++ mapping of Transport Type
   typedef DBT   DataBufferType;                             // Container defintion to hold data from Input port
+  typedef SBT   SharedBufferType;
   typedef typename DBT::allocator_type AllocatorType;
 };
 
@@ -70,7 +73,7 @@ typedef DataTransferTraits< PortTypes::LongLongSequence, CORBA::LongLong >    Lo
 typedef DataTransferTraits< PortTypes::UlongLongSequence, CORBA::ULongLong >  ULongLongDataTransferTraits;
 typedef DataTransferTraits< PortTypes::FloatSequence, CORBA::Float >          FloatDataTransferTraits;
 typedef DataTransferTraits< PortTypes::DoubleSequence, CORBA::Double >        DoubleDataTransferTraits;
-typedef DataTransferTraits< Char *, Char, Char, std::string, const char* >    StringDataTransferTraits;
+typedef DataTransferTraits< Char *, Char, Char, std::string, const char*, std::string > StringDataTransferTraits;
 
 
 //
@@ -195,6 +198,7 @@ struct PortTraits {
   typedef typename DTT::PortSequenceType    SequenceType;
   typedef typename DTT::PushArgumentType    PushType;
   typedef typename DTT::DataBufferType      DataBufferType;
+  typedef typename DTT::SharedBufferType    SharedBufferType;
 };
 
 
