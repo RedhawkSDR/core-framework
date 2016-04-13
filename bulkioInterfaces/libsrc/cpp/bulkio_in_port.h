@@ -278,20 +278,14 @@ namespace bulkio {
     // synchronizes access to the workQueue member
     //
     MUTEX                                          dataBufferLock;
+    CONDITION dataAvailable;
+    CONDITION queueAvailable;
+    size_t maxQueue;
 
     //
     // synchronizes access to the currentHs member
     //
     MUTEX                                          sriUpdateLock;
-
-    //
-    // mutex for use with condition variable to signify when data is available for consumption
-    //  RESOVLE: combine deque and condition into template for pushing and poping items onto the queue... 
-    //           refer to ConditionList.h example
-    //
-    MUTEX                                          dataAvailableMutex;
-
-    CONDITION                                      dataAvailable;
 
     //
     //  used to control data flow from getPacket call
@@ -302,11 +296,6 @@ namespace bulkio {
     //  Transfers blocking request from data provider to this port that will block pushPacket calls if queue has reached a maximum value
     //
     bool                                           blocking;
-
-    //
-    //  An abstraction of a counting semaphore to control access to the workQueue member
-    //
-    queueSemaphore                                 *queueSem;
 
     //
     //  Statistics provider object used by the port monitoring interface

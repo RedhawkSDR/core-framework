@@ -57,9 +57,9 @@ namespace  bulkio {
     Port_Provides_base_impl(port_name),
     sri_cmp(sriCmp),
     newStreamCallback(),
+    maxQueue(100),
     breakBlock(false),
     blocking(false),
-    queueSem(new queueSemaphore(100)),
     stats(new linkStatistics(port_name, sizeof(TransportType))),
     logger(logger)
   {
@@ -77,7 +77,7 @@ namespace  bulkio {
     }
 
     LOG_DEBUG( logger, "bulkio::InPort CTOR port:" << name << 
-               " Blocking/MaxInputQueueSize " << blocking << "/" << queueSem->getMaxValue() <<  
+               " Blocking/MaxInputQueueSize " << blocking << "/" << maxQueue <<  
                " SriCompare/NewStreamCallback " << _cmpMsg << "/" << _sriMsg );
   }
 
@@ -101,8 +101,6 @@ namespace  bulkio {
     }
 
     // clean up allocated containers
-    if ( queueSem ) delete queueSem;
-
     if ( stats ) delete stats;
 
     TRACE_EXIT( logger, "InPort::DTOR"  );
@@ -124,7 +122,7 @@ namespace  bulkio {
   BULKIO::PortUsageType InPortBase< PortTraits >::state()
   {
     SCOPED_LOCK lock(dataBufferLock);
-    if (workQueue.size() == queueSem->getMaxValue()) {
+    if (workQueue.size() == maxQueue) {
       return BULKIO::BUSY;
     } else if (workQueue.size() == 0) {
       return BULKIO::IDLE;
@@ -158,7 +156,7 @@ namespace  bulkio {
   int InPortBase< PortTraits >::getMaxQueueDepth()
   {
     SCOPED_LOCK lock(dataBufferLock);
-    return queueSem->getMaxValue();
+    return maxQueue;
   }
 
   template < typename PortTraits >
@@ -172,7 +170,7 @@ namespace  bulkio {
   void InPortBase< PortTraits >::setMaxQueueDepth(int newDepth)
   {
     SCOPED_LOCK lock(dataBufferLock);
-    queueSem->setMaxValue(newDepth);
+    maxQueue = newDepth;
   }
 
   template < typename PortTraits >
@@ -183,7 +181,6 @@ namespace  bulkio {
     if (H.blocking) {
       SCOPED_LOCK lock(dataBufferLock);
       blocking = true;
-      queueSem->setCurrValue(workQueue.size());
     }
 
     const std::string streamID(H.streamID);
@@ -214,7 +211,7 @@ namespace  bulkio {
   {
 
     TRACE_ENTER( logger, "InPort::pushPacket"  );
-    if (queueSem->getMaxValue() == 0) {
+    if (maxQueue == 0) {
       TRACE_EXIT( logger, "InPort::pushPacket"  );
       return;
     }
@@ -255,11 +252,13 @@ namespace  bulkio {
     const size_t length = _getElementLength(data);
     LOG_DEBUG( logger, "bulkio::InPort port blocking:" << portBlocking );
     bool flushToReport = false;
-    if(portBlocking) {
-      queueSem->incr();
+    if (portBlocking) {
       SCOPED_LOCK lock(dataBufferLock);
+      while (workQueue.size() == maxQueue) {
+        queueAvailable.wait(lock);
+      }
       LOG_TRACE( logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << workQueue.size()+1 << ")" );
-      stats->update(length, (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, false);
+      stats->update(length, (float)(workQueue.size()+1)/(float)maxQueue, EOS, streamID, false);
       DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID.c_str(), tmpH, sriChanged, false);
       workQueue.push_back(tmpIn);
       dataAvailable.notify_all();
@@ -267,7 +266,7 @@ namespace  bulkio {
       SCOPED_LOCK lock(dataBufferLock);
       bool sriChangedHappened = false;
       bool flagEOS = false;
-      if (workQueue.size() == queueSem->getMaxValue()) { // reached maximum queue depth - flush the queue
+      if (workQueue.size() >= maxQueue) { // reached maximum queue depth - flush the queue
         LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
         flushToReport = true;
         DataTransferType *tmp;
@@ -289,7 +288,7 @@ namespace  bulkio {
           EOS = true;
 
       LOG_DEBUG( logger, "bulkio::InPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
-      stats->update(length, (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
+      stats->update(length, (float)(workQueue.size()+1)/(float)maxQueue, EOS, streamID, flushToReport);
       DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID.c_str(), tmpH, sriChanged, flushToReport);
       workQueue.push_back(tmpIn);
       dataAvailable.notify_all();
@@ -362,7 +361,6 @@ namespace  bulkio {
   {
     TRACE_ENTER( logger, "InPort::block"  );
     breakBlock = true;
-    queueSem->release();
     dataAvailable.notify_all();
     packetWaiters.interrupt();
     TRACE_EXIT( logger, "InPort::block"  );
@@ -442,7 +440,9 @@ namespace  bulkio {
       }
       
       LOG_TRACE( logger, "bulkio.InPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
-
+      if (tmp) {
+        queueAvailable.notify_all();
+      }
     }
 
     if (!tmp) {
@@ -473,12 +473,7 @@ namespace  bulkio {
     {
       SCOPED_LOCK lock(dataBufferLock);
       if (turnOffBlocking) {
-        queueSem->setCurrValue(0);
         blocking = false;
-      }
-
-      if (blocking) {
-        queueSem->decr();
       }
     }
 
