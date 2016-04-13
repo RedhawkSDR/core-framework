@@ -222,7 +222,6 @@ namespace  bulkio {
 
     BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID.c_str(), false, 0};
     bool sriChanged = false;
-    bool portBlocking = false;
 
     SriMap::iterator currH;
     {
@@ -246,49 +245,45 @@ namespace  bulkio {
 
         createStream(streamID, tmpH);
       }
-      portBlocking = blocking;
     }
 
     const size_t length = _getElementLength(data);
-    LOG_DEBUG( logger, "bulkio::InPort port blocking:" << portBlocking );
-    bool flushToReport = false;
-    if (portBlocking) {
+    {
+      bool flushToReport = false;
       SCOPED_LOCK lock(dataBufferLock);
-      while (workQueue.size() == maxQueue) {
-        queueAvailable.wait(lock);
-      }
-      LOG_TRACE( logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << workQueue.size()+1 << ")" );
-      stats->update(length, (float)(workQueue.size()+1)/(float)maxQueue, EOS, streamID, false);
-      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID.c_str(), tmpH, sriChanged, false);
-      workQueue.push_back(tmpIn);
-      dataAvailable.notify_all();
-    } else {
-      SCOPED_LOCK lock(dataBufferLock);
-      bool sriChangedHappened = false;
-      bool flagEOS = false;
-      if (workQueue.size() >= maxQueue) { // reached maximum queue depth - flush the queue
-        LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
-        flushToReport = true;
-        DataTransferType *tmp;
-        while (workQueue.size() != 0) {
-          tmp = workQueue.front();
-          if (tmp->sriChanged == true) {
-            sriChangedHappened = true;
-          }
-          if (tmp->EOS == true) {
+      LOG_DEBUG(logger, "bulkio::InPort port blocking:" << blocking);
+      if (blocking) {
+        while (workQueue.size() == maxQueue) {
+          queueAvailable.wait(lock);
+        }
+      } else {
+        bool sriChangedHappened = false;
+        bool flagEOS = false;
+        if (workQueue.size() >= maxQueue) { // reached maximum queue depth - flush the queue
+          LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
+          flushToReport = true;
+          while (workQueue.size() != 0) {
+            DataTransferType *tmp = workQueue.front();
+            if (tmp->sriChanged == true) {
+              sriChangedHappened = true;
+            }
+            if (tmp->EOS == true) {
               flagEOS = true;
+            }
+            workQueue.pop_front();
+            delete tmp;
           }
-          workQueue.pop_front();
-          delete tmp;
+        }
+        if (sriChangedHappened) {
+          sriChanged = true;
+        }
+        if (flagEOS) {
+          EOS = true;
         }
       }
-      if (sriChangedHappened)
-        sriChanged = true;
-      if (flagEOS)
-          EOS = true;
 
-      LOG_DEBUG( logger, "bulkio::InPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
-      stats->update(length, (float)(workQueue.size()+1)/(float)maxQueue, EOS, streamID, flushToReport);
+      LOG_TRACE(logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << workQueue.size()+1 << ")");
+      stats->update(length, (float)(workQueue.size()+1)/(float)maxQueue, EOS, streamID, false);
       DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID.c_str(), tmpH, sriChanged, flushToReport);
       workQueue.push_back(tmpIn);
       dataAvailable.notify_all();
