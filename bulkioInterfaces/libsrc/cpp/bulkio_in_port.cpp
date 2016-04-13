@@ -220,7 +220,7 @@ namespace  bulkio {
       return;
     }
 
-    BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID.c_str(), false, 0};
+    BULKIO::StreamSRI* sri;
     bool sriChanged = false;
 
     SriMap::iterator currH;
@@ -229,7 +229,7 @@ namespace  bulkio {
 
       currH = currentHs.find(streamID);
       if (currH != currentHs.end()) {
-        tmpH = currH->second.first;
+        sri = &currH->second.first;
         sriChanged = currH->second.second;
         currentHs[streamID].second = false;
       } else {
@@ -237,13 +237,15 @@ namespace  bulkio {
         // and set the SRI changed flag
         LOG_WARN(logger, "InPort::pushPacket received data for stream '" << streamID << "' with no SRI");
         sriChanged = true;
+        BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID.c_str(), false, 0};
         if (newStreamCallback) {
           (*newStreamCallback)(tmpH);
         }
         currentHs[streamID] = std::make_pair(tmpH, false);
+        sri = &(currentHs[streamID].first);
         lock.unlock();
 
-        createStream(streamID, tmpH);
+        createStream(streamID, *sri);
       }
     }
 
@@ -284,7 +286,7 @@ namespace  bulkio {
 
       LOG_TRACE(logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << workQueue.size()+1 << ")");
       stats->update(length, (float)(workQueue.size()+1)/(float)maxQueue, EOS, streamID, false);
-      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID.c_str(), tmpH, sriChanged, flushToReport);
+      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID.c_str(), *sri, sriChanged, flushToReport);
       workQueue.push_back(tmpIn);
       dataAvailable.notify_all();
     }
