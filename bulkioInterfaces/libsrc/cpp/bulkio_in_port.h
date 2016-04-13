@@ -255,11 +255,6 @@ namespace bulkio {
     WorkQueue                                      workQueue;
 
     //
-    // Track size of work queue between getPacket calls when using streamID for extraction
-    //
-    uint32_t                                       lastQueueSize;
-
-    //
     // SRI compare method used by pushSRI method to determine how to match incoming SRI objects and streamsID
     //
     bulkio::sri::Compare                           sri_cmp;
