@@ -231,7 +231,7 @@ namespace  bulkio {
       if (currH != currentHs.end()) {
         tmpH = currH->second.first;
         sriChanged = currH->second.second;
-        currentHs[streamID] = std::make_pair(currH->second.first, false);
+        currentHs[streamID].second = false;
       } else {
         // Unknown stream ID, register a new default SRI following the logic in pushSRI,
         // and set the SRI changed flag
