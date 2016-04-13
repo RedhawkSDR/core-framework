@@ -56,6 +56,12 @@ class CorbaStream(object):
     def received(self):
         return self.reader.received()
 
+    def send_time(self):
+        return self.writer._get_average_time()
+
+    def recv_time(self):
+        return self.reader._get_average_time()
+
     def terminate(self):
         self.reader_proc.terminate()
         self.writer_proc.terminate()

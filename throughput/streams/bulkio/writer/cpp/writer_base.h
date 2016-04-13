@@ -44,6 +44,10 @@ class writer_base : public Component, protected ThreadedComponent
         // Member variables exposed as properties
         /// Property: transfer_length
         CORBA::ULong transfer_length;
+        /// Property: total_packets
+        CORBA::ULong total_packets;
+        /// Property: average_time
+        double average_time;
 
         // Ports
         /// Port: dataOctet_out

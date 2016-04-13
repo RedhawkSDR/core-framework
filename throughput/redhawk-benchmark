@@ -277,6 +277,8 @@ class TransferSizeTest(BenchmarkTest):
                 sample = {'time': now-start,
                           'rate': current_rate,
                           'size': transfer_size,
+                          'send_time': stream.send_time(),
+                          'recv_time': stream.recv_time(),
                           'write_cpu': writer['cpu'] * sys_cpu,
                           'write_rss': writer['rss'],
                           'write_majflt': writer['majflt'],
@@ -355,6 +357,8 @@ if __name__ == '__main__':
     csv.add_field('time', 'time(s)')
     csv.add_field('rate', 'rate(Bps)')
     csv.add_field('size', 'transfer size(B)')
+    csv.add_field('send_time', 'average send call(s)')
+    csv.add_field('recv_time', 'average recv call(s)')
     csv.add_field('write_cpu', 'writer cpu(%)')
     csv.add_field('write_rss', 'writer rss')
     csv.add_field('write_majflt', 'writer major faults')

@@ -66,6 +66,12 @@ class BulkioStream(object):
     def received(self):
         return int(self.reader.received)
 
+    def send_time(self):
+        return float(self.writer.average_time)
+
+    def recv_time(self):
+        return float(self.reader.average_time)
+
     def terminate(self):
         self.writer.releaseObject()
         self.reader.releaseObject()

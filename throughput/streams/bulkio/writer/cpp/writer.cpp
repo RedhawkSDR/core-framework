@@ -26,12 +26,15 @@
 
 **************************************************************************/
 
+#include <timing.h>
+
 #include "writer.h"
 
-PREPARE_LOGGING(writer_i)
+PREPARE_LOGGING(writer_i);
 
 writer_i::writer_i(const char *uuid, const char *label) :
-    writer_base(uuid, label)
+    writer_base(uuid, label),
+    totalSeconds(0.0)
 {
     // Avoid placing constructor code here. Instead, use the "constructor" function.
 
@@ -223,9 +226,17 @@ int writer_i::serviceFunction()
     size_t buffer_size = transfer_length;
     if (buffer.size() != buffer_size) {
         buffer.resize(buffer_size);
+        total_packets = 0;
+        totalSeconds = 0.0;
     }
 
+    double start = get_time();
     stream.write(buffer, bulkio::time::utils::now());
+    double end = get_time();
+
+    total_packets++;
+    totalSeconds += end-start;
+    average_time = totalSeconds/total_packets;
 
     return NORMAL;
 }

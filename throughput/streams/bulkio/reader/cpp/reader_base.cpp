@@ -86,6 +86,15 @@ void reader_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(average_time,
+                0.0,
+                "average_time",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
 }
 
 

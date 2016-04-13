@@ -44,6 +44,8 @@ class reader_base : public Component, protected ThreadedComponent
         // Member variables exposed as properties
         /// Property: received
         CORBA::ULongLong received;
+        /// Property: average_time
+        double average_time;
 
         // Ports
         /// Port: dataOctet_in

@@ -26,6 +26,7 @@
 
 struct control {
     volatile uint64_t total_bytes;
+    volatile double average_time;
     volatile uint32_t transfer_size;
 };
 

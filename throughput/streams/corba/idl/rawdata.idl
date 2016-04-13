@@ -27,6 +27,7 @@ module rawdata {
         void push_short(in short_sequence data);
         void push_float(in float_sequence data);
         long long received();
+        readonly attribute double average_time;
     };
 
     interface writer {
@@ -34,5 +35,6 @@ module rawdata {
         void transfer_length(in long length);
         void start();
         void stop();
+        readonly attribute double average_time;
     };
 };

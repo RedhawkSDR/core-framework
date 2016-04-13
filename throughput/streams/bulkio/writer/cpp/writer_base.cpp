@@ -86,6 +86,24 @@ void writer_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(total_packets,
+                0,
+                "total_packets",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(average_time,
+                0.0,
+                "average_time",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
 }
 
 

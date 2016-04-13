@@ -25,4 +25,14 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
+  <simple id="total_packets" mode="readonly" type="ulong">
+    <value>0</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="average_time" mode="readonly" type="double">
+    <value>0.0</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
 </properties>
