@@ -51,7 +51,7 @@ class CorbaStream(object):
         return self.writer_proc.pid
 
     def transfer_size(self, size):
-        self.writer.transfer_length(size)
+        self.writer.transfer_length(int(size))
 
     def received(self):
         return self.reader.received()

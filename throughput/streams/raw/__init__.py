@@ -67,8 +67,8 @@ class RawStream(object):
         return self.writer_proc.pid
 
     def transfer_size(self, size):
-        self.writer_control.transfer_size.value = size
-        self.reader_control.transfer_size.value = size
+        self.writer_control.transfer_size.value = int(size)
+        self.reader_control.transfer_size.value = int(size)
 
     def received(self):
         return self.reader_control.total_bytes.value

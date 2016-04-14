@@ -61,7 +61,7 @@ class BulkioStream(object):
         return self.writer._process.pid()
 
     def transfer_size(self, size):
-        self.writer.transfer_length = size
+        self.writer.transfer_length = int(size)
 
     def received(self):
         return int(self.reader.received)
