@@ -33,7 +33,7 @@ using bulkio::DataBlock;
 template <class T>
 struct DataBlock<T>::Impl
 {
-  std::vector<T> data;
+  redhawk::read_buffer<T> data;
   BULKIO::StreamSRI sri;
   std::list<SampleTimestamp> timestamps;
   int sriChangeFlags;
@@ -50,7 +50,7 @@ template <class T>
 DataBlock<T>::DataBlock(const BULKIO::StreamSRI& sri, size_t size) :
   _impl(new Impl())
 {
-  _impl->data.resize(size);
+  _impl->data = redhawk::buffer<T>(size);
   _impl->sri = sri;
 }
 
@@ -79,13 +79,13 @@ double DataBlock<T>::xdelta() const
 template <class T>
 T* DataBlock<T>::data()
 {
-  return &(_impl->data[0]);
+  return const_cast<T*>(_impl->data.data());
 }
 
 template <class T>
 const T* DataBlock<T>::data() const
 {
-  return &(_impl->data[0]);
+  return _impl->data.data();
 }
 
 template <class T>
@@ -97,7 +97,8 @@ size_t DataBlock<T>::size() const
 template <class T>
 void DataBlock<T>::resize(size_t count)
 {
-  _impl->data.resize(count);
+  // TODO: Copy data
+  _impl->data = redhawk::buffer<T>(count);
 }
 
 template <class T>
@@ -222,7 +223,14 @@ void DataBlock<T>::inputQueueFlushed(bool flushed)
 template <class T>
 void DataBlock<T>::swap(std::vector<ScalarType>& other)
 {
-  _impl->data.swap(other);
+  // TODO
+  //_impl->data.swap(other);
+}
+
+template <class T>
+void DataBlock<T>::buffer(const redhawk::read_buffer<ScalarType>& data)
+{
+  _impl->data = data;
 }
 
 // Instantiate templates for supported types

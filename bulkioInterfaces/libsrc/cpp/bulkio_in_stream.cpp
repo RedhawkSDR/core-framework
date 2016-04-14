@@ -57,7 +57,7 @@ public:
   typedef PortTraits TraitsType;
   typedef DataTransfer<typename TraitsType::DataTransferTraits> DataTransferType;
   typedef typename DataTransferType::NativeDataType NativeType;
-  typedef std::vector<NativeType> VectorType;
+  typedef typename PortTraits::SharedBufferType SharedBufferType;
   typedef DataBlock<NativeType> DataBlockType;
 
   Impl(const BULKIO::StreamSRI& sri, bulkio::InPort<PortTraits>* port) :
@@ -135,7 +135,7 @@ public:
     if (_samplesQueued == 0) {
       return DataBlockType();
     }
-    const size_t samples = _queue.front()->dataBuffer.size() - _sampleOffset;
+    const size_t samples = _queue.front()->buffer.size() - _sampleOffset;
     return _readData(samples, samples);
   }
 
@@ -255,7 +255,7 @@ private:
   void _consumeData(size_t count)
   {
     while (count > 0) {
-      const VectorType& data = _queue.front()->dataBuffer;
+      const SharedBufferType& data = _queue.front()->buffer;
 
       const size_t available = data.size() - _sampleOffset;
       const size_t pass = std::min(available, count);
@@ -281,9 +281,6 @@ private:
       _port->removeStream(_streamID);
     }
 
-    // The packet buffer was allocated with new[] by the CORBA layer, while
-    // vector will use non-array delete, so explicitly delete the buffer
-    delete[] steal_buffer(packet->dataBuffer);
     delete packet;
     _queue.erase(_queue.begin());
 
@@ -314,19 +311,20 @@ private:
       front->inputQueueFlushed = false;
     }
 
-    if ((count <= consume) && (_sampleOffset == 0) && (front->dataBuffer.size() == count)) {
+    if ((count <= consume) && (_sampleOffset == 0) && (front->buffer.size() == count)) {
       // Optimization: when the read aligns perfectly with the front packet's
       // data buffer, and the entire packet is being consumed, swap the vector
       // data
       data.addTimestamp(bulkio::SampleTimestamp(front->T, 0));
-      data.swap(front->dataBuffer);
+      data.buffer(front->buffer);
       _samplesQueued -= count;
       _consumePacket();
       return data;
     }
 
-    data.resize(count);
-    NativeType* data_buffer = data.data();
+    redhawk::buffer<NativeType> buffer(count);
+    data.buffer(buffer);
+    NativeType* data_buffer = buffer.data();
     size_t data_offset = 0;
 
     // Assemble data that may span several input packets into the output buffer
@@ -334,7 +332,7 @@ private:
     size_t packet_offset = _sampleOffset;
     while (count > 0) {
       DataTransferType* packet = _queue[packet_index];
-      const VectorType& input_data = packet->dataBuffer;
+      const SharedBufferType& input_data = packet->buffer;
 
       // Determine the timestamp of this chunk of data; if this is the
       // first chunk, the packet offset (number of samples already read)
@@ -424,7 +422,7 @@ private:
 
   void _queuePacket(DataTransferType* packet)
   {
-    if (packet->EOS && packet->dataBuffer.empty()) {
+    if (packet->EOS && packet->buffer.empty()) {
       // Handle end-of-stream packet with no data (assuming that timestamps,
       // SRI changes, and queue flushes are irrelevant at this point)
       if (_queue.empty()) {
@@ -438,7 +436,7 @@ private:
       }
       delete packet;
     } else {
-      _samplesQueued += packet->dataBuffer.size();
+      _samplesQueued += packet->buffer.size();
       _queue.push_back(packet);
     }
   }

@@ -26,6 +26,8 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include <ossie/shared_buffer.h>
+
 #include <BULKIO/bulkioDataTypes.h>
 
 namespace bulkio {
@@ -87,6 +89,8 @@ namespace bulkio {
     }
 
     void swap(std::vector<ScalarType>& other);
+
+    void buffer(const redhawk::read_buffer<ScalarType>& other);
   private:
     struct Impl;
     boost::shared_ptr<Impl> _impl;
