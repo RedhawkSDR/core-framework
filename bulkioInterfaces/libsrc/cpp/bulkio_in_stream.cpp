@@ -135,6 +135,7 @@ public:
     if (_samplesQueued == 0) {
       return DataBlockType();
     }
+    // Only read up to the end of the first packet in the queue
     const size_t samples = _queue.front()->buffer.size() - _sampleOffset;
     return _readData(samples, samples);
   }
@@ -311,67 +312,43 @@ private:
       front->inputQueueFlushed = false;
     }
 
-    if ((count <= consume) && (_sampleOffset == 0) && (front->buffer.size() == count)) {
-      // Optimization: when the read aligns perfectly with the front packet's
-      // data buffer, and the entire packet is being consumed, swap the vector
-      // data
-      data.addTimestamp(bulkio::SampleTimestamp(front->T, 0));
-      data.buffer(front->buffer);
-      _samplesQueued -= count;
-      _consumePacket();
-      return data;
-    }
+    size_t last_offset = _sampleOffset + count;
+    if (last_offset <= front->buffer.size()) {
+      // The requsted sample count can be satisfied from the first packet
+      _addTimestamp(data, _sampleOffset, 0, front->T);
+      data.buffer(front->buffer.slice(_sampleOffset, last_offset));
+    } else {
+      // We have to span multiple packets to get the data
+      redhawk::buffer<NativeType> buffer(count);
+      data.buffer(buffer);
+      size_t data_offset = 0;
 
-    redhawk::buffer<NativeType> buffer(count);
-    data.buffer(buffer);
-    NativeType* data_buffer = buffer.data();
-    size_t data_offset = 0;
+      // Assemble data spanning several input packets into the output buffer
+      size_t packet_index = 0;
+      size_t packet_offset = _sampleOffset;
+      while (count > 0) {
+        DataTransferType* packet = _queue[packet_index];
+        const SharedBufferType& input_data = packet->buffer;
 
-    // Assemble data that may span several input packets into the output buffer
-    size_t packet_index = 0;
-    size_t packet_offset = _sampleOffset;
-    while (count > 0) {
-      DataTransferType* packet = _queue[packet_index];
-      const SharedBufferType& input_data = packet->buffer;
+        // Add the timestamp for this pass
+        _addTimestamp(data, packet_offset, data_offset, packet->T);
 
-      // Determine the timestamp of this chunk of data; if this is the
-      // first chunk, the packet offset (number of samples already read)
-      // must be accounted for, so adjust the timestamp based on the SRI.
-      // Otherwise, the adjustment is a noop.
-      BULKIO::PrecisionUTCTime time = packet->T;
-      double time_offset = packet_offset * packet->SRI.xdelta;
-      size_t sample_offset = data_offset;
-      if (packet->SRI.mode) {
-        // Complex data; each sample is two values
-        time_offset /= 2.0;
-        sample_offset /= 2;
-      }
+        // The number of samples copied on this pass may be less than the total
+        // remaining
+        const size_t available = input_data.size() - packet_offset;
+        const size_t pass = std::min(available, count);
 
-      // If there is a time offset, apply the adjustment and mark the timestamp
-      // so that the caller knows it was calculated rather than received
-      bool synthetic = false;
-      if (time_offset > 0.0) {
-        time += time_offset;
-        synthetic = true;
-      }
+        std::copy(&input_data[packet_offset], &input_data[packet_offset+pass], &buffer[data_offset]);
+        data_offset += pass;
+        packet_offset += pass;
+        count -= pass;
 
-      data.addTimestamp(bulkio::SampleTimestamp(time, sample_offset, synthetic));
-
-      // The number of samples copied on this pass may be less than the total
-      // remaining
-      const size_t available = input_data.size() - packet_offset;
-      const size_t pass = std::min(available, count);
-
-      std::copy(&input_data[packet_offset], &input_data[packet_offset+pass], &data_buffer[data_offset]);
-      data_offset += pass;
-      packet_offset += pass;
-      count -= pass;
-
-      // If all the data from the current packet has been read, move on to
-      // the next
-      if (packet_offset >= input_data.size()) {
-        packet_offset = 0;
-        ++packet_index;
+        // If all the data from the current packet has been read, move on to
+        // the next
+        if (packet_offset >= input_data.size()) {
+          packet_offset = 0;
+          ++packet_index;
+        }
       }
     }
 
@@ -379,6 +356,30 @@ private:
     _consumeData(consume);
 
     return data;
+  }
+
+  void _addTimestamp(DataBlockType& data, size_t input_offset, size_t output_offset, BULKIO::PrecisionUTCTime time)
+  {
+    // Determine the timestamp of this chunk of data; if this is the
+    // first chunk, the packet offset (number of samples already read)
+    // must be accounted for, so adjust the timestamp based on the SRI.
+    // Otherwise, the adjustment is a noop.
+    double time_offset = input_offset * data.xdelta();
+    if (data.complex()) {
+      // Complex data; each sample is two values
+      time_offset /= 2.0;
+      output_offset /= 2;
+    }
+
+    // If there is a time offset, apply the adjustment and mark the timestamp
+    // so that the caller knows it was calculated rather than received
+    bool synthetic = false;
+    if (time_offset > 0.0) {
+      time += time_offset;
+      synthetic = true;
+    }
+
+    data.addTimestamp(bulkio::SampleTimestamp(time, output_offset, synthetic));
   }
 
   const BULKIO::StreamSRI* _nextSRI(bool blocking)
