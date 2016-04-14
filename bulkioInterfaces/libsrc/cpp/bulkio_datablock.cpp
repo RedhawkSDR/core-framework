@@ -48,7 +48,7 @@ DataBlock<T>::DataBlock() :
 
 template <class T>
 DataBlock<T>::DataBlock(const BULKIO::StreamSRI& sri, size_t size) :
-  _impl(new Impl())
+  _impl(boost::make_shared<Impl>())
 {
   _impl->data = redhawk::buffer<T>(size);
   _impl->sri = sri;
