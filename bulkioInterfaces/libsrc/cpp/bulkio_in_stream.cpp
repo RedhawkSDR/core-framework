@@ -22,33 +22,6 @@
 #include "bulkio_time_operators.h"
 #include "bulkio_in_port.h"
 
-namespace {
-  template <class T, class Alloc>
-  class stealable_vector : public std::vector<T, Alloc> {
-  public:
-    stealable_vector()
-    {
-    }
-
-    T* steal()
-    {
-      T* out = this->_M_impl._M_start;
-      this->_M_impl._M_start = 0;
-      this->_M_impl._M_finish = 0;
-      this->_M_impl._M_end_of_storage = 0;
-      return out;
-    }
-  };
-
-  template <class T, class Alloc>
-  T* steal_buffer(std::vector<T,Alloc>& vec)
-  {
-    stealable_vector<T,Alloc> other;
-    std::swap(vec, other);
-    return other.steal();
-  }
-}
-
 using bulkio::InputStream;
 
 template <class PortTraits>
