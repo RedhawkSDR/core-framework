@@ -77,6 +77,8 @@ namespace bulkio {
     // Queue of data transfer objects maintained by the port
     typedef std::deque< DataTransferType * > WorkQueue;
 
+    typedef typename Traits::SharedBufferType SharedBufferType;
+
     //
     // ~InPortBase - call the virtual destructor to remove all allocated memebers
     //
@@ -308,7 +310,7 @@ namespace bulkio {
     // Queues a packet received via pushPacket; in most cases, this method maps
     // exactly to pushPacket, except for dataFile
     //
-    void queuePacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
+    void queuePacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
 
     //
     // Returns a pointer to the first packet in the queue, blocking for up to
@@ -333,7 +335,7 @@ namespace bulkio {
     // statistical tracking; enables XML and File specialization, which have
     // different notions of size
     //
-    int _getElementLength(PushArgumentType data);
+    int _getElementLength(const SharedBufferType& data);
   };
 
   template < typename PortTraits >

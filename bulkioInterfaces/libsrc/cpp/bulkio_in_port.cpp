@@ -207,7 +207,7 @@ namespace  bulkio {
 
 
   template < typename PortTraits >
-  void  InPortBase< PortTraits >::queuePacket(const PushArgumentType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID)
+  void  InPortBase< PortTraits >::queuePacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID)
   {
 
     TRACE_ENTER( logger, "InPort::pushPacket"  );
@@ -546,9 +546,9 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
-  int InPortBase< PortTraits >::_getElementLength(const PushArgumentType data)
+  int InPortBase< PortTraits >::_getElementLength(const SharedBufferType& data)
   {
-    return data.length();
+    return data.size();
   }
 
   template < typename PortTraits >
@@ -603,7 +603,7 @@ namespace  bulkio {
    */
 
   template <>
-  int InPortBase< FilePortTraits >::_getElementLength(const char* /*unused*/)
+  int InPortBase< FilePortTraits >::_getElementLength(const std::string& /*unused*/)
   {
     return 1;
   }
@@ -611,15 +611,6 @@ namespace  bulkio {
   /*
    * Specializations of base class methods for dataFile ports
    */
-
-  template <>
-  int InPortBase< XMLPortTraits >::_getElementLength(const char* data)
-  {
-    if (!data) {
-      return 0;
-    }
-    return strlen(data);
-  }
 
   //
   template < typename PortTraits >
@@ -648,15 +639,15 @@ namespace  bulkio {
   template < typename PortTraits >
   void InPort< PortTraits >::pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
-    this->queuePacket(data, T, EOS, streamID);
+    size_t size = data.length();
+    TransportType* ptr = const_cast<PortSequenceType&>(data).get_buffer(1);
+    this->queuePacket(SharedBufferType(reinterpret_cast<NativeType*>(ptr), size), T, EOS, streamID);
   }
 
   template < typename PortTraits >
   void InPort< PortTraits >::pushPacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
-    const TransportType* ptr = reinterpret_cast<const TransportType*>(data.data());
-    const PortSequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
-    this->queuePacket(buffer, T, EOS, streamID.c_str());
+    this->queuePacket(data, T, EOS, streamID);
   }
 
   template < typename PortTraits >
