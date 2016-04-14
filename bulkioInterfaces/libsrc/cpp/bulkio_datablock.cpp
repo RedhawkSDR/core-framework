@@ -228,6 +228,18 @@ void DataBlock<T>::swap(std::vector<ScalarType>& other)
 }
 
 template <class T>
+typename DataBlock<T>::ScalarBuffer DataBlock<T>::buffer() const
+{
+  return _impl->data;
+}
+
+template <class T>
+typename DataBlock<T>::ComplexBuffer DataBlock<T>::cxbuffer() const
+{
+  return ComplexBuffer::recast(_impl->data);
+}
+
+template <class T>
 void DataBlock<T>::buffer(const redhawk::read_buffer<ScalarType>& data)
 {
   _impl->data = data;
