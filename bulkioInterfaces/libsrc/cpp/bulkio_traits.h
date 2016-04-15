@@ -100,31 +100,29 @@ struct DataTransfer {
   typedef typename Traits::TransportType    TransportType;
   typedef typename Traits::NativeDataType   NativeDataType;
   typedef typename Traits::DataBufferType   DataBufferType;
-  typedef typename Traits::SharedBufferType SharedBufferType;
   
   //
   // Construct a DataTransfer object to be returned from an InPort's getPacket method
   // 
-  DataTransfer(const SharedBufferType& data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed);
+  DataTransfer(const PortSequenceType& data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed);
 
-  SharedBufferType buffer;
   DataBufferType   dataBuffer;
-    BULKIO::PrecisionUTCTime T;
-    bool EOS;
-    std::string streamID;
-    BULKIO::StreamSRI SRI;
-    bool sriChanged;
-    bool inputQueueFlushed;
+  BULKIO::PrecisionUTCTime T;
+  bool EOS;
+  std::string streamID;
+  BULKIO::StreamSRI SRI;
+  bool sriChanged;
+  bool inputQueueFlushed;
 
-    redhawk::PropertyMap& getKeywords()
-    {
-        return redhawk::PropertyMap::cast(SRI.keywords);
-    }
+  redhawk::PropertyMap& getKeywords()
+  {
+    return redhawk::PropertyMap::cast(SRI.keywords);
+  }
 
-    const redhawk::PropertyMap& getKeywords() const
-    {
-        return redhawk::PropertyMap::cast(SRI.keywords);
-    }
+  const redhawk::PropertyMap& getKeywords() const
+  {
+    return redhawk::PropertyMap::cast(SRI.keywords);
+  }
 };
 
 
@@ -135,9 +133,9 @@ struct DataTransfer< StringDataTransferTraits >
     typedef Traits::PortSequenceType PortSequenceType;
     typedef Traits::DataBufferType   DataBufferType;
 
-  DataTransfer(const std::string& data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
+ DataTransfer(const char *data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
     {
-        dataBuffer = data;
+      if ( data != NULL )  dataBuffer = data;
         T = _T;
         EOS = _EOS;
         streamID = _streamID;
@@ -145,9 +143,9 @@ struct DataTransfer< StringDataTransferTraits >
         sriChanged = _sriChanged;
         inputQueueFlushed = _inputQueueFlushed;
     }
-  DataTransfer(const std::string& data, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
+ DataTransfer(const char * data, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
     {
-        dataBuffer = data;
+       if ( data != NULL )  dataBuffer = data;
         EOS = _EOS;
         streamID = _streamID;
         SRI = _H;

@@ -17,8 +17,9 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-#include <bulkio_p.h>
+#include <boost/scoped_ptr.hpp>
 
+#include <bulkio_p.h>
 #include <bulkio_in_port.h>
 
 namespace  bulkio {
@@ -91,13 +92,12 @@ namespace  bulkio {
     // block any data coming out of getPacket.. 
     block();
 
-    LOG_TRACE( logger, "PORT:" << name << " DUMP PKTS:" << workQueue.size() );
+    LOG_TRACE( logger, "PORT:" << name << " DUMP PKTS:" << packetQueue.size() );
 
     // purge the queue...
-    while (workQueue.size() != 0) {
-      DataTransferType *tmp = workQueue.front();
-      workQueue.pop_front();
-      delete tmp;
+    while (packetQueue.size() != 0) {
+      delete packetQueue.front();
+      packetQueue.pop_front();
     }
 
     // clean up allocated containers
@@ -122,9 +122,9 @@ namespace  bulkio {
   BULKIO::PortUsageType InPortBase< PortTraits >::state()
   {
     SCOPED_LOCK lock(dataBufferLock);
-    if (workQueue.size() == maxQueue) {
+    if (packetQueue.size() == maxQueue) {
       return BULKIO::BUSY;
-    } else if (workQueue.size() == 0) {
+    } else if (packetQueue.empty()) {
       return BULKIO::IDLE;
     } else {
       return BULKIO::ACTIVE;
@@ -163,7 +163,7 @@ namespace  bulkio {
   int  InPortBase< PortTraits >::getCurrentQueueDepth()
   {
     SCOPED_LOCK lock(dataBufferLock);
-    return workQueue.size();
+    return packetQueue.size();
   }
 
   template < typename PortTraits >
@@ -255,24 +255,24 @@ namespace  bulkio {
       SCOPED_LOCK lock(dataBufferLock);
       LOG_DEBUG(logger, "bulkio::InPort port blocking:" << blocking);
       if (blocking) {
-        while (workQueue.size() == maxQueue) {
+        while (packetQueue.size() >= maxQueue) {
           queueAvailable.wait(lock);
         }
       } else {
         bool sriChangedHappened = false;
         bool flagEOS = false;
-        if (workQueue.size() >= maxQueue) { // reached maximum queue depth - flush the queue
-          LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
+        if (packetQueue.size() >= maxQueue) { // reached maximum queue depth - flush the queue
+          LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << packetQueue.size() << ")" );
           flushToReport = true;
-          while (workQueue.size() != 0) {
-            DataTransferType *tmp = workQueue.front();
+          while (packetQueue.size() != 0) {
+            Packet *tmp = packetQueue.front();
             if (tmp->sriChanged == true) {
               sriChangedHappened = true;
             }
             if (tmp->EOS == true) {
               flagEOS = true;
             }
-            workQueue.pop_front();
+            packetQueue.pop_front();
             delete tmp;
           }
         }
@@ -284,10 +284,10 @@ namespace  bulkio {
         }
       }
 
-      LOG_TRACE(logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << workQueue.size()+1 << ")");
-      stats->update(length, (float)(workQueue.size()+1)/(float)maxQueue, EOS, streamID, false);
-      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID.c_str(), *sri, sriChanged, flushToReport);
-      workQueue.push_back(tmpIn);
+      LOG_TRACE(logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << packetQueue.size()+1 << ")");
+      stats->update(length, (float)(packetQueue.size()+1)/(float)maxQueue, EOS, streamID, false);
+      Packet *tmpIn = new Packet(data, T, EOS, *sri, sriChanged, flushToReport);
+      packetQueue.push_back(tmpIn);
       dataAvailable.notify_all();
     }
 
@@ -298,13 +298,13 @@ namespace  bulkio {
 
 
   template < typename PortTraits >
-  typename InPortBase< PortTraits >::DataTransferType* InPortBase< PortTraits >::peekPacket(float timeout)
+  typename InPortBase< PortTraits >::Packet* InPortBase< PortTraits >::peekPacket(float timeout)
   {
     uint64_t secs = (unsigned long)(trunc(timeout));
     uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
     boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
     boost::mutex::scoped_lock lock(this->dataBufferLock);
-    while (!breakBlock && workQueue.empty()) {
+    while (!breakBlock && packetQueue.empty()) {
       if (timeout == 0) {
         break;
       } else if (timeout > 0) {
@@ -316,10 +316,10 @@ namespace  bulkio {
       }
     }
 
-    if (breakBlock || workQueue.empty()) {
+    if (breakBlock || packetQueue.empty()) {
       return 0;
     } else {
-      return workQueue.front();
+      return packetQueue.front();
     }
   }
 
@@ -404,53 +404,61 @@ namespace  bulkio {
   template < typename PortTraits >
   typename InPortBase< PortTraits >::DataTransferType * InPortBase< PortTraits >::getPacket(float timeout, const std::string& streamID)
   {
-    TRACE_ENTER( logger, "InPort::getPacket"  );
+    boost::scoped_ptr<Packet> packet(nextPacket(timeout, streamID));
+    DataTransferType* transfer = new DataTransferType(PortSequenceType(), packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI, packet->sriChanged, packet->inputQueueFlushed);
+    transfer->dataBuffer.assign(packet->buffer.begin(), packet->buffer.end());
+    return transfer;
+  }
+
+
+  template <typename PortTraits>
+  typename InPortBase<PortTraits>::Packet* InPortBase<PortTraits>::nextPacket(float timeout, const std::string& streamID)
+  {
+    TRACE_ENTER(logger, "InPort::nextPacket");
     if (breakBlock) {
-      TRACE_EXIT( logger, "InPort::getPacket"  );
+      TRACE_EXIT(logger, "InPort::nextPacket");
       return NULL;
     }
 
-    DataTransferType *tmp=NULL;
+    Packet* packet = 0;
     {
       SCOPED_LOCK lock(dataBufferLock);
-      tmp = fetchPacket(streamID);
+      packet = fetchPacket(streamID);
       uint64_t secs = (unsigned long)(trunc(timeout));
       uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
       boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
-      while (!tmp) {
+      while (!packet) {
         if (timeout == 0.0) {
-          TRACE_EXIT( logger, "InPort::getPacket"  );
+          TRACE_EXIT(logger, "InPort::nextPacket");
           return NULL;
         } else if (timeout > 0){
           if (!dataAvailable.timed_wait(lock, to_time)) {
-            TRACE_EXIT( logger, "InPort::getPacket"  );
+            TRACE_EXIT(logger, "InPort::nextPacket");
             return NULL;
           }
         } else {
           dataAvailable.wait(lock);
         }
         if (breakBlock) {
-          TRACE_EXIT( logger, "InPort::getPacket"  );
+          TRACE_EXIT(logger, "InPort::nextPacket");
           return NULL;
         }
-        tmp = fetchPacket(streamID);
+        packet = fetchPacket(streamID);
       }
       
-      LOG_TRACE( logger, "bulkio.InPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
-      if (tmp) {
-        queueAvailable.notify_all();
+      if (!packet) {
+        TRACE_EXIT(logger, "InPort::nextPacket");
+        return NULL;
       }
-    }
 
-    if (!tmp) {
-      TRACE_EXIT( logger, "InPort::getPacket"  );
-      return NULL;
+      LOG_TRACE(logger, "InPort::nextPacket PORT:" << name << " (QUEUE="<< packetQueue.size() << ")");
+      queueAvailable.notify_all();
     }
 
     bool turnOffBlocking = false;
-    if (tmp->EOS) {
+    if (packet->EOS) {
       SCOPED_LOCK lock2(sriUpdateLock);
-      SriMap::iterator target = currentHs.find(std::string(tmp->streamID));
+      SriMap::iterator target = currentHs.find(packet->streamID);
       if (target != currentHs.end()) {
         bool sriBlocking = target->second.first.blocking;
         currentHs.erase(target);
@@ -474,27 +482,27 @@ namespace  bulkio {
       }
     }
 
-    TRACE_EXIT( logger, "InPort::getPacket"  );
-    return tmp;
+    TRACE_EXIT( logger, "InPort::nextPacket"  );
+    return packet;
   }
 
 
   template < typename PortTraits >
-  typename InPortBase< PortTraits >::DataTransferType * InPortBase< PortTraits >::fetchPacket(const std::string &streamID)
+  typename InPortBase< PortTraits >::Packet * InPortBase< PortTraits >::fetchPacket(const std::string &streamID)
   {
     if (streamID.empty()) {
-      if (workQueue.empty()) {
+      if (packetQueue.empty()) {
         return 0;
       }
-      DataTransferType* packet = workQueue.front();
-      workQueue.pop_front();
+      Packet* packet = packetQueue.front();
+      packetQueue.pop_front();
       return packet;
     }
 
-    for (typename WorkQueue::iterator ii = workQueue.begin(); ii != workQueue.end(); ++ii) {
+    for (typename PacketQueue::iterator ii = packetQueue.begin(); ii != packetQueue.end(); ++ii) {
       if ((*ii)->streamID == streamID) {
-        DataTransferType* packet = *ii;
-        if (ii == workQueue.begin()) {
+        Packet* packet = *ii;
+        if (ii == packetQueue.begin()) {
           // PERFORMANCE NOTE:
           // In a 1-item deque, erase will end up calling pop_back(); however,
           // this can lead to greatly reduced performance (observed as 1/4 the
@@ -504,9 +512,9 @@ namespace  bulkio {
           // always cause allocation and deallocation. Explicitly calling
           // pop_front() if it's the first element prevents this worst case
           // scenario.
-          workQueue.pop_front();
+          packetQueue.pop_front();
         } else {
-          workQueue.erase(ii);
+          packetQueue.erase(ii);
         }
         return packet;
       }
@@ -557,8 +565,8 @@ namespace  bulkio {
     size_t samples = 0;
     size_t item_size = 1;
     SCOPED_LOCK lock(dataBufferLock);
-    for (typename WorkQueue::iterator iter = workQueue.begin(); iter != workQueue.end(); ++iter) {
-      DataTransferType* packet = *iter;
+    for (typename PacketQueue::iterator iter = packetQueue.begin(); iter != packetQueue.end(); ++iter) {
+      Packet* packet = *iter;
       if (packet->streamID != streamID) {
         continue;
       }
@@ -569,7 +577,7 @@ namespace  bulkio {
       if (packet->SRI.mode) {
           item_size = 2;
       }
-      samples += packet->dataBuffer.size();
+      samples += packet->buffer.size();
     }
     return samples / item_size;
   }
@@ -665,10 +673,9 @@ namespace  bulkio {
 
     // Otherwise, return the stream that owns the next packet on the queue,
     // potentially waiting for one to be received
-    DataTransferType* packet = this->peekPacket(timeout);
+    Packet* packet = this->peekPacket(timeout);
     if (packet) {
-      const std::string& streamID = packet->streamID;
-      return getStream(streamID);
+      return getStream(packet->streamID);
     }
 
     return StreamType();

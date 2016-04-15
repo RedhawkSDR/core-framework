@@ -236,8 +236,7 @@ namespace  bulkio {
 
 
   template < typename DataTransferTraits >
-  DataTransfer< DataTransferTraits >::DataTransfer(const SharedBufferType& data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed) :
-    buffer(data),
+  DataTransfer< DataTransferTraits >::DataTransfer(const PortSequenceType& data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed) :
     T(_T),
     EOS(_EOS),
     streamID(_streamID),
@@ -245,6 +244,22 @@ namespace  bulkio {
     sriChanged(_sriChanged),
     inputQueueFlushed(_inputQueueFlushed)
   {
+    const size_t dataLength = data.length();
+
+    typedef typename std::_Vector_base<TransportType, typename DataTransferTraits::DataBufferType::allocator_type>::_Vector_impl *VectorPtr;
+    
+    VectorPtr vectorPtr = (VectorPtr)(&dataBuffer);
+
+    if (data.release()) {
+      vectorPtr->_M_start = const_cast<PortSequenceType*>(&data)->get_buffer(1);
+    } else {
+      // Somebody else owns the data; make a copy
+      vectorPtr->_M_start = vectorPtr->allocate(dataLength);
+      const void* buffer = data.get_buffer();
+      memcpy(vectorPtr->_M_start, buffer, dataLength*sizeof(NativeDataType));
+    }
+    vectorPtr->_M_finish = vectorPtr->_M_start + dataLength;
+    vectorPtr->_M_end_of_storage = vectorPtr->_M_finish;
   }
 
 

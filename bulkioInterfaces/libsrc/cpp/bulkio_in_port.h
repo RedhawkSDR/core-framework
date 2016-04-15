@@ -251,10 +251,32 @@ namespace bulkio {
                bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
                SriListener *newStreamCB = NULL );
 
+    struct Packet {
+      Packet(const SharedBufferType& buffer, const BULKIO::PrecisionUTCTime& T, bool EOS, const BULKIO::StreamSRI& SRI, bool sriChanged, bool inputQueueFlushed) :
+        buffer(buffer),
+        T(T),
+        EOS(EOS),
+        SRI(SRI),
+        sriChanged(sriChanged),
+        inputQueueFlushed(inputQueueFlushed),
+        streamID(SRI.streamID)
+      {
+      }
+
+      SharedBufferType buffer;
+      BULKIO::PrecisionUTCTime T;
+      bool EOS;
+      BULKIO::StreamSRI SRI;
+      bool sriChanged;
+      bool inputQueueFlushed;
+      std::string streamID;
+    };
+
     //
     // FIFO of data vectors and time stamps waiting to be processed by a component
     //
-    WorkQueue                                      workQueue;
+    typedef std::deque<Packet*> PacketQueue;
+    PacketQueue packetQueue;
 
     //
     // SRI compare method used by pushSRI method to determine how to match incoming SRI objects and streamsID
@@ -313,10 +335,16 @@ namespace bulkio {
     void queuePacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
 
     //
+    // Fetches the next packet for the given stream ID, blocking for up to
+    // timeout seconds for one to be available
+    //
+    Packet* nextPacket(float timeout, const std::string& streamID);
+
+    //
     // Returns a pointer to the first packet in the queue, blocking for up to
     // timeout seconds for one to be available
     //
-    DataTransferType* peekPacket(float timeout);
+    Packet* peekPacket(float timeout);
 
     virtual void createStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
     virtual void removeStream(const std::string& streamID);
@@ -324,7 +352,7 @@ namespace bulkio {
     virtual bool isStreamActive(const std::string& streamID);
     virtual bool isStreamEnabled(const std::string& streamID);
 
-    DataTransferType* fetchPacket(const std::string& streamID);
+    Packet* fetchPacket(const std::string& streamID);
     void packetReceived(const std::string& streamID);
 
     friend class InputStream<PortTraits>;
@@ -449,6 +477,7 @@ namespace bulkio {
     typedef InPortBase<PortTraits> super;
     using super::packetWaiters;
     using super::logger;
+    typedef typename super::Packet Packet;
 
     // Allow the input stream type friend access so it can call removeStream()
     // when it acknowledges an end-of-stream

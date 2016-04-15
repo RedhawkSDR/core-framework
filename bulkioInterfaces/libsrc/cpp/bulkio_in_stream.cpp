@@ -28,8 +28,8 @@ template <class PortTraits>
 class InputStream<PortTraits>::Impl {
 public:
   typedef PortTraits TraitsType;
-  typedef DataTransfer<typename TraitsType::DataTransferTraits> DataTransferType;
-  typedef typename DataTransferType::NativeDataType NativeType;
+  typedef typename InPort<PortTraits>::Packet PacketType;
+  typedef typename PortTraits::NativeType NativeType;
   typedef typename PortTraits::SharedBufferType SharedBufferType;
   typedef DataBlock<NativeType> DataBlockType;
 
@@ -249,7 +249,7 @@ private:
   void _consumePacket()
   {
     // Acknowledge any end-of-stream flag and delete the packet
-    DataTransferType* packet = _queue.front();
+    PacketType* packet = _queue.front();
     _eosReached = packet->EOS;
     if (_eosReached) {
       _port->removeStream(_streamID);
@@ -268,7 +268,7 @@ private:
   DataBlockType _readData(size_t count, size_t consume)
   {
     // Acknowledge pending SRI change
-    DataTransferType* front = _queue.front();
+    PacketType* front = _queue.front();
     int sriChangeFlags = bulkio::sri::NONE;
     if (front->sriChanged) {
       sriChangeFlags = bulkio::sri::compareFields(_sri, front->SRI);
@@ -300,7 +300,7 @@ private:
       size_t packet_index = 0;
       size_t packet_offset = _sampleOffset;
       while (count > 0) {
-        DataTransferType* packet = _queue[packet_index];
+        PacketType* packet = _queue[packet_index];
         const SharedBufferType& input_data = packet->buffer;
 
         // Add the timestamp for this pass
@@ -379,7 +379,7 @@ private:
     }
 
     float timeout = blocking?bulkio::Const::BLOCKING:bulkio::Const::NON_BLOCKING;
-    DataTransferType* packet = _port->getPacket(timeout, _streamID);
+    PacketType* packet = _port->nextPacket(timeout, _streamID);
     if (!packet) {
       return false;
     }
@@ -394,7 +394,7 @@ private:
     }
   }
 
-  void _queuePacket(DataTransferType* packet)
+  void _queuePacket(PacketType* packet)
   {
     if (packet->EOS && packet->buffer.empty()) {
       // Handle end-of-stream packet with no data (assuming that timestamps,
@@ -415,7 +415,7 @@ private:
     }
   }
 
-  bool _canBridge(DataTransferType* packet) const
+  bool _canBridge(PacketType* packet) const
   {
     return !(packet->sriChanged || packet->inputQueueFlushed);
   }
@@ -425,8 +425,8 @@ private:
   bool _eosReceived;
   bool _eosReached;
   InPort<PortTraits>* _port;
-  std::vector<DataTransferType*> _queue;
-  DataTransferType* _pending;
+  std::vector<PacketType*> _queue;
+  PacketType* _pending;
   size_t _samplesQueued;
   size_t _sampleOffset;
   bool _enabled;
