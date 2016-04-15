@@ -316,7 +316,6 @@ namespace bulkio {
     // releases the port lock
     //
     void _pushSinglePacket(const SharedBufferType& data,
-                           bool shared,
                            const BULKIO::PrecisionUTCTime& T,
                            bool EOS,
                            const std::string& streamID);
@@ -451,7 +450,7 @@ namespace bulkio {
      */
     void pushPacket( const DataBufferType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
-    void pushPacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID, bool shared);
+    void pushPacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
     // Create a new stream based on a stream ID
     StreamType createStream(const std::string& streamID);

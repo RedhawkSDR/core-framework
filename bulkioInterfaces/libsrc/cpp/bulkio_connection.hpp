@@ -236,7 +236,15 @@ namespace bulkio {
                              bool EOS,
                              const std::string& streamID)
     {
-      _port->pushPacket(data, T, EOS, streamID);
+      if (data.transient()) {
+        // The data comes from a non-shared source (a vector or raw pointer),
+        // so we need to make a copy. This could be optimized for the fanout
+        // case by making the copy at a higher level, but only if there's at
+        // least one local connection.
+        _port->pushPacket(data.copy(), T, EOS, streamID);
+      } else {
+        _port->pushPacket(data, T, EOS, streamID);
+      }
     }
 
     LocalPortType* _port;

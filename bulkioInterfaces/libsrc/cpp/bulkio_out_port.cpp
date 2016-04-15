@@ -159,7 +159,6 @@ namespace bulkio {
   template < typename PortTraits >
   void OutPortBase< PortTraits >::_pushSinglePacket(
           const SharedBufferType&         data,
-          bool                            shared,
           const BULKIO::PrecisionUTCTime& T,
           bool                            EOS,
           const std::string&              streamID)
@@ -493,8 +492,7 @@ namespace bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    SharedBufferType buffer(&data[0], data.size(), null_deleter());
-    this->_pushSinglePacket(buffer, false, T, EOS, streamID);
+    this->_pushSinglePacket(SharedBufferType::make_transient(&data[0], data.size()), T, EOS, streamID);
   }
   
   template < typename PortTraits >
@@ -504,8 +502,7 @@ namespace bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    SharedBufferType buffer(const_cast<NativeType*>(&data[0]), data.size(), null_deleter());
-    this->_pushSinglePacket(buffer, false, T, EOS, streamID);
+    this->_pushSinglePacket(SharedBufferType::make_transient(&data[0], data.size()), T, EOS, streamID);
   }
 
   template < typename PortTraits >
@@ -516,19 +513,17 @@ namespace bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    TransportType* ptr = const_cast<TransportType*>(data);
-    SharedBufferType buffer(reinterpret_cast<NativeType*>(ptr), size, null_deleter());
-    this->_pushSinglePacket(buffer, false, T, EOS, streamID);
+    const NativeType* ptr = reinterpret_cast<const NativeType*>(data);
+    this->_pushSinglePacket(SharedBufferType::make_transient(ptr, size), T, EOS, streamID);
   }
 
   template < typename PortTraits >
   void OutPort< PortTraits >::pushPacket(const SharedBufferType& data,
                                          const BULKIO::PrecisionUTCTime& T,
                                          bool EOS,
-                                         const std::string& streamID, 
-                                         bool shared)
+                                         const std::string& streamID)
   {
-    this->_pushSinglePacket(data, true, T, EOS, streamID);
+    this->_pushSinglePacket(data, T, EOS, streamID);
   }
 
   template < typename PortTraits >
@@ -609,13 +604,13 @@ namespace bulkio {
 
   void OutFilePort::pushPacket(const std::string& URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
-    _pushSinglePacket(URL, true, T, EOS, streamID);
+    _pushSinglePacket(URL, T, EOS, streamID);
   }
 
 
   void OutFilePort::pushPacket( const char *data, bool EOS, const std::string& streamID)
   {
-    _pushSinglePacket(data, true, bulkio::time::utils::now(), EOS, streamID);
+    _pushSinglePacket(data, bulkio::time::utils::now(), EOS, streamID);
   }
 
 
@@ -640,7 +635,7 @@ namespace bulkio {
 
   void OutXMLPort::pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
-    _pushSinglePacket(data, true, T, EOS, streamID);
+    _pushSinglePacket(data, T, EOS, streamID);
   }
 
 
@@ -649,7 +644,7 @@ namespace bulkio {
     // The time argument is never dereferenced for dataXML, so it is safe to
     // pass a null
     BULKIO::PrecisionUTCTime* time = 0;
-    _pushSinglePacket(data, true, *time, EOS, streamID);
+    _pushSinglePacket(data, *time, EOS, streamID);
   }
 
 
