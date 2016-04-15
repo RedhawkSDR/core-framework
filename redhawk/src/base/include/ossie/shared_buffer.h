@@ -274,6 +274,35 @@ namespace redhawk {
             return _M_recast<read_buffer>(other);
         }
 
+        /**
+         * @brief  Returns a transient %read_buffer.
+         * @param data  Pointer to first element.
+         * @param size  Number of elements.
+         *
+         * Adapts externally aquired memory work with the read_buffer API;
+         * however, additional care must be taken to ensure that the data is
+         * copied if it needs to be held past the lifetime of the call.
+         */
+        static read_buffer make_transient(const value_type* data, size_t size)
+        {
+            read_buffer result;
+            result._M_start = const_cast<value_type*>(data);
+            result._M_finish = result._M_start + size;
+            return result;
+        }
+
+        /**
+         * @brief  Returns true if the array's lifetime is not managed.
+         *
+         * Transient read_buffers do not own the underlying data. If the
+         * receiver of a transient buffer needs to hold on to it past the
+         * lifetime of the call, they must make a copy.
+         */
+        bool transient() const
+        {
+            return !(this->_M_array);
+        }
+
     protected:
         /// @cond IMPL
 
