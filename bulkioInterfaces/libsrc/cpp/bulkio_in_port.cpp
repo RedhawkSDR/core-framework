@@ -404,9 +404,12 @@ namespace  bulkio {
   template < typename PortTraits >
   typename InPortBase< PortTraits >::DataTransferType * InPortBase< PortTraits >::getPacket(float timeout, const std::string& streamID)
   {
+    DataTransferType* transfer = 0;
     boost::scoped_ptr<Packet> packet(nextPacket(timeout, streamID));
-    DataTransferType* transfer = new DataTransferType(PortSequenceType(), packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI, packet->sriChanged, packet->inputQueueFlushed);
-    transfer->dataBuffer.assign(packet->buffer.begin(), packet->buffer.end());
+    if (packet) {
+      transfer = new DataTransferType(PortSequenceType(), packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI, packet->sriChanged, packet->inputQueueFlushed);
+      transfer->dataBuffer.assign(packet->buffer.begin(), packet->buffer.end());
+    }
     return transfer;
   }
 
@@ -871,14 +874,18 @@ namespace  bulkio {
   template < typename PortTraits >
   void InStringPort< PortTraits >::pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
-    this->queuePacket(data, T, EOS, streamID);
+    if (!data) {
+      this->queuePacket(std::string(), T, EOS, streamID);
+    } else {
+      this->queuePacket(data, T, EOS, streamID);
+    }
   }
 
 
   template < typename PortTraits >
   void InStringPort< PortTraits >::pushPacket(const char *data, CORBA::Boolean EOS, const char* streamID)
   {
-    this->queuePacket(data, BULKIO::PrecisionUTCTime(), EOS, streamID);
+    this->pushPacket(data, BULKIO::PrecisionUTCTime(), EOS, streamID);
   }
 
   //
