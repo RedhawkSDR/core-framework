@@ -17,34 +17,14 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+
+#include <boost/ref.hpp>
 #include <boost/scoped_ptr.hpp>
 
 #include <bulkio_p.h>
 #include <bulkio_in_port.h>
 
 namespace  bulkio {
-
-  /*
-   * Wrap Callback functions as SriListerer objects
-   */
-  class StaticSriCallback : public SriListener
-  {
-  public:
-    virtual void operator() ( BULKIO::StreamSRI& sri)
-    {
-      (*func_)(sri);
-    }
-
-    StaticSriCallback ( SriListenerCallbackFn func) :
-      func_(func)
-    {
-    }
-
-  private:
-
-    SriListenerCallbackFn func_;
-  };
-
 
   // ----------------------------------------------------------------------------------------
   //  Source/Input Port Definitions
@@ -68,7 +48,7 @@ namespace  bulkio {
     std::string _sriMsg("EMPTY");
 
     if (newStreamCB) {
-      newStreamCallback = boost::shared_ptr< SriListener >( newStreamCB, null_deleter());
+      newStreamCallback = boost::ref(*newStreamCB);
       _sriMsg = "USER_DEFINED";
     }
 
@@ -191,7 +171,9 @@ namespace  bulkio {
     SriMap::iterator currH = currentHs.find(streamID);
     if (currH == currentHs.end()) {
       LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
-      if ( newStreamCallback ) (*newStreamCallback)(tmpH);
+      if (newStreamCallback) {
+        newStreamCallback(tmpH);
+      }
       currentHs[streamID] = std::make_pair(tmpH, true);
       lock.unlock();
       
@@ -239,7 +221,7 @@ namespace  bulkio {
         sriChanged = true;
         BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID.c_str(), false, 0};
         if (newStreamCallback) {
-          (*newStreamCallback)(tmpH);
+          newStreamCallback(tmpH);
         }
         currentHs[streamID] = std::make_pair(tmpH, false);
         sri = &(currentHs[streamID].first);
@@ -526,14 +508,8 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
-  void   InPortBase< PortTraits >::setNewStreamListener( SriListener *newListener ) {
-    newStreamCallback =  boost::shared_ptr< SriListener >(newListener, null_deleter());
-  }
-
-  template < typename PortTraits >
-  void   InPortBase< PortTraits >::setNewStreamListener( SriListenerCallbackFn  newListener ) {
-    newStreamCallback =  boost::make_shared< StaticSriCallback >( newListener );
-
+  void InPortBase< PortTraits >::setNewStreamListener(SriListener* newListener) {
+    newStreamCallback = boost::ref(*newListener);
   }
 
   template < typename PortTraits >

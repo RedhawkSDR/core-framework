@@ -25,8 +25,6 @@
 #include <vector>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/ref.hpp>
 
 #include <ossie/callback.h>
 #include <ossie/signalling.h>
@@ -215,23 +213,20 @@ namespace bulkio {
     /*
      * Assign a callback for notification when a new SRI StreamId is received
      */
-    template< typename T > inline
-      void setNewStreamListener(T &target, void (T::*func)( BULKIO::StreamSRI &)  ) {
-      newStreamCallback =  boost::make_shared< MemberSriListener< T > >( boost::ref(target), func );
-    };
+    template <typename Target, typename Func>
+    inline void setNewStreamListener(Target target, Func func) {
+      ossie::bind(newStreamCallback, target, func);
+    }
 
     /*
      * Assign a callback for notification when a new SRI StreamId is received
      */
-    template< typename T > inline
-      void setNewStreamListener(T *target, void (T::*func)( BULKIO::StreamSRI &)  ) {
-      newStreamCallback =  boost::make_shared< MemberSriListener< T > >( boost::ref(*target), func );
+    template <typename Func>
+    inline void setNewStreamListener(Func func) {
+      newStreamCallback = func;
+    }
 
-    };
-
-    void setNewStreamListener( SriListener *newListener );
-
-    void setNewStreamListener( SriListenerCallbackFn  newListener );
+    void setNewStreamListener(SriListener *newListener);
 
     void setLogger( LOGGER_PTR logger );
 
@@ -286,7 +281,7 @@ namespace bulkio {
     //
     // Callback for notifications when new SRI streamID's are received
     //
-    boost::shared_ptr< SriListener >              newStreamCallback;
+    boost::function<void (BULKIO::StreamSRI&)> newStreamCallback;
 
     //
     //  List of SRI objects managed by StreamID
