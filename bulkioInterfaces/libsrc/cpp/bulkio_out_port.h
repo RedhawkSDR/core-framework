@@ -325,14 +325,12 @@ namespace bulkio {
     bool _isStreamRoutedToConnection(const std::string& connectionID, const std::string& streamID);
 
     //
-    // Sends the given data and metadata as a single push, for subclasses that
-    // will never break a push into multiple packets (XML, File); acquires and
-    // releases the port lock
+    // Sends data and metadata to all connections enabled for the given stream
     //
-    void _pushSinglePacket(const SharedBufferType& data,
-                           const BULKIO::PrecisionUTCTime& T,
-                           bool EOS,
-                           const std::string& streamID);
+    void _sendPacket(const SharedBufferType& data,
+                     const BULKIO::PrecisionUTCTime& T,
+                     bool EOS,
+                     const std::string& streamID);
   };
 
   
