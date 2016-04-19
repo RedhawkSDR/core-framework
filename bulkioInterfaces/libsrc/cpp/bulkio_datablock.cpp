@@ -33,7 +33,7 @@ using bulkio::DataBlock;
 template <class T>
 struct DataBlock<T>::Impl
 {
-  redhawk::read_buffer<T> data;
+  redhawk::shared_buffer<T> data;
   BULKIO::StreamSRI sri;
   std::list<SampleTimestamp> timestamps;
   int sriChangeFlags;
@@ -240,7 +240,7 @@ typename DataBlock<T>::ComplexBuffer DataBlock<T>::cxbuffer() const
 }
 
 template <class T>
-void DataBlock<T>::buffer(const redhawk::read_buffer<ScalarType>& data)
+void DataBlock<T>::buffer(const ScalarBuffer& data)
 {
   _impl->data = data;
 }

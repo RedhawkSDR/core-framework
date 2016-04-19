@@ -52,8 +52,8 @@ namespace bulkio {
   public:
     typedef T ScalarType;
     typedef std::complex<T> ComplexType;
-    typedef redhawk::read_buffer<ScalarType> ScalarBuffer;
-    typedef redhawk::read_buffer<ComplexType> ComplexBuffer;
+    typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
+    typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
 
     DataBlock();
     DataBlock(const BULKIO::StreamSRI& sri, size_t size=0);
@@ -95,7 +95,7 @@ namespace bulkio {
     ScalarBuffer buffer() const;
     ComplexBuffer cxbuffer() const;
 
-    void buffer(const redhawk::read_buffer<ScalarType>& other);
+    void buffer(const ScalarBuffer& other);
   private:
     struct Impl;
     boost::shared_ptr<Impl> _impl;

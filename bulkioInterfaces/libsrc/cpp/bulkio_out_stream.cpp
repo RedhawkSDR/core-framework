@@ -115,7 +115,7 @@ public:
   }
 
   template <class Sample>
-  void write(const redhawk::read_buffer<Sample>& data, const std::list<bulkio::SampleTimestamp>& times)
+  void write(const redhawk::shared_buffer<Sample>& data, const std::list<bulkio::SampleTimestamp>& times)
   {
     std::list<bulkio::SampleTimestamp>::const_iterator timestamp = times.begin();
     if (timestamp == times.end()) {

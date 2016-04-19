@@ -51,7 +51,7 @@ template < typename TT, typename AT=_seqVector::seqVectorAllocator< TT > >
 // classes
 //
 template < typename PST, typename TT, typename NDT=TT, class DBT=std::vector< NDT >, class PAT=const PST&,
-           class SBT=redhawk::read_buffer<NDT> >
+           class SBT=redhawk::shared_buffer<NDT> >
 struct DataTransferTraits {
   typedef PST   PortSequenceType;                           // Port Sequence type used by middleware
   typedef PAT   PushArgumentType;                           // Type of data argument to pushPacket

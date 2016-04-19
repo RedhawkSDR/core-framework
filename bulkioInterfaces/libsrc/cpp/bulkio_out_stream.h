@@ -43,8 +43,8 @@ namespace bulkio {
     typedef typename PortTraits::DataTransferTraits::NativeDataType ScalarType;
     typedef std::complex<ScalarType> ComplexType;
 
-    typedef redhawk::read_buffer<ScalarType> ScalarBuffer;
-    typedef redhawk::read_buffer<ComplexType> ComplexBuffer;
+    typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
+    typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
         
     OutputStream();
 
