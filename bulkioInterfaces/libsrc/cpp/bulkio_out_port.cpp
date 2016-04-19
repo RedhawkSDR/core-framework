@@ -529,14 +529,35 @@ namespace bulkio {
   template < typename PortTraits >
   typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::createStream(const std::string& streamID)
   {
-    BULKIO::StreamSRI sri = bulkio::sri::create(streamID);
-    return createStream(sri);
+    typename StreamMap::iterator existing = streams.find(streamID);
+    if (existing != streams.end()) {
+      return existing->second;
+    }
+    return createStream(bulkio::sri::create(streamID));
   }
 
   template < typename PortTraits >
   typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::createStream(const BULKIO::StreamSRI& sri)
   {
-    return StreamType(sri, this);
+    const std::string streamID(sri.streamID);
+    typename StreamMap::iterator existing = streams.find(streamID);
+    if (existing != streams.end()) {
+      return existing->second;
+    }
+    StreamType stream(sri, this);
+    streams[streamID] = stream;
+    return stream;
+  }
+
+  template < typename PortTraits >
+  typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::getStream(const std::string& streamID)
+  {
+    typename StreamMap::iterator stream = streams.find(streamID);
+    if (stream != streams.end()) {
+      return stream->second;
+    } else {
+      return StreamType();
+    }
   }
 
   OutCharPort::OutCharPort( std::string name,

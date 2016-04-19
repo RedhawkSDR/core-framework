@@ -458,10 +458,16 @@ namespace bulkio {
     StreamType createStream(const BULKIO::StreamSRI& sri);
     using OutPortBase<PortTraits>::currentSRIs;
 
+    StreamType getStream(const std::string& streamID);
+
   protected:
     using OutPortBase<PortTraits>::logger;
     typedef typename OutPortBase<PortTraits>::PortPtrType PortPtrType;
     typedef typename OutPortBase<PortTraits>::PortConnectionType PortConnectionType;
+
+    typedef std::map<std::string,StreamType> StreamMap;
+    StreamMap streams;
+    boost::mutex streamsMutex;
 
     virtual PortConnectionType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
   };
