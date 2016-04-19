@@ -520,50 +520,10 @@ namespace bulkio {
   //
 
 
-  template < typename PortTraits >
-  class InStringPort : public InPortBase<PortTraits>
+  class InFilePort : public InPortBase<FilePortTraits>
   {
 
   public:
-
-    typedef PortTraits  Traits;
-
-    // Port Variable Type
-    typedef typename Traits::POAPortType    PortVarType;
-
-    //  Interface Type
-    typedef typename  Traits::PortType      PortType;
-
-    //  Interface Type
-    typedef typename  Traits::PortType      ProvidesPortType;
-
-    // Transport Sequence Type use to during push packet
-    typedef char *                             PortSequenceType;
-
-    //
-    // Transport type used by this port
-    //
-    typedef typename Traits::TransportType  TransportType;
-
-    //
-    //  Native type mapping of TransportType
-    //
-    typedef typename Traits::NativeType      NativeType;
-
-    //
-    // Data transfer object from ports to components
-    //
-    typedef DataTransfer< typename Traits::DataTransferTraits >  DataTransferType;
-
-
-    // backwards compatible defintion
-    typedef DataTransfer< typename Traits::DataTransferTraits > dataTransfer;
-
-
-    // queue of dataTranfer objects maintained by the port
-    typedef   std::deque< DataTransferType * >       WorkQueue;
-
-
     //
     // InStringPort  - creates a provides port that can accept floating point vectors from a source
     //
@@ -572,16 +532,16 @@ namespace bulkio {
     //                       if all members match then return true, otherwise false.  This is used during the pushSRI method
     // @param newStreamCB interface that is called when new SRI.streamID is received
 
-    InStringPort(std::string port_name, 
-      LOGGER_PTR  logger,
-      bulkio::sri::Compare = bulkio::sri::DefaultComparator,
-      SriListener *newStreamCB = NULL );
+    InFilePort(std::string port_name, 
+               LOGGER_PTR  logger,
+               bulkio::sri::Compare=bulkio::sri::DefaultComparator,
+               SriListener* newStreamCB=0);
 
-    InStringPort(std::string port_name, 
-         bulkio::sri::Compare = bulkio::sri::DefaultComparator,
-         SriListener *newStreamCB = NULL );
+    InFilePort(std::string port_name, 
+               bulkio::sri::Compare=bulkio::sri::DefaultComparator,
+               SriListener* newStreamCB=0);
 
-    InStringPort(std::string port_name, void * );
+    InFilePort(std::string port_name, void*);
 
     //
     // pushPacket called by the source component when pushing a vector of data into a component.  This method will save off the data
@@ -593,7 +553,24 @@ namespace bulkio {
     // @param streamID - name of the stream the vector and stream context data are associated with
     virtual void pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
 
+    // Local push version
+    void pushPacket(const std::string& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
+  };
 
+
+  class InXMLPort : public InPortBase<XMLPortTraits>
+  {
+  public:
+    InXMLPort(std::string port_name, LOGGER_PTR logger,
+              bulkio::sri::Compare=bulkio::sri::DefaultComparator,
+              SriListener* newStreamCB=NULL);
+
+    InXMLPort(std::string port_name, 
+              bulkio::sri::Compare=bulkio::sri::DefaultComparator,
+              SriListener* newStreamCB=NULL);
+
+    InXMLPort(std::string port_name, void*);
+    
     //
     // pushPacket called by the source component when pushing a vector of data into a component.  This method will save off the data
     //            vector, timestamp, EOS and streamID onto a queue for consumption by the component via the getPacket method
@@ -601,7 +578,10 @@ namespace bulkio {
     // @param data - the vector of data to be consumed
     // @param EOS  - indicator that the stream has ended, (stream is identified by streamID)
     // @param streamID - name of the stream the vector and stream context data are associated with
-    virtual void pushPacket( const char *data, CORBA::Boolean EOS, const char* streamID);
+    virtual void pushPacket(const char *data, CORBA::Boolean EOS, const char* streamID);
+
+    // Local push version
+    void pushPacket(const std::string& data, CORBA::Boolean EOS, const std::string& streamID);
   };
 
 
@@ -645,15 +625,6 @@ namespace bulkio {
   typedef InPort< FloatPortTraits >                InFloatPort;
   // Bulkio double input
   typedef InPort< DoublePortTraits >               InDoublePort;
-  // Bulkio URL input
-  typedef InStringPort< URLPortTraits >            InURLPort;
-  // Bulkio File (URL) input
-  typedef InStringPort< FilePortTraits >           InFilePort;
-  // Bulkio XML input
-  typedef InStringPort< XMLPortTraits >            InXMLPort;
-
-
-
 
 }  // end of bulkio namespace
 

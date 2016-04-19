@@ -847,32 +847,28 @@ namespace  bulkio {
   // ----------------------------------------------------------------------------------------
   //  Source Input Port String Definitions
   // ----------------------------------------------------------------------------------------
-  template < typename PortTraits >
-  InStringPort< PortTraits >::InStringPort(std::string port_name, 
-                                           LOGGER_PTR  logger,
-                                           bulkio::sri::Compare compareSri,
-                                           SriListener *newStreamCB ) :
-    InPortBase<PortTraits>(port_name, logger, compareSri, newStreamCB)
+  InFilePort::InFilePort(std::string port_name, 
+                         LOGGER_PTR  logger,
+                         bulkio::sri::Compare compareSri,
+                         SriListener *newStreamCB) :
+    InPortBase<FilePortTraits>(port_name, logger, compareSri, newStreamCB)
   {
   }
 
 
-  template < typename PortTraits >
-  InStringPort< PortTraits >::InStringPort(std::string port_name, 
-                                           bulkio::sri::Compare compareSri,
-                                           SriListener *newStreamCB ) :
-    InPortBase<PortTraits>(port_name, LOGGER_PTR(), compareSri, newStreamCB)
+  InFilePort::InFilePort(std::string port_name, 
+                         bulkio::sri::Compare compareSri,
+                         SriListener *newStreamCB) :
+    InPortBase<FilePortTraits>(port_name, LOGGER_PTR(), compareSri, newStreamCB)
   {
   }
 
-  template < typename PortTraits >
-  InStringPort< PortTraits >::InStringPort(std::string port_name, void* /*unused*/) :
-    InPortBase<PortTraits>(port_name, LOGGER_PTR())
+  InFilePort::InFilePort(std::string port_name, void* /*unused*/) :
+    InPortBase<FilePortTraits>(port_name, LOGGER_PTR())
   {
   }
 
-  template < typename PortTraits >
-  void InStringPort< PortTraits >::pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+  void InFilePort::pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
     if (!data) {
       this->queuePacket(std::string(), T, EOS, streamID);
@@ -881,11 +877,45 @@ namespace  bulkio {
     }
   }
 
-
-  template < typename PortTraits >
-  void InStringPort< PortTraits >::pushPacket(const char *data, CORBA::Boolean EOS, const char* streamID)
+  void InFilePort::pushPacket(const std::string& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID)
   {
-    this->pushPacket(data, BULKIO::PrecisionUTCTime(), EOS, streamID);
+    this->queuePacket(data, T, EOS, streamID);
+  }
+
+
+  InXMLPort::InXMLPort(std::string name,
+                       LOGGER_PTR  logger,
+                       bulkio::sri::Compare compareSri,
+                       SriListener* newStreamCB) :
+    InPortBase<XMLPortTraits>(name, logger, compareSri, newStreamCB)
+  {
+  }
+
+
+  InXMLPort::InXMLPort(std::string name,
+                       bulkio::sri::Compare compareSri,
+                       SriListener* newStreamCB) :
+    InPortBase<XMLPortTraits>(name, LOGGER_PTR(), compareSri, newStreamCB)
+  {
+  }
+
+  InXMLPort::InXMLPort(std::string name, void* /*unused*/) :
+    InPortBase<XMLPortTraits>(name, LOGGER_PTR())
+  {
+  }
+
+  void InXMLPort::pushPacket(const char* data, CORBA::Boolean EOS, const char* streamID)
+  {
+    std::string buffer;
+    if (data) {
+      buffer = data;
+    }
+    this->pushPacket(buffer, EOS, streamID);
+  }
+
+  void InXMLPort::pushPacket(const std::string& data, CORBA::Boolean EOS, const std::string& streamID)
+  {
+    this->queuePacket(data, BULKIO::PrecisionUTCTime(), EOS, streamID);
   }
 
   //
@@ -914,8 +944,5 @@ namespace  bulkio {
 
   INSTANTIATE_BASE_TEMPLATE(FilePortTraits);
   INSTANTIATE_BASE_TEMPLATE(XMLPortTraits);
-  template class InStringPort< FilePortTraits >; 
-  template class InStringPort< XMLPortTraits >;
-
 
 } // end of bulkio namespace
