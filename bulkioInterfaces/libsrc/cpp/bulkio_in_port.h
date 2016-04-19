@@ -517,8 +517,10 @@ namespace bulkio {
 
   class InFilePort : public InPortBase<FilePortTraits>
   {
-
   public:
+    typedef InPortBase<FilePortTraits>::DataTransferType DataTransferType;
+    typedef DataTransferType dataTransfer;
+
     //
     // InStringPort  - creates a provides port that can accept floating point vectors from a source
     //
@@ -556,6 +558,9 @@ namespace bulkio {
   class InXMLPort : public InPortBase<XMLPortTraits>
   {
   public:
+    typedef InPortBase<XMLPortTraits>::DataTransferType DataTransferType;
+    typedef DataTransferType dataTransfer;
+
     InXMLPort(std::string port_name, LOGGER_PTR logger,
               bulkio::sri::Compare=bulkio::sri::DefaultComparator,
               SriListener* newStreamCB=NULL);
