@@ -139,7 +139,8 @@ namespace bulkio {
 
   private:
     friend class OutPort<PortTraits>;
-    OutputStream(const BULKIO::StreamSRI& sri, OutPort<PortTraits>* port);
+    typedef OutPort<PortTraits> OutPortType;
+    OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
     class Impl;
     boost::shared_ptr<Impl> _impl;

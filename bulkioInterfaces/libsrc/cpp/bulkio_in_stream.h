@@ -70,7 +70,8 @@ namespace bulkio {
 
   private:
     friend class InPort<PortTraits>;
-    InputStream(const BULKIO::StreamSRI&, InPort<PortTraits>*);
+    typedef InPort<PortTraits> InPortType;
+    InputStream(const BULKIO::StreamSRI&, InPortType*);
 
     bool hasBufferedData();
 

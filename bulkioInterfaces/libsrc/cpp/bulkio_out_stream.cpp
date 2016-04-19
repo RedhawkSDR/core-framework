@@ -34,7 +34,7 @@ public:
   typedef typename OutputStream<PortTraits>::ScalarBuffer ScalarBuffer;
   typedef typename OutputStream<PortTraits>::ComplexBuffer ComplexBuffer;
 
-  Impl(const std::string& streamID, bulkio::OutPort<PortTraits>* port) :
+  Impl(const std::string& streamID, OutPortType* port) :
     _streamID(streamID),
     _port(port),
     _sri(bulkio::sri::create(streamID)),
@@ -42,7 +42,7 @@ public:
   {
   }
 
-  Impl(const BULKIO::StreamSRI& sri, bulkio::OutPort<PortTraits>* port) :
+  Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
     _streamID(sri.streamID),
     _port(port),
     _sri(sri),
@@ -164,7 +164,7 @@ private:
   }
 
   const std::string _streamID;
-  OutPort<PortTraits>* _port;
+  OutPortType* _port;
   BULKIO::StreamSRI _sri;
   bool _sriUpdated;
 };
@@ -176,7 +176,7 @@ OutputStream<PortTraits>::OutputStream() :
 }
 
 template <class PortTraits>
-OutputStream<PortTraits>::OutputStream(const BULKIO::StreamSRI& sri, bulkio::OutPort<PortTraits>* port) :
+OutputStream<PortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
   _impl(new Impl(sri, port))
 {
 }

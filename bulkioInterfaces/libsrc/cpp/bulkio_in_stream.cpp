@@ -27,13 +27,12 @@ using bulkio::InputStream;
 template <class PortTraits>
 class InputStream<PortTraits>::Impl {
 public:
-  typedef PortTraits TraitsType;
-  typedef typename InPort<PortTraits>::Packet PacketType;
+  typedef typename InPortType::Packet PacketType;
   typedef typename PortTraits::NativeType NativeType;
   typedef typename PortTraits::SharedBufferType SharedBufferType;
   typedef DataBlock<NativeType> DataBlockType;
 
-  Impl(const BULKIO::StreamSRI& sri, bulkio::InPort<PortTraits>* port) :
+  Impl(const BULKIO::StreamSRI& sri, InPortType* port) :
     _streamID(sri.streamID),
     _sri(sri),
     _eosReceived(false),
@@ -424,7 +423,7 @@ private:
   BULKIO::StreamSRI _sri;
   bool _eosReceived;
   bool _eosReached;
-  InPort<PortTraits>* _port;
+  InPortType* _port;
   std::vector<PacketType*> _queue;
   PacketType* _pending;
   size_t _samplesQueued;
@@ -440,7 +439,7 @@ InputStream<PortTraits>::InputStream() :
 }
 
 template <class PortTraits>
-InputStream<PortTraits>::InputStream(const BULKIO::StreamSRI& sri, bulkio::InPort<PortTraits>* port) :
+InputStream<PortTraits>::InputStream(const BULKIO::StreamSRI& sri, InPortType* port) :
   _impl(new Impl(sri, port))
 {
 }
