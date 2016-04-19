@@ -205,7 +205,7 @@ namespace bulkio {
   public:
     typedef typename PortTraits::PortType PortType;
     typedef typename PortType::_ptr_type PortPtrType;
-    typedef InPort<PortTraits> LocalPortType;
+    typedef typename LocalTraits<PortTraits>::InPortType LocalPortType;
     typedef typename PortTraits::SharedBufferType SharedBufferType;
 
     LocalConnection(const std::string& name, LocalPortType* port) :
@@ -261,11 +261,11 @@ namespace bulkio {
 
   template <>
   void LocalConnection<XMLPortTraits>::_pushPacket(const std::string& data,
-                                                   const BULKIO::PrecisionUTCTime& T,
+                                                   const BULKIO::PrecisionUTCTime& /*unused*/,
                                                    bool EOS,
                                                    const std::string& streamID)
   {
-    _port->pushPacket(data, T, EOS, streamID);
+    _port->pushPacket(data, EOS, streamID);
   }
 
 }

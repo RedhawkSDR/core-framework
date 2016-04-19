@@ -39,6 +39,26 @@
 namespace bulkio {
 
   template <typename PortTraits> class InPort;
+  class InFilePort;
+  class InXMLPort;
+
+  template <typename PortTraits>
+  struct LocalTraits
+  {
+    typedef InPort<PortTraits> InPortType;
+  };
+
+  template <>
+  struct LocalTraits<FilePortTraits>
+  {
+    typedef InFilePort InPortType;
+  };
+
+  template <>
+  struct LocalTraits<XMLPortTraits>
+  {
+    typedef InXMLPort InPortType;
+  };
 
   template <typename PortTraits> class PortConnection;
 
@@ -285,7 +305,7 @@ namespace bulkio {
     //
     // Lookup table for connections to input ports in the same process space
     //
-    typedef InPort<PortTraits> LocalPortType;
+    typedef typename LocalTraits<PortTraits>::InPortType LocalPortType;
     typedef PortConnection<PortTraits> PortConnectionType;
 
     virtual PortConnectionType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
