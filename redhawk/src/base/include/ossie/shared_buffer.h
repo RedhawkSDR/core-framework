@@ -72,13 +72,13 @@ namespace redhawk {
      * @brief  An immutable container that can share its data with other
      *         instances.
      *
-     * The %read_buffer class provides read-only access to a sized array of
+     * The %shared_buffer class provides read-only access to a sized array of
      * elements that can be shared between many buffer instances. This enables
      * the transfer of ownership of data without explicit management of
      * references.
      *
-     * read_buffers have reference semantics. Assignment and copy construction
-     * do not copy any elements, only the data pointer. A %read_buffer never
+     * shared_buffers have reference semantics. Assignment and copy construction
+     * do not copy any elements, only the data pointer. A %shared_buffer never
      * peforms any memory allocation of its own, but can take ownership of an
      * existing array. When the last reference to the underlying data goes
      * away, the data is freed.
@@ -86,29 +86,29 @@ namespace redhawk {
      * For write access and memory allocation, see buffer.
      */
     template <typename T>
-    class read_buffer {
+    class shared_buffer {
     public:
         /// @brief The element type (T).
         typedef T value_type;
         /**
          * @brief A random access iterator to const value_type.
          *
-         * Note that all access to %read_buffer is const. This means that
+         * Note that all access to %shared_buffer is const. This means that
          * %iterator and %const_iterator are equivalent.
          */
         typedef const value_type* iterator;
         /**
          * @brief A random access iterator to const value_type.
          *
-         * Note that all access to %read_buffer is const. This means that
+         * Note that all access to %shared_buffer is const. This means that
          * %iterator and %const_iterator are equivalent.
          */
         typedef iterator const_iterator;
 
         /**
-         * @brief  Construct an empty %read_buffer.
+         * @brief  Construct an empty %shared_buffer.
          */
-        read_buffer() :
+        shared_buffer() :
             _M_array(),
             _M_start(0),
             _M_finish(0)
@@ -116,15 +116,15 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Construct a %read_buffer with an existing pointer.
+         * @brief  Construct a %shared_buffer with an existing pointer.
          * @param data  Pointer to first element.
          * @param size  Number of elements.
          *
-         * The newly-created %read_buffer takes ownership of @a data. When the
-         * last %read_buffer pointing to @a data is destroyed, @a data will be
-         * deleted with delete[].
+         * The newly-created %shared_buffer takes ownership of @a data. When
+         * the last %shared_buffer pointing to @a data is destroyed, @a data
+         * will be deleted with delete[].
          */
-        read_buffer(value_type* data, size_t size) :
+        shared_buffer(value_type* data, size_t size) :
             _M_array(data),
             _M_start(data),
             _M_finish(data + size)
@@ -132,18 +132,18 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Construct a %read_buffer with an existing pointer and a custom
-         *         deleter.
+         * @brief  Construct a %shared_buffer with an existing pointer and a
+         *         custom deleter.
          * @param data  Pointer to first element.
          * @param size  Number of elements.
          * @param deleter  Callable object.
          *
-         * @a D must by copy-constructible. When the last %read_buffer pointing
-         * to @a data is destroyed, @a deleter will be called on @a data. This
-         * can be used to define custom release behavior.
+         * @a D must by copy-constructible. When the last %shared_buffer
+         * pointing to @a data is destroyed, @a deleter will be called on
+         * @a data. This can be used to define custom release behavior.
          */
         template <class D>
-        read_buffer(value_type* data, size_t size, D deleter) :
+        shared_buffer(value_type* data, size_t size, D deleter) :
             _M_array(data, deleter),
             _M_start(data),
             _M_finish(data + size)
@@ -151,16 +151,16 @@ namespace redhawk {
         }
 
         /**
-         * The dtor releases the %read_buffer's shared data pointer. If no
-         * other %read_buffer points to the data, the data is released.
+         * The dtor releases the %shared_buffer's shared data pointer. If no
+         * other %shared_buffer points to the data, the data is released.
          */
-        ~read_buffer()
+        ~shared_buffer()
         {
         }
 
         /**
          * Returns a read-only iterator that points to the first element in the
-         * %read_buffer.
+         * %shared_buffer.
          */
         iterator begin() const
         {
@@ -169,7 +169,7 @@ namespace redhawk {
 
         /**
          * Returns a read-only iterator that points one past the last element
-         * in the %read_buffer.
+         * in the %shared_buffer.
          */
         iterator end() const
         {
@@ -177,7 +177,7 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Subscript access to the data contained in the %read_buffer.
+         * @brief  Subscript access to the data contained in the %shared_buffer.
          * @param index The index of the element to access
          * @return  Read-only reference to element
          */
@@ -187,7 +187,7 @@ namespace redhawk {
         }
 
         /**
-         * Returns the number of elements in the %read_buffer.
+         * Returns the number of elements in the %shared_buffer.
          */
         size_t size() const
         {
@@ -195,7 +195,7 @@ namespace redhawk {
         }
 
         /**
-         * Returns true if the %read_buffer is empty.
+         * Returns true if the %shared_buffer is empty.
          */
         bool empty() const
         {
@@ -211,20 +211,20 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Returns a %read_buffer containing a subset of elements.
+         * @brief  Returns a %shared_buffer containing a subset of elements.
          * @param start  Index of first element.
          * @param end  Index of last element, exclusive (default end).
-         * @return  The new %read_buffer.
+         * @return  The new %shared_buffer.
          */
-        read_buffer slice(size_t start, size_t end=size_t(-1)) const
+        shared_buffer slice(size_t start, size_t end=size_t(-1)) const
         {
-            read_buffer result(*this);
+            shared_buffer result(*this);
             this->_M_slice(result, start, end);
             return result;
         }
 
         /**
-         * @brief  Returns a copy of this %read_buffer.
+         * @brief  Returns a copy of this %shared_buffer.
          *
          * The returned %buffer points to a newly-allocated array.
          */
@@ -236,7 +236,7 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Returns a copy of this %read_buffer.
+         * @brief  Returns a copy of this %shared_buffer.
          * @param allocator  An allocator object.
          *
          * The returned %buffer points to a new array allocated with
@@ -251,41 +251,41 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Swap contents with another %read_buffer.
-         * @param other  %read_buffer to swap with.
+         * @brief  Swap contents with another %shared_buffer.
+         * @param other  %shared_buffer to swap with.
          */
-        void swap(read_buffer& other)
+        void swap(shared_buffer& other)
         {
             this->_M_swap(other);
         }
 
         /**
-         * @brief  Reinterpret a read_buffer as another data type.
-         * @param other  %read_buffer to reinterpret.
-         * @return  The new %read_buffer.
+         * @brief  Reinterpret a shared_buffer as another data type.
+         * @param other  %shared_buffer to reinterpret.
+         * @return  The new %shared_buffer.
          *
          * Data is reinterpreted by standard C++ reinterpret_cast semantics.
-         * The size of the new %read_buffer is the floor of the size of
+         * The size of the new %shared_buffer is the floor of the size of
          * @a other multiplied by the ratio sizeof(U)/sizeof(T).
          */
         template <typename U>
-        static read_buffer recast(const read_buffer<U>& other)
+        static shared_buffer recast(const shared_buffer<U>& other)
         {
-            return _M_recast<read_buffer>(other);
+            return _M_recast<shared_buffer>(other);
         }
 
         /**
-         * @brief  Returns a transient %read_buffer.
+         * @brief  Returns a transient %shared_buffer.
          * @param data  Pointer to first element.
          * @param size  Number of elements.
          *
-         * Adapts externally aquired memory work with the read_buffer API;
+         * Adapts externally aquired memory work with the %shared_buffer API;
          * however, additional care must be taken to ensure that the data is
          * copied if it needs to be held past the lifetime of the call.
          */
-        static read_buffer make_transient(const value_type* data, size_t size)
+        static shared_buffer make_transient(const value_type* data, size_t size)
         {
-            read_buffer result;
+            shared_buffer result;
             result._M_start = const_cast<value_type*>(data);
             result._M_finish = result._M_start + size;
             return result;
@@ -294,7 +294,7 @@ namespace redhawk {
         /**
          * @brief  Returns true if the array's lifetime is not managed.
          *
-         * Transient read_buffers do not own the underlying data. If the
+         * Transient shared_buffers do not own the underlying data. If the
          * receiver of a transient buffer needs to hold on to it past the
          * lifetime of the call, they must make a copy.
          */
@@ -326,16 +326,16 @@ namespace redhawk {
         }
 
         // Internal implementation of swap.
-        void _M_swap(read_buffer& other)
+        void _M_swap(shared_buffer& other)
         {
             this->_M_array.swap(other._M_array);
             std::swap(this->_M_start, other._M_start);
             std::swap(this->_M_finish, other._M_finish);
         }
 
-        // Adjusts the start and end pointers of a read_buffer to a the given
+        // Adjusts the start and end pointers of a shared_buffer to a the given
         // slice indices.
-        void _M_slice(read_buffer& result, size_t start, size_t end) const
+        void _M_slice(shared_buffer& result, size_t start, size_t end) const
         {
             if (end == (size_t)-1) {
                 end = result.size();
@@ -346,7 +346,7 @@ namespace redhawk {
 
         // Internal implementation of copy. Copies the contents of this buffer
         // into another, pre-existing buffer.
-        void _M_copy(read_buffer& dest) const
+        void _M_copy(shared_buffer& dest) const
         {
             std::copy(this->begin(), this->end(), dest._M_begin());
         }
@@ -356,7 +356,7 @@ namespace redhawk {
         template <class Tout, class U>
         static Tout _M_recast(const U& other)
         {
-            // Reinterpret the input class (which is some form of read_buffer
+            // Reinterpret the input class (which is some form of shared_buffer
             // or buffer) via a void pointer so that the compiler doesn't
             // object about strict aliasing rules, which shouldn't matter here.
             // The in-memory layout is always the same irrespective of the
@@ -392,21 +392,22 @@ namespace redhawk {
     /**
      * @brief  A shared container data type.
      *
-     * The %buffer class extends read_buffer to provides write access. Multiple
-     * buffers and read_buffers may point to the same underlying data.
+     * The %buffer class extends shared_buffer to provides write access.
+     * Multiple buffers and shared_buffers may point to the same underlying
+     * data.
      *
      * buffers have reference semantics. Assignment and copy construction do
      * not copy any elements, only the data pointer.
      *
-     * Unlike %read_buffer, %buffer has allocating constructors. When the
+     * Unlike %shared_buffer, %buffer has allocating constructors. When the
      * last reference to the underlying data goes away, the data is freed.
      */ 
     template <class T>
-    class buffer : public read_buffer<T>
+    class buffer : public shared_buffer<T>
     {
     public:
         /// @brief  The read-only buffer type.
-        typedef read_buffer<T> read_type;
+        typedef shared_buffer<T> read_type;
         /// @brief  The element type (T).
         typedef T value_type;
         /// @brief  A random access iterator to value_type.
@@ -579,10 +580,10 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Returns a %read_buffer containing a subset of elements.
+         * @brief  Returns a %shared_buffer containing a subset of elements.
          * @param start  Index of first element.
          * @param end  Index of last element, exclusive (default end).
-         * @return  The new %read_buffer.
+         * @return  The new %shared_buffer.
          */
         read_type slice(size_t start, size_t end=size_t(-1)) const
         {
