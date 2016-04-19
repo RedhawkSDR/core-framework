@@ -27,10 +27,6 @@ using bulkio::OutputStream;
 template <class PortTraits>
 class OutputStream<PortTraits>::Impl {
 public:
-  typedef typename PortTraits::DataTransferTraits::NativeDataType ScalarType;
-  typedef std::complex<ScalarType> ComplexType;
-  typedef typename PortTraits::DataTransferTraits::TransportType TransportType;
-
   typedef typename OutputStream<PortTraits>::ScalarBuffer ScalarBuffer;
   typedef typename OutputStream<PortTraits>::ComplexBuffer ComplexBuffer;
 
@@ -107,7 +103,7 @@ public:
       _port->pushSRI(_sri);
       _sriUpdated = false;
     }
-    _port->pushPacket(data, time, false, _streamID);
+    _send(data, time, false);
   }
 
   void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
@@ -144,13 +140,13 @@ public:
   {
     // Send an empty packet with an end-of-stream marker; since there is no
     // sample data, the timestamp does not matter
-    _send(0, 0, bulkio::time::utils::notSet(), true);
+    _send(ScalarBuffer(), bulkio::time::utils::notSet(), true);
   }
 
 private:
-  void _send(const TransportType* data, size_t count, const BULKIO::PrecisionUTCTime& time, bool eos)
+  void _send(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time, bool eos)
   {
-    _port->pushPacket(data, count, time, eos, _streamID);
+    _port->pushPacket(data, time, eos, _streamID);
   }
 
   template <typename Field, typename Value>
