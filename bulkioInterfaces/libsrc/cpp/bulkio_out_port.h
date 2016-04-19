@@ -102,12 +102,6 @@ namespace bulkio {
     typedef typename Traits::SequenceType     PortSequenceType;
 
     //
-    // True type of argument to pushPacket, typically "const PortSequenceType&"
-    // except for dataXML and dataFile (which use "const char*")
-    //
-    typedef typename Traits::PushType         PushArgumentType;
-
-    //
     // Shared buffer type used to transfer data without copies, where possible
     //
     typedef typename Traits::SharedBufferType SharedBufferType;

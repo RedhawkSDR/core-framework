@@ -59,21 +59,12 @@ namespace bulkio {
     //
     typedef typename Traits::TransportType TransportType;
 
-    //
-    // True type of argument to pushPacket, typically "const PortSequenceType&"
-    // except for dataXML and dataFile (which use "const char*")
-    //
-    typedef typename Traits::PushType PushArgumentType;
-
-	typedef typename Traits::PortType PortType;
+    typedef typename Traits::PortType PortType;
 
     //
     // Declaration of DataTransfer class from TransportType trait and DataBuffer type trait
     //
     typedef DataTransfer< typename Traits::DataTransferTraits > DataTransferType;
-
-    // Queue of data transfer objects maintained by the port
-    typedef std::deque< DataTransferType * > WorkQueue;
 
     typedef typename Traits::SharedBufferType SharedBufferType;
 
@@ -367,14 +358,8 @@ namespace bulkio {
   public:
     typedef PortTraits  Traits;
 
-    // Port Variable Type
-    typedef typename Traits::POAPortType   PortVarType;
-
     //  Interface Type
     typedef typename  Traits::PortType      PortType;
-
-    //  Interface Type
-    typedef typename  Traits::PortType      ProvidesPortType;
 
     // Transport Sequence Type use to during push packet
     typedef typename Traits::SequenceType    PortSequenceType;
@@ -399,9 +384,6 @@ namespace bulkio {
 
     // backwards compatible definition
     typedef DataTransferType dataTransfer;
-
-    // queue of dataTranfer objects maintained by the port
-    typedef   std::deque< DataTransferType * > WorkQueue;
 
     // Input stream interface used by this port
     typedef InputStream<PortTraits> StreamType;
