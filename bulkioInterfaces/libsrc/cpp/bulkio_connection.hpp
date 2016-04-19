@@ -256,7 +256,7 @@ namespace bulkio {
                                                     bool EOS,
                                                     const std::string& streamID)
   {
-    _port->pushPacket((bulkio::Char*)data.c_str(), T, EOS, streamID.c_str());
+    _port->pushPacket(data, T, EOS, streamID);
   }
 
   template <>
@@ -265,7 +265,7 @@ namespace bulkio {
                                                    bool EOS,
                                                    const std::string& streamID)
   {
-    _port->pushPacket((bulkio::Char*)data.c_str(), T, EOS, streamID.c_str());
+    _port->pushPacket(data, T, EOS, streamID);
   }
 
 }
