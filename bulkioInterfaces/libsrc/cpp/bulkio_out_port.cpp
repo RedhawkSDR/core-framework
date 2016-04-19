@@ -529,6 +529,7 @@ namespace bulkio {
   template < typename PortTraits >
   typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::createStream(const std::string& streamID)
   {
+    boost::mutex::scoped_lock lock(streamsMutex);
     typename StreamMap::iterator existing = streams.find(streamID);
     if (existing != streams.end()) {
       return existing->second;
@@ -539,9 +540,12 @@ namespace bulkio {
   template < typename PortTraits >
   typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::createStream(const BULKIO::StreamSRI& sri)
   {
+    boost::mutex::scoped_lock lock(streamsMutex);
     const std::string streamID(sri.streamID);
     typename StreamMap::iterator existing = streams.find(streamID);
     if (existing != streams.end()) {
+      // Update the stream's SRI from the argument
+      existing->second.sri(sri);
       return existing->second;
     }
     StreamType stream(sri, this);
@@ -552,6 +556,7 @@ namespace bulkio {
   template < typename PortTraits >
   typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::getStream(const std::string& streamID)
   {
+    boost::mutex::scoped_lock lock(streamsMutex);
     typename StreamMap::iterator stream = streams.find(streamID);
     if (stream != streams.end()) {
       return stream->second;
