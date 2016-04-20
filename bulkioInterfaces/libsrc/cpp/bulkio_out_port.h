@@ -331,6 +331,9 @@ namespace bulkio {
                      const BULKIO::PrecisionUTCTime& T,
                      bool EOS,
                      const std::string& streamID);
+
+    virtual void addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
+    virtual void removeStream(const std::string& streamID);
   };
 
   
@@ -472,10 +475,16 @@ namespace bulkio {
 
     StreamType getStream(const std::string& streamID);
 
+    typedef std::list<StreamType> StreamList;
+    StreamList getStreams();
+
   protected:
     using OutPortBase<PortTraits>::logger;
     typedef typename OutPortBase<PortTraits>::PortPtrType PortPtrType;
     typedef typename OutPortBase<PortTraits>::PortConnectionType PortConnectionType;
+
+    virtual void addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
+    virtual void removeStream(const std::string& streamID);
 
     typedef std::map<std::string,StreamType> StreamMap;
     StreamMap streams;

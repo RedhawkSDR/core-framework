@@ -94,16 +94,13 @@ namespace bulkio {
 
     SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
 
-    std::string sid( H.streamID );
-    typename OutPortSriMap::iterator sri_iter;
-    sri_iter=  currentSRIs.find( sid );
-    if ( sri_iter == currentSRIs.end() ) {
-      SriMapStruct sri_ctx( H );
+    const std::string sid(H.streamID);
+    typename OutPortSriMap::iterator sri_iter = currentSRIs.find(sid);
+    if (sri_iter == currentSRIs.end()) {
       // need to use insert since we do not have default CTOR for SriMapStruct
-      currentSRIs.insert( OutPortSriMap::value_type( sid, sri_ctx ) );
-      sri_iter=  currentSRIs.find( sid );
-    }
-    else {
+      sri_iter = currentSRIs.insert(OutPortSriMap::value_type(sid, SriMapStruct(H))).first;
+      addStream(sid, sri_iter->second.sri);
+    } else {
       // overwrite the SRI 
       sri_iter->second.sri = H;
 
@@ -163,17 +160,23 @@ namespace bulkio {
           bool                            EOS,
           const std::string&              streamID)
   {
+    const std::string stream_id(streamID);
+
     // don't want to process while command information is coming in
     SCOPED_LOCK lock(this->updatingPortsLock);
 
     // grab SRI context 
-    typename OutPortSriMap::iterator sri_iter =  currentSRIs.find( streamID );
+    typename OutPortSriMap::iterator sri_iter = currentSRIs.find(stream_id);
     if (sri_iter == currentSRIs.end()) {
+      LOG_TRACE(logger, "Creating new stream '" << stream_id << "' with default SRI");
+
       // No SRI associated with the stream ID, create a default one and add
       // it to the list; it will get pushed to downstream connections below
-      SriMapStruct sri_ctx(bulkio::sri::create(streamID));
+      SriMapStruct sri_ctx(bulkio::sri::create(stream_id));
       // need to use insert since we do not have default CTOR for SriMapStruct
-      sri_iter = currentSRIs.insert(std::make_pair(streamID, sri_ctx)).first;
+      sri_iter = currentSRIs.insert(std::make_pair(stream_id, sri_ctx)).first;
+
+      addStream(stream_id, sri_iter->second.sri);
     }
 
     if (active) {
@@ -181,7 +184,7 @@ namespace bulkio {
       for (port = _transportMap.begin(); port != _transportMap.end(); ++port) {
         // Check whether filtering is enabled and if this connection should
         // receive the stream
-        if (!_isStreamRoutedToConnection(streamID, port->first)) {
+        if (!_isStreamRoutedToConnection(stream_id, port->first)) {
           continue;
         }
 
@@ -198,10 +201,9 @@ namespace bulkio {
     }
 
     // if we have end of stream removed old sri
-    try {
-      if ( EOS ) currentSRIs.erase(streamID);
-    }
-    catch(...){
+    if (EOS) {
+      currentSRIs.erase(stream_id);
+      removeStream(stream_id);
     }
   }
 
@@ -445,6 +447,15 @@ namespace bulkio {
     //return "IDL:CORBA/Object:1.0";
   }
 
+  template < typename PortTraits >
+  void OutPortBase< PortTraits >::addStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
+  {
+  }
+
+  template < typename PortTraits >
+  void OutPortBase< PortTraits >::removeStream(const std::string& streamID)
+  {
+  }
 
   /*
      OutPort Constructor
@@ -564,6 +575,37 @@ namespace bulkio {
       return StreamType();
     }
   }
+
+  template < typename PortTraits >
+  typename OutPort< PortTraits >::StreamList OutPort< PortTraits >::getStreams()
+  {
+    StreamList result;
+    boost::mutex::scoped_lock lock(streamsMutex);
+    for (typename StreamMap::const_iterator stream = streams.begin(); stream != streams.end(); ++stream) {
+      result.push_back(stream->second);
+    }
+    return result;
+  }
+
+  template < typename PortTraits >
+  void OutPort< PortTraits >::addStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
+  {
+    boost::mutex::scoped_lock lock(streamsMutex);
+    if (streams.count(streamID) == 0) {
+        // Only create a new stream if one doesn't already exist; when a stream
+        // is created via createStream (the preferred method), its first call
+        // to pushSRI will end up calling this method
+        streams.insert(std::make_pair(streamID, StreamType(sri, this)));
+    }
+  }
+
+  template < typename PortTraits >
+  void OutPort< PortTraits >::removeStream(const std::string& streamID)
+  {
+    boost::mutex::scoped_lock lock(streamsMutex);
+    streams.erase(streamID);
+  }
+
 
   OutCharPort::OutCharPort( std::string name,
                             ConnectionEventListener *connectCB,
