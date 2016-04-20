@@ -223,8 +223,12 @@ void DataBlock<T>::inputQueueFlushed(bool flushed)
 template <class T>
 void DataBlock<T>::swap(std::vector<ScalarType>& other)
 {
-  // TODO
-  //_impl->data.swap(other);
+  // Copy the vector data into a new shared buffer
+  ScalarBuffer data = ScalarBuffer::make_transient(&other[0], other.size()).copy();
+  // Swap the block's data with the new shared buffer
+  _impl->data.swap(data);
+  // Assign the old data to the vector
+  other.assign(data.begin(), data.end());
 }
 
 template <class T>
