@@ -545,7 +545,9 @@ namespace bulkio {
     if (existing != streams.end()) {
       return existing->second;
     }
-    return createStream(bulkio::sri::create(streamID));
+    StreamType stream(bulkio::sri::create(streamID), this);
+    streams[streamID] = stream;
+    return stream;
   }
 
   template < typename PortTraits >
