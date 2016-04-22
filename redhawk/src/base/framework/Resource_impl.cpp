@@ -22,6 +22,7 @@
 
 #include "ossie/Resource_impl.h"
 #include "ossie/Events.h"
+#include "ossie/Component.h"
 
 PREPARE_CF_LOGGING(Resource_impl)
 
@@ -62,14 +63,14 @@ void Resource_impl::setAdditionalParameters(std::string& softwareProfile, std::s
       applicationRegistrarObject = orb->string_to_object(application_registrar_ior.c_str());
     } catch ( ... ) {
       RH_NL_WARN("Resource", "No  Registrar... create empty container");
-      this->_domMgr.reset(new redhawk::DomainManagerContainer());
+      setDomainManager(CF::DomainManager::_nil());
       return;
     }
     CF::ApplicationRegistrar_ptr applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
     if (!CORBA::is_nil(applicationRegistrar)) {
       RH_NL_TRACE("Resource", "Get DomainManager from Registrar object:" << application_registrar_ior );
       CF::DomainManager_var dm=applicationRegistrar->domMgr();
-      this->_domMgr.reset(new redhawk::DomainManagerContainer(dm));
+      setDomainManager(dm);
       return;
     }
 
@@ -78,17 +79,22 @@ void Resource_impl::setAdditionalParameters(std::string& softwareProfile, std::s
     if (!CORBA::is_nil(devMgr)) {
       RH_NL_TRACE("Resource", "Resolving DomainManager from DeviceManager...");
         CF::DomainManager_var dm=devMgr->domMgr();
-        this->_domMgr.reset(new redhawk::DomainManagerContainer(dm));
+        setDomainManager(dm);
         return;
     }
 
     RH_NL_DEBUG("Resource", "All else failed.... use empty container");
-    this->_domMgr.reset(new redhawk::DomainManagerContainer());
+    setDomainManager(CF::DomainManager::_nil());
 }
 
 redhawk::DomainManagerContainer* Resource_impl::getDomainManager()
 {
     return _domMgr.get();
+}
+
+void Resource_impl::setDomainManager(CF::DomainManager_ptr domainManager)
+{
+    _domMgr.reset(new redhawk::DomainManagerContainer(domainManager));
 }
 
 void Resource_impl::constructor ()
@@ -178,108 +184,44 @@ std::string& Resource_impl::getCurrentWorkingDirectory() {
     return this->currentWorkingDirectory;
 }
 
-static Resource_impl* main_component = 0;
-static void sigint_handler(int signum)
+void Resource_impl::setCommandLineProperty(const std::string& id, const redhawk::Value& value)
 {
-    main_component->halt();
+    if (id == "PROFILE_NAME") {
+        _softwareProfile = value.toString();
+    } else {
+        PropertySet_impl::setCommandLineProperty(id, value);
+    }
 }
 
-void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, char* argv[])
+Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, const CF::Properties& properties)
 {
-    std::string application_registrar_ior;
-    std::string component_identifier;
+    const redhawk::PropertyMap& parameters = redhawk::PropertyMap::cast(properties);
+
+    std::string identifier;
     std::string name_binding;
-    std::string profile = "";
-    std::string nic = "";
-    const char* logging_config_uri = 0;
-    int debug_level = -1; // use log config uri as log level context
-    bool standAlone = false;
-    std::map<std::string, char*> execparams;
-    std::string logcfg_uri("");
-    std::string dpath("");
-    bool skip_run = false;
-
-    // Parse execparams.
-    for (int i=0; i < argc; i++) {
-        if (strcmp("NAMING_CONTEXT_IOR", argv[i]) == 0) {
-            application_registrar_ior = argv[++i];
-        } else if (strcmp("NIC", argv[i]) == 0) {
-            nic = argv[++i];
-        } else if (strcmp("PROFILE_NAME", argv[i]) == 0) {
-            profile = argv[++i];
-        } else if (strcmp("COMPONENT_IDENTIFIER", argv[i]) == 0) {
-            component_identifier = argv[++i];
-        } else if (strcmp("NAME_BINDING", argv[i]) == 0) {
-            name_binding = argv[++i];
-        } else if (strcmp("LOGGING_CONFIG_URI", argv[i]) == 0) {
-            logging_config_uri = argv[++i];
-        } else if (strcmp("DEBUG_LEVEL", argv[i]) == 0) {
-            debug_level = atoi(argv[++i]);
-        } else if (strcmp("DOM_PATH", argv[i]) == 0) {
-            dpath = argv[++i];
-        } else if (strcmp("-i", argv[i]) == 0) {
-            standAlone = true;
-        } else if (strcmp("SKIP_RUN", argv[i]) == 0) {
-            skip_run = true;
-        } else if (i > 0) {  // any other argument besides the first one is part of the execparams
-            std::string paramName = argv[i];
-            execparams[paramName] = argv[++i];
+    std::string application_registrar_ior;
+    redhawk::PropertyMap cmdlineProps;
+    for (redhawk::PropertyMap::const_iterator prop = parameters.begin(); prop != parameters.end(); ++prop) {
+        const std::string id = prop->getId();
+        if (id == "COMPONENT_IDENTIFIER") {
+            identifier = prop->getValue().toString();
+        } else if (id == "NAME_BINDING") {
+            name_binding = prop->getValue().toString();
+        } else if (id == "NAMING_CONTEXT_IOR") {
+            application_registrar_ior = prop->getValue().toString();
+        } else {
+            cmdlineProps.push_back(*prop);
         }
     }
 
-    if (standAlone) {
-        if (component_identifier.empty()) {
-            component_identifier = ossie::generateUUID();
-        }
-        if (name_binding.empty()) {
-            name_binding = "";
-        }
-    } else {
-        if (application_registrar_ior.empty()) {
-            std::cout<<std::endl<<"usage: "<<argv[0]<<" [options] [execparams]"<<std::endl<<std::endl;
-            std::cout<<"The set of execparams is defined in the .prf for the component"<<std::endl;
-            std::cout<<"They are provided as arguments pairs ID VALUE, for example:"<<std::endl;
-            std::cout<<"     "<<argv[0]<<" INT_PARAM 5 STR_PARAM ABCDED"<<std::endl<<std::endl;
-            std::cout<<"Options:"<<std::endl;
-            std::cout<<"     -i,--interactive           Run the component in interactive test mode"<<std::endl<<std::endl;
-            exit(-1);
-        }
+    LOG_TRACE(Resource_impl, "Creating component with identifier '" << identifier << "'");
+    Resource_impl* resource = ctor(identifier, name_binding);
+
+    // Initialize command line properties, which can include special properties
+    // like PROFILE_NAME.
+    for (redhawk::PropertyMap::const_iterator prop = cmdlineProps.begin(); prop != cmdlineProps.end(); ++prop) {
+        resource->setCommandLineProperty(prop->getId(), prop->getValue());
     }
-
-    // The ORB must be initialized before configuring logging, which may use
-    // CORBA to get its configuration file.
-    CORBA::ORB_ptr orb = ossie::corba::CorbaInit(argc, argv);
-
-    // check if logging config URL was specified...
-    if ( logging_config_uri ) logcfg_uri=logging_config_uri;
-
-    // setup logging context for a component resource
-    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::ComponentCtx(name_binding, component_identifier, dpath ) );
-
-    if (!skip_run) {
-        // configure the  logging library
-        ossie::logging::Configure(logcfg_uri, debug_level, ctx);
-    }
-
-
-    // Create the servant.
-    LOG_TRACE(Resource_impl, "Creating component with identifier '" << component_identifier << "'");
-    Resource_impl* resource = ctor(component_identifier, name_binding);
-
-    resource->setAdditionalParameters(profile, application_registrar_ior, nic);
-
-    if ( !skip_run ) {
-        // assign the logging context to the resource to support logging interface
-        resource->saveLoggingContext( logcfg_uri, debug_level, ctx );
-    }
-
-    // setting all the execparams passed as argument, this method resides in the Resource_impl class
-    resource->setExecparamProperties(execparams);
-
-    std::string pathAndFile = argv[0];
-    unsigned lastSlash      = pathAndFile.find_last_of("/");
-    std::string cwd         = pathAndFile.substr(0, lastSlash);
-    resource->setCurrentWorkingDirectory(cwd);
 
     // Activate the component servant.
     LOG_TRACE(Resource_impl, "Activating component object");
@@ -288,49 +230,138 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
 
     // Get the application naming context and bind the component into it.
     if (!application_registrar_ior.empty()) {
-        LOG_TRACE(Resource_impl, "Binding component to application context with name '" << name_binding << "'");
-        CORBA::Object_var applicationRegistrarObject = orb->string_to_object(application_registrar_ior.c_str());
+        CORBA::Object_var applicationRegistrarObject = ossie::corba::stringToObject(application_registrar_ior);
         CF::ApplicationRegistrar_var applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
         if (!CORBA::is_nil(applicationRegistrar)) {
+            LOG_TRACE(Resource_impl, "Registering with application using name '" << name_binding << "'");
+            // Register with the application
             applicationRegistrar->registerComponent(name_binding.c_str(), resource_obj);
+
+            // Set up the DomainManager container
+            CF::DomainManager_var domainManager = applicationRegistrar->domMgr();
+            resource->setDomainManager(domainManager);
+
+            // If it inherits from the Component class, set up the Application
+            // container as well
+            Component* component = dynamic_cast<Component*>(resource);
+            if (component) {
+                CF::Application_var application = applicationRegistrar->app();
+                component->setApplication(application);
+            }
         } else {
+            LOG_TRACE(Resource_impl, "Binding component to naming context with name '" << name_binding << "'");
             // the registrar is not available (because the invoking infrastructure only uses the name service)
             CosNaming::NamingContext_var applicationContext = ossie::corba::_narrowSafe<CosNaming::NamingContext>(applicationRegistrarObject);
             ossie::corba::bindObjectToContext(resource_obj, applicationContext, name_binding);
         }
-    } else {
-        if (standAlone) {
-            std::cout<<orb->object_to_string(resource_obj)<<std::endl;
+    }
+
+    return resource;
+}
+
+static Resource_impl* main_component = 0;
+static void sigint_handler(int signum)
+{
+    main_component->halt();
+}
+
+void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, char* argv[])
+{
+    int debug_level = -1; // use log config uri as log level context
+    std::string logcfg_uri;
+    std::string dpath("");
+    bool skip_run = false;
+
+    // The ORB must be initialized before anything that might depend on CORBA,
+    // such as PropertyMap and logging configuration
+    ossie::corba::CorbaInit(argc, argv);
+
+    redhawk::PropertyMap cmdlineProps;
+
+    // Parse command line arguments.
+    for (int i = 1; i < argc; i++) {
+        if (strcmp("SKIP_RUN", argv[i]) == 0) {
+            skip_run = true;
+        } else {
+            const std::string name = argv[i++];
+            std::string value;
+            if (i < argc) {
+                value = argv[i];
+            } else {
+                std::cerr << "No value given for " << name << std::endl;
+            }
+            if (name ==  "LOGGING_CONFIG_URI") {
+                logcfg_uri = value;
+            } else if (name == "DEBUG_LEVEL") {
+                debug_level = atoi(value.c_str());
+            } else if (name == "DOM_PATH") {
+                dpath = value;
+            } else {  // any other argument is part of the cmdlineProps
+                cmdlineProps[name] = value;
+            }
         }
     }
 
-    if (!skip_run){
-        // Store away a reference to the main component and establish a handler for
-        // SIGINT that will break out of run()
-        main_component = resource;
-        struct sigaction sa;
-        sa.sa_handler = &sigint_handler;
-        sigemptyset(&sa.sa_mask);
-        sa.sa_flags = 0;
-        sigaction(SIGINT, &sa, NULL);
-
-        LOG_TRACE(Resource_impl, "Entering component run loop");
-        resource->run();
-        LOG_TRACE(Resource_impl, "Component run loop terminated");
-
-        // Ignore SIGINT from here on out to ensure that the ORB gets shut down
-        // properly
-        sa.sa_handler = SIG_IGN;
-        sigemptyset(&sa.sa_mask);
-        sigaction(SIGINT, &sa, NULL);
-        main_component = 0;
-
-        LOG_TRACE(Resource_impl, "Deleting component");
-        resource->_remove_ref();
-        LOG_TRACE(Resource_impl, "Shutting down ORB");
-
-        ossie::logging::Terminate();
-
-        ossie::corba::OrbShutdown(true);
+    if (!cmdlineProps.contains("NAMING_CONTEXT_IOR")) {
+        std::cout<<std::endl<<"usage: "<<argv[0]<<" [execparams]"<<std::endl<<std::endl;
+        std::cout<<"The set of execparams is defined in the .prf for the component"<<std::endl;
+        std::cout<<"They are provided as arguments pairs ID VALUE, for example:"<<std::endl;
+        std::cout<<"     "<<argv[0]<<" INT_PARAM 5 STR_PARAM ABCDED"<<std::endl<<std::endl;
+        exit(-1);
     }
+
+    // setup logging context for a component resource
+    std::string component_identifier = cmdlineProps.get("COMPONENT_IDENTIFIER", "").toString();
+    std::string name_binding = cmdlineProps.get("NAME_BINDING", "").toString();
+    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::ComponentCtx(name_binding, component_identifier, dpath ) );
+
+    if (!skip_run) {
+        // configure the  logging library
+        ossie::logging::Configure(logcfg_uri, debug_level, ctx);
+    }
+
+    // Create the servant.
+    Resource_impl* resource = create_component(ctor, cmdlineProps);
+
+    if ( !skip_run ) {
+        // assign the logging context to the resource to support logging interface
+        resource->saveLoggingContext( logcfg_uri, debug_level, ctx );
+    }
+
+    std::string pathAndFile = argv[0];
+    unsigned lastSlash      = pathAndFile.find_last_of("/");
+    std::string cwd         = pathAndFile.substr(0, lastSlash);
+    resource->setCurrentWorkingDirectory(cwd);
+
+    if (skip_run){
+        return;
+    }
+
+    // Store away a reference to the main component and establish a handler for
+    // SIGINT that will break out of run()
+    main_component = resource;
+    struct sigaction sa;
+    sa.sa_handler = &sigint_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
+
+    LOG_TRACE(Resource_impl, "Entering component run loop");
+    resource->run();
+    LOG_TRACE(Resource_impl, "Component run loop terminated");
+
+    // Ignore SIGINT from here on out to ensure that the ORB gets shut down
+    // properly
+    sa.sa_handler = SIG_IGN;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGINT, &sa, NULL);
+    main_component = 0;
+
+    LOG_TRACE(Resource_impl, "Deleting component");
+    resource->_remove_ref();
+    LOG_TRACE(Resource_impl, "Shutting down ORB");
+
+    ossie::logging::Terminate();
+
+    ossie::corba::OrbShutdown(true);
 }

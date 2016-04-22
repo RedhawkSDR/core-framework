@@ -41,6 +41,14 @@ public:
      */
     redhawk::NetworkContainer* getNetwork();
 
+protected:
+    virtual void setCommandLineProperty(const std::string& id, const redhawk::Value& value);
+
+    void setApplication(CF::Application_ptr application);
+
+    // Give Resource_impl friend access so it can call setApplication
+    friend class Resource_impl;
+
 private:
     boost::scoped_ptr<redhawk::ApplicationContainer> _app;
     boost::scoped_ptr<redhawk::NetworkContainer> _net;

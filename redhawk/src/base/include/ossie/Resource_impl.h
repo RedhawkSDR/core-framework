@@ -102,6 +102,9 @@ public:
     std::string _parent_id;
 
 protected:
+    virtual void setCommandLineProperty(const std::string& id, const redhawk::Value& value);
+
+    void setDomainManager(CF::DomainManager_ptr domainManager);
 
     /*
      * Boolean describing whether or not this Resource is started
@@ -135,5 +138,9 @@ private:
     std::string currentWorkingDirectory;
     boost::scoped_ptr<redhawk::DomainManagerContainer> _domMgr;
     bool _initialized;
+
+public:
+    static Resource_impl* create_component(ctor_type, const CF::Properties& paramaters);
+
 };
 #endif

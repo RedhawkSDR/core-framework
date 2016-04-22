@@ -59,3 +59,17 @@ redhawk::NetworkContainer* Component::getNetwork()
 {
     return _net.get();
 }
+
+void Component::setCommandLineProperty(const std::string& id, const redhawk::Value& value)
+{
+    if (id == "NIC") {
+        _net.reset(new redhawk::NetworkContainer(value.toString()));
+    } else {
+        Resource_impl::setCommandLineProperty(id, value);
+    }
+}
+
+void Component::setApplication(CF::Application_ptr application)
+{
+    _app.reset(new redhawk::ApplicationContainer(application));
+}
