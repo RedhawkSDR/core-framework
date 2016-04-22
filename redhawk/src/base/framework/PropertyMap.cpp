@@ -107,6 +107,16 @@ const Value& PropertyMap::operator[] (const std::string& id) const
     return dt->getValue();
 }
 
+const Value& PropertyMap::get(const std::string& id, const Value& def) const
+{
+    const_iterator dt = find(id);
+    if (dt != end()) {
+        return dt->getValue();
+    } else {
+        return def;
+    }
+}
+
 void PropertyMap::push_back(const CF::DataType& property)
 {
     ossie::corba::push_back(*this, property);

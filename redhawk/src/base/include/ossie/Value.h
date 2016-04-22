@@ -37,7 +37,7 @@ namespace redhawk {
         Value(const Value& any);
 
         template <typename T>
-        explicit Value(const T& value)
+        Value(const T& value)
         {
             setValue(value);
         }

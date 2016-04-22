@@ -60,6 +60,8 @@ namespace redhawk {
         Value& operator[] (const std::string& id);
         const Value& operator[] (const std::string& id) const;
 
+        const Value& get(const std::string& id, const Value& def=Value()) const;
+
         void push_back (const CF::DataType& dt);
 
         iterator begin();
