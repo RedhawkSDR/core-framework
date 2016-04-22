@@ -19,34 +19,43 @@
  */
 #include "ossie/Component.h"
 
-Component::Component(const char* _uuid) : Resource_impl (_uuid) {
-    this->_app = NULL;
-    this->_net = NULL;
+Component::Component(const char* _uuid) :
+    Resource_impl(_uuid),
+    _app(new redhawk::ApplicationContainer()),
+    _net(new redhawk::NetworkContainer())
+{
 }
 
-Component::Component(const char* _uuid, const char *label) : Resource_impl (_uuid, label) {
-    this->_app = NULL;
-    this->_net = NULL;
+Component::Component(const char* _uuid, const char *label) :
+    Resource_impl(_uuid, label),
+    _app(new redhawk::ApplicationContainer()),
+    _net(new redhawk::NetworkContainer())
+{
 }
 
-Component::~Component() {
-    if (this->_app != NULL)
-        delete this->_app;
-    if (this->_net != NULL)
-        delete this->_net;
+Component::~Component()
+{
 }
 
 void Component::setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, std::string &nic)
 {
     CORBA::ORB_ptr orb = ossie::corba::Orb();
     Resource_impl::setAdditionalParameters(softwareProfile, application_registrar_ior, nic);
-    this->_net = new redhawk::NetworkContainer(nic);
+    this->_net.reset(new redhawk::NetworkContainer(nic));
     CORBA::Object_var applicationRegistrarObject = orb->string_to_object(application_registrar_ior.c_str());
     CF::ApplicationRegistrar_var applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
     if (!CORBA::is_nil(applicationRegistrar)) {
-      CF::Application_var app = applicationRegistrar->app();
-        this->_app = new redhawk::ApplicationContainer(app);
-        return;
+        CF::Application_var app = applicationRegistrar->app();
+        this->_app.reset(new redhawk::ApplicationContainer(app));
     }
-    this->_app = new redhawk::ApplicationContainer();
+}
+
+redhawk::ApplicationContainer* Component::getApplication()
+{
+    return _app.get();
+}
+
+redhawk::NetworkContainer* Component::getNetwork()
+{
+    return _net.get();
 }

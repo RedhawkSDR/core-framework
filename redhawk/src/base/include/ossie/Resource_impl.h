@@ -89,9 +89,7 @@ public:
     /*
      * Return a pointer to the Domain Manager that the Resource is deployed on
      */
-    redhawk::DomainManagerContainer* getDomainManager() {
-        return this->_domMgr;
-    }
+    redhawk::DomainManagerContainer* getDomainManager();
 
     /*
      * Globally unique identifier for this Resource
@@ -135,7 +133,7 @@ private:
     typedef boost::function<Resource_impl* (const std::string&, const std::string&)> ctor_type;
     static void start_component(ctor_type ctor, int argc, char* argv[]);
     std::string currentWorkingDirectory;
-    redhawk::DomainManagerContainer *_domMgr;
+    boost::scoped_ptr<redhawk::DomainManagerContainer> _domMgr;
     bool _initialized;
 };
 #endif

@@ -30,7 +30,7 @@ Resource_impl::Resource_impl (const char* _uuid) :
     _started(false),
     component_running_mutex(),
     component_running(&component_running_mutex),
-    _domMgr(NULL),
+    _domMgr(new redhawk::DomainManagerContainer()),
     _initialized(false)
 {
 }
@@ -42,21 +42,17 @@ Resource_impl::Resource_impl (const char* _uuid, const char *label) :
     _started(false),
     component_running_mutex(),
     component_running(&component_running_mutex),
-    _domMgr(NULL),
+    _domMgr(new redhawk::DomainManagerContainer()),
     _initialized(false)
 {
 }
 
-Resource_impl::~Resource_impl () {
-  if (this->_domMgr != NULL)
-    delete this->_domMgr;
+Resource_impl::~Resource_impl ()
+{
+}
 
 
-};
-
-
-
-void Resource_impl::setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, std::string &nic)
+void Resource_impl::setAdditionalParameters(std::string& softwareProfile, std::string &application_registrar_ior, std::string &nic)
 {
     _softwareProfile = softwareProfile;
     CORBA::ORB_ptr orb = ossie::corba::Orb();
@@ -66,14 +62,14 @@ void Resource_impl::setAdditionalParameters(std::string &softwareProfile, std::s
       applicationRegistrarObject = orb->string_to_object(application_registrar_ior.c_str());
     } catch ( ... ) {
       RH_NL_WARN("Resource", "No  Registrar... create empty container");
-      this->_domMgr = new redhawk::DomainManagerContainer();
+      this->_domMgr.reset(new redhawk::DomainManagerContainer());
       return;
     }
     CF::ApplicationRegistrar_ptr applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
     if (!CORBA::is_nil(applicationRegistrar)) {
       RH_NL_TRACE("Resource", "Get DomainManager from Registrar object:" << application_registrar_ior );
       CF::DomainManager_var dm=applicationRegistrar->domMgr();
-      this->_domMgr = new redhawk::DomainManagerContainer(dm);
+      this->_domMgr.reset(new redhawk::DomainManagerContainer(dm));
       return;
     }
 
@@ -82,14 +78,18 @@ void Resource_impl::setAdditionalParameters(std::string &softwareProfile, std::s
     if (!CORBA::is_nil(devMgr)) {
       RH_NL_TRACE("Resource", "Resolving DomainManager from DeviceManager...");
         CF::DomainManager_var dm=devMgr->domMgr();
-        this->_domMgr = new redhawk::DomainManagerContainer(dm);
+        this->_domMgr.reset(new redhawk::DomainManagerContainer(dm));
         return;
     }
 
     RH_NL_DEBUG("Resource", "All else failed.... use empty container");
-    this->_domMgr = new redhawk::DomainManagerContainer();
+    this->_domMgr.reset(new redhawk::DomainManagerContainer());
 }
 
+redhawk::DomainManagerContainer* Resource_impl::getDomainManager()
+{
+    return _domMgr.get();
+}
 
 void Resource_impl::constructor ()
 {
