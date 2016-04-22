@@ -35,6 +35,9 @@
 #include "ossie/Autocomplete.h"
 #include "CF/cf.h"
 
+namespace redhawk {
+    class Value;
+}
 
 class PropertySet_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
@@ -90,6 +93,8 @@ public:
    void   stopPropertyChangeMonitor();
 
 protected:
+
+    virtual void setCommandLineProperty(const std::string& id, const redhawk::Value& value);
 
     /*CF::Properties
             propertySet;*/

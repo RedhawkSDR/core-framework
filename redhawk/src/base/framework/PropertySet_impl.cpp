@@ -28,6 +28,7 @@
 #include "ossie/concurrent.h"
 #include "ossie/Events.h"
 #include "ossie/ossieSupport.h"
+#include "ossie/PropertyMap.h"
 
 
 //
@@ -141,6 +142,20 @@ void PropertySet_impl::setExecparamProperties(std::map<std::string, char*>& exec
         }
     }
     LOG_TRACE(PropertySet_impl, "Done setting exec parameters");
+}
+
+void PropertySet_impl::setCommandLineProperty(const std::string& id, const redhawk::Value& value)
+{
+    LOG_TRACE(PropertySet_impl, "Property: " << id << " = " << value.toString());
+    PropertyInterface* property = getPropertyFromId(id);
+    // the property can belong to a resource, device, or Device/Domain
+    // Manager.  If the property is not found, then it might be a resource
+    // property passed through the nodeBooter to the DeviceManager
+    if (property) {
+        property->setValue(value, false);
+    } else {
+        LOG_WARN(PropertySet_impl, "Property: " << id << " is not defined, ignoring it!!");
+    }
 }
 
 void
