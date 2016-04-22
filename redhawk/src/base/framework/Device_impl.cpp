@@ -179,10 +179,6 @@ void  Device_impl::setAdditionalParameters ( std::string &profile,
                                              std::string &registrar_ior,
                                              const std::string &nic )
 {
-  // set parent's domain context
-  std::string tnic(nic);
-  Resource_impl::setAdditionalParameters(profile,registrar_ior, tnic);
-
   _devMgr_ior = registrar_ior;
   _deviceManager = CF::DeviceManager::_nil();
   CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(_devMgr_ior.c_str());
@@ -197,6 +193,10 @@ void  Device_impl::setAdditionalParameters ( std::string &profile,
   }
 
   this->_devMgr = new redhawk::DeviceManagerContainer(_deviceManager);
+
+  // Set up domain awareness
+  CF::DomainManager_var domainManager = _deviceManager->domMgr();
+  setDomainManager(domainManager);
 }
 
 
