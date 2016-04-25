@@ -59,6 +59,9 @@ class Implementation(object):
             return self.__impl.code.localfile.name
         return self.__impl.code.entrypoint
 
+    def isModule(self):
+        return self.__impl.code.get_type() == 'SharedLibrary'
+
     def localfile(self):
         return self.__impl.code.localfile.name
 
