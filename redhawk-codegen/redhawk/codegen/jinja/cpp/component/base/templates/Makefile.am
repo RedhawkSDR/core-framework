@@ -96,7 +96,7 @@ include $(srcdir)/Makefile.am.ide
 #{% endif %}
 {{amtarget}}_CXXFLAGS = -Wall $(SOFTPKG_CFLAGS) $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
 #{% if component.impl.module %}
-{{amtarget}}_LDFLAGS = -module -export-dynamic -avoid-version $(redhawk_LDFLAGS_auto)
+{{amtarget}}_LDFLAGS = -shared -module -export-dynamic -export-symbols-regex 'make_component' -avoid-version $(redhawk_LDFLAGS_auto)
 #{% else %}
 {{amtarget}}_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
 #{% endif %}

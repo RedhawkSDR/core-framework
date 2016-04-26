@@ -25,7 +25,7 @@ AC_INIT({{component.name}}, {{component.version}})
 AM_INIT_AUTOMAKE([nostdinc foreign])
 AC_CONFIG_MACRO_DIR([m4])
 #{% if component.impl.module %}
-LT_INIT([dlopen disable-static])
+LT_INIT([dlopen])
 #{% endif %}
 #{% endblock %}
 
