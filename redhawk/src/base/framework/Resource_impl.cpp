@@ -159,6 +159,8 @@ void Resource_impl::releaseObject() throw (CORBA::SystemException, CF::LifeCycle
     root_poa->deactivate_object(oid);
 
     component_running.signal();
+
+    _resourceReleased(this);
 }
 
 void Resource_impl::run() {

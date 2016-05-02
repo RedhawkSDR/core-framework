@@ -92,6 +92,24 @@ public:
     redhawk::DomainManagerContainer* getDomainManager();
 
     /*
+     * Register a function for notification when this Resource is released
+     */
+    template <class Func>
+    void addReleaseListener(Func func)
+    {
+        _resourceReleased.add(func);
+    }
+
+    /*
+     * Register a member function for notification when this Resource is released
+     */
+    template <class Target, class Func>
+    void addReleaseListener(Target target, Func func)
+    {
+        _resourceReleased.add(target, func);
+    }
+
+    /*
      * Globally unique identifier for this Resource
      */
     std::string _identifier;
@@ -139,8 +157,10 @@ private:
     boost::scoped_ptr<redhawk::DomainManagerContainer> _domMgr;
     bool _initialized;
 
+    ossie::notification<void (Resource_impl*)> _resourceReleased;
+
 public:
-    static Resource_impl* create_component(ctor_type, const CF::Properties& paramaters);
+    static Resource_impl* create_component(ctor_type, const CF::Properties& parameters);
 
 };
 #endif
