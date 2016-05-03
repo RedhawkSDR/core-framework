@@ -109,6 +109,8 @@ public:
         _resourceReleased.add(target, func);
     }
 
+    const std::string& getIdentifier() const;
+
     /*
      * Globally unique identifier for this Resource
      */

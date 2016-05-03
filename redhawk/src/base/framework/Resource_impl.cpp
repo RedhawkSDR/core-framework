@@ -178,6 +178,11 @@ void Resource_impl::halt() {
     LOG_TRACE(Resource_impl, "Done sending device running signal");
 }
 
+const std::string& Resource_impl::getIdentifier() const
+{
+    return _identifier;
+}
+
 void Resource_impl::setCurrentWorkingDirectory(std::string& cwd) {
     this->currentWorkingDirectory = cwd;
 }
