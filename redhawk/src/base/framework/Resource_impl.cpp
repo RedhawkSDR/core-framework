@@ -153,7 +153,6 @@ void Resource_impl::releaseObject() throw (CORBA::SystemException, CF::LifeCycle
 {
     releasePorts();
     stopPropertyChangeMonitor();
-    redhawk::events::Manager::Terminate();
     PortableServer::POA_ptr root_poa = ossie::corba::RootPOA();
     PortableServer::ObjectId_var oid = root_poa->servant_to_id(this);
     root_poa->deactivate_object(oid);
@@ -356,6 +355,8 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
     LOG_TRACE(Resource_impl, "Entering component run loop");
     resource->run();
     LOG_TRACE(Resource_impl, "Component run loop terminated");
+
+    redhawk::events::Manager::Terminate();
 
     // Ignore SIGINT from here on out to ensure that the ORB gets shut down
     // properly
