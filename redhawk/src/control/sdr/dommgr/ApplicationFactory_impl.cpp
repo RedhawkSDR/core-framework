@@ -694,7 +694,8 @@ void createHelper::assignRemainingComponentsToDevices(const std::string &appIden
          componentIter++)
     {
         if (!(*componentIter)->isAssignedToDevice()) {
-            allocateComponent(*componentIter, std::string(), _appUsedDevs, appIdentifier);
+            ossie::ComponentDeployment* deployment = allocateComponent(*componentIter, std::string(), _appUsedDevs, appIdentifier);
+            _deployments.push_back(deployment);
         }
     }
 }
@@ -720,7 +721,8 @@ void createHelper::_assignComponentsUsingDAS(const DeviceAssignmentMap& deviceAs
             badDAS[0].assignedDeviceId = assignedDeviceId.c_str();
             throw CF::ApplicationFactory::CreateApplicationRequestError(badDAS);
         }
-        allocateComponent(component, assignedDeviceId, _appUsedDevs, appIdentifier);
+        ossie::ComponentDeployment* deployment = allocateComponent(component, assignedDeviceId, _appUsedDevs, appIdentifier);
+        _deployments.push_back(deployment);
     }
 }
 
@@ -965,14 +967,14 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
             for (unsigned int i=0; i<collocAssignedDevs.size(); i++,comp++,impl--) {
                 collocAssignedDevs[i].device = CF::Device::_duplicate(node->device);
                 collocAssignedDevs[i].deviceAssignment.assignedDeviceId = CORBA::string_dup(deviceId.c_str());
-                (*comp)->setSelectedImplementation(*impl);
                 if (!resolveSoftpkgDependencies(*impl, *node)) {
                     LOG_TRACE(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                               << (*comp)->getIdentifier() << " implementation " << (*impl)->getId());
                     continue;
                 }
-                (*comp)->setAssignedDevice(node);
                 collocAssignedDevs[i].deviceAssignment.componentId = CORBA::string_dup((*comp)->getIdentifier());
+                ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, *impl, node);
+                _deployments.push_back(deployment);
             }
             
             // Move the device to the front of the list
@@ -1623,10 +1625,10 @@ CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDev
  temporary table, to assist with the allocation and clean up
 
  */
-void createHelper::allocateComponent(ossie::ComponentInfo*  component,
-                                     const std::string& assignedDeviceId,
-                                     DeviceAssignmentList &appAssignedDevs,
-                                     const std::string& appIdentifier)
+ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo*  component,
+                                                            const std::string& assignedDeviceId,
+                                                            DeviceAssignmentList &appAssignedDevs,
+                                                            const std::string& appIdentifier)
 {
     // get the implementations from the component
     ossie::ImplementationInfo::List  implementations;
@@ -1705,7 +1707,6 @@ void createHelper::allocateComponent(ossie::ComponentInfo*  component,
         // Allocation to a device succeeded
         LOG_DEBUG(ApplicationFactory_impl, "Assigned component " << component->getInstantiationIdentifier()
                   << " implementation " << impl->getId() << " to device " << deviceId);
-        component->setAssignedDevice(response.second);
 
         // Move the device to the front of the list
         rotateDeviceList(_executableDevices, deviceId);
@@ -1721,8 +1722,7 @@ void createHelper::allocateComponent(ossie::ComponentInfo*  component,
         implAllocations.transfer(this->_allocations);
         std::copy(implAllocatedDevices.begin(), implAllocatedDevices.end(), std::back_inserter(appAssignedDevs));
         
-        component->setSelectedImplementation(impl);
-        return;
+        return new ossie::ComponentDeployment(component, impl, response.second);
     }
 
     ossie::DeviceList::iterator device;
@@ -2368,15 +2368,16 @@ void createHelper::loadDependencies(ossie::ComponentInfo& component,
  */
 void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg)
 {
-    LOG_TRACE(ApplicationFactory_impl, "Loading and Executing " << _requiredComponents.size() << " components");
+    LOG_TRACE(ApplicationFactory_impl, "Loading and Executing " << _deployments.size() << " components");
     // apply application affinity options to required components
     applyApplicationAffinityOptions();
 
-    for (unsigned int rc_idx = 0; rc_idx < _requiredComponents.size (); rc_idx++) {
-        ossie::ComponentInfo* component = _requiredComponents[rc_idx];
-        const ossie::ImplementationInfo* implementation = component->getSelectedImplementation();
+    for (unsigned int rc_idx = 0; rc_idx < _deployments.size (); rc_idx++) {
+        ossie::ComponentDeployment* deployment = _deployments[rc_idx];
+        ossie::ComponentInfo* component = deployment->getComponent();
+        const ossie::ImplementationInfo* implementation = deployment->getImplementation();
 
-        boost::shared_ptr<ossie::DeviceNode> device = component->getAssignedDevice();
+        boost::shared_ptr<ossie::DeviceNode> device = deployment->getAssignedDevice();
         if (!device) {
             std::ostringstream message;
             message << "component " << component->getIdentifier() << " was not assigned to a device";
@@ -3294,6 +3295,10 @@ createHelper::~createHelper()
         delete (*comp);
     }
     _requiredComponents.clear();
+    for (std::vector<ossie::ComponentDeployment*>::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
+        delete (*ii);
+    }
+    _deployments.clear();
 }
 
 void createHelper::_cleanupFailedCreate()

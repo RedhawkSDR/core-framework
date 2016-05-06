@@ -653,11 +653,6 @@ void ComponentInfo::setIdentifier(const char* _identifier, std::string instance_
     instantiationId = instance_id;
 }
 
-void ComponentInfo::setAssignedDevice(boost::shared_ptr<ossie::DeviceNode> device)
-{
-    assignedDevice = device;
-}
-
 void ComponentInfo::setNamingService(const bool _isNamingService)
 {
     isNamingService = _isNamingService;
@@ -1190,4 +1185,37 @@ ComponentInfo* ApplicationInfo::findComponentByInstantiationId(const std::string
         }
     }
     return 0;
+}
+
+Deployment::Deployment(SoftpkgInfo* softpkg, ImplementationInfo* impl) :
+    softpkg(softpkg),
+    impl(impl)
+{
+}
+
+SoftpkgInfo* Deployment::getSoftpkg()
+{
+    return softpkg;
+}
+
+ImplementationInfo* Deployment::getImplementation()
+{
+    return impl;
+}
+
+ComponentDeployment::ComponentDeployment(ComponentInfo* component, ImplementationInfo* impl,
+                                         const boost::shared_ptr<DeviceNode>& device) :
+    Deployment(component, impl),
+    assignedDevice(device)
+{
+}
+
+ComponentInfo* ComponentDeployment::getComponent()
+{
+    return dynamic_cast<ComponentInfo*>(getSoftpkg());
+}
+
+boost::shared_ptr<DeviceNode> ComponentDeployment::getAssignedDevice()
+{
+    return assignedDevice;
 }

@@ -209,6 +209,8 @@ private:
 
     ossie::ApplicationInfo _appInfo;
 
+    std::vector<ossie::ComponentDeployment*> _deployments;
+
     // createHelper helper methods
     ossie::ComponentInfo* getAssemblyController();
     void overrideExternalProperties(const CF::Properties& initConfiguration);
@@ -252,10 +254,10 @@ private:
     CF::AllocationManager::AllocationResponseSequence* allocateUsesDeviceProperties(
         const ossie::UsesDeviceInfo::List& component,
         const CF::Properties& configureProperties);
-    void allocateComponent(ossie::ComponentInfo* component,
-                           const std::string& assignedDeviceId,
-                           DeviceAssignmentList &appAssignedDevices,
-                           const std::string& appIdentifier);
+    ossie::ComponentDeployment* allocateComponent(ossie::ComponentInfo* component,
+                                                  const std::string& assignedDeviceId,
+                                                  DeviceAssignmentList &appAssignedDevices,
+                                                  const std::string& appIdentifier);
 
     ossie::AllocationResult allocateComponentToDevice(ossie::ComponentInfo* component,
                                    ossie::ImplementationInfo* implementation,

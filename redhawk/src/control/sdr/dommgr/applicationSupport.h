@@ -220,7 +220,6 @@ namespace ossie
         ~ComponentInfo ();
 
         void setIdentifier(const char* identifier, std::string instance_id);
-        void setAssignedDevice(boost::shared_ptr<DeviceNode> device);
         void setNamingService(const bool isNamingService);
         void setNamingServiceName(const char* NamingServiceName);
         void setUsageName(const char* usageName);
@@ -351,6 +350,34 @@ namespace ossie
         std::vector<SoftwareAssembly::Property> externalProperties;
         CF::Properties acProps;
         std::vector<ComponentInfo*> components;
+    };
+
+    class Deployment
+    {
+    public:
+        Deployment(SoftpkgInfo* softpkg, ImplementationInfo* impl);
+
+        SoftpkgInfo* getSoftpkg();
+        ImplementationInfo* getImplementation();
+
+    protected:
+        SoftpkgInfo* softpkg;
+        ImplementationInfo* impl;
+        std::vector<Deployment*> dependencies;
+    };
+
+    class ComponentDeployment : public Deployment
+    {
+    public:
+        ComponentDeployment(ComponentInfo* component, ImplementationInfo* impl,
+                            const boost::shared_ptr<DeviceNode>& device);
+
+        ComponentInfo* getComponent();
+
+        boost::shared_ptr<DeviceNode> getAssignedDevice();
+
+    protected:
+        boost::shared_ptr<DeviceNode> assignedDevice;
     };
 }
 #endif
