@@ -2071,6 +2071,7 @@ ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::S
         if (resolveSoftpkgDependencies(dependency, device)) {
             return dependency;
         }
+        delete dependency;
     }
 
     return 0;
