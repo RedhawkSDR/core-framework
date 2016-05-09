@@ -228,8 +228,6 @@ namespace ossie
         void setAffinity( const AffinityProperties &affinity );
         void mergeAffinityOptions( const CF::Properties &new_affinity );
         void setLoggingConfig( const LoggingConfig &logcfg );
-        void addResolvedSoftPkgDependency(const std::string &dep);
-        std::vector<std::string> getResolvedSoftPkgDependencies();
 
         void addFactoryParameter(CF::DataType dt);
         void addExecParameter(CF::DataType dt);
@@ -304,8 +302,6 @@ namespace ossie
         CF::Properties execParameters;
         CF::Properties affinityOptions;
         
-        std::vector<std::string> resolved_softpkg_dependencies;
-
         CF::Resource_var rsc;
 
     };

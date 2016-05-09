@@ -2320,18 +2320,7 @@ void createHelper::loadDependencies(ossie::ComponentInfo& component,
 
         // Determine absolute path of dependency's local file
         CF::LoadableDevice::LoadType codeType = implementation->getCodeType();
-        fs::path codeLocalFile = fs::path(implementation->getLocalFileName());
-        if (!codeLocalFile.has_root_directory()) {
-            // Path is relative to SPD file location
-            fs::path base_dir = fs::path(dep->getSpdFileName()).parent_path();
-            codeLocalFile = base_dir / codeLocalFile;
-        }
-        codeLocalFile = codeLocalFile.normalize();
-        if (codeLocalFile.has_leaf() && codeLocalFile.leaf() == ".") {
-            codeLocalFile = codeLocalFile.branch_path();
-        }
-
-        const std::string fileName = codeLocalFile.string();
+        const std::string fileName = (*deployment)->getLocalFile();
         LOG_DEBUG(ApplicationFactory_impl, "Loading dependency local file " << fileName);
         try {
              device->load(_appFact._fileMgr, fileName.c_str(), codeType);
@@ -2339,7 +2328,6 @@ void createHelper::loadDependencies(ossie::ComponentInfo& component,
             LOG_ERROR(ApplicationFactory_impl, "Failure loading file " << fileName);
             throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, "Failed to load file");
         }
-        component.addResolvedSoftPkgDependency(fileName);
         _application->addComponentLoadedFile(component.getIdentifier(), fileName);
     }
 }
@@ -2380,19 +2368,12 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
         _application->setComponentDevice(component->getIdentifier(), device->device);
 
         // get the code.localfile
-        fs::path codeLocalFile = fs::path(implementation->getLocalFileName());
         LOG_TRACE(ApplicationFactory_impl, "Host is " << device->label << " Local file name is "
-                << codeLocalFile);
-        if (!codeLocalFile.has_root_directory()) {
-            codeLocalFile = fs::path(component->spd.getSPDPath()) / codeLocalFile;
-        }
-        codeLocalFile = codeLocalFile.normalize();
-        if (codeLocalFile.has_leaf() && codeLocalFile.leaf() == ".") {
-            codeLocalFile = codeLocalFile.branch_path();
-        }
+                  << implementation->getLocalFileName());
 
         // Get file name, load if it is not empty
-        if (codeLocalFile.string().size() <=  0) {
+        std::string codeLocalFile = deployment->getLocalFile();
+        if (codeLocalFile.empty()) {
             ostringstream eout;
             eout << "code.localfile is empty for component: '";
             eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
@@ -2420,23 +2401,7 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
         try {
             try {
                 LOG_TRACE(ApplicationFactory_impl, "loading " << codeLocalFile << " on device " << ossie::corba::returnString(loadabledev->label()));
-                loadabledev->load(_appFact._fileMgr, codeLocalFile.string().c_str(), implementation->getCodeType());
-            } catch( const CF::LoadableDevice::LoadFail &ex ) {
-                load_eout << "'load' failed for component: '";
-                load_eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
-                load_eout << " with implementation id: '" << implementation->getId() << "';";
-                load_eout << " on device id: '" << device->identifier << "'";
-                load_eout << " in waveform '" << _waveformContextName<<"'";
-                load_eout << "\nREASON: '" << ex.msg << "'\nError occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                throw;
-            } catch( const CF::InvalidFileName &ex ) {
-                load_eout << "'load' failed for component: '";
-                load_eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
-                load_eout << " with implementation id: '" << implementation->getId() << "';";
-                load_eout << " on device id: '" << device->identifier << "'";
-                load_eout << " in waveform '" << _waveformContextName<<"'";
-                load_eout << "\nREASON: '" << ex.msg << "'\nError occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                throw;
+                loadabledev->load(_appFact._fileMgr, codeLocalFile.c_str(), implementation->getCodeType());
             } catch( ... ) {
                 load_eout << "'load' failed for component: '";
                 load_eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
@@ -2455,7 +2420,7 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
         } CATCH_THROW_LOG_TRACE(ApplicationFactory_impl, "", CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, load_eout.str().c_str()));
 
         // Mark the file as loaded
-        _application->addComponentLoadedFile(component->getIdentifier(), codeLocalFile.string());
+        _application->addComponentLoadedFile(component->getIdentifier(), codeLocalFile);
                 
         // OSSIE extends section D.2.1.6.3 to support loading a directory
         // and execute a file in that directory using a entrypoint
@@ -2611,7 +2576,7 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
                 executeName = executeName.normalize();
             }
 
-            attemptComponentExecution(executeName, execdev, component, implementation);
+            attemptComponentExecution(executeName, execdev, deployment);
         }
     }
 }
@@ -2635,15 +2600,16 @@ std::string createHelper::createVersionMismatchMessage(std::string &component_ve
 void createHelper::attemptComponentExecution (
         const fs::path&                                           executeName,
         CF::ExecutableDevice_ptr                                  execdev,
-        ossie::ComponentInfo*                                     component,
-        const ossie::ImplementationInfo*                          implementation) {
-
+        ossie::ComponentDeployment*                               deployment)
+{
     CF::Properties execParameters;
     
     // get entrypoint
     CF::ExecutableDevice::ProcessID_Type tempPid = -1;
 
-    std::string component_version(component->spd.getSoftPkgType());
+    ossie::ComponentInfo* component = deployment->getComponent();
+    ossie::ImplementationInfo* implementation = deployment->getImplementation();
+
     // attempt to execute the component
     try {
         LOG_TRACE(ApplicationFactory_impl, "executing " << executeName << " on device " << ossie::corba::returnString(execdev->label()));
@@ -2653,7 +2619,7 @@ void createHelper::attemptComponentExecution (
         }
         // call 'execute' on the ExecutableDevice to execute the component
         CF::StringSequence dep_seq;
-        std::vector<std::string> resolved_softpkg_deps = component->getResolvedSoftPkgDependencies();
+        std::vector<std::string> resolved_softpkg_deps = deployment->getDependencyLocalFiles();
         dep_seq.length(resolved_softpkg_deps.size());
         for (unsigned int p=0;p!=dep_seq.length();p++) {
             dep_seq[p]=CORBA::string_dup(resolved_softpkg_deps[p].c_str());

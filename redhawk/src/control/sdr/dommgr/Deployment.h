@@ -32,19 +32,25 @@ namespace ossie {
     class SoftpkgDeployment
     {
     public:
+        typedef std::vector<SoftpkgDeployment*> DeploymentList;
+
         SoftpkgDeployment(SoftpkgInfo* softpkg, ImplementationInfo* impl);
         ~SoftpkgDeployment();
 
         SoftpkgInfo* getSoftpkg();
         ImplementationInfo* getImplementation();
 
+        std::string getLocalFile();
+
         void addDependency(SoftpkgDeployment* dependency);
-        const std::vector<SoftpkgDeployment*>& getDependencies();
+        const DeploymentList& getDependencies();
+
+        std::vector<std::string> getDependencyLocalFiles();
 
     protected:
         SoftpkgInfo* softpkg;
         ImplementationInfo* impl;
-        std::vector<SoftpkgDeployment*> dependencies;
+        DeploymentList dependencies;
     };
 
     class ComponentDeployment : public SoftpkgDeployment

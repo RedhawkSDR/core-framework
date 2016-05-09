@@ -279,8 +279,7 @@ private:
     void attemptComponentExecution(
         const boost::filesystem::path&                                  executeName,
         CF::ExecutableDevice_ptr                                        execdev,
-        ossie::ComponentInfo*                                           component,
-        const ossie::ImplementationInfo*                                implementation);
+        ossie::ComponentDeployment*                                     deployment);
 
     void waitForComponentRegistration();
     void initializeComponents();
