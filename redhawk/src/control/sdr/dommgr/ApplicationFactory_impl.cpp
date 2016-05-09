@@ -1375,25 +1375,6 @@ throw (CORBA::SystemException,
         // Assign components to devices
         ////////////////////////////////////////////////
 
-        /*
-         * _appUsedDevs and appCapacityTable represent all the allocations
-         * and assigned made during applicaiton deployment. It provides the
-         * "context" for the deployment.  This context pattern will be
-         * applied again when collocation requests are fullfilled.  There 2
-         * container are used to deploy the waveform, and also to "cleanup"
-         *  if deployment fails
-         */
-
-        // reset list of devices that were used during component
-        // allocation/placement process for an application
-        _appUsedDevs.resize(0);
-
-        // Start with a empty set of allocation properties, used to keep
-        // track of device capacity allocations. If this is not cleared
-        // each time, deallocation may start occuring multiple times,
-        // resulting in incorrect capacities.
-        //_appCapacityTable.clear();
-
         // Allocate any usesdevice capacities specified in the SAD file
         _handleUsesDevices(name);
 
@@ -1619,10 +1600,6 @@ CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDev
  Current implementation takes advantage of single failure then clean up everything..... To support collocation
  allocation failover for mulitple devices, then we need to clean up only the allocations that we made during a failed
  collocation request.  This requires that we know and cleanup only those allocations that we made..
- appCapacityTable holds all the applications that were made during the entire application deployment process.
-
- I think for each try of a collocation request... we need to swap out the current appCapacityTable for a
- temporary table, to assist with the allocation and clean up
 
  */
 ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo*  component,
