@@ -967,13 +967,14 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
             for (unsigned int i=0; i<collocAssignedDevs.size(); i++,comp++,impl--) {
                 collocAssignedDevs[i].device = CF::Device::_duplicate(node->device);
                 collocAssignedDevs[i].deviceAssignment.assignedDeviceId = CORBA::string_dup(deviceId.c_str());
-                if (!resolveSoftpkgDependencies(*impl, *node)) {
+                ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, *impl, node);
+                if (!resolveSoftpkgDependencies(deployment, *node)) {
                     LOG_TRACE(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                               << (*comp)->getIdentifier() << " implementation " << (*impl)->getId());
+                    delete deployment;
                     continue;
                 }
                 collocAssignedDevs[i].deviceAssignment.componentId = CORBA::string_dup((*comp)->getIdentifier());
-                ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, *impl, node);
                 _deployments.push_back(deployment);
             }
             
@@ -1674,10 +1675,11 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         DeviceNode& node = *(response.second);
         const std::string& deviceId = node.identifier;
         
-        if (!resolveSoftpkgDependencies(impl, node)) {
-            component->clearSelectedImplementation();
+        ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(component, impl, response.second);
+        if (!resolveSoftpkgDependencies(deployment, node)) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                       << component->getIdentifier() << " implementation " << impl->getId());
+            delete deployment;
             continue;
         }
         
@@ -1699,7 +1701,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         implAllocations.transfer(this->_allocations);
         std::copy(implAllocatedDevices.begin(), implAllocatedDevices.end(), std::back_inserter(appAssignedDevs));
         
-        return new ossie::ComponentDeployment(component, impl, response.second);
+        return deployment;
     }
 
     ossie::DeviceList::iterator device;
@@ -2031,19 +2033,19 @@ CF::DataType createHelper::castProperty(const ossie::ComponentProperty* property
     return dataType;
 }
 
-bool createHelper::resolveSoftpkgDependencies(ossie::ImplementationInfo* implementation, ossie::DeviceNode& device)
+bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployment, ossie::DeviceNode& device)
 {
+    ossie::ImplementationInfo* implementation = deployment->getImplementation();
     const std::vector<ossie::SoftpkgInfo*>& tmpSoftpkg = implementation->getSoftPkgDependency();
     std::vector<ossie::SoftpkgInfo*>::const_iterator iterSoftpkg;
 
     for (iterSoftpkg = tmpSoftpkg.begin(); iterSoftpkg != tmpSoftpkg.end(); ++iterSoftpkg) {
         // Find an implementation whose dependencies match
-        ossie::ImplementationInfo* spdImplInfo = resolveDependencyImplementation(*iterSoftpkg, device);
-        if (spdImplInfo) {
-            (*iterSoftpkg)->setSelectedImplementation(spdImplInfo);
+        ossie::SoftpkgDeployment* dependency = resolveDependencyImplementation(*iterSoftpkg, device);
+        if (dependency) {
+            deployment->addDependency(dependency);
         } else {
             LOG_DEBUG(ApplicationFactory_impl, "resolveSoftpkgDependencies: implementation match not found between soft package dependency and device");
-            implementation->clearSelectedDependencyImplementations();
             return false;
         }
     }
@@ -2051,8 +2053,8 @@ bool createHelper::resolveSoftpkgDependencies(ossie::ImplementationInfo* impleme
     return true;
 }
 
-ossie::ImplementationInfo* createHelper::resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg,
-                                                                         ossie::DeviceNode& device)
+ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg,
+                                                                        ossie::DeviceNode& device)
 {
     ossie::ImplementationInfo::List spd_list;
     softpkg->getImplementations(spd_list);
@@ -2064,9 +2066,10 @@ ossie::ImplementationInfo* createHelper::resolveDependencyImplementation(ossie::
             continue;
         }
 
+        ossie::SoftpkgDeployment* dependency = new ossie::SoftpkgDeployment(softpkg, implementation);
         // Recursively check any softpkg dependencies
-        if (resolveSoftpkgDependencies(implementation, device)) {
-            return implementation;
+        if (resolveSoftpkgDependencies(dependency, device)) {
+            return dependency;
         }
     }
 
@@ -2301,25 +2304,26 @@ string ApplicationFactory_impl::getBaseWaveformContext(string waveform_context)
 
 void createHelper::loadDependencies(ossie::ComponentInfo& component,
                                     CF::LoadableDevice_ptr device,
-                                    const std::vector<SoftpkgInfo*>& dependencies)
+                                    const std::vector<ossie::SoftpkgDeployment*>& dependencies)
 {
-    for (std::vector<SoftpkgInfo*>::const_iterator dep = dependencies.begin(); dep != dependencies.end(); ++dep) {
-        const ossie::ImplementationInfo* implementation = (*dep)->getSelectedImplementation();
+    for (std::vector<SoftpkgDeployment*>::const_iterator deployment = dependencies.begin(); deployment != dependencies.end(); ++deployment) {
+        ossie::SoftpkgInfo* dep = (*deployment)->getSoftpkg();
+        const ossie::ImplementationInfo* implementation = (*deployment)->getImplementation();
         if (!implementation) {
-            LOG_ERROR(ApplicationFactory_impl, "No implementation selected for dependency " << (*dep)->getName());
+            LOG_ERROR(ApplicationFactory_impl, "No implementation selected for dependency " << dep->getName());
             throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, "Missing implementation");
         }
 
         // Recursively load dependencies
-        LOG_TRACE(ApplicationFactory_impl, "Loading dependencies for soft package " << (*dep)->getName());
-        loadDependencies(component, device, implementation->getSoftPkgDependency());
+        LOG_TRACE(ApplicationFactory_impl, "Loading dependencies for soft package " << dep->getName());
+        loadDependencies(component, device, (*deployment)->getDependencies());
 
         // Determine absolute path of dependency's local file
         CF::LoadableDevice::LoadType codeType = implementation->getCodeType();
         fs::path codeLocalFile = fs::path(implementation->getLocalFileName());
         if (!codeLocalFile.has_root_directory()) {
             // Path is relative to SPD file location
-            fs::path base_dir = fs::path((*dep)->getSpdFileName()).parent_path();
+            fs::path base_dir = fs::path(dep->getSpdFileName()).parent_path();
             codeLocalFile = base_dir / codeLocalFile;
         }
         codeLocalFile = codeLocalFile.normalize();
@@ -2409,7 +2413,7 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
             throw std::logic_error(message.str());
         }
 
-        loadDependencies(*component, loadabledev, implementation->getSoftPkgDependency());
+        loadDependencies(*component, loadabledev, deployment->getDependencies());
 
         // load the file(s)
         ostringstream load_eout; // used for any error messages dealing with load

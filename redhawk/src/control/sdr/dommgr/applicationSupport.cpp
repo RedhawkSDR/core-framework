@@ -353,14 +353,6 @@ bool ImplementationInfo::checkProcessorAndOs(const Properties& _prf) const
     return matchProcessor && matchOs;
 }
 
-void ImplementationInfo::clearSelectedDependencyImplementations()
-{
-    std::vector<ossie::SoftpkgInfo*>::const_iterator iter;
-    for (iter = softPkgDependencies.begin(); iter != softPkgDependencies.end(); ++iter) {
-        (*iter)->clearSelectedImplementation();
-    }
-}
-
 
 PREPARE_CF_LOGGING(SoftpkgInfo);
 
@@ -449,22 +441,6 @@ void SoftpkgInfo::addImplementation(ImplementationInfo* impl)
 void SoftpkgInfo::getImplementations(ImplementationInfo::List& res)
 {
     std::copy(_implementations.begin(), _implementations.end(), std::back_inserter(res));
-}
-
-void SoftpkgInfo::setSelectedImplementation(ImplementationInfo* implementation)
-{
-    if (std::find(_implementations.begin(), _implementations.end(), implementation) == _implementations.end()) {
-        throw std::logic_error("invalid implementation selected");
-    }
-    _selectedImplementation = implementation;
-}
-
-void SoftpkgInfo::clearSelectedImplementation()
-{
-    if (_selectedImplementation) {
-        _selectedImplementation->clearSelectedDependencyImplementations();
-        _selectedImplementation = 0;
-    }
 }
 
 const ImplementationInfo* SoftpkgInfo::getSelectedImplementation() const
@@ -1185,37 +1161,4 @@ ComponentInfo* ApplicationInfo::findComponentByInstantiationId(const std::string
         }
     }
     return 0;
-}
-
-Deployment::Deployment(SoftpkgInfo* softpkg, ImplementationInfo* impl) :
-    softpkg(softpkg),
-    impl(impl)
-{
-}
-
-SoftpkgInfo* Deployment::getSoftpkg()
-{
-    return softpkg;
-}
-
-ImplementationInfo* Deployment::getImplementation()
-{
-    return impl;
-}
-
-ComponentDeployment::ComponentDeployment(ComponentInfo* component, ImplementationInfo* impl,
-                                         const boost::shared_ptr<DeviceNode>& device) :
-    Deployment(component, impl),
-    assignedDevice(device)
-{
-}
-
-ComponentInfo* ComponentDeployment::getComponent()
-{
-    return dynamic_cast<ComponentInfo*>(getSoftpkg());
-}
-
-boost::shared_ptr<DeviceNode> ComponentDeployment::getAssignedDevice()
-{
-    return assignedDevice;
 }

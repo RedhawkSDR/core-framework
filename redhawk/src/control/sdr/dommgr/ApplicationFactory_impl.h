@@ -35,6 +35,7 @@
 #include "PersistenceStore.h"
 #include "applicationSupport.h"
 #include "connectionSupport.h"
+#include "Deployment.h"
 
 class DomainManager_impl;
 class Application_impl;
@@ -264,13 +265,13 @@ private:
                                    const std::string& assignedDeviceId,
                                    const std::string& appIdentifier);
 
-    bool resolveSoftpkgDependencies(ossie::ImplementationInfo* implementation, ossie::DeviceNode& device);
-    ossie::ImplementationInfo* resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg, ossie::DeviceNode& device);
+    bool resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployment, ossie::DeviceNode& device);
+    ossie::SoftpkgDeployment* resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg, ossie::DeviceNode& device);
     
     // Supports loading, executing, initializing, configuring, & connecting
     void loadDependencies(ossie::ComponentInfo& component,
                           CF::LoadableDevice_ptr device,
-                          const std::vector<ossie::SoftpkgInfo*>& dependencies);
+                          const std::vector<ossie::SoftpkgDeployment*>& dependencies);
 
     void loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg);
     void applyApplicationAffinityOptions();

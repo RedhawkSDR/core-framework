@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <list>
 #include <omniORB4/CORBA.h>
 
 #include <ossie/CF/cf.h>
@@ -141,8 +142,6 @@ namespace ossie
 
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
 
-        void clearSelectedDependencyImplementations();
-
         static ImplementationInfo* buildImplementationInfo(CF::FileManager_ptr fileMgr, const SPD::Implementation& spdImpl);
 
     private:
@@ -186,8 +185,8 @@ namespace ossie
         void getImplementations(ImplementationInfo::List& res);
 
         const ImplementationInfo* getSelectedImplementation() const;
-        void setSelectedImplementation(ImplementationInfo* implementation);
-        void clearSelectedImplementation();
+        //void setSelectedImplementation(ImplementationInfo* implementation);
+        //void clearSelectedImplementation();
 
         virtual const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
 
@@ -352,32 +351,5 @@ namespace ossie
         std::vector<ComponentInfo*> components;
     };
 
-    class Deployment
-    {
-    public:
-        Deployment(SoftpkgInfo* softpkg, ImplementationInfo* impl);
-
-        SoftpkgInfo* getSoftpkg();
-        ImplementationInfo* getImplementation();
-
-    protected:
-        SoftpkgInfo* softpkg;
-        ImplementationInfo* impl;
-        std::vector<Deployment*> dependencies;
-    };
-
-    class ComponentDeployment : public Deployment
-    {
-    public:
-        ComponentDeployment(ComponentInfo* component, ImplementationInfo* impl,
-                            const boost::shared_ptr<DeviceNode>& device);
-
-        ComponentInfo* getComponent();
-
-        boost::shared_ptr<DeviceNode> getAssignedDevice();
-
-    protected:
-        boost::shared_ptr<DeviceNode> assignedDevice;
-    };
 }
 #endif
