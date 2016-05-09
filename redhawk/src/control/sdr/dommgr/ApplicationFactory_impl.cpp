@@ -2435,37 +2435,6 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
         if (((implementation->getCodeType() == CF::LoadableDevice::EXECUTABLE) ||
                 (implementation->getCodeType() == CF::LoadableDevice::SHARED_LIBRARY)) && (implementation->getEntryPoint().size() != 0)) {
 
-            // get executable device reference
-            CF::ExecutableDevice_var execdev = ossie::corba::_narrowSafe<CF::ExecutableDevice>(loadabledev);
-            if (CORBA::is_nil(execdev)){
-                std::ostringstream message;
-                message << "component " << component->getIdentifier() << " was assigned to non-executable device "
-                        << device->identifier;
-                throw std::logic_error(message.str());
-            }
-
-            // Add the required parameters specified in SR:163
-            // Naming Context IOR, Name Binding, and component identifier
-            CF::DataType ci;
-            ci.id = "COMPONENT_IDENTIFIER";
-            ci.value <<= component->getIdentifier();
-            component->addExecParameter(ci);
-
-            CF::DataType nb;
-            nb.id = "NAME_BINDING";
-            nb.value <<= component->getNamingServiceName();
-            component->addExecParameter(nb);
-
-            CF::DataType dp;
-            dp.id = "DOM_PATH";
-            dp.value <<= _baseNamingContext;
-            component->addExecParameter(dp);
-
-            CF::DataType pn;
-            pn.id = "PROFILE_NAME";
-            pn.value <<= component->getSpdFileName();
-            component->addExecParameter(pn);
-            
             // See if the LOGGING_CONFIG_URI has already been set
             // via <componentproperties> or initParams
             bool alreadyHasLoggingConfigURI = false;
@@ -2543,11 +2512,6 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
                 LOG_TRACE(ApplicationFactory_impl, "override ....... uri " << logging_uri );
                 component->overrideProperty("LOGGING_CONFIG_URI", loguri);
             }
-            // Add the Naming Context IOR to make it easier to parse the command line
-            CF::DataType ncior;
-            ncior.id = "NAMING_CONTEXT_IOR";
-            ncior.value <<= ossie::corba::objectToString(_appReg);
-            component->addExecParameter(ncior);
             
             std::string sr_key;
             if (this->specialized_reservations.find(std::string(component->getIdentifier())) != this->specialized_reservations.end()) {
@@ -2564,66 +2528,61 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
                 component->addExecParameter(spec_res);
             }
 
-            fs::path executeName;
-            if ((implementation->getCodeType() == CF::LoadableDevice::EXECUTABLE) && (implementation->getEntryPoint().size() == 0)) {
-                LOG_WARN(ApplicationFactory_impl, "executing using code file as entry point; this is non-SCA compliant behavior; entrypoint must be set")
-                executeName = codeLocalFile;
-            } else {
-                executeName = fs::path(implementation->getEntryPoint());
-                LOG_TRACE(ApplicationFactory_impl, "Using provided entry point " << executeName)
-                if (!executeName.has_root_directory()) {
-                    executeName = fs::path(component->spd.getSPDPath()) / executeName;
-                }
-                executeName = executeName.normalize();
-            }
-
-            attemptComponentExecution(executeName, execdev, deployment);
+            attemptComponentExecution(_appReg, deployment);
         }
     }
 }
 
-std::string createHelper::createVersionMismatchMessage(std::string &component_version)
+void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr registrar,
+                                              ossie::ComponentDeployment* deployment)
 {
-    std::string version = this->_appFact._domainManager->getRedhawkVersion();
-    std::string added_message;
-    try {
-        if (redhawk::compareVersions(component_version, version) < 0) {
-            added_message = "Attempting to run a component from version ";
-            added_message += component_version;
-            added_message += " on REDHAWK version ";
-            added_message += version;
-            added_message += ". ";
-        }
-    } catch ( ... ) {}
-    return added_message;
-}
-
-void createHelper::attemptComponentExecution (
-        const fs::path&                                           executeName,
-        CF::ExecutableDevice_ptr                                  execdev,
-        ossie::ComponentDeployment*                               deployment)
-{
-    CF::Properties execParameters;
-    
-    // get entrypoint
-    CF::ExecutableDevice::ProcessID_Type tempPid = -1;
-
     ossie::ComponentInfo* component = deployment->getComponent();
     ossie::ImplementationInfo* implementation = deployment->getImplementation();
 
+    // Get executable device reference
+    boost::shared_ptr<DeviceNode> device = deployment->getAssignedDevice();
+    CF::ExecutableDevice_var execdev = ossie::corba::_narrowSafe<CF::ExecutableDevice>(device->device);
+    if (CORBA::is_nil(execdev)){
+        std::ostringstream message;
+        message << "component " << component->getIdentifier() << " was assigned to non-executable device "
+                << device->identifier;
+        throw std::logic_error(message.str());
+    }
+
+    redhawk::PropertyMap execParameters(component->getPopulatedExecParameters());
+
+    // Add the required parameters specified in SR:163
+    // Naming Context IOR, Name Binding, and component identifier
+    execParameters["COMPONENT_IDENTIFIER"] = component->getIdentifier();
+    execParameters["NAME_BINDING"] = component->getNamingServiceName();
+    execParameters["DOM_PATH"] = _baseNamingContext;
+    execParameters["PROFILE_NAME"] = component->getSpdFileName();
+
+    // Add the Naming Context IOR last to make it easier to parse the command line
+    execParameters["NAMING_CONTEXT_IOR"] = ossie::corba::objectToString(registrar);
+
+    // Get entry point
+    std::string entryPoint = deployment->getEntryPoint();
+    if (entryPoint.empty()) {
+        LOG_WARN(ApplicationFactory_impl, "executing using code file as entry point; this is non-SCA compliant behavior; entrypoint must be set");
+        entryPoint = deployment->getLocalFile();
+    }
+
+    // Get the complete list of dependencies to include in executeLinked
+    std::vector<std::string> resolved_softpkg_deps = deployment->getDependencyLocalFiles();
+    CF::StringSequence dep_seq;
+    dep_seq.length(resolved_softpkg_deps.size());
+    for (unsigned int p=0;p!=dep_seq.length();p++) {
+        dep_seq[p]=CORBA::string_dup(resolved_softpkg_deps[p].c_str());
+    }
+
+    CF::ExecutableDevice::ProcessID_Type tempPid = -1;
+
     // attempt to execute the component
     try {
-        LOG_TRACE(ApplicationFactory_impl, "executing " << executeName << " on device " << ossie::corba::returnString(execdev->label()));
-        execParameters = component->getExecParameters();
-        for (unsigned int i = 0; i < execParameters.length(); ++i) {
-            LOG_TRACE(ApplicationFactory_impl, " exec param " << execParameters[i].id << " " << ossie::any_to_string(execParameters[i].value))
-        }
-        // call 'execute' on the ExecutableDevice to execute the component
-        CF::StringSequence dep_seq;
-        std::vector<std::string> resolved_softpkg_deps = deployment->getDependencyLocalFiles();
-        dep_seq.length(resolved_softpkg_deps.size());
-        for (unsigned int p=0;p!=dep_seq.length();p++) {
-            dep_seq[p]=CORBA::string_dup(resolved_softpkg_deps[p].c_str());
+        LOG_TRACE(ApplicationFactory_impl, "executing " << entryPoint << " on device " << device->label);
+        for (redhawk::PropertyMap::iterator prop = execParameters.begin(); prop != execParameters.end(); ++prop) {
+            LOG_TRACE(ApplicationFactory_impl, " exec param " << prop->getId() << " " << prop->getValue().toString());
         }
 
         // get Options list
@@ -2632,7 +2591,8 @@ void createHelper::attemptComponentExecution (
             LOG_TRACE(ApplicationFactory_impl, " RESOURCE OPTION: " << cop[i].id << " " << ossie::any_to_string(cop[i].value))
         }
 
-        tempPid = execdev->executeLinked(executeName.string().c_str(), cop, component->getPopulatedExecParameters(), dep_seq);
+        // call 'execute' on the ExecutableDevice to execute the component
+        tempPid = execdev->executeLinked(entryPoint.c_str(), cop, execParameters, dep_seq);
     } catch( CF::InvalidFileName& _ex ) {
         std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;

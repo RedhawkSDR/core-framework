@@ -276,10 +276,7 @@ private:
     void loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg);
     void applyApplicationAffinityOptions();
 
-    void attemptComponentExecution(
-        const boost::filesystem::path&                                  executeName,
-        CF::ExecutableDevice_ptr                                        execdev,
-        ossie::ComponentDeployment*                                     deployment);
+    void attemptComponentExecution(CF::ApplicationRegistrar_ptr registrar, ossie::ComponentDeployment* deployment);
 
     void waitForComponentRegistration();
     void initializeComponents();

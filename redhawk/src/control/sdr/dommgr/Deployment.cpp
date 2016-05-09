@@ -101,3 +101,18 @@ boost::shared_ptr<DeviceNode> ComponentDeployment::getAssignedDevice()
 {
     return assignedDevice;
 }
+
+std::string ComponentDeployment::getEntryPoint()
+{
+    std::string entryPoint = impl->getEntryPoint();
+    if (!entryPoint.empty()) {
+        fs::path entryPointPath = fs::path(entryPoint);
+        if (!entryPointPath.has_root_directory()) {
+            // Path is relative to SPD file location
+            fs::path base_dir = fs::path(softpkg->getSpdFileName()).parent_path();
+            entryPointPath = base_dir / entryPointPath;
+        }
+        entryPoint = entryPointPath.normalize().string();
+    }
+    return entryPoint;
+}

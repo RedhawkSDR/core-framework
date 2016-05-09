@@ -61,6 +61,8 @@ namespace ossie {
 
         ComponentInfo* getComponent();
 
+        std::string getEntryPoint();
+
         boost::shared_ptr<DeviceNode> getAssignedDevice();
 
     protected:
