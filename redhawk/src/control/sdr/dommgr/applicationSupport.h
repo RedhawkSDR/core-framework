@@ -248,12 +248,12 @@ namespace ossie
 
         bool isAssignedToDevice() const;
         CF::Properties containsPartialStructConfig() const;
-        CF::Properties containsPartialStructConstruct();
+        CF::Properties containsPartialStructConstruct() const;
         CF::Properties iteratePartialStruct(const CF::Properties &props) const;
         bool checkStruct(const CF::Properties &props) const;
 
         CF::Properties getNonNilConfigureProperties() const;
-        CF::Properties getNonNilNonExecConstructProperties();
+        CF::Properties getInitializeProperties() const;
         CF::Properties getConfigureProperties();
         CF::Properties getConstructProperties();
         CF::Properties getOptions();

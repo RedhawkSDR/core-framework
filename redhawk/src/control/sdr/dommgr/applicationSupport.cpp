@@ -862,7 +862,7 @@ CF::Properties ComponentInfo::containsPartialStructConfig() const
     return this->iteratePartialStruct(configureProperties);
 }
 
-CF::Properties ComponentInfo::containsPartialStructConstruct()
+CF::Properties ComponentInfo::containsPartialStructConstruct() const
 {
     return this->iteratePartialStruct(ctorProperties);
 }
@@ -872,7 +872,7 @@ CF::Properties ComponentInfo::getNonNilConfigureProperties() const
     return ossie::getNonNilConfigureProperties(configureProperties);
 }
 
-CF::Properties ComponentInfo::getNonNilNonExecConstructProperties()
+CF::Properties ComponentInfo::getInitializeProperties() const
 {
     return ossie::getNonNilProperties(ctorProperties);
 }

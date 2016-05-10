@@ -2801,7 +2801,7 @@ void createHelper::initializeComponents()
 
     for (unsigned int rc_idx = 0; rc_idx < _deployments.size (); rc_idx++) {
         ossie::ComponentDeployment* deployment = _deployments[rc_idx];
-        ossie::ComponentInfo* component = deployment->getComponent();
+        const ossie::ComponentInfo* component = deployment->getComponent();
 
         // If the component is non-SCA compliant then we don't expect anything beyond this
         if (!component->isScaCompliant()) {
@@ -2826,10 +2826,9 @@ void createHelper::initializeComponents()
         }
         if (CORBA::is_nil(resource)) {
             ostringstream eout;
-            std::string component_version(component->spd.getSoftPkgType());
-            std::string added_message = this->createVersionMismatchMessage(component_version);
-            eout << added_message;
-            eout << "CF::Resource::_narrow failed with Unknown Exception for component: '" << component->getName() << "' with component id: '" << componentId << " assigned to device: '"<<component->getAssignedDeviceId()<<"'";
+            eout << "CF::Resource::_narrow failed with Unknown Exception for component: '" << component->getName()
+                 << "' with component id: '" << componentId
+                 << " assigned to device: '"<<deployment->getAssignedDevice()->identifier<<"'";
             eout << " in waveform '" << _waveformContextName<<"';";
             eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
             throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
@@ -2854,11 +2853,8 @@ void createHelper::initializeComponents()
           CF::Properties partialStruct = component->containsPartialStructConstruct();
           if (partialStruct.length() != 0) {
             ostringstream eout;
-            std::string component_version(component->spd.getSoftPkgType());
-            std::string added_message = this->createVersionMismatchMessage(component_version);
-            eout << added_message;
-            eout << "Failed to 'initializeProperties' component: '";
-            eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
+            eout << "Failed to 'configure' Assembly Controller: '";
+            eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDevice()->identifier << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
             eout <<  "This component contains structure"<<partialStruct[0].id<<" with a mix of defined and nil values.";
             LOG_ERROR(ApplicationFactory_impl, eout.str());
@@ -2866,11 +2862,12 @@ void createHelper::initializeComponents()
           }
           try {
             // Try to set the initial values for the component's properties
-            resource->initializeProperties(component->getNonNilNonExecConstructProperties());
+            CF::Properties initProps = component->getInitializeProperties();
+            resource->initializeProperties(initProps);
           } catch(CF::PropertySet::InvalidConfiguration& e) {
             ostringstream eout;
             eout << "Failed to initialize component properties: '";
-            eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
+            eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDevice()->identifier << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
             eout <<  "InvalidConfiguration with this info: <";
             eout << e.msg << "> for these invalid properties: ";
@@ -2884,7 +2881,7 @@ void createHelper::initializeComponents()
           } catch(CF::PropertySet::PartialConfiguration& e) {
             ostringstream eout;
             eout << "Failed to initialize component properties: '";
-            eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
+            eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDevice()->identifier << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
             eout << "PartialConfiguration for these invalid properties: ";
             for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
@@ -2900,7 +2897,7 @@ void createHelper::initializeComponents()
             std::string added_message = this->createVersionMismatchMessage(component_version);
             eout << added_message;
             eout << "Failed to initialize component properties: '";
-            eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
+            eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDevice()->identifier << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
             eout << "'initializeProperties' failed with Unknown Exception";
             eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
