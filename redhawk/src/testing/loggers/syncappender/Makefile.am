@@ -1,6 +1,7 @@
 # Rules for the test code (use `make check` to execute)
 ACLOCAL_AMFLAGS = -I m4 -I ${OSSIEHOME}/share/aclocal/ossie
-TESTS = appender_test proc_log cleanmem
+TESTS = appender_test 
+noinst_PROGRAMS = cleanmem proc_log
 check_PROGRAMS = $(TESTS)
 logger_top=../../../base/framework/logging
 logger_libsrc=$(logger_top)
@@ -51,6 +52,7 @@ distclean-local:
 	rm -f Makefile.in
 	rm -f missing
 	rm -rf .deps
-	rm -f COPYING INSTALL  *~ MP_RedhawkTest
+	rm -f COPYING INSTALL  *~ 
+	rm -rf MP_RedhawkTest*
 
 

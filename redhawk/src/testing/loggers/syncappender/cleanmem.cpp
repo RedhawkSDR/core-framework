@@ -5,6 +5,12 @@
 
 int main (int argc, char **argv )
 {
+
+  if ( argc < 2 ) {
+    printf("usage cleanmem <named memory segment>\n");
+    return -1;
+  }
+
    using namespace boost::interprocess;
    try{
       //Erase previous shared memory
@@ -12,9 +18,8 @@ int main (int argc, char **argv )
 
    }
    catch(interprocess_exception &ex){
-      shared_memory_object::remove("shared_memory-a");
       std::cout << ex.what() << std::endl;
-      return 1;
+      return -1;
    }
    return 0;
 }

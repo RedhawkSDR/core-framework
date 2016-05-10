@@ -29,6 +29,7 @@ int main(int argc, char* argv[])
   }
   else {
     CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
+    registry.registerFactory( &CppUnit::TestFactoryRegistry::getRegistry("test_three") );
     suite = registry.makeTest();
   }
 

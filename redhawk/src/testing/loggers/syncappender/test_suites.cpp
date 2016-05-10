@@ -17,6 +17,8 @@
 CPPUNIT_TEST_SUITE_REGISTRATION( test_suite_one );
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( test_suite_one, "test_one" );
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( test_suite_two, "test_two" );
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( test_suite_three, "test_three" );
+
 
 
 void 
@@ -148,6 +150,73 @@ test_suite_two::test_loop()
   LOG4CXX_INFO(logger, "RH_SyncRollingAppender -END ");
   usleep(10);
   }
+  
+}
+
+
+
+#include <boost/interprocess/shared_memory_object.hpp>
+#include <boost/interprocess/mapped_region.hpp>
+
+
+void 
+test_suite_three::setUp()
+{
+
+  // Set up a simple configuration that logs on the console.
+  log4cxx::PropertyConfigurator::configure("log4j.stdout" );
+
+  log4cxx::helpers::LogLog::setInternalDebugging(true);
+
+  logger = log4cxx::Logger::getLogger("LOG-SyncRollingAppender");
+
+  LOG4CXX_INFO(logger, "Setup cache directory for saved configuration files");
+  boost::filesystem::path dir("./logs");
+  boost::filesystem::create_directory(dir);
+}
+
+void 
+test_suite_three::tearDown()
+{
+  // Set up a simple configuration that logs on the console.
+  log4cxx::PropertyConfigurator::configure("log4j.stdout" );
+
+  boost::filesystem::path dir("./logs");
+  boost::filesystem::remove_all(dir);
+
+}
+
+
+void 
+test_suite_three::test_cleanmem()
+{
+  LOG4CXX_INFO(logger, "RH_SyncRollingAppender - BEGIN ");
+
+  // Set up a simple configuration that logs on the console.
+  log4cxx::PropertyConfigurator::configure("log4j.appender" );
+
+  int ret=system("./cleanmem MP_RedhawkTest");
+
+  CPPUNIT_ASSERT_EQUAL( ret, 0);
+  
+  
+}
+
+
+void 
+test_suite_three::test_cleanmem_missing()
+{
+  LOG4CXX_INFO(logger, "RH_SyncRollingAppender - BEGIN ");
+
+  // Set up a simple configuration that logs on the console.
+  log4cxx::PropertyConfigurator::configure("log4j.appender" );
+
+  int ret=system("./cleanmem MP_RedhawkTest");
+  
+  using namespace boost::interprocess;
+
+  // validate memory is no long there
+  shared_memory_object obj( open_only, "MP_RedhawkTest", read_only );
   
 }
 
