@@ -25,7 +25,7 @@
 using namespace ossie;
 namespace fs = boost::filesystem;
 
-SoftpkgDeployment::SoftpkgDeployment(SoftpkgInfo* softpkg, ImplementationInfo* implementation) :
+SoftpkgDeployment::SoftpkgDeployment(SoftpkgInfo* softpkg, const ImplementationInfo* implementation) :
     softpkg(softpkg),
     implementation(implementation)
 {
@@ -43,7 +43,7 @@ SoftpkgInfo* SoftpkgDeployment::getSoftpkg()
     return softpkg;
 }
 
-ImplementationInfo* SoftpkgDeployment::getImplementation()
+const ImplementationInfo* SoftpkgDeployment::getImplementation() const
 {
     return implementation;
 }
@@ -85,16 +85,19 @@ std::string SoftpkgDeployment::getLocalFile()
     return codeLocalFile.string();
 }
 
-ComponentDeployment::ComponentDeployment(ComponentInfo* component, ImplementationInfo* implementation,
-                                         const boost::shared_ptr<DeviceNode>& device) :
-    SoftpkgDeployment(component, implementation),
-    assignedDevice(device)
+ComponentDeployment::ComponentDeployment(ComponentInfo* component, ImplementationInfo* implementation) :
+    SoftpkgDeployment(component, implementation)
 {
 }
 
 ComponentInfo* ComponentDeployment::getComponent()
 {
     return dynamic_cast<ComponentInfo*>(getSoftpkg());
+}
+
+void ComponentDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>& device)
+{
+    assignedDevice = device;
 }
 
 boost::shared_ptr<DeviceNode> ComponentDeployment::getAssignedDevice()

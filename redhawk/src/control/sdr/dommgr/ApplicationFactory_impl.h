@@ -255,10 +255,9 @@ private:
                                                   DeviceAssignmentList &appAssignedDevices,
                                                   const std::string& appIdentifier);
 
-    ossie::AllocationResult allocateComponentToDevice(ossie::ComponentInfo* component,
-                                   ossie::ImplementationInfo* implementation,
-                                   const std::string& assignedDeviceId,
-                                   const std::string& appIdentifier);
+    ossie::AllocationResult allocateComponentToDevice(ossie::ComponentDeployment* deployment,
+                                                      const std::string& assignedDeviceId,
+                                                      const std::string& appIdentifier);
 
     bool resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployment, ossie::DeviceNode& device);
     ossie::SoftpkgDeployment* resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg, ossie::DeviceNode& device);

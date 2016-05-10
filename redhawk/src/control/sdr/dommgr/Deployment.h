@@ -35,11 +35,11 @@ namespace ossie {
     public:
         typedef std::vector<SoftpkgDeployment*> DeploymentList;
 
-        SoftpkgDeployment(SoftpkgInfo* softpkg, ImplementationInfo* implementation);
+        SoftpkgDeployment(SoftpkgInfo* softpkg, const ImplementationInfo* implementation);
         ~SoftpkgDeployment();
 
         SoftpkgInfo* getSoftpkg();
-        ImplementationInfo* getImplementation();
+        const ImplementationInfo* getImplementation() const;
 
         std::string getLocalFile();
 
@@ -50,15 +50,14 @@ namespace ossie {
 
     protected:
         SoftpkgInfo* softpkg;
-        ImplementationInfo* implementation;
+        const ImplementationInfo* implementation;
         DeploymentList dependencies;
     };
 
     class ComponentDeployment : public SoftpkgDeployment
     {
     public:
-        ComponentDeployment(ComponentInfo* component, ImplementationInfo* implementation,
-                            const boost::shared_ptr<DeviceNode>& device);
+        ComponentDeployment(ComponentInfo* component, ImplementationInfo* implementation);
 
         ComponentInfo* getComponent();
 
@@ -66,6 +65,7 @@ namespace ossie {
 
         redhawk::PropertyMap getOptions();
 
+        void setAssignedDevice(const boost::shared_ptr<DeviceNode>& device);
         boost::shared_ptr<DeviceNode> getAssignedDevice();
 
         const ossie::UsesDeviceInfo* getUsesDeviceById(const std::string& usesId);

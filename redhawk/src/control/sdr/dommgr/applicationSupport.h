@@ -258,7 +258,7 @@ namespace ossie
         CF::Properties getAffinityOptions();
         CF::Properties getAffinityOptionsWithAssignment();
         CF::Properties getExecParameters();
-        CF::Properties getPopulatedExecParameters();
+        CF::Properties getCommandLineParameters() const;
 
         static ComponentInfo* buildComponentInfoFromSPDFile(CF::FileManager_ptr fileMgr, const char* _SPDFile);
         ComponentDescriptor scd;

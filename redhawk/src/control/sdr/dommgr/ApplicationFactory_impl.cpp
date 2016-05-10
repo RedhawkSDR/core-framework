@@ -973,7 +973,8 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
             for (unsigned int i=0; i<collocAssignedDevs.size(); i++,comp++,impl--) {
                 collocAssignedDevs[i].device = CF::Device::_duplicate(node->device);
                 collocAssignedDevs[i].deviceAssignment.assignedDeviceId = CORBA::string_dup(deviceId.c_str());
-                ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, *impl, node);
+                ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, *impl);
+                deployment->setAssignedDevice(node);
                 if (!resolveSoftpkgDependencies(deployment, *node)) {
                     LOG_TRACE(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                               << (*comp)->getIdentifier() << " implementation " << (*impl)->getId());
@@ -1668,11 +1669,13 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
                       << component->getIdentifier() << " implementation " << impl->getId());
             continue;
         }
+
+        std::auto_ptr<ossie::ComponentDeployment> deployment(new ossie::ComponentDeployment(component, impl));
         
         // Found an implementation which has its 'usesdevice' dependencies
         // satisfied, now perform assignment/allocation of component to device
         LOG_DEBUG(ApplicationFactory_impl, "Trying to find the device");
-        ossie::AllocationResult response = allocateComponentToDevice(component, impl, assignedDeviceId, appIdentifier);
+        ossie::AllocationResult response = allocateComponentToDevice(deployment.get(), assignedDeviceId, appIdentifier);
         
         if (response.first.empty()) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to allocate device for component "
@@ -1684,14 +1687,13 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         implAllocations.push_back(response.first);
         
         // Convert from response back into a device node
+        deployment->setAssignedDevice(response.second);
         DeviceNode& node = *(response.second);
         const std::string& deviceId = node.identifier;
         
-        ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(component, impl, response.second);
-        if (!resolveSoftpkgDependencies(deployment, node)) {
+        if (!resolveSoftpkgDependencies(deployment.get(), node)) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                       << component->getIdentifier() << " implementation " << impl->getId());
-            delete deployment;
             continue;
         }
         
@@ -1713,7 +1715,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         implAllocations.transfer(this->_allocations);
         std::copy(implAllocatedDevices.begin(), implAllocatedDevices.end(), std::back_inserter(appAssignedDevs));
         
-        return deployment;
+        return deployment.release();
     }
 
     ossie::DeviceList::iterator device;
@@ -1914,11 +1916,12 @@ void createHelper::_evaluateMATHinRequest(CF::Properties &request, const CF::Pro
  *  - If not specified in DAS, then iterate through devices looking for a device that satisfies
  *    the allocation properties
  */
-ossie::AllocationResult createHelper::allocateComponentToDevice( ossie::ComponentInfo* component,
-                                              ossie::ImplementationInfo* implementation,
+ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::ComponentDeployment* deployment,
                                               const std::string& assignedDeviceId,
                                               const std::string& appIdentifier)
 {
+    ossie::ComponentInfo* component = deployment->getComponent();
+    const ossie::ImplementationInfo* implementation = deployment->getImplementation();
     ossie::DeviceList devices = _registeredDevices;
 
     // First check to see if the component was assigned in the user provided DAS
@@ -2047,7 +2050,7 @@ CF::DataType createHelper::castProperty(const ossie::ComponentProperty* property
 
 bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployment, ossie::DeviceNode& device)
 {
-    ossie::ImplementationInfo* implementation = deployment->getImplementation();
+    const ossie::ImplementationInfo* implementation = deployment->getImplementation();
     const std::vector<ossie::SoftpkgInfo*>& tmpSoftpkg = implementation->getSoftPkgDependency();
     std::vector<ossie::SoftpkgInfo*>::const_iterator iterSoftpkg;
 
@@ -2543,8 +2546,8 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
 void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr registrar,
                                               ossie::ComponentDeployment* deployment)
 {
-    ossie::ComponentInfo* component = deployment->getComponent();
-    ossie::ImplementationInfo* implementation = deployment->getImplementation();
+    const ossie::ComponentInfo* component = deployment->getComponent();
+    const ossie::ImplementationInfo* implementation = deployment->getImplementation();
 
     // Get executable device reference
     boost::shared_ptr<DeviceNode> device = deployment->getAssignedDevice();
@@ -2557,7 +2560,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     }
 
     // Build up the list of command line parameters
-    redhawk::PropertyMap execParameters(component->getPopulatedExecParameters());
+    redhawk::PropertyMap execParameters(component->getCommandLineParameters());
 
     // Add specialized CPU reservation if given
     std::map<std::string,float>::iterator reservation = specialized_reservations.find(component->getIdentifier());

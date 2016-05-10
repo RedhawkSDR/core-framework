@@ -964,7 +964,7 @@ CF::Properties ComponentInfo::getExecParameters()
     return execParameters;
 }
 
-CF::Properties ComponentInfo::getPopulatedExecParameters()
+CF::Properties ComponentInfo::getCommandLineParameters() const
 {
     CF::Properties retval = execParameters;
     while (true) {
