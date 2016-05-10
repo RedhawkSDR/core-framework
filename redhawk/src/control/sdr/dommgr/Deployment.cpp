@@ -127,13 +127,13 @@ redhawk::PropertyMap ComponentDeployment::getOptions()
         // 3.1.3.3.3.3.6
         // The specification says it's supposed to be an unsigned long, but the
         // parser is set to unsigned long long
-        options["STACK_SIZE"] = implementation->getStackSize();
+        options[CF::ExecutableDevice::STACK_SIZE_ID] = implementation->getStackSize();
     }
     if (implementation->hasPriority()) {
         // 3.1.3.3.3.3.7
         // The specification says it's supposed to be an unsigned long, but the
         // parser is set to unsigned long long
-        options["PRIORITY"] = implementation->getPriority();
+        options[CF::ExecutableDevice::PRIORITY_ID] = implementation->getPriority();
     }
 
     return options;
