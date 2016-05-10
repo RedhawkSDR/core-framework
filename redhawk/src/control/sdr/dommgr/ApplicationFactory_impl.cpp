@@ -981,7 +981,7 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
                     delete deployment;
                     continue;
                 }
-                collocAssignedDevs[i].deviceAssignment.componentId = CORBA::string_dup((*comp)->getIdentifier());
+                collocAssignedDevs[i].deviceAssignment.componentId = (*comp)->getIdentifier().c_str();
                 _deployments.push_back(deployment);
             }
             
@@ -1078,7 +1078,7 @@ void createHelper::_handleUsesDevices(const std::string& appName)
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
     }
     for (DeviceAssignmentList::iterator dev=assignedDevices.begin(); dev!=assignedDevices.end(); dev++) {
-        dev->deviceAssignment.componentId = getAssemblyController()->getIdentifier();
+        dev->deviceAssignment.componentId = getAssemblyController()->getIdentifier().c_str();
     }
     _appUsedDevs.insert(_appUsedDevs.end(), assignedDevices.begin(), assignedDevices.end());
 }
@@ -1437,7 +1437,9 @@ throw (CORBA::SystemException,
         // Check that the assembly controller is valid
         CF::Resource_var assemblyController;
         if (assemblyControllerComponent) {
-            assemblyController = assemblyControllerComponent->getResourcePtr();
+            const std::string& assemblyControllerId = assemblyControllerComponent->getInstantiationIdentifier();
+            ossie::ComponentDeployment* deployment = findComponentDeployment(assemblyControllerId);
+            assemblyController = deployment->getResourcePtr();
         }
         _checkAssemblyController(assemblyController, assemblyControllerComponent);
 
@@ -1705,7 +1707,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         rotateDeviceList(_executableDevices, deviceId);
         
         ossie::DeviceAssignmentInfo dai;
-        dai.deviceAssignment.componentId = CORBA::string_dup(component->getIdentifier());
+        dai.deviceAssignment.componentId = component->getIdentifier().c_str();
         dai.deviceAssignment.assignedDeviceId = deviceId.c_str();
         dai.device = CF::Device::_duplicate(node.device);
         appAssignedDevs.push_back(dai);
@@ -1940,7 +1942,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice( ossie::Componen
                       " for component " << component->getIdentifier());
             CF::DeviceAssignmentSequence badDAS;
             badDAS.length(1);
-            badDAS[0].componentId = CORBA::string_dup(component->getIdentifier());
+            badDAS[0].componentId = component->getIdentifier().c_str();
             badDAS[0].assignedDeviceId = assignedDeviceId.c_str();
             throw CF::ApplicationFactory::CreateApplicationRequestError(badDAS);
         }
@@ -2164,7 +2166,7 @@ void createHelper::getRequiredComponents()
 
         newComponent->setNamingService(instance.isNamingService());
 
-        if (newComponent->getNamingService()) {
+        if (newComponent->isNamingService()) {
             ostringstream nameBinding;
             nameBinding << instance.getFindByNamingServiceName();
 #if UNIQUIFY_NAME_BINDING
@@ -2387,7 +2389,7 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
         // Let the application know to expect the given component
         _application->addComponent(component->getIdentifier(), component->getSpdFileName());
         _application->setComponentImplementation(component->getIdentifier(), implementation->getId());
-        if (component->getNamingService()) {
+        if (component->isNamingService()) {
             std::string lookupName = _appFact._domainName + "/" + _waveformContextName + "/" + component->getNamingServiceName() ;
             _application->setComponentNamingContext(component->getIdentifier(), lookupName);
         }
@@ -2797,8 +2799,9 @@ void createHelper::initializeComponents()
     
     CF::Components_var app_registeredComponents = _application->registeredComponents();
 
-    for (unsigned int rc_idx = 0; rc_idx < _requiredComponents.size (); rc_idx++) {
-        ossie::ComponentInfo* component = _requiredComponents[rc_idx];
+    for (unsigned int rc_idx = 0; rc_idx < _deployments.size (); rc_idx++) {
+        ossie::ComponentDeployment* deployment = _deployments[rc_idx];
+        ossie::ComponentInfo* component = deployment->getComponent();
 
         // If the component is non-SCA compliant then we don't expect anything beyond this
         if (!component->isScaCompliant()) {
@@ -2832,7 +2835,7 @@ void createHelper::initializeComponents()
             throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
         }
 
-        component->setResourcePtr(resource);
+        deployment->setResourcePtr(resource);
 
         int initAttempts=3;
         while ( initAttempts > 0 ) {
@@ -2959,28 +2962,39 @@ void createHelper::initializeComponents()
 
 void createHelper::configureComponents()
 {
-    for (unsigned int rc_idx = 0; rc_idx < _requiredComponents.size (); rc_idx++) {
-        ossie::ComponentInfo* component = _requiredComponents[rc_idx];
-        
-        if (component->isAssemblyController ()) {
-            continue;
-        }
-        
-        // If the component is non-SCA compliant then we don't expect anything beyond this
+    DeploymentList configure_list;
+    ossie::ComponentDeployment* ac_deployment = 0;
+    for (DeploymentList::iterator depl = _deployments.begin(); depl != _deployments.end(); ++depl) {
+        const ossie::ComponentInfo* component = (*depl)->getComponent();
         if (!component->isScaCompliant()) {
-            LOG_TRACE(ApplicationFactory_impl, "Skipping configure; Component is non SCA-compliant, continuing to next component");
-            continue;
+            // If the component is non-SCA compliant then we don't expect anything beyond this
+            LOG_TRACE(ApplicationFactory_impl, "Skipping configure of non SCA-compliant component "
+                      << component->getIdentifier());
+        } else if (!component->isResource()) {
+            LOG_TRACE(ApplicationFactory_impl, "Skipping configure of non-resource component "
+                      << component->getIdentifier());
+        } else {
+            // The component is configurable; if it's the assembly controller,
+            // save it for the end
+            if (component->isAssemblyController()) {
+                ac_deployment = *depl;
+            } else {
+                configure_list.push_back(*depl);
+            }
         }
+    }
+    // Configure the assembly controller last, if it's configurable
+    if (ac_deployment) {
+        configure_list.push_back(ac_deployment);
+    }
 
-        if (!component->isResource ()) {
-            LOG_TRACE(ApplicationFactory_impl, "Skipping configure; Component in not resource, continuing to next component");
-            continue;
-        }
-
+    for (DeploymentList::iterator depl = configure_list.begin(); depl != configure_list.end(); ++depl) {
+        const ossie::ComponentInfo* component = (*depl)->getComponent();
+        
         // Assuming 1 instantiation for each componentplacement
-        if (component->getNamingService ()) {
+        if (component->isNamingService()) {
 
-            CF::Resource_var _rsc = component->getResourcePtr();
+            CF::Resource_var _rsc = (*depl)->getResourcePtr();
 
             if (CORBA::is_nil(_rsc)) {
                 LOG_ERROR(ApplicationFactory_impl, "Could not get component reference");
@@ -2991,174 +3005,70 @@ void createHelper::configureComponents()
                 eout << "Could not get component reference for component: '" 
                      << component->getName() << "' with component id: '" 
                      << component->getIdentifier() << " assigned to device: '"
-                     << component->getAssignedDeviceId()<<"'";
+                     << (*depl)->getAssignedDevice()->label<<"'";
                 eout << " in waveform '" << _waveformContextName<<"';";
                 eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
                 throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
             }
 
-            if (component->isResource () && component->isConfigurable ()) {
-                CF::Properties partialStruct = component->containsPartialStructConfig();
-                bool partialWarn = false;
-                if (partialStruct.length() != 0) {
-                    ostringstream eout;
-                    eout <<  "Component " << component->getIdentifier() << " contains structure: "<< partialStruct[0].id <<" with a mix of defined and nil values. The behavior for the component is undefined";
-                    LOG_WARN(ApplicationFactory_impl, eout.str());
-                    partialWarn = true;
-                }
-                try {
-                    // try to configure the component
-                    _rsc->configure (component->getNonNilConfigureProperties());
-                } catch(CF::PropertySet::InvalidConfiguration& e) {
-                    ostringstream eout;
-                    eout << "Failed to 'configure' component: '";
-                    eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
-                    eout << " in waveform '"<< _waveformContextName<<"';";
-                    eout <<  "InvalidConfiguration with this info: <";
-                    eout << e.msg << "> for these invalid properties: ";
-                    for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
-                        eout << "(" << e.invalidProperties[propIdx].id << ",";
-                        eout << ossie::any_to_string(e.invalidProperties[propIdx].value) << ")";
-                    }
-                    if (partialWarn) {
-                        eout << ". Note that this component contains a property with a mix of defined and nil values.";
-                    }
-                    eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                    LOG_ERROR(ApplicationFactory_impl, eout.str());
-                    throw CF::ApplicationFactory::InvalidInitConfiguration(e.invalidProperties);
-                } catch(CF::PropertySet::PartialConfiguration& e) {
-                    ostringstream eout;
-                    eout << "Failed to instantiate component: '";
-                    eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
-                    eout << " in waveform '"<< _waveformContextName<<"';";
-                    eout << "Failed to 'configure' component; PartialConfiguration for these invalid properties: ";
-                    for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
-                        eout << "(" << e.invalidProperties[propIdx].id << ",";
-                        eout << ossie::any_to_string(e.invalidProperties[propIdx].value) << ")";
-                    }
-                    if (partialWarn) {
-                        eout << ". Note that this component contains a property with a mix of defined and nil values.";
-                    }
-                    eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                    LOG_ERROR(ApplicationFactory_impl, eout.str());
-                    throw CF::ApplicationFactory::InvalidInitConfiguration(e.invalidProperties);
-                } catch( ... ) {
-                    ostringstream eout;
-                    std::string component_version(component->spd.getSoftPkgType());
-                    std::string added_message = this->createVersionMismatchMessage(component_version);
-                    eout << added_message;
-                    eout << "Failed to instantiate component: '";
-                    eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
-                    eout << " in waveform '"<< _waveformContextName<<"';";
-                    eout << "'configure' failed with Unknown Exception";
-                    if (partialWarn) {
-                        eout << ". Note that this component contains a property with a mix of defined and nil values.";
-                    }
-                    eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                    LOG_ERROR(ApplicationFactory_impl, eout.str());
-                    throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
-                }
-            }
-        }
-    }
-    
-    //  configure the assembly controller last
-    for (unsigned int rc_idx = 0; rc_idx < _requiredComponents.size (); rc_idx++) {
-        ossie::ComponentInfo* component = _requiredComponents[rc_idx];
-        
-        if (!component->isAssemblyController ()) {
-            continue;
-        }
-        
-        // If the component is non-SCA compliant then we don't expect anything beyond this
-        if (!component->isScaCompliant()) {
-            LOG_TRACE(ApplicationFactory_impl, "Skipping configure; Assembly controller is non SCA-compliant");
-            break;
-        }
-        
-        if (!component->isResource ()) {
-            LOG_TRACE(ApplicationFactory_impl, "Skipping configure; Assembly controller is not resource");
-            break;
-        }
-        
-        // Assuming 1 instantiation for each componentplacement
-        if (component->getNamingService ()) {
-            
-            CF::Resource_var _rsc = component->getResourcePtr();
-            
-            if (CORBA::is_nil(_rsc)) {
-                LOG_ERROR(ApplicationFactory_impl, "Could not get Assembly Controller reference");
+            CF::Properties partialStruct = component->containsPartialStructConfig();
+            bool partialWarn = false;
+            if (partialStruct.length() != 0) {
                 ostringstream eout;
-                eout << "Could not get reference for Assembly Controller: '" 
-                << component->getName() << "' with component id: '" 
-                << component->getIdentifier() << " assigned to device: '"
-                << component->getAssignedDeviceId()<<"'";
-                eout << " in waveform '" << _waveformContextName<<"';";
-                eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
+                eout <<  "Component " << component->getIdentifier() << " contains structure"<< partialStruct[0].id <<" with a mix of defined and nil values. The behavior for the component is undefined";
+                LOG_WARN(ApplicationFactory_impl, eout.str());
+                partialWarn = true;
             }
-            
-            if (component->isResource () && component->isConfigurable ()) {
-                CF::Properties partialStruct = component->containsPartialStructConfig();
-                bool partialWarn = false;
-                if (partialStruct.length() != 0) {
-                    ostringstream eout;
-                    eout <<  "Component " << component->getIdentifier() << " contains structure"<< partialStruct[0].id <<" with a mix of defined and nil values. The behavior for the component is undefined";
-                    LOG_WARN(ApplicationFactory_impl, eout.str());
-                    partialWarn = true;
+            try {
+                // try to configure the component
+                _rsc->configure (component->getNonNilConfigureProperties());
+            } catch(CF::PropertySet::InvalidConfiguration& e) {
+                ostringstream eout;
+                eout << "Failed to 'configure' component: '";
+                eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<(*depl)->getAssignedDevice()->label << "' ";
+                eout << " in waveform '"<< _waveformContextName<<"';";
+                eout <<  "InvalidConfiguration with this info: <";
+                eout << e.msg << "> for these invalid properties: ";
+                for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
+                    eout << "(" << e.invalidProperties[propIdx].id << ",";
+                    eout << ossie::any_to_string(e.invalidProperties[propIdx].value) << ")";
                 }
-                try {
-                    // try to configure the component
-                    _rsc->configure (component->getNonNilConfigureProperties());
-                } catch(CF::PropertySet::InvalidConfiguration& e) {
-                    ostringstream eout;
-                    eout << "Failed to 'configure' Assembly Controller: '";
-                    eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
-                    eout << " in waveform '"<< _waveformContextName<<"';";
-                    eout <<  "InvalidConfiguration with this info: <";
-                    eout << e.msg << "> for these invalid properties: ";
-                    for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
-                        eout << "(" << e.invalidProperties[propIdx].id << ",";
-                        eout << ossie::any_to_string(e.invalidProperties[propIdx].value) << ")";
-                    }
-                    if (partialWarn) {
-                        eout << ". Note that this component contains a property with a mix of defined and nil values.";
-                    }
-                    eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                    LOG_ERROR(ApplicationFactory_impl, eout.str());
-                    throw CF::ApplicationFactory::InvalidInitConfiguration(e.invalidProperties);
-                } catch(CF::PropertySet::PartialConfiguration& e) {
-                    ostringstream eout;
-                    eout << "Failed to instantiate Assembly Controller: '";
-                    eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
-                    eout << " in waveform '"<< _waveformContextName<<"';";
-                    eout << "Failed to 'configure' Assembly Controller; PartialConfiguration for these invalid properties: ";
-                    for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
-                        eout << "(" << e.invalidProperties[propIdx].id << ",";
-                        eout << ossie::any_to_string(e.invalidProperties[propIdx].value) << ")";
-                    }
-                    if (partialWarn) {
-                        eout << ". Note that this component contains a property with a mix of defined and nil values.";
-                    }
-                    eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                    LOG_ERROR(ApplicationFactory_impl, eout.str());
-                    throw CF::ApplicationFactory::InvalidInitConfiguration(e.invalidProperties);
-                } catch( ... ) {
-                    ostringstream eout;
-                    eout << "Failed to instantiate Assembly Controller: '";
-                    eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
-                    eout << " in waveform '"<< _waveformContextName<<"';";
-                    eout << "'configure' failed with Unknown Exception";
-                    if (partialWarn) {
-                        eout << ". Note that this component contains a property with a mix of defined and nil values.";
-                    }
-                    eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                    LOG_ERROR(ApplicationFactory_impl, eout.str());
-                    throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
+                if (partialWarn) {
+                    eout << ". Note that this component contains a property with a mix of defined and nil values.";
                 }
+                eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
+                LOG_ERROR(ApplicationFactory_impl, eout.str());
+                throw CF::ApplicationFactory::InvalidInitConfiguration(e.invalidProperties);
+            } catch(CF::PropertySet::PartialConfiguration& e) {
+                ostringstream eout;
+                eout << "Failed to instantiate component: '";
+                eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<(*depl)->getAssignedDevice()->label << "' ";
+                eout << " in waveform '"<< _waveformContextName<<"';";
+                eout << "Failed to 'configure' component; PartialConfiguration for these invalid properties: ";
+                for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
+                    eout << "(" << e.invalidProperties[propIdx].id << ",";
+                    eout << ossie::any_to_string(e.invalidProperties[propIdx].value) << ")";
+                }
+                if (partialWarn) {
+                    eout << ". Note that this component contains a property with a mix of defined and nil values.";
+                }
+                eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
+                LOG_ERROR(ApplicationFactory_impl, eout.str());
+                throw CF::ApplicationFactory::InvalidInitConfiguration(e.invalidProperties);
+            } catch( ... ) {
+                ostringstream eout;
+                eout << "Failed to instantiate component: '";
+                eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDevice()->label << "' ";
+                eout << " in waveform '"<< _waveformContextName<<"';";
+                eout << "'configure' failed with Unknown Exception";
+                if (partialWarn) {
+                    eout << ". Note that this component contains a property with a mix of defined and nil values.";
+                }
+                eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
+                LOG_ERROR(ApplicationFactory_impl, eout.str());
+                throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
             }
         }
-        break;
     }
 }
 
@@ -3271,9 +3181,9 @@ void createHelper::_cleanupFailedCreate()
  */
 CF::Resource_ptr createHelper::lookupComponentByInstantiationId(const std::string& identifier)
 {
-    ossie::ComponentInfo* component = findComponentByInstantiationId(identifier);
-    if (component) {
-        return component->getResourcePtr();
+    ossie::ComponentDeployment* deployment = findComponentDeployment(identifier);
+    if (deployment) {
+        return deployment->getResourcePtr();
     }
 
     return CF::Resource::_nil();

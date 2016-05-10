@@ -373,9 +373,9 @@ const char* SoftpkgInfo::getSpdFileName()
     return _spdFileName.c_str();
 }
 
-const char* SoftpkgInfo::getName()
+const std::string& SoftpkgInfo::getName() const
 {
-    return _name.c_str();
+    return _name;
 }
 
 SoftpkgInfo* SoftpkgInfo::buildSoftpkgInfo(CF::FileManager_ptr fileMgr, const char* spdFileName)
@@ -607,7 +607,7 @@ void ComponentInfo::setIdentifier(const char* _identifier, std::string instance_
 
 void ComponentInfo::setNamingService(const bool _isNamingService)
 {
-    isNamingService = _isNamingService;
+    this->_isNamingService = _isNamingService;
 }
 
 void ComponentInfo::setNamingServiceName(const char* _namingServiceName)
@@ -729,22 +729,17 @@ void ComponentInfo::process_overrides(CF::Properties* props, const char* id, COR
     return;
 }
 
-void ComponentInfo::setResourcePtr(CF::Resource_ptr _rsc)
+const std::string& ComponentInfo::getInstantiationIdentifier() const
 {
-    rsc = CF::Resource::_duplicate(_rsc);
+    return instantiationId;
 }
 
-const char* ComponentInfo::getInstantiationIdentifier()
+const std::string& ComponentInfo::getIdentifier() const
 {
-    return instantiationId.c_str();
+    return identifier;
 }
 
-const char* ComponentInfo::getIdentifier()
-{
-    return identifier.c_str();
-}
-
-boost::shared_ptr<ossie::DeviceNode> ComponentInfo::getAssignedDevice()
+const boost::shared_ptr<ossie::DeviceNode>& ComponentInfo::getAssignedDevice() const
 {
     return assignedDevice;
 }
@@ -758,42 +753,43 @@ const char* ComponentInfo::getAssignedDeviceId()
     }
 }
 
-const bool  ComponentInfo::getNamingService()
+bool ComponentInfo::isNamingService() const
 {
-    return isNamingService;
+    return _isNamingService;
 }
 
-const char* ComponentInfo::getUsageName()
+const char* ComponentInfo::getUsageName() const
 {
     return usageName.c_str();
 }
 
-const char* ComponentInfo::getNamingServiceName()
+const char* ComponentInfo::getNamingServiceName() const
 {
     return namingServiceName.c_str();
 }
 
-const std::string ComponentInfo::getNicAssignment() {
+const std::string& ComponentInfo::getNicAssignment() const
+{
     return nicAssignment;
 };
 
-const bool  ComponentInfo::isResource()
+bool ComponentInfo::isResource() const
 {
     return scd.isResource();
 }
 
-const bool  ComponentInfo::isConfigurable()
+bool ComponentInfo::isConfigurable() const
 {
     return scd.isConfigurable();
 }
 
 
-const bool  ComponentInfo::isAssemblyController()
+bool ComponentInfo::isAssemblyController() const
 {
     return _isAssemblyController;
 }
 
-const bool  ComponentInfo::isScaCompliant()
+bool ComponentInfo::isScaCompliant() const
 {
     return _isScaCompliant;
 }
@@ -803,11 +799,11 @@ bool ComponentInfo::isAssignedToDevice() const
     return assignedDevice;
 }
 
-bool ComponentInfo::checkStruct(CF::Properties &props)
+bool ComponentInfo::checkStruct(const CF::Properties &props) const
 {
-    redhawk::PropertyMap& tmpProps = redhawk::PropertyMap::cast(props);
+    const redhawk::PropertyMap& tmpProps = redhawk::PropertyMap::cast(props);
     int state = 0; // 1 set, -1 nil
-    for (redhawk::PropertyMap::iterator tmpP = tmpProps.begin(); tmpP != tmpProps.end(); tmpP++) {
+    for (redhawk::PropertyMap::const_iterator tmpP = tmpProps.begin(); tmpP != tmpProps.end(); tmpP++) {
         if (tmpProps[ossie::corba::returnString(tmpP->id)].isNil()) {
             if (state == 0) {
                 state = -1;
@@ -829,11 +825,11 @@ bool ComponentInfo::checkStruct(CF::Properties &props)
     return false;
 }
 
-CF::Properties ComponentInfo::iteratePartialStruct(CF::Properties &props)
+CF::Properties ComponentInfo::iteratePartialStruct(const CF::Properties &props) const
 {
     CF::Properties retval;
-    redhawk::PropertyMap& configProps = redhawk::PropertyMap::cast(props);
-    for (redhawk::PropertyMap::iterator cP = configProps.begin(); cP != configProps.end(); cP++) {
+    const redhawk::PropertyMap& configProps = redhawk::PropertyMap::cast(props);
+    for (redhawk::PropertyMap::const_iterator cP = configProps.begin(); cP != configProps.end(); cP++) {
         const ossie::Property* prop = this->prf.getProperty(ossie::corba::returnString(cP->id));
         if (dynamic_cast<const ossie::StructProperty*>(prop)) {
             CF::Properties* tmp;
@@ -861,7 +857,8 @@ CF::Properties ComponentInfo::iteratePartialStruct(CF::Properties &props)
     return retval;
 }
 
-CF::Properties ComponentInfo::containsPartialStructConfig() {
+CF::Properties ComponentInfo::containsPartialStructConfig() const
+{
     return this->iteratePartialStruct(configureProperties);
 }
 
@@ -870,7 +867,7 @@ CF::Properties ComponentInfo::containsPartialStructConstruct()
     return this->iteratePartialStruct(ctorProperties);
 }
 
-CF::Properties ComponentInfo::getNonNilConfigureProperties()
+CF::Properties ComponentInfo::getNonNilConfigureProperties() const
 {
     return ossie::getNonNilConfigureProperties(configureProperties);
 }
@@ -1007,11 +1004,6 @@ CF::Properties ComponentInfo::getPopulatedExecParameters()
         retval.length(retval.length()-1);
     }
     return retval;
-}
-
-CF::Resource_ptr ComponentInfo::getResourcePtr()
-{
-    return CF::Resource::_duplicate(rsc);
 }
 
 

@@ -70,8 +70,12 @@ namespace ossie {
 
         const ossie::UsesDeviceInfo* getUsesDeviceById(const std::string& usesId);
 
+        void setResourcePtr(CF::Resource_ptr resource);
+        CF::Resource_ptr getResourcePtr() const;
+
     protected:
         boost::shared_ptr<DeviceNode> assignedDevice;
+        CF::Resource_var resource;
     };
 }
 

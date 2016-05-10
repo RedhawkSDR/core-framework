@@ -179,7 +179,7 @@ namespace ossie
         ~SoftpkgInfo ();
 
         const char* getSpdFileName();
-        const char* getName();
+        const std::string& getName() const;
 
         void addImplementation(ImplementationInfo* impl);
         void getImplementations(ImplementationInfo::List& res);
@@ -233,28 +233,26 @@ namespace ossie
         void overrideProperty(const ossie::ComponentProperty* propref);
         void overrideProperty(const char* id, const CORBA::Any& value);
 
-        void setResourcePtr(CF::Resource_ptr);
-
-        const char* getInstantiationIdentifier();
-        const char* getIdentifier();
-        boost::shared_ptr<DeviceNode> getAssignedDevice();
+        const std::string& getInstantiationIdentifier() const;
+        const std::string& getIdentifier() const;
+        const boost::shared_ptr<DeviceNode>& getAssignedDevice() const;
         const char* getAssignedDeviceId();
-        const bool  getNamingService();
-        const char* getUsageName();
-        const char* getNamingServiceName();
-        const bool  isResource();
-        const bool  isConfigurable();
-        const bool  isAssemblyController();
-        const bool  isScaCompliant();
-        const std::string getNicAssignment();
+        bool isNamingService() const;
+        const char* getUsageName() const;
+        const char* getNamingServiceName() const;
+        bool isResource() const;
+        bool isConfigurable() const;
+        bool isAssemblyController() const;
+        bool isScaCompliant() const;
+        const std::string& getNicAssignment() const;
 
         bool isAssignedToDevice() const;
-        CF::Properties containsPartialStructConfig();
+        CF::Properties containsPartialStructConfig() const;
         CF::Properties containsPartialStructConstruct();
-        CF::Properties iteratePartialStruct(CF::Properties &props);
-        bool checkStruct(CF::Properties &props);
+        CF::Properties iteratePartialStruct(const CF::Properties &props) const;
+        bool checkStruct(const CF::Properties &props) const;
 
-        CF::Properties getNonNilConfigureProperties();
+        CF::Properties getNonNilConfigureProperties() const;
         CF::Properties getNonNilNonExecConstructProperties();
         CF::Properties getConfigureProperties();
         CF::Properties getConstructProperties();
@@ -263,8 +261,6 @@ namespace ossie
         CF::Properties getAffinityOptionsWithAssignment();
         CF::Properties getExecParameters();
         CF::Properties getPopulatedExecParameters();
-
-        CF::Resource_ptr getResourcePtr();
 
         static ComponentInfo* buildComponentInfoFromSPDFile(CF::FileManager_ptr fileMgr, const char* _SPDFile);
         ComponentDescriptor scd;
@@ -277,7 +273,7 @@ namespace ossie
         bool _isAssemblyController;
         bool _isConfigurable;
         bool _isScaCompliant;
-        bool isNamingService;
+        bool _isNamingService;
 
         boost::shared_ptr<DeviceNode> assignedDevice;
 
@@ -297,8 +293,6 @@ namespace ossie
         CF::Properties execParameters;
         CF::Properties affinityOptions;
         
-        CF::Resource_var rsc;
-
     };
 
     /*

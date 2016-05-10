@@ -147,3 +147,13 @@ const UsesDeviceInfo* ComponentDeployment::getUsesDeviceById(const std::string& 
     }
     return usesDevice;
 }
+
+void ComponentDeployment::setResourcePtr(CF::Resource_ptr resource)
+{
+    this->resource = CF::Resource::_duplicate(resource);
+}
+
+CF::Resource_ptr ComponentDeployment::getResourcePtr() const
+{
+    return CF::Resource::_duplicate(resource);
+}
