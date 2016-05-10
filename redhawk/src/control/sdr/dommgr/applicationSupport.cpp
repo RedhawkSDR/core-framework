@@ -851,13 +851,13 @@ CF::Properties ComponentInfo::getAffinityOptions() const
     return affinityOptions;
 }
 
-CF::Properties ComponentInfo::getConfigureProperties()
+CF::Properties ComponentInfo::getConfigureProperties() const
 {
     return configureProperties;
 }
 
 
-CF::Properties ComponentInfo::getConstructProperties()
+CF::Properties ComponentInfo::getConstructProperties() const
 {
     return ctorProperties;
 }

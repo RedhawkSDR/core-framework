@@ -1920,7 +1920,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
                                               const std::string& assignedDeviceId,
                                               const std::string& appIdentifier)
 {
-    ossie::ComponentInfo* component = deployment->getComponent();
+    const ossie::ComponentInfo* component = deployment->getComponent();
     const ossie::ImplementationInfo* implementation = deployment->getImplementation();
     ossie::DeviceList devices = _registeredDevices;
 
@@ -1996,10 +1996,6 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
                     const std::string interface = struct_prop["nic_allocation_status::interface"].toString();
                     LOG_DEBUG(ApplicationFactory_impl, "Allocation NIC assignment: " << interface );
                     deployment->setNicAssignment(interface);
-                    redhawk::PropertyType nic_execparam;
-                    nic_execparam.id = "NIC";
-                    nic_execparam.setValue(interface);
-                    component->addExecParameter(nic_execparam);
 
                     // RESOLVE - need SAD file directive to control this behavior.. i.e if promote_nic_to_affinity==true...
                     // for now add nic assignment as application affinity to all components deployed by this device
@@ -2561,6 +2557,10 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
 
     // Build up the list of command line parameters
     redhawk::PropertyMap execParameters(component->getCommandLineParameters());
+    const std::string& nic = deployment->getNicAssignment();
+    if (!nic.empty()) {
+        execParameters["NIC"] = nic;
+    }
 
     // Add specialized CPU reservation if given
     std::map<std::string,float>::iterator reservation = specialized_reservations.find(component->getIdentifier());

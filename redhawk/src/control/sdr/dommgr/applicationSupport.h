@@ -249,8 +249,8 @@ namespace ossie
 
         CF::Properties getNonNilConfigureProperties() const;
         CF::Properties getInitializeProperties() const;
-        CF::Properties getConfigureProperties();
-        CF::Properties getConstructProperties();
+        CF::Properties getConfigureProperties() const;
+        CF::Properties getConstructProperties() const;
         CF::Properties getOptions();
         CF::Properties getAffinityOptions() const;
         CF::Properties getExecParameters();
