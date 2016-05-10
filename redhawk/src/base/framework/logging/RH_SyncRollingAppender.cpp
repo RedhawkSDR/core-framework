@@ -218,7 +218,7 @@ void RH_SyncRollingAppender::subAppend(const spi::LoggingEventPtr& event, log4cx
   int cretries = retries;
   do {
     _LL_DEBUG( "RH_SyncRollingAppender::subAppend Waiting to lock mutex.");  
-    boost::posix_time::ptime::ptime abs_time = boost::posix_time::microsec_clock::universal_time()+boost::posix_time::millisec(wait_on_lock);
+    boost::posix_time::ptime abs_time = boost::posix_time::microsec_clock::universal_time()+boost::posix_time::millisec(wait_on_lock);
     try {
       _IPC_ScopedFLock  lock(flock,abs_time);  
     
