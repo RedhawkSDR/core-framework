@@ -117,6 +117,14 @@ const Value& PropertyMap::get(const std::string& id, const Value& def) const
     }
 }
 
+void PropertyMap::update(const CF::Properties& properties)
+{
+    const PropertyMap& other = cast(properties);
+    for (const_iterator prop = other.begin(); prop != other.end(); ++prop) {
+        (*this)[prop->getId()] = prop->getValue();
+    }
+}
+
 void PropertyMap::push_back(const CF::DataType& property)
 {
     ossie::corba::push_back(*this, property);

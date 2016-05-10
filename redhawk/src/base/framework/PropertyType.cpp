@@ -32,6 +32,13 @@ PropertyType::PropertyType(const CF::DataType& dt) :
 {
 }
 
+PropertyType::PropertyType(const std::string& identifier, const Value& value) :
+    CF::DataType()
+{
+    setId(identifier);
+    setValue(value);
+}
+
 PropertyType& PropertyType::operator=(const CF::DataType& dt)
 {
     CF::DataType::operator=(dt);
