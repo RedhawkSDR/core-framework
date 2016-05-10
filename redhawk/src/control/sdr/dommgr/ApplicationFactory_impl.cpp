@@ -2540,21 +2540,6 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
                 component->overrideProperty("LOGGING_CONFIG_URI", loguri);
             }
             
-            std::string sr_key;
-            if (this->specialized_reservations.find(std::string(component->getIdentifier())) != this->specialized_reservations.end()) {
-                sr_key = std::string(component->getIdentifier());
-            } else if (this->specialized_reservations.find(std::string(component->getUsageName())) != this->specialized_reservations.end()) {
-                sr_key = std::string(component->getUsageName());
-            }
-            if (not sr_key.empty()) {
-                CF::DataType spec_res;
-                spec_res.id = "RH::GPP::MODIFIED_CPU_RESERVATION_VALUE";
-                //std::stringstream ss;
-                //ss << this->specialized_reservations[sr_key];
-                spec_res.value <<= this->specialized_reservations[sr_key];
-                component->addExecParameter(spec_res);
-            }
-
             attemptComponentExecution(_appReg, deployment);
         }
     }
@@ -2576,7 +2561,17 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         throw std::logic_error(message.str());
     }
 
+    // Build up the list of command line parameters
     redhawk::PropertyMap execParameters(component->getPopulatedExecParameters());
+
+    // Add specialized CPU reservation if given
+    std::map<std::string,float>::iterator reservation = specialized_reservations.find(component->getIdentifier());
+    if (reservation == specialized_reservations.end()) {
+        reservation = specialized_reservations.find(component->getUsageName());
+    }
+    if (reservation != specialized_reservations.end()) {
+        execParameters["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"] = reservation->second;
+    }
 
     // Add the required parameters specified in SR:163
     // Naming Context IOR, Name Binding, and component identifier
