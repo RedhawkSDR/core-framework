@@ -62,6 +62,8 @@ namespace redhawk {
 
         const Value& get(const std::string& id, const Value& def=Value()) const;
 
+        void update(const CF::Properties& properties);
+
         void push_back (const CF::DataType& dt);
 
         iterator begin();

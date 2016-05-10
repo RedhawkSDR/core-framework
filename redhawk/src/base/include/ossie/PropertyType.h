@@ -41,6 +41,8 @@ namespace redhawk {
         PropertyType();
         explicit PropertyType(const CF::DataType& dt);
 
+        PropertyType(const std::string& id, const Value& value);
+
         PropertyType& operator=(const CF::DataType& dt);
 
         void setId(const std::string& identifier);
