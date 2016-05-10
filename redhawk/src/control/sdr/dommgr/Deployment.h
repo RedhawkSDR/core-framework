@@ -26,6 +26,7 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include <ossie/PropertyMap.h>
 #include "applicationSupport.h"
 
 namespace ossie {
@@ -34,7 +35,7 @@ namespace ossie {
     public:
         typedef std::vector<SoftpkgDeployment*> DeploymentList;
 
-        SoftpkgDeployment(SoftpkgInfo* softpkg, ImplementationInfo* impl);
+        SoftpkgDeployment(SoftpkgInfo* softpkg, ImplementationInfo* implementation);
         ~SoftpkgDeployment();
 
         SoftpkgInfo* getSoftpkg();
@@ -49,21 +50,25 @@ namespace ossie {
 
     protected:
         SoftpkgInfo* softpkg;
-        ImplementationInfo* impl;
+        ImplementationInfo* implementation;
         DeploymentList dependencies;
     };
 
     class ComponentDeployment : public SoftpkgDeployment
     {
     public:
-        ComponentDeployment(ComponentInfo* component, ImplementationInfo* impl,
+        ComponentDeployment(ComponentInfo* component, ImplementationInfo* implementation,
                             const boost::shared_ptr<DeviceNode>& device);
 
         ComponentInfo* getComponent();
 
         std::string getEntryPoint();
 
+        redhawk::PropertyMap getOptions();
+
         boost::shared_ptr<DeviceNode> getAssignedDevice();
+
+        const ossie::UsesDeviceInfo* getUsesDeviceById(const std::string& usesId);
 
     protected:
         boost::shared_ptr<DeviceNode> assignedDevice;

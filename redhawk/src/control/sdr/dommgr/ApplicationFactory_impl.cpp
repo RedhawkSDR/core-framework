@@ -694,7 +694,7 @@ void createHelper::assignRemainingComponentsToDevices(const std::string &appIden
          componentIter++)
     {
         boost::shared_ptr<DeviceNode> assignedDevice;
-        for (std::vector<ossie::ComponentDeployment*>::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
+        for (DeploymentList::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
             if ((*ii)->getComponent() == (*componentIter)) {
                 assignedDevice = (*ii)->getAssignedDevice();
                 break;
@@ -1029,7 +1029,7 @@ void createHelper::_getComponentsToPlace(
                         component->getInstantiationIdentifier());
 
         boost::shared_ptr<DeviceNode> assignedDevice;
-        for (std::vector<ossie::ComponentDeployment*>::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
+        for (DeploymentList::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
             if ((*ii)->getComponent() == component) {
                 assignedDevice = (*ii)->getAssignedDevice();
                 break;
@@ -2258,6 +2258,17 @@ ossie::ComponentInfo* createHelper::findComponentByInstantiationId(const std::st
     return 0;
 }
 
+ossie::ComponentDeployment* createHelper::findComponentDeployment(const std::string& instantiationId)
+{
+    for (DeploymentList::iterator deployment = _deployments.begin(); deployment != _deployments.end(); ++deployment) {
+        if (instantiationId == (*deployment)->getComponent()->getInstantiationIdentifier()) {
+            return (*deployment);
+        }
+    }
+
+    return 0;
+}
+
 /* Given a waveform/application name, return a unique waveform naming context
  *  - Returns a unique waveform naming context
  *  THIS FUNCTION IS NOT THREAD SAFE
@@ -2599,14 +2610,15 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
             LOG_TRACE(ApplicationFactory_impl, " exec param " << prop->getId() << " " << prop->getValue().toString());
         }
 
-        // get Options list
-        CF::Properties cop = component->getOptions(); 
-        for (unsigned int i = 0; i < cop.length(); ++i) {
-            LOG_TRACE(ApplicationFactory_impl, " RESOURCE OPTION: " << cop[i].id << " " << ossie::any_to_string(cop[i].value))
+        // Get options list
+        redhawk::PropertyMap options = deployment->getOptions(); 
+        for (redhawk::PropertyMap::iterator opt = options.begin(); opt != options.end(); ++opt) {
+            LOG_TRACE(ApplicationFactory_impl, " RESOURCE OPTION: " << opt->getId()
+                      << " " << opt->getValue().toString());
         }
 
         // call 'execute' on the ExecutableDevice to execute the component
-        tempPid = execdev->executeLinked(entryPoint.c_str(), cop, execParameters, dep_seq);
+        tempPid = execdev->executeLinked(entryPoint.c_str(), options, execParameters, dep_seq);
     } catch( CF::InvalidFileName& _ex ) {
         std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
@@ -3217,8 +3229,8 @@ createHelper::~createHelper()
         delete (*comp);
     }
     _requiredComponents.clear();
-    for (std::vector<ossie::ComponentDeployment*>::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
-        delete (*ii);
+    for (DeploymentList::iterator depl = _deployments.begin(); depl != _deployments.end(); ++depl) {
+        delete (*depl);
     }
     _deployments.clear();
 }
@@ -3274,13 +3286,13 @@ CF::Device_ptr createHelper::lookupDeviceThatLoadedComponentInstantiationId(cons
 {
     LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Lookup device that loaded component " << componentId);
 
-    ossie::ComponentInfo* component = findComponentByInstantiationId(componentId);
-    if (!component) {
+    ossie::ComponentDeployment* deployment = findComponentDeployment(componentId);
+    if (!deployment) {
         LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] Component not found");
         return CF::Device::_nil();
     }
 
-    boost::shared_ptr<ossie::DeviceNode> device = component->getAssignedDevice();
+    boost::shared_ptr<ossie::DeviceNode> device = deployment->getAssignedDevice();
     if (!device) {
         LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] Component not assigned to device");
         return CF::Device::_nil();
@@ -3296,14 +3308,14 @@ CF::Device_ptr createHelper::lookupDeviceThatLoadedComponentInstantiationId(cons
 CF::Device_ptr createHelper::lookupDeviceUsedByComponentInstantiationId(const std::string& componentId, const std::string& usesId)
 {
     LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Lookup device used by component " << componentId);
-    ossie::ComponentInfo* component = findComponentByInstantiationId(componentId.c_str());
-    if (!component) {
+    ossie::ComponentDeployment* deployment = findComponentDeployment(componentId.c_str());
+    if (!deployment) {
         LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] Component not found");
         return CF::Device::_nil();
     }
 
     LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Uses id " << usesId);
-    const ossie::UsesDeviceInfo* usesdevice = component->getUsesDeviceById(usesId);
+    const ossie::UsesDeviceInfo* usesdevice = deployment->getUsesDeviceById(usesId);
     if (!usesdevice) {
         LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] UsesDevice not found");
         return CF::Device::_nil();

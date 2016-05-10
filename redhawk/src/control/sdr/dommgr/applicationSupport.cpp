@@ -357,8 +357,7 @@ bool ImplementationInfo::checkProcessorAndOs(const Properties& _prf) const
 PREPARE_CF_LOGGING(SoftpkgInfo);
 
 SoftpkgInfo::SoftpkgInfo(const std::string& spdFileName):
-    _spdFileName(spdFileName),
-    _selectedImplementation(0)
+    _spdFileName(spdFileName)
 {
 }
 
@@ -445,16 +444,7 @@ void SoftpkgInfo::getImplementations(ImplementationInfo::List& res)
 
 const UsesDeviceInfo* SoftpkgInfo::getUsesDeviceById(const std::string& id) const
 {
-    const UsesDeviceInfo* uses = UsesDeviceContext::getUsesDeviceById(id);
-    if (uses) {
-        return uses;
-    }
-
-    if (_selectedImplementation) {
-        return _selectedImplementation->getUsesDeviceById(id);
-    }
-
-    return 0;
+    return UsesDeviceContext::getUsesDeviceById(id);
 }
 
 ////////////////////////////////////////////////////
@@ -947,21 +937,6 @@ CF::Properties ComponentInfo::getConstructProperties()
 
 CF::Properties ComponentInfo::getOptions()
 {
-    // Get the PRIORITY and STACK_SIZE from the SPD (if available)
-    //  unfortunately this can't happen until an implementation has been chosen
-    if (_selectedImplementation) {
-        if (_selectedImplementation->hasStackSize()) {
-            options.length(options.length()+1);
-            options[options.length()-1].id = CORBA::string_dup("STACK_SIZE");  // 3.1.3.3.3.3.6
-            options[options.length()-1].value <<= _selectedImplementation->getStackSize();  // The specification says it's supposed to be an unsigned long, but the parser is set to unsigned long long
-        }
-        if (_selectedImplementation->hasPriority()) {
-            options.length(options.length()+1);
-            options[options.length()-1].id = CORBA::string_dup("PRIORITY");  // 3.1.3.3.3.3.7
-            options[options.length()-1].value <<= _selectedImplementation->getPriority();  // The specification says it's supposed to be an unsigned long, but the parser is set to unsigned long long
-        }
-    }
-
     // Add affinity settings under AFFINITY property directory
     CF::Properties affinity_options;
     for ( uint32_t i=0; i < affinityOptions.length(); i++ ) {

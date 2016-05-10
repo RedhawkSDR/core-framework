@@ -25,9 +25,9 @@
 using namespace ossie;
 namespace fs = boost::filesystem;
 
-SoftpkgDeployment::SoftpkgDeployment(SoftpkgInfo* softpkg, ImplementationInfo* impl) :
+SoftpkgDeployment::SoftpkgDeployment(SoftpkgInfo* softpkg, ImplementationInfo* implementation) :
     softpkg(softpkg),
-    impl(impl)
+    implementation(implementation)
 {
 }
 
@@ -45,7 +45,7 @@ SoftpkgInfo* SoftpkgDeployment::getSoftpkg()
 
 ImplementationInfo* SoftpkgDeployment::getImplementation()
 {
-    return impl;
+    return implementation;
 }
 
 void SoftpkgDeployment::addDependency(SoftpkgDeployment* dependency)
@@ -71,7 +71,7 @@ std::vector<std::string> SoftpkgDeployment::getDependencyLocalFiles()
 
 std::string SoftpkgDeployment::getLocalFile()
 {
-    fs::path codeLocalFile = fs::path(impl->getLocalFileName());
+    fs::path codeLocalFile = fs::path(implementation->getLocalFileName());
     if (!codeLocalFile.has_root_directory()) {
         // Path is relative to SPD file location
         fs::path base_dir = fs::path(softpkg->getSpdFileName()).parent_path();
@@ -85,9 +85,9 @@ std::string SoftpkgDeployment::getLocalFile()
     return codeLocalFile.string();
 }
 
-ComponentDeployment::ComponentDeployment(ComponentInfo* component, ImplementationInfo* impl,
+ComponentDeployment::ComponentDeployment(ComponentInfo* component, ImplementationInfo* implementation,
                                          const boost::shared_ptr<DeviceNode>& device) :
-    SoftpkgDeployment(component, impl),
+    SoftpkgDeployment(component, implementation),
     assignedDevice(device)
 {
 }
@@ -104,7 +104,7 @@ boost::shared_ptr<DeviceNode> ComponentDeployment::getAssignedDevice()
 
 std::string ComponentDeployment::getEntryPoint()
 {
-    std::string entryPoint = impl->getEntryPoint();
+    std::string entryPoint = implementation->getEntryPoint();
     if (!entryPoint.empty()) {
         fs::path entryPointPath = fs::path(entryPoint);
         if (!entryPointPath.has_root_directory()) {
@@ -115,4 +115,35 @@ std::string ComponentDeployment::getEntryPoint()
         entryPoint = entryPointPath.normalize().string();
     }
     return entryPoint;
+}
+
+redhawk::PropertyMap ComponentDeployment::getOptions()
+{
+    // Get the options from the softpkg
+    redhawk::PropertyMap options(getComponent()->getOptions());
+
+    // Get the PRIORITY and STACK_SIZE from the SPD (if available)
+    if (implementation->hasStackSize()) {
+        // 3.1.3.3.3.3.6
+        // The specification says it's supposed to be an unsigned long, but the
+        // parser is set to unsigned long long
+        options["STACK_SIZE"] = implementation->getStackSize();
+    }
+    if (implementation->hasPriority()) {
+        // 3.1.3.3.3.3.7
+        // The specification says it's supposed to be an unsigned long, but the
+        // parser is set to unsigned long long
+        options["PRIORITY"] = implementation->getPriority();
+    }
+
+    return options;
+}
+
+const UsesDeviceInfo* ComponentDeployment::getUsesDeviceById(const std::string& usesId)
+{
+    const UsesDeviceInfo* usesDevice = getComponent()->getUsesDeviceById(usesId);
+    if (!usesDevice) {
+        usesDevice = implementation->getUsesDeviceById(usesId);
+    }
+    return usesDevice;
 }

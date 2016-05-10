@@ -204,7 +204,8 @@ private:
 
     ossie::ApplicationInfo _appInfo;
 
-    std::vector<ossie::ComponentDeployment*> _deployments;
+    typedef std::vector<ossie::ComponentDeployment*> DeploymentList;
+    DeploymentList _deployments;
 
     // createHelper helper methods
     ossie::ComponentInfo* getAssemblyController();
@@ -284,6 +285,7 @@ private:
     CF::Device_ptr find_device_from_id(const char*);
     const ossie::DeviceNode& find_device_node_from_id(const char*) throw(std::exception);
     ossie::ComponentInfo* findComponentByInstantiationId(const std::string& identifier);
+    ossie::ComponentDeployment* findComponentDeployment(const std::string& instantiationId);
 
     // Cleanup - used when create fails/doesn't succeed for some reason
     bool _isComplete;

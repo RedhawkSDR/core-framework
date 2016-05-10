@@ -197,7 +197,6 @@ namespace ossie
         std::string _name; // Component name from SPD File
 
         ImplementationInfo::List _implementations;
-        ImplementationInfo* _selectedImplementation; // Implementation selected to run on assigned device.
     };
 
     /* Base class to contain data for components
