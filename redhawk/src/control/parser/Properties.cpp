@@ -169,13 +169,13 @@ void Properties::join(ossie::Properties& props) throw (ossie::parser_error) {
 
 void Properties::override(const ossie::ComponentPropertyList & values)
 {
-  for ( ossie::ComponentPropertyList::const_iterator iter = values.begin(); iter != values.end(); ++iter) {
-    const ComponentProperty* new_value = &(*iter);
-        Property* property = const_cast<Property*>(getProperty(new_value->getID()));
+    for (ossie::ComponentPropertyList::const_iterator iter = values.begin(); iter != values.end(); ++iter) {
+        const ComponentProperty* new_value = &(*iter);
+        const Property* property = const_cast<Properties*>(this)->getProperty(new_value->getID());
         if (!property) {
             LOG_TRACE(Properties, "Skipping override of non-existent property " << new_value->getID());
         } else {
-            property->override(new_value);
+            const_cast<Property*>(property)->override(new_value);
         }
     }
 }
@@ -186,7 +186,7 @@ const std::vector<const Property*>& Properties::getProperties() const
     return _prf->_allProperties;
 }
 
-const Property* Properties::getProperty(const std::string& id)
+const Property* Properties::getProperty(const std::string& id) const
 {
     assert(_prf.get() != 0);
     std::map<std::string, const Property*>::iterator p = _prf->_properties.find(id);

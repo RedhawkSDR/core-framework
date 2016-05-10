@@ -411,7 +411,7 @@ namespace ossie {
 
         const std::vector<const Property*>& getProperties() const;
 
-        const Property* getProperty(const std::string& id);
+        const Property* getProperty(const std::string& id) const;
 
         const std::vector<const Property*>& getConfigureProperties() const;
 
