@@ -1995,7 +1995,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
                 if (identifier == alloc_id) {
                     const std::string interface = struct_prop["nic_allocation_status::interface"].toString();
                     LOG_DEBUG(ApplicationFactory_impl, "Allocation NIC assignment: " << interface );
-                    component->setNicAssignment(interface);
+                    deployment->setNicAssignment(interface);
                     redhawk::PropertyType nic_execparam;
                     nic_execparam.id = "NIC";
                     nic_execparam.setValue(interface);
@@ -2003,7 +2003,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
 
                     // RESOLVE - need SAD file directive to control this behavior.. i.e if promote_nic_to_affinity==true...
                     // for now add nic assignment as application affinity to all components deployed by this device
-                    _app_affinity = component->getAffinityOptionsWithAssignment();
+                    _app_affinity = deployment->getAffinityOptionsWithAssignment();
                 }
             }
         }
@@ -2718,7 +2718,7 @@ void createHelper::applyApplicationAffinityOptions() {
       boost::shared_ptr<ossie::DeviceNode> deploy_on_device;
       for (unsigned int rc_idx = 0; rc_idx < _deployments.size(); rc_idx++) {
           ossie::ComponentDeployment* deployment = _deployments[rc_idx];
-          if (!(deployment->getComponent()->getNicAssignment().empty())) {
+          if (!(deployment->getNicAssignment().empty())) {
               deploy_on_device = deployment->getAssignedDevice();
           }
       }
@@ -2729,7 +2729,7 @@ void createHelper::applyApplicationAffinityOptions() {
               boost::shared_ptr<ossie::DeviceNode> dev = deployment->getAssignedDevice();
               // for matching device deployments then apply nic affinity settings
               if (dev->identifier == deploy_on_device->identifier) {
-                  deployment->getComponent()->mergeAffinityOptions(_app_affinity);
+                  deployment->mergeAffinityOptions(_app_affinity);
               }
           }
       }

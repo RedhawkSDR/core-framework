@@ -65,6 +65,12 @@ namespace ossie {
 
         redhawk::PropertyMap getOptions();
 
+        redhawk::PropertyMap getAffinityOptionsWithAssignment() const;
+        void mergeAffinityOptions(const CF::Properties& affinity);
+
+        void setNicAssignment(const std::string& nic);
+        const std::string& getNicAssignment() const;
+
         void setAssignedDevice(const boost::shared_ptr<DeviceNode>& device);
         boost::shared_ptr<DeviceNode> getAssignedDevice();
 
@@ -74,8 +80,12 @@ namespace ossie {
         CF::Resource_ptr getResourcePtr() const;
 
     protected:
+        ComponentInfo* component;
         boost::shared_ptr<DeviceNode> assignedDevice;
         CF::Resource_var resource;
+
+        std::string nicAssignment;
+        redhawk::PropertyMap affinityOptions;
     };
 }
 

@@ -581,7 +581,6 @@ ComponentInfo::ComponentInfo(const std::string& spdFileName) :
     _isAssemblyController(false),
     _isScaCompliant(true)
 {
-    nicAssignment = "";
     // load common affinity property definitions 
     try {
       std::stringstream os(redhawk::affinity::get_property_definitions());
@@ -630,11 +629,6 @@ void ComponentInfo::setIsScaCompliant(bool _isScaCompliant)
 {
     this->_isScaCompliant = _isScaCompliant;
 }
-
-void ComponentInfo::setNicAssignment(std::string nic) {
-    nicAssignment = nic;
-};
-
 
 void ComponentInfo::setAffinity( const AffinityProperties &affinity_props )
 {
@@ -753,11 +747,6 @@ const char* ComponentInfo::getNamingServiceName() const
     return namingServiceName.c_str();
 }
 
-const std::string& ComponentInfo::getNicAssignment() const
-{
-    return nicAssignment;
-};
-
 bool ComponentInfo::isResource() const
 {
     return scd.isResource();
@@ -857,48 +846,10 @@ CF::Properties ComponentInfo::getInitializeProperties() const
     return ossie::getNonNilProperties(ctorProperties);
 }
 
-CF::Properties ComponentInfo::getAffinityOptionsWithAssignment()
+CF::Properties ComponentInfo::getAffinityOptions() const
 {
-  // Add affinity setting first...
-  CF::Properties affinity_options;
-  for ( uint32_t i=0; i < affinityOptions.length(); i++ ) {
-      affinity_options.length(affinity_options.length()+1);
-      affinity_options[affinity_options.length()-1] = affinityOptions[i];
-      CF::DataType dt = affinityOptions[i];
-      RH_NL_DEBUG("DomainManager", "ComponentInfo getAffinityOptionsWithAssignment ... Affinity Property: directive id:"  <<  dt.id << "/" <<  ossie::any_to_string( dt.value )) ;
-  }
-
-  // add nic allocations to affinity list 
-  if ( nicAssignment != "" ) {
-      affinity_options.length(affinity_options.length()+1);
-      affinity_options[affinity_options.length()-1].id = CORBA::string_dup("nic");  
-      affinity_options[affinity_options.length()-1].value <<= nicAssignment.c_str(); 
-      RH_NL_DEBUG("DomainManager", "ComponentInfo getAffinityOptionsWithAssignment ... NIC AFFINITY: pol/value "  <<  "nic"  << "/" << nicAssignment );
-  }      
-
-  return affinity_options;
-
+    return affinityOptions;
 }
-
-
-CF::Properties ComponentInfo::getAffinityOptions()
-{
-  return affinityOptions;
-}
-
-
-void ComponentInfo::mergeAffinityOptions( const CF::Properties &new_affinity )
-{
-  // for each new affinity setting apply settings to component's affinity options
-  const redhawk::PropertyMap &newmap = redhawk::PropertyMap::cast(new_affinity);
-  redhawk::PropertyMap &currentAffinity = redhawk::PropertyMap::cast(affinityOptions);
-  redhawk::PropertyMap::const_iterator iter = newmap.begin();
-  for ( ; iter != newmap.end(); iter++ ) {
-    std::string id = iter->getId();
-    currentAffinity[id]=newmap[id];
-  }
-}
-
 
 CF::Properties ComponentInfo::getConfigureProperties()
 {
@@ -914,48 +865,6 @@ CF::Properties ComponentInfo::getConstructProperties()
 
 CF::Properties ComponentInfo::getOptions()
 {
-    // Add affinity settings under AFFINITY property directory
-    CF::Properties affinity_options;
-    for ( uint32_t i=0; i < affinityOptions.length(); i++ ) {
-      affinity_options.length(affinity_options.length()+1);
-      affinity_options[affinity_options.length()-1] = affinityOptions[i];
-      CF::DataType dt = affinityOptions[i];
-      RH_NL_DEBUG("DomainManager", "ComponentInfo - Affinity Property: directive id:"  <<  dt.id << "/" <<  ossie::any_to_string( dt.value )) ;
-    }
-
-    // add nic allocations to affinity list 
-    if ( nicAssignment != "" ) {
-      std::string id = "nic";
-      const redhawk::PropertyMap &tmap = redhawk::PropertyMap::cast( affinityOptions );
-      if ( !tmap.contains(id) ) {
-        // missing nic directive... add to map
-        affinity_options.length(affinity_options.length()+1);
-        affinity_options[affinity_options.length()-1].id = CORBA::string_dup("nic");  
-        affinity_options[affinity_options.length()-1].value <<= nicAssignment.c_str(); 
-      }
-      else {
-        std::string nic_iface = tmap[id].toString();
-        if ( nic_iface != nicAssignment ) {
-          // nic_iface is differnet add this 
-          affinity_options.length(affinity_options.length()+1);
-          affinity_options[affinity_options.length()-1].id = CORBA::string_dup("nic");  
-          affinity_options[affinity_options.length()-1].value <<= nicAssignment.c_str(); 
-        }
-      }
-      RH_NL_DEBUG("DomainManager", "ComponentInfo - NIC AFFINITY: pol/value "  <<  "nic"  << "/" << nicAssignment );
-    }      
-
-    if ( affinity_options.length() > 0 ) {
-      options.length(options.length()+1);
-      options[options.length()-1].id = CORBA::string_dup("AFFINITY"); 
-      options[options.length()-1].value <<= affinity_options;
-      RH_NL_DEBUG("DomainManager", "ComponentInfo - Extending options, adding Affinity Properties ...set length: " << affinity_options.length());
-    }
-
-    RH_NL_TRACE("DomainManager", "ComponentInfo - getOptions.... length: " << options.length());
-    for ( uint32_t i=0; i < options.length(); i++ ) {
-      RH_NL_TRACE("DomainManager", "ComponentInfo - getOptions id:"  <<  options[i].id << "/" <<  ossie::any_to_string( options[i].value )) ;
-    }
     return options;
 }
 

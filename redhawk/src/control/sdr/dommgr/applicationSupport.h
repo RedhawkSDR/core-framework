@@ -219,9 +219,7 @@ namespace ossie
         void setUsageName(const char* usageName);
         void setIsAssemblyController(bool isAssemblyController);
         void setIsScaCompliant(bool isScaCompliant);
-        void setNicAssignment(std::string nic);
         void setAffinity( const AffinityProperties &affinity );
-        void mergeAffinityOptions( const CF::Properties &new_affinity );
         void setLoggingConfig( const LoggingConfig &logcfg );
 
         void addFactoryParameter(CF::DataType dt);
@@ -242,7 +240,6 @@ namespace ossie
         bool isConfigurable() const;
         bool isAssemblyController() const;
         bool isScaCompliant() const;
-        const std::string& getNicAssignment() const;
 
         bool isAssignedToDevice() const;
         CF::Properties containsPartialStructConfig() const;
@@ -255,8 +252,7 @@ namespace ossie
         CF::Properties getConfigureProperties();
         CF::Properties getConstructProperties();
         CF::Properties getOptions();
-        CF::Properties getAffinityOptions();
-        CF::Properties getAffinityOptionsWithAssignment();
+        CF::Properties getAffinityOptions() const;
         CF::Properties getExecParameters();
         CF::Properties getCommandLineParameters() const;
 
@@ -277,7 +273,6 @@ namespace ossie
         std::string identifier;
         std::string instantiationId;
         std::string namingServiceName;
-        std::string nicAssignment;
 
         ossie::Properties _affinity_prf;
         LoggingConfig    loggingConfig;

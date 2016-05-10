@@ -86,13 +86,15 @@ std::string SoftpkgDeployment::getLocalFile()
 }
 
 ComponentDeployment::ComponentDeployment(ComponentInfo* component, ImplementationInfo* implementation) :
-    SoftpkgDeployment(component, implementation)
+    SoftpkgDeployment(component, implementation),
+    component(component),
+    affinityOptions(component->getAffinityOptions())
 {
 }
 
 ComponentInfo* ComponentDeployment::getComponent()
 {
-    return dynamic_cast<ComponentInfo*>(getSoftpkg());
+    return component;
 }
 
 void ComponentDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>& device)
@@ -123,7 +125,7 @@ std::string ComponentDeployment::getEntryPoint()
 redhawk::PropertyMap ComponentDeployment::getOptions()
 {
     // Get the options from the softpkg
-    redhawk::PropertyMap options(getComponent()->getOptions());
+    redhawk::PropertyMap options(component->getOptions());
 
     // Get the PRIORITY and STACK_SIZE from the SPD (if available)
     if (implementation->hasStackSize()) {
@@ -139,12 +141,60 @@ redhawk::PropertyMap ComponentDeployment::getOptions()
         options[CF::ExecutableDevice::PRIORITY_ID] = implementation->getPriority();
     }
 
+    redhawk::PropertyMap affinity = affinityOptions;
+    for (redhawk::PropertyMap::const_iterator prop = affinity.begin(); prop != affinity.end(); ++prop) {
+        RH_NL_DEBUG("DomainManager", "ComponentDeployment - Affinity Property: directive id:"
+                    <<  prop->getId() << "/" <<  prop->getValue().toString());
+    }
+    if (!nicAssignment.empty()) {
+        redhawk::PropertyMap::iterator nic_prop = affinity.find("nic");
+        if (nic_prop == affinity.end() || (nic_prop->getId() != nicAssignment)) {
+            // No nic directive, or existing directive differs, append this one
+            affinity.push_back(redhawk::PropertyType("nic", nicAssignment));
+        }
+    }
+
+    if (!affinity.empty()) {
+        options["AFFINITY"] = affinity;
+    }
+
     return options;
+}
+
+void ComponentDeployment::setNicAssignment(const std::string& nic)
+{
+    nicAssignment = nic;
+}
+
+const std::string& ComponentDeployment::getNicAssignment() const
+{
+    return nicAssignment;
+}
+
+redhawk::PropertyMap ComponentDeployment::getAffinityOptionsWithAssignment() const
+{
+    redhawk::PropertyMap options = affinityOptions;
+    for (redhawk::PropertyMap::const_iterator prop = options.begin(); prop != options.end(); ++prop) {
+        RH_NL_DEBUG("DomainManager", "ComponentDeployment getAffinityOptionsWithAssignment ... Affinity Property: directive id:"  <<  prop->getId() << "/" <<  prop->getValue().toString());
+    }
+
+    if (!nicAssignment.empty()) {
+       RH_NL_DEBUG("DomainManager", "ComponentDeployment getAffinityOptionsWithAssignment ... NIC AFFINITY: pol/value "  <<  "nic"  << "/" << nicAssignment);
+       options.push_back(redhawk::PropertyType("nic", nicAssignment));
+    }
+
+    return options;
+}
+
+void ComponentDeployment::mergeAffinityOptions(const CF::Properties& properties)
+{
+    // Update existing settings with new ones
+    affinityOptions.update(properties);
 }
 
 const UsesDeviceInfo* ComponentDeployment::getUsesDeviceById(const std::string& usesId)
 {
-    const UsesDeviceInfo* usesDevice = getComponent()->getUsesDeviceById(usesId);
+    const UsesDeviceInfo* usesDevice = component->getUsesDeviceById(usesId);
     if (!usesDevice) {
         usesDevice = implementation->getUsesDeviceById(usesId);
     }
