@@ -184,10 +184,6 @@ namespace ossie
         void addImplementation(ImplementationInfo* impl);
         void getImplementations(ImplementationInfo::List& res);
 
-        const ImplementationInfo* getSelectedImplementation() const;
-        //void setSelectedImplementation(ImplementationInfo* implementation);
-        //void clearSelectedImplementation();
-
         virtual const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
 
         static SoftpkgInfo* buildSoftpkgInfo (CF::FileManager_ptr fileMgr, const char* spdFileName);

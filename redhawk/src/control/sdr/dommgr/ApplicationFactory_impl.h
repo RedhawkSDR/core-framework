@@ -144,12 +144,6 @@ public ossie::DeviceLookup
 {
 
 public:
-    struct componentReservation {
-        std::string id;
-        float       reservation;
-    };
-    std::vector<componentReservation> componentReservations;
-    
     typedef std::map<std::string,std::string> DeviceAssignmentMap;
 
     createHelper (const ApplicationFactory_impl& appFact,

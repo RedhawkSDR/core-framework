@@ -443,11 +443,6 @@ void SoftpkgInfo::getImplementations(ImplementationInfo::List& res)
     std::copy(_implementations.begin(), _implementations.end(), std::back_inserter(res));
 }
 
-const ImplementationInfo* SoftpkgInfo::getSelectedImplementation() const
-{
-    return _selectedImplementation;
-}
-
 const UsesDeviceInfo* SoftpkgInfo::getUsesDeviceById(const std::string& id) const
 {
     const UsesDeviceInfo* uses = UsesDeviceContext::getUsesDeviceById(id);
