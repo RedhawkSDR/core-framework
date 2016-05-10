@@ -30,7 +30,7 @@
 #include <ossie/CorbaUtils.h>
 #include <ossie/prop_helpers.h>
 #include <ossie/debug.h>
-#include <iostream> //testing
+#include <ossie/PropertyMap.h>
 
 using namespace ossie;
 
@@ -1094,23 +1094,20 @@ CORBA::TypeCode_ptr ossie::getTypeCode(CORBA::TCKind kind, std::string structNam
 }
 
 
-CF::Properties ossie::getNonNilProperties(CF::Properties& originalProperties)
+CF::Properties ossie::getNonNilProperties(const CF::Properties& originalProperties)
 {
-    CF::Properties nonNilProperties;
-    CORBA::TypeCode_var typeProp;
+    redhawk::PropertyMap nonNilProperties;
+    const redhawk::PropertyMap& properties = redhawk::PropertyMap::cast(originalProperties);
 
-    for (unsigned int i = 0; i < originalProperties.length(); i++) {
-        CF::DataType prop = originalProperties[i];
-        typeProp = prop.value.type();
-        if (typeProp->kind() != CORBA::tk_null) {
-            nonNilProperties.length(nonNilProperties.length() + 1);
-            nonNilProperties[nonNilProperties.length()-1] = prop;
+    for (redhawk::PropertyMap::const_iterator prop = properties.begin(); prop != properties.end(); ++prop) {
+        if (!prop->getValue().isNil()) {
+            nonNilProperties.push_back(*prop);
         }
     }
     return nonNilProperties;
 }
 
-CF::Properties ossie::getNonNilConfigureProperties(CF::Properties& originalProperties)
+CF::Properties ossie::getNonNilConfigureProperties(const CF::Properties& originalProperties)
 {
   return getNonNilProperties(originalProperties);
 }

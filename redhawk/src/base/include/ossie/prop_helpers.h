@@ -117,8 +117,8 @@ namespace ossie
     CORBA::TCKind       getTypeKind(std::string type);
     CORBA::TypeCode_ptr getTypeCode(std::string type);
     CORBA::TypeCode_ptr getTypeCode(CORBA::TCKind kind, std::string structName);
-    CF::Properties      getNonNilProperties(CF::Properties& originalProperties);
-    CF::Properties      getNonNilConfigureProperties(CF::Properties& originalProperties);
+    CF::Properties getNonNilProperties(const CF::Properties& originalProperties);
+    CF::Properties getNonNilConfigureProperties(const CF::Properties& originalProperties);
 }
 
 #endif
