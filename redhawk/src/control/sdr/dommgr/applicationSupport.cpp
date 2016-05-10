@@ -368,9 +368,9 @@ SoftpkgInfo::~SoftpkgInfo()
     }
 }
 
-const char* SoftpkgInfo::getSpdFileName()
+const std::string& SoftpkgInfo::getSpdFileName() const
 {
-    return _spdFileName.c_str();
+    return _spdFileName;
 }
 
 const std::string& SoftpkgInfo::getName() const

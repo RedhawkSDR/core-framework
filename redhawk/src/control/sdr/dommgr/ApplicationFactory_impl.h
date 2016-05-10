@@ -264,7 +264,7 @@ private:
     ossie::SoftpkgDeployment* resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg, ossie::DeviceNode& device);
     
     // Supports loading, executing, initializing, configuring, & connecting
-    void loadDependencies(ossie::ComponentInfo& component,
+    void loadDependencies(const ossie::ComponentInfo& component,
                           CF::LoadableDevice_ptr device,
                           const std::vector<ossie::SoftpkgDeployment*>& dependencies);
 

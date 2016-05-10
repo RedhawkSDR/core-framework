@@ -2330,7 +2330,7 @@ string ApplicationFactory_impl::getBaseWaveformContext(string waveform_context)
     return base_naming_context;
 }
 
-void createHelper::loadDependencies(ossie::ComponentInfo& component,
+void createHelper::loadDependencies(const ossie::ComponentInfo& component,
                                     CF::LoadableDevice_ptr device,
                                     const std::vector<ossie::SoftpkgDeployment*>& dependencies)
 {

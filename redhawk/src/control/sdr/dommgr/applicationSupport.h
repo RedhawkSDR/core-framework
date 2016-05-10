@@ -178,7 +178,7 @@ namespace ossie
         SoftpkgInfo (const std::string& spdFileName);
         ~SoftpkgInfo ();
 
-        const char* getSpdFileName();
+        const std::string& getSpdFileName() const;
         const std::string& getName() const;
 
         void addImplementation(ImplementationInfo* impl);
