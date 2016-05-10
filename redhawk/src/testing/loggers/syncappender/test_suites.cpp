@@ -183,6 +183,8 @@ test_suite_three::tearDown()
 
   boost::filesystem::path dir("./logs");
   boost::filesystem::remove_all(dir);
+  boost::filesystem::path d2("./tmp");
+  boost::filesystem::remove_all(d2);
 
 }
 
@@ -220,3 +222,19 @@ test_suite_three::test_cleanmem_missing()
   
 }
 
+
+
+void 
+test_suite_three::test_cleanmem_path()
+{
+  LOG4CXX_INFO(logger, "RH_SyncRollingAppender - BEGIN ");
+
+  // Set up a simple configuration that logs on the console.
+  log4cxx::PropertyConfigurator::configure("log4j.appender2" );
+
+  int ret=system("./cleanmem tmp/MP_RedhawkTest");
+
+  CPPUNIT_ASSERT_EQUAL( ret, 0);
+  
+  
+}

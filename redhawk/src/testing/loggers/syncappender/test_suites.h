@@ -45,6 +45,7 @@ class test_suite_three : public CppUnit::TestFixture
   CPPUNIT_TEST_SUITE( test_suite_three );
   CPPUNIT_TEST( test_cleanmem );
   CPPUNIT_TEST_EXCEPTION( test_cleanmem_missing, boost::interprocess::interprocess_exception );
+  CPPUNIT_TEST( test_cleanmem_path );
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -52,6 +53,7 @@ public:
   void tearDown();
 
   void test_cleanmem();
+  void test_cleanmem_path();
   void test_cleanmem_missing();
 
   log4cxx::LoggerPtr logger;

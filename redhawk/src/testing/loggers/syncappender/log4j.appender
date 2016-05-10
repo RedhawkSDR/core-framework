@@ -30,6 +30,5 @@ log4j.appender.mp.File=MP_RedhawkTest
 log4j.appender.mp.Cleanup=False
 log4j.appender.mp.layout=org.apache.log4j.PatternLayout
 log4j.appender.mp.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L - %m%n
-
  
 

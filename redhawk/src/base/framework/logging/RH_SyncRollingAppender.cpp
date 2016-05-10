@@ -32,7 +32,7 @@
 #include <log4cxx/rolling/fixedwindowrollingpolicy.h>
 #include <log4cxx/rolling/sizebasedtriggeringpolicy.h>
 
-
+#include <boost/algorithm/string.hpp>
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -115,7 +115,8 @@ RH_SyncRollingAppender::~RH_SyncRollingAppender() {
     if ( cleanup ) {
       _LL_DEBUG( "RH_SyncRollingAppender::DTPR clean up sharedg memory for: <" << sync_ctx->fname << "> " << pid << "\n" );  
       // clean up shared memory opbject
-      ipc::shared_memory_object::remove(sync_ctx->fname);
+      std::string fname=_clean_fname(sync_ctx->fname);
+      ipc::shared_memory_object::remove(fname.c_str());
     }
     else {
       _LL_WARN( "RH_SyncRollingAppender: LEAVING SHARED MEMORY KEY <" << sync_ctx->fname << "> " << pid << "\n" );  
@@ -125,16 +126,21 @@ RH_SyncRollingAppender::~RH_SyncRollingAppender() {
   _LL_DEBUG( "RH_SyncRollingAppender::DTOR END " << pid );  
 }
 
+std::string RH_SyncRollingAppender::_clean_fname( const std::string &fname ) {
+  return boost::replace_all_copy( fname, "/", "-" );
+}
+
 int  RH_SyncRollingAppender::_get_mem( const std::string &fname) {
 
   int retval=0;
   created = false;
+  std::string clean_fname =_clean_fname(fname);
 
   // use the file name as the key for the shared memory segment...
   try {
     ipc::shared_memory_object shm_obj
       (ipc::create_only,                   //only create
-       fname.c_str(),                      //name
+       clean_fname.c_str(),                      //name
        ipc::read_write                     //read-write mode
        );
     
@@ -150,7 +156,7 @@ int  RH_SyncRollingAppender::_get_mem( const std::string &fname) {
     _LL_DEBUG( "RH_SyncRollingAppender::get_mem  Attach to Existing <" << fname << ">"  );  
     ipc::shared_memory_object shm_obj
       (ipc::open_only,                  //only create
-       fname.c_str(),                   //name
+       clean_fname.c_str(),                   //name
        ipc::read_write                  //read-write mode
        );
 

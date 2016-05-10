@@ -89,6 +89,9 @@ namespace log4cxx
 
     int _get_mem( const std::string &fname );
 
+    // remove special characters from filename for shared memory context
+    std::string _clean_fname( const std::string &fname );
+
     //  prevent copy and assignment statements
     RH_SyncRollingAppender(const RH_SyncRollingAppender&);
     RH_SyncRollingAppender& operator=(const RH_SyncRollingAppender&);
