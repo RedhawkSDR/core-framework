@@ -738,9 +738,8 @@ void createHelper::_resolveImplementations(PlacementList::iterator comp, Placeme
     if (comp == compList.end()) {
         return;
     }
-    ossie::ImplementationInfo::List comp_imps;
+    const ossie::ImplementationInfo::List& comp_imps = (*comp)->getImplementations();
     std::vector<ossie::ImplementationInfo::List> tmp_res_vec = res_vec;
-    (*comp)->getImplementations(comp_imps);
     unsigned int old_res_vec_size = res_vec.size();
     if (old_res_vec_size == 0) {
         res_vec.resize(comp_imps.size());
@@ -1624,10 +1623,6 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
                                                             DeviceAssignmentList &appAssignedDevs,
                                                             const std::string& appIdentifier)
 {
-    // get the implementations from the component
-    ossie::ImplementationInfo::List  implementations;
-    component->getImplementations(implementations);
-
     CF::Properties configureProperties = component->getConfigureProperties();
     const CF::Properties &construct_props = component->getConstructProperties();
     unsigned int configlen = configureProperties.length();
@@ -1659,6 +1654,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
     }
     
     // now attempt to find an implementation that can have it's allocation requirements met
+    const ossie::ImplementationInfo::List& implementations = component->getImplementations();
     for (size_t implCount = 0; implCount < implementations.size(); implCount++) {
         ossie::ImplementationInfo* impl = implementations[implCount];
 
@@ -2072,8 +2068,7 @@ bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployme
 ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg,
                                                                         ossie::DeviceNode& device)
 {
-    ossie::ImplementationInfo::List spd_list;
-    softpkg->getImplementations(spd_list);
+    const ossie::ImplementationInfo::List& spd_list = softpkg->getImplementations();
 
     for (size_t implCount = 0; implCount < spd_list.size(); implCount++) {
         ossie::ImplementationInfo* implementation = spd_list[implCount];
@@ -2763,7 +2758,7 @@ void createHelper::waitForComponentRegistration()
         ostringstream eout;
         for (unsigned int req_idx = 0; req_idx < _deployments.size(); req_idx++) {
             ossie::ComponentDeployment* deployment = _deployments[req_idx];
-            ossie::ComponentInfo* component = deployment->getComponent();
+            const ossie::ComponentInfo* component = deployment->getComponent();
             if (expected_components.count(component->getIdentifier())) {
                 eout << "Timed out waiting for component to register: '" << component->getName()
                      << "' with component id: '" << component->getIdentifier()

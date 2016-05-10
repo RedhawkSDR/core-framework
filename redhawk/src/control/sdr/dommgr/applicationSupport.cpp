@@ -437,9 +437,9 @@ void SoftpkgInfo::addImplementation(ImplementationInfo* impl)
     _implementations.push_back(impl);
 }
 
-void SoftpkgInfo::getImplementations(ImplementationInfo::List& res)
+const ImplementationInfo::List& SoftpkgInfo::getImplementations() const
 {
-    std::copy(_implementations.begin(), _implementations.end(), std::back_inserter(res));
+    return _implementations;
 }
 
 const UsesDeviceInfo* SoftpkgInfo::getUsesDeviceById(const std::string& id) const

@@ -182,7 +182,7 @@ namespace ossie
         const std::string& getName() const;
 
         void addImplementation(ImplementationInfo* impl);
-        void getImplementations(ImplementationInfo::List& res);
+        const ImplementationInfo::List& getImplementations() const;
 
         virtual const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
 
