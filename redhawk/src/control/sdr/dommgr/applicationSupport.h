@@ -235,8 +235,6 @@ namespace ossie
 
         const std::string& getInstantiationIdentifier() const;
         const std::string& getIdentifier() const;
-        const boost::shared_ptr<DeviceNode>& getAssignedDevice() const;
-        const char* getAssignedDeviceId();
         bool isNamingService() const;
         const char* getUsageName() const;
         const char* getNamingServiceName() const;
@@ -274,8 +272,6 @@ namespace ossie
         bool _isConfigurable;
         bool _isScaCompliant;
         bool _isNamingService;
-
-        boost::shared_ptr<DeviceNode> assignedDevice;
 
         std::string usageName;
         std::string identifier;

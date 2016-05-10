@@ -579,8 +579,7 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileManager_ptr 
 ComponentInfo::ComponentInfo(const std::string& spdFileName) :
     SoftpkgInfo(spdFileName),
     _isAssemblyController(false),
-    _isScaCompliant(true),
-    assignedDevice()
+    _isScaCompliant(true)
 {
     nicAssignment = "";
     // load common affinity property definitions 
@@ -739,20 +738,6 @@ const std::string& ComponentInfo::getIdentifier() const
     return identifier;
 }
 
-const boost::shared_ptr<ossie::DeviceNode>& ComponentInfo::getAssignedDevice() const
-{
-    return assignedDevice;
-}
-
-const char* ComponentInfo::getAssignedDeviceId()
-{
-    if (assignedDevice) {
-        return assignedDevice->identifier.c_str();
-    } else {
-        return "";
-    }
-}
-
 bool ComponentInfo::isNamingService() const
 {
     return _isNamingService;
@@ -792,11 +777,6 @@ bool ComponentInfo::isAssemblyController() const
 bool ComponentInfo::isScaCompliant() const
 {
     return _isScaCompliant;
-}
-
-bool ComponentInfo::isAssignedToDevice() const
-{
-    return assignedDevice;
 }
 
 bool ComponentInfo::checkStruct(const CF::Properties &props) const
