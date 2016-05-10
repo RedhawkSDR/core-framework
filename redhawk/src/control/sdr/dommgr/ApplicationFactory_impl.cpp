@@ -693,7 +693,14 @@ void createHelper::assignRemainingComponentsToDevices(const std::string &appIden
          componentIter != _requiredComponents.end(); 
          componentIter++)
     {
-        if (!(*componentIter)->isAssignedToDevice()) {
+        boost::shared_ptr<DeviceNode> assignedDevice;
+        for (std::vector<ossie::ComponentDeployment*>::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
+            if ((*ii)->getComponent() == (*componentIter)) {
+                assignedDevice = (*ii)->getAssignedDevice();
+                break;
+            }
+        }
+        if (!assignedDevice) {
             ossie::ComponentDeployment* deployment = allocateComponent(*componentIter, std::string(), _appUsedDevs, appIdentifier);
             _deployments.push_back(deployment);
         }
@@ -1021,14 +1028,21 @@ void createHelper::_getComponentsToPlace(
                   "Collocated component " <<
                         component->getInstantiationIdentifier());
 
-        if (component->isAssignedToDevice()) {
+        boost::shared_ptr<DeviceNode> assignedDevice;
+        for (std::vector<ossie::ComponentDeployment*>::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
+            if ((*ii)->getComponent() == component) {
+                assignedDevice = (*ii)->getAssignedDevice();
+                break;
+            }
+        }
+        if (assignedDevice) {
             // This component is already assigned to a device; for collocating
             // other components, the pre-assigned devices are used in the order
             // they are encountered.
             LOG_TRACE(ApplicationFactory_impl,
                       "Already assigned to device " <<
-                      component->getAssignedDeviceId());
-            assignedDevices.push_back( component->getAssignedDeviceId() );
+                      assignedDevice->identifier);
+            assignedDevices.push_back(assignedDevice->identifier);
         } else {
             // This component needs to be assigned to a device.
             placingComponents.push_back(component);
