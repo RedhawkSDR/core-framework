@@ -686,9 +686,12 @@ void createHelper::_configureComponents()
         CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, "Configure of component failed (unclear where in the process this occurred)"))
 }
 
-void createHelper::assignPlacementsToDevices(const std::string& appIdentifier, const DeviceAssignmentMap& devices)
+void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
+                                             const std::string& appIdentifier, const DeviceAssignmentMap& devices)
 {
-    for (PlacementPlanList::iterator plan = _placements.begin(); plan != _placements.end(); ++plan) {
+    typedef ossie::ApplicationPlacement::PlacementList PlacementPlanList;
+    const PlacementPlanList& placements = appPlacement.getPlacements();
+    for (PlacementPlanList::const_iterator plan = placements.begin(); plan != placements.end(); ++plan) {
         const std::vector<ComponentInfo*>& components = (*plan)->getComponents();
         if (components.size() > 1) {
             LOG_TRACE(ApplicationFactory_impl, "Placing host collocation " << (*plan)->getId()
@@ -1347,7 +1350,8 @@ throw (CORBA::SystemException,
 
         //////////////////////////////////////////////////
         // Load the components to instantiate from the SAD
-        getRequiredComponents();
+        ossie::ApplicationPlacement placement;
+        getRequiredComponents(placement);
 
         ossie::ComponentInfo* assemblyControllerComponent = getAssemblyController();
         if (assemblyControllerComponent) {
@@ -1385,7 +1389,7 @@ throw (CORBA::SystemException,
         _validateDAS(deviceAssignments);
 
         // Assign all components to devices
-        assignPlacementsToDevices(appIdentifier, deviceAssignments);
+        assignPlacementsToDevices(placement, appIdentifier, deviceAssignments);
 
         ////////////////////////////////////////////////
         // Create the Application servant
@@ -2149,7 +2153,7 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(const ComponentPlacement&
 /* Create a vector of all the components for the SAD associated with this App Factory
  *  - Get component information from the SAD and store in _requiredComponents vector
  */
-void createHelper::getRequiredComponents()
+void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlacement)
 {
     TRACE_ENTER(ApplicationFactory_impl);
 
@@ -2160,7 +2164,7 @@ void createHelper::getRequiredComponents()
         LOG_TRACE(ApplicationFactory_impl, "Building component info for host collocation "
                   << collocation.getID());
         ossie::PlacementPlan* plan = new ossie::PlacementPlan(collocation.getID(), collocation.getName());
-        _placements.push_back(plan);
+        appPlacement.addPlacement(plan);
 
         const std::vector<ComponentPlacement>& placements = collocations[index].getComponents();
         for (unsigned int i = 0; i < placements.size(); i++) {
@@ -2174,7 +2178,7 @@ void createHelper::getRequiredComponents()
     const std::vector<ComponentPlacement>& componentsFromSAD = _appFact._sadParser.getComponentPlacements();
     for (unsigned int i = 0; i < componentsFromSAD.size(); i++) {
         ossie::PlacementPlan* plan = new ossie::PlacementPlan();
-        _placements.push_back(plan);
+        appPlacement.addPlacement(plan);
         ossie::ComponentInfo* component = buildComponentInfo(componentsFromSAD[i]);
         plan->addComponent(component);
         _requiredComponents.push_back(component);
@@ -3126,10 +3130,7 @@ createHelper::~createHelper()
         delete (*comp);
     }
     _requiredComponents.clear();
-    for (PlacementPlanList::iterator plan = _placements.begin(); plan != _placements.end(); ++plan) {
-        delete (*plan);
-    }
-    _placements.clear();
+
     for (DeploymentList::iterator depl = _deployments.begin(); depl != _deployments.end(); ++depl) {
         delete (*depl);
     }

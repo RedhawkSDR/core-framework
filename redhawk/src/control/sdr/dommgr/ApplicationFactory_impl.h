@@ -204,9 +204,6 @@ private:
 
     ossie::ApplicationInfo _appInfo;
 
-    typedef std::vector<ossie::PlacementPlan*> PlacementPlanList;
-    PlacementPlanList _placements;
-
     typedef std::vector<ossie::ComponentDeployment*> DeploymentList;
     DeploymentList _deployments;
 
@@ -214,7 +211,9 @@ private:
     ossie::ComponentInfo* getAssemblyController();
     void overrideExternalProperties(const CF::Properties& initConfiguration);
     void overrideProperties(const CF::Properties& initConfiguration, ossie::ComponentInfo* component);
-    void assignPlacementsToDevices(const std::string& appIdentifier, const DeviceAssignmentMap& devices);
+    void assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
+                                   const std::string& appIdentifier,
+                                   const DeviceAssignmentMap& devices);
     void _validateDAS(const DeviceAssignmentMap& deviceAssignments);
     void _getComponentsToPlace(
         const std::vector<ossie::ComponentPlacement>& collocatedComponents,
@@ -241,7 +240,7 @@ private:
     CF::DataType castProperty(const ossie::ComponentProperty* property);
 
     // Populate _requiredComponents vector
-    void getRequiredComponents();
+    void getRequiredComponents(ossie::ApplicationPlacement& appPlacement);
     ossie::ComponentInfo* buildComponentInfo(const ossie::ComponentPlacement& component);
 
     // Supports allocation

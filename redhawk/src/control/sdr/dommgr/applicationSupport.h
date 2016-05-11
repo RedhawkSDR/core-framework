@@ -350,5 +350,21 @@ namespace ossie
         std::vector<ComponentInfo*> components;
     };
 
+    class ApplicationPlacement
+    {
+    public:
+        typedef std::vector<PlacementPlan*> PlacementList;
+
+        ApplicationPlacement();
+        ~ApplicationPlacement();
+
+        void addPlacement(PlacementPlan* placement);
+
+        const PlacementList& getPlacements() const;
+
+    protected:
+        PlacementList placements;
+    };
+
 }
 #endif

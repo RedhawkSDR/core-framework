@@ -1049,3 +1049,24 @@ void PlacementPlan::addComponent(ComponentInfo* component)
 {
     components.push_back(component);
 }
+
+ApplicationPlacement::ApplicationPlacement()
+{
+}
+
+ApplicationPlacement::~ApplicationPlacement()
+{
+    for (std::vector<PlacementPlan*>::iterator place = placements.begin(); place != placements.end(); ++place) {
+        delete (*place);
+    }
+}
+
+void ApplicationPlacement::addPlacement(PlacementPlan* placement)
+{
+    placements.push_back(placement);
+}
+
+const std::vector<PlacementPlan*>& ApplicationPlacement::getPlacements() const
+{
+    return placements;
+}
