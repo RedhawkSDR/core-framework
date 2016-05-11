@@ -30,6 +30,7 @@
 #include "applicationSupport.h"
 
 namespace ossie {
+
     class SoftpkgDeployment
     {
     public:
@@ -86,6 +87,22 @@ namespace ossie {
 
         std::string nicAssignment;
         redhawk::PropertyMap affinityOptions;
+    };
+
+    class ApplicationDeployment
+    {
+    public:
+        typedef std::vector<ComponentDeployment*> ComponentList;
+
+        ApplicationDeployment();
+        ~ApplicationDeployment();
+
+        void addComponentDeployment(ComponentDeployment* deployment);
+        const ComponentList& getComponentDeployments();
+        ComponentDeployment* getComponentDeployment(const std::string& instantiationId);
+
+    protected:
+        ComponentList components;
     };
 }
 

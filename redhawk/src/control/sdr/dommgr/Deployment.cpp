@@ -210,3 +210,35 @@ CF::Resource_ptr ComponentDeployment::getResourcePtr() const
 {
     return CF::Resource::_duplicate(resource);
 }
+
+ApplicationDeployment::ApplicationDeployment()
+{
+}
+
+ApplicationDeployment::~ApplicationDeployment()
+{
+    for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
+        delete *comp;
+    }
+}
+
+void ApplicationDeployment::addComponentDeployment(ComponentDeployment* deployment)
+{
+    components.push_back(deployment);
+}
+
+const ApplicationDeployment::ComponentList& ApplicationDeployment::getComponentDeployments()
+{
+    return components;
+}
+
+ComponentDeployment* ApplicationDeployment::getComponentDeployment(const std::string& instantiationId)
+{
+    for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
+        if (instantiationId == (*comp)->getComponent()->getInstantiationIdentifier()) {
+            return *comp;
+        }
+    }
+
+    return 0;
+}

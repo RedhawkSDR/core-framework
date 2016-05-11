@@ -709,7 +709,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPla
                           << " is assigned to device " << assigned_device);
             }
             ossie::ComponentDeployment* deployment = allocateComponent(component, assigned_device, _appUsedDevs, appIdentifier);
-            _deployments.push_back(deployment);
+            _appDeployment.addComponentDeployment(deployment);
         }
     }
 }
@@ -967,7 +967,7 @@ void createHelper::_placeHostCollocation(const std::string &appIdentifier,
                     continue;
                 }
                 collocAssignedDevs[i].deviceAssignment.componentId = (*comp)->getIdentifier().c_str();
-                _deployments.push_back(deployment);
+                _appDeployment.addComponentDeployment(deployment);
             }
             
             // Move the device to the front of the list
@@ -1370,7 +1370,7 @@ throw (CORBA::SystemException,
         CF::Resource_var assemblyController;
         if (assemblyControllerComponent) {
             const std::string& assemblyControllerId = assemblyControllerComponent->getInstantiationIdentifier();
-            ossie::ComponentDeployment* deployment = findComponentDeployment(assemblyControllerId);
+            ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(assemblyControllerId);
             assemblyController = deployment->getResourcePtr();
         }
         _checkAssemblyController(assemblyController, assemblyControllerComponent);
@@ -2197,17 +2197,6 @@ ossie::ComponentInfo* createHelper::findComponentByInstantiationId(const std::st
     return 0;
 }
 
-ossie::ComponentDeployment* createHelper::findComponentDeployment(const std::string& instantiationId)
-{
-    for (DeploymentList::iterator deployment = _deployments.begin(); deployment != _deployments.end(); ++deployment) {
-        if (instantiationId == (*deployment)->getComponent()->getInstantiationIdentifier()) {
-            return (*deployment);
-        }
-    }
-
-    return 0;
-}
-
 /* Given a waveform/application name, return a unique waveform naming context
  *  - Returns a unique waveform naming context
  *  THIS FUNCTION IS NOT THREAD SAFE
@@ -2302,12 +2291,13 @@ void createHelper::loadDependencies(const ossie::ComponentInfo& component,
  */
 void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg)
 {
-    LOG_TRACE(ApplicationFactory_impl, "Loading and Executing " << _deployments.size() << " components");
+    const DeploymentList& deployments = _appDeployment.getComponentDeployments();
+    LOG_TRACE(ApplicationFactory_impl, "Loading and Executing " << deployments.size() << " components");
     // apply application affinity options to required components
     applyApplicationAffinityOptions();
 
-    for (unsigned int rc_idx = 0; rc_idx < _deployments.size (); rc_idx++) {
-        ossie::ComponentDeployment* deployment = _deployments[rc_idx];
+    for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
+        ossie::ComponentDeployment* deployment = deployments[rc_idx];
         ossie::ComponentInfo* component = deployment->getComponent();
         const ossie::ImplementationInfo* implementation = deployment->getImplementation();
 
@@ -2659,16 +2649,17 @@ void createHelper::applyApplicationAffinityOptions() {
       // Promote NIC affinity for all components deployed on the same device
       //
       boost::shared_ptr<ossie::DeviceNode> deploy_on_device;
-      for (unsigned int rc_idx = 0; rc_idx < _deployments.size(); rc_idx++) {
-          ossie::ComponentDeployment* deployment = _deployments[rc_idx];
+      const DeploymentList& deployments = _appDeployment.getComponentDeployments();
+      for (unsigned int rc_idx = 0; rc_idx < deployments.size(); rc_idx++) {
+          ossie::ComponentDeployment* deployment = deployments[rc_idx];
           if (!(deployment->getNicAssignment().empty())) {
               deploy_on_device = deployment->getAssignedDevice();
           }
       }
 
       if (deploy_on_device) {
-          for (unsigned int rc_idx = 0; rc_idx < _deployments.size (); rc_idx++) {
-              ossie::ComponentDeployment* deployment = _deployments[rc_idx];
+          for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
+              ossie::ComponentDeployment* deployment = deployments[rc_idx];
               boost::shared_ptr<ossie::DeviceNode> dev = deployment->getAssignedDevice();
               // for matching device deployments then apply nic affinity settings
               if (dev->identifier == deploy_on_device->identifier) {
@@ -2688,7 +2679,8 @@ void createHelper::waitForComponentRegistration()
     // Track only SCA-compliant components; non-compliant components will never
     // register with the application, nor do they need to be initialized
     std::set<std::string> expected_components;
-    for (DeploymentList::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
+    const DeploymentList& deployments = _appDeployment.getComponentDeployments();
+    for (DeploymentList::const_iterator ii = deployments.begin(); ii != deployments.end(); ++ii) {
         ossie::ComponentInfo* component = (*ii)->getComponent();
         if (component->isScaCompliant()) {
             expected_components.insert(component->getIdentifier());
@@ -2703,8 +2695,8 @@ void createHelper::waitForComponentRegistration()
         time_t elapsed = time(NULL)-start;
         LOG_ERROR(ApplicationFactory_impl, "Timed out waiting for component to bind to naming context (" << elapsed << "s elapsed)");
         ostringstream eout;
-        for (unsigned int req_idx = 0; req_idx < _deployments.size(); req_idx++) {
-            ossie::ComponentDeployment* deployment = _deployments[req_idx];
+        for (unsigned int req_idx = 0; req_idx < deployments.size(); req_idx++) {
+            ossie::ComponentDeployment* deployment = deployments[req_idx];
             const ossie::ComponentInfo* component = deployment->getComponent();
             if (expected_components.count(component->getIdentifier())) {
                 eout << "Timed out waiting for component to register: '" << component->getName()
@@ -2727,15 +2719,16 @@ void createHelper::waitForComponentRegistration()
 void createHelper::initializeComponents()
 {
     // Install the different components in the system
-    LOG_TRACE(ApplicationFactory_impl, "initializing " << _deployments.size() << " waveform components")
+    const DeploymentList& deployments = _appDeployment.getComponentDeployments();
+    LOG_TRACE(ApplicationFactory_impl, "initializing " << deployments.size() << " waveform components")
 
     // Resize the _startSeq vector to the right size
     _startSeq.resize(_startOrderIds.size());
     
     CF::Components_var app_registeredComponents = _application->registeredComponents();
 
-    for (unsigned int rc_idx = 0; rc_idx < _deployments.size (); rc_idx++) {
-        ossie::ComponentDeployment* deployment = _deployments[rc_idx];
+    for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
+        ossie::ComponentDeployment* deployment = deployments[rc_idx];
         const ossie::ComponentInfo* component = deployment->getComponent();
 
         // If the component is non-SCA compliant then we don't expect anything beyond this
@@ -2896,7 +2889,8 @@ void createHelper::configureComponents()
 {
     DeploymentList configure_list;
     ossie::ComponentDeployment* ac_deployment = 0;
-    for (DeploymentList::iterator depl = _deployments.begin(); depl != _deployments.end(); ++depl) {
+    const DeploymentList& deployments = _appDeployment.getComponentDeployments();
+    for (DeploymentList::const_iterator depl = deployments.begin(); depl != deployments.end(); ++depl) {
         const ossie::ComponentInfo* component = (*depl)->getComponent();
         if (!component->isScaCompliant()) {
             // If the component is non-SCA compliant then we don't expect anything beyond this
@@ -3071,11 +3065,6 @@ createHelper::~createHelper()
         delete (*comp);
     }
     _requiredComponents.clear();
-
-    for (DeploymentList::iterator depl = _deployments.begin(); depl != _deployments.end(); ++depl) {
-        delete (*depl);
-    }
-    _deployments.clear();
 }
 
 void createHelper::_cleanupFailedCreate()
@@ -3114,7 +3103,7 @@ void createHelper::_cleanupFailedCreate()
  */
 CF::Resource_ptr createHelper::lookupComponentByInstantiationId(const std::string& identifier)
 {
-    ossie::ComponentDeployment* deployment = findComponentDeployment(identifier);
+    ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(identifier);
     if (deployment) {
         return deployment->getResourcePtr();
     }
@@ -3129,7 +3118,7 @@ CF::Device_ptr createHelper::lookupDeviceThatLoadedComponentInstantiationId(cons
 {
     LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Lookup device that loaded component " << componentId);
 
-    ossie::ComponentDeployment* deployment = findComponentDeployment(componentId);
+    ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(componentId);
     if (!deployment) {
         LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] Component not found");
         return CF::Device::_nil();
@@ -3151,7 +3140,7 @@ CF::Device_ptr createHelper::lookupDeviceThatLoadedComponentInstantiationId(cons
 CF::Device_ptr createHelper::lookupDeviceUsedByComponentInstantiationId(const std::string& componentId, const std::string& usesId)
 {
     LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Lookup device used by component " << componentId);
-    ossie::ComponentDeployment* deployment = findComponentDeployment(componentId.c_str());
+    ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(componentId);
     if (!deployment) {
         LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] Component not found");
         return CF::Device::_nil();
