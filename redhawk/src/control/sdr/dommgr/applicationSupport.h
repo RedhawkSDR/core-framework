@@ -221,6 +221,7 @@ namespace ossie
         void setIsScaCompliant(bool isScaCompliant);
         void setAffinity( const AffinityProperties &affinity );
         void setLoggingConfig( const LoggingConfig &logcfg );
+        void setStartOrder(int index);
 
         void addFactoryParameter(CF::DataType dt);
         void addExecParameter(CF::DataType dt);
@@ -240,6 +241,8 @@ namespace ossie
         bool isConfigurable() const;
         bool isAssemblyController() const;
         bool isScaCompliant() const;
+        bool hasStartOrder() const;
+        int getStartOrder() const;
 
         bool isAssignedToDevice() const;
         CF::Properties containsPartialStructConfig() const;
@@ -273,6 +276,7 @@ namespace ossie
         std::string identifier;
         std::string instantiationId;
         std::string namingServiceName;
+        int startOrder;
 
         ossie::Properties _affinity_prf;
         LoggingConfig    loggingConfig;

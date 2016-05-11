@@ -239,7 +239,8 @@ private:
     CF::DataType castProperty(const ossie::ComponentProperty* property);
 
     // Populate _requiredComponents vector
-    void getRequiredComponents() throw (CF::ApplicationFactory::CreateApplicationError); 
+    void getRequiredComponents();
+    ossie::ComponentInfo* buildComponentInfo(const ossie::ComponentPlacement& component);
 
     // Supports allocation
     bool allocateUsesDevices(const std::string& componentIdentifier,

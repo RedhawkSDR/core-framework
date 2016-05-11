@@ -2087,11 +2087,91 @@ ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::S
     return 0;
 }
 
+ossie::ComponentInfo* createHelper::buildComponentInfo(const ComponentPlacement& component)
+{
+    // Extract required data from SPD file
+    ossie::ComponentInfo* newComponent = 0;
+    LOG_TRACE(ApplicationFactory_impl, "Getting the SPD Filename");
+    const char *spdFileName = _appFact._sadParser.getSPDById(component.getFileRefId());
+    if (spdFileName == NULL) {
+        ostringstream eout;
+        eout << "The SPD file reference for componentfile "<<component.getFileRefId()<<" is missing";
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
+    }
+    LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File");
+    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(_appFact._fileMgr, spdFileName);
+    if (newComponent == 0) {
+        ostringstream eout;
+        eout << "Error loading component information for file ref " << component.getFileRefId();
+        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
+    }
+
+    LOG_TRACE(ApplicationFactory_impl, "Done building Component Info From SPD File")
+    // Even though it is possible for there to be more than one instantiation per component,
+    //  the tooling doesn't support that, so supporting this at a framework level would add
+    //  substantial complexity without providing any appreciable improvements. It is far
+    //  easier to have multiple placements rather than multiple instantiations.
+    const vector<ComponentInstantiation>& instantiations = component.getInstantiations();
+
+    const ComponentInstantiation& instance = instantiations[0];
+
+    ostringstream identifier;
+    identifier << instance.getID();
+    // Violate SR:172, we use the uniquified name rather than the passed in name
+    identifier << ":" << _waveformContextName;
+    newComponent->setIdentifier(identifier.str().c_str(), instance.getID());
+
+    newComponent->setNamingService(instance.isNamingService());
+
+    if (newComponent->isNamingService()) {
+        ostringstream nameBinding;
+        nameBinding << instance.getFindByNamingServiceName();
+#if UNIQUIFY_NAME_BINDING
+// DON'T USE THIS YET AS IT WILL BREAK OTHER PARTS OF REDHAWK
+        nameBinding << "_" << i;  // Add a _UniqueIdentifier, per SR:169
+#endif
+        newComponent->setNamingServiceName(nameBinding.str().c_str());  // SR:169
+    } else {
+        if (newComponent->isScaCompliant()) {
+            LOG_WARN(ApplicationFactory_impl, "component instantiation is sca compliant but does not provide a 'findcomponent' name...this is probably an error")
+        }
+    }
+
+    newComponent->setUsageName(instance.getUsageName());
+    newComponent->setAffinity( instance.getAffinity() );
+    newComponent->setLoggingConfig( instance.getLoggingConfig() );
+
+    if (strlen(instance.getStartOrder()) > 0) {
+        int start_order = atoi(instance.getStartOrder());
+        newComponent->setStartOrder(start_order);
+    }
+
+    const ossie::ComponentPropertyList & ins_prop = instance.getProperties();
+
+    int docker_image_idx = -1;
+    for (unsigned int i = 0; i < ins_prop.size(); ++i) {
+        if (ins_prop[i]._id == "__DOCKER_IMAGE__") {
+            docker_image_idx = i;
+            continue;
+        }
+        newComponent->overrideProperty(&ins_prop[i]);
+    }
+
+    if (docker_image_idx > -1) {
+        CF::Properties tmp;
+        redhawk::PropertyMap& tmpProp = redhawk::PropertyMap::cast(tmp);
+        tmpProp["__DOCKER_IMAGE__"].setValue(dynamic_cast<const SimplePropertyRef &>(ins_prop[docker_image_idx]).getValue());
+        newComponent->addExecParameter(tmpProp[0]);
+    }
+
+    return newComponent;
+}
+
 /* Create a vector of all the components for the SAD associated with this App Factory
  *  - Get component information from the SAD and store in _requiredComponents vector
  */
 void createHelper::getRequiredComponents()
- throw (CF::ApplicationFactory::CreateApplicationError)
 {
     TRACE_ENTER(ApplicationFactory_impl);
 
@@ -2099,110 +2179,28 @@ void createHelper::getRequiredComponents()
 
     const std::string assemblyControllerRefId = _appFact._sadParser.getAssemblyControllerRefId();
 
-    // Bin the start orders based on the values in the SAD. Using a map of
-    // vectors, keyed on the start order value, accounts for duplicate keys and
-    // allows assigning the effective order easily by iterating through all
-    // the values.
-    std::map<int,std::vector<std::string> > startOrders;
+    // Bin the start orders based on the values in the SAD. Using a multimap,
+    // keyed on the start order value, accounts for duplicate keys and allows
+    // assigning the effective order easily by iterating through all entries.
+    std::multimap<int,std::string> start_orders;
 
     for (unsigned int i = 0; i < componentsFromSAD.size(); i++) {
-        const ComponentPlacement& component = componentsFromSAD[i];
-        
-        // Create a list of pairs of start orders and instantiation IDs
-        for (unsigned int ii = 0; ii < component.getInstantiations().size(); ii++) {
-            // Only add a pair if a start order was provided, and the component is not the assembly controller
-            if (strcmp(component.getInstantiations()[ii].getStartOrder(), "") != 0 &&
-                    component.getInstantiations()[ii].getID() != assemblyControllerRefId) {
-                // Get the start order of the component
-                int startOrder = atoi(component.getInstantiations()[ii].getStartOrder());
-                std::string instId = component.getInstantiations()[ii].getID();
-                startOrders[startOrder].push_back(instId);
-            }
+        ossie::ComponentInfo* component = buildComponentInfo(componentsFromSAD[i]);
+
+        if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
+            component->setIsAssemblyController(true);
+        } else if (component->hasStartOrder()) {
+            // Only track start order if it was provided, and the component is
+            // not the assembly controller
+            start_orders.insert(std::make_pair(component->getStartOrder(), component->getInstantiationIdentifier()));
         }
-        
-        // Extract required data from SPD file
-        ossie::ComponentInfo* newComponent = 0;
-        LOG_TRACE(ApplicationFactory_impl, "Getting the SPD Filename")
-        const char *spdFileName = _appFact._sadParser.getSPDById(component.getFileRefId());
-        if (spdFileName == NULL) {
-            ostringstream eout;
-            eout << "The SPD file reference for componentfile "<<component.getFileRefId()<<" is missing";
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
-        }
-        LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File")
-        newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(_appFact._fileMgr, spdFileName);
-        if (newComponent == 0) {
-            ostringstream eout;
-            eout << "Error loading component information for file ref " << component.getFileRefId();
-            LOG_ERROR(ApplicationFactory_impl, eout.str())
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
-        }
-
-        LOG_TRACE(ApplicationFactory_impl, "Done building Component Info From SPD File")
-        // Even though it is possible for there to be more than one instantiation per component,
-        //  the tooling doesn't support that, so supporting this at a framework level would add
-        //  substantial complexity without providing any appreciable improvements. It is far
-        //  easier to have multiple placements rather than multiple instantiations.
-        const vector<ComponentInstantiation>& instantiations = component.getInstantiations();
-
-        const ComponentInstantiation& instance = instantiations[0];
-
-        ostringstream identifier;
-        identifier << instance.getID();
-        // Violate SR:172, we use the uniquified name rather than the passed in name
-        identifier << ":" << _waveformContextName;
-        assert(newComponent != 0);
-        newComponent->setIdentifier(identifier.str().c_str(), instance.getID());
-
-        if (newComponent->getInstantiationIdentifier() == assemblyControllerRefId) {
-            newComponent->setIsAssemblyController(true);
-        }
-
-        newComponent->setNamingService(instance.isNamingService());
-
-        if (newComponent->isNamingService()) {
-            ostringstream nameBinding;
-            nameBinding << instance.getFindByNamingServiceName();
-#if UNIQUIFY_NAME_BINDING
-// DON'T USE THIS YET AS IT WILL BREAK OTHER PARTS OF REDHAWK
-            nameBinding << "_" << i;  // Add a _UniqueIdentifier, per SR:169
-#endif
-            newComponent->setNamingServiceName(nameBinding.str().c_str());  // SR:169
-        } else {
-            if (newComponent->isScaCompliant()) {
-                LOG_WARN(ApplicationFactory_impl, "component instantiation is sca compliant but does not provide a 'findcomponent' name...this is probably an error")
-            }
-        }
-    
-        newComponent->setUsageName(instance.getUsageName());
-        newComponent->setAffinity( instance.getAffinity() );
-        newComponent->setLoggingConfig( instance.getLoggingConfig() );
-
-        const ossie::ComponentPropertyList & ins_prop = instance.getProperties();
-
-        int docker_image_idx = -1;
-        for (unsigned int i = 0; i < ins_prop.size(); ++i) {
-            if (ins_prop[i]._id == "__DOCKER_IMAGE__") {
-                docker_image_idx = i;
-                continue;
-            }
-            newComponent->overrideProperty(&ins_prop[i]);
-        }
-
-        if (docker_image_idx > -1) {
-            CF::Properties tmp;
-            redhawk::PropertyMap& tmpProp = redhawk::PropertyMap::cast(tmp);
-            tmpProp["__DOCKER_IMAGE__"].setValue(dynamic_cast<const SimplePropertyRef &>(ins_prop[docker_image_idx]).getValue());
-            newComponent->addExecParameter(tmpProp[0]);
-        }
-
-        _requiredComponents.push_back(newComponent);
+        _requiredComponents.push_back(component);
     }
 
     // Build the start order instantiation ID vector in the right order
     _startOrderIds.clear();
-    for (std::map<int,std::vector<std::string> >::iterator ii = startOrders.begin(); ii != startOrders.end(); ++ii) {
-        _startOrderIds.insert(_startOrderIds.end(), ii->second.begin(), ii->second.end());
+    for (std::multimap<int,std::string>::iterator ii = start_orders.begin(); ii != start_orders.end(); ++ii) {
+        _startOrderIds.push_back(ii->second);
     }
 
     TRACE_EXIT(ApplicationFactory_impl);
