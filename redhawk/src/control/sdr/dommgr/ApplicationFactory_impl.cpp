@@ -686,36 +686,38 @@ void createHelper::_configureComponents()
         CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, "Configure of component failed (unclear where in the process this occurred)"))
 }
 
-void createHelper::assignRemainingComponentsToDevices(const std::string &appIdentifier)
+void createHelper::assignPlacementsToDevices(const std::string& appIdentifier, const DeviceAssignmentMap& devices)
 {
-    PlacementList::iterator componentIter;
-    for (componentIter  = _requiredComponents.begin(); 
-         componentIter != _requiredComponents.end(); 
-         componentIter++)
-    {
-        boost::shared_ptr<DeviceNode> assignedDevice;
-        for (DeploymentList::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
-            if ((*ii)->getComponent() == (*componentIter)) {
-                assignedDevice = (*ii)->getAssignedDevice();
-                break;
+    for (PlacementPlanList::iterator plan = _placements.begin(); plan != _placements.end(); ++plan) {
+        const std::vector<ComponentInfo*>& components = (*plan)->getComponents();
+        if (components.size() > 1) {
+            LOG_TRACE(ApplicationFactory_impl, "Placing host collocation " << (*plan)->getId()
+                      << " " << (*plan)->getName());
+            _placeHostCollocation(appIdentifier, components, devices);
+            LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
+                      << (*plan)->getId() << " Components Placed: " << components.size());
+        } else {
+            ComponentInfo* component = components[0];
+            std::string assigned_device;
+            DeviceAssignmentMap::const_iterator device = devices.find(component->getInstantiationIdentifier());
+            if (device != devices.end()) {
+                assigned_device = device->second;
+                LOG_TRACE(ApplicationFactory_impl, "Component " << component->getInstantiationIdentifier()
+                          << " is assigned to device " << assigned_device);
             }
-        }
-        if (!assignedDevice) {
-            ossie::ComponentDeployment* deployment = allocateComponent(*componentIter, std::string(), _appUsedDevs, appIdentifier);
+            ossie::ComponentDeployment* deployment = allocateComponent(component, assigned_device, _appUsedDevs, appIdentifier);
             _deployments.push_back(deployment);
         }
     }
 }
 
-void createHelper::_assignComponentsUsingDAS(const DeviceAssignmentMap& deviceAssignments, const std::string &appIdentifier)
+void createHelper::_validateDAS(const DeviceAssignmentMap& deviceAssignments)
 {
-    LOG_TRACE(ApplicationFactory_impl, "Assigning " << deviceAssignments.size() 
-              << " component(s) based on DeviceAssignmentSequence");
-
+    LOG_TRACE(ApplicationFactory_impl, "Validating device assignment sequence (length "
+              << deviceAssignments.size() << ")");
     for (DeviceAssignmentMap::const_iterator ii = deviceAssignments.begin(); ii != deviceAssignments.end(); ++ii) {
         const std::string& componentId = ii->first;
         const std::string& assignedDeviceId = ii->second;
-        LOG_TRACE(ApplicationFactory_impl, "Component " << componentId << " is assigned to device " << assignedDeviceId);
         ossie::ComponentInfo* component = findComponentByInstantiationId(componentId);
 
         if (!component) {
@@ -728,8 +730,6 @@ void createHelper::_assignComponentsUsingDAS(const DeviceAssignmentMap& deviceAs
             badDAS[0].assignedDeviceId = assignedDeviceId.c_str();
             throw CF::ApplicationFactory::CreateApplicationRequestError(badDAS);
         }
-        ossie::ComponentDeployment* deployment = allocateComponent(component, assignedDeviceId, _appUsedDevs, appIdentifier);
-        _deployments.push_back(deployment);
     }
 }
 
@@ -889,49 +889,30 @@ void createHelper::_consolidateAllocations(const ossie::ImplementationInfo::List
     }
 }
 
-void createHelper::_handleHostCollocation(const std::string &appIdentifier)
+void createHelper::_placeHostCollocation(const std::string &appIdentifier,
+                                         const PlacementList& collocatedComponents,
+                                         const DeviceAssignmentMap& devices)
 {
-    const std::vector<SoftwareAssembly::HostCollocation>& hostCollocations =
-        _appFact._sadParser.getHostCollocations();
-    LOG_TRACE(ApplicationFactory_impl,
-              "Assigning " << hostCollocations.size()
-                    << " collocated groups of components");
-
-    for (unsigned int ii = 0; ii < hostCollocations.size(); ++ii) {
-        _placeHostCollocation(hostCollocations[ii], appIdentifier);
-    }
-}
-
-void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation& collocation, const std::string &appIdentifier)
-{
-    LOG_TRACE(ApplicationFactory_impl,
-              "-- Begin placment for Collocation " <<
-              collocation.getName() << " " <<
-              collocation.getID());
-
-    PlacementList placingComponents;
-    std::vector<ossie::ImplementationInfo::List> res_vec;
-
-    // Some components may have been placed by a user DAS; keep a
-    // list of those that still need to be assigned to a device.
-    //PlacementList placingComponents;
-
     // Keep track of devices to which some of the components have
     // been assigned.
     DeviceIDList assignedDevices;
+    for (PlacementList::const_iterator placement = collocatedComponents.begin();
+         placement != collocatedComponents.end();
+         ++placement) {
+        DeviceAssignmentMap::const_iterator device = devices.find((*placement)->getInstantiationIdentifier());
+        if (device != devices.end()) {
+            assignedDevices.push_back(device->second);
+        }
+    }
 
-    const std::vector<ComponentPlacement>& collocatedComponents =
-        collocation.getComponents();
-
-    _getComponentsToPlace(collocatedComponents,
-                          assignedDevices,
-                          placingComponents);
+    PlacementList placingComponents = collocatedComponents;
 
     // create every combination of implementations for the components in the set
     // for each combination:
     //  consolidate allocations
     //  attempt allocation
     //  if the allocation succeeds, break the loop
+    std::vector<ossie::ImplementationInfo::List> res_vec;
     this->_resolveImplementations(placingComponents.begin(), placingComponents, res_vec);
     this->_removeUnmatchedImplementations(res_vec);
 
@@ -991,13 +972,13 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
             _appUsedDevs.insert(_appUsedDevs.end(),
                                 collocAssignedDevs.begin(),
                                 collocAssignedDevs.end());
-            LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:" << collocation.id << " Components Placed: " << collocatedComponents.size());
             return;
         }
     }
 
     std::ostringstream eout;
-    eout << "Could not collocate components for collocation NAME: " << collocation.getName() << "  ID:" << collocation.id;
+    //eout << "Could not collocate components for collocation NAME: " << collocation.getName() << "  ID:" << collocation.id;
+    eout << "Could not collocate components for collocation";
     LOG_ERROR(ApplicationFactory_impl, eout.str());
     throw CF::ApplicationFactory::CreateApplicationRequestError();
 }
@@ -1400,14 +1381,11 @@ throw (CORBA::SystemException,
         std::string appIdentifier = 
             _appFact._identifier + ":" + _waveformContextName;
 
-        // First, assign components to devices based on the caller supplied
-        // DAS.
-        _assignComponentsUsingDAS(deviceAssignments, appIdentifier);
+        // Catch invalid device assignments
+        _validateDAS(deviceAssignments);
 
-        // Second, attempt to honor host collocation.
-        _handleHostCollocation(appIdentifier);
-
-        assignRemainingComponentsToDevices(appIdentifier);
+        // Assign all components to devices
+        assignPlacementsToDevices(appIdentifier, deviceAssignments);
 
         ////////////////////////////////////////////////
         // Create the Application servant
@@ -2178,11 +2156,16 @@ void createHelper::getRequiredComponents()
     // Walk through the host collocations first
     const std::vector<SoftwareAssembly::HostCollocation>& collocations = _appFact._sadParser.getHostCollocations();
     for (size_t index = 0; index < collocations.size(); ++index) {
+        const SoftwareAssembly::HostCollocation& collocation = collocations[index];
         LOG_TRACE(ApplicationFactory_impl, "Building component info for host collocation "
-                  << collocations[index].getID());
+                  << collocation.getID());
+        ossie::PlacementPlan* plan = new ossie::PlacementPlan(collocation.getID(), collocation.getName());
+        _placements.push_back(plan);
+
         const std::vector<ComponentPlacement>& placements = collocations[index].getComponents();
         for (unsigned int i = 0; i < placements.size(); i++) {
             ossie::ComponentInfo* component = buildComponentInfo(placements[i]);
+            plan->addComponent(component);
             _requiredComponents.push_back(component);
         }
     }
@@ -2190,7 +2173,10 @@ void createHelper::getRequiredComponents()
     // Then, walk through the remaining non-collocated components
     const std::vector<ComponentPlacement>& componentsFromSAD = _appFact._sadParser.getComponentPlacements();
     for (unsigned int i = 0; i < componentsFromSAD.size(); i++) {
+        ossie::PlacementPlan* plan = new ossie::PlacementPlan();
+        _placements.push_back(plan);
         ossie::ComponentInfo* component = buildComponentInfo(componentsFromSAD[i]);
+        plan->addComponent(component);
         _requiredComponents.push_back(component);
     }
 
@@ -3140,6 +3126,10 @@ createHelper::~createHelper()
         delete (*comp);
     }
     _requiredComponents.clear();
+    for (PlacementPlanList::iterator plan = _placements.begin(); plan != _placements.end(); ++plan) {
+        delete (*plan);
+    }
+    _placements.clear();
     for (DeploymentList::iterator depl = _deployments.begin(); depl != _deployments.end(); ++depl) {
         delete (*depl);
     }

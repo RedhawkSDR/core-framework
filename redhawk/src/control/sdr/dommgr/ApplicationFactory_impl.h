@@ -204,6 +204,9 @@ private:
 
     ossie::ApplicationInfo _appInfo;
 
+    typedef std::vector<ossie::PlacementPlan*> PlacementPlanList;
+    PlacementPlanList _placements;
+
     typedef std::vector<ossie::ComponentDeployment*> DeploymentList;
     DeploymentList _deployments;
 
@@ -211,9 +214,8 @@ private:
     ossie::ComponentInfo* getAssemblyController();
     void overrideExternalProperties(const CF::Properties& initConfiguration);
     void overrideProperties(const CF::Properties& initConfiguration, ossie::ComponentInfo* component);
-    void assignRemainingComponentsToDevices(const std::string &appIdentifier);
-    void _assignComponentsUsingDAS(
-        const DeviceAssignmentMap& deviceAssignments, const std::string &appIdentifier);
+    void assignPlacementsToDevices(const std::string& appIdentifier, const DeviceAssignmentMap& devices);
+    void _validateDAS(const DeviceAssignmentMap& deviceAssignments);
     void _getComponentsToPlace(
         const std::vector<ossie::ComponentPlacement>& collocatedComponents,
         ossie::DeviceIDList&                          assignedDevices,
@@ -226,8 +228,8 @@ private:
         ossie::ComponentInfo* assemblyControllerComponent) const;
     void setUpExternalPorts(Application_impl* application);
     void setUpExternalProperties(Application_impl* application);
-    void _handleHostCollocation(const std::string &appIdentifier);
-    void _placeHostCollocation(const ossie::SoftwareAssembly::HostCollocation& collocation, const std::string &appIdentifier);
+    void _placeHostCollocation(const std::string& appIdentifier, const PlacementList& collocatedComponents,
+                               const DeviceAssignmentMap& devices);
     void _handleUsesDevices(const std::string& appName);
     void _resolveImplementations(PlacementList::iterator comp, PlacementList& compList, std::vector<ossie::ImplementationInfo::List> &res_vec);
     void _removeUnmatchedImplementations(std::vector<ossie::ImplementationInfo::List> &res_vec);

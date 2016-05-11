@@ -1019,3 +1019,33 @@ ComponentInfo* ApplicationInfo::findComponentByInstantiationId(const std::string
     }
     return 0;
 }
+
+PlacementPlan::PlacementPlan()
+{
+}
+
+PlacementPlan::PlacementPlan(const std::string& id, const std::string& name) :
+    id(id),
+    name(name)
+{
+}
+
+const std::string& PlacementPlan::getId() const
+{
+    return id;
+}
+
+const std::string& PlacementPlan::getName() const
+{
+    return name;
+}
+
+const std::vector<ComponentInfo*>& PlacementPlan::getComponents() const
+{
+    return components;
+}
+
+void PlacementPlan::addComponent(ComponentInfo* component)
+{
+    components.push_back(component);
+}
