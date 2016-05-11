@@ -315,12 +315,7 @@ namespace ossie
         ApplicationInfo();
         ~ApplicationInfo();
 
-        void setACProperties(const CF::Properties& props);
-        const CF::Properties getACProperties() const;
         void populateApplicationInfo(const SoftwareAssembly& sad);
-
-    protected:
-        CF::Properties acProps;
     };
 
 }

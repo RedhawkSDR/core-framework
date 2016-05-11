@@ -929,16 +929,6 @@ ApplicationInfo::~ApplicationInfo()
     usesDevices.clear();
 }
 
-const CF::Properties ApplicationInfo::getACProperties() const
-{
-    return acProps;
-}
-
-void ApplicationInfo::setACProperties(const CF::Properties& props)
-{
-    acProps = props;
-}
-
 void ApplicationInfo::populateApplicationInfo(const SoftwareAssembly& sad)
 {
     // Gets uses device relationships

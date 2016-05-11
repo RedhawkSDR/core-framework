@@ -992,7 +992,12 @@ void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
     // Gets all uses device info from the SAD file
     const UsesDeviceInfo::List& usesDevices = _appInfo.getUsesDevices();
     LOG_TRACE(ApplicationFactory_impl, "Application has " << usesDevices.size() << " usesdevice dependencies");
-    const CF::Properties& appProperties = _appInfo.getACProperties();
+
+    // Get the assembly controller's configure properties for context in the
+    // allocations
+    ossie::ComponentInfo* assembly_controller = appPlacement.getAssemblyController();
+    CF::Properties appProperties = assembly_controller->getConfigureProperties();
+
     // The device assignments for SAD-level usesdevices are never stored
     DeviceAssignmentList assignedDevices;
     if (!allocateUsesDevices(appName, usesDevices, appProperties, assignedDevices, this->_allocations)) {
@@ -1015,7 +1020,7 @@ void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
     }
     for (DeviceAssignmentList::iterator dev=assignedDevices.begin(); dev!=assignedDevices.end(); dev++) {
-        dev->deviceAssignment.componentId = appPlacement.getAssemblyController()->getIdentifier().c_str();
+        dev->deviceAssignment.componentId = assembly_controller->getIdentifier().c_str();
     }
     _appUsedDevs.insert(_appUsedDevs.end(), assignedDevices.begin(), assignedDevices.end());
 }
@@ -1313,12 +1318,6 @@ throw (CORBA::SystemException,
         //////////////////////////////////////////////////
         // Store information about this application
         _appInfo.populateApplicationInfo(_appFact._sadParser);
-        for (unsigned int i = 0; i < _requiredComponents.size(); ++i) {
-            ComponentInfo *comp = _requiredComponents[i];
-            if (comp->isAssemblyController()) {
-                _appInfo.setACProperties(comp->getConfigureProperties());
-            }
-        }
 
         overrideExternalProperties(modifiedInitConfiguration);
 
