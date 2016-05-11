@@ -986,7 +986,7 @@ void createHelper::_placeHostCollocation(const std::string &appIdentifier,
     throw CF::ApplicationFactory::CreateApplicationRequestError();
 }
 
-void createHelper::_handleUsesDevices(const std::string& appName)
+void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement, const std::string& appName)
 {
     // Gets all uses device info from the SAD file
     const UsesDeviceInfo::List& usesDevices = _appInfo.getUsesDevices();
@@ -1014,7 +1014,7 @@ void createHelper::_handleUsesDevices(const std::string& appName)
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
     }
     for (DeviceAssignmentList::iterator dev=assignedDevices.begin(); dev!=assignedDevices.end(); dev++) {
-        dev->deviceAssignment.componentId = getAssemblyController()->getIdentifier().c_str();
+        dev->deviceAssignment.componentId = appPlacement.getAssemblyController()->getIdentifier().c_str();
     }
     _appUsedDevs.insert(_appUsedDevs.end(), assignedDevices.begin(), assignedDevices.end());
 }
@@ -1305,7 +1305,7 @@ throw (CORBA::SystemException,
         ossie::ApplicationPlacement placement;
         getRequiredComponents(placement);
 
-        ossie::ComponentInfo* assemblyControllerComponent = getAssemblyController();
+        ossie::ComponentInfo* assemblyControllerComponent = placement.getAssemblyController();
         if (assemblyControllerComponent) {
             overrideProperties(modifiedInitConfiguration, assemblyControllerComponent);
         }
@@ -1328,7 +1328,7 @@ throw (CORBA::SystemException,
         ////////////////////////////////////////////////
 
         // Allocate any usesdevice capacities specified in the SAD file
-        _handleUsesDevices(name);
+        _handleUsesDevices(placement, name);
 
         // Give the application a unique identifier of the form 
         // "softwareassemblyid:ApplicationName", where the application 
@@ -1447,16 +1447,6 @@ throw (CORBA::SystemException,
         throw (CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Unexpected error in application creation - see log."));
     }
 
-}
-
-ossie::ComponentInfo* createHelper::getAssemblyController()
-{
-    for (PlacementList::iterator ii = _requiredComponents.begin(); ii != _requiredComponents.end(); ++ii) {
-        if ((*ii)->isAssemblyController()) {
-            return *ii;
-        }
-    }
-    return 0;
 }
 
 void createHelper::overrideExternalProperties(const CF::Properties& initConfiguration)

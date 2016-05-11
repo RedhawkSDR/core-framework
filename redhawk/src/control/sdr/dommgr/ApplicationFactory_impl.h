@@ -209,7 +209,6 @@ private:
     DeploymentList _deployments;
 
     // createHelper helper methods
-    ossie::ComponentInfo* getAssemblyController();
     void overrideExternalProperties(const CF::Properties& initConfiguration);
     void overrideProperties(const CF::Properties& initConfiguration, ossie::ComponentInfo* component);
     void assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
@@ -226,7 +225,7 @@ private:
     void setUpExternalProperties(Application_impl* application);
     void _placeHostCollocation(const std::string& appIdentifier, const PlacementList& collocatedComponents,
                                const DeviceAssignmentMap& devices);
-    void _handleUsesDevices(const std::string& appName);
+    void _handleUsesDevices(ossie::ApplicationPlacement& appPlacement, const std::string& appName);
     void _resolveImplementations(PlacementList::iterator comp, PlacementList& compList, std::vector<ossie::ImplementationInfo::List> &res_vec);
     void _removeUnmatchedImplementations(std::vector<ossie::ImplementationInfo::List> &res_vec);
     void _consolidateAllocations(const ossie::ImplementationInfo::List& implementations, CF::Properties& allocs);

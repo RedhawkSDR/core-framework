@@ -72,3 +72,17 @@ const std::vector<PlacementPlan*>& ApplicationPlacement::getPlacements() const
 {
     return placements;
 }
+
+ComponentInfo* ApplicationPlacement::getAssemblyController()
+{
+    for (PlacementList::iterator placement = placements.begin(); placement != placements.end(); ++placement) {
+        const std::vector<ComponentInfo*>& components = (*placement)->getComponents();
+        for (std::vector<ComponentInfo*>::const_iterator comp = components.begin(); comp != components.end(); ++comp) {
+            if ((*comp)->isAssemblyController()) {
+                return *comp;
+            }
+        }
+    }
+
+    return 0;
+}

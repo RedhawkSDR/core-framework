@@ -59,6 +59,8 @@ namespace ossie {
 
         const PlacementList& getPlacements() const;
 
+        ComponentInfo* getAssemblyController();
+
     protected:
         PlacementList placements;
     };
