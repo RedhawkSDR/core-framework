@@ -315,15 +315,11 @@ namespace ossie
         ApplicationInfo();
         ~ApplicationInfo();
 
-        const std::vector<SoftwareAssembly::Port>& getExternalPorts() const;
-        const std::vector<SoftwareAssembly::Property>& getExternalProperties() const;
         void setACProperties(const CF::Properties& props);
         const CF::Properties getACProperties() const;
         void populateApplicationInfo(const SoftwareAssembly& sad);
 
     protected:
-        std::vector<SoftwareAssembly::Port> externalPorts;
-        std::vector<SoftwareAssembly::Property> externalProperties;
         CF::Properties acProps;
     };
 

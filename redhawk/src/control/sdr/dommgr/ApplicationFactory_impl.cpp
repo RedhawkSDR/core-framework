@@ -1022,13 +1022,12 @@ void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
 
 void createHelper::setUpExternalPorts(Application_impl* application)
 {
-    const std::vector<SoftwareAssembly::Port>& ports =
-        _appInfo.getExternalPorts();
+    typedef std::vector<SoftwareAssembly::Port> PortList;
+    const PortList& ports = _appFact._sadParser.getExternalPorts();
     LOG_TRACE(ApplicationFactory_impl,
               "Mapping " << ports.size() << " external port(s)");
-    std::vector<SoftwareAssembly::Port>::const_iterator port;
 
-    for (port = ports.begin(); port != ports.end(); ++port) {
+    for (PortList::const_iterator port = ports.begin(); port != ports.end(); ++port) {
         LOG_TRACE(ApplicationFactory_impl,
                   "Port component: " << port->componentrefid
                         << " Port identifier: " << port->identifier);
@@ -1087,7 +1086,7 @@ void createHelper::setUpExternalPorts(Application_impl* application)
 
 void createHelper::setUpExternalProperties(Application_impl* application)
 {
-    const std::vector<SoftwareAssembly::Property>& props = _appInfo.getExternalProperties();
+    const std::vector<SoftwareAssembly::Property>& props = _appFact._sadParser.getExternalProperties();
     LOG_TRACE(ApplicationFactory_impl, "Mapping " << props.size() << " external property(ies)");
     for (std::vector<SoftwareAssembly::Property>::const_iterator prop = props.begin(); prop != props.end(); ++prop) {
         LOG_TRACE(ApplicationFactory_impl, "Property component: " << prop->comprefid << " Property identifier: " << prop->propid);
@@ -1451,7 +1450,7 @@ throw (CORBA::SystemException,
 
 void createHelper::overrideExternalProperties(const CF::Properties& initConfiguration)
 {
-    const std::vector<SoftwareAssembly::Property>& props = _appInfo.getExternalProperties();
+    const std::vector<SoftwareAssembly::Property>& props = _appFact._sadParser.getExternalProperties();
 
     for (unsigned int i = 0; i < initConfiguration.length(); ++i) {
         for (std::vector<SoftwareAssembly::Property>::const_iterator prop = props.begin(); prop != props.end(); ++prop) {

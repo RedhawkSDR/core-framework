@@ -929,16 +929,6 @@ ApplicationInfo::~ApplicationInfo()
     usesDevices.clear();
 }
 
-const std::vector<SoftwareAssembly::Port>& ApplicationInfo::getExternalPorts() const
-{
-    return externalPorts;
-}
-
-const std::vector<SoftwareAssembly::Property>& ApplicationInfo::getExternalProperties() const
-{
-    return externalProperties;
-}
-
 const CF::Properties ApplicationInfo::getACProperties() const
 {
     return acProps;
@@ -951,18 +941,6 @@ void ApplicationInfo::setACProperties(const CF::Properties& props)
 
 void ApplicationInfo::populateApplicationInfo(const SoftwareAssembly& sad)
 {
-    // Gets external ports
-    const std::vector<SoftwareAssembly::Port>& ports = sad.getExternalPorts();
-    for (std::vector<SoftwareAssembly::Port>::const_iterator port = ports.begin(); port != ports.end(); ++port) {
-        externalPorts.push_back(*port);
-    }
-
-    // Gets external properties
-    const std::vector<SoftwareAssembly::Property>& props = sad.getExternalProperties();
-    for (std::vector<SoftwareAssembly::Property>::const_iterator prop = props.begin(); prop != props.end(); ++prop) {
-        externalProperties.push_back(*prop);
-    }
-
     // Gets uses device relationships
     const std::vector<SoftwareAssembly::UsesDevice>& usesDevice = sad.getUsesDevices();
     for (std::vector<SoftwareAssembly::UsesDevice>::const_iterator use = usesDevice.begin(); use != usesDevice.end(); ++use) {
