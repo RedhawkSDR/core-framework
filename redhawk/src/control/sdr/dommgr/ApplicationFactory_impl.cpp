@@ -1302,7 +1302,7 @@ throw (CORBA::SystemException,
         // Store information about this application
         _appInfo.populateApplicationInfo(_appFact._sadParser);
 
-        overrideExternalProperties(modifiedInitConfiguration);
+        overrideExternalProperties(placement, modifiedInitConfiguration);
 
         ////////////////////////////////////////////////
         // Assign components to devices
@@ -1430,7 +1430,8 @@ throw (CORBA::SystemException,
 
 }
 
-void createHelper::overrideExternalProperties(const CF::Properties& initConfiguration)
+void createHelper::overrideExternalProperties(ossie::ApplicationPlacement& appPlacement,
+                                              const CF::Properties& initConfiguration)
 {
     const std::vector<SoftwareAssembly::Property>& props = _appFact._sadParser.getExternalProperties();
 
@@ -1444,7 +1445,7 @@ void createHelper::overrideExternalProperties(const CF::Properties& initConfigur
             }
 
             if (id == static_cast<const char*>(initConfiguration[i].id)) {
-                ComponentInfo *comp = findComponentByInstantiationId(prop->comprefid);
+                ComponentInfo *comp = appPlacement.getComponent(prop->comprefid);
                 // Only configure on non AC components
                 if (comp != 0 && !comp->isAssemblyController()) {
                     comp->overrideProperty(prop->propid.c_str(), initConfiguration[i].value);
@@ -2080,6 +2081,8 @@ void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlaceme
 {
     TRACE_ENTER(ApplicationFactory_impl);
 
+    PlacementList components;
+
     // Walk through the host collocations first
     const std::vector<SoftwareAssembly::HostCollocation>& collocations = _appFact._sadParser.getHostCollocations();
     for (size_t index = 0; index < collocations.size(); ++index) {
@@ -2093,7 +2096,7 @@ void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlaceme
         for (unsigned int i = 0; i < placements.size(); i++) {
             ossie::ComponentInfo* component = buildComponentInfo(placements[i]);
             plan->addComponent(component);
-            _requiredComponents.push_back(component);
+            components.push_back(component);
         }
     }
 
@@ -2104,7 +2107,7 @@ void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlaceme
         appPlacement.addPlacement(plan);
         ossie::ComponentInfo* component = buildComponentInfo(componentsFromSAD[i]);
         plan->addComponent(component);
-        _requiredComponents.push_back(component);
+        components.push_back(component);
     }
 
     // Now that all of the components are know, bin the start orders based on
@@ -2113,8 +2116,8 @@ void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlaceme
     // easily by iterating through all entries.
     const std::string assemblyControllerRefId = _appFact._sadParser.getAssemblyControllerRefId();
     std::multimap<int,std::string> start_orders;
-    for (size_t index = 0; index < _requiredComponents.size(); ++index) {
-        ossie::ComponentInfo* component = _requiredComponents[index];
+    for (size_t index = 0; index < components.size(); ++index) {
+        ossie::ComponentInfo* component = components[index];
         if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
             // Mark the assembly controller while we're at it
             component->setIsAssemblyController(true);
@@ -2164,20 +2167,6 @@ const ossie::DeviceNode& createHelper::find_device_node_from_id(const char* devi
 
     TRACE_EXIT(ApplicationFactory_impl);
     throw(std::exception());
-}
-
-/* Given a component instantiation id, returns the associated ossie::ComponentInfo object
- *  - Gets the ComponentInfo class instance for a particular component instantiation id
- */
-ossie::ComponentInfo* createHelper::findComponentByInstantiationId(const std::string& identifier)
-{
-    for (size_t ii = 0; ii < _requiredComponents.size(); ++ii) {
-        if (identifier == _requiredComponents[ii]->getInstantiationIdentifier()) {
-            return _requiredComponents[ii];
-        }
-    }
-
-    return 0;
 }
 
 /* Given a waveform/application name, return a unique waveform naming context
@@ -3044,10 +3033,6 @@ createHelper::~createHelper()
     if (_application) {
         _application->_remove_ref();
     }
-    for (PlacementList::iterator comp = _requiredComponents.begin(); comp != _requiredComponents.end(); ++comp) {
-        delete (*comp);
-    }
-    _requiredComponents.clear();
 }
 
 void createHelper::_cleanupFailedCreate()

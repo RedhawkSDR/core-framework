@@ -182,7 +182,6 @@ private:
 
     ossie::DeviceList _registeredDevices;
     ossie::DeviceList _executableDevices;
-    PlacementList     _requiredComponents;
     std::map<std::string,float> specialized_reservations;
 
     //
@@ -208,7 +207,8 @@ private:
     ossie::ApplicationDeployment _appDeployment;
 
     // createHelper helper methods
-    void overrideExternalProperties(const CF::Properties& initConfiguration);
+    void overrideExternalProperties(ossie::ApplicationPlacement& appPlacement,
+                                    const CF::Properties& initConfiguration);
     void overrideProperties(const CF::Properties& initConfiguration, ossie::ComponentInfo* component);
     void assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
                                    const std::string& appIdentifier,
@@ -280,7 +280,6 @@ private:
     // Functions for looking up particular components/devices
     CF::Device_ptr find_device_from_id(const char*);
     const ossie::DeviceNode& find_device_node_from_id(const char*) throw(std::exception);
-    ossie::ComponentInfo* findComponentByInstantiationId(const std::string& identifier);
 
     // Cleanup - used when create fails/doesn't succeed for some reason
     bool _isComplete;

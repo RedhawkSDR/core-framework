@@ -26,6 +26,13 @@ PlacementPlan::PlacementPlan()
 {
 }
 
+PlacementPlan::~PlacementPlan()
+{
+    for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
+        delete *comp;
+    }
+}
+
 PlacementPlan::PlacementPlan(const std::string& id, const std::string& name) :
     id(id),
     name(name)

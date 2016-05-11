@@ -35,7 +35,8 @@ namespace ossie {
 
         PlacementPlan();
         PlacementPlan(const std::string& id, const std::string& name);
-
+        ~PlacementPlan();
+ 
         const std::string& getId() const;
         const std::string& getName() const;
 
