@@ -2175,26 +2175,41 @@ void createHelper::getRequiredComponents()
 {
     TRACE_ENTER(ApplicationFactory_impl);
 
-    std::vector<ComponentPlacement> componentsFromSAD = _appFact._sadParser.getAllComponents();
+    // Walk through the host collocations first
+    const std::vector<SoftwareAssembly::HostCollocation>& collocations = _appFact._sadParser.getHostCollocations();
+    for (size_t index = 0; index < collocations.size(); ++index) {
+        LOG_TRACE(ApplicationFactory_impl, "Building component info for host collocation "
+                  << collocations[index].getID());
+        const std::vector<ComponentPlacement>& placements = collocations[index].getComponents();
+        for (unsigned int i = 0; i < placements.size(); i++) {
+            ossie::ComponentInfo* component = buildComponentInfo(placements[i]);
+            _requiredComponents.push_back(component);
+        }
+    }
 
-    const std::string assemblyControllerRefId = _appFact._sadParser.getAssemblyControllerRefId();
-
-    // Bin the start orders based on the values in the SAD. Using a multimap,
-    // keyed on the start order value, accounts for duplicate keys and allows
-    // assigning the effective order easily by iterating through all entries.
-    std::multimap<int,std::string> start_orders;
-
+    // Then, walk through the remaining non-collocated components
+    const std::vector<ComponentPlacement>& componentsFromSAD = _appFact._sadParser.getComponentPlacements();
     for (unsigned int i = 0; i < componentsFromSAD.size(); i++) {
         ossie::ComponentInfo* component = buildComponentInfo(componentsFromSAD[i]);
+        _requiredComponents.push_back(component);
+    }
 
+    // Now that all of the components are know, bin the start orders based on
+    // the values in the SAD. Using a multimap, keyed on the start order value,
+    // accounts for duplicate keys and allows assigning the effective order
+    // easily by iterating through all entries.
+    const std::string assemblyControllerRefId = _appFact._sadParser.getAssemblyControllerRefId();
+    std::multimap<int,std::string> start_orders;
+    for (size_t index = 0; index < _requiredComponents.size(); ++index) {
+        ossie::ComponentInfo* component = _requiredComponents[index];
         if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
+            // Mark the assembly controller while we're at it
             component->setIsAssemblyController(true);
         } else if (component->hasStartOrder()) {
             // Only track start order if it was provided, and the component is
             // not the assembly controller
             start_orders.insert(std::make_pair(component->getStartOrder(), component->getInstantiationIdentifier()));
         }
-        _requiredComponents.push_back(component);
     }
 
     // Build the start order instantiation ID vector in the right order

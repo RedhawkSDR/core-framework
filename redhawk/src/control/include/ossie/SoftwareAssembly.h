@@ -150,6 +150,8 @@ namespace ossie {
 
         std::vector<ComponentPlacement> getAllComponents() const;
 
+        const std::vector<ComponentPlacement>& getComponentPlacements() const;
+
         const std::vector<HostCollocation>& getHostCollocations() const;
 
         const std::vector<Connection>& getConnections() const;

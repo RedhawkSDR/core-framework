@@ -66,6 +66,12 @@ std::vector<ComponentPlacement> SoftwareAssembly::getAllComponents() const {
     return result;
 }
 
+const std::vector<ComponentPlacement>& SoftwareAssembly::getComponentPlacements() const
+{
+    assert(_sad.get() != 0);
+    return _sad->partitioning.placements; 
+}
+
 const std::vector<SoftwareAssembly::HostCollocation>& SoftwareAssembly::getHostCollocations() const {
     assert(_sad.get() != 0);
     return _sad->partitioning.collocations; 
