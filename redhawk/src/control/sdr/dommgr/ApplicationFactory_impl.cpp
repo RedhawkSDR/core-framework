@@ -1038,9 +1038,8 @@ void createHelper::setUpExternalPorts(Application_impl* application)
                         << " Port identifier: " << port->identifier);
 
         // Get the component from the instantiation identifier.
-        CORBA::Object_var obj =
-            lookupComponentByInstantiationId(port->componentrefid);
-        if (CORBA::is_nil(obj)) {
+        ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(port->componentrefid);
+        if (!deployment) {
             LOG_ERROR(ApplicationFactory_impl,
                       "Invalid componentinstantiationref ("
                             <<port->componentrefid
@@ -1050,8 +1049,11 @@ void createHelper::setUpExternalPorts(Application_impl* application)
                 "Invalid componentinstantiationref given for external port"));
         }
 
+        CF::Resource_var resource = deployment->getResourcePtr();
+        CORBA::Object_var obj;
+
         if (port->type == SoftwareAssembly::Port::SUPPORTEDIDENTIFIER) {
-            if (!obj->_is_a(port->identifier.c_str())) {
+            if (!resource->_is_a(port->identifier.c_str())) {
                 LOG_ERROR(
                     ApplicationFactory_impl,
                     "Component does not support requested interface: "
@@ -1060,18 +1062,15 @@ void createHelper::setUpExternalPorts(Application_impl* application)
                     CF::CF_NOTSET,
                     "Component does not support requested interface"));
             }
+            obj = CORBA::Object::_duplicate(resource);
         } else {
             // Must be either "usesidentifier" or "providesidentifier",
             // which are equivalent unless you want to be extra
             // pedantic and check how the port is described in the
             // component's SCD.
-
-            CF::PortSupplier_var portSupplier =
-                ossie::corba::_narrowSafe<CF::PortSupplier> (obj);
-
             // Try to look up the port.
             try {
-                obj = portSupplier->getPort(port->identifier.c_str());
+                obj = resource->getPort(port->identifier.c_str());
             } CATCH_THROW_LOG_ERROR(
                 ApplicationFactory_impl,
                 "Invalid port id",
@@ -1081,11 +1080,11 @@ void createHelper::setUpExternalPorts(Application_impl* application)
         }
 
         // Add it to the list of external ports on the application object.
-        if (port->externalname == ""){
-            application->addExternalPort(port->identifier, obj);
-        } else {
-            application->addExternalPort(port->externalname, obj);
+        std::string name = port->externalname;
+        if (name.empty()) {
+            name = port->identifier;
         }
+        application->addExternalPort(name, obj);
     }
 }
 
@@ -1096,42 +1095,26 @@ void createHelper::setUpExternalProperties(Application_impl* application)
     for (std::vector<SoftwareAssembly::Property>::const_iterator prop = props.begin(); prop != props.end(); ++prop) {
         LOG_TRACE(ApplicationFactory_impl, "Property component: " << prop->comprefid << " Property identifier: " << prop->propid);
 
-        // Verify internal property
-        ComponentInfo *tmp = findComponentByInstantiationId(prop->comprefid);
-        if (tmp == 0) {
+        // Get the component from the compref identifier.
+        ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(prop->comprefid);
+        if (!deployment) {
             LOG_ERROR(ApplicationFactory_impl, "Unable to find component for comprefid " << prop->comprefid);
-            throw(CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Unable to find component for given comprefid"));
+            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Unable to find component for given comprefid");
         }
-        const std::vector<const Property*>& props = tmp->prf.getProperties();
-        bool foundProp = false;
-        for (unsigned int i = 0; i < props.size(); ++i) {
-            if (props[i]->getID() == prop->propid){
-                foundProp = true;
-            }
-        }
-        if (!foundProp){
+        const Property* property = deployment->getComponent()->prf.getProperty(prop->propid);
+        if (!property){
             LOG_ERROR(ApplicationFactory_impl, "Attempting to promote property: '" <<
                     prop->propid << "' that does not exist in component: '" << prop->comprefid << "'");
-            throw (CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET,
-                    "Attempting to promote property that does not exist in component"));
+            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET,
+                    "Attempting to promote property that does not exist in component");
         }
 
-        // Get the component from the compref identifier.
-        CF::Resource_var comp = lookupComponentByInstantiationId(prop->comprefid);
-        if (CORBA::is_nil(comp)) {
-            LOG_ERROR(ApplicationFactory_impl, "Invalid comprefid (" << prop->comprefid << ") given for an external property");
-            throw(CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Invalid comprefid given for external property"));
+        CF::Resource_var comp = deployment->getResourcePtr();
+        std::string external_id = prop->externalpropid;
+        if (external_id.empty()) {
+            external_id = prop->propid;
         }
-
-        if (prop->externalpropid == "") {
-            application->addExternalProperty(prop->propid,
-                                             prop->propid,
-                                             comp);
-        } else {
-            application->addExternalProperty(prop->propid,
-                                             prop->externalpropid,
-                                             comp);
-        }
+        application->addExternalProperty(prop->propid, external_id, comp);
     }
 }
 
@@ -3009,7 +2992,7 @@ void createHelper::connectComponents(std::vector<ConnectionNode>& connections, s
     // NB: Use an auto_ptr instead of a bare pointer so that it will automatically be deleted
     //     in the event of a failure.
     using ossie::AppConnectionManager;
-    std::auto_ptr<AppConnectionManager> connectionManager(new AppConnectionManager(_appFact._domainManager, this, this, base_naming_context));
+    std::auto_ptr<AppConnectionManager> connectionManager(new AppConnectionManager(_appFact._domainManager, &_appDeployment, this, base_naming_context));
 
     // Create all resource connections
     LOG_TRACE(ApplicationFactory_impl, "Establishing " << _connection.size() << " waveform connections")
@@ -3096,19 +3079,6 @@ void createHelper::_cleanupFailedCreate()
     try {
         _waveformContext->destroy();
     } CATCH_LOG_WARN(ApplicationFactory_impl, "Could not destroy naming context");
-}
-
-/* Given a component instantiation id, returns the associated CORBA Resource pointer
- *  - Gets the Resource pointer for a particular component instantiation id
- */
-CF::Resource_ptr createHelper::lookupComponentByInstantiationId(const std::string& identifier)
-{
-    ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(identifier);
-    if (deployment) {
-        return deployment->getResourcePtr();
-    }
-
-    return CF::Resource::_nil();
 }
 
 /* Given a component instantiation id, returns the associated CORBA Device pointer

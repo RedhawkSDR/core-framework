@@ -140,7 +140,6 @@ private:
 };
 
 class createHelper:
-public ossie::ComponentLookup,
 public ossie::DeviceLookup
 {
 
@@ -291,9 +290,6 @@ private:
     /* Implements the ConnectionManager functions
      *  - Makes this class compatible with the ConnectionManager
      */
-    // ComponentLookup interface
-    CF::Resource_ptr lookupComponentByInstantiationId(const std::string& identifier);
-
     // DeviceLookup interface
     CF::Device_ptr lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId);
     CF::Device_ptr lookupDeviceUsedByComponentInstantiationId(

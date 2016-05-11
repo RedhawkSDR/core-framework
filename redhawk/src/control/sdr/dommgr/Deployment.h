@@ -28,6 +28,7 @@
 
 #include <ossie/PropertyMap.h>
 #include "applicationSupport.h"
+#include "connectionSupport.h"
 
 namespace ossie {
 
@@ -89,7 +90,7 @@ namespace ossie {
         redhawk::PropertyMap affinityOptions;
     };
 
-    class ApplicationDeployment
+    class ApplicationDeployment : public ComponentLookup
     {
     public:
         typedef std::vector<ComponentDeployment*> ComponentList;
@@ -100,6 +101,9 @@ namespace ossie {
         void addComponentDeployment(ComponentDeployment* deployment);
         const ComponentList& getComponentDeployments();
         ComponentDeployment* getComponentDeployment(const std::string& instantiationId);
+
+        // Adapt to ComponentLookup interface
+        virtual CF::Resource_ptr lookupComponentByInstantiationId(const std::string& identifier);
 
     protected:
         ComponentList components;

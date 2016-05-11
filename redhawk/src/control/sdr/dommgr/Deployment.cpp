@@ -242,3 +242,12 @@ ComponentDeployment* ApplicationDeployment::getComponentDeployment(const std::st
 
     return 0;
 }
+
+CF::Resource_ptr ApplicationDeployment::lookupComponentByInstantiationId(const std::string& identifier)
+{
+    ComponentDeployment* deployment = getComponentDeployment(identifier);
+    if (deployment) {
+        return deployment->getResourcePtr();
+    }
+    return CF::Resource::_nil();
+}

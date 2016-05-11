@@ -55,6 +55,9 @@ namespace ossie
     {
     public:
         virtual ~ComponentLookup() {};
+
+        /* Given a component instantiation id, returns the associated CORBA Resource pointer
+         */
         virtual CF::Resource_ptr lookupComponentByInstantiationId(const std::string& identifier) = 0;
     };
 
