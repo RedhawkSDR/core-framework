@@ -35,6 +35,7 @@
 #include "PersistenceStore.h"
 #include "applicationSupport.h"
 #include "connectionSupport.h"
+#include "Placement.h"
 #include "Deployment.h"
 
 class DomainManager_impl;
@@ -215,10 +216,6 @@ private:
                                    const std::string& appIdentifier,
                                    const DeviceAssignmentMap& devices);
     void _validateDAS(const DeviceAssignmentMap& deviceAssignments);
-    void _getComponentsToPlace(
-        const std::vector<ossie::ComponentPlacement>& collocatedComponents,
-        ossie::DeviceIDList&                          assignedDevices,
-        PlacementList&                                placingComponents);
     void _connectComponents(
         std::vector<ossie::ConnectionNode>& connections);
     void _configureComponents();

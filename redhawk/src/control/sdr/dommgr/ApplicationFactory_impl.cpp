@@ -986,54 +986,6 @@ void createHelper::_placeHostCollocation(const std::string &appIdentifier,
     throw CF::ApplicationFactory::CreateApplicationRequestError();
 }
 
-void createHelper::_getComponentsToPlace(
-    const std::vector<ComponentPlacement>& collocatedComponents,
-    DeviceIDList&                          assignedDevices,
-    PlacementList&                         placingComponents)
-{
-    std::vector<ComponentPlacement>::const_iterator placement =
-        collocatedComponents.begin();
-
-    for (; placement != collocatedComponents.end(); ++placement) {
-        ComponentInstantiation instantiation =
-            (placement->getInstantiations()).at(0);
-        ossie::ComponentInfo* component =
-            findComponentByInstantiationId(instantiation.getID());
-
-        if (!component) {
-            ostringstream eout;
-            eout << "Failed to create application; unable to recover component Id (error parsing the SAD file: "<<_appFact._softwareProfile<<")";
-            LOG_ERROR(ApplicationFactory_impl, eout.str());
-            throw CF::ApplicationFactory::CreateApplicationError(
-                CF::CF_EAGAIN,
-                eout.str().c_str());
-        }
-        LOG_TRACE(ApplicationFactory_impl,
-                  "Collocated component " <<
-                        component->getInstantiationIdentifier());
-
-        boost::shared_ptr<DeviceNode> assignedDevice;
-        for (DeploymentList::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
-            if ((*ii)->getComponent() == component) {
-                assignedDevice = (*ii)->getAssignedDevice();
-                break;
-            }
-        }
-        if (assignedDevice) {
-            // This component is already assigned to a device; for collocating
-            // other components, the pre-assigned devices are used in the order
-            // they are encountered.
-            LOG_TRACE(ApplicationFactory_impl,
-                      "Already assigned to device " <<
-                      assignedDevice->identifier);
-            assignedDevices.push_back(assignedDevice->identifier);
-        } else {
-            // This component needs to be assigned to a device.
-            placingComponents.push_back(component);
-        }
-    }
-}
-
 void createHelper::_handleUsesDevices(const std::string& appName)
 {
     // Gets all uses device info from the SAD file
@@ -2748,9 +2700,10 @@ void createHelper::waitForComponentRegistration()
     // Track only SCA-compliant components; non-compliant components will never
     // register with the application, nor do they need to be initialized
     std::set<std::string> expected_components;
-    for (PlacementList::iterator ii = _requiredComponents.begin(); ii != _requiredComponents.end(); ++ii) {
-        if ((*ii)->isScaCompliant()) {
-            expected_components.insert((*ii)->getIdentifier());
+    for (DeploymentList::iterator ii = _deployments.begin(); ii != _deployments.end(); ++ii) {
+        ossie::ComponentInfo* component = (*ii)->getComponent();
+        if (component->isScaCompliant()) {
+            expected_components.insert(component->getIdentifier());
         }
     }
 
@@ -2786,7 +2739,7 @@ void createHelper::waitForComponentRegistration()
 void createHelper::initializeComponents()
 {
     // Install the different components in the system
-    LOG_TRACE(ApplicationFactory_impl, "initializing " << _requiredComponents.size() << " waveform components")
+    LOG_TRACE(ApplicationFactory_impl, "initializing " << _deployments.size() << " waveform components")
 
     // Resize the _startSeq vector to the right size
     _startSeq.resize(_startOrderIds.size());
