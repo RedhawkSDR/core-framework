@@ -214,7 +214,7 @@ private:
     void assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
                                    const std::string& appIdentifier,
                                    const DeviceAssignmentMap& devices);
-    void _validateDAS(const DeviceAssignmentMap& deviceAssignments);
+    void _validateDAS(ossie::ApplicationPlacement& appPlacement, const DeviceAssignmentMap& deviceAssignments);
     void _connectComponents(
         std::vector<ossie::ConnectionNode>& connections);
     void _configureComponents();

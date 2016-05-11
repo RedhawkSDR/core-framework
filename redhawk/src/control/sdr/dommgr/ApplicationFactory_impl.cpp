@@ -714,14 +714,15 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPla
     }
 }
 
-void createHelper::_validateDAS(const DeviceAssignmentMap& deviceAssignments)
+void createHelper::_validateDAS(ossie::ApplicationPlacement& appPlacement,
+                                const DeviceAssignmentMap& deviceAssignments)
 {
     LOG_TRACE(ApplicationFactory_impl, "Validating device assignment sequence (length "
               << deviceAssignments.size() << ")");
     for (DeviceAssignmentMap::const_iterator ii = deviceAssignments.begin(); ii != deviceAssignments.end(); ++ii) {
         const std::string& componentId = ii->first;
         const std::string& assignedDeviceId = ii->second;
-        ossie::ComponentInfo* component = findComponentByInstantiationId(componentId);
+        ossie::ComponentInfo* component = appPlacement.getComponent(componentId);
 
         if (!component) {
             LOG_ERROR(ApplicationFactory_impl, "Failed to create application; "
@@ -1338,7 +1339,7 @@ throw (CORBA::SystemException,
             _appFact._identifier + ":" + _waveformContextName;
 
         // Catch invalid device assignments
-        _validateDAS(deviceAssignments);
+        _validateDAS(placement, deviceAssignments);
 
         // Assign all components to devices
         assignPlacementsToDevices(placement, appIdentifier, deviceAssignments);

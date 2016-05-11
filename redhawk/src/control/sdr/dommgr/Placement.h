@@ -31,20 +31,24 @@ namespace ossie {
     class PlacementPlan
     {
     public:
+        typedef std::vector<ComponentInfo*> ComponentList;
+
         PlacementPlan();
         PlacementPlan(const std::string& id, const std::string& name);
 
         const std::string& getId() const;
         const std::string& getName() const;
 
-        const std::vector<ComponentInfo*>& getComponents() const;
+        const ComponentList& getComponents() const;
 
         void addComponent(ComponentInfo* component);
+
+        ComponentInfo* getComponent(const std::string& instantiationId);
 
     protected:
         std::string id;
         std::string name;
-        std::vector<ComponentInfo*> components;
+        ComponentList components;
     };
 
     class ApplicationPlacement
@@ -60,6 +64,8 @@ namespace ossie {
         const PlacementList& getPlacements() const;
 
         ComponentInfo* getAssemblyController();
+
+        ComponentInfo* getComponent(const std::string& instantiationId);
 
     protected:
         PlacementList placements;

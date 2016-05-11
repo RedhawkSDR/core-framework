@@ -42,7 +42,7 @@ const std::string& PlacementPlan::getName() const
     return name;
 }
 
-const std::vector<ComponentInfo*>& PlacementPlan::getComponents() const
+const PlacementPlan::ComponentList& PlacementPlan::getComponents() const
 {
     return components;
 }
@@ -50,6 +50,17 @@ const std::vector<ComponentInfo*>& PlacementPlan::getComponents() const
 void PlacementPlan::addComponent(ComponentInfo* component)
 {
     components.push_back(component);
+}
+
+ComponentInfo* PlacementPlan::getComponent(const std::string& instantiationId)
+{
+    for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
+        if (instantiationId == (*comp)->getInstantiationIdentifier()) {
+            return *comp;
+        }
+    }
+
+    return 0;
 }
 
 ApplicationPlacement::ApplicationPlacement()
@@ -71,6 +82,18 @@ void ApplicationPlacement::addPlacement(PlacementPlan* placement)
 const std::vector<PlacementPlan*>& ApplicationPlacement::getPlacements() const
 {
     return placements;
+}
+
+ComponentInfo* ApplicationPlacement::getComponent(const std::string& instantiationId)
+{
+    for (PlacementList::iterator placement = placements.begin(); placement != placements.end(); ++placement) {
+        ComponentInfo* component = (*placement)->getComponent(instantiationId);
+        if (component) {
+            return component;
+        }
+    }
+
+    return 0;
 }
 
 ComponentInfo* ApplicationPlacement::getAssemblyController()
