@@ -1319,7 +1319,6 @@ throw (CORBA::SystemException,
             if (comp->isAssemblyController()) {
                 _appInfo.setACProperties(comp->getConfigureProperties());
             }
-            _appInfo.addComponent(comp);
         }
 
         overrideExternalProperties(modifiedInitConfiguration);

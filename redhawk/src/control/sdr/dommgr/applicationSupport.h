@@ -320,15 +320,11 @@ namespace ossie
         void setACProperties(const CF::Properties& props);
         const CF::Properties getACProperties() const;
         void populateApplicationInfo(const SoftwareAssembly& sad);
-        void populateExternalProperties(CF::Properties& props);
-        void addComponent(ComponentInfo* comp);
-        ComponentInfo* findComponentByInstantiationId(const std::string id);
 
     protected:
         std::vector<SoftwareAssembly::Port> externalPorts;
         std::vector<SoftwareAssembly::Property> externalProperties;
         CF::Properties acProps;
-        std::vector<ComponentInfo*> components;
     };
 
 }
