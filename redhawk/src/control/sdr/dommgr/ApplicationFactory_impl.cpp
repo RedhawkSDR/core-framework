@@ -995,8 +995,11 @@ void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
 
     // Get the assembly controller's configure properties for context in the
     // allocations
-    ossie::ComponentInfo* assembly_controller = appPlacement.getAssemblyController();
     CF::Properties appProperties;
+    ossie::ComponentInfo* assembly_controller = appPlacement.getAssemblyController();
+    if (assembly_controller) {
+        appProperties = assembly_controller->getConfigureProperties();
+    }
 
     // The device assignments for SAD-level usesdevices are never stored
     std::vector<ossie::UsesDeviceAssignment*> assignedDevices;
