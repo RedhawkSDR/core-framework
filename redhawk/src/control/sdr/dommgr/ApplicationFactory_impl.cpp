@@ -996,11 +996,11 @@ void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
     // Get the assembly controller's configure properties for context in the
     // allocations
     ossie::ComponentInfo* assembly_controller = appPlacement.getAssemblyController();
-    CF::Properties appProperties = assembly_controller->getConfigureProperties();
+    CF::Properties appProperties;
 
     // The device assignments for SAD-level usesdevices are never stored
-    DeviceAssignmentList assignedDevices;
-    if (!allocateUsesDevices(appName, usesDevices, appProperties, assignedDevices, this->_allocations)) {
+    std::vector<ossie::UsesDeviceAssignment*> assignedDevices;
+    if (!allocateUsesDevices(usesDevices, appProperties, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the application
         ostringstream eout;
         eout << "Failed to satisfy 'usesdevice' dependencies ";
@@ -1019,10 +1019,10 @@ void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
         LOG_DEBUG(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
     }
-    for (DeviceAssignmentList::iterator dev=assignedDevices.begin(); dev!=assignedDevices.end(); dev++) {
-        dev->deviceAssignment.componentId = assembly_controller->getIdentifier().c_str();
+    for (std::vector<ossie::UsesDeviceAssignment*>::iterator dev=assignedDevices.begin(); dev!=assignedDevices.end(); dev++) {
+        //dev->deviceAssignment.componentId = assembly_controller->getIdentifier().c_str();
+        _appDeployment.addUsesDeviceAssignment(*dev);
     }
-    _appUsedDevs.insert(_appUsedDevs.end(), assignedDevices.begin(), assignedDevices.end());
 }
 
 void createHelper::setUpExternalPorts(Application_impl* application)
@@ -1373,6 +1373,37 @@ throw (CORBA::SystemException,
         // of the ConnectionManager is passed to the application.
         _allocations.transfer(allocationIDs);
 
+        // Fill in the uses devices for the application
+        typedef std::vector<ossie::UsesDeviceAssignment*> UsesList;
+        const UsesList& app_uses = _appDeployment.getUsesDeviceAssignments();
+        for (UsesList::const_iterator uses = app_uses.begin(); uses != app_uses.end(); ++uses) {
+            DeviceAssignmentInfo assignment;
+            assignment.deviceAssignment.componentId = CORBA::string_dup(name);
+            std::string deviceId;
+            try {
+                deviceId = ossie::corba::returnString((*uses)->getAssignedDevice()->identifier());
+            } catch (...) {
+            }
+            assignment.deviceAssignment.assignedDeviceId = deviceId.c_str();
+            _appUsedDevs.push_back(assignment);
+        }
+
+        const DeploymentList& deployments = _appDeployment.getComponentDeployments();
+        for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
+            const UsesList& dep_uses = (*dep)->getUsesDeviceAssignments();
+            for (UsesList::const_iterator uses = dep_uses.begin(); uses != dep_uses.end(); ++uses) {
+                DeviceAssignmentInfo assignment;
+                assignment.deviceAssignment.componentId = (*dep)->getComponent()->getIdentifier().c_str();
+                std::string deviceId;
+                try {
+                    deviceId = ossie::corba::returnString((*uses)->getAssignedDevice()->identifier());
+                } catch (...) {
+                }
+                assignment.deviceAssignment.assignedDeviceId = deviceId.c_str();
+                _appUsedDevs.push_back(assignment);
+            }
+        }
+
         _application->populateApplication(
             assemblyController,
             _appUsedDevs, 
@@ -1540,7 +1571,8 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
     
     // Find the devices that allocate the SPD's minimum required usesdevices properties
     const UsesDeviceInfo::List &usesDevVec = component->getUsesDevices();
-    if (!allocateUsesDevices(component->getIdentifier(), usesDevVec, configureProperties, appAssignedDevs, this->_allocations)) {
+    std::vector<ossie::UsesDeviceAssignment*> assignedDevices;
+    if (!allocateUsesDevices(usesDevVec, configureProperties, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the component
         ostringstream eout;
         eout << "Failed to satisfy 'usesdevice' dependencies ";
@@ -1559,24 +1591,28 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         LOG_DEBUG(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
     }
-    
+
     // now attempt to find an implementation that can have it's allocation requirements met
     const ossie::ImplementationInfo::List& implementations = component->getImplementations();
     for (size_t implCount = 0; implCount < implementations.size(); implCount++) {
         ossie::ImplementationInfo* impl = implementations[implCount];
 
         // Handle 'usesdevice' dependencies for the particular implementation
-        DeviceAssignmentList implAllocatedDevices;
+        std::vector<ossie::UsesDeviceAssignment*> implAssignedDevices;
         ScopedAllocations implAllocations(*this->_allocationMgr);
         const UsesDeviceInfo::List &implUsesDevVec = impl->getUsesDevices();
         
-        if (!allocateUsesDevices(component->getIdentifier(), implUsesDevVec, configureProperties, implAllocatedDevices, implAllocations)) {
+        if (!allocateUsesDevices(implUsesDevVec, configureProperties, implAssignedDevices, implAllocations)) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to satisfy 'usesdevice' dependencies for component "
                       << component->getIdentifier() << " implementation " << impl->getId());
             continue;
         }
 
         std::auto_ptr<ossie::ComponentDeployment> deployment(new ossie::ComponentDeployment(component, impl));
+        for (std::vector<ossie::UsesDeviceAssignment*>::iterator ii = assignedDevices.begin();
+             ii != assignedDevices.end(); ++ii) {
+            deployment->addUsesDeviceAssignment(*ii);
+        }
         
         // Found an implementation which has its 'usesdevice' dependencies
         // satisfied, now perform assignment/allocation of component to device
@@ -1619,7 +1655,11 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         // Store the implementation-specific usesdevice allocations and
         // device assignments
         implAllocations.transfer(this->_allocations);
-        std::copy(implAllocatedDevices.begin(), implAllocatedDevices.end(), std::back_inserter(appAssignedDevs));
+
+        for (std::vector<ossie::UsesDeviceAssignment*>::iterator ii = implAssignedDevices.begin();
+             ii != implAssignedDevices.end(); ++ii) {
+            deployment->addUsesDeviceAssignment(*ii);
+        }
         
         return deployment.release();
     }
@@ -1659,10 +1699,9 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
     throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
 }
 
-bool createHelper::allocateUsesDevices(const std::string& componentIdentifier,
-                                       const ossie::UsesDeviceInfo::List& usesDevices,
+bool createHelper::allocateUsesDevices(const ossie::UsesDeviceInfo::List& usesDevices,
                                        const CF::Properties& configureProperties,
-                                       DeviceAssignmentList& deviceAssignments,
+                                       std::vector<ossie::UsesDeviceAssignment*>& deviceAssignments,
                                        ScopedAllocations& allocations)
 {
     // Create a temporary lookup table for reconciling allocation requests with
@@ -1701,10 +1740,8 @@ bool createHelper::allocateUsesDevices(const std::string& componentIdentifier,
         uses->second->setAssignedDeviceId(deviceId);
         usesDeviceMap.erase(uses);
 
-        DeviceAssignmentInfo assignment;
-        assignment.deviceAssignment.componentId = componentIdentifier.c_str();
-        assignment.deviceAssignment.assignedDeviceId = deviceId.c_str();
-        assignment.device = CF::Device::_duplicate(response[resp].allocatedDevice);
+        ossie::UsesDeviceAssignment* assignment = new ossie::UsesDeviceAssignment(uses->second);
+        assignment->setAssignedDevice(response[resp].allocatedDevice);
         deviceAssignments.push_back(assignment);
     }
     
@@ -2135,38 +2172,6 @@ void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlaceme
     }
 
     TRACE_EXIT(ApplicationFactory_impl);
-}
-
-/* Given a device id, returns a CORBA pointer to the device
- *  - Gets a CORBA pointer for a device from a given id
- */
-CF::Device_ptr createHelper::find_device_from_id(const char* device_id)
-{
-    try {
-        return CF::Device::_duplicate(find_device_node_from_id(device_id).device);
-    } catch ( ... ){
-    }
-
-    for (DeviceAssignmentList::iterator iter = _appUsedDevs.begin(); iter != _appUsedDevs.end(); ++iter) {
-        if (strcmp(device_id, iter->deviceAssignment.assignedDeviceId) == 0) {
-            return CF::Device::_duplicate(iter->device);
-        }
-    }
-
-    TRACE_EXIT(ApplicationFactory_impl);
-    return CF::Device::_nil();
-}
-
-const ossie::DeviceNode& createHelper::find_device_node_from_id(const char* device_id) throw(std::exception)
-{
-    for (DeviceList::iterator dn = _registeredDevices.begin(); dn != _registeredDevices.end(); ++dn) {
-        if ((*dn)->identifier == device_id) {
-            return **dn;
-        }
-    }
-
-    TRACE_EXIT(ApplicationFactory_impl);
-    throw(std::exception());
 }
 
 /* Given a waveform/application name, return a unique waveform naming context
@@ -3102,32 +3107,27 @@ CF::Device_ptr createHelper::lookupDeviceUsedByComponentInstantiationId(const st
     }
 
     LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Uses id " << usesId);
-    const ossie::UsesDeviceInfo* usesdevice = deployment->getUsesDeviceById(usesId);
+    const ossie::UsesDeviceAssignment* usesdevice = deployment->getUsesDeviceAssignment(usesId);
     if (!usesdevice) {
         LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] UsesDevice not found");
         return CF::Device::_nil();
     }
 
-    std::string deviceId = usesdevice->getAssignedDeviceId();
-    LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Assigned device id " << deviceId);
-
-    return find_device_from_id(deviceId.c_str());
+    //LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Assigned device id " << deviceId);
+    return usesdevice->getAssignedDevice();
 }
 
 CF::Device_ptr createHelper::lookupDeviceUsedByApplication(const std::string& usesRefId)
 {
     LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Lookup device used by application, Uses Id: " << usesRefId);
 
-
-    const ossie::UsesDeviceInfo* usesdevice = _appInfo.getUsesDeviceById(usesRefId);
+    const ossie::UsesDeviceAssignment* usesdevice = _appDeployment.getUsesDeviceAssignment(usesRefId);
     if (!usesdevice) {
         LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] UsesDevice not found");
         return CF::Device::_nil();
     }
 
-    std::string deviceId = usesdevice->getAssignedDeviceId();
-    LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Assigned device id " << deviceId);
-
-    return find_device_from_id(deviceId.c_str());
+    //LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Assigned device id " << deviceId);
+    return usesdevice->getAssignedDevice();
 }
 

@@ -25,6 +25,47 @@
 using namespace ossie;
 namespace fs = boost::filesystem;
 
+void UsesDeviceDeployment::addUsesDeviceAssignment(UsesDeviceAssignment* assignment)
+{
+    assignments.push_back(assignment);
+}
+
+UsesDeviceAssignment* UsesDeviceDeployment::getUsesDeviceAssignment(const std::string identifier)
+{
+    for (AssignmentList::iterator assign = assignments.begin(); assign != assignments.end(); ++assign) {
+        if (identifier == (*assign)->getUsesDevice()->getId()) {
+            return *assign;
+        }
+    }
+
+    return 0;
+}
+
+const UsesDeviceDeployment::AssignmentList& UsesDeviceDeployment::getUsesDeviceAssignments()
+{
+    return assignments;
+}
+
+UsesDeviceAssignment::UsesDeviceAssignment(UsesDeviceInfo* usesDevice) :
+    usesDevice(usesDevice)
+{
+}
+
+UsesDeviceInfo* UsesDeviceAssignment::getUsesDevice()
+{
+    return usesDevice;
+}
+
+void UsesDeviceAssignment::setAssignedDevice(CF::Device_ptr device)
+{
+    assignedDevice = CF::Device::_duplicate(device);
+}
+
+CF::Device_ptr UsesDeviceAssignment::getAssignedDevice() const
+{
+    return CF::Device::_duplicate(assignedDevice);
+}
+
 SoftpkgDeployment::SoftpkgDeployment(SoftpkgInfo* softpkg, const ImplementationInfo* implementation) :
     softpkg(softpkg),
     implementation(implementation)

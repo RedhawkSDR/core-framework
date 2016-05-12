@@ -32,6 +32,34 @@
 
 namespace ossie {
 
+    class UsesDeviceAssignment
+    {
+    public:
+        UsesDeviceAssignment(UsesDeviceInfo* usesDevice);
+
+        UsesDeviceInfo* getUsesDevice();
+
+        void setAssignedDevice(CF::Device_ptr device);
+        CF::Device_ptr getAssignedDevice() const;
+
+    private:
+        UsesDeviceInfo* usesDevice;
+        CF::Device_var assignedDevice;
+    };
+
+    class UsesDeviceDeployment
+    {
+    public:
+        typedef std::vector<UsesDeviceAssignment*> AssignmentList;
+
+        void addUsesDeviceAssignment(UsesDeviceAssignment* assignment);
+        UsesDeviceAssignment* getUsesDeviceAssignment(const std::string identifier);
+        const AssignmentList& getUsesDeviceAssignments();
+
+    protected:
+        AssignmentList assignments;
+    };
+
     class SoftpkgDeployment
     {
     public:
@@ -56,7 +84,7 @@ namespace ossie {
         DeploymentList dependencies;
     };
 
-    class ComponentDeployment : public SoftpkgDeployment
+    class ComponentDeployment : public SoftpkgDeployment, public UsesDeviceDeployment
     {
     public:
         ComponentDeployment(ComponentInfo* component, ImplementationInfo* implementation);
@@ -90,7 +118,7 @@ namespace ossie {
         redhawk::PropertyMap affinityOptions;
     };
 
-    class ApplicationDeployment : public ComponentLookup
+    class ApplicationDeployment : public ComponentLookup, public UsesDeviceDeployment
     {
     public:
         typedef std::vector<ComponentDeployment*> ComponentList;

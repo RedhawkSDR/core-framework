@@ -239,10 +239,9 @@ private:
     ossie::ComponentInfo* buildComponentInfo(const ossie::ComponentPlacement& component);
 
     // Supports allocation
-    bool allocateUsesDevices(const std::string& componentIdentifier,
-                             const ossie::UsesDeviceInfo::List& usesDevices,
+    bool allocateUsesDevices(const ossie::UsesDeviceInfo::List& usesDevices,
                              const CF::Properties& configureProperties,
-                             DeviceAssignmentList& deviceAssignments,
+                             std::vector<ossie::UsesDeviceAssignment*>& assignedDevices,
                              ScopedAllocations& allocations);
     CF::AllocationManager::AllocationResponseSequence* allocateUsesDeviceProperties(
         const ossie::UsesDeviceInfo::List& component,
@@ -276,10 +275,6 @@ private:
     void connectComponents(
         std::vector<ossie::ConnectionNode>& connections, 
         std::string                         base_naming_context);
-
-    // Functions for looking up particular components/devices
-    CF::Device_ptr find_device_from_id(const char*);
-    const ossie::DeviceNode& find_device_node_from_id(const char*) throw(std::exception);
 
     // Cleanup - used when create fails/doesn't succeed for some reason
     bool _isComplete;
