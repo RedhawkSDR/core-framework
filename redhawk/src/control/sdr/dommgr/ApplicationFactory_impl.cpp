@@ -2667,8 +2667,6 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
     // Install the different components in the system
     LOG_TRACE(ApplicationFactory_impl, "initializing " << deployments.size() << " waveform components");
 
-    CF::Components_var app_registeredComponents = _application->registeredComponents();
-
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
         ossie::ComponentDeployment* deployment = deployments[rc_idx];
         const ossie::ComponentInfo* component = deployment->getComponent();
@@ -2686,14 +2684,18 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
 
         // Find the component on the Application
         const std::string componentId = component->getIdentifier();
-        CF::Resource_var resource = CF::Resource::_nil();
-        for (unsigned int comp_idx=0; comp_idx<app_registeredComponents->length(); comp_idx++) {
-            std::string comp_id = std::string(app_registeredComponents[comp_idx].identifier);
-            if (comp_id == componentId) {
-                resource = ossie::corba::_narrowSafe<CF::Resource>(app_registeredComponents[comp_idx].componentObject);
-                break;
-            }
+        CORBA::Object_var objref = _application->getComponentObject(componentId);
+        if (CORBA::is_nil(objref)) {
+            ostringstream eout;
+            eout << "No object found for component: '" << component->getName()
+                 << "' with component id: '" << componentId
+                 << " assigned to device: '"<<deployment->getAssignedDevice()->identifier<<"'";
+            eout << " in waveform '" << _waveformContextName<<"';";
+            eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
+            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
         }
+
+        CF::Resource_var resource = ossie::corba::_narrowSafe<CF::Resource>(objref);
         if (CORBA::is_nil(resource)) {
             ostringstream eout;
             eout << "CF::Resource::_narrow failed with Unknown Exception for component: '" << component->getName()

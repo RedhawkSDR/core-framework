@@ -146,6 +146,8 @@ public:
     void setComponentDevice(const std::string& identifier, CF::Device_ptr device);
     void addComponentLoadedFile(const std::string& identifier, const std::string& fileName);
 
+    CORBA::Object_ptr getComponentObject(const std::string& identifier);
+
     void releaseComponents();
     void terminateComponents();
     void unloadComponents();

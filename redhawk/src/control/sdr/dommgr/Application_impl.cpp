@@ -1349,3 +1349,14 @@ void Application_impl::addComponentLoadedFile(const std::string& identifier, con
         component->loadedFiles.push_back(fileName);
     }
 }
+
+CORBA::Object_ptr Application_impl::getComponentObject(const std::string& identifier)
+{
+    ossie::ApplicationComponent* component = findComponent(identifier);
+    if (!component) {
+        LOG_ERROR(Application_impl, "Cannot return object for unknown component '" << identifier << "'");
+        return CORBA::Object::_nil();
+    } else {
+        return CORBA::Object::_duplicate(component->componentObject);
+    }
+}
