@@ -658,7 +658,9 @@ std::string ossie::any_to_string(const CORBA::Any& value)
     std::string result;
 
     CORBA::TypeCode_var valueType = value.type();
-    if (valueType->kind() == CORBA::tk_struct) {
+    if (valueType->equivalent(CF::_tc_Properties)) {
+        result = redhawk::Value::cast(value).asProperties().toString();
+    } else if (valueType->kind() == CORBA::tk_struct) {
         result = complexAnyToString(value);
     }
     else {

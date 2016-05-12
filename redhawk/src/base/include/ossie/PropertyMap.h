@@ -78,6 +78,8 @@ namespace redhawk {
         void erase(const std::string& id);
         void erase(iterator pos);
         void erase(iterator first, iterator last);
+
+        std::string toString() const;
     };
 
 }

@@ -181,3 +181,19 @@ void PropertyMap::erase(iterator first, iterator last)
     // Resize to remove deleted items
     length(length()-(last-first));
 }
+
+std::string PropertyMap::toString() const
+{
+    std::ostringstream out;
+    out << "{";
+    bool first = true;
+    for (const_iterator prop = begin(); prop != end(); ++prop) {
+        if (!first) {
+            out << ", ";
+        }
+        first = false;
+        out << prop->getId() << "=" << prop->getValue().toString();
+    }
+    out << "}";
+    return out.str();
+}
