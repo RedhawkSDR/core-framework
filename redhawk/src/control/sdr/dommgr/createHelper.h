@@ -144,7 +144,7 @@ private:
     // Supports allocation
     bool allocateUsesDevices(const ossie::UsesDeviceInfo::List& usesDevices,
                              const CF::Properties& configureProperties,
-                             std::vector<ossie::UsesDeviceAssignment*>& assignedDevices,
+                             ossie::UsesDeviceDeployment& assignedDevices,
                              ScopedAllocations& allocations);
     CF::AllocationManager::AllocationResponseSequence* allocateUsesDeviceProperties(
         const ossie::UsesDeviceInfo::List& component,

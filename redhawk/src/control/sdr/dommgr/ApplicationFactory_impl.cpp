@@ -999,7 +999,7 @@ void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
     }
 
     // The device assignments for SAD-level usesdevices are never stored
-    std::vector<ossie::UsesDeviceAssignment*> assignedDevices;
+    ossie::UsesDeviceDeployment assignedDevices;
     if (!allocateUsesDevices(usesDevices, appProperties, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the application
         ostringstream eout;
@@ -1019,10 +1019,8 @@ void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
         LOG_DEBUG(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
     }
-    for (std::vector<ossie::UsesDeviceAssignment*>::iterator dev=assignedDevices.begin(); dev!=assignedDevices.end(); dev++) {
-        //dev->deviceAssignment.componentId = assembly_controller->getIdentifier().c_str();
-        appDeployment.addUsesDeviceAssignment(*dev);
-    }
+
+    assignedDevices.transferUsesDeviceAssignments(appDeployment);
 }
 
 void createHelper::setUpExternalPorts(ossie::ApplicationDeployment& appDeployment,
@@ -1586,7 +1584,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
     
     // Find the devices that allocate the SPD's minimum required usesdevices properties
     const UsesDeviceInfo::List &usesDevVec = component->getUsesDevices();
-    std::vector<ossie::UsesDeviceAssignment*> assignedDevices;
+    ossie::UsesDeviceDeployment assignedDevices;
     if (!allocateUsesDevices(usesDevVec, configureProperties, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the component
         ostringstream eout;
@@ -1613,7 +1611,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         ossie::ImplementationInfo* impl = implementations[implCount];
 
         // Handle 'usesdevice' dependencies for the particular implementation
-        std::vector<ossie::UsesDeviceAssignment*> implAssignedDevices;
+        UsesDeviceDeployment implAssignedDevices;
         ScopedAllocations implAllocations(*this->_allocationMgr);
         const UsesDeviceInfo::List &implUsesDevVec = impl->getUsesDevices();
         
@@ -1624,10 +1622,9 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         }
 
         std::auto_ptr<ossie::ComponentDeployment> deployment(new ossie::ComponentDeployment(component, impl));
-        for (std::vector<ossie::UsesDeviceAssignment*>::iterator ii = assignedDevices.begin();
-             ii != assignedDevices.end(); ++ii) {
-            deployment->addUsesDeviceAssignment(*ii);
-        }
+
+        // Transfer ownership of the uses device assigments to the deployment
+        assignedDevices.transferUsesDeviceAssignments(*deployment);
         
         // Found an implementation which has its 'usesdevice' dependencies
         // satisfied, now perform assignment/allocation of component to device
@@ -1665,10 +1662,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         // device assignments
         implAllocations.transfer(this->_allocations);
 
-        for (std::vector<ossie::UsesDeviceAssignment*>::iterator ii = implAssignedDevices.begin();
-             ii != implAssignedDevices.end(); ++ii) {
-            deployment->addUsesDeviceAssignment(*ii);
-        }
+        implAssignedDevices.transferUsesDeviceAssignments(*deployment);
         
         return deployment.release();
     }
@@ -1705,7 +1699,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
 
 bool createHelper::allocateUsesDevices(const ossie::UsesDeviceInfo::List& usesDevices,
                                        const CF::Properties& configureProperties,
-                                       std::vector<ossie::UsesDeviceAssignment*>& deviceAssignments,
+                                       ossie::UsesDeviceDeployment& deviceAssignments,
                                        ScopedAllocations& allocations)
 {
     // Create a temporary lookup table for reconciling allocation requests with
@@ -1746,7 +1740,7 @@ bool createHelper::allocateUsesDevices(const ossie::UsesDeviceInfo::List& usesDe
 
         ossie::UsesDeviceAssignment* assignment = new ossie::UsesDeviceAssignment(uses->second);
         assignment->setAssignedDevice(response[resp].allocatedDevice);
-        deviceAssignments.push_back(assignment);
+        deviceAssignments.addUsesDeviceAssignment(assignment);
     }
     
     if (usesDeviceMap.empty()) {

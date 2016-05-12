@@ -26,6 +26,19 @@
 using namespace ossie;
 namespace fs = boost::filesystem;
 
+UsesDeviceDeployment::~UsesDeviceDeployment()
+{
+    for (AssignmentList::iterator assign = assignments.begin(); assign != assignments.end(); ++assign) {
+        delete *assign;
+    }
+}
+
+void UsesDeviceDeployment::transferUsesDeviceAssignments(UsesDeviceDeployment& other)
+{
+    other.assignments.insert(other.assignments.end(), assignments.begin(), assignments.end());
+    assignments.clear();
+}
+
 void UsesDeviceDeployment::addUsesDeviceAssignment(UsesDeviceAssignment* assignment)
 {
     assignments.push_back(assignment);

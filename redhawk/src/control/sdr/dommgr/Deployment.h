@@ -52,9 +52,13 @@ namespace ossie {
     public:
         typedef std::vector<UsesDeviceAssignment*> AssignmentList;
 
+        ~UsesDeviceDeployment();
+
         void addUsesDeviceAssignment(UsesDeviceAssignment* assignment);
         UsesDeviceAssignment* getUsesDeviceAssignment(const std::string identifier);
         const AssignmentList& getUsesDeviceAssignments();
+
+        void transferUsesDeviceAssignments(UsesDeviceDeployment& other);
 
     protected:
         AssignmentList assignments;
