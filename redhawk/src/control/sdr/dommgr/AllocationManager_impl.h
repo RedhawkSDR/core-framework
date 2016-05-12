@@ -28,10 +28,8 @@
 
 #include <ossie/CF/cf.h>
 #include <ossie/debug.h>
-#include <ossie/FileStream.h>
-#include <ossie/prop_utils.h>
-#include <ossie/DeviceManagerConfiguration.h>
-#include "DomainManager_impl.h"
+
+class DomainManager_impl;
 
 class AllocationManager_impl: public virtual POA_CF::AllocationManager
 {

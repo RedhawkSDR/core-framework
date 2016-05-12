@@ -24,17 +24,13 @@
 
 #include <string>
 #include <vector>
-#include <map>
 #include <list>
-#include <omniORB4/CORBA.h>
 
 #include <ossie/CF/cf.h>
-#include <ossie/CF/StandardEvent.h>
 #include <ossie/SoftPkg.h>
 #include <ossie/SoftwareAssembly.h>
 #include <ossie/ComponentDescriptor.h>
 #include <ossie/Properties.h>
-#include <ossie/exceptions.h>
 #include <ossie/ossieparser.h>
 #include <ossie/componentProfile.h>
 
@@ -46,8 +42,6 @@
 
 namespace ossie
 {
-    class DeviceNode;
-
     struct ApplicationComponent {
         std::string identifier;
         std::string softwareProfile;

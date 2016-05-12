@@ -21,20 +21,16 @@
 #ifndef APPLICATIONFACTORY_H
 #define APPLICATIONFACTORY_H
 
+#include <list>
 #include <string>
-#include <omniORB4/CORBA.h>
+#include <vector>
 
 #include <ossie/CF/cf.h>
-#include <ossie/CF/StandardEvent.h>
 #include <ossie/SoftwareAssembly.h>
 #include <ossie/debug.h>
-#include <ossie/prop_utils.h>
-#include <ossie/prop_helpers.h>
-#include <ossie/PropertyMap.h>
 
 #include "PersistenceStore.h"
 #include "applicationSupport.h"
-#include "connectionSupport.h"
 #include "Placement.h"
 #include "Deployment.h"
 

@@ -23,12 +23,16 @@
 #include <set>
 
 #include <ossie/CF/WellKnownProperties.h>
+#include <ossie/debug.h>
+#include <ossie/CorbaUtils.h>
+#include <ossie/ossieSupport.h>
+#include <ossie/CorbaIterator.h>
 
+#include <ossie/prop_utils.h>
+#include <ossie/DeviceManagerConfiguration.h>
+
+#include "DomainManager_impl.h"
 #include "AllocationManager_impl.h"
-#include "ossie/debug.h"
-#include "ossie/CorbaUtils.h"
-#include "ossie/ossieSupport.h"
-#include "ossie/CorbaIterator.h"
 
 typedef ossie::corba::Iterator<CF::AllocationManager::AllocationStatusType,
                                CF::AllocationManager::AllocationStatusType_out,

@@ -34,7 +34,7 @@
 #include <ossie/CF/WellKnownProperties.h>
 #include <ossie/FileStream.h>
 #include <ossie/prop_helpers.h>
-#include <ossie/Versions.h>
+#include <ossie/prop_utils.h>
 
 #include "Application_impl.h"
 #include "ApplicationFactory_impl.h"

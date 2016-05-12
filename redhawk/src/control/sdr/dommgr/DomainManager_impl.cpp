@@ -39,6 +39,7 @@
 #include <ossie/DomainManagerConfiguration.h>
 #include <ossie/GCThread.h>
 #include <ossie/EventTypes.h>
+#include <ossie/prop_utils.h>
 
 #include "Application_impl.h"
 #include "ApplicationFactory_impl.h"
