@@ -67,11 +67,7 @@ public:
 
     CF::Application_ptr create (const char* name,
                                 const CF::Properties& initConfiguration,
-                                const DeviceAssignmentMap& deviceAssignments)
-    throw (CF::ApplicationFactory::InvalidInitConfiguration,
-           CF::ApplicationFactory::CreateApplicationRequestError,
-           CF::ApplicationFactory::CreateApplicationError,
-           CORBA::SystemException);
+                                const DeviceAssignmentMap& deviceAssignments);
 
 private:
 

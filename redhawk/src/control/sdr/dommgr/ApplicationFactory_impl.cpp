@@ -1210,10 +1210,6 @@ CF::Application_ptr createHelper::create (
     const char*                         name,
     const CF::Properties&               initConfiguration,
     const DeviceAssignmentMap& deviceAssignments)
-throw (CORBA::SystemException,
-       CF::ApplicationFactory::CreateApplicationError,
-       CF::ApplicationFactory::CreateApplicationRequestError,
-       CF::ApplicationFactory::InvalidInitConfiguration)
 {
     TRACE_ENTER(ApplicationFactory_impl);
     
@@ -2980,13 +2976,13 @@ createHelper::createHelper (
     _appFact(appFact),
     _allocationMgr(_appFact._domainManager->_allocationMgr),
     _allocations(*_allocationMgr),
+    _waveformContextName(waveformContextName),
+    _baseNamingContext(baseNamingContext),
+    _waveformContext(CosNaming::NamingContext::_duplicate(waveformContext)),
+    _domainContext(domainContext),
     _isComplete(false),
     _application(0)
 {
-    this->_waveformContextName = waveformContextName;
-    this->_baseNamingContext   = baseNamingContext;
-    this->_waveformContext     = CosNaming::NamingContext::_duplicate(waveformContext);
-    this->_domainContext     =  domainContext;
 }
 
 createHelper::~createHelper()
