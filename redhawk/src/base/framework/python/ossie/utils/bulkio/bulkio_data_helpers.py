@@ -291,11 +291,11 @@ class ArraySink(object):
                 # No length specified; get all of the data.
                 length = len(self.data)
                 
-            # have not received any data yet (and I need a minimum amount)
-            if self.sri == None and len(self.data) == 0 and length != 0:
+            # have not received any data yet
+            if self.sri == None:
                 self.port_cond.wait()
             
-            if self.sri != None and self.sri.subsize != 0:
+            if self.sri.subsize != 0:
                 frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
                 if float(length)/frameLength != length/frameLength:
                     print 'The requested length divided by the subsize ('+str(length)+'/'+str(self.sri.subsize)+') is not a whole number. Cannot return framed data'

@@ -1192,11 +1192,11 @@ def launch(descriptor, instanceName=None, refid=None, impl=None,
         # Combine the overrides from configure and execparams into a single
         # properties dictionary, with the latter having precedence
         properties = {}
-        if isinstance(configure, dict):
+        if isinstance(configure, dict) and len(configure) != 0:
             warnings.warn("'configure' argument is deprecated for property overrides; use 'properties'.", DeprecationWarning)
             properties.update(configure)
             configure = True
-        if execparams:
+        if execparams and len(execparams) != 0:
             warnings.warn("'execparams' argument is deprecated; use 'properties'.", DeprecationWarning)
             properties.update(execparams)
 

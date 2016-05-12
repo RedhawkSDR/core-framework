@@ -351,8 +351,8 @@ class Sandbox(object):
         manager = ConnectionManager.instance()
         for identifier, (uses, provides) in manager.getConnections().items():
             if uses.hasComponent(target) or provides.hasComponent(target):
-                manager.breakConnection(identifier)
-                manager.unregisterConnection(identifier)
+                manager.breakConnection(identifier, uses)
+                manager.unregisterConnection(identifier, uses)
 
 
 class SandboxLauncher(object):
