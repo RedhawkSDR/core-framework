@@ -139,8 +139,7 @@ private:
     std::list<std::string> _allocations;
 };
 
-class createHelper:
-public ossie::DeviceLookup
+class createHelper
 {
 
 public:
@@ -280,18 +279,5 @@ private:
     bool _isComplete;
     void _cleanupFailedCreate();
     Application_impl* _application;
-
-    /* Implements the ConnectionManager functions
-     *  - Makes this class compatible with the ConnectionManager
-     */
-    // DeviceLookup interface
-    CF::Device_ptr lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId);
-    CF::Device_ptr lookupDeviceUsedByComponentInstantiationId(
-        const std::string& componentId, 
-        const std::string& usesId);
-    CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId);
-    
-    std::string createVersionMismatchMessage(std::string &component_version);
-
 };
 #endif

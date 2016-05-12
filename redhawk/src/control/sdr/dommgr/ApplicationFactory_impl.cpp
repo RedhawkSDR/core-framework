@@ -2983,10 +2983,8 @@ void createHelper::connectComponents(std::vector<ConnectionNode>& connections, s
     const std::vector<Connection>& _connection = _appFact._sadParser.getConnections ();
 
     // Create an AppConnectionManager to resolve and track all connections in the application.
-    // NB: Use an auto_ptr instead of a bare pointer so that it will automatically be deleted
-    //     in the event of a failure.
     using ossie::AppConnectionManager;
-    std::auto_ptr<AppConnectionManager> connectionManager(new AppConnectionManager(_appFact._domainManager, &_appDeployment, this, base_naming_context));
+    AppConnectionManager connectionManager(_appFact._domainManager, &_appDeployment, &_appDeployment, base_naming_context);
 
     // Create all resource connections
     LOG_TRACE(ApplicationFactory_impl, "Establishing " << _connection.size() << " waveform connections")
@@ -2996,7 +2994,7 @@ void createHelper::connectComponents(std::vector<ConnectionNode>& connections, s
         LOG_TRACE(ApplicationFactory_impl, "Processing connection " << connection.getID());
 
         // Attempt to resolve the connection; if any connection fails, application creation fails.
-        if (!connectionManager->resolveConnection(connection)) {
+        if (!connectionManager.resolveConnection(connection)) {
             LOG_ERROR(ApplicationFactory_impl, "Unable to make connection " << connection.getID());
             ostringstream eout;
             eout << "Unable to make connection " << connection.getID();
@@ -3007,7 +3005,7 @@ void createHelper::connectComponents(std::vector<ConnectionNode>& connections, s
     }
 
     // Copy all established connections into the connection array
-    const std::vector<ConnectionNode>& establishedConnections = connectionManager->getConnections();
+    const std::vector<ConnectionNode>& establishedConnections = connectionManager.getConnections();
     std::copy(establishedConnections.begin(), establishedConnections.end(), std::back_inserter(connections));
 }
 
@@ -3070,64 +3068,3 @@ void createHelper::_cleanupFailedCreate()
         _waveformContext->destroy();
     } CATCH_LOG_WARN(ApplicationFactory_impl, "Could not destroy naming context");
 }
-
-/* Given a component instantiation id, returns the associated CORBA Device pointer
- *  - Gets the Device pointer for a particular component instantiation id
- */
-CF::Device_ptr createHelper::lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId)
-{
-    LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Lookup device that loaded component " << componentId);
-
-    ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(componentId);
-    if (!deployment) {
-        LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] Component not found");
-        return CF::Device::_nil();
-    }
-
-    boost::shared_ptr<ossie::DeviceNode> device = deployment->getAssignedDevice();
-    if (!device) {
-        LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] Component not assigned to device");
-        return CF::Device::_nil();
-    }
-    LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Assigned device id " << device->identifier);
-    return CF::Device::_duplicate(device->device);
-}
-
-
-/* Given a component instantiation id and uses id, returns the associated CORBA Device pointer
- *  - Gets the Device pointer for a particular component instantiation id and uses id
- */
-CF::Device_ptr createHelper::lookupDeviceUsedByComponentInstantiationId(const std::string& componentId, const std::string& usesId)
-{
-    LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Lookup device used by component " << componentId);
-    ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(componentId);
-    if (!deployment) {
-        LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] Component not found");
-        return CF::Device::_nil();
-    }
-
-    LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Uses id " << usesId);
-    const ossie::UsesDeviceAssignment* usesdevice = deployment->getUsesDeviceAssignment(usesId);
-    if (!usesdevice) {
-        LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] UsesDevice not found");
-        return CF::Device::_nil();
-    }
-
-    //LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Assigned device id " << deviceId);
-    return usesdevice->getAssignedDevice();
-}
-
-CF::Device_ptr createHelper::lookupDeviceUsedByApplication(const std::string& usesRefId)
-{
-    LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Lookup device used by application, Uses Id: " << usesRefId);
-
-    const ossie::UsesDeviceAssignment* usesdevice = _appDeployment.getUsesDeviceAssignment(usesRefId);
-    if (!usesdevice) {
-        LOG_WARN(ApplicationFactory_impl, "[DeviceLookup] UsesDevice not found");
-        return CF::Device::_nil();
-    }
-
-    //LOG_TRACE(ApplicationFactory_impl, "[DeviceLookup] Assigned device id " << deviceId);
-    return usesdevice->getAssignedDevice();
-}
-

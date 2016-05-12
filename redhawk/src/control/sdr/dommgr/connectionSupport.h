@@ -77,8 +77,17 @@ namespace ossie
     {
     public:
         virtual ~DeviceLookup() {};
+
+        /* Given a component instantiation id, returns the associated CORBA Device pointer
+         */
         virtual CF::Device_ptr lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId) = 0;
+
+        /* Given a component instantiation id and uses id, returns the associated CORBA Device pointer
+         */
         virtual CF::Device_ptr lookupDeviceUsedByComponentInstantiationId(const std::string& componentId, const std::string& usesId) = 0;
+
+        /* Given a uses id, returns the associated CORBA Device pointer
+         */
         virtual CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId) = 0;
     };
 

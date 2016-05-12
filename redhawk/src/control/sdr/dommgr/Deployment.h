@@ -118,7 +118,7 @@ namespace ossie {
         redhawk::PropertyMap affinityOptions;
     };
 
-    class ApplicationDeployment : public ComponentLookup, public UsesDeviceDeployment
+    class ApplicationDeployment : public ComponentLookup, public DeviceLookup, public UsesDeviceDeployment
     {
     public:
         typedef std::vector<ComponentDeployment*> ComponentList;
@@ -130,8 +130,16 @@ namespace ossie {
         const ComponentList& getComponentDeployments();
         ComponentDeployment* getComponentDeployment(const std::string& instantiationId);
 
-        // Adapt to ComponentLookup interface
+        // Adapt interfaces for component and device search to support
+        // ConnectionManager
+        // ComponentLookup interface
         virtual CF::Resource_ptr lookupComponentByInstantiationId(const std::string& identifier);
+
+        // DeviceLookup interface
+        CF::Device_ptr lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId);
+        CF::Device_ptr lookupDeviceUsedByComponentInstantiationId(const std::string& componentId,
+                                                                  const std::string& usesId);
+        CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId);
 
     protected:
         ComponentList components;

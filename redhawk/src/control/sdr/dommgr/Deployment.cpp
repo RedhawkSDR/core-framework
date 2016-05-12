@@ -20,6 +20,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include "PersistenceStore.h"
 #include "Deployment.h"
 
 using namespace ossie;
@@ -291,4 +292,59 @@ CF::Resource_ptr ApplicationDeployment::lookupComponentByInstantiationId(const s
         return deployment->getResourcePtr();
     }
     return CF::Resource::_nil();
+}
+
+CF::Device_ptr ApplicationDeployment::lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId)
+{
+    RH_NL_TRACE("ApplicationFactory_impl", "[DeviceLookup] Lookup device that loaded component " << componentId);
+
+    ComponentDeployment* deployment = getComponentDeployment(componentId);
+    if (!deployment) {
+        RH_NL_WARN("ApplicationFactory_impl", "[DeviceLookup] Component not found");
+        return CF::Device::_nil();
+    }
+
+    boost::shared_ptr<ossie::DeviceNode> device = deployment->getAssignedDevice();
+    if (!device) {
+        RH_NL_WARN("ApplicationFactory_impl", "[DeviceLookup] Component not assigned to device");
+        return CF::Device::_nil();
+    }
+
+    RH_NL_TRACE("ApplicationFactory_impl", "[DeviceLookup] Assigned device id " << device->identifier);
+    return CF::Device::_duplicate(device->device);
+}
+
+CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByComponentInstantiationId(const std::string& componentId,
+                                                                                 const std::string& usesId)
+{
+    RH_NL_TRACE("ApplicationFactory_impl", "[DeviceLookup] Lookup device used by component " << componentId);
+
+    ComponentDeployment* deployment = getComponentDeployment(componentId);
+    if (!deployment) {
+        RH_NL_WARN("ApplicationFactory_impl", "[DeviceLookup] Component not found");
+        return CF::Device::_nil();
+    }
+
+    UsesDeviceAssignment* uses = deployment->getUsesDeviceAssignment(usesId);
+    if (!uses) {
+        RH_NL_WARN("ApplicationFactory_impl", "[DeviceLookup] UsesDevice not found");
+        return CF::Device::_nil();
+    }
+
+    //RH_NL_TRACE("ApplicationFactory_impl", "[DeviceLookup] Assigned device id " << deviceId);
+    return uses->getAssignedDevice();
+}
+
+CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByApplication(const std::string& usesRefId)
+{
+    RH_NL_TRACE("ApplicationFactory_impl", "[DeviceLookup] Lookup device used by application, Uses Id: " << usesRefId);
+
+    UsesDeviceAssignment* uses = getUsesDeviceAssignment(usesRefId);
+    if (!uses) {
+        RH_NL_WARN("ApplicationFactory_impl", "[DeviceLookup] UsesDevice not found");
+        return CF::Device::_nil();
+    }
+
+    //RH_NL_TRACE("ApplicationFactory_impl", "[DeviceLookup] Assigned device id " << deviceId);
+    return uses->getAssignedDevice();
 }
