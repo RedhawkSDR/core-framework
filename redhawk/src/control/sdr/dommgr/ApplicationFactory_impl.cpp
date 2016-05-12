@@ -2259,7 +2259,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         _application->addComponent(component->getIdentifier(), component->getSpdFileName());
         _application->setComponentImplementation(component->getIdentifier(), implementation->getId());
         if (component->isNamingService()) {
-            std::string lookupName = _appFact._domainName + "/" + _waveformContextName + "/" + component->getNamingServiceName() ;
+            std::string lookupName = _baseNamingContext + "/" + component->getNamingServiceName() ;
             _application->setComponentNamingContext(component->getIdentifier(), lookupName);
         }
         _application->setComponentDevice(component->getIdentifier(), device->device);
