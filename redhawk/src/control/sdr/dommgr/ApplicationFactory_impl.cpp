@@ -708,7 +708,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPla
                 LOG_TRACE(ApplicationFactory_impl, "Component " << component->getInstantiationIdentifier()
                           << " is assigned to device " << assigned_device);
             }
-            ossie::ComponentDeployment* deployment = allocateComponent(component, assigned_device, _appUsedDevs, appIdentifier);
+            ossie::ComponentDeployment* deployment = allocateComponent(component, assigned_device, appIdentifier);
             _appDeployment.addComponentDeployment(deployment);
         }
     }
@@ -972,10 +972,6 @@ void createHelper::_placeHostCollocation(const std::string &appIdentifier,
             
             // Move the device to the front of the list
             rotateDeviceList(_executableDevices, deviceId);
-
-            _appUsedDevs.insert(_appUsedDevs.end(),
-                                collocAssignedDevs.begin(),
-                                collocAssignedDevs.end());
             return;
         }
     }
@@ -1377,6 +1373,7 @@ throw (CORBA::SystemException,
         _allocations.transfer(allocationIDs);
 
         // Fill in the uses devices for the application
+        DeviceAssignmentList app_devices;
         typedef std::vector<ossie::UsesDeviceAssignment*> UsesList;
         const UsesList& app_uses = _appDeployment.getUsesDeviceAssignments();
         for (UsesList::const_iterator uses = app_uses.begin(); uses != app_uses.end(); ++uses) {
@@ -1388,28 +1385,34 @@ throw (CORBA::SystemException,
             } catch (...) {
             }
             assignment.deviceAssignment.assignedDeviceId = deviceId.c_str();
-            _appUsedDevs.push_back(assignment);
+            app_devices.push_back(assignment);
         }
 
         const DeploymentList& deployments = _appDeployment.getComponentDeployments();
         for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
+            ossie::ComponentInfo* component = (*dep)->getComponent();
+            DeviceAssignmentInfo comp_assignment;
+            comp_assignment.deviceAssignment.componentId = component->getIdentifier().c_str();
+            comp_assignment.deviceAssignment.assignedDeviceId = (*dep)->getAssignedDevice()->identifier.c_str();
+            app_devices.push_back(comp_assignment);
+
             const UsesList& dep_uses = (*dep)->getUsesDeviceAssignments();
             for (UsesList::const_iterator uses = dep_uses.begin(); uses != dep_uses.end(); ++uses) {
                 DeviceAssignmentInfo assignment;
-                assignment.deviceAssignment.componentId = (*dep)->getComponent()->getIdentifier().c_str();
+                assignment.deviceAssignment.componentId = component->getIdentifier().c_str();
                 std::string deviceId;
                 try {
                     deviceId = ossie::corba::returnString((*uses)->getAssignedDevice()->identifier());
                 } catch (...) {
                 }
                 assignment.deviceAssignment.assignedDeviceId = deviceId.c_str();
-                _appUsedDevs.push_back(assignment);
+                app_devices.push_back(assignment);
             }
         }
 
         _application->populateApplication(
             assemblyController,
-            _appUsedDevs, 
+            app_devices, 
             _startSeq, 
             connections, 
             allocationIDs);
@@ -1559,9 +1562,8 @@ CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDev
  collocation request.  This requires that we know and cleanup only those allocations that we made..
 
  */
-ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo*  component,
+ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo* component,
                                                             const std::string& assignedDeviceId,
-                                                            DeviceAssignmentList &appAssignedDevs,
                                                             const std::string& appIdentifier)
 {
     CF::Properties configureProperties = component->getConfigureProperties();
@@ -1648,12 +1650,6 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
 
         // Move the device to the front of the list
         rotateDeviceList(_executableDevices, deviceId);
-        
-        ossie::DeviceAssignmentInfo dai;
-        dai.deviceAssignment.componentId = component->getIdentifier().c_str();
-        dai.deviceAssignment.assignedDeviceId = deviceId.c_str();
-        dai.device = CF::Device::_duplicate(node.device);
-        appAssignedDevs.push_back(dai);
         
         // Store the implementation-specific usesdevice allocations and
         // device assignments

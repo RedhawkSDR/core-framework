@@ -183,10 +183,6 @@ private:
     ossie::DeviceList _executableDevices;
     std::map<std::string,float> specialized_reservations;
 
-    //
-    // List of used devices allocated during application creation
-    //
-    DeviceAssignmentList          _appUsedDevs;
     std::vector<CF::Resource_var> _startSeq;
     std::vector<std::string>      _startOrderIds;
     
@@ -247,7 +243,6 @@ private:
         const CF::Properties& configureProperties);
     ossie::ComponentDeployment* allocateComponent(ossie::ComponentInfo* component,
                                                   const std::string& assignedDeviceId,
-                                                  DeviceAssignmentList &appAssignedDevices,
                                                   const std::string& appIdentifier);
 
     ossie::AllocationResult allocateComponentToDevice(ossie::ComponentDeployment* deployment,
