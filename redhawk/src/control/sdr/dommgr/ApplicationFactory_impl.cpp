@@ -1328,9 +1328,6 @@ throw (CORBA::SystemException,
 
         ////////////////////////////////////////////////
         // Create the Application servant
-
-        // Manage the Application servant with an auto_ptr in case 
-        // something throws an exception.
         _application = new Application_impl(appIdentifier,
                                             name, 
                                             _appFact._softwareProfile, 
