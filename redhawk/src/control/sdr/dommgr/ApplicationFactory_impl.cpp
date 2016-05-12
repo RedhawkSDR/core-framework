@@ -2014,7 +2014,7 @@ ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::S
     return 0;
 }
 
-ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileManager_ptr fileMgr,
+ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSys,
                                                        const SoftwareAssembly& sadParser,
                                                        const ComponentPlacement& component)
 {
@@ -2028,7 +2028,7 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileManager_ptr fileM
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
     }
     LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File");
-    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(fileMgr, spdFileName);
+    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(fileSys, spdFileName);
     if (newComponent == 0) {
         ostringstream eout;
         eout << "Error loading component information for file ref " << component.getFileRefId();
@@ -2100,7 +2100,7 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileManager_ptr fileM
 /* Create a vector of all the components for the SAD associated with this App Factory
  *  - Get component information from the SAD and store in _requiredComponents vector
  */
-void createHelper::getRequiredComponents(CF::FileManager_ptr fileMgr,
+void createHelper::getRequiredComponents(CF::FileSystem_ptr fileSys,
                                          const SoftwareAssembly& sadParser,
                                          ossie::ApplicationPlacement& appPlacement)
                                          
@@ -2120,7 +2120,7 @@ void createHelper::getRequiredComponents(CF::FileManager_ptr fileMgr,
 
         const std::vector<ComponentPlacement>& placements = collocations[index].getComponents();
         for (unsigned int i = 0; i < placements.size(); i++) {
-            ossie::ComponentInfo* component = buildComponentInfo(fileMgr, sadParser, placements[i]);
+            ossie::ComponentInfo* component = buildComponentInfo(fileSys, sadParser, placements[i]);
             if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
                 component->setIsAssemblyController(true);
             }
@@ -2133,7 +2133,7 @@ void createHelper::getRequiredComponents(CF::FileManager_ptr fileMgr,
     for (unsigned int i = 0; i < componentsFromSAD.size(); i++) {
         ossie::PlacementPlan* plan = new ossie::PlacementPlan();
         appPlacement.addPlacement(plan);
-        ossie::ComponentInfo* component = buildComponentInfo(fileMgr, sadParser, componentsFromSAD[i]);
+        ossie::ComponentInfo* component = buildComponentInfo(fileSys, sadParser, componentsFromSAD[i]);
         if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
             component->setIsAssemblyController(true);
         }

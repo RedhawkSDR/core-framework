@@ -204,7 +204,7 @@ ImplementationInfo::~ImplementationInfo()
     }
 }
 
-ImplementationInfo* ImplementationInfo::buildImplementationInfo(CF::FileManager_ptr fileMgr, const SPD::Implementation& spdImpl)
+ImplementationInfo* ImplementationInfo::buildImplementationInfo(CF::FileSystem_ptr fileSys, const SPD::Implementation& spdImpl)
 {
     ImplementationInfo* impl = new ImplementationInfo(spdImpl);
 
@@ -214,7 +214,7 @@ ImplementationInfo* ImplementationInfo::buildImplementationInfo(CF::FileManager_
     std::vector<ossie::SPD::SoftPkgRef>::const_iterator jj;
     for (jj = softpkgDependencies.begin(); jj != softpkgDependencies.end(); ++jj) {
         LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependency '" << *jj);
-        std::auto_ptr<SoftpkgInfo> softpkg(SoftpkgInfo::buildSoftpkgInfo(fileMgr, jj->localfile.c_str()));
+        std::auto_ptr<SoftpkgInfo> softpkg(SoftpkgInfo::buildSoftpkgInfo(fileSys, jj->localfile.c_str()));
         impl->addSoftPkgDependency(softpkg.release());
     }
 
@@ -378,23 +378,23 @@ const std::string& SoftpkgInfo::getName() const
     return _name;
 }
 
-SoftpkgInfo* SoftpkgInfo::buildSoftpkgInfo(CF::FileManager_ptr fileMgr, const char* spdFileName)
+SoftpkgInfo* SoftpkgInfo::buildSoftpkgInfo(CF::FileSystem_ptr fileSys, const char* spdFileName)
 {
     LOG_TRACE(SoftpkgInfo, "Building soft package info from file " << spdFileName);
 
     std::auto_ptr<ossie::SoftpkgInfo> softpkg(new SoftpkgInfo(spdFileName));
 
-    if (!softpkg->parseProfile(fileMgr)) {
+    if (!softpkg->parseProfile(fileSys)) {
         return 0;
     } else {
         return softpkg.release();
     }
 }
 
-bool SoftpkgInfo::parseProfile(CF::FileManager_ptr fileMgr)
+bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys)
 {
     try {
-        File_stream spd_file(fileMgr, _spdFileName.c_str());
+        File_stream spd_file(fileSys, _spdFileName.c_str());
         spd.load(spd_file, _spdFileName.c_str());
         spd_file.close();
     } catch (const ossie::parser_error& e) {
@@ -416,7 +416,7 @@ bool SoftpkgInfo::parseProfile(CF::FileManager_ptr fileMgr)
     for (unsigned int implCount = 0; implCount < spd_i.size(); implCount++) {
         const SPD::Implementation& spdImpl = spd_i[implCount];
         LOG_TRACE(SoftpkgInfo, "Adding implementation " << spdImpl.getID());
-        ImplementationInfo* newImpl = ImplementationInfo::buildImplementationInfo(fileMgr, spdImpl);
+        ImplementationInfo* newImpl = ImplementationInfo::buildImplementationInfo(fileSys, spdImpl);
         addImplementation(newImpl);
     }
 
@@ -453,20 +453,20 @@ const UsesDeviceInfo* SoftpkgInfo::getUsesDeviceById(const std::string& id) cons
  */
 PREPARE_CF_LOGGING(ComponentInfo);
 
-ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileManager_ptr fileMgr, const char* spdFileName)
+ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr fileSys, const char* spdFileName)
 {
     LOG_TRACE(ComponentInfo, "Building component info from file " << spdFileName);
 
     ossie::ComponentInfo* newComponent = new ossie::ComponentInfo(spdFileName);
 
-    if (!newComponent->parseProfile(fileMgr)) {
+    if (!newComponent->parseProfile(fileSys)) {
         delete newComponent;
         return 0;
     }
     
     if (newComponent->spd.getSCDFile() != 0) {
         try {
-            File_stream _scd(fileMgr, newComponent->spd.getSCDFile());
+            File_stream _scd(fileSys, newComponent->spd.getSCDFile());
             newComponent->scd.load(_scd);
             _scd.close();
         } catch (ossie::parser_error& e) {
@@ -484,7 +484,7 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileManager_ptr 
     if (newComponent->spd.getPRFFile() != 0) {
         LOG_DEBUG(ComponentInfo, "Loading component properties from " << newComponent->spd.getPRFFile());
         try {
-            File_stream _prf(fileMgr, newComponent->spd.getPRFFile());
+            File_stream _prf(fileSys, newComponent->spd.getPRFFile());
             LOG_TRACE(ComponentInfo, "Parsing component properties");
             newComponent->prf.load(_prf);
             LOG_TRACE(ComponentInfo, "Closing PRF file")

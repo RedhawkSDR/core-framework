@@ -135,10 +135,10 @@ private:
             unsigned int offset=0);
 
     // Populate _requiredComponents vector
-    void getRequiredComponents(CF::FileManager_ptr fileMgr,
+    void getRequiredComponents(CF::FileSystem_ptr fileSys,
                                const ossie::SoftwareAssembly& sadParser,
                                ossie::ApplicationPlacement& appPlacement);
-    ossie::ComponentInfo* buildComponentInfo(CF::FileManager_ptr fileMgr,
+    ossie::ComponentInfo* buildComponentInfo(CF::FileSystem_ptr fileSys,
                                              const ossie::SoftwareAssembly& sadParser,
                                              const ossie::ComponentPlacement& component);
 

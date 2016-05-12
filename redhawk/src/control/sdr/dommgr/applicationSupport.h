@@ -136,7 +136,7 @@ namespace ossie
 
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
 
-        static ImplementationInfo* buildImplementationInfo(CF::FileManager_ptr fileMgr, const SPD::Implementation& spdImpl);
+        static ImplementationInfo* buildImplementationInfo(CF::FileSystem_ptr fileSys, const SPD::Implementation& spdImpl);
 
     private:
         ImplementationInfo (const ImplementationInfo&);
@@ -180,12 +180,12 @@ namespace ossie
 
         virtual const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
 
-        static SoftpkgInfo* buildSoftpkgInfo (CF::FileManager_ptr fileMgr, const char* spdFileName);
+        static SoftpkgInfo* buildSoftpkgInfo (CF::FileSystem_ptr fileSys, const char* spdFileName);
 
         SoftPkg spd;
 
     protected:
-        bool parseProfile (CF::FileManager_ptr fileMgr);
+        bool parseProfile (CF::FileSystem_ptr fileSys);
 
         const std::string _spdFileName;
         std::string _name; // Component name from SPD File
@@ -253,7 +253,7 @@ namespace ossie
         CF::Properties getExecParameters();
         CF::Properties getCommandLineParameters() const;
 
-        static ComponentInfo* buildComponentInfoFromSPDFile(CF::FileManager_ptr fileMgr, const char* _SPDFile);
+        static ComponentInfo* buildComponentInfoFromSPDFile(CF::FileSystem_ptr fileSys, const char* _SPDFile);
         ComponentDescriptor scd;
         ossie::Properties prf;
 
