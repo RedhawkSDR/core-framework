@@ -213,6 +213,21 @@ const std::string& ComponentDeployment::getNicAssignment() const
     return nicAssignment;
 }
 
+void ComponentDeployment::setCpuReservation(float reservation)
+{
+    cpuReservation = reservation;
+}
+
+bool ComponentDeployment::hasCpuReservation() const
+{
+    return cpuReservation.isSet();
+}
+
+float ComponentDeployment::getCpuReservation() const
+{
+    return *cpuReservation;
+}
+
 redhawk::PropertyMap ComponentDeployment::getAffinityOptionsWithAssignment() const
 {
     redhawk::PropertyMap options = affinityOptions;

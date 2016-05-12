@@ -101,6 +101,10 @@ namespace ossie {
         void setNicAssignment(const std::string& nic);
         const std::string& getNicAssignment() const;
 
+        void setCpuReservation(float reservation);
+        bool hasCpuReservation() const;
+        float getCpuReservation() const;
+
         void setAssignedDevice(const boost::shared_ptr<DeviceNode>& device);
         boost::shared_ptr<DeviceNode> getAssignedDevice();
 
@@ -115,6 +119,7 @@ namespace ossie {
         CF::Resource_var resource;
 
         std::string nicAssignment;
+        ossie::optional_value<float> cpuReservation;
         redhawk::PropertyMap affinityOptions;
     };
 

@@ -1262,6 +1262,7 @@ CF::Application_ptr createHelper::create (
     }
 
     const std::string specialized_reservation("SPECIALIZED_CPU_RESERVATION");
+    std::map<std::string,float> specialized_reservations;
     for (unsigned int initCount = 0; initCount < modifiedInitConfiguration.length(); initCount++) {
         if (std::string(modifiedInitConfiguration[initCount].id) == specialized_reservation) {
             CF::Properties *reservations;
@@ -1343,6 +1344,19 @@ CF::Application_ptr createHelper::create (
     // Assign all components to devices
     assignPlacementsToDevices(placement, app_deployment, appIdentifier, deviceAssignments);
 
+    // Assign CPU reservations to components
+    const DeploymentList& deployments = app_deployment.getComponentDeployments();
+    for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
+        ossie::ComponentInfo* component = (*dep)->getComponent();
+        std::map<std::string,float>::iterator reservation = specialized_reservations.find(component->getIdentifier());
+        if (reservation == specialized_reservations.end()) {
+            reservation = specialized_reservations.find(component->getUsageName());
+        }
+        if (reservation != specialized_reservations.end()) {
+            (*dep)->setCpuReservation(reservation->second);
+        }
+    }
+
     ////////////////////////////////////////////////
     // Create the Application servant
     _application = new Application_impl(appIdentifier,
@@ -1405,7 +1419,6 @@ CF::Application_ptr createHelper::create (
         ossie::corba::push_back(app_devices, assignment);
     }
 
-    const DeploymentList& deployments = app_deployment.getComponentDeployments();
     for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
         ossie::ComponentInfo* component = (*dep)->getComponent();
         CF::DeviceAssignmentType comp_assignment;
@@ -2424,12 +2437,8 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     }
 
     // Add specialized CPU reservation if given
-    std::map<std::string,float>::iterator reservation = specialized_reservations.find(component->getIdentifier());
-    if (reservation == specialized_reservations.end()) {
-        reservation = specialized_reservations.find(component->getUsageName());
-    }
-    if (reservation != specialized_reservations.end()) {
-        execParameters["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"] = reservation->second;
+    if (deployment->hasCpuReservation()) {
+        execParameters["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"] = deployment->getCpuReservation();
     }
 
     // Add the required parameters specified in SR:163

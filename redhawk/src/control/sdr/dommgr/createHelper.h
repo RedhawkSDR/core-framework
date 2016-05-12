@@ -87,7 +87,6 @@ private:
 
     ossie::DeviceList _registeredDevices;
     ossie::DeviceList _executableDevices;
-    std::map<std::string,float> specialized_reservations;
 
     // waveform instance-specific naming context (unique to the instance of the waveform)
     std::string _waveformContextName; 
