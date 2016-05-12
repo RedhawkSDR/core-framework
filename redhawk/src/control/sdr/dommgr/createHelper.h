@@ -93,9 +93,6 @@ private:
     ossie::DeviceList _executableDevices;
     std::map<std::string,float> specialized_reservations;
 
-    std::vector<CF::Resource_var> _startSeq;
-    std::vector<std::string>      _startOrderIds;
-    
     // waveform instance-specific naming context (unique to the instance of the waveform)
     std::string _waveformContextName; 
 
@@ -183,6 +180,8 @@ private:
     void connectComponents(ossie::ApplicationDeployment& appDeployment,
         std::vector<ossie::ConnectionNode>& connections, 
         std::string                         base_naming_context);
+
+    std::vector<CF::Resource_var> getStartOrder(const DeploymentList& deployments);
 
     // Cleanup - used when create fails/doesn't succeed for some reason
     bool _isComplete;

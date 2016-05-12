@@ -1411,10 +1411,11 @@ throw (CORBA::SystemException,
             }
         }
 
+        std::vector<CF::Resource_var> start_order = getStartOrder(app_deployment.getComponentDeployments());
         _application->populateApplication(
             assemblyController,
             app_devices, 
-            _startSeq, 
+            start_order, 
             connections, 
             allocationIDs);
 
@@ -2093,7 +2094,7 @@ void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlaceme
 {
     TRACE_ENTER(ApplicationFactory_impl);
 
-    PlacementList components;
+    const std::string assemblyControllerRefId = _appFact._sadParser.getAssemblyControllerRefId();
 
     // Walk through the host collocations first
     const std::vector<SoftwareAssembly::HostCollocation>& collocations = _appFact._sadParser.getHostCollocations();
@@ -2107,8 +2108,10 @@ void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlaceme
         const std::vector<ComponentPlacement>& placements = collocations[index].getComponents();
         for (unsigned int i = 0; i < placements.size(); i++) {
             ossie::ComponentInfo* component = buildComponentInfo(placements[i]);
+            if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
+                component->setIsAssemblyController(true);
+            }
             plan->addComponent(component);
-            components.push_back(component);
         }
     }
 
@@ -2118,32 +2121,10 @@ void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlaceme
         ossie::PlacementPlan* plan = new ossie::PlacementPlan();
         appPlacement.addPlacement(plan);
         ossie::ComponentInfo* component = buildComponentInfo(componentsFromSAD[i]);
-        plan->addComponent(component);
-        components.push_back(component);
-    }
-
-    // Now that all of the components are know, bin the start orders based on
-    // the values in the SAD. Using a multimap, keyed on the start order value,
-    // accounts for duplicate keys and allows assigning the effective order
-    // easily by iterating through all entries.
-    const std::string assemblyControllerRefId = _appFact._sadParser.getAssemblyControllerRefId();
-    std::multimap<int,std::string> start_orders;
-    for (size_t index = 0; index < components.size(); ++index) {
-        ossie::ComponentInfo* component = components[index];
         if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
-            // Mark the assembly controller while we're at it
             component->setIsAssemblyController(true);
-        } else if (component->hasStartOrder()) {
-            // Only track start order if it was provided, and the component is
-            // not the assembly controller
-            start_orders.insert(std::make_pair(component->getStartOrder(), component->getInstantiationIdentifier()));
         }
-    }
-
-    // Build the start order instantiation ID vector in the right order
-    _startOrderIds.clear();
-    for (std::multimap<int,std::string>::iterator ii = start_orders.begin(); ii != start_orders.end(); ++ii) {
-        _startOrderIds.push_back(ii->second);
+        plan->addComponent(component);
     }
 
     TRACE_EXIT(ApplicationFactory_impl);
@@ -2670,11 +2651,8 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
 void createHelper::initializeComponents(const DeploymentList& deployments)
 {
     // Install the different components in the system
-    LOG_TRACE(ApplicationFactory_impl, "initializing " << deployments.size() << " waveform components")
+    LOG_TRACE(ApplicationFactory_impl, "initializing " << deployments.size() << " waveform components");
 
-    // Resize the _startSeq vector to the right size
-    _startSeq.resize(_startOrderIds.size());
-    
     CF::Components_var app_registeredComponents = _application->registeredComponents();
 
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
@@ -2811,26 +2789,6 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
             eout << "CORBA " << exc._name() << " exception initializing component " << componentId;
             LOG_ERROR(ApplicationFactory_impl, eout.str());
             throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-        }
-
-        if (!component->isAssemblyController()) {
-            // Try and find the right location in the vector to add the reference
-            unsigned int pos = 0;
-            for (unsigned int i = 0; i < _startOrderIds.size(); i++) {
-                std::string currID = _startOrderIds[i];
-                currID = currID.append(":");
-                currID = currID.append(_waveformContextName);
-
-                if (componentId == currID) {
-                    break;
-                }
-                pos++;
-            }
-
-            // Add the reference if it belongs in the list
-            if (pos < _startOrderIds.size()) {
-                _startSeq[pos] = CF::Resource::_duplicate(resource);
-            }
         }
     }
 }
@@ -2981,6 +2939,35 @@ void createHelper::connectComponents(ossie::ApplicationDeployment& appDeployment
     // Copy all established connections into the connection array
     const std::vector<ConnectionNode>& establishedConnections = connectionManager.getConnections();
     std::copy(establishedConnections.begin(), establishedConnections.end(), std::back_inserter(connections));
+}
+
+std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& deployments)
+{
+    // Now that all of the components are known, bin the start orders based on
+    // the values in the SAD. Using a multimap, keyed on the start order value,
+    // accounts for duplicate keys and allows assigning the effective order
+    // easily by iterating through all entries.
+    typedef std::multimap<int,ossie::ComponentDeployment*> StartOrderMap;
+    StartOrderMap start_map;
+    for (size_t index = 0; index < deployments.size(); ++index) {
+        ossie::ComponentInfo* component = deployments[index]->getComponent();
+        if (!component->isAssemblyController() && component->hasStartOrder()) {
+            // Only track start order if it was provided, and the component is
+            // not the assembly controller
+            start_map.insert(std::make_pair(component->getStartOrder(), deployments[index]));
+        }
+    }
+
+    // Build the start order vector in the right order
+    std::vector<CF::Resource_var> start_order;
+    int index = 1;
+    LOG_TRACE(ApplicationFactory_impl, "Assigning start order");
+    for (StartOrderMap::iterator ii = start_map.begin(); ii != start_map.end(); ++ii, ++index) {
+        LOG_TRACE(ApplicationFactory_impl, index << ": "
+                  << ii->second->getComponent()->getInstantiationIdentifier());
+        start_order.push_back(ii->second->getResourcePtr());
+    }
+    return start_order;
 }
 
 createHelper::createHelper (
