@@ -1905,11 +1905,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
 
     CF::Properties configure_props = component->getConfigureProperties();
     CF::Properties construct_props = component->getConstructProperties();
-    unsigned int initial_length = configure_props.length();
-    configure_props.length(configure_props.length()+construct_props.length());
-    for (unsigned int i=0; i<construct_props.length(); i++) {
-        configure_props[i+initial_length] = construct_props[i];
-    }
+    ossie::corba::extend(configure_props, construct_props);
     this->_evaluateMATHinRequest(allocationProperties, configure_props);
     
     LOG_TRACE(ApplicationFactory_impl, "alloc prop size " << allocationProperties.size() );
