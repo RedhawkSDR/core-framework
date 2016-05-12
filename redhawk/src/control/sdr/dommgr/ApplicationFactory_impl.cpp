@@ -1200,7 +1200,30 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
 
     // now actually perform the create operation
     LOG_TRACE(ApplicationFactory_impl, "Performing 'create' function.");
-    CF::Application_ptr new_app = new_createhelper.create(name, initConfiguration, deviceAssignmentMap);
+    CF::Application_ptr new_app;
+    try {
+        new_app = new_createhelper.create(name, initConfiguration, deviceAssignmentMap);
+    } catch (CF::ApplicationFactory::CreateApplicationError& ex) {
+        LOG_ERROR(ApplicationFactory_impl, "Error in application creation; " << ex.msg);
+        throw;
+    } catch (CF::ApplicationFactory::CreateApplicationRequestError& ex) {
+        LOG_ERROR(ApplicationFactory_impl, "Error in application creation")
+        throw;
+    } catch (const std::exception& ex) {
+        std::ostringstream eout;
+        eout << "The following standard exception occurred: "<<ex.what()<<" while creating the application";
+        LOG_ERROR(ApplicationFactory_impl, eout.str())
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EBADF, eout.str().c_str());
+    } catch (const CORBA::Exception& ex) {
+        std::ostringstream eout;
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while creating the application";
+        LOG_ERROR(ApplicationFactory_impl, eout.str())
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, eout.str().c_str());
+    } catch ( ... ) {
+        LOG_ERROR(ApplicationFactory_impl, "Unexpected error in application creation - see log")
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Unexpected error in application creation - see log.");
+    }
+
     // return the new Application
     TRACE_EXIT(ApplicationFactory_impl);
     return new_app;
@@ -1217,165 +1240,183 @@ CF::Application_ptr createHelper::create (
     
     CF::Properties modifiedInitConfiguration;
 
-    try {
-        ///////////////////////////////////////////////////////////////////
-        // Check to see if this is an aware application and 
-        //  check to see if a different GPP reservation setting is defined
-        const std::string aware_app_property_id(ExtendedCF::WKP::AWARE_APPLICATION);
-        for (unsigned int initCount = 0; initCount < initConfiguration.length(); initCount++) {
-            if (std::string(initConfiguration[initCount].id) == aware_app_property_id) {
-                initConfiguration[initCount].value >>= aware_application;
-                modifiedInitConfiguration.length(initConfiguration.length()-1);
-                for (unsigned int rem_idx=0; rem_idx<initConfiguration.length()-1; rem_idx++) {
-                    unsigned int idx_mod = 0;
-                    if (rem_idx == initCount)
-                        idx_mod = 1;
-                    modifiedInitConfiguration[rem_idx] = initConfiguration[rem_idx+idx_mod];
-                    //modifiedInitConfiguration[rem_idx].id = initConfiguration[rem_idx+idx_mod].id;
-                    //modifiedInitConfiguration[rem_idx].value = initConfiguration[rem_idx+idx_mod].value;
-                }
+    ///////////////////////////////////////////////////////////////////
+    // Check to see if this is an aware application and 
+    //  check to see if a different GPP reservation setting is defined
+    const std::string aware_app_property_id(ExtendedCF::WKP::AWARE_APPLICATION);
+    for (unsigned int initCount = 0; initCount < initConfiguration.length(); initCount++) {
+        if (std::string(initConfiguration[initCount].id) == aware_app_property_id) {
+            initConfiguration[initCount].value >>= aware_application;
+            modifiedInitConfiguration.length(initConfiguration.length()-1);
+            for (unsigned int rem_idx=0; rem_idx<initConfiguration.length()-1; rem_idx++) {
+                unsigned int idx_mod = 0;
+                if (rem_idx == initCount)
+                    idx_mod = 1;
+                modifiedInitConfiguration[rem_idx] = initConfiguration[rem_idx+idx_mod];
             }
         }
-        
-        if (modifiedInitConfiguration.length() == 0) {
-            modifiedInitConfiguration = initConfiguration;
-        }
+    }
 
-        const std::string specialized_reservation("SPECIALIZED_CPU_RESERVATION");
-        for (unsigned int initCount = 0; initCount < modifiedInitConfiguration.length(); initCount++) {
-            if (std::string(modifiedInitConfiguration[initCount].id) == specialized_reservation) {
-                CF::Properties *reservations;
-                if (modifiedInitConfiguration[initCount].value >>= reservations) {
-                    for (unsigned int rem_idx=0; rem_idx<reservations->length(); rem_idx++) {
-                        double value = 0;
-                        std::string component_id((*reservations)[rem_idx].id);
-                        if ((*reservations)[rem_idx].value >>= value) {
-                            specialized_reservations[component_id] = value;
-                        }
+    if (modifiedInitConfiguration.length() == 0) {
+        modifiedInitConfiguration = initConfiguration;
+    }
+
+    const std::string specialized_reservation("SPECIALIZED_CPU_RESERVATION");
+    for (unsigned int initCount = 0; initCount < modifiedInitConfiguration.length(); initCount++) {
+        if (std::string(modifiedInitConfiguration[initCount].id) == specialized_reservation) {
+            CF::Properties *reservations;
+            if (modifiedInitConfiguration[initCount].value >>= reservations) {
+                for (unsigned int rem_idx=0; rem_idx<reservations->length(); rem_idx++) {
+                    double value = 0;
+                    std::string component_id((*reservations)[rem_idx].id);
+                    if ((*reservations)[rem_idx].value >>= value) {
+                        specialized_reservations[component_id] = value;
                     }
-                } else {
-                    // the value of the any is of the wrong type
                 }
-                for (unsigned int rem_idx=initCount; rem_idx<modifiedInitConfiguration.length()-1; rem_idx++) {
-                    modifiedInitConfiguration[rem_idx] = modifiedInitConfiguration[rem_idx+1];
-                }
-                modifiedInitConfiguration.length(modifiedInitConfiguration.length()-1);
+            } else {
+                // the value of the any is of the wrong type
             }
-        }
-
-        // Get a list of all device currently in the domain
-        _registeredDevices = _appFact._domainManager->getRegisteredDevices();
-        _executableDevices.clear();
-        for (DeviceList::iterator iter = _registeredDevices.begin(); iter != _registeredDevices.end(); ++iter) {
-            if ((*iter)->isExecutable) {
-                _executableDevices.push_back(*iter);
+            for (unsigned int rem_idx=initCount; rem_idx<modifiedInitConfiguration.length()-1; rem_idx++) {
+                modifiedInitConfiguration[rem_idx] = modifiedInitConfiguration[rem_idx+1];
             }
+            modifiedInitConfiguration.length(modifiedInitConfiguration.length()-1);
         }
+    }
 
-        // Fail immediately if there are no available devices to execute components
-        if (_executableDevices.empty()) {
-            const char* message = "Domain has no executable devices (GPPs) to run components";
-            LOG_WARN(ApplicationFactory_impl, message);
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENODEV, message);
+    // Get a list of all device currently in the domain
+    _registeredDevices = _appFact._domainManager->getRegisteredDevices();
+    _executableDevices.clear();
+    for (DeviceList::iterator iter = _registeredDevices.begin(); iter != _registeredDevices.end(); ++iter) {
+        if ((*iter)->isExecutable) {
+            _executableDevices.push_back(*iter);
         }
+    }
 
-        const std::string lastExecutableDevice = _appFact._domainManager->getLastDeviceUsedForDeployment();
-        if (!lastExecutableDevice.empty()) {
-            LOG_TRACE(ApplicationFactory_impl, "Placing device " << lastExecutableDevice
-                      << " first in deployment list");
-            rotateDeviceList(_executableDevices, lastExecutableDevice);
+    // Fail immediately if there are no available devices to execute components
+    if (_executableDevices.empty()) {
+        const char* message = "Domain has no executable devices (GPPs) to run components";
+        LOG_WARN(ApplicationFactory_impl, message);
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENODEV, message);
+    }
+
+    const std::string lastExecutableDevice = _appFact._domainManager->getLastDeviceUsedForDeployment();
+    if (!lastExecutableDevice.empty()) {
+        LOG_TRACE(ApplicationFactory_impl, "Placing device " << lastExecutableDevice
+                  << " first in deployment list");
+        rotateDeviceList(_executableDevices, lastExecutableDevice);
+    }
+
+    //////////////////////////////////////////////////
+    // Load the components to instantiate from the SAD
+    ossie::ApplicationPlacement placement;
+    getRequiredComponents(placement);
+
+    ossie::ComponentInfo* assemblyControllerComponent = placement.getAssemblyController();
+    if (assemblyControllerComponent) {
+        overrideProperties(modifiedInitConfiguration, assemblyControllerComponent);
+    }
+
+    //////////////////////////////////////////////////
+    // Store information about this application
+    _appInfo.populateApplicationInfo(_appFact._sadParser);
+
+    overrideExternalProperties(placement, modifiedInitConfiguration);
+
+    ////////////////////////////////////////////////
+    // Assign components to devices
+    ////////////////////////////////////////////////
+    ossie::ApplicationDeployment app_deployment;
+
+    // Allocate any usesdevice capacities specified in the SAD file
+    _handleUsesDevices(placement, app_deployment, name);
+
+    // Give the application a unique identifier of the form 
+    // "softwareassemblyid:ApplicationName", where the application 
+    // name includes the serial number generated for the naming context
+    // (e.g. "Application_1").
+    std::string appIdentifier = 
+        _appFact._identifier + ":" + _waveformContextName;
+
+    // Catch invalid device assignments
+    _validateDAS(placement, deviceAssignments);
+
+    // Assign all components to devices
+    assignPlacementsToDevices(placement, app_deployment, appIdentifier, deviceAssignments);
+
+    ////////////////////////////////////////////////
+    // Create the Application servant
+    _application = new Application_impl(appIdentifier,
+                                        name, 
+                                        _appFact._softwareProfile, 
+                                        _appFact._domainManager, 
+                                        _waveformContextName, 
+                                        _waveformContext,
+                                        aware_application,
+                                        _domainContext);
+
+    // Activate the new Application servant
+    PortableServer::ObjectId_var oid = Application_impl::Activate(_application);
+
+    std::vector<ConnectionNode> connections;
+    std::vector<std::string> allocationIDs;
+
+    CF::ApplicationRegistrar_var app_reg = _application->appReg();
+    loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
+    waitForComponentRegistration(app_deployment.getComponentDeployments());
+    initializeComponents(app_deployment.getComponentDeployments());
+
+    // Check that the assembly controller is valid
+    CF::Resource_var assemblyController;
+    if (assemblyControllerComponent) {
+        const std::string& assemblyControllerId = assemblyControllerComponent->getInstantiationIdentifier();
+        ossie::ComponentDeployment* deployment = app_deployment.getComponentDeployment(assemblyControllerId);
+        assemblyController = deployment->getResourcePtr();
+    }
+    _checkAssemblyController(assemblyController, assemblyControllerComponent);
+
+    _connectComponents(app_deployment, connections);
+    _configureComponents(app_deployment.getComponentDeployments());
+
+    setUpExternalPorts(app_deployment, _application);
+    setUpExternalProperties(app_deployment, _application);
+
+    ////////////////////////////////////////////////
+    // Create the application
+    //
+    // We are assuming that all components and their resources are 
+    // collocated. This means that we assume the SAD <partitioning> 
+    // element contains the <hostcollocation> element. NB: Ownership 
+    // of the ConnectionManager is passed to the application.
+    _allocations.transfer(allocationIDs);
+
+    // Fill in the uses devices for the application
+    CF::DeviceAssignmentSequence app_devices;
+    typedef std::vector<ossie::UsesDeviceAssignment*> UsesList;
+    const UsesList& app_uses = app_deployment.getUsesDeviceAssignments();
+    for (UsesList::const_iterator uses = app_uses.begin(); uses != app_uses.end(); ++uses) {
+        CF::DeviceAssignmentType assignment;
+        assignment.componentId = CORBA::string_dup(name);
+        std::string deviceId;
+        try {
+            deviceId = ossie::corba::returnString((*uses)->getAssignedDevice()->identifier());
+        } catch (...) {
         }
+        assignment.assignedDeviceId = deviceId.c_str();
+        ossie::corba::push_back(app_devices, assignment);
+    }
 
-        //////////////////////////////////////////////////
-        // Load the components to instantiate from the SAD
-        ossie::ApplicationPlacement placement;
-        getRequiredComponents(placement);
+    const DeploymentList& deployments = app_deployment.getComponentDeployments();
+    for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
+        ossie::ComponentInfo* component = (*dep)->getComponent();
+        CF::DeviceAssignmentType comp_assignment;
+        comp_assignment.componentId = component->getIdentifier().c_str();
+        comp_assignment.assignedDeviceId = (*dep)->getAssignedDevice()->identifier.c_str();
+        ossie::corba::push_back(app_devices, comp_assignment);
 
-        ossie::ComponentInfo* assemblyControllerComponent = placement.getAssemblyController();
-        if (assemblyControllerComponent) {
-            overrideProperties(modifiedInitConfiguration, assemblyControllerComponent);
-        }
-
-        //////////////////////////////////////////////////
-        // Store information about this application
-        _appInfo.populateApplicationInfo(_appFact._sadParser);
-
-        overrideExternalProperties(placement, modifiedInitConfiguration);
-
-        ////////////////////////////////////////////////
-        // Assign components to devices
-        ////////////////////////////////////////////////
-        ossie::ApplicationDeployment app_deployment;
-
-        // Allocate any usesdevice capacities specified in the SAD file
-        _handleUsesDevices(placement, app_deployment, name);
-
-        // Give the application a unique identifier of the form 
-        // "softwareassemblyid:ApplicationName", where the application 
-        // name includes the serial number generated for the naming context
-        // (e.g. "Application_1").
-        std::string appIdentifier = 
-            _appFact._identifier + ":" + _waveformContextName;
-
-        // Catch invalid device assignments
-        _validateDAS(placement, deviceAssignments);
-
-        // Assign all components to devices
-        assignPlacementsToDevices(placement, app_deployment, appIdentifier, deviceAssignments);
-
-        ////////////////////////////////////////////////
-        // Create the Application servant
-        _application = new Application_impl(appIdentifier,
-                                            name, 
-                                            _appFact._softwareProfile, 
-                                            _appFact._domainManager, 
-                                            _waveformContextName, 
-                                            _waveformContext,
-                                            aware_application,
-                                            _domainContext);
-
-        // Activate the new Application servant
-        PortableServer::ObjectId_var oid = Application_impl::Activate(_application);
-
-        std::vector<ConnectionNode> connections;
-        std::vector<std::string> allocationIDs;
-
-        CF::ApplicationRegistrar_var app_reg = _application->appReg();
-        loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
-        waitForComponentRegistration(app_deployment.getComponentDeployments());
-        initializeComponents(app_deployment.getComponentDeployments());
-
-        // Check that the assembly controller is valid
-        CF::Resource_var assemblyController;
-        if (assemblyControllerComponent) {
-            const std::string& assemblyControllerId = assemblyControllerComponent->getInstantiationIdentifier();
-            ossie::ComponentDeployment* deployment = app_deployment.getComponentDeployment(assemblyControllerId);
-            assemblyController = deployment->getResourcePtr();
-        }
-        _checkAssemblyController(assemblyController, assemblyControllerComponent);
-
-        _connectComponents(app_deployment, connections);
-        _configureComponents(app_deployment.getComponentDeployments());
-
-        setUpExternalPorts(app_deployment, _application);
-        setUpExternalProperties(app_deployment, _application);
-
-        ////////////////////////////////////////////////
-        // Create the application
-        //
-        // We are assuming that all components and their resources are 
-        // collocated. This means that we assume the SAD <partitioning> 
-        // element contains the <hostcollocation> element. NB: Ownership 
-        // of the ConnectionManager is passed to the application.
-        _allocations.transfer(allocationIDs);
-
-        // Fill in the uses devices for the application
-        CF::DeviceAssignmentSequence app_devices;
-        typedef std::vector<ossie::UsesDeviceAssignment*> UsesList;
-        const UsesList& app_uses = app_deployment.getUsesDeviceAssignments();
-        for (UsesList::const_iterator uses = app_uses.begin(); uses != app_uses.end(); ++uses) {
+        const UsesList& dep_uses = (*dep)->getUsesDeviceAssignments();
+        for (UsesList::const_iterator uses = dep_uses.begin(); uses != dep_uses.end(); ++uses) {
             CF::DeviceAssignmentType assignment;
-            assignment.componentId = CORBA::string_dup(name);
+            assignment.componentId = component->getIdentifier().c_str();
             std::string deviceId;
             try {
                 deviceId = ossie::corba::returnString((*uses)->getAssignedDevice()->identifier());
@@ -1384,85 +1425,43 @@ CF::Application_ptr createHelper::create (
             assignment.assignedDeviceId = deviceId.c_str();
             ossie::corba::push_back(app_devices, assignment);
         }
-
-        const DeploymentList& deployments = app_deployment.getComponentDeployments();
-        for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
-            ossie::ComponentInfo* component = (*dep)->getComponent();
-            CF::DeviceAssignmentType comp_assignment;
-            comp_assignment.componentId = component->getIdentifier().c_str();
-            comp_assignment.assignedDeviceId = (*dep)->getAssignedDevice()->identifier.c_str();
-            ossie::corba::push_back(app_devices, comp_assignment);
-
-            const UsesList& dep_uses = (*dep)->getUsesDeviceAssignments();
-            for (UsesList::const_iterator uses = dep_uses.begin(); uses != dep_uses.end(); ++uses) {
-                CF::DeviceAssignmentType assignment;
-                assignment.componentId = component->getIdentifier().c_str();
-                std::string deviceId;
-                try {
-                    deviceId = ossie::corba::returnString((*uses)->getAssignedDevice()->identifier());
-                } catch (...) {
-                }
-                assignment.assignedDeviceId = deviceId.c_str();
-                ossie::corba::push_back(app_devices, assignment);
-            }
-        }
-
-        std::vector<CF::Resource_var> start_order = getStartOrder(app_deployment.getComponentDeployments());
-        _application->populateApplication(
-            assemblyController,
-            app_devices, 
-            start_order, 
-            connections, 
-            allocationIDs);
-
-        // Add a reference to the new application to the 
-        // ApplicationSequence in DomainManager
-        CF::Application_var appObj = _application->_this();
-        try {
-            _appFact._domainManager->addApplication(_application);
-        } catch (CF::DomainManager::ApplicationInstallationError& ex) {
-            // something bad happened - clean up
-            LOG_ERROR(ApplicationFactory_impl, ex.msg);
-            throw CF::ApplicationFactory::CreateApplicationError(ex.errorNumber, ex.msg);
-        }
-
-        // After all components have been deployed, we know that the first
-        // executable device in the list was used for the last deployment,
-        // so update the domain manager
-        _appFact._domainManager->setLastDeviceUsedForDeployment(_executableDevices.front()->identifier);
-
-        if ( _appFact._domainManager ) {
-          _appFact._domainManager->sendAddEvent( _appFact._identifier.c_str(), 
-                                                 appIdentifier.c_str(), 
-                                                 name,
-                                                 appObj,
-                                                 StandardEvent::APPLICATION);
-        }
-
-        LOG_INFO(ApplicationFactory_impl, "Done creating application " << appIdentifier << " " << name);
-        _isComplete = true;
-        return appObj._retn();
-    } catch (CF::ApplicationFactory::CreateApplicationError& ex) {
-        LOG_ERROR(ApplicationFactory_impl, "Error in application creation; " << ex.msg);
-        throw;
-    } catch (CF::ApplicationFactory::CreateApplicationRequestError& ex) {
-        LOG_ERROR(ApplicationFactory_impl, "Error in application creation")
-        throw;
-    } catch ( std::exception& ex ) {
-        ostringstream eout;
-        eout << "The following standard exception occurred: "<<ex.what()<<" while creating the application";
-        LOG_ERROR(ApplicationFactory_impl, eout.str())
-        throw (CF::ApplicationFactory::CreateApplicationError(CF::CF_EBADF, eout.str().c_str()));
-    } catch ( const CORBA::Exception& ex ) {
-        ostringstream eout;
-        eout << "The following CORBA exception occurred: "<<ex._name()<<" while creating the application";
-        LOG_ERROR(ApplicationFactory_impl, eout.str())
-        throw (CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, eout.str().c_str()));
-    } catch ( ... ) {
-        LOG_ERROR(ApplicationFactory_impl, "Unexpected error in application creation - see log")
-        throw (CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Unexpected error in application creation - see log."));
     }
 
+    std::vector<CF::Resource_var> start_order = getStartOrder(app_deployment.getComponentDeployments());
+    _application->populateApplication(
+        assemblyController,
+        app_devices, 
+        start_order, 
+        connections, 
+        allocationIDs);
+
+    // Add a reference to the new application to the 
+    // ApplicationSequence in DomainManager
+    CF::Application_var appObj = _application->_this();
+    try {
+        _appFact._domainManager->addApplication(_application);
+    } catch (CF::DomainManager::ApplicationInstallationError& ex) {
+        // something bad happened - clean up
+        LOG_ERROR(ApplicationFactory_impl, ex.msg);
+        throw CF::ApplicationFactory::CreateApplicationError(ex.errorNumber, ex.msg);
+    }
+
+    // After all components have been deployed, we know that the first
+    // executable device in the list was used for the last deployment,
+    // so update the domain manager
+    _appFact._domainManager->setLastDeviceUsedForDeployment(_executableDevices.front()->identifier);
+
+    if ( _appFact._domainManager ) {
+      _appFact._domainManager->sendAddEvent( _appFact._identifier.c_str(), 
+                                             appIdentifier.c_str(), 
+                                             name,
+                                             appObj,
+                                             StandardEvent::APPLICATION);
+    }
+
+    LOG_INFO(ApplicationFactory_impl, "Done creating application " << appIdentifier << " " << name);
+    _isComplete = true;
+    return appObj._retn();
 }
 
 void createHelper::overrideExternalProperties(ossie::ApplicationPlacement& appPlacement,
