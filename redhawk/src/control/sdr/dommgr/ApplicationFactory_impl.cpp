@@ -1949,7 +1949,7 @@ void createHelper::_castRequestProperties(CF::Properties& allocationProperties, 
 {
     allocationProperties.length(offset+prop_refs.size());
     for (unsigned int i=0; i<prop_refs.size(); i++) {
-      allocationProperties[offset+i] = castProperty(prop_refs[i].property.get());
+        allocationProperties[offset+i] = ossie::convertPropertyRefToDataType(prop_refs[i].property.get());
     }
 }
 
@@ -1957,28 +1957,8 @@ void createHelper::_castRequestProperties(CF::Properties& allocationProperties, 
 {
     allocationProperties.length(offset+prop_refs.size());
     for (unsigned int i=0; i<prop_refs.size(); i++) {
-      allocationProperties[offset+i] = castProperty(prop_refs[i].property.get());
+        allocationProperties[offset+i] = ossie::convertPropertyRefToDataType(prop_refs[i].property.get());
     }
-}
-
-CF::DataType createHelper::castProperty(const ossie::ComponentProperty* property)
-{
-    if (dynamic_cast<const SimplePropertyRef*>(property) != NULL) {
-        const SimplePropertyRef* dependency = dynamic_cast<const SimplePropertyRef*>(property);
-        return convertPropertyToDataType(&(*dependency));
-    } else if (dynamic_cast<const SimpleSequencePropertyRef*>(property) != NULL) {
-        const SimpleSequencePropertyRef* dependency = dynamic_cast<const SimpleSequencePropertyRef*>(property);
-        return convertPropertyToDataType(dependency);
-    } else if (dynamic_cast<const ossie::StructPropertyRef*>(property) != NULL) {
-        const ossie::StructPropertyRef* dependency = dynamic_cast<const ossie::StructPropertyRef*>(property);
-        return convertPropertyToDataType(dependency);
-    } else if (dynamic_cast<const ossie::StructSequencePropertyRef*>(property) != NULL) {
-        const ossie::StructSequencePropertyRef* dependency = dynamic_cast<const ossie::StructSequencePropertyRef*>(property);
-        return convertPropertyToDataType(dependency);
-    }
-    CF::DataType dataType;
-    dataType.id = CORBA::string_dup(property->_id.c_str());
-    return dataType;
 }
 
 bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployment, ossie::DeviceNode& device)

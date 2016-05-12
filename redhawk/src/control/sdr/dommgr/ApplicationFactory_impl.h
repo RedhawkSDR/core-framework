@@ -224,7 +224,6 @@ private:
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SPD::PropertyRef> &prop_refs, unsigned int offset=0);
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SoftwareAssembly::PropertyRef> &prop_refs,
             unsigned int offset=0);
-    CF::DataType castProperty(const ossie::ComponentProperty* property);
 
     // Populate _requiredComponents vector
     void getRequiredComponents(ossie::ApplicationPlacement& appPlacement);
