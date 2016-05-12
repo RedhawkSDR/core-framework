@@ -162,9 +162,6 @@ public:
 
 private:
 
-    // List of used devices assignments
-    typedef std::vector< ossie::DeviceAssignmentInfo >                 DeviceAssignmentList;
-
     // list of components that are part of a collocation
     typedef std::vector <ossie::ComponentInfo* >                       PlacementList;
 

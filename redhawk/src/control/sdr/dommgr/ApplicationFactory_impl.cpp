@@ -956,11 +956,7 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
 
             PlacementList::iterator comp = placingComponents.begin();
             ossie::ImplementationInfo::List::iterator impl = res_vec[index].end()-1;
-            DeviceAssignmentList      collocAssignedDevs;
-            collocAssignedDevs.resize(placingComponents.size());
-            for (unsigned int i=0; i<collocAssignedDevs.size(); i++,comp++,impl--) {
-                collocAssignedDevs[i].device = CF::Device::_duplicate(node->device);
-                collocAssignedDevs[i].deviceAssignment.assignedDeviceId = CORBA::string_dup(deviceId.c_str());
+            for (unsigned int i=0; i<placingComponents.size(); i++,comp++,impl--) {
                 ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, *impl);
                 deployment->setAssignedDevice(node);
                 if (!resolveSoftpkgDependencies(deployment, *node)) {
@@ -969,7 +965,6 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
                     delete deployment;
                     continue;
                 }
-                collocAssignedDevs[i].deviceAssignment.componentId = (*comp)->getIdentifier().c_str();
                 appDeployment.addComponentDeployment(deployment);
             }
             
@@ -1381,40 +1376,40 @@ throw (CORBA::SystemException,
         _allocations.transfer(allocationIDs);
 
         // Fill in the uses devices for the application
-        DeviceAssignmentList app_devices;
+        CF::DeviceAssignmentSequence app_devices;
         typedef std::vector<ossie::UsesDeviceAssignment*> UsesList;
         const UsesList& app_uses = app_deployment.getUsesDeviceAssignments();
         for (UsesList::const_iterator uses = app_uses.begin(); uses != app_uses.end(); ++uses) {
-            DeviceAssignmentInfo assignment;
-            assignment.deviceAssignment.componentId = CORBA::string_dup(name);
+            CF::DeviceAssignmentType assignment;
+            assignment.componentId = CORBA::string_dup(name);
             std::string deviceId;
             try {
                 deviceId = ossie::corba::returnString((*uses)->getAssignedDevice()->identifier());
             } catch (...) {
             }
-            assignment.deviceAssignment.assignedDeviceId = deviceId.c_str();
-            app_devices.push_back(assignment);
+            assignment.assignedDeviceId = deviceId.c_str();
+            ossie::corba::push_back(app_devices, assignment);
         }
 
         const DeploymentList& deployments = app_deployment.getComponentDeployments();
         for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
             ossie::ComponentInfo* component = (*dep)->getComponent();
-            DeviceAssignmentInfo comp_assignment;
-            comp_assignment.deviceAssignment.componentId = component->getIdentifier().c_str();
-            comp_assignment.deviceAssignment.assignedDeviceId = (*dep)->getAssignedDevice()->identifier.c_str();
-            app_devices.push_back(comp_assignment);
+            CF::DeviceAssignmentType comp_assignment;
+            comp_assignment.componentId = component->getIdentifier().c_str();
+            comp_assignment.assignedDeviceId = (*dep)->getAssignedDevice()->identifier.c_str();
+            ossie::corba::push_back(app_devices, comp_assignment);
 
             const UsesList& dep_uses = (*dep)->getUsesDeviceAssignments();
             for (UsesList::const_iterator uses = dep_uses.begin(); uses != dep_uses.end(); ++uses) {
-                DeviceAssignmentInfo assignment;
-                assignment.deviceAssignment.componentId = component->getIdentifier().c_str();
+                CF::DeviceAssignmentType assignment;
+                assignment.componentId = component->getIdentifier().c_str();
                 std::string deviceId;
                 try {
                     deviceId = ossie::corba::returnString((*uses)->getAssignedDevice()->identifier());
                 } catch (...) {
                 }
-                assignment.deviceAssignment.assignedDeviceId = deviceId.c_str();
-                app_devices.push_back(assignment);
+                assignment.assignedDeviceId = deviceId.c_str();
+                ossie::corba::push_back(app_devices, assignment);
             }
         }
 

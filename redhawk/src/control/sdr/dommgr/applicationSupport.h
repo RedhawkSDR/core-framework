@@ -290,17 +290,6 @@ namespace ossie
         
     };
 
-    /*
-     * Class to store information for device assignment support
-     */
-    class DeviceAssignmentInfo
-    {
-
-    public:
-        CF::DeviceAssignmentType deviceAssignment;
-        CF::Device_var  device;
-    };
-
     /* Base class to contain data for applications
      *  - Used to store information about about:
      *       -> ExternalPorts

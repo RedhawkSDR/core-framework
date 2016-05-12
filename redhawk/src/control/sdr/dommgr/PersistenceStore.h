@@ -99,7 +99,7 @@ namespace ossie {
         std::string identifier;
         std::string contextName;
         CosNaming::NamingContext_var context;
-        std::vector<ossie::DeviceAssignmentInfo> componentDevices;
+        CF::DeviceAssignmentSequence componentDevices;
         ossie::ComponentList components;
         CF::Resource_var assemblyController;
         std::vector<ConnectionNode> connections;
@@ -279,12 +279,6 @@ namespace boost {
             ar & (node.provides);
             ar & (node.identifier);
             ar & (node.connected);
-        }
-
-        template<class Archive>
-        void serialize(Archive& ar, ossie::DeviceAssignmentInfo& dai, const unsigned int version) {
-            ar & (dai.deviceAssignment);
-            ar & (dai.device);
         }
 
         template<class Archive>

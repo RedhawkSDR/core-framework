@@ -55,7 +55,7 @@ public:
                       CosNaming::NamingContext_ptr waveformContext, bool aware, CosNaming::NamingContext_ptr DomainContext);
     
     void populateApplication (CF::Resource_ptr _assemblyController,
-                              std::vector<ossie::DeviceAssignmentInfo>& _devSequence,
+                              const CF::DeviceAssignmentSequence& deviceAssignments,
                               std::vector<CF::Resource_var> _startSeq,
                               std::vector<ossie::ConnectionNode>& connections,
                               std::vector<std::string> allocationIDs);
@@ -179,7 +179,7 @@ private:
     const std::string _identifier;
     const std::string _sadProfile;
     const std::string _appName;
-    std::vector<ossie::DeviceAssignmentInfo> _componentDevices;
+    CF::DeviceAssignmentSequence _componentDevices;
     std::vector<ossie::ConnectionNode> _connections;
     std::vector<CF::Resource_var> _appStartSeq;
     std::vector<std::string> _allocationIDs;

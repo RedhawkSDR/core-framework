@@ -135,14 +135,14 @@ Application_impl::Application_impl (const std::string& id, const std::string& na
 };
 
 void Application_impl::populateApplication(CF::Resource_ptr _controller,
-                                           std::vector<ossie::DeviceAssignmentInfo>&  _devSeq,
+                                           const CF::DeviceAssignmentSequence& assignedDevices,
                                            std::vector<CF::Resource_var> _startSeq,
                                            std::vector<ConnectionNode>& connections,
                                            std::vector<std::string> allocationIDs)
 {
     TRACE_ENTER(Application_impl)
     _connections = connections;
-    _componentDevices = _devSeq;
+    _componentDevices = assignedDevices;
     _appStartSeq = _startSeq;
 
     LOG_DEBUG(Application_impl, "Creating allocation sequence");
@@ -1151,13 +1151,7 @@ throw (CORBA::SystemException)
 CF::DeviceAssignmentSequence* Application_impl::componentDevices ()
 throw (CORBA::SystemException)
 {
-    CF::DeviceAssignmentSequence_var result = new CF::DeviceAssignmentSequence();
-    std::vector<ossie::DeviceAssignmentInfo>::const_iterator begin = _componentDevices.begin();
-    const std::vector<ossie::DeviceAssignmentInfo>::const_iterator end = _componentDevices.end();
-    for (; begin != end; ++begin) {
-        ossie::corba::push_back(result, begin->deviceAssignment);
-    }
-    return result._retn();
+    return new CF::DeviceAssignmentSequence(_componentDevices);
 }
 
 
