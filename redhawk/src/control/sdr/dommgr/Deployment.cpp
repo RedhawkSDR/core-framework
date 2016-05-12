@@ -208,6 +208,11 @@ void ComponentDeployment::setNicAssignment(const std::string& nic)
     nicAssignment = nic;
 }
 
+bool ComponentDeployment::hasNicAssignment() const
+{
+    return !nicAssignment.empty();
+}
+
 const std::string& ComponentDeployment::getNicAssignment() const
 {
     return nicAssignment;

@@ -99,6 +99,7 @@ namespace ossie {
         void mergeAffinityOptions(const CF::Properties& affinity);
 
         void setNicAssignment(const std::string& nic);
+        bool hasNicAssignment() const;
         const std::string& getNicAssignment() const;
 
         void setCpuReservation(float reservation);

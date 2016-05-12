@@ -83,7 +83,6 @@ private:
     // Tracks allocation IDs made during creation, and automates cleanup on
     // failure
     ScopedAllocations _allocations;
-    CF::Properties    _app_affinity;
 
     ossie::DeviceList _registeredDevices;
     ossie::DeviceList _executableDevices;

@@ -1943,10 +1943,6 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
                     const std::string interface = struct_prop["nic_allocation_status::interface"].toString();
                     LOG_DEBUG(ApplicationFactory_impl, "Allocation NIC assignment: " << interface );
                     deployment->setNicAssignment(interface);
-
-                    // RESOLVE - need SAD file directive to control this behavior.. i.e if promote_nic_to_affinity==true...
-                    // for now add nic assignment as application affinity to all components deployed by this device
-                    _app_affinity = deployment->getAffinityOptionsWithAssignment();
                 }
             }
         }
@@ -2578,12 +2574,21 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
 }
 
 
-void createHelper::applyApplicationAffinityOptions(const DeploymentList& deployments) {
+void createHelper::applyApplicationAffinityOptions(const DeploymentList& deployments)
+{
+    // RESOLVE - need SAD file directive to control this behavior.. i.e if promote_nic_to_affinity==true...
+    // for now add nic assignment as application affinity to all components deployed by this device
+    redhawk::PropertyMap app_affinity;
+    for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
+        if ((*dep)->hasNicAssignment()) {
+            app_affinity = (*dep)->getAffinityOptionsWithAssignment();
+        }
+    }
 
-    if ( _app_affinity.length() > 0  ) {
+    if (!app_affinity.empty()) {
       // log deployments with application affinity 
-      for ( uint32_t i=0; i < _app_affinity.length(); i++ ) {
-          CF::DataType dt = _app_affinity[i];
+      for ( uint32_t i=0; i < app_affinity.length(); i++ ) {
+          CF::DataType dt = app_affinity[i];
           LOG_INFO(ApplicationFactory_impl, " Applying Application Affinity: directive id:"  <<  dt.id << "/" <<  ossie::any_to_string( dt.value )) ;
       }
     
@@ -2604,7 +2609,7 @@ void createHelper::applyApplicationAffinityOptions(const DeploymentList& deploym
               boost::shared_ptr<ossie::DeviceNode> dev = deployment->getAssignedDevice();
               // for matching device deployments then apply nic affinity settings
               if (dev->identifier == deploy_on_device->identifier) {
-                  deployment->mergeAffinityOptions(_app_affinity);
+                  deployment->mergeAffinityOptions(app_affinity);
               }
           }
       }
