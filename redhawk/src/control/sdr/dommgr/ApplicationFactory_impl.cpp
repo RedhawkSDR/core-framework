@@ -38,6 +38,7 @@
 
 #include "Application_impl.h"
 #include "ApplicationFactory_impl.h"
+#include "createHelper.h"
 #include "DomainManager_impl.h"
 #include "AllocationManager_impl.h"
 #include "RH_NamingContext.h"
