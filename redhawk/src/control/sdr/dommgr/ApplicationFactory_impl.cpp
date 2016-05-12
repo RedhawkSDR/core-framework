@@ -1671,24 +1671,19 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         return deployment.release();
     }
 
-    ossie::DeviceList::iterator device;
-    ossie::DeviceList devices = _registeredDevices;
     bool allBusy = true;
-    unsigned int num_exec_devices = 0;
-    for (device = devices.begin(); device != devices.end(); ++device) {
-        if ((*device)->isExecutable) {
-            num_exec_devices++;
-            if ((*device)->device->usageState() != CF::Device::BUSY) {
-                allBusy = false;
-            }
+    for (ossie::DeviceList::iterator dev = _executableDevices.begin(); dev != _executableDevices.end(); ++dev) {
+        CF::Device::UsageType state;
+        try {
+            state = (*dev)->device->usageState();
+        } catch (...) {
+            LOG_WARN(ApplicationFactory_impl, "Device " << (*dev)->identifier << " is not reachable");
+            continue;
         }
-    }
-    if (num_exec_devices == 0) {
-        // Report failure
-        std::ostringstream eout;
-        eout << "Unable to launch component '"<<component->getName()<<"'. No executable devices (i.e.: GPP) are available in the Domain";
-        LOG_DEBUG(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
+        if (state != CF::Device::BUSY) {
+            allBusy = false;
+            break;
+        }
     }
     if (allBusy) {
         // Report failure
