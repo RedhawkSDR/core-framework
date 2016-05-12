@@ -1310,7 +1310,7 @@ CF::Application_ptr createHelper::create (
     //////////////////////////////////////////////////
     // Load the components to instantiate from the SAD
     ossie::ApplicationPlacement placement;
-    getRequiredComponents(placement);
+    getRequiredComponents(_appFact._fileMgr, _appFact._sadParser, placement);
 
     ossie::ComponentInfo* assemblyControllerComponent = placement.getAssemblyController();
     if (assemblyControllerComponent) {
@@ -2014,19 +2014,21 @@ ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::S
     return 0;
 }
 
-ossie::ComponentInfo* createHelper::buildComponentInfo(const ComponentPlacement& component)
+ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileManager_ptr fileMgr,
+                                                       const SoftwareAssembly& sadParser,
+                                                       const ComponentPlacement& component)
 {
     // Extract required data from SPD file
     ossie::ComponentInfo* newComponent = 0;
     LOG_TRACE(ApplicationFactory_impl, "Getting the SPD Filename");
-    const char *spdFileName = _appFact._sadParser.getSPDById(component.getFileRefId());
+    const char *spdFileName = sadParser.getSPDById(component.getFileRefId());
     if (spdFileName == NULL) {
         ostringstream eout;
         eout << "The SPD file reference for componentfile "<<component.getFileRefId()<<" is missing";
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
     }
     LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File");
-    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(_appFact._fileMgr, spdFileName);
+    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(fileMgr, spdFileName);
     if (newComponent == 0) {
         ostringstream eout;
         eout << "Error loading component information for file ref " << component.getFileRefId();
@@ -2098,14 +2100,17 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(const ComponentPlacement&
 /* Create a vector of all the components for the SAD associated with this App Factory
  *  - Get component information from the SAD and store in _requiredComponents vector
  */
-void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlacement)
+void createHelper::getRequiredComponents(CF::FileManager_ptr fileMgr,
+                                         const SoftwareAssembly& sadParser,
+                                         ossie::ApplicationPlacement& appPlacement)
+                                         
 {
     TRACE_ENTER(ApplicationFactory_impl);
 
-    const std::string assemblyControllerRefId = _appFact._sadParser.getAssemblyControllerRefId();
+    const std::string assemblyControllerRefId = sadParser.getAssemblyControllerRefId();
 
     // Walk through the host collocations first
-    const std::vector<SoftwareAssembly::HostCollocation>& collocations = _appFact._sadParser.getHostCollocations();
+    const std::vector<SoftwareAssembly::HostCollocation>& collocations = sadParser.getHostCollocations();
     for (size_t index = 0; index < collocations.size(); ++index) {
         const SoftwareAssembly::HostCollocation& collocation = collocations[index];
         LOG_TRACE(ApplicationFactory_impl, "Building component info for host collocation "
@@ -2115,7 +2120,7 @@ void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlaceme
 
         const std::vector<ComponentPlacement>& placements = collocations[index].getComponents();
         for (unsigned int i = 0; i < placements.size(); i++) {
-            ossie::ComponentInfo* component = buildComponentInfo(placements[i]);
+            ossie::ComponentInfo* component = buildComponentInfo(fileMgr, sadParser, placements[i]);
             if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
                 component->setIsAssemblyController(true);
             }
@@ -2124,11 +2129,11 @@ void createHelper::getRequiredComponents(ossie::ApplicationPlacement& appPlaceme
     }
 
     // Then, walk through the remaining non-collocated components
-    const std::vector<ComponentPlacement>& componentsFromSAD = _appFact._sadParser.getComponentPlacements();
+    const std::vector<ComponentPlacement>& componentsFromSAD = sadParser.getComponentPlacements();
     for (unsigned int i = 0; i < componentsFromSAD.size(); i++) {
         ossie::PlacementPlan* plan = new ossie::PlacementPlan();
         appPlacement.addPlacement(plan);
-        ossie::ComponentInfo* component = buildComponentInfo(componentsFromSAD[i]);
+        ossie::ComponentInfo* component = buildComponentInfo(fileMgr, sadParser, componentsFromSAD[i]);
         if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
             component->setIsAssemblyController(true);
         }

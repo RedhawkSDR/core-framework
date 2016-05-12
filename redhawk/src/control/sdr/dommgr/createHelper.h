@@ -135,8 +135,12 @@ private:
             unsigned int offset=0);
 
     // Populate _requiredComponents vector
-    void getRequiredComponents(ossie::ApplicationPlacement& appPlacement);
-    ossie::ComponentInfo* buildComponentInfo(const ossie::ComponentPlacement& component);
+    void getRequiredComponents(CF::FileManager_ptr fileMgr,
+                               const ossie::SoftwareAssembly& sadParser,
+                               ossie::ApplicationPlacement& appPlacement);
+    ossie::ComponentInfo* buildComponentInfo(CF::FileManager_ptr fileMgr,
+                                             const ossie::SoftwareAssembly& sadParser,
+                                             const ossie::ComponentPlacement& component);
 
     // Supports allocation
     bool allocateUsesDevices(const ossie::UsesDeviceInfo::List& usesDevices,
