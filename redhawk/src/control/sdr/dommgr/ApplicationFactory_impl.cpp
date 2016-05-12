@@ -661,9 +661,10 @@ void createHelper::_checkAssemblyController(
     }
 }
 
-void createHelper::_connectComponents(std::vector<ConnectionNode>& connections){
+void createHelper::_connectComponents(ossie::ApplicationDeployment& appDeployment,
+                                      std::vector<ConnectionNode>& connections){
     try{
-        connectComponents(connections, _baseNamingContext);
+        connectComponents(appDeployment, connections, _baseNamingContext);
     } catch (CF::ApplicationFactory::CreateApplicationError& ex) {
         throw;
     } CATCH_THROW_LOG_TRACE(
@@ -674,10 +675,10 @@ void createHelper::_connectComponents(std::vector<ConnectionNode>& connections){
             "Connecting components failed (unclear where this occurred)"));
 }
 
-void createHelper::_configureComponents()
+void createHelper::_configureComponents(const DeploymentList& deployments)
 {
     try{
-        configureComponents();
+        configureComponents(deployments);
     } catch (CF::ApplicationFactory::CreateApplicationError& ex) {
         throw;
     } CATCH_THROW_LOG_TRACE(
@@ -687,6 +688,7 @@ void createHelper::_configureComponents()
 }
 
 void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
+                                             ossie::ApplicationDeployment& appDeployment,
                                              const std::string& appIdentifier, const DeviceAssignmentMap& devices)
 {
     typedef ossie::ApplicationPlacement::PlacementList PlacementPlanList;
@@ -696,7 +698,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPla
         if (components.size() > 1) {
             LOG_TRACE(ApplicationFactory_impl, "Placing host collocation " << (*plan)->getId()
                       << " " << (*plan)->getName());
-            _placeHostCollocation(appIdentifier, components, devices);
+            _placeHostCollocation(appDeployment, appIdentifier, components, devices);
             LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
                       << (*plan)->getId() << " Components Placed: " << components.size());
         } else {
@@ -709,7 +711,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPla
                           << " is assigned to device " << assigned_device);
             }
             ossie::ComponentDeployment* deployment = allocateComponent(component, assigned_device, appIdentifier);
-            _appDeployment.addComponentDeployment(deployment);
+            appDeployment.addComponentDeployment(deployment);
         }
     }
 }
@@ -893,7 +895,8 @@ void createHelper::_consolidateAllocations(const ossie::ImplementationInfo::List
     }
 }
 
-void createHelper::_placeHostCollocation(const std::string &appIdentifier,
+void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
+                                         const std::string &appIdentifier,
                                          const PlacementList& collocatedComponents,
                                          const DeviceAssignmentMap& devices)
 {
@@ -967,7 +970,7 @@ void createHelper::_placeHostCollocation(const std::string &appIdentifier,
                     continue;
                 }
                 collocAssignedDevs[i].deviceAssignment.componentId = (*comp)->getIdentifier().c_str();
-                _appDeployment.addComponentDeployment(deployment);
+                appDeployment.addComponentDeployment(deployment);
             }
             
             // Move the device to the front of the list
@@ -983,7 +986,9 @@ void createHelper::_placeHostCollocation(const std::string &appIdentifier,
     throw CF::ApplicationFactory::CreateApplicationRequestError();
 }
 
-void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement, const std::string& appName)
+void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
+                                      ossie::ApplicationDeployment& appDeployment,
+                                      const std::string& appName)
 {
     // Gets all uses device info from the SAD file
     const UsesDeviceInfo::List& usesDevices = _appInfo.getUsesDevices();
@@ -1020,11 +1025,12 @@ void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
     }
     for (std::vector<ossie::UsesDeviceAssignment*>::iterator dev=assignedDevices.begin(); dev!=assignedDevices.end(); dev++) {
         //dev->deviceAssignment.componentId = assembly_controller->getIdentifier().c_str();
-        _appDeployment.addUsesDeviceAssignment(*dev);
+        appDeployment.addUsesDeviceAssignment(*dev);
     }
 }
 
-void createHelper::setUpExternalPorts(Application_impl* application)
+void createHelper::setUpExternalPorts(ossie::ApplicationDeployment& appDeployment,
+                                      Application_impl* application)
 {
     typedef std::vector<SoftwareAssembly::Port> PortList;
     const PortList& ports = _appFact._sadParser.getExternalPorts();
@@ -1037,7 +1043,7 @@ void createHelper::setUpExternalPorts(Application_impl* application)
                         << " Port identifier: " << port->identifier);
 
         // Get the component from the instantiation identifier.
-        ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(port->componentrefid);
+        ossie::ComponentDeployment* deployment = appDeployment.getComponentDeployment(port->componentrefid);
         if (!deployment) {
             LOG_ERROR(ApplicationFactory_impl,
                       "Invalid componentinstantiationref ("
@@ -1087,7 +1093,8 @@ void createHelper::setUpExternalPorts(Application_impl* application)
     }
 }
 
-void createHelper::setUpExternalProperties(Application_impl* application)
+void createHelper::setUpExternalProperties(ossie::ApplicationDeployment& appDeployment,
+                                           Application_impl* application)
 {
     const std::vector<SoftwareAssembly::Property>& props = _appFact._sadParser.getExternalProperties();
     LOG_TRACE(ApplicationFactory_impl, "Mapping " << props.size() << " external property(ies)");
@@ -1095,7 +1102,7 @@ void createHelper::setUpExternalProperties(Application_impl* application)
         LOG_TRACE(ApplicationFactory_impl, "Property component: " << prop->comprefid << " Property identifier: " << prop->propid);
 
         // Get the component from the compref identifier.
-        ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(prop->comprefid);
+        ossie::ComponentDeployment* deployment = appDeployment.getComponentDeployment(prop->comprefid);
         if (!deployment) {
             LOG_ERROR(ApplicationFactory_impl, "Unable to find component for comprefid " << prop->comprefid);
             throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Unable to find component for given comprefid");
@@ -1306,9 +1313,10 @@ throw (CORBA::SystemException,
         ////////////////////////////////////////////////
         // Assign components to devices
         ////////////////////////////////////////////////
+        ossie::ApplicationDeployment app_deployment;
 
         // Allocate any usesdevice capacities specified in the SAD file
-        _handleUsesDevices(placement, name);
+        _handleUsesDevices(placement, app_deployment, name);
 
         // Give the application a unique identifier of the form 
         // "softwareassemblyid:ApplicationName", where the application 
@@ -1321,7 +1329,7 @@ throw (CORBA::SystemException,
         _validateDAS(placement, deviceAssignments);
 
         // Assign all components to devices
-        assignPlacementsToDevices(placement, appIdentifier, deviceAssignments);
+        assignPlacementsToDevices(placement, app_deployment, appIdentifier, deviceAssignments);
 
         ////////////////////////////////////////////////
         // Create the Application servant
@@ -1344,24 +1352,24 @@ throw (CORBA::SystemException,
         std::vector<std::string> allocationIDs;
 
         CF::ApplicationRegistrar_var app_reg = _application->appReg();
-        loadAndExecuteComponents(app_reg);
-        waitForComponentRegistration();
-        initializeComponents();
+        loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
+        waitForComponentRegistration(app_deployment.getComponentDeployments());
+        initializeComponents(app_deployment.getComponentDeployments());
 
         // Check that the assembly controller is valid
         CF::Resource_var assemblyController;
         if (assemblyControllerComponent) {
             const std::string& assemblyControllerId = assemblyControllerComponent->getInstantiationIdentifier();
-            ossie::ComponentDeployment* deployment = _appDeployment.getComponentDeployment(assemblyControllerId);
+            ossie::ComponentDeployment* deployment = app_deployment.getComponentDeployment(assemblyControllerId);
             assemblyController = deployment->getResourcePtr();
         }
         _checkAssemblyController(assemblyController, assemblyControllerComponent);
 
-        _connectComponents(connections);
-        _configureComponents();
+        _connectComponents(app_deployment, connections);
+        _configureComponents(app_deployment.getComponentDeployments());
 
-        setUpExternalPorts(_application);
-        setUpExternalProperties(_application);
+        setUpExternalPorts(app_deployment, _application);
+        setUpExternalProperties(app_deployment, _application);
 
         ////////////////////////////////////////////////
         // Create the application
@@ -1375,7 +1383,7 @@ throw (CORBA::SystemException,
         // Fill in the uses devices for the application
         DeviceAssignmentList app_devices;
         typedef std::vector<ossie::UsesDeviceAssignment*> UsesList;
-        const UsesList& app_uses = _appDeployment.getUsesDeviceAssignments();
+        const UsesList& app_uses = app_deployment.getUsesDeviceAssignments();
         for (UsesList::const_iterator uses = app_uses.begin(); uses != app_uses.end(); ++uses) {
             DeviceAssignmentInfo assignment;
             assignment.deviceAssignment.componentId = CORBA::string_dup(name);
@@ -1388,7 +1396,7 @@ throw (CORBA::SystemException,
             app_devices.push_back(assignment);
         }
 
-        const DeploymentList& deployments = _appDeployment.getComponentDeployments();
+        const DeploymentList& deployments = app_deployment.getComponentDeployments();
         for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
             ossie::ComponentInfo* component = (*dep)->getComponent();
             DeviceAssignmentInfo comp_assignment;
@@ -2265,12 +2273,12 @@ void createHelper::loadDependencies(const ossie::ComponentInfo& component,
 /* Perform 'load' and 'execute' operations to launch component on the assigned device
  *  - Actually loads and executes the component on the given device
  */
-void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg)
+void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
+                                            CF::ApplicationRegistrar_ptr _appReg)
 {
-    const DeploymentList& deployments = _appDeployment.getComponentDeployments();
     LOG_TRACE(ApplicationFactory_impl, "Loading and Executing " << deployments.size() << " components");
     // apply application affinity options to required components
-    applyApplicationAffinityOptions();
+    applyApplicationAffinityOptions(deployments);
 
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
         ossie::ComponentDeployment* deployment = deployments[rc_idx];
@@ -2612,7 +2620,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
 }
 
 
-void createHelper::applyApplicationAffinityOptions() {
+void createHelper::applyApplicationAffinityOptions(const DeploymentList& deployments) {
 
     if ( _app_affinity.length() > 0  ) {
       // log deployments with application affinity 
@@ -2625,7 +2633,6 @@ void createHelper::applyApplicationAffinityOptions() {
       // Promote NIC affinity for all components deployed on the same device
       //
       boost::shared_ptr<ossie::DeviceNode> deploy_on_device;
-      const DeploymentList& deployments = _appDeployment.getComponentDeployments();
       for (unsigned int rc_idx = 0; rc_idx < deployments.size(); rc_idx++) {
           ossie::ComponentDeployment* deployment = deployments[rc_idx];
           if (!(deployment->getNicAssignment().empty())) {
@@ -2646,7 +2653,8 @@ void createHelper::applyApplicationAffinityOptions() {
     }
 }
 
-void createHelper::waitForComponentRegistration()
+
+void createHelper::waitForComponentRegistration(const DeploymentList& deployments)
 {
     // Wait for all components to be registered before continuing
     int componentBindingTimeout = _appFact._domainManager->getComponentBindingTimeout();
@@ -2655,7 +2663,6 @@ void createHelper::waitForComponentRegistration()
     // Track only SCA-compliant components; non-compliant components will never
     // register with the application, nor do they need to be initialized
     std::set<std::string> expected_components;
-    const DeploymentList& deployments = _appDeployment.getComponentDeployments();
     for (DeploymentList::const_iterator ii = deployments.begin(); ii != deployments.end(); ++ii) {
         ossie::ComponentInfo* component = (*ii)->getComponent();
         if (component->isScaCompliant()) {
@@ -2692,10 +2699,9 @@ void createHelper::waitForComponentRegistration()
  *  - Ensure components have started and are bound to Naming Service
  *  - Initialize each component
  */
-void createHelper::initializeComponents()
+void createHelper::initializeComponents(const DeploymentList& deployments)
 {
     // Install the different components in the system
-    const DeploymentList& deployments = _appDeployment.getComponentDeployments();
     LOG_TRACE(ApplicationFactory_impl, "initializing " << deployments.size() << " waveform components")
 
     // Resize the _startSeq vector to the right size
@@ -2861,11 +2867,10 @@ void createHelper::initializeComponents()
     }
 }
 
-void createHelper::configureComponents()
+void createHelper::configureComponents(const DeploymentList& deployments)
 {
     DeploymentList configure_list;
     ossie::ComponentDeployment* ac_deployment = 0;
-    const DeploymentList& deployments = _appDeployment.getComponentDeployments();
     for (DeploymentList::const_iterator depl = deployments.begin(); depl != deployments.end(); ++depl) {
         const ossie::ComponentInfo* component = (*depl)->getComponent();
         if (!component->isScaCompliant()) {
@@ -2977,13 +2982,15 @@ void createHelper::configureComponents()
 /* Connect the components
  *  - Connect the components
  */
-void createHelper::connectComponents(std::vector<ConnectionNode>& connections, string base_naming_context)
+void createHelper::connectComponents(ossie::ApplicationDeployment& appDeployment,
+                                     std::vector<ConnectionNode>& connections,
+                                     string base_naming_context)
 {
     const std::vector<Connection>& _connection = _appFact._sadParser.getConnections ();
 
     // Create an AppConnectionManager to resolve and track all connections in the application.
     using ossie::AppConnectionManager;
-    AppConnectionManager connectionManager(_appFact._domainManager, &_appDeployment, &_appDeployment, base_naming_context);
+    AppConnectionManager connectionManager(_appFact._domainManager, &appDeployment, &appDeployment, base_naming_context);
 
     // Create all resource connections
     LOG_TRACE(ApplicationFactory_impl, "Establishing " << _connection.size() << " waveform connections")

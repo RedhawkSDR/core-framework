@@ -199,27 +199,31 @@ private:
     ossie::ApplicationInfo _appInfo;
 
     typedef std::vector<ossie::ComponentDeployment*> DeploymentList;
-    ossie::ApplicationDeployment _appDeployment;
 
     // createHelper helper methods
     void overrideExternalProperties(ossie::ApplicationPlacement& appPlacement,
                                     const CF::Properties& initConfiguration);
     void overrideProperties(const CF::Properties& initConfiguration, ossie::ComponentInfo* component);
     void assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
+                                   ossie::ApplicationDeployment& appDeployment,
                                    const std::string& appIdentifier,
                                    const DeviceAssignmentMap& devices);
     void _validateDAS(ossie::ApplicationPlacement& appPlacement, const DeviceAssignmentMap& deviceAssignments);
-    void _connectComponents(
+    void _connectComponents(ossie::ApplicationDeployment& appDeployment,
         std::vector<ossie::ConnectionNode>& connections);
-    void _configureComponents();
+    void _configureComponents(const DeploymentList& deployments);
     void _checkAssemblyController(
         CF::Resource_ptr      assemblyController,
         ossie::ComponentInfo* assemblyControllerComponent) const;
-    void setUpExternalPorts(Application_impl* application);
-    void setUpExternalProperties(Application_impl* application);
-    void _placeHostCollocation(const std::string& appIdentifier, const PlacementList& collocatedComponents,
+    void setUpExternalPorts(ossie::ApplicationDeployment& appDeployment, Application_impl* application);
+    void setUpExternalProperties(ossie::ApplicationDeployment& appDeployment, Application_impl* application);
+    void _placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
+                               const std::string& appIdentifier,
+                               const PlacementList& collocatedComponents,
                                const DeviceAssignmentMap& devices);
-    void _handleUsesDevices(ossie::ApplicationPlacement& appPlacement, const std::string& appName);
+    void _handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
+                            ossie::ApplicationDeployment& appDeployment,
+                            const std::string& appName);
     void _resolveImplementations(PlacementList::iterator comp, PlacementList& compList, std::vector<ossie::ImplementationInfo::List> &res_vec);
     void _removeUnmatchedImplementations(std::vector<ossie::ImplementationInfo::List> &res_vec);
     void _consolidateAllocations(const ossie::ImplementationInfo::List& implementations, CF::Properties& allocs);
@@ -257,16 +261,17 @@ private:
                           CF::LoadableDevice_ptr device,
                           const std::vector<ossie::SoftpkgDeployment*>& dependencies);
 
-    void loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg);
-    void applyApplicationAffinityOptions();
+    void loadAndExecuteComponents(const DeploymentList& deployments,
+                                  CF::ApplicationRegistrar_ptr _appReg);
+    void applyApplicationAffinityOptions(const DeploymentList& deployments);
 
     void attemptComponentExecution(CF::ApplicationRegistrar_ptr registrar, ossie::ComponentDeployment* deployment);
 
-    void waitForComponentRegistration();
-    void initializeComponents();
+    void waitForComponentRegistration(const DeploymentList& deployments);
+    void initializeComponents(const DeploymentList& deployments);
 
-    void configureComponents();
-    void connectComponents(
+    void configureComponents(const DeploymentList& deployments);
+    void connectComponents(ossie::ApplicationDeployment& appDeployment,
         std::vector<ossie::ConnectionNode>& connections, 
         std::string                         base_naming_context);
 
