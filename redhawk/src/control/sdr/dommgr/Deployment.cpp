@@ -286,7 +286,8 @@ CF::Resource_ptr ComponentDeployment::getResourcePtr() const
     return CF::Resource::_duplicate(resource);
 }
 
-ApplicationDeployment::ApplicationDeployment()
+ApplicationDeployment::ApplicationDeployment(const std::string& identifier) :
+    identifier(identifier)
 {
 }
 
@@ -295,6 +296,11 @@ ApplicationDeployment::~ApplicationDeployment()
     for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
         delete *comp;
     }
+}
+
+const std::string& ApplicationDeployment::getIdentifier() const
+{
+    return identifier;
 }
 
 void ApplicationDeployment::addComponentDeployment(ComponentDeployment* deployment)

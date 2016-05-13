@@ -133,8 +133,10 @@ namespace ossie {
     public:
         typedef std::vector<ComponentDeployment*> ComponentList;
 
-        ApplicationDeployment();
+        ApplicationDeployment(const std::string& identifier);
         ~ApplicationDeployment();
+
+        const std::string& getIdentifier() const;
 
         void addComponentDeployment(ComponentDeployment* deployment);
         const ComponentList& getComponentDeployments();
@@ -152,6 +154,7 @@ namespace ossie {
         CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId);
 
     protected:
+        const std::string identifier;
         ComponentList components;
     };
 }

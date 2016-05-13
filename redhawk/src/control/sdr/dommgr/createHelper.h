@@ -107,7 +107,6 @@ private:
     void overrideProperties(const CF::Properties& initConfiguration, ossie::ComponentInfo* component);
     void assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
                                    ossie::ApplicationDeployment& appDeployment,
-                                   const std::string& appIdentifier,
                                    const DeviceAssignmentMap& devices);
     void _validateDAS(ossie::ApplicationPlacement& appPlacement, const DeviceAssignmentMap& deviceAssignments);
     void _connectComponents(ossie::ApplicationDeployment& appDeployment,
@@ -119,7 +118,6 @@ private:
     void setUpExternalPorts(ossie::ApplicationDeployment& appDeployment, Application_impl* application);
     void setUpExternalProperties(ossie::ApplicationDeployment& appDeployment, Application_impl* application);
     void _placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
-                               const std::string& appIdentifier,
                                const PlacementList& collocatedComponents,
                                const DeviceAssignmentMap& devices);
     void _handleUsesDevices(ossie::ApplicationPlacement& appPlacement,

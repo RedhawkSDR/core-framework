@@ -690,7 +690,7 @@ void createHelper::_configureComponents(const DeploymentList& deployments)
 
 void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
                                              ossie::ApplicationDeployment& appDeployment,
-                                             const std::string& appIdentifier, const DeviceAssignmentMap& devices)
+                                             const DeviceAssignmentMap& devices)
 {
     typedef ossie::ApplicationPlacement::PlacementList PlacementPlanList;
     const PlacementPlanList& placements = appPlacement.getPlacements();
@@ -699,7 +699,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPla
         if (components.size() > 1) {
             LOG_TRACE(ApplicationFactory_impl, "Placing host collocation " << (*plan)->getId()
                       << " " << (*plan)->getName());
-            _placeHostCollocation(appDeployment, appIdentifier, components, devices);
+            _placeHostCollocation(appDeployment, components, devices);
             LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
                       << (*plan)->getId() << " Components Placed: " << components.size());
         } else {
@@ -711,7 +711,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPla
                 LOG_TRACE(ApplicationFactory_impl, "Component " << component->getInstantiationIdentifier()
                           << " is assigned to device " << assigned_device);
             }
-            ossie::ComponentDeployment* deployment = allocateComponent(component, assigned_device, appIdentifier);
+            ossie::ComponentDeployment* deployment = allocateComponent(component, assigned_device, appDeployment.getIdentifier());
             appDeployment.addComponentDeployment(deployment);
         }
     }
@@ -897,7 +897,6 @@ void createHelper::_consolidateAllocations(const ossie::ImplementationInfo::List
 }
 
 void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
-                                         const std::string &appIdentifier,
                                          const PlacementList& collocatedComponents,
                                          const DeviceAssignmentMap& devices)
 {
@@ -946,7 +945,7 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
         this->_consolidateAllocations(res_vec[index], allocationProperties);
 
         const std::string requestid = ossie::generateUUID();
-        ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appIdentifier, processorDeps, osDeps);
+        ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appDeployment.getIdentifier(), processorDeps, osDeps);
         if (!response.first.empty()) {
             // Ensure that all capacities get cleaned up
             this->_allocations.push_back(response.first);
@@ -1321,14 +1320,6 @@ CF::Application_ptr createHelper::create (
 
     overrideExternalProperties(placement, modifiedInitConfiguration);
 
-    ////////////////////////////////////////////////
-    // Assign components to devices
-    ////////////////////////////////////////////////
-    ossie::ApplicationDeployment app_deployment;
-
-    // Allocate any usesdevice capacities specified in the SAD file
-    _handleUsesDevices(placement, app_deployment, name);
-
     // Give the application a unique identifier of the form 
     // "softwareassemblyid:ApplicationName", where the application 
     // name includes the serial number generated for the naming context
@@ -1336,11 +1327,19 @@ CF::Application_ptr createHelper::create (
     std::string appIdentifier = 
         _appFact._identifier + ":" + _waveformContextName;
 
+    ////////////////////////////////////////////////
+    // Assign components to devices
+    ////////////////////////////////////////////////
+    ossie::ApplicationDeployment app_deployment(appIdentifier);
+
+    // Allocate any usesdevice capacities specified in the SAD file
+    _handleUsesDevices(placement, app_deployment, name);
+
     // Catch invalid device assignments
     _validateDAS(placement, deviceAssignments);
 
     // Assign all components to devices
-    assignPlacementsToDevices(placement, app_deployment, appIdentifier, deviceAssignments);
+    assignPlacementsToDevices(placement, app_deployment, deviceAssignments);
 
     // Assign CPU reservations to components
     const DeploymentList& deployments = app_deployment.getComponentDeployments();
