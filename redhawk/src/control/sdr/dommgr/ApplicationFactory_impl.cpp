@@ -740,9 +740,11 @@ void createHelper::_validateDAS(ossie::ApplicationPlacement& appPlacement,
     }
 }
 
-void createHelper::_resolveImplementations(PlacementList::iterator comp, PlacementList& compList, std::vector<ossie::ImplementationInfo::List> &res_vec)
+void createHelper::_resolveImplementations(PlacementList::const_iterator comp,
+                                           PlacementList::const_iterator end,
+                                           std::vector<ossie::ImplementationInfo::List> &res_vec)
 {
-    if (comp == compList.end()) {
+    if (comp == end) {
         return;
     }
     const ossie::ImplementationInfo::List& comp_imps = (*comp)->getImplementations();
@@ -764,7 +766,7 @@ void createHelper::_resolveImplementations(PlacementList::iterator comp, Placeme
             }
         }
     }
-    this->_resolveImplementations(++comp, compList, res_vec);
+    this->_resolveImplementations(++comp, end, res_vec);
     return;
 }
 
@@ -912,15 +914,13 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
         }
     }
 
-    PlacementList placingComponents = collocatedComponents;
-
     // create every combination of implementations for the components in the set
     // for each combination:
     //  consolidate allocations
     //  attempt allocation
     //  if the allocation succeeds, break the loop
     std::vector<ossie::ImplementationInfo::List> res_vec;
-    this->_resolveImplementations(placingComponents.begin(), placingComponents, res_vec);
+    this->_resolveImplementations(collocatedComponents.begin(), collocatedComponents.end(), res_vec);
     this->_removeUnmatchedImplementations(res_vec);
 
     // Get the executable devices for the domain; if there were any devices
@@ -954,9 +954,9 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
             boost::shared_ptr<ossie::DeviceNode>& node = response.second;
             const std::string& deviceId = node->identifier;
 
-            PlacementList::iterator comp = placingComponents.begin();
+            PlacementList::const_iterator comp = collocatedComponents.begin();
             ossie::ImplementationInfo::List::iterator impl = res_vec[index].end()-1;
-            for (unsigned int i=0; i<placingComponents.size(); i++,comp++,impl--) {
+            for (; comp != collocatedComponents.end(); ++comp, --impl) {
                 ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, *impl);
                 deployment->setAssignedDevice(node);
                 if (!resolveSoftpkgDependencies(deployment, *node)) {
