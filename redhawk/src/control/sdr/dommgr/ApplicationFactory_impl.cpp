@@ -163,7 +163,29 @@ static std::vector<ossie::SPD::NameVersionPair> mergeOsDeps(const ossie::Impleme
     return osDeps;
 }
 
-PREPARE_CF_LOGGING(ApplicationFactory_impl);
+namespace {
+    template <class T>
+    inline bool mergeDependencies(std::vector<T>& first, const std::vector<T>& second)
+    {
+        if (second.empty()) {
+            return true;
+        } else if (first.empty()) {
+            first = second;
+            return true;
+        } else {
+            for (typename std::vector<T>::iterator iter = first.begin(); iter != first.end(); ) {
+                if (std::find(second.begin(), second.end(), *iter) == second.end()) {
+                    iter = first.erase(iter);
+                } else {
+                    ++iter;
+                }
+            }
+            return !first.empty();
+        }
+    }
+}
+
+PREPARE_LOGGING(ApplicationFactory_impl);
 
 void
 ApplicationFactory_impl::ValidateFileLocation( CF::FileManager_ptr fileMgr, const std::string &profile_file)
@@ -740,138 +762,45 @@ void createHelper::_validateDAS(ossie::ApplicationPlacement& appPlacement,
     }
 }
 
-void createHelper::_resolveImplementations(PlacementList::const_iterator comp,
-                                           PlacementList::const_iterator end,
-                                           std::vector<ossie::ImplementationInfo::List> &res_vec)
+void createHelper::_matchImplementations(PlacementList::const_iterator comp,
+                                         PlacementList::const_iterator end,
+                                         CollocationList& matches,
+                                         const ImplementationList& current,
+                                         const ProcessorList& processorDeps,
+                                         const OSList& osDeps)
 {
     if (comp == end) {
+        // Reached the end of the components, 'current' is a valid and complete
+        // set of implementations
+        matches.push_back(current);
         return;
     }
-    const ossie::ImplementationInfo::List& comp_imps = (*comp)->getImplementations();
-    std::vector<ossie::ImplementationInfo::List> tmp_res_vec = res_vec;
-    unsigned int old_res_vec_size = res_vec.size();
-    if (old_res_vec_size == 0) {
-        res_vec.resize(comp_imps.size());
-        for (unsigned int ii=0; ii<comp_imps.size(); ii++) {
-            res_vec[ii].resize(1);
-            res_vec[ii][0] = comp_imps[ii];
-        }
-    } else {
-        res_vec.resize(old_res_vec_size * comp_imps.size());
-        for (unsigned int i=0; i<old_res_vec_size; i++) {
-            for (unsigned int ii=0; ii<comp_imps.size(); ii++) {
-                unsigned int res_vec_idx = i*comp_imps.size()+ii;
-                res_vec[res_vec_idx] = tmp_res_vec[i];
-                res_vec[res_vec_idx].insert(res_vec[res_vec_idx].begin(),comp_imps[ii]);
-            }
-        }
-    }
-    this->_resolveImplementations(++comp, end, res_vec);
-    return;
-}
 
-void createHelper::_removeUnmatchedImplementations(std::vector<ossie::ImplementationInfo::List> &res_vec)
-{
-    std::vector<ossie::ImplementationInfo::List>::iterator impl_list = res_vec.begin();
-    while (impl_list != res_vec.end()) {
-        std::vector<ossie::ImplementationInfo::List>::iterator old_impl_list = impl_list;
-        ossie::ImplementationInfo::List::iterator impl = (*impl_list).begin();
-        std::vector<ossie::SPD::NameVersionPair> reference_pair = (*impl)->getOsDeps();
-        std::vector<std::string> reference_procs = (*impl)->getProcessorDeps();
-        bool os_init_to_zero = (reference_pair.size()==0);
-        bool proc_init_to_zero = (reference_procs.size()==0);
-        impl++;
-        bool match = true;
-        while (impl != (*impl_list).end()) {
-            std::vector<ossie::SPD::NameVersionPair> pair = (*impl)->getOsDeps();
-            std::vector<std::string> procs = (*impl)->getProcessorDeps();
-            bool os_must_match = false;
-            bool proc_must_match = false;
-            if (os_init_to_zero)
-                os_must_match = false;
-            if (proc_init_to_zero)
-                proc_must_match = false;
-            if ((reference_pair.size() != 0) and (pair.size() != 0)) {os_must_match = true;}
-            if ((reference_procs.size() != 0) and (procs.size() != 0)) {proc_must_match = true;}
-            // if os must match (because both lists are non-zero length), check that at least one of the sets matches
-            if (os_must_match) {
-                bool at_least_one_match = false;
-                for (std::vector<ossie::SPD::NameVersionPair>::iterator ref=reference_pair.begin(); ref<reference_pair.end(); ref++) {
-                    for (std::vector<ossie::SPD::NameVersionPair>::iterator cur=pair.begin(); cur<pair.end(); cur++) {
-                        if ((*ref)==(*cur)) {
-                            at_least_one_match = true;
-                            break;
-                        }
-                    }
-                }
-                if (!at_least_one_match) {match = false;break;}
-            }
-            // if proc must match (because both lists are non-zero length), check that at least one of the sets matches
-            if (proc_must_match) {
-                bool at_least_one_match = false;
-                for (std::vector<std::string>::iterator ref=reference_procs.begin(); ref<reference_procs.end(); ref++) {
-                    for (std::vector<std::string>::iterator cur=procs.begin(); cur<procs.end(); cur++) {
-                        if ((*ref)==(*cur)) {
-                            at_least_one_match = true;
-                        }
-                    }
-                }
-                if (!at_least_one_match) {match = false;break;}
-            }
-            // reduce the number of os that can be used as a reference to the overlapping set
-            if (reference_pair.size()>pair.size()) {
-                for (std::vector<ossie::SPD::NameVersionPair>::iterator ref=reference_pair.begin(); ref<reference_pair.end(); ref++) {
-                    bool found_match = false;
-                    for (std::vector<ossie::SPD::NameVersionPair>::iterator cur=pair.begin(); cur<pair.end(); cur++) {
-                        if ((*ref)==(*cur)) {
-                            found_match = true;
-                        }
-                    }
-                    if (not found_match) {
-                        reference_pair.erase(ref);
-                    }
-                }
-            }
-            // reduce the number of procs that can be used as a reference to the overlapping set
-            if (reference_procs.size()>procs.size()) {
-                for (std::vector<std::string>::iterator ref=reference_procs.begin(); ref<reference_procs.end(); ref++) {
-                    bool found_match = false;
-                    for (std::vector<std::string>::iterator cur=procs.begin(); cur<procs.end(); cur++) {
-                        if ((*ref)==(*cur)) {
-                            found_match = true;
-                        }
-                    }
-                    if (not found_match) {
-                        reference_procs.erase(ref);
-                    }
-                }
-            }
-            // if the initial entity did not have an os, add it if the current one holds an os requirement
-            if (os_init_to_zero) {
-                if (pair.size() != 0) {
-                    os_init_to_zero = false;
-                    for (std::vector<ossie::SPD::NameVersionPair>::iterator cur=pair.begin(); cur<pair.end(); cur++) {
-                        reference_pair.push_back((*cur));
-                    }
-                }
-            }
-            // if the initial entity did not have a proc, add it if the current one holds a proc requirement
-            if (proc_init_to_zero) {
-                if (procs.size() != 0) {
-                    proc_init_to_zero = false;
-                    for (std::vector<std::string>::iterator cur=procs.begin(); cur<procs.end(); cur++) {
-                        reference_procs.push_back((*cur));
-                    }
-                }
-            }
-            impl++;
+    // Try all of the implementations from the current component for matches
+    // with the processor and OS dependencies
+    const ImplementationList& comp_impls = (*comp)->getImplementations();
+    ++comp;
+    for (ImplementationList::const_iterator impl = comp_impls.begin(); impl != comp_impls.end(); ++impl) {
+        // Check that the processor dependencies are compatible, filtering out
+        // anything not compatible with the current component
+        std::vector<std::string> proc_list = processorDeps;;
+        if (!mergeDependencies(proc_list, (*impl)->getProcessorDeps())) {
+            continue;
         }
-        if (not match) {
-            (*impl_list).erase(impl);
+
+        // Check that the OS dependencies are compatible, again filtering out
+        // anything not compatible with the current component
+        std::vector<ossie::SPD::NameVersionPair> os_list = osDeps;
+        if (!mergeDependencies(os_list, (*impl)->getOsDeps())) {
+            continue;
         }
-        impl_list++;
+
+        // Add this implementation to the pontential matches and recurse one
+        // more level
+        ImplementationList match = current;
+        match.push_back(*impl);
+        _matchImplementations(comp, end, matches, match, proc_list, os_list);
     }
-    return;
 }
 
 void createHelper::_consolidateAllocations(const ossie::ImplementationInfo::List& impls, CF::Properties& allocs)
@@ -914,14 +843,15 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
         }
     }
 
+    LOG_TRACE(ApplicationFactory_impl, "Placing " << collocatedComponents.size() << " components");
+
     // create every combination of implementations for the components in the set
     // for each combination:
     //  consolidate allocations
     //  attempt allocation
     //  if the allocation succeeds, break the loop
-    std::vector<ossie::ImplementationInfo::List> res_vec;
-    this->_resolveImplementations(collocatedComponents.begin(), collocatedComponents.end(), res_vec);
-    this->_removeUnmatchedImplementations(res_vec);
+    CollocationList res_vec;
+    _matchImplementations(collocatedComponents.begin(), collocatedComponents.end(), res_vec);
 
     // Get the executable devices for the domain; if there were any devices
     // assigned, filter out all other devices
@@ -955,8 +885,8 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
             const std::string& deviceId = node->identifier;
 
             PlacementList::const_iterator comp = collocatedComponents.begin();
-            ossie::ImplementationInfo::List::iterator impl = res_vec[index].end()-1;
-            for (; comp != collocatedComponents.end(); ++comp, --impl) {
+            ossie::ImplementationInfo::List::iterator impl = res_vec[index].begin();
+            for (; comp != collocatedComponents.end(); ++comp, ++impl) {
                 ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, *impl);
                 deployment->setAssignedDevice(node);
                 if (!resolveSoftpkgDependencies(deployment, *node)) {

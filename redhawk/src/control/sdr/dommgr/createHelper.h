@@ -123,10 +123,17 @@ private:
     void _handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
                             ossie::ApplicationDeployment& appDeployment,
                             const std::string& appName);
-    void _resolveImplementations(PlacementList::const_iterator comp,
-                                 PlacementList::const_iterator end,
-                                 std::vector<ossie::ImplementationInfo::List>& res_vec);
-    void _removeUnmatchedImplementations(std::vector<ossie::ImplementationInfo::List> &res_vec);
+
+    typedef ossie::ImplementationInfo::List ImplementationList;
+    typedef std::vector<ImplementationList> CollocationList;
+    typedef std::vector<std::string> ProcessorList;
+    typedef std::vector<ossie::SPD::NameVersionPair> OSList;
+    void _matchImplementations(PlacementList::const_iterator comp,
+                               PlacementList::const_iterator end,
+                               CollocationList& matches,
+                               const ImplementationList& current=ImplementationList(),
+                               const ProcessorList& processorDeps=ProcessorList(),
+                               const OSList& osDeps=OSList());
     void _consolidateAllocations(const ossie::ImplementationInfo::List& implementations, CF::Properties& allocs);
     void _evaluateMATHinRequest(CF::Properties &request, const CF::Properties &configureProperties);
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SPD::PropertyRef> &prop_refs, unsigned int offset=0);
