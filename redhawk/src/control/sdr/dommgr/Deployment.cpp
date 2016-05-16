@@ -88,14 +88,17 @@ SoftpkgDeployment::SoftpkgDeployment(SoftpkgInfo* softpkg, const ImplementationI
 
 SoftpkgDeployment::~SoftpkgDeployment()
 {
-    for (DeploymentList::iterator dependency = dependencies.begin(); dependency != dependencies.end(); ++dependency) {
-        delete (*dependency);
-    }
+    clearDependencies();
 }
 
 SoftpkgInfo* SoftpkgDeployment::getSoftpkg()
 {
     return softpkg;
+}
+
+void SoftpkgDeployment::setImplementation(const ImplementationInfo* implementation)
+{
+    this->implementation = implementation;
 }
 
 const ImplementationInfo* SoftpkgDeployment::getImplementation() const
@@ -111,6 +114,14 @@ void SoftpkgDeployment::addDependency(SoftpkgDeployment* dependency)
 const std::vector<SoftpkgDeployment*>& SoftpkgDeployment::getDependencies()
 {
     return dependencies;
+}
+
+void SoftpkgDeployment::clearDependencies()
+{
+    for (DeploymentList::iterator dependency = dependencies.begin(); dependency != dependencies.end(); ++dependency) {
+        delete (*dependency);
+    }
+    dependencies.clear();
 }
 
 std::vector<std::string> SoftpkgDeployment::getDependencyLocalFiles()

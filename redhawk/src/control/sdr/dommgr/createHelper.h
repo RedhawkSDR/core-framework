@@ -100,6 +100,10 @@ private:
     ossie::ApplicationInfo _appInfo;
 
     typedef std::vector<ossie::ComponentDeployment*> DeploymentList;
+    typedef ossie::ImplementationInfo::List ImplementationList;
+    typedef std::vector<ImplementationList> CollocationList;
+    typedef std::vector<std::string> ProcessorList;
+    typedef std::vector<ossie::SPD::NameVersionPair> OSList;
 
     // createHelper helper methods
     void overrideExternalProperties(ossie::ApplicationPlacement& appPlacement,
@@ -120,21 +124,17 @@ private:
     void _placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
                                const PlacementList& collocatedComponents,
                                const DeviceAssignmentMap& devices);
+    bool placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
+                              const DeploymentList& components,
+                              DeploymentList::const_iterator current,
+                              ossie::DeviceList& deploymentDevices,
+                              const ProcessorList& processorDeps=ProcessorList(),
+                              const OSList& osDeps=OSList());
     void _handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
                             ossie::ApplicationDeployment& appDeployment,
                             const std::string& appName);
 
-    typedef ossie::ImplementationInfo::List ImplementationList;
-    typedef std::vector<ImplementationList> CollocationList;
-    typedef std::vector<std::string> ProcessorList;
-    typedef std::vector<ossie::SPD::NameVersionPair> OSList;
-    void _matchImplementations(PlacementList::const_iterator comp,
-                               PlacementList::const_iterator end,
-                               CollocationList& matches,
-                               const ImplementationList& current=ImplementationList(),
-                               const ProcessorList& processorDeps=ProcessorList(),
-                               const OSList& osDeps=OSList());
-    void _consolidateAllocations(const ossie::ImplementationInfo::List& implementations, CF::Properties& allocs);
+    CF::Properties _consolidateAllocations(const DeploymentList& implementations);
     void _evaluateMATHinRequest(CF::Properties &request, const CF::Properties &configureProperties);
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SPD::PropertyRef> &prop_refs, unsigned int offset=0);
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SoftwareAssembly::PropertyRef> &prop_refs,
@@ -163,6 +163,12 @@ private:
     ossie::AllocationResult allocateComponentToDevice(ossie::ComponentDeployment* deployment,
                                                       const std::string& assignedDeviceId,
                                                       const std::string& appIdentifier);
+
+    bool allocateHostCollocation(ossie::ApplicationDeployment& appDeployment,
+                                 const DeploymentList& components,
+                                 ossie::DeviceList& deploymentDevices,
+                                 const ProcessorList& processorDeps,
+                                 const OSList& osDeps);
 
     bool resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployment, ossie::DeviceNode& device);
     ossie::SoftpkgDeployment* resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg, ossie::DeviceNode& device);

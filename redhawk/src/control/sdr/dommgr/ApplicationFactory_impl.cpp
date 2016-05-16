@@ -103,66 +103,6 @@ static void rotateDeviceList(DeviceList& devices, const std::string& identifier)
     }
 }
 
-static std::vector<std::string> mergeProcessorDeps(const ossie::ImplementationInfo::List& implementations)
-{
-    // this function merges the overlap in processors between the different components that have been selected
-    std::vector<std::string> processorDeps;
-    for (ossie::ImplementationInfo::List::const_iterator impl = implementations.begin(); impl != implementations.end(); ++impl) {
-        const std::vector<std::string>& implDeps = (*impl)->getProcessorDeps();
-        if (!implDeps.empty()) {
-            if (processorDeps.empty()) {
-                // No prior processor dependencies, so overwrite
-                processorDeps = implDeps;
-            } else {
-                std::vector<std::string> toremove;
-                toremove.resize(0);
-                for (std::vector<std::string>::iterator proc = processorDeps.begin(); proc != processorDeps.end(); ++proc) {
-                    if (std::find(implDeps.begin(), implDeps.end(), *proc) == implDeps.end()) {
-                        toremove.push_back(*proc);
-                    }
-                }
-                for (std::vector<std::string>::iterator _rem = toremove.begin(); _rem != toremove.end(); ++_rem) {
-                    std::vector<std::string>::iterator proc = std::find(processorDeps.begin(), processorDeps.end(), *_rem);
-                    if (proc != processorDeps.end()) {
-                        processorDeps.erase(proc);
-                    }
-                }
-            }
-        }
-    }
-    return processorDeps;
-}
-
-static std::vector<ossie::SPD::NameVersionPair> mergeOsDeps(const ossie::ImplementationInfo::List& implementations)
-{
-    // this function merges the overlap in operating systems between the different components that have been selected
-    std::vector<ossie::SPD::NameVersionPair> osDeps;
-    for (ossie::ImplementationInfo::List::const_iterator impl = implementations.begin(); impl != implementations.end(); ++impl) {
-        const std::vector<ossie::SPD::NameVersionPair>& implDeps = (*impl)->getOsDeps();
-        if (!implDeps.empty()) {
-            if (osDeps.empty()) {
-                // No prior OS dependencies, so overwrite
-                osDeps = implDeps;
-            } else {
-                std::vector<ossie::SPD::NameVersionPair> toremove;
-                toremove.resize(0);
-                for (std::vector<ossie::SPD::NameVersionPair>::iterator pair = osDeps.begin(); pair != osDeps.end(); ++pair) {
-                    if (std::find(implDeps.begin(), implDeps.end(), *pair) == implDeps.end()) {
-                        toremove.push_back(*pair);
-                    }
-                }
-                for (std::vector<ossie::SPD::NameVersionPair>::iterator _rem = toremove.begin(); _rem != toremove.end(); ++_rem) {
-                    std::vector<ossie::SPD::NameVersionPair>::iterator pair = std::find(osDeps.begin(), osDeps.end(), *_rem);
-                    if (pair != osDeps.end()) {
-                        osDeps.erase(pair);
-                    }
-                }
-            }
-        }
-    }
-    return osDeps;
-}
-
 namespace {
     template <class T>
     inline bool mergeDependencies(std::vector<T>& first, const std::vector<T>& second)
@@ -762,29 +702,35 @@ void createHelper::_validateDAS(ossie::ApplicationPlacement& appPlacement,
     }
 }
 
-void createHelper::_matchImplementations(PlacementList::const_iterator comp,
-                                         PlacementList::const_iterator end,
-                                         CollocationList& matches,
-                                         const ImplementationList& current,
-                                         const ProcessorList& processorDeps,
-                                         const OSList& osDeps)
+bool createHelper::placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
+                                        const DeploymentList& components,
+                                        DeploymentList::const_iterator current,
+                                        ossie::DeviceList& deploymentDevices,
+                                        const ProcessorList& processorDeps,
+                                        const OSList& osDeps)
 {
-    if (comp == end) {
-        // Reached the end of the components, 'current' is a valid and complete
-        // set of implementations
-        matches.push_back(current);
-        return;
+    if (current == components.end()) {
+        // Reached the end of the component deployments; all implementations
+        // should be set, so give it a try
+        return allocateHostCollocation(appDeployment, components, deploymentDevices, processorDeps, osDeps);
     }
 
     // Try all of the implementations from the current component for matches
     // with the processor and OS dependencies
-    const ImplementationList& comp_impls = (*comp)->getImplementations();
-    ++comp;
+    ossie::ComponentDeployment* deployment = *current;
+    const ImplementationList& comp_impls = deployment->getComponent()->getImplementations();
+    LOG_TRACE(ApplicationFactory_impl, "Finding collocation-compatible implementations for component "
+              << deployment->getComponent()->getInstantiationIdentifier());
+    ++current;
     for (ImplementationList::const_iterator impl = comp_impls.begin(); impl != comp_impls.end(); ++impl) {
+        LOG_TRACE(ApplicationFactory_impl, "Checking implementation " << (*impl)->getId());
+
         // Check that the processor dependencies are compatible, filtering out
         // anything not compatible with the current component
         std::vector<std::string> proc_list = processorDeps;;
         if (!mergeDependencies(proc_list, (*impl)->getProcessorDeps())) {
+            LOG_TRACE(ApplicationFactory_impl, "Skipping implementation " << (*impl)->getId()
+                      << ": no processor match");
             continue;
         }
 
@@ -792,66 +738,95 @@ void createHelper::_matchImplementations(PlacementList::const_iterator comp,
         // anything not compatible with the current component
         std::vector<ossie::SPD::NameVersionPair> os_list = osDeps;
         if (!mergeDependencies(os_list, (*impl)->getOsDeps())) {
+            LOG_TRACE(ApplicationFactory_impl, "Skipping implementation " << (*impl)->getId() << ": no OS match");
             continue;
         }
 
-        // Add this implementation to the pontential matches and recurse one
-        // more level
-        ImplementationList match = current;
-        match.push_back(*impl);
-        _matchImplementations(comp, end, matches, match, proc_list, os_list);
-    }
-}
-
-void createHelper::_consolidateAllocations(const ossie::ImplementationInfo::List& impls, CF::Properties& allocs)
-{
-    allocs.length(0);
-    for (ossie::ImplementationInfo::List::const_iterator impl= impls.begin(); impl != impls.end(); ++impl) {
-        const std::vector<SPD::PropertyRef>& deps = (*impl)->getDependencyProperties();
-        for (std::vector<SPD::PropertyRef>::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
-          ossie::ComponentProperty *prop = dep->property.get();
-          if (dynamic_cast<const SimplePropertyRef*>( prop ) != NULL) {
-                const SimplePropertyRef* dependency = dynamic_cast<const SimplePropertyRef*>(prop);
-                ossie::corba::push_back(allocs, convertPropertyToDataType(dependency));
-            } else if (dynamic_cast<const SimpleSequencePropertyRef*>(prop) != NULL) {
-                const SimpleSequencePropertyRef* dependency = dynamic_cast<const SimpleSequencePropertyRef*>(prop);
-                ossie::corba::push_back(allocs, convertPropertyToDataType(dependency));
-            } else if (dynamic_cast<const ossie::StructPropertyRef*>(prop) != NULL) {
-                const ossie::StructPropertyRef* dependency = dynamic_cast<const ossie::StructPropertyRef*>(prop);
-                ossie::corba::push_back(allocs, convertPropertyToDataType(dependency));
-            } else if (dynamic_cast<const ossie::StructSequencePropertyRef*>(prop) != NULL) {
-                const ossie::StructSequencePropertyRef* dependency = dynamic_cast<const ossie::StructSequencePropertyRef*>(prop);
-                ossie::corba::push_back(allocs, convertPropertyToDataType(dependency));
-            }
+        // Set this implementation for deployment and recurse one more level
+        deployment->setImplementation(*impl);
+        if (placeHostCollocation(appDeployment, components, current, deploymentDevices, proc_list, os_list)) {
+            return true;
         }
     }
+
+    return false;
+}
+
+bool createHelper::allocateHostCollocation(ossie::ApplicationDeployment& appDeployment,
+                                           const DeploymentList& components,
+                                           ossie::DeviceList& deploymentDevices,
+                                           const ProcessorList& processorDeps,
+                                           const OSList& osDeps)
+{
+    // Consolidate the allocation properties into a single list
+    CF::Properties allocationProperties = _consolidateAllocations(components);
+
+    LOG_TRACE(ApplicationFactory_impl, "Allocating deployment for " << components.size()
+              << " collocated components");
+    for (DeploymentList::const_iterator depl = components.begin(); depl != components.end(); ++depl) {
+        LOG_TRACE(ApplicationFactory_impl, "Component " << (*depl)->getComponent()->getInstantiationIdentifier()
+                  << " implementation " << (*depl)->getImplementation()->getId());
+    }
+
+    const std::string requestid = ossie::generateUUID();
+    ossie::AllocationResult response = _allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appDeployment.getIdentifier(), processorDeps, osDeps);
+    if (!response.first.empty()) {
+        // Ensure that all capacities get cleaned up
+        _allocations.push_back(response.first);
+
+        // Convert from response back into a device node
+        boost::shared_ptr<ossie::DeviceNode>& node = response.second;
+        const std::string& deviceId = node->identifier;
+
+        for (DeploymentList::const_iterator depl = components.begin(); depl != components.end(); ++depl) {
+            if (!resolveSoftpkgDependencies(*depl, *node)) {
+                LOG_TRACE(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
+                          << (*depl)->getComponent()->getIdentifier()
+                          << " implementation " << (*depl)->getImplementation()->getId());
+                (*depl)->clearDependencies();
+                return false;
+            }
+            (*depl)->setAssignedDevice(node);
+        }
+
+        // Move the device to the front of the list
+        rotateDeviceList(_executableDevices, deviceId);
+
+        LOG_TRACE(ApplicationFactory_impl, "Successful collocation allocation");
+        return true;
+    }
+    LOG_TRACE(ApplicationFactory_impl, "Failed collocation allocation");
+    return false;
+ }
+
+CF::Properties createHelper::_consolidateAllocations(const DeploymentList& deployments)
+{
+    CF::Properties allocs;
+    for (DeploymentList::const_iterator depl = deployments.begin(); depl != deployments.end(); ++depl) {
+        const std::vector<SPD::PropertyRef>& deps = (*depl)->getImplementation()->getDependencyProperties();
+        for (std::vector<SPD::PropertyRef>::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
+          ossie::ComponentProperty *prop = dep->property.get();
+          ossie::corba::push_back(allocs, ossie::convertPropertyRefToDataType(prop));
+        }
+    }
+    return allocs;
 }
 
 void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
-                                         const PlacementList& collocatedComponents,
+                                         const PlacementList& components,
                                          const DeviceAssignmentMap& devices)
 {
     // Keep track of devices to which some of the components have
     // been assigned.
     DeviceIDList assignedDevices;
-    for (PlacementList::const_iterator placement = collocatedComponents.begin();
-         placement != collocatedComponents.end();
+    for (PlacementList::const_iterator placement = components.begin();
+         placement != components.end();
          ++placement) {
         DeviceAssignmentMap::const_iterator device = devices.find((*placement)->getInstantiationIdentifier());
         if (device != devices.end()) {
             assignedDevices.push_back(device->second);
         }
     }
-
-    LOG_TRACE(ApplicationFactory_impl, "Placing " << collocatedComponents.size() << " components");
-
-    // create every combination of implementations for the components in the set
-    // for each combination:
-    //  consolidate allocations
-    //  attempt allocation
-    //  if the allocation succeeds, break the loop
-    CollocationList res_vec;
-    _matchImplementations(collocatedComponents.begin(), collocatedComponents.end(), res_vec);
 
     // Get the executable devices for the domain; if there were any devices
     // assigned, filter out all other devices
@@ -864,51 +839,22 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
         }
     }
     
+    LOG_TRACE(ApplicationFactory_impl, "Placing " << components.size() << " components");
 
-    for (size_t index = 0; index < res_vec.size(); ++index) {
-        // Merge processor and OS dependencies from all implementations
-        std::vector<std::string> processorDeps = mergeProcessorDeps(res_vec[index]);
-        std::vector<ossie::SPD::NameVersionPair> osDeps = mergeOsDeps(res_vec[index]);
-
-        // Consolidate the allocation properties into a single list
-        CF::Properties allocationProperties;
-        this->_consolidateAllocations(res_vec[index], allocationProperties);
-
-        const std::string requestid = ossie::generateUUID();
-        ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appDeployment.getIdentifier(), processorDeps, osDeps);
-        if (!response.first.empty()) {
-            // Ensure that all capacities get cleaned up
-            this->_allocations.push_back(response.first);
-
-            // Convert from response back into a device node
-            boost::shared_ptr<ossie::DeviceNode>& node = response.second;
-            const std::string& deviceId = node->identifier;
-
-            PlacementList::const_iterator comp = collocatedComponents.begin();
-            ossie::ImplementationInfo::List::iterator impl = res_vec[index].begin();
-            for (; comp != collocatedComponents.end(); ++comp, ++impl) {
-                ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, *impl);
-                deployment->setAssignedDevice(node);
-                if (!resolveSoftpkgDependencies(deployment, *node)) {
-                    LOG_TRACE(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
-                              << (*comp)->getIdentifier() << " implementation " << (*impl)->getId());
-                    delete deployment;
-                    continue;
-                }
-                appDeployment.addComponentDeployment(deployment);
-            }
-            
-            // Move the device to the front of the list
-            rotateDeviceList(_executableDevices, deviceId);
-            return;
-        }
+    DeploymentList deployments;
+    for (PlacementList::const_iterator comp = components.begin(); comp != components.end(); ++comp) {
+        ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, 0);
+        deployments.push_back(deployment);
+        appDeployment.addComponentDeployment(deployment);
     }
 
-    std::ostringstream eout;
-    //eout << "Could not collocate components for collocation NAME: " << collocation.getName() << "  ID:" << collocation.id;
-    eout << "Could not collocate components for collocation";
-    LOG_ERROR(ApplicationFactory_impl, eout.str());
-    throw CF::ApplicationFactory::CreateApplicationRequestError();
+    if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices)) {
+        std::ostringstream eout;
+        //eout << "Could not collocate components for collocation NAME: " << collocation.getName() << "  ID:" << collocation.id;
+        eout << "Could not collocate components for collocation";
+        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        throw CF::ApplicationFactory::CreateApplicationRequestError();
+    }
 }
 
 void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,

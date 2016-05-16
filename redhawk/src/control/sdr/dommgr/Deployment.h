@@ -73,12 +73,15 @@ namespace ossie {
         ~SoftpkgDeployment();
 
         SoftpkgInfo* getSoftpkg();
+
+        void setImplementation(const ImplementationInfo* implementation);
         const ImplementationInfo* getImplementation() const;
 
         std::string getLocalFile();
 
         void addDependency(SoftpkgDeployment* dependency);
         const DeploymentList& getDependencies();
+        void clearDependencies();
 
         std::vector<std::string> getDependencyLocalFiles();
 
