@@ -61,7 +61,8 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              OptionalProperty.h \
              PropertyMonitor.h \
              Autocomplete.h \
-             shared_buffer.h
+             shared_buffer.h \
+             ExecutorService.h
 
 nobase_pkginclude_HEADERS = internal/equals.h \
 	     logging/rh_logger.h \
