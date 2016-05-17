@@ -771,23 +771,31 @@ bool createHelper::allocateHostCollocation(ossie::ApplicationDeployment& appDepl
     const std::string requestid = ossie::generateUUID();
     ossie::AllocationResult response = _allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appDeployment.getIdentifier(), processorDeps, osDeps);
     if (!response.first.empty()) {
-        // Ensure that all capacities get cleaned up
-        _allocations.push_back(response.first);
+        // Ensure that all capacities get cleaned up, keeping ownership local
+        // to this scope until it's clear that the device can support all of
+        // the collocated components' dependencies
+        ScopedAllocations local_allocations(*_allocationMgr);
+        local_allocations.push_back(response.first);
 
         // Convert from response back into a device node
         boost::shared_ptr<ossie::DeviceNode>& node = response.second;
         const std::string& deviceId = node->identifier;
 
         for (DeploymentList::const_iterator depl = components.begin(); depl != components.end(); ++depl) {
+            // Reset any dependencies that may have been resolved in a prior attempt
+            (*depl)->clearDependencies();
             if (!resolveSoftpkgDependencies(*depl, *node)) {
                 LOG_TRACE(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                           << (*depl)->getComponent()->getIdentifier()
                           << " implementation " << (*depl)->getImplementation()->getId());
-                (*depl)->clearDependencies();
                 return false;
             }
             (*depl)->setAssignedDevice(node);
         }
+
+        // Once all the dependencies have been resolved, take ownership of the
+        // allocations
+        local_allocations.transfer(_allocations);
 
         // Move the device to the front of the list
         rotateDeviceList(_executableDevices, deviceId);
