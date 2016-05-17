@@ -650,12 +650,11 @@ void createHelper::_configureComponents(const DeploymentList& deployments)
         CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, "Configure of component failed (unclear where in the process this occurred)"))
 }
 
-void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
-                                             ossie::ApplicationDeployment& appDeployment,
+void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDeployment,
                                              const DeviceAssignmentMap& devices)
 {
-    typedef ossie::ApplicationPlacement::PlacementList PlacementPlanList;
-    const PlacementPlanList& placements = appPlacement.getPlacements();
+    typedef ossie::ApplicationDeployment::PlacementList PlacementPlanList;
+    const PlacementPlanList& placements = appDeployment.getPlacements();
     for (PlacementPlanList::const_iterator plan = placements.begin(); plan != placements.end(); ++plan) {
         const std::vector<ComponentInfo*>& components = (*plan)->getComponents();
         if (components.size() > 1) {
@@ -679,7 +678,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationPlacement& appPla
     }
 }
 
-void createHelper::_validateDAS(ossie::ApplicationPlacement& appPlacement,
+void createHelper::_validateDAS(ossie::ApplicationDeployment& appDeployment,
                                 const DeviceAssignmentMap& deviceAssignments)
 {
     LOG_TRACE(ApplicationFactory_impl, "Validating device assignment sequence (length "
@@ -687,7 +686,7 @@ void createHelper::_validateDAS(ossie::ApplicationPlacement& appPlacement,
     for (DeviceAssignmentMap::const_iterator ii = deviceAssignments.begin(); ii != deviceAssignments.end(); ++ii) {
         const std::string& componentId = ii->first;
         const std::string& assignedDeviceId = ii->second;
-        ossie::ComponentInfo* component = appPlacement.getComponent(componentId);
+        ossie::ComponentInfo* component = appDeployment.getComponent(componentId);
 
         if (!component) {
             LOG_ERROR(ApplicationFactory_impl, "Failed to create application; "
@@ -865,8 +864,7 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
     }
 }
 
-void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
-                                      ossie::ApplicationDeployment& appDeployment,
+void createHelper::_handleUsesDevices(ossie::ApplicationDeployment& appDeployment,
                                       const std::string& appName)
 {
     // Gets all uses device info from the SAD file
@@ -876,7 +874,7 @@ void createHelper::_handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
     // Get the assembly controller's configure properties for context in the
     // allocations
     CF::Properties appProperties;
-    ossie::ComponentInfo* assembly_controller = appPlacement.getAssemblyController();
+    ossie::ComponentInfo* assembly_controller = appDeployment.getAssemblyController();
     if (assembly_controller) {
         appProperties = assembly_controller->getConfigureProperties();
     }
@@ -1188,12 +1186,19 @@ CF::Application_ptr createHelper::create (
         rotateDeviceList(_executableDevices, lastExecutableDevice);
     }
 
+    // Give the application a unique identifier of the form 
+    // "softwareassemblyid:ApplicationName", where the application 
+    // name includes the serial number generated for the naming context
+    // (e.g. "Application_1").
+    std::string appIdentifier = 
+        _appFact._identifier + ":" + _waveformContextName;
+
     //////////////////////////////////////////////////
     // Load the components to instantiate from the SAD
-    ossie::ApplicationPlacement placement;
-    getRequiredComponents(_appFact._fileMgr, _appFact._sadParser, placement);
+    ossie::ApplicationDeployment app_deployment(appIdentifier);
+    getRequiredComponents(_appFact._fileMgr, _appFact._sadParser, app_deployment);
 
-    ossie::ComponentInfo* assemblyControllerComponent = placement.getAssemblyController();
+    ossie::ComponentInfo* assemblyControllerComponent = app_deployment.getAssemblyController();
     if (assemblyControllerComponent) {
         overrideProperties(modifiedInitConfiguration, assemblyControllerComponent);
     }
@@ -1202,28 +1207,20 @@ CF::Application_ptr createHelper::create (
     // Store information about this application
     _appInfo.populateApplicationInfo(_appFact._sadParser);
 
-    overrideExternalProperties(placement, modifiedInitConfiguration);
-
-    // Give the application a unique identifier of the form 
-    // "softwareassemblyid:ApplicationName", where the application 
-    // name includes the serial number generated for the naming context
-    // (e.g. "Application_1").
-    std::string appIdentifier = 
-        _appFact._identifier + ":" + _waveformContextName;
+    overrideExternalProperties(app_deployment, modifiedInitConfiguration);
 
     ////////////////////////////////////////////////
     // Assign components to devices
     ////////////////////////////////////////////////
-    ossie::ApplicationDeployment app_deployment(appIdentifier);
 
     // Allocate any usesdevice capacities specified in the SAD file
-    _handleUsesDevices(placement, app_deployment, name);
+    _handleUsesDevices(app_deployment, name);
 
     // Catch invalid device assignments
-    _validateDAS(placement, deviceAssignments);
+    _validateDAS(app_deployment, deviceAssignments);
 
     // Assign all components to devices
-    assignPlacementsToDevices(placement, app_deployment, deviceAssignments);
+    assignPlacementsToDevices(app_deployment, deviceAssignments);
 
     // Assign CPU reservations to components
     const DeploymentList& deployments = app_deployment.getComponentDeployments();
@@ -1358,7 +1355,7 @@ CF::Application_ptr createHelper::create (
     return appObj._retn();
 }
 
-void createHelper::overrideExternalProperties(ossie::ApplicationPlacement& appPlacement,
+void createHelper::overrideExternalProperties(ossie::ApplicationDeployment& appDeployment,
                                               const CF::Properties& initConfiguration)
 {
     const std::vector<SoftwareAssembly::Property>& props = _appFact._sadParser.getExternalProperties();
@@ -1373,7 +1370,7 @@ void createHelper::overrideExternalProperties(ossie::ApplicationPlacement& appPl
             }
 
             if (id == static_cast<const char*>(initConfiguration[i].id)) {
-                ComponentInfo *comp = appPlacement.getComponent(prop->comprefid);
+                ComponentInfo *comp = appDeployment.getComponent(prop->comprefid);
                 // Only configure on non AC components
                 if (comp != 0 && !comp->isAssemblyController()) {
                     comp->overrideProperty(prop->propid.c_str(), initConfiguration[i].value);
@@ -1971,7 +1968,7 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
  */
 void createHelper::getRequiredComponents(CF::FileSystem_ptr fileSys,
                                          const SoftwareAssembly& sadParser,
-                                         ossie::ApplicationPlacement& appPlacement)
+                                         ossie::ApplicationDeployment& appDeployment)
                                          
 {
     TRACE_ENTER(ApplicationFactory_impl);
@@ -1985,7 +1982,7 @@ void createHelper::getRequiredComponents(CF::FileSystem_ptr fileSys,
         LOG_TRACE(ApplicationFactory_impl, "Building component info for host collocation "
                   << collocation.getID());
         ossie::PlacementPlan* plan = new ossie::PlacementPlan(collocation.getID(), collocation.getName());
-        appPlacement.addPlacement(plan);
+        appDeployment.addPlacement(plan);
 
         const std::vector<ComponentPlacement>& placements = collocations[index].getComponents();
         for (unsigned int i = 0; i < placements.size(); i++) {
@@ -2001,7 +1998,7 @@ void createHelper::getRequiredComponents(CF::FileSystem_ptr fileSys,
     const std::vector<ComponentPlacement>& componentsFromSAD = sadParser.getComponentPlacements();
     for (unsigned int i = 0; i < componentsFromSAD.size(); i++) {
         ossie::PlacementPlan* plan = new ossie::PlacementPlan();
-        appPlacement.addPlacement(plan);
+        appDeployment.addPlacement(plan);
         ossie::ComponentInfo* component = buildComponentInfo(fileSys, sadParser, componentsFromSAD[i]);
         if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
             component->setIsAssemblyController(true);

@@ -297,6 +297,56 @@ CF::Resource_ptr ComponentDeployment::getResourcePtr() const
     return CF::Resource::_duplicate(resource);
 }
 
+
+PlacementPlan::PlacementPlan()
+{
+}
+
+PlacementPlan::~PlacementPlan()
+{
+    for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
+        delete *comp;
+    }
+}
+
+PlacementPlan::PlacementPlan(const std::string& id, const std::string& name) :
+    id(id),
+    name(name)
+{
+}
+
+const std::string& PlacementPlan::getId() const
+{
+    return id;
+}
+
+const std::string& PlacementPlan::getName() const
+{
+    return name;
+}
+
+const PlacementPlan::ComponentList& PlacementPlan::getComponents() const
+{
+    return components;
+}
+
+void PlacementPlan::addComponent(ComponentInfo* component)
+{
+    components.push_back(component);
+}
+
+ComponentInfo* PlacementPlan::getComponent(const std::string& instantiationId)
+{
+    for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
+        if (instantiationId == (*comp)->getInstantiationIdentifier()) {
+            return *comp;
+        }
+    }
+
+    return 0;
+}
+
+
 ApplicationDeployment::ApplicationDeployment(const std::string& identifier) :
     identifier(identifier)
 {
@@ -307,11 +357,50 @@ ApplicationDeployment::~ApplicationDeployment()
     for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
         delete *comp;
     }
+    for (std::vector<PlacementPlan*>::iterator place = placements.begin(); place != placements.end(); ++place) {
+        delete (*place);
+    }
 }
 
 const std::string& ApplicationDeployment::getIdentifier() const
 {
     return identifier;
+}
+
+void ApplicationDeployment::addPlacement(PlacementPlan* placement)
+{
+    placements.push_back(placement);
+}
+
+const std::vector<PlacementPlan*>& ApplicationDeployment::getPlacements() const
+{
+    return placements;
+}
+
+ComponentInfo* ApplicationDeployment::getComponent(const std::string& instantiationId)
+{
+    for (PlacementList::iterator placement = placements.begin(); placement != placements.end(); ++placement) {
+        ComponentInfo* component = (*placement)->getComponent(instantiationId);
+        if (component) {
+            return component;
+        }
+    }
+
+    return 0;
+}
+
+ComponentInfo* ApplicationDeployment::getAssemblyController()
+{
+    for (PlacementList::iterator placement = placements.begin(); placement != placements.end(); ++placement) {
+        const std::vector<ComponentInfo*>& components = (*placement)->getComponents();
+        for (std::vector<ComponentInfo*>::const_iterator comp = components.begin(); comp != components.end(); ++comp) {
+            if ((*comp)->isAssemblyController()) {
+                return *comp;
+            }
+        }
+    }
+
+    return 0;
 }
 
 void ApplicationDeployment::addComponentDeployment(ComponentDeployment* deployment)

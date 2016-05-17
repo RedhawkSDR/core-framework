@@ -131,15 +131,48 @@ namespace ossie {
         redhawk::PropertyMap affinityOptions;
     };
 
+    class PlacementPlan
+    {
+    public:
+        typedef std::vector<ComponentInfo*> ComponentList;
+
+        PlacementPlan();
+        PlacementPlan(const std::string& id, const std::string& name);
+        ~PlacementPlan();
+ 
+        const std::string& getId() const;
+        const std::string& getName() const;
+
+        const ComponentList& getComponents() const;
+
+        void addComponent(ComponentInfo* component);
+
+        ComponentInfo* getComponent(const std::string& instantiationId);
+
+    protected:
+        std::string id;
+        std::string name;
+        ComponentList components;
+    };
+
     class ApplicationDeployment : public ComponentLookup, public DeviceLookup, public UsesDeviceDeployment
     {
     public:
+        typedef std::vector<PlacementPlan*> PlacementList;
         typedef std::vector<ComponentDeployment*> ComponentList;
 
         ApplicationDeployment(const std::string& identifier);
         ~ApplicationDeployment();
 
         const std::string& getIdentifier() const;
+
+        void addPlacement(PlacementPlan* placement);
+
+        const PlacementList& getPlacements() const;
+
+        ComponentInfo* getAssemblyController();
+
+        ComponentInfo* getComponent(const std::string& instantiationId);
 
         void addComponentDeployment(ComponentDeployment* deployment);
         const ComponentList& getComponentDeployments();
@@ -158,6 +191,7 @@ namespace ossie {
 
     protected:
         const std::string identifier;
+        PlacementList placements;
         ComponentList components;
     };
 }

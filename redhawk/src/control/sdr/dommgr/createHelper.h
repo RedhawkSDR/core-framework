@@ -27,7 +27,6 @@
 
 #include "PersistenceStore.h"
 #include "applicationSupport.h"
-#include "Placement.h"
 #include "Deployment.h"
 
 class Application_impl;
@@ -106,13 +105,12 @@ private:
     typedef std::vector<ossie::SPD::NameVersionPair> OSList;
 
     // createHelper helper methods
-    void overrideExternalProperties(ossie::ApplicationPlacement& appPlacement,
+    void overrideExternalProperties(ossie::ApplicationDeployment& appDeployment,
                                     const CF::Properties& initConfiguration);
     void overrideProperties(const CF::Properties& initConfiguration, ossie::ComponentInfo* component);
-    void assignPlacementsToDevices(ossie::ApplicationPlacement& appPlacement,
-                                   ossie::ApplicationDeployment& appDeployment,
+    void assignPlacementsToDevices(ossie::ApplicationDeployment& appDeployment,
                                    const DeviceAssignmentMap& devices);
-    void _validateDAS(ossie::ApplicationPlacement& appPlacement, const DeviceAssignmentMap& deviceAssignments);
+    void _validateDAS(ossie::ApplicationDeployment& appDeployment, const DeviceAssignmentMap& deviceAssignments);
     void _connectComponents(ossie::ApplicationDeployment& appDeployment,
         std::vector<ossie::ConnectionNode>& connections);
     void _configureComponents(const DeploymentList& deployments);
@@ -130,8 +128,7 @@ private:
                               ossie::DeviceList& deploymentDevices,
                               const ProcessorList& processorDeps=ProcessorList(),
                               const OSList& osDeps=OSList());
-    void _handleUsesDevices(ossie::ApplicationPlacement& appPlacement,
-                            ossie::ApplicationDeployment& appDeployment,
+    void _handleUsesDevices(ossie::ApplicationDeployment& appDeployment,
                             const std::string& appName);
 
     CF::Properties _consolidateAllocations(const DeploymentList& implementations);
@@ -143,7 +140,7 @@ private:
     // Populate _requiredComponents vector
     void getRequiredComponents(CF::FileSystem_ptr fileSys,
                                const ossie::SoftwareAssembly& sadParser,
-                               ossie::ApplicationPlacement& appPlacement);
+                               ossie::ApplicationDeployment& appDeployment);
     ossie::ComponentInfo* buildComponentInfo(CF::FileSystem_ptr fileSys,
                                              const ossie::SoftwareAssembly& sadParser,
                                              const ossie::ComponentPlacement& component);
