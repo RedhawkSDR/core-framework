@@ -30,6 +30,8 @@
 #include "applicationSupport.h"
 #include "connectionSupport.h"
 
+class Application_impl;
+
 namespace ossie {
 
     class UsesDeviceAssignment
@@ -86,6 +88,9 @@ namespace ossie {
         std::vector<std::string> getDependencyLocalFiles();
 
     protected:
+        void load(Application_impl* application, CF::FileSystem_ptr fileSystem,
+                  CF::LoadableDevice_ptr device, const std::string& componentId);
+
         SoftpkgInfo* softpkg;
         const ImplementationInfo* implementation;
         DeploymentList dependencies;
@@ -120,6 +125,9 @@ namespace ossie {
 
         void setResourcePtr(CF::Resource_ptr resource);
         CF::Resource_ptr getResourcePtr() const;
+
+        void load(Application_impl* application, CF::FileSystem_ptr fileSystem,
+                  CF::LoadableDevice_ptr device);
 
     protected:
         ComponentInfo* component;

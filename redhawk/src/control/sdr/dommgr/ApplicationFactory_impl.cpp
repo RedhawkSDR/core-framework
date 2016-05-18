@@ -2068,36 +2068,6 @@ string ApplicationFactory_impl::getBaseWaveformContext(string waveform_context)
     return base_naming_context;
 }
 
-void createHelper::loadDependencies(const ossie::ComponentInfo& component,
-                                    CF::LoadableDevice_ptr device,
-                                    const std::vector<ossie::SoftpkgDeployment*>& dependencies)
-{
-    for (std::vector<SoftpkgDeployment*>::const_iterator deployment = dependencies.begin(); deployment != dependencies.end(); ++deployment) {
-        ossie::SoftpkgInfo* dep = (*deployment)->getSoftpkg();
-        const ossie::ImplementationInfo* implementation = (*deployment)->getImplementation();
-        if (!implementation) {
-            LOG_ERROR(ApplicationFactory_impl, "No implementation selected for dependency " << dep->getName());
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, "Missing implementation");
-        }
-
-        // Recursively load dependencies
-        LOG_TRACE(ApplicationFactory_impl, "Loading dependencies for soft package " << dep->getName());
-        loadDependencies(component, device, (*deployment)->getDependencies());
-
-        // Determine absolute path of dependency's local file
-        CF::LoadableDevice::LoadType codeType = implementation->getCodeType();
-        const std::string fileName = (*deployment)->getLocalFile();
-        LOG_DEBUG(ApplicationFactory_impl, "Loading dependency local file " << fileName);
-        try {
-             device->load(_appFact._fileMgr, fileName.c_str(), codeType);
-        } catch (...) {
-            LOG_ERROR(ApplicationFactory_impl, "Failure loading file " << fileName);
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, "Failed to load file");
-        }
-        _application->addComponentLoadedFile(component.getIdentifier(), fileName);
-    }
-}
-
 /* Perform 'load' and 'execute' operations to launch component on the assigned device
  *  - Actually loads and executes the component on the given device
  */
@@ -2158,36 +2128,23 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             std::ostringstream message;
             message << "component " << component->getIdentifier() << " was assigned to non-loadable device "
                     << device->identifier;
+            LOG_ERROR(ApplicationFactory_impl, message);
             throw std::logic_error(message.str());
         }
 
-        loadDependencies(*component, loadabledev, deployment->getDependencies());
-
-        // load the file(s)
-        ostringstream load_eout; // used for any error messages dealing with load
+        LOG_TRACE(ApplicationFactory_impl, "Loading " << codeLocalFile << " and dependencies on device "
+                  << device->label);
         try {
-            try {
-                LOG_TRACE(ApplicationFactory_impl, "loading " << codeLocalFile << " on device " << ossie::corba::returnString(loadabledev->label()));
-                loadabledev->load(_appFact._fileMgr, codeLocalFile.c_str(), implementation->getCodeType());
-            } catch( ... ) {
-                load_eout << "'load' failed for component: '";
-                load_eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
-                load_eout << " with implementation id: '" << implementation->getId() << "';";
-                load_eout << " on device id: '" << device->identifier << "'";
-                load_eout << " in waveform '" << _waveformContextName<<"'";
-                load_eout << "\nError occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                throw;
-            }
-        } catch( CF::InvalidFileName& _ex ) {
-            load_eout << " with error: <" << _ex.msg << ">;";
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, load_eout.str().c_str());
-        } catch( CF::Device::InvalidState& _ex ) {
-            load_eout << " with error: <" << _ex.msg << ">;";
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, load_eout.str().c_str());
-        } CATCH_THROW_LOG_TRACE(ApplicationFactory_impl, "", CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, load_eout.str().c_str()));
-
-        // Mark the file as loaded
-        _application->addComponentLoadedFile(component->getIdentifier(), codeLocalFile);
+            deployment->load(_application, _appFact._fileMgr, loadabledev);
+        } catch (const std::exception& exc) {
+            std::ostringstream message;
+            message << "Unable to load component " << component->getName()
+                    << " implementation " << implementation->getId()
+                    << " on device " << device->identifier
+                    << ": " << exc.what();
+            LOG_ERROR(ApplicationFactory_impl, message.str());
+            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, message.str().c_str());
+        }
                 
         // OSSIE extends section D.2.1.6.3 to support loading a directory
         // and execute a file in that directory using a entrypoint

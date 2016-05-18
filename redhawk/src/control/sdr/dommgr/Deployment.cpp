@@ -20,6 +20,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include "Application_impl.h"
 #include "PersistenceStore.h"
 #include "Deployment.h"
 
@@ -133,6 +134,52 @@ std::vector<std::string> SoftpkgDeployment::getDependencyLocalFiles()
         files.push_back((*dependency)->getLocalFile());
     }
     return files;
+}
+
+void SoftpkgDeployment::load(Application_impl* application, CF::FileSystem_ptr fileSystem,
+                             CF::LoadableDevice_ptr device, const std::string& componentId)
+{
+    if (!implementation) {
+        throw std::logic_error("no implementation selected for soft package " + softpkg->getName());
+    }
+
+    // Recursively load dependencies
+    if (!dependencies.empty()) {
+        RH_NL_TRACE("ApplicationFactory_impl", "Loading " << dependencies.size() <<
+                    "dependency(ies) for soft package " << softpkg->getName());
+        for (DeploymentList::iterator dep = dependencies.begin(); dep != dependencies.end(); ++dep) {
+            (*dep)->load(application, fileSystem, device, componentId);
+        }
+    }
+
+    // Determine absolute path of local file
+    CF::LoadableDevice::LoadType codeType = implementation->getCodeType();
+    const std::string fileName = getLocalFile();
+    RH_NL_DEBUG("ApplicationFactory_impl", "Loading file " << fileName
+                << " for soft package " << softpkg->getName());
+    try {
+        device->load(fileSystem, fileName.c_str(), codeType);
+    } catch (const CF::Device::InvalidState& exc) {
+        std::string message = "device is in invalid state: ";
+        message += exc.msg;
+        throw std::runtime_error(message);
+    } catch (const CF::LoadableDevice::InvalidLoadKind& exc) {
+        throw std::runtime_error("invalid load kind for file " + fileName);
+    } catch (const CF::InvalidFileName& exc) {
+        std::string message = "file name '" + fileName + "' is invalid: ";
+        message += exc.msg;
+        throw std::runtime_error(message);
+    } catch (const CF::LoadableDevice::LoadFail& exc) {
+        std::string message = "failure loading file '" + fileName + "': ";
+        message += exc.msg;
+        throw std::runtime_error(message);
+    } catch (const CORBA::SystemException& exc) {
+        std::string message = "CORBA system exception ";
+        message += exc._name();
+        message += " loading " + fileName;
+        throw std::runtime_error(message);
+    }
+    application->addComponentLoadedFile(componentId, fileName);
 }
 
 std::string SoftpkgDeployment::getLocalFile()
@@ -295,6 +342,12 @@ void ComponentDeployment::setResourcePtr(CF::Resource_ptr resource)
 CF::Resource_ptr ComponentDeployment::getResourcePtr() const
 {
     return CF::Resource::_duplicate(resource);
+}
+
+void ComponentDeployment::load(Application_impl* application, CF::FileSystem_ptr fileSystem,
+                               CF::LoadableDevice_ptr device)
+{
+    SoftpkgDeployment::load(application, fileSystem, device, component->getIdentifier());
 }
 
 
