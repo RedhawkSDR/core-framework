@@ -486,8 +486,8 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
       SoftPkg comp_pkg;
       std::string p_name;
       try {
-        if ( _sadParser.getSPDById(comp->getFileRefId())) {
-            p_name = _sadParser.getSPDById(comp->getFileRefId());
+        if ( _sadParser.getComponentFile(comp->getFileRefId())) {
+            p_name = _sadParser.getComponentFile(comp->getFileRefId())->getFileName();
             LOG_DEBUG(ApplicationFactory_impl, "Validating...  COMP profile: " << p_name);
             ValidateSPD(_fileMgr, _domainManager, comp_pkg, p_name) ;
         }
@@ -522,7 +522,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
              compInst != compInstantiations.end(); ++compInst){
           if (assemblyControllerId == compInst->instantiationId) {
             ac_spd = comp_pkg;
-            ac_profile = _sadParser.getSPDById(comp->getFileRefId());
+            ac_profile = _sadParser.getComponentFile(comp->getFileRefId())->getFileName();
             ac_found = true;
             break;
           }
@@ -1887,14 +1887,14 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
     // Extract required data from SPD file
     ossie::ComponentInfo* newComponent = 0;
     LOG_TRACE(ApplicationFactory_impl, "Getting the SPD Filename");
-    const char *spdFileName = sadParser.getSPDById(component.getFileRefId());
-    if (spdFileName == NULL) {
+    const ComponentFile* componentfile = sadParser.getComponentFile(component.getFileRefId());
+    if (!componentfile) {
         ostringstream eout;
         eout << "The SPD file reference for componentfile "<<component.getFileRefId()<<" is missing";
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
     }
     LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File");
-    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(fileSys, spdFileName);
+    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(fileSys, componentfile->getFileName());
     if (newComponent == 0) {
         ostringstream eout;
         eout << "Error loading component information for file ref " << component.getFileRefId();

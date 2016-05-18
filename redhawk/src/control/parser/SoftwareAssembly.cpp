@@ -82,13 +82,13 @@ const std::vector<Connection>& SoftwareAssembly::getConnections() const {
     return _sad->connections; 
 }
 
-const char* SoftwareAssembly::getSPDById(const char* refid) const {
+const ComponentFile* SoftwareAssembly::getComponentFile(const std::string& refid) const {
     assert(_sad.get() != 0);
     const std::vector<ComponentFile>& componentFiles = getComponentFiles();
     std::vector<ComponentFile>::const_iterator i;
     for (i = componentFiles.begin(); i != componentFiles.end(); ++i) {
-        if (strcmp(i->getID(), refid) == 0) {
-            return i->getFileName();
+        if (i->getID() == refid) {
+            return &(*i);
         }
     }
 

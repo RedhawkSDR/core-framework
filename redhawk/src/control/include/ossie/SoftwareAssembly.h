@@ -156,7 +156,7 @@ namespace ossie {
 
         const std::vector<Connection>& getConnections() const;
 
-        const char* getSPDById(const char* refid) const;
+        const ComponentFile* getComponentFile(const std::string& refid) const;
 
         const std::string& getAssemblyControllerRefId() const;
 
