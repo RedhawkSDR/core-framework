@@ -31,6 +31,23 @@ namespace ossie {
 
     class ApplicationVisitor;
 
+    class SoftpkgProfile
+    {
+    public:
+        SoftpkgProfile(const std::string& filename);
+
+        const std::string& getSpdFileName() const;
+
+        bool isLoaded() const;
+
+        void load(CF::FileSystem_ptr fileSystem);
+
+    protected:
+        const std::string spdFilename;
+        SoftPkg spd;
+        bool loaded;
+    };
+
     class Placement
     {
     public:
@@ -41,14 +58,17 @@ namespace ossie {
     class SinglePlacement : public Placement
     {
     public:
-        SinglePlacement(const ComponentInstantiation* instantiation);
+        SinglePlacement(const ComponentInstantiation* instantiation, const SoftpkgProfile* softpkg);
 
         virtual void accept(ApplicationVisitor* visitor);
 
         const ComponentInstantiation* getComponentInstantiation() const;
 
+        const SoftpkgProfile* getComponentProfile() const;
+
     protected:
         const ComponentInstantiation* instantiation;
+        const SoftpkgProfile* softpkg;
     };
 
     class CollocationPlacement : public Placement
@@ -91,13 +111,22 @@ namespace ossie {
 
         void accept(ApplicationVisitor* visitor);
 
+        const std::string& getIdentifier();
+
         void populateApplicationProfile(const SoftwareAssembly& sad);
 
         const PlacementList& getPlacements() const;
 
     protected:
-        SinglePlacement* buildComponentPlacement(const ComponentPlacement& placement);
+        typedef std::vector<SoftpkgProfile*> ProfileList;
 
+        const SoftpkgProfile* findSoftpkgProfile(const std::string& filename) const;
+
+        SinglePlacement* buildComponentPlacement(const SoftwareAssembly& sad,
+                                                 const ComponentPlacement& placement);
+
+        std::string identifier;
+        ProfileList profiles;
         PlacementList placements;
     };
 

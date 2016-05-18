@@ -18,12 +18,39 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#include <ossie/FileStream.h>
+
 #include "ApplicationProfile.h"
 
 using namespace ossie;
 
-SinglePlacement::SinglePlacement(const ComponentInstantiation* instantiation) :
-    instantiation(instantiation)
+SoftpkgProfile::SoftpkgProfile(const std::string& filename) :
+    spdFilename(filename),
+    loaded(false)
+{
+}
+
+const std::string& SoftpkgProfile::getSpdFileName() const
+{
+    return spdFilename;
+}
+
+bool SoftpkgProfile::isLoaded() const
+{
+    return loaded;
+}
+
+void SoftpkgProfile::load(CF::FileSystem_ptr fileSystem)
+{
+    File_stream spd_stream(fileSystem, spdFilename.c_str());
+    spd.load(spd_stream, spdFilename);
+    loaded = true;
+}
+
+SinglePlacement::SinglePlacement(const ComponentInstantiation* instantiation,
+                                 const SoftpkgProfile* softpkg) :
+    instantiation(instantiation),
+    softpkg(softpkg)
 {
 }
 
@@ -35,6 +62,11 @@ void SinglePlacement::accept(ApplicationVisitor* visitor)
 const ComponentInstantiation* SinglePlacement::getComponentInstantiation() const
 {
     return instantiation;
+}
+
+const SoftpkgProfile* SinglePlacement::getComponentProfile() const
+{
+    return softpkg;
 }
 
 
@@ -91,8 +123,15 @@ void ApplicationProfile::accept(ApplicationVisitor* visitor)
     visitor->visitApplication(this);
 }
 
+const std::string& ApplicationProfile::getIdentifier()
+{
+    return identifier;
+}
+
 void ApplicationProfile::populateApplicationProfile(const SoftwareAssembly& sad)
 {
+    identifier = sad.getID();
+
     // Gets uses device relationships
     const std::vector<SoftwareAssembly::UsesDevice>& usesDevice = sad.getUsesDevices();
     for (std::vector<SoftwareAssembly::UsesDevice>::const_iterator use = usesDevice.begin(); use != usesDevice.end(); ++use) {
@@ -111,7 +150,7 @@ void ApplicationProfile::populateApplicationProfile(const SoftwareAssembly& sad)
 
         const std::vector<ComponentPlacement>& components = collocations[index].getComponents();
         for (unsigned int i = 0; i < components.size(); i++) {
-            SinglePlacement* component = buildComponentPlacement(components[i]);
+            SinglePlacement* component = buildComponentPlacement(sad, components[i]);
             placement->addPlacement(component);
         }
     }
@@ -123,13 +162,36 @@ void ApplicationProfile::populateApplicationProfile(const SoftwareAssembly& sad)
         // if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
         //     component->setIsAssemblyController(true);
         // }
-        SinglePlacement* placement = buildComponentPlacement(components[i]);
+        SinglePlacement* placement = buildComponentPlacement(sad, components[i]);
         placements.push_back(placement);
     }
 }
 
-SinglePlacement* ApplicationProfile::buildComponentPlacement(const ComponentPlacement& placement)
+const SoftpkgProfile* ApplicationProfile::findSoftpkgProfile(const std::string& filename) const
 {
+    for (ProfileList::const_iterator profile = profiles.begin(); profile != profiles.end(); ++profile) {
+        if ((*profile)->getSpdFileName() == filename) {
+            return *profile;
+        }
+    }
+    return 0;
+}
+
+SinglePlacement* ApplicationProfile::buildComponentPlacement(const SoftwareAssembly& sad,
+                                                             const ComponentPlacement& placement)
+{
+    const ComponentFile *componentfile = sad.getComponentFile(placement.getFileRefId());
+    if (!componentfile) {
+        throw std::runtime_error("componentplacement has invalid componentfileref " + placement.getFileRefId());
+    }
+    const SoftpkgProfile* softpkg = findSoftpkgProfile(componentfile->getFileName());
+    if (!softpkg) {
+        LOG_TRACE(ApplicationProfile, "Loading profile " << componentfile->getFileName());
+        SoftpkgProfile* profile = new SoftpkgProfile(componentfile->getFileName());
+        profiles.push_back(profile);
+        softpkg = profile;
+    }
+
     // Even though it is possible for there to be more than one instantiation
     // per component, the tooling doesn't support that, so supporting this at a
     // framework level would add substantial complexity without providing any
@@ -138,7 +200,7 @@ SinglePlacement* ApplicationProfile::buildComponentPlacement(const ComponentPlac
     const std::vector<ComponentInstantiation>& instantiations = placement.getInstantiations();
     const ComponentInstantiation& instance = instantiations[0];
 
-    return new SinglePlacement(&instance);
+    return new SinglePlacement(&instance, softpkg);
 }
 
 const ApplicationProfile::PlacementList& ApplicationProfile::getPlacements() const
