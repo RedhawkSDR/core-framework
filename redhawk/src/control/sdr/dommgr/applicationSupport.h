@@ -284,22 +284,5 @@ namespace ossie
         
     };
 
-    /* Base class to contain data for applications
-     *  - Used to store information about about:
-     *       -> ExternalPorts
-     *       -> External Properties
-     *       -> UsesDevice relationships
-     */
-    class ApplicationInfo : public UsesDeviceContext
-    {
-        ENABLE_LOGGING;
-
-    public:
-        ApplicationInfo();
-        ~ApplicationInfo();
-
-        void populateApplicationInfo(const SoftwareAssembly& sad);
-    };
-
 }
 #endif

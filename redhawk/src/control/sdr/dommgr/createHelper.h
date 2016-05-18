@@ -27,6 +27,7 @@
 
 #include "PersistenceStore.h"
 #include "applicationSupport.h"
+#include "ApplicationProfile.h"
 #include "Deployment.h"
 
 class Application_impl;
@@ -96,7 +97,7 @@ private:
     CosNaming::NamingContext_var _waveformContext; 
     CosNaming::NamingContext_ptr _domainContext; 
 
-    ossie::ApplicationInfo _appInfo;
+    ossie::ApplicationProfile _appProfile;
 
     typedef std::vector<ossie::ComponentDeployment*> DeploymentList;
     typedef ossie::ImplementationInfo::List ImplementationList;

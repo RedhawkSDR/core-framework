@@ -909,32 +909,3 @@ CF::Properties ComponentInfo::getCommandLineParameters() const
     }
     return retval;
 }
-
-
-////////////////////////////////////////////////////
-/*
- * ApplicationInfo member function definitions
- */
-PREPARE_CF_LOGGING(ApplicationInfo);
-
-ApplicationInfo::ApplicationInfo()
-{
-}
-
-ApplicationInfo::~ApplicationInfo()
-{
-    for (unsigned int ii = 0; ii < usesDevices.size(); ++ii) {
-        delete usesDevices[ii];
-    }
-    usesDevices.clear();
-}
-
-void ApplicationInfo::populateApplicationInfo(const SoftwareAssembly& sad)
-{
-    // Gets uses device relationships
-    const std::vector<SoftwareAssembly::UsesDevice>& usesDevice = sad.getUsesDevices();
-    for (std::vector<SoftwareAssembly::UsesDevice>::const_iterator use = usesDevice.begin(); use != usesDevice.end(); ++use) {
-        UsesDeviceInfo* useDev = new UsesDeviceInfo(use->getId(), use->getType(), use->getDependencies());
-        addUsesDevice(useDev);
-    }
-}

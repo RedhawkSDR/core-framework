@@ -868,7 +868,7 @@ void createHelper::_handleUsesDevices(ossie::ApplicationDeployment& appDeploymen
                                       const std::string& appName)
 {
     // Gets all uses device info from the SAD file
-    const UsesDeviceInfo::List& usesDevices = _appInfo.getUsesDevices();
+    const UsesDeviceInfo::List& usesDevices = _appProfile.getUsesDevices();
     LOG_TRACE(ApplicationFactory_impl, "Application has " << usesDevices.size() << " usesdevice dependencies");
 
     // Get the assembly controller's configure properties for context in the
@@ -1205,7 +1205,7 @@ CF::Application_ptr createHelper::create (
 
     //////////////////////////////////////////////////
     // Store information about this application
-    _appInfo.populateApplicationInfo(_appFact._sadParser);
+    _appProfile.populateApplicationProfile(_appFact._sadParser);
 
     overrideExternalProperties(app_deployment, modifiedInitConfiguration);
 
