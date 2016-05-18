@@ -36,12 +36,12 @@ namespace ossie {
                 std::string name;
                 std::vector<ComponentPlacement> placements;
 
-                const char* getID() const {
-                    return id.c_str();
+                const std::string& getID() const {
+                    return id;
                 }
 
-                const char* getName() const {
-                    return name.c_str();
+                const std::string& getName() const {
+                    return name;
                 }
 
                 const std::vector<ComponentPlacement>& getComponents() const {
@@ -110,12 +110,12 @@ namespace ossie {
             std::string type;
             std::vector<PropertyRef> dependencies;
 
-            const char* getId() const {
-                return id.c_str();
+            const std::string& getId() const {
+                return id;
             }
 
-            const char* getType() const {
-                return type.c_str();
+            const std::string& getType() const {
+                return type;
             }
 
             const std::vector<PropertyRef>& getDependencies() const {
@@ -142,9 +142,9 @@ namespace ossie {
 
         void load(std::istream& input) throw (ossie::parser_error);
 
-        const char* getID() const;
+        const std::string& getID() const;
 
-        const char* getName() const;
+        const std::string& getName() const;
 
         const std::vector<ComponentFile>& getComponentFiles() const;
 
@@ -158,7 +158,7 @@ namespace ossie {
 
         const char* getSPDById(const char* refid) const;
 
-        const char* getAssemblyControllerRefId() const;
+        const std::string& getAssemblyControllerRefId() const;
 
         const std::vector<SoftwareAssembly::Port>& getExternalPorts() const;
 

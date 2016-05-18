@@ -32,14 +32,14 @@ void SoftwareAssembly::load(std::istream& input) throw (ossie::parser_error)
     _sad = ossie::internalparser::parseSAD(input);
 }
 
-const char* SoftwareAssembly::getID() const {
+const std::string& SoftwareAssembly::getID() const {
     assert(_sad.get() != 0);
-    return _sad->id.c_str();
+    return _sad->id;
 }
 
-const char* SoftwareAssembly::getName() const {
+const std::string& SoftwareAssembly::getName() const {
     assert(_sad.get() != 0);
-    return _sad->name.c_str();
+    return _sad->name;
 }
 
 const std::vector<ComponentFile>& SoftwareAssembly::getComponentFiles() const {
@@ -95,9 +95,9 @@ const char* SoftwareAssembly::getSPDById(const char* refid) const {
     return 0;
 }
 
-const char* SoftwareAssembly::getAssemblyControllerRefId() const {
+const std::string& SoftwareAssembly::getAssemblyControllerRefId() const {
     assert(_sad.get() != 0);
-    return _sad->assemblycontroller.c_str();
+    return _sad->assemblycontroller;
 }
 
 const std::vector<SoftwareAssembly::Port>& SoftwareAssembly::getExternalPorts() const {
