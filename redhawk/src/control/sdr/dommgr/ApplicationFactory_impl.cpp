@@ -478,7 +478,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
     // component instantiation to find a matching ID to the AC's
     std::string assemblyControllerId = _sadParser.getAssemblyControllerRefId();
     SoftPkg ac_spd;
-    CORBA::String_var ac_profile = "";
+    std::string ac_profile;
     bool ac_found = false;
     std::vector<ComponentPlacement> components = _sadParser.getAllComponents();
     for (std::vector<ComponentPlacement>::const_iterator comp = components.begin();
@@ -1894,7 +1894,7 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
     }
     LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File");
-    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(fileSys, componentfile->getFileName());
+    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(fileSys, componentfile->getFileName().c_str());
     if (newComponent == 0) {
         ostringstream eout;
         eout << "Error loading component information for file ref " << component.getFileRefId();

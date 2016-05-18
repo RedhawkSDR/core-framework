@@ -75,8 +75,8 @@ const char* DeviceManagerConfiguration::getFileNameFromRefId(const char* refid) 
     const std::vector<ComponentFile>& componentFiles = getComponentFiles();
     std::vector<ComponentFile>::const_iterator i;
     for (i = componentFiles.begin(); i != componentFiles.end(); ++i) {
-        if (strcmp(i->getID(), refid) == 0) {
-            return i->getFileName();
+        if (i->getID() == refid) {
+            return i->getFileName().c_str();
         }
     }
 

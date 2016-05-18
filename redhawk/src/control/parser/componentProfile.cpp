@@ -35,12 +35,12 @@ ComponentProperty *ossie::new_clone(const ComponentProperty &a) {
 //
 // ComponentFile
 //
-const char* ComponentFile::getFileName() const {
-    return filename.c_str();
+const std::string& ComponentFile::getFileName() const {
+    return filename;
 };
 
-const char* ComponentFile::getID() const {
-    return id.c_str();
+const std::string& ComponentFile::getID() const {
+    return id;
 };
 
 //
@@ -224,8 +224,8 @@ const std::vector<ComponentInstantiation>& ComponentPlacement::getInstantiations
     return instantiations;
 };
 
-const char* ComponentPlacement::getFileRefId() const {
-    return _componentFileRef.c_str();
+const std::string& ComponentPlacement::getFileRefId() const {
+    return _componentFileRef;
 }
 
 bool ComponentPlacement::isDeployOn() const {

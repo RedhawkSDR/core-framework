@@ -42,9 +42,9 @@ namespace ossie {
         std::string type;
 
     public:
-        const char* getFileName() const;
+        const std::string& getFileName() const;
 
-        const char* getID() const;
+        const std::string& getID() const;
     };
 
     /*
@@ -225,7 +225,7 @@ namespace ossie {
         
         const std::vector<ComponentInstantiation>& getInstantiations() const;
         
-        const char* getFileRefId() const;
+        const std::string& getFileRefId() const;
 
         bool isDeployOn() const;
 

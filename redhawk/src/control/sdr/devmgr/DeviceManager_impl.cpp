@@ -201,7 +201,7 @@ bool DeviceManager_impl::loadSPD(
         const ComponentPlacement&   componentPlacement) {
 
     LOG_TRACE(DeviceManager_impl, "Getting file name for refid " << componentPlacement.getFileRefId());
-    const char* spdFile = DCDParser.getFileNameFromRefId(componentPlacement.getFileRefId());
+    const char* spdFile = DCDParser.getFileNameFromRefId(componentPlacement.getFileRefId().c_str());
     if (spdFile == 0) {
         LOG_ERROR(DeviceManager_impl, "Cannot instantiate component; component file for id " << componentPlacement.getFileRefId() << " isn't defined")
         return false;
@@ -736,7 +736,7 @@ void DeviceManager_impl::createDeviceExecStatement(
 
     if (componentType == "device") {
       new_argv.push_back("PROFILE_NAME");
-      new_argv.push_back(DCDParser.getFileNameFromRefId(componentPlacement.getFileRefId()));
+      new_argv.push_back(DCDParser.getFileNameFromRefId(componentPlacement.getFileRefId().c_str()));
       new_argv.push_back( "DEVICE_ID");
       new_argv.push_back(instantiation.getID());
       new_argv.push_back( "DEVICE_LABEL");
@@ -850,7 +850,7 @@ DeviceManager_impl::ExecparamList DeviceManager_impl::createDeviceExecparams(
     std::string logcfg_path("");
     deviceMgrIOR = ossie::corba::objectToString(myObj);
     if (componentType == "device") {
-        execparams.push_back(std::make_pair("PROFILE_NAME", DCDParser.getFileNameFromRefId(componentPlacement.getFileRefId())));
+        execparams.push_back(std::make_pair("PROFILE_NAME", DCDParser.getFileNameFromRefId(componentPlacement.getFileRefId().c_str())));
         execparams.push_back(std::make_pair("DEVICE_ID", instantiation.getID()));
         execparams.push_back(std::make_pair("DEVICE_LABEL", usageName));
         if (componentPlacement.isCompositePartOf()) {
