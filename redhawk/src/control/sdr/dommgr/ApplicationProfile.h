@@ -31,27 +31,6 @@ namespace ossie {
 
     class ApplicationVisitor;
 
-    class SoftpkgProfile
-    {
-    public:
-        SoftpkgProfile(const std::string& filename);
-
-        void accept(ApplicationVisitor* visitor);
-
-        const std::string& getSpdFileName() const;
-
-        bool isLoaded() const;
-
-        void load(CF::FileSystem_ptr fileSystem);
-
-        const SoftPkg& getSPD() const;
-
-    protected:
-        const std::string spdFilename;
-        SoftPkg spd;
-        bool loaded;
-    };
-
     class Placement
     {
     public:
@@ -62,17 +41,18 @@ namespace ossie {
     class SinglePlacement : public Placement
     {
     public:
-        SinglePlacement(const ComponentInstantiation* instantiation, SoftpkgProfile* softpkg);
+        SinglePlacement(const ComponentInstantiation* instantiation,
+                        const boost::shared_ptr<SoftPkg>& softpkg);
 
         virtual void accept(ApplicationVisitor* visitor);
 
         const ComponentInstantiation* getComponentInstantiation() const;
 
-        SoftpkgProfile* getComponentProfile();
+        const boost::shared_ptr<SoftPkg>& getComponentProfile();
 
     protected:
         const ComponentInstantiation* instantiation;
-        SoftpkgProfile* softpkg;
+        boost::shared_ptr<SoftPkg> softpkg;
     };
 
     class CollocationPlacement : public Placement
@@ -122,9 +102,9 @@ namespace ossie {
         const PlacementList& getPlacements() const;
 
     protected:
-        typedef std::vector<SoftpkgProfile*> ProfileList;
+        typedef std::vector<boost::shared_ptr<SoftPkg> > ProfileList;
 
-        SoftpkgProfile* findSoftpkgProfile(const std::string& filename);
+        boost::shared_ptr<SoftPkg> loadProfile(CF::FileSystem_ptr fileSystem, const std::string& filename);
 
         SinglePlacement* buildComponentPlacement(CF::FileSystem_ptr fileSystem,
                                                  const SoftwareAssembly& sad,
@@ -152,9 +132,6 @@ namespace ossie {
         {
         }
 
-        virtual void visitSoftpkg(SoftpkgProfile* softpkg)
-        {
-        }
     };
 
 }
