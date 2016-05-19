@@ -99,7 +99,6 @@ namespace ossie {
                 std::string id;
                 std::string type;
                 std::vector<PropertyRef> dependencies;
-                std::vector<SoftPkgRef> softPkgDependencies;
 
                 const std::string& getID() const {
                     return id;
@@ -111,10 +110,6 @@ namespace ossie {
             
                 const std::vector<PropertyRef>& getDependencies() const {
                     return dependencies;
-                }
-            
-                const std::vector<SoftPkgRef>& getSoftPkgDependencies() const {
-                    return softPkgDependencies;
                 }
         };
 
