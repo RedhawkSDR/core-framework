@@ -31,28 +31,9 @@ namespace ossie {
 
     class ApplicationVisitor;
 
-    class SoftpkgProfile;
-
-    class ImplementationProfile
-    {
-    public:
-        ImplementationProfile(const SPD::Implementation& implementation);
-
-        void accept(ApplicationVisitor* visitor);
-
-        const std::string& getIdentifier() const;
-
-        const std::string& getLocalfile() const;
-
-    protected:
-        const SPD::Implementation* implementation;
-    };
-
     class SoftpkgProfile
     {
     public:
-        typedef std::vector<ImplementationProfile> ImplementationList;
-
         SoftpkgProfile(const std::string& filename);
 
         void accept(ApplicationVisitor* visitor);
@@ -65,12 +46,9 @@ namespace ossie {
 
         const SoftPkg& getSPD() const;
 
-        ImplementationList& getImplementations();
-
     protected:
         const std::string spdFilename;
         SoftPkg spd;
-        ImplementationList implementations;
         bool loaded;
     };
 
@@ -175,10 +153,6 @@ namespace ossie {
         }
 
         virtual void visitSoftpkg(SoftpkgProfile* softpkg)
-        {
-        }
-
-        virtual void visitImplementation(ImplementationProfile* implementation)
         {
         }
     };
