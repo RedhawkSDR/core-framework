@@ -24,10 +24,18 @@
 
 using namespace ossie;
 
+/**
+ * SoftpkgProfile
+ */
 SoftpkgProfile::SoftpkgProfile(const std::string& filename) :
     spdFilename(filename),
     loaded(false)
 {
+}
+
+void SoftpkgProfile::accept(ApplicationVisitor* visitor)
+{
+    visitor->visitSoftpkg(this);
 }
 
 const std::string& SoftpkgProfile::getSpdFileName() const
@@ -47,8 +55,16 @@ void SoftpkgProfile::load(CF::FileSystem_ptr fileSystem)
     loaded = true;
 }
 
+const SoftPkg& SoftpkgProfile::getSPD() const
+{
+    return spd;
+}
+
+/**
+ * SinglePlacement
+ */
 SinglePlacement::SinglePlacement(const ComponentInstantiation* instantiation,
-                                 const SoftpkgProfile* softpkg) :
+                                 SoftpkgProfile* softpkg) :
     instantiation(instantiation),
     softpkg(softpkg)
 {
@@ -64,7 +80,7 @@ const ComponentInstantiation* SinglePlacement::getComponentInstantiation() const
     return instantiation;
 }
 
-const SoftpkgProfile* SinglePlacement::getComponentProfile() const
+SoftpkgProfile* SinglePlacement::getComponentProfile()
 {
     return softpkg;
 }
@@ -123,12 +139,12 @@ void ApplicationProfile::accept(ApplicationVisitor* visitor)
     visitor->visitApplication(this);
 }
 
-const std::string& ApplicationProfile::getIdentifier()
+const std::string& ApplicationProfile::getIdentifier() const
 {
     return identifier;
 }
 
-void ApplicationProfile::populateApplicationProfile(const SoftwareAssembly& sad)
+void ApplicationProfile::load(CF::FileSystem_ptr fileSystem, const SoftwareAssembly& sad)
 {
     identifier = sad.getID();
 
@@ -150,7 +166,7 @@ void ApplicationProfile::populateApplicationProfile(const SoftwareAssembly& sad)
 
         const std::vector<ComponentPlacement>& components = collocations[index].getComponents();
         for (unsigned int i = 0; i < components.size(); i++) {
-            SinglePlacement* component = buildComponentPlacement(sad, components[i]);
+            SinglePlacement* component = buildComponentPlacement(fileSystem, sad, components[i]);
             placement->addPlacement(component);
         }
     }
@@ -162,12 +178,12 @@ void ApplicationProfile::populateApplicationProfile(const SoftwareAssembly& sad)
         // if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
         //     component->setIsAssemblyController(true);
         // }
-        SinglePlacement* placement = buildComponentPlacement(sad, components[i]);
+        SinglePlacement* placement = buildComponentPlacement(fileSystem, sad, components[i]);
         placements.push_back(placement);
     }
 }
 
-const SoftpkgProfile* ApplicationProfile::findSoftpkgProfile(const std::string& filename) const
+SoftpkgProfile* ApplicationProfile::findSoftpkgProfile(const std::string& filename)
 {
     for (ProfileList::const_iterator profile = profiles.begin(); profile != profiles.end(); ++profile) {
         if ((*profile)->getSpdFileName() == filename) {
@@ -177,14 +193,15 @@ const SoftpkgProfile* ApplicationProfile::findSoftpkgProfile(const std::string& 
     return 0;
 }
 
-SinglePlacement* ApplicationProfile::buildComponentPlacement(const SoftwareAssembly& sad,
+SinglePlacement* ApplicationProfile::buildComponentPlacement(CF::FileSystem_ptr fileSystem,
+                                                             const SoftwareAssembly& sad,
                                                              const ComponentPlacement& placement)
 {
     const ComponentFile *componentfile = sad.getComponentFile(placement.getFileRefId());
     if (!componentfile) {
         throw std::runtime_error("componentplacement has invalid componentfileref " + placement.getFileRefId());
     }
-    const SoftpkgProfile* softpkg = findSoftpkgProfile(componentfile->getFileName());
+    SoftpkgProfile* softpkg = findSoftpkgProfile(componentfile->getFileName());
     if (!softpkg) {
         LOG_TRACE(ApplicationProfile, "Loading profile " << componentfile->getFileName());
         SoftpkgProfile* profile = new SoftpkgProfile(componentfile->getFileName());

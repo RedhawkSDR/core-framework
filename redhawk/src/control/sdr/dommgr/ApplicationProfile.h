@@ -36,11 +36,15 @@ namespace ossie {
     public:
         SoftpkgProfile(const std::string& filename);
 
+        void accept(ApplicationVisitor* visitor);
+
         const std::string& getSpdFileName() const;
 
         bool isLoaded() const;
 
         void load(CF::FileSystem_ptr fileSystem);
+
+        const SoftPkg& getSPD() const;
 
     protected:
         const std::string spdFilename;
@@ -58,17 +62,17 @@ namespace ossie {
     class SinglePlacement : public Placement
     {
     public:
-        SinglePlacement(const ComponentInstantiation* instantiation, const SoftpkgProfile* softpkg);
+        SinglePlacement(const ComponentInstantiation* instantiation, SoftpkgProfile* softpkg);
 
         virtual void accept(ApplicationVisitor* visitor);
 
         const ComponentInstantiation* getComponentInstantiation() const;
 
-        const SoftpkgProfile* getComponentProfile() const;
+        SoftpkgProfile* getComponentProfile();
 
     protected:
         const ComponentInstantiation* instantiation;
-        const SoftpkgProfile* softpkg;
+        SoftpkgProfile* softpkg;
     };
 
     class CollocationPlacement : public Placement
@@ -111,18 +115,19 @@ namespace ossie {
 
         void accept(ApplicationVisitor* visitor);
 
-        const std::string& getIdentifier();
+        const std::string& getIdentifier() const;
 
-        void populateApplicationProfile(const SoftwareAssembly& sad);
+        void load(CF::FileSystem_ptr fileSystem, const SoftwareAssembly& sad);
 
         const PlacementList& getPlacements() const;
 
     protected:
         typedef std::vector<SoftpkgProfile*> ProfileList;
 
-        const SoftpkgProfile* findSoftpkgProfile(const std::string& filename) const;
+        SoftpkgProfile* findSoftpkgProfile(const std::string& filename);
 
-        SinglePlacement* buildComponentPlacement(const SoftwareAssembly& sad,
+        SinglePlacement* buildComponentPlacement(CF::FileSystem_ptr fileSystem,
+                                                 const SoftwareAssembly& sad,
                                                  const ComponentPlacement& placement);
 
         std::string identifier;
@@ -144,6 +149,10 @@ namespace ossie {
         }
 
         virtual void visitHostCollocation(CollocationPlacement* collocation)
+        {
+        }
+
+        virtual void visitSoftpkg(SoftpkgProfile* softpkg)
         {
         }
     };
