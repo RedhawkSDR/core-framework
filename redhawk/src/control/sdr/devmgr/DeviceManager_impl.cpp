@@ -198,7 +198,7 @@ void DeviceManager_impl::resolveNamingContext(){
 bool DeviceManager_impl::loadSPD(
         SoftPkg&                    SPDParser,
         DeviceManagerConfiguration& DCDParser,
-        const ComponentPlacement&   componentPlacement) {
+        const DevicePlacement&      componentPlacement) {
 
     LOG_TRACE(DeviceManager_impl, "Getting file name for refid " << componentPlacement.getFileRefId());
     const char* spdFile = DCDParser.getFileNameFromRefId(componentPlacement.getFileRefId().c_str());
@@ -434,9 +434,9 @@ void DeviceManager_impl::registerDeviceManagerWithDomainManager(
 }
 
 void DeviceManager_impl::getCompositeDeviceIOR(
-        std::string&                                  compositeDeviceIOR, 
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
-        const ossie::ComponentPlacement&              componentPlacementInst) {
+        std::string&                               compositeDeviceIOR, 
+        const std::vector<ossie::DevicePlacement>& componentPlacements,
+        const ossie::DevicePlacement&              componentPlacementInst) {
 
     //see if component is composite part of device
     LOG_TRACE(DeviceManager_impl, "Checking composite part of device");
@@ -699,14 +699,14 @@ void DeviceManager_impl::createDeviceCacheLocation(
  */
 void DeviceManager_impl::createDeviceExecStatement(
         std::vector< std::string >&                   new_argv, 
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
         ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            usageName,
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
+        const std::vector<ossie::DevicePlacement>&    componentPlacements,
         const std::string&                            compositeDeviceIOR,
         const ossie::ComponentPropertyList&          instanceprops) {
     
@@ -834,7 +834,7 @@ void DeviceManager_impl::createDeviceExecStatement(
 }                    
 
 DeviceManager_impl::ExecparamList DeviceManager_impl::createDeviceExecparams(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
@@ -941,14 +941,14 @@ DeviceManager_impl::ExecparamList DeviceManager_impl::createDeviceExecparams(
 }
 
 void DeviceManager_impl::createDeviceThreadAndHandleExceptions(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
         const ossie::SoftPkg&                         SPDParser,
         ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
+        const std::vector<ossie::DevicePlacement>&    componentPlacements,
         const std::string&                            compositeDeviceIOR,
         const ossie::ComponentPropertyList&        instanceprops) {
 
@@ -988,7 +988,7 @@ void DeviceManager_impl::createDeviceThreadAndHandleExceptions(
 }
 
 void DeviceManager_impl::createDeviceThread(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
@@ -997,7 +997,7 @@ void DeviceManager_impl::createDeviceThread(
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            devcache,
         const std::string&                            usageName,
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
+        const std::vector<ossie::DevicePlacement>&    componentPlacements,
         const std::string&                            compositeDeviceIOR,
         const ossie::ComponentPropertyList&        instanceprops) {
  
@@ -1365,12 +1365,12 @@ void DeviceManager_impl::postConstructor (
 
     //Parse local components from DCD files
     LOG_TRACE(DeviceManager_impl, "Grabbing component placements")
-    const std::vector<ossie::ComponentPlacement>& componentPlacements = DCDParser.getComponentPlacements();
+    const std::vector<ossie::DevicePlacement>& componentPlacements = DCDParser.getComponentPlacements();
     LOG_TRACE(DeviceManager_impl, "ComponentPlacement size is " << componentPlacements.size())
 
     // Organize componentPlacements by standalone/deployOnDevice
-    std::vector<ossie::ComponentPlacement>::const_iterator constCompPlaceIter;
-    std::vector<ossie::ComponentPlacement>::iterator compPlaceIter;
+    std::vector<ossie::DevicePlacement>::const_iterator constCompPlaceIter;
+    std::vector<ossie::DevicePlacement>::iterator compPlaceIter;
 
     ////////////////////////////////////////////////////////////////////////////
     // Split component placements by compositePartOf tag
@@ -1378,8 +1378,8 @@ void DeviceManager_impl::postConstructor (
     //      - Split non-deployOnDevice from deployOnDevice compPlacements
     //      - Iterate and launch all non-deployOnDevice compPlacements
     //      - Iterate and launch all deployOnDevice compPlacements
-    std::vector<ossie::ComponentPlacement> standaloneComponentPlacements;
-    std::vector<ossie::ComponentPlacement> compositePartDeviceComponentPlacements;
+    std::vector<ossie::DevicePlacement> standaloneComponentPlacements;
+    std::vector<ossie::DevicePlacement> compositePartDeviceComponentPlacements;
     for (constCompPlaceIter =  componentPlacements.begin();
          constCompPlaceIter != componentPlacements.end();
          constCompPlaceIter++) {
@@ -1521,7 +1521,7 @@ void DeviceManager_impl::postConstructor (
         const SPD::Implementation* matchedDeviceImpl = NULL;
 
         bool foundCompositePart = false;
-        std::vector<ComponentPlacement>::iterator compositePartIter;
+        std::vector<DevicePlacement>::iterator compositePartIter;
         for (compositePartIter =  standaloneComponentPlacements.begin();
              compositePartIter != standaloneComponentPlacements.end();
              compositePartIter++) {

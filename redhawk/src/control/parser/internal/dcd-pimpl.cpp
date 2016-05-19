@@ -63,7 +63,7 @@ namespace dcd
   }
 
   void deviceconfiguration_pimpl::
-  partitioning (const ::std::vector<ossie::ComponentPlacement>& partitioning)
+  partitioning (const ::std::vector<ossie::DevicePlacement>& partitioning)
   {
       LOG_TRACE(dcd_parser, "set partitioning")
       assert(_dcd.get() != 0);
@@ -221,13 +221,13 @@ const ::ossie::ComponentFile &componentfile_pimpl::
   }
 
   void partitioning_pimpl::
-  componentplacement (const ::ossie::ComponentPlacement& componentplacement)
+  componentplacement (const ::ossie::DevicePlacement& componentplacement)
   {
     LOG_TRACE(dcd_parser, "adding component placement " << componentplacement.getFileRefId());
     componentPlacements.push_back(componentplacement);
   }
 
-  ::std::vector<ossie::ComponentPlacement> partitioning_pimpl::
+  ::std::vector<ossie::DevicePlacement> partitioning_pimpl::
   post_partitioning ()
   {
     LOG_TRACE(dcd_parser, "post partitioning");
@@ -240,7 +240,7 @@ const ::ossie::ComponentFile &componentfile_pimpl::
   void componentplacement_pimpl::
   pre ()
   {
-    componentPlacement =  ossie::ComponentPlacement();
+    componentPlacement =  ossie::DevicePlacement();
   }
 
   void componentplacement_pimpl::
@@ -274,7 +274,7 @@ const ::ossie::ComponentFile &componentfile_pimpl::
     componentPlacement.instantiations.push_back(componentinstantiation);
   }
 
-  const ::ossie::ComponentPlacement& componentplacement_pimpl::
+  const ::ossie::DevicePlacement& componentplacement_pimpl::
   post_componentplacement ()
   {
     LOG_TRACE(dcd_parser, "post componentplacement");

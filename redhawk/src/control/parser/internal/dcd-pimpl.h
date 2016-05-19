@@ -47,7 +47,7 @@ namespace dcd
     componentfiles (const ::std::vector<ossie::ComponentFile>&);
 
     virtual void
-    partitioning (const ::std::vector<ossie::ComponentPlacement>&);
+    partitioning (const ::std::vector<ossie::DevicePlacement>&);
 
     virtual void
     domainmanager (const ::std::string&);
@@ -148,13 +148,13 @@ namespace dcd
     pre ();
 
     virtual void
-    componentplacement (const ::ossie::ComponentPlacement&);
+    componentplacement (const ::ossie::DevicePlacement&);
 
-    virtual ::std::vector<ossie::ComponentPlacement>
+    virtual ::std::vector<ossie::DevicePlacement>
     post_partitioning ();
 
     private:
-    std::vector<ossie::ComponentPlacement> componentPlacements;
+    std::vector<ossie::DevicePlacement> componentPlacements;
   };
 
   class componentplacement_pimpl: public virtual componentplacement_pskel
@@ -178,12 +178,12 @@ namespace dcd
     virtual void
     componentinstantiation (const ::ossie::ComponentInstantiation&);
 
-    virtual const ::ossie::ComponentPlacement&
+    virtual const ::ossie::DevicePlacement&
     post_componentplacement ();
 
     private:
-    //std::auto_ptr<ossie::ComponentPlacement> componentPlacement;
-    ossie::ComponentPlacement componentPlacement;
+    //std::auto_ptr<ossie::DevicePlacement> componentPlacement;
+    ossie::DevicePlacement componentPlacement;
   };
 
   class componentfileref_pimpl: public virtual componentfileref_pskel

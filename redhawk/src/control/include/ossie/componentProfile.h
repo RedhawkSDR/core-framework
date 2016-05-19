@@ -210,25 +210,12 @@ namespace ossie {
     public:
         std::string _componentFileRef;
 
-        ossie::optional_value<std::string> deployOnDeviceID;
-        ossie::optional_value<std::string> compositePartOfDeviceID;
-        ossie::optional_value<std::string> DPDFile;
         std::vector<ComponentInstantiation> instantiations;
 
     public:
-        const char* getDeployOnDeviceID() const;
-
-        const char* getCompositePartOfDeviceID() const;
-
-        const std::string getDPDFile() const;
-        
         const std::vector<ComponentInstantiation>& getInstantiations() const;
         
         const std::string& getFileRefId() const;
-
-        bool isDeployOn() const;
-
-        bool isCompositePartOf() const;
     };
 
     /*

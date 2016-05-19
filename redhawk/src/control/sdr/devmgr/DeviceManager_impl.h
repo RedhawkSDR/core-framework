@@ -219,9 +219,9 @@ private:
         CF::DeviceManager_var& my_object_var);
 
     void getCompositeDeviceIOR(
-        std::string&                                  compositeDeviceIOR, 
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
-        const ossie::ComponentPlacement&              componentPlacementInst);
+        std::string&                               compositeDeviceIOR, 
+        const std::vector<ossie::DevicePlacement>& componentPlacements,
+        const ossie::DevicePlacement&              componentPlacementInst);
 
     bool loadDeviceProperties (
         const ossie::SoftPkg& softpkg, 
@@ -256,31 +256,31 @@ private:
 
     void createDeviceExecStatement(
         std::vector< std::string >&                   new_argv,
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
         ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            usageName,
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
+        const std::vector<ossie::DevicePlacement>&    componentPlacements,
         const std::string&                            compositeDeviceIOR,
         const ossie::ComponentPropertyList&           instanceprops) ;
 
     void createDeviceThreadAndHandleExceptions(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
         const ossie::SoftPkg&                         SPDParser,
         ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
+        const std::vector<ossie::DevicePlacement>&    componentPlacements,
         const std::string&                            compositeDeviceIOR,
         const ossie::ComponentPropertyList&           instanceprops);
 
     void createDeviceThread(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
@@ -289,14 +289,14 @@ private:
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            devcache,
         const std::string&                            usageName,
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
+        const std::vector<ossie::DevicePlacement>&    componentPlacements,
         const std::string&                            compositeDeviceIOR,
         const ossie::ComponentPropertyList&           instanceprops);
 
     typedef std::list<std::pair<std::string,std::string> > ExecparamList;
 
     ExecparamList createDeviceExecparams(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
@@ -309,7 +309,7 @@ private:
     bool loadSPD(
         ossie::SoftPkg&                    SPDParser,
         ossie::DeviceManagerConfiguration& DCDParser,
-        const ossie::ComponentPlacement&   componentPlacement);
+        const ossie::DevicePlacement&      componentPlacement);
 
     void recordComponentInstantiationId(
         const ossie::ComponentInstantiation& instantiation,

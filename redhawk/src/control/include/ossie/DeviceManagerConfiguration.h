@@ -32,6 +32,25 @@
 #include "ossie/componentProfile.h"
 
 namespace ossie {
+
+    class DevicePlacement : public ComponentPlacement
+    {
+    public:
+        ossie::optional_value<std::string> deployOnDeviceID;
+        ossie::optional_value<std::string> compositePartOfDeviceID;
+        ossie::optional_value<std::string> DPDFile;
+
+        const char* getDeployOnDeviceID() const;
+
+        const char* getCompositePartOfDeviceID() const;
+
+        const std::string getDPDFile() const;
+        
+        bool isDeployOn() const;
+
+        bool isCompositePartOf() const;
+    };
+
     class DeviceManagerConfiguration {
 
     ENABLE_LOGGING
@@ -47,7 +66,7 @@ namespace ossie {
             std::string deviceManagerSoftPkg;
             std::string domainManagerName;
             std::vector<ComponentFile> componentFiles;
-            std::vector<ComponentPlacement> componentPlacements;
+            std::vector<DevicePlacement> componentPlacements;
             std::vector<Connection> connections;
         };
 
@@ -86,7 +105,7 @@ namespace ossie {
         
         const std::vector<ComponentFile>& getComponentFiles();
 
-        const std::vector<ComponentPlacement>& getComponentPlacements();
+        const std::vector<DevicePlacement>& getComponentPlacements();
 
         const std::vector<Connection>& getConnections();
 

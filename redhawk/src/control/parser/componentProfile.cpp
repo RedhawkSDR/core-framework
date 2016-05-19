@@ -196,42 +196,10 @@ const ComponentInstantiation::LoggingConfig &ComponentInstantiation::getLoggingC
 //
 // ComponentPlacement
 //
-const char* ComponentPlacement::getDeployOnDeviceID() const {
-    if (deployOnDeviceID.isSet()) {
-        return deployOnDeviceID->c_str();
-    } else {
-        return 0;
-    }
-}
-
-const char* ComponentPlacement::getCompositePartOfDeviceID() const {
-    if (compositePartOfDeviceID.isSet()) {
-        return compositePartOfDeviceID->c_str();
-    } else {
-        return 0;
-    }
-}
-
-const std::string ComponentPlacement::getDPDFile() const {
-    if (DPDFile.isSet()) {
-        return DPDFile->c_str();
-    } else {
-        return 0;
-    }
-}
-
 const std::vector<ComponentInstantiation>& ComponentPlacement::getInstantiations() const {
     return instantiations;
 };
 
 const std::string& ComponentPlacement::getFileRefId() const {
     return _componentFileRef;
-}
-
-bool ComponentPlacement::isDeployOn() const {
-    return deployOnDeviceID.isSet();
-}
-
-bool ComponentPlacement::isCompositePartOf() const {
-    return compositePartOfDeviceID.isSet();
 }

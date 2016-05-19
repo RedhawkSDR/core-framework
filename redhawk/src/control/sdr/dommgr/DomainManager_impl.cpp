@@ -52,10 +52,10 @@
 using namespace ossie;
 using namespace std;
 
-static const ComponentInstantiation* findComponentInstantiation (const std::vector<ComponentPlacement>& placements,
+static const ComponentInstantiation* findComponentInstantiation (const std::vector<DevicePlacement>& placements,
                                                                  const std::string& identifier)
 {
-    for (std::vector<ComponentPlacement>::const_iterator iter = placements.begin(); iter != placements.end(); ++iter) {
+    for (std::vector<DevicePlacement>::const_iterator iter = placements.begin(); iter != placements.end(); ++iter) {
         const std::vector<ComponentInstantiation>& instantiations = iter->getInstantiations();
         for (std::vector<ComponentInstantiation>::const_iterator ii = instantiations.begin(); ii != instantiations.end(); ++ii) {
             if (identifier == ii->getID()) {
@@ -2002,7 +2002,7 @@ void DomainManager_impl::_local_registerService (CORBA::Object_ptr registeringSe
         readDCD = false;
     }
     if (readDCD) {
-        const std::vector<ossie::ComponentPlacement>& componentPlacements = _DCDParser.getComponentPlacements();
+        const std::vector<ossie::DevicePlacement>& componentPlacements = _DCDParser.getComponentPlacements();
         bool foundId = false;
         for (unsigned int i = 0; i < componentPlacements.size(); i++) {
             for (unsigned int j=0; j<componentPlacements[i].getInstantiations().size(); j++) {
