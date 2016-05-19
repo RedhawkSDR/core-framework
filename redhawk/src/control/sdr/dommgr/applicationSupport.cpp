@@ -165,9 +165,9 @@ ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
 
     // Create local copies for all of the usesdevice entries for this implementation.
     LOG_TRACE(ImplementationInfo, "Loading component implementation uses device")
-    const std::vector<SPD::UsesDevice>& spdUsesDevices = spdImpl.getUsesDevices();
+    const std::vector<UsesDevice>& spdUsesDevices = spdImpl.getUsesDevices();
     for (size_t ii = 0; ii < spdUsesDevices.size(); ++ii) {
-        const SPD::UsesDevice& spdUsesDev = spdUsesDevices[ii];
+        const UsesDevice& spdUsesDev = spdUsesDevices[ii];
         UsesDeviceInfo* usesDevice = new UsesDeviceInfo(spdUsesDev.getID(), spdUsesDev.getType(),
                     spdUsesDev.getDependencies());
         addUsesDevice(usesDevice);
@@ -400,9 +400,9 @@ bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys)
     }
 
     // Create local copies for all of the usesdevice entries for this implementation.
-    const std::vector<SPD::UsesDevice>& spdUsesDevices = spd.getUsesDevices();
+    const std::vector<UsesDevice>& spdUsesDevices = spd.getUsesDevices();
     for (size_t ii = 0; ii < spdUsesDevices.size(); ++ii) {
-        const SPD::UsesDevice& spdUsesDev = spdUsesDevices[ii];
+        const UsesDevice& spdUsesDev = spdUsesDevices[ii];
         UsesDeviceInfo* usesDevice = new UsesDeviceInfo(spdUsesDev.getID(), spdUsesDev.getType(),
                                                         spdUsesDev.getDependencies());
         addUsesDevice(usesDevice);

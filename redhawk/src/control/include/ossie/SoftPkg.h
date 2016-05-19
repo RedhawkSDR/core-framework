@@ -32,6 +32,7 @@
 #include "ossie/componentProfile.h"
 
 #include "PropertyRef.h"
+#include "UsesDevice.h"
 
 namespace ossie {
 
@@ -59,24 +60,6 @@ namespace ossie {
                 optional_value<std::string> webpage;
         };
 
-        class UsesDevice {
-            public:
-                std::string id;
-                std::string type;
-                std::vector<PropertyRef> dependencies;
-
-                const std::string& getID() const {
-                    return id;
-                }
-
-                const std::string& getType() const {
-                    return type;
-                }
-            
-                const std::vector<PropertyRef>& getDependencies() const {
-                    return dependencies;
-                }
-        };
 
         class Code {
             public:
@@ -179,7 +162,7 @@ namespace ossie {
                     }
                 }
 
-                const std::vector<ossie::SPD::UsesDevice>& getUsesDevices() const {
+                const std::vector<ossie::UsesDevice>& getUsesDevices() const {
                     return usesDevice;
                 };
 
@@ -309,7 +292,7 @@ namespace ossie {
                 return _spd->implementations; 
             }
 
-            const std::vector<ossie::SPD::UsesDevice>& getUsesDevices() const {
+            const std::vector<ossie::UsesDevice>& getUsesDevices() const {
                 assert(_spd.get() != 0);
                 return _spd->usesDevice;
             };
@@ -334,13 +317,6 @@ namespace ossie {
     std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const SPD::Code& code)
     {
         out << "localfile: " << code.localfile << " type: " << code.type << " entrypoint: " << code.entrypoint;
-        return out;
-    }
-
-    template< typename charT, typename Traits>
-    std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const SPD::UsesDevice& usesdev)
-    {
-        out << "Uses Device id: " << usesdev.id << " type: " << usesdev.type;
         return out;
     }
 

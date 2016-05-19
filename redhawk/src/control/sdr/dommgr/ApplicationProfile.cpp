@@ -183,9 +183,9 @@ void ApplicationProfile::load(CF::FileSystem_ptr fileSystem, const SoftwareAssem
     identifier = sad.getID();
 
     // Gets uses device relationships
-    const std::vector<SoftwareAssembly::UsesDevice>& usesDevice = sad.getUsesDevices();
-    for (std::vector<SoftwareAssembly::UsesDevice>::const_iterator use = usesDevice.begin(); use != usesDevice.end(); ++use) {
-        UsesDeviceInfo* useDev = new UsesDeviceInfo(use->getId(), use->getType(), use->getDependencies());
+    const std::vector<UsesDevice>& usesDevice = sad.getUsesDevices();
+    for (std::vector<UsesDevice>::const_iterator use = usesDevice.begin(); use != usesDevice.end(); ++use) {
+        UsesDeviceInfo* useDev = new UsesDeviceInfo(use->getID(), use->getType(), use->getDependencies());
         addUsesDevice(useDev);
     }
 

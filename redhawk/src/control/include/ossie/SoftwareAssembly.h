@@ -28,6 +28,7 @@
 #include"ossie/exceptions.h"
 
 #include "PropertyRef.h"
+#include "UsesDevice.h"
 
 namespace ossie {
     class SoftwareAssembly {
@@ -79,25 +80,6 @@ namespace ossie {
             std::string externalpropid;
         };
 
-        class UsesDevice {
-        public:
-            std::string id;
-            std::string type;
-            std::vector<PropertyRef> dependencies;
-
-            const std::string& getId() const {
-                return id;
-            }
-
-            const std::string& getType() const {
-                return type;
-            }
-
-            const std::vector<PropertyRef>& getDependencies() const {
-                return dependencies;
-            }
-        };
-
         class SAD {
             public:
                 std::string id;
@@ -108,7 +90,7 @@ namespace ossie {
                 std::vector<ComponentFile> componentfiles;
                 std::vector<SoftwareAssembly::Port> externalports;
                 std::vector<SoftwareAssembly::Property> externalproperties;
-                std::vector<SoftwareAssembly::UsesDevice> usesdevice;
+                std::vector<UsesDevice> usesdevice;
         };
        
         SoftwareAssembly() : _sad(0) {}
@@ -139,7 +121,7 @@ namespace ossie {
 
         const std::vector<SoftwareAssembly::Property>& getExternalProperties() const;
 
-        const std::vector<SoftwareAssembly::UsesDevice>& getUsesDevices() const;
+        const std::vector<UsesDevice>& getUsesDevices() const;
 
     protected:
         std::auto_ptr<SAD> _sad;

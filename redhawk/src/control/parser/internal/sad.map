@@ -60,8 +60,8 @@ namespace urn:mil:jpeojtrs:sca:sad {
     supportedidentifier "::std::string";
     externalproperties "::std::vector<ossie::SoftwareAssembly::Property>";
     property "ossie::SoftwareAssembly::Property";
-    usesdevicedependencies "::std::vector<ossie::SoftwareAssembly::UsesDevice>";
-    usesdevice "ossie::SoftwareAssembly::UsesDevice";
+    usesdevicedependencies "::std::vector<ossie::UsesDevice>";
+    usesdevice "ossie::UsesDevice";
     propertyref "ossie::PropertyRef";
     affinity "const ossie::ComponentInstantiation::AffinityProperties&" "const ossie::ComponentInstantiation::AffinityProperties&";
     loggingconfig  "const ossie::ComponentInstantiation::LoggingConfig&"  "const ossie::ComponentInstantiation::LoggingConfig&";

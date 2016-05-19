@@ -56,7 +56,7 @@ namespace spd
     implementation (const ossie::SPD::Implementation&);
 
     virtual void
-    usesdevice (const ossie::SPD::UsesDevice&);
+    usesdevice (const ossie::UsesDevice&);
 
     virtual void
     id (const ::std::string&);
@@ -190,7 +190,7 @@ namespace spd
     dependency (ossie::DependencyRef*);
 
     virtual void
-    usesdevice (const ossie::SPD::UsesDevice&);
+    usesdevice (const ossie::UsesDevice&);
 
     virtual void
     id (const ::std::string&);
@@ -452,11 +452,11 @@ namespace spd
     virtual void
     type (const ::std::string&);
 
-    virtual ossie::SPD::UsesDevice
+    virtual ossie::UsesDevice
     post_usesDevice ();
 
     private:
-    std::auto_ptr<ossie::SPD::UsesDevice> _uses;
+    std::auto_ptr<ossie::UsesDevice> _uses;
   };
 
   class aepcompliance_pimpl: public virtual aepcompliance_pskel,

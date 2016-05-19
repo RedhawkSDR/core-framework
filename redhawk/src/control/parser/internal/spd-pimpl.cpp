@@ -80,7 +80,7 @@ implementation (const ossie::SPD::Implementation& implementation)
 }
 
 void softPkg_pimpl::
-usesdevice (const ossie::SPD::UsesDevice& usesdev)
+usesdevice (const ossie::UsesDevice& usesdev)
 {
     LOG_TRACE(spd_parser, "softpkg usesdev " << usesdev)
     _spd->usesDevice.push_back(usesdev);
@@ -308,7 +308,7 @@ dependency (ossie::DependencyRef* dep)
 }
 
 void implementation_pimpl::
-usesdevice (const ossie::SPD::UsesDevice& usesdev)
+usesdevice (const ossie::UsesDevice& usesdev)
 {
     LOG_TRACE(spd_parser, "implementation usesdev " << usesdev)
     implementation->usesDevice.push_back(usesdev);
@@ -679,7 +679,7 @@ post_implRef ()
 void usesDevice_pimpl::
 pre ()
 {
-    _uses.reset(new ossie::SPD::UsesDevice());
+    _uses.reset(new ossie::UsesDevice());
 }
 
 void usesDevice_pimpl::
@@ -724,7 +724,7 @@ type (const ::std::string& type)
     _uses->type = type;
 }
 
-ossie::SPD::UsesDevice usesDevice_pimpl::
+ossie::UsesDevice usesDevice_pimpl::
 post_usesDevice ()
 {
     assert(_uses.get() != 0);

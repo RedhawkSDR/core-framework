@@ -59,7 +59,7 @@ namespace sad
     externalproperties (const ::std::vector<ossie::SoftwareAssembly::Property>&);
 
     virtual void
-    usesdevicedependencies (const ::std::vector<ossie::SoftwareAssembly::UsesDevice>&);
+    usesdevicedependencies (const ::std::vector<ossie::UsesDevice>&);
 
     virtual void
     id (const ::std::string&);
@@ -848,13 +848,13 @@ namespace sad
       pre ();
 
       virtual void
-      usesdevice (const ossie::SoftwareAssembly::UsesDevice&);
+      usesdevice (const ossie::UsesDevice&);
 
-      virtual ::std::vector<ossie::SoftwareAssembly::UsesDevice>
+      virtual ::std::vector<ossie::UsesDevice>
       post_usesdevicedependencies ();
 
   private:
-      std::vector<ossie::SoftwareAssembly::UsesDevice> usesDevices;
+      std::vector<ossie::UsesDevice> usesDevices;
   };
 
   class usesdevice_pimpl: public virtual usesdevice_pskel
@@ -884,11 +884,11 @@ namespace sad
       virtual void
       type (const ::std::string&);
 
-      virtual ossie::SoftwareAssembly::UsesDevice
+      virtual ossie::UsesDevice
       post_usesdevice ();
 
   private:
-      std::auto_ptr<ossie::SoftwareAssembly::UsesDevice> uses;
+      std::auto_ptr<ossie::UsesDevice> uses;
   };
 
   class propertyref_pimpl: public virtual propertyref_pskel

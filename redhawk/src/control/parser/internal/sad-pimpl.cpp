@@ -86,7 +86,7 @@ namespace sad
   }
 
   void softwareassembly_pimpl::
-  usesdevicedependencies (const ::std::vector<ossie::SoftwareAssembly::UsesDevice>& usesdevices)
+  usesdevicedependencies (const ::std::vector<ossie::UsesDevice>& usesdevices)
   {
       _sad->usesdevice = usesdevices;
   }
@@ -1279,12 +1279,12 @@ namespace sad
   }
 
   void usesdevicedependencies_pimpl::
-  usesdevice (const ossie::SoftwareAssembly::UsesDevice& use)
+  usesdevice (const ossie::UsesDevice& use)
   {
       usesDevices.push_back(use);
   }
 
-  ::std::vector<ossie::SoftwareAssembly::UsesDevice> usesdevicedependencies_pimpl::
+  ::std::vector<ossie::UsesDevice> usesdevicedependencies_pimpl::
    post_usesdevicedependencies ()
   {
       return usesDevices;
@@ -1296,7 +1296,7 @@ namespace sad
   void usesdevice_pimpl::
   pre ()
   {
-      uses.reset(new ossie::SoftwareAssembly::UsesDevice());
+      uses.reset(new ossie::UsesDevice());
   }
 
   void usesdevice_pimpl::
@@ -1341,7 +1341,7 @@ namespace sad
       uses->type = type;
   }
 
-  ossie::SoftwareAssembly::UsesDevice usesdevice_pimpl::
+  ossie::UsesDevice usesdevice_pimpl::
   post_usesdevice ()
   {
       return *uses;

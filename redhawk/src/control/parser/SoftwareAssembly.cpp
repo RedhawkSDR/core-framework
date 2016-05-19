@@ -110,7 +110,7 @@ const std::vector<SoftwareAssembly::Property>& SoftwareAssembly::getExternalProp
     return _sad->externalproperties;
 }
 
-const std::vector<SoftwareAssembly::UsesDevice>& SoftwareAssembly::getUsesDevices() const {
+const std::vector<UsesDevice>& SoftwareAssembly::getUsesDevices() const {
     assert(_sad.get() != 0);
     return _sad->usesdevice;
 }
