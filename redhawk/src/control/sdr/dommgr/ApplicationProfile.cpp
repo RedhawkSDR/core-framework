@@ -18,6 +18,8 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#include <boost/make_shared.hpp>
+
 #include <ossie/FileStream.h>
 
 #include "ApplicationProfile.h"
@@ -75,6 +77,22 @@ void SoftpkgProfile::load(CF::FileSystem_ptr fileSystem)
 {
     File_stream spd_stream(fileSystem, spdFilename.c_str());
     spd.load(spd_stream, spdFilename);
+    spd_stream.close();
+
+    if (spd.getPRFFile()) {
+        File_stream prf_stream(fileSystem, spd.getPRFFile());
+        boost::shared_ptr<Properties> prf = boost::make_shared<Properties>();
+        prf->load(prf_stream);
+        spd.setProperties(prf);
+    }
+
+    if (spd.getSCDFile()) {
+        File_stream scd_stream(fileSystem, spd.getSCDFile());
+        boost::shared_ptr<ComponentDescriptor> scd = boost::make_shared<ComponentDescriptor>();
+        scd->load(scd_stream);
+        spd.setDescriptor(scd);
+    }
+
     loaded = true;
 
     typedef std::vector<SPD::Implementation> SpdImplementations;

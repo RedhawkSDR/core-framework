@@ -36,6 +36,9 @@
 
 namespace ossie {
 
+    class Properties;
+    class ComponentDescriptor;
+
     class SPD {
         public:
         typedef std::pair<std::string, std::string> NameVersionPair;
@@ -306,9 +309,31 @@ namespace ossie {
                 assert(_spd.get() != 0);
                 return (strcmp(getSoftPkgType(), "sca_non_compliant") == 0);
             }
-            
+
+            const boost::shared_ptr<Properties>& getProperties()
+            {
+                return _properties;
+            }
+
+            void setProperties(const boost::shared_ptr<Properties>& properties)
+            {
+                _properties = properties;
+            }
+
+            const boost::shared_ptr<ComponentDescriptor>& getDescriptor()
+            {
+                return _descriptor;
+            }
+
+            void setDescriptor(const boost::shared_ptr<ComponentDescriptor>& descriptor)
+            {
+                _descriptor = descriptor;
+            }
+
         protected:
             std::auto_ptr<SPD> _spd;
+            boost::shared_ptr<Properties> _properties;
+            boost::shared_ptr<ComponentDescriptor> _descriptor;
             std::string _spdFile;
             std::string _spdPath;
     };
