@@ -235,7 +235,3 @@ bool ComponentPlacement::isDeployOn() const {
 bool ComponentPlacement::isCompositePartOf() const {
     return compositePartOfDeviceID.isSet();
 }
-
-bool ComponentPlacement::isDomainManager() const {
-    return false;
-}

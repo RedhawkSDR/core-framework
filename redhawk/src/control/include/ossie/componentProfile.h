@@ -208,7 +208,6 @@ namespace ossie {
      */
     class ComponentPlacement {
     public:
-        bool ifDomainManager;
         std::string _componentFileRef;
 
         ossie::optional_value<std::string> deployOnDeviceID;
@@ -230,8 +229,6 @@ namespace ossie {
         bool isDeployOn() const;
 
         bool isCompositePartOf() const;
-
-        bool isDomainManager() const;
     };
 
     /*
