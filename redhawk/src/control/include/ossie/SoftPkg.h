@@ -101,12 +101,12 @@ namespace ossie {
                 std::vector<PropertyRef> dependencies;
                 std::vector<SoftPkgRef> softPkgDependencies;
 
-                const char* getID() const {
-                    return id.c_str();
+                const std::string& getID() const {
+                    return id;
                 }
 
-                const char* getType() const {
-                    return type.c_str();
+                const std::string& getType() const {
+                    return type;
                 }
             
                 const std::vector<PropertyRef>& getDependencies() const {
@@ -176,8 +176,8 @@ namespace ossie {
                 NameVersionPair runtime;
 
             public:
-                const char* getID() const {
-                    return implementationID.c_str();
+                const std::string& getID() const {
+                    return implementationID;
                 }
 
                 const std::vector<std::string>& getProcessors() const {
@@ -199,8 +199,8 @@ namespace ossie {
                     }
                 }
 
-                const char * getCodeFile() const {
-                    return code.localfile.c_str();
+                const std::string& getCodeFile() const {
+                    return code.localfile;
                 }
 
                 const char * getCodeType() const {
@@ -266,14 +266,14 @@ namespace ossie {
         public:
             void load(std::istream& input, const std::string& _spdFile) throw (ossie::parser_error);
 
-            const char* getSoftPkgID() const {
+            const std::string& getSoftPkgID() const {
                 assert(_spd.get() != 0);
-                return _spd->id.c_str();
+                return _spd->id;
             }
 
-            const char* getSoftPkgName() const {
+            const std::string& getSoftPkgName() const {
                 assert(_spd.get() != 0);
-                return _spd->name.c_str();
+                return _spd->name;
             }
 
             const char* getSoftPkgType() const {
@@ -312,12 +312,12 @@ namespace ossie {
                 }
             }
 
-            const char* getSPDPath() const {
-                return _spdPath.c_str();
+            const std::string& getSPDPath() const {
+                return _spdPath;
             }
 
-            const char* getSPDFile() const {
-                return _spdFile.c_str();
+            const std::string& getSPDFile() const {
+                return _spdFile;
             }
 
             const char* getPRFFile() const {

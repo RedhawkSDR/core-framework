@@ -240,7 +240,7 @@ static pid_t launchSPD (
     // Create a C string array of the arguments to the executable from the code file name (0th argument)
     // and execparams. Note the importance of the final NULL, which terminates the array.
     std::vector<const char *> argv;
-    argv.push_back(impl->getCodeFile());
+    argv.push_back(impl->getCodeFile().c_str());
     for (ExecParams::const_iterator param = execParams.begin(); param != execParams.end(); ++param) {
         LOG_TRACE(nodebooter, "EXEC_PARAM: " << param->first << "=\"" << param->second << "\"");
         argv.push_back(param->first.c_str());

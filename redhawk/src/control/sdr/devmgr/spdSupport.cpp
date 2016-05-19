@@ -69,7 +69,7 @@ ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
     osDeps(spdImpl.getOsDeps()),
     dependencyProperties()
 {
-    setLocalFileName(spdImpl.getCodeFile());
+    setLocalFileName(spdImpl.getCodeFile().c_str());
     setEntryPoint(spdImpl.getEntryPoint());
     setCodeType(spdImpl.getCodeType());
     setStackSize(spdImpl.code.stacksize.get());

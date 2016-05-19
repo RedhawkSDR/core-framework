@@ -140,7 +140,6 @@ namespace ossie
 
     private:
         ImplementationInfo (const ImplementationInfo&);
-        void setLocalFileName(const char* fileName);
         void setEntryPoint(const char* fileName);
         void setCodeType(const char* _type);
         void setStackSize(const unsigned long long *_stackSize);

@@ -165,13 +165,12 @@ PREPARE_CF_LOGGING(ImplementationInfo);
 ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
     id(spdImpl.getID()),
     codeType(),
-    localFileName(),
+    localFileName(spdImpl.getCodeFile()),
     entryPoint(),
     processorDeps(spdImpl.getProcessors()),
     osDeps(spdImpl.getOsDeps()),
     dependencyProperties()
 {
-    setLocalFileName(spdImpl.getCodeFile());
     setEntryPoint(spdImpl.getEntryPoint());
     setCodeType(spdImpl.getCodeType());
     setStackSize(spdImpl.code.stacksize.get());
@@ -294,13 +293,6 @@ void ImplementationInfo::setCodeType(const char* _type)
         codeType = CF::LoadableDevice::DRIVER;
     } else {
         LOG_WARN(ImplementationInfo, "Bad code type " << type);
-    }
-}
-
-void ImplementationInfo::setLocalFileName(const char* fileName)
-{
-    if (fileName) {
-        localFileName = fileName;
     }
 }
 
