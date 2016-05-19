@@ -25,6 +25,29 @@
 using namespace ossie;
 
 /**
+ * ImplementationProfile
+ */
+ImplementationProfile::ImplementationProfile(const SPD::Implementation& implementation) :
+    implementation(&implementation)
+{
+}
+
+void ImplementationProfile::accept(ApplicationVisitor* visitor)
+{
+    visitor->visitImplementation(this);
+}
+
+const std::string& ImplementationProfile::getIdentifier() const
+{
+    return implementation->getID();
+}
+
+const std::string& ImplementationProfile::getLocalfile() const
+{
+    return implementation->getCodeFile();
+}
+
+/**
  * SoftpkgProfile
  */
 SoftpkgProfile::SoftpkgProfile(const std::string& filename) :
@@ -53,11 +76,22 @@ void SoftpkgProfile::load(CF::FileSystem_ptr fileSystem)
     File_stream spd_stream(fileSystem, spdFilename.c_str());
     spd.load(spd_stream, spdFilename);
     loaded = true;
+
+    typedef std::vector<SPD::Implementation> SpdImplementations;
+    const SpdImplementations& spd_impls = spd.getImplementations();
+    for (SpdImplementations::const_iterator impl = spd_impls.begin(); impl != spd_impls.end(); ++impl) {
+        implementations.push_back(ImplementationProfile(*impl));
+    }
 }
 
 const SoftPkg& SoftpkgProfile::getSPD() const
 {
     return spd;
+}
+
+SoftpkgProfile::ImplementationList& SoftpkgProfile::getImplementations()
+{
+    return implementations;
 }
 
 /**
