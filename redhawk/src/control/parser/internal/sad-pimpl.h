@@ -864,7 +864,7 @@ namespace sad
       pre ();
 
       virtual void
-      propertyref (const ossie::SoftwareAssembly::PropertyRef&);
+      propertyref (const ossie::PropertyRef&);
 
       virtual void
       simpleref (const ossie::SimplePropertyRef&);
@@ -903,7 +903,7 @@ namespace sad
       virtual void
       value (const ::std::string&);
 
-      virtual ::ossie::SoftwareAssembly::PropertyRef
+      virtual ::ossie::PropertyRef
       post_propertyref ();
 
   private:

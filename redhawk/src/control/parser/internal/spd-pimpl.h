@@ -187,7 +187,7 @@ namespace spd
     processor (const ::std::string&);
 
     virtual void
-    dependency (ossie::SPD::DependencyRef*);
+    dependency (ossie::DependencyRef*);
 
     virtual void
     usesdevice (const ossie::SPD::UsesDevice&);
@@ -326,7 +326,7 @@ namespace spd
     softpkgref (const ossie::SPD::SoftPkgRef& ref);
  
     virtual void
-    propertyref (const ossie::SPD::PropertyRef&);
+    propertyref (const ossie::PropertyRef&);
 
     virtual void
     simpleref (const ossie::SimplePropertyRef&);
@@ -343,11 +343,11 @@ namespace spd
     virtual void
     type (const ::std::string&);
 
-    virtual ossie::SPD::DependencyRef*
+    virtual ossie::DependencyRef*
     post_dependency ();
 
     private:
-    std::auto_ptr<ossie::SPD::DependencyRef> _ref;
+    std::auto_ptr<ossie::DependencyRef> _ref;
   };
 
   class runtime_pimpl: public virtual runtime_pskel
@@ -381,7 +381,7 @@ namespace spd
     virtual void
     value (const ::std::string&);
 
-    virtual ossie::SPD::PropertyRef
+    virtual ossie::PropertyRef
     post_propertyRef ();
 
     private:
@@ -432,7 +432,7 @@ namespace spd
     pre ();
 
     virtual void
-    propertyref (const ossie::SPD::PropertyRef&);
+    propertyref (const ossie::PropertyRef&);
 
     virtual void
     simpleref (const ossie::SimplePropertyRef&);

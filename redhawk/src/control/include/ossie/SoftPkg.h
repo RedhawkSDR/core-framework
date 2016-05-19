@@ -31,48 +31,13 @@
 #include "ossie/ossieparser.h"
 #include "ossie/componentProfile.h"
 
+#include "PropertyRef.h"
+
 namespace ossie {
 
     class SPD {
         public:
         typedef std::pair<std::string, std::string> NameVersionPair;
-
-        class DependencyRef {
-            public:
-                std::string type;
-
-                virtual const std::string asString() const = 0;
-
-                virtual ~DependencyRef() {};
-        };
-
-        class PropertyRef : public DependencyRef {
-            public:
-                PropertyRef() :
-                    property()
-                {
-                }
-
-                PropertyRef(ComponentProperty* prop) :
-                    property(prop)
-                {
-                }
-
-                PropertyRef(const ComponentProperty &prop) :
-                    property(prop.clone())
-                {
-                }
-
-                PropertyRef(const PropertyRef& other) :
-                    property(other.property->clone())
-                {
-                }
-
-                boost::shared_ptr< ossie::ComponentProperty > property;
-
-                virtual const std::string asString() const;
-                virtual ~PropertyRef();
-        };
 
         class SoftPkgRef : public DependencyRef {
             public:
@@ -369,13 +334,6 @@ namespace ossie {
     std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const SPD::Code& code)
     {
         out << "localfile: " << code.localfile << " type: " << code.type << " entrypoint: " << code.entrypoint;
-        return out;
-    }
-
-    template< typename charT, typename Traits>
-    std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const SPD::DependencyRef& ref)
-    {
-        out << ref.asString();
         return out;
     }
 

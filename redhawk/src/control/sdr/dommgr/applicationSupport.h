@@ -63,14 +63,12 @@ namespace ossie
     public:
         typedef std::vector< UsesDeviceInfo * >    List;
 
-        UsesDeviceInfo(const std::string& id, const std::string& type, const std::vector<SPD::PropertyRef>& _properties);
-        UsesDeviceInfo(const std::string& id, const std::string& type, const std::vector<SoftwareAssembly::PropertyRef>& _sadDeps);
+        UsesDeviceInfo(const std::string& id, const std::string& type, const std::vector<PropertyRef>& _properties);
         ~UsesDeviceInfo();
 
         const std::string& getId() const;
         const std::string& getType() const;
-        const std::vector<SPD::PropertyRef>& getProperties() const;
-        const std::vector<SoftwareAssembly::PropertyRef>& getSadDeps() const;
+        const std::vector<PropertyRef>& getProperties() const;
         const std::string& getAssignedDeviceId() const;
 
         void setAssignedDeviceId(const std::string& deviceId);
@@ -79,8 +77,7 @@ namespace ossie
     private:
         std::string id;
         std::string type;
-        std::vector<SPD::PropertyRef> properties;
-        std::vector<SoftwareAssembly::PropertyRef> sadDeps;
+        std::vector<PropertyRef> properties;
         std::string assignedDeviceId;
     };
 
@@ -131,7 +128,7 @@ namespace ossie
         const CORBA::ULong getPriority() const;
         const bool hasStackSize() const;
         const bool hasPriority() const;
-        const std::vector<SPD::PropertyRef>& getDependencyProperties() const;
+        const std::vector<PropertyRef>& getDependencyProperties() const;
         const std::vector<SoftpkgInfo*>& getSoftPkgDependency() const;
 
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
@@ -144,7 +141,7 @@ namespace ossie
         void setCodeType(const char* _type);
         void setStackSize(const unsigned long long *_stackSize);
         void setPriority(const unsigned long long *_priority);
-        void addDependencyProperty(const ossie::SPD::PropertyRef& property);
+        void addDependencyProperty(const ossie::PropertyRef& property);
         void addSoftPkgDependency(SoftpkgInfo* softpkg);
 
         std::string id;
@@ -157,7 +154,7 @@ namespace ossie
         bool _hasPriority;
         std::vector<std::string> processorDeps;
         std::vector<ossie::SPD::NameVersionPair> osDeps;
-        std::vector<SPD::PropertyRef> dependencyProperties;
+        std::vector<PropertyRef> dependencyProperties;
         std::vector<SoftpkgInfo*> softPkgDependencies;
 
     };

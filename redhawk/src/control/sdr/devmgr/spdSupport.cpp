@@ -77,8 +77,8 @@ ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
 
     // Handle allocation property dependencies
     LOG_TRACE(ImplementationInfo, "Loading component implementation property dependencies")
-    const std::vector<ossie::SPD::PropertyRef>& dependencies = spdImpl.getDependencies();
-    std::vector<ossie::SPD::PropertyRef>::const_iterator ii;
+    const std::vector<ossie::PropertyRef>& dependencies = spdImpl.getDependencies();
+    std::vector<ossie::PropertyRef>::const_iterator ii;
     for (ii = dependencies.begin(); ii != dependencies.end(); ++ii) {
         LOG_TRACE(ImplementationInfo, "Loading component implementation property dependency '" << *ii);
         addDependencyProperty(*ii);
@@ -198,7 +198,7 @@ const bool ImplementationInfo::hasPriority() const
     return _hasPriority;
 }
 
-const std::vector<ossie::SPD::PropertyRef>& ImplementationInfo::getDependencyProperties() const
+const std::vector<ossie::PropertyRef>& ImplementationInfo::getDependencyProperties() const
 {
     return dependencyProperties;
 }
@@ -251,7 +251,7 @@ void ImplementationInfo::setPriority(const unsigned long long* _priority)
     }
 }
 
-void ImplementationInfo::addDependencyProperty(const SPD::PropertyRef& property)
+void ImplementationInfo::addDependencyProperty(const PropertyRef& property)
 {
     dependencyProperties.push_back(property);
 }

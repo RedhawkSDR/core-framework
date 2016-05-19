@@ -1300,7 +1300,7 @@ namespace sad
   }
 
   void usesdevice_pimpl::
-  propertyref (const ossie::SoftwareAssembly::PropertyRef& propRef)
+  propertyref (const ossie::PropertyRef& propRef)
   {
       uses->dependencies.push_back(propRef);
   }
@@ -1368,10 +1368,10 @@ namespace sad
       propRef->_value = value;
   }
 
-  ossie::SoftwareAssembly::PropertyRef propertyref_pimpl::
+  ossie::PropertyRef propertyref_pimpl::
   post_propertyref ()
   {
-      return ossie::SoftwareAssembly::PropertyRef(propRef->clone());
+      return ossie::PropertyRef(propRef->clone());
   }
 }
 

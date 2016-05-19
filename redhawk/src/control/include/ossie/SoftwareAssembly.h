@@ -27,6 +27,8 @@
 #include"ossie/componentProfile.h"
 #include"ossie/exceptions.h"
 
+#include "PropertyRef.h"
+
 namespace ossie {
     class SoftwareAssembly {
     public:
@@ -75,33 +77,6 @@ namespace ossie {
             std::string comprefid;
             std::string propid;
             std::string externalpropid;
-        };
-
-        class PropertyRef {
-        public:
-            PropertyRef (ComponentProperty* prop) :
-                property (prop)
-            {
-            }
-
-            PropertyRef(const ComponentProperty &prop) :
-                property(prop.clone())
-            {
-            }
-
-            PropertyRef (const PropertyRef& copy) :
-                property (copy.property->clone())
-            {
-            }
-
-            virtual ~PropertyRef ()
-            {
-              
-            }
-
-            std::string refId;
-            boost::shared_ptr< ossie::ComponentProperty > property;
-
         };
 
         class UsesDevice {

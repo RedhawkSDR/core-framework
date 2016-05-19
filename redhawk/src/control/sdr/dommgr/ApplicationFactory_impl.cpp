@@ -810,8 +810,8 @@ CF::Properties createHelper::_consolidateAllocations(const DeploymentList& deplo
 {
     CF::Properties allocs;
     for (DeploymentList::const_iterator depl = deployments.begin(); depl != deployments.end(); ++depl) {
-        const std::vector<SPD::PropertyRef>& deps = (*depl)->getImplementation()->getDependencyProperties();
-        for (std::vector<SPD::PropertyRef>::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
+        const std::vector<PropertyRef>& deps = (*depl)->getImplementation()->getDependencyProperties();
+        for (std::vector<PropertyRef>::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
           ossie::ComponentProperty *prop = dep->property.get();
           ossie::corba::push_back(allocs, ossie::convertPropertyRefToDataType(prop));
         }
@@ -1205,7 +1205,7 @@ CF::Application_ptr createHelper::create (
 
     //////////////////////////////////////////////////
     // Store information about this application
-    _appProfile.populateApplicationProfile(_appFact._sadParser);
+    _appProfile.load(_appFact._fileMgr, _appFact._sadParser);
 
     overrideExternalProperties(app_deployment, modifiedInitConfiguration);
 
@@ -1423,15 +1423,10 @@ CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDev
         const std::string requestid = usesDevices[usesdev_idx]->getId();
         request[usesdev_idx].requestID = requestid.c_str();
 
-        // Get the usesdevice dependency properties, first from the SPD...
+        // Get the usesdevice dependency properties
         CF::Properties& allocationProperties = request[usesdev_idx].allocationProperties;
-        const std::vector<SPD::PropertyRef>&prop_refs = usesDevices[usesdev_idx]->getProperties();
+        const std::vector<PropertyRef>&prop_refs = usesDevices[usesdev_idx]->getProperties();
         this->_castRequestProperties(allocationProperties, prop_refs);
-        
-        // ...then from the SAD; in practice, these are mutually exclusive, but
-        // there is no harm in doing both, as one set will always be empty
-        const std::vector<SoftwareAssembly::PropertyRef>& sad_refs = usesDevices[usesdev_idx]->getSadDeps();
-        this->_castRequestProperties(allocationProperties, sad_refs, allocationProperties.length());
         
         this->_evaluateMATHinRequest(allocationProperties, configureProperties);
     }
@@ -1773,7 +1768,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
     }
 
     const std::string requestid = ossie::generateUUID();
-    std::vector<SPD::PropertyRef> prop_refs = implementation->getDependencyProperties();
+    const std::vector<PropertyRef>& prop_refs = implementation->getDependencyProperties();
     redhawk::PropertyMap allocationProperties;
     this->_castRequestProperties(allocationProperties, prop_refs);
 
@@ -1821,15 +1816,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
     return response;
 }
 
-void createHelper::_castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SPD::PropertyRef> &prop_refs, unsigned int offset)
-{
-    allocationProperties.length(offset+prop_refs.size());
-    for (unsigned int i=0; i<prop_refs.size(); i++) {
-        allocationProperties[offset+i] = ossie::convertPropertyRefToDataType(prop_refs[i].property.get());
-    }
-}
-
-void createHelper::_castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SoftwareAssembly::PropertyRef> &prop_refs, unsigned int offset)
+void createHelper::_castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::PropertyRef> &prop_refs, unsigned int offset)
 {
     allocationProperties.length(offset+prop_refs.size());
     for (unsigned int i=0; i<prop_refs.size(); i++) {

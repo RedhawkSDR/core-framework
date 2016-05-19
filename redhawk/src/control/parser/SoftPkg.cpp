@@ -53,14 +53,6 @@ void SoftPkg::load(std::istream& input, const std::string& spdFile) throw (ossie
     }
 }
 
-SPD::PropertyRef::~PropertyRef() {
-  property.reset();
-}
-
-const std::string SPD::PropertyRef::asString() const {
-    return property->asString();
-}
-
 const std::string SPD::SoftPkgRef::asString() const {
     std::ostringstream out;
     out << "SoftPkgRef localfile: " << this->localfile << " implref: " << this->implref;

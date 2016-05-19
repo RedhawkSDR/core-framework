@@ -134,9 +134,7 @@ private:
 
     CF::Properties _consolidateAllocations(const DeploymentList& implementations);
     void _evaluateMATHinRequest(CF::Properties &request, const CF::Properties &configureProperties);
-    void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SPD::PropertyRef> &prop_refs, unsigned int offset=0);
-    void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SoftwareAssembly::PropertyRef> &prop_refs,
-            unsigned int offset=0);
+    void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::PropertyRef> &prop_refs, unsigned int offset=0);
 
     // Populate _requiredComponents vector
     void getRequiredComponents(CF::FileSystem_ptr fileSys,

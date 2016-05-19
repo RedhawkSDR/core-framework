@@ -296,12 +296,12 @@ processor (const ::std::string& processor)
 }
 
 void implementation_pimpl::
-dependency (ossie::SPD::DependencyRef* dep)
+dependency (ossie::DependencyRef* dep)
 {
     assert(dep != 0);
     LOG_TRACE(spd_parser, "add implementation dependencies " << *dep)
-    if (dynamic_cast<const ossie::SPD::PropertyRef*>(dep) != NULL) {
-        implementation->dependencies.push_back(*dynamic_cast<const ossie::SPD::PropertyRef*>(dep));
+    if (dynamic_cast<const ossie::PropertyRef*>(dep) != NULL) {
+        implementation->dependencies.push_back(*dynamic_cast<const ossie::PropertyRef*>(dep));
     } else if (dynamic_cast<const ossie::SPD::SoftPkgRef*>(dep) != NULL) {
         implementation->softPkgDependencies.push_back(*dynamic_cast<const ossie::SPD::SoftPkgRef*>(dep));
     }
@@ -523,38 +523,38 @@ softpkgref (const ossie::SPD::SoftPkgRef& ref)
 }
 
 void dependency_pimpl::
-propertyref (const ossie::SPD::PropertyRef& ref)
+propertyref (const ossie::PropertyRef& ref)
 {
     LOG_TRACE(spd_parser, "property ref dep: " << ref)
-    _ref.reset(new ossie::SPD::PropertyRef(ref));
+    _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
 simpleref (const ossie::SimplePropertyRef& ref)
 {
     LOG_TRACE(spd_parser, "simple property ref dep: " << ref);
-    _ref.reset(new ossie::SPD::PropertyRef(ref));
+    _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
 simplesequenceref (const ossie::SimpleSequencePropertyRef& ref)
 {
     LOG_TRACE(spd_parser, "simple sequence property ref dep: " << ref);
-    _ref.reset(new ossie::SPD::PropertyRef(ref));
+    _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
 structref (const ossie::StructPropertyRef& ref)
 {
     LOG_TRACE(spd_parser, "struct property ref dep: " << ref);
-    _ref.reset(new ossie::SPD::PropertyRef(ref));
+    _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
 structsequenceref (const ossie::StructSequencePropertyRef& ref)
 {
     LOG_TRACE(spd_parser, "struct sequence property ref dep: " << ref);
-    _ref.reset(new ossie::SPD::PropertyRef(ref));
+    _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
@@ -564,7 +564,7 @@ type (const ::std::string& type)
   //
 }
 
-ossie::SPD::DependencyRef* dependency_pimpl::
+ossie::DependencyRef* dependency_pimpl::
 post_dependency ()
 {
     assert(_ref.get() != 0);
@@ -620,10 +620,10 @@ value (const ::std::string& value)
     _ref._value = value;
 }
 
-ossie::SPD::PropertyRef propertyRef_pimpl::
+ossie::PropertyRef propertyRef_pimpl::
 post_propertyRef ()
 {
-    return ossie::SPD::PropertyRef(_ref);
+    return ossie::PropertyRef(_ref);
 }
 
 // softPkgRef_pimpl
@@ -683,7 +683,7 @@ pre ()
 }
 
 void usesDevice_pimpl::
-propertyref (const ossie::SPD::PropertyRef& propertyRef)
+propertyref (const ossie::PropertyRef& propertyRef)
 {
     _uses->dependencies.push_back(propertyRef);
 }

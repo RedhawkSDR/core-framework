@@ -60,18 +60,10 @@ static void addProperty(const CF::DataType& dt, CF::Properties& prop)
 /*
  * UsesDeviceInfo member function definitions
  */
-UsesDeviceInfo::UsesDeviceInfo(const std::string& _id, const std::string& _type, const std::vector<ossie::SPD::PropertyRef>& _properties) :
+UsesDeviceInfo::UsesDeviceInfo(const std::string& _id, const std::string& _type, const std::vector<ossie::PropertyRef>& _properties) :
     id(_id),
     type(_type),
     properties(_properties)
-{
-
-}
-
-UsesDeviceInfo::UsesDeviceInfo(const std::string& _id, const std::string& _type, const std::vector<ossie::SoftwareAssembly::PropertyRef>& _sadDeps) :
-        id(_id),
-        type(_type),
-        sadDeps(_sadDeps)
 {
 
 }
@@ -90,14 +82,9 @@ const std::string& UsesDeviceInfo::getType() const
     return type;
 }
 
-const std::vector<ossie::SPD::PropertyRef>& UsesDeviceInfo::getProperties() const
+const std::vector<ossie::PropertyRef>& UsesDeviceInfo::getProperties() const
 {
     return properties;
-}
-
-const std::vector<ossie::SoftwareAssembly::PropertyRef>& UsesDeviceInfo::getSadDeps() const
-{
-    return sadDeps;
 }
 
 const std::string& UsesDeviceInfo::getAssignedDeviceId() const
@@ -188,8 +175,8 @@ ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
 
     // Handle allocation property dependencies
     LOG_TRACE(ImplementationInfo, "Loading component implementation property dependencies")
-    const std::vector<ossie::SPD::PropertyRef>& dependencies = spdImpl.getDependencies();
-    std::vector<ossie::SPD::PropertyRef>::const_iterator ii;
+    const std::vector<ossie::PropertyRef>& dependencies = spdImpl.getDependencies();
+    std::vector<ossie::PropertyRef>::const_iterator ii;
     for (ii = dependencies.begin(); ii != dependencies.end(); ++ii) {
         LOG_TRACE(ImplementationInfo, "Loading component implementation property dependency '" << *ii);
         addDependencyProperty(*ii);
@@ -275,7 +262,7 @@ const bool ImplementationInfo::hasPriority() const
     return _hasPriority;
 }
 
-const std::vector<SPD::PropertyRef>& ImplementationInfo::getDependencyProperties() const
+const std::vector<PropertyRef>& ImplementationInfo::getDependencyProperties() const
 {
     return dependencyProperties;
 }
@@ -321,7 +308,7 @@ void ImplementationInfo::setPriority(const unsigned long long* _priority)
     }
 }
 
-void ImplementationInfo::addDependencyProperty(const SPD::PropertyRef& property)
+void ImplementationInfo::addDependencyProperty(const PropertyRef& property)
 {
     dependencyProperties.push_back(property);
 }

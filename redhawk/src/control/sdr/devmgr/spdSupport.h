@@ -90,7 +90,7 @@ namespace ossie
         const CORBA::ULong getPriority() const;
         const bool hasStackSize() const;
         const bool hasPriority() const;
-        const std::vector<SPD::PropertyRef>& getDependencyProperties() const;
+        const std::vector<PropertyRef>& getDependencyProperties() const;
         const std::vector<SoftpkgInfo>& getSoftPkgDependency() const;
 
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
@@ -107,7 +107,7 @@ namespace ossie
         void setCodeType(const char* _type);
         void setStackSize(const unsigned long long *_stackSize);
         void setPriority(const unsigned long long *_priority);
-        void addDependencyProperty(const ossie::SPD::PropertyRef& property);
+        void addDependencyProperty(const ossie::PropertyRef& property);
         void addSoftPkgDependency(SoftpkgInfo &softpkg);
 
         std::string id;
@@ -120,7 +120,7 @@ namespace ossie
         bool _hasPriority;
         std::vector<std::string> processorDeps;
         std::vector<ossie::SPD::NameVersionPair> osDeps;
-        std::vector<SPD::PropertyRef> dependencyProperties;
+        std::vector<PropertyRef> dependencyProperties;
         std::vector<SoftpkgInfo> softPkgDependencies;
 
     };
