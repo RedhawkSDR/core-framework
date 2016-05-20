@@ -41,7 +41,7 @@ namespace sad
     description (const ::std::string&);
 
     virtual void
-    componentfiles (const ::std::vector<ossie::ComponentFile>&);
+    componentfiles (::std::vector<ossie::ComponentFile>&);
 
     virtual void
     partitioning (const ossie::SoftwareAssembly::Partitioning&);
@@ -50,16 +50,16 @@ namespace sad
     assemblycontroller (const ::std::string&);
 
     virtual void
-    connections (const ::std::vector<ossie::Connection>&);
+    connections (::std::vector<ossie::Connection>&);
 
     virtual void
-    externalports (const ::std::vector<ossie::SoftwareAssembly::Port>&);
+    externalports (::std::vector<ossie::SoftwareAssembly::Port>&);
 
     virtual void
-    externalproperties (const ::std::vector<ossie::SoftwareAssembly::Property>&);
+    externalproperties (::std::vector<ossie::SoftwareAssembly::Property>&);
 
     virtual void
-    usesdevicedependencies (const ::std::vector<ossie::UsesDevice>&);
+    usesdevicedependencies (::std::vector<ossie::UsesDevice>&);
 
     virtual void
     id (const ::std::string&);
@@ -83,7 +83,7 @@ namespace sad
     virtual void
     componentfile (const ::ossie::ComponentFile&);
 
-    virtual ::std::vector<ossie::ComponentFile>
+    virtual ::std::vector<ossie::ComponentFile>&
     post_componentfiles ();
     
     private:
@@ -192,7 +192,7 @@ namespace sad
     usagename (const ::std::string&);
 
     virtual void
-      componentproperties ( const ossie::ComponentPropertyList&);
+    componentproperties (ossie::ComponentPropertyList&);
 
     virtual void
     findcomponent (const ::std::string&);
@@ -204,7 +204,7 @@ namespace sad
     startorder (const ::std::string&);
 
     virtual void
-    affinity (const  ossie::ComponentInstantiation::AffinityProperties&);
+    affinity (ossie::ComponentInstantiation::AffinityProperties&);
 
     virtual void
       loggingconfig (const ossie::ComponentInstantiation::LoggingConfig&);
@@ -234,7 +234,7 @@ namespace sad
     virtual void
     structsequenceref (const ossie::StructSequencePropertyRef&);
 
-    const ossie::ComponentInstantiation::AffinityProperties&
+    ossie::ComponentInstantiation::AffinityProperties&
     post_affinity ();
 
     private:
@@ -277,7 +277,7 @@ namespace sad
     virtual void
     structsequenceref (const ossie::StructSequencePropertyRef&);
 
-    virtual const ossie::ComponentPropertyList&
+    virtual ossie::ComponentPropertyList&
     post_componentproperties ();
     
     private:
@@ -628,7 +628,7 @@ namespace sad
     virtual void
     connectinterface (const ::ossie::Connection&);
 
-    virtual ::std::vector<ossie::Connection>
+    virtual ::std::vector<ossie::Connection>&
     post_connections ();
 
     private:
@@ -765,7 +765,7 @@ namespace sad
     virtual void
     port (const ossie::SoftwareAssembly::Port&);
 
-    virtual ::std::vector<ossie::SoftwareAssembly::Port>
+    virtual ::std::vector<ossie::SoftwareAssembly::Port>&
     post_externalports ();
 
     private:
@@ -812,7 +812,7 @@ namespace sad
       virtual void
       property (const ossie::SoftwareAssembly::Property&);
 
-      virtual ::std::vector<ossie::SoftwareAssembly::Property>
+      virtual ::std::vector<ossie::SoftwareAssembly::Property>&
       post_externalproperties ();
 
   private:
@@ -850,7 +850,7 @@ namespace sad
       virtual void
       usesdevice (const ossie::UsesDevice&);
 
-      virtual ::std::vector<ossie::UsesDevice>
+      virtual ::std::vector<ossie::UsesDevice>&
       post_usesdevicedependencies ();
 
   private:

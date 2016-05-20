@@ -50,9 +50,9 @@ namespace sad
   }
 
   void softwareassembly_pimpl::
-  componentfiles (const ::std::vector<ossie::ComponentFile>& componentfiles)
+  componentfiles (::std::vector<ossie::ComponentFile>& componentfiles)
   {
-      _sad->componentfiles = componentfiles;
+      _sad->componentfiles.swap(componentfiles);
   }
 
   void softwareassembly_pimpl::
@@ -68,27 +68,27 @@ namespace sad
   }
 
   void softwareassembly_pimpl::
-  connections (const ::std::vector<ossie::Connection>& connections)
+  connections (::std::vector<ossie::Connection>& connections)
   {
-      _sad->connections = connections;
+      _sad->connections.swap(connections);
   }
 
   void softwareassembly_pimpl::
-  externalports (const ::std::vector<ossie::SoftwareAssembly::Port>& externalports)
+  externalports (::std::vector<ossie::SoftwareAssembly::Port>& externalports)
   {
-      _sad->externalports = externalports;
+      _sad->externalports.swap(externalports);
   }
 
   void softwareassembly_pimpl::
-  externalproperties (const ::std::vector<ossie::SoftwareAssembly::Property>& externalproperties)
+  externalproperties (::std::vector<ossie::SoftwareAssembly::Property>& externalproperties)
   {
-      _sad->externalproperties = externalproperties;
+      _sad->externalproperties.swap(externalproperties);
   }
 
   void softwareassembly_pimpl::
-  usesdevicedependencies (const ::std::vector<ossie::UsesDevice>& usesdevices)
+  usesdevicedependencies (::std::vector<ossie::UsesDevice>& usesdevices)
   {
-      _sad->usesdevice = usesdevices;
+      _sad->usesdevice.swap(usesdevices);
   }
 
   void softwareassembly_pimpl::
@@ -124,7 +124,7 @@ namespace sad
       componentFiles.push_back(componentfile);
   }
 
-  ::std::vector<ossie::ComponentFile> componentfiles_pimpl::
+  ::std::vector<ossie::ComponentFile>& componentfiles_pimpl::
   post_componentfiles ()
   {
     return componentFiles;
@@ -288,9 +288,9 @@ namespace sad
   }
 
   void componentinstantiation_pimpl::
-  componentproperties ( const ossie::ComponentPropertyList& componentproperties)
+  componentproperties (ossie::ComponentPropertyList& componentproperties)
   {
-    componentInstantiation.properties = componentproperties;
+    componentInstantiation.properties.swap(componentproperties);
   }
 
   void componentinstantiation_pimpl::
@@ -307,10 +307,10 @@ namespace sad
   }
 
   void componentinstantiation_pimpl::
-  affinity (const ossie::ComponentInstantiation::AffinityProperties& affinityProperties)
+  affinity (ossie::ComponentInstantiation::AffinityProperties& affinityProperties)
   {
     LOG_TRACE(sad_parser, "affinity properties");
-    componentInstantiation.affinityProperties= affinityProperties;
+    componentInstantiation.affinityProperties.swap(affinityProperties);
   }
 
   void componentinstantiation_pimpl::loggingconfig ( const ossie::ComponentInstantiation::LoggingConfig& log_cfg )
@@ -359,7 +359,7 @@ namespace sad
     affinityProperties.push_back(structsequenceref.clone());
   }
 
-  const ossie::ComponentInstantiation::AffinityProperties& affinity_pimpl::post_affinity ()
+  ossie::ComponentInstantiation::AffinityProperties& affinity_pimpl::post_affinity ()
   {
     return affinityProperties;
   }
@@ -416,7 +416,7 @@ namespace sad
     componentProperties.push_back(structsequenceref.clone());
   }
 
-  const ossie::ComponentPropertyList& componentproperties_pimpl::
+  ossie::ComponentPropertyList& componentproperties_pimpl::
   post_componentproperties ()
   {
     return componentProperties;
@@ -931,7 +931,7 @@ namespace sad
       LOG_TRACE(sad_parser, "added connection id " << connections.back().getID() << " type " << connections.back().getType());
   }
 
-  ::std::vector<ossie::Connection> connections_pimpl::
+  ::std::vector<ossie::Connection>& connections_pimpl::
   post_connections ()
   {
     return connections;
@@ -1154,7 +1154,7 @@ namespace sad
       extPorts.push_back(port);
   }
 
-  ::std::vector<ossie::SoftwareAssembly::Port> externalports_pimpl::
+  ::std::vector<ossie::SoftwareAssembly::Port>& externalports_pimpl::
   post_externalports ()
   {
       return extPorts;
@@ -1230,7 +1230,7 @@ namespace sad
       extProps.push_back(prop);
   }
 
-  ::std::vector<ossie::SoftwareAssembly::Property> externalproperties_pimpl::
+  ::std::vector<ossie::SoftwareAssembly::Property>& externalproperties_pimpl::
    post_externalproperties ()
   {
       return extProps;
@@ -1284,7 +1284,7 @@ namespace sad
       usesDevices.push_back(use);
   }
 
-  ::std::vector<ossie::UsesDevice> usesdevicedependencies_pimpl::
+  ::std::vector<ossie::UsesDevice>& usesdevicedependencies_pimpl::
    post_usesdevicedependencies ()
   {
       return usesDevices;
