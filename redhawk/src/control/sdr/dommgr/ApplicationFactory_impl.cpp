@@ -2217,7 +2217,9 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     // Add the required parameters specified in SR:163
     // Naming Context IOR, Name Binding, and component identifier
     execParameters["COMPONENT_IDENTIFIER"] = deployment->getIdentifier();
-    execParameters["NAME_BINDING"] = deployment->getNamingServiceName();
+    if (deployment->isNamingService()) {
+        execParameters["NAME_BINDING"] = deployment->getNamingServiceName();
+    }
     execParameters["DOM_PATH"] = _baseNamingContext;
     execParameters["PROFILE_NAME"] = component->getSpdFileName();
 

@@ -172,11 +172,11 @@ const ossie::ComponentPropertyList & ComponentInstantiation::getProperties() con
 }
 
 bool ComponentInstantiation::isNamingService() const {
-    return namingservicename.isSet();
+    return !namingservicename.empty();
 }
 
 const std::string& ComponentInstantiation::getFindByNamingServiceName() const {
-    return *namingservicename;
+    return namingservicename;
 }
 
 

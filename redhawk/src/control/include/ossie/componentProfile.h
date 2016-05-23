@@ -187,7 +187,7 @@ namespace ossie {
       typedef ossie::ComponentPropertyList        AffinityProperties;
 
         std::string instantiationId;
-        ossie::optional_value<std::string> namingservicename;
+        std::string namingservicename;
         ossie::optional_value<std::string> usageName;
         ossie::ComponentPropertyList       properties;
         std::string _startOrder;
