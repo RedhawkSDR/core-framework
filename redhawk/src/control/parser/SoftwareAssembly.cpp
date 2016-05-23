@@ -18,18 +18,61 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#include <boost/foreach.hpp>
+
 #include "ossie/SoftwareAssembly.h"
 #include "internal/sad-parser.h"
 
 using namespace ossie;
 
-SoftwareAssembly::SoftwareAssembly(std::istream& input) throw (ossie::parser_error) {
+SoftwareAssembly::SoftwareAssembly() :
+    _sad(0),
+    _assemblyController(0)
+{
+}
+
+SoftwareAssembly::SoftwareAssembly(std::istream& input) throw (ossie::parser_error) :
+    _sad(0),
+    _assemblyController(0)
+{
     this->load(input);
 }
 
 void SoftwareAssembly::load(std::istream& input) throw (ossie::parser_error) 
 {
     _sad = ossie::internalparser::parseSAD(input);
+
+    // Validate that all componentplacement elements, both in hostcollocation
+    // elements and in partitioning, have componentfileref values referencing
+    // valid componentfile elements
+    BOOST_FOREACH(HostCollocation& collocation, _sad->partitioning.collocations) {
+        validateComponentPlacements(collocation.placements);
+    }
+    validateComponentPlacements(_sad->partitioning.placements);
+
+    // If assemblycontroller is set, make sure it was found during component
+    // validation
+    if (!_sad->assemblycontroller.empty() && !_assemblyController) {
+        throw ossie::parser_error("assemblycontroller has invalid componentinstantiationref " + _sad->assemblycontroller);
+    }
+}
+
+void SoftwareAssembly::validateComponentPlacements(std::vector<ComponentPlacement>& placements)
+{
+    BOOST_FOREACH(ComponentPlacement& placement, placements) {
+        const std::string& file_ref = placement.getFileRefId();
+        const ComponentFile* file = getComponentFile(file_ref);
+        if (!file) {
+            throw ossie::parser_error("componentplacement has invalid componentfileref " + file_ref);
+        }
+        placement.componentFile = file;
+
+        BOOST_FOREACH(ComponentInstantiation& instance, placement.instantiations) {
+            if (!_sad->assemblycontroller.empty() && _sad->assemblycontroller == instance.instantiationId) {
+                _assemblyController = &instance;
+            }
+        }
+    }
 }
 
 const std::string& SoftwareAssembly::getID() const {

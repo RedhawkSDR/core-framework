@@ -212,6 +212,7 @@ namespace ossie {
 
         std::vector<ComponentInstantiation> instantiations;
 
+        const ComponentFile* componentFile;
     public:
         const std::vector<ComponentInstantiation>& getInstantiations() const;
         

@@ -93,7 +93,7 @@ namespace ossie {
                 std::vector<UsesDevice> usesdevice;
         };
        
-        SoftwareAssembly() : _sad(0) {}
+        SoftwareAssembly();
 
         SoftwareAssembly(std::istream& input) throw (ossie::parser_error);
 
@@ -124,7 +124,10 @@ namespace ossie {
         const std::vector<UsesDevice>& getUsesDevices() const;
 
     protected:
+        void validateComponentPlacements(std::vector<ComponentPlacement>& placements);
+
         std::auto_ptr<SAD> _sad;
+        ComponentInstantiation* _assemblyController;
     };
 }
 #endif

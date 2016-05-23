@@ -484,17 +484,10 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
     for (std::vector<ComponentPlacement>::const_iterator comp = components.begin();
             comp != components.end(); ++comp) {
       SoftPkg comp_pkg;
-      std::string p_name;
+      const std::string& p_name = comp->componentFile->filename;
       try {
-        if ( _sadParser.getComponentFile(comp->getFileRefId())) {
-            p_name = _sadParser.getComponentFile(comp->getFileRefId())->getFileName();
-            LOG_DEBUG(ApplicationFactory_impl, "Validating...  COMP profile: " << p_name);
-            ValidateSPD(_fileMgr, _domainManager, comp_pkg, p_name) ;
-        }
-        else {
-          LOG_ERROR(ApplicationFactory_impl, "installApplication: invalid  componentfileref: " << comp->getFileRefId() );
-          throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "installApplication: invalid  componentfileref"); 
-        }
+        LOG_DEBUG(ApplicationFactory_impl, "Validating...  COMP profile: " << p_name);
+        ValidateSPD( _fileMgr, comp_pkg, p_name.c_str() ) ;
       } catch (CF::FileException& ex) {
         LOG_ERROR(ApplicationFactory_impl, "installApplication: While validating the SAD profile: " << ex.msg);
         throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
@@ -522,7 +515,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
              compInst != compInstantiations.end(); ++compInst){
           if (assemblyControllerId == compInst->instantiationId) {
             ac_spd = comp_pkg;
-            ac_profile = _sadParser.getComponentFile(comp->getFileRefId())->getFileName();
+            ac_profile = comp->componentFile->filename;
             ac_found = true;
             break;
           }
@@ -1874,7 +1867,7 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
     // Extract required data from SPD file
     ossie::ComponentInfo* newComponent = 0;
     LOG_TRACE(ApplicationFactory_impl, "Getting the SPD Filename");
-    const ComponentFile* componentfile = sadParser.getComponentFile(component.getFileRefId());
+    const ComponentFile* componentfile = component.componentFile;
     if (!componentfile) {
         ostringstream eout;
         eout << "The SPD file reference for componentfile "<<component.getFileRefId()<<" is missing";
