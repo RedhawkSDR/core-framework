@@ -576,11 +576,9 @@ ComponentInfo::~ComponentInfo ()
 {
 }
 
-void ComponentInfo::setIdentifier(const char* _identifier, std::string instance_id)
+void ComponentInfo::setIdentifier(const std::string& _identifier)
 {
-    identifier = _identifier;
-    // Per the SCA spec, the identifier is the instantiation ID:waveform_name
-    instantiationId = instance_id;
+    instantiationId = _identifier;
 }
 
 void ComponentInfo::setNamingService(const bool _isNamingService)
@@ -709,11 +707,6 @@ void ComponentInfo::process_overrides(CF::Properties* props, const char* id, COR
 const std::string& ComponentInfo::getInstantiationIdentifier() const
 {
     return instantiationId;
-}
-
-const std::string& ComponentInfo::getIdentifier() const
-{
-    return identifier;
 }
 
 bool ComponentInfo::isNamingService() const

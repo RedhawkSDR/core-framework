@@ -198,9 +198,10 @@ std::string SoftpkgDeployment::getLocalFile()
     return codeLocalFile.string();
 }
 
-ComponentDeployment::ComponentDeployment(ComponentInfo* component) :
+ComponentDeployment::ComponentDeployment(ComponentInfo* component, const std::string& identifier) :
     SoftpkgDeployment(component),
     component(component),
+    identifier(identifier),
     affinityOptions(component->getAffinityOptions())
 {
 }
@@ -212,7 +213,7 @@ ComponentInfo* ComponentDeployment::getComponent()
 
 const std::string& ComponentDeployment::getIdentifier() const
 {
-    return component->getIdentifier();
+    return identifier;
 }
 
 const std::string& ComponentDeployment::getInstantiationIdentifier() const
@@ -367,7 +368,7 @@ CF::Resource_ptr ComponentDeployment::getResourcePtr() const
 void ComponentDeployment::load(Application_impl* application, CF::FileSystem_ptr fileSystem,
                                CF::LoadableDevice_ptr device)
 {
-    SoftpkgDeployment::load(application, fileSystem, device, component->getIdentifier());
+    SoftpkgDeployment::load(application, fileSystem, device, identifier);
 }
 
 
@@ -420,8 +421,13 @@ ComponentInfo* PlacementPlan::getComponent(const std::string& instantiationId)
 }
 
 
-ApplicationDeployment::ApplicationDeployment(const std::string& identifier) :
-    identifier(identifier)
+ApplicationDeployment::ApplicationDeployment(const SoftwareAssembly& sad, const std::string& instanceName) :
+    // Give the application a unique identifier of the form
+    // "softwareassemblyid:ApplicationName", where the application name
+    // includes the serial number generated for the naming context
+    // (e.g. "Application_1").
+    identifier(sad.getID() + ":" + instanceName),
+    instanceName(instanceName)
 {
 }
 
@@ -478,8 +484,13 @@ ComponentInfo* ApplicationDeployment::getAssemblyController()
 
 ComponentDeployment* ApplicationDeployment::createComponentDeployment(ComponentInfo* component)
 {
-    ComponentDeployment* deployment = new ComponentDeployment(component);
+    // Create a unique identifier for this component instance by appending the
+    // application instance's unique name
+    std::string component_id = component->getInstantiationIdentifier() + ":" + instanceName;
+
+    ComponentDeployment* deployment = new ComponentDeployment(component, component_id);
     components.push_back(deployment);
+
     return deployment;
 }
 
@@ -491,7 +502,7 @@ const ApplicationDeployment::ComponentList& ApplicationDeployment::getComponentD
 ComponentDeployment* ApplicationDeployment::getComponentDeployment(const std::string& instantiationId)
 {
     for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
-        if (instantiationId == (*comp)->getComponent()->getInstantiationIdentifier()) {
+        if (instantiationId == (*comp)->getInstantiationIdentifier()) {
             return *comp;
         }
     }

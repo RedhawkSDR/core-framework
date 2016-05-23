@@ -1178,16 +1178,9 @@ CF::Application_ptr createHelper::create (
         rotateDeviceList(_executableDevices, lastExecutableDevice);
     }
 
-    // Give the application a unique identifier of the form 
-    // "softwareassemblyid:ApplicationName", where the application 
-    // name includes the serial number generated for the naming context
-    // (e.g. "Application_1").
-    std::string appIdentifier = 
-        _appFact._identifier + ":" + _waveformContextName;
-
     //////////////////////////////////////////////////
     // Load the components to instantiate from the SAD
-    ossie::ApplicationDeployment app_deployment(appIdentifier);
+    ossie::ApplicationDeployment app_deployment(_appFact._sadParser, _waveformContextName);
     getRequiredComponents(_appFact._fileMgr, _appFact._sadParser, app_deployment);
 
     ossie::ComponentInfo* assemblyControllerComponent = app_deployment.getAssemblyController();
@@ -1218,7 +1211,7 @@ CF::Application_ptr createHelper::create (
     const DeploymentList& deployments = app_deployment.getComponentDeployments();
     for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
         ossie::ComponentInfo* component = (*dep)->getComponent();
-        std::map<std::string,float>::iterator reservation = specialized_reservations.find(component->getIdentifier());
+        std::map<std::string,float>::iterator reservation = specialized_reservations.find((*dep)->getIdentifier());
         if (reservation == specialized_reservations.end()) {
             reservation = specialized_reservations.find(component->getUsageName());
         }
@@ -1229,7 +1222,7 @@ CF::Application_ptr createHelper::create (
 
     ////////////////////////////////////////////////
     // Create the Application servant
-    _application = new Application_impl(appIdentifier,
+    _application = new Application_impl(app_deployment.getIdentifier(),
                                         name, 
                                         _appFact._softwareProfile, 
                                         _appFact._domainManager, 
@@ -1335,13 +1328,13 @@ CF::Application_ptr createHelper::create (
 
     if ( _appFact._domainManager ) {
       _appFact._domainManager->sendAddEvent( _appFact._identifier.c_str(), 
-                                             appIdentifier.c_str(), 
+                                             app_deployment.getIdentifier().c_str(), 
                                              name,
                                              appObj,
                                              StandardEvent::APPLICATION);
     }
 
-    LOG_INFO(ApplicationFactory_impl, "Done creating application " << appIdentifier << " " << name);
+    LOG_INFO(ApplicationFactory_impl, "Done creating application " << app_deployment.getIdentifier() << " " << name);
     _isComplete = true;
     return appObj._retn();
 }
@@ -1885,11 +1878,7 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
 
     const ComponentInstantiation& instance = instantiations[0];
 
-    ostringstream identifier;
-    identifier << instance.getID();
-    // Violate SR:172, we use the uniquified name rather than the passed in name
-    identifier << ":" << _waveformContextName;
-    newComponent->setIdentifier(identifier.str().c_str(), instance.getID());
+    newComponent->setIdentifier(instance.getID());
 
     newComponent->setNamingService(instance.isNamingService());
 

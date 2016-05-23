@@ -99,7 +99,7 @@ namespace ossie {
     class ComponentDeployment : public SoftpkgDeployment, public UsesDeviceDeployment
     {
     public:
-        ComponentDeployment(ComponentInfo* component);
+        ComponentDeployment(ComponentInfo* component, const std::string& identifier);
 
         ComponentInfo* getComponent();
 
@@ -144,6 +144,8 @@ namespace ossie {
 
     protected:
         ComponentInfo* component;
+        const std::string identifier;
+
         boost::shared_ptr<DeviceNode> assignedDevice;
         CF::Resource_var resource;
 
@@ -182,7 +184,7 @@ namespace ossie {
         typedef std::vector<PlacementPlan*> PlacementList;
         typedef std::vector<ComponentDeployment*> ComponentList;
 
-        ApplicationDeployment(const std::string& identifier);
+        ApplicationDeployment(const SoftwareAssembly& sad, const std::string& instanceName);
         ~ApplicationDeployment();
 
         const std::string& getIdentifier() const;
@@ -213,6 +215,7 @@ namespace ossie {
 
     protected:
         const std::string identifier;
+        const std::string instanceName;
         PlacementList placements;
         ComponentList components;
     };

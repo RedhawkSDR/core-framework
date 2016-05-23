@@ -203,7 +203,7 @@ namespace ossie
         ComponentInfo (const std::string& spdFileName);
         ~ComponentInfo ();
 
-        void setIdentifier(const char* identifier, std::string instance_id);
+        void setIdentifier(const std::string& identifier);
         void setNamingService(const bool isNamingService);
         void setNamingServiceName(const char* NamingServiceName);
         void setUsageName(const char* usageName);
@@ -223,7 +223,6 @@ namespace ossie
         void overrideProperty(const char* id, const CORBA::Any& value);
 
         const std::string& getInstantiationIdentifier() const;
-        const std::string& getIdentifier() const;
         bool isNamingService() const;
         const char* getUsageName() const;
         const char* getNamingServiceName() const;
@@ -263,7 +262,6 @@ namespace ossie
         bool _isNamingService;
 
         std::string usageName;
-        std::string identifier;
         std::string instantiationId;
         std::string namingServiceName;
         int startOrder;
