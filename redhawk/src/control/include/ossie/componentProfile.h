@@ -217,7 +217,7 @@ namespace ossie {
 
         bool isNamingService() const;
 
-        const char* getFindByNamingServiceName() const;
+        const std::string& getFindByNamingServiceName() const;
     };
 
     /*

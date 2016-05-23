@@ -175,12 +175,8 @@ bool ComponentInstantiation::isNamingService() const {
     return namingservicename.isSet();
 }
 
-const char* ComponentInstantiation::getFindByNamingServiceName() const {
-    if (namingservicename.isSet()) {
-        return namingservicename->c_str();
-    } else {
-        return 0;
-    }
+const std::string& ComponentInstantiation::getFindByNamingServiceName() const {
+    return *namingservicename;
 }
 
 

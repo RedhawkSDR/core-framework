@@ -1880,22 +1880,8 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
 
     LOG_TRACE(ApplicationFactory_impl, "Done building Component Info From SPD File")
 
-    newComponent->setIdentifier(instance.getID());
-
-    newComponent->setNamingService(instance.isNamingService());
-
-    if (newComponent->isNamingService()) {
-        ostringstream nameBinding;
-        nameBinding << instance.getFindByNamingServiceName();
-#if UNIQUIFY_NAME_BINDING
-// DON'T USE THIS YET AS IT WILL BREAK OTHER PARTS OF REDHAWK
-        nameBinding << "_" << i;  // Add a _UniqueIdentifier, per SR:169
-#endif
-        newComponent->setNamingServiceName(nameBinding.str().c_str());  // SR:169
-    } else {
-        if (newComponent->isScaCompliant()) {
-            LOG_WARN(ApplicationFactory_impl, "component instantiation is sca compliant but does not provide a 'findcomponent' name...this is probably an error")
-        }
+    if (newComponent->isScaCompliant() && !instance.isNamingService()) {
+        LOG_WARN(ApplicationFactory_impl, "component instantiation is sca compliant but does not provide a 'findcomponent' name...this is probably an error");
     }
 
     newComponent->setUsageName(instance.getUsageName());
@@ -2057,8 +2043,8 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         // Let the application know to expect the given component
         _application->addComponent(deployment->getIdentifier(), component->getSpdFileName());
         _application->setComponentImplementation(deployment->getIdentifier(), implementation->getId());
-        if (component->isNamingService()) {
-            std::string lookupName = _baseNamingContext + "/" + component->getNamingServiceName() ;
+        if (deployment->isNamingService()) {
+            std::string lookupName = _baseNamingContext + "/" + deployment->getNamingServiceName() ;
             _application->setComponentNamingContext(deployment->getIdentifier(), lookupName);
         }
         _application->setComponentDevice(deployment->getIdentifier(), device->device);
@@ -2129,7 +2115,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
                   logcfg_prop = &execParameters[i];
                   const char* tmpstr;
                   if ( ossie::any::isNull(logcfg_prop->value) == true ) {
-                    LOG_WARN(ApplicationFactory_impl, "Missing value for LOGGING_CONFIG_URI, component: " << _baseNamingContext << "/" << component->getNamingServiceName() );
+                    LOG_WARN(ApplicationFactory_impl, "Missing value for LOGGING_CONFIG_URI, component: " << _baseNamingContext << "/" << deployment->getNamingServiceName() );
                   }
                   else {
                     logcfg_prop->value >>= tmpstr;
@@ -2142,7 +2128,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             }
 
             ossie::logging::LogConfigUriResolverPtr logcfg_resolver = ossie::logging::GetLogConfigUriResolver();
-            std::string logcfg_path = ossie::logging::GetComponentPath( _appFact._domainName, _waveformContextName, component->getNamingServiceName() );
+            std::string logcfg_path = ossie::logging::GetComponentPath( _appFact._domainName, _waveformContextName, deployment->getNamingServiceName() );
             if ( _appFact._domainManager->getUseLogConfigResolver() && logcfg_resolver ) {
                   std::string t_uri = logcfg_resolver->get_uri( logcfg_path );
                   LOG_DEBUG(ApplicationFactory_impl, "Using LogConfigResolver plugin: path " << logcfg_path << " logcfg:" << t_uri );
@@ -2231,7 +2217,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     // Add the required parameters specified in SR:163
     // Naming Context IOR, Name Binding, and component identifier
     execParameters["COMPONENT_IDENTIFIER"] = deployment->getIdentifier();
-    execParameters["NAME_BINDING"] = component->getNamingServiceName();
+    execParameters["NAME_BINDING"] = deployment->getNamingServiceName();
     execParameters["DOM_PATH"] = _baseNamingContext;
     execParameters["PROFILE_NAME"] = component->getSpdFileName();
 
@@ -2628,7 +2614,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
         const ossie::ComponentInfo* component = deployment->getComponent();
         
         // Assuming 1 instantiation for each componentplacement
-        if (component->isNamingService()) {
+        if (deployment->isNamingService()) {
 
             CF::Resource_var _rsc = deployment->getResourcePtr();
 

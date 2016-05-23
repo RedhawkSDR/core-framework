@@ -583,21 +583,6 @@ const ComponentInstantiation* ComponentInfo::getInstantiation() const
     return instantiation;
 }
 
-void ComponentInfo::setIdentifier(const std::string& _identifier)
-{
-    instantiationId = _identifier;
-}
-
-void ComponentInfo::setNamingService(const bool _isNamingService)
-{
-    this->_isNamingService = _isNamingService;
-}
-
-void ComponentInfo::setNamingServiceName(const char* _namingServiceName)
-{
-    namingServiceName = _namingServiceName;
-}
-
 void ComponentInfo::setUsageName(const char* _usageName)
 {
     if (_usageName != 0) {
@@ -702,22 +687,12 @@ void ComponentInfo::process_overrides(CF::Properties* props, const char* id, COR
 
 const std::string& ComponentInfo::getInstantiationIdentifier() const
 {
-    return instantiationId;
-}
-
-bool ComponentInfo::isNamingService() const
-{
-    return _isNamingService;
+    return instantiation->getID();
 }
 
 const char* ComponentInfo::getUsageName() const
 {
     return usageName.c_str();
-}
-
-const char* ComponentInfo::getNamingServiceName() const
-{
-    return namingServiceName.c_str();
 }
 
 bool ComponentInfo::isResource() const

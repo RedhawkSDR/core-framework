@@ -224,6 +224,16 @@ const std::string& ComponentDeployment::getInstantiationIdentifier() const
     return instantiation->getID();
 }
 
+bool ComponentDeployment::isNamingService() const
+{
+    return instantiation->isNamingService();
+}
+
+const std::string& ComponentDeployment::getNamingServiceName() const
+{
+    return instantiation->getFindByNamingServiceName();
+}
+
 bool ComponentDeployment::hasStartOrder() const
 {
     return !(instantiation->getStartOrder().empty());

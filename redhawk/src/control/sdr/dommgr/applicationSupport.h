@@ -204,9 +204,6 @@ namespace ossie
 
         const ComponentInstantiation* getInstantiation() const;
 
-        void setIdentifier(const std::string& identifier);
-        void setNamingService(const bool isNamingService);
-        void setNamingServiceName(const char* NamingServiceName);
         void setUsageName(const char* usageName);
         void setIsAssemblyController(bool isAssemblyController);
         void setIsScaCompliant(bool isScaCompliant);
@@ -222,9 +219,7 @@ namespace ossie
         void overrideProperty(const char* id, const CORBA::Any& value);
 
         const std::string& getInstantiationIdentifier() const;
-        bool isNamingService() const;
         const char* getUsageName() const;
-        const char* getNamingServiceName() const;
         bool isResource() const;
         bool isConfigurable() const;
         bool isAssemblyController() const;
@@ -257,11 +252,8 @@ namespace ossie
         bool _isAssemblyController;
         bool _isConfigurable;
         bool _isScaCompliant;
-        bool _isNamingService;
 
         std::string usageName;
-        std::string instantiationId;
-        std::string namingServiceName;
 
         ossie::Properties _affinity_prf;
 
