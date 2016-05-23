@@ -224,6 +224,16 @@ const std::string& ComponentDeployment::getInstantiationIdentifier() const
     return instantiation->getID();
 }
 
+bool ComponentDeployment::hasStartOrder() const
+{
+    return !(instantiation->getStartOrder().empty());
+}
+
+int ComponentDeployment::getStartOrder() const
+{
+    return atoi(instantiation->getStartOrder().c_str());
+}
+
 void ComponentDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>& device)
 {
     assignedDevice = device;

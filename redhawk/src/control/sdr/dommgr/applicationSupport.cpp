@@ -561,7 +561,6 @@ ComponentInfo::ComponentInfo(const std::string& spdFileName, const ComponentInst
     SoftpkgInfo(spdFileName),
     _isAssemblyController(false),
     _isScaCompliant(true),
-    startOrder(-1),
     instantiation(instantiation)
 {
     // load common affinity property definitions 
@@ -635,17 +634,6 @@ void ComponentInfo::setAffinity( const AffinityProperties &affinity_props )
     addProperty( dt, affinityOptions );
   }
 
-}
-
-
-void ComponentInfo::setLoggingConfig( const LoggingConfig  &logcfg )
-{
-  loggingConfig = logcfg;
-}
-
-void ComponentInfo::setStartOrder(int index)
-{
-    startOrder = index;
 }
 
 void ComponentInfo::addFactoryParameter(CF::DataType dt)
@@ -751,16 +739,6 @@ bool ComponentInfo::isAssemblyController() const
 bool ComponentInfo::isScaCompliant() const
 {
     return _isScaCompliant;
-}
-
-bool ComponentInfo::hasStartOrder() const
-{
-    return startOrder > -1;
-}
-
-int ComponentInfo::getStartOrder() const
-{
-    return startOrder;
 }
 
 bool ComponentInfo::checkStruct(const CF::Properties &props) const

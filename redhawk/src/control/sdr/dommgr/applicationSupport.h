@@ -198,7 +198,6 @@ namespace ossie
 
     public:
       typedef ossie::ComponentInstantiation::AffinityProperties AffinityProperties;
-      typedef ossie::ComponentInstantiation::LoggingConfig    LoggingConfig;
 
         ComponentInfo (const std::string& spdFileName, const ComponentInstantiation* instantiation);
         ~ComponentInfo ();
@@ -212,8 +211,6 @@ namespace ossie
         void setIsAssemblyController(bool isAssemblyController);
         void setIsScaCompliant(bool isScaCompliant);
         void setAffinity( const AffinityProperties &affinity );
-        void setLoggingConfig( const LoggingConfig &logcfg );
-        void setStartOrder(int index);
 
         void addFactoryParameter(CF::DataType dt);
         void addExecParameter(CF::DataType dt);
@@ -232,10 +229,7 @@ namespace ossie
         bool isConfigurable() const;
         bool isAssemblyController() const;
         bool isScaCompliant() const;
-        bool hasStartOrder() const;
-        int getStartOrder() const;
 
-        bool isAssignedToDevice() const;
         CF::Properties containsPartialStructConfig() const;
         CF::Properties containsPartialStructConstruct() const;
         CF::Properties iteratePartialStruct(const CF::Properties &props) const;
@@ -268,10 +262,8 @@ namespace ossie
         std::string usageName;
         std::string instantiationId;
         std::string namingServiceName;
-        int startOrder;
 
         ossie::Properties _affinity_prf;
-        LoggingConfig    loggingConfig;
 
         CF::Properties configureProperties;
         CF::Properties ctorProperties;

@@ -114,6 +114,9 @@ namespace ossie {
          */
         const std::string& getInstantiationIdentifier() const;
 
+        bool hasStartOrder() const;
+        int getStartOrder() const;
+
         std::string getEntryPoint();
 
         redhawk::PropertyMap getOptions();

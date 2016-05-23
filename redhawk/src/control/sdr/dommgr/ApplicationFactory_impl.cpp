@@ -1900,12 +1900,6 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
 
     newComponent->setUsageName(instance.getUsageName());
     newComponent->setAffinity( instance.getAffinity() );
-    newComponent->setLoggingConfig( instance.getLoggingConfig() );
-
-    if (!instance.getStartOrder().empty()) {
-        int start_order = atoi(instance.getStartOrder().c_str());
-        newComponent->setStartOrder(start_order);
-    }
 
     const ossie::ComponentPropertyList & ins_prop = instance.getProperties();
 
@@ -2759,11 +2753,12 @@ std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& 
     typedef std::multimap<int,ossie::ComponentDeployment*> StartOrderMap;
     StartOrderMap start_map;
     for (size_t index = 0; index < deployments.size(); ++index) {
-        ossie::ComponentInfo* component = deployments[index]->getComponent();
-        if (!component->isAssemblyController() && component->hasStartOrder()) {
+        ossie::ComponentDeployment* deployment = deployments[index];
+        ossie::ComponentInfo* component = deployment->getComponent();
+        if (!component->isAssemblyController() && deployment->hasStartOrder()) {
             // Only track start order if it was provided, and the component is
             // not the assembly controller
-            start_map.insert(std::make_pair(component->getStartOrder(), deployments[index]));
+            start_map.insert(std::make_pair(deployment->getStartOrder(), deployments[index]));
         }
     }
 
