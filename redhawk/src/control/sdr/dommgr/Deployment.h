@@ -99,7 +99,8 @@ namespace ossie {
     class ComponentDeployment : public SoftpkgDeployment, public UsesDeviceDeployment
     {
     public:
-        ComponentDeployment(ComponentInfo* component, const std::string& identifier);
+        ComponentDeployment(ComponentInfo* component, const ComponentInstantiation* instantiation,
+                            const std::string& identifier);
 
         ComponentInfo* getComponent();
 
@@ -144,6 +145,7 @@ namespace ossie {
 
     protected:
         ComponentInfo* component;
+        const ComponentInstantiation* instantiation;
         const std::string identifier;
 
         boost::shared_ptr<DeviceNode> assignedDevice;

@@ -432,11 +432,13 @@ const UsesDeviceInfo* SoftpkgInfo::getUsesDeviceById(const std::string& id) cons
  */
 PREPARE_CF_LOGGING(ComponentInfo);
 
-ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr fileSys, const char* spdFileName)
+ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr fileSys,
+                                                            const std::string& spdFileName,
+                                                            const ComponentInstantiation* instantiation)
 {
     LOG_TRACE(ComponentInfo, "Building component info from file " << spdFileName);
 
-    ossie::ComponentInfo* newComponent = new ossie::ComponentInfo(spdFileName);
+    ossie::ComponentInfo* newComponent = new ossie::ComponentInfo(spdFileName, instantiation);
 
     if (!newComponent->parseProfile(fileSys)) {
         delete newComponent;
@@ -555,11 +557,12 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr f
     return newComponent;
 }
 
-ComponentInfo::ComponentInfo(const std::string& spdFileName) :
+ComponentInfo::ComponentInfo(const std::string& spdFileName, const ComponentInstantiation* instantiation) :
     SoftpkgInfo(spdFileName),
     _isAssemblyController(false),
     _isScaCompliant(true),
-    startOrder(-1)
+    startOrder(-1),
+    instantiation(instantiation)
 {
     // load common affinity property definitions 
     try {
@@ -574,6 +577,11 @@ ComponentInfo::ComponentInfo(const std::string& spdFileName) :
 
 ComponentInfo::~ComponentInfo ()
 {
+}
+
+const ComponentInstantiation* ComponentInfo::getInstantiation() const
+{
+    return instantiation;
 }
 
 void ComponentInfo::setIdentifier(const std::string& _identifier)

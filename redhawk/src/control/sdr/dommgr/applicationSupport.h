@@ -200,8 +200,10 @@ namespace ossie
       typedef ossie::ComponentInstantiation::AffinityProperties AffinityProperties;
       typedef ossie::ComponentInstantiation::LoggingConfig    LoggingConfig;
 
-        ComponentInfo (const std::string& spdFileName);
+        ComponentInfo (const std::string& spdFileName, const ComponentInstantiation* instantiation);
         ~ComponentInfo ();
+
+        const ComponentInstantiation* getInstantiation() const;
 
         void setIdentifier(const std::string& identifier);
         void setNamingService(const bool isNamingService);
@@ -248,7 +250,9 @@ namespace ossie
         CF::Properties getExecParameters();
         CF::Properties getCommandLineParameters() const;
 
-        static ComponentInfo* buildComponentInfoFromSPDFile(CF::FileSystem_ptr fileSys, const char* _SPDFile);
+        static ComponentInfo* buildComponentInfoFromSPDFile(CF::FileSystem_ptr fileSys,
+                                                            const std::string& spdFileName,
+                                                            const ComponentInstantiation* instantiation);
         ComponentDescriptor scd;
         ossie::Properties prf;
 
@@ -275,7 +279,8 @@ namespace ossie
         CF::Properties factoryParameters;
         CF::Properties execParameters;
         CF::Properties affinityOptions;
-        
+
+        const ComponentInstantiation* instantiation;
     };
 
 }

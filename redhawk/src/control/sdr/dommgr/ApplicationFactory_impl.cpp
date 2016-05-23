@@ -1851,6 +1851,13 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
                                                        const SoftwareAssembly& sadParser,
                                                        const ComponentPlacement& component)
 {
+    // Even though it is possible for there to be more than one instantiation per component,
+    //  the tooling doesn't support that, so supporting this at a framework level would add
+    //  substantial complexity without providing any appreciable improvements. It is far
+    //  easier to have multiple placements rather than multiple instantiations.
+    const vector<ComponentInstantiation>& instantiations = component.getInstantiations();
+    const ComponentInstantiation& instance = instantiations[0];
+
     // Extract required data from SPD file
     ossie::ComponentInfo* newComponent = 0;
     LOG_TRACE(ApplicationFactory_impl, "Getting the SPD Filename");
@@ -1861,7 +1868,9 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
     }
     LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File");
-    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(fileSys, componentfile->getFileName().c_str());
+    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(fileSys,
+                                                                       componentfile->getFileName(),
+                                                                       &instance);
     if (newComponent == 0) {
         ostringstream eout;
         eout << "Error loading component information for file ref " << component.getFileRefId();
@@ -1870,13 +1879,6 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
     }
 
     LOG_TRACE(ApplicationFactory_impl, "Done building Component Info From SPD File")
-    // Even though it is possible for there to be more than one instantiation per component,
-    //  the tooling doesn't support that, so supporting this at a framework level would add
-    //  substantial complexity without providing any appreciable improvements. It is far
-    //  easier to have multiple placements rather than multiple instantiations.
-    const vector<ComponentInstantiation>& instantiations = component.getInstantiations();
-
-    const ComponentInstantiation& instance = instantiations[0];
 
     newComponent->setIdentifier(instance.getID());
 

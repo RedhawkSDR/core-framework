@@ -198,9 +198,12 @@ std::string SoftpkgDeployment::getLocalFile()
     return codeLocalFile.string();
 }
 
-ComponentDeployment::ComponentDeployment(ComponentInfo* component, const std::string& identifier) :
+ComponentDeployment::ComponentDeployment(ComponentInfo* component,
+                                         const ComponentInstantiation* instantiation,
+                                         const std::string& identifier) :
     SoftpkgDeployment(component),
     component(component),
+    instantiation(instantiation),
     identifier(identifier),
     affinityOptions(component->getAffinityOptions())
 {
@@ -218,7 +221,7 @@ const std::string& ComponentDeployment::getIdentifier() const
 
 const std::string& ComponentDeployment::getInstantiationIdentifier() const
 {
-    return component->getInstantiationIdentifier();
+    return instantiation->getID();
 }
 
 void ComponentDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>& device)
@@ -486,9 +489,10 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(ComponentI
 {
     // Create a unique identifier for this component instance by appending the
     // application instance's unique name
-    std::string component_id = component->getInstantiationIdentifier() + ":" + instanceName;
+    const ComponentInstantiation* instantiation = component->getInstantiation();
+    std::string component_id = instantiation->getID() + ":" + instanceName;
 
-    ComponentDeployment* deployment = new ComponentDeployment(component, component_id);
+    ComponentDeployment* deployment = new ComponentDeployment(component, instantiation, component_id);
     components.push_back(deployment);
 
     return deployment;
