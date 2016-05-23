@@ -224,6 +224,11 @@ const std::string& ComponentDeployment::getInstantiationIdentifier() const
     return instantiation->getID();
 }
 
+const std::string& ComponentDeployment::getUsageName() const
+{
+    return instantiation->getUsageName();
+}
+
 bool ComponentDeployment::isNamingService() const
 {
     return instantiation->isNamingService();

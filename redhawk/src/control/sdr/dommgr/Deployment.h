@@ -114,6 +114,8 @@ namespace ossie {
          */
         const std::string& getInstantiationIdentifier() const;
 
+        const std::string& getUsageName() const;
+
         bool isNamingService() const;
         const std::string& getNamingServiceName() const;
 

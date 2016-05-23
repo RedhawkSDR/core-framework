@@ -126,28 +126,6 @@ ComponentInstantiation::ComponentInstantiation()
 {
 }
 
-ComponentInstantiation::ComponentInstantiation(const ComponentInstantiation& other) {
-    instantiationId = other.instantiationId;
-    _startOrder = other._startOrder;
-    usageName = other.usageName;
-    namingservicename = other.namingservicename;
-    affinityProperties  = other.affinityProperties;
-    loggingConfig  = other.loggingConfig;
-    properties = other.properties;
-
-}
-
-ComponentInstantiation& ComponentInstantiation::operator=(const ComponentInstantiation &other) {
-    instantiationId = other.instantiationId;
-    _startOrder = other._startOrder;
-    usageName = other.usageName;
-    namingservicename = other.namingservicename;
-    properties = other.properties;
-    affinityProperties  = other.affinityProperties;
-    loggingConfig  = other.loggingConfig;
-    return *this;
-}
-
 ComponentInstantiation::~ComponentInstantiation() {
 }
 
@@ -159,12 +137,8 @@ const std::string& ComponentInstantiation::getStartOrder() const {
     return _startOrder;
 }
 
-const char* ComponentInstantiation::getUsageName() const {
-    if (usageName.isSet()) {
-        return usageName->c_str();
-    } else {
-        return 0;
-    }
+const std::string& ComponentInstantiation::getUsageName() const {
+    return usageName;
 }
 
 const ossie::ComponentPropertyList & ComponentInstantiation::getProperties() const {

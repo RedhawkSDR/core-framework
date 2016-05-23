@@ -1210,10 +1210,9 @@ CF::Application_ptr createHelper::create (
     // Assign CPU reservations to components
     const DeploymentList& deployments = app_deployment.getComponentDeployments();
     for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
-        ossie::ComponentInfo* component = (*dep)->getComponent();
         std::map<std::string,float>::iterator reservation = specialized_reservations.find((*dep)->getIdentifier());
         if (reservation == specialized_reservations.end()) {
-            reservation = specialized_reservations.find(component->getUsageName());
+            reservation = specialized_reservations.find((*dep)->getUsageName());
         }
         if (reservation != specialized_reservations.end()) {
             (*dep)->setCpuReservation(reservation->second);
@@ -1884,7 +1883,6 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
         LOG_WARN(ApplicationFactory_impl, "component instantiation is sca compliant but does not provide a 'findcomponent' name...this is probably an error");
     }
 
-    newComponent->setUsageName(instance.getUsageName());
     newComponent->setAffinity( instance.getAffinity() );
 
     const ossie::ComponentPropertyList & ins_prop = instance.getProperties();

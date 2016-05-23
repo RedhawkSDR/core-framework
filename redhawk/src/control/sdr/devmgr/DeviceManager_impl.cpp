@@ -678,7 +678,7 @@ void DeviceManager_impl::createDeviceCacheLocation(
 
     // create device cache location
     std::string baseDevCache = _cacheroot + "/." + _label;
-    if (instantiation.getUsageName() == 0) {
+    if (instantiation.getUsageName().empty()) {
         // no usage name was given, so create one. By definition, the instantiation id must be unique
         usageName = instantiation.instantiationId;
     } else {
@@ -1941,7 +1941,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   std::string deviceid = ossie::corba::returnString(registeringDevice->identifier());
   try {
     const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(deviceid);
-    if (instantiation.getUsageName() != NULL)
+    if (!instantiation.getUsageName().empty())
       std::string tmp_name = instantiation.getUsageName(); // this is here to get rid of a warning
   } catch (std::out_of_range& e) {
     std::ostringstream eout;

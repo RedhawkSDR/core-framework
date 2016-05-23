@@ -188,17 +188,13 @@ namespace ossie {
 
         std::string instantiationId;
         std::string namingservicename;
-        ossie::optional_value<std::string> usageName;
+        std::string usageName;
         ossie::ComponentPropertyList       properties;
         std::string _startOrder;
         AffinityProperties affinityProperties;
         LoggingConfig loggingConfig;
     public:
         ComponentInstantiation();
-
-        ComponentInstantiation(const ComponentInstantiation& other);
-
-        ComponentInstantiation& operator=(const ComponentInstantiation &other);
 
         virtual ~ComponentInstantiation();
 
@@ -207,7 +203,7 @@ namespace ossie {
         
         const std::string& getStartOrder() const;
 
-        const char* getUsageName() const;
+        const std::string& getUsageName() const;
 
         const ossie::ComponentPropertyList & getProperties() const;
 
