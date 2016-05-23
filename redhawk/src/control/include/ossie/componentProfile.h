@@ -186,9 +186,9 @@ namespace ossie {
         virtual ~ComponentInstantiation();
 
     public:
-        const char* getID() const;
+        const std::string& getID() const;
         
-        const char* getStartOrder() const;
+        const std::string& getStartOrder() const;
 
         const char* getUsageName() const;
 

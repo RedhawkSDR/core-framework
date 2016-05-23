@@ -345,7 +345,7 @@ private:
 
     void deleteFileSystems();
     bool makeDirectory(std::string path);
-    std::string getIORfromID(const char* instanceid);
+    std::string getIORfromID(const std::string& instanceid);
     std::string deviceMgrIOR;
     std::string fileSysIOR;
     bool *_internalShutdown;

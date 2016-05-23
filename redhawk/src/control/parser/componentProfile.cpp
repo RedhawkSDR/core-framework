@@ -151,12 +151,12 @@ ComponentInstantiation& ComponentInstantiation::operator=(const ComponentInstant
 ComponentInstantiation::~ComponentInstantiation() {
 }
 
-const char* ComponentInstantiation::getID() const {
-    return instantiationId.c_str();
+const std::string& ComponentInstantiation::getID() const {
+    return instantiationId;
 }
 
-const char* ComponentInstantiation::getStartOrder() const {
-    return _startOrder.c_str();
+const std::string& ComponentInstantiation::getStartOrder() const {
+    return _startOrder;
 }
 
 const char* ComponentInstantiation::getUsageName() const {

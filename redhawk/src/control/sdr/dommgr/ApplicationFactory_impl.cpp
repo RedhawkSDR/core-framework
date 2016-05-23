@@ -1917,8 +1917,8 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
     newComponent->setAffinity( instance.getAffinity() );
     newComponent->setLoggingConfig( instance.getLoggingConfig() );
 
-    if (strlen(instance.getStartOrder()) > 0) {
-        int start_order = atoi(instance.getStartOrder());
+    if (!instance.getStartOrder().empty()) {
+        int start_order = atoi(instance.getStartOrder().c_str());
         newComponent->setStartOrder(start_order);
     }
 

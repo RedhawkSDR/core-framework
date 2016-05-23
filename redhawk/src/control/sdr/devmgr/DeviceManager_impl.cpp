@@ -447,8 +447,8 @@ void DeviceManager_impl::getCompositeDeviceIOR(
         for (unsigned int cp_idx = 0; cp_idx < componentPlacements.size(); cp_idx++) {
             // must match to a particular instance
             for (unsigned int ci_idx = 0; ci_idx < componentPlacements[cp_idx].getInstantiations().size(); ci_idx++) {
-                const char* instanceID = componentPlacements[cp_idx].instantiations[ci_idx].getID();
-                if (strcmp(instanceID, parentDeviceRefid.c_str()) == 0) {
+                const std::string& instanceID = componentPlacements[cp_idx].instantiations[ci_idx].getID();
+                if (instanceID == parentDeviceRefid) {
                     LOG_TRACE(DeviceManager_impl, "CompositePartOfDevice: Found parent device instance <" 
                             << componentPlacements[cp_idx].getInstantiations()[ci_idx].getID() 
                             << "> for child device <" << componentPlacementInst.getFileRefId() << ">");
@@ -2721,7 +2721,7 @@ CF::DeviceSequence* DeviceManager_impl::registeredDevices () throw (CORBA::Syste
     return result._retn();
 }
 
-std::string DeviceManager_impl::getIORfromID(const char* instanceid)
+std::string DeviceManager_impl::getIORfromID(const std::string& instanceid)
 {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
