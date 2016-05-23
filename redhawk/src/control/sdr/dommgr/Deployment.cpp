@@ -210,6 +210,16 @@ ComponentInfo* ComponentDeployment::getComponent()
     return component;
 }
 
+const std::string& ComponentDeployment::getIdentifier() const
+{
+    return component->getIdentifier();
+}
+
+const std::string& ComponentDeployment::getInstantiationIdentifier() const
+{
+    return component->getInstantiationIdentifier();
+}
+
 void ComponentDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>& device)
 {
     assignedDevice = device;
@@ -302,6 +312,16 @@ bool ComponentDeployment::hasCpuReservation() const
 float ComponentDeployment::getCpuReservation() const
 {
     return *cpuReservation;
+}
+
+CF::Properties ComponentDeployment::getConfigureProperties() const
+{
+    return component->getConfigureProperties();
+}
+
+CF::Properties ComponentDeployment::getConstructProperties() const
+{
+    return component->getConstructProperties();
 }
 
 redhawk::PropertyMap ComponentDeployment::getAffinityOptionsWithAssignment() const

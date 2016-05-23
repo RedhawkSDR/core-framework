@@ -103,6 +103,16 @@ namespace ossie {
 
         ComponentInfo* getComponent();
 
+        /**
+         * @brief  Returns the component's runtime identifier
+         */
+        const std::string& getIdentifier() const;
+
+        /**
+         * @brief  Returns the component's identifier within the waveform
+         */
+        const std::string& getInstantiationIdentifier() const;
+
         std::string getEntryPoint();
 
         redhawk::PropertyMap getOptions();
@@ -117,6 +127,9 @@ namespace ossie {
         void setCpuReservation(float reservation);
         bool hasCpuReservation() const;
         float getCpuReservation() const;
+
+        CF::Properties getConfigureProperties() const;
+        CF::Properties getConstructProperties() const;
 
         void setAssignedDevice(const boost::shared_ptr<DeviceNode>& device);
         boost::shared_ptr<DeviceNode> getAssignedDevice();
