@@ -665,8 +665,8 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDe
                 LOG_TRACE(ApplicationFactory_impl, "Component " << component->getInstantiationIdentifier()
                           << " is assigned to device " << assigned_device);
             }
-            ossie::ComponentDeployment* deployment = allocateComponent(component, assigned_device, appDeployment.getIdentifier());
-            appDeployment.addComponentDeployment(deployment);
+            ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(component);
+            allocateComponent(deployment, assigned_device, appDeployment.getIdentifier());
         }
     }
 }
@@ -843,9 +843,8 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
 
     DeploymentList deployments;
     for (PlacementList::const_iterator comp = components.begin(); comp != components.end(); ++comp) {
-        ossie::ComponentDeployment* deployment = new ossie::ComponentDeployment(*comp, 0);
+        ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(*comp);
         deployments.push_back(deployment);
-        appDeployment.addComponentDeployment(deployment);
     }
 
     if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices)) {
@@ -1438,10 +1437,11 @@ CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDev
  collocation request.  This requires that we know and cleanup only those allocations that we made..
 
  */
-ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo* component,
-                                                            const std::string& assignedDeviceId,
-                                                            const std::string& appIdentifier)
+void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
+                                     const std::string& assignedDeviceId,
+                                     const std::string& appIdentifier)
 {
+    ossie::ComponentInfo* component = deployment->getComponent();
     CF::Properties configureProperties = component->getConfigureProperties();
     const CF::Properties &construct_props = component->getConstructProperties();
     unsigned int configlen = configureProperties.length();
@@ -1489,7 +1489,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
             continue;
         }
 
-        std::auto_ptr<ossie::ComponentDeployment> deployment(new ossie::ComponentDeployment(component, impl));
+        deployment->setImplementation(impl);
 
         // Transfer ownership of the uses device assigments to the deployment
         assignedDevices.transferUsesDeviceAssignments(*deployment);
@@ -1497,7 +1497,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         // Found an implementation which has its 'usesdevice' dependencies
         // satisfied, now perform assignment/allocation of component to device
         LOG_DEBUG(ApplicationFactory_impl, "Trying to find the device");
-        ossie::AllocationResult response = allocateComponentToDevice(deployment.get(), assignedDeviceId, appIdentifier);
+        ossie::AllocationResult response = allocateComponentToDevice(deployment, assignedDeviceId, appIdentifier);
         
         if (response.first.empty()) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to allocate device for component "
@@ -1513,7 +1513,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
         DeviceNode& node = *(response.second);
         const std::string& deviceId = node.identifier;
         
-        if (!resolveSoftpkgDependencies(deployment.get(), node)) {
+        if (!resolveSoftpkgDependencies(deployment, node)) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                       << component->getIdentifier() << " implementation " << impl->getId());
             continue;
@@ -1532,7 +1532,7 @@ ossie::ComponentDeployment* createHelper::allocateComponent(ossie::ComponentInfo
 
         implAssignedDevices.transferUsesDeviceAssignments(*deployment);
         
-        return deployment.release();
+        return;
     }
 
     bool allBusy = true;

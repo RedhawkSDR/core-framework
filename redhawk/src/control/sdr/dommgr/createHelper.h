@@ -152,9 +152,9 @@ private:
     CF::AllocationManager::AllocationResponseSequence* allocateUsesDeviceProperties(
         const ossie::UsesDeviceInfo::List& component,
         const CF::Properties& configureProperties);
-    ossie::ComponentDeployment* allocateComponent(ossie::ComponentInfo* component,
-                                                  const std::string& assignedDeviceId,
-                                                  const std::string& appIdentifier);
+    void allocateComponent(ossie::ComponentDeployment* deployment,
+                           const std::string& assignedDeviceId,
+                           const std::string& appIdentifier);
 
     ossie::AllocationResult allocateComponentToDevice(ossie::ComponentDeployment* deployment,
                                                       const std::string& assignedDeviceId,

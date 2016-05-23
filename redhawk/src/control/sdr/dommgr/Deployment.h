@@ -71,7 +71,7 @@ namespace ossie {
     public:
         typedef std::vector<SoftpkgDeployment*> DeploymentList;
 
-        SoftpkgDeployment(SoftpkgInfo* softpkg, const ImplementationInfo* implementation);
+        SoftpkgDeployment(SoftpkgInfo* softpkg, const ImplementationInfo* implementation=0);
         ~SoftpkgDeployment();
 
         SoftpkgInfo* getSoftpkg();
@@ -99,7 +99,7 @@ namespace ossie {
     class ComponentDeployment : public SoftpkgDeployment, public UsesDeviceDeployment
     {
     public:
-        ComponentDeployment(ComponentInfo* component, ImplementationInfo* implementation);
+        ComponentDeployment(ComponentInfo* component);
 
         ComponentInfo* getComponent();
 
@@ -182,7 +182,8 @@ namespace ossie {
 
         ComponentInfo* getComponent(const std::string& instantiationId);
 
-        void addComponentDeployment(ComponentDeployment* deployment);
+        ComponentDeployment* createComponentDeployment(ComponentInfo* component);
+
         const ComponentList& getComponentDeployments();
         ComponentDeployment* getComponentDeployment(const std::string& instantiationId);
 

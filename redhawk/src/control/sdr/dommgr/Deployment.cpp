@@ -198,8 +198,8 @@ std::string SoftpkgDeployment::getLocalFile()
     return codeLocalFile.string();
 }
 
-ComponentDeployment::ComponentDeployment(ComponentInfo* component, ImplementationInfo* implementation) :
-    SoftpkgDeployment(component, implementation),
+ComponentDeployment::ComponentDeployment(ComponentInfo* component) :
+    SoftpkgDeployment(component),
     component(component),
     affinityOptions(component->getAffinityOptions())
 {
@@ -456,9 +456,11 @@ ComponentInfo* ApplicationDeployment::getAssemblyController()
     return 0;
 }
 
-void ApplicationDeployment::addComponentDeployment(ComponentDeployment* deployment)
+ComponentDeployment* ApplicationDeployment::createComponentDeployment(ComponentInfo* component)
 {
+    ComponentDeployment* deployment = new ComponentDeployment(component);
     components.push_back(deployment);
+    return deployment;
 }
 
 const ApplicationDeployment::ComponentList& ApplicationDeployment::getComponentDeployments()
