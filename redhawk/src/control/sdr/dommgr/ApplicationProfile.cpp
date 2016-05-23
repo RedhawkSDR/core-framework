@@ -208,11 +208,11 @@ SinglePlacement* ApplicationProfile::buildComponentPlacement(CF::FileSystem_ptr 
                                                              const SoftwareAssembly& sad,
                                                              const ComponentPlacement& placement)
 {
-    const ComponentFile *componentfile = sad.getComponentFile(placement.getFileRefId());
-    if (!componentfile) {
-        throw std::runtime_error("componentplacement has invalid componentfileref " + placement.getFileRefId());
+    assert(placement.componentFile);
+    ComponentFile* componentFile = const_cast<ComponentFile*>(placement.componentFile);
+    if (!componentFile->getSoftPkg()) {
+        componentFile->setSoftPkg(loadProfile(fileSystem, componentFile->getFileName()));
     }
-    boost::shared_ptr<SoftPkg> softpkg = loadProfile(fileSystem, componentfile->getFileName());
 
     // Even though it is possible for there to be more than one instantiation
     // per component, the tooling doesn't support that, so supporting this at a
@@ -222,7 +222,7 @@ SinglePlacement* ApplicationProfile::buildComponentPlacement(CF::FileSystem_ptr 
     const std::vector<ComponentInstantiation>& instantiations = placement.getInstantiations();
     const ComponentInstantiation& instance = instantiations[0];
 
-    return new SinglePlacement(&instance, softpkg);
+    return new SinglePlacement(&instance, componentFile->getSoftPkg());
 }
 
 const ApplicationProfile::PlacementList& ApplicationProfile::getPlacements() const
