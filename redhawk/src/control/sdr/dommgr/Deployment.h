@@ -109,15 +109,7 @@ namespace ossie {
          */
         const std::string& getIdentifier() const;
 
-        /**
-         * @brief  Returns the component's identifier within the waveform
-         */
-        const std::string& getInstantiationIdentifier() const;
-
-        const std::string& getUsageName() const;
-
-        bool isNamingService() const;
-        const std::string& getNamingServiceName() const;
+        const ComponentInstantiation* getInstantiation() const;
 
         bool hasStartOrder() const;
         int getStartOrder() const;

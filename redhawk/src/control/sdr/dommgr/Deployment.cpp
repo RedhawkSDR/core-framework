@@ -219,24 +219,9 @@ const std::string& ComponentDeployment::getIdentifier() const
     return identifier;
 }
 
-const std::string& ComponentDeployment::getInstantiationIdentifier() const
+const ComponentInstantiation* ComponentDeployment::getInstantiation() const
 {
-    return instantiation->getID();
-}
-
-const std::string& ComponentDeployment::getUsageName() const
-{
-    return instantiation->getUsageName();
-}
-
-bool ComponentDeployment::isNamingService() const
-{
-    return instantiation->isNamingService();
-}
-
-const std::string& ComponentDeployment::getNamingServiceName() const
-{
-    return instantiation->getFindByNamingServiceName();
+    return instantiation;
 }
 
 bool ComponentDeployment::hasStartOrder() const
@@ -531,7 +516,7 @@ const ApplicationDeployment::ComponentList& ApplicationDeployment::getComponentD
 ComponentDeployment* ApplicationDeployment::getComponentDeployment(const std::string& instantiationId)
 {
     for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
-        if (instantiationId == (*comp)->getInstantiationIdentifier()) {
+        if (instantiationId == (*comp)->getInstantiation()->getID()) {
             return *comp;
         }
     }

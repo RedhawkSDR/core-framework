@@ -712,7 +712,7 @@ bool createHelper::placeHostCollocation(ossie::ApplicationDeployment& appDeploym
     ossie::ComponentDeployment* deployment = *current;
     const ImplementationList& comp_impls = deployment->getComponent()->getImplementations();
     LOG_TRACE(ApplicationFactory_impl, "Finding collocation-compatible implementations for component "
-              << deployment->getInstantiationIdentifier());
+              << deployment->getInstantiation()->getID());
     ++current;
     for (ImplementationList::const_iterator impl = comp_impls.begin(); impl != comp_impls.end(); ++impl) {
         LOG_TRACE(ApplicationFactory_impl, "Checking implementation " << (*impl)->getId());
@@ -756,7 +756,7 @@ bool createHelper::allocateHostCollocation(ossie::ApplicationDeployment& appDepl
     LOG_TRACE(ApplicationFactory_impl, "Allocating deployment for " << components.size()
               << " collocated components");
     for (DeploymentList::const_iterator depl = components.begin(); depl != components.end(); ++depl) {
-        LOG_TRACE(ApplicationFactory_impl, "Component " << (*depl)->getInstantiationIdentifier()
+        LOG_TRACE(ApplicationFactory_impl, "Component " << (*depl)->getInstantiation()->getID()
                   << " implementation " << (*depl)->getImplementation()->getId());
     }
 
@@ -1212,7 +1212,7 @@ CF::Application_ptr createHelper::create (
     for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
         std::map<std::string,float>::iterator reservation = specialized_reservations.find((*dep)->getIdentifier());
         if (reservation == specialized_reservations.end()) {
-            reservation = specialized_reservations.find((*dep)->getUsageName());
+            reservation = specialized_reservations.find((*dep)->getInstantiation()->getUsageName());
         }
         if (reservation != specialized_reservations.end()) {
             (*dep)->setCpuReservation(reservation->second);
@@ -1506,7 +1506,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
         }
         
         // Allocation to a device succeeded
-        LOG_DEBUG(ApplicationFactory_impl, "Assigned component " << deployment->getInstantiationIdentifier()
+        LOG_DEBUG(ApplicationFactory_impl, "Assigned component " << deployment->getInstantiation()->getID()
                   << " implementation " << impl->getId() << " to device " << deviceId);
 
         // Move the device to the front of the list
@@ -2024,6 +2024,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
         ossie::ComponentDeployment* deployment = deployments[rc_idx];
         ossie::ComponentInfo* component = deployment->getComponent();
+        const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
         const ossie::ImplementationInfo* implementation = deployment->getImplementation();
 
         boost::shared_ptr<ossie::DeviceNode> device = deployment->getAssignedDevice();
@@ -2041,8 +2042,8 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         // Let the application know to expect the given component
         _application->addComponent(deployment->getIdentifier(), component->getSpdFileName());
         _application->setComponentImplementation(deployment->getIdentifier(), implementation->getId());
-        if (deployment->isNamingService()) {
-            std::string lookupName = _baseNamingContext + "/" + deployment->getNamingServiceName() ;
+        if (instantiation->isNamingService()) {
+            std::string lookupName = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
             _application->setComponentNamingContext(deployment->getIdentifier(), lookupName);
         }
         _application->setComponentDevice(deployment->getIdentifier(), device->device);
@@ -2107,13 +2108,16 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             std::string logging_uri("");
             CF::DataType* logcfg_prop = NULL;
             CF::Properties execParameters = component->getExecParameters();
+            const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
             for (unsigned int i = 0; i < execParameters.length(); ++i) {
                 std::string propid = static_cast<const char*>(execParameters[i].id);
                 if (propid == "LOGGING_CONFIG_URI") {
                   logcfg_prop = &execParameters[i];
                   const char* tmpstr;
                   if ( ossie::any::isNull(logcfg_prop->value) == true ) {
-                    LOG_WARN(ApplicationFactory_impl, "Missing value for LOGGING_CONFIG_URI, component: " << _baseNamingContext << "/" << deployment->getNamingServiceName() );
+                    LOG_WARN(ApplicationFactory_impl, "Missing value for LOGGING_CONFIG_URI, component: "
+                             << _baseNamingContext << "/"
+                             << instantiation->getFindByNamingServiceName());
                   }
                   else {
                     logcfg_prop->value >>= tmpstr;
@@ -2126,7 +2130,8 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             }
 
             ossie::logging::LogConfigUriResolverPtr logcfg_resolver = ossie::logging::GetLogConfigUriResolver();
-            std::string logcfg_path = ossie::logging::GetComponentPath( _appFact._domainName, _waveformContextName, deployment->getNamingServiceName() );
+            std::string logcfg_path = ossie::logging::GetComponentPath(_appFact._domainName, _waveformContextName,
+                                                                       instantiation->getFindByNamingServiceName());
             if ( _appFact._domainManager->getUseLogConfigResolver() && logcfg_resolver ) {
                   std::string t_uri = logcfg_resolver->get_uri( logcfg_path );
                   LOG_DEBUG(ApplicationFactory_impl, "Using LogConfigResolver plugin: path " << logcfg_path << " logcfg:" << t_uri );
@@ -2215,8 +2220,8 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     // Add the required parameters specified in SR:163
     // Naming Context IOR, Name Binding, and component identifier
     execParameters["COMPONENT_IDENTIFIER"] = deployment->getIdentifier();
-    if (deployment->isNamingService()) {
-        execParameters["NAME_BINDING"] = deployment->getNamingServiceName();
+    if (deployment->getInstantiation()->isNamingService()) {
+        execParameters["NAME_BINDING"] = deployment->getInstantiation()->getFindByNamingServiceName();
     }
     execParameters["DOM_PATH"] = _baseNamingContext;
     execParameters["PROFILE_NAME"] = component->getSpdFileName();
@@ -2614,7 +2619,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
         const ossie::ComponentInfo* component = deployment->getComponent();
         
         // Assuming 1 instantiation for each componentplacement
-        if (deployment->isNamingService()) {
+        if (deployment->getInstantiation()->isNamingService()) {
 
             CF::Resource_var _rsc = deployment->getResourcePtr();
 
@@ -2754,7 +2759,7 @@ std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& 
     LOG_TRACE(ApplicationFactory_impl, "Assigning start order");
     for (StartOrderMap::iterator ii = start_map.begin(); ii != start_map.end(); ++ii, ++index) {
         LOG_TRACE(ApplicationFactory_impl, index << ": "
-                  << ii->second->getInstantiationIdentifier());
+                  << ii->second->getInstantiation()->getID());
         start_order.push_back(ii->second->getResourcePtr());
     }
     return start_order;
