@@ -465,12 +465,6 @@ void ResourceInfo::LoadResource(CF::FileSystem_ptr fileSys,
         }
     }
 
-    if (newComponent.spd.isScaNonCompliant()) {
-        newComponent.setIsScaCompliant(false);
-    } else {
-        newComponent.setIsScaCompliant(true);
-    }
-
     // Extract Properties from the implementation-agnostic PRF file
     // once we match the component to a device we can grab the implementation
     // specific PRF file
@@ -530,8 +524,7 @@ void ResourceInfo::LoadResource(CF::FileSystem_ptr fileSys,
 
 ResourceInfo::ResourceInfo(const std::string& spdFileName) :
     SoftpkgInfo(spdFileName),
-    _isAssemblyController(false),
-    _isScaCompliant(true)
+    _isAssemblyController(false)
 {
     resolved_softpkg_dependencies.resize(0);
 
@@ -563,7 +556,6 @@ void ResourceInfo::_copy( const ResourceInfo& src)
   scd = src.scd;
   _isAssemblyController = src._isAssemblyController;
   _isConfigurable = src._isConfigurable;
-  _isScaCompliant = src._isScaCompliant;
   isNamingService = src.isNamingService;
   usageName = src.usageName;
   identifier = src.identifier;
@@ -622,12 +614,6 @@ void ResourceInfo::setIsAssemblyController(bool _isAssemblyController)
 {
     this->_isAssemblyController = _isAssemblyController;
 }
-
-void ResourceInfo::setIsScaCompliant(bool _isScaCompliant)
-{
-    this->_isScaCompliant = _isScaCompliant;
-}
-
 
 void ResourceInfo::setAffinity( const AffinityProperties &affinity_props )
 {
@@ -790,7 +776,7 @@ const bool  ResourceInfo::isAssemblyController()
 
 const bool  ResourceInfo::isScaCompliant()
 {
-    return _isScaCompliant;
+    return spd.isScaCompliant();
 }
 
 CF::Properties ResourceInfo::getNonNilConfigureProperties()

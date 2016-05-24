@@ -482,12 +482,6 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr f
         }
     }
 
-    if (newComponent->spd.isScaNonCompliant()) {
-        newComponent->setIsScaCompliant(false);
-    } else {
-        newComponent->setIsScaCompliant(true);
-    }
-
     // Extract Properties from the implementation-agnostic PRF file
     // once we match the component to a device we can grab the implementation
     // specific PRF file
@@ -560,7 +554,6 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr f
 ComponentInfo::ComponentInfo(const std::string& spdFileName, const ComponentInstantiation* instantiation) :
     SoftpkgInfo(spdFileName),
     _isAssemblyController(false),
-    _isScaCompliant(true),
     instantiation(instantiation)
 {
     // load common affinity property definitions 
@@ -593,11 +586,6 @@ void ComponentInfo::setUsageName(const char* _usageName)
 void ComponentInfo::setIsAssemblyController(bool _isAssemblyController)
 {
     this->_isAssemblyController = _isAssemblyController;
-}
-
-void ComponentInfo::setIsScaCompliant(bool _isScaCompliant)
-{
-    this->_isScaCompliant = _isScaCompliant;
 }
 
 void ComponentInfo::setAffinity( const AffinityProperties &affinity_props )
@@ -713,7 +701,7 @@ bool ComponentInfo::isAssemblyController() const
 
 bool ComponentInfo::isScaCompliant() const
 {
-    return _isScaCompliant;
+    return spd.isScaCompliant();
 }
 
 bool ComponentInfo::checkStruct(const CF::Properties &props) const

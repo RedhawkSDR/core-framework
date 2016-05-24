@@ -206,7 +206,6 @@ namespace ossie
 
         void setUsageName(const char* usageName);
         void setIsAssemblyController(bool isAssemblyController);
-        void setIsScaCompliant(bool isScaCompliant);
         void setAffinity( const AffinityProperties &affinity );
 
         void addFactoryParameter(CF::DataType dt);
@@ -251,7 +250,6 @@ namespace ossie
         void process_overrides(CF::Properties* props, const char* id, CORBA::Any value);
         bool _isAssemblyController;
         bool _isConfigurable;
-        bool _isScaCompliant;
 
         std::string usageName;
 

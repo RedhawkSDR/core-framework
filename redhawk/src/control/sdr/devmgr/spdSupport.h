@@ -188,7 +188,6 @@ namespace ossie
         void setNamingServiceName(const char* NamingServiceName);
         void setUsageName(const char* usageName);
         void setIsAssemblyController(bool isAssemblyController);
-        void setIsScaCompliant(bool isScaCompliant);
         void setNicAssignment(std::string nic);
         void setAffinity( const AffinityProperties &affinity );
         void mergeAffinityOptions( const CF::Properties &new_affinity );
@@ -238,7 +237,6 @@ namespace ossie
         void _copy( const ResourceInfo &src );
         bool _isAssemblyController;
         bool _isConfigurable;
-        bool _isScaCompliant;
         bool isNamingService;
 
         std::string usageName;

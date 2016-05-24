@@ -197,9 +197,14 @@ namespace ossie {
 
             // SPD Members
         public:
+            SPD() :
+                type("sca_compliant")
+            {
+            }
+
             std::string id;
             std::string name;
-            optional_value<std::string> type;
+            std::string type;
             optional_value<std::string> version;
             optional_value<std::string> title;
             optional_value<std::string> description;
@@ -236,13 +241,8 @@ namespace ossie {
                 return _spd->name;
             }
 
-            const char* getSoftPkgType() const {
-                assert(_spd.get() != 0);
-                if (_spd->type.isSet()) {
-                    return _spd->type->c_str();
-                } else {
-                    return "sca_compliant";
-                }
+            const std::string& getSoftPkgType() const {
+                return _spd->type;
             }
 
             const char* getSoftPkgVersion() const {
@@ -303,7 +303,6 @@ namespace ossie {
                 return _spd->authors;
             }
 
-            //const std::vector<ossie::SPD::Implementation>& getImplementations() const {
             const ossie::SPD::Implementations& getImplementations() const {
                 assert(_spd.get() != 0);
                 return _spd->implementations; 
@@ -314,16 +313,12 @@ namespace ossie {
                 return _spd->usesDevice;
             };
 
-            bool isScaCompliant() {
+            bool isScaCompliant() const {
                 assert(_spd.get() != 0);
-                return (strcmp(getSoftPkgType(), "sca_compliant") == 0);
+                // Assume compliant unless explicitly set to non-compliant
+                return _spd->type != "sca_non_compliant";
             }
             
-            bool isScaNonCompliant() {
-                assert(_spd.get() != 0);
-                return (strcmp(getSoftPkgType(), "sca_non_compliant") == 0);
-            }
-
             const boost::shared_ptr<Properties>& getProperties()
             {
                 return _properties;
