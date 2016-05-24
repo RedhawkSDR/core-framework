@@ -58,93 +58,20 @@ static void addProperty(const CF::DataType& dt, CF::Properties& prop)
 
 ////////////////////////////////////////////////////
 /*
- * UsesDeviceInfo member function definitions
- */
-UsesDeviceInfo::UsesDeviceInfo(const std::string& _id, const std::string& _type, const std::vector<ossie::PropertyRef>& _properties) :
-    id(_id),
-    type(_type),
-    properties(_properties)
-{
-
-}
-
-UsesDeviceInfo::~UsesDeviceInfo()
-{
-}
-
-const std::string& UsesDeviceInfo::getId() const
-{
-    return id;
-}
-
-const std::string& UsesDeviceInfo::getType() const
-{
-    return type;
-}
-
-const std::vector<ossie::PropertyRef>& UsesDeviceInfo::getProperties() const
-{
-    return properties;
-}
-
-////////////////////////////////////////////////////
-/*
- * UsesDeviceContext member function definitions
- */
-PREPARE_CF_LOGGING(UsesDeviceContext);
-
-UsesDeviceContext::UsesDeviceContext() :
-    usesDevices()
-{
-}
-
-UsesDeviceContext::~UsesDeviceContext()
-{
-    for (size_t ii = 0; ii < usesDevices.size(); ++ii) {
-        delete usesDevices[ii];
-    }
-    usesDevices.clear();
-}
-
-void UsesDeviceContext::addUsesDevice(UsesDeviceInfo* _usesDevice)
-{
-    usesDevices.push_back(_usesDevice);
-}
-
-const std::vector<UsesDeviceInfo*>& UsesDeviceContext::getUsesDevices() const
-{
-    return usesDevices;
-}
-
-////////////////////////////////////////////////////
-/*
  * ImplementationInfo member function definitions
  */
 PREPARE_CF_LOGGING(ImplementationInfo);
 
 ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
-    id(spdImpl.getID()),
+    implementation(&spdImpl),
     codeType(),
-    localFileName(spdImpl.getCodeFile()),
     entryPoint(),
-    processorDeps(spdImpl.getProcessors()),
-    osDeps(spdImpl.getOsDeps()),
     dependencyProperties()
 {
     setEntryPoint(spdImpl.getEntryPoint());
     setCodeType(spdImpl.getCodeType());
     setStackSize(spdImpl.code.stacksize.get());
     setPriority(spdImpl.code.priority.get());
-
-    // Create local copies for all of the usesdevice entries for this implementation.
-    LOG_TRACE(ImplementationInfo, "Loading component implementation uses device")
-    const std::vector<UsesDevice>& spdUsesDevices = spdImpl.getUsesDevices();
-    for (size_t ii = 0; ii < spdUsesDevices.size(); ++ii) {
-        const UsesDevice& spdUsesDev = spdUsesDevices[ii];
-        UsesDeviceInfo* usesDevice = new UsesDeviceInfo(spdUsesDev.getID(), spdUsesDev.getType(),
-                    spdUsesDev.getDependencies());
-        addUsesDevice(usesDevice);
-    }
 
     // Handle allocation property dependencies
     LOG_TRACE(ImplementationInfo, "Loading component implementation property dependencies")
@@ -182,12 +109,12 @@ ImplementationInfo* ImplementationInfo::buildImplementationInfo(CF::FileSystem_p
 
 const std::string& ImplementationInfo::getId() const
 {
-    return id;
+    return implementation->getID();
 }
 
 const std::vector<std::string>& ImplementationInfo::getProcessorDeps() const
 {
-    return processorDeps;
+    return implementation->getProcessors();
 }
 
 const std::vector<SoftpkgInfo*>& ImplementationInfo::getSoftPkgDependency() const
@@ -197,7 +124,7 @@ const std::vector<SoftpkgInfo*>& ImplementationInfo::getSoftPkgDependency() cons
 
 const std::vector<ossie::SPD::NameVersionPair>& ImplementationInfo::getOsDeps() const
 {
-    return osDeps;
+    return implementation->getOsDeps();
 }
 
 CF::LoadableDevice::LoadType ImplementationInfo::getCodeType() const
@@ -207,7 +134,7 @@ CF::LoadableDevice::LoadType ImplementationInfo::getCodeType() const
 
 const std::string& ImplementationInfo::getLocalFileName() const
 {
-    return localFileName;
+    return implementation->getCodeFile();
 }
 
 const std::string& ImplementationInfo::getEntryPoint() const
@@ -238,6 +165,11 @@ const bool ImplementationInfo::hasPriority() const
 const std::vector<PropertyRef>& ImplementationInfo::getDependencyProperties() const
 {
     return dependencyProperties;
+}
+
+const std::vector<UsesDevice>& ImplementationInfo::getUsesDevices() const
+{
+    return implementation->getUsesDevices();
 }
 
 void ImplementationInfo::setCodeType(const char* _type)
@@ -293,8 +225,8 @@ void ImplementationInfo::addSoftPkgDependency(SoftpkgInfo* softpkg)
 
 bool ImplementationInfo::checkProcessorAndOs(const Properties& _prf) const
 {
-    bool matchProcessor = checkProcessor(processorDeps, _prf.getAllocationProperties());
-    bool matchOs = checkOs(osDeps, _prf.getAllocationProperties());
+    bool matchProcessor = checkProcessor(getProcessorDeps(), _prf.getAllocationProperties());
+    bool matchOs = checkOs(getOsDeps(), _prf.getAllocationProperties());
 
     if (!matchProcessor) {
         LOG_DEBUG(ImplementationInfo, "Failed to match component processor to device allocation properties");
@@ -369,15 +301,6 @@ bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys)
         addImplementation(newImpl);
     }
 
-    // Create local copies for all of the usesdevice entries for this implementation.
-    const std::vector<UsesDevice>& spdUsesDevices = spd.getUsesDevices();
-    for (size_t ii = 0; ii < spdUsesDevices.size(); ++ii) {
-        const UsesDevice& spdUsesDev = spdUsesDevices[ii];
-        UsesDeviceInfo* usesDevice = new UsesDeviceInfo(spdUsesDev.getID(), spdUsesDev.getType(),
-                                                        spdUsesDev.getDependencies());
-        addUsesDevice(usesDevice);
-    }
-
     return true;
 }
 
@@ -389,6 +312,11 @@ void SoftpkgInfo::addImplementation(ImplementationInfo* impl)
 const ImplementationInfo::List& SoftpkgInfo::getImplementations() const
 {
     return _implementations;
+}
+
+const std::vector<UsesDevice>& SoftpkgInfo::getUsesDevices() const
+{
+    return spd.getUsesDevices();
 }
 
 ////////////////////////////////////////////////////

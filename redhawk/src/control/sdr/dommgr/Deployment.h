@@ -37,15 +37,15 @@ namespace ossie {
     class UsesDeviceAssignment
     {
     public:
-        UsesDeviceAssignment(UsesDeviceInfo* usesDevice);
+        UsesDeviceAssignment(const UsesDevice* usesDevice);
 
-        UsesDeviceInfo* getUsesDevice();
+        const UsesDevice* getUsesDevice() const;
 
         void setAssignedDevice(CF::Device_ptr device);
         CF::Device_ptr getAssignedDevice() const;
 
     private:
-        UsesDeviceInfo* usesDevice;
+        const UsesDevice* usesDevice;
         CF::Device_var assignedDevice;
     };
 

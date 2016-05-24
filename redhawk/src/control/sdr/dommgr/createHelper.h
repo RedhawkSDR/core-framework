@@ -145,12 +145,12 @@ private:
                                              const ossie::ComponentPlacement& component);
 
     // Supports allocation
-    bool allocateUsesDevices(const ossie::UsesDeviceInfo::List& usesDevices,
+    bool allocateUsesDevices(const std::vector<ossie::UsesDevice>& usesDevices,
                              const CF::Properties& configureProperties,
                              ossie::UsesDeviceDeployment& assignedDevices,
                              ScopedAllocations& allocations);
     CF::AllocationManager::AllocationResponseSequence* allocateUsesDeviceProperties(
-        const ossie::UsesDeviceInfo::List& component,
+        const std::vector<ossie::UsesDevice>& component,
         const CF::Properties& configureProperties);
     void allocateComponent(ossie::ComponentDeployment* deployment,
                            const std::string& assignedDeviceId,

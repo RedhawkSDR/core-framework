@@ -83,7 +83,7 @@ namespace ossie {
      *       -> External Properties
      *       -> UsesDevice relationships
      */
-    class ApplicationProfile : public UsesDeviceContext
+    class ApplicationProfile
     {
         ENABLE_LOGGING;
 

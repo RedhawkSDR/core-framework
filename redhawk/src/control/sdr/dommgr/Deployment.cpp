@@ -48,7 +48,7 @@ void UsesDeviceDeployment::addUsesDeviceAssignment(UsesDeviceAssignment* assignm
 UsesDeviceAssignment* UsesDeviceDeployment::getUsesDeviceAssignment(const std::string identifier)
 {
     for (AssignmentList::iterator assign = assignments.begin(); assign != assignments.end(); ++assign) {
-        if (identifier == (*assign)->getUsesDevice()->getId()) {
+        if (identifier == (*assign)->getUsesDevice()->getID()) {
             return *assign;
         }
     }
@@ -61,12 +61,12 @@ const UsesDeviceDeployment::AssignmentList& UsesDeviceDeployment::getUsesDeviceA
     return assignments;
 }
 
-UsesDeviceAssignment::UsesDeviceAssignment(UsesDeviceInfo* usesDevice) :
+UsesDeviceAssignment::UsesDeviceAssignment(const UsesDevice* usesDevice) :
     usesDevice(usesDevice)
 {
 }
 
-UsesDeviceInfo* UsesDeviceAssignment::getUsesDevice()
+const UsesDevice* UsesDeviceAssignment::getUsesDevice() const
 {
     return usesDevice;
 }

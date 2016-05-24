@@ -54,54 +54,12 @@ namespace ossie
     };
     typedef std::list<ApplicationComponent> ComponentList;
 
-    /*
-     *
-     */
-    class UsesDeviceInfo
-    {
-
-    public:
-        typedef std::vector< UsesDeviceInfo * >    List;
-
-        UsesDeviceInfo(const std::string& id, const std::string& type, const std::vector<PropertyRef>& _properties);
-        ~UsesDeviceInfo();
-
-        const std::string& getId() const;
-        const std::string& getType() const;
-        const std::vector<PropertyRef>& getProperties() const;
-
-    private:
-        std::string id;
-        std::string type;
-        std::vector<PropertyRef> properties;
-    };
-
-    /* Base class to contain data for components and implementations
-     *  - Used to store information about about UsesDevice relationships
-     *    since these are handled the same for both components and
-     *    component implementations.
-     */
-    class UsesDeviceContext
-    {
-        ENABLE_LOGGING;
-
-    public:
-        UsesDeviceContext();
-        virtual ~UsesDeviceContext();
-
-        void addUsesDevice(UsesDeviceInfo* usesDevice);
-        const UsesDeviceInfo::List & getUsesDevices() const;
-
-    protected:
-        UsesDeviceInfo::List usesDevices;
-    };
-
     class SoftpkgInfo;
 
     /* Base class to contain data for implementations
      *  - Used to store information about about implementations
      */
-    class ImplementationInfo : public UsesDeviceContext
+    class ImplementationInfo
     {
         ENABLE_LOGGING;
 
@@ -126,7 +84,10 @@ namespace ossie
 
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
 
+        const std::vector<UsesDevice> & getUsesDevices() const;
+
         static ImplementationInfo* buildImplementationInfo(CF::FileSystem_ptr fileSys, const SPD::Implementation& spdImpl);
+
 
     private:
         ImplementationInfo (const ImplementationInfo&);
@@ -137,22 +98,20 @@ namespace ossie
         void addDependencyProperty(const ossie::PropertyRef& property);
         void addSoftPkgDependency(SoftpkgInfo* softpkg);
 
-        std::string id;
+        const ossie::SPD::Implementation* implementation;
+
         CF::LoadableDevice::LoadType codeType;
-        std::string localFileName;
         std::string entryPoint;
         CORBA::ULong stackSize;
         CORBA::ULong priority;
         bool _hasStackSize;
         bool _hasPriority;
-        std::vector<std::string> processorDeps;
-        std::vector<ossie::SPD::NameVersionPair> osDeps;
         std::vector<PropertyRef> dependencyProperties;
         std::vector<SoftpkgInfo*> softPkgDependencies;
 
     };
 
-    class SoftpkgInfo : public UsesDeviceContext
+    class SoftpkgInfo
     {
         ENABLE_LOGGING
 
@@ -166,6 +125,8 @@ namespace ossie
 
         void addImplementation(ImplementationInfo* impl);
         const ImplementationInfo::List& getImplementations() const;
+
+        const std::vector<UsesDevice> & getUsesDevices() const;
 
         static SoftpkgInfo* buildSoftpkgInfo (CF::FileSystem_ptr fileSys, const char* spdFileName);
 

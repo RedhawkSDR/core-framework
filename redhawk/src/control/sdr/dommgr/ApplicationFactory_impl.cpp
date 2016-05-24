@@ -860,7 +860,7 @@ void createHelper::_handleUsesDevices(ossie::ApplicationDeployment& appDeploymen
                                       const std::string& appName)
 {
     // Gets all uses device info from the SAD file
-    const UsesDeviceInfo::List& usesDevices = _appProfile.getUsesDevices();
+    const std::vector<UsesDevice>& usesDevices = _appFact._sadParser.getUsesDevices();
     LOG_TRACE(ApplicationFactory_impl, "Application has " << usesDevices.size() << " usesdevice dependencies");
 
     // Get the assembly controller's configure properties for context in the
@@ -878,14 +878,14 @@ void createHelper::_handleUsesDevices(ossie::ApplicationDeployment& appDeploymen
         ostringstream eout;
         eout << "Failed to satisfy 'usesdevice' dependencies ";
         bool first = true;
-        for (UsesDeviceInfo::List::const_iterator uses = usesDevices.begin(); uses != usesDevices.end(); ++uses) {
-            if (!assignedDevices.getUsesDeviceAssignment((*uses)->getId())) {
+        for (std::vector<UsesDevice>::const_iterator uses = usesDevices.begin(); uses != usesDevices.end(); ++uses) {
+            if (!assignedDevices.getUsesDeviceAssignment(uses->getID())) {
                 if (!first) {
                     eout << ", ";
                 } else {
                     first = false;
                 }
-                eout << (*uses)->getId();
+                eout << uses->getID();
             }
         }
         eout << "for application '" << appName << "'";
@@ -1397,18 +1397,18 @@ void createHelper::overrideProperties(const CF::Properties& initConfiguration,
     }
 }
 
-CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDeviceProperties(const UsesDeviceInfo::List& usesDevices, const CF::Properties& configureProperties)
+CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDeviceProperties(const std::vector<UsesDevice>& usesDevices, const CF::Properties& configureProperties)
 {
     CF::AllocationManager::AllocationRequestSequence request;
     request.length(usesDevices.size());
     
     for (unsigned int usesdev_idx=0; usesdev_idx< usesDevices.size(); usesdev_idx++) {
-        const std::string requestid = usesDevices[usesdev_idx]->getId();
+        const std::string requestid = usesDevices[usesdev_idx].getID();
         request[usesdev_idx].requestID = requestid.c_str();
 
         // Get the usesdevice dependency properties
         CF::Properties& allocationProperties = request[usesdev_idx].allocationProperties;
-        const std::vector<PropertyRef>&prop_refs = usesDevices[usesdev_idx]->getProperties();
+        const std::vector<PropertyRef>&prop_refs = usesDevices[usesdev_idx].getDependencies();
         this->_castRequestProperties(allocationProperties, prop_refs);
         
         this->_evaluateMATHinRequest(allocationProperties, configureProperties);
@@ -1437,21 +1437,21 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
     
     // Find the devices that allocate the SPD's minimum required usesdevices properties
     ossie::ComponentInfo* component = deployment->getComponent();
-    const UsesDeviceInfo::List &usesDevVec = component->getUsesDevices();
+    const std::vector<UsesDevice>& usesDevVec = component->getUsesDevices();
     ossie::UsesDeviceDeployment assignedDevices;
     if (!allocateUsesDevices(usesDevVec, configureProperties, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the component
         ostringstream eout;
         eout << "Failed to satisfy 'usesdevice' dependencies ";
         bool first = true;
-        for (UsesDeviceInfo::List::const_iterator uses = usesDevVec.begin(); uses != usesDevVec.end(); ++uses) {
-            if (!assignedDevices.getUsesDeviceAssignment((*uses)->getId())) {
+        for (std::vector<UsesDevice>::const_iterator uses = usesDevVec.begin(); uses != usesDevVec.end(); ++uses) {
+            if (!assignedDevices.getUsesDeviceAssignment(uses->getID())) {
                 if (!first) {
                     eout << ", ";
                 } else {
                     first = false;
                 }
-                eout << (*uses)->getId();
+                eout << uses->getID();
             }
         }
         eout << "for component '" << deployment->getIdentifier() << "'";
@@ -1467,7 +1467,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
         // Handle 'usesdevice' dependencies for the particular implementation
         UsesDeviceDeployment implAssignedDevices;
         ScopedAllocations implAllocations(*this->_allocationMgr);
-        const UsesDeviceInfo::List &implUsesDevVec = impl->getUsesDevices();
+        const std::vector<UsesDevice>& implUsesDevVec = impl->getUsesDevices();
         
         if (!allocateUsesDevices(implUsesDevVec, configureProperties, implAssignedDevices, implAllocations)) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to satisfy 'usesdevice' dependencies for component "
@@ -1551,19 +1551,19 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
     throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
 }
 
-bool createHelper::allocateUsesDevices(const ossie::UsesDeviceInfo::List& usesDevices,
+bool createHelper::allocateUsesDevices(const std::vector<UsesDevice>& usesDevices,
                                        const CF::Properties& configureProperties,
                                        ossie::UsesDeviceDeployment& deviceAssignments,
                                        ScopedAllocations& allocations)
 {
     // Create a temporary lookup table for reconciling allocation requests with
     // usesdevice identifiers
-    typedef std::map<std::string,UsesDeviceInfo*> UsesDeviceMap;
+    typedef std::map<std::string,const UsesDevice*> UsesDeviceMap;
     UsesDeviceMap usesDeviceMap;
-    for (UsesDeviceInfo::List::const_iterator iter = usesDevices.begin(); iter != usesDevices.end(); ++iter) {
+    for (std::vector<UsesDevice>::const_iterator iter = usesDevices.begin(); iter != usesDevices.end(); ++iter) {
         // Ensure that no devices are assigned to start; the caller can check
         // for unassigned devices to report which usesdevices failed
-        usesDeviceMap[(*iter)->getId()] = *iter;
+        usesDeviceMap[iter->getID()] = &(*iter);
     }
     
     // Track allocations made internally, either to clean up on failure or to

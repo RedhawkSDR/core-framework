@@ -115,13 +115,6 @@ void ApplicationProfile::load(CF::FileSystem_ptr fileSystem, const SoftwareAssem
 {
     identifier = sad.getID();
 
-    // Gets uses device relationships
-    const std::vector<UsesDevice>& usesDevice = sad.getUsesDevices();
-    for (std::vector<UsesDevice>::const_iterator use = usesDevice.begin(); use != usesDevice.end(); ++use) {
-        UsesDeviceInfo* useDev = new UsesDeviceInfo(use->getID(), use->getType(), use->getDependencies());
-        addUsesDevice(useDev);
-    }
-
     // Walk through the host collocations first
     const std::vector<SoftwareAssembly::HostCollocation>& collocations = sad.getHostCollocations();
     for (size_t index = 0; index < collocations.size(); ++index) {
