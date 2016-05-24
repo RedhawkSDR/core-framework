@@ -1833,7 +1833,7 @@ ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::S
             continue;
         }
 
-        ossie::SoftpkgDeployment* dependency = new ossie::SoftpkgDeployment(softpkg, implementation);
+        ossie::SoftpkgDeployment* dependency = new ossie::SoftpkgDeployment(&(softpkg->spd), implementation);
         // Recursively check any softpkg dependencies
         if (resolveSoftpkgDependencies(dependency, device)) {
             return dependency;
@@ -2192,7 +2192,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
 {
     const ossie::ComponentInfo* component = deployment->getComponent();
     const ossie::ImplementationInfo* implementation = deployment->getImplementation();
-    const ossie::SoftPkg* softpkg = deployment->getSPD();
+    const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
 
     // Get executable device reference
     boost::shared_ptr<DeviceNode> device = deployment->getAssignedDevice();
@@ -2403,7 +2403,7 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
     // register with the application, nor do they need to be initialized
     std::set<std::string> expected_components;
     for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
-        if ((*dep)->getSPD()->isScaCompliant()) {
+        if ((*dep)->getSoftPkg()->isScaCompliant()) {
             expected_components.insert((*dep)->getIdentifier());
         }
     }
@@ -2419,7 +2419,7 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
         for (unsigned int req_idx = 0; req_idx < deployments.size(); req_idx++) {
             ossie::ComponentDeployment* deployment = deployments[req_idx];
             if (expected_components.count(deployment->getIdentifier())) {
-                eout << "Timed out waiting for component to register: '" << deployment->getSPD()->getName()
+                eout << "Timed out waiting for component to register: '" << deployment->getSoftPkg()->getName()
                      << "' with component id: '" << deployment->getIdentifier()
                      << " assigned to device: '" << deployment->getAssignedDevice()->identifier;
                 break;
@@ -2443,7 +2443,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
 
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
         ossie::ComponentDeployment* deployment = deployments[rc_idx];
-        const ossie::SoftPkg* softpkg = deployment->getSPD();
+        const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
         const ossie::ComponentInfo* component = deployment->getComponent();
 
         // If the component is non-SCA compliant then we don't expect anything beyond this
@@ -2615,7 +2615,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
 
     for (DeploymentList::iterator depl = configure_list.begin(); depl != configure_list.end(); ++depl) {
         ossie::ComponentDeployment* deployment = *depl;
-        const ossie::SoftPkg* softpkg = deployment->getSPD();
+        const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
         const ossie::ComponentInfo* component = deployment->getComponent();
         
         // Assuming 1 instantiation for each componentplacement

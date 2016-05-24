@@ -81,7 +81,7 @@ CF::Device_ptr UsesDeviceAssignment::getAssignedDevice() const
     return CF::Device::_duplicate(assignedDevice);
 }
 
-SoftpkgDeployment::SoftpkgDeployment(SoftpkgInfo* softpkg, const ImplementationInfo* implementation) :
+SoftpkgDeployment::SoftpkgDeployment(const SoftPkg* softpkg, const ImplementationInfo* implementation) :
     softpkg(softpkg),
     implementation(implementation)
 {
@@ -92,14 +92,9 @@ SoftpkgDeployment::~SoftpkgDeployment()
     clearDependencies();
 }
 
-SoftpkgInfo* SoftpkgDeployment::getSoftpkg()
+const SoftPkg* SoftpkgDeployment::getSoftPkg() const
 {
     return softpkg;
-}
-
-const SoftPkg* SoftpkgDeployment::getSPD() const
-{
-    return &(softpkg->spd);
 }
 
 void SoftpkgDeployment::setImplementation(const ImplementationInfo* implementation)
@@ -192,7 +187,7 @@ std::string SoftpkgDeployment::getLocalFile()
     fs::path codeLocalFile = fs::path(implementation->getLocalFileName());
     if (!codeLocalFile.has_root_directory()) {
         // Path is relative to SPD file location
-        fs::path base_dir = fs::path(softpkg->getSpdFileName()).parent_path();
+        fs::path base_dir = fs::path(softpkg->getSPDFile()).parent_path();
         codeLocalFile = base_dir / codeLocalFile;
     }
     codeLocalFile = codeLocalFile.normalize();
@@ -206,7 +201,7 @@ std::string SoftpkgDeployment::getLocalFile()
 ComponentDeployment::ComponentDeployment(ComponentInfo* component,
                                          const ComponentInstantiation* instantiation,
                                          const std::string& identifier) :
-    SoftpkgDeployment(component),
+    SoftpkgDeployment(&(component->spd)),
     component(component),
     instantiation(instantiation),
     identifier(identifier),
@@ -246,7 +241,7 @@ std::string ComponentDeployment::getEntryPoint()
         fs::path entryPointPath = fs::path(entryPoint);
         if (!entryPointPath.has_root_directory()) {
             // Path is relative to SPD file location
-            fs::path base_dir = fs::path(softpkg->getSpdFileName()).parent_path();
+            fs::path base_dir = fs::path(softpkg->getSPDFile()).parent_path();
             entryPointPath = base_dir / entryPointPath;
         }
         entryPoint = entryPointPath.normalize().string();
