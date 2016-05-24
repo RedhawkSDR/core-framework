@@ -87,7 +87,6 @@ namespace ossie
         void overrideProperty(const char* id, const CORBA::Any& value);
 
         const std::string& getInstantiationIdentifier() const;
-        const char* getUsageName() const;
         bool isResource() const;
         bool isConfigurable() const;
         bool isAssemblyController() const;
@@ -114,7 +113,6 @@ namespace ossie
         ComponentInfo (const ComponentInfo&);
 
         void process_overrides(CF::Properties* props, const char* id, CORBA::Any value);
-        bool _isConfigurable;
 
         std::string usageName;
 

@@ -271,11 +271,6 @@ const std::string& ComponentInfo::getInstantiationIdentifier() const
     return instantiation->getID();
 }
 
-const char* ComponentInfo::getUsageName() const
-{
-    return usageName.c_str();
-}
-
 bool ComponentInfo::isResource() const
 {
     return spd->getDescriptor()->isResource();
