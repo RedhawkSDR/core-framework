@@ -2732,6 +2732,8 @@ void createHelper::connectComponents(ossie::ApplicationDeployment& appDeployment
 
 std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& deployments)
 {
+    LOG_TRACE(ApplicationFactory_impl, "Assigning start order");
+
     // Now that all of the components are known, bin the start orders based on
     // the values in the SAD. Using a multimap, keyed on the start order value,
     // accounts for duplicate keys and allows assigning the effective order
@@ -2741,7 +2743,10 @@ std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& 
     for (size_t index = 0; index < deployments.size(); ++index) {
         ossie::ComponentDeployment* deployment = deployments[index];
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
-        if (!instantiation->isAssemblyController() && instantiation->hasStartOrder()) {
+        if (instantiation->isAssemblyController()) {
+            LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation->getID()
+                      << " is the assembly controller");
+        } else if (instantiation->hasStartOrder()) {
             // Only track start order if it was provided, and the component is
             // not the assembly controller
             start_map.insert(std::make_pair(instantiation->getStartOrder(), deployment));
@@ -2751,7 +2756,6 @@ std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& 
     // Build the start order vector in the right order
     std::vector<CF::Resource_var> start_order;
     int index = 1;
-    LOG_TRACE(ApplicationFactory_impl, "Assigning start order");
     for (StartOrderMap::iterator ii = start_map.begin(); ii != start_map.end(); ++ii, ++index) {
         LOG_TRACE(ApplicationFactory_impl, index << ": "
                   << ii->second->getInstantiation()->getID());

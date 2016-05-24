@@ -122,7 +122,8 @@ const std::string StructSequencePropertyRef::_asString() const {
 //
 // ComponentInstantiation
 //
-ComponentInstantiation::ComponentInstantiation() 
+ComponentInstantiation::ComponentInstantiation() :
+    _isAssemblyController(false)
 {
 }
 
