@@ -63,12 +63,8 @@ static void addProperty(const CF::DataType& dt, CF::Properties& prop)
 PREPARE_CF_LOGGING(ImplementationInfo);
 
 ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
-    implementation(&spdImpl),
-    entryPoint()
+    implementation(&spdImpl)
 {
-    setEntryPoint(spdImpl.getEntryPoint());
-    setStackSize(spdImpl.code.stacksize.get());
-    setPriority(spdImpl.code.priority.get());
 }
 
 ImplementationInfo::~ImplementationInfo()
@@ -118,66 +114,6 @@ const std::vector<SoftpkgInfo*>& ImplementationInfo::getSoftPkgDependency() cons
 const std::vector<ossie::SPD::NameVersionPair>& ImplementationInfo::getOsDeps() const
 {
     return implementation->getOsDeps();
-}
-
-const std::string& ImplementationInfo::getLocalFileName() const
-{
-    return implementation->getCodeFile();
-}
-
-const std::string& ImplementationInfo::getEntryPoint() const
-{
-    return entryPoint;
-}
-
-const CORBA::ULong ImplementationInfo::getStackSize() const
-{
-    return stackSize;
-}
-
-const CORBA::ULong ImplementationInfo::getPriority() const
-{
-    return priority;
-}
-
-const bool ImplementationInfo::hasStackSize() const
-{
-    return _hasStackSize;
-}
-
-const bool ImplementationInfo::hasPriority() const
-{
-    return _hasPriority;
-}
-
-const std::vector<UsesDevice>& ImplementationInfo::getUsesDevices() const
-{
-    return implementation->getUsesDevices();
-}
-
-void ImplementationInfo::setEntryPoint(const char* _entryPoint)
-{
-    if (_entryPoint) {
-        entryPoint = _entryPoint;
-    }
-}
-
-void ImplementationInfo::setStackSize(const unsigned long long* _stackSize)
-{
-    _hasStackSize = false;
-    if (_stackSize) {
-        stackSize = *_stackSize;
-        _hasStackSize = true;
-    }
-}
-
-void ImplementationInfo::setPriority(const unsigned long long* _priority)
-{
-    _hasPriority = false;
-    if (_priority) {
-        priority = *_priority;
-        _hasPriority = true;
-    }
 }
 
 void ImplementationInfo::addSoftPkgDependency(SoftpkgInfo* softpkg)
@@ -274,11 +210,6 @@ void SoftpkgInfo::addImplementation(ImplementationInfo* impl)
 const ImplementationInfo::List& SoftpkgInfo::getImplementations() const
 {
     return _implementations;
-}
-
-const std::vector<UsesDevice>& SoftpkgInfo::getUsesDevices() const
-{
-    return spd.getUsesDevices();
 }
 
 ////////////////////////////////////////////////////

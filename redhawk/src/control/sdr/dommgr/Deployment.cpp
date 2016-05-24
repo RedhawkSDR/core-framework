@@ -189,7 +189,7 @@ void SoftpkgDeployment::load(Application_impl* application, CF::FileSystem_ptr f
 
 std::string SoftpkgDeployment::getLocalFile()
 {
-    fs::path codeLocalFile = fs::path(implementation->getLocalFileName());
+    fs::path codeLocalFile = fs::path(implementation->getImplementation()->getCodeFile());
     if (!codeLocalFile.has_root_directory()) {
         // Path is relative to SPD file location
         fs::path base_dir = fs::path(softpkg->getSPDFile()).parent_path();
@@ -257,36 +257,37 @@ boost::shared_ptr<DeviceNode> ComponentDeployment::getAssignedDevice()
 
 std::string ComponentDeployment::getEntryPoint()
 {
-    std::string entryPoint = implementation->getEntryPoint();
-    if (!entryPoint.empty()) {
+    const char* entryPoint = implementation->getImplementation()->getEntryPoint();
+    if (entryPoint) {
         fs::path entryPointPath = fs::path(entryPoint);
         if (!entryPointPath.has_root_directory()) {
             // Path is relative to SPD file location
             fs::path base_dir = fs::path(softpkg->getSPDFile()).parent_path();
             entryPointPath = base_dir / entryPointPath;
         }
-        entryPoint = entryPointPath.normalize().string();
+        return entryPointPath.normalize().string();
     }
-    return entryPoint;
+    return std::string();
 }
 
 redhawk::PropertyMap ComponentDeployment::getOptions()
 {
     // Get the options from the softpkg
     redhawk::PropertyMap options(component->getOptions());
+    const ossie::SPD::Code& code = implementation->getImplementation()->code;
 
     // Get the PRIORITY and STACK_SIZE from the SPD (if available)
-    if (implementation->hasStackSize()) {
+    if (code.stacksize.isSet()) {
         // 3.1.3.3.3.3.6
         // The specification says it's supposed to be an unsigned long, but the
         // parser is set to unsigned long long
-        options[CF::ExecutableDevice::STACK_SIZE_ID] = implementation->getStackSize();
+        options[CF::ExecutableDevice::STACK_SIZE_ID] = code.stacksize.get();
     }
-    if (implementation->hasPriority()) {
+    if (code.priority.isSet()) {
         // 3.1.3.3.3.3.7
         // The specification says it's supposed to be an unsigned long, but the
         // parser is set to unsigned long long
-        options[CF::ExecutableDevice::PRIORITY_ID] = implementation->getPriority();
+        options[CF::ExecutableDevice::PRIORITY_ID] = code.priority.get();
     }
 
     redhawk::PropertyMap affinity = affinityOptions;

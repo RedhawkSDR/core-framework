@@ -74,35 +74,21 @@ namespace ossie
         const std::string& getId() const;
         const std::vector<std::string>& getProcessorDeps() const;
         const std::vector<ossie::SPD::NameVersionPair>& getOsDeps() const;
-        const std::string& getLocalFileName() const;
-        const std::string& getEntryPoint() const;
-        const CORBA::ULong getStackSize() const;
-        const CORBA::ULong getPriority() const;
-        const bool hasStackSize() const;
-        const bool hasPriority() const;
         const std::vector<SoftpkgInfo*>& getSoftPkgDependency() const;
 
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
-
-        const std::vector<UsesDevice> & getUsesDevices() const;
 
         static ImplementationInfo* buildImplementationInfo(CF::FileSystem_ptr fileSys, const SPD::Implementation& spdImpl);
 
 
     private:
         ImplementationInfo (const ImplementationInfo&);
-        void setEntryPoint(const char* fileName);
         void setStackSize(const unsigned long long *_stackSize);
         void setPriority(const unsigned long long *_priority);
         void addSoftPkgDependency(SoftpkgInfo* softpkg);
 
         const ossie::SPD::Implementation* implementation;
 
-        std::string entryPoint;
-        CORBA::ULong stackSize;
-        CORBA::ULong priority;
-        bool _hasStackSize;
-        bool _hasPriority;
         std::vector<SoftpkgInfo*> softPkgDependencies;
 
     };
@@ -121,8 +107,6 @@ namespace ossie
 
         void addImplementation(ImplementationInfo* impl);
         const ImplementationInfo::List& getImplementations() const;
-
-        const std::vector<UsesDevice> & getUsesDevices() const;
 
         static SoftpkgInfo* buildSoftpkgInfo (CF::FileSystem_ptr fileSys, const char* spdFileName);
 
