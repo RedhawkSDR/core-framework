@@ -107,6 +107,11 @@ const ImplementationInfo* SoftpkgDeployment::getImplementation() const
     return implementation;
 }
 
+const SPD::Implementation* SoftpkgDeployment::getSPDImplementation() const
+{
+    return implementation->getImplementation();
+}
+
 void SoftpkgDeployment::addDependency(SoftpkgDeployment* dependency)
 {
     dependencies.push_back(dependency);
@@ -153,7 +158,7 @@ void SoftpkgDeployment::load(Application_impl* application, CF::FileSystem_ptr f
     }
 
     // Determine absolute path of local file
-    CF::LoadableDevice::LoadType codeType = implementation->getCodeType();
+    CF::LoadableDevice::LoadType codeType = getCodeType();
     const std::string fileName = getLocalFile();
     RH_NL_DEBUG("ApplicationFactory_impl", "Loading file " << fileName
                 << " for soft package " << softpkg->getName());
@@ -196,6 +201,22 @@ std::string SoftpkgDeployment::getLocalFile()
     }
 
     return codeLocalFile.string();
+}
+
+CF::LoadableDevice::LoadType SoftpkgDeployment::getCodeType() const
+{
+    const std::string type = implementation->getImplementation()->getCodeType();
+    if (type == "KernelModule") {
+        return CF::LoadableDevice::KERNEL_MODULE;
+    } else if (type == "SharedLibrary") {
+        return CF::LoadableDevice::SHARED_LIBRARY;
+    } else if (type == "Executable") {
+        return CF::LoadableDevice::EXECUTABLE;
+    } else if (type == "Driver") {
+        return CF::LoadableDevice::DRIVER;
+    } else {
+        return CF::LoadableDevice::LoadType();
+    }
 }
 
 ComponentDeployment::ComponentDeployment(ComponentInfo* component,

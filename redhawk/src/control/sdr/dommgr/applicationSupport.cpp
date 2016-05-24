@@ -64,23 +64,11 @@ PREPARE_CF_LOGGING(ImplementationInfo);
 
 ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
     implementation(&spdImpl),
-    codeType(),
-    entryPoint(),
-    dependencyProperties()
+    entryPoint()
 {
     setEntryPoint(spdImpl.getEntryPoint());
-    setCodeType(spdImpl.getCodeType());
     setStackSize(spdImpl.code.stacksize.get());
     setPriority(spdImpl.code.priority.get());
-
-    // Handle allocation property dependencies
-    LOG_TRACE(ImplementationInfo, "Loading component implementation property dependencies")
-    const std::vector<ossie::PropertyRef>& dependencies = spdImpl.getDependencies();
-    std::vector<ossie::PropertyRef>::const_iterator ii;
-    for (ii = dependencies.begin(); ii != dependencies.end(); ++ii) {
-        LOG_TRACE(ImplementationInfo, "Loading component implementation property dependency '" << *ii);
-        addDependencyProperty(*ii);
-    }
 }
 
 ImplementationInfo::~ImplementationInfo()
@@ -107,6 +95,11 @@ ImplementationInfo* ImplementationInfo::buildImplementationInfo(CF::FileSystem_p
     return impl;
 }
 
+const ossie::SPD::Implementation* ImplementationInfo::getImplementation() const
+{
+    return implementation;
+}
+
 const std::string& ImplementationInfo::getId() const
 {
     return implementation->getID();
@@ -125,11 +118,6 @@ const std::vector<SoftpkgInfo*>& ImplementationInfo::getSoftPkgDependency() cons
 const std::vector<ossie::SPD::NameVersionPair>& ImplementationInfo::getOsDeps() const
 {
     return implementation->getOsDeps();
-}
-
-CF::LoadableDevice::LoadType ImplementationInfo::getCodeType() const
-{
-    return codeType;
 }
 
 const std::string& ImplementationInfo::getLocalFileName() const
@@ -162,30 +150,9 @@ const bool ImplementationInfo::hasPriority() const
     return _hasPriority;
 }
 
-const std::vector<PropertyRef>& ImplementationInfo::getDependencyProperties() const
-{
-    return dependencyProperties;
-}
-
 const std::vector<UsesDevice>& ImplementationInfo::getUsesDevices() const
 {
     return implementation->getUsesDevices();
-}
-
-void ImplementationInfo::setCodeType(const char* _type)
-{
-    std::string type(_type);
-    if (type == "KernelModule") {
-        codeType = CF::LoadableDevice::KERNEL_MODULE;
-    } else if (type == "SharedLibrary") {
-        codeType = CF::LoadableDevice::SHARED_LIBRARY;
-    } else if (type == "Executable") {
-        codeType = CF::LoadableDevice::EXECUTABLE;
-    } else if (type == "Driver") {
-        codeType = CF::LoadableDevice::DRIVER;
-    } else {
-        LOG_WARN(ImplementationInfo, "Bad code type " << type);
-    }
 }
 
 void ImplementationInfo::setEntryPoint(const char* _entryPoint)
@@ -211,11 +178,6 @@ void ImplementationInfo::setPriority(const unsigned long long* _priority)
         priority = *_priority;
         _hasPriority = true;
     }
-}
-
-void ImplementationInfo::addDependencyProperty(const PropertyRef& property)
-{
-    dependencyProperties.push_back(property);
 }
 
 void ImplementationInfo::addSoftPkgDependency(SoftpkgInfo* softpkg)

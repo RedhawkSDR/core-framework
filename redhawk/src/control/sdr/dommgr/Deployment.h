@@ -78,8 +78,10 @@ namespace ossie {
 
         void setImplementation(const ImplementationInfo* implementation);
         const ImplementationInfo* getImplementation() const;
+        const SPD::Implementation* getSPDImplementation() const;
 
         std::string getLocalFile();
+        CF::LoadableDevice::LoadType getCodeType() const;
 
         void addDependency(SoftpkgDeployment* dependency);
         const DeploymentList& getDependencies();

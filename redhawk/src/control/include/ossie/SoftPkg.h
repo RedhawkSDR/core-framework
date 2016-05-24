@@ -95,24 +95,6 @@ namespace ossie {
                     stacksize((unsigned long long)0),
                     priority((unsigned long long)0)
                 {}
-
-                Code(const Code& other) :
-                    localfile(other.localfile),
-                    type(other.type),
-                    entrypoint(other.entrypoint),
-                    stacksize(other.stacksize),
-                    priority(other.priority)
-                {}
-
-                Code& operator=(const Code& other)
-                {
-                    localfile = other.localfile;
-                    type = other.type;
-                    entrypoint = other.entrypoint;
-                    stacksize = other.stacksize;
-                    priority = other.priority;
-                    return *this;
-                }
         };
 
         class Implementation {
