@@ -417,22 +417,18 @@ const ImplementationInfo &SoftpkgInfo::getSelectedImplementation() const
  */
 PREPARE_CF_LOGGING(ResourceInfo);
 
-void ResourceInfo::LoadResource(CF::FileSystem_ptr fileSys, 
-					       const char* spdFileName,
-					       ResourceInfo &rsc)
+void ResourceInfo::load(CF::FileSystem_ptr fileSys)
 {
-    LOG_TRACE(ResourceInfo, "Building component info from file " << spdFileName);
+    LOG_TRACE(ResourceInfo, "Building component info from file " << _spdFileName);
 
-    ResourceInfo newComponent(spdFileName);
-
-    if (!newComponent.parseProfile(fileSys)) {
+    if (!parseProfile(fileSys)) {
       throw 0;
     }
     
-    if (newComponent.spd.getSCDFile() != 0) {
+    if (spd.getSCDFile() != 0) {
         try {
-            File_stream _scd(fileSys, newComponent.spd.getSCDFile());
-            newComponent.scd.load(_scd);
+            File_stream _scd(fileSys, spd.getSCDFile());
+            scd.load(_scd);
             _scd.close();
         } catch (ossie::parser_error& e) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
@@ -444,12 +440,12 @@ void ResourceInfo::LoadResource(CF::FileSystem_ptr fileSys,
         }
     }
 
-    if (newComponent.spd.getPRFFile() != 0) {
-        LOG_DEBUG(ResourceInfo, "Loading component properties from " << newComponent.spd.getPRFFile());
+    if (spd.getPRFFile() != 0) {
+        LOG_DEBUG(ResourceInfo, "Loading component properties from " << spd.getPRFFile());
         try {
-            File_stream _prf(fileSys, newComponent.spd.getPRFFile());
+            File_stream _prf(fileSys, spd.getPRFFile());
             LOG_DEBUG(ResourceInfo, "Parsing component properties");
-            newComponent.prf.load(_prf);
+            prf.load(_prf);
             LOG_TRACE(ResourceInfo, "Closing PRF file")
             _prf.close();
         } catch (ossie::parser_error& e) {
@@ -465,20 +461,20 @@ void ResourceInfo::LoadResource(CF::FileSystem_ptr fileSys,
     // Extract Properties from the implementation-agnostic PRF file
     // once we match the component to a device we can grab the implementation
     // specific PRF file
-    if (newComponent.spd.getPRFFile() != 0) {
+    if (spd.getPRFFile() != 0) {
         // Handle component properties
         LOG_TRACE(ResourceInfo, "Adding factory params")
-        const std::vector<const Property*>& fprop = newComponent.prf.getFactoryParamProperties();
+        const std::vector<const Property*>& fprop = prf.getFactoryParamProperties();
         for (unsigned int i = 0; i < fprop.size(); i++) {
-            newComponent.addFactoryParameter(convertPropertyToDataType(fprop[i]));
+            addFactoryParameter(convertPropertyToDataType(fprop[i]));
         }
 
         LOG_TRACE(ResourceInfo, "Adding exec params")
-        const std::vector<const Property*>& eprop = newComponent.prf.getExecParamProperties();
+        const std::vector<const Property*>& eprop = prf.getExecParamProperties();
         for (unsigned int i = 0; i < eprop.size(); i++) {
             if (std::string(eprop[i]->getMode()) != "readonly") {
                 LOG_TRACE(ResourceInfo, "Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
-                newComponent.addExecParameter(convertPropertyToDataType(eprop[i]));
+                addExecParameter(convertPropertyToDataType(eprop[i]));
             } else {
                 LOG_TRACE(ResourceInfo, "Ignoring readonly exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
             }
@@ -494,29 +490,27 @@ void ResourceInfo::LoadResource(CF::FileSystem_ptr fileSys,
         //    newComponent.addAllocationCapacity((*prop)[i]->getDataType());
         //}
 
-        const std::vector<const Property*>& prop = newComponent.prf.getConfigureProperties();
+        const std::vector<const Property*>& prop = prf.getConfigureProperties();
         for (unsigned int i = 0; i < prop.size(); i++) {
             if (!prop[i]->isReadOnly()) {
                 LOG_TRACE(ResourceInfo, "Adding configure prop " << prop[i]->getID() << " " << prop[i]->getName() << " " << prop[i]->isReadOnly())
-                newComponent.addConfigureProperty(convertPropertyToDataType(prop[i]));
+                addConfigureProperty(convertPropertyToDataType(prop[i]));
             }
         }
 
-        const std::vector<const Property*>& cprop = newComponent.prf.getConstructProperties();
+        const std::vector<const Property*>& cprop = prf.getConstructProperties();
         for (unsigned int i = 0; i < cprop.size(); i++) {
           LOG_TRACE(ResourceInfo, "Adding construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
           if (cprop[i]->isCommandLine()) {
-            newComponent.addExecParameter(convertPropertyToDataType(cprop[i]));
+            addExecParameter(convertPropertyToDataType(cprop[i]));
           } else {
-            newComponent.addConstructProperty(convertPropertyToDataType(cprop[i]));
+            addConstructProperty(convertPropertyToDataType(cprop[i]));
           }
         }
 
     }
         
-    LOG_TRACE(ResourceInfo, "Done building component info from file " << spdFileName);
-    rsc = newComponent;
-    return;
+    LOG_TRACE(ResourceInfo, "Done building component info from file " << _spdFileName);
 }
 
 ResourceInfo::ResourceInfo(const std::string& spdFileName) :
@@ -533,41 +527,6 @@ ResourceInfo::ResourceInfo(const std::string& spdFileName) :
     catch(...){
     }
 
-}
-
-
-ResourceInfo & ResourceInfo::operator=( const ResourceInfo& src) {
-  SoftpkgInfo::operator=(src);
-  _copy(src);
-  return *this;
-}
-
-ResourceInfo::ResourceInfo( const ResourceInfo& src) : SoftpkgInfo(src)
-{
-  _copy(src);
-}
-
-void ResourceInfo::_copy( const ResourceInfo& src) 
-{
-  prf = src.prf;
-  scd = src.scd;
-  _isAssemblyController = src._isAssemblyController;
-  _isConfigurable = src._isConfigurable;
-  isNamingService = src.isNamingService;
-  usageName = src.usageName;
-  identifier = src.identifier;
-  instantiationId = src.instantiationId;
-  namingServiceName = src.namingServiceName;
-  loggingConfig = src.loggingConfig;
-  configureProperties = src.configureProperties;
-  ctorProperties = src.ctorProperties;
-  options = src.options;
-  factoryParameters = src.factoryParameters;
-  execParameters = src.execParameters;
-  affinityOptions = src.affinityOptions;
-  resolved_softpkg_dependencies.resize(src.resolved_softpkg_dependencies.size());
-  std::copy( src.resolved_softpkg_dependencies.begin(),
-	     src.resolved_softpkg_dependencies.end(), resolved_softpkg_dependencies.begin() );
 }
 
 ResourceInfo::~ResourceInfo ()

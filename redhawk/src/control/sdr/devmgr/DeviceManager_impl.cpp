@@ -1900,9 +1900,9 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
 
   // Open the SPD file using the SCA FileSystem
   LOG_TRACE(DeviceManager_impl, "Building Device Info From SPD File");
-  ossie::SpdSupport::ResourceInfo spdinfo;
+  ossie::SpdSupport::ResourceInfo spdinfo(spdFile);
   try  {
-    ossie::SpdSupport::ResourceInfo::LoadResource(_fileSys, spdFile.c_str(), spdinfo);
+    spdinfo.load(_fileSys);
   }
   catch(...) {
     std::ostringstream eout;

@@ -177,8 +177,6 @@ namespace ossie
       typedef ossie::ComponentInstantiation::LoggingConfig  LoggingConfig;
 
         ResourceInfo (const std::string& spdFileName);
-        ResourceInfo ( const ResourceInfo&);
-        ResourceInfo (){};
         ~ResourceInfo ();
         ResourceInfo &operator=( const ResourceInfo&);
 
@@ -224,16 +222,14 @@ namespace ossie
         CF::Properties getAffinityOptions();
         CF::Properties getExecParameters();
 
-        static void LoadResource(CF::FileSystem_ptr fileSystem, 
-                                 const char* _SPDFile, 
-                                 ResourceInfo &rsc);
+        void load(CF::FileSystem_ptr fileSystem);
+
         ComponentDescriptor scd;
         ossie::Properties prf;
 
     protected:
 
         void process_overrides(CF::Properties* props, const char* id, CORBA::Any value);
-        void _copy( const ResourceInfo &src );
         bool _isAssemblyController;
         bool _isConfigurable;
         bool isNamingService;
