@@ -709,12 +709,12 @@ bool createHelper::placeHostCollocation(ossie::ApplicationDeployment& appDeploym
     // Try all of the implementations from the current component for matches
     // with the processor and OS dependencies
     ossie::ComponentDeployment* deployment = *current;
-    const ImplementationList& comp_impls = deployment->getComponent()->getImplementations();
+    const SPD::Implementations& comp_impls = deployment->getSoftPkg()->getImplementations();
     LOG_TRACE(ApplicationFactory_impl, "Finding collocation-compatible implementations for component "
               << deployment->getInstantiation()->getID());
     ++current;
-    for (ImplementationList::const_iterator impl = comp_impls.begin(); impl != comp_impls.end(); ++impl) {
-        const ossie::SPD::Implementation* implementation = (*impl)->getImplementation();
+    for (SPD::Implementations::const_iterator impl = comp_impls.begin(); impl != comp_impls.end(); ++impl) {
+        const ossie::SPD::Implementation* implementation = &(*impl);
         LOG_TRACE(ApplicationFactory_impl, "Checking implementation " << implementation->getID());
 
         // Check that the processor dependencies are compatible, filtering out
@@ -736,7 +736,7 @@ bool createHelper::placeHostCollocation(ossie::ApplicationDeployment& appDeploym
         }
 
         // Set this implementation for deployment and recurse one more level
-        deployment->setImplementation(*impl);
+        deployment->setImplementation(implementation);
         if (placeHostCollocation(appDeployment, components, current, deploymentDevices, proc_list, os_list)) {
             return true;
         }
@@ -758,7 +758,7 @@ bool createHelper::allocateHostCollocation(ossie::ApplicationDeployment& appDepl
               << " collocated components");
     for (DeploymentList::const_iterator depl = components.begin(); depl != components.end(); ++depl) {
         LOG_TRACE(ApplicationFactory_impl, "Component " << (*depl)->getInstantiation()->getID()
-                  << " implementation " << (*depl)->getImplementation()->getId());
+                  << " implementation " << (*depl)->getImplementation()->getID());
     }
 
     const std::string requestid = ossie::generateUUID();
@@ -780,7 +780,7 @@ bool createHelper::allocateHostCollocation(ossie::ApplicationDeployment& appDepl
             if (!resolveSoftpkgDependencies(*depl, *node)) {
                 LOG_TRACE(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                           << (*depl)->getIdentifier()
-                          << " implementation " << (*depl)->getImplementation()->getId());
+                          << " implementation " << (*depl)->getImplementation()->getID());
                 return false;
             }
             (*depl)->setAssignedDevice(node);
@@ -804,7 +804,7 @@ CF::Properties createHelper::_consolidateAllocations(const DeploymentList& deplo
 {
     CF::Properties allocs;
     for (DeploymentList::const_iterator depl = deployments.begin(); depl != deployments.end(); ++depl) {
-        const std::vector<PropertyRef>& deps = (*depl)->getSPDImplementation()->getDependencies();
+        const std::vector<PropertyRef>& deps = (*depl)->getImplementation()->getDependencies();
         for (std::vector<PropertyRef>::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
           ossie::ComponentProperty *prop = dep->property.get();
           ossie::corba::push_back(allocs, ossie::convertPropertyRefToDataType(prop));
@@ -1459,11 +1459,9 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
     }
 
     // now attempt to find an implementation that can have it's allocation requirements met
-    ossie::ComponentInfo* component = deployment->getComponent();
-    const ossie::ImplementationInfo::List& implementations = component->getImplementations();
+    const SPD::Implementations& implementations = deployment->getSoftPkg()->getImplementations();
     for (size_t implCount = 0; implCount < implementations.size(); implCount++) {
-        ossie::ImplementationInfo* impl = implementations[implCount];
-        const ossie::SPD::Implementation* implementation = impl->getImplementation();
+        const ossie::SPD::Implementation* implementation = &implementations[implCount];
 
         // Handle 'usesdevice' dependencies for the particular implementation
         UsesDeviceDeployment implAssignedDevices;
@@ -1476,7 +1474,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
             continue;
         }
 
-        deployment->setImplementation(impl);
+        deployment->setImplementation(implementation);
 
         // Transfer ownership of the uses device assigments to the deployment
         assignedDevices.transferUsesDeviceAssignments(*deployment);
@@ -1539,7 +1537,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
     if (allBusy) {
         // Report failure
         std::ostringstream eout;
-        eout << "Unable to launch component '"<<component->getName()<<"'. All executable devices (i.e.: GPP) in the Domain are busy";
+        eout << "Unable to launch component '"<<deployment->getComponent()->getName()<<"'. All executable devices (i.e.: GPP) in the Domain are busy";
         LOG_DEBUG(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
     }
@@ -1547,7 +1545,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
     // Report failure
     std::ostringstream eout;
     eout << "Failed to satisfy device dependencies for component: '";
-    eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << "'";
+    eout << deployment->getComponent()->getName() << "' with component id: '" << deployment->getIdentifier() << "'";
     LOG_DEBUG(ApplicationFactory_impl, eout.str());
     throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
 }
@@ -1715,7 +1713,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
                                               const std::string& appIdentifier)
 {
     const ossie::ComponentInfo* component = deployment->getComponent();
-    const ossie::SPD::Implementation* implementation = deployment->getSPDImplementation();
+    const ossie::SPD::Implementation* implementation = deployment->getImplementation();
     ossie::DeviceList devices = _registeredDevices;
 
     // First check to see if the component was assigned in the user provided DAS
@@ -1804,11 +1802,11 @@ void createHelper::_castRequestProperties(CF::Properties& allocationProperties, 
 
 bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployment, ossie::DeviceNode& device)
 {
-    const ossie::ImplementationInfo* implementation = deployment->getImplementation();
-    const std::vector<ossie::SoftpkgInfo*>& tmpSoftpkg = implementation->getSoftPkgDependency();
-    std::vector<ossie::SoftpkgInfo*>::const_iterator iterSoftpkg;
+    const ossie::SPD::Implementation* implementation = deployment->getImplementation();
+    const SPD::SoftPkgDependencies& deps = implementation->getSoftPkgDependencies();
+    SPD::SoftPkgDependencies::const_iterator iterSoftpkg;
 
-    for (iterSoftpkg = tmpSoftpkg.begin(); iterSoftpkg != tmpSoftpkg.end(); ++iterSoftpkg) {
+    for (iterSoftpkg = deps.begin(); iterSoftpkg != deps.end(); ++iterSoftpkg) {
         // Find an implementation whose dependencies match
         ossie::SoftpkgDeployment* dependency = resolveDependencyImplementation(*iterSoftpkg, device);
         if (dependency) {
@@ -1822,19 +1820,22 @@ bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployme
     return true;
 }
 
-ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg,
+ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(const ossie::SPD::SoftPkgRef& ref,
                                                                         ossie::DeviceNode& device)
 {
-    const ossie::ImplementationInfo::List& spd_list = softpkg->getImplementations();
+    const boost::shared_ptr<SoftPkg>& softpkg = ref.getReference();
+    const SPD::Implementations& spd_list = softpkg->getImplementations();
 
     for (size_t implCount = 0; implCount < spd_list.size(); implCount++) {
-        ossie::ImplementationInfo* implementation = spd_list[implCount];
+        const ossie::SPD::Implementation& implementation = spd_list[implCount];
         // Check that this implementation can run on the device
-        if (!implementation->checkProcessorAndOs(device.prf)) {
+        if (!checkProcessor(implementation.getProcessors(), device.prf.getAllocationProperties())) {
+            continue;
+        } else if (!checkOs(implementation.getOsDeps(), device.prf.getAllocationProperties())) {
             continue;
         }
 
-        ossie::SoftpkgDeployment* dependency = new ossie::SoftpkgDeployment(&(*softpkg->spd), implementation);
+        ossie::SoftpkgDeployment* dependency = new ossie::SoftpkgDeployment(softpkg, &implementation);
         // Recursively check any softpkg dependencies
         if (resolveSoftpkgDependencies(dependency, device)) {
             return dependency;
@@ -2017,7 +2018,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         ossie::ComponentDeployment* deployment = deployments[rc_idx];
         ossie::ComponentInfo* component = deployment->getComponent();
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
-        const ossie::SPD::Implementation* implementation = deployment->getSPDImplementation();
+        const ossie::SPD::Implementation* implementation = deployment->getImplementation();
 
         boost::shared_ptr<ossie::DeviceNode> device = deployment->getAssignedDevice();
         if (!device) {
@@ -2185,7 +2186,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
                                               ossie::ComponentDeployment* deployment)
 {
     const ossie::ComponentInfo* component = deployment->getComponent();
-    const ossie::SPD::Implementation* implementation = deployment->getSPDImplementation();
+    const ossie::SPD::Implementation* implementation = deployment->getImplementation();
     const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
 
     // Get executable device reference

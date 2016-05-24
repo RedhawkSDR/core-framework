@@ -81,7 +81,8 @@ CF::Device_ptr UsesDeviceAssignment::getAssignedDevice() const
     return CF::Device::_duplicate(assignedDevice);
 }
 
-SoftpkgDeployment::SoftpkgDeployment(const SoftPkg* softpkg, const ImplementationInfo* implementation) :
+SoftpkgDeployment::SoftpkgDeployment(const boost::shared_ptr<SoftPkg>& softpkg,
+                                     const SPD::Implementation* implementation) :
     softpkg(softpkg),
     implementation(implementation)
 {
@@ -94,22 +95,17 @@ SoftpkgDeployment::~SoftpkgDeployment()
 
 const SoftPkg* SoftpkgDeployment::getSoftPkg() const
 {
-    return softpkg;
+    return &(*softpkg);
 }
 
-void SoftpkgDeployment::setImplementation(const ImplementationInfo* implementation)
+void SoftpkgDeployment::setImplementation(const SPD::Implementation* implementation)
 {
     this->implementation = implementation;
 }
 
-const ImplementationInfo* SoftpkgDeployment::getImplementation() const
+const SPD::Implementation* SoftpkgDeployment::getImplementation() const
 {
     return implementation;
-}
-
-const SPD::Implementation* SoftpkgDeployment::getSPDImplementation() const
-{
-    return implementation->getImplementation();
 }
 
 void SoftpkgDeployment::addDependency(SoftpkgDeployment* dependency)
@@ -189,7 +185,7 @@ void SoftpkgDeployment::load(Application_impl* application, CF::FileSystem_ptr f
 
 std::string SoftpkgDeployment::getLocalFile()
 {
-    fs::path codeLocalFile = fs::path(implementation->getImplementation()->getCodeFile());
+    fs::path codeLocalFile = fs::path(implementation->getCodeFile());
     if (!codeLocalFile.has_root_directory()) {
         // Path is relative to SPD file location
         fs::path base_dir = fs::path(softpkg->getSPDFile()).parent_path();
@@ -205,7 +201,7 @@ std::string SoftpkgDeployment::getLocalFile()
 
 CF::LoadableDevice::LoadType SoftpkgDeployment::getCodeType() const
 {
-    const std::string type = implementation->getImplementation()->getCodeType();
+    const std::string type = implementation->getCodeType();
     if (type == "KernelModule") {
         return CF::LoadableDevice::KERNEL_MODULE;
     } else if (type == "SharedLibrary") {
@@ -222,7 +218,7 @@ CF::LoadableDevice::LoadType SoftpkgDeployment::getCodeType() const
 ComponentDeployment::ComponentDeployment(ComponentInfo* component,
                                          const ComponentInstantiation* instantiation,
                                          const std::string& identifier) :
-    SoftpkgDeployment(&(*component->spd)),
+    SoftpkgDeployment(component->spd),
     component(component),
     instantiation(instantiation),
     identifier(identifier),
@@ -257,7 +253,7 @@ boost::shared_ptr<DeviceNode> ComponentDeployment::getAssignedDevice()
 
 std::string ComponentDeployment::getEntryPoint()
 {
-    const char* entryPoint = implementation->getImplementation()->getEntryPoint();
+    const char* entryPoint = implementation->getEntryPoint();
     if (entryPoint) {
         fs::path entryPointPath = fs::path(entryPoint);
         if (!entryPointPath.has_root_directory()) {
@@ -274,7 +270,7 @@ redhawk::PropertyMap ComponentDeployment::getOptions()
 {
     // Get the options from the softpkg
     redhawk::PropertyMap options(component->getOptions());
-    const ossie::SPD::Code& code = implementation->getImplementation()->code;
+    const ossie::SPD::Code& code = implementation->code;
 
     // Get the PRIORITY and STACK_SIZE from the SPD (if available)
     if (code.stacksize.isSet()) {

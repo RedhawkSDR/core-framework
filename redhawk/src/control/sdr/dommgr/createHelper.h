@@ -100,8 +100,6 @@ private:
     ossie::ApplicationProfile _appProfile;
 
     typedef std::vector<ossie::ComponentDeployment*> DeploymentList;
-    typedef ossie::ImplementationInfo::List ImplementationList;
-    typedef std::vector<ImplementationList> CollocationList;
     typedef std::vector<std::string> ProcessorList;
     typedef std::vector<ossie::SPD::NameVersionPair> OSList;
 
@@ -167,7 +165,8 @@ private:
                                  const OSList& osDeps);
 
     bool resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployment, ossie::DeviceNode& device);
-    ossie::SoftpkgDeployment* resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg, ossie::DeviceNode& device);
+    ossie::SoftpkgDeployment* resolveDependencyImplementation(const ossie::SPD::SoftPkgRef& ref,
+                                                              ossie::DeviceNode& device);
     
     // Supports loading, executing, initializing, configuring, & connecting
     void loadAndExecuteComponents(const DeploymentList& deployments,

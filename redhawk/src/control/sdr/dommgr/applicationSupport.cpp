@@ -56,120 +56,6 @@ static void addProperty(const CF::DataType& dt, CF::Properties& prop)
     prop[index] = dt;
 }
 
-////////////////////////////////////////////////////
-/*
- * ImplementationInfo member function definitions
- */
-PREPARE_CF_LOGGING(ImplementationInfo);
-
-ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
-    implementation(&spdImpl)
-{
-    // Handle allocation property dependencies
-    LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependencies")
-    const std::vector<ossie::SPD::SoftPkgRef>& softpkgDependencies = spdImpl.getSoftPkgDependencies();
-    std::vector<ossie::SPD::SoftPkgRef>::const_iterator jj;
-    for (jj = softpkgDependencies.begin(); jj != softpkgDependencies.end(); ++jj) {
-        LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependency '" << *jj);
-        addSoftPkgDependency(new SoftpkgInfo(jj->getReference()));
-    }
-}
-
-ImplementationInfo::~ImplementationInfo()
-{
-    for (std::vector<SoftpkgInfo*>::iterator ii = softPkgDependencies.begin(); ii != softPkgDependencies.end(); ++ii) {
-        delete (*ii);
-    }
-}
-
-const ossie::SPD::Implementation* ImplementationInfo::getImplementation() const
-{
-    return implementation;
-}
-
-const std::string& ImplementationInfo::getId() const
-{
-    return implementation->getID();
-}
-
-const std::vector<std::string>& ImplementationInfo::getProcessorDeps() const
-{
-    return implementation->getProcessors();
-}
-
-const std::vector<SoftpkgInfo*>& ImplementationInfo::getSoftPkgDependency() const
-{
-    return softPkgDependencies;
-}
-
-const std::vector<ossie::SPD::NameVersionPair>& ImplementationInfo::getOsDeps() const
-{
-    return implementation->getOsDeps();
-}
-
-void ImplementationInfo::addSoftPkgDependency(SoftpkgInfo* softpkg)
-{
-    softPkgDependencies.push_back(softpkg);
-}
-
-bool ImplementationInfo::checkProcessorAndOs(const Properties& _prf) const
-{
-    bool matchProcessor = checkProcessor(getProcessorDeps(), _prf.getAllocationProperties());
-    bool matchOs = checkOs(getOsDeps(), _prf.getAllocationProperties());
-
-    if (!matchProcessor) {
-        LOG_DEBUG(ImplementationInfo, "Failed to match component processor to device allocation properties");
-    }
-    if (!matchOs) {
-        LOG_DEBUG(ImplementationInfo, "Failed to match component os to device allocation properties");
-    }
-    return matchProcessor && matchOs;
-}
-
-
-PREPARE_CF_LOGGING(SoftpkgInfo);
-
-SoftpkgInfo::SoftpkgInfo(const boost::shared_ptr<SoftPkg>& softpkg):
-    spd(softpkg)
-{
-    // Extract implementation data from SPD file
-    const std::vector <SPD::Implementation>& spd_i = spd->getImplementations();
-
-    // Assume only one implementation, use first available result [0]
-    for (unsigned int implCount = 0; implCount < spd_i.size(); implCount++) {
-        const SPD::Implementation& spdImpl = spd_i[implCount];
-        LOG_TRACE(SoftpkgInfo, "Adding implementation " << spdImpl.getID());
-        ImplementationInfo* newImpl = new ImplementationInfo(spdImpl);
-        addImplementation(newImpl);
-    }
-}
-
-SoftpkgInfo::~SoftpkgInfo()
-{
-    for (ImplementationInfo::List::iterator ii = _implementations.begin(); ii != _implementations.end(); ++ii) {
-        delete *ii;
-    }
-}
-
-const std::string& SoftpkgInfo::getSpdFileName() const
-{
-    return spd->getSPDFile();
-}
-
-const std::string& SoftpkgInfo::getName() const
-{
-    return spd->getName();
-}
-
-void SoftpkgInfo::addImplementation(ImplementationInfo* impl)
-{
-    _implementations.push_back(impl);
-}
-
-const ImplementationInfo::List& SoftpkgInfo::getImplementations() const
-{
-    return _implementations;
-}
 
 ////////////////////////////////////////////////////
 /*
@@ -255,7 +141,7 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(const boost::shared_
 }
 
 ComponentInfo::ComponentInfo(const boost::shared_ptr<SoftPkg>& softpkg, const ComponentInstantiation* instantiation) :
-    SoftpkgInfo(softpkg),
+    spd(softpkg),
     instantiation(instantiation)
 {
     // load common affinity property definitions 
@@ -271,6 +157,16 @@ ComponentInfo::ComponentInfo(const boost::shared_ptr<SoftPkg>& softpkg, const Co
 
 ComponentInfo::~ComponentInfo ()
 {
+}
+
+const std::string& ComponentInfo::getSpdFileName() const
+{
+    return spd->getSPDFile();
+}
+
+const std::string& ComponentInfo::getName() const
+{
+    return spd->getName();
 }
 
 const ComponentInstantiation* ComponentInfo::getInstantiation() const

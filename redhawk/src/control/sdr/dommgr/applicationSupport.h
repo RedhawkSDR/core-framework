@@ -54,68 +54,10 @@ namespace ossie
     };
     typedef std::list<ApplicationComponent> ComponentList;
 
-    class SoftpkgInfo;
-
-    /* Base class to contain data for implementations
-     *  - Used to store information about about implementations
-     */
-    class ImplementationInfo
-    {
-        ENABLE_LOGGING;
-
-    public:
-        typedef std::vector< ImplementationInfo* >  List;
-
-        ImplementationInfo(const SPD::Implementation& spdImpl);
-        ~ImplementationInfo();
-
-        const ossie::SPD::Implementation* getImplementation() const;
-
-        const std::string& getId() const;
-        const std::vector<std::string>& getProcessorDeps() const;
-        const std::vector<ossie::SPD::NameVersionPair>& getOsDeps() const;
-        const std::vector<SoftpkgInfo*>& getSoftPkgDependency() const;
-
-        bool checkProcessorAndOs(const ossie::Properties& prf) const;
-
-    private:
-        ImplementationInfo (const ImplementationInfo&);
-        void setStackSize(const unsigned long long *_stackSize);
-        void setPriority(const unsigned long long *_priority);
-        void addSoftPkgDependency(SoftpkgInfo* softpkg);
-
-        const ossie::SPD::Implementation* implementation;
-
-        std::vector<SoftpkgInfo*> softPkgDependencies;
-
-    };
-
-    class SoftpkgInfo
-    {
-        ENABLE_LOGGING
-
-    public:
-        
-        SoftpkgInfo (const boost::shared_ptr<SoftPkg>& softpkg);
-        ~SoftpkgInfo ();
-
-        const std::string& getSpdFileName() const;
-        const std::string& getName() const;
-
-        const ImplementationInfo::List& getImplementations() const;
-
-        boost::shared_ptr<SoftPkg> spd;
-
-    protected:
-        void addImplementation(ImplementationInfo* impl);
-
-        ImplementationInfo::List _implementations;
-    };
-
     /* Base class to contain data for components
      *  - Used to store information about about components
      */
-    class ComponentInfo : public SoftpkgInfo
+    class ComponentInfo
     {
         ENABLE_LOGGING
 
@@ -124,6 +66,11 @@ namespace ossie
 
         ComponentInfo (const boost::shared_ptr<SoftPkg>& softpkg, const ComponentInstantiation* instantiation);
         ~ComponentInfo ();
+
+        const std::string& getSpdFileName() const;
+        const std::string& getName() const;
+
+        boost::shared_ptr<SoftPkg> spd;
 
         const ComponentInstantiation* getInstantiation() const;
 
