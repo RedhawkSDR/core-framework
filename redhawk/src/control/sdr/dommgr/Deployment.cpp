@@ -354,15 +354,6 @@ void ComponentDeployment::mergeAffinityOptions(const CF::Properties& properties)
     affinityOptions.update(properties);
 }
 
-const UsesDeviceInfo* ComponentDeployment::getUsesDeviceById(const std::string& usesId)
-{
-    const UsesDeviceInfo* usesDevice = component->getUsesDeviceById(usesId);
-    if (!usesDevice) {
-        usesDevice = implementation->getUsesDeviceById(usesId);
-    }
-    return usesDevice;
-}
-
 void ComponentDeployment::setResourcePtr(CF::Resource_ptr resource)
 {
     this->resource = CF::Resource::_duplicate(resource);

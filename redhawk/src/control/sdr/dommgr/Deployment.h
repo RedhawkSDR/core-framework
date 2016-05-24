@@ -134,8 +134,6 @@ namespace ossie {
         void setAssignedDevice(const boost::shared_ptr<DeviceNode>& device);
         boost::shared_ptr<DeviceNode> getAssignedDevice();
 
-        const ossie::UsesDeviceInfo* getUsesDeviceById(const std::string& usesId);
-
         void setResourcePtr(CF::Resource_ptr resource);
         CF::Resource_ptr getResourcePtr() const;
 

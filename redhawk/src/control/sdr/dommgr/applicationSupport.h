@@ -69,16 +69,11 @@ namespace ossie
         const std::string& getId() const;
         const std::string& getType() const;
         const std::vector<PropertyRef>& getProperties() const;
-        const std::string& getAssignedDeviceId() const;
-
-        void setAssignedDeviceId(const std::string& deviceId);
-        void clearAssignedDeviceId();
 
     private:
         std::string id;
         std::string type;
         std::vector<PropertyRef> properties;
-        std::string assignedDeviceId;
     };
 
     /* Base class to contain data for components and implementations
@@ -96,8 +91,6 @@ namespace ossie
 
         void addUsesDevice(UsesDeviceInfo* usesDevice);
         const UsesDeviceInfo::List & getUsesDevices() const;
-        virtual const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
-
 
     protected:
         UsesDeviceInfo::List usesDevices;
@@ -173,8 +166,6 @@ namespace ossie
 
         void addImplementation(ImplementationInfo* impl);
         const ImplementationInfo::List& getImplementations() const;
-
-        virtual const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
 
         static SoftpkgInfo* buildSoftpkgInfo (CF::FileSystem_ptr fileSys, const char* spdFileName);
 

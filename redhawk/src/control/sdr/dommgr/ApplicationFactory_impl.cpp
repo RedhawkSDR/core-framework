@@ -879,7 +879,7 @@ void createHelper::_handleUsesDevices(ossie::ApplicationDeployment& appDeploymen
         eout << "Failed to satisfy 'usesdevice' dependencies ";
         bool first = true;
         for (UsesDeviceInfo::List::const_iterator uses = usesDevices.begin(); uses != usesDevices.end(); ++uses) {
-            if ((*uses)->getAssignedDeviceId().empty()) {
+            if (!assignedDevices.getUsesDeviceAssignment((*uses)->getId())) {
                 if (!first) {
                     eout << ", ";
                 } else {
@@ -1445,7 +1445,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
         eout << "Failed to satisfy 'usesdevice' dependencies ";
         bool first = true;
         for (UsesDeviceInfo::List::const_iterator uses = usesDevVec.begin(); uses != usesDevVec.end(); ++uses) {
-            if ((*uses)->getAssignedDeviceId().empty()) {
+            if (!assignedDevices.getUsesDeviceAssignment((*uses)->getId())) {
                 if (!first) {
                     eout << ", ";
                 } else {
@@ -1563,7 +1563,6 @@ bool createHelper::allocateUsesDevices(const ossie::UsesDeviceInfo::List& usesDe
     for (UsesDeviceInfo::List::const_iterator iter = usesDevices.begin(); iter != usesDevices.end(); ++iter) {
         // Ensure that no devices are assigned to start; the caller can check
         // for unassigned devices to report which usesdevices failed
-        (*iter)->clearAssignedDeviceId();
         usesDeviceMap[(*iter)->getId()] = *iter;
     }
     
@@ -1589,7 +1588,6 @@ bool createHelper::allocateUsesDevices(const ossie::UsesDeviceInfo::List& usesDe
             continue;
         }
         const std::string deviceId = ossie::corba::returnString(response[resp].allocatedDevice->identifier());
-        uses->second->setAssignedDeviceId(deviceId);
         usesDeviceMap.erase(uses);
 
         ossie::UsesDeviceAssignment* assignment = new ossie::UsesDeviceAssignment(uses->second);

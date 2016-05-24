@@ -87,21 +87,6 @@ const std::vector<ossie::PropertyRef>& UsesDeviceInfo::getProperties() const
     return properties;
 }
 
-const std::string& UsesDeviceInfo::getAssignedDeviceId() const
-{
-    return assignedDeviceId;
-}
-
-void UsesDeviceInfo::setAssignedDeviceId(const std::string& deviceId)
-{
-    assignedDeviceId = deviceId;
-}
-
-void UsesDeviceInfo::clearAssignedDeviceId()
-{
-    assignedDeviceId.clear();
-}
-
 ////////////////////////////////////////////////////
 /*
  * UsesDeviceContext member function definitions
@@ -130,18 +115,6 @@ const std::vector<UsesDeviceInfo*>& UsesDeviceContext::getUsesDevices() const
 {
     return usesDevices;
 }
-
-const UsesDeviceInfo* UsesDeviceContext::getUsesDeviceById(const std::string& id) const
-{
-    for (size_t ii = 0; ii < usesDevices.size(); ++ii) {
-        if (usesDevices[ii]->getId() == id) {
-            return usesDevices[ii];
-        }
-    }
-
-    return 0;
-}
-
 
 ////////////////////////////////////////////////////
 /*
@@ -416,11 +389,6 @@ void SoftpkgInfo::addImplementation(ImplementationInfo* impl)
 const ImplementationInfo::List& SoftpkgInfo::getImplementations() const
 {
     return _implementations;
-}
-
-const UsesDeviceInfo* SoftpkgInfo::getUsesDeviceById(const std::string& id) const
-{
-    return UsesDeviceContext::getUsesDeviceById(id);
 }
 
 ////////////////////////////////////////////////////
