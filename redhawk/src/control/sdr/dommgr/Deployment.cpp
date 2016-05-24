@@ -224,16 +224,6 @@ const ComponentInstantiation* ComponentDeployment::getInstantiation() const
     return instantiation;
 }
 
-bool ComponentDeployment::hasStartOrder() const
-{
-    return !(instantiation->getStartOrder().empty());
-}
-
-int ComponentDeployment::getStartOrder() const
-{
-    return atoi(instantiation->getStartOrder().c_str());
-}
-
 void ComponentDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>& device)
 {
     assignedDevice = device;

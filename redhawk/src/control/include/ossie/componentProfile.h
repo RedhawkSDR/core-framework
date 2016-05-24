@@ -190,7 +190,7 @@ namespace ossie {
         std::string namingservicename;
         std::string usageName;
         ossie::ComponentPropertyList       properties;
-        std::string _startOrder;
+        ossie::optional_value<int> startOrder;
         AffinityProperties affinityProperties;
         LoggingConfig loggingConfig;
     public:
@@ -200,8 +200,9 @@ namespace ossie {
 
     public:
         const std::string& getID() const;
-        
-        const std::string& getStartOrder() const;
+
+        bool hasStartOrder() const;
+        int getStartOrder() const;
 
         const std::string& getUsageName() const;
 

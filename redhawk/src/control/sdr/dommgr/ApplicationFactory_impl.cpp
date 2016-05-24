@@ -2746,10 +2746,11 @@ std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& 
     for (size_t index = 0; index < deployments.size(); ++index) {
         ossie::ComponentDeployment* deployment = deployments[index];
         ossie::ComponentInfo* component = deployment->getComponent();
-        if (!component->isAssemblyController() && deployment->hasStartOrder()) {
+        const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
+        if (!component->isAssemblyController() && instantiation->hasStartOrder()) {
             // Only track start order if it was provided, and the component is
             // not the assembly controller
-            start_map.insert(std::make_pair(deployment->getStartOrder(), deployments[index]));
+            start_map.insert(std::make_pair(instantiation->getStartOrder(), deployment));
         }
     }
 

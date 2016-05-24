@@ -278,7 +278,9 @@ namespace sad
   void componentinstantiation_pimpl::
   startorder (const ::std::string& startorder)
   {
-    componentInstantiation._startOrder = startorder;
+    // We have to parse the string into an integer here, rather than declaring
+    // startorder as an integer in the schema, for backwards compatibility.
+    componentInstantiation.startOrder = atoi(startorder.c_str());
   }
 
   void componentinstantiation_pimpl::

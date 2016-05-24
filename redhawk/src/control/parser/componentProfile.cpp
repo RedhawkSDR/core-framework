@@ -133,8 +133,12 @@ const std::string& ComponentInstantiation::getID() const {
     return instantiationId;
 }
 
-const std::string& ComponentInstantiation::getStartOrder() const {
-    return _startOrder;
+bool ComponentInstantiation::hasStartOrder() const {
+    return startOrder.isSet();
+}
+
+int ComponentInstantiation::getStartOrder() const {
+    return *startOrder;
 }
 
 const std::string& ComponentInstantiation::getUsageName() const {
