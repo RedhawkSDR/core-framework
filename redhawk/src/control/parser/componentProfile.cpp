@@ -18,6 +18,8 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#include <boost/foreach.hpp>
+
 #include "ossie/componentProfile.h"
 
 using namespace ossie;
@@ -186,4 +188,14 @@ const std::vector<ComponentInstantiation>& ComponentPlacement::getInstantiations
 
 const std::string& ComponentPlacement::getFileRefId() const {
     return _componentFileRef;
+}
+
+const ComponentInstantiation* ComponentPlacement::getInstantiation(const std::string& refid) const
+{
+    BOOST_FOREACH(const ComponentInstantiation& instantiation, instantiations) {
+        if (instantiation.getID() == refid) {
+            return &instantiation;
+        }
+    }
+    return 0;
 }

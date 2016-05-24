@@ -679,9 +679,8 @@ void createHelper::_validateDAS(ossie::ApplicationDeployment& appDeployment,
     for (DeviceAssignmentMap::const_iterator ii = deviceAssignments.begin(); ii != deviceAssignments.end(); ++ii) {
         const std::string& componentId = ii->first;
         const std::string& assignedDeviceId = ii->second;
-        ossie::ComponentInfo* component = appDeployment.getComponent(componentId);
 
-        if (!component) {
+        if (!_appFact._sadParser.getComponentInstantiation(componentId)) {
             LOG_ERROR(ApplicationFactory_impl, "Failed to create application; "
                       << "unknown component " << componentId 
                       << " in user assignment (DAS)");

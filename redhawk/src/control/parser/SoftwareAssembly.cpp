@@ -25,6 +25,17 @@
 
 using namespace ossie;
 
+const ComponentInstantiation* SoftwareAssembly::HostCollocation::getInstantiation(const std::string& refid) const
+{
+    BOOST_FOREACH(const ComponentPlacement& placement, placements) {
+        const ComponentInstantiation* instantiation = placement.getInstantiation(refid);
+        if (instantiation) {
+            return instantiation;
+        }
+    }
+    return 0;
+}
+
 SoftwareAssembly::SoftwareAssembly() :
     _sad(0),
     _assemblyController(0)
@@ -157,4 +168,21 @@ const std::vector<SoftwareAssembly::Property>& SoftwareAssembly::getExternalProp
 const std::vector<UsesDevice>& SoftwareAssembly::getUsesDevices() const {
     assert(_sad.get() != 0);
     return _sad->usesdevice;
+}
+
+const ComponentInstantiation* SoftwareAssembly::getComponentInstantiation(const std::string& refid) const
+{
+    BOOST_FOREACH(HostCollocation& collocation, _sad->partitioning.collocations) {
+        const ComponentInstantiation* instantiation = collocation.getInstantiation(refid);
+        if (instantiation) {
+            return instantiation;
+        }
+    }
+    BOOST_FOREACH(const ComponentPlacement& placement, _sad->partitioning.placements) {
+        const ComponentInstantiation* instantiation = placement.getInstantiation(refid);
+        if (instantiation) {
+            return instantiation;
+        }
+    }
+    return 0;
 }

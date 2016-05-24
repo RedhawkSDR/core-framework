@@ -50,6 +50,8 @@ namespace ossie {
                 const std::vector<ComponentPlacement>& getComponents() const {
                     return placements;
                 }
+
+                const ComponentInstantiation* getInstantiation(const std::string& refid) const;
         };
 
         class Partitioning {
@@ -122,6 +124,8 @@ namespace ossie {
         const std::vector<SoftwareAssembly::Property>& getExternalProperties() const;
 
         const std::vector<UsesDevice>& getUsesDevices() const;
+
+        const ComponentInstantiation* getComponentInstantiation(const std::string& refid) const;
 
     protected:
         void validateComponentPlacements(std::vector<ComponentPlacement>& placements);

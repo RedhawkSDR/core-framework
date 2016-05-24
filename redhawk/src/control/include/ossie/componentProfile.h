@@ -238,6 +238,8 @@ namespace ossie {
         const std::vector<ComponentInstantiation>& getInstantiations() const;
         
         const std::string& getFileRefId() const;
+
+        const ComponentInstantiation* getInstantiation(const std::string& refid) const;
     };
 
     /*
