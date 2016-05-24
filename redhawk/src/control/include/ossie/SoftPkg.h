@@ -301,7 +301,7 @@ namespace ossie {
                 return _spd->type != "sca_non_compliant";
             }
             
-            const boost::shared_ptr<Properties>& getProperties()
+            const boost::shared_ptr<Properties>& getProperties() const
             {
                 return _properties;
             }

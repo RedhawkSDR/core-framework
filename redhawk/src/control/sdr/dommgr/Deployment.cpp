@@ -222,7 +222,7 @@ CF::LoadableDevice::LoadType SoftpkgDeployment::getCodeType() const
 ComponentDeployment::ComponentDeployment(ComponentInfo* component,
                                          const ComponentInstantiation* instantiation,
                                          const std::string& identifier) :
-    SoftpkgDeployment(&(component->spd)),
+    SoftpkgDeployment(&(*component->spd)),
     component(component),
     instantiation(instantiation),
     identifier(identifier),

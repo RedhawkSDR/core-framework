@@ -975,7 +975,7 @@ void createHelper::setUpExternalProperties(ossie::ApplicationDeployment& appDepl
             LOG_ERROR(ApplicationFactory_impl, "Unable to find component for comprefid " << prop->comprefid);
             throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Unable to find component for given comprefid");
         }
-        const Property* property = deployment->getComponent()->prf.getProperty(prop->propid);
+        const Property* property = deployment->getSoftPkg()->getProperties()->getProperty(prop->propid);
         if (!property){
             LOG_ERROR(ApplicationFactory_impl, "Attempting to promote property: '" <<
                     prop->propid << "' that does not exist in component: '" << prop->comprefid << "'");
@@ -1181,6 +1181,7 @@ CF::Application_ptr createHelper::create (
 
     //////////////////////////////////////////////////
     // Load the components to instantiate from the SAD
+    _appProfile.load(_appFact._fileMgr, _appFact._sadParser);
     ossie::ApplicationDeployment app_deployment(_appFact._sadParser, _waveformContextName);
     getRequiredComponents(_appFact._fileMgr, _appFact._sadParser, app_deployment);
 
@@ -1191,8 +1192,6 @@ CF::Application_ptr createHelper::create (
 
     //////////////////////////////////////////////////
     // Store information about this application
-    _appProfile.load(_appFact._fileMgr, _appFact._sadParser);
-
     overrideExternalProperties(app_deployment, modifiedInitConfiguration);
 
     ////////////////////////////////////////////////
@@ -1835,7 +1834,7 @@ ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::S
             continue;
         }
 
-        ossie::SoftpkgDeployment* dependency = new ossie::SoftpkgDeployment(&(softpkg->spd), implementation);
+        ossie::SoftpkgDeployment* dependency = new ossie::SoftpkgDeployment(&(*softpkg->spd), implementation);
         // Recursively check any softpkg dependencies
         if (resolveSoftpkgDependencies(dependency, device)) {
             return dependency;
@@ -1867,9 +1866,8 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
     }
     LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File");
-    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(fileSys,
-                                                                       componentfile->getFileName(),
-                                                                       &instance);
+    const boost::shared_ptr<SoftPkg>& softpkg = componentfile->getSoftPkg();
+    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(softpkg, &instance);
     if (newComponent == 0) {
         ostringstream eout;
         eout << "Error loading component information for file ref " << component.getFileRefId();

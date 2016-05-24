@@ -65,6 +65,14 @@ PREPARE_CF_LOGGING(ImplementationInfo);
 ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
     implementation(&spdImpl)
 {
+    // Handle allocation property dependencies
+    LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependencies")
+    const std::vector<ossie::SPD::SoftPkgRef>& softpkgDependencies = spdImpl.getSoftPkgDependencies();
+    std::vector<ossie::SPD::SoftPkgRef>::const_iterator jj;
+    for (jj = softpkgDependencies.begin(); jj != softpkgDependencies.end(); ++jj) {
+        LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependency '" << *jj);
+        addSoftPkgDependency(new SoftpkgInfo(jj->getReference()));
+    }
 }
 
 ImplementationInfo::~ImplementationInfo()
@@ -72,23 +80,6 @@ ImplementationInfo::~ImplementationInfo()
     for (std::vector<SoftpkgInfo*>::iterator ii = softPkgDependencies.begin(); ii != softPkgDependencies.end(); ++ii) {
         delete (*ii);
     }
-}
-
-ImplementationInfo* ImplementationInfo::buildImplementationInfo(CF::FileSystem_ptr fileSys, const SPD::Implementation& spdImpl)
-{
-    ImplementationInfo* impl = new ImplementationInfo(spdImpl);
-
-    // Handle allocation property dependencies
-    LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependencies")
-    const std::vector<ossie::SPD::SoftPkgRef>& softpkgDependencies = spdImpl.getSoftPkgDependencies();
-    std::vector<ossie::SPD::SoftPkgRef>::const_iterator jj;
-    for (jj = softpkgDependencies.begin(); jj != softpkgDependencies.end(); ++jj) {
-        LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependency '" << *jj);
-        std::auto_ptr<SoftpkgInfo> softpkg(SoftpkgInfo::buildSoftpkgInfo(fileSys, jj->localfile.c_str()));
-        impl->addSoftPkgDependency(softpkg.release());
-    }
-
-    return impl;
 }
 
 const ossie::SPD::Implementation* ImplementationInfo::getImplementation() const
@@ -138,9 +129,19 @@ bool ImplementationInfo::checkProcessorAndOs(const Properties& _prf) const
 
 PREPARE_CF_LOGGING(SoftpkgInfo);
 
-SoftpkgInfo::SoftpkgInfo(const std::string& spdFileName):
-    _spdFileName(spdFileName)
+SoftpkgInfo::SoftpkgInfo(const boost::shared_ptr<SoftPkg>& softpkg):
+    spd(softpkg)
 {
+    // Extract implementation data from SPD file
+    const std::vector <SPD::Implementation>& spd_i = spd->getImplementations();
+
+    // Assume only one implementation, use first available result [0]
+    for (unsigned int implCount = 0; implCount < spd_i.size(); implCount++) {
+        const SPD::Implementation& spdImpl = spd_i[implCount];
+        LOG_TRACE(SoftpkgInfo, "Adding implementation " << spdImpl.getID());
+        ImplementationInfo* newImpl = new ImplementationInfo(spdImpl);
+        addImplementation(newImpl);
+    }
 }
 
 SoftpkgInfo::~SoftpkgInfo()
@@ -152,54 +153,12 @@ SoftpkgInfo::~SoftpkgInfo()
 
 const std::string& SoftpkgInfo::getSpdFileName() const
 {
-    return _spdFileName;
+    return spd->getSPDFile();
 }
 
 const std::string& SoftpkgInfo::getName() const
 {
-    return spd.getName();
-}
-
-SoftpkgInfo* SoftpkgInfo::buildSoftpkgInfo(CF::FileSystem_ptr fileSys, const char* spdFileName)
-{
-    LOG_TRACE(SoftpkgInfo, "Building soft package info from file " << spdFileName);
-
-    std::auto_ptr<ossie::SoftpkgInfo> softpkg(new SoftpkgInfo(spdFileName));
-
-    if (!softpkg->parseProfile(fileSys)) {
-        return 0;
-    } else {
-        return softpkg.release();
-    }
-}
-
-bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys)
-{
-    try {
-        File_stream spd_file(fileSys, _spdFileName.c_str());
-        spd.load(spd_file, _spdFileName.c_str());
-        spd_file.close();
-    } catch (const ossie::parser_error& e) {
-        std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-        LOG_ERROR(SoftpkgInfo, "Building component info problem; error parsing SPD: " << _spdFileName << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
-        return false;
-    } catch (...) {
-        LOG_ERROR(SoftpkgInfo, "Building component info problem; unknown error parsing SPD: " << _spdFileName );
-        return false;
-    }
-
-    // Extract implementation data from SPD file
-    const std::vector <SPD::Implementation>& spd_i = spd.getImplementations();
-
-    // Assume only one implementation, use first available result [0]
-    for (unsigned int implCount = 0; implCount < spd_i.size(); implCount++) {
-        const SPD::Implementation& spdImpl = spd_i[implCount];
-        LOG_TRACE(SoftpkgInfo, "Adding implementation " << spdImpl.getID());
-        ImplementationInfo* newImpl = ImplementationInfo::buildImplementationInfo(fileSys, spdImpl);
-        addImplementation(newImpl);
-    }
-
-    return true;
+    return spd->getName();
 }
 
 void SoftpkgInfo::addImplementation(ImplementationInfo* impl)
@@ -218,69 +177,27 @@ const ImplementationInfo::List& SoftpkgInfo::getImplementations() const
  */
 PREPARE_CF_LOGGING(ComponentInfo);
 
-ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr fileSys,
-                                                            const std::string& spdFileName,
+ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(const boost::shared_ptr<SoftPkg>& softpkg,
                                                             const ComponentInstantiation* instantiation)
 {
-    LOG_TRACE(ComponentInfo, "Building component info from file " << spdFileName);
+    LOG_TRACE(ComponentInfo, "Building component info from softpkg " << softpkg->getName());
 
-    ossie::ComponentInfo* newComponent = new ossie::ComponentInfo(spdFileName, instantiation);
-
-    if (!newComponent->parseProfile(fileSys)) {
-        delete newComponent;
-        return 0;
-    }
-    
-    if (newComponent->spd.getSCDFile() != 0) {
-        try {
-            File_stream _scd(fileSys, newComponent->spd.getSCDFile());
-            newComponent->scd.load(_scd);
-            _scd.close();
-        } catch (ossie::parser_error& e) {
-            std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-            LOG_ERROR(ComponentInfo, "Building component info problem; error parsing SCD: " << newComponent->spd.getSCDFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
-            delete newComponent;
-            return 0;
-        } catch( ... ) {
-            LOG_ERROR(ComponentInfo, "Building component info problem; unknown error parsing SCD: " << newComponent->spd.getSCDFile() );
-            delete newComponent;
-            return 0;
-        }
-    }
-
-    if (newComponent->spd.getPRFFile() != 0) {
-        LOG_DEBUG(ComponentInfo, "Loading component properties from " << newComponent->spd.getPRFFile());
-        try {
-            File_stream _prf(fileSys, newComponent->spd.getPRFFile());
-            LOG_TRACE(ComponentInfo, "Parsing component properties");
-            newComponent->prf.load(_prf);
-            LOG_TRACE(ComponentInfo, "Closing PRF file")
-            _prf.close();
-        } catch (ossie::parser_error& e) {
-            std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-            LOG_ERROR(ComponentInfo, "Building component info problem; error parsing PRF: " << newComponent->spd.getPRFFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
-            delete newComponent;
-            return 0;
-        } catch( ... ) {
-            LOG_ERROR(ComponentInfo, "Building component info problem; unknown error parsing PRF: " << newComponent->spd.getPRFFile());
-            delete newComponent;
-            return 0;
-        }
-    }
+    ossie::ComponentInfo* newComponent = new ossie::ComponentInfo(softpkg, instantiation);
 
     // Extract Properties from the implementation-agnostic PRF file
     // once we match the component to a device we can grab the implementation
     // specific PRF file
-    if (newComponent->spd.getPRFFile() != 0) {
+    if (softpkg->getProperties()) {
         // Handle component properties
-        LOG_TRACE(ComponentInfo, "Adding factory params")
-        const std::vector<const Property*>& fprop = newComponent->prf.getFactoryParamProperties();
+        LOG_TRACE(ComponentInfo, "Adding factory params");
+        Properties& prf = *softpkg->getProperties();
+        const std::vector<const Property*>& fprop = prf.getFactoryParamProperties();
         for (unsigned int i = 0; i < fprop.size(); i++) {
             newComponent->addFactoryParameter(convertPropertyToDataType(fprop[i]));
         }
 
         LOG_TRACE(ComponentInfo, "Adding exec params")
-        const std::vector<const Property*>& eprop = newComponent->prf.getExecParamProperties();
+        const std::vector<const Property*>& eprop = prf.getExecParamProperties();
         for (unsigned int i = 0; i < eprop.size(); i++) {
             if (std::string(eprop[i]->getMode()) != "readonly") {
                 LOG_TRACE(ComponentInfo, "Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
@@ -300,7 +217,7 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr f
         //    newComponent->addAllocationCapacity((*prop)[i]->getDataType());
         //}
 
-        const std::vector<const Property*>& prop = newComponent->prf.getConfigureProperties();
+        const std::vector<const Property*>& prop = prf.getConfigureProperties();
         for (unsigned int i = 0; i < prop.size(); i++) {
             if (!prop[i]->isReadOnly()) {
                 LOG_TRACE(ComponentInfo, "Adding configure prop " << prop[i]->getID() << " " << prop[i]->getName() << " " << prop[i]->isReadOnly())
@@ -308,7 +225,7 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr f
             }
         }
 
-        const std::vector<const Property*>& cprop = newComponent->prf.getConstructProperties();
+        const std::vector<const Property*>& cprop = prf.getConstructProperties();
         for (unsigned int i = 0; i < cprop.size(); i++) {
           LOG_TRACE(ComponentInfo, "Adding construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
           bool isExec = false;
@@ -333,12 +250,12 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr f
 
     }
     
-    LOG_TRACE(ComponentInfo, "Done building component info from file " << spdFileName);
+    LOG_TRACE(ComponentInfo, "Done building component info from soft package " << softpkg->getName());
     return newComponent;
 }
 
-ComponentInfo::ComponentInfo(const std::string& spdFileName, const ComponentInstantiation* instantiation) :
-    SoftpkgInfo(spdFileName),
+ComponentInfo::ComponentInfo(const boost::shared_ptr<SoftPkg>& softpkg, const ComponentInstantiation* instantiation) :
+    SoftpkgInfo(softpkg),
     instantiation(instantiation)
 {
     // load common affinity property definitions 
@@ -411,8 +328,8 @@ void ComponentInfo::addConstructProperty(CF::DataType dt)
 
 void ComponentInfo::overrideProperty(const ossie::ComponentProperty* propref) {
     std::string propId = propref->getID();
-    LOG_TRACE(ComponentInfo, "Instantiation property id = " << propId)
-    const Property* prop = prf.getProperty(propId);
+    LOG_TRACE(ComponentInfo, "Instantiation property id = " << propId);
+    const Property* prop = spd->getProperties()->getProperty(propId);
     // Without a prop, we don't know how to convert the strings to the property any type
     if (prop == NULL) {
         LOG_WARN(ComponentInfo, "ignoring attempt to override property " << propId << " that does not exist in component")
@@ -425,7 +342,7 @@ void ComponentInfo::overrideProperty(const ossie::ComponentProperty* propref) {
 
 void ComponentInfo::overrideProperty(const char* id, const CORBA::Any& value)
 {
-    const Property* prop = prf.getProperty(id);
+    const Property* prop = spd->getProperties()->getProperty(id);
     if (prop != NULL) {
         if (prop->isReadOnly()) {
             LOG_WARN(ComponentInfo, "ignoring attempt to override readonly property " << id);
@@ -465,12 +382,12 @@ const char* ComponentInfo::getUsageName() const
 
 bool ComponentInfo::isResource() const
 {
-    return scd.isResource();
+    return spd->getDescriptor()->isResource();
 }
 
 bool ComponentInfo::isConfigurable() const
 {
-    return scd.isConfigurable();
+    return spd->getDescriptor()->isConfigurable();
 }
 
 
@@ -481,7 +398,7 @@ bool ComponentInfo::isAssemblyController() const
 
 bool ComponentInfo::isScaCompliant() const
 {
-    return spd.isScaCompliant();
+    return spd->isScaCompliant();
 }
 
 bool ComponentInfo::checkStruct(const CF::Properties &props) const
@@ -515,7 +432,7 @@ CF::Properties ComponentInfo::iteratePartialStruct(const CF::Properties &props) 
     CF::Properties retval;
     const redhawk::PropertyMap& configProps = redhawk::PropertyMap::cast(props);
     for (redhawk::PropertyMap::const_iterator cP = configProps.begin(); cP != configProps.end(); cP++) {
-        const ossie::Property* prop = this->prf.getProperty(ossie::corba::returnString(cP->id));
+        const ossie::Property* prop = spd->getProperties()->getProperty(ossie::corba::returnString(cP->id));
         if (dynamic_cast<const ossie::StructProperty*>(prop)) {
             CF::Properties* tmp;
             if (!(cP->value >>= tmp))

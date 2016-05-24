@@ -78,9 +78,6 @@ namespace ossie
 
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
 
-        static ImplementationInfo* buildImplementationInfo(CF::FileSystem_ptr fileSys, const SPD::Implementation& spdImpl);
-
-
     private:
         ImplementationInfo (const ImplementationInfo&);
         void setStackSize(const unsigned long long *_stackSize);
@@ -99,23 +96,18 @@ namespace ossie
 
     public:
         
-        SoftpkgInfo (const std::string& spdFileName);
+        SoftpkgInfo (const boost::shared_ptr<SoftPkg>& softpkg);
         ~SoftpkgInfo ();
 
         const std::string& getSpdFileName() const;
         const std::string& getName() const;
 
-        void addImplementation(ImplementationInfo* impl);
         const ImplementationInfo::List& getImplementations() const;
 
-        static SoftpkgInfo* buildSoftpkgInfo (CF::FileSystem_ptr fileSys, const char* spdFileName);
-
-        SoftPkg spd;
+        boost::shared_ptr<SoftPkg> spd;
 
     protected:
-        bool parseProfile (CF::FileSystem_ptr fileSys);
-
-        const std::string _spdFileName;
+        void addImplementation(ImplementationInfo* impl);
 
         ImplementationInfo::List _implementations;
     };
@@ -130,7 +122,7 @@ namespace ossie
     public:
       typedef ossie::ComponentInstantiation::AffinityProperties AffinityProperties;
 
-        ComponentInfo (const std::string& spdFileName, const ComponentInstantiation* instantiation);
+        ComponentInfo (const boost::shared_ptr<SoftPkg>& softpkg, const ComponentInstantiation* instantiation);
         ~ComponentInfo ();
 
         const ComponentInstantiation* getInstantiation() const;
@@ -168,11 +160,8 @@ namespace ossie
         CF::Properties getExecParameters();
         CF::Properties getCommandLineParameters() const;
 
-        static ComponentInfo* buildComponentInfoFromSPDFile(CF::FileSystem_ptr fileSys,
-                                                            const std::string& spdFileName,
+        static ComponentInfo* buildComponentInfoFromSPDFile(const boost::shared_ptr<SoftPkg>& softpkg,
                                                             const ComponentInstantiation* instantiation);
-        ComponentDescriptor scd;
-        ossie::Properties prf;
 
     private:
         ComponentInfo (const ComponentInfo&);
