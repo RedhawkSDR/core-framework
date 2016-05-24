@@ -236,7 +236,7 @@ namespace ossie {
                 return _spd->id;
             }
 
-            const std::string& getSoftPkgName() const {
+            const std::string& getName() const {
                 assert(_spd.get() != 0);
                 return _spd->name;
             }

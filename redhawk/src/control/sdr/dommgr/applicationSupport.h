@@ -184,7 +184,6 @@ namespace ossie
         bool parseProfile (CF::FileSystem_ptr fileSys);
 
         const std::string _spdFileName;
-        std::string _name; // Component name from SPD File
 
         ImplementationInfo::List _implementations;
     };

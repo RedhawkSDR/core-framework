@@ -76,6 +76,8 @@ namespace ossie {
 
         SoftpkgInfo* getSoftpkg();
 
+        const SoftPkg* getSPD() const;
+
         void setImplementation(const ImplementationInfo* implementation);
         const ImplementationInfo* getImplementation() const;
 

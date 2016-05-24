@@ -354,7 +354,7 @@ const std::string& SoftpkgInfo::getSpdFileName() const
 
 const std::string& SoftpkgInfo::getName() const
 {
-    return _name;
+    return spd.getName();
 }
 
 SoftpkgInfo* SoftpkgInfo::buildSoftpkgInfo(CF::FileSystem_ptr fileSys, const char* spdFileName)
@@ -384,9 +384,6 @@ bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys)
         LOG_ERROR(SoftpkgInfo, "Building component info problem; unknown error parsing SPD: " << _spdFileName );
         return false;
     }
-
-    // Set name from the SPD
-    _name = spd.getSoftPkgName();
 
     // Extract implementation data from SPD file
     const std::vector <SPD::Implementation>& spd_i = spd.getImplementations();

@@ -194,7 +194,7 @@ static pid_t launchSPD (
 
     LOG_DEBUG(nodebooter, "Loaded SPD file " << spdFile);
     LOG_DEBUG(nodebooter, "SPD Id:   " << spd.getSoftPkgID());
-    LOG_DEBUG(nodebooter, "SPD Name: " << spd.getSoftPkgName());
+    LOG_DEBUG(nodebooter, "SPD Name: " << spd.getName());
 
     // Find an implementation that we can run.
     const ossie::SPD::Implementation* impl = matchImplementation(spd.getImplementations(), deviceProps);

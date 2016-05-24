@@ -303,13 +303,11 @@ SoftpkgInfo::~SoftpkgInfo()
 
 
 SoftpkgInfo::SoftpkgInfo ( const SoftpkgInfo &src ) {
-   _name = src._name;
    _identifier = src._identifier;
    _implementations = src._implementations;
 }
 
 SoftpkgInfo &SoftpkgInfo::operator=(const SoftpkgInfo &src ) {
-   _name = src._name;
    _identifier = src._identifier;
    _implementations = src._implementations;
   return *this;
@@ -324,7 +322,7 @@ const char* SoftpkgInfo::getSpdFileName()
 
 const char* SoftpkgInfo::getName()
 {
-    return _name.c_str();
+    return spd.getName().c_str();
 }
 
 const char* SoftpkgInfo::getID()
@@ -363,9 +361,8 @@ bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys)
     }
 
     // Set name from the SPD
-    _name = spd.getSoftPkgName();
     _identifier = spd.getSoftPkgID();
-    LOG_DEBUG(SoftpkgInfo, "name/id " << _name << "/" << _identifier);
+    LOG_DEBUG(SoftpkgInfo, "name/id " << spd.getName() << "/" << _identifier);
 
     // Extract implementation data from SPD file
     const std::vector <SPD::Implementation>& spd_i = spd.getImplementations();

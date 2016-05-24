@@ -97,6 +97,11 @@ SoftpkgInfo* SoftpkgDeployment::getSoftpkg()
     return softpkg;
 }
 
+const SoftPkg* SoftpkgDeployment::getSPD() const
+{
+    return &(softpkg->spd);
+}
+
 void SoftpkgDeployment::setImplementation(const ImplementationInfo* implementation)
 {
     this->implementation = implementation;

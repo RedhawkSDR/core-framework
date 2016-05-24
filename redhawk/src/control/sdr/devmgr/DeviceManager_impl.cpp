@@ -1392,7 +1392,7 @@ void DeviceManager_impl::postConstructor (
          const SPD::Implementation* matchedDeviceImpl = locateMatchingDeviceImpl(SPDParser, devManImpl);
          if (matchedDeviceImpl == NULL) {
             LOG_ERROR(DeviceManager_impl, 
-                  "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; "
+                  "Skipping instantiation of device '" << SPDParser.getName() << "' - '" << SPDParser.getSoftPkgID() << "; "
                   << "no available device implementations match device manager properties for deployOnDevice")
             continue;
         }
@@ -1433,7 +1433,7 @@ void DeviceManager_impl::postConstructor (
 
         if (matchedDeviceImpl == NULL) {
             LOG_ERROR(DeviceManager_impl, 
-                  "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; "
+                  "Skipping instantiation of device '" << SPDParser.getName() << "' - '" << SPDParser.getSoftPkgID() << "; "
                   << "no available device implementations match device manager properties")
             continue;
         }
@@ -1442,7 +1442,7 @@ void DeviceManager_impl::postConstructor (
 
         ossie::Properties deviceProperties;
         if (!loadDeviceProperties(SPDParser, *matchedDeviceImpl, deviceProperties)) {
-            LOG_INFO(DeviceManager_impl, "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "'");
+            LOG_INFO(DeviceManager_impl, "Skipping instantiation of device '" << SPDParser.getName() << "'");
             continue;
         }
 
@@ -1553,7 +1553,7 @@ void DeviceManager_impl::postConstructor (
 
         if (matchedDeviceImpl == NULL) {
             LOG_ERROR(DeviceManager_impl,
-                  "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; "
+                  "Skipping instantiation of device '" << SPDParser.getName() << "' - '" << SPDParser.getSoftPkgID() << "; "
                   << "no available device implementations match device manager properties")
             continue;
         }
@@ -1561,7 +1561,7 @@ void DeviceManager_impl::postConstructor (
         // store the matchedDeviceImpl's implementation ID in a map for use with "getComponentImplementationId"
         ossie::Properties deviceProperties;
         if (!loadDeviceProperties(SPDParser, *matchedDeviceImpl, deviceProperties)) {
-            LOG_INFO(DeviceManager_impl, "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "'");
+            LOG_INFO(DeviceManager_impl, "Skipping instantiation of device '" << SPDParser.getName() << "'");
             continue;
         }
 
@@ -1660,7 +1660,7 @@ const SPD::Implementation* DeviceManager_impl::locateMatchingDeviceImpl(const So
     unsigned int implIndex = 0;
     while( implIndex < impls.size() ) {
         LOG_TRACE(DeviceManager_impl, 
-                  "Attempting to match device " << devSpd.getSoftPkgName() 
+                  "Attempting to match device " << devSpd.getName() 
                   << " implementation id: " << impls[implIndex].getID()
                   << " to device manager implementation " << deployOnImpl->getID());
 

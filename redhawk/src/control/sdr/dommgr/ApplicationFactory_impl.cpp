@@ -2194,6 +2194,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
 {
     const ossie::ComponentInfo* component = deployment->getComponent();
     const ossie::ImplementationInfo* implementation = deployment->getImplementation();
+    const ossie::SoftPkg* softpkg = deployment->getSPD();
 
     // Get executable device reference
     boost::shared_ptr<DeviceNode> device = deployment->getAssignedDevice();
@@ -2224,7 +2225,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         execParameters["NAME_BINDING"] = deployment->getInstantiation()->getFindByNamingServiceName();
     }
     execParameters["DOM_PATH"] = _baseNamingContext;
-    execParameters["PROFILE_NAME"] = component->getSpdFileName();
+    execParameters["PROFILE_NAME"] = softpkg->getSPDFile();
 
     // Add the Naming Context IOR last to make it easier to parse the command line
     execParameters["NAMING_CONTEXT_IOR"] = ossie::corba::objectToString(registrar);
@@ -2266,7 +2267,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
         eout << "InvalidFileName when calling 'execute' on device with device id: '" << device->identifier << "' for component: '";
-        eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
+        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
         eout << " with implementation id: '" << implementation->getId() << "'";
         eout << " in waveform '" << _waveformContextName<<"'";
         eout << " with error: <" << _ex.msg << ">;";
@@ -2277,7 +2278,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
         eout << "InvalidState when calling 'execute' on device with device id: '" << device->identifier << "' for component: '";
-        eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
+        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
         eout << " with implementation id: '" << implementation->getId() << "'";
         eout << " in waveform '" << _waveformContextName<<"'";
         eout << " with error: <" << _ex.msg << ">;";
@@ -2288,7 +2289,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
         eout << "InvalidParameters when calling 'execute' on device with device id: '" << device->identifier << "' for component: '";
-        eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
+        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
         eout << " with implementation id: '" << implementation->getId() << "'";
         eout << " in waveform '" << _waveformContextName<<"'";
         eout << " with invalid params: <";
@@ -2303,7 +2304,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
         eout << "InvalidOptions when calling 'execute' on device with device id: '" << device->identifier << "' for component: '";
-        eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
+        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
         eout << " with implementation id: '" << implementation->getId() << "'";
         eout << " in waveform '" << _waveformContextName<<"'";
         eout << " with invalid options: <";
@@ -2317,7 +2318,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
         eout << "ExecuteFail when calling 'execute' on device with device id: '" << device->identifier << "' for component: '";
-        eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
+        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
         eout << " with implementation id: '" << implementation->getId() << "'";
         eout << " in waveform '" << _waveformContextName<<"'";
         eout << " with message: '" << ex.msg << "'";
@@ -2326,7 +2327,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
     } CATCH_THROW_LOG_ERROR(
             ApplicationFactory_impl, "Caught an unexpected error when calling 'execute' on device with device id: '"
-            << device->identifier << "' for component: '" << component->getName()
+            << device->identifier << "' for component: '" << softpkg->getName()
             << "' with component id: '" << deployment->getIdentifier() << "' "
             << " with implementation id: '" << implementation->getId() << "'"
             << " in waveform '" << _waveformContextName<<"'"
@@ -2339,7 +2340,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         ostringstream eout;
         eout << added_message;
         eout << "Failed to 'execute' component for component: '";
-        eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
+        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
         eout << " with implementation id: '" << implementation->getId() << "'";
         eout << " in waveform '" << _waveformContextName<<"'";
         eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
@@ -2404,8 +2405,7 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
     // register with the application, nor do they need to be initialized
     std::set<std::string> expected_components;
     for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
-        ossie::ComponentInfo* component = (*dep)->getComponent();
-        if (component->isScaCompliant()) {
+        if ((*dep)->getSPD()->isScaCompliant()) {
             expected_components.insert((*dep)->getIdentifier());
         }
     }
@@ -2420,9 +2420,8 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
         ostringstream eout;
         for (unsigned int req_idx = 0; req_idx < deployments.size(); req_idx++) {
             ossie::ComponentDeployment* deployment = deployments[req_idx];
-            const ossie::ComponentInfo* component = deployment->getComponent();
             if (expected_components.count(deployment->getIdentifier())) {
-                eout << "Timed out waiting for component to register: '" << component->getName()
+                eout << "Timed out waiting for component to register: '" << deployment->getSPD()->getName()
                      << "' with component id: '" << deployment->getIdentifier()
                      << " assigned to device: '" << deployment->getAssignedDevice()->identifier;
                 break;
@@ -2446,10 +2445,11 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
 
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
         ossie::ComponentDeployment* deployment = deployments[rc_idx];
+        const ossie::SoftPkg* softpkg = deployment->getSPD();
         const ossie::ComponentInfo* component = deployment->getComponent();
 
         // If the component is non-SCA compliant then we don't expect anything beyond this
-        if (!component->isScaCompliant()) {
+        if (!softpkg->isScaCompliant()) {
             LOG_TRACE(ApplicationFactory_impl, "Component is non SCA-compliant, continuing to next component");
             continue;
         }
@@ -2464,7 +2464,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
         CORBA::Object_var objref = _application->getComponentObject(componentId);
         if (CORBA::is_nil(objref)) {
             ostringstream eout;
-            eout << "No object found for component: '" << component->getName()
+            eout << "No object found for component: '" << softpkg->getName()
                  << "' with component id: '" << componentId
                  << " assigned to device: '"<<deployment->getAssignedDevice()->identifier<<"'";
             eout << " in waveform '" << _waveformContextName<<"';";
@@ -2475,7 +2475,8 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
         CF::Resource_var resource = ossie::corba::_narrowSafe<CF::Resource>(objref);
         if (CORBA::is_nil(resource)) {
             ostringstream eout;
-            eout << "CF::Resource::_narrow failed with Unknown Exception for component: '" << component->getName()
+            eout << "CF::Resource::_narrow failed with Unknown Exception for component: '"
+                 << softpkg->getName()
                  << "' with component id: '" << componentId
                  << " assigned to device: '"<<deployment->getAssignedDevice()->identifier<<"'";
             eout << " in waveform '" << _waveformContextName<<"';";
@@ -2503,7 +2504,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
           if (partialStruct.length() != 0) {
             ostringstream eout;
             eout << "Failed to 'configure' Assembly Controller: '";
-            eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<< deployment->getAssignedDevice()->identifier << "' ";
+            eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<< deployment->getAssignedDevice()->identifier << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
             eout <<  "This component contains structure"<<partialStruct[0].id<<" with a mix of defined and nil values.";
             LOG_ERROR(ApplicationFactory_impl, eout.str());
@@ -2516,7 +2517,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
           } catch(CF::PropertySet::InvalidConfiguration& e) {
             ostringstream eout;
             eout << "Failed to initialize component properties: '";
-            eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
+            eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
             eout <<  "InvalidConfiguration with this info: <";
             eout << e.msg << "> for these invalid properties: ";
@@ -2530,7 +2531,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
           } catch(CF::PropertySet::PartialConfiguration& e) {
             ostringstream eout;
             eout << "Failed to initialize component properties: '";
-            eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
+            eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
             eout << "PartialConfiguration for these invalid properties: ";
             for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
@@ -2546,7 +2547,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
             std::string added_message = this->createVersionMismatchMessage(component_version);
             eout << added_message;
             eout << "Failed to initialize component properties: '";
-            eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
+            eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
             eout << "'initializeProperties' failed with Unknown Exception";
             eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
@@ -2616,6 +2617,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
 
     for (DeploymentList::iterator depl = configure_list.begin(); depl != configure_list.end(); ++depl) {
         ossie::ComponentDeployment* deployment = *depl;
+        const ossie::SoftPkg* softpkg = deployment->getSPD();
         const ossie::ComponentInfo* component = deployment->getComponent();
         
         // Assuming 1 instantiation for each componentplacement
@@ -2630,7 +2632,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
                 std::string added_message = this->createVersionMismatchMessage(component_version);
                 eout << added_message;
                 eout << "Could not get component reference for component: '" 
-                     << component->getName() << "' with component id: '" 
+                     << softpkg->getName() << "' with component id: '" 
                      << deployment->getIdentifier() << " assigned to device: '"
                      << deployment->getAssignedDevice()->identifier<<"'";
                 eout << " in waveform '" << _waveformContextName<<"';";
@@ -2652,7 +2654,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
             } catch(CF::PropertySet::InvalidConfiguration& e) {
                 ostringstream eout;
                 eout << "Failed to 'configure' component: '";
-                eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
+                eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
                 eout << " in waveform '"<< _waveformContextName<<"';";
                 eout <<  "InvalidConfiguration with this info: <";
                 eout << e.msg << "> for these invalid properties: ";
@@ -2669,7 +2671,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
             } catch(CF::PropertySet::PartialConfiguration& e) {
                 ostringstream eout;
                 eout << "Failed to instantiate component: '";
-                eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
+                eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
                 eout << " in waveform '"<< _waveformContextName<<"';";
                 eout << "Failed to 'configure' component; PartialConfiguration for these invalid properties: ";
                 for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
@@ -2685,7 +2687,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
             } catch( ... ) {
                 ostringstream eout;
                 eout << "Failed to instantiate component: '";
-                eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<< deployment->getAssignedDevice()->identifier << "' ";
+                eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<< deployment->getAssignedDevice()->identifier << "' ";
                 eout << " in waveform '"<< _waveformContextName<<"';";
                 eout << "'configure' failed with Unknown Exception";
                 if (partialWarn) {
