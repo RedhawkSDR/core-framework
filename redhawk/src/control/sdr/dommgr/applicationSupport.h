@@ -156,7 +156,6 @@ namespace ossie
         const ComponentInstantiation* getInstantiation() const;
 
         void setUsageName(const char* usageName);
-        void setIsAssemblyController(bool isAssemblyController);
         void setAffinity( const AffinityProperties &affinity );
 
         void addFactoryParameter(CF::DataType dt);
@@ -199,7 +198,6 @@ namespace ossie
         ComponentInfo (const ComponentInfo&);
 
         void process_overrides(CF::Properties* props, const char* id, CORBA::Any value);
-        bool _isAssemblyController;
         bool _isConfigurable;
 
         std::string usageName;

@@ -183,8 +183,8 @@ namespace ossie {
      */
     class ComponentInstantiation {
     public:
-      typedef std::pair<std::string,std::string>  LoggingConfig;
-      typedef ossie::ComponentPropertyList        AffinityProperties;
+        typedef std::pair<std::string,std::string>  LoggingConfig;
+        typedef ossie::ComponentPropertyList        AffinityProperties;
 
         std::string instantiationId;
         std::string namingservicename;
@@ -193,6 +193,7 @@ namespace ossie {
         ossie::optional_value<int> startOrder;
         AffinityProperties affinityProperties;
         LoggingConfig loggingConfig;
+
     public:
         ComponentInstantiation();
 
@@ -215,6 +216,12 @@ namespace ossie {
         bool isNamingService() const;
 
         const std::string& getFindByNamingServiceName() const;
+
+        bool isAssemblyController() const;
+        void setIsAssemblyController(bool state);
+
+    private:
+        bool _isAssemblyController;
     };
 
     /*

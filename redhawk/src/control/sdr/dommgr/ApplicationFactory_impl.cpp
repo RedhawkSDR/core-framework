@@ -1436,8 +1436,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
     ossie::corba::extend(configureProperties, deployment->getConstructProperties());
     
     // Find the devices that allocate the SPD's minimum required usesdevices properties
-    ossie::ComponentInfo* component = deployment->getComponent();
-    const std::vector<UsesDevice>& usesDevVec = component->getUsesDevices();
+    const std::vector<UsesDevice>& usesDevVec = deployment->getSoftPkg()->getUsesDevices();
     ossie::UsesDeviceDeployment assignedDevices;
     if (!allocateUsesDevices(usesDevVec, configureProperties, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the component
@@ -1460,6 +1459,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
     }
 
     // now attempt to find an implementation that can have it's allocation requirements met
+    ossie::ComponentInfo* component = deployment->getComponent();
     const ossie::ImplementationInfo::List& implementations = component->getImplementations();
     for (size_t implCount = 0; implCount < implementations.size(); implCount++) {
         ossie::ImplementationInfo* impl = implementations[implCount];
@@ -1928,9 +1928,6 @@ void createHelper::getRequiredComponents(CF::FileSystem_ptr fileSys,
         const std::vector<ComponentPlacement>& placements = collocations[index].getComponents();
         for (unsigned int i = 0; i < placements.size(); i++) {
             ossie::ComponentInfo* component = buildComponentInfo(fileSys, sadParser, placements[i]);
-            if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
-                component->setIsAssemblyController(true);
-            }
             plan->addComponent(component);
         }
     }
@@ -1941,9 +1938,6 @@ void createHelper::getRequiredComponents(CF::FileSystem_ptr fileSys,
         ossie::PlacementPlan* plan = new ossie::PlacementPlan();
         appDeployment.addPlacement(plan);
         ossie::ComponentInfo* component = buildComponentInfo(fileSys, sadParser, componentsFromSAD[i]);
-        if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
-            component->setIsAssemblyController(true);
-        }
         plan->addComponent(component);
     }
 
@@ -2590,21 +2584,22 @@ void createHelper::configureComponents(const DeploymentList& deployments)
     DeploymentList configure_list;
     ossie::ComponentDeployment* ac_deployment = 0;
     for (DeploymentList::const_iterator depl = deployments.begin(); depl != deployments.end(); ++depl) {
-        const ossie::ComponentInfo* component = (*depl)->getComponent();
-        if (!component->isScaCompliant()) {
+        ossie::ComponentDeployment* deployment = (*depl);
+        const ossie::ComponentInfo* component = deployment->getComponent();
+        if (!deployment->getSoftPkg()->isScaCompliant()) {
             // If the component is non-SCA compliant then we don't expect anything beyond this
             LOG_TRACE(ApplicationFactory_impl, "Skipping configure of non SCA-compliant component "
-                      << (*depl)->getIdentifier());
+                      << deployment->getIdentifier());
         } else if (!component->isResource()) {
             LOG_TRACE(ApplicationFactory_impl, "Skipping configure of non-resource component "
-                      << (*depl)->getIdentifier());
+                      << deployment->getIdentifier());
         } else {
             // The component is configurable; if it's the assembly controller,
             // save it for the end
-            if (component->isAssemblyController()) {
-                ac_deployment = *depl;
+            if (deployment->getInstantiation()->isAssemblyController()) {
+                ac_deployment = deployment;
             } else {
-                configure_list.push_back(*depl);
+                configure_list.push_back(deployment);
             }
         }
     }
@@ -2745,9 +2740,8 @@ std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& 
     StartOrderMap start_map;
     for (size_t index = 0; index < deployments.size(); ++index) {
         ossie::ComponentDeployment* deployment = deployments[index];
-        ossie::ComponentInfo* component = deployment->getComponent();
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
-        if (!component->isAssemblyController() && instantiation->hasStartOrder()) {
+        if (!instantiation->isAssemblyController() && instantiation->hasStartOrder()) {
             // Only track start order if it was provided, and the component is
             // not the assembly controller
             start_map.insert(std::make_pair(instantiation->getStartOrder(), deployment));

@@ -446,7 +446,6 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileSystem_ptr f
 
 ComponentInfo::ComponentInfo(const std::string& spdFileName, const ComponentInstantiation* instantiation) :
     SoftpkgInfo(spdFileName),
-    _isAssemblyController(false),
     instantiation(instantiation)
 {
     // load common affinity property definitions 
@@ -474,11 +473,6 @@ void ComponentInfo::setUsageName(const char* _usageName)
     if (_usageName != 0) {
         usageName = _usageName;
     }
-}
-
-void ComponentInfo::setIsAssemblyController(bool _isAssemblyController)
-{
-    this->_isAssemblyController = _isAssemblyController;
 }
 
 void ComponentInfo::setAffinity( const AffinityProperties &affinity_props )
@@ -589,7 +583,7 @@ bool ComponentInfo::isConfigurable() const
 
 bool ComponentInfo::isAssemblyController() const
 {
-    return _isAssemblyController;
+    return instantiation->isAssemblyController();
 }
 
 bool ComponentInfo::isScaCompliant() const

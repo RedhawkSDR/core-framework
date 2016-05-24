@@ -166,6 +166,15 @@ const ComponentInstantiation::LoggingConfig &ComponentInstantiation::getLoggingC
   return loggingConfig;
 }
 
+bool ComponentInstantiation::isAssemblyController() const
+{
+    return _isAssemblyController;
+}
+
+void ComponentInstantiation::setIsAssemblyController(bool state)
+{
+    _isAssemblyController = state;
+}
 
 //
 // ComponentPlacement
