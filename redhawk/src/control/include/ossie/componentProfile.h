@@ -29,7 +29,6 @@
 #include <map>
 #include <string>
 #include <memory>
-#include <boost/shared_ptr.hpp>
 #include "ossie/ossieparser.h"
 
 namespace ossie {
@@ -49,19 +48,6 @@ namespace ossie {
         const std::string& getFileName() const;
 
         const std::string& getID() const;
-
-        const boost::shared_ptr<SoftPkg>& getSoftPkg() const
-        {
-            return _softpkg;
-        }
-
-        void setSoftPkg(const boost::shared_ptr<SoftPkg>& softpkg)
-        {
-            _softpkg = softpkg;
-        }
-
-    private:
-        boost::shared_ptr<SoftPkg> _softpkg;
     };
 
     /*

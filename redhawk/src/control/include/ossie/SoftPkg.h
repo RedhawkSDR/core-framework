@@ -51,19 +51,6 @@ namespace ossie {
 
                 virtual const std::string asString() const;
                 virtual ~SoftPkgRef() {};
-
-                const boost::shared_ptr<SoftPkg>& getReference() const
-                {
-                    return _softpkg;
-                }
-
-                void setReference(const boost::shared_ptr<SoftPkg>& softpkg)
-                {
-                    _softpkg = softpkg;
-                }
-
-            private:
-                boost::shared_ptr<SoftPkg> _softpkg;
         };
 
 

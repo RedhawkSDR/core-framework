@@ -101,6 +101,8 @@ namespace ossie {
 
         const PlacementList& getPlacements() const;
 
+        const boost::shared_ptr<SoftPkg>& getSoftPkg(const std::string& filename) const;
+
     protected:
         typedef std::vector<boost::shared_ptr<SoftPkg> > ProfileList;
 

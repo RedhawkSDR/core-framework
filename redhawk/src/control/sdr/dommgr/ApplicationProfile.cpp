@@ -18,6 +18,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/ref.hpp>
 
@@ -143,6 +144,17 @@ void ApplicationProfile::load(CF::FileSystem_ptr fileSystem, const SoftwareAssem
     }
 }
 
+const boost::shared_ptr<SoftPkg>& ApplicationProfile::getSoftPkg(const std::string& filename) const
+{
+    BOOST_FOREACH(const boost::shared_ptr<SoftPkg>& softpkg, profiles) {
+        if (softpkg->getSPDFile() == filename) {
+            return softpkg;
+        }
+    }
+
+    throw std::logic_error(filename + " was never loaded");
+}
+
 boost::shared_ptr<SoftPkg> ApplicationProfile::loadProfile(CF::FileSystem_ptr fileSystem,
                                                            const std::string& filename)
 {
@@ -165,7 +177,7 @@ boost::shared_ptr<SoftPkg> ApplicationProfile::loadProfile(CF::FileSystem_ptr fi
         for (SPD::SoftPkgDependencies::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
             SPD::SoftPkgRef& ref = const_cast<SPD::SoftPkgRef&>(*dep);
             LOG_TRACE(ApplicationProfile, "Resolving soft package reference " << ref.localfile);
-            ref.setReference(loadProfile(fileSystem, ref.localfile));
+            loadProfile(fileSystem, ref.localfile);
         }
     }
 
@@ -201,9 +213,7 @@ SinglePlacement* ApplicationProfile::buildComponentPlacement(CF::FileSystem_ptr 
 {
     assert(placement.componentFile);
     ComponentFile* componentFile = const_cast<ComponentFile*>(placement.componentFile);
-    if (!componentFile->getSoftPkg()) {
-        componentFile->setSoftPkg(loadProfile(fileSystem, componentFile->getFileName()));
-    }
+    const boost::shared_ptr<SoftPkg>& softpkg = loadProfile(fileSystem, componentFile->getFileName());
 
     // Even though it is possible for there to be more than one instantiation
     // per component, the tooling doesn't support that, so supporting this at a
@@ -213,7 +223,7 @@ SinglePlacement* ApplicationProfile::buildComponentPlacement(CF::FileSystem_ptr 
     const std::vector<ComponentInstantiation>& instantiations = placement.getInstantiations();
     const ComponentInstantiation& instance = instantiations[0];
 
-    return new SinglePlacement(&instance, componentFile->getSoftPkg());
+    return new SinglePlacement(&instance, softpkg);
 }
 
 const ApplicationProfile::PlacementList& ApplicationProfile::getPlacements() const
