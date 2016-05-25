@@ -73,7 +73,6 @@ namespace ossie
 
         void setAffinity( const AffinityProperties &affinity );
 
-        void addFactoryParameter(CF::DataType dt);
         void addExecParameter(CF::DataType dt);
         void addConfigureProperty(CF::DataType dt);
         void addConstructProperty(CF::DataType dt);
@@ -103,7 +102,6 @@ namespace ossie
 
         CF::Properties configureProperties;
         CF::Properties ctorProperties;
-        CF::Properties factoryParameters;
         CF::Properties execParameters;
         CF::Properties affinityOptions;
 

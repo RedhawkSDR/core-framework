@@ -75,13 +75,7 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(const SoftPkg* softp
     // specific PRF file
     if (softpkg->getProperties()) {
         // Handle component properties
-        LOG_TRACE(ComponentInfo, "Adding factory params");
         Properties& prf = *softpkg->getProperties();
-        const std::vector<const Property*>& fprop = prf.getFactoryParamProperties();
-        for (unsigned int i = 0; i < fprop.size(); i++) {
-            newComponent->addFactoryParameter(convertPropertyToDataType(fprop[i]));
-        }
-
         LOG_TRACE(ComponentInfo, "Adding exec params")
         const std::vector<const Property*>& eprop = prf.getExecParamProperties();
         for (unsigned int i = 0; i < eprop.size(); i++) {
@@ -185,11 +179,6 @@ void ComponentInfo::setAffinity( const AffinityProperties &affinity_props )
 
 }
 
-void ComponentInfo::addFactoryParameter(CF::DataType dt)
-{
-    addProperty(dt, factoryParameters);
-}
-
 void ComponentInfo::addExecParameter(CF::DataType dt)
 {
     addProperty(dt, execParameters);
@@ -234,7 +223,6 @@ void ComponentInfo::overrideProperty(const char* id, const CORBA::Any& value)
     }
     process_overrides(&ctorProperties, id, value);
     process_overrides(&configureProperties, id, value);
-    process_overrides(&factoryParameters, id, value);
     process_overrides(&execParameters, id, value);
 }
 
