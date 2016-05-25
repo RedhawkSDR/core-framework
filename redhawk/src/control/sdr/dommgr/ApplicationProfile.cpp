@@ -38,11 +38,6 @@ SinglePlacement::SinglePlacement(const ComponentInstantiation* instantiation,
 {
 }
 
-void SinglePlacement::accept(ApplicationVisitor* visitor)
-{
-    visitor->visitComponentPlacement(this);
-}
-
 const ComponentInstantiation* SinglePlacement::getComponentInstantiation() const
 {
     return instantiation;
@@ -58,11 +53,6 @@ CollocationPlacement::CollocationPlacement(const std::string& id, const std::str
     id(id),
     name(name)
 {
-}
-
-void CollocationPlacement::accept(ApplicationVisitor* visitor)
-{
-    visitor->visitHostCollocation(this);
 }
 
 const std::string& CollocationPlacement::getId() const
@@ -102,11 +92,6 @@ ApplicationProfile::~ApplicationProfile()
     }
 }
 
-void ApplicationProfile::accept(ApplicationVisitor* visitor)
-{
-    visitor->visitApplication(this);
-}
-
 const std::string& ApplicationProfile::getIdentifier() const
 {
     return identifier;
@@ -135,10 +120,6 @@ void ApplicationProfile::load(CF::FileSystem_ptr fileSystem, const SoftwareAssem
     // Then, walk through the remaining non-collocated components
     const std::vector<ComponentPlacement>& components = sad.getComponentPlacements();
     for (unsigned int i = 0; i < components.size(); i++) {
-        // ossie::ComponentInfo* component = buildComponentInfo(fileSys, sadParser, componentsFromSAD[i]);
-        // if (component->getInstantiationIdentifier() == assemblyControllerRefId) {
-        //     component->setIsAssemblyController(true);
-        // }
         SinglePlacement* placement = buildComponentPlacement(fileSystem, sad, components[i]);
         placements.push_back(placement);
     }

@@ -31,13 +31,10 @@
 
 namespace ossie {
 
-    class ApplicationVisitor;
-
     class Placement
     {
     public:
         virtual ~Placement() { }
-        virtual void accept(ApplicationVisitor* visitor) = 0;
     };
 
     class SinglePlacement : public Placement
@@ -45,8 +42,6 @@ namespace ossie {
     public:
         SinglePlacement(const ComponentInstantiation* instantiation,
                         const SoftPkg* softpkg);
-
-        virtual void accept(ApplicationVisitor* visitor);
 
         const ComponentInstantiation* getComponentInstantiation() const;
 
@@ -63,8 +58,6 @@ namespace ossie {
         typedef std::vector<Placement*> PlacementList;
 
         CollocationPlacement(const std::string& id, const std::string& name);
-
-        virtual void accept(ApplicationVisitor* visitor);
 
         const std::string& getId() const;
         const std::string& getName() const;
@@ -95,8 +88,6 @@ namespace ossie {
         ApplicationProfile();
         ~ApplicationProfile();
 
-        void accept(ApplicationVisitor* visitor);
-
         const std::string& getIdentifier() const;
 
         void load(CF::FileSystem_ptr fileSystem, const SoftwareAssembly& sad);
@@ -117,25 +108,6 @@ namespace ossie {
         std::string identifier;
         ProfileList profiles;
         PlacementList placements;
-    };
-
-    class ApplicationVisitor
-    {
-    public:
-        virtual ~ApplicationVisitor() { }
-
-        virtual void visitApplication(ApplicationProfile* application)
-        {
-        }
-
-        virtual void visitComponentPlacement(SinglePlacement* placement)
-        {
-        }
-
-        virtual void visitHostCollocation(CollocationPlacement* collocation)
-        {
-        }
-
     };
 
 }
