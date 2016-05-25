@@ -90,7 +90,6 @@ namespace ossie
         CF::Properties getConstructProperties() const;
         CF::Properties getAffinityOptions() const;
         CF::Properties getExecParameters();
-        CF::Properties getCommandLineParameters() const;
 
         static ComponentInfo* buildComponentInfoFromSPDFile(const SoftPkg* softpkg,
                                                             const ComponentInstantiation* instantiation);

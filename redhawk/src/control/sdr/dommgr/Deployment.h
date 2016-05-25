@@ -137,6 +137,12 @@ namespace ossie {
         redhawk::PropertyMap getAllocationContext() const;
 
         /**
+         * Returns the properties whose values are passed on the command line
+         * in execute
+         */
+        redhawk::PropertyMap getCommandLineParameters() const;
+
+        /**
          * Returns the properties used for the initial call to configure()
          * during deployment
          */

@@ -341,25 +341,3 @@ CF::Properties ComponentInfo::getExecParameters()
 {
     return execParameters;
 }
-
-CF::Properties ComponentInfo::getCommandLineParameters() const
-{
-    CF::Properties retval = execParameters;
-    while (true) {
-        unsigned int i;
-        for (i=0; i<retval.length(); i++) {
-            CORBA::TypeCode_var typecode = retval[i].value.type();
-            if (typecode->kind() == CORBA::tk_null) {
-                break;
-            }
-        }
-        if (i == retval.length()) {
-            break;
-        }
-        for (unsigned int j=i+1; j<retval.length(); j++) {
-            retval[j-1] = retval[j];
-        }
-        retval.length(retval.length()-1);
-    }
-    return retval;
-}

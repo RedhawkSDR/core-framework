@@ -2142,7 +2142,6 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
 void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr registrar,
                                               ossie::ComponentDeployment* deployment)
 {
-    const ossie::ComponentInfo* component = deployment->getComponent();
     const ossie::SPD::Implementation* implementation = deployment->getImplementation();
     const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
 
@@ -2157,7 +2156,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     }
 
     // Build up the list of command line parameters
-    redhawk::PropertyMap execParameters(component->getCommandLineParameters());
+    redhawk::PropertyMap execParameters = deployment->getCommandLineParameters();
     const std::string& nic = deployment->getNicAssignment();
     if (!nic.empty()) {
         execParameters["NIC"] = nic;

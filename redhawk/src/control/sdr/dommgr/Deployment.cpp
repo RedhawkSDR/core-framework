@@ -357,6 +357,22 @@ redhawk::PropertyMap ComponentDeployment::getAllocationContext() const
     return properties;
 }
 
+redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
+{
+   redhawk::PropertyMap properties;
+   if (softpkg->getProperties()) {
+       BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
+           if (property->isExecParam() || (property->isProperty() && property->isCommandLine())) {
+               CF::DataType dt = getPropertyValue(property);
+               if (!ossie::any::isNull(dt.value)) {
+                   properties.push_back(dt);
+               }
+           }
+       }
+    }
+    return properties;
+}
+
 redhawk::PropertyMap ComponentDeployment::getInitialConfigureProperties() const
 {
    redhawk::PropertyMap properties;
@@ -369,8 +385,14 @@ redhawk::PropertyMap ComponentDeployment::getInitialConfigureProperties() const
                }
            }
        }
-    }
-    return properties;
+   }
+
+   // Handle special Docker image property if set in component instantiation
+   const ComponentProperty* docker = getPropertyOverride("__DOCKER_IMAGE__");
+   if (docker) {
+       properties["__DOCKER_IMAGE__"] = dynamic_cast<const SimplePropertyRef*>(docker)->getValue();
+   }
+   return properties;
 }
 
 redhawk::PropertyMap ComponentDeployment::getInitializeProperties() const
