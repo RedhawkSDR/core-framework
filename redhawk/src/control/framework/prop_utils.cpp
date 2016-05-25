@@ -31,6 +31,7 @@
 #include <ossie/CorbaUtils.h>
 #include <ossie/prop_utils.h>
 #include <ossie/debug.h>
+#include <ossie/PropertyMap.h>
 
 using namespace ossie;
 
@@ -658,4 +659,47 @@ std::string ossie::retrieveParserErrorLineNumber(std::string message) {
         ret_message += ".";
     }
     return ret_message;
-};
+}
+
+bool ossie::structContainsMixedNilValues(const CF::Properties& properties)
+{
+    const redhawk::PropertyMap& fields = redhawk::PropertyMap::cast(properties);
+    bool nils = false;
+    bool values = false;
+    for (redhawk::PropertyMap::const_iterator prop = fields.begin(); prop != fields.end(); ++prop) {
+        if (prop->getValue().isNil()) {
+            nils = true;
+        } else {
+            values = true;
+        }
+        if (nils && values) {
+            return true;
+        }
+    }
+    return false;
+}
+
+CF::Properties ossie::getPartialStructs(const CF::Properties& properties)
+{
+    CF::Properties partials;
+    const redhawk::PropertyMap& configProps = redhawk::PropertyMap::cast(properties);
+    for (redhawk::PropertyMap::const_iterator prop = configProps.begin(); prop != configProps.end(); ++prop) {
+        CORBA::TypeCode_var type = prop->getValue().type();
+        if (CORBA::_tc_AnySeq->equivalent(type)) {
+            const redhawk::ValueSequence& sequence = prop->getValue().asSequence();
+            for (redhawk::ValueSequence::const_iterator item = sequence.begin(); item != sequence.end(); ++item) {
+                type = item->type();
+                if (CF::_tc_Properties->equivalent(type)) {
+                    if (ossie::structContainsMixedNilValues(item->asProperties())) {
+                        ossie::corba::push_back(partials, *prop);
+                    }
+                }
+            }
+        } else if (CF::_tc_Properties->equivalent(type)) {
+            if (ossie::structContainsMixedNilValues(prop->getValue().asProperties())) {
+                ossie::corba::push_back(partials, *prop);
+            }
+        }
+    }
+    return partials;
+}

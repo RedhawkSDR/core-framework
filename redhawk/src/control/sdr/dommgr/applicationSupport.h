@@ -79,9 +79,6 @@ namespace ossie
         void overrideProperty(const ossie::ComponentProperty* propref);
         void overrideProperty(const char* id, const CORBA::Any& value);
 
-        CF::Properties iteratePartialStruct(const CF::Properties &props) const;
-        bool checkStruct(const CF::Properties &props) const;
-
         CF::Properties getConfigureProperties() const;
         CF::Properties getAffinityOptions() const;
         CF::Properties getExecParameters();

@@ -76,6 +76,8 @@ namespace ossie
     
     std::string retrieveParserErrorLineNumber(std::string message);
 
+    bool structContainsMixedNilValues(const CF::Properties& properties);
+    CF::Properties getPartialStructs(const CF::Properties& properties);
 }
 
 #endif

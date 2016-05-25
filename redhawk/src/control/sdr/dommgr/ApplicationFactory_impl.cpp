@@ -2386,7 +2386,6 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
         ossie::ComponentDeployment* deployment = deployments[rc_idx];
         const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
-        const ossie::ComponentInfo* component = deployment->getComponent();
 
         // If the component is non-SCA compliant then we don't expect anything beyond this
         if (!softpkg->isScaCompliant()) {
@@ -2441,7 +2440,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
         LOG_DEBUG(ApplicationFactory_impl, "Initialize properties for component " << componentId);
         if (deployment->isResource() && deployment->isConfigurable()) {
             redhawk::PropertyMap initProps = deployment->getInitializeProperties();
-            CF::Properties partialStruct = component->iteratePartialStruct(initProps);
+            CF::Properties partialStruct = ossie::getPartialStructs(initProps);
             if (partialStruct.length() != 0) {
                 ostringstream eout;
                 eout << "Failed to 'configure' Assembly Controller: '";
@@ -2555,7 +2554,6 @@ void createHelper::configureComponents(const DeploymentList& deployments)
     for (DeploymentList::iterator depl = configure_list.begin(); depl != configure_list.end(); ++depl) {
         ossie::ComponentDeployment* deployment = *depl;
         const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
-        const ossie::ComponentInfo* component = deployment->getComponent();
         
         // Assuming 1 instantiation for each componentplacement
         if (deployment->getInstantiation()->isNamingService()) {
@@ -2578,7 +2576,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
             }
 
             redhawk::PropertyMap config_props = deployment->getInitialConfigureProperties();
-            CF::Properties partialStruct = component->iteratePartialStruct(config_props);
+            CF::Properties partialStruct = ossie::getPartialStructs(config_props);
             bool partialWarn = false;
             if (partialStruct.length() != 0) {
                 ostringstream eout;

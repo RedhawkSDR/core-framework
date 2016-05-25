@@ -232,64 +232,6 @@ void ComponentInfo::process_overrides(CF::Properties* props, const char* id, COR
     return;
 }
 
-bool ComponentInfo::checkStruct(const CF::Properties &props) const
-{
-    const redhawk::PropertyMap& tmpProps = redhawk::PropertyMap::cast(props);
-    int state = 0; // 1 set, -1 nil
-    for (redhawk::PropertyMap::const_iterator tmpP = tmpProps.begin(); tmpP != tmpProps.end(); tmpP++) {
-        if (tmpProps[ossie::corba::returnString(tmpP->id)].isNil()) {
-            if (state == 0) {
-                state = -1;
-            } else {
-                if (state == 1) {
-                    return true;
-                }
-            }
-        } else {
-            if (state == 0) {
-                state = 1;
-            } else {
-                if (state == -1) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-CF::Properties ComponentInfo::iteratePartialStruct(const CF::Properties &props) const
-{
-    CF::Properties retval;
-    const redhawk::PropertyMap& configProps = redhawk::PropertyMap::cast(props);
-    for (redhawk::PropertyMap::const_iterator cP = configProps.begin(); cP != configProps.end(); cP++) {
-        const ossie::Property* prop = spd->getProperties()->getProperty(ossie::corba::returnString(cP->id));
-        if (dynamic_cast<const ossie::StructProperty*>(prop)) {
-            CF::Properties* tmp;
-            if (!(cP->value >>= tmp))
-                continue;
-            if (this->checkStruct(*tmp))
-                return *tmp;
-        } else if (dynamic_cast<const ossie::StructSequenceProperty*>(prop)) {
-            CORBA::AnySeq* anySeqPtr;
-            if (!(cP->value >>= anySeqPtr)) {
-                continue;
-            }
-            CORBA::AnySeq& anySeq = *anySeqPtr;
-            for (CORBA::ULong ii = 0; ii < anySeq.length(); ++ii) {
-                CF::Properties* tmp;
-                if (!(anySeq[ii] >>= tmp))
-                    continue;
-                if (this->checkStruct(*tmp))
-                    return *tmp;
-            }
-        } else {
-            continue;
-        }
-    }
-    return retval;
-}
-
 CF::Properties ComponentInfo::getAffinityOptions() const
 {
     return affinityOptions;
