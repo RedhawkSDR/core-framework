@@ -535,7 +535,7 @@ void DeviceManager_impl::getOverloadprops(
         // see if this exec param has been overloaded (NOTE: we know that execparams are simple elements via the spec)
         for (iprops_iter = instanceprops.begin(); iprops_iter != instanceprops.end(); iprops_iter++) {
             // property has been overloaded in instantiation from DCD
-            if (strcmp( iprops_iter->getID(), (*jprops_iter)->getID()) == 0) {
+            if (iprops_iter->getID() == (*jprops_iter)->getID()) {
               if (dynamic_cast<const SimplePropertyRef *>( &(*iprops_iter))  == NULL) {
                     LOG_WARN(DeviceManager_impl, "ignoring attempt to override exec param with non-simple ref");
                 } else {
@@ -581,7 +581,7 @@ void DeviceManager_impl::getOverloadprops(
         // see if this property has been overloaded (NOTE: we know that property are simple elements via the spec)
         for (iprops_iter = instanceprops.begin(); iprops_iter != instanceprops.end(); iprops_iter++) {
             // property has been overloaded in instantiation from DCD
-            if (strcmp( iprops_iter->getID(), (*jprops_iter)->getID()) == 0) {
+            if (iprops_iter->getID() == (*jprops_iter)->getID()) {
               if (dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter)) == NULL) {
                     LOG_WARN(DeviceManager_impl, "ignoring attempt to override property with non-simple ref");
                 } else {
@@ -760,7 +760,7 @@ void DeviceManager_impl::createDeviceExecStatement(
     // get logging info if available
     logging_uri = "";      
     for (iprops_iter = instanceprops.begin(); iprops_iter != instanceprops.end(); iprops_iter++) {
-        if ((strcmp(iprops_iter->getID(), "LOGGING_CONFIG_URI") == 0)
+        if ((iprops_iter->getID() == "LOGGING_CONFIG_URI")
             && (dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter)) != NULL)) {
           const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter));
             logging_uri = simpleref->getValue();
@@ -875,7 +875,7 @@ DeviceManager_impl::ExecparamList DeviceManager_impl::createDeviceExecparams(
     ossie::ComponentPropertyList::const_iterator iprops_iter;
     logging_uri = "";
     for (iprops_iter = instanceprops.begin(); iprops_iter != instanceprops.end(); iprops_iter++) {
-        if ((strcmp(iprops_iter->getID(), "LOGGING_CONFIG_URI") == 0)
+        if ((iprops_iter->getID() == "LOGGING_CONFIG_URI")
             && (dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter)) != NULL)) {
           const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter));
             logging_uri = simpleref->getValue();

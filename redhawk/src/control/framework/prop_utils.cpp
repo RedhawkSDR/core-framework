@@ -516,7 +516,7 @@ CF::AllocationManager::AllocationResponseType ossie::assembleResponse(std::strin
 
 CF::DataType ossie::convertPropertyToDataType(const SimplePropertyRef* prop) {
     CF::DataType dataType;
-    dataType.id = CORBA::string_dup(prop->getID());
+    dataType.id = prop->getID().c_str();
     
     if (prop->getValue() != NULL) {
         std::string value(prop->getValue());
@@ -527,14 +527,14 @@ CF::DataType ossie::convertPropertyToDataType(const SimplePropertyRef* prop) {
 
 CF::DataType ossie::convertPropertyToDataType(const SimpleSequencePropertyRef* prop) {
     CF::DataType dataType;
-    dataType.id = CORBA::string_dup(prop->getID());
+    dataType.id = prop->getID().c_str();
     dataType.value = ossie::strings_to_any(prop->getValues(), CORBA::tk_string);
     return dataType;
 }
 
 CF::DataType ossie::convertPropertyToDataType(const StructPropertyRef* prop) {
     CF::DataType dataType;
-    dataType.id = CORBA::string_dup(prop->getID());
+    dataType.id = prop->getID().c_str();
     
     CF::Properties structval_;
     StructPropertyRef::ValuesMap::const_iterator i;
@@ -550,7 +550,7 @@ CF::DataType ossie::convertPropertyToDataType(const StructPropertyRef* prop) {
 
 CF::DataType ossie::convertPropertyToDataType(const StructSequencePropertyRef* prop) {
     CF::DataType dataType;
-    dataType.id = CORBA::string_dup(prop->getID());
+    dataType.id = prop->getID().c_str();
     
     const StructSequencePropertyRef::ValuesList propValues = prop->getValues();
     CORBA::AnySeq values;

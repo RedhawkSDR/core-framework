@@ -61,7 +61,7 @@ namespace ossie {
 
         virtual ~ComponentProperty() {};
 
-        const char* getID() const;
+        const std::string& getID() const;
         
         ComponentProperty* clone() const {
           return _clone();

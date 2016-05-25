@@ -48,8 +48,8 @@ const std::string& ComponentFile::getID() const {
 //
 // ComponentProperty
 //
-const char* ComponentProperty::getID() const {
-    return _id.c_str();
+const std::string& ComponentProperty::getID() const {
+    return _id;
 }
 
 
