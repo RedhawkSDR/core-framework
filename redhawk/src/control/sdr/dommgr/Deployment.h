@@ -130,6 +130,9 @@ namespace ossie {
         CF::Properties getConfigureProperties() const;
         CF::Properties getConstructProperties() const;
 
+        redhawk::PropertyMap getInitialConfigureProperties() const;
+        redhawk::PropertyMap getInitializeProperties() const;
+
         void setAssignedDevice(const boost::shared_ptr<DeviceNode>& device);
         boost::shared_ptr<DeviceNode> getAssignedDevice();
 
@@ -140,6 +143,9 @@ namespace ossie {
                   CF::LoadableDevice_ptr device);
 
     protected:
+        CF::DataType getPropertyValue(const Property* property) const;
+        const ComponentProperty* getPropertyOverride(const std::string& id) const;
+
         ComponentInfo* component;
         const ComponentInstantiation* instantiation;
         const std::string identifier;

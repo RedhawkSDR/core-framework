@@ -19,6 +19,9 @@
  */
 
 #include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
+
+#include <ossie/prop_utils.h>
 
 #include "Application_impl.h"
 #include "PersistenceStore.h"
@@ -345,6 +348,58 @@ CF::Properties ComponentDeployment::getConfigureProperties() const
 CF::Properties ComponentDeployment::getConstructProperties() const
 {
     return component->getConstructProperties();
+}
+
+redhawk::PropertyMap ComponentDeployment::getInitialConfigureProperties() const
+{
+   redhawk::PropertyMap properties;
+   if (softpkg->getProperties()) {
+       BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
+           if (property->isConfigure() && !property->isReadOnly()) {
+               CF::DataType dt = getPropertyValue(property);
+               if (!ossie::any::isNull(dt.value)) {
+                   properties.push_back(dt);
+               }
+           }
+       }
+    }
+    return properties;
+}
+
+redhawk::PropertyMap ComponentDeployment::getInitializeProperties() const
+{
+    redhawk::PropertyMap properties;
+    if (softpkg->getProperties()) {
+        BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
+            if (property->isProperty() && !property->isCommandLine()) {
+                CF::DataType dt = getPropertyValue(property);
+                if (!ossie::any::isNull(dt.value)) {
+                    properties.push_back(dt);
+                }
+            }
+        }
+    }
+    return properties;
+}
+
+CF::DataType ComponentDeployment::getPropertyValue(const Property* property) const
+{
+    const ComponentProperty* override = getPropertyOverride(property->getID());
+    if (override) {
+        return ossie::overridePropertyValue(property, override);
+    } else {
+        return ossie::convertPropertyToDataType(property);
+    }
+}
+
+const ComponentProperty* ComponentDeployment::getPropertyOverride(const std::string& id) const
+{
+    BOOST_FOREACH(const ComponentProperty& override, instantiation->getProperties()) {
+        if (override.getID() == id) {
+            return &override;
+        }
+    }
+    return 0;
 }
 
 redhawk::PropertyMap ComponentDeployment::getAffinityOptionsWithAssignment() const

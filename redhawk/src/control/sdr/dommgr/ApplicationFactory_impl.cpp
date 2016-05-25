@@ -2505,7 +2505,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
           }
           try {
             // Try to set the initial values for the component's properties
-            CF::Properties initProps = component->getInitializeProperties();
+            redhawk::PropertyMap initProps = deployment->getInitializeProperties();
             resource->initializeProperties(initProps);
           } catch(CF::PropertySet::InvalidConfiguration& e) {
             ostringstream eout;
@@ -2644,7 +2644,8 @@ void createHelper::configureComponents(const DeploymentList& deployments)
             }
             try {
                 // try to configure the component
-                _rsc->configure (component->getNonNilConfigureProperties());
+                redhawk::PropertyMap config_props = deployment->getInitialConfigureProperties();
+                _rsc->configure(config_props);
             } catch(CF::PropertySet::InvalidConfiguration& e) {
                 ostringstream eout;
                 eout << "Failed to 'configure' component: '";

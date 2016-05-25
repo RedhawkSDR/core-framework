@@ -94,8 +94,6 @@ namespace ossie
         CF::Properties iteratePartialStruct(const CF::Properties &props) const;
         bool checkStruct(const CF::Properties &props) const;
 
-        CF::Properties getNonNilConfigureProperties() const;
-        CF::Properties getInitializeProperties() const;
         CF::Properties getConfigureProperties() const;
         CF::Properties getConstructProperties() const;
         CF::Properties getAffinityOptions() const;

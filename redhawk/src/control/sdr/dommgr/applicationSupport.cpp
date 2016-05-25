@@ -345,16 +345,6 @@ CF::Properties ComponentInfo::containsPartialStructConstruct() const
     return this->iteratePartialStruct(ctorProperties);
 }
 
-CF::Properties ComponentInfo::getNonNilConfigureProperties() const
-{
-    return ossie::getNonNilConfigureProperties(configureProperties);
-}
-
-CF::Properties ComponentInfo::getInitializeProperties() const
-{
-    return ossie::getNonNilProperties(ctorProperties);
-}
-
 CF::Properties ComponentInfo::getAffinityOptions() const
 {
     return affinityOptions;
