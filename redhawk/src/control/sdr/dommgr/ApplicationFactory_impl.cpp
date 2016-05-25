@@ -1204,16 +1204,7 @@ CF::Application_ptr createHelper::create (
     assignPlacementsToDevices(app_deployment, deviceAssignments);
 
     // Assign CPU reservations to components
-    const DeploymentList& deployments = app_deployment.getComponentDeployments();
-    for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
-        std::map<std::string,float>::iterator reservation = specialized_reservations.find((*dep)->getIdentifier());
-        if (reservation == specialized_reservations.end()) {
-            reservation = specialized_reservations.find((*dep)->getInstantiation()->getUsageName());
-        }
-        if (reservation != specialized_reservations.end()) {
-            (*dep)->setCpuReservation(reservation->second);
-        }
-    }
+    app_deployment.applyCpuReservations(specialized_reservations);
 
     ////////////////////////////////////////////////
     // Create the Application servant
@@ -1277,6 +1268,7 @@ CF::Application_ptr createHelper::create (
         ossie::corba::push_back(app_devices, assignment);
     }
 
+    const DeploymentList& deployments = app_deployment.getComponentDeployments();    
     for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
         CF::DeviceAssignmentType comp_assignment;
         comp_assignment.componentId = (*dep)->getIdentifier().c_str();

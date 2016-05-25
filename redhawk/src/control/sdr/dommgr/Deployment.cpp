@@ -596,6 +596,23 @@ ComponentDeployment* ApplicationDeployment::getComponentDeployment(const std::st
     return 0;
 }
 
+void ApplicationDeployment::applyCpuReservations(const CpuReservations& reservations)
+{
+    BOOST_FOREACH(ComponentDeployment* deployment, components) {
+        CpuReservations::const_iterator reserved = reservations.find(deployment->getIdentifier());
+        if (reserved == reservations.end()) {
+            // NB: Check for the usage name for consistency with 2.0, although
+            // the instantiation ID would make more sense. In most cases, this
+            // is probably a moot point, since the IDE uses the same value for
+            // both.
+            reserved = reservations.find(deployment->getInstantiation()->getUsageName());
+        }
+        if (reserved != reservations.end()) {
+            deployment->setCpuReservation(reserved->second);
+        }
+    }
+}
+
 CF::Resource_ptr ApplicationDeployment::lookupComponentByInstantiationId(const std::string& identifier)
 {
     ComponentDeployment* deployment = getComponentDeployment(identifier);

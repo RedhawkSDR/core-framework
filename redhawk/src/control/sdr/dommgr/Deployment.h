@@ -202,6 +202,7 @@ namespace ossie {
     public:
         typedef std::vector<PlacementPlan*> PlacementList;
         typedef std::vector<ComponentDeployment*> ComponentList;
+        typedef std::map<std::string,float> CpuReservations;
 
         ApplicationDeployment(const SoftwareAssembly& sad, const std::string& instanceName);
         ~ApplicationDeployment();
@@ -226,6 +227,8 @@ namespace ossie {
 
         const ComponentList& getComponentDeployments();
         ComponentDeployment* getComponentDeployment(const std::string& instantiationId);
+
+        void applyCpuReservations(const CpuReservations& reservations);
 
         // Adapt interfaces for component and device search to support
         // ConnectionManager
