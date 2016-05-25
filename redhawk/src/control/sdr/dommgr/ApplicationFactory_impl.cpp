@@ -1841,20 +1841,11 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
 
     const ossie::ComponentPropertyList & ins_prop = instance.getProperties();
 
-    int docker_image_idx = -1;
     for (unsigned int i = 0; i < ins_prop.size(); ++i) {
         if (ins_prop[i]._id == "__DOCKER_IMAGE__") {
-            docker_image_idx = i;
             continue;
         }
         newComponent->overrideProperty(&ins_prop[i]);
-    }
-
-    if (docker_image_idx > -1) {
-        CF::Properties tmp;
-        redhawk::PropertyMap& tmpProp = redhawk::PropertyMap::cast(tmp);
-        tmpProp["__DOCKER_IMAGE__"].setValue(dynamic_cast<const SimplePropertyRef &>(ins_prop[docker_image_idx]).getValue());
-        newComponent->addExecParameter(tmpProp[0]);
     }
 
     return newComponent;
