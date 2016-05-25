@@ -174,13 +174,6 @@ const ComponentInstantiation* ComponentInfo::getInstantiation() const
     return instantiation;
 }
 
-void ComponentInfo::setUsageName(const char* _usageName)
-{
-    if (_usageName != 0) {
-        usageName = _usageName;
-    }
-}
-
 void ComponentInfo::setAffinity( const AffinityProperties &affinity_props )
 {
   
@@ -251,7 +244,6 @@ void ComponentInfo::overrideProperty(const char* id, const CORBA::Any& value)
     }
     process_overrides(&ctorProperties, id, value);
     process_overrides(&configureProperties, id, value);
-    process_overrides(&options, id, value);
     process_overrides(&factoryParameters, id, value);
     process_overrides(&execParameters, id, value);
 }
@@ -283,17 +275,6 @@ bool ComponentInfo::isResource() const
 bool ComponentInfo::isConfigurable() const
 {
     return spd->getDescriptor()->isConfigurable();
-}
-
-
-bool ComponentInfo::isAssemblyController() const
-{
-    return instantiation->isAssemblyController();
-}
-
-bool ComponentInfo::isScaCompliant() const
-{
-    return spd->isScaCompliant();
 }
 
 bool ComponentInfo::checkStruct(const CF::Properties &props) const
@@ -390,11 +371,6 @@ CF::Properties ComponentInfo::getConstructProperties() const
     return ctorProperties;
 }
 
-
-CF::Properties ComponentInfo::getOptions()
-{
-    return options;
-}
 
 CF::Properties ComponentInfo::getExecParameters()
 {

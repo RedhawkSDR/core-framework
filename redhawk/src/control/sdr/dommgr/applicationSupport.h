@@ -74,7 +74,6 @@ namespace ossie
 
         const ComponentInstantiation* getInstantiation() const;
 
-        void setUsageName(const char* usageName);
         void setAffinity( const AffinityProperties &affinity );
 
         void addFactoryParameter(CF::DataType dt);
@@ -89,8 +88,6 @@ namespace ossie
         const std::string& getInstantiationIdentifier() const;
         bool isResource() const;
         bool isConfigurable() const;
-        bool isAssemblyController() const;
-        bool isScaCompliant() const;
 
         CF::Properties containsPartialStructConfig() const;
         CF::Properties containsPartialStructConstruct() const;
@@ -101,7 +98,6 @@ namespace ossie
         CF::Properties getInitializeProperties() const;
         CF::Properties getConfigureProperties() const;
         CF::Properties getConstructProperties() const;
-        CF::Properties getOptions();
         CF::Properties getAffinityOptions() const;
         CF::Properties getExecParameters();
         CF::Properties getCommandLineParameters() const;
@@ -114,13 +110,10 @@ namespace ossie
 
         void process_overrides(CF::Properties* props, const char* id, CORBA::Any value);
 
-        std::string usageName;
-
         ossie::Properties _affinity_prf;
 
         CF::Properties configureProperties;
         CF::Properties ctorProperties;
-        CF::Properties options;
         CF::Properties factoryParameters;
         CF::Properties execParameters;
         CF::Properties affinityOptions;

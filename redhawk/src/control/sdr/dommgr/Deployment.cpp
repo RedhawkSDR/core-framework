@@ -268,11 +268,12 @@ std::string ComponentDeployment::getEntryPoint()
 
 redhawk::PropertyMap ComponentDeployment::getOptions()
 {
-    // Get the options from the softpkg
-    redhawk::PropertyMap options(component->getOptions());
-    const ossie::SPD::Code& code = implementation->code;
+    // In prior versions, the options could be overridden, at least from the
+    // perspective of ComponentInfo; this may need to be re-implemented
+    redhawk::PropertyMap options;
 
     // Get the PRIORITY and STACK_SIZE from the SPD (if available)
+    const ossie::SPD::Code& code = implementation->code;
     if (code.stacksize.isSet()) {
         // 3.1.3.3.3.3.6
         // The specification says it's supposed to be an unsigned long, but the
@@ -485,7 +486,7 @@ ComponentInfo* ApplicationDeployment::getAssemblyController()
     for (PlacementList::iterator placement = placements.begin(); placement != placements.end(); ++placement) {
         const std::vector<ComponentInfo*>& components = (*placement)->getComponents();
         for (std::vector<ComponentInfo*>::const_iterator comp = components.begin(); comp != components.end(); ++comp) {
-            if ((*comp)->isAssemblyController()) {
+            if ((*comp)->getInstantiation()->isAssemblyController()) {
                 return *comp;
             }
         }

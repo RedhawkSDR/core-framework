@@ -607,7 +607,7 @@ void createHelper::_checkAssemblyController(
 {
     if (CORBA::is_nil(assemblyController)) {
         if ((assemblyControllerComponent==NULL) || 
-            (assemblyControllerComponent->isScaCompliant())
+            (assemblyControllerComponent->spd->isScaCompliant())
            ) {
         LOG_DEBUG(ApplicationFactory_impl, "assembly controller is not Sca Compliant or has not been assigned");
         throw (CF::ApplicationFactory::CreateApplicationError(
@@ -1355,7 +1355,7 @@ void createHelper::overrideExternalProperties(ossie::ApplicationDeployment& appD
             if (id == static_cast<const char*>(initConfiguration[i].id)) {
                 ComponentInfo *comp = appDeployment.getComponent(prop->comprefid);
                 // Only configure on non AC components
-                if (comp != 0 && !comp->isAssemblyController()) {
+                if (comp != 0 && !comp->getInstantiation()->isAssemblyController()) {
                     comp->overrideProperty(prop->propid.c_str(), initConfiguration[i].value);
                 }
             }
@@ -1878,7 +1878,7 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
 
     LOG_TRACE(ApplicationFactory_impl, "Done building Component Info From SPD File")
 
-    if (newComponent->isScaCompliant() && !instance.isNamingService()) {
+    if (newComponent->spd->isScaCompliant() && !instance.isNamingService()) {
         LOG_WARN(ApplicationFactory_impl, "component instantiation is sca compliant but does not provide a 'findcomponent' name...this is probably an error");
     }
 
