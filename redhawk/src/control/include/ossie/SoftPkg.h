@@ -298,7 +298,7 @@ namespace ossie {
                 _properties = properties;
             }
 
-            const boost::shared_ptr<ComponentDescriptor>& getDescriptor()
+            const boost::shared_ptr<ComponentDescriptor>& getDescriptor() const
             {
                 return _descriptor;
             }

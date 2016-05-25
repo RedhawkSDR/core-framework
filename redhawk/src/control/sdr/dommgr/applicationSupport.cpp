@@ -63,7 +63,7 @@ static void addProperty(const CF::DataType& dt, CF::Properties& prop)
  */
 PREPARE_CF_LOGGING(ComponentInfo);
 
-ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(const boost::shared_ptr<SoftPkg>& softpkg,
+ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(const SoftPkg* softpkg,
                                                             const ComponentInstantiation* instantiation)
 {
     LOG_TRACE(ComponentInfo, "Building component info from softpkg " << softpkg->getName());
@@ -140,7 +140,7 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(const boost::shared_
     return newComponent;
 }
 
-ComponentInfo::ComponentInfo(const boost::shared_ptr<SoftPkg>& softpkg, const ComponentInstantiation* instantiation) :
+ComponentInfo::ComponentInfo(const SoftPkg* softpkg, const ComponentInstantiation* instantiation) :
     spd(softpkg),
     instantiation(instantiation)
 {

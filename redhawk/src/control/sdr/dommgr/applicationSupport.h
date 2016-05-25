@@ -64,13 +64,13 @@ namespace ossie
     public:
       typedef ossie::ComponentInstantiation::AffinityProperties AffinityProperties;
 
-        ComponentInfo (const boost::shared_ptr<SoftPkg>& softpkg, const ComponentInstantiation* instantiation);
+        ComponentInfo (const SoftPkg* softpkg, const ComponentInstantiation* instantiation);
         ~ComponentInfo ();
 
         const std::string& getSpdFileName() const;
         const std::string& getName() const;
 
-        boost::shared_ptr<SoftPkg> spd;
+        const SoftPkg* spd;
 
         const ComponentInstantiation* getInstantiation() const;
 
@@ -106,7 +106,7 @@ namespace ossie
         CF::Properties getExecParameters();
         CF::Properties getCommandLineParameters() const;
 
-        static ComponentInfo* buildComponentInfoFromSPDFile(const boost::shared_ptr<SoftPkg>& softpkg,
+        static ComponentInfo* buildComponentInfoFromSPDFile(const SoftPkg* softpkg,
                                                             const ComponentInstantiation* instantiation);
 
     private:

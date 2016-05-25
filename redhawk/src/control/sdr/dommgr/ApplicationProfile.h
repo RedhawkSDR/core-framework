@@ -25,6 +25,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/ptr_container/ptr_vector.hpp>
+
 #include "applicationSupport.h"
 
 namespace ossie {
@@ -42,17 +44,17 @@ namespace ossie {
     {
     public:
         SinglePlacement(const ComponentInstantiation* instantiation,
-                        const boost::shared_ptr<SoftPkg>& softpkg);
+                        const SoftPkg* softpkg);
 
         virtual void accept(ApplicationVisitor* visitor);
 
         const ComponentInstantiation* getComponentInstantiation() const;
 
-        const boost::shared_ptr<SoftPkg>& getComponentProfile();
+        const SoftPkg* getComponentProfile();
 
     protected:
         const ComponentInstantiation* instantiation;
-        boost::shared_ptr<SoftPkg> softpkg;
+        const SoftPkg* softpkg;
     };
 
     class CollocationPlacement : public Placement
@@ -101,12 +103,12 @@ namespace ossie {
 
         const PlacementList& getPlacements() const;
 
-        const boost::shared_ptr<SoftPkg>& getSoftPkg(const std::string& filename) const;
+        const SoftPkg* getSoftPkg(const std::string& filename) const;
 
     protected:
-        typedef std::vector<boost::shared_ptr<SoftPkg> > ProfileList;
+        typedef boost::ptr_vector<SoftPkg> ProfileList;
 
-        boost::shared_ptr<SoftPkg> loadProfile(CF::FileSystem_ptr fileSystem, const std::string& filename);
+        const SoftPkg* loadProfile(CF::FileSystem_ptr fileSystem, const std::string& filename);
 
         SinglePlacement* buildComponentPlacement(CF::FileSystem_ptr fileSystem,
                                                  const SoftwareAssembly& sad,

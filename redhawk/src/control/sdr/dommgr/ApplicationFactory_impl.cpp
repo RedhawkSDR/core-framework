@@ -1823,7 +1823,7 @@ bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployme
 ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(const ossie::SPD::SoftPkgRef& ref,
                                                                         ossie::DeviceNode& device)
 {
-    const boost::shared_ptr<SoftPkg>& softpkg = _appProfile.getSoftPkg(ref.localfile);
+    const SoftPkg* softpkg = _appProfile.getSoftPkg(ref.localfile);
     const SPD::Implementations& spd_list = softpkg->getImplementations();
 
     for (size_t implCount = 0; implCount < spd_list.size(); implCount++) {
@@ -1867,7 +1867,7 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
     }
     LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File");
-    const boost::shared_ptr<SoftPkg>& softpkg = _appProfile.getSoftPkg(componentfile->getFileName());
+    const SoftPkg* softpkg = _appProfile.getSoftPkg(componentfile->getFileName());
     newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(softpkg, &instance);
     if (newComponent == 0) {
         ostringstream eout;

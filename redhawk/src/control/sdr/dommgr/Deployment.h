@@ -71,7 +71,7 @@ namespace ossie {
     public:
         typedef std::vector<SoftpkgDeployment*> DeploymentList;
 
-        SoftpkgDeployment(const boost::shared_ptr<SoftPkg>& softpkg, const SPD::Implementation* implementation=0);
+        SoftpkgDeployment(const SoftPkg* softpkg, const SPD::Implementation* implementation=0);
         ~SoftpkgDeployment();
 
         const SoftPkg* getSoftPkg() const;
@@ -92,7 +92,7 @@ namespace ossie {
         void load(Application_impl* application, CF::FileSystem_ptr fileSystem,
                   CF::LoadableDevice_ptr device, const std::string& componentId);
 
-        boost::shared_ptr<SoftPkg> softpkg;
+        const SoftPkg* softpkg;
         const SPD::Implementation* implementation;
         DeploymentList dependencies;
     };

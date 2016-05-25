@@ -32,7 +32,7 @@ using namespace ossie;
  * SinglePlacement
  */
 SinglePlacement::SinglePlacement(const ComponentInstantiation* instantiation,
-                                 const boost::shared_ptr<SoftPkg>& softpkg) :
+                                 const SoftPkg* softpkg) :
     instantiation(instantiation),
     softpkg(softpkg)
 {
@@ -48,7 +48,7 @@ const ComponentInstantiation* SinglePlacement::getComponentInstantiation() const
     return instantiation;
 }
 
-const boost::shared_ptr<SoftPkg>& SinglePlacement::getComponentProfile()
+const SoftPkg* SinglePlacement::getComponentProfile()
 {
     return softpkg;
 }
@@ -144,31 +144,31 @@ void ApplicationProfile::load(CF::FileSystem_ptr fileSystem, const SoftwareAssem
     }
 }
 
-const boost::shared_ptr<SoftPkg>& ApplicationProfile::getSoftPkg(const std::string& filename) const
+const SoftPkg* ApplicationProfile::getSoftPkg(const std::string& filename) const
 {
-    BOOST_FOREACH(const boost::shared_ptr<SoftPkg>& softpkg, profiles) {
-        if (softpkg->getSPDFile() == filename) {
-            return softpkg;
+    BOOST_FOREACH(const SoftPkg& softpkg, profiles) {
+        if (softpkg.getSPDFile() == filename) {
+            return &softpkg;
         }
     }
 
     throw std::logic_error(filename + " was never loaded");
 }
 
-boost::shared_ptr<SoftPkg> ApplicationProfile::loadProfile(CF::FileSystem_ptr fileSystem,
-                                                           const std::string& filename)
+const SoftPkg* ApplicationProfile::loadProfile(CF::FileSystem_ptr fileSystem,
+                                               const std::string& filename)
 {
-    for (ProfileList::const_iterator profile = profiles.begin(); profile != profiles.end(); ++profile) {
-        if ((*profile)->getSPDFile() == filename) {
+    BOOST_FOREACH(const SoftPkg& profile, profiles) {
+        if (profile.getSPDFile() == filename) {
             LOG_TRACE(ApplicationProfile, "Found existing profile " << filename);
-            return *profile;
+            return &profile;
         }
     }
 
     LOG_TRACE(ApplicationProfile, "Loading SPD file " << filename);
-    boost::shared_ptr<SoftPkg> spd;
     File_stream spd_stream(fileSystem, filename.c_str());
-    spd = boost::make_shared<SoftPkg>(boost::ref(spd_stream), filename);
+    SoftPkg* spd = new SoftPkg(spd_stream, filename);
+    profiles.push_back(spd);
     spd_stream.close();
 
     const SPD::Implementations& spd_impls = spd->getImplementations();
@@ -203,7 +203,6 @@ boost::shared_ptr<SoftPkg> ApplicationProfile::loadProfile(CF::FileSystem_ptr fi
         }
     }
 
-    profiles.push_back(spd);
     return spd;
 }
 
@@ -213,7 +212,7 @@ SinglePlacement* ApplicationProfile::buildComponentPlacement(CF::FileSystem_ptr 
 {
     assert(placement.componentFile);
     ComponentFile* componentFile = const_cast<ComponentFile*>(placement.componentFile);
-    const boost::shared_ptr<SoftPkg>& softpkg = loadProfile(fileSystem, componentFile->getFileName());
+    const SoftPkg* softpkg = loadProfile(fileSystem, componentFile->getFileName());
 
     // Even though it is possible for there to be more than one instantiation
     // per component, the tooling doesn't support that, so supporting this at a

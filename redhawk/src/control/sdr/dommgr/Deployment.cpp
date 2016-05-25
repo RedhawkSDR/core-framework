@@ -81,7 +81,7 @@ CF::Device_ptr UsesDeviceAssignment::getAssignedDevice() const
     return CF::Device::_duplicate(assignedDevice);
 }
 
-SoftpkgDeployment::SoftpkgDeployment(const boost::shared_ptr<SoftPkg>& softpkg,
+SoftpkgDeployment::SoftpkgDeployment(const SoftPkg* softpkg,
                                      const SPD::Implementation* implementation) :
     softpkg(softpkg),
     implementation(implementation)
