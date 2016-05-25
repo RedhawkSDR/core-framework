@@ -389,12 +389,24 @@ redhawk::PropertyMap ComponentDeployment::getInitializeProperties() const
     return properties;
 }
 
+void ComponentDeployment::overrideProperty(const std::string& id, const CORBA::Any& value)
+{
+    overrides[id] = value;
+}
+
 CF::DataType ComponentDeployment::getPropertyValue(const Property* property) const
 {
-    const ComponentProperty* override = getPropertyOverride(property->getID());
-    if (override) {
-        return ossie::overridePropertyValue(property, override);
+    // Check for a runtime override first
+    redhawk::PropertyMap::const_iterator override = overrides.find(property->getID());
+    if (override != overrides.end()) {
+        return *override;
+    }
+    // Then, check for an override in the component instantiation
+    const ComponentProperty* propref = getPropertyOverride(property->getID());
+    if (propref) {
+        return ossie::overridePropertyValue(property, propref);
     } else {
+        // Default to the PRF value
         return ossie::convertPropertyToDataType(property);
     }
 }
@@ -496,13 +508,17 @@ ComponentInfo* PlacementPlan::getComponent(const std::string& instantiationId)
 }
 
 
-ApplicationDeployment::ApplicationDeployment(const SoftwareAssembly& sad, const std::string& instanceName) :
+ApplicationDeployment::ApplicationDeployment(const SoftwareAssembly& sad,
+                                             const std::string& instanceName,
+                                             const CF::Properties& initConfiguration) :
+    sad(sad),
     // Give the application a unique identifier of the form
     // "softwareassemblyid:ApplicationName", where the application name
     // includes the serial number generated for the naming context
     // (e.g. "Application_1").
     identifier(sad.getID() + ":" + instanceName),
-    instanceName(instanceName)
+    instanceName(instanceName),
+    initConfiguration(initConfiguration)
 {
 }
 
@@ -576,6 +592,24 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(ComponentI
 
     ComponentDeployment* deployment = new ComponentDeployment(component, instantiation, component_id);
     components.push_back(deployment);
+
+    // Override external properties from initial configuration
+    if (!instantiation->isAssemblyController()) {
+        BOOST_FOREACH(const SoftwareAssembly::Property& property, sad.getExternalProperties()) {
+            if (property.comprefid == instantiation->getID()) {
+                std::string property_id = property.externalpropid;
+                if (property_id.empty()) {
+                    property_id = property.propid;
+                }
+                redhawk::PropertyMap::iterator override = initConfiguration.find(property_id);
+                if (override != initConfiguration.end()) {
+                    RH_NL_TRACE("ApplicationFactory_impl", "Overriding external property " << property_id
+                                << " (" << property.propid << ") = " << override->getValue().toString());
+                    deployment->overrideProperty(property.propid, override->getValue());
+                }
+            }
+        }
+    }
 
     return deployment;
 }

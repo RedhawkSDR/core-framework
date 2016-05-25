@@ -104,8 +104,6 @@ private:
     typedef std::vector<ossie::SPD::NameVersionPair> OSList;
 
     // createHelper helper methods
-    void overrideExternalProperties(ossie::ApplicationDeployment& appDeployment,
-                                    const CF::Properties& initConfiguration);
     void overrideProperties(const CF::Properties& initConfiguration, ossie::ComponentInfo* component);
     void assignPlacementsToDevices(ossie::ApplicationDeployment& appDeployment,
                                    const DeviceAssignmentMap& devices);

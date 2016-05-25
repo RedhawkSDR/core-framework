@@ -148,6 +148,8 @@ namespace ossie {
          */
         redhawk::PropertyMap getInitializeProperties() const;
 
+        void overrideProperty(const std::string& id, const CORBA::Any& value);
+
         void setAssignedDevice(const boost::shared_ptr<DeviceNode>& device);
         boost::shared_ptr<DeviceNode> getAssignedDevice();
 
@@ -168,6 +170,7 @@ namespace ossie {
         boost::shared_ptr<DeviceNode> assignedDevice;
         CF::Resource_var resource;
 
+        redhawk::PropertyMap overrides;
         std::string nicAssignment;
         ossie::optional_value<float> cpuReservation;
         redhawk::PropertyMap affinityOptions;
@@ -204,7 +207,9 @@ namespace ossie {
         typedef std::vector<ComponentDeployment*> ComponentList;
         typedef std::map<std::string,float> CpuReservations;
 
-        ApplicationDeployment(const SoftwareAssembly& sad, const std::string& instanceName);
+        ApplicationDeployment(const SoftwareAssembly& sad,
+                              const std::string& instanceName,
+                              const CF::Properties& initConfiguration);
         ~ApplicationDeployment();
 
         const std::string& getIdentifier() const;
@@ -242,8 +247,10 @@ namespace ossie {
         CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId);
 
     protected:
+        const SoftwareAssembly& sad;
         const std::string identifier;
         const std::string instanceName;
+        redhawk::PropertyMap initConfiguration;
         PlacementList placements;
         ComponentList components;
     };

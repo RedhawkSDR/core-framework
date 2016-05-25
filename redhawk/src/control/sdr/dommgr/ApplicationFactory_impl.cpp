@@ -1178,17 +1178,13 @@ CF::Application_ptr createHelper::create (
     //////////////////////////////////////////////////
     // Load the components to instantiate from the SAD
     _appProfile.load(_appFact._fileMgr, _appFact._sadParser);
-    ossie::ApplicationDeployment app_deployment(_appFact._sadParser, _waveformContextName);
+    ossie::ApplicationDeployment app_deployment(_appFact._sadParser, _waveformContextName, modifiedInitConfiguration);
     getRequiredComponents(_appFact._fileMgr, _appFact._sadParser, app_deployment);
 
     ossie::ComponentInfo* assemblyControllerComponent = app_deployment.getAssemblyController();
     if (assemblyControllerComponent) {
         overrideProperties(modifiedInitConfiguration, assemblyControllerComponent);
     }
-
-    //////////////////////////////////////////////////
-    // Store information about this application
-    overrideExternalProperties(app_deployment, modifiedInitConfiguration);
 
     ////////////////////////////////////////////////
     // Assign components to devices
@@ -1324,31 +1320,6 @@ CF::Application_ptr createHelper::create (
     LOG_INFO(ApplicationFactory_impl, "Done creating application " << app_deployment.getIdentifier() << " " << name);
     _isComplete = true;
     return appObj._retn();
-}
-
-void createHelper::overrideExternalProperties(ossie::ApplicationDeployment& appDeployment,
-                                              const CF::Properties& initConfiguration)
-{
-    const std::vector<SoftwareAssembly::Property>& props = _appFact._sadParser.getExternalProperties();
-
-    for (unsigned int i = 0; i < initConfiguration.length(); ++i) {
-        for (std::vector<SoftwareAssembly::Property>::const_iterator prop = props.begin(); prop != props.end(); ++prop) {
-            std::string id;
-            if (prop->externalpropid == "") {
-                id = prop->propid;
-            } else {
-                id = prop->externalpropid;
-            }
-
-            if (id == static_cast<const char*>(initConfiguration[i].id)) {
-                ComponentInfo *comp = appDeployment.getComponent(prop->comprefid);
-                // Only configure on non AC components
-                if (comp != 0 && !comp->getInstantiation()->isAssemblyController()) {
-                    comp->overrideProperty(prop->propid.c_str(), initConfiguration[i].value);
-                }
-            }
-        }
-    }
 }
 
 void createHelper::overrideProperties(const CF::Properties& initConfiguration,
