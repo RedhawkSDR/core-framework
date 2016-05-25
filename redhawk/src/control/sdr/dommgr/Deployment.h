@@ -130,10 +130,22 @@ namespace ossie {
         bool hasCpuReservation() const;
         float getCpuReservation() const;
 
-        CF::Properties getConfigureProperties() const;
-        CF::Properties getConstructProperties() const;
+        /**
+         * Returns the properties used for evaluating math statements in
+         * allocation
+         */
+        redhawk::PropertyMap getAllocationContext() const;
 
+        /**
+         * Returns the properties used for the initial call to configure()
+         * during deployment
+         */
         redhawk::PropertyMap getInitialConfigureProperties() const;
+
+        /**
+         * Returns the properties used for initializePropertes() during
+         * deployment
+         */
         redhawk::PropertyMap getInitializeProperties() const;
 
         void setAssignedDevice(const boost::shared_ptr<DeviceNode>& device);

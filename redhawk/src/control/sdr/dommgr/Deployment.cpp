@@ -350,14 +350,11 @@ float ComponentDeployment::getCpuReservation() const
     return *cpuReservation;
 }
 
-CF::Properties ComponentDeployment::getConfigureProperties() const
+redhawk::PropertyMap ComponentDeployment::getAllocationContext() const
 {
-    return component->getConfigureProperties();
-}
-
-CF::Properties ComponentDeployment::getConstructProperties() const
-{
-    return component->getConstructProperties();
+    redhawk::PropertyMap properties(component->getConfigureProperties());
+    ossie::corba::extend(properties, component->getConstructProperties());
+    return properties;
 }
 
 redhawk::PropertyMap ComponentDeployment::getInitialConfigureProperties() const

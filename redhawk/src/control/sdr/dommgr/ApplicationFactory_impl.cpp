@@ -1432,13 +1432,12 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
                                      const std::string& assignedDeviceId,
                                      const std::string& appIdentifier)
 {
-    CF::Properties configureProperties = deployment->getConfigureProperties();
-    ossie::corba::extend(configureProperties, deployment->getConstructProperties());
+    redhawk::PropertyMap alloc_context = deployment->getAllocationContext();
     
     // Find the devices that allocate the SPD's minimum required usesdevices properties
     const std::vector<UsesDevice>& usesDevVec = deployment->getSoftPkg()->getUsesDevices();
     ossie::UsesDeviceDeployment assignedDevices;
-    if (!allocateUsesDevices(usesDevVec, configureProperties, assignedDevices, this->_allocations)) {
+    if (!allocateUsesDevices(usesDevVec, alloc_context, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the component
         ostringstream eout;
         eout << "Failed to satisfy 'usesdevice' dependencies ";
@@ -1468,7 +1467,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
         ScopedAllocations implAllocations(*this->_allocationMgr);
         const std::vector<UsesDevice>& implUsesDevVec = implementation->getUsesDevices();
         
-        if (!allocateUsesDevices(implUsesDevVec, configureProperties, implAssignedDevices, implAllocations)) {
+        if (!allocateUsesDevices(implUsesDevVec, alloc_context, implAssignedDevices, implAllocations)) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to satisfy 'usesdevice' dependencies for component "
                       << deployment->getIdentifier() << " implementation " << implementation->getID());
             continue;
@@ -1712,7 +1711,6 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
                                               const std::string& assignedDeviceId,
                                               const std::string& appIdentifier)
 {
-    const ossie::ComponentInfo* component = deployment->getComponent();
     const ossie::SPD::Implementation* implementation = deployment->getImplementation();
     ossie::DeviceList devices = _registeredDevices;
 
@@ -1748,10 +1746,8 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
     redhawk::PropertyMap allocationProperties;
     this->_castRequestProperties(allocationProperties, prop_refs);
 
-    CF::Properties configure_props = component->getConfigureProperties();
-    CF::Properties construct_props = component->getConstructProperties();
-    ossie::corba::extend(configure_props, construct_props);
-    this->_evaluateMATHinRequest(allocationProperties, configure_props);
+    redhawk::PropertyMap alloc_context = deployment->getAllocationContext();
+    this->_evaluateMATHinRequest(allocationProperties, alloc_context);
     
     LOG_TRACE(ApplicationFactory_impl, "alloc prop size " << allocationProperties.size() );
     redhawk::PropertyMap::iterator iter=allocationProperties.begin();
