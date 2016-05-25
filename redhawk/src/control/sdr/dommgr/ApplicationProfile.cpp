@@ -172,24 +172,22 @@ boost::shared_ptr<SoftPkg> ApplicationProfile::loadProfile(CF::FileSystem_ptr fi
     if (spd->getPRFFile()) {
         LOG_TRACE(ApplicationProfile, "Loading PRF file " << spd->getPRFFile());
         try {
+            spd->setProperties(boost::make_shared<Properties>());
             File_stream prf_stream(fileSystem, spd->getPRFFile());
-            boost::shared_ptr<Properties> prf = boost::make_shared<Properties>();
-            prf->load(prf_stream);
-            spd->setProperties(prf);
+            spd->getProperties()->load(prf_stream);
         } catch (const std::exception& exc) {
-            LOG_ERROR(ApplicationProfile, "Invalid PRF file " << spd->getPRFFile());
+            LOG_ERROR(ApplicationProfile, "Invalid PRF file " << spd->getPRFFile() << ": " << exc.what());
         }
     }
 
     if (spd->getSCDFile()) {
         LOG_TRACE(ApplicationProfile, "Loading SCD file " << spd->getSCDFile());
         try {
+            spd->setDescriptor(boost::make_shared<ComponentDescriptor>());
             File_stream scd_stream(fileSystem, spd->getSCDFile());
-            boost::shared_ptr<ComponentDescriptor> scd = boost::make_shared<ComponentDescriptor>();
-            scd->load(scd_stream);
-            spd->setDescriptor(scd);
+            spd->getDescriptor()->load(scd_stream);
         } catch (const std::exception& exc) {
-            LOG_ERROR(ApplicationProfile, "Invalid SCD file " << spd->getSCDFile());
+            LOG_ERROR(ApplicationProfile, "Invalid SCD file " << spd->getSCDFile() << ": " << exc.what());
         }
     }
 
