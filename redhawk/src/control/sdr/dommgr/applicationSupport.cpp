@@ -225,9 +225,12 @@ void ComponentInfo::addConstructProperty(CF::DataType dt)
 void ComponentInfo::overrideProperty(const ossie::ComponentProperty* propref) {
     std::string propId = propref->getID();
     LOG_TRACE(ComponentInfo, "Instantiation property id = " << propId);
-    const Property* prop = spd->getProperties()->getProperty(propId);
+    const Property* prop = 0;
+    if (spd->getProperties()) {
+        prop = spd->getProperties()->getProperty(propId);
+    }
     // Without a prop, we don't know how to convert the strings to the property any type
-    if (prop == NULL) {
+    if (!prop) {
         LOG_WARN(ComponentInfo, "ignoring attempt to override property " << propId << " that does not exist in component")
         return;
     }
@@ -238,9 +241,10 @@ void ComponentInfo::overrideProperty(const ossie::ComponentProperty* propref) {
 
 void ComponentInfo::overrideProperty(const char* id, const CORBA::Any& value)
 {
-    const Property* prop = spd->getProperties()->getProperty(id);
-    if (prop != NULL) {
-        if (prop->isReadOnly()) {
+    const Property* prop = 0;
+    if (spd->getProperties()) {
+        prop = spd->getProperties()->getProperty(id);
+        if (prop && prop->isReadOnly()) {
             LOG_WARN(ComponentInfo, "ignoring attempt to override readonly property " << id);
             return;
         }
