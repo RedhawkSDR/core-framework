@@ -112,6 +112,9 @@ namespace ossie {
 
         const ComponentInstantiation* getInstantiation() const;
 
+        bool isResource() const;
+        bool isConfigurable() const;
+
         std::string getEntryPoint();
 
         redhawk::PropertyMap getOptions();

@@ -67,9 +67,6 @@ namespace ossie
         ComponentInfo (const SoftPkg* softpkg, const ComponentInstantiation* instantiation);
         ~ComponentInfo ();
 
-        const std::string& getSpdFileName() const;
-        const std::string& getName() const;
-
         const SoftPkg* spd;
 
         const ComponentInstantiation* getInstantiation() const;
@@ -78,16 +75,11 @@ namespace ossie
 
         void addFactoryParameter(CF::DataType dt);
         void addExecParameter(CF::DataType dt);
-        void addDependencyProperty(std::string implId, CF::DataType dt);
         void addConfigureProperty(CF::DataType dt);
         void addConstructProperty(CF::DataType dt);
 
         void overrideProperty(const ossie::ComponentProperty* propref);
         void overrideProperty(const char* id, const CORBA::Any& value);
-
-        const std::string& getInstantiationIdentifier() const;
-        bool isResource() const;
-        bool isConfigurable() const;
 
         CF::Properties containsPartialStructConfig() const;
         CF::Properties containsPartialStructConstruct() const;

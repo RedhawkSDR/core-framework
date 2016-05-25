@@ -659,10 +659,10 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDe
         } else {
             ComponentInfo* component = components[0];
             std::string assigned_device;
-            DeviceAssignmentMap::const_iterator device = devices.find(component->getInstantiationIdentifier());
+            DeviceAssignmentMap::const_iterator device = devices.find(component->getInstantiation()->getID());
             if (device != devices.end()) {
                 assigned_device = device->second;
-                LOG_TRACE(ApplicationFactory_impl, "Component " << component->getInstantiationIdentifier()
+                LOG_TRACE(ApplicationFactory_impl, "Component " << component->getInstantiation()->getID()
                           << " is assigned to device " << assigned_device);
             }
             ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(component);
@@ -823,7 +823,7 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
     for (PlacementList::const_iterator placement = components.begin();
          placement != components.end();
          ++placement) {
-        DeviceAssignmentMap::const_iterator device = devices.find((*placement)->getInstantiationIdentifier());
+        DeviceAssignmentMap::const_iterator device = devices.find((*placement)->getInstantiation()->getID());
         if (device != devices.end()) {
             assignedDevices.push_back(device->second);
         }
@@ -1244,7 +1244,7 @@ CF::Application_ptr createHelper::create (
     // Check that the assembly controller is valid
     CF::Resource_var assemblyController;
     if (assemblyControllerComponent) {
-        const std::string& assemblyControllerId = assemblyControllerComponent->getInstantiationIdentifier();
+        const std::string& assemblyControllerId = assemblyControllerComponent->getInstantiation()->getID();
         ossie::ComponentDeployment* deployment = app_deployment.getComponentDeployment(assemblyControllerId);
         assemblyController = deployment->getResourcePtr();
     }
@@ -1537,7 +1537,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
     if (allBusy) {
         // Report failure
         std::ostringstream eout;
-        eout << "Unable to launch component '"<<deployment->getComponent()->getName()<<"'. All executable devices (i.e.: GPP) in the Domain are busy";
+        eout << "Unable to launch component '"<<deployment->getSoftPkg()->getName()<<"'. All executable devices (i.e.: GPP) in the Domain are busy";
         LOG_DEBUG(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
     }
@@ -1545,7 +1545,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
     // Report failure
     std::ostringstream eout;
     eout << "Failed to satisfy device dependencies for component: '";
-    eout << deployment->getComponent()->getName() << "' with component id: '" << deployment->getIdentifier() << "'";
+    eout << deployment->getSoftPkg()->getName() << "' with component id: '" << deployment->getIdentifier() << "'";
     LOG_DEBUG(ApplicationFactory_impl, eout.str());
     throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
 }
@@ -1719,7 +1719,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::Component
     // First check to see if the component was assigned in the user provided DAS
     // See if a device was assigned in the DAS
     if (!assignedDeviceId.empty()) {
-        LOG_TRACE(ApplicationFactory_impl, "User-provided DAS: Component: '" << component->getName() <<
+        LOG_TRACE(ApplicationFactory_impl, "User-provided DAS: Component: '" << deployment->getSoftPkg()->getName() <<
                   "'  Assigned device: '" << assignedDeviceId << "'");
         ossie::DeviceList::iterator device;
         for (device = devices.begin(); device != devices.end(); ++device) {
@@ -2017,6 +2017,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
         ossie::ComponentDeployment* deployment = deployments[rc_idx];
         ossie::ComponentInfo* component = deployment->getComponent();
+        const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
         const ossie::SPD::Implementation* implementation = deployment->getImplementation();
 
@@ -2027,13 +2028,13 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             throw std::logic_error(message.str());
         }
 
-        LOG_TRACE(ApplicationFactory_impl, "Component - " << component->getName()
+        LOG_TRACE(ApplicationFactory_impl, "Component - " << softpkg->getName()
                   << "   Assigned device - " << device->identifier);
         LOG_INFO(ApplicationFactory_impl, "APPLICATION: " << _waveformContextName << " COMPONENT ID: " 
                  << component->getIdentifier()  << " ASSIGNED TO DEVICE ID/LABEL: " << device->identifier << "/" << device->label);
 
         // Let the application know to expect the given component
-        _application->addComponent(deployment->getIdentifier(), component->getSpdFileName());
+        _application->addComponent(deployment->getIdentifier(), softpkg->getSPDFile());
         _application->setComponentImplementation(deployment->getIdentifier(), implementation->getID());
         if (instantiation->isNamingService()) {
             std::string lookupName = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
@@ -2050,7 +2051,8 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         if (codeLocalFile.empty()) {
             ostringstream eout;
             eout << "code.localfile is empty for component: '";
-            eout << component->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
+            eout << softpkg->getName();
+            eout << "' with component id: '" << deployment->getIdentifier() << "' ";
             eout << " with implementation id: '" << implementation->getID() << "'";
             eout << " on device id: '" << device->identifier << "'";
             eout << " in waveform '" << _waveformContextName<<"'";
@@ -2075,7 +2077,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             deployment->load(_application, _appFact._fileMgr, loadabledev);
         } catch (const std::exception& exc) {
             std::ostringstream message;
-            message << "Unable to load component " << component->getName()
+            message << "Unable to load component " << softpkg->getName()
                     << " implementation " << implementation->getID()
                     << " on device " << device->identifier
                     << ": " << exc.what();
@@ -2447,7 +2449,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
             continue;
         }
 
-        if (!component->isResource()) {
+        if (!deployment->isResource()) {
             LOG_TRACE(ApplicationFactory_impl, "Component is not a resource, continuing to next component");
             continue;
         }
@@ -2492,7 +2494,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
         // call resource's initializeProperties method to handle any properties required for construction
         //
         LOG_DEBUG(ApplicationFactory_impl, "Initialize properties for component " << componentId);
-        if (component->isResource () && component->isConfigurable ()) {
+        if (deployment->isResource() && deployment->isConfigurable()) {
           CF::Properties partialStruct = component->containsPartialStructConstruct();
           if (partialStruct.length() != 0) {
             ostringstream eout;
@@ -2586,12 +2588,11 @@ void createHelper::configureComponents(const DeploymentList& deployments)
     ossie::ComponentDeployment* ac_deployment = 0;
     for (DeploymentList::const_iterator depl = deployments.begin(); depl != deployments.end(); ++depl) {
         ossie::ComponentDeployment* deployment = (*depl);
-        const ossie::ComponentInfo* component = deployment->getComponent();
         if (!deployment->getSoftPkg()->isScaCompliant()) {
             // If the component is non-SCA compliant then we don't expect anything beyond this
             LOG_TRACE(ApplicationFactory_impl, "Skipping configure of non SCA-compliant component "
                       << deployment->getIdentifier());
-        } else if (!component->isResource()) {
+        } else if (!deployment->isResource()) {
             LOG_TRACE(ApplicationFactory_impl, "Skipping configure of non-resource component "
                       << deployment->getIdentifier());
         } else {

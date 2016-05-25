@@ -244,6 +244,16 @@ const ComponentInstantiation* ComponentDeployment::getInstantiation() const
     return instantiation;
 }
 
+bool ComponentDeployment::isResource() const
+{
+    return softpkg->getDescriptor()->isResource();
+}
+
+bool ComponentDeployment::isConfigurable() const
+{
+    return softpkg->getDescriptor()->isConfigurable();
+}
+
 void ComponentDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>& device)
 {
     assignedDevice = device;
@@ -480,7 +490,7 @@ void PlacementPlan::addComponent(ComponentInfo* component)
 ComponentInfo* PlacementPlan::getComponent(const std::string& instantiationId)
 {
     for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
-        if (instantiationId == (*comp)->getInstantiationIdentifier()) {
+        if (instantiationId == (*comp)->getInstantiation()->getID()) {
             return *comp;
         }
     }

@@ -159,16 +159,6 @@ ComponentInfo::~ComponentInfo ()
 {
 }
 
-const std::string& ComponentInfo::getSpdFileName() const
-{
-    return spd->getSPDFile();
-}
-
-const std::string& ComponentInfo::getName() const
-{
-    return spd->getName();
-}
-
 const ComponentInstantiation* ComponentInfo::getInstantiation() const
 {
     return instantiation;
@@ -260,21 +250,6 @@ void ComponentInfo::process_overrides(CF::Properties* props, const char* id, COR
         }
     }
     return;
-}
-
-const std::string& ComponentInfo::getInstantiationIdentifier() const
-{
-    return instantiation->getID();
-}
-
-bool ComponentInfo::isResource() const
-{
-    return spd->getDescriptor()->isResource();
-}
-
-bool ComponentInfo::isConfigurable() const
-{
-    return spd->getDescriptor()->isConfigurable();
 }
 
 bool ComponentInfo::checkStruct(const CF::Properties &props) const
