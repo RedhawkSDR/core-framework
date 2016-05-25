@@ -147,7 +147,7 @@ void SoftpkgDeployment::load(Application_impl* application, CF::FileSystem_ptr f
     // Recursively load dependencies
     if (!dependencies.empty()) {
         RH_NL_TRACE("ApplicationFactory_impl", "Loading " << dependencies.size() <<
-                    "dependency(ies) for soft package " << softpkg->getName());
+                    " dependency(ies) for soft package " << softpkg->getName());
         for (DeploymentList::iterator dep = dependencies.begin(); dep != dependencies.end(); ++dep) {
             (*dep)->load(application, fileSystem, device, componentId);
         }
