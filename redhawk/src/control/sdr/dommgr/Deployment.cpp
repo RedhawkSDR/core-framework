@@ -543,9 +543,9 @@ ComponentInfo* ApplicationDeployment::getComponent(const std::string& instantiat
     return 0;
 }
 
-ComponentInfo* ApplicationDeployment::getAssemblyController()
+ComponentInfo* ApplicationDeployment::getAssemblyController() const
 {
-    for (PlacementList::iterator placement = placements.begin(); placement != placements.end(); ++placement) {
+    for (PlacementList::const_iterator placement = placements.begin(); placement != placements.end(); ++placement) {
         const std::vector<ComponentInfo*>& components = (*placement)->getComponents();
         for (std::vector<ComponentInfo*>::const_iterator comp = components.begin(); comp != components.end(); ++comp) {
             if ((*comp)->getInstantiation()->isAssemblyController()) {
@@ -555,6 +555,16 @@ ComponentInfo* ApplicationDeployment::getAssemblyController()
     }
 
     return 0;
+}
+
+redhawk::PropertyMap ApplicationDeployment::getAllocationContext() const
+{
+    redhawk::PropertyMap properties;
+    const ossie::ComponentInfo* assembly_controller = getAssemblyController();
+    if (assembly_controller) {
+        properties = assembly_controller->getConfigureProperties();
+    }
+    return properties;
 }
 
 ComponentDeployment* ApplicationDeployment::createComponentDeployment(ComponentInfo* component)

@@ -212,7 +212,13 @@ namespace ossie {
 
         const PlacementList& getPlacements() const;
 
-        ComponentInfo* getAssemblyController();
+        /**
+         * Returns the properties used for evaluating math statements in
+         * allocation
+         */
+        redhawk::PropertyMap getAllocationContext() const;
+
+        ComponentInfo* getAssemblyController() const;
 
         ComponentInfo* getComponent(const std::string& instantiationId);
 

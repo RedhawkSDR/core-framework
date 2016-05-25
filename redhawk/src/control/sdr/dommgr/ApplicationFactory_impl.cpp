@@ -866,11 +866,7 @@ void createHelper::_handleUsesDevices(ossie::ApplicationDeployment& appDeploymen
 
     // Get the assembly controller's configure properties for context in the
     // allocations
-    CF::Properties appProperties;
-    ossie::ComponentInfo* assembly_controller = appDeployment.getAssemblyController();
-    if (assembly_controller) {
-        appProperties = assembly_controller->getConfigureProperties();
-    }
+    CF::Properties appProperties = appDeployment.getAllocationContext();
 
     // The device assignments for SAD-level usesdevices are never stored
     ossie::UsesDeviceDeployment assignedDevices;
