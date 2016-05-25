@@ -352,8 +352,22 @@ float ComponentDeployment::getCpuReservation() const
 
 redhawk::PropertyMap ComponentDeployment::getAllocationContext() const
 {
-    redhawk::PropertyMap properties(component->getConfigureProperties());
-    ossie::corba::extend(properties, component->getConstructProperties());
+    redhawk::PropertyMap properties;
+    if (softpkg->getProperties()) {
+        BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
+            // Old logic (2.0):
+            // * "configure" kind properties that are not read-only
+            // * "property" kind properties that are not command line (or execparams)
+            // New logic:
+            // * all "configure" and "property" kind properties
+            // Rationale: this is strictly used as context for math statements,
+            // so it doesn't matter how it gets initialized or whether it's
+            // writable.
+            if (property->isConfigure() || property->isProperty()) {
+                properties.push_back(getPropertyValue(property));
+            }
+        }
+    }
     return properties;
 }
 

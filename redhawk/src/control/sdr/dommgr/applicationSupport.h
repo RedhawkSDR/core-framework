@@ -75,18 +75,14 @@ namespace ossie
 
         void addExecParameter(CF::DataType dt);
         void addConfigureProperty(CF::DataType dt);
-        void addConstructProperty(CF::DataType dt);
 
         void overrideProperty(const ossie::ComponentProperty* propref);
         void overrideProperty(const char* id, const CORBA::Any& value);
 
-        CF::Properties containsPartialStructConfig() const;
-        CF::Properties containsPartialStructConstruct() const;
         CF::Properties iteratePartialStruct(const CF::Properties &props) const;
         bool checkStruct(const CF::Properties &props) const;
 
         CF::Properties getConfigureProperties() const;
-        CF::Properties getConstructProperties() const;
         CF::Properties getAffinityOptions() const;
         CF::Properties getExecParameters();
 
@@ -101,7 +97,6 @@ namespace ossie
         ossie::Properties _affinity_prf;
 
         CF::Properties configureProperties;
-        CF::Properties ctorProperties;
         CF::Properties execParameters;
         CF::Properties affinityOptions;
 

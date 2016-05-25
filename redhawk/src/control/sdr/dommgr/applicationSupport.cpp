@@ -123,8 +123,6 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(const SoftPkg* softp
             if (not cprop[i]->isNone()) {
                 newComponent->addExecParameter(convertPropertyToDataType(cprop[i]));
             }
-          } else {
-            newComponent->addConstructProperty(convertPropertyToDataType(cprop[i]));
           }
         }
 
@@ -189,11 +187,6 @@ void ComponentInfo::addConfigureProperty(CF::DataType dt)
     addProperty(dt, configureProperties);
 }
 
-void ComponentInfo::addConstructProperty(CF::DataType dt)
-{
-    addProperty(dt, ctorProperties);
-}
-
 void ComponentInfo::overrideProperty(const ossie::ComponentProperty* propref) {
     std::string propId = propref->getID();
     LOG_TRACE(ComponentInfo, "Instantiation property id = " << propId);
@@ -221,7 +214,6 @@ void ComponentInfo::overrideProperty(const char* id, const CORBA::Any& value)
             return;
         }
     }
-    process_overrides(&ctorProperties, id, value);
     process_overrides(&configureProperties, id, value);
     process_overrides(&execParameters, id, value);
 }
@@ -298,16 +290,6 @@ CF::Properties ComponentInfo::iteratePartialStruct(const CF::Properties &props) 
     return retval;
 }
 
-CF::Properties ComponentInfo::containsPartialStructConfig() const
-{
-    return this->iteratePartialStruct(configureProperties);
-}
-
-CF::Properties ComponentInfo::containsPartialStructConstruct() const
-{
-    return this->iteratePartialStruct(ctorProperties);
-}
-
 CF::Properties ComponentInfo::getAffinityOptions() const
 {
     return affinityOptions;
@@ -316,12 +298,6 @@ CF::Properties ComponentInfo::getAffinityOptions() const
 CF::Properties ComponentInfo::getConfigureProperties() const
 {
     return configureProperties;
-}
-
-
-CF::Properties ComponentInfo::getConstructProperties() const
-{
-    return ctorProperties;
 }
 
 
