@@ -92,8 +92,8 @@ namespace ossie {
                     localfile(""),
                     type(""),
                     entrypoint(),
-                    stacksize((unsigned long long)0),
-                    priority((unsigned long long)0)
+                    stacksize(),
+                    priority()
                 {}
         };
 

@@ -277,13 +277,13 @@ redhawk::PropertyMap ComponentDeployment::getOptions()
         // 3.1.3.3.3.3.6
         // The specification says it's supposed to be an unsigned long, but the
         // parser is set to unsigned long long
-        options[CF::ExecutableDevice::STACK_SIZE_ID] = code.stacksize.get();
+        options[CF::ExecutableDevice::STACK_SIZE_ID] = static_cast<CORBA::ULong>(*code.stacksize);
     }
     if (code.priority.isSet()) {
         // 3.1.3.3.3.3.7
         // The specification says it's supposed to be an unsigned long, but the
         // parser is set to unsigned long long
-        options[CF::ExecutableDevice::PRIORITY_ID] = code.priority.get();
+        options[CF::ExecutableDevice::PRIORITY_ID] = static_cast<CORBA::ULong>(*code.priority);
     }
 
     redhawk::PropertyMap affinity = affinityOptions;
