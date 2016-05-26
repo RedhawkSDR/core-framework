@@ -217,19 +217,19 @@ namespace prf
       description (const ::std::string&);
 
       virtual void
-      simple (const ossie::SimpleProperty&);
+      simple (ossie::SimpleProperty*);
 
       virtual void
-      simplesequence (const ossie::SimpleSequenceProperty&);
+      simplesequence (ossie::SimpleSequenceProperty*);
 
       virtual void
       test ();
 
       virtual void
-      struct_ (const ossie::StructProperty&);
+      struct_ (ossie::StructProperty*);
 
       virtual void
-      structsequence (const ossie::StructSequenceProperty&);
+      structsequence (ossie::StructSequenceProperty*);
 
       virtual std::auto_ptr<ossie::PRF>
       post_properties ();
@@ -330,7 +330,7 @@ namespace prf
       virtual void
       optional (bool);
 
-      virtual const ossie::SimpleProperty&
+      virtual ossie::SimpleProperty*
       post_simple ();
 
       private:
@@ -344,7 +344,6 @@ namespace prf
       bool _optional;
       std::vector<std::string> _kinds;
       std::auto_ptr<std::string> _value;
-      ossie::SimpleProperty  _prop;
     };
 
     class simpleRef_pimpl: public virtual simpleRef_pskel
@@ -427,7 +426,7 @@ namespace prf
       virtual void
       optional (bool);
 
-      virtual const ossie::SimpleSequenceProperty&
+      virtual ossie::SimpleSequenceProperty*
       post_simpleSequence ();
 
       private:
@@ -440,7 +439,6 @@ namespace prf
       bool _optional;
       std::vector<std::string> _kinds;
       std::vector<std::string> _values;
-      ossie::SimpleSequenceProperty _prop;
     };
 
     class struct_pimpl: public virtual struct_pskel
@@ -453,10 +451,10 @@ namespace prf
       description (const ::std::string&);
 
       virtual void
-      simple (const ossie::SimpleProperty&);
+      simple (ossie::SimpleProperty*);
 
       virtual void
-      simplesequence (const ossie::SimpleSequenceProperty&);
+      simplesequence (ossie::SimpleSequenceProperty*);
 
       virtual void
       configurationkind (const ::std::string&);
@@ -470,7 +468,7 @@ namespace prf
       virtual void
       name (const ::std::string&);
 
-      virtual const ossie::StructProperty&
+      virtual ossie::StructProperty*
       post_struct ();
 
       private:
@@ -480,7 +478,6 @@ namespace prf
       std::string _mode;
       std::vector<std::string> _kinds;
       ossie::PropertyList      _value;
-      ossie::StructProperty    _prop;
     };
 
     class structSequence_pimpl: public virtual structSequence_pskel
@@ -490,7 +487,7 @@ namespace prf
       pre ();
 
       virtual void
-      struct_ (const ossie::StructProperty&);
+      struct_ (ossie::StructProperty*);
 
       virtual void
       description (const ::std::string&);
@@ -510,7 +507,7 @@ namespace prf
       virtual void
       name (const ::std::string&);
 
-      virtual const ossie::StructSequenceProperty&
+      virtual ossie::StructSequenceProperty*
       post_structSequence ();
 
       private:
@@ -519,9 +516,8 @@ namespace prf
       std::string _type;
       std::string _mode;
       std::vector<std::string> _kinds;
-      ossie::StructProperty    _struct;
+      std::auto_ptr<ossie::StructProperty> _struct;
       std::vector<ossie::StructProperty> _values;
-      ossie::StructSequenceProperty _prop;
     };
 
     class structValue_pimpl: public virtual structValue_pskel
