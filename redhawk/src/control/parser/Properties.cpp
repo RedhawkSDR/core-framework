@@ -88,12 +88,6 @@ Properties::~Properties()
     LOG_TRACE(Properties, "Destruction for properties")
 }
 
-Properties& Properties::operator=(const Properties &other) {
-  _prf = other._prf;
-  return *this;
-}
-
-
 void Properties::load(std::istream& input) throw (ossie::parser_error) {
   std::auto_ptr<ossie::PRF> t = ossie::internalparser::parsePRF(input);
   _prf.reset(t.release());

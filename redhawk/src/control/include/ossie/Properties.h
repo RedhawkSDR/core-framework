@@ -372,8 +372,6 @@ namespace ossie {
         
         Properties(std::istream& input) throw(ossie::parser_error);
 
-        Properties& operator=( const Properties &other);
-
         virtual ~Properties();
 
         const std::vector<const Property*>& getProperties() const;
