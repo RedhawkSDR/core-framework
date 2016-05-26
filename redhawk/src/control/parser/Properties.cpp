@@ -558,7 +558,7 @@ const std::string SimpleProperty::asString() const {
 }
 
 const Property* SimpleProperty::clone() const {
-    return new SimpleProperty(id, name, type, mode, action, kinds, value, complex, commandline, optional);
+    return new SimpleProperty(*this);
 }
 
 
@@ -650,7 +650,7 @@ const std::string SimpleSequenceProperty::asString() const {
 }
 
 const Property* SimpleSequenceProperty::clone() const {
-    return new SimpleSequenceProperty(id, name, type, mode, action, kinds, values, complex, optional);
+    return new SimpleSequenceProperty(*this);
 }
 
 /*
@@ -668,11 +668,8 @@ StructProperty::~StructProperty()
 
 StructProperty& StructProperty::operator=(const StructProperty& src) 
 {
-  id = src.id;
-  name =src.name;
-  mode=src.mode;
-  action=src.action;
-  kinds=src.kinds;
+    Property::operator=(src);
+
   /// clean out my old...
   std::vector<Property*>::iterator i;
   for (i = value.begin(); i != value.end(); ++i) {
@@ -749,16 +746,12 @@ StructSequenceProperty::~StructSequenceProperty()
 {
 }
 
-StructSequenceProperty& StructSequenceProperty::operator=( const StructSequenceProperty &src ) 
+StructSequenceProperty& StructSequenceProperty::operator=(const StructSequenceProperty& src) 
 {
-  id = src.id;
-  name =src.name;
-  mode=src.mode;
-  action=src.action;
-  kinds=src.kinds;
-  structdef = src.structdef;
-  values = values;
-  return *this;
+    Property::operator=(src);
+    structdef = src.structdef;
+    values = values;
+    return *this;
 }
 
 
