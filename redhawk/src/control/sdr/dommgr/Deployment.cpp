@@ -376,11 +376,18 @@ redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
    redhawk::PropertyMap properties;
    if (softpkg->getProperties()) {
        BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
-           if (property->isExecParam() || (property->isProperty() && property->isCommandLine())) {
-               CF::DataType dt = getPropertyValue(property);
-               if (!ossie::any::isNull(dt.value)) {
-                   properties.push_back(dt);
+           if (property->isExecParam()) {
+               if (property->isReadOnly()) {
+                   RH_NL_WARN("ApplicationFactory_impl", "Ignoring attempt to override readonly property "
+                              << property->getID());
+                   continue;
                }
+           } else if (!(property->isProperty() && property->isCommandLine())) {
+               continue;
+           }
+           CF::DataType dt = getPropertyValue(property);
+           if (!ossie::any::isNull(dt.value)) {
+               properties.push_back(dt);
            }
        }
     }
