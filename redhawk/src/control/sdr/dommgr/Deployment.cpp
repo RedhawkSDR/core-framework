@@ -629,22 +629,11 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(ComponentI
     ComponentDeployment* deployment = new ComponentDeployment(component, instantiation, component_id);
     components.push_back(deployment);
 
-    // Override external properties from initial configuration
-    if (!instantiation->isAssemblyController()) {
-        BOOST_FOREACH(const SoftwareAssembly::Property& property, sad.getExternalProperties()) {
-            if (property.comprefid == instantiation->getID()) {
-                std::string property_id = property.externalpropid;
-                if (property_id.empty()) {
-                    property_id = property.propid;
-                }
-                redhawk::PropertyMap::iterator override = initConfiguration.find(property_id);
-                if (override != initConfiguration.end()) {
-                    RH_NL_TRACE("ApplicationFactory_impl", "Overriding external property " << property_id
-                                << " (" << property.propid << ") = " << override->getValue().toString());
-                    deployment->overrideProperty(property.propid, override->getValue());
-                }
-            }
-        }
+    // Override properties from initial configuration
+    if (instantiation->isAssemblyController()) {
+        overrideAssemblyControllerProperties(deployment);
+    } else {
+        overrideExternalProperties(deployment);
     }
 
     return deployment;
@@ -682,6 +671,39 @@ void ApplicationDeployment::applyCpuReservations(const CpuReservations& reservat
         }
     }
 }
+
+void ApplicationDeployment::overrideAssemblyControllerProperties(ComponentDeployment* deployment)
+{
+    BOOST_FOREACH(const redhawk::PropertyType& override, initConfiguration) {
+        if (override.getId() == "LOGGING_CONFIG_URI") {
+            // TODO: Handle logging configuration
+        } else {
+            RH_NL_TRACE("ApplicationFactory_impl", "Overriding property " << override.id
+                        << " with " << override.getValue().toString());
+            deployment->overrideProperty(override.getId(), override.getValue());
+        }
+    }
+}
+
+void ApplicationDeployment::overrideExternalProperties(ComponentDeployment* deployment)
+{
+    const std::string& instantiation_id = deployment->getInstantiation()->getID();
+    BOOST_FOREACH(const SoftwareAssembly::Property& property, sad.getExternalProperties()) {
+        if (property.comprefid == instantiation_id) {
+            std::string property_id = property.externalpropid;
+            if (property_id.empty()) {
+                property_id = property.propid;
+            }
+            redhawk::PropertyMap::iterator override = initConfiguration.find(property_id);
+            if (override != initConfiguration.end()) {
+                RH_NL_TRACE("ApplicationFactory_impl", "Overriding external property " << property_id
+                            << " (" << property.propid << ") = " << override->getValue().toString());
+                deployment->overrideProperty(property.propid, override->getValue());
+            }
+        }
+    }
+}
+
 
 CF::Resource_ptr ApplicationDeployment::lookupComponentByInstantiationId(const std::string& identifier)
 {

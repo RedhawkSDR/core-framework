@@ -253,6 +253,9 @@ namespace ossie {
         CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId);
 
     protected:
+        void overrideAssemblyControllerProperties(ComponentDeployment* deployment);
+        void overrideExternalProperties(ComponentDeployment* deployment);
+
         const SoftwareAssembly& sad;
         const std::string identifier;
         const std::string instanceName;
