@@ -235,17 +235,45 @@ const std::vector<const Property*>& Properties::getFactoryParamProperties() cons
  * Property class
  */
 
+std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::KindType kind)
+{
+    switch (kind) {
+    case Property::KIND_PROPERTY:
+        stream << "property";
+        break;
+    case Property::KIND_CONFIGURE:
+        stream << "configure";
+        break;
+    case Property::KIND_EXECPARAM:
+        stream << "execparam";
+        break;
+    case Property::KIND_ALLOCATION:
+        stream << "allocation";
+        break;
+    case Property::KIND_TEST:
+        stream << "test";
+        break;
+    case Property::KIND_FACTORYPARAM:
+        stream << "factoryparam";
+        break;
+    default:
+        break;
+    }
+    return stream;
+}
+
 Property::Property(const std::string& id, 
                    const std::string& name, 
                    const std::string& mode, 
                    const std::string& action, 
-                   const std::vector<std::string>& kinds):
+                   int kinds):
     id(id),
     name(name),
     mode(mode),
     action(action),
-    kinds(kinds)
+    kinds((kinds == KIND_NOTSET)?KIND_DEFAULT:kinds)
 {
+    LOG_TRACE(Property, "Property " << id << " : " << this->kinds);
 }
 
 Property::~Property()
@@ -255,77 +283,37 @@ Property::~Property()
 bool Property::isAllocation() const
 {
     TRACE_ENTER(Property);
-
-    for (unsigned int i = 0; i < kinds.size (); i++) {
-        if (kinds[i] == "allocation")
-            { return true; }
-    }
-
-    return false;
+    return kinds & KIND_ALLOCATION;
 }
 
 bool Property::isConfigure() const
 {
     TRACE_ENTER(Property);
-    if (kinds.size() == 0) {
-      return true;
-    }
-    for (unsigned int i = 0; i < kinds.size (); i++) {
-      if (kinds[i] == "configure")
-        { return true; }
-    }
-    return false;
+    return kinds & KIND_CONFIGURE;
 }
 
 bool Property::isProperty() const
 {
     TRACE_ENTER(Property);
-    // RESOLVE, could be default behavior with old style properties
-    //if (kinds.size() == 0) {
-    //return true;
-    //}
-    for (unsigned int i = 0; i < kinds.size (); i++) {
-        if (kinds[i] == "property")
-          { return true; }
-    }
-
-    return false;
+    return kinds & KIND_PROPERTY;
 }
 
 bool Property::isTest() const
 {
     TRACE_ENTER(Property);
-
-    for (unsigned int i = 0; i < kinds.size (); i++) {
-        if (kinds[i] == "test")
-            { return true; }
-    }
-
-    return false;
+    return kinds & KIND_TEST;
 }
 
 bool Property::isExecParam() const
 {
     TRACE_ENTER(Property);
-
-    for (unsigned int i = 0; i < kinds.size (); i++) {
-        if (kinds[i] == "execparam")
-            { return true; }
-    }
-
-    return false;
+    return kinds & KIND_EXECPARAM;
 }
 
 bool Property::isFactoryParam() const
 {
     TRACE_ENTER(Property);
-
-    for (unsigned int i = 0; i < kinds.size (); i++) {
-        if (kinds[i] == "factoryparam")
-            { return true; }
-    }
-
-    return false;
+    return kinds & KIND_FACTORYPARAM;
 }
 
 const char* Property::getID() const
@@ -348,7 +336,7 @@ const char* Property::getAction() const
     return action.c_str();
 }
 
-const std::vector <std::string>& Property::getKinds() const
+int Property::getKinds() const
 {
     return kinds;
 }
@@ -454,7 +442,7 @@ SimpleProperty::SimpleProperty(const std::string& id,
                                const std::string& type, 
                                const std::string& mode, 
                                const std::string& action, 
-                               const std::vector<std::string>& kinds,
+                               int kinds,
                                const optional_value<std::string>& value, 
                                bool complex,
                                bool commandline,
@@ -540,10 +528,10 @@ const char* SimpleProperty::getValue() const
 const std::string SimpleProperty::asString() const {
     std::ostringstream out;
     out << "Simple Property: <'" << this->id << "' '" << this->name << " " << this->mode << " " << this->type << " '";
-    std::vector<std::string>::const_iterator i;
-    for (i = kinds.begin(); i != kinds.end(); ++i) {
-        out << *i << ", ";
-    }
+    // std::vector<std::string>::const_iterator i;
+    // for (i = kinds.begin(); i != kinds.end(); ++i) {
+    //     out << *i << ", ";
+    // }
     out << "' ";
     if (value.isSet()) {
         out << " = '" << *(this->value) << "'>";
@@ -564,7 +552,7 @@ SimpleSequenceProperty::SimpleSequenceProperty(const std::string&              i
                                                const std::string&              type, 
                                                const std::string&              mode, 
                                                const std::string&              action, 
-                                               const std::vector<std::string>& kinds,
+                                               int                             kinds,
                                                const std::vector<std::string>& values,
                                                bool                            complex,
                                                bool                            optional) :

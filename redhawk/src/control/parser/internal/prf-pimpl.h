@@ -119,13 +119,13 @@ namespace prf
       pre ();
 
       virtual void
-      kindtype (const ::std::string&);
+      kindtype (ossie::Property::KindType);
 
-      virtual ::std::string
+      virtual ossie::Property::KindType
       post_configurationKind ();
 
       private:
-      std::string _kindtype;
+      ossie::Property::KindType _kindtype;
     };
 
     class enumeration_pimpl: public virtual enumeration_pskel
@@ -177,12 +177,13 @@ namespace prf
       pre ();
 
       virtual void
-      kindtype (const ::std::string&);
+      kindtype (ossie::Property::KindType);
 
-      virtual ::std::string
+      virtual ossie::Property::KindType
       post_kind ();
+
       private:
-      std::string _type;
+      ossie::Property::KindType _type;
     };
 
     class PropertyConfigurationType_pimpl: public virtual PropertyConfigurationType_pskel,
@@ -192,7 +193,7 @@ namespace prf
       virtual void
       pre ();
 
-      virtual std::string
+      virtual ossie::Property::KindType
       post_PropertyConfigurationType ();
     };
 
@@ -203,7 +204,7 @@ namespace prf
       virtual void
       pre ();
 
-      virtual ::std::string
+      virtual ossie::Property::KindType
       post_StructPropertyConfigurationType ();
     };
 
@@ -304,7 +305,7 @@ namespace prf
       enumerations (const ::std::map<std::string, std::string>&);
 
       virtual void
-      kind (const ::std::string&);
+      kind (ossie::Property::KindType);
 
       virtual void
       action (const ::std::string&);
@@ -342,7 +343,7 @@ namespace prf
       std::string _action;
       bool _commandline;
       bool _optional;
-      std::vector<std::string> _kinds;
+      int _kinds;
       std::auto_ptr<std::string> _value;
     };
 
@@ -403,7 +404,7 @@ namespace prf
       range (const ::std::vector<std::string>&);
 
       virtual void
-      kind (const ::std::string&);
+      kind (ossie::Property::KindType);
 
       virtual void
       action (const ::std::string&);
@@ -437,7 +438,7 @@ namespace prf
       std::string _mode;
       std::string _action;
       bool _optional;
-      std::vector<std::string> _kinds;
+      int _kinds;
       std::vector<std::string> _values;
     };
 
@@ -457,7 +458,7 @@ namespace prf
       simplesequence (ossie::SimpleSequenceProperty*);
 
       virtual void
-      configurationkind (const ::std::string&);
+      configurationkind (ossie::Property::KindType);
 
       virtual void
       id (const ::std::string&);
@@ -476,7 +477,7 @@ namespace prf
       std::string _name;
       std::string _type;
       std::string _mode;
-      std::vector<std::string> _kinds;
+      int _kinds;
       ossie::PropertyList      _value;
     };
 
@@ -496,7 +497,7 @@ namespace prf
         structvalue (const ossie::ComponentPropertyMap&);
 
       virtual void
-      configurationkind (const ::std::string&);
+      configurationkind (ossie::Property::KindType);
 
       virtual void
       id (const ::std::string&);
@@ -515,7 +516,7 @@ namespace prf
       std::string _name;
       std::string _type;
       std::string _mode;
-      std::vector<std::string> _kinds;
+      int _kinds;
       std::auto_ptr<ossie::StructProperty> _struct;
       std::vector<ossie::StructProperty> _values;
     };

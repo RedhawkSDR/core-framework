@@ -49,13 +49,24 @@ namespace ossie {
     public:
         friend class Properties; 
 
+        enum KindType {
+            KIND_NOTSET       = 0,
+            KIND_ALLOCATION   = 1,
+            KIND_CONFIGURE    = 2,
+            KIND_PROPERTY     = 4,
+            KIND_TEST         = 8,
+            KIND_EXECPARAM    = 16,
+            KIND_FACTORYPARAM = 32,
+            KIND_DEFAULT = KIND_CONFIGURE
+        };
+
         Property() {}
 
         Property(const std::string& id, 
                  const std::string& name, 
                  const std::string& mode, 
                  const std::string& action, 
-                 const std::vector<std::string>& kinds);
+                 int kinds);
 
         virtual ~Property();
 
@@ -81,7 +92,7 @@ namespace ossie {
         const char* getName() const;
         const char* getMode() const;
         const char* getAction() const;
-        const std::vector<std::string>& getKinds() const;
+        int getKinds() const;
 
         std::string mapPrimitiveToComplex(const std::string& type) const;
 
@@ -96,7 +107,7 @@ namespace ossie {
         std::string name;
         std::string mode;
         std::string action;
-        std::vector <std::string> kinds;
+        int kinds;
         
         // Pure virtual functions
         virtual void override(const Property* otherProp) = 0;
@@ -119,7 +130,7 @@ namespace ossie {
                        const std::string& type, 
                        const std::string& mode, 
                        const std::string& action, 
-                       const std::vector<std::string>& kinds,
+                       int kinds,
                        const optional_value<std::string>& value,
                        bool complex=false,
                        bool commandline=false,
@@ -167,7 +178,7 @@ namespace ossie {
                                const std::string&              type, 
                                const std::string&              mode, 
                                const std::string&              action, 
-                               const std::vector<std::string>& kinds,
+                               int kinds,
                                const std::vector<std::string>& values,
                                bool                            complex=false,
                                bool                            optional=false);
@@ -206,10 +217,10 @@ namespace ossie {
         StructProperty() {}
 
         StructProperty(const std::string& id, 
-                   const std::string& name, 
-                   const std::string& mode, 
-                   const std::vector<std::string>& configurationkinds,
-                   const std::vector<Property*>& value) :
+                       const std::string& name, 
+                       const std::string& mode, 
+                       int configurationkinds,
+                       const std::vector<Property*>& value) :
             Property(id, name, mode, "external", configurationkinds) 
         {
 	    std::vector<Property*>::const_iterator it;
@@ -219,9 +230,9 @@ namespace ossie {
 	}
 
         StructProperty(const std::string& id, 
-                   const std::string& name, 
-                   const std::string& mode, 
-                   const std::vector<std::string>& configurationkinds,
+                       const std::string& name,
+                       const std::string& mode,
+                       int configurationkinds,
                        const ossie::PropertyList & value) :
             Property(id, name, mode, "external", configurationkinds) 
         {
@@ -274,7 +285,7 @@ namespace ossie {
                                const std::string& name,
                                const std::string& mode,
                                const StructProperty& structdef,
-                               const std::vector<std::string>& configurationkinds,
+                               int configurationkinds,
                                const std::vector<StructProperty>& values) :
             Property(id, name, mode, "external", configurationkinds),
             structdef(structdef),
@@ -414,6 +425,8 @@ namespace ossie {
     private:
 	boost::shared_ptr<ossie::PRF> _prf;
     };
+
+    std::ostream& operator<<(std::ostream& stream, Property::KindType kind);
 
 }
 #endif

@@ -36,9 +36,8 @@ namespace urn:mil:jpeojtrs:sca:prf {
     values "::std::vector<std::string>";
     units "::std::string";
     action "::std::string";
-    kind "::std::string";
-    kindtype "::std::string";
-    StructPropertyConfigurationType "::std::string";
+    kind "::ossie::Property::KindType" "::ossie::Property::KindType";
+    StructPropertyConfigurationType "::ossie::Property::KindType" "::ossie::Property::KindType";
     PropertyValueType "::std::string";
     AccessType "::std::string";
     ActionType "::std::string";
@@ -46,8 +45,8 @@ namespace urn:mil:jpeojtrs:sca:prf {
     IsCommandLine "bool";
     IsOptional "bool";
     Unit "::std::string";
-    PropertyConfigurationType "::std::string";
-    configurationKind "::std::string";
+    PropertyConfigurationType "::ossie::Property::KindType" "::ossie::Property::KindType";
+    configurationKind "::ossie::Property::KindType" "::ossie::Property::KindType";
     range "::std::pair<std::string, std::string>";
     enumerations "::std::map<std::string, std::string>";
     enumeration "::std::map<std::string, std::string>::value_type";

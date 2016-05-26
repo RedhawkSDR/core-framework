@@ -1145,21 +1145,19 @@ int main(int argc, char* argv[])
     LOG_DEBUG(nodebooter, "OS " << un.sysname);
 
     // Build a list of properties for this system based on the information from uname.
-    std::vector<std::string> kinds;
-    kinds.push_back("allocation");
     ossie::SimpleProperty osProp("DCE:4a23ad60-0b25-4121-a630-68803a498f75",
                                  "os_name",
                                  "string",
                                  "readonly",
                                  "eq",
-                                 kinds,
+                                 ossie::Property::KIND_ALLOCATION,
                                  std::string(un.sysname));
     ossie::SimpleProperty procProp("DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b",
                                    "processor_name",
                                    "string",
                                    "readonly",
                                    "eq",
-                                   kinds,
+                                   ossie::Property::KIND_ALLOCATION,
                                    std::string(un.machine));
     std::vector<const ossie::Property*> systemProps;
     systemProps.push_back(&osProp);

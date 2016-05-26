@@ -145,16 +145,16 @@ post_ActionType ()
 void configurationKind_pimpl::
 pre ()
 {
-    _kindtype = "configure";
+    _kindtype = ossie::Property::KIND_DEFAULT;
 }
 
 void configurationKind_pimpl::
-kindtype (const ::std::string& kindtype)
+kindtype (ossie::Property::KindType kindtype)
 {
     _kindtype = kindtype;
 }
 
-std::string configurationKind_pimpl::
+ossie::Property::KindType configurationKind_pimpl::
 post_configurationKind ()
 {
     return _kindtype;
@@ -227,16 +227,16 @@ post_inputValue ()
 void kind_pimpl::
 pre ()
 {
-    _type = "configure"; // The default is configure
+    _type = ossie::Property::KIND_DEFAULT;
 }
 
 void kind_pimpl::
-kindtype (const ::std::string& type)
+kindtype (ossie::Property::KindType type)
 {
     _type = type;
 }
 
-std::string kind_pimpl::
+ossie::Property::KindType kind_pimpl::
 post_kind ()
 {
     return _type;
@@ -250,11 +250,28 @@ pre ()
 {
 }
 
-std::string PropertyConfigurationType_pimpl::
+ossie::Property::KindType PropertyConfigurationType_pimpl::
 post_PropertyConfigurationType ()
 {
-  const ::std::string& v (post_string ());
-  return v;
+    const std::string& kindtype = post_string();
+    LOG_TRACE(prf_parser, "PropertyConfigurationType = " << kindtype);
+    if (kindtype == "property") {
+        return ossie::Property::KIND_PROPERTY;
+    } else if (kindtype == "configure") {
+        return ossie::Property::KIND_CONFIGURE;
+    } else if (kindtype == "execparam") {
+        return ossie::Property::KIND_EXECPARAM;
+    } else if (kindtype == "allocation") {
+        return ossie::Property::KIND_ALLOCATION;
+    } else if (kindtype == "test") {
+        return ossie::Property::KIND_TEST;
+    } else if (kindtype == "factoryparam") {
+        return ossie::Property::KIND_FACTORYPARAM;
+    } else {
+        // The generated part of the parser does not validate that the value is
+        // in the allowed range; just to be safe, treat it as the default
+        return ossie::Property::KIND_DEFAULT;
+    }
 }
 
 // StructPropertyConfigurationType_pimpl
@@ -265,7 +282,7 @@ pre ()
 {
 }
 
-::std::string StructPropertyConfigurationType_pimpl::
+ossie::Property::KindType StructPropertyConfigurationType_pimpl::
 post_StructPropertyConfigurationType ()
 {
   return post_PropertyConfigurationType ();
@@ -403,7 +420,7 @@ pre ()
     _action  = "";
     _optional = false;
     _commandline = false;
-    _kinds.clear();
+    _kinds = ossie::Property::KIND_NOTSET;
     _value.reset();
 
 }
@@ -437,10 +454,10 @@ enumerations (const ::std::map<std::string, std::string>& enumerations)
 }
 
 void simple_pimpl::
-kind (const ::std::string& kind)
+kind (ossie::Property::KindType kind)
 {
     LOG_TRACE(prf_parser, "simple_pimpl kind " << kind)
-    _kinds.push_back(kind);
+    _kinds |= kind;
 }
 
 void simple_pimpl::
@@ -580,7 +597,7 @@ pre ()
     _action  = "";
     _optional = false;
 
-    _kinds.clear();
+    _kinds = ossie::Property::KIND_NOTSET;
     _values.clear();
 }
 
@@ -612,10 +629,10 @@ range (const ::std::vector<std::string>& range)
 }
 
 void simpleSequence_pimpl::
-kind (const ::std::string& kind)
+kind (ossie::Property::KindType kind)
 {
     LOG_TRACE(prf_parser, "simpleSequence_pimpl kind " << kind)
-    _kinds.push_back(kind);
+    _kinds |= kind;
 }
 
 void simpleSequence_pimpl::
@@ -692,7 +709,7 @@ pre ()
     _name = "";
     _type = "";
     _mode = "";
-    _kinds.clear();
+    _kinds = ossie::Property::KIND_NOTSET;
     _value.clear();
 }
 
@@ -714,9 +731,9 @@ simplesequence (ossie::SimpleSequenceProperty* property)
 }
 
 void struct_pimpl::
-configurationkind (const ::std::string& kind)
+configurationkind (ossie::Property::KindType kind)
 {
-    _kinds.push_back(kind);
+    _kinds |= kind;
 }
 
 void struct_pimpl::
@@ -741,9 +758,9 @@ ossie::StructProperty* struct_pimpl::
 post_struct ()
 {
     LOG_TRACE(prf_parser, "struct_pimpl post " << _id << " " << _name);
-    for (std::vector<std::string>::const_iterator ii = _kinds.begin(); ii != _kinds.end(); ++ii) {
-        LOG_TRACE(prf_parser, "    kind " << *ii);
-    }
+    // for (std::vector<std::string>::const_iterator ii = _kinds.begin(); ii != _kinds.end(); ++ii) {
+    //     LOG_TRACE(prf_parser, "    kind " << *ii);
+    // }
     
     ossie::PropertyList::const_iterator i;
     for (i = _value.begin(); i != _value.end(); ++i) {
@@ -763,7 +780,7 @@ pre ()
     _name = "";
     _type = "";
     _mode = "";
-    _kinds.clear();
+    _kinds = ossie::Property::KIND_NOTSET;
     _values.clear();
     _struct.reset();  // resets internal values vector
 }
@@ -832,9 +849,9 @@ structvalue (const ossie::ComponentPropertyMap& value)
 }
 
 void structSequence_pimpl::
-configurationkind (const ::std::string& kind)
+configurationkind (ossie::Property::KindType kind)
 {
-    _kinds.push_back(kind);
+    _kinds |= kind;
 }
 
 void structSequence_pimpl::
