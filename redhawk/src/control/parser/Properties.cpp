@@ -557,7 +557,7 @@ const std::string SimpleProperty::asString() const {
     return out.str();
 }
 
-const Property* SimpleProperty::clone() const {
+Property* SimpleProperty::clone() const {
     return new SimpleProperty(*this);
 }
 
@@ -649,7 +649,7 @@ const std::string SimpleSequenceProperty::asString() const {
     return out.str();
 }
 
-const Property* SimpleSequenceProperty::clone() const {
+Property* SimpleSequenceProperty::clone() const {
     return new SimpleSequenceProperty(*this);
 }
 
@@ -680,7 +680,7 @@ StructProperty& StructProperty::operator=(const StructProperty& src)
   // bring in the new...
   std::vector<Property*>::const_iterator it;
   for(it=src.value.begin(); it != src.value.end(); ++it) {
-    this->value.push_back(const_cast<Property*>((*it)->clone()));
+    this->value.push_back((*it)->clone());
   }
 
   return *this;
@@ -722,7 +722,7 @@ const std::string StructProperty::asString() const {
     return out.str();
 }
 
-const Property* StructProperty::clone() const {
+Property* StructProperty::clone() const {
     return new StructProperty(id, name, mode, kinds, value);
 };
 
@@ -778,7 +778,7 @@ const std::string StructSequenceProperty::asString() const {
     return out.str();
 }
 
-const Property* StructSequenceProperty::clone() const {
+Property* StructSequenceProperty::clone() const {
     return new StructSequenceProperty(id, name, mode, structdef, kinds, values);
 }
 

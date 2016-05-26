@@ -707,13 +707,13 @@ description (const ::std::string& desciption)
 void struct_pimpl::
 simple (const ossie::SimpleProperty& property)
 {
-   _value.push_back(const_cast<ossie::Property*>(property.clone()));
+   _value.push_back(property.clone());
 }
 
 void struct_pimpl::
 simplesequence (const ossie::SimpleSequenceProperty& property)
 {
-    _value.push_back(const_cast<ossie::Property*>(property.clone()));
+    _value.push_back(property.clone());
 }
 
 void struct_pimpl::

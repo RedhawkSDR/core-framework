@@ -88,7 +88,7 @@ namespace ossie {
         // Pure virtual functions
         virtual bool isNone() const = 0;
         virtual const std::string asString() const = 0;
-        virtual const Property* clone() const = 0;
+        virtual Property* clone() const = 0;
 
     protected:
         // Common across all property types
@@ -134,7 +134,7 @@ namespace ossie {
         virtual bool isCommandLine() const;
         virtual bool isNone() const;
         virtual const std::string asString() const;
-        virtual const Property* clone() const;
+        virtual Property* clone() const;
         const char* getType() const;
         bool isComplex() const;
         bool isOptional() const;
@@ -178,7 +178,7 @@ namespace ossie {
 
         virtual bool isNone() const;
         virtual const std::string asString() const;
-        virtual const Property* clone() const;
+        virtual Property* clone() const;
         const char* getType() const;
         bool isComplex() const;
         bool isOptional() const;
@@ -214,7 +214,7 @@ namespace ossie {
         {
 	    std::vector<Property*>::const_iterator it;
 	    for(it=value.begin(); it != value.end(); ++it) {
-                this->value.push_back(const_cast<Property*>((*it)->clone()));
+                this->value.push_back((*it)->clone());
 	    }
 	}
 
@@ -227,7 +227,7 @@ namespace ossie {
         {
             ossie::PropertyList::const_iterator it;
 	    for(it=value.begin(); it != value.end(); ++it) {
-                this->value.push_back(const_cast<Property*>(it->clone()));
+                this->value.push_back(it->clone());
 	    }
 	}
 
@@ -236,14 +236,14 @@ namespace ossie {
         {
 	    std::vector<Property*>::const_iterator it;
 	    for(it=other.value.begin(); it != other.value.end(); ++it) {
-	        this->value.push_back(const_cast<Property*>((*it)->clone()));
+	        this->value.push_back((*it)->clone());
 	    }
         }
 
         virtual ~StructProperty();
         virtual bool isNone() const;
         virtual const std::string asString() const;
-        virtual const Property* clone() const;
+        virtual Property* clone() const;
 
         StructProperty& operator=(const StructProperty& src);
 
@@ -286,7 +286,7 @@ namespace ossie {
 
         virtual bool isNone() const;
         virtual const std::string asString() const;
-        virtual const Property* clone() const;
+        virtual Property* clone() const;
 
         const StructProperty& getStruct() const;
         const std::vector<StructProperty>& getValues() const;
