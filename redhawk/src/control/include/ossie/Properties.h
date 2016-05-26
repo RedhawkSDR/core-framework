@@ -225,14 +225,14 @@ namespace ossie {
                        const ossie::PropertyList & value) :
             Property(id, name, mode, "external", configurationkinds) 
         {
-          ossie::PropertyList::const_iterator it;
+            ossie::PropertyList::const_iterator it;
 	    for(it=value.begin(); it != value.end(); ++it) {
                 this->value.push_back(const_cast<Property*>(it->clone()));
 	    }
 	}
 
 	StructProperty(const StructProperty& other) :
-          Property(other.id, other.name, other.mode, other.action, other.kinds)
+            Property(other)
         {
 	    std::vector<Property*>::const_iterator it;
 	    for(it=other.value.begin(); it != other.value.end(); ++it) {
@@ -245,7 +245,7 @@ namespace ossie {
         virtual const std::string asString() const;
         virtual const Property* clone() const;
 
-        StructProperty &operator=(const StructProperty& src);
+        StructProperty& operator=(const StructProperty& src);
 
         const std::vector<Property*>& getValue() const ;
 
@@ -284,15 +284,6 @@ namespace ossie {
 
         virtual ~StructSequenceProperty();
 
-        StructSequenceProperty(const StructSequenceProperty &src ) :
-        Property(src.id, src.name, src.mode, src.action, src.kinds),
-          structdef(src.structdef),
-          values(src.values)
-        {
-        }
-
-        StructSequenceProperty & operator=( const StructSequenceProperty &src );
-        
         virtual bool isNone() const;
         virtual const std::string asString() const;
         virtual const Property* clone() const;

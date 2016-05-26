@@ -746,15 +746,6 @@ StructSequenceProperty::~StructSequenceProperty()
 {
 }
 
-StructSequenceProperty& StructSequenceProperty::operator=(const StructSequenceProperty& src) 
-{
-    Property::operator=(src);
-    structdef = src.structdef;
-    values = values;
-    return *this;
-}
-
-
 bool StructSequenceProperty::isNone() const {
     return (values.size() == 0);
 }
