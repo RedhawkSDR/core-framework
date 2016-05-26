@@ -1153,20 +1153,14 @@ int main(int argc, char* argv[])
                                  "readonly",
                                  "eq",
                                  kinds,
-                                 std::string(un.sysname),
-                                 "false",
-                                 "false",
-				 "false");
+                                 std::string(un.sysname));
     ossie::SimpleProperty procProp("DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b",
                                    "processor_name",
                                    "string",
                                    "readonly",
                                    "eq",
                                    kinds,
-                                   std::string(un.machine),
-                                   "false",
-                                   "false",
-				   "false");
+                                   std::string(un.machine));
     std::vector<const ossie::Property*> systemProps;
     systemProps.push_back(&osProp);
     systemProps.push_back(&procProp);
