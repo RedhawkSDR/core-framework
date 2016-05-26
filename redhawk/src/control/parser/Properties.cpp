@@ -242,23 +242,17 @@ const std::vector<const Property*>& Properties::getFactoryParamProperties() cons
  */
 
 Property::Property(const std::string& id, 
-             const std::string& name, 
-             const std::string& mode, 
-             const std::string& action, 
-             const std::vector<std::string>& kinds) :
-             id(id), name(name), mode(mode), action(action), kinds(kinds),
-               commandline("false")
-{};
-
-Property::Property(const std::string& id, 
                    const std::string& name, 
                    const std::string& mode, 
                    const std::string& action, 
-                   const std::vector<std::string>& kinds, 
-                   const std::string& cmdline ):
-  id(id), name(name), mode(mode), action(action), kinds(kinds),
-  commandline(cmdline)
-{};
+                   const std::vector<std::string>& kinds):
+    id(id),
+    name(name),
+    mode(mode),
+    action(action),
+    kinds(kinds)
+{
+}
 
 Property::~Property()
 {
@@ -372,7 +366,7 @@ bool Property::isReadOnly() const
 
 bool Property::isCommandLine() const
 {
-    return (commandline == "true");
+    return false;
 }
 
 bool Property::isReadWrite() const
@@ -468,16 +462,16 @@ SimpleProperty::SimpleProperty(const std::string& id,
                                const std::string& action, 
                                const std::vector<std::string>& kinds,
                                const optional_value<std::string>& value, 
-                               const std::string& complex_,
-                               const std::string& commandline_,
-                               const std::string& optional) :
-  Property(id, name, mode, action, kinds, commandline_ ), 
+                               bool complex,
+                               bool commandline,
+                               bool optional) :
+  Property(id, name, mode, action, kinds),
   value(value), 
-  _complex(complex_),
+  complex(complex),
+  commandline(commandline),
   optional(optional)
 {
-    commandline = commandline_;
-    if (_complex.compare("true") == 0) {
+    if (complex) {
         /* 
          * Downstream processing expects complex types
          * (e.g., complexLong) rather than primitive 
@@ -493,26 +487,15 @@ SimpleProperty::SimpleProperty(const std::string& id,
     }
 }
 
-/*
- * A constructor that does not require the specification of 
- * whether or not the property is complex.  If complexity
- * is not specified, the property is assumed to be primitive.
- */
-SimpleProperty::SimpleProperty(const std::string& id, 
-                               const std::string& name, 
-                               const std::string& type, 
-                               const std::string& mode, 
-                               const std::string& action, 
-                               const std::vector<std::string>& kinds,
-                               const optional_value<std::string>& value)
-{
-    SimpleProperty(id, name, type, mode, action, kinds, value, "false", "false", "false");
-}
-
 SimpleProperty::~SimpleProperty()
 {
 }
 
+
+bool SimpleProperty::isCommandLine() const
+{
+    return commandline;
+}
 
 bool SimpleProperty::isNone() const {
     return !value.isSet();
@@ -541,19 +524,14 @@ const char* SimpleProperty::getType() const
     return type.c_str();
 }
 
-const char* SimpleProperty::getComplex() const
+bool SimpleProperty::isComplex() const
 {
-    return _complex.c_str();
+    return complex;
 }
 
-const char* SimpleProperty::getCommandLine() const
+bool SimpleProperty::isOptional() const
 {
-    return commandline.c_str();
-}
-
-const char* SimpleProperty::getOptional() const
-{
-    return optional.c_str();
+    return optional;
 }
 
 const char* SimpleProperty::getValue() const
@@ -580,30 +558,29 @@ const std::string SimpleProperty::asString() const {
 }
 
 const Property* SimpleProperty::clone() const {
-    return new SimpleProperty(id, name, type, mode, action, kinds, value, _complex, commandline, optional);
+    return new SimpleProperty(id, name, type, mode, action, kinds, value, complex, commandline, optional);
 }
 
 
 /*
  * SimpleSequenceProperty class
  */
-SimpleSequenceProperty::SimpleSequenceProperty(
-    const std::string&              id, 
-    const std::string&              name, 
-    const std::string&              type, 
-    const std::string&              mode, 
-    const std::string&              action, 
-    const std::vector<std::string>& kinds,
-    const std::vector<std::string>& values,
-    const std::string&              complex_,
-    const std::string&              optional) :
-        Property(id, name, mode, action, kinds), 
-        type(type), 
-        values(values), 
-        _complex(complex_),
-        optional(optional)
+SimpleSequenceProperty::SimpleSequenceProperty(const std::string&              id, 
+                                               const std::string&              name, 
+                                               const std::string&              type, 
+                                               const std::string&              mode, 
+                                               const std::string&              action, 
+                                               const std::vector<std::string>& kinds,
+                                               const std::vector<std::string>& values,
+                                               bool                            complex,
+                                               bool                            optional) :
+    Property(id, name, mode, action, kinds), 
+    type(type), 
+    values(values),
+    complex(complex),
+    optional(optional)
 {
-    if (_complex.compare("true") == 0) {
+    if (complex) {
         /* 
          * Downstream processing expects complex types
          * (e.g., complexLong) rather than primitive 
@@ -613,31 +590,6 @@ SimpleSequenceProperty::SimpleSequenceProperty(
     } else {
         this->type = type;
     }
-}
-
-/*
- * A constructor that does not require the specification of 
- * whether or not the property is complex.  If complexity
- * is not specified, the property is assumed to be primitive.
- */
-SimpleSequenceProperty::SimpleSequenceProperty( 
-    const std::string&              id, 
-    const std::string&              name, 
-    const std::string&              type, 
-    const std::string&              mode, 
-    const std::string&              action, 
-    const std::vector<std::string>& kinds,
-    const std::vector<std::string>& values)
-{
-    SimpleSequenceProperty(id, 
-                           name, 
-                           type, 
-                           mode, 
-                           action, 
-                           kinds, 
-                           values, 
-                           "false",
-                           "false");
 }
 
 SimpleSequenceProperty::~SimpleSequenceProperty()
@@ -672,14 +624,14 @@ const char* SimpleSequenceProperty::getType() const
     return type.c_str();
 }
 
-const char* SimpleSequenceProperty::getComplex() const
+bool SimpleSequenceProperty::isComplex() const
 {
-    return _complex.c_str();
+    return complex;
 }
 
-const char* SimpleSequenceProperty::getOptional() const
+bool SimpleSequenceProperty::isOptional() const
 {
-    return optional.c_str();
+    return optional;
 }
 
 const std::vector<std::string>& SimpleSequenceProperty::getValues() const
@@ -698,7 +650,7 @@ const std::string SimpleSequenceProperty::asString() const {
 }
 
 const Property* SimpleSequenceProperty::clone() const {
-    return new SimpleSequenceProperty(id, name, type, mode, action, kinds, values, _complex, optional);
+    return new SimpleSequenceProperty(id, name, type, mode, action, kinds, values, complex, optional);
 }
 
 /*
@@ -719,7 +671,6 @@ StructProperty& StructProperty::operator=(const StructProperty& src)
   id = src.id;
   name =src.name;
   mode=src.mode;
-  commandline = src.commandline;
   action=src.action;
   kinds=src.kinds;
   /// clean out my old...
@@ -803,7 +754,6 @@ StructSequenceProperty& StructSequenceProperty::operator=( const StructSequenceP
   id = src.id;
   name =src.name;
   mode=src.mode;
-  commandline = src.commandline;
   action=src.action;
   kinds=src.kinds;
   structdef = src.structdef;

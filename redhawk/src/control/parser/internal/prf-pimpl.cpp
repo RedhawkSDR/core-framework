@@ -70,11 +70,10 @@ pre ()
 {
 }
 
-::std::string IsComplex_pimpl::
+bool IsComplex_pimpl::
 post_IsComplex ()
 {
-  const ::std::string& v (post_string ());
-  return v;
+  return post_string() == "true";
 }
 
 // IsCommandLine_pimpl
@@ -85,11 +84,10 @@ pre ()
 {
 }
 
-::std::string IsCommandLine_pimpl::
+bool IsCommandLine_pimpl::
 post_IsCommandLine ()
 {
-  const ::std::string& v (post_string ());
-  return v;
+  return post_string() == "true";
 }
 
 // IsOptional_pimpl
@@ -100,11 +98,10 @@ pre ()
 {
 }
 
-::std::string IsOptional_pimpl::
+bool IsOptional_pimpl::
 post_IsOptional ()
 {
-  const ::std::string& v (post_string ());
-  return v;
+  return post_string() == "true";
 }
 
 // action_pimpl
@@ -401,11 +398,11 @@ pre ()
     _id      = "";
     _name    = "";
     _type    = "";
-    _complex = "";
+    _complex = false;
     _mode    = "";
     _action  = "";
-    _optional = "";
-    _commandline = "";
+    _optional = false;
+    _commandline = false;
     _kinds.clear();
     _value.reset();
 
@@ -482,23 +479,23 @@ type (const ::std::string& type)
 }
 
 void simple_pimpl::
-complex (const ::std::string& complex_)
+complex (bool complex)
 {
-    LOG_TRACE(prf_parser, "simple_pimpl complex " << complex_)
-    _complex = complex_;
+    LOG_TRACE(prf_parser, "simple_pimpl complex " << complex)
+    _complex = complex;
 }
 
 void simple_pimpl::
-optional (const ::std::string& optional)
+optional (bool optional)
 {
     LOG_TRACE(prf_parser, "simple_pimpl optional " << optional)
     _optional = optional;
 }
 
 void simple_pimpl::
-commandline (const ::std::string& commandline)
+commandline (bool commandline)
 {
-    LOG_TRACE(prf_parser, "simple_pimpl _commandline " << _commandline)
+    LOG_TRACE(prf_parser, "simple_pimpl commandline " << commandline)
     _commandline = commandline;
 }
 
@@ -579,10 +576,10 @@ pre ()
     _id      = "";
     _name    = "";
     _type    = "";
-    _complex = "";
+    _complex = false;
     _mode    = "";
     _action  = "";
-    _optional = "";
+    _optional = false;
 
     _kinds.clear();
     _values.clear();
@@ -658,14 +655,14 @@ type (const ::std::string& type)
 }
 
 void simpleSequence_pimpl::
-complex (const ::std::string& complex_)
+complex (bool complex)
 {
-    LOG_TRACE(prf_parser, "simpleSequence_pimpl complex " << complex_)
-    _complex = complex_;
+    LOG_TRACE(prf_parser, "simpleSequence_pimpl complex " << complex)
+    _complex = complex;
 }
 
 void simpleSequence_pimpl::
-optional (const ::std::string& optional)
+optional (bool optional)
 {
     LOG_TRACE(prf_parser, "simpleSequence_pimpl optional " << optional)
     _optional = optional;
@@ -807,9 +804,9 @@ structvalue (const ossie::ComponentPropertyMap& value)
                                               simp->getAction(), 
                                               simp->getKinds(), 
                                               val, 
-                                              simp->getComplex(),
-                                              simp->getCommandLine(),
-                                              simp->getOptional());
+                                              simp->isComplex(),
+                                              simp->isCommandLine(),
+                                              simp->isOptional());
                   rmprops.push_back(p);
             
    	    } else if (dynamic_cast<const ossie::SimpleSequenceProperty*>(*prop) != NULL) {
@@ -822,8 +819,8 @@ structvalue (const ossie::ComponentPropertyMap& value)
                                                       simpseq->getAction(),
                                                       simpseq->getKinds(),
                                                       vals,
-                                                      simpseq->getComplex(),
-                                                      simpseq->getOptional());
+                                                      simpseq->isComplex(),
+                                                      simpseq->isOptional());
                 rmprops.push_back(p);
             } else {
                 p = *prop;

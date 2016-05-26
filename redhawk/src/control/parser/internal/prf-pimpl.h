@@ -60,7 +60,7 @@ namespace prf
       virtual void
       pre ();
 
-      virtual ::std::string
+      virtual bool
       post_IsComplex ();
     };
 
@@ -71,7 +71,7 @@ namespace prf
       virtual void
       pre ();
 
-      virtual ::std::string
+      virtual bool
       post_IsCommandLine ();
     };
    
@@ -82,7 +82,7 @@ namespace prf
       virtual void
       pre ();
 
-      virtual ::std::string
+      virtual bool
       post_IsOptional ();
     };
 
@@ -322,13 +322,13 @@ namespace prf
       type (const ::std::string&);
 
       virtual void
-      complex (const ::std::string&);
+      complex (bool);
 
       virtual void
-      commandline (const ::std::string&);
+      commandline (bool);
 
       virtual void
-      optional (const ::std::string&);
+      optional (bool);
 
       virtual const ossie::SimpleProperty&
       post_simple ();
@@ -337,11 +337,11 @@ namespace prf
       std::string _id;
       std::string _name;
       std::string _type;
-      std::string _complex;
+      bool _complex;
       std::string _mode;
       std::string _action;
-      std::string _commandline;
-      std::string _optional;
+      bool _commandline;
+      bool _optional;
       std::vector<std::string> _kinds;
       std::auto_ptr<std::string> _value;
       ossie::SimpleProperty  _prop;
@@ -422,10 +422,10 @@ namespace prf
       type (const ::std::string&);
 
       virtual void
-      complex (const ::std::string&);
+      complex (bool);
 
       virtual void
-      optional (const ::std::string&);
+      optional (bool);
 
       virtual const ossie::SimpleSequenceProperty&
       post_simpleSequence ();
@@ -434,10 +434,10 @@ namespace prf
       std::string _id;
       std::string _name;
       std::string _type;
-      std::string _complex;
+      bool _complex;
       std::string _mode;
       std::string _action;
-      std::string _optional;
+      bool _optional;
       std::vector<std::string> _kinds;
       std::vector<std::string> _values;
       ossie::SimpleSequenceProperty _prop;

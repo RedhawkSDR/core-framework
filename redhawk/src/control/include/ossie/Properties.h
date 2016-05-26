@@ -57,13 +57,6 @@ namespace ossie {
                  const std::string& action, 
                  const std::vector<std::string>& kinds);
 
-        Property(const std::string& id, 
-                 const std::string& name, 
-                 const std::string& mode, 
-                 const std::string& action, 
-                 const std::vector<std::string>& kinds,
-                 const std::string& cmdline );
-
         virtual ~Property();
 
         bool isReadOnly() const;
@@ -73,7 +66,7 @@ namespace ossie {
         bool isConfigure() const;
         bool isProperty() const;
         bool isTest() const;
-        bool isCommandLine() const;
+        virtual bool isCommandLine() const;
         bool isExecParam() const;
         bool isFactoryParam() const;
         bool isEqual() const;
@@ -104,8 +97,6 @@ namespace ossie {
         std::string mode;
         std::string action;
         std::vector <std::string> kinds;
-        std::string commandline;
-
         
         // Pure virtual functions
         virtual void override(const Property* otherProp) = 0;
@@ -124,23 +115,15 @@ namespace ossie {
         SimpleProperty() {}
 
         SimpleProperty(const std::string& id, 
-               const std::string& name, 
-               const std::string& type, 
-               const std::string& mode, 
-               const std::string& action, 
-               const std::vector<std::string>& kinds,
-               const optional_value<std::string>& value,
-               const std::string& complex_,
-               const std::string& commandline,
-	       const std::string& optional);
-
-        SimpleProperty(const std::string& id, 
-               const std::string& name, 
-               const std::string& type, 
-               const std::string& mode, 
-               const std::string& action, 
-               const std::vector<std::string>& kinds,
-               const optional_value<std::string>& value);
+                       const std::string& name, 
+                       const std::string& type, 
+                       const std::string& mode, 
+                       const std::string& action, 
+                       const std::vector<std::string>& kinds,
+                       const optional_value<std::string>& value,
+                       bool complex=false,
+                       bool commandline=false,
+                       bool optional=false);
 
         virtual ~SimpleProperty();
 
@@ -148,13 +131,13 @@ namespace ossie {
         const char* getValue() const;
 
         // Implementation of virtual functions
+        virtual bool isCommandLine() const;
         virtual bool isNone() const;
         virtual const std::string asString() const;
         virtual const Property* clone() const;
         const char* getType() const;
-        const char* getComplex() const;
-        const char* getCommandLine() const;
-	const char* getOptional() const;
+        bool isComplex() const;
+        bool isOptional() const;
 
     protected:
         virtual void override(const Property* otherProp);
@@ -163,8 +146,9 @@ namespace ossie {
     private:
         std::string type;
         optional_value<std::string> value;
-        std::string _complex;
-	std::string optional;
+        bool complex;
+        bool commandline;
+        bool optional;
     };
 
     /*
@@ -185,16 +169,8 @@ namespace ossie {
                                const std::string&              action, 
                                const std::vector<std::string>& kinds,
                                const std::vector<std::string>& values,
-                               const std::string&              complex_,
-			       const std::string& 	       optional);
-
-        SimpleSequenceProperty(const std::string&              id, 
-                               const std::string&              name, 
-                               const std::string&              type, 
-                               const std::string&              mode, 
-                               const std::string&              action, 
-                               const std::vector<std::string>& kinds,
-                               const std::vector<std::string>& values);
+                               bool                            complex=false,
+                               bool                            optional=false);
 
         virtual ~SimpleSequenceProperty();
 
@@ -204,8 +180,8 @@ namespace ossie {
         virtual const std::string asString() const;
         virtual const Property* clone() const;
         const char* getType() const;
-        const char* getComplex() const;
-	const char* getOptional() const;
+        bool isComplex() const;
+        bool isOptional() const;
 
     protected:
         virtual void override(const Property* otherProp);
@@ -214,8 +190,8 @@ namespace ossie {
     private:
         std::string type;
         std::vector<std::string> values;
-        std::string _complex;
-	std::string optional;
+        bool complex;
+        bool optional;
     };
 
     /*
