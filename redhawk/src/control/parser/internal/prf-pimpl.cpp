@@ -801,51 +801,21 @@ structvalue (const ossie::ComponentPropertyMap& value)
 {
     assert(_struct.get() != 0);
     std::vector<ossie::Property*> propValue;
-    std::vector<ossie::Property*> rmprops;
     const std::vector<ossie::Property*>& defaults = _struct->getValue();
     for (std::vector<ossie::Property*>::const_iterator prop = defaults.begin(); prop != defaults.end(); ++prop) {
         const std::string id = (*prop)->getID();
         ossie::ComponentPropertyMap::const_iterator ii = value.find(id);
         if (ii != value.end()) {
-          ossie::Property *p=NULL;
-          if (dynamic_cast<const ossie::SimpleProperty*>(*prop) != NULL) {
-		const ossie::SimpleProperty* simp = dynamic_cast<const ossie::SimpleProperty*>(*prop);
-                std::string val = static_cast<const ossie::SimplePropertyRef *>(ii->second)->getValue();
-                p = new ossie::SimpleProperty(id, 
-                                              simp->getName(), 
-                                              simp->getType(), 
-                                              simp->getMode(), 
-                                              simp->getAction(), 
-                                              simp->getKinds(), 
-                                              val, 
-                                              simp->isComplex(),
-                                              simp->isCommandLine(),
-                                              simp->isOptional());
-                  rmprops.push_back(p);
-            
-   	    } else if (dynamic_cast<const ossie::SimpleSequenceProperty*>(*prop) != NULL) {
-                const ossie::SimpleSequenceProperty* simpseq = dynamic_cast<const ossie::SimpleSequenceProperty*>(*prop);
-                std::vector<std::string> vals = static_cast<const ossie::SimpleSequencePropertyRef *>(ii->second)->getValues();
-                p = new ossie::SimpleSequenceProperty(id,
-                                                      simpseq->getName(),
-                                                      simpseq->getType(),
-                                                      simpseq->getMode(),
-                                                      simpseq->getAction(),
-                                                      simpseq->getKinds(),
-                                                      vals,
-                                                      simpseq->isComplex(),
-                                                      simpseq->isOptional());
-                rmprops.push_back(p);
-            } else {
-                p = *prop;
-            }
-
-            propValue.push_back(p);
+            ossie::Property* field = (*prop)->clone();
+            propValue.push_back(field);
+            field->override(ii->second);
 	}
     }
     _values.push_back(ossie::StructProperty(_struct->getID(), _struct->getName(), _struct->getMode(), _struct->getKinds(), propValue));
-    // clean up unused properties..
-    for ( std::vector<ossie::Property *>::iterator i = rmprops.begin(); i != rmprops.end(); ++i) { if ( *i ) delete *i;  }
+    // Clean up cloned properties
+    for (std::vector<ossie::Property*>::iterator prop = propValue.begin(); prop != propValue.end(); ++prop) {
+        delete *prop;
+    }
 }
 
 void structSequence_pimpl::

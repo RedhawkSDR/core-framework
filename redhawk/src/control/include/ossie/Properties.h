@@ -101,6 +101,9 @@ namespace ossie {
         virtual const std::string asString() const = 0;
         virtual Property* clone() const = 0;
 
+        virtual void override(const Property* otherProp) = 0;
+        virtual void override(const ComponentProperty* newValue) = 0;
+
     protected:
         // Common across all property types
         std::string id;
@@ -109,9 +112,6 @@ namespace ossie {
         std::string action;
         int kinds;
         
-        // Pure virtual functions
-        virtual void override(const Property* otherProp) = 0;
-        virtual void override(const ComponentProperty* newValue) = 0;
     };
 
     /*
@@ -150,7 +150,6 @@ namespace ossie {
         bool isComplex() const;
         bool isOptional() const;
 
-    protected:
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);
 
@@ -194,7 +193,6 @@ namespace ossie {
         bool isComplex() const;
         bool isOptional() const;
 
-    protected:
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);
 
@@ -262,7 +260,6 @@ namespace ossie {
 
         const Property* getField(const std::string& id) const;
 
-    protected:
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);
 
@@ -302,7 +299,6 @@ namespace ossie {
         const StructProperty& getStruct() const;
         const std::vector<StructProperty>& getValues() const;
 
-    protected:
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);
 
