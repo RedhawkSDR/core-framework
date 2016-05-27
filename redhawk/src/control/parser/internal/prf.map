@@ -41,9 +41,9 @@ namespace urn:mil:jpeojtrs:sca:prf {
     PropertyValueType "::std::string";
     AccessType "::std::string";
     ActionType "::std::string";
-    IsComplex "bool";
-    IsCommandLine "bool";
-    IsOptional "bool";
+    IsComplex "bool" "bool";
+    IsCommandLine "bool" "bool";
+    IsOptional "bool" "bool";
     Unit "::std::string";
     PropertyConfigurationType "::ossie::Property::KindType" "::ossie::Property::KindType";
     configurationKind "::ossie::Property::KindType" "::ossie::Property::KindType";
