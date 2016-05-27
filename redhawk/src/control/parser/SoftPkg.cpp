@@ -58,3 +58,30 @@ const std::string SPD::SoftPkgRef::asString() const {
     out << "SoftPkgRef localfile: " << this->localfile << " implref: " << this->implref;
     return out.str();
 }
+
+std::ostream& ossie::operator<<(std::ostream& out, SPD::Code::CodeType type)
+{
+    switch (type) {
+    case SPD::Code::EXECUTABLE:
+        out << "Executable";
+        break;
+    case SPD::Code::KERNEL_MODULE:
+        out << "KernelModule";
+        break;
+    case SPD::Code::SHARED_LIBRARY:
+        out << "SharedLibrary";
+        break;
+    case SPD::Code::DRIVER:
+        out << "Driver";
+        break;
+    default:
+        break;
+    }
+    return out;
+}
+
+std::ostream& ossie::operator<<(std::ostream& out, const SPD::Code& code)
+{
+    out << "localfile: " << code.localfile << " type: " << code.type << " entrypoint: " << code.entrypoint;
+    return out;
+}

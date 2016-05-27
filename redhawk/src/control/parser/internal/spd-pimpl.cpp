@@ -371,7 +371,7 @@ priority (unsigned long long priority)
 }
 
 void code_pimpl::
-type (const ::std::string& type1)
+type (ossie::SPD::Code::CodeType type1)
 {
     LOG_TRACE(spd_parser, "code type " << type1)
     code->type = type1;
@@ -758,17 +758,22 @@ pre ()
 {
 }
 
-::std::string codeFileType_pimpl::
+ossie::SPD::Code::CodeType codeFileType_pimpl::
 post_codeFileType ()
 {
-  const ::std::string& v (post_nmtoken ());
-  if ((v != "Executable") 
-      || (v != "SharedLibrary") 
-      || (v != "KernelModule")
-      || (v != "Driver")) {
-      // TODO throw invalid_value<codeFileType_pimpl>(this, v
-  }
-  return v;
+    const std::string& type = post_nmtoken();
+    if (type == "Executable") {
+        return ossie::SPD::Code::EXECUTABLE;
+    } else if (type == "SharedLibrary") {
+        return ossie::SPD::Code::SHARED_LIBRARY;
+    } else if (type == "KernelModule") {
+        return ossie::SPD::Code::KERNEL_MODULE;
+    } else if (type == "Driver") {
+        return ossie::SPD::Code::DRIVER;
+    } else {
+        LOG_WARN(spd_parser, "Invalid code type '" << type << "'");
+        return ossie::SPD::Code::NONE;
+    }
 }
 
 // simpleref_pimpl

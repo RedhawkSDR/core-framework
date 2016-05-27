@@ -1014,7 +1014,7 @@ void DeviceManager_impl::createDeviceThread(
     if (!matchedDeviceImpl) {
         throw std::runtime_error("unable to find matching device implementation");
     }
-    bool isSharedLibrary = (std::string(matchedDeviceImpl->getCodeType()) == "SharedLibrary");
+    bool isSharedLibrary = matchedDeviceImpl->getCodeType() == ossie::SPD::Code::SHARED_LIBRARY;
 
     // Logic for persona devices
     // check is parent exists and if the code type is "SharedLibrary"
@@ -1396,7 +1396,7 @@ void DeviceManager_impl::postConstructor (
                   << "no available device implementations match device manager properties for deployOnDevice")
             continue;
         }
-        bool isSharedLibrary = (std::string(matchedDeviceImpl->getCodeType()) == "SharedLibrary");
+        bool isSharedLibrary = matchedDeviceImpl->getCodeType() == ossie::SPD::Code::SHARED_LIBRARY;
         bool isCompositePartOf = constCompPlaceIter->isCompositePartOf();
 
         if (isCompositePartOf && isSharedLibrary) {

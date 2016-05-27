@@ -67,17 +67,25 @@ namespace ossie {
 
         class Code {
             public:
+                enum CodeType {
+                    NONE,
+                    EXECUTABLE,
+                    KERNEL_MODULE,
+                    SHARED_LIBRARY,
+                    DRIVER
+                };
+
                 // Required
                 std::string localfile;
                 // Optional
-                optional_value<std::string> type;
+                CodeType type;
                 optional_value<std::string> entrypoint;
                 optional_value<unsigned long long> stacksize;
                 optional_value<unsigned long long> priority;
 
                 Code() :
                     localfile(""),
-                    type(""),
+                    type(NONE),
                     entrypoint(),
                     stacksize(),
                     priority()
@@ -132,12 +140,8 @@ namespace ossie {
                     return code.localfile;
                 }
 
-                const char * getCodeType() const {
-                    if (code.type.isSet()) {
-                        return code.type->c_str();
-                    } else {
-                        return 0;
-                    }
+                Code::CodeType getCodeType() const {
+                    return code.type;
                 }
 
                 const char * getEntryPoint() const {
@@ -316,12 +320,8 @@ namespace ossie {
             std::string _spdPath;
     };
 
-    template< typename charT, typename Traits>
-    std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const SPD::Code& code)
-    {
-        out << "localfile: " << code.localfile << " type: " << code.type << " entrypoint: " << code.entrypoint;
-        return out;
-    }
+    std::ostream& operator<<(std::ostream& out, SPD::Code::CodeType type);
+    std::ostream& operator<<(std::ostream& out, const SPD::Code& code);
 
 }
 #endif

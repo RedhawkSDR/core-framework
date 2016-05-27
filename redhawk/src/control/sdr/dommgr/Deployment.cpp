@@ -204,16 +204,16 @@ std::string SoftpkgDeployment::getLocalFile()
 
 CF::LoadableDevice::LoadType SoftpkgDeployment::getCodeType() const
 {
-    const std::string type = implementation->getCodeType();
-    if (type == "KernelModule") {
+    switch (implementation->getCodeType()) {
+    case SPD::Code::KERNEL_MODULE:
         return CF::LoadableDevice::KERNEL_MODULE;
-    } else if (type == "SharedLibrary") {
+    case SPD::Code::SHARED_LIBRARY:
         return CF::LoadableDevice::SHARED_LIBRARY;
-    } else if (type == "Executable") {
+    case SPD::Code::EXECUTABLE:
         return CF::LoadableDevice::EXECUTABLE;
-    } else if (type == "Driver") {
+    case SPD::Code::DRIVER:
         return CF::LoadableDevice::DRIVER;
-    } else {
+    default:
         return CF::LoadableDevice::LoadType();
     }
 }

@@ -35,7 +35,7 @@ author "ossie::SPD::Author";
 usesDevice "ossie::UsesDevice";
 implementation "ossie::SPD::Implementation";
 dependency "ossie::DependencyRef*";
-codeFileType "::std::string";
+codeFileType "::ossie::SPD::Code::CodeType" "::ossie::SPD::Code::CodeType";
 code "ossie::SPD::Code";
 compiler "ossie::SPD::NameVersionPair";
 humanlangauge "::std::string";

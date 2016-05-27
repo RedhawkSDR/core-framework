@@ -203,19 +203,19 @@ const std::vector<ossie::PropertyRef>& ImplementationInfo::getDependencyProperti
     return dependencyProperties;
 }
 
-void ImplementationInfo::setCodeType(const char* _type)
+void ImplementationInfo::setCodeType(const SPD::Code::CodeType _type)
 {
-    std::string type(_type);
-    if (type == "KernelModule") {
+    switch (_type) {
+    case SPD::Code::KERNEL_MODULE:
         codeType = CF::LoadableDevice::KERNEL_MODULE;
-    } else if (type == "SharedLibrary") {
+    case SPD::Code::SHARED_LIBRARY:
         codeType = CF::LoadableDevice::SHARED_LIBRARY;
-    } else if (type == "Executable") {
+    case SPD::Code::EXECUTABLE:
         codeType = CF::LoadableDevice::EXECUTABLE;
-    } else if (type == "Driver") {
+    case SPD::Code::DRIVER:
         codeType = CF::LoadableDevice::DRIVER;
-    } else {
-        LOG_WARN(ImplementationInfo, "Bad code type " << type);
+    default:
+        LOG_WARN(ImplementationInfo, "Bad code type " << _type);
     }
 }
 

@@ -104,7 +104,7 @@ namespace ossie
     protected:
         void setLocalFileName(const char* fileName);
         void setEntryPoint(const char* fileName);
-        void setCodeType(const char* _type);
+        void setCodeType(ossie::SPD::Code::CodeType _type);
         void setStackSize(const unsigned long long *_stackSize);
         void setPriority(const unsigned long long *_priority);
         void addDependencyProperty(const ossie::PropertyRef& property);

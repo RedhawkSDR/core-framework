@@ -224,7 +224,7 @@ namespace spd
     priority (unsigned long long);
 
     virtual void
-    type (const ::std::string&);
+    type (ossie::SPD::Code::CodeType);
 
     virtual ossie::SPD::Code
     post_code ();
@@ -477,7 +477,7 @@ namespace spd
     virtual void
     pre ();
 
-    virtual ::std::string
+    virtual ossie::SPD::Code::CodeType
     post_codeFileType ();
   };
 
