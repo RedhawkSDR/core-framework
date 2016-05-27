@@ -1778,11 +1778,16 @@ bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployme
 ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(const ossie::SPD::SoftPkgRef& ref,
                                                                         ossie::DeviceNode& device)
 {
+    LOG_TRACE(ApplicationFactory_impl, "Resolving dependency " << ref);
     const SoftPkg* softpkg = _appProfile.getSoftPkg(ref.localfile);
     const SPD::Implementations& spd_list = softpkg->getImplementations();
 
     for (size_t implCount = 0; implCount < spd_list.size(); implCount++) {
         const ossie::SPD::Implementation& implementation = spd_list[implCount];
+        if (ref.implref.isSet() && (implementation.getID() != *ref.implref)) {
+            continue;
+        }
+
         // Check that this implementation can run on the device
         if (!checkProcessor(implementation.getProcessors(), device.prf.getAllocationProperties())) {
             continue;
