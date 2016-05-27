@@ -526,7 +526,7 @@ void DeviceManager_impl::getOverloadprops(
         }
 
         // do not allow readonly execparams to be overloaded (the default from the PRF is passed)
-        if (std::string((*jprops_iter)->getMode()) == "readonly") {
+        if ((*jprops_iter)->isReadOnly()) {
             LOG_WARN(DeviceManager_impl, "DCD requested that readonly execparam " << (*jprops_iter)->getID() << " " << (*jprops_iter)->getName() << " be over-written; ignoring it")
             continue;
         }

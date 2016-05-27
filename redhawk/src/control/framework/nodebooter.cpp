@@ -1148,14 +1148,14 @@ int main(int argc, char* argv[])
     ossie::SimpleProperty osProp("DCE:4a23ad60-0b25-4121-a630-68803a498f75",
                                  "os_name",
                                  "string",
-                                 "readonly",
+                                 ossie::Property::MODE_READONLY,
                                  ossie::Property::ACTION_EQ,
                                  ossie::Property::KIND_ALLOCATION,
                                  std::string(un.sysname));
     ossie::SimpleProperty procProp("DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b",
                                    "processor_name",
                                    "string",
-                                   "readonly",
+                                   ossie::Property::MODE_READONLY,
                                    ossie::Property::ACTION_EQ,
                                    ossie::Property::KIND_ALLOCATION,
                                    std::string(un.machine));

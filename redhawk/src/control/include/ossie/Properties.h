@@ -71,11 +71,18 @@ namespace ossie {
             ACTION_DEFAULT = ACTION_EXTERNAL
         };
 
+        enum AccessType {
+            MODE_READWRITE,
+            MODE_READONLY,
+            MODE_WRITEONLY,
+            MODE_DEFAULT = MODE_READWRITE
+        };
+
         Property() {}
 
         Property(const std::string& id, 
                  const std::string& name, 
-                 const std::string& mode, 
+                 AccessType mode, 
                  ActionType action, 
                  int kinds);
 
@@ -101,7 +108,7 @@ namespace ossie {
 
         const char* getID() const;
         const char* getName() const;
-        const char* getMode() const;
+        AccessType getMode() const;
         // NB: getAction() should return an ActionType; however, there are
         // several places that use its return as a string for an argument to
         // property helper functions in the base library. Before the parsers
@@ -123,7 +130,7 @@ namespace ossie {
         // Common across all property types
         std::string id;
         std::string name;
-        std::string mode;
+        AccessType mode;
         ActionType action;
         int kinds;
         
@@ -143,7 +150,7 @@ namespace ossie {
         SimpleProperty(const std::string& id, 
                        const std::string& name, 
                        const std::string& type, 
-                       const std::string& mode, 
+                       AccessType mode, 
                        ActionType action, 
                        int kinds,
                        const optional_value<std::string>& value,
@@ -190,7 +197,7 @@ namespace ossie {
         SimpleSequenceProperty(const std::string&              id, 
                                const std::string&              name, 
                                const std::string&              type, 
-                               const std::string&              mode, 
+                               AccessType                      mode, 
                                ActionType                      action,
                                int                             kinds,
                                const std::vector<std::string>& values,
@@ -231,7 +238,7 @@ namespace ossie {
 
         StructProperty(const std::string& id, 
                        const std::string& name, 
-                       const std::string& mode, 
+                       AccessType mode, 
                        int configurationkinds,
                        const std::vector<Property*>& value) :
             Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds) 
@@ -244,7 +251,7 @@ namespace ossie {
 
         StructProperty(const std::string& id, 
                        const std::string& name,
-                       const std::string& mode,
+                       AccessType mode,
                        int configurationkinds,
                        const ossie::PropertyList & value) :
             Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds) 
@@ -295,7 +302,7 @@ namespace ossie {
 
         StructSequenceProperty(const std::string& id,
                                const std::string& name,
-                               const std::string& mode,
+                               AccessType mode,
                                const StructProperty& structdef,
                                int configurationkinds,
                                const std::vector<StructProperty>& values) :
@@ -439,6 +446,7 @@ namespace ossie {
 
     std::ostream& operator<<(std::ostream& stream, Property::KindType kind);
     std::ostream& operator<<(std::ostream& stream, Property::ActionType action);
+    std::ostream& operator<<(std::ostream& stream, Property::AccessType mode);
 
 }
 #endif

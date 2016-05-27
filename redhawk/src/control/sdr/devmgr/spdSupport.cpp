@@ -472,7 +472,7 @@ void ResourceInfo::load(CF::FileSystem_ptr fileSys)
         LOG_TRACE(ResourceInfo, "Adding exec params")
         const std::vector<const Property*>& eprop = prf.getExecParamProperties();
         for (unsigned int i = 0; i < eprop.size(); i++) {
-            if (std::string(eprop[i]->getMode()) != "readonly") {
+            if (!eprop[i]->isReadOnly()) {
                 LOG_TRACE(ResourceInfo, "Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
                 addExecParameter(convertPropertyToDataType(eprop[i]));
             } else {

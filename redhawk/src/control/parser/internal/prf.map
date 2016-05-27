@@ -39,7 +39,7 @@ namespace urn:mil:jpeojtrs:sca:prf {
     kind "::ossie::Property::KindType" "::ossie::Property::KindType";
     StructPropertyConfigurationType "::ossie::Property::KindType" "::ossie::Property::KindType";
     PropertyValueType "::std::string";
-    AccessType "::std::string";
+    AccessType "::ossie::Property::AccessType" "::ossie::Property::AccessType";
     ActionType "::ossie::Property::ActionType" "::ossie::Property::ActionType";
     IsComplex "bool" "bool";
     IsCommandLine "bool" "bool";

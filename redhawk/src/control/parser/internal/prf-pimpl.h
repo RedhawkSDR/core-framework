@@ -49,7 +49,7 @@ namespace prf
       virtual void
       pre ();
 
-      virtual ::std::string
+      virtual ::ossie::Property::AccessType
       post_AccessType ();
     };
 
@@ -314,7 +314,7 @@ namespace prf
       id (const ::std::string&);
 
       virtual void
-      mode (const ::std::string&);
+      mode (ossie::Property::AccessType);
 
       virtual void
       name (const ::std::string&);
@@ -339,7 +339,7 @@ namespace prf
       std::string _name;
       std::string _type;
       bool _complex;
-      std::string _mode;
+      ossie::Property::AccessType _mode;
       ossie::Property::ActionType _action;
       bool _commandline;
       bool _optional;
@@ -413,7 +413,7 @@ namespace prf
       id (const ::std::string&);
 
       virtual void
-      mode (const ::std::string&);
+      mode (ossie::Property::AccessType);
 
       virtual void
       name (const ::std::string&);
@@ -435,7 +435,7 @@ namespace prf
       std::string _name;
       std::string _type;
       bool _complex;
-      std::string _mode;
+      ossie::Property::AccessType _mode;
       ossie::Property::ActionType _action;
       bool _optional;
       int _kinds;
@@ -464,7 +464,7 @@ namespace prf
       id (const ::std::string&);
 
       virtual void
-      mode (const ::std::string&);
+      mode (ossie::Property::AccessType);
 
       virtual void
       name (const ::std::string&);
@@ -476,7 +476,7 @@ namespace prf
       std::string _id;
       std::string _name;
       std::string _type;
-      std::string _mode;
+      ossie::Property::AccessType _mode;
       int _kinds;
       ossie::PropertyList      _value;
     };
@@ -503,7 +503,7 @@ namespace prf
       id (const ::std::string&);
 
       virtual void
-      mode (const ::std::string&);
+      mode (ossie::Property::AccessType);
 
       virtual void
       name (const ::std::string&);
@@ -515,7 +515,7 @@ namespace prf
       std::string _id;
       std::string _name;
       std::string _type;
-      std::string _mode;
+      ossie::Property::AccessType _mode;
       int _kinds;
       std::auto_ptr<ossie::StructProperty> _struct;
       std::vector<ossie::StructProperty> _values;

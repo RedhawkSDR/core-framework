@@ -290,9 +290,25 @@ std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::ActionTyp
     return stream;
 }
 
+std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::AccessType mode)
+{
+    switch (mode) {
+    case ossie::Property::MODE_READWRITE:
+        stream << "readwrite";
+        break;
+    case ossie::Property::MODE_READONLY:
+        stream << "readonly";
+        break;
+    case ossie::Property::MODE_WRITEONLY:
+        stream << "writeonly";
+        break;
+    }
+    return stream;
+}
+
 Property::Property(const std::string& id, 
                    const std::string& name, 
-                   const std::string& mode, 
+                   AccessType mode, 
                    ActionType action, 
                    int kinds):
     id(id),
@@ -354,9 +370,9 @@ const char* Property::getName() const
     return name.c_str();
 }
 
-const char* Property::getMode() const
+Property::AccessType Property::getMode() const
 {
-    return mode.c_str();
+    return mode;
 }
 
 std::string Property::getAction() const
@@ -373,7 +389,7 @@ int Property::getKinds() const
 
 bool Property::isReadOnly() const
 {
-    return (mode == "readonly");
+    return (mode == MODE_READONLY);
 }
 
 bool Property::isCommandLine() const
@@ -383,12 +399,12 @@ bool Property::isCommandLine() const
 
 bool Property::isReadWrite() const
 {
-    return (mode == "readwrite");
+    return (mode == MODE_READWRITE);
 }
 
 bool Property::isWriteOnly() const
 {
-    return (mode == "writeonly");
+    return (mode == MODE_WRITEONLY);
 }
 
 bool Property::isEqual() const
@@ -468,7 +484,7 @@ std::string Property::mapPrimitiveToComplex(const std::string& type) const
 SimpleProperty::SimpleProperty(const std::string& id, 
                                const std::string& name, 
                                const std::string& type, 
-                               const std::string& mode, 
+                               AccessType mode, 
                                ActionType action, 
                                int kinds,
                                const optional_value<std::string>& value, 
@@ -578,7 +594,7 @@ Property* SimpleProperty::clone() const {
 SimpleSequenceProperty::SimpleSequenceProperty(const std::string&              id, 
                                                const std::string&              name, 
                                                const std::string&              type, 
-                                               const std::string&              mode, 
+                                               AccessType                      mode, 
                                                ActionType                      action, 
                                                int                             kinds,
                                                const std::vector<std::string>& values,

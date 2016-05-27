@@ -55,11 +55,20 @@ pre ()
 {
 }
 
-::std::string AccessType_pimpl::
+::ossie::Property::AccessType AccessType_pimpl::
 post_AccessType ()
 {
-  const ::std::string& v (post_string ());
-  return v;
+    const std::string& mode = post_string();
+    if (mode == "readwrite") {
+        return ossie::Property::MODE_READWRITE;
+    } else if (mode == "readonly") {
+        return ossie::Property::MODE_READONLY;
+    } else if (mode == "writeonly") {
+        return ossie::Property::MODE_WRITEONLY;
+    } else {
+        LOG_WARN(prf_parser, "Invalid mode '" << mode << "'");
+        return ossie::Property::MODE_DEFAULT;
+    }
 }
 
 // IsComplex_pimpl
@@ -433,7 +442,7 @@ pre ()
     _name    = "";
     _type    = "";
     _complex = false;
-    _mode    = "";
+    _mode    = ossie::Property::MODE_DEFAULT;
     _action  = ossie::Property::ACTION_EXTERNAL;
     _optional = false;
     _commandline = false;
@@ -492,7 +501,7 @@ id (const ::std::string& id)
 }
 
 void simple_pimpl::
-mode (const ::std::string& mode)
+mode (ossie::Property::AccessType mode)
 {
     LOG_TRACE(prf_parser, "simple_pimpl mode " << mode)
     _mode = mode;
@@ -610,7 +619,7 @@ pre ()
     _name    = "";
     _type    = "";
     _complex = false;
-    _mode    = "";
+    _mode = ossie::Property::MODE_DEFAULT;
     _action = ossie::Property::ACTION_DEFAULT;
     _optional = false;
 
@@ -667,7 +676,7 @@ id (const ::std::string& id)
 }
 
 void simpleSequence_pimpl::
-mode (const ::std::string& mode)
+mode (ossie::Property::AccessType mode)
 {
     LOG_TRACE(prf_parser, "simple_pimpl mode " << mode)
     _mode = mode;
@@ -725,7 +734,7 @@ pre ()
     _id = "";
     _name = "";
     _type = "";
-    _mode = "";
+    _mode = ossie::Property::MODE_DEFAULT;
     _kinds = ossie::Property::KIND_NOTSET;
     _value.clear();
 }
@@ -760,7 +769,7 @@ id (const ::std::string& id)
 }
 
 void struct_pimpl::
-mode (const ::std::string& mode)
+mode (ossie::Property::AccessType mode)
 {
     _mode = mode;
 }
@@ -796,7 +805,7 @@ pre ()
     _id = "";
     _name = "";
     _type = "";
-    _mode = "";
+    _mode = ossie::Property::MODE_DEFAULT;
     _kinds = ossie::Property::KIND_NOTSET;
     _values.clear();
     _struct.reset();  // resets internal values vector
@@ -848,7 +857,7 @@ id (const ::std::string& id)
 }
 
 void structSequence_pimpl::
-mode (const ::std::string& mode)
+mode (ossie::Property::AccessType mode)
 {
     _mode = mode;
 }

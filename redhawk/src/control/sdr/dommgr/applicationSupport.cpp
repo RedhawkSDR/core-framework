@@ -79,7 +79,7 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(const SoftPkg* softp
         LOG_TRACE(ComponentInfo, "Adding exec params")
         const std::vector<const Property*>& eprop = prf.getExecParamProperties();
         for (unsigned int i = 0; i < eprop.size(); i++) {
-            if (std::string(eprop[i]->getMode()) != "readonly") {
+            if (!eprop[i]->isReadOnly()) {
                 LOG_TRACE(ComponentInfo, "Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
                 newComponent->addExecParameter(convertPropertyToDataType(eprop[i]));
             } else {
