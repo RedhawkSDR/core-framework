@@ -268,6 +268,17 @@ std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::KindType 
     return stream;
 }
 
+std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::Kinds kinds)
+{
+    for (int bit = 1; bit <= Property::KIND_PROPERTY; bit <<= 1) {
+        Property::KindType flag = static_cast<Property::KindType>(bit);
+        if (kinds & flag) {
+            stream << flag << ",";
+        }
+    }
+    return stream;
+}
+
 std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::ActionType action)
 {
     switch (action) {
@@ -316,14 +327,13 @@ Property::Property(const std::string& id,
                    const std::string& name, 
                    AccessType mode, 
                    ActionType action, 
-                   int kinds):
+                   Kinds kinds):
     id(id),
     name(name),
     mode(mode),
     action(action),
-    kinds((kinds == KIND_NOTSET)?KIND_DEFAULT:kinds)
+    kinds((!kinds)?KIND_DEFAULT:kinds)
 {
-    LOG_TRACE(Property, "Property " << id << " : " << this->kinds);
 }
 
 Property::~Property()
@@ -388,7 +398,7 @@ std::string Property::getAction() const
     return out.str();
 }
 
-int Property::getKinds() const
+Property::Kinds Property::getKinds() const
 {
     return kinds;
 }
@@ -492,7 +502,7 @@ SimpleProperty::SimpleProperty(const std::string& id,
                                const std::string& type, 
                                AccessType mode, 
                                ActionType action, 
-                               int kinds,
+                               Kinds kinds,
                                const optional_value<std::string>& value, 
                                bool complex,
                                bool commandline,
@@ -578,11 +588,7 @@ const char* SimpleProperty::getValue() const
 const std::string SimpleProperty::asString() const {
     std::ostringstream out;
     out << "Simple Property: <'" << this->id << "' '" << this->name << " " << this->mode << " " << this->type << " '";
-    // std::vector<std::string>::const_iterator i;
-    // for (i = kinds.begin(); i != kinds.end(); ++i) {
-    //     out << *i << ", ";
-    // }
-    out << "' ";
+    out << kinds << "' ";
     if (value.isSet()) {
         out << " = '" << *(this->value) << "'>";
     }
@@ -602,7 +608,7 @@ SimpleSequenceProperty::SimpleSequenceProperty(const std::string&              i
                                                const std::string&              type, 
                                                AccessType                      mode, 
                                                ActionType                      action, 
-                                               int                             kinds,
+                                               Kinds                           kinds,
                                                const std::vector<std::string>& values,
                                                bool                            complex,
                                                bool                            optional) :

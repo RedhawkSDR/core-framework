@@ -343,7 +343,7 @@ namespace prf
       ossie::Property::ActionType _action;
       bool _commandline;
       bool _optional;
-      int _kinds;
+      ossie::Property::Kinds _kinds;
       std::auto_ptr<std::string> _value;
     };
 
@@ -438,7 +438,7 @@ namespace prf
       ossie::Property::AccessType _mode;
       ossie::Property::ActionType _action;
       bool _optional;
-      int _kinds;
+      ossie::Property::Kinds _kinds;
       std::vector<std::string> _values;
     };
 
@@ -477,7 +477,7 @@ namespace prf
       std::string _name;
       std::string _type;
       ossie::Property::AccessType _mode;
-      int _kinds;
+      ossie::Property::Kinds _kinds;
       ossie::PropertyList      _value;
     };
 
@@ -516,7 +516,7 @@ namespace prf
       std::string _name;
       std::string _type;
       ossie::Property::AccessType _mode;
-      int _kinds;
+      ossie::Property::Kinds _kinds;
       std::auto_ptr<ossie::StructProperty> _struct;
       std::vector<ossie::StructProperty> _values;
     };

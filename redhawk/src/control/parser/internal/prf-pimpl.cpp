@@ -451,7 +451,7 @@ pre ()
     _type.clear();
     _mode = ossie::Property::MODE_DEFAULT;
     _action = ossie::Property::ACTION_DEFAULT;
-    _kinds = ossie::Property::KIND_NOTSET;
+    _kinds = ossie::Property::Kinds();
     _complex = false;
     _optional = false;
     _commandline = false;
@@ -554,9 +554,9 @@ ossie::SimpleProperty* simple_pimpl::
 post_simple ()
 {
   if (_value.get()) {
-      LOG_TRACE(prf_parser, "simple_pimpl post " << _id << " " << _name << " " << *_value);
+      LOG_TRACE(prf_parser, "simple_pimpl post " << _id << " " << _name << " " << _kinds << " " << *_value);
   } else {
-      LOG_TRACE(prf_parser, "simple_pimpl post " << _id << " " << _name << " None");
+      LOG_TRACE(prf_parser, "simple_pimpl post " << _id << " " << _name << " " << _kinds << " None");
   }
   return new ossie::SimpleProperty(_id, _name, _type, _mode, _action, _kinds, _value.get(), _complex, _commandline, _optional);
 }
@@ -627,7 +627,7 @@ pre ()
     _type.clear();
     _mode = ossie::Property::MODE_DEFAULT;
     _action = ossie::Property::ACTION_DEFAULT;
-    _kinds = ossie::Property::KIND_NOTSET;
+    _kinds = ossie::Property::Kinds();
     _complex = false;
     _optional = false;
     _values.clear();
@@ -740,7 +740,7 @@ pre ()
     _name.clear();
     _type.clear();
     _mode = ossie::Property::MODE_DEFAULT;
-    _kinds = ossie::Property::KIND_NOTSET;
+    _kinds = ossie::Property::Kinds();
     _value.clear();
 }
 
@@ -788,7 +788,7 @@ name (const ::std::string& name)
 ossie::StructProperty* struct_pimpl::
 post_struct ()
 {
-    LOG_TRACE(prf_parser, "struct_pimpl post " << _id << " " << _name);
+    LOG_TRACE(prf_parser, "struct_pimpl post " << _id << " " << _name << " kinds " << _kinds);
     
     ossie::PropertyList::const_iterator i;
     for (i = _value.begin(); i != _value.end(); ++i) {
@@ -808,7 +808,7 @@ pre ()
     _name.clear();
     _type.clear();
     _mode = ossie::Property::MODE_DEFAULT;
-    _kinds = ossie::Property::KIND_NOTSET;
+    _kinds = ossie::Property::Kinds();
     _values.clear();
     _struct.reset();  // resets internal values vector
 }

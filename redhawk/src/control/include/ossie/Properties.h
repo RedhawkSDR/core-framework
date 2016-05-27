@@ -50,7 +50,6 @@ namespace ossie {
         friend class Properties; 
 
         enum KindType {
-            KIND_NOTSET       = 0,
             KIND_CONFIGURE    = 1<<1,
             KIND_EXECPARAM    = 1<<2,
             KIND_ALLOCATION   = 1<<3,
@@ -60,6 +59,46 @@ namespace ossie {
             KIND_MESSAGE      = 1<<7,
             KIND_PROPERTY     = 1<<8,
             KIND_DEFAULT      = KIND_CONFIGURE
+        };
+
+        struct Kinds
+        {
+        public:
+            Kinds() :
+                kinds(0)
+            {
+            }
+
+            Kinds(KindType kind) :
+                kinds(kind)
+            {
+            }
+
+            Kinds& operator|= (KindType kind)
+            {
+                kinds |= kind;
+                return *this;
+            }
+
+            bool operator& (KindType kind) const
+            {
+                return (kinds & kind);
+            }
+
+            Kinds operator| (KindType kind)
+            {
+                Kinds result(*this);
+                result |= kind;
+                return result;
+            }
+
+            bool operator! () const
+            {
+                return (kinds == 0);
+            }
+
+        private:
+            int kinds;
         };
 
         enum ActionType {
@@ -86,7 +125,7 @@ namespace ossie {
                  const std::string& name, 
                  AccessType mode, 
                  ActionType action, 
-                 int kinds);
+                 Kinds kinds);
 
         virtual ~Property();
 
@@ -116,7 +155,7 @@ namespace ossie {
         // property helper functions in the base library. Before the parsers
         // become "public" API, this should be revisited.
         std::string getAction() const;
-        int getKinds() const;
+        Kinds getKinds() const;
 
         std::string mapPrimitiveToComplex(const std::string& type) const;
 
@@ -134,7 +173,7 @@ namespace ossie {
         std::string name;
         AccessType mode;
         ActionType action;
-        int kinds;
+        Kinds kinds;
         
     };
 
@@ -154,7 +193,7 @@ namespace ossie {
                        const std::string& type, 
                        AccessType mode, 
                        ActionType action, 
-                       int kinds,
+                       Kinds kinds,
                        const optional_value<std::string>& value,
                        bool complex=false,
                        bool commandline=false,
@@ -201,7 +240,7 @@ namespace ossie {
                                const std::string&              type, 
                                AccessType                      mode, 
                                ActionType                      action,
-                               int                             kinds,
+                               Kinds                           kinds,
                                const std::vector<std::string>& values,
                                bool                            complex=false,
                                bool                            optional=false);
@@ -241,7 +280,7 @@ namespace ossie {
         StructProperty(const std::string& id, 
                        const std::string& name, 
                        AccessType mode, 
-                       int configurationkinds,
+                       Kinds configurationkinds,
                        const std::vector<Property*>& value) :
             Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds) 
         {
@@ -254,7 +293,7 @@ namespace ossie {
         StructProperty(const std::string& id, 
                        const std::string& name,
                        AccessType mode,
-                       int configurationkinds,
+                       Kinds configurationkinds,
                        const ossie::PropertyList & value) :
             Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds) 
         {
@@ -306,7 +345,7 @@ namespace ossie {
                                const std::string& name,
                                AccessType mode,
                                const StructProperty& structdef,
-                               int configurationkinds,
+                               Kinds configurationkinds,
                                const std::vector<StructProperty>& values) :
             Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds),
             structdef(structdef),
@@ -446,7 +485,13 @@ namespace ossie {
 	boost::shared_ptr<ossie::PRF> _prf;
     };
 
+    inline Property::Kinds operator|(Property::KindType a, Property::KindType b)
+    {
+        return Property::Kinds(a) | b;
+    }
+
     std::ostream& operator<<(std::ostream& stream, Property::KindType kind);
+    std::ostream& operator<<(std::ostream& stream, Property::Kinds kinds);
     std::ostream& operator<<(std::ostream& stream, Property::ActionType action);
     std::ostream& operator<<(std::ostream& stream, Property::AccessType mode);
 
