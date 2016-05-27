@@ -738,7 +738,6 @@ pre ()
 
     _id.clear();
     _name.clear();
-    _type.clear();
     _mode = ossie::Property::MODE_DEFAULT;
     _kinds = ossie::Property::Kinds();
     _value.clear();
@@ -806,7 +805,6 @@ pre ()
 {
     _id.clear();
     _name.clear();
-    _type.clear();
     _mode = ossie::Property::MODE_DEFAULT;
     _kinds = ossie::Property::Kinds();
     _values.clear();

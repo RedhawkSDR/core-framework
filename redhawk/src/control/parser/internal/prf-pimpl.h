@@ -475,10 +475,9 @@ namespace prf
       private:
       std::string _id;
       std::string _name;
-      std::string _type;
       ossie::Property::AccessType _mode;
       ossie::Property::Kinds _kinds;
-      ossie::PropertyList      _value;
+      ossie::PropertyList _value;
     };
 
     class structSequence_pimpl: public virtual structSequence_pskel
@@ -514,7 +513,6 @@ namespace prf
       private:
       std::string _id;
       std::string _name;
-      std::string _type;
       ossie::Property::AccessType _mode;
       ossie::Property::Kinds _kinds;
       std::auto_ptr<ossie::StructProperty> _struct;
