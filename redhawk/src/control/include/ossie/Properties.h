@@ -174,8 +174,11 @@ namespace ossie {
         AccessType mode;
         ActionType action;
         Kinds kinds;
-        
     };
+
+    inline Property* new_clone(const Property& property) {
+        return property.clone();
+    }
 
     /*
      * 
@@ -281,32 +284,18 @@ namespace ossie {
                        const std::string& name,
                        AccessType mode,
                        Kinds configurationkinds,
-                       const ossie::PropertyList & value) :
-            Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds) 
+                       const ossie::PropertyList& value) :
+            Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds),
+            value(value)
         {
-            ossie::PropertyList::const_iterator it;
-	    for(it=value.begin(); it != value.end(); ++it) {
-                this->value.push_back(it->clone());
-	    }
 	}
-
-	StructProperty(const StructProperty& other) :
-            Property(other)
-        {
-	    std::vector<Property*>::const_iterator it;
-	    for(it=other.value.begin(); it != other.value.end(); ++it) {
-	        this->value.push_back((*it)->clone());
-	    }
-        }
 
         virtual ~StructProperty();
         virtual bool isNone() const;
         virtual const std::string asString() const;
         virtual Property* clone() const;
 
-        StructProperty& operator=(const StructProperty& src);
-
-        const std::vector<Property*>& getValue() const ;
+        const PropertyList& getValue() const;
 
         const Property* getField(const std::string& id) const;
 
@@ -314,7 +303,7 @@ namespace ossie {
         virtual void override(const ComponentProperty* newValue);
 
     private:
-        std::vector<Property*> value;
+        PropertyList value;
     };
 
     /*

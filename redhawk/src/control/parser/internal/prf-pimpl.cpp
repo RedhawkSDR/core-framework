@@ -827,12 +827,12 @@ structvalue (const ossie::ComponentPropertyMap& value)
 {
     assert(_struct.get() != 0);
     ossie::PropertyList propValue;
-    const std::vector<ossie::Property*>& defaults = _struct->getValue();
-    for (std::vector<ossie::Property*>::const_iterator prop = defaults.begin(); prop != defaults.end(); ++prop) {
-        const std::string id = (*prop)->getID();
+    const ossie::PropertyList& defaults = _struct->getValue();
+    for (ossie::PropertyList::const_iterator prop = defaults.begin(); prop != defaults.end(); ++prop) {
+        const std::string id = prop->getID();
         ossie::ComponentPropertyMap::const_iterator ii = value.find(id);
         if (ii != value.end()) {
-            ossie::Property* field = (*prop)->clone();
+            ossie::Property* field = prop->clone();
             propValue.push_back(field);
             field->override(ii->second);
 	}

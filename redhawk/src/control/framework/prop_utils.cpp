@@ -131,11 +131,10 @@ CF::DataType ossie::convertPropertyToDataType(const StructProperty* prop) {
     }
 
     CF::Properties structval_;
-    const std::vector<Property*>& propValue = prop->getValue();
-    std::vector<Property*>::const_iterator i;
-    for (i = propValue.begin(); i != propValue.end(); ++i) {
+    const PropertyList& propValue = prop->getValue();
+    for (ossie::PropertyList::const_iterator i = propValue.begin(); i != propValue.end(); ++i) {
         CF::DataType dt;
-	dt = convertPropertyToDataType(*i);
+	dt = convertPropertyToDataType(&(*i));
         structval_.length(structval_.length() + 1);
         structval_[structval_.length() - 1] = dt;
     }
@@ -206,12 +205,12 @@ CF::DataType ossie::overridePropertyValue(const SimpleSequenceProperty* prop, co
 
 static CF::Properties overrideStructValues(const StructProperty* prop, const ossie::ComponentPropertyMap & values)
 {
-    const std::vector<Property*>& props = prop->getValue();
+    const PropertyList& props = prop->getValue();
     LOG_TRACE(prop_utils, "structure has " << props.size() << " elements");
     CF::Properties structval;
     structval.length(props.size());
     for (CORBA::ULong ii = 0; ii < structval.length(); ++ii) {
-        const Property* property = props[ii];
+        const Property* property = &props[ii];
         const std::string id = property->getID();
         ossie::ComponentPropertyMap::const_iterator itemoverride = values.find(id);
         if (itemoverride == values.end()) {
@@ -233,12 +232,12 @@ static CF::Properties overrideStructValues(const StructProperty* prop, const oss
 
 static CF::Properties overrideStructValues(const StructProperty* prop, const ossie::ComponentPropertyMap & values, const CF::Properties& configureProperties)
 {
-    const std::vector<Property*>& props = prop->getValue();
+    const PropertyList& props = prop->getValue();
     LOG_TRACE(prop_utils, "structure has " << props.size() << " elements");
     CF::Properties structval;
     structval.length(props.size());
     for (CORBA::ULong ii = 0; ii < structval.length(); ++ii) {
-        const Property* property = props[ii];
+        const Property* property = &props[ii];
         const std::string id = property->getID();
         ossie::ComponentPropertyMap::const_iterator itemoverride = values.find(id);
         if (dynamic_cast<const SimplePropertyRef*>(itemoverride->second) != NULL) {
@@ -614,7 +613,6 @@ CORBA::Any ossie::convertAnyToPropertyType(const CORBA::Any& value, const Struct
     const CF::Properties *depProps;
     if (value >>= depProps) {
         CF::Properties tmp_props;
-        std::vector<ossie::Property*> structval = property->getValue();
         for (unsigned int index = 0; index < depProps->length(); ++index) {
             const CF::DataType& item = (*depProps)[index];
             const std::string propid(item.id);

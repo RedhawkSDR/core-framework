@@ -696,38 +696,12 @@ Property* SimpleSequenceProperty::clone() const {
  */
 StructProperty::~StructProperty()
 {
-  std::vector<Property*>::iterator i;
-  for (i = value.begin(); i != value.end(); ++i) {
-    if ( *i ) delete *i;
-  }
-  value.clear();
-}
-
-
-StructProperty& StructProperty::operator=(const StructProperty& src) 
-{
-    Property::operator=(src);
-
-  /// clean out my old...
-  std::vector<Property*>::iterator i;
-  for (i = value.begin(); i != value.end(); ++i) {
-    if ( *i ) delete *i;
-  }
-  value.clear();
-
-  // bring in the new...
-  std::vector<Property*>::const_iterator it;
-  for(it=src.value.begin(); it != src.value.end(); ++it) {
-    this->value.push_back((*it)->clone());
-  }
-
-  return *this;
 }
 
 bool StructProperty::isNone() const {
     // it is not possible to set only one of the structure values
     if (value.size() > 0)
-        return (value[0]->isNone());
+        return (value[0].isNone());
     else
         return true;
 }
@@ -735,8 +709,7 @@ bool StructProperty::isNone() const {
 void StructProperty::override(const Property* otherProp) {
     const StructProperty* otherStructProp = dynamic_cast<const StructProperty*>(otherProp);
     if (otherStructProp != NULL) {
-        value.clear();
-        std::copy(otherStructProp->value.begin(), otherStructProp->value.end(), std::back_inserter(value));
+        value = otherStructProp->getValue();
     } else {
         LOG_WARN(StructProperty, "Ignoring override request")
     }
@@ -753,9 +726,8 @@ void StructProperty::override(const ComponentProperty* newValue) {
 const std::string StructProperty::asString() const {
     std::ostringstream out;
     out << "'" << this->id << "' '" << this->name;
-    std::vector<ossie::Property*>::const_iterator i;
-    for (i = value.begin(); i != value.end(); ++i) {
-        out << "   " << **i << std::endl;
+    for (PropertyList::const_iterator i = value.begin(); i != value.end(); ++i) {
+        out << "   " << *i << std::endl;
     }
     return out.str();
 }
@@ -764,14 +736,14 @@ Property* StructProperty::clone() const {
     return new StructProperty(*this);
 };
 
-const std::vector<Property*>& StructProperty::getValue() const {
+const ossie::PropertyList& StructProperty::getValue() const {
     return value;
 }
 
 const Property* StructProperty::getField(const std::string& fieldId) const {
-    for (std::vector<Property*>::const_iterator field = value.begin(); field !=value.end(); ++field) {
-        if (fieldId == (*field)->getID()) {
-            return *field;
+    for (PropertyList::const_iterator field = value.begin(); field !=value.end(); ++field) {
+        if (fieldId == field->getID()) {
+            return &(*field);
         }
     }
     return 0;
