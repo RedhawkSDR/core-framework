@@ -826,7 +826,7 @@ void structSequence_pimpl::
 structvalue (const ossie::ComponentPropertyMap& value)
 {
     assert(_struct.get() != 0);
-    std::vector<ossie::Property*> propValue;
+    ossie::PropertyList propValue;
     const std::vector<ossie::Property*>& defaults = _struct->getValue();
     for (std::vector<ossie::Property*>::const_iterator prop = defaults.begin(); prop != defaults.end(); ++prop) {
         const std::string id = (*prop)->getID();
@@ -838,10 +838,6 @@ structvalue (const ossie::ComponentPropertyMap& value)
 	}
     }
     _values.push_back(ossie::StructProperty(_struct->getID(), _struct->getName(), _struct->getMode(), _struct->getKinds(), propValue));
-    // Clean up cloned properties
-    for (std::vector<ossie::Property*>::iterator prop = propValue.begin(); prop != propValue.end(); ++prop) {
-        delete *prop;
-    }
 }
 
 void structSequence_pimpl::

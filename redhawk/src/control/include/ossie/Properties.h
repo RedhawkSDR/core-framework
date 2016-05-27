@@ -278,19 +278,6 @@ namespace ossie {
         StructProperty() {}
 
         StructProperty(const std::string& id, 
-                       const std::string& name, 
-                       AccessType mode, 
-                       Kinds configurationkinds,
-                       const std::vector<Property*>& value) :
-            Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds) 
-        {
-	    std::vector<Property*>::const_iterator it;
-	    for(it=value.begin(); it != value.end(); ++it) {
-                this->value.push_back((*it)->clone());
-	    }
-	}
-
-        StructProperty(const std::string& id, 
                        const std::string& name,
                        AccessType mode,
                        Kinds configurationkinds,

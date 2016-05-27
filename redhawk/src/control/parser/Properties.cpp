@@ -761,7 +761,7 @@ const std::string StructProperty::asString() const {
 }
 
 Property* StructProperty::clone() const {
-    return new StructProperty(id, name, mode, kinds, value);
+    return new StructProperty(*this);
 };
 
 const std::vector<Property*>& StructProperty::getValue() const {
