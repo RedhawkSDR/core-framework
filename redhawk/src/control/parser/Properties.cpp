@@ -238,9 +238,6 @@ const std::vector<const Property*>& Properties::getFactoryParamProperties() cons
 std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::KindType kind)
 {
     switch (kind) {
-    case Property::KIND_PROPERTY:
-        stream << "property";
-        break;
     case Property::KIND_CONFIGURE:
         stream << "configure";
         break;
@@ -250,11 +247,20 @@ std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::KindType 
     case Property::KIND_ALLOCATION:
         stream << "allocation";
         break;
+    case Property::KIND_FACTORYPARAM:
+        stream << "factoryparam";
+        break;
     case Property::KIND_TEST:
         stream << "test";
         break;
-    case Property::KIND_FACTORYPARAM:
-        stream << "factoryparam";
+    case Property::KIND_EVENT:
+        stream << "event";
+        break;
+    case Property::KIND_MESSAGE:
+        stream << "message";
+        break;
+    case Property::KIND_PROPERTY:
+        stream << "property";
         break;
     default:
         break;

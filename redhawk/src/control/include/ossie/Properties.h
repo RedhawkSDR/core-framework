@@ -51,12 +51,14 @@ namespace ossie {
 
         enum KindType {
             KIND_NOTSET       = 0,
-            KIND_ALLOCATION   = 1,
-            KIND_CONFIGURE    = 2,
-            KIND_PROPERTY     = 4,
-            KIND_TEST         = 8,
-            KIND_EXECPARAM    = 16,
-            KIND_FACTORYPARAM = 32,
+            KIND_CONFIGURE    = 1<<1,
+            KIND_EXECPARAM    = 1<<2,
+            KIND_ALLOCATION   = 1<<3,
+            KIND_FACTORYPARAM = 1<<4,
+            KIND_TEST         = 1<<5,
+            KIND_EVENT        = 1<<6,
+            KIND_MESSAGE      = 1<<7,
+            KIND_PROPERTY     = 1<<8,
             KIND_DEFAULT      = KIND_CONFIGURE
         };
 
