@@ -35,12 +35,12 @@ namespace urn:mil:jpeojtrs:sca:prf {
     value "::std::string";
     values "::std::vector<std::string>";
     units "::std::string";
-    action "::std::string";
+    action "::ossie::Property::ActionType" "::ossie::Property::ActionType";
     kind "::ossie::Property::KindType" "::ossie::Property::KindType";
     StructPropertyConfigurationType "::ossie::Property::KindType" "::ossie::Property::KindType";
     PropertyValueType "::std::string";
     AccessType "::std::string";
-    ActionType "::std::string";
+    ActionType "::ossie::Property::ActionType" "::ossie::Property::ActionType";
     IsComplex "bool" "bool";
     IsCommandLine "bool" "bool";
     IsOptional "bool" "bool";

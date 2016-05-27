@@ -262,10 +262,38 @@ std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::KindType 
     return stream;
 }
 
+std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::ActionType action)
+{
+    switch (action) {
+    case ossie::Property::ACTION_GE:
+        stream << "ge";
+        break;
+    case ossie::Property::ACTION_GT:
+        stream << "gt";
+        break;
+    case ossie::Property::ACTION_LE:
+        stream << "le";
+        break;
+    case ossie::Property::ACTION_LT:
+        stream << "lt";
+        break;
+    case ossie::Property::ACTION_NE:
+        stream << "ne";
+        break;
+    case ossie::Property::ACTION_EQ:
+        stream << "eq";
+        break;
+    case ossie::Property::ACTION_EXTERNAL:
+        stream << "external";
+        break;
+    }
+    return stream;
+}
+
 Property::Property(const std::string& id, 
                    const std::string& name, 
                    const std::string& mode, 
-                   const std::string& action, 
+                   ActionType action, 
                    int kinds):
     id(id),
     name(name),
@@ -331,9 +359,11 @@ const char* Property::getMode() const
     return mode.c_str();
 }
 
-const char* Property::getAction() const
+std::string Property::getAction() const
 {
-    return action.c_str();
+    std::ostringstream out;
+    out << action;
+    return out.str();
 }
 
 int Property::getKinds() const
@@ -363,39 +393,37 @@ bool Property::isWriteOnly() const
 
 bool Property::isEqual() const
 {
-    return (action == "eq");
+    return (action == ACTION_EQ);
 }
 
 bool Property::isNotEqual() const
 {
-    return (action == "ne");
+    return (action == ACTION_NE);
 }
-
 
 bool Property::isGreaterThan() const
 {
-    return (action == "gt");
+    return (action == ACTION_GT);
 }
 
 bool Property::isLessThan() const
 {
-    return (action == "lt");
+    return (action == ACTION_LT);
 }
 
 bool Property::isGreaterThanOrEqual() const
 {
-    return (action == "ge");
+    return (action == ACTION_GE);
 }
-
 
 bool Property::isLessThanOrEqual() const
 {
-    return (action == "le");
+    return (action == ACTION_LE);
 }
 
 bool Property::isExternal() const
 {
-    return ((action == "external") || (action == ""));
+    return (action == ACTION_EXTERNAL);
 }
 
 std::string Property::mapPrimitiveToComplex(const std::string& type) const 
@@ -441,7 +469,7 @@ SimpleProperty::SimpleProperty(const std::string& id,
                                const std::string& name, 
                                const std::string& type, 
                                const std::string& mode, 
-                               const std::string& action, 
+                               ActionType action, 
                                int kinds,
                                const optional_value<std::string>& value, 
                                bool complex,
@@ -551,7 +579,7 @@ SimpleSequenceProperty::SimpleSequenceProperty(const std::string&              i
                                                const std::string&              name, 
                                                const std::string&              type, 
                                                const std::string&              mode, 
-                                               const std::string&              action, 
+                                               ActionType                      action, 
                                                int                             kinds,
                                                const std::vector<std::string>& values,
                                                bool                            complex,

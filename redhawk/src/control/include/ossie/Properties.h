@@ -57,7 +57,18 @@ namespace ossie {
             KIND_TEST         = 8,
             KIND_EXECPARAM    = 16,
             KIND_FACTORYPARAM = 32,
-            KIND_DEFAULT = KIND_CONFIGURE
+            KIND_DEFAULT      = KIND_CONFIGURE
+        };
+
+        enum ActionType {
+            ACTION_EXTERNAL,
+            ACTION_EQ,
+            ACTION_NE,
+            ACTION_GT,
+            ACTION_LT,
+            ACTION_GE,
+            ACTION_LE,
+            ACTION_DEFAULT = ACTION_EXTERNAL
         };
 
         Property() {}
@@ -65,7 +76,7 @@ namespace ossie {
         Property(const std::string& id, 
                  const std::string& name, 
                  const std::string& mode, 
-                 const std::string& action, 
+                 ActionType action, 
                  int kinds);
 
         virtual ~Property();
@@ -91,7 +102,11 @@ namespace ossie {
         const char* getID() const;
         const char* getName() const;
         const char* getMode() const;
-        const char* getAction() const;
+        // NB: getAction() should return an ActionType; however, there are
+        // several places that use its return as a string for an argument to
+        // property helper functions in the base library. Before the parsers
+        // become "public" API, this should be revisited.
+        std::string getAction() const;
         int getKinds() const;
 
         std::string mapPrimitiveToComplex(const std::string& type) const;
@@ -109,7 +124,7 @@ namespace ossie {
         std::string id;
         std::string name;
         std::string mode;
-        std::string action;
+        ActionType action;
         int kinds;
         
     };
@@ -129,7 +144,7 @@ namespace ossie {
                        const std::string& name, 
                        const std::string& type, 
                        const std::string& mode, 
-                       const std::string& action, 
+                       ActionType action, 
                        int kinds,
                        const optional_value<std::string>& value,
                        bool complex=false,
@@ -176,8 +191,8 @@ namespace ossie {
                                const std::string&              name, 
                                const std::string&              type, 
                                const std::string&              mode, 
-                               const std::string&              action, 
-                               int kinds,
+                               ActionType                      action,
+                               int                             kinds,
                                const std::vector<std::string>& values,
                                bool                            complex=false,
                                bool                            optional=false);
@@ -219,7 +234,7 @@ namespace ossie {
                        const std::string& mode, 
                        int configurationkinds,
                        const std::vector<Property*>& value) :
-            Property(id, name, mode, "external", configurationkinds) 
+            Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds) 
         {
 	    std::vector<Property*>::const_iterator it;
 	    for(it=value.begin(); it != value.end(); ++it) {
@@ -232,7 +247,7 @@ namespace ossie {
                        const std::string& mode,
                        int configurationkinds,
                        const ossie::PropertyList & value) :
-            Property(id, name, mode, "external", configurationkinds) 
+            Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds) 
         {
             ossie::PropertyList::const_iterator it;
 	    for(it=value.begin(); it != value.end(); ++it) {
@@ -284,7 +299,7 @@ namespace ossie {
                                const StructProperty& structdef,
                                int configurationkinds,
                                const std::vector<StructProperty>& values) :
-            Property(id, name, mode, "external", configurationkinds),
+            Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds),
             structdef(structdef),
             values(values)
         {
@@ -423,6 +438,7 @@ namespace ossie {
     };
 
     std::ostream& operator<<(std::ostream& stream, Property::KindType kind);
+    std::ostream& operator<<(std::ostream& stream, Property::ActionType action);
 
 }
 #endif

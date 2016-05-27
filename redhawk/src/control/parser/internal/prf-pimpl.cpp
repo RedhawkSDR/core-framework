@@ -113,12 +113,12 @@ pre ()
 }
 
 void action_pimpl::
-type (const ::std::string& type)
+type (ossie::Property::ActionType type)
 {
     _type = type;
 }
 
-::std::string action_pimpl::
+ossie::Property::ActionType action_pimpl::
 post_action ()
 {
   return _type;
@@ -132,11 +132,28 @@ pre ()
 {
 }
 
-std::string ActionType_pimpl::
+ossie::Property::ActionType ActionType_pimpl::
 post_ActionType ()
 {
-  const ::std::string& v (post_string ());
-  return v;
+    const std::string& action = post_string();
+    if (action == "ge") {
+        return ossie::Property::ACTION_GE;
+    } else if (action == "gt") {
+        return ossie::Property::ACTION_GT;
+    } else if (action == "le") {
+        return ossie::Property::ACTION_LE;
+    } else if (action == "lt") {
+        return ossie::Property::ACTION_LT;
+    } else if (action == "ne") {
+        return ossie::Property::ACTION_NE;
+    } else if (action == "eq") {
+        return ossie::Property::ACTION_EQ;
+    } else if (action == "external") {
+        return ossie::Property::ACTION_EXTERNAL;
+    } else {
+        LOG_WARN(prf_parser, "Invalid action '" << action << "'");
+        return ossie::Property::ACTION_DEFAULT;
+    }
 }
 
 // configurationKind_pimpl
@@ -417,7 +434,7 @@ pre ()
     _type    = "";
     _complex = false;
     _mode    = "";
-    _action  = "";
+    _action  = ossie::Property::ACTION_EXTERNAL;
     _optional = false;
     _commandline = false;
     _kinds = ossie::Property::KIND_NOTSET;
@@ -461,7 +478,7 @@ kind (ossie::Property::KindType kind)
 }
 
 void simple_pimpl::
-action (const ::std::string& action)
+action (ossie::Property::ActionType action)
 {
     LOG_TRACE(prf_parser, "simple_pimpl action " << action)
     _action = action;
@@ -594,7 +611,7 @@ pre ()
     _type    = "";
     _complex = false;
     _mode    = "";
-    _action  = "";
+    _action = ossie::Property::ACTION_DEFAULT;
     _optional = false;
 
     _kinds = ossie::Property::KIND_NOTSET;
@@ -636,7 +653,7 @@ kind (ossie::Property::KindType kind)
 }
 
 void simpleSequence_pimpl::
-action (const ::std::string& action)
+action (ossie::Property::ActionType action)
 {
     LOG_TRACE(prf_parser, "simpleSequence_pimpl action " << action)
     _action = action;

@@ -93,12 +93,12 @@ namespace prf
       pre ();
 
       virtual void
-      type (const std::string&);
+      type (ossie::Property::ActionType);
 
-      virtual ::std::string
+      virtual ossie::Property::ActionType
       post_action ();
       private:
-      std::string _type;
+      ossie::Property::ActionType _type;
     };
 
     class ActionType_pimpl: public virtual ActionType_pskel,
@@ -108,7 +108,7 @@ namespace prf
       virtual void
       pre ();
 
-      virtual std::string
+      virtual ossie::Property::ActionType
       post_ActionType ();
     };
 
@@ -308,7 +308,7 @@ namespace prf
       kind (ossie::Property::KindType);
 
       virtual void
-      action (const ::std::string&);
+      action (ossie::Property::ActionType);
 
       virtual void
       id (const ::std::string&);
@@ -340,7 +340,7 @@ namespace prf
       std::string _type;
       bool _complex;
       std::string _mode;
-      std::string _action;
+      ossie::Property::ActionType _action;
       bool _commandline;
       bool _optional;
       int _kinds;
@@ -407,7 +407,7 @@ namespace prf
       kind (ossie::Property::KindType);
 
       virtual void
-      action (const ::std::string&);
+      action (ossie::Property::ActionType);
 
       virtual void
       id (const ::std::string&);
@@ -436,7 +436,7 @@ namespace prf
       std::string _type;
       bool _complex;
       std::string _mode;
-      std::string _action;
+      ossie::Property::ActionType _action;
       bool _optional;
       int _kinds;
       std::vector<std::string> _values;
