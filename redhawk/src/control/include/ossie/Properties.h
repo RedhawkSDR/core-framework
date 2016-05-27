@@ -206,15 +206,15 @@ namespace ossie {
 
         // SimpleProperty specific functions
         const char* getValue() const;
+        const std::string& getType() const;
+        bool isComplex() const;
+        bool isOptional() const;
 
         // Implementation of virtual functions
         virtual bool isCommandLine() const;
         virtual bool isNone() const;
         virtual const std::string asString() const;
         virtual Property* clone() const;
-        const char* getType() const;
-        bool isComplex() const;
-        bool isOptional() const;
 
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);
@@ -251,13 +251,13 @@ namespace ossie {
         virtual ~SimpleSequenceProperty();
 
         const std::vector<std::string>& getValues() const;
+        const std::string& getType() const;
+        bool isComplex() const;
+        bool isOptional() const;
 
         virtual bool isNone() const;
         virtual const std::string asString() const;
         virtual Property* clone() const;
-        const char* getType() const;
-        bool isComplex() const;
-        bool isOptional() const;
 
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);

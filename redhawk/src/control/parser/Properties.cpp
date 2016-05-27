@@ -561,9 +561,9 @@ void SimpleProperty::override(const ComponentProperty* newValue) {
     }
 }
 
-const char* SimpleProperty::getType() const
+const std::string& SimpleProperty::getType() const
 {
-    return type.c_str();
+    return type;
 }
 
 bool SimpleProperty::isComplex() const
@@ -657,9 +657,9 @@ void SimpleSequenceProperty::override(const ComponentProperty* newValue) {
     }
 }
 
-const char* SimpleSequenceProperty::getType() const
+const std::string& SimpleSequenceProperty::getType() const
 {
-    return type.c_str();
+    return type;
 }
 
 bool SimpleSequenceProperty::isComplex() const
