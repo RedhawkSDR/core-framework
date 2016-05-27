@@ -235,6 +235,12 @@ const std::vector<const Property*>& Properties::getFactoryParamProperties() cons
  * Property class
  */
 
+std::ostream& ossie::operator<<(std::ostream& stream, const ossie::Property& property)
+{
+    stream << property.asString();
+    return stream;
+}
+
 std::ostream& ossie::operator<<(std::ostream& stream, ossie::Property::KindType kind)
 {
     switch (kind) {

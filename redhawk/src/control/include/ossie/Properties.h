@@ -180,6 +180,11 @@ namespace ossie {
         return property.clone();
     }
 
+    inline Property::Kinds operator|(Property::KindType a, Property::KindType b)
+    {
+        return Property::Kinds(a) | b;
+    }
+
     /*
      * 
      */
@@ -346,12 +351,11 @@ namespace ossie {
         std::vector<StructProperty> values;
     };
 
-    template< typename charT, typename Traits>
-    std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const Property& prop)
-    {
-        out << prop.asString();
-        return out;
-    }
+    std::ostream& operator<<(std::ostream& out, const Property& prop);
+    std::ostream& operator<<(std::ostream& stream, Property::KindType kind);
+    std::ostream& operator<<(std::ostream& stream, Property::Kinds kinds);
+    std::ostream& operator<<(std::ostream& stream, Property::ActionType action);
+    std::ostream& operator<<(std::ostream& stream, Property::AccessType mode);
 
     /*
      *
@@ -460,16 +464,6 @@ namespace ossie {
     private:
 	boost::shared_ptr<ossie::PRF> _prf;
     };
-
-    inline Property::Kinds operator|(Property::KindType a, Property::KindType b)
-    {
-        return Property::Kinds(a) | b;
-    }
-
-    std::ostream& operator<<(std::ostream& stream, Property::KindType kind);
-    std::ostream& operator<<(std::ostream& stream, Property::Kinds kinds);
-    std::ostream& operator<<(std::ostream& stream, Property::ActionType action);
-    std::ostream& operator<<(std::ostream& stream, Property::AccessType mode);
 
 }
 #endif
