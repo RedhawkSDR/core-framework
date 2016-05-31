@@ -69,65 +69,6 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(const SoftPkg* softp
     LOG_TRACE(ComponentInfo, "Building component info from softpkg " << softpkg->getName());
 
     ossie::ComponentInfo* newComponent = new ossie::ComponentInfo(softpkg, instantiation);
-
-    // Extract Properties from the implementation-agnostic PRF file
-    // once we match the component to a device we can grab the implementation
-    // specific PRF file
-    if (softpkg->getProperties()) {
-        // Handle component properties
-        Properties& prf = *softpkg->getProperties();
-        LOG_TRACE(ComponentInfo, "Adding exec params")
-        const std::vector<const Property*>& eprop = prf.getExecParamProperties();
-        for (unsigned int i = 0; i < eprop.size(); i++) {
-            if (!eprop[i]->isReadOnly()) {
-                LOG_TRACE(ComponentInfo, "Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
-                newComponent->addExecParameter(convertPropertyToDataType(eprop[i]));
-            } else {
-                LOG_TRACE(ComponentInfo, "Ignoring readonly exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
-            }
-        }
-
-        // According to SCA 2.2.2 Appendix D 4.1.1.6 the only properties
-        // that are to be sent to allocateCapacity are device
-        // properties that are external.  Furthermore, the SPD list's its
-        // needs, not in the PRF file, but in the SPD file <dependencies>
-        // element
-        // prop = prf->getMatchingProperties();
-        //for (unsigned int i=0; i < prop->size(); i++) {
-        //    newComponent->addAllocationCapacity((*prop)[i]->getDataType());
-        //}
-
-        const std::vector<const Property*>& prop = prf.getConfigureProperties();
-        for (unsigned int i = 0; i < prop.size(); i++) {
-            if (!prop[i]->isReadOnly()) {
-                LOG_TRACE(ComponentInfo, "Adding configure prop " << prop[i]->getID() << " " << prop[i]->getName() << " " << prop[i]->isReadOnly())
-                newComponent->addConfigureProperty(convertPropertyToDataType(prop[i]));
-            }
-        }
-
-        const std::vector<const Property*>& cprop = prf.getConstructProperties();
-        for (unsigned int i = 0; i < cprop.size(); i++) {
-          LOG_TRACE(ComponentInfo, "Adding construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
-          bool isExec = false;
-          std::string cprop_id(cprop[i]->getID());
-          for (unsigned int ei = 0; ei < eprop.size(); ei++) {
-              std::string eprop_id(eprop[ei]->getID());
-              if (eprop_id == cprop_id) {
-                  isExec = true;
-                  break;
-              }
-          }
-          if (isExec)
-              continue;
-          if (cprop[i]->isCommandLine()) {
-            if (not cprop[i]->isNone()) {
-                newComponent->addExecParameter(convertPropertyToDataType(cprop[i]));
-            }
-          }
-        }
-
-    }
-    
     LOG_TRACE(ComponentInfo, "Done building component info from soft package " << softpkg->getName());
     return newComponent;
 }
@@ -177,73 +118,7 @@ void ComponentInfo::setAffinity( const AffinityProperties &affinity_props )
 
 }
 
-void ComponentInfo::addExecParameter(CF::DataType dt)
-{
-    addProperty(dt, execParameters);
-}
-
-void ComponentInfo::addConfigureProperty(CF::DataType dt)
-{
-    addProperty(dt, configureProperties);
-}
-
-void ComponentInfo::overrideProperty(const ossie::ComponentProperty* propref) {
-    std::string propId = propref->getID();
-    LOG_TRACE(ComponentInfo, "Instantiation property id = " << propId);
-    const Property* prop = 0;
-    if (spd->getProperties()) {
-        prop = spd->getProperties()->getProperty(propId);
-    }
-    // Without a prop, we don't know how to convert the strings to the property any type
-    if (!prop) {
-        LOG_WARN(ComponentInfo, "ignoring attempt to override property " << propId << " that does not exist in component")
-        return;
-    }
-
-    CF::DataType dt = overridePropertyValue(prop, propref);
-    overrideProperty(dt.id, dt.value);
-}
-
-void ComponentInfo::overrideProperty(const char* id, const CORBA::Any& value)
-{
-    const Property* prop = 0;
-    if (spd->getProperties()) {
-        prop = spd->getProperties()->getProperty(id);
-        if (prop && prop->isReadOnly()) {
-            LOG_WARN(ComponentInfo, "ignoring attempt to override readonly property " << id);
-            return;
-        }
-    }
-    process_overrides(&configureProperties, id, value);
-    process_overrides(&execParameters, id, value);
-}
-
-
-
-void ComponentInfo::process_overrides(CF::Properties* props, const char* id, CORBA::Any value)
-{
-    LOG_DEBUG(ComponentInfo, "Attempting to override property " << id);
-    for (unsigned int i = 0; i < (*props).length(); ++i ) {
-        if (strcmp(id, (*props)[i].id) == 0) {
-            LOG_DEBUG(ComponentInfo, "Overriding property " << id << " with value " << ossie::any_to_string(value));
-            (*props)[i].value = value;
-        }
-    }
-    return;
-}
-
 CF::Properties ComponentInfo::getAffinityOptions() const
 {
     return affinityOptions;
-}
-
-CF::Properties ComponentInfo::getConfigureProperties() const
-{
-    return configureProperties;
-}
-
-
-CF::Properties ComponentInfo::getExecParameters()
-{
-    return execParameters;
 }

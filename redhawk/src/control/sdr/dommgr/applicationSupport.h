@@ -73,15 +73,7 @@ namespace ossie
 
         void setAffinity( const AffinityProperties &affinity );
 
-        void addExecParameter(CF::DataType dt);
-        void addConfigureProperty(CF::DataType dt);
-
-        void overrideProperty(const ossie::ComponentProperty* propref);
-        void overrideProperty(const char* id, const CORBA::Any& value);
-
-        CF::Properties getConfigureProperties() const;
         CF::Properties getAffinityOptions() const;
-        CF::Properties getExecParameters();
 
         static ComponentInfo* buildComponentInfoFromSPDFile(const SoftPkg* softpkg,
                                                             const ComponentInstantiation* instantiation);
@@ -89,12 +81,8 @@ namespace ossie
     private:
         ComponentInfo (const ComponentInfo&);
 
-        void process_overrides(CF::Properties* props, const char* id, CORBA::Any value);
-
         ossie::Properties _affinity_prf;
 
-        CF::Properties configureProperties;
-        CF::Properties execParameters;
         CF::Properties affinityOptions;
 
         const ComponentInstantiation* instantiation;

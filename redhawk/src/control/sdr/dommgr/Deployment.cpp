@@ -227,6 +227,26 @@ ComponentDeployment::ComponentDeployment(ComponentInfo* component,
     identifier(identifier),
     affinityOptions(component->getAffinityOptions())
 {
+    // If the SoftPkg has an associated Properties, check the overrides for
+    // validity
+    if (softpkg->getProperties()) {
+        BOOST_FOREACH(const ComponentProperty& override, instantiation->getProperties()) {
+            const Property* property = softpkg->getProperties()->getProperty(override.getID());
+            if (!property) {
+                if (override.getID() == "LOGGING_CONFIG_URI") {
+                    // It's legal to override the logging configuration, even
+                    // if it isn't defined in the PRF
+                } else {
+                    RH_NL_WARN("ApplicationFactory_impl", "Ignoring attempt to override property "
+                              << override.getID() << " that does not exist in component");
+                }                
+            } else if (property->isReadOnly() && !property->isProperty()) {
+                // Only 'property' kind supports overrides if it's read-only
+                RH_NL_WARN("ApplicationFactory_impl", "Ignoring attempt to override read-only property "
+                          << property->getID());
+            }
+        }
+    }
 }
 
 ComponentInfo* ComponentDeployment::getComponent()
@@ -378,8 +398,8 @@ redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
        BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
            if (property->isExecParam()) {
                if (property->isReadOnly()) {
-                   RH_NL_WARN("ApplicationFactory_impl", "Ignoring attempt to override readonly property "
-                              << property->getID());
+                   // NB: Not only can read-only execparams not be overridden,
+                   // they are not included in the command line
                    continue;
                }
            } else if (!(property->isProperty() && property->isCommandLine())) {
@@ -440,19 +460,21 @@ void ComponentDeployment::overrideProperty(const std::string& id, const CORBA::A
 
 CF::DataType ComponentDeployment::getPropertyValue(const Property* property) const
 {
-    // Check for a runtime override first
-    redhawk::PropertyMap::const_iterator override = overrides.find(property->getID());
-    if (override != overrides.end()) {
-        return *override;
+    // Only allow overrides for writable or 'property' kind properties
+    if (!property->isReadOnly() || property->isProperty()) {
+        // Check for a runtime override first
+        redhawk::PropertyMap::const_iterator override = overrides.find(property->getID());
+        if (override != overrides.end()) {
+            return *override;
+        }
+        // Then, check for an override in the component instantiation
+        const ComponentProperty* propref = getPropertyOverride(property->getID());
+        if (propref) {
+            return ossie::overridePropertyValue(property, propref);
+        }
     }
-    // Then, check for an override in the component instantiation
-    const ComponentProperty* propref = getPropertyOverride(property->getID());
-    if (propref) {
-        return ossie::overridePropertyValue(property, propref);
-    } else {
-        // Default to the PRF value
-        return ossie::convertPropertyToDataType(property);
-    }
+    // Default to the PRF value
+    return ossie::convertPropertyToDataType(property);
 }
 
 const ComponentProperty* ComponentDeployment::getPropertyOverride(const std::string& id) const

@@ -1793,16 +1793,6 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
     }
 
     newComponent->setAffinity( instance.getAffinity() );
-
-    const ossie::ComponentPropertyList & ins_prop = instance.getProperties();
-
-    for (unsigned int i = 0; i < ins_prop.size(); ++i) {
-        if (ins_prop[i]._id == "__DOCKER_IMAGE__") {
-            continue;
-        }
-        newComponent->overrideProperty(&ins_prop[i]);
-    }
-
     return newComponent;
 }
 
