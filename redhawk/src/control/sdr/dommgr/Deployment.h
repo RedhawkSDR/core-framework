@@ -165,6 +165,8 @@ namespace ossie {
         void load(Application_impl* application, CF::FileSystem_ptr fileSystem,
                   CF::LoadableDevice_ptr device);
 
+        std::string getLoggingConfiguration() const;
+
     protected:
         CF::DataType getPropertyValue(const Property* property) const;
         const ComponentProperty* getPropertyOverride(const std::string& id) const;

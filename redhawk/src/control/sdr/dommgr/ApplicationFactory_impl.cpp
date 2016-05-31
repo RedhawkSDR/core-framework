@@ -1306,40 +1306,6 @@ CF::Application_ptr createHelper::create (
     return appObj._retn();
 }
 
-void createHelper::overrideProperties(const CF::Properties& initConfiguration,
-                                      ossie::ComponentInfo* component) {
-    // Override properties
-    for (unsigned int initCount = 0; initCount < initConfiguration.length(); initCount++) {
-        const std::string init_id(initConfiguration[initCount].id);
-        if (init_id == "LOGGING_CONFIG_URI"){
-            // See if the LOGGING_CONFIG_URI has already been set
-            // via <componentproperties> or initParams
-            bool alreadyHasLoggingConfigURI = false;
-            CF::Properties execParameters = component->getExecParameters();
-            for (unsigned int i = 0; i < execParameters.length(); ++i) {
-                const std::string propid(execParameters[i].id);
-                if (propid == "LOGGING_CONFIG_URI") {
-                    alreadyHasLoggingConfigURI = true;
-                    break;
-                }
-            }
-            // If LOGGING_CONFIG_URI isn't already an exec param, add it
-            // Otherwise, don't override component exec param value 
-            if (!alreadyHasLoggingConfigURI) {
-                // Add LOGGING_CONFIG_URI as an exec param now so that it can be set to the overridden value
-                CF::DataType lcuri = initConfiguration[initCount];
-                component->addExecParameter(lcuri);
-                LOG_TRACE(ApplicationFactory_impl, "Adding LOGGING_CONFIG_URI as exec param with value "
-                      << ossie::any_to_string(lcuri.value));
-            }
-        } else {
-            LOG_TRACE(ApplicationFactory_impl, "Overriding property " << init_id
-                      << " with " << ossie::any_to_string(initConfiguration[initCount].value));
-            component->overrideProperty(init_id.c_str(), initConfiguration[initCount].value);
-        }
-    }
-}
-
 CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDeviceProperties(const std::vector<UsesDevice>& usesDevices, const CF::Properties& configureProperties)
 {
     CF::AllocationManager::AllocationRequestSequence request;
@@ -1951,7 +1917,6 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
 
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
         ossie::ComponentDeployment* deployment = deployments[rc_idx];
-        ossie::ComponentInfo* component = deployment->getComponent();
         const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
         const ossie::SPD::Implementation* implementation = deployment->getImplementation();
@@ -2031,92 +1996,47 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         // 5. A (SharedLibrary) With a code entrypoint element means load and CF Device::execute.
         if (((deployment->getCodeType() == CF::LoadableDevice::EXECUTABLE) ||
              (deployment->getCodeType() == CF::LoadableDevice::SHARED_LIBRARY)) && (deployment->getEntryPoint().size() != 0)) {
-
-            // See if the LOGGING_CONFIG_URI has already been set
-            // via <componentproperties> or initParams
-            bool alreadyHasLoggingConfigURI = false;
-            std::string logging_uri("");
-            CF::DataType* logcfg_prop = NULL;
-            CF::Properties execParameters = component->getExecParameters();
-            const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
-            for (unsigned int i = 0; i < execParameters.length(); ++i) {
-                std::string propid = static_cast<const char*>(execParameters[i].id);
-                if (propid == "LOGGING_CONFIG_URI") {
-                  logcfg_prop = &execParameters[i];
-                  const char* tmpstr;
-                  if ( ossie::any::isNull(logcfg_prop->value) == true ) {
-                    LOG_WARN(ApplicationFactory_impl, "Missing value for LOGGING_CONFIG_URI, component: "
-                             << _baseNamingContext << "/"
-                             << instantiation->getFindByNamingServiceName());
-                  }
-                  else {
-                    logcfg_prop->value >>= tmpstr;
-                    LOG_TRACE(ApplicationFactory_impl, "Resource logging configuration provided, logcfg:" << tmpstr);
-                    logging_uri = string(tmpstr);
-                    alreadyHasLoggingConfigURI = true;
-                  }
-                  break;
-                }
-            }
-
-            ossie::logging::LogConfigUriResolverPtr logcfg_resolver = ossie::logging::GetLogConfigUriResolver();
-            std::string logcfg_path = ossie::logging::GetComponentPath(_appFact._domainName, _waveformContextName,
-                                                                       instantiation->getFindByNamingServiceName());
-            if ( _appFact._domainManager->getUseLogConfigResolver() && logcfg_resolver ) {
-                  std::string t_uri = logcfg_resolver->get_uri( logcfg_path );
-                  LOG_DEBUG(ApplicationFactory_impl, "Using LogConfigResolver plugin: path " << logcfg_path << " logcfg:" << t_uri );
-                  if ( !t_uri.empty() ) logging_uri = t_uri;
-            }
-            
-            if (!alreadyHasLoggingConfigURI && logging_uri.empty() ) {
-                // Query the DomainManager for the logging configuration
-                LOG_TRACE(ApplicationFactory_impl, "Checking DomainManager for LOGGING_CONFIG_URI");
-                PropertyInterface *log_prop = _appFact._domainManager->getPropertyFromId("LOGGING_CONFIG_URI");
-                StringProperty *logProperty = (StringProperty *)log_prop;
-                if (!logProperty->isNil()) {
-                    logging_uri = logProperty->getValue();
-                } else {
-                    LOG_TRACE(ApplicationFactory_impl, "DomainManager LOGGING_CONFIG_URI is not set");
-                }
-
-                rh_logger::LoggerPtr dom_logger = _appFact._domainManager->getLogger();
-                if ( dom_logger ) {
-                  rh_logger::LevelPtr dlevel = dom_logger->getLevel();
-                  if ( !dlevel ) dlevel = rh_logger::Logger::getRootLogger()->getLevel();
-                  CF::DataType prop;
-                  prop.id = "DEBUG_LEVEL";
-                  prop.value <<= static_cast<CORBA::Long>(ossie::logging::ConvertRHLevelToDebug( dlevel ));
-                  component->addExecParameter(prop);
-                }
-            }
-
-            // if we have a uri but no property, add property to component's exec param list
-            if ( logcfg_prop == NULL && !logging_uri.empty() ) {
-                CF::DataType prop;
-                prop.id = "LOGGING_CONFIG_URI";
-                prop.value <<= logging_uri.c_str();
-                LOG_DEBUG(ApplicationFactory_impl, "logcfg_prop == NULL " << prop.id << " / " << logging_uri );
-                component->addExecParameter(prop);
-            }
-
-            if (!logging_uri.empty()) {
-                if (logging_uri.substr(0, 4) == "sca:") {
-                    string fileSysIOR = ossie::corba::objectToString(_appFact._domainManager->_fileMgr);
-                    logging_uri += ("?fs=" + fileSysIOR);
-                    LOG_TRACE(ApplicationFactory_impl, "Adding file system IOR " << logging_uri);
-                }
-
-                LOG_DEBUG(ApplicationFactory_impl, " LOGGING_CONFIG_URI :" << logging_uri);
-                CORBA::Any loguri;
-                loguri <<= logging_uri.c_str();
-                // this overrides all instances of the property called LOGGING_CONFIG_URI
-                LOG_TRACE(ApplicationFactory_impl, "override ....... uri " << logging_uri );
-                component->overrideProperty("LOGGING_CONFIG_URI", loguri);
-            }
-            
             attemptComponentExecution(_appReg, deployment);
         }
     }
+}
+
+std::string createHelper::resolveLoggingConfiguration(ossie::ComponentDeployment* deployment)
+{
+    // Use the log config resolver (if enabled)
+    const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
+    if (_appFact._domainManager->getUseLogConfigResolver()) {
+        ossie::logging::LogConfigUriResolverPtr logcfg_resolver = ossie::logging::GetLogConfigUriResolver();
+        if (logcfg_resolver) {
+            std::string logcfg_path = ossie::logging::GetComponentPath(_appFact._domainName, _waveformContextName,
+                                                                       instantiation->getFindByNamingServiceName());
+            std::string uri = logcfg_resolver->get_uri(logcfg_path);
+            LOG_DEBUG(ApplicationFactory_impl, "Using LogConfigResolver plugin: path " << logcfg_path
+                      << " logcfg:" << uri );
+            if (!uri.empty()) {
+                return uri;
+            }
+        }
+    }
+
+    // Ask the component for its configuration
+    std::string logging_uri = deployment->getLoggingConfiguration();
+    if (!logging_uri.empty()) {
+        LOG_TRACE(ApplicationFactory_impl, "Resource logging configuration provided, logcfg:" << logging_uri);
+        return logging_uri;
+    }
+
+    // Query the DomainManager for the logging configuration
+    LOG_TRACE(ApplicationFactory_impl, "Checking DomainManager for LOGGING_CONFIG_URI");
+    PropertyInterface* log_prop = _appFact._domainManager->getPropertyFromId("LOGGING_CONFIG_URI");
+    StringProperty* logProperty = dynamic_cast<StringProperty*>(log_prop);
+    if (!logProperty->isNil()) {
+        logging_uri = logProperty->getValue();
+    } else {
+        LOG_TRACE(ApplicationFactory_impl, "DomainManager LOGGING_CONFIG_URI is not set");
+    }
+
+    return logging_uri;
 }
 
 void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr registrar,
@@ -2155,6 +2075,29 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     }
     execParameters["DOM_PATH"] = _baseNamingContext;
     execParameters["PROFILE_NAME"] = softpkg->getSPDFile();
+
+    // Pass logging configuration
+    std::string logging_uri = resolveLoggingConfiguration(deployment);
+    if (!logging_uri.empty()) {
+        // Check for sca: URI type, and append the IOR for the file system
+        if (logging_uri.find("sca:/") == 0) {
+            string ior = ossie::corba::objectToString(_appFact._domainManager->_fileMgr);
+            logging_uri += ("?fs=" + ior);
+            LOG_TRACE(ApplicationFactory_impl, "Adding file system IOR " << logging_uri);
+        }
+        LOG_DEBUG(ApplicationFactory_impl, " LOGGING_CONFIG_URI: " << logging_uri);
+        execParameters["LOGGING_CONFIG_URI"] = logging_uri;
+    } else {
+        // No LOGGING_CONFIG_URI can be found, pass DEBUG_LEVEL
+        rh_logger::LoggerPtr dom_logger = _appFact._domainManager->getLogger();
+        if (dom_logger) {
+            rh_logger::LevelPtr dlevel = dom_logger->getLevel();
+            if (!dlevel) {
+                dlevel = rh_logger::Logger::getRootLogger()->getLevel();
+            }
+            execParameters["DEBUG_LEVEL"] = static_cast<CORBA::Long>(ossie::logging::ConvertRHLevelToDebug(dlevel));
+        }
+    }
 
     // Add the Naming Context IOR last to make it easier to parse the command line
     execParameters["NAMING_CONTEXT_IOR"] = ossie::corba::objectToString(registrar);

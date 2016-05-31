@@ -390,8 +390,15 @@ redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
                properties.push_back(dt);
            }
        }
-    }
-    return properties;
+   }
+
+   // Handle special Docker image property if set in component instantiation
+   const ComponentProperty* docker = getPropertyOverride("__DOCKER_IMAGE__");
+   if (docker) {
+       properties["__DOCKER_IMAGE__"] = dynamic_cast<const SimplePropertyRef*>(docker)->getValue();
+   }
+
+   return properties;
 }
 
 redhawk::PropertyMap ComponentDeployment::getInitialConfigureProperties() const
@@ -406,12 +413,6 @@ redhawk::PropertyMap ComponentDeployment::getInitialConfigureProperties() const
                }
            }
        }
-   }
-
-   // Handle special Docker image property if set in component instantiation
-   const ComponentProperty* docker = getPropertyOverride("__DOCKER_IMAGE__");
-   if (docker) {
-       properties["__DOCKER_IMAGE__"] = dynamic_cast<const SimplePropertyRef*>(docker)->getValue();
    }
    return properties;
 }
@@ -501,6 +502,42 @@ void ComponentDeployment::load(Application_impl* application, CF::FileSystem_ptr
     SoftpkgDeployment::load(application, fileSystem, device, identifier);
 }
 
+std::string ComponentDeployment::getLoggingConfiguration() const
+{
+    // Check for a runtime override first
+    redhawk::PropertyMap::const_iterator override = overrides.find("LOGGING_CONFIG_URI");
+    if (override != overrides.end()) {
+        if (override->getValue().isNil()) {
+            return std::string();
+        } else {
+            return override->getValue().toString();
+        }
+    }
+
+    // Then, check for an override in the component instantiation
+    const ComponentProperty* propref = getPropertyOverride("LOGGING_CONFIG_URI");
+    if (propref) {
+        const SimplePropertyRef* simple = dynamic_cast<const SimplePropertyRef*>(propref);
+        if (!simple) {
+            return std::string();
+        } else {
+            return simple->getValue();
+        }
+    }
+
+    // Finally, check for a PRF value
+    if (softpkg->getProperties()) {
+        const Property* property = softpkg->getProperties()->getProperty("LOGGING_CONFIG_URI");
+        if (property) {
+            const SimpleProperty* simple = dynamic_cast<const SimpleProperty*>(property);
+            if (simple && simple->getValue()) {
+                return simple->getValue();
+            }
+        }
+    }
+
+    return std::string();
+}
 
 PlacementPlan::PlacementPlan()
 {
@@ -679,12 +716,16 @@ void ApplicationDeployment::applyCpuReservations(const CpuReservations& reservat
 void ApplicationDeployment::overrideAssemblyControllerProperties(ComponentDeployment* deployment)
 {
     BOOST_FOREACH(const redhawk::PropertyType& override, initConfiguration) {
-        if (override.getId() == "LOGGING_CONFIG_URI") {
-            // TODO: Handle logging configuration
+        const std::string propid = override.getId();
+        if (propid == "LOGGING_CONFIG_URI") {
+            if (deployment->getLoggingConfiguration().empty()) {
+                RH_NL_TRACE("ApplicationFactory_impl", "Adding LOGGING_CONFIG_URI as a command line parameter with value " << override.getValue().toString());
+                deployment->overrideProperty(propid, override.getValue());
+            }
         } else {
-            RH_NL_TRACE("ApplicationFactory_impl", "Overriding property " << override.id
+            RH_NL_TRACE("ApplicationFactory_impl", "Overriding property " << propid
                         << " with " << override.getValue().toString());
-            deployment->overrideProperty(override.getId(), override.getValue());
+            deployment->overrideProperty(propid, override.getValue());
         }
     }
 }

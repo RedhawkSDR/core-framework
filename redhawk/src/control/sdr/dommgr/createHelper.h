@@ -104,7 +104,6 @@ private:
     typedef std::vector<ossie::SPD::NameVersionPair> OSList;
 
     // createHelper helper methods
-    void overrideProperties(const CF::Properties& initConfiguration, ossie::ComponentInfo* component);
     void assignPlacementsToDevices(ossie::ApplicationDeployment& appDeployment,
                                    const DeviceAssignmentMap& devices);
     void _validateDAS(ossie::ApplicationDeployment& appDeployment, const DeviceAssignmentMap& deviceAssignments);
@@ -178,6 +177,7 @@ private:
         std::vector<ossie::ConnectionNode>& connections, 
         std::string                         base_naming_context);
 
+    std::string resolveLoggingConfiguration(ossie::ComponentDeployment* deployment);
     std::vector<CF::Resource_var> getStartOrder(const DeploymentList& deployments);
 
     // Cleanup - used when create fails/doesn't succeed for some reason
