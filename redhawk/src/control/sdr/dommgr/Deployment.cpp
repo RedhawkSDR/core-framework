@@ -602,26 +602,23 @@ ComponentInfo* ApplicationDeployment::getComponent(const std::string& instantiat
     return 0;
 }
 
-ComponentInfo* ApplicationDeployment::getAssemblyController() const
+ComponentDeployment* ApplicationDeployment::getAssemblyController()
 {
-    for (PlacementList::const_iterator placement = placements.begin(); placement != placements.end(); ++placement) {
-        const std::vector<ComponentInfo*>& components = (*placement)->getComponents();
-        for (std::vector<ComponentInfo*>::const_iterator comp = components.begin(); comp != components.end(); ++comp) {
-            if ((*comp)->getInstantiation()->isAssemblyController()) {
-                return *comp;
-            }
+    BOOST_FOREACH(ComponentDeployment* deployment, components) {
+        if (deployment->getInstantiation()->isAssemblyController()) {
+            return deployment;
         }
     }
-
     return 0;
 }
 
 redhawk::PropertyMap ApplicationDeployment::getAllocationContext() const
 {
     redhawk::PropertyMap properties;
-    const ossie::ComponentInfo* assembly_controller = getAssemblyController();
-    if (assembly_controller) {
-        properties = assembly_controller->getConfigureProperties();
+    BOOST_FOREACH(ComponentDeployment* deployment, components) {
+        if (deployment->getInstantiation()->isAssemblyController()) {
+            properties = deployment->getAllocationContext();
+        }
     }
     return properties;
 }

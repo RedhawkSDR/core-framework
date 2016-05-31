@@ -230,7 +230,7 @@ namespace ossie {
          */
         redhawk::PropertyMap getAllocationContext() const;
 
-        ComponentInfo* getAssemblyController() const;
+        ComponentDeployment* getAssemblyController();
 
         ComponentInfo* getComponent(const std::string& instantiationId);
 

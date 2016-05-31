@@ -598,25 +598,6 @@ ApplicationFactory_impl::~ApplicationFactory_impl ()
 
 }
 
-/*
- * Check to make sure assemblyController was initialized if it was SCA compliant
- */
-void createHelper::_checkAssemblyController(
-    CF::Resource_ptr      assemblyController,
-    ossie::ComponentInfo* assemblyControllerComponent) const
-{
-    if (CORBA::is_nil(assemblyController)) {
-        if ((assemblyControllerComponent==NULL) || 
-            (assemblyControllerComponent->spd->isScaCompliant())
-           ) {
-        LOG_DEBUG(ApplicationFactory_impl, "assembly controller is not Sca Compliant or has not been assigned");
-        throw (CF::ApplicationFactory::CreateApplicationError(
-                    CF::CF_NOTSET, 
-                    "assembly controller is not Sca Compliant or has not been assigned"));
-        }
-    }
-}
-
 void createHelper::_connectComponents(ossie::ApplicationDeployment& appDeployment,
                                       std::vector<ConnectionNode>& connections){
     try{
@@ -1181,23 +1162,20 @@ CF::Application_ptr createHelper::create (
     ossie::ApplicationDeployment app_deployment(_appFact._sadParser, _waveformContextName, modifiedInitConfiguration);
     getRequiredComponents(_appFact._fileMgr, _appFact._sadParser, app_deployment);
 
-    ossie::ComponentInfo* assemblyControllerComponent = app_deployment.getAssemblyController();
-    if (assemblyControllerComponent) {
-        overrideProperties(modifiedInitConfiguration, assemblyControllerComponent);
-    }
-
     ////////////////////////////////////////////////
     // Assign components to devices
     ////////////////////////////////////////////////
-
-    // Allocate any usesdevice capacities specified in the SAD file
-    _handleUsesDevices(app_deployment, name);
 
     // Catch invalid device assignments
     _validateDAS(app_deployment, deviceAssignments);
 
     // Assign all components to devices
     assignPlacementsToDevices(app_deployment, deviceAssignments);
+
+    // Allocate any usesdevice capacities specified in the SAD file; at this
+    // point, the complete set of component deployments is known, including any
+    // property overrides for allocation context
+    _handleUsesDevices(app_deployment, name);
 
     // Assign CPU reservations to components
     app_deployment.applyCpuReservations(specialized_reservations);
@@ -1225,13 +1203,19 @@ CF::Application_ptr createHelper::create (
     initializeComponents(app_deployment.getComponentDeployments());
 
     // Check that the assembly controller is valid
-    CF::Resource_var assemblyController;
-    if (assemblyControllerComponent) {
-        const std::string& assemblyControllerId = assemblyControllerComponent->getInstantiation()->getID();
-        ossie::ComponentDeployment* deployment = app_deployment.getComponentDeployment(assemblyControllerId);
-        assemblyController = deployment->getResourcePtr();
+    LOG_TRACE(ApplicationFactory_impl, "Checking assembly controller");
+    ossie::ComponentDeployment* ac_deployment = app_deployment.getAssemblyController();
+    if (!ac_deployment) {
+        const char* message = "Assembly controller has not been assigned";
+        LOG_ERROR(ApplicationFactory_impl, message);
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, message);
     }
-    _checkAssemblyController(assemblyController, assemblyControllerComponent);
+    CF::Resource_var assemblyController = assemblyController = ac_deployment->getResourcePtr();
+    if (CORBA::is_nil(assemblyController) && ac_deployment->getSoftPkg()->isScaCompliant()) {
+        const char* message = "Assembly controller has not registered with the application";
+        LOG_ERROR(ApplicationFactory_impl, message);
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, message);
+    }
 
     _connectComponents(app_deployment, connections);
     _configureComponents(app_deployment.getComponentDeployments());
