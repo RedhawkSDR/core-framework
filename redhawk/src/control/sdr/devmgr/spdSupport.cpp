@@ -208,12 +208,16 @@ void ImplementationInfo::setCodeType(const SPD::Code::CodeType _type)
     switch (_type) {
     case SPD::Code::KERNEL_MODULE:
         codeType = CF::LoadableDevice::KERNEL_MODULE;
+        break;
     case SPD::Code::SHARED_LIBRARY:
         codeType = CF::LoadableDevice::SHARED_LIBRARY;
+        break;
     case SPD::Code::EXECUTABLE:
         codeType = CF::LoadableDevice::EXECUTABLE;
+        break;
     case SPD::Code::DRIVER:
         codeType = CF::LoadableDevice::DRIVER;
+        break;
     default:
         LOG_WARN(ImplementationInfo, "Bad code type " << _type);
     }
