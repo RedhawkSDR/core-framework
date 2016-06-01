@@ -458,12 +458,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
     std::vector<std::string> extPorts;
     for (std::vector<SoftwareAssembly::Port>::const_iterator port = ports.begin(); port != ports.end(); ++port) {
         // Gets name to use
-        std::string extName;
-        if (port->externalname != "") {
-            extName = port->externalname;
-        } else {
-            extName = port->identifier;
-        }
+        const std::string& extName = port->getExternalName();
         // Check for duplicate
         if (std::find(extPorts.begin(), extPorts.end(), extName) == extPorts.end()) {
             extPorts.push_back(extName);
@@ -550,12 +545,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
     std::vector<std::string> extProps;
     for (std::vector<SoftwareAssembly::Property>::const_iterator prop = properties.begin(); prop != properties.end(); ++prop) {
         // Gets name to use
-        std::string extName;
-        if (prop->externalpropid != "") {
-            extName = prop->externalpropid;
-        } else {
-            extName = prop->propid;
-        }
+        const std::string& extName = prop->getExternalID();
         // Check for duplicate
         if (std::find(extProps.begin(), extProps.end(), extName) == extProps.end()) {
             extProps.push_back(extName);
@@ -935,11 +925,7 @@ void createHelper::setUpExternalPorts(ossie::ApplicationDeployment& appDeploymen
         }
 
         // Add it to the list of external ports on the application object.
-        std::string name = port->externalname;
-        if (name.empty()) {
-            name = port->identifier;
-        }
-        application->addExternalPort(name, obj);
+        application->addExternalPort(port->getExternalName(), obj);
     }
 }
 
@@ -966,11 +952,7 @@ void createHelper::setUpExternalProperties(ossie::ApplicationDeployment& appDepl
         }
 
         CF::Resource_var comp = deployment->getResourcePtr();
-        std::string external_id = prop->externalpropid;
-        if (external_id.empty()) {
-            external_id = prop->propid;
-        }
-        application->addExternalProperty(prop->propid, external_id, comp);
+        application->addExternalProperty(prop->propid, prop->getExternalID(), comp);
     }
 }
 

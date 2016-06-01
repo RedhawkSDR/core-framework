@@ -61,18 +61,27 @@ namespace ossie {
         };
 
         class Port {
-            public:
-                typedef enum {
-                    NONE = 0,
-                    USESIDENTIFIER,
-                    PROVIDESIDENTIFIER,
-                    SUPPORTEDIDENTIFIER
-                } port_type;
+        public:
+            typedef enum {
+                NONE = 0,
+                USESIDENTIFIER,
+                PROVIDESIDENTIFIER,
+                SUPPORTEDIDENTIFIER
+            } port_type;
 
-                std::string componentrefid;
-                std::string identifier;
-                std::string externalname;
-                port_type type;
+            std::string componentrefid;
+            std::string identifier;
+            std::string externalname;
+            port_type type;
+
+            const std::string& getExternalName() const
+            {
+                if (externalname.empty()) {
+                    return identifier;
+                } else {
+                    return externalname;
+                }
+            }
         };
 
         class Property {
@@ -80,6 +89,15 @@ namespace ossie {
             std::string comprefid;
             std::string propid;
             std::string externalpropid;
+
+            const std::string& getExternalID() const
+            {
+                if (externalpropid.empty()) {
+                    return propid;
+                } else {
+                    return externalpropid;
+                }
+            }
         };
 
         class SAD {
