@@ -595,22 +595,20 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDe
     // Place the remaining components one-by-one
     BOOST_FOREACH(const ComponentPlacement& placement, _appFact._sadParser.getComponentPlacements()) {
         const SoftPkg* softpkg = appDeployment.getSoftPkg(placement.componentFile->getFileName());
-        // Even though it is possible for there to be more than one instantiation
-        // per component, the tooling doesn't support that, so supporting this at a
-        // framework level would add substantial complexity without providing any
-        // appreciable improvements. It is far easier to have multiple placements
-        // rather than multiple instantiations.
-        const ComponentInstantiation* instantiation = &(placement.getInstantiations()[0]);
-        std::string assigned_device;
-        DeviceAssignmentMap::const_iterator device = devices.find(instantiation->getID());
-        if (device != devices.end()) {
-            assigned_device = device->second;
-            LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation->getID()
-                      << " is assigned to device " << assigned_device);
+        BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
+            // Even though the XML supports more than one instantiation per
+            // component placement, the tooling doesn't support that, so this
+            // loop may be strictly academic
+            std::string assigned_device;
+            DeviceAssignmentMap::const_iterator device = devices.find(instantiation.getID());
+            if (device != devices.end()) {
+                assigned_device = device->second;
+                LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation.getID()
+                          << " is assigned to device " << assigned_device);
+            }
+            ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, &instantiation);
+            allocateComponent(appDeployment, deployment, assigned_device);
         }
-        ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg,
-                                                                                         instantiation);
-        allocateComponent(appDeployment, deployment, assigned_device);
     }
 }
 
@@ -769,13 +767,17 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
     DeploymentList deployments;
     BOOST_FOREACH(const ComponentPlacement& placement, collocation.getComponents()) {
         const SoftPkg* softpkg = appDeployment.getSoftPkg(placement.componentFile->getFileName());
-        const ComponentInstantiation* instantiation = &(placement.getInstantiations()[0]);
-        ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, instantiation);
-        deployments.push_back(deployment);
+        BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
+            // Even though the XML supports more than one instantiation per
+            // component placement, the tooling doesn't support that, so this
+            // loop may be strictly academic
+            ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, &instantiation);
+            deployments.push_back(deployment);
 
-        DeviceAssignmentMap::const_iterator device = devices.find(instantiation->getID());
-        if (device != devices.end()) {
-            assignedDevices.push_back(device->second);
+            DeviceAssignmentMap::const_iterator device = devices.find(instantiation.getID());
+            if (device != devices.end()) {
+                assignedDevices.push_back(device->second);
+            }
         }
     }
 

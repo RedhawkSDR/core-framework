@@ -200,11 +200,14 @@ void ApplicationDeployment::loadComponentProfile(CF::FileSystem_ptr fileSystem,
 {
     assert(placement.componentFile);
     SoftPkg* softpkg = loadProfile(fileSystem, placement.componentFile->getFileName());
-    const ComponentInstantiation* instantiation = &(placement.getInstantiations()[0]);
-    if (softpkg->isScaCompliant() && !instantiation->isNamingService()) {
-        LOG_WARN(ApplicationDeployment, "Component instantiation "
-                 << instantiation->getID() << " does not provide a 'findcomponent' name but "
-                 << softpkg->getName() << " is SCA-compliant");
+    if (softpkg->isScaCompliant()){ 
+        BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
+            if (!instantiation.isNamingService()) {
+                LOG_WARN(ApplicationDeployment, "Component instantiation "
+                         << instantiation.getID() << " does not provide a 'findcomponent' name but "
+                         << softpkg->getName() << " is SCA-compliant");
+            }
+        }
     }
 
     if (softpkg->getPRFFile()) {
