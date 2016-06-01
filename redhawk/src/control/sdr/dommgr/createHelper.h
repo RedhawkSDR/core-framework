@@ -28,7 +28,7 @@
 #include <ossie/ComponentDescriptor.h>
 
 #include "PersistenceStore.h"
-#include "Deployment.h"
+#include "ApplicationDeployment.h"
 
 class Application_impl;
 class AllocationManager_impl;

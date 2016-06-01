@@ -25,12 +25,9 @@
 #include <vector>
 
 #include <boost/shared_ptr.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 
 #include <ossie/PropertyMap.h>
-#include <ossie/SoftwareAssembly.h>
-
-#include "connectionSupport.h"
+#include "PersistenceStore.h"
 
 class Application_impl;
 
@@ -183,65 +180,6 @@ namespace ossie {
         redhawk::PropertyMap affinityOptions;
     };
 
-    class ApplicationDeployment : public ComponentLookup, public DeviceLookup, public UsesDeviceDeployment
-    {
-    public:
-        typedef std::vector<ComponentDeployment*> ComponentList;
-        typedef std::map<std::string,float> CpuReservations;
-
-        ApplicationDeployment(const SoftwareAssembly& sad,
-                              const std::string& instanceName,
-                              const CF::Properties& initConfiguration);
-        ~ApplicationDeployment();
-
-        void loadProfiles(CF::FileSystem_ptr fileSystem);
-
-        const std::string& getIdentifier() const;
-
-        const SoftPkg* getSoftPkg(const std::string& filename) const;
-
-        /**
-         * Returns the properties used for evaluating math statements in
-         * allocation
-         */
-        redhawk::PropertyMap getAllocationContext() const;
-
-        ComponentDeployment* getAssemblyController();
-
-        ComponentDeployment* createComponentDeployment(const SoftPkg* softpkg,
-                                                       const ComponentInstantiation* instantiation);
-
-        const ComponentList& getComponentDeployments();
-        ComponentDeployment* getComponentDeployment(const std::string& instantiationId);
-
-        void applyCpuReservations(const CpuReservations& reservations);
-
-        // Adapt interfaces for component and device search to support
-        // ConnectionManager
-        // ComponentLookup interface
-        virtual CF::Resource_ptr lookupComponentByInstantiationId(const std::string& identifier);
-
-        // DeviceLookup interface
-        CF::Device_ptr lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId);
-        CF::Device_ptr lookupDeviceUsedByComponentInstantiationId(const std::string& componentId,
-                                                                  const std::string& usesId);
-        CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId);
-
-    protected:
-        typedef boost::ptr_vector<SoftPkg> ProfileList;
-
-        const SoftPkg* loadProfile(CF::FileSystem_ptr fileSystem, const std::string& filename);
-
-        void overrideAssemblyControllerProperties(ComponentDeployment* deployment);
-        void overrideExternalProperties(ComponentDeployment* deployment);
-
-        const SoftwareAssembly& sad;
-        const std::string identifier;
-        const std::string instanceName;
-        redhawk::PropertyMap initConfiguration;
-        ProfileList profiles;
-        ComponentList components;
-    };
 }
 
 #endif // DEPLOYMENT_H
