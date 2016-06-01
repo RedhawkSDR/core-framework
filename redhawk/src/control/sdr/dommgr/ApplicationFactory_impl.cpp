@@ -1855,17 +1855,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, message.str().c_str());
         }
                 
-        // OSSIE extends section D.2.1.6.3 to support loading a directory
-        // and execute a file in that directory using a entrypoint
-        // 1. Executable means to use CF LoadableDevice::load and CF ExecutableDevice::execute operations. This is a "main" process.
-        //    - A Executable that references a directory instead of a file means to recursively load the contents of the directory
-        //      and then execute the program specified via entrypoint
-        // 2. Driver and Kernel Module means load only.
-        // 3. SharedLibrary means dynamic linking.
-        // 4. A (SharedLibrary) Without a code entrypoint element means load only.
-        // 5. A (SharedLibrary) With a code entrypoint element means load and CF Device::execute.
-        if (((deployment->getCodeType() == CF::LoadableDevice::EXECUTABLE) ||
-             (deployment->getCodeType() == CF::LoadableDevice::SHARED_LIBRARY)) && (deployment->getEntryPoint().size() != 0)) {
+        if (deployment->isExecutable()) {
             attemptComponentExecution(_appReg, deployment);
         }
     }

@@ -80,6 +80,7 @@ namespace ossie {
 
         std::string getLocalFile();
         CF::LoadableDevice::LoadType getCodeType() const;
+        bool isExecutable() const;
 
         void addDependency(SoftpkgDeployment* dependency);
         const DeploymentList& getDependencies();

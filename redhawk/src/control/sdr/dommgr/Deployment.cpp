@@ -219,6 +219,28 @@ CF::LoadableDevice::LoadType SoftpkgDeployment::getCodeType() const
     }
 }
 
+bool SoftpkgDeployment::isExecutable() const
+{
+    // REDHAWK extends section D.2.1.6.3 to support loading a directory
+    // and execute a file in that directory using a entrypoint
+    // 1. Executable means to use CF LoadableDevice::load and CF ExecutableDevice::execute operations. This is a "main" process.
+    //    - A Executable that references a directory instead of a file means to recursively load the contents of the directory
+    //      and then execute the program specified via entrypoint
+    // 2. Driver and Kernel Module means load only.
+    // 3. SharedLibrary means dynamic linking.
+    // 4. A (SharedLibrary) Without a code entrypoint element means load only.
+    // 5. A (SharedLibrary) With a code entrypoint element means load and CF Device::execute.
+    switch (implementation->getCodeType()) {
+    case SPD::Code::EXECUTABLE:
+        // Returns true if the entry point is non-null
+        return bool(implementation->getEntryPoint());
+    case SPD::Code::SHARED_LIBRARY:
+        return true;
+    default:
+        return false;
+    }
+}
+
 ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
                                          const ComponentInstantiation* instantiation,
                                          const std::string& identifier) :
