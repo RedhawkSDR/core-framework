@@ -638,15 +638,17 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDe
             LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
                       << (*plan)->getId() << " Components Placed: " << components.size());
         } else {
-            ComponentInfo* component = components[0];
+            const SoftPkg* softpkg = components[0]->spd;
+            const ComponentInstantiation* instantiation = components[0]->getInstantiation();
             std::string assigned_device;
-            DeviceAssignmentMap::const_iterator device = devices.find(component->getInstantiation()->getID());
+            DeviceAssignmentMap::const_iterator device = devices.find(instantiation->getID());
             if (device != devices.end()) {
                 assigned_device = device->second;
-                LOG_TRACE(ApplicationFactory_impl, "Component " << component->getInstantiation()->getID()
+                LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation->getID()
                           << " is assigned to device " << assigned_device);
             }
-            ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(component);
+            ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg,
+                                                                                             instantiation);
             allocateComponent(deployment, assigned_device, appDeployment.getIdentifier());
         }
     }
@@ -825,7 +827,9 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
 
     DeploymentList deployments;
     for (PlacementList::const_iterator comp = components.begin(); comp != components.end(); ++comp) {
-        ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(*comp);
+        const SoftPkg* softpkg = (*comp)->spd;
+        const ComponentInstantiation* instantiation = (*comp)->getInstantiation();
+        ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, instantiation);
         deployments.push_back(deployment);
     }
 

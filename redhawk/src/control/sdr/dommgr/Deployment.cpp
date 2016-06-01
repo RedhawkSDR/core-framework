@@ -681,14 +681,14 @@ redhawk::PropertyMap ApplicationDeployment::getAllocationContext() const
     return properties;
 }
 
-ComponentDeployment* ApplicationDeployment::createComponentDeployment(ComponentInfo* component)
+ComponentDeployment* ApplicationDeployment::createComponentDeployment(const SoftPkg* softpkg,
+                                                                      const ComponentInstantiation* instantiation)
 {
     // Create a unique identifier for this component instance by appending the
     // application instance's unique name
-    const ComponentInstantiation* instantiation = component->getInstantiation();
     std::string component_id = instantiation->getID() + ":" + instanceName;
 
-    ComponentDeployment* deployment = new ComponentDeployment(component->spd, instantiation, component_id);
+    ComponentDeployment* deployment = new ComponentDeployment(softpkg, instantiation, component_id);
     components.push_back(deployment);
 
     // Override properties from initial configuration

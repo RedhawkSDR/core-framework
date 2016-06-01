@@ -233,7 +233,8 @@ namespace ossie {
 
         ComponentInfo* getComponent(const std::string& instantiationId);
 
-        ComponentDeployment* createComponentDeployment(ComponentInfo* component);
+        ComponentDeployment* createComponentDeployment(const SoftPkg* softpkg,
+                                                       const ComponentInstantiation* instantiation);
 
         const ComponentList& getComponentDeployments();
         ComponentDeployment* getComponentDeployment(const std::string& instantiationId);
