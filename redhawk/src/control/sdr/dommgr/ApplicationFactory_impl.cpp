@@ -29,6 +29,7 @@
 #include <list>
 #include <unistd.h>
 
+#include <boost/foreach.hpp>
 #include <boost/filesystem/path.hpp>
 
 #include <ossie/CF/WellKnownProperties.h>
@@ -627,30 +628,31 @@ void createHelper::_configureComponents(const DeploymentList& deployments)
 void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDeployment,
                                              const DeviceAssignmentMap& devices)
 {
-    typedef ossie::ApplicationDeployment::PlacementList PlacementPlanList;
-    const PlacementPlanList& placements = appDeployment.getPlacements();
-    for (PlacementPlanList::const_iterator plan = placements.begin(); plan != placements.end(); ++plan) {
-        const std::vector<ComponentInfo*>& components = (*plan)->getComponents();
-        if (components.size() > 1) {
-            LOG_TRACE(ApplicationFactory_impl, "Placing host collocation " << (*plan)->getId()
-                      << " " << (*plan)->getName());
-            _placeHostCollocation(appDeployment, components, devices);
-            LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
-                      << (*plan)->getId() << " Components Placed: " << components.size());
-        } else {
-            const SoftPkg* softpkg = components[0]->spd;
-            const ComponentInstantiation* instantiation = components[0]->getInstantiation();
-            std::string assigned_device;
-            DeviceAssignmentMap::const_iterator device = devices.find(instantiation->getID());
-            if (device != devices.end()) {
-                assigned_device = device->second;
-                LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation->getID()
-                          << " is assigned to device " << assigned_device);
-            }
-            ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg,
-                                                                                             instantiation);
-            allocateComponent(deployment, assigned_device, appDeployment.getIdentifier());
+    // Try to place all of the collocations first, since they naturally have
+    // more restrictive placement constraints
+    BOOST_FOREACH(const SoftwareAssembly::HostCollocation& collocation, _appFact._sadParser.getHostCollocations()) {
+        _placeHostCollocation(appDeployment, collocation, devices);
+    }
+
+    // Place the remaining components one-by-one
+    BOOST_FOREACH(const ComponentPlacement& placement, _appFact._sadParser.getComponentPlacements()) {
+        const SoftPkg* softpkg = _appProfile.getSoftPkg(placement.componentFile->getFileName());
+        // Even though it is possible for there to be more than one instantiation
+        // per component, the tooling doesn't support that, so supporting this at a
+        // framework level would add substantial complexity without providing any
+        // appreciable improvements. It is far easier to have multiple placements
+        // rather than multiple instantiations.
+        const ComponentInstantiation* instantiation = &(placement.getInstantiations()[0]);
+        std::string assigned_device;
+        DeviceAssignmentMap::const_iterator device = devices.find(instantiation->getID());
+        if (device != devices.end()) {
+            assigned_device = device->second;
+            LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation->getID()
+                      << " is assigned to device " << assigned_device);
         }
+        ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg,
+                                                                                         instantiation);
+        allocateComponent(deployment, assigned_device, appDeployment.getIdentifier());
     }
 }
 
@@ -797,16 +799,23 @@ CF::Properties createHelper::_consolidateAllocations(const DeploymentList& deplo
 }
 
 void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
-                                         const PlacementList& components,
+                                         const ossie::SoftwareAssembly::HostCollocation& collocation,
                                          const DeviceAssignmentMap& devices)
 {
+    LOG_TRACE(ApplicationFactory_impl, "Placing host collocation " << collocation.getID()
+              << " " << collocation.getName());
+
     // Keep track of devices to which some of the components have
     // been assigned.
     DeviceIDList assignedDevices;
-    for (PlacementList::const_iterator placement = components.begin();
-         placement != components.end();
-         ++placement) {
-        DeviceAssignmentMap::const_iterator device = devices.find((*placement)->getInstantiation()->getID());
+    DeploymentList deployments;
+    BOOST_FOREACH(const ComponentPlacement& placement, collocation.getComponents()) {
+        const SoftPkg* softpkg = _appProfile.getSoftPkg(placement.componentFile->getFileName());
+        const ComponentInstantiation* instantiation = &(placement.getInstantiations()[0]);
+        ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, instantiation);
+        deployments.push_back(deployment);
+
+        DeviceAssignmentMap::const_iterator device = devices.find(instantiation->getID());
         if (device != devices.end()) {
             assignedDevices.push_back(device->second);
         }
@@ -823,23 +832,15 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
         }
     }
     
-    LOG_TRACE(ApplicationFactory_impl, "Placing " << components.size() << " components");
-
-    DeploymentList deployments;
-    for (PlacementList::const_iterator comp = components.begin(); comp != components.end(); ++comp) {
-        const SoftPkg* softpkg = (*comp)->spd;
-        const ComponentInstantiation* instantiation = (*comp)->getInstantiation();
-        ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, instantiation);
-        deployments.push_back(deployment);
-    }
-
+    LOG_TRACE(ApplicationFactory_impl, "Placing " << deployments.size() << " components");
     if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices)) {
         std::ostringstream eout;
-        //eout << "Could not collocate components for collocation NAME: " << collocation.getName() << "  ID:" << collocation.id;
-        eout << "Could not collocate components for collocation";
+        eout << "Could not collocate components for collocation NAME: " << collocation.getName() << "  ID:" << collocation.id;
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationRequestError();
     }
+    LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
+              << collocation.getID() << " Components Placed: " << deployments.size());
 }
 
 void createHelper::_handleUsesDevices(ossie::ApplicationDeployment& appDeployment,

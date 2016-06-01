@@ -113,7 +113,7 @@ private:
     void setUpExternalPorts(ossie::ApplicationDeployment& appDeployment, Application_impl* application);
     void setUpExternalProperties(ossie::ApplicationDeployment& appDeployment, Application_impl* application);
     void _placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
-                               const PlacementList& collocatedComponents,
+                               const ossie::SoftwareAssembly::HostCollocation& collocation,
                                const DeviceAssignmentMap& devices);
     bool placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
                               const DeploymentList& components,
