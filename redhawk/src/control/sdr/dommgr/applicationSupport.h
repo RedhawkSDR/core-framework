@@ -42,18 +42,6 @@
 
 namespace ossie
 {
-    struct ApplicationComponent {
-        std::string identifier;
-        std::string softwareProfile;
-        std::string namingContext;
-        std::string implementationId;
-        std::vector<std::string> loadedFiles;
-        unsigned long processId;
-        CORBA::Object_var componentObject;
-        CF::Device_var assignedDevice;
-    };
-    typedef std::list<ApplicationComponent> ComponentList;
-
     /* Base class to contain data for components
      *  - Used to store information about about components
      */

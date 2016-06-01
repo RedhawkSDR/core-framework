@@ -25,7 +25,9 @@
 #include <vector>
 
 #include <ossie/exceptions.h>
-#include "applicationSupport.h"
+#include <ossie/SoftPkg.h>
+#include <ossie/Properties.h>
+
 #include "connectionSupport.h"
 
 
@@ -92,6 +94,18 @@ namespace ossie {
 
     typedef std::map<std::string, AllocationType> AllocationTable;
     typedef std::map<std::string, RemoteAllocationType> RemoteAllocationTable;
+
+    struct ApplicationComponent {
+        std::string identifier;
+        std::string softwareProfile;
+        std::string namingContext;
+        std::string implementationId;
+        std::vector<std::string> loadedFiles;
+        unsigned long processId;
+        CORBA::Object_var componentObject;
+        CF::Device_var assignedDevice;
+    };
+    typedef std::list<ApplicationComponent> ComponentList;
 
     struct ApplicationNode {
         std::string name;

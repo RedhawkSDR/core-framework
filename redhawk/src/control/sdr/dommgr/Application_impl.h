@@ -32,7 +32,7 @@
 #include <ossie/debug.h>
 #include <ossie/Logging_impl.h>
 
-#include "applicationSupport.h"
+#include "PersistenceStore.h"
 #include "connectionSupport.h"
 
 
