@@ -132,6 +132,7 @@ namespace ossie {
         bool isReadOnly() const;
         bool isReadWrite() const;
         bool isWriteOnly() const;
+        bool canOverride() const;
         bool isAllocation() const;
         bool isConfigure() const;
         bool isProperty() const;

@@ -429,6 +429,16 @@ bool Property::isWriteOnly() const
     return (mode == MODE_WRITEONLY);
 }
 
+bool Property::canOverride() const
+{
+    // Only allow overrides for writable or 'property' kind properties
+    if (isProperty()) {
+        return true;
+    } else {
+        return !isReadOnly();
+    }
+}
+
 bool Property::isEqual() const
 {
     return (action == ACTION_EQ);

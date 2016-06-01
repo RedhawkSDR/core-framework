@@ -240,8 +240,7 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
                     RH_NL_WARN("ApplicationFactory_impl", "Ignoring attempt to override property "
                               << override.getID() << " that does not exist in component");
                 }                
-            } else if (property->isReadOnly() && !property->isProperty()) {
-                // Only 'property' kind supports overrides if it's read-only
+            } else if (!property->canOverride()) {
                 RH_NL_WARN("ApplicationFactory_impl", "Ignoring attempt to override read-only property "
                           << property->getID());
             }
@@ -460,8 +459,7 @@ void ComponentDeployment::overrideProperty(const std::string& id, const CORBA::A
 
 CF::DataType ComponentDeployment::getPropertyValue(const Property* property) const
 {
-    // Only allow overrides for writable or 'property' kind properties
-    if (!property->isReadOnly() || property->isProperty()) {
+    if (property->canOverride()) {
         // Check for a runtime override first
         redhawk::PropertyMap::const_iterator override = overrides.find(property->getID());
         if (override != overrides.end()) {
