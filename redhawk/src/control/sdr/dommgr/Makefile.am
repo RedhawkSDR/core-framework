@@ -22,8 +22,7 @@ domainmgrdir = $(SDR_ROOT)/dom/mgr
 dist_domainmgr_DATA = DomainManager.spd.xml DomainManager.scd.xml DomainManager.prf.xml
 domainmgr_PROGRAMS = DomainManager
 
-DomainManager_SOURCES = applicationSupport.cpp \
-                        connectionSupport.cpp \
+DomainManager_SOURCES = connectionSupport.cpp \
                         AllocationManager_impl.cpp \
                         EventChannelManager.cpp \
                         Application_impl.cpp \

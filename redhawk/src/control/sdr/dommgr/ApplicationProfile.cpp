@@ -20,60 +20,14 @@
 
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/ref.hpp>
 
 #include <ossie/FileStream.h>
+#include <ossie/ComponentDescriptor.h>
+#include <ossie/Properties.h>
 
 #include "ApplicationProfile.h"
 
 using namespace ossie;
-
-/**
- * SinglePlacement
- */
-SinglePlacement::SinglePlacement(const ComponentInstantiation* instantiation,
-                                 const SoftPkg* softpkg) :
-    instantiation(instantiation),
-    softpkg(softpkg)
-{
-}
-
-const ComponentInstantiation* SinglePlacement::getComponentInstantiation() const
-{
-    return instantiation;
-}
-
-const SoftPkg* SinglePlacement::getComponentProfile()
-{
-    return softpkg;
-}
-
-
-CollocationPlacement::CollocationPlacement(const std::string& id, const std::string& name) :
-    id(id),
-    name(name)
-{
-}
-
-const std::string& CollocationPlacement::getId() const
-{
-    return id;
-}
-
-const std::string& CollocationPlacement::getName() const
-{
-    return name;
-}
-
-const CollocationPlacement::PlacementList& CollocationPlacement::getPlacements() const
-{
-    return placements;
-}
-
-void CollocationPlacement::addPlacement(SinglePlacement* placement)
-{
-    placements.push_back(placement);
-}
 
 ////////////////////////////////////////////////////
 /*
@@ -87,9 +41,6 @@ ApplicationProfile::ApplicationProfile()
 
 ApplicationProfile::~ApplicationProfile()
 {
-    for (PlacementList::iterator placement = placements.begin(); placement != placements.end(); ++placement) {
-        delete *placement;
-    }
 }
 
 const std::string& ApplicationProfile::getIdentifier() const
@@ -102,26 +53,20 @@ void ApplicationProfile::load(CF::FileSystem_ptr fileSystem, const SoftwareAssem
     identifier = sad.getID();
 
     // Walk through the host collocations first
-    const std::vector<SoftwareAssembly::HostCollocation>& collocations = sad.getHostCollocations();
-    for (size_t index = 0; index < collocations.size(); ++index) {
-        const SoftwareAssembly::HostCollocation& collocation = collocations[index];
+    BOOST_FOREACH(const SoftwareAssembly::HostCollocation& collocation, sad.getHostCollocations()) {
         LOG_TRACE(ApplicationProfile, "Building component info for host collocation "
                   << collocation.getID());
-        CollocationPlacement* placement = new CollocationPlacement(collocation.getID(), collocation.getName());
-        placements.push_back(placement);
 
-        const std::vector<ComponentPlacement>& components = collocations[index].getComponents();
-        for (unsigned int i = 0; i < components.size(); i++) {
-            SinglePlacement* component = buildComponentPlacement(fileSystem, sad, components[i]);
-            placement->addPlacement(component);
+        BOOST_FOREACH(const ComponentPlacement& placement, collocation.getComponents()) {
+            assert(placement.componentFile);
+            loadProfile(fileSystem, placement.componentFile->getFileName());
         }
     }
 
     // Then, walk through the remaining non-collocated components
-    const std::vector<ComponentPlacement>& components = sad.getComponentPlacements();
-    for (unsigned int i = 0; i < components.size(); i++) {
-        SinglePlacement* placement = buildComponentPlacement(fileSystem, sad, components[i]);
-        placements.push_back(placement);
+    BOOST_FOREACH(const ComponentPlacement& placement, sad.getComponentPlacements()) {
+        assert(placement.componentFile);
+        loadProfile(fileSystem, placement.componentFile->getFileName());
     }
 }
 
@@ -185,28 +130,4 @@ const SoftPkg* ApplicationProfile::loadProfile(CF::FileSystem_ptr fileSystem,
     }
 
     return spd;
-}
-
-SinglePlacement* ApplicationProfile::buildComponentPlacement(CF::FileSystem_ptr fileSystem,
-                                                             const SoftwareAssembly& sad,
-                                                             const ComponentPlacement& placement)
-{
-    assert(placement.componentFile);
-    ComponentFile* componentFile = const_cast<ComponentFile*>(placement.componentFile);
-    const SoftPkg* softpkg = loadProfile(fileSystem, componentFile->getFileName());
-
-    // Even though it is possible for there to be more than one instantiation
-    // per component, the tooling doesn't support that, so supporting this at a
-    // framework level would add substantial complexity without providing any
-    // appreciable improvements. It is far easier to have multiple placements
-    // rather than multiple instantiations.
-    const std::vector<ComponentInstantiation>& instantiations = placement.getInstantiations();
-    const ComponentInstantiation& instance = instantiations[0];
-
-    return new SinglePlacement(&instance, softpkg);
-}
-
-const ApplicationProfile::PlacementList& ApplicationProfile::getPlacements() const
-{
-    return placements;
 }

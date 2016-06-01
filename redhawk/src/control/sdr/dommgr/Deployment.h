@@ -27,7 +27,8 @@
 #include <boost/shared_ptr.hpp>
 
 #include <ossie/PropertyMap.h>
-#include "applicationSupport.h"
+#include <ossie/SoftwareAssembly.h>
+
 #include "connectionSupport.h"
 
 class Application_impl;
@@ -181,34 +182,9 @@ namespace ossie {
         redhawk::PropertyMap affinityOptions;
     };
 
-    class PlacementPlan
-    {
-    public:
-        typedef std::vector<ComponentInfo*> ComponentList;
-
-        PlacementPlan();
-        PlacementPlan(const std::string& id, const std::string& name);
-        ~PlacementPlan();
- 
-        const std::string& getId() const;
-        const std::string& getName() const;
-
-        const ComponentList& getComponents() const;
-
-        void addComponent(ComponentInfo* component);
-
-        ComponentInfo* getComponent(const std::string& instantiationId);
-
-    protected:
-        std::string id;
-        std::string name;
-        ComponentList components;
-    };
-
     class ApplicationDeployment : public ComponentLookup, public DeviceLookup, public UsesDeviceDeployment
     {
     public:
-        typedef std::vector<PlacementPlan*> PlacementList;
         typedef std::vector<ComponentDeployment*> ComponentList;
         typedef std::map<std::string,float> CpuReservations;
 
@@ -219,10 +195,6 @@ namespace ossie {
 
         const std::string& getIdentifier() const;
 
-        void addPlacement(PlacementPlan* placement);
-
-        const PlacementList& getPlacements() const;
-
         /**
          * Returns the properties used for evaluating math statements in
          * allocation
@@ -230,8 +202,6 @@ namespace ossie {
         redhawk::PropertyMap getAllocationContext() const;
 
         ComponentDeployment* getAssemblyController();
-
-        ComponentInfo* getComponent(const std::string& instantiationId);
 
         ComponentDeployment* createComponentDeployment(const SoftPkg* softpkg,
                                                        const ComponentInstantiation* instantiation);
@@ -260,7 +230,6 @@ namespace ossie {
         const std::string identifier;
         const std::string instanceName;
         redhawk::PropertyMap initConfiguration;
-        PlacementList placements;
         ComponentList components;
     };
 }

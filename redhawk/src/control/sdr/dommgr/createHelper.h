@@ -25,8 +25,9 @@
 #include <vector>
 #include <string>
 
+#include <ossie/ComponentDescriptor.h>
+
 #include "PersistenceStore.h"
-#include "applicationSupport.h"
 #include "ApplicationProfile.h"
 #include "Deployment.h"
 
@@ -70,10 +71,6 @@ public:
                                 const DeviceAssignmentMap& deviceAssignments);
 
 private:
-
-    // list of components that are part of a collocation
-    typedef std::vector <ossie::ComponentInfo* >                       PlacementList;
-
     // Used for storing the current state of the OE & create process
     const ApplicationFactory_impl& _appFact;
 
@@ -132,9 +129,7 @@ private:
     void getRequiredComponents(CF::FileSystem_ptr fileSys,
                                const ossie::SoftwareAssembly& sadParser,
                                ossie::ApplicationDeployment& appDeployment);
-    ossie::ComponentInfo* buildComponentInfo(CF::FileSystem_ptr fileSys,
-                                             const ossie::SoftwareAssembly& sadParser,
-                                             const ossie::ComponentPlacement& component);
+    void checkComponentInfo(CF::FileSystem_ptr fileSys, const ossie::ComponentPlacement& component);
 
     // Supports allocation
     bool allocateUsesDevices(const std::vector<ossie::UsesDevice>& usesDevices,

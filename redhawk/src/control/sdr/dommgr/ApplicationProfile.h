@@ -27,50 +27,11 @@
 
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include "applicationSupport.h"
+#include <ossie/debug.h>
+#include <ossie/SoftPkg.h>
+#include <ossie/SoftwareAssembly.h>
 
 namespace ossie {
-
-    class Placement
-    {
-    public:
-        virtual ~Placement() { }
-    };
-
-    class SinglePlacement : public Placement
-    {
-    public:
-        SinglePlacement(const ComponentInstantiation* instantiation,
-                        const SoftPkg* softpkg);
-
-        const ComponentInstantiation* getComponentInstantiation() const;
-
-        const SoftPkg* getComponentProfile();
-
-    protected:
-        const ComponentInstantiation* instantiation;
-        const SoftPkg* softpkg;
-    };
-
-    class CollocationPlacement : public Placement
-    {
-    public:
-        typedef std::vector<Placement*> PlacementList;
-
-        CollocationPlacement(const std::string& id, const std::string& name);
-
-        const std::string& getId() const;
-        const std::string& getName() const;
-
-        const PlacementList& getPlacements() const;
-
-        void addPlacement(SinglePlacement* placement);
-
-    protected:
-        const std::string id;
-        const std::string name;
-        PlacementList placements;
-    };
 
     /* Base class to contain data for applications
      *  - Used to store information about about:
@@ -83,16 +44,12 @@ namespace ossie {
         ENABLE_LOGGING;
 
     public:
-        typedef std::vector<Placement*> PlacementList;
-
         ApplicationProfile();
         ~ApplicationProfile();
 
         const std::string& getIdentifier() const;
 
         void load(CF::FileSystem_ptr fileSystem, const SoftwareAssembly& sad);
-
-        const PlacementList& getPlacements() const;
 
         const SoftPkg* getSoftPkg(const std::string& filename) const;
 
@@ -101,13 +58,8 @@ namespace ossie {
 
         const SoftPkg* loadProfile(CF::FileSystem_ptr fileSystem, const std::string& filename);
 
-        SinglePlacement* buildComponentPlacement(CF::FileSystem_ptr fileSystem,
-                                                 const SoftwareAssembly& sad,
-                                                 const ComponentPlacement& placement);
-
         std::string identifier;
         ProfileList profiles;
-        PlacementList placements;
     };
 
 }

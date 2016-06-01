@@ -1761,9 +1761,8 @@ ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(const os
     return 0;
 }
 
-ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSys,
-                                                       const SoftwareAssembly& sadParser,
-                                                       const ComponentPlacement& component)
+void createHelper::checkComponentInfo(CF::FileSystem_ptr fileSys,
+                                      const ComponentPlacement& component)
 {
     // Even though it is possible for there to be more than one instantiation per component,
     //  the tooling doesn't support that, so supporting this at a framework level would add
@@ -1773,7 +1772,6 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
     const ComponentInstantiation& instance = instantiations[0];
 
     // Extract required data from SPD file
-    ossie::ComponentInfo* newComponent = 0;
     LOG_TRACE(ApplicationFactory_impl, "Getting the SPD Filename");
     const ComponentFile* componentfile = component.componentFile;
     if (!componentfile) {
@@ -1783,21 +1781,9 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
     }
     LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File");
     const SoftPkg* softpkg = _appProfile.getSoftPkg(componentfile->getFileName());
-    newComponent = ossie::ComponentInfo::buildComponentInfoFromSPDFile(softpkg, &instance);
-    if (newComponent == 0) {
-        ostringstream eout;
-        eout << "Error loading component information for file ref " << component.getFileRefId();
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
-    }
-
-    LOG_TRACE(ApplicationFactory_impl, "Done building Component Info From SPD File")
-
-    if (newComponent->spd->isScaCompliant() && !instance.isNamingService()) {
+    if (softpkg->isScaCompliant() && !instance.isNamingService()) {
         LOG_WARN(ApplicationFactory_impl, "component instantiation is sca compliant but does not provide a 'findcomponent' name...this is probably an error");
     }
-
-    return newComponent;
 }
 
 /* Create a vector of all the components for the SAD associated with this App Factory
@@ -1810,31 +1796,22 @@ void createHelper::getRequiredComponents(CF::FileSystem_ptr fileSys,
 {
     TRACE_ENTER(ApplicationFactory_impl);
 
-    const std::string assemblyControllerRefId = sadParser.getAssemblyControllerRefId();
-
     // Walk through the host collocations first
     const std::vector<SoftwareAssembly::HostCollocation>& collocations = sadParser.getHostCollocations();
     for (size_t index = 0; index < collocations.size(); ++index) {
         const SoftwareAssembly::HostCollocation& collocation = collocations[index];
         LOG_TRACE(ApplicationFactory_impl, "Building component info for host collocation "
                   << collocation.getID());
-        ossie::PlacementPlan* plan = new ossie::PlacementPlan(collocation.getID(), collocation.getName());
-        appDeployment.addPlacement(plan);
-
         const std::vector<ComponentPlacement>& placements = collocations[index].getComponents();
         for (unsigned int i = 0; i < placements.size(); i++) {
-            ossie::ComponentInfo* component = buildComponentInfo(fileSys, sadParser, placements[i]);
-            plan->addComponent(component);
+            checkComponentInfo(fileSys, placements[i]);
         }
     }
 
     // Then, walk through the remaining non-collocated components
     const std::vector<ComponentPlacement>& componentsFromSAD = sadParser.getComponentPlacements();
     for (unsigned int i = 0; i < componentsFromSAD.size(); i++) {
-        ossie::PlacementPlan* plan = new ossie::PlacementPlan();
-        appDeployment.addPlacement(plan);
-        ossie::ComponentInfo* component = buildComponentInfo(fileSys, sadParser, componentsFromSAD[i]);
-        plan->addComponent(component);
+        checkComponentInfo(fileSys, componentsFromSAD[i]);
     }
 
     TRACE_EXIT(ApplicationFactory_impl);
