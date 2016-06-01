@@ -46,7 +46,6 @@ private:
 
     ossie::SoftwareAssembly _sadParser;
     CF::FileManager_var     _fileMgr;
-    CF::DomainManager_var   _dmnMgr;
 
     boost::mutex _pendingCreateLock;
 

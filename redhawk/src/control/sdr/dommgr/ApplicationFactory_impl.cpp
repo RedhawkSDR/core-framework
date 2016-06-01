@@ -393,10 +393,8 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         throw;
     }
 
-    _dmnMgr = domainManager->_this();
-
     try {
-        _fileMgr = _dmnMgr->fileMgr();
+        _fileMgr = _domainManager->fileMgr();
     } catch ( std::exception& ex ) {
         ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while retrieving the File Manager";
@@ -408,7 +406,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         LOG_ERROR(ApplicationFactory_impl, eout.str())
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch( ... ) {
-        LOG_ERROR(ApplicationFactory_impl, "_dmnMgr->_fileMgr failed with Unknown Exception");
+        LOG_ERROR(ApplicationFactory_impl, "domainManager->_fileMgr failed with Unknown Exception");
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, "Could not get File Manager from Domain Manager");
     }
 
