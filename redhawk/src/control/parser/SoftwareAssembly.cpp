@@ -76,7 +76,7 @@ void SoftwareAssembly::validateComponentPlacements(std::vector<ComponentPlacemen
         if (!file) {
             throw ossie::parser_error("componentplacement has invalid componentfileref " + file_ref);
         }
-        placement.componentFile = file;
+        placement.filename = file->filename;
 
         BOOST_FOREACH(ComponentInstantiation& instance, placement.instantiations) {
             if (!_sad->assemblycontroller.empty() && _sad->assemblycontroller == instance.instantiationId) {

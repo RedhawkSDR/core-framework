@@ -198,8 +198,7 @@ const SoftPkg* ApplicationDeployment::getSoftPkg(const std::string& filename) co
 void ApplicationDeployment::loadComponentProfile(CF::FileSystem_ptr fileSystem,
                                                  const ComponentPlacement& placement)
 {
-    assert(placement.componentFile);
-    SoftPkg* softpkg = loadProfile(fileSystem, placement.componentFile->getFileName());
+    SoftPkg* softpkg = loadProfile(fileSystem, placement.filename);
     if (softpkg->isScaCompliant()){ 
         BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
             if (!instantiation.isNamingService()) {

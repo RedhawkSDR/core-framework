@@ -448,7 +448,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
     for (std::vector<ComponentPlacement>::const_iterator comp = components.begin();
             comp != components.end(); ++comp) {
       SoftPkg comp_pkg;
-      const std::string& p_name = comp->componentFile->filename;
+      const std::string& p_name = comp->filename;
       try {
         LOG_DEBUG(ApplicationFactory_impl, "Validating...  COMP profile: " << p_name);
         ValidateComponent(_fileMgr, comp_pkg, p_name);
@@ -479,7 +479,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
              compInst != compInstantiations.end(); ++compInst){
           if (assemblyControllerId == compInst->instantiationId) {
             ac_spd = comp_pkg;
-            ac_profile = comp->componentFile->filename;
+            ac_profile = comp->filename;
             ac_found = true;
             break;
           }
@@ -594,7 +594,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDe
 
     // Place the remaining components one-by-one
     BOOST_FOREACH(const ComponentPlacement& placement, _appFact._sadParser.getComponentPlacements()) {
-        const SoftPkg* softpkg = appDeployment.getSoftPkg(placement.componentFile->getFileName());
+        const SoftPkg* softpkg = appDeployment.getSoftPkg(placement.filename);
         BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
             // Even though the XML supports more than one instantiation per
             // component placement, the tooling doesn't support that, so this
@@ -766,7 +766,7 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
     DeviceIDList assignedDevices;
     DeploymentList deployments;
     BOOST_FOREACH(const ComponentPlacement& placement, collocation.getComponents()) {
-        const SoftPkg* softpkg = appDeployment.getSoftPkg(placement.componentFile->getFileName());
+        const SoftPkg* softpkg = appDeployment.getSoftPkg(placement.filename);
         BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
             // Even though the XML supports more than one instantiation per
             // component placement, the tooling doesn't support that, so this
