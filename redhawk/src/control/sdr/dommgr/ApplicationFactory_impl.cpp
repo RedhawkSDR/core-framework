@@ -1792,7 +1792,6 @@ ossie::ComponentInfo* createHelper::buildComponentInfo(CF::FileSystem_ptr fileSy
         LOG_WARN(ApplicationFactory_impl, "component instantiation is sca compliant but does not provide a 'findcomponent' name...this is probably an error");
     }
 
-    newComponent->setAffinity( instance.getAffinity() );
     return newComponent;
 }
 

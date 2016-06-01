@@ -78,6 +78,8 @@ namespace ossie
 
     bool structContainsMixedNilValues(const CF::Properties& properties);
     CF::Properties getPartialStructs(const CF::Properties& properties);
+
+    CF::Properties getAffinityOptions(const ComponentInstantiation::AffinityProperties& affinityProps);
 }
 
 #endif

@@ -50,8 +50,6 @@ namespace ossie
         ENABLE_LOGGING
 
     public:
-      typedef ossie::ComponentInstantiation::AffinityProperties AffinityProperties;
-
         ComponentInfo (const SoftPkg* softpkg, const ComponentInstantiation* instantiation);
         ~ComponentInfo ();
 
@@ -59,20 +57,11 @@ namespace ossie
 
         const ComponentInstantiation* getInstantiation() const;
 
-        void setAffinity( const AffinityProperties &affinity );
-
-        CF::Properties getAffinityOptions() const;
-
         static ComponentInfo* buildComponentInfoFromSPDFile(const SoftPkg* softpkg,
                                                             const ComponentInstantiation* instantiation);
 
     private:
         ComponentInfo (const ComponentInfo&);
-
-        ossie::Properties _affinity_prf;
-
-        CF::Properties affinityOptions;
-
         const ComponentInstantiation* instantiation;
     };
 

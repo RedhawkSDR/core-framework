@@ -28,9 +28,13 @@
 #include "omniORB4/CORBA.h"
 #endif
 
+#include <boost/foreach.hpp>
+#include <boost/scoped_ptr.hpp>
+
 #include <ossie/CorbaUtils.h>
 #include <ossie/prop_utils.h>
 #include <ossie/debug.h>
+#include <ossie/affinity.h>
 #include <ossie/PropertyMap.h>
 
 using namespace ossie;
@@ -700,4 +704,39 @@ CF::Properties ossie::getPartialStructs(const CF::Properties& properties)
         }
     }
     return partials;
+}
+
+CF::Properties ossie::getAffinityOptions(const ComponentInstantiation::AffinityProperties& affinityProps)
+{
+    // Store parsed affinity properties as a static singleton, protecting the
+    // load with a mutex; if the definitions are not set
+    static boost::scoped_ptr<ossie::Properties> definitions;
+    static boost::mutex mutex;
+    if (!definitions) {
+        boost::mutex::scoped_lock lock(mutex);
+        if (!definitions) {
+            // Set the singleton first, under the assumption that if load fails
+            // once it will always fail, so that it doesn't re-try every time
+            definitions.reset(new ossie::Properties());
+            try {
+                std::stringstream xml(redhawk::affinity::get_property_definitions());
+                LOG_TRACE(prop_utils, "Loading affinity definitions: " << xml.str());
+                definitions->load(xml);
+            } catch (...) {
+                LOG_WARN(prop_utils, "Error loading affinity defintions from library");
+            }
+        }
+    }
+
+    CF::Properties options;
+    BOOST_FOREACH(const ossie::ComponentProperty& propref, affinityProps) {
+        const Property* prop = definitions->getProperty(propref.getID());
+        if (prop) {
+            CF::DataType dt = overridePropertyValue(prop, &propref);
+            ossie::corba::push_back(options, dt);
+        } else {
+            LOG_WARN(prop_utils, "Ignoring unknown affinity property " << propref.getID());
+        } 
+    }
+    return options;
 }

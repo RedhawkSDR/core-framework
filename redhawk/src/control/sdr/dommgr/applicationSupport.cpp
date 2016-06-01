@@ -77,15 +77,6 @@ ComponentInfo::ComponentInfo(const SoftPkg* softpkg, const ComponentInstantiatio
     spd(softpkg),
     instantiation(instantiation)
 {
-    // load common affinity property definitions 
-    try {
-      std::stringstream os(redhawk::affinity::get_property_definitions());
-      LOG_TRACE(ComponentInfo, "affinity definitions: " << os.str());
-      _affinity_prf.load(os);
-    }
-    catch(...){
-      LOG_WARN(ComponentInfo, "Error loading affinity definitions from library." );
-    }
 }
 
 ComponentInfo::~ComponentInfo ()
@@ -95,30 +86,4 @@ ComponentInfo::~ComponentInfo ()
 const ComponentInstantiation* ComponentInfo::getInstantiation() const
 {
     return instantiation;
-}
-
-void ComponentInfo::setAffinity( const AffinityProperties &affinity_props )
-{
-  
-  for (unsigned int i = 0; i < affinity_props.size(); ++i) {
-    const ossie::ComponentProperty* propref = &(affinity_props[i]);
-    std::string propId = propref->getID();
-    LOG_DEBUG(ComponentInfo, "Affinity property id = " << propId);
-    const Property* prop = _affinity_prf.getProperty(propId);
-    // Without a prop, we don't know how to convert the strings to the property any type
-    if (prop == NULL) {
-      LOG_WARN(ComponentInfo, "ignoring attempt to override property " << propId << " that does not exist in component");
-      continue;
-    }
-
-    // add property
-    CF::DataType dt = overridePropertyValue(prop, propref);
-    addProperty( dt, affinityOptions );
-  }
-
-}
-
-CF::Properties ComponentInfo::getAffinityOptions() const
-{
-    return affinityOptions;
 }

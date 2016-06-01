@@ -218,14 +218,13 @@ CF::LoadableDevice::LoadType SoftpkgDeployment::getCodeType() const
     }
 }
 
-ComponentDeployment::ComponentDeployment(ComponentInfo* component,
+ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
                                          const ComponentInstantiation* instantiation,
                                          const std::string& identifier) :
-    SoftpkgDeployment(component->spd),
-    component(component),
+    SoftpkgDeployment(softpkg),
     instantiation(instantiation),
     identifier(identifier),
-    affinityOptions(component->getAffinityOptions())
+    affinityOptions()
 {
     // If the SoftPkg has an associated Properties, check the overrides for
     // validity
@@ -247,11 +246,11 @@ ComponentDeployment::ComponentDeployment(ComponentInfo* component,
             }
         }
     }
-}
 
-ComponentInfo* ComponentDeployment::getComponent()
-{
-    return component;
+    if (!instantiation->getAffinity().empty()) {
+        RH_NL_TRACE("ApplicationFactory_impl", "Setting affinity options");
+        affinityOptions = ossie::getAffinityOptions(instantiation->getAffinity());
+    }
 }
 
 const std::string& ComponentDeployment::getIdentifier() const
@@ -689,7 +688,7 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(ComponentI
     const ComponentInstantiation* instantiation = component->getInstantiation();
     std::string component_id = instantiation->getID() + ":" + instanceName;
 
-    ComponentDeployment* deployment = new ComponentDeployment(component, instantiation, component_id);
+    ComponentDeployment* deployment = new ComponentDeployment(component->spd, instantiation, component_id);
     components.push_back(deployment);
 
     // Override properties from initial configuration

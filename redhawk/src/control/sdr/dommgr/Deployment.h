@@ -100,10 +100,8 @@ namespace ossie {
     class ComponentDeployment : public SoftpkgDeployment, public UsesDeviceDeployment
     {
     public:
-        ComponentDeployment(ComponentInfo* component, const ComponentInstantiation* instantiation,
+        ComponentDeployment(const SoftPkg* softpkg, const ComponentInstantiation* instantiation,
                             const std::string& identifier);
-
-        ComponentInfo* getComponent();
 
         /**
          * @brief  Returns the component's runtime identifier
@@ -171,7 +169,6 @@ namespace ossie {
         CF::DataType getPropertyValue(const Property* property) const;
         const ComponentProperty* getPropertyOverride(const std::string& id) const;
 
-        ComponentInfo* component;
         const ComponentInstantiation* instantiation;
         const std::string identifier;
 
