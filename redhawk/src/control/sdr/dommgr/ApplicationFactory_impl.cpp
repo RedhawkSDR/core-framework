@@ -636,7 +636,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDe
 
     // Place the remaining components one-by-one
     BOOST_FOREACH(const ComponentPlacement& placement, _appFact._sadParser.getComponentPlacements()) {
-        const SoftPkg* softpkg = _appProfile.getSoftPkg(placement.componentFile->getFileName());
+        const SoftPkg* softpkg = appDeployment.getSoftPkg(placement.componentFile->getFileName());
         // Even though it is possible for there to be more than one instantiation
         // per component, the tooling doesn't support that, so supporting this at a
         // framework level would add substantial complexity without providing any
@@ -652,7 +652,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDe
         }
         ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg,
                                                                                          instantiation);
-        allocateComponent(deployment, assigned_device, appDeployment.getIdentifier());
+        allocateComponent(appDeployment, deployment, assigned_device);
     }
 }
 
@@ -762,7 +762,7 @@ bool createHelper::allocateHostCollocation(ossie::ApplicationDeployment& appDepl
         for (DeploymentList::const_iterator depl = components.begin(); depl != components.end(); ++depl) {
             // Reset any dependencies that may have been resolved in a prior attempt
             (*depl)->clearDependencies();
-            if (!resolveSoftpkgDependencies(*depl, *node)) {
+            if (!resolveSoftpkgDependencies(appDeployment, *depl, *node)) {
                 LOG_TRACE(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                           << (*depl)->getIdentifier()
                           << " implementation " << (*depl)->getImplementation()->getID());
@@ -810,7 +810,7 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
     DeviceIDList assignedDevices;
     DeploymentList deployments;
     BOOST_FOREACH(const ComponentPlacement& placement, collocation.getComponents()) {
-        const SoftPkg* softpkg = _appProfile.getSoftPkg(placement.componentFile->getFileName());
+        const SoftPkg* softpkg = appDeployment.getSoftPkg(placement.componentFile->getFileName());
         const ComponentInstantiation* instantiation = &(placement.getInstantiations()[0]);
         ossie::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, instantiation);
         deployments.push_back(deployment);
@@ -1163,9 +1163,8 @@ CF::Application_ptr createHelper::create (
 
     //////////////////////////////////////////////////
     // Load the components to instantiate from the SAD
-    _appProfile.load(_appFact._fileMgr, _appFact._sadParser);
     ossie::ApplicationDeployment app_deployment(_appFact._sadParser, _waveformContextName, modifiedInitConfiguration);
-    getRequiredComponents(_appFact._fileMgr, _appFact._sadParser, app_deployment);
+    app_deployment.loadProfiles(_appFact._fileMgr);
 
     ////////////////////////////////////////////////
     // Assign components to devices
@@ -1342,9 +1341,9 @@ CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDev
  collocation request.  This requires that we know and cleanup only those allocations that we made..
 
  */
-void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
-                                     const std::string& assignedDeviceId,
-                                     const std::string& appIdentifier)
+void createHelper::allocateComponent(ossie::ApplicationDeployment& appDeployment,
+                                     ossie::ComponentDeployment* deployment,
+                                     const std::string& assignedDeviceId)
 {
     redhawk::PropertyMap alloc_context = deployment->getAllocationContext();
     
@@ -1395,7 +1394,8 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
         // Found an implementation which has its 'usesdevice' dependencies
         // satisfied, now perform assignment/allocation of component to device
         LOG_DEBUG(ApplicationFactory_impl, "Trying to find the device");
-        ossie::AllocationResult response = allocateComponentToDevice(deployment, assignedDeviceId, appIdentifier);
+        ossie::AllocationResult response = allocateComponentToDevice(deployment, assignedDeviceId,
+                                                                     appDeployment.getIdentifier());
         
         if (response.first.empty()) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to allocate device for component "
@@ -1411,7 +1411,7 @@ void createHelper::allocateComponent(ossie::ComponentDeployment* deployment,
         DeviceNode& node = *(response.second);
         const std::string& deviceId = node.identifier;
         
-        if (!resolveSoftpkgDependencies(deployment, node)) {
+        if (!resolveSoftpkgDependencies(appDeployment, deployment, node)) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                       << deployment->getIdentifier() << " implementation " << implementation->getID());
             continue;
@@ -1710,7 +1710,9 @@ void createHelper::_castRequestProperties(CF::Properties& allocationProperties, 
     }
 }
 
-bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployment, ossie::DeviceNode& device)
+bool createHelper::resolveSoftpkgDependencies(ossie::ApplicationDeployment& appDeployment,
+                                              ossie::SoftpkgDeployment* deployment,
+                                              ossie::DeviceNode& device)
 {
     const ossie::SPD::Implementation* implementation = deployment->getImplementation();
     const SPD::SoftPkgDependencies& deps = implementation->getSoftPkgDependencies();
@@ -1718,7 +1720,7 @@ bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployme
 
     for (iterSoftpkg = deps.begin(); iterSoftpkg != deps.end(); ++iterSoftpkg) {
         // Find an implementation whose dependencies match
-        ossie::SoftpkgDeployment* dependency = resolveDependencyImplementation(*iterSoftpkg, device);
+        ossie::SoftpkgDeployment* dependency = resolveDependencyImplementation(appDeployment, *iterSoftpkg, device);
         if (dependency) {
             deployment->addDependency(dependency);
         } else {
@@ -1730,11 +1732,12 @@ bool createHelper::resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployme
     return true;
 }
 
-ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(const ossie::SPD::SoftPkgRef& ref,
+ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::ApplicationDeployment& appDeployment,
+                                                                        const ossie::SPD::SoftPkgRef& ref,
                                                                         ossie::DeviceNode& device)
 {
     LOG_TRACE(ApplicationFactory_impl, "Resolving dependency " << ref);
-    const SoftPkg* softpkg = _appProfile.getSoftPkg(ref.localfile);
+    const SoftPkg* softpkg = appDeployment.getSoftPkg(ref.localfile);
     const SPD::Implementations& spd_list = softpkg->getImplementations();
 
     for (size_t implCount = 0; implCount < spd_list.size(); implCount++) {
@@ -1752,69 +1755,13 @@ ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(const os
 
         ossie::SoftpkgDeployment* dependency = new ossie::SoftpkgDeployment(softpkg, &implementation);
         // Recursively check any softpkg dependencies
-        if (resolveSoftpkgDependencies(dependency, device)) {
+        if (resolveSoftpkgDependencies(appDeployment, dependency, device)) {
             return dependency;
         }
         delete dependency;
     }
 
     return 0;
-}
-
-void createHelper::checkComponentInfo(CF::FileSystem_ptr fileSys,
-                                      const ComponentPlacement& component)
-{
-    // Even though it is possible for there to be more than one instantiation per component,
-    //  the tooling doesn't support that, so supporting this at a framework level would add
-    //  substantial complexity without providing any appreciable improvements. It is far
-    //  easier to have multiple placements rather than multiple instantiations.
-    const vector<ComponentInstantiation>& instantiations = component.getInstantiations();
-    const ComponentInstantiation& instance = instantiations[0];
-
-    // Extract required data from SPD file
-    LOG_TRACE(ApplicationFactory_impl, "Getting the SPD Filename");
-    const ComponentFile* componentfile = component.componentFile;
-    if (!componentfile) {
-        ostringstream eout;
-        eout << "The SPD file reference for componentfile "<<component.getFileRefId()<<" is missing";
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
-    }
-    LOG_TRACE(ApplicationFactory_impl, "Building Component Info From SPD File");
-    const SoftPkg* softpkg = _appProfile.getSoftPkg(componentfile->getFileName());
-    if (softpkg->isScaCompliant() && !instance.isNamingService()) {
-        LOG_WARN(ApplicationFactory_impl, "component instantiation is sca compliant but does not provide a 'findcomponent' name...this is probably an error");
-    }
-}
-
-/* Create a vector of all the components for the SAD associated with this App Factory
- *  - Get component information from the SAD and store in _requiredComponents vector
- */
-void createHelper::getRequiredComponents(CF::FileSystem_ptr fileSys,
-                                         const SoftwareAssembly& sadParser,
-                                         ossie::ApplicationDeployment& appDeployment)
-                                         
-{
-    TRACE_ENTER(ApplicationFactory_impl);
-
-    // Walk through the host collocations first
-    const std::vector<SoftwareAssembly::HostCollocation>& collocations = sadParser.getHostCollocations();
-    for (size_t index = 0; index < collocations.size(); ++index) {
-        const SoftwareAssembly::HostCollocation& collocation = collocations[index];
-        LOG_TRACE(ApplicationFactory_impl, "Building component info for host collocation "
-                  << collocation.getID());
-        const std::vector<ComponentPlacement>& placements = collocations[index].getComponents();
-        for (unsigned int i = 0; i < placements.size(); i++) {
-            checkComponentInfo(fileSys, placements[i]);
-        }
-    }
-
-    // Then, walk through the remaining non-collocated components
-    const std::vector<ComponentPlacement>& componentsFromSAD = sadParser.getComponentPlacements();
-    for (unsigned int i = 0; i < componentsFromSAD.size(); i++) {
-        checkComponentInfo(fileSys, componentsFromSAD[i]);
-    }
-
-    TRACE_EXIT(ApplicationFactory_impl);
 }
 
 /* Given a waveform/application name, return a unique waveform naming context

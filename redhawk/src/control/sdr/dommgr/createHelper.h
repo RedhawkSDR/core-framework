@@ -28,7 +28,6 @@
 #include <ossie/ComponentDescriptor.h>
 
 #include "PersistenceStore.h"
-#include "ApplicationProfile.h"
 #include "Deployment.h"
 
 class Application_impl;
@@ -94,8 +93,6 @@ private:
     CosNaming::NamingContext_var _waveformContext; 
     CosNaming::NamingContext_ptr _domainContext; 
 
-    ossie::ApplicationProfile _appProfile;
-
     typedef std::vector<ossie::ComponentDeployment*> DeploymentList;
     typedef std::vector<std::string> ProcessorList;
     typedef std::vector<ossie::SPD::NameVersionPair> OSList;
@@ -125,12 +122,6 @@ private:
     void _evaluateMATHinRequest(CF::Properties &request, const CF::Properties &configureProperties);
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::PropertyRef> &prop_refs, unsigned int offset=0);
 
-    // Populate _requiredComponents vector
-    void getRequiredComponents(CF::FileSystem_ptr fileSys,
-                               const ossie::SoftwareAssembly& sadParser,
-                               ossie::ApplicationDeployment& appDeployment);
-    void checkComponentInfo(CF::FileSystem_ptr fileSys, const ossie::ComponentPlacement& component);
-
     // Supports allocation
     bool allocateUsesDevices(const std::vector<ossie::UsesDevice>& usesDevices,
                              const CF::Properties& configureProperties,
@@ -139,9 +130,9 @@ private:
     CF::AllocationManager::AllocationResponseSequence* allocateUsesDeviceProperties(
         const std::vector<ossie::UsesDevice>& component,
         const CF::Properties& configureProperties);
-    void allocateComponent(ossie::ComponentDeployment* deployment,
-                           const std::string& assignedDeviceId,
-                           const std::string& appIdentifier);
+    void allocateComponent(ossie::ApplicationDeployment& appDeployment,
+                           ossie::ComponentDeployment* deployment,
+                           const std::string& assignedDeviceId);
 
     ossie::AllocationResult allocateComponentToDevice(ossie::ComponentDeployment* deployment,
                                                       const std::string& assignedDeviceId,
@@ -153,8 +144,11 @@ private:
                                  const ProcessorList& processorDeps,
                                  const OSList& osDeps);
 
-    bool resolveSoftpkgDependencies(ossie::SoftpkgDeployment* deployment, ossie::DeviceNode& device);
-    ossie::SoftpkgDeployment* resolveDependencyImplementation(const ossie::SPD::SoftPkgRef& ref,
+    bool resolveSoftpkgDependencies(ossie::ApplicationDeployment& appDeployment,
+                                    ossie::SoftpkgDeployment* deployment,
+                                    ossie::DeviceNode& device);
+    ossie::SoftpkgDeployment* resolveDependencyImplementation(ossie::ApplicationDeployment& appDeployment,
+                                                              const ossie::SPD::SoftPkgRef& ref,
                                                               ossie::DeviceNode& device);
     
     // Supports loading, executing, initializing, configuring, & connecting
