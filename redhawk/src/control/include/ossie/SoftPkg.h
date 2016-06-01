@@ -190,16 +190,8 @@ namespace ossie {
 
     class SoftPkg {
         public:
-            SoftPkg() : _spd(0), _spdFile("")  {}
-
+            SoftPkg();
             SoftPkg(std::istream& input, const std::string& _spdFile) throw (ossie::parser_error);
-
-            SoftPkg& operator=(SoftPkg other)
-            {
-                _spd = other._spd;
-                _spdFile = other._spdFile;
-                return *this;
-            }
 
         public:
             void load(std::istream& input, const std::string& _spdFile) throw (ossie::parser_error);
@@ -292,25 +284,19 @@ namespace ossie {
                 return _spd->type != "sca_non_compliant";
             }
             
-            const boost::shared_ptr<Properties>& getProperties() const
+            const Properties* getProperties() const
             {
-                return _properties;
+                return _properties.get();
             }
 
-            void setProperties(const boost::shared_ptr<Properties>& properties)
+            void loadProperties(std::istream& file);
+
+            const ComponentDescriptor* getDescriptor() const
             {
-                _properties = properties;
+                return _descriptor.get();
             }
 
-            const boost::shared_ptr<ComponentDescriptor>& getDescriptor() const
-            {
-                return _descriptor;
-            }
-
-            void setDescriptor(const boost::shared_ptr<ComponentDescriptor>& descriptor)
-            {
-                _descriptor = descriptor;
-            }
+            void loadDescriptor(std::istream& file);
 
         protected:
             std::auto_ptr<SPD> _spd;

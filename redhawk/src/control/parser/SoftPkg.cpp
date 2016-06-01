@@ -19,10 +19,22 @@
  */
 
 #include <sstream>
-#include "ossie/SoftPkg.h"
+
+#include <boost/make_shared.hpp>
+
+#include <ossie/SoftPkg.h>
+#include <ossie/Properties.h>
+#include <ossie/ComponentDescriptor.h>
+
 #include "internal/spd-parser.h"
 
 using namespace ossie;
+
+SoftPkg::SoftPkg() :
+    _spd(0),
+    _spdFile()
+{
+}
 
 SoftPkg::SoftPkg(std::istream& input, const std::string& spdFile) throw (ossie::parser_error) {
     this->load(input, spdFile);
@@ -51,6 +63,18 @@ void SoftPkg::load(std::istream& input, const std::string& spdFile) throw (ossie
             ii->prfFile = _spdPath + "/" + (*ii->prfFile);
         }
     }
+}
+
+void SoftPkg::loadProperties(std::istream& input)
+{
+    _properties = boost::make_shared<Properties>();
+    _properties->load(input);
+}
+
+void SoftPkg::loadDescriptor(std::istream& input)
+{
+    _descriptor = boost::make_shared<ComponentDescriptor>();
+    _descriptor->load(input);
 }
 
 const std::string SPD::SoftPkgRef::asString() const {

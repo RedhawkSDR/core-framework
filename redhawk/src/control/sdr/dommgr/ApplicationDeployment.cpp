@@ -210,9 +210,8 @@ void ApplicationDeployment::loadComponentProfile(CF::FileSystem_ptr fileSystem,
     if (softpkg->getPRFFile()) {
         LOG_TRACE(ApplicationDeployment, "Loading PRF file " << softpkg->getPRFFile());
         try {
-            softpkg->setProperties(boost::make_shared<Properties>());
             File_stream prf_stream(fileSystem, softpkg->getPRFFile());
-            softpkg->getProperties()->load(prf_stream);
+            softpkg->loadProperties(prf_stream);
         } catch (const std::exception& exc) {
             LOG_ERROR(ApplicationDeployment, "Invalid PRF file " << softpkg->getPRFFile() << ": " << exc.what());
         }
@@ -221,9 +220,8 @@ void ApplicationDeployment::loadComponentProfile(CF::FileSystem_ptr fileSystem,
     if (softpkg->getSCDFile()) {
         LOG_TRACE(ApplicationDeployment, "Loading SCD file " << softpkg->getSCDFile());
         try {
-            softpkg->setDescriptor(boost::make_shared<ComponentDescriptor>());
             File_stream scd_stream(fileSystem, softpkg->getSCDFile());
-            softpkg->getDescriptor()->load(scd_stream);
+            softpkg->loadDescriptor(scd_stream);
         } catch (const std::exception& exc) {
             LOG_ERROR(ApplicationDeployment, "Invalid SCD file " << softpkg->getSCDFile() << ": " << exc.what());
         }
