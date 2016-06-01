@@ -85,7 +85,10 @@ namespace ossie {
     protected:
         typedef boost::ptr_vector<SoftPkg> ProfileList;
 
-        const SoftPkg* loadProfile(CF::FileSystem_ptr fileSystem, const std::string& filename);
+        void loadComponentProfile(CF::FileSystem_ptr fileSystem,
+                                  const ComponentPlacement& placement);
+
+        SoftPkg* loadProfile(CF::FileSystem_ptr fileSystem, const std::string& filename);
 
         void overrideAssemblyControllerProperties(ComponentDeployment* deployment);
         void overrideExternalProperties(ComponentDeployment* deployment);
