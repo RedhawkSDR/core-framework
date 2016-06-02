@@ -56,30 +56,14 @@ class File_stream : public std::istream
          * Opening a stream using this constructor will ensure that the SCA file get's closed automatically
          * when the file stream is destroyed.
          */
-        explicit File_stream(CF::FileSystem_ptr fsysptr, const char* path) throw(std::ios_base::failure) : std::ios(0), needsClose(true) 
-        {
-            try {
-                sb = new File_buffer((CF::File_var)fsysptr->open(path, true));
-                this->init(sb);
-            } catch( ... ) {
-                throw std::ios_base::failure("exception while opening file");
-            }
-        }
+        File_stream(CF::FileSystem_ptr fsysptr, const char* path) throw(std::ios_base::failure);
 
         /*
          * Open a stream given a SCA File.
          *
          * Note: the caller is responsible for closing the provided file. 
          */
-        explicit File_stream(CF::File_ptr fptr) : std::ios(0), needsClose(false) 
-        {
-            try {
-                sb = new File_buffer(fptr);
-                this->init(sb);
-            } catch( ... ) {
-                throw std::ios_base::failure("exception while opening file");
-            }
-        }
+        explicit File_stream(CF::File_ptr fptr);
 
         virtual ~File_stream();
 
