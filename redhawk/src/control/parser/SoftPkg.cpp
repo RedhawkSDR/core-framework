@@ -20,6 +20,7 @@
 
 #include <sstream>
 
+#include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 
 #include <ossie/SoftPkg.h>
@@ -75,6 +76,18 @@ void SoftPkg::loadDescriptor(std::istream& input)
 {
     _descriptor = boost::make_shared<ComponentDescriptor>();
     _descriptor->load(input);
+}
+
+const SPD::Implementation* SoftPkg::getImplementation(const std::string& id) const
+{
+    assert(_spd.get() != 0);
+    BOOST_FOREACH(const SPD::Implementation& implementation, _spd->implementations) {
+        if (id == implementation.getID()) {
+            return &implementation;
+        }
+    }
+
+    return 0;
 }
 
 const std::string SPD::SoftPkgRef::asString() const {

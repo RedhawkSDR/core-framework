@@ -273,6 +273,8 @@ namespace ossie {
                 return _spd->implementations; 
             }
 
+            const ossie::SPD::Implementation* getImplementation(const std::string& id) const;
+
             const std::vector<ossie::UsesDevice>& getUsesDevices() const {
                 assert(_spd.get() != 0);
                 return _spd->usesDevice;
