@@ -79,7 +79,7 @@ namespace redhawk {
 
         const ossie::Properties* getAssemblyControllerProperties(const ossie::SoftwareAssembly& sad);
 
-        void checkFilename(const std::string& filename);
+        bool endsWith(const std::string& filename, const std::string& suffix);
         bool fileExists(const std::string& filename);
 
         CF::FileSystem_var fileSystem;

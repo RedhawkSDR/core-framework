@@ -117,9 +117,11 @@ void ApplicationValidator::validateSoftPkgRef(const SPD::SoftPkgRef& softpkgref)
 
     // Basic checking for valid, existing filename
     LOG_TRACE(ApplicationValidator, "Validating SPD " << spd_file);
-    checkFilename(spd_file);
     if (!fileExists(spd_file)) {
         throw std::runtime_error("softpkgref " + spd_file + " does not exist");
+    }
+    if (!endsWith(spd_file, ".spd.xml")) {
+        LOG_WARN(ApplicationValidator, "SPD file " << spd_file << " should end with .spd.xml");
     }
 
     // If this fails, it will throw redhawk::invalid_profile
@@ -197,13 +199,29 @@ void ApplicationValidator::validateComponentPlacement(const ComponentPlacement& 
 
     // Basic checking for valid, existing filename
     LOG_TRACE(ApplicationValidator, "Validating SPD " << spd_file);
-    checkFilename(spd_file);
     if (!fileExists(spd_file)) {
         throw validation_error("componentfile " + placement._componentFileRef + " points to non-existent file " + spd_file);
+    }
+    if (!endsWith(spd_file, ".spd.xml")) {
+        LOG_WARN(ApplicationValidator, "SPD file " << spd_file << " should end with .spd.xml");
     }
 
     // If this fails, it will throw redhawk::invalid_profile
     const SoftPkg* softpkg = cache.loadProfile(spd_file);
+
+    // Check the PRF and SCD filenames
+    if (softpkg->getPRFFile()) {
+        std::string prf_file = softpkg->getPRFFile();
+        if (!endsWith(prf_file, ".prf.xml")) {
+            LOG_WARN(ApplicationValidator, "PRF file " << prf_file << " should end with .prf.xml");
+        }
+    }
+    if (softpkg->getSCDFile()) {
+        std::string scd_file = softpkg->getSCDFile();
+        if (!endsWith(scd_file, ".scd.xml")) {
+            LOG_WARN(ApplicationValidator, "SCD file " << scd_file << " should end with .scd.xml");
+        }
+    }
 
     BOOST_FOREACH(const SPD::Implementation& implementation, softpkg->getImplementations()) {
         validateImplementation(softpkg, implementation, true);
@@ -245,9 +263,12 @@ bool ApplicationValidator::fileExists(const std::string& filename)
     }
 }
 
-void ApplicationValidator::checkFilename(const std::string& filename)
+bool ApplicationValidator::endsWith(const std::string& filename, const std::string& suffix)
 {
-    if (filename.find(".spd.xml") == std::string::npos) {
-        LOG_WARN(ApplicationValidator, "SPD file " << filename << " should end with .spd.xml");
+    if (filename.size() < suffix.size()) {
+        return false;
     }
+    // Compare the end of the filename to the entirety of the suffix
+    std::string::size_type start = filename.size() - suffix.size();
+    return filename.compare(start, suffix.size(), suffix) == 0;
 }
