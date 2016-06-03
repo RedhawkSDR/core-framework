@@ -273,7 +273,7 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDe
 
     // Place the remaining components one-by-one
     BOOST_FOREACH(const ComponentPlacement& placement, _appFact._sadParser.getComponentPlacements()) {
-        const SoftPkg* softpkg = appDeployment.getSoftPkg(placement.filename);
+        const SoftPkg* softpkg = _profileCache.loadProfile(placement.filename);
         BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
             // Even though the XML supports more than one instantiation per
             // component placement, the tooling doesn't support that, so this
@@ -445,7 +445,7 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
     DeviceIDList assignedDevices;
     DeploymentList deployments;
     BOOST_FOREACH(const ComponentPlacement& placement, collocation.getComponents()) {
-        const SoftPkg* softpkg = appDeployment.getSoftPkg(placement.filename);
+        const SoftPkg* softpkg = _profileCache.loadProfile(placement.filename);
         BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
             // Even though the XML supports more than one instantiation per
             // component placement, the tooling doesn't support that, so this
@@ -795,7 +795,6 @@ CF::Application_ptr createHelper::create (
     //////////////////////////////////////////////////
     // Load the components to instantiate from the SAD
     ossie::ApplicationDeployment app_deployment(_appFact._sadParser, _waveformContextName, modifiedInitConfiguration);
-    app_deployment.loadProfiles(_appFact._fileMgr);
 
     ////////////////////////////////////////////////
     // Assign components to devices
@@ -1368,7 +1367,7 @@ ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::A
                                                                         ossie::DeviceNode& device)
 {
     LOG_TRACE(ApplicationFactory_impl, "Resolving dependency " << ref);
-    const SoftPkg* softpkg = appDeployment.getSoftPkg(ref.localfile);
+    const SoftPkg* softpkg = _profileCache.loadSoftPkg(ref.localfile);
     const SPD::Implementations& spd_list = softpkg->getImplementations();
 
     for (size_t implCount = 0; implCount < spd_list.size(); implCount++) {
@@ -2192,6 +2191,7 @@ createHelper::createHelper (
     _baseNamingContext(baseNamingContext),
     _waveformContext(CosNaming::NamingContext::_duplicate(waveformContext)),
     _domainContext(domainContext),
+    _profileCache(_appFact._fileMgr),
     _isComplete(false),
     _application(0)
 {

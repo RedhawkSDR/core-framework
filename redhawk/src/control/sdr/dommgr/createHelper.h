@@ -29,6 +29,7 @@
 
 #include "PersistenceStore.h"
 #include "ApplicationDeployment.h"
+#include "ProfileCache.h"
 
 class Application_impl;
 class AllocationManager_impl;
@@ -92,6 +93,8 @@ private:
     // CORBA naming context
     CosNaming::NamingContext_var _waveformContext; 
     CosNaming::NamingContext_ptr _domainContext; 
+
+    redhawk::ProfileCache _profileCache;
 
     typedef std::vector<ossie::ComponentDeployment*> DeploymentList;
     typedef std::vector<std::string> ProcessorList;

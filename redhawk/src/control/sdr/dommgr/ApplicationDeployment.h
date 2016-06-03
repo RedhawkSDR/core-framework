@@ -25,7 +25,6 @@
 #include <vector>
 
 #include <boost/shared_ptr.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 
 #include <ossie/debug.h>
 #include <ossie/PropertyMap.h>
@@ -49,11 +48,7 @@ namespace ossie {
                               const CF::Properties& initConfiguration);
         ~ApplicationDeployment();
 
-        void loadProfiles(CF::FileSystem_ptr fileSystem);
-
         const std::string& getIdentifier() const;
-
-        const SoftPkg* getSoftPkg(const std::string& filename) const;
 
         /**
          * Returns the properties used for evaluating math statements in
@@ -83,13 +78,6 @@ namespace ossie {
         CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId);
 
     protected:
-        typedef boost::ptr_vector<SoftPkg> ProfileList;
-
-        void loadComponentProfile(CF::FileSystem_ptr fileSystem,
-                                  const ComponentPlacement& placement);
-
-        SoftPkg* loadProfile(CF::FileSystem_ptr fileSystem, const std::string& filename);
-
         void overrideAssemblyControllerProperties(ComponentDeployment* deployment);
         void overrideExternalProperties(ComponentDeployment* deployment);
 
@@ -97,7 +85,6 @@ namespace ossie {
         const std::string identifier;
         const std::string instanceName;
         redhawk::PropertyMap initConfiguration;
-        ProfileList profiles;
         ComponentList components;
     };
 }

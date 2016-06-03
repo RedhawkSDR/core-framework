@@ -57,21 +57,6 @@ const std::string& ApplicationDeployment::getIdentifier() const
     return identifier;
 }
 
-void ApplicationDeployment::loadProfiles(CF::FileSystem_ptr fileSystem)
-{
-    // Walk through the host collocations first
-    BOOST_FOREACH(const SoftwareAssembly::HostCollocation& collocation, sad.getHostCollocations()) {
-        BOOST_FOREACH(const ComponentPlacement& placement, collocation.getComponents()) {
-            loadComponentProfile(fileSystem, placement);
-        }
-    }
-
-    // Then, walk through the remaining non-collocated components
-    BOOST_FOREACH(const ComponentPlacement& placement, sad.getComponentPlacements()) {
-        loadComponentProfile(fileSystem, placement);
-    }
-}
-
 ComponentDeployment* ApplicationDeployment::getAssemblyController()
 {
     BOOST_FOREACH(ComponentDeployment* deployment, components) {
@@ -99,6 +84,12 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(const Soft
     // Create a unique identifier for this component instance by appending the
     // application instance's unique name
     std::string component_id = instantiation->getID() + ":" + instanceName;
+
+    if (softpkg->isScaCompliant() && !instantiation->isNamingService()) {
+        LOG_WARN(ApplicationDeployment, "Component instantiation "
+                 << instantiation->getID() << " does not provide a 'findcomponent' name but "
+                 << softpkg->getName() << " is SCA-compliant");
+    }
 
     ComponentDeployment* deployment = new ComponentDeployment(softpkg, instantiation, component_id);
     components.push_back(deployment);
@@ -182,82 +173,6 @@ void ApplicationDeployment::overrideExternalProperties(ComponentDeployment* depl
             }
         }
     }
-}
-
-
-const SoftPkg* ApplicationDeployment::getSoftPkg(const std::string& filename) const
-{
-    BOOST_FOREACH(const SoftPkg& softpkg, profiles) {
-        if (softpkg.getSPDFile() == filename) {
-            return &softpkg;
-        }
-    }
-
-    throw std::logic_error(filename + " was never loaded");
-}
-
-void ApplicationDeployment::loadComponentProfile(CF::FileSystem_ptr fileSystem,
-                                                 const ComponentPlacement& placement)
-{
-    SoftPkg* softpkg = loadProfile(fileSystem, placement.filename);
-    if (softpkg->isScaCompliant()){ 
-        BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
-            if (!instantiation.isNamingService()) {
-                LOG_WARN(ApplicationDeployment, "Component instantiation "
-                         << instantiation.getID() << " does not provide a 'findcomponent' name but "
-                         << softpkg->getName() << " is SCA-compliant");
-            }
-        }
-    }
-
-    if (softpkg->getPRFFile()) {
-        LOG_TRACE(ApplicationDeployment, "Loading PRF file " << softpkg->getPRFFile());
-        try {
-            File_stream prf_stream(fileSystem, softpkg->getPRFFile());
-            softpkg->loadProperties(prf_stream);
-        } catch (const std::exception& exc) {
-            LOG_ERROR(ApplicationDeployment, "Invalid PRF file " << softpkg->getPRFFile() << ": " << exc.what());
-        }
-    }
-
-    if (softpkg->getSCDFile()) {
-        LOG_TRACE(ApplicationDeployment, "Loading SCD file " << softpkg->getSCDFile());
-        try {
-            File_stream scd_stream(fileSystem, softpkg->getSCDFile());
-            softpkg->loadDescriptor(scd_stream);
-        } catch (const std::exception& exc) {
-            LOG_ERROR(ApplicationDeployment, "Invalid SCD file " << softpkg->getSCDFile() << ": " << exc.what());
-        }
-    }
-}
-
-SoftPkg* ApplicationDeployment::loadProfile(CF::FileSystem_ptr fileSystem,
-                                            const std::string& filename)
-{
-    BOOST_FOREACH(SoftPkg& profile, profiles) {
-        if (profile.getSPDFile() == filename) {
-            LOG_TRACE(ApplicationDeployment, "Found existing profile " << filename);
-            return &profile;
-        }
-    }
-
-    LOG_TRACE(ApplicationDeployment, "Loading SPD file " << filename);
-    File_stream spd_stream(fileSystem, filename.c_str());
-    SoftPkg* spd = new SoftPkg(spd_stream, filename);
-    profiles.push_back(spd);
-    spd_stream.close();
-
-    const SPD::Implementations& spd_impls = spd->getImplementations();
-    for (SPD::Implementations::const_iterator impl = spd_impls.begin(); impl != spd_impls.end(); ++impl) {
-        const SPD::SoftPkgDependencies& deps = impl->getSoftPkgDependencies();
-        for (SPD::SoftPkgDependencies::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
-            SPD::SoftPkgRef& ref = const_cast<SPD::SoftPkgRef&>(*dep);
-            LOG_TRACE(ApplicationDeployment, "Resolving soft package reference " << ref.localfile);
-            loadProfile(fileSystem, ref.localfile);
-        }
-    }
-
-    return spd;
 }
 
 CF::Resource_ptr ApplicationDeployment::lookupComponentByInstantiationId(const std::string& identifier)
