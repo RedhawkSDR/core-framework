@@ -22,7 +22,6 @@
 
 noinst_LTLIBRARIES = libossieparser.la
 libossieparser_la_SOURCES = Properties.cpp \
-			    debug.cpp \
 			    SoftPkg.cpp \
 			    PropertyRef.cpp \
 			    DomainManagerConfiguration.cpp \
