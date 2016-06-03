@@ -306,8 +306,10 @@ CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByComponentInstantiationId
         return CF::Device::_nil();
     }
 
-    //LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Assigned device id " << deviceId);
-    return uses->getAssignedDevice();
+    CF::Device_var device = uses->getAssignedDevice();
+    LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Assigned device id "
+              << ossie::corba::returnString(device->identifier()));
+    return device._retn();
 }
 
 CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByApplication(const std::string& usesRefId)
@@ -320,6 +322,8 @@ CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByApplication(const std::s
         return CF::Device::_nil();
     }
 
-    //LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Assigned device id " << deviceId);
-    return uses->getAssignedDevice();
+    CF::Device_var device = uses->getAssignedDevice();
+    LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Assigned device id "
+              << ossie::corba::returnString(device->identifier()));
+    return device._retn();
 }
