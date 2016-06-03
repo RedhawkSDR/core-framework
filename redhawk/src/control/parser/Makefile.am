@@ -30,6 +30,12 @@ libossieparser_la_SOURCES = Properties.cpp \
 			    DeviceManagerConfiguration.cpp \
 			    SoftwareAssembly.cpp \
 			    componentProfile.cpp \
+			    internal/prf-parser.cpp \
+			    internal/dmd-parser.cpp \
+			    internal/dcd-parser.cpp \
+			    internal/sad-parser.cpp \
+			    internal/scd-parser.cpp \
+			    internal/spd-parser.cpp \
 			    internal/prf-pskel.cpp \
 			    internal/dmd-pskel.cpp \
 			    internal/dcd-pskel.cpp \
