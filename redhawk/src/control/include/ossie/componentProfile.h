@@ -203,11 +203,6 @@ namespace ossie {
 
         const std::string& getFindByNamingServiceName() const;
 
-        bool isAssemblyController() const;
-        void setIsAssemblyController(bool state);
-
-    private:
-        bool _isAssemblyController;
     };
 
     /*

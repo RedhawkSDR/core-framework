@@ -113,6 +113,9 @@ namespace ossie {
         bool isResource() const;
         bool isConfigurable() const;
 
+        bool isAssemblyController() const;
+        void setIsAssemblyController(bool state);
+
         std::string getEntryPoint();
 
         redhawk::PropertyMap getOptions();
@@ -171,6 +174,7 @@ namespace ossie {
 
         const ComponentInstantiation* instantiation;
         const std::string identifier;
+        bool assemblyController;
 
         boost::shared_ptr<DeviceNode> assignedDevice;
         CF::Resource_var resource;

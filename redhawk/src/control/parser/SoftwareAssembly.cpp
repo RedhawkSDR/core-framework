@@ -80,7 +80,6 @@ void SoftwareAssembly::validateComponentPlacements(std::vector<ComponentPlacemen
 
         BOOST_FOREACH(ComponentInstantiation& instance, placement.instantiations) {
             if (!_sad->assemblycontroller.empty() && _sad->assemblycontroller == instance.instantiationId) {
-                instance.setIsAssemblyController(true);
                 _assemblyController = &instance;
             }
         }

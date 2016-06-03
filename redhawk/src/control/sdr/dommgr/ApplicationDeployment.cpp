@@ -75,7 +75,7 @@ void ApplicationDeployment::loadProfiles(CF::FileSystem_ptr fileSystem)
 ComponentDeployment* ApplicationDeployment::getAssemblyController()
 {
     BOOST_FOREACH(ComponentDeployment* deployment, components) {
-        if (deployment->getInstantiation()->isAssemblyController()) {
+        if (deployment->isAssemblyController()) {
             return deployment;
         }
     }
@@ -86,7 +86,7 @@ redhawk::PropertyMap ApplicationDeployment::getAllocationContext() const
 {
     redhawk::PropertyMap properties;
     BOOST_FOREACH(ComponentDeployment* deployment, components) {
-        if (deployment->getInstantiation()->isAssemblyController()) {
+        if (deployment->isAssemblyController()) {
             properties = deployment->getAllocationContext();
         }
     }
@@ -104,7 +104,8 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(const Soft
     components.push_back(deployment);
 
     // Override properties from initial configuration
-    if (instantiation->isAssemblyController()) {
+    if (instantiation->getID() == sad.getAssemblyControllerRefId()) {
+        deployment->setIsAssemblyController(true);
         overrideAssemblyControllerProperties(deployment);
     } else {
         overrideExternalProperties(deployment);

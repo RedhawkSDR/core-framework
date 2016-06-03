@@ -2010,7 +2010,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
         } else {
             // The component is configurable; if it's the assembly controller,
             // save it for the end
-            if (deployment->getInstantiation()->isAssemblyController()) {
+            if (deployment->isAssemblyController()) {
                 ac_deployment = deployment;
             } else {
                 configure_list.push_back(deployment);
@@ -2157,7 +2157,7 @@ std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& 
     for (size_t index = 0; index < deployments.size(); ++index) {
         ossie::ComponentDeployment* deployment = deployments[index];
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
-        if (instantiation->isAssemblyController()) {
+        if (deployment->isAssemblyController()) {
             LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation->getID()
                       << " is the assembly controller");
         } else if (instantiation->hasStartOrder()) {

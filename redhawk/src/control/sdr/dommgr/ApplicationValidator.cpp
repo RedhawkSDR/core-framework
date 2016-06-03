@@ -223,7 +223,7 @@ const Properties* ApplicationValidator::getAssemblyControllerProperties(const So
     // return its Properties
     BOOST_FOREACH(const ComponentPlacement& placement, sad.getAllComponents()) {
         BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
-            if (instantiation.isAssemblyController()) {
+            if (instantiation.getID() == sad.getAssemblyControllerRefId()) {
                 const SoftPkg* softpkg = cache.loadProfile(placement.filename);
                 return softpkg->getProperties();
             }

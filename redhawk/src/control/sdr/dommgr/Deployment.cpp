@@ -247,7 +247,7 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
     SoftpkgDeployment(softpkg),
     instantiation(instantiation),
     identifier(identifier),
-    affinityOptions()
+    assemblyController(false)
 {
     // If the SoftPkg has an associated Properties, check the overrides for
     // validity
@@ -293,6 +293,16 @@ bool ComponentDeployment::isResource() const
 bool ComponentDeployment::isConfigurable() const
 {
     return softpkg->getDescriptor()->isConfigurable();
+}
+
+bool ComponentDeployment::isAssemblyController() const
+{
+    return assemblyController;
+}
+
+void ComponentDeployment::setIsAssemblyController(bool state)
+{
+    assemblyController = state;
 }
 
 void ComponentDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>& device)

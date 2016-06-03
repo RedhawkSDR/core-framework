@@ -124,8 +124,7 @@ const std::string StructSequencePropertyRef::_asString() const {
 //
 // ComponentInstantiation
 //
-ComponentInstantiation::ComponentInstantiation() :
-    _isAssemblyController(false)
+ComponentInstantiation::ComponentInstantiation()
 {
 }
 
@@ -167,16 +166,6 @@ const ComponentInstantiation::AffinityProperties &ComponentInstantiation::getAff
 
 const ComponentInstantiation::LoggingConfig &ComponentInstantiation::getLoggingConfig() const {
   return loggingConfig;
-}
-
-bool ComponentInstantiation::isAssemblyController() const
-{
-    return _isAssemblyController;
-}
-
-void ComponentInstantiation::setIsAssemblyController(bool state)
-{
-    _isAssemblyController = state;
 }
 
 //
