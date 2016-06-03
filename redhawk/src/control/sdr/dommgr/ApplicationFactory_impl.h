@@ -57,14 +57,6 @@ private:
     std::string getWaveformContextName(std::string name);
     std::string getBaseWaveformContext(std::string waveform_context);
 
-    static void ValidateFileLocation ( CF::FileManager_ptr fileMgr, const std::string &profile );
-    static void ValidateSoftPkgDep( CF::FileManager_ptr fileMgr, const std::string &profile );
-    static void ValidateSPD (CF::FileManager_ptr fileMgr, ossie::SoftPkg& spd, const std::string& profile);
-    static void ValidateComponent (CF::FileManager_ptr fileMgr, ossie::SoftPkg& spd, const std::string& profile);
-
-protected:
-    static std::string xmlParsingVersionMismatch(DomainManager_impl *domMgr, std::string &component_version);
-    
 public:
     ApplicationFactory_impl (const std::string& softwareProfile, 
                              const std::string& domainName, 

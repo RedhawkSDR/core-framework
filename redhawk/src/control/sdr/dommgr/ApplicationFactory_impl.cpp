@@ -43,6 +43,7 @@
 #include "DomainManager_impl.h"
 #include "AllocationManager_impl.h"
 #include "RH_NamingContext.h"
+#include "ApplicationValidator.h"
 
 namespace fs = boost::filesystem;
 using namespace ossie;
@@ -128,226 +129,6 @@ namespace {
 
 PREPARE_LOGGING(ApplicationFactory_impl);
 
-void
-ApplicationFactory_impl::ValidateFileLocation( CF::FileManager_ptr fileMgr, const std::string &profile_file)
-{
-    TRACE_ENTER(ApplicationFactory_impl)
-
-    if (profile_file == "") {
-        TRACE_EXIT(ApplicationFactory_impl)
-        return;
-    }
-
-    // Verify file within the provided FileMgr
-    LOG_TRACE(ApplicationFactory_impl, "Validating that profile " << profile_file << " exists");
-    if (!fileMgr->exists (profile_file.c_str())) {
-        string msg = "File ";
-        msg += profile_file;
-        msg += " does not exist.";
-        throw CF::FileException (CF::CF_ENOENT, msg.c_str());
-    }
-}
-
-
-void ApplicationFactory_impl::ValidateSoftPkgDep (CF::FileManager_ptr fileMgr, DomainManager_impl *domMgr, const std::string& sfw_profile )  {
-  SoftPkg pkg;
-  ValidateSPD(fileMgr, pkg, sfw_profile);
-}
-
-void ApplicationFactory_impl::ValidateComponent(CF::FileManager_ptr fileMgr,
-                                                SoftPkg &spdParser, 
-                                                const std::string& sfw_profile)
-{
-    ValidateSPD(fileMgr, spdParser, sfw_profile);
-
-    // query SPD for PRF
-    if (spdParser.getPRFFile() != 0) {
-        LOG_TRACE(ApplicationFactory_impl, "validating " << spdParser.getPRFFile());
-        try {
-            ValidateFileLocation(fileMgr, spdParser.getPRFFile());
-
-            // check the file name ends with the extension given in the spec
-            if (spdParser.getPRFFile() && (strstr (spdParser.getPRFFile (), ".prf.xml")) == NULL) {
-                LOG_ERROR(ApplicationFactory_impl, "File " << spdParser.getPRFFile() << " should end in .prf.xml.");
-            }
-
-            LOG_TRACE(ApplicationFactory_impl, "Creating file stream");
-            File_stream prfStream(fileMgr, spdParser.getPRFFile());
-            LOG_TRACE(ApplicationFactory_impl, "Loading parser");
-            Properties prfParser(prfStream);
-            LOG_TRACE(ApplicationFactory_impl, "Closing stream");
-            prfStream.close();
-        } catch (ossie::parser_error& ex ) {
-            std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-            LOG_ERROR(ApplicationFactory_impl, "Error validating PRF " << spdParser.getPRFFile() << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.what());
-        } catch (CF::InvalidFileName ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Failed to validate PRF due to invalid file name " << ex.msg);
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-        } catch (CF::FileException ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Failed to validate PRF due to file exception" << ex.msg);
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-        } catch ( ... ) {
-            LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating PRF " << spdParser.getPRFFile());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "");
-        }
-    } else {
-        LOG_TRACE(ApplicationFactory_impl, "No PRF file to validate");
-    }
-
-    if (spdParser.getSCDFile() != 0) {
-        try {
-          // query SPD for SCD
-          LOG_TRACE(ApplicationFactory_impl, "validating " << spdParser.getSCDFile());
-          ValidateFileLocation ( fileMgr, spdParser.getSCDFile ());
-
-          // Check the filename ends with  the extension given in the spec
-          if ((strstr (spdParser.getSCDFile (), ".scd.xml")) == NULL)
-            { LOG_ERROR(ApplicationFactory_impl, "File " << spdParser.getSCDFile() << " should end with .scd.xml."); }
-
-            File_stream _scd(fileMgr, spdParser.getSCDFile());
-            ComponentDescriptor scdParser (_scd);
-            _scd.close();
-        } catch (ossie::parser_error& ex) {
-            std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-            LOG_ERROR(ApplicationFactory_impl, "SCD file failed validation; parser error on file " << spdParser.getSCDFile() << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.what());
-        } catch (CF::InvalidFileName ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Failed to validate SCD due to invalid file name " << ex.msg);
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-        } catch (CF::FileException ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Failed to validate SCD due to file exception" << ex.msg);
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-        } catch ( ... ) {
-            LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating PRF " << spdParser.getSCDFile());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "");
-        }
-    } else if (spdParser.isScaCompliant()) {
-        LOG_ERROR(ApplicationFactory_impl, "SCA compliant component is missing SCD file reference");
-        throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, "SCA compliant components require SCD file");
-    } else {
-        LOG_TRACE(ApplicationFactory_impl, "No SCD file to validate")
-    }
-}
-
-void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr, 
-                                          DomainManager_impl *domMgr, 
-                                          SoftPkg &spdParser, 
-                                          const std::string& sfw_profile) {
-    TRACE_ENTER(ApplicationFactory_impl)
-
-    if ( sfw_profile == "" ) {
-      LOG_WARN( ApplicationFactory_impl, "No Software Profile Provided.");
-      throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "No software profile provided");
-      TRACE_EXIT(ApplicationFactory_impl);
-    }
-
-    try {
-        LOG_TRACE(ApplicationFactory_impl, "Validating SPD " << sfw_profile);
-        ValidateFileLocation(fileMgr, sfw_profile);
-
-        // check the filename ends with the extension given in the spec
-        if ((strstr (sfw_profile.c_str(), ".spd.xml")) == NULL)
-            { LOG_ERROR(ApplicationFactory_impl, "File " << sfw_profile << " should end with .spd.xml"); }
-        LOG_TRACE(ApplicationFactory_impl, "validating " << sfw_profile);
-
-        try {
-            File_stream _spd(fileMgr, sfw_profile.c_str());
-            spdParser.load( _spd,  sfw_profile.c_str() );
-            _spd.close();
-        } catch (ossie::parser_error& ex) {
-            File_stream _spd(fileMgr, sfw_profile.c_str());
-            std::string line;
-            std::string component_version;
-            while (std::getline(_spd, line)) {
-                size_t type_idx = line.find("type");
-                if (type_idx != std::string::npos) {
-                    size_t first_quote = line.find('"', type_idx);
-                    if (first_quote == std::string::npos)
-                        continue;
-                    size_t second_quote = line.find('"', first_quote + 1);
-                    if (second_quote == std::string::npos)
-                        continue;
-                    component_version = line.substr(first_quote + 1, second_quote-(first_quote+1));
-                    break;
-                }
-            }
-            ostringstream eout;
-            eout << xmlParsingVersionMismatch(domMgr, component_version);
-            std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-            eout << "Failed to parse SPD: " << sfw_profile << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
-            LOG_ERROR(ApplicationFactory_impl, eout.str() );
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, eout.str().c_str());
-        } catch (CF::InvalidFileName ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD: " << sfw_profile << ". Invalid file name exception: " << ex.msg);
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-        } catch (CF::FileException ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD: " << sfw_profile << ". File exception: " << ex.msg);
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-        } catch ( ... ) {
-            LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating SPD: " << sfw_profile );
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "");
-        }
-
-        //
-        // validate each implementation
-        //
-        const ossie::SPD::Implementations& impls = spdParser.getImplementations();
-        ossie::SPD::Implementations::const_iterator impl = impls.begin();
-        for( ; impl != impls.end(); impl++ ) {
-
-          
-          // validate code file exists
-          try {
-            boost::filesystem::path implPath = boost::filesystem::path( spdParser.getSPDPath()) /  impl->getCodeFile();
-            LOG_TRACE(ApplicationFactory_impl, "Validating Implmentation existance: " << implPath.string() );
-            ValidateFileLocation( fileMgr, implPath.string().c_str() );
-          } catch (CF::InvalidFileName ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Invalid Code File,  PROFILE:" << sfw_profile << "  CODE:" << impl->getCodeFile());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-          } catch (CF::FileException ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Invalid Code File,  PROFILE:" << sfw_profile << "  CODE:" << impl->getCodeFile());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-          } catch ( ... ) {
-            LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating PRF " << spdParser.getPRFFile());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "");
-          }
-
-          // validate all the soft package dependencies....
-          const ossie::SPD::SoftPkgDependencies& deps = impl->getSoftPkgDependencies();
-          ossie::SPD::SoftPkgDependencies::const_iterator dep = deps.begin();
-          for(; dep != deps.end(); dep++ ) {
-            try {
-              LOG_TRACE(ApplicationFactory_impl, "Validating Dependency: " << dep->localfile);
-              ValidateSoftPkgDep(fileMgr, domMgr, dep->localfile);
-            } catch (CF::InvalidFileName ex) {
-              LOG_ERROR(ApplicationFactory_impl, "Invalid Code File,  PROFILE:" << sfw_profile << "  CODE:" << impl->getCodeFile());
-              throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-            } catch (CF::FileException ex) {
-              LOG_ERROR(ApplicationFactory_impl, "Invalid Code File,  PROFILE:" << sfw_profile << "  CODE:" << impl->getCodeFile());
-              throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-            }
-            
-          }
-
-        }
-    } catch (CF::InvalidFileName& ex) {
-        LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD: " << sfw_profile << ", exception: " << ex.msg);
-        throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-    } catch (CF::FileException& ex) {
-        LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD: " << sfw_profile << ", exception: " << ex.msg);
-        throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-    } catch (CF::DomainManager::ApplicationInstallationError& ex) {
-        throw;
-    } catch ( ... ) {
-        LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating SPD: " << sfw_profile);
-        throw CF::DomainManager::ApplicationInstallationError ();
-    }
-
-
-}
-
-
 ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwareProfile,
                                                   const std::string& domainName, 
                                                   DomainManager_impl* domainManager) :
@@ -380,14 +161,18 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, "Could not get File Manager from Domain Manager");
     }
 
+    LOG_INFO(ApplicationFactory_impl, "Installing application " << _softwareProfile);
     try {
+        if (!_fileMgr->exists(_softwareProfile.c_str())) {
+            std::string msg = "File ";
+            msg += _softwareProfile;
+            msg += " does not exist.";
+            throw CF::FileException (CF::CF_ENOENT, msg.c_str());
+        }
 
-      LOG_INFO(ApplicationFactory_impl, "Installing application " << _softwareProfile.c_str());
-      ValidateFileLocation ( _fileMgr, _softwareProfile );
-
-      File_stream _sad(_fileMgr, _softwareProfile.c_str());
-      _sadParser.load(_sad);
-      _sad.close();
+        File_stream _sad(_fileMgr, _softwareProfile.c_str());
+        _sadParser.load(_sad);
+        _sad.close();
     } catch (const ossie::parser_error& ex) {
         ostringstream eout;
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
@@ -421,122 +206,16 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_ENOENT, eout.str().c_str());
     }
 
-    // Makes sure all external port names are unique
-    const std::vector<SoftwareAssembly::Port>& ports = _sadParser.getExternalPorts();
-    std::vector<std::string> extPorts;
-    for (std::vector<SoftwareAssembly::Port>::const_iterator port = ports.begin(); port != ports.end(); ++port) {
-        // Gets name to use
-        const std::string& extName = port->getExternalName();
-        // Check for duplicate
-        if (std::find(extPorts.begin(), extPorts.end(), extName) == extPorts.end()) {
-            extPorts.push_back(extName);
-        } else {
-            ostringstream eout;
-            eout << "Duplicate External Port name: " << extName;
-            LOG_ERROR(ApplicationFactory_impl, eout.str());
-            throw CF::DomainManager::ApplicationInstallationError(CF::CF_NOTSET, eout.str().c_str());
-        }
-    }
-
-    // Gets the assembly controller software profile by looping through each
-    // component instantiation to find a matching ID to the AC's
-    std::string assemblyControllerId = _sadParser.getAssemblyControllerRefId();
-    SoftPkg ac_spd;
-    std::string ac_profile;
-    bool ac_found = false;
-    std::vector<ComponentPlacement> components = _sadParser.getAllComponents();
-    for (std::vector<ComponentPlacement>::const_iterator comp = components.begin();
-            comp != components.end(); ++comp) {
-      SoftPkg comp_pkg;
-      const std::string& p_name = comp->filename;
-      try {
-        LOG_DEBUG(ApplicationFactory_impl, "Validating...  COMP profile: " << p_name);
-        ValidateComponent(_fileMgr, comp_pkg, p_name);
-      } catch (CF::FileException& ex) {
-        LOG_ERROR(ApplicationFactory_impl, "installApplication: While validating the SAD profile: " << ex.msg);
-        throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-      } catch( CF::InvalidFileName& ex ) {
-        std::ostringstream eout;
-        eout << "Invalid file name: " << p_name;
-        LOG_ERROR(ApplicationFactory_impl, "installApplication: Invalid file name: " << p_name);
-        throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, eout.str().c_str());
-      } catch (CF::DomainManager::ApplicationInstallationError& e) {
-        LOG_TRACE(ApplicationFactory_impl, "rethrowing ApplicationInstallationError" << e.msg);
-        throw;
-      } catch ( std::exception& ex ) {
-        std::ostringstream eout;
-        eout << "The following standard exception occurred: "<<ex.what()<<" while restoring the application factories";
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
-        throw CF::DomainManager::ApplicationInstallationError (CF::CF_NOTSET, eout.str().c_str());
-      } catch (...) {
-        LOG_ERROR(ApplicationFactory_impl, "unexpected exception occurred while installing application");
-        throw CF::DomainManager::ApplicationInstallationError (CF::CF_NOTSET, "unknown exception");
-      }
-
-      if ( !ac_found ) {
-        std::vector<ComponentInstantiation> compInstantiations = comp->instantiations;
-        for (std::vector<ComponentInstantiation>::const_iterator compInst = compInstantiations.begin();
-             compInst != compInstantiations.end(); ++compInst){
-          if (assemblyControllerId == compInst->instantiationId) {
-            ac_spd = comp_pkg;
-            ac_profile = comp->filename;
-            ac_found = true;
-            break;
-          }
-        }
-      }
-    }
-
-    // Gets the assembly controllers properties
-    Properties prf;
-    if (ac_found) {
-        if ( ac_spd.getPRFFile() ) {
-          std::string prf_file(ac_spd.getPRFFile());
-            try {
-              File_stream _prf(_fileMgr, prf_file.c_str());
-                prf.load(_prf);
-                _prf.close();
-            } catch(ossie::parser_error& ex ) {
-              std::ostringstream os;
-              std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-              os << "Invalid PRF file: " << prf_file << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
-              LOG_ERROR(ApplicationFactory_impl, os.str() );
-              throw CF::DomainManager::ApplicationInstallationError(CF::CF_NOTSET, os.str().c_str());
-            } catch( ... ) {
-                // Errors are reported at create time
-            }
-        }
-    }
-
-    // Makes sure all external property names are unique
-    const std::vector<SoftwareAssembly::Property>& properties = _sadParser.getExternalProperties();
-    std::vector<std::string> extProps;
-    for (std::vector<SoftwareAssembly::Property>::const_iterator prop = properties.begin(); prop != properties.end(); ++prop) {
-        // Gets name to use
-        const std::string& extName = prop->getExternalID();
-        // Check for duplicate
-        if (std::find(extProps.begin(), extProps.end(), extName) == extProps.end()) {
-            extProps.push_back(extName);
-        } else {
-            ostringstream eout;
-            eout << "Duplicate External Property name: " << extName;
-            LOG_ERROR(ApplicationFactory_impl, eout.str());
-            throw CF::DomainManager::ApplicationInstallationError(CF::CF_NOTSET, eout.str().c_str());
-        }
-    }
-
-    // Make sure AC prop ID's aren't in conflict with external ones
-    const std::vector<const Property*>& acProps = prf.getProperties();
-    for (unsigned int i = 0; i < acProps.size(); ++i) {
-        // Check for duplicate
-        if (std::find(extProps.begin(), extProps.end(), acProps[i]->getID()) == extProps.end()) {
-            extProps.push_back(acProps[i]->getID());
-        } else {
-            ostringstream eout;
-            eout << "Assembly controller property in use as External Property: " << acProps[i]->getID();
-            LOG_ERROR(ApplicationFactory_impl, eout.str());
-            throw CF::DomainManager::ApplicationInstallationError(CF::CF_NOTSET, eout.str().c_str());
-        }
+    // Validate the application using the current domain state; however, we
+    // cannot assume that the component SPDs will not change between now and a
+    // subsequent create call, so the parsed profiles are not saved
+    redhawk::ApplicationValidator validator(_fileMgr);
+    try {
+        validator.validate(_sadParser);
+    } catch (const std::runtime_error& exc) {
+        LOG_ERROR(ApplicationFactory_impl, "SAD " << softwareProfile
+                  << " failed validation: " << exc.what());
+        throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, exc.what());
     }
 
     _name = _sadParser.getName();
