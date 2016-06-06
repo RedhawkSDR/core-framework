@@ -29,6 +29,12 @@
 
 #include "ossie/CorbaUtils.h"
 
+#ifdef minor
+// Depending on g++ settings, the C stdlib defines a minor() macro that breaks
+// CORBA::SystemException's minor() methods
+#undef minor
+#endif
+
 static CORBA::ORB_var orb = CORBA::ORB::_nil();
 static PortableServer::POA_var root_poa = PortableServer::POA::_nil();
 static CosNaming::NamingContext_var inc = CosNaming::NamingContext::_nil();
@@ -378,6 +384,35 @@ PortableServer::ServantBase* internal::getLocalServant(CORBA::Object_ptr object)
         }
     }
     return 0;
+}
+
+std::string describeException(const CORBA::SystemException& exc)
+{
+    std::ostringstream out;
+    out << "CORBA::" << exc._name() << " (minor: " << exc.minor() << " completed: ";
+    switch (exc.completed()) {
+    case CORBA::COMPLETED_YES:
+        out << "YES";
+        break;
+    case CORBA::COMPLETED_NO:
+        out << "NO";
+        break;
+    case CORBA::COMPLETED_MAYBE:
+        out << "MAYBE";
+        break;
+    }
+    out << ")";
+    return out.str();
+}
+
+std::string describeException(const CORBA::Exception& exc) {
+    const CORBA::SystemException* sys = dynamic_cast<const CORBA::SystemException*>(&exc);
+    if (sys) {
+        return describeException(*sys);
+    }
+    std::ostringstream out;
+    out << exc._name() << " (" << exc._rep_id() << ")";
+    return out.str();
 }
 
 #define LNTRACE( lname, expression ) RH_TRACE( rh_logger::Logger::getLogger(lname), expression )

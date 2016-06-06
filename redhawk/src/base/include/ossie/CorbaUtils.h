@@ -239,6 +239,9 @@ namespace ossie {
             return 0;
         }
 
+        std::string describeException(const CORBA::SystemException& exc);
+        std::string describeException(const CORBA::Exception& exc);
+
         // Mapping of C++ types to type codes.
         template <typename T>
         static CORBA::TypeCode_ptr TypeCode (void)
