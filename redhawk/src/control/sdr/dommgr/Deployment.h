@@ -134,13 +134,13 @@ namespace redhawk {
         AssignmentList assignments;
     };
 
-    class SoftpkgDeployment
+    class SoftPkgDeployment
     {
     public:
-        typedef std::vector<SoftpkgDeployment*> DeploymentList;
+        typedef std::vector<SoftPkgDeployment*> DeploymentList;
 
-        SoftpkgDeployment(const ossie::SoftPkg* softpkg, const ossie::SPD::Implementation* implementation=0);
-        ~SoftpkgDeployment();
+        SoftPkgDeployment(const ossie::SoftPkg* softpkg, const ossie::SPD::Implementation* implementation=0);
+        ~SoftPkgDeployment();
 
         const ossie::SoftPkg* getSoftPkg() const;
 
@@ -151,7 +151,7 @@ namespace redhawk {
         CF::LoadableDevice::LoadType getCodeType() const;
         bool isExecutable() const;
 
-        void addDependency(SoftpkgDeployment* dependency);
+        void addDependency(SoftPkgDeployment* dependency);
         const DeploymentList& getDependencies();
         void clearDependencies();
 
@@ -166,7 +166,7 @@ namespace redhawk {
         DeploymentList dependencies;
     };
 
-    class ComponentDeployment : public SoftpkgDeployment, public UsesDeviceDeployment
+    class ComponentDeployment : public SoftPkgDeployment, public UsesDeviceDeployment
     {
     public:
         ComponentDeployment(const ossie::SoftPkg* softpkg,

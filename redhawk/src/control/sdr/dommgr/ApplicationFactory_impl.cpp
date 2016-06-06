@@ -1355,7 +1355,7 @@ void createHelper::_castRequestProperties(CF::Properties& allocationProperties, 
 }
 
 bool createHelper::resolveSoftpkgDependencies(redhawk::ApplicationDeployment& appDeployment,
-                                              redhawk::SoftpkgDeployment* deployment,
+                                              redhawk::SoftPkgDeployment* deployment,
                                               ossie::DeviceNode& device)
 {
     const ossie::SPD::Implementation* implementation = deployment->getImplementation();
@@ -1364,7 +1364,7 @@ bool createHelper::resolveSoftpkgDependencies(redhawk::ApplicationDeployment& ap
 
     for (iterSoftpkg = deps.begin(); iterSoftpkg != deps.end(); ++iterSoftpkg) {
         // Find an implementation whose dependencies match
-        redhawk::SoftpkgDeployment* dependency = resolveDependencyImplementation(appDeployment, *iterSoftpkg, device);
+        redhawk::SoftPkgDeployment* dependency = resolveDependencyImplementation(appDeployment, *iterSoftpkg, device);
         if (dependency) {
             deployment->addDependency(dependency);
         } else {
@@ -1376,7 +1376,7 @@ bool createHelper::resolveSoftpkgDependencies(redhawk::ApplicationDeployment& ap
     return true;
 }
 
-redhawk::SoftpkgDeployment*
+redhawk::SoftPkgDeployment*
 createHelper::resolveDependencyImplementation(redhawk::ApplicationDeployment& appDeployment,
                                               const ossie::SPD::SoftPkgRef& ref,
                                               ossie::DeviceNode& device)
@@ -1398,7 +1398,7 @@ createHelper::resolveDependencyImplementation(redhawk::ApplicationDeployment& ap
             continue;
         }
 
-        redhawk::SoftpkgDeployment* dependency = new redhawk::SoftpkgDeployment(softpkg, &implementation);
+        redhawk::SoftPkgDeployment* dependency = new redhawk::SoftPkgDeployment(softpkg, &implementation);
         // Recursively check any softpkg dependencies
         if (resolveSoftpkgDependencies(appDeployment, dependency, device)) {
             return dependency;

@@ -86,44 +86,44 @@ CF::Device_ptr UsesDeviceAssignment::getAssignedDevice() const
     return CF::Device::_duplicate(assignedDevice);
 }
 
-SoftpkgDeployment::SoftpkgDeployment(const SoftPkg* softpkg,
+SoftPkgDeployment::SoftPkgDeployment(const SoftPkg* softpkg,
                                      const SPD::Implementation* implementation) :
     softpkg(softpkg),
     implementation(implementation)
 {
 }
 
-SoftpkgDeployment::~SoftpkgDeployment()
+SoftPkgDeployment::~SoftPkgDeployment()
 {
     clearDependencies();
 }
 
-const SoftPkg* SoftpkgDeployment::getSoftPkg() const
+const SoftPkg* SoftPkgDeployment::getSoftPkg() const
 {
     return &(*softpkg);
 }
 
-void SoftpkgDeployment::setImplementation(const SPD::Implementation* implementation)
+void SoftPkgDeployment::setImplementation(const SPD::Implementation* implementation)
 {
     this->implementation = implementation;
 }
 
-const SPD::Implementation* SoftpkgDeployment::getImplementation() const
+const SPD::Implementation* SoftPkgDeployment::getImplementation() const
 {
     return implementation;
 }
 
-void SoftpkgDeployment::addDependency(SoftpkgDeployment* dependency)
+void SoftPkgDeployment::addDependency(SoftPkgDeployment* dependency)
 {
     dependencies.push_back(dependency);
 }
 
-const std::vector<SoftpkgDeployment*>& SoftpkgDeployment::getDependencies()
+const std::vector<SoftPkgDeployment*>& SoftPkgDeployment::getDependencies()
 {
     return dependencies;
 }
 
-void SoftpkgDeployment::clearDependencies()
+void SoftPkgDeployment::clearDependencies()
 {
     for (DeploymentList::iterator dependency = dependencies.begin(); dependency != dependencies.end(); ++dependency) {
         delete (*dependency);
@@ -131,7 +131,7 @@ void SoftpkgDeployment::clearDependencies()
     dependencies.clear();
 }
 
-std::vector<std::string> SoftpkgDeployment::getDependencyLocalFiles()
+std::vector<std::string> SoftPkgDeployment::getDependencyLocalFiles()
 {
     std::vector<std::string> files;
     for (DeploymentList::iterator dependency = dependencies.begin(); dependency != dependencies.end(); ++dependency) {
@@ -142,7 +142,7 @@ std::vector<std::string> SoftpkgDeployment::getDependencyLocalFiles()
     return files;
 }
 
-void SoftpkgDeployment::load(Application_impl* application, CF::FileSystem_ptr fileSystem,
+void SoftPkgDeployment::load(Application_impl* application, CF::FileSystem_ptr fileSystem,
                              CF::LoadableDevice_ptr device, const std::string& componentId)
 {
     if (!implementation) {
@@ -187,7 +187,7 @@ void SoftpkgDeployment::load(Application_impl* application, CF::FileSystem_ptr f
     application->addComponentLoadedFile(componentId, fileName);
 }
 
-std::string SoftpkgDeployment::getLocalFile()
+std::string SoftPkgDeployment::getLocalFile()
 {
     fs::path codeLocalFile = fs::path(implementation->getCodeFile());
     if (!codeLocalFile.has_root_directory()) {
@@ -203,7 +203,7 @@ std::string SoftpkgDeployment::getLocalFile()
     return codeLocalFile.string();
 }
 
-CF::LoadableDevice::LoadType SoftpkgDeployment::getCodeType() const
+CF::LoadableDevice::LoadType SoftPkgDeployment::getCodeType() const
 {
     switch (implementation->getCodeType()) {
     case SPD::Code::KERNEL_MODULE:
@@ -219,7 +219,7 @@ CF::LoadableDevice::LoadType SoftpkgDeployment::getCodeType() const
     }
 }
 
-bool SoftpkgDeployment::isExecutable() const
+bool SoftPkgDeployment::isExecutable() const
 {
     // REDHAWK extends section D.2.1.6.3 to support loading a directory
     // and execute a file in that directory using a entrypoint
@@ -244,7 +244,7 @@ bool SoftpkgDeployment::isExecutable() const
 ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
                                          const ComponentInstantiation* instantiation,
                                          const std::string& identifier) :
-    SoftpkgDeployment(softpkg),
+    SoftPkgDeployment(softpkg),
     instantiation(instantiation),
     identifier(identifier),
     assemblyController(false)
@@ -551,7 +551,7 @@ CF::Resource_ptr ComponentDeployment::getResourcePtr() const
 void ComponentDeployment::load(Application_impl* application, CF::FileSystem_ptr fileSystem,
                                CF::LoadableDevice_ptr device)
 {
-    SoftpkgDeployment::load(application, fileSystem, device, identifier);
+    SoftPkgDeployment::load(application, fileSystem, device, identifier);
 }
 
 std::string ComponentDeployment::getLoggingConfiguration() const

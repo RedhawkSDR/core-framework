@@ -147,9 +147,9 @@ private:
                                  const OSList& osDeps);
 
     bool resolveSoftpkgDependencies(redhawk::ApplicationDeployment& appDeployment,
-                                    redhawk::SoftpkgDeployment* deployment,
+                                    redhawk::SoftPkgDeployment* deployment,
                                     ossie::DeviceNode& device);
-    redhawk::SoftpkgDeployment* resolveDependencyImplementation(redhawk::ApplicationDeployment& appDeployment,
+    redhawk::SoftPkgDeployment* resolveDependencyImplementation(redhawk::ApplicationDeployment& appDeployment,
                                                                 const ossie::SPD::SoftPkgRef& ref,
                                                                 ossie::DeviceNode& device);
     
