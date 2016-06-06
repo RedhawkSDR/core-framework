@@ -682,6 +682,30 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
     } catch (CF::ApplicationFactory::CreateApplicationRequestError& ex) {
         LOG_ERROR(ApplicationFactory_impl, "Error in application creation")
         throw;
+    } catch (const ossie::execute_error& exc) {
+        // A component failed execution, report details
+        std::ostringstream eout;
+        eout << "Executing component " << exc.deployment()->getIdentifier();
+        eout << " implementation " << exc.deployment()->getImplementation()->getID();
+        eout << " failed on device " << exc.device()->identifier;
+        eout << ": " << exc.what();
+        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
+    } catch (const ossie::properties_error& exc) {
+        // Unfortunately, InvalidInitConfiguration does not include an error
+        // message, so log the error here to give more details
+        std::ostringstream eout;
+        LOG_ERROR(ApplicationFactory_impl, "Component " << exc.deployment()->getIdentifier()
+                  << " failed with " << exc.what() << " " << exc.properties());
+        throw CF::ApplicationFactory::InvalidInitConfiguration(exc.properties());
+    } catch (const ossie::deployment_error& exc) {
+        // A component failed deployment in some other way, report details
+        std::stringstream eout;
+        eout << "Component " << exc.deployment()->getIdentifier();
+        eout << " implementation " << exc.deployment()->getImplementation()->getID();
+        eout << " failed: " << exc.what();
+        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
     } catch (const std::exception& ex) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while creating the application";
@@ -819,33 +843,12 @@ CF::Application_ptr createHelper::create (
     std::vector<ConnectionNode> connections;
     std::vector<std::string> allocationIDs;
 
-    try {
-        CF::ApplicationRegistrar_var app_reg = _application->appReg();
-        loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
-    } catch (const ossie::execute_error& exc) {
-        std::ostringstream eout;
-        eout << "Executing component " << exc.deployment()->getIdentifier();
-        eout << " implementation " << exc.deployment()->getImplementation()->getID();
-        eout << " failed on device " << exc.device()->identifier;
-        eout << ": " << exc.what();
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    }
+    CF::ApplicationRegistrar_var app_reg = _application->appReg();
+    loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
 
     waitForComponentRegistration(app_deployment.getComponentDeployments());
 
-    try {
-        initializeComponents(app_deployment.getComponentDeployments());
-    } catch (const ossie::configure_error& exc) {
-        // Unfortunately, InvalidInitConfiguration does not include an error
-        // message, so log the error here to give more details
-        std::ostringstream eout;
-        LOG_ERROR(ApplicationFactory_impl, "Property initialization of component "
-                  << exc.deployment()->getIdentifier()
-                  << " failed with " << exc.what() << " " << exc.properties());
-        throw CF::ApplicationFactory::InvalidInitConfiguration(exc.properties());
-    } catch (const std::exception& exc) {
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, exc.what());
-    }
+    initializeComponents(app_deployment.getComponentDeployments());
 
     // Check that the assembly controller is valid
     LOG_TRACE(ApplicationFactory_impl, "Checking assembly controller");
@@ -863,18 +866,7 @@ CF::Application_ptr createHelper::create (
     }
 
     _connectComponents(app_deployment, connections);
-    try {
-        configureComponents(app_deployment.getComponentDeployments());
-    } catch (const ossie::configure_error& exc) {
-        // Unfortunately, InvalidInitConfiguration does not include an error
-        // message, so log the error here to give more details
-        std::ostringstream eout;
-        LOG_ERROR(ApplicationFactory_impl, "Configure of component " << exc.deployment()->getIdentifier()
-                  << " failed with " << exc.what() << " " << exc.properties());
-        throw CF::ApplicationFactory::InvalidInitConfiguration(exc.properties());
-    } catch (const std::exception& exc) {
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, exc.what());
-    }
+    configureComponents(app_deployment.getComponentDeployments());
 
     setUpExternalPorts(app_deployment, _application);
     setUpExternalProperties(app_deployment, _application);
@@ -1705,7 +1697,11 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     } catch (const CF::ExecutableDevice::ExecuteFail& exc) {
         std::string message = "execute failure " + std::string(exc.msg);
         throw ossie::execute_error(deployment, device, message);
+    } catch (const CORBA::SystemException& exc) {
+        throw ossie::execute_error(deployment, device, ossie::corba::describeException(exc));
     } catch (...) {
+        // Should never happen, but turn anything else into an execute_error
+        // just in case
         throw ossie::execute_error(deployment, device, "unexpected error");
     }
 

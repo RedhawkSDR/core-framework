@@ -79,17 +79,17 @@ namespace ossie {
         boost::shared_ptr<DeviceNode> _device;
     };
 
-    class configure_error : public deployment_error {
+    class properties_error : public deployment_error {
     public:
-        configure_error(const ComponentDeployment* deployment,
-                        const CF::Properties& properties,
-                        const std::string& message) :
+        properties_error(const ComponentDeployment* deployment,
+                         const CF::Properties& properties,
+                         const std::string& message) :
             deployment_error(deployment, message),
             _properties(properties)
         {
         }
 
-        virtual ~configure_error() throw ()
+        virtual ~properties_error() throw ()
         {
         }
 
@@ -212,18 +212,6 @@ namespace ossie {
          */
         redhawk::PropertyMap getCommandLineParameters() const;
 
-        /**
-         * Returns the properties used for the initial call to configure()
-         * during deployment
-         */
-        redhawk::PropertyMap getInitialConfigureProperties() const;
-
-        /**
-         * Returns the properties used for initializePropertes() during
-         * deployment
-         */
-        redhawk::PropertyMap getInitializeProperties() const;
-
         void overrideProperty(const std::string& id, const CORBA::Any& value);
 
         void setAssignedDevice(const boost::shared_ptr<DeviceNode>& device);
@@ -237,11 +225,39 @@ namespace ossie {
 
         std::string getLoggingConfiguration() const;
 
+        /**
+         * @brief  Initializes the deployed component
+         * @exception  ossie::properties_error  invalid properties in property
+         *             initialization
+         * @exception  ossie::deployment_error  initialization failed
+         *
+         * Handles initialization of new-style 'property' kind properties and
+         * calls initialize on the component.
+         */
         void initialize();
 
+        /**
+         * @brief  Configures legacy properties to initial values
+         * @exception  ossie::properties_error  invalid properties
+         * @exception  ossie::deployment_error  configure failed
+         *
+         * Handles configuration of legacy 'configure' kind properties.
+         */
         void configure();
 
     protected:
+        /**
+         * Returns the properties used for the initial call to configure()
+         * during deployment
+         */
+        redhawk::PropertyMap getInitialConfigureProperties() const;
+
+        /**
+         * Returns the properties used for initializePropertes() during
+         * deployment
+         */
+        redhawk::PropertyMap getInitializeProperties() const;
+
         CF::DataType getPropertyValue(const Property* property) const;
         const ComponentProperty* getPropertyOverride(const std::string& id) const;
 
