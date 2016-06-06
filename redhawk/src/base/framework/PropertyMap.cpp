@@ -185,9 +185,15 @@ void PropertyMap::erase(iterator first, iterator last)
 std::string PropertyMap::toString() const
 {
     std::ostringstream out;
+    out << *this;
+    return out.str();
+}
+
+std::ostream& redhawk::operator<<(std::ostream& out, const redhawk::PropertyMap& properties)
+{
     out << "{";
     bool first = true;
-    for (const_iterator prop = begin(); prop != end(); ++prop) {
+    for (PropertyMap::const_iterator prop = properties.begin(); prop != properties.end(); ++prop) {
         if (!first) {
             out << ", ";
         }
@@ -195,5 +201,5 @@ std::string PropertyMap::toString() const
         out << prop->getId() << "=" << prop->getValue().toString();
     }
     out << "}";
-    return out.str();
+    return out;
 }

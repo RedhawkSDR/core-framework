@@ -82,6 +82,7 @@ namespace redhawk {
         std::string toString() const;
     };
 
+    std::ostream& operator<<(std::ostream& out, const PropertyMap& properties);
 }
 
 #endif // REDHAWK_PROPERTYMAP_H
