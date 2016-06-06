@@ -33,9 +33,9 @@
 #include "connectionSupport.h"
 #include "Deployment.h"
 
-namespace ossie {
+namespace redhawk {
 
-    class ApplicationDeployment : public ComponentLookup, public DeviceLookup, public UsesDeviceDeployment
+    class ApplicationDeployment : public ossie::ComponentLookup, public ossie::DeviceLookup, public UsesDeviceDeployment
     {
         ENABLE_LOGGING;
 
@@ -43,7 +43,7 @@ namespace ossie {
         typedef std::vector<ComponentDeployment*> ComponentList;
         typedef std::map<std::string,float> CpuReservations;
 
-        ApplicationDeployment(const SoftwareAssembly& sad,
+        ApplicationDeployment(const ossie::SoftwareAssembly& sad,
                               const std::string& instanceName,
                               const CF::Properties& initConfiguration);
         ~ApplicationDeployment();
@@ -58,8 +58,8 @@ namespace ossie {
 
         ComponentDeployment* getAssemblyController();
 
-        ComponentDeployment* createComponentDeployment(const SoftPkg* softpkg,
-                                                       const ComponentInstantiation* instantiation);
+        ComponentDeployment* createComponentDeployment(const ossie::SoftPkg* softpkg,
+                                                       const ossie::ComponentInstantiation* instantiation);
 
         const ComponentList& getComponentDeployments();
         ComponentDeployment* getComponentDeployment(const std::string& instantiationId);
@@ -81,7 +81,7 @@ namespace ossie {
         void overrideAssemblyControllerProperties(ComponentDeployment* deployment);
         void overrideExternalProperties(ComponentDeployment* deployment);
 
-        const SoftwareAssembly& sad;
+        const ossie::SoftwareAssembly& sad;
         const std::string identifier;
         const std::string instanceName;
         redhawk::PropertyMap initConfiguration;

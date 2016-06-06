@@ -31,7 +31,7 @@
 
 class Application_impl;
 
-namespace ossie {
+namespace redhawk {
 
     class ComponentDeployment;
 
@@ -59,14 +59,14 @@ namespace ossie {
     class execute_error : public deployment_error {
     public:
         execute_error(const ComponentDeployment* deployment,
-                      const boost::shared_ptr<DeviceNode>& device,
+                      const boost::shared_ptr<ossie::DeviceNode>& device,
                       const std::string& message) :
             deployment_error(deployment, message),
             _device(device)
         {
         }
 
-        const boost::shared_ptr<DeviceNode>& device() const
+        const boost::shared_ptr<ossie::DeviceNode>& device() const
         {
             return _device;
         }
@@ -76,7 +76,7 @@ namespace ossie {
         }
 
     private:
-        boost::shared_ptr<DeviceNode> _device;
+        boost::shared_ptr<ossie::DeviceNode> _device;
     };
 
     class properties_error : public deployment_error {
@@ -105,15 +105,15 @@ namespace ossie {
     class UsesDeviceAssignment
     {
     public:
-        UsesDeviceAssignment(const UsesDevice* usesDevice);
+        UsesDeviceAssignment(const ossie::UsesDevice* usesDevice);
 
-        const UsesDevice* getUsesDevice() const;
+        const ossie::UsesDevice* getUsesDevice() const;
 
         void setAssignedDevice(CF::Device_ptr device);
         CF::Device_ptr getAssignedDevice() const;
 
     private:
-        const UsesDevice* usesDevice;
+        const ossie::UsesDevice* usesDevice;
         CF::Device_var assignedDevice;
     };
 
@@ -139,13 +139,13 @@ namespace ossie {
     public:
         typedef std::vector<SoftpkgDeployment*> DeploymentList;
 
-        SoftpkgDeployment(const SoftPkg* softpkg, const SPD::Implementation* implementation=0);
+        SoftpkgDeployment(const ossie::SoftPkg* softpkg, const ossie::SPD::Implementation* implementation=0);
         ~SoftpkgDeployment();
 
-        const SoftPkg* getSoftPkg() const;
+        const ossie::SoftPkg* getSoftPkg() const;
 
-        void setImplementation(const SPD::Implementation* implementation);
-        const SPD::Implementation* getImplementation() const;
+        void setImplementation(const ossie::SPD::Implementation* implementation);
+        const ossie::SPD::Implementation* getImplementation() const;
 
         std::string getLocalFile();
         CF::LoadableDevice::LoadType getCodeType() const;
@@ -161,15 +161,16 @@ namespace ossie {
         void load(Application_impl* application, CF::FileSystem_ptr fileSystem,
                   CF::LoadableDevice_ptr device, const std::string& componentId);
 
-        const SoftPkg* softpkg;
-        const SPD::Implementation* implementation;
+        const ossie::SoftPkg* softpkg;
+        const ossie::SPD::Implementation* implementation;
         DeploymentList dependencies;
     };
 
     class ComponentDeployment : public SoftpkgDeployment, public UsesDeviceDeployment
     {
     public:
-        ComponentDeployment(const SoftPkg* softpkg, const ComponentInstantiation* instantiation,
+        ComponentDeployment(const ossie::SoftPkg* softpkg,
+                            const ossie::ComponentInstantiation* instantiation,
                             const std::string& identifier);
 
         /**
@@ -177,7 +178,7 @@ namespace ossie {
          */
         const std::string& getIdentifier() const;
 
-        const ComponentInstantiation* getInstantiation() const;
+        const ossie::ComponentInstantiation* getInstantiation() const;
 
         bool isResource() const;
         bool isConfigurable() const;
@@ -214,8 +215,8 @@ namespace ossie {
 
         void overrideProperty(const std::string& id, const CORBA::Any& value);
 
-        void setAssignedDevice(const boost::shared_ptr<DeviceNode>& device);
-        boost::shared_ptr<DeviceNode> getAssignedDevice();
+        void setAssignedDevice(const boost::shared_ptr<ossie::DeviceNode>& device);
+        boost::shared_ptr<ossie::DeviceNode> getAssignedDevice();
 
         void setResourcePtr(CF::Resource_ptr resource);
         CF::Resource_ptr getResourcePtr() const;
@@ -258,16 +259,16 @@ namespace ossie {
          */
         redhawk::PropertyMap getInitializeProperties() const;
 
-        CF::DataType getPropertyValue(const Property* property) const;
-        const ComponentProperty* getPropertyOverride(const std::string& id) const;
+        CF::DataType getPropertyValue(const ossie::Property* property) const;
+        const ossie::ComponentProperty* getPropertyOverride(const std::string& id) const;
 
         void initializeProperties();
 
-        const ComponentInstantiation* instantiation;
+        const ossie::ComponentInstantiation* instantiation;
         const std::string identifier;
         bool assemblyController;
 
-        boost::shared_ptr<DeviceNode> assignedDevice;
+        boost::shared_ptr<ossie::DeviceNode> assignedDevice;
         CF::Resource_var resource;
 
         redhawk::PropertyMap overrides;

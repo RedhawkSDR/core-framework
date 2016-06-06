@@ -27,6 +27,7 @@
 #include "PersistenceStore.h"
 #include "ApplicationDeployment.h"
 
+using namespace redhawk;
 using namespace ossie;
 
 PREPARE_LOGGING(ApplicationDeployment);

@@ -236,7 +236,7 @@ ApplicationFactory_impl::~ApplicationFactory_impl ()
 
 }
 
-void createHelper::_connectComponents(ossie::ApplicationDeployment& appDeployment,
+void createHelper::_connectComponents(redhawk::ApplicationDeployment& appDeployment,
                                       std::vector<ConnectionNode>& connections){
     try{
         connectComponents(appDeployment, connections, _baseNamingContext);
@@ -250,7 +250,7 @@ void createHelper::_connectComponents(ossie::ApplicationDeployment& appDeploymen
             "Connecting components failed (unclear where this occurred)"));
 }
 
-void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDeployment,
+void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& appDeployment,
                                              const DeviceAssignmentMap& devices)
 {
     // Try to place all of the collocations first, since they naturally have
@@ -273,13 +273,13 @@ void createHelper::assignPlacementsToDevices(ossie::ApplicationDeployment& appDe
                 LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation.getID()
                           << " is assigned to device " << assigned_device);
             }
-            ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, &instantiation);
+            redhawk::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, &instantiation);
             allocateComponent(appDeployment, deployment, assigned_device);
         }
     }
 }
 
-void createHelper::_validateDAS(ossie::ApplicationDeployment& appDeployment,
+void createHelper::_validateDAS(redhawk::ApplicationDeployment& appDeployment,
                                 const DeviceAssignmentMap& deviceAssignments)
 {
     LOG_TRACE(ApplicationFactory_impl, "Validating device assignment sequence (length "
@@ -301,7 +301,7 @@ void createHelper::_validateDAS(ossie::ApplicationDeployment& appDeployment,
     }
 }
 
-bool createHelper::placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
+bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeployment,
                                         const DeploymentList& components,
                                         DeploymentList::const_iterator current,
                                         ossie::DeviceList& deploymentDevices,
@@ -316,7 +316,7 @@ bool createHelper::placeHostCollocation(ossie::ApplicationDeployment& appDeploym
 
     // Try all of the implementations from the current component for matches
     // with the processor and OS dependencies
-    ossie::ComponentDeployment* deployment = *current;
+    redhawk::ComponentDeployment* deployment = *current;
     const SPD::Implementations& comp_impls = deployment->getSoftPkg()->getImplementations();
     LOG_TRACE(ApplicationFactory_impl, "Finding collocation-compatible implementations for component "
               << deployment->getInstantiation()->getID());
@@ -353,7 +353,7 @@ bool createHelper::placeHostCollocation(ossie::ApplicationDeployment& appDeploym
     return false;
 }
 
-bool createHelper::allocateHostCollocation(ossie::ApplicationDeployment& appDeployment,
+bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDeployment,
                                            const DeploymentList& components,
                                            ossie::DeviceList& deploymentDevices,
                                            const ProcessorList& processorDeps,
@@ -421,7 +421,7 @@ CF::Properties createHelper::_consolidateAllocations(const DeploymentList& deplo
     return allocs;
 }
 
-void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
+void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDeployment,
                                          const ossie::SoftwareAssembly::HostCollocation& collocation,
                                          const DeviceAssignmentMap& devices)
 {
@@ -438,7 +438,7 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
             // Even though the XML supports more than one instantiation per
             // component placement, the tooling doesn't support that, so this
             // loop may be strictly academic
-            ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, &instantiation);
+            redhawk::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, &instantiation);
             deployments.push_back(deployment);
 
             DeviceAssignmentMap::const_iterator device = devices.find(instantiation.getID());
@@ -470,7 +470,7 @@ void createHelper::_placeHostCollocation(ossie::ApplicationDeployment& appDeploy
               << collocation.getID() << " Components Placed: " << deployments.size());
 }
 
-void createHelper::_handleUsesDevices(ossie::ApplicationDeployment& appDeployment,
+void createHelper::_handleUsesDevices(redhawk::ApplicationDeployment& appDeployment,
                                       const std::string& appName)
 {
     // Gets all uses device info from the SAD file
@@ -482,7 +482,7 @@ void createHelper::_handleUsesDevices(ossie::ApplicationDeployment& appDeploymen
     CF::Properties appProperties = appDeployment.getAllocationContext();
 
     // The device assignments for SAD-level usesdevices are never stored
-    ossie::UsesDeviceDeployment assignedDevices;
+    redhawk::UsesDeviceDeployment assignedDevices;
     if (!allocateUsesDevices(usesDevices, appProperties, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the application
         ostringstream eout;
@@ -506,7 +506,7 @@ void createHelper::_handleUsesDevices(ossie::ApplicationDeployment& appDeploymen
     assignedDevices.transferUsesDeviceAssignments(appDeployment);
 }
 
-void createHelper::setUpExternalPorts(ossie::ApplicationDeployment& appDeployment,
+void createHelper::setUpExternalPorts(redhawk::ApplicationDeployment& appDeployment,
                                       Application_impl* application)
 {
     typedef std::vector<SoftwareAssembly::Port> PortList;
@@ -520,7 +520,7 @@ void createHelper::setUpExternalPorts(ossie::ApplicationDeployment& appDeploymen
                         << " Port identifier: " << port->identifier);
 
         // Get the component from the instantiation identifier.
-        ossie::ComponentDeployment* deployment = appDeployment.getComponentDeployment(port->componentrefid);
+        redhawk::ComponentDeployment* deployment = appDeployment.getComponentDeployment(port->componentrefid);
         if (!deployment) {
             LOG_ERROR(ApplicationFactory_impl,
                       "Invalid componentinstantiationref ("
@@ -566,7 +566,7 @@ void createHelper::setUpExternalPorts(ossie::ApplicationDeployment& appDeploymen
     }
 }
 
-void createHelper::setUpExternalProperties(ossie::ApplicationDeployment& appDeployment,
+void createHelper::setUpExternalProperties(redhawk::ApplicationDeployment& appDeployment,
                                            Application_impl* application)
 {
     const std::vector<SoftwareAssembly::Property>& props = _appFact._sadParser.getExternalProperties();
@@ -575,7 +575,7 @@ void createHelper::setUpExternalProperties(ossie::ApplicationDeployment& appDepl
         LOG_TRACE(ApplicationFactory_impl, "Property component: " << prop->comprefid << " Property identifier: " << prop->propid);
 
         // Get the component from the compref identifier.
-        ossie::ComponentDeployment* deployment = appDeployment.getComponentDeployment(prop->comprefid);
+        redhawk::ComponentDeployment* deployment = appDeployment.getComponentDeployment(prop->comprefid);
         if (!deployment) {
             LOG_ERROR(ApplicationFactory_impl, "Unable to find component for comprefid " << prop->comprefid);
             throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Unable to find component for given comprefid");
@@ -682,7 +682,7 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
     } catch (CF::ApplicationFactory::CreateApplicationRequestError& ex) {
         LOG_ERROR(ApplicationFactory_impl, "Error in application creation")
         throw;
-    } catch (const ossie::execute_error& exc) {
+    } catch (const redhawk::execute_error& exc) {
         // A component failed execution, report details
         std::ostringstream eout;
         eout << "Executing component " << exc.deployment()->getIdentifier();
@@ -691,14 +691,14 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         eout << ": " << exc.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    } catch (const ossie::properties_error& exc) {
+    } catch (const redhawk::properties_error& exc) {
         // Unfortunately, InvalidInitConfiguration does not include an error
         // message, so log the error here to give more details
         std::ostringstream eout;
         LOG_ERROR(ApplicationFactory_impl, "Component " << exc.deployment()->getIdentifier()
                   << " failed with " << exc.what() << " " << exc.properties());
         throw CF::ApplicationFactory::InvalidInitConfiguration(exc.properties());
-    } catch (const ossie::deployment_error& exc) {
+    } catch (const redhawk::deployment_error& exc) {
         // A component failed deployment in some other way, report details
         std::stringstream eout;
         eout << "Component " << exc.deployment()->getIdentifier();
@@ -806,7 +806,7 @@ CF::Application_ptr createHelper::create (
 
     //////////////////////////////////////////////////
     // Load the components to instantiate from the SAD
-    ossie::ApplicationDeployment app_deployment(_appFact._sadParser, _waveformContextName, modifiedInitConfiguration);
+    redhawk::ApplicationDeployment app_deployment(_appFact._sadParser, _waveformContextName, modifiedInitConfiguration);
 
     ////////////////////////////////////////////////
     // Assign components to devices
@@ -852,7 +852,7 @@ CF::Application_ptr createHelper::create (
 
     // Check that the assembly controller is valid
     LOG_TRACE(ApplicationFactory_impl, "Checking assembly controller");
-    ossie::ComponentDeployment* ac_deployment = app_deployment.getAssemblyController();
+    redhawk::ComponentDeployment* ac_deployment = app_deployment.getAssemblyController();
     if (!ac_deployment) {
         const char* message = "Assembly controller has not been assigned";
         LOG_ERROR(ApplicationFactory_impl, message);
@@ -882,7 +882,7 @@ CF::Application_ptr createHelper::create (
 
     // Fill in the uses devices for the application
     CF::DeviceAssignmentSequence app_devices;
-    typedef std::vector<ossie::UsesDeviceAssignment*> UsesList;
+    typedef std::vector<redhawk::UsesDeviceAssignment*> UsesList;
     const UsesList& app_uses = app_deployment.getUsesDeviceAssignments();
     for (UsesList::const_iterator uses = app_uses.begin(); uses != app_uses.end(); ++uses) {
         CF::DeviceAssignmentType assignment;
@@ -985,15 +985,15 @@ CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDev
  collocation request.  This requires that we know and cleanup only those allocations that we made..
 
  */
-void createHelper::allocateComponent(ossie::ApplicationDeployment& appDeployment,
-                                     ossie::ComponentDeployment* deployment,
+void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployment,
+                                     redhawk::ComponentDeployment* deployment,
                                      const std::string& assignedDeviceId)
 {
     redhawk::PropertyMap alloc_context = deployment->getAllocationContext();
     
     // Find the devices that allocate the SPD's minimum required usesdevices properties
     const std::vector<UsesDevice>& usesDevVec = deployment->getSoftPkg()->getUsesDevices();
-    ossie::UsesDeviceDeployment assignedDevices;
+    redhawk::UsesDeviceDeployment assignedDevices;
     if (!allocateUsesDevices(usesDevVec, alloc_context, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the component
         ostringstream eout;
@@ -1020,7 +1020,7 @@ void createHelper::allocateComponent(ossie::ApplicationDeployment& appDeployment
         const ossie::SPD::Implementation* implementation = &implementations[implCount];
 
         // Handle 'usesdevice' dependencies for the particular implementation
-        UsesDeviceDeployment implAssignedDevices;
+        redhawk::UsesDeviceDeployment implAssignedDevices;
         ScopedAllocations implAllocations(*this->_allocationMgr);
         const std::vector<UsesDevice>& implUsesDevVec = implementation->getUsesDevices();
         
@@ -1109,7 +1109,7 @@ void createHelper::allocateComponent(ossie::ApplicationDeployment& appDeployment
 
 bool createHelper::allocateUsesDevices(const std::vector<UsesDevice>& usesDevices,
                                        const CF::Properties& configureProperties,
-                                       ossie::UsesDeviceDeployment& deviceAssignments,
+                                       redhawk::UsesDeviceDeployment& deviceAssignments,
                                        ScopedAllocations& allocations)
 {
     // Create a temporary lookup table for reconciling allocation requests with
@@ -1146,7 +1146,7 @@ bool createHelper::allocateUsesDevices(const std::vector<UsesDevice>& usesDevice
         const std::string deviceId = ossie::corba::returnString(response[resp].allocatedDevice->identifier());
         usesDeviceMap.erase(uses);
 
-        ossie::UsesDeviceAssignment* assignment = new ossie::UsesDeviceAssignment(uses->second);
+        redhawk::UsesDeviceAssignment* assignment = new redhawk::UsesDeviceAssignment(uses->second);
         assignment->setAssignedDevice(response[resp].allocatedDevice);
         deviceAssignments.addUsesDeviceAssignment(assignment);
     }
@@ -1265,9 +1265,9 @@ void createHelper::_evaluateMATHinRequest(CF::Properties &request, const CF::Pro
  *  - If not specified in DAS, then iterate through devices looking for a device that satisfies
  *    the allocation properties
  */
-ossie::AllocationResult createHelper::allocateComponentToDevice(ossie::ComponentDeployment* deployment,
-                                              const std::string& assignedDeviceId,
-                                              const std::string& appIdentifier)
+ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::ComponentDeployment* deployment,
+                                                                const std::string& assignedDeviceId,
+                                                                const std::string& appIdentifier)
 {
     const ossie::SPD::Implementation* implementation = deployment->getImplementation();
     ossie::DeviceList devices = _registeredDevices;
@@ -1354,8 +1354,8 @@ void createHelper::_castRequestProperties(CF::Properties& allocationProperties, 
     }
 }
 
-bool createHelper::resolveSoftpkgDependencies(ossie::ApplicationDeployment& appDeployment,
-                                              ossie::SoftpkgDeployment* deployment,
+bool createHelper::resolveSoftpkgDependencies(redhawk::ApplicationDeployment& appDeployment,
+                                              redhawk::SoftpkgDeployment* deployment,
                                               ossie::DeviceNode& device)
 {
     const ossie::SPD::Implementation* implementation = deployment->getImplementation();
@@ -1364,7 +1364,7 @@ bool createHelper::resolveSoftpkgDependencies(ossie::ApplicationDeployment& appD
 
     for (iterSoftpkg = deps.begin(); iterSoftpkg != deps.end(); ++iterSoftpkg) {
         // Find an implementation whose dependencies match
-        ossie::SoftpkgDeployment* dependency = resolveDependencyImplementation(appDeployment, *iterSoftpkg, device);
+        redhawk::SoftpkgDeployment* dependency = resolveDependencyImplementation(appDeployment, *iterSoftpkg, device);
         if (dependency) {
             deployment->addDependency(dependency);
         } else {
@@ -1376,9 +1376,10 @@ bool createHelper::resolveSoftpkgDependencies(ossie::ApplicationDeployment& appD
     return true;
 }
 
-ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::ApplicationDeployment& appDeployment,
-                                                                        const ossie::SPD::SoftPkgRef& ref,
-                                                                        ossie::DeviceNode& device)
+redhawk::SoftpkgDeployment*
+createHelper::resolveDependencyImplementation(redhawk::ApplicationDeployment& appDeployment,
+                                              const ossie::SPD::SoftPkgRef& ref,
+                                              ossie::DeviceNode& device)
 {
     LOG_TRACE(ApplicationFactory_impl, "Resolving dependency " << ref);
     const SoftPkg* softpkg = _profileCache.loadSoftPkg(ref.localfile);
@@ -1397,7 +1398,7 @@ ossie::SoftpkgDeployment* createHelper::resolveDependencyImplementation(ossie::A
             continue;
         }
 
-        ossie::SoftpkgDeployment* dependency = new ossie::SoftpkgDeployment(softpkg, &implementation);
+        redhawk::SoftpkgDeployment* dependency = new redhawk::SoftpkgDeployment(softpkg, &implementation);
         // Recursively check any softpkg dependencies
         if (resolveSoftpkgDependencies(appDeployment, dependency, device)) {
             return dependency;
@@ -1478,7 +1479,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
     applyApplicationAffinityOptions(deployments);
 
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
-        ossie::ComponentDeployment* deployment = deployments[rc_idx];
+        redhawk::ComponentDeployment* deployment = deployments[rc_idx];
         const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
         const ossie::SPD::Implementation* implementation = deployment->getImplementation();
@@ -1553,7 +1554,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
     }
 }
 
-std::string createHelper::resolveLoggingConfiguration(ossie::ComponentDeployment* deployment)
+std::string createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* deployment)
 {
     // Use the log config resolver (if enabled)
     const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
@@ -1592,7 +1593,7 @@ std::string createHelper::resolveLoggingConfiguration(ossie::ComponentDeployment
 }
 
 void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr registrar,
-                                              ossie::ComponentDeployment* deployment)
+                                              redhawk::ComponentDeployment* deployment)
 {
     // Get executable device reference
     boost::shared_ptr<DeviceNode> device = deployment->getAssignedDevice();
@@ -1684,30 +1685,30 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         // call 'execute' on the ExecutableDevice to execute the component
         pid = execdev->executeLinked(entryPoint.c_str(), options, execParameters, dep_seq);
     } catch (const CF::InvalidFileName&) {
-        throw ossie::execute_error(deployment, device, "invalid filename");
+        throw redhawk::execute_error(deployment, device, "invalid filename");
     } catch (const CF::Device::InvalidState& exc) {
         std::string message = "invalid device state " + std::string(exc.msg);
-        throw ossie::execute_error(deployment, device, message);
+        throw redhawk::execute_error(deployment, device, message);
     } catch (const CF::ExecutableDevice::InvalidParameters& exc) {
         std::string message = "invalid parameters " + redhawk::PropertyMap::cast(exc.invalidParms).toString();
-        throw ossie::execute_error(deployment, device, message);
+        throw redhawk::execute_error(deployment, device, message);
     } catch (const CF::ExecutableDevice::InvalidOptions& exc) {
         std::string message = "invalid options " + redhawk::PropertyMap::cast(exc.invalidOpts).toString();
-        throw ossie::execute_error(deployment, device, message);
+        throw redhawk::execute_error(deployment, device, message);
     } catch (const CF::ExecutableDevice::ExecuteFail& exc) {
         std::string message = "execute failure " + std::string(exc.msg);
-        throw ossie::execute_error(deployment, device, message);
+        throw redhawk::execute_error(deployment, device, message);
     } catch (const CORBA::SystemException& exc) {
-        throw ossie::execute_error(deployment, device, ossie::corba::describeException(exc));
+        throw redhawk::execute_error(deployment, device, ossie::corba::describeException(exc));
     } catch (...) {
         // Should never happen, but turn anything else into an execute_error
         // just in case
-        throw ossie::execute_error(deployment, device, "unexpected error");
+        throw redhawk::execute_error(deployment, device, "unexpected error");
     }
 
     // handle pid output
     if (pid < 0) {
-        throw ossie::execute_error(deployment, device, "execute returned invalid process ID");
+        throw redhawk::execute_error(deployment, device, "execute returned invalid process ID");
     } else {
         _application->setComponentPid(deployment->getIdentifier(), pid);
     }
@@ -1737,7 +1738,7 @@ void createHelper::applyApplicationAffinityOptions(const DeploymentList& deploym
       //
       boost::shared_ptr<ossie::DeviceNode> deploy_on_device;
       for (unsigned int rc_idx = 0; rc_idx < deployments.size(); rc_idx++) {
-          ossie::ComponentDeployment* deployment = deployments[rc_idx];
+          redhawk::ComponentDeployment* deployment = deployments[rc_idx];
           if (!(deployment->getNicAssignment().empty())) {
               deploy_on_device = deployment->getAssignedDevice();
           }
@@ -1745,7 +1746,7 @@ void createHelper::applyApplicationAffinityOptions(const DeploymentList& deploym
 
       if (deploy_on_device) {
           for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
-              ossie::ComponentDeployment* deployment = deployments[rc_idx];
+              redhawk::ComponentDeployment* deployment = deployments[rc_idx];
               boost::shared_ptr<ossie::DeviceNode> dev = deployment->getAssignedDevice();
               // for matching device deployments then apply nic affinity settings
               if (dev->identifier == deploy_on_device->identifier) {
@@ -1781,7 +1782,7 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
         LOG_ERROR(ApplicationFactory_impl, "Timed out waiting for component to bind to naming context (" << elapsed << "s elapsed)");
         ostringstream eout;
         for (unsigned int req_idx = 0; req_idx < deployments.size(); req_idx++) {
-            ossie::ComponentDeployment* deployment = deployments[req_idx];
+            redhawk::ComponentDeployment* deployment = deployments[req_idx];
             if (expected_components.count(deployment->getIdentifier())) {
                 eout << "Timed out waiting for component to register: '" << deployment->getSoftPkg()->getName()
                      << "' with component id: '" << deployment->getIdentifier()
@@ -1806,7 +1807,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
     LOG_TRACE(ApplicationFactory_impl, "initializing " << deployments.size() << " waveform components");
 
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
-        ossie::ComponentDeployment* deployment = deployments[rc_idx];
+        redhawk::ComponentDeployment* deployment = deployments[rc_idx];
         const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
 
         // If the component is non-SCA compliant then we don't expect anything beyond this
@@ -1861,9 +1862,9 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
 
 void createHelper::configureComponents(const DeploymentList& deployments)
 {
-    ossie::ComponentDeployment* ac_deployment = 0;
+    redhawk::ComponentDeployment* ac_deployment = 0;
     for (DeploymentList::const_iterator depl = deployments.begin(); depl != deployments.end(); ++depl) {
-        ossie::ComponentDeployment* deployment = (*depl);
+        redhawk::ComponentDeployment* deployment = (*depl);
         if (deployment->isAssemblyController()) {
             ac_deployment = deployment;
         } else {
@@ -1880,7 +1881,7 @@ void createHelper::configureComponents(const DeploymentList& deployments)
 /* Connect the components
  *  - Connect the components
  */
-void createHelper::connectComponents(ossie::ApplicationDeployment& appDeployment,
+void createHelper::connectComponents(redhawk::ApplicationDeployment& appDeployment,
                                      std::vector<ConnectionNode>& connections,
                                      string base_naming_context)
 {
@@ -1921,10 +1922,10 @@ std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& 
     // the values in the SAD. Using a multimap, keyed on the start order value,
     // accounts for duplicate keys and allows assigning the effective order
     // easily by iterating through all entries.
-    typedef std::multimap<int,ossie::ComponentDeployment*> StartOrderMap;
+    typedef std::multimap<int,redhawk::ComponentDeployment*> StartOrderMap;
     StartOrderMap start_map;
     for (size_t index = 0; index < deployments.size(); ++index) {
-        ossie::ComponentDeployment* deployment = deployments[index];
+        redhawk::ComponentDeployment* deployment = deployments[index];
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
         if (deployment->isAssemblyController()) {
             LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation->getID()

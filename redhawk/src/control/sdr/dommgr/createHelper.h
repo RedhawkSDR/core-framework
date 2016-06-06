@@ -96,28 +96,28 @@ private:
 
     redhawk::ProfileCache _profileCache;
 
-    typedef std::vector<ossie::ComponentDeployment*> DeploymentList;
+    typedef std::vector<redhawk::ComponentDeployment*> DeploymentList;
     typedef std::vector<std::string> ProcessorList;
     typedef std::vector<ossie::SPD::NameVersionPair> OSList;
 
     // createHelper helper methods
-    void assignPlacementsToDevices(ossie::ApplicationDeployment& appDeployment,
+    void assignPlacementsToDevices(redhawk::ApplicationDeployment& appDeployment,
                                    const DeviceAssignmentMap& devices);
-    void _validateDAS(ossie::ApplicationDeployment& appDeployment, const DeviceAssignmentMap& deviceAssignments);
-    void _connectComponents(ossie::ApplicationDeployment& appDeployment,
+    void _validateDAS(redhawk::ApplicationDeployment& appDeployment, const DeviceAssignmentMap& deviceAssignments);
+    void _connectComponents(redhawk::ApplicationDeployment& appDeployment,
         std::vector<ossie::ConnectionNode>& connections);
-    void setUpExternalPorts(ossie::ApplicationDeployment& appDeployment, Application_impl* application);
-    void setUpExternalProperties(ossie::ApplicationDeployment& appDeployment, Application_impl* application);
-    void _placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
+    void setUpExternalPorts(redhawk::ApplicationDeployment& appDeployment, Application_impl* application);
+    void setUpExternalProperties(redhawk::ApplicationDeployment& appDeployment, Application_impl* application);
+    void _placeHostCollocation(redhawk::ApplicationDeployment& appDeployment,
                                const ossie::SoftwareAssembly::HostCollocation& collocation,
                                const DeviceAssignmentMap& devices);
-    bool placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
+    bool placeHostCollocation(redhawk::ApplicationDeployment& appDeployment,
                               const DeploymentList& components,
                               DeploymentList::const_iterator current,
                               ossie::DeviceList& deploymentDevices,
                               const ProcessorList& processorDeps=ProcessorList(),
                               const OSList& osDeps=OSList());
-    void _handleUsesDevices(ossie::ApplicationDeployment& appDeployment,
+    void _handleUsesDevices(redhawk::ApplicationDeployment& appDeployment,
                             const std::string& appName);
 
     CF::Properties _consolidateAllocations(const DeploymentList& implementations);
@@ -127,48 +127,48 @@ private:
     // Supports allocation
     bool allocateUsesDevices(const std::vector<ossie::UsesDevice>& usesDevices,
                              const CF::Properties& configureProperties,
-                             ossie::UsesDeviceDeployment& assignedDevices,
+                             redhawk::UsesDeviceDeployment& assignedDevices,
                              ScopedAllocations& allocations);
     CF::AllocationManager::AllocationResponseSequence* allocateUsesDeviceProperties(
         const std::vector<ossie::UsesDevice>& component,
         const CF::Properties& configureProperties);
-    void allocateComponent(ossie::ApplicationDeployment& appDeployment,
-                           ossie::ComponentDeployment* deployment,
+    void allocateComponent(redhawk::ApplicationDeployment& appDeployment,
+                           redhawk::ComponentDeployment* deployment,
                            const std::string& assignedDeviceId);
 
-    ossie::AllocationResult allocateComponentToDevice(ossie::ComponentDeployment* deployment,
+    ossie::AllocationResult allocateComponentToDevice(redhawk::ComponentDeployment* deployment,
                                                       const std::string& assignedDeviceId,
                                                       const std::string& appIdentifier);
 
-    bool allocateHostCollocation(ossie::ApplicationDeployment& appDeployment,
+    bool allocateHostCollocation(redhawk::ApplicationDeployment& appDeployment,
                                  const DeploymentList& components,
                                  ossie::DeviceList& deploymentDevices,
                                  const ProcessorList& processorDeps,
                                  const OSList& osDeps);
 
-    bool resolveSoftpkgDependencies(ossie::ApplicationDeployment& appDeployment,
-                                    ossie::SoftpkgDeployment* deployment,
+    bool resolveSoftpkgDependencies(redhawk::ApplicationDeployment& appDeployment,
+                                    redhawk::SoftpkgDeployment* deployment,
                                     ossie::DeviceNode& device);
-    ossie::SoftpkgDeployment* resolveDependencyImplementation(ossie::ApplicationDeployment& appDeployment,
-                                                              const ossie::SPD::SoftPkgRef& ref,
-                                                              ossie::DeviceNode& device);
+    redhawk::SoftpkgDeployment* resolveDependencyImplementation(redhawk::ApplicationDeployment& appDeployment,
+                                                                const ossie::SPD::SoftPkgRef& ref,
+                                                                ossie::DeviceNode& device);
     
     // Supports loading, executing, initializing, configuring, & connecting
     void loadAndExecuteComponents(const DeploymentList& deployments,
                                   CF::ApplicationRegistrar_ptr _appReg);
     void applyApplicationAffinityOptions(const DeploymentList& deployments);
 
-    void attemptComponentExecution(CF::ApplicationRegistrar_ptr registrar, ossie::ComponentDeployment* deployment);
+    void attemptComponentExecution(CF::ApplicationRegistrar_ptr registrar, redhawk::ComponentDeployment* deployment);
 
     void waitForComponentRegistration(const DeploymentList& deployments);
     void initializeComponents(const DeploymentList& deployments);
 
     void configureComponents(const DeploymentList& deployments);
-    void connectComponents(ossie::ApplicationDeployment& appDeployment,
+    void connectComponents(redhawk::ApplicationDeployment& appDeployment,
         std::vector<ossie::ConnectionNode>& connections, 
         std::string                         base_naming_context);
 
-    std::string resolveLoggingConfiguration(ossie::ComponentDeployment* deployment);
+    std::string resolveLoggingConfiguration(redhawk::ComponentDeployment* deployment);
     std::vector<CF::Resource_var> getStartOrder(const DeploymentList& deployments);
 
     // Cleanup - used when create fails/doesn't succeed for some reason

@@ -28,6 +28,7 @@
 #include "PersistenceStore.h"
 #include "Deployment.h"
 
+using namespace redhawk;
 using namespace ossie;
 namespace fs = boost::filesystem;
 
@@ -677,7 +678,7 @@ void ComponentDeployment::configure()
         // NB: I think having a valid CORBA reference is a pre-condition of
         // getting to this point in the first place
         RH_NL_ERROR("ApplicationFactory_impl", "Could not get component reference");
-        throw ossie::deployment_error(this, "no CORBA reference");
+        throw redhawk::deployment_error(this, "no CORBA reference");
     }
 
     redhawk::PropertyMap config_props = getInitialConfigureProperties();
