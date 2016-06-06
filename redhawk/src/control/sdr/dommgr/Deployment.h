@@ -214,11 +214,15 @@ namespace ossie {
 
         std::string getLoggingConfiguration() const;
 
+        void initialize();
+
         void configure();
 
     protected:
         CF::DataType getPropertyValue(const Property* property) const;
         const ComponentProperty* getPropertyOverride(const std::string& id) const;
+
+        void initializeProperties();
 
         const ComponentInstantiation* instantiation;
         const std::string identifier;

@@ -591,6 +591,70 @@ std::string ComponentDeployment::getLoggingConfiguration() const
     return std::string();
 }
 
+void ComponentDeployment::initializeProperties()
+{
+    redhawk::PropertyMap init_props = getInitializeProperties();
+
+    CF::Properties partials = ossie::getPartialStructs(init_props);
+    if (partials.length() > 0) {
+        std::ostringstream eout;
+        eout << "cannot be initialized due to " << partials.length();
+        eout << " structure(s) with a mix of defined and nil values: ";
+        bool first = true;
+        for (size_t index = 0; index < partials.length(); ++index) {
+            if (!first) {
+                eout << ", ";
+            }
+            eout << partials[index].id;
+        }
+        throw deployment_error(this, eout.str());
+    }
+
+    RH_NL_DEBUG("ApplicationFactory_impl", "Initializing properties for component " << identifier);
+    try {
+        resource->initializeProperties(init_props);
+    } catch (const CF::PropertySet::InvalidConfiguration& ic) {
+        throw configure_error(this, ic.invalidProperties, "invalid configuration");
+    } catch (const CF::PropertySet::PartialConfiguration& pc) {
+        throw configure_error(this, pc.invalidProperties, "partial configuration");
+    } catch (const CF::PropertyEmitter::AlreadyInitialized& ai) {
+        // The component should never be initialized twice, at least not by the
+        // ApplicationFactory
+        throw std::runtime_error("component " + identifier + " was already initialized");
+    } catch (...) {
+        throw std::runtime_error("unable to initialize properties for component " + identifier);
+    }
+}
+
+void ComponentDeployment::initialize()
+{
+    if (isConfigurable()) {
+        initializeProperties();
+    }
+
+    RH_NL_TRACE("ApplicationFactory_impl", "Initializing component " << identifier);
+    try {
+        resource->initialize();
+    } catch (const CF::LifeCycle::InitializeError& error) {
+        // Dump the detailed initialization failure to the log
+        std::ostringstream logmsg;
+        logmsg << "Initializing component " << identifier << " failed";
+        for (CORBA::ULong index = 0; index < error.errorMessages.length(); ++index) {
+            logmsg << std::endl << error.errorMessages[index];
+        }
+        RH_NL_ERROR("ApplicationFactory_impl", logmsg.str());
+
+        const std::string errmsg = "Unable to initialize component " + identifier;
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, errmsg.c_str());
+    } catch (const CORBA::SystemException& exc) {
+        std::ostringstream eout;
+        eout << "CORBA " << exc._name() << " exception initializing component " << identifier;
+        RH_NL_ERROR("ApplicationFactory_impl", eout.str());
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
+    }
+
+}
+
 void ComponentDeployment::configure()
 {
     if (!softpkg->isScaCompliant()) {
@@ -626,7 +690,7 @@ void ComponentDeployment::configure()
         eout << "Component " << identifier << " contains " << partials.length()
              << "structure(s) with a mix of defined and nil values: ";
         bool first = true;
-        for (int index = 0; index < partials.length(); ++index) {
+        for (size_t index = 0; index < partials.length(); ++index) {
             if (!first) {
                 eout << ", ";
             }
@@ -636,8 +700,8 @@ void ComponentDeployment::configure()
         RH_NL_WARN("ApplicationFactory_impl", eout.str());
     }
 
+    RH_NL_TRACE("ApplicationFactory_impl", "Configuring component " << identifier);
     try {
-        RH_NL_TRACE("ApplicationFactory_impl", "Configuring component " << identifier);
         resource->configure(config_props);
     } catch (const CF::PropertySet::InvalidConfiguration& ic) {
         throw configure_error(this, ic.invalidProperties, "invalid configuration");

@@ -822,7 +822,20 @@ CF::Application_ptr createHelper::create (
     CF::ApplicationRegistrar_var app_reg = _application->appReg();
     loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
     waitForComponentRegistration(app_deployment.getComponentDeployments());
-    initializeComponents(app_deployment.getComponentDeployments());
+
+    try {
+        initializeComponents(app_deployment.getComponentDeployments());
+    } catch (const ossie::configure_error& exc) {
+        // Unfortunately, InvalidInitConfiguration does not include an error
+        // message, so log the error here to give more details
+        std::ostringstream eout;
+        LOG_ERROR(ApplicationFactory_impl, "Property initialization of component "
+                  << exc.deployment()->getIdentifier()
+                  << " failed with " << exc.what() << " " << exc.properties());
+        throw CF::ApplicationFactory::InvalidInitConfiguration(exc.properties());
+    } catch (const std::exception& exc) {
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, exc.what());
+    }
 
     // Check that the assembly controller is valid
     LOG_TRACE(ApplicationFactory_impl, "Checking assembly controller");
@@ -1902,93 +1915,7 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
             usleep(1000);
         }
 
-
-        //
-        // call resource's initializeProperties method to handle any properties required for construction
-        //
-        LOG_DEBUG(ApplicationFactory_impl, "Initialize properties for component " << componentId);
-        if (deployment->isResource() && deployment->isConfigurable()) {
-            redhawk::PropertyMap initProps = deployment->getInitializeProperties();
-            CF::Properties partialStruct = ossie::getPartialStructs(initProps);
-            if (partialStruct.length() != 0) {
-                ostringstream eout;
-                eout << "Failed to 'configure' Assembly Controller: '";
-                eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<< deployment->getAssignedDevice()->identifier << "' ";
-                eout << " in waveform '"<< _waveformContextName<<"';";
-                eout <<  "This component contains structure"<<partialStruct[0].id<<" with a mix of defined and nil values.";
-                LOG_ERROR(ApplicationFactory_impl, eout.str());
-                throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-            }
-            try {
-                // Try to set the initial values for the component's properties
-                resource->initializeProperties(initProps);
-            } catch(CF::PropertySet::InvalidConfiguration& e) {
-                ostringstream eout;
-                eout << "Failed to initialize component properties: '";
-                eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
-                eout << " in waveform '"<< _waveformContextName<<"';";
-                eout <<  "InvalidConfiguration with this info: <";
-                eout << e.msg << "> for these invalid properties: ";
-                for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
-                    eout << "(" << e.invalidProperties[propIdx].id << ",";
-                    eout << ossie::any_to_string(e.invalidProperties[propIdx].value) << ")";
-                }
-                eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                LOG_ERROR(ApplicationFactory_impl, eout.str());
-                throw CF::ApplicationFactory::InvalidInitConfiguration(e.invalidProperties);
-            } catch(CF::PropertySet::PartialConfiguration& e) {
-                ostringstream eout;
-                eout << "Failed to initialize component properties: '";
-                eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
-                eout << " in waveform '"<< _waveformContextName<<"';";
-                eout << "PartialConfiguration for these invalid properties: ";
-                for (unsigned int propIdx = 0; propIdx < e.invalidProperties.length(); propIdx++){
-                    eout << "(" << e.invalidProperties[propIdx].id << ",";
-                    eout << ossie::any_to_string(e.invalidProperties[propIdx].value) << ")";
-                }
-                eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                LOG_ERROR(ApplicationFactory_impl, eout.str());
-                throw CF::ApplicationFactory::InvalidInitConfiguration(e.invalidProperties);
-            } catch( ... ) {
-                ostringstream eout;
-                eout << "Failed to initialize component properties: '";
-                eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << " assigned to device: '"<<deployment->getAssignedDevice()->identifier << "' ";
-                eout << " in waveform '"<< _waveformContextName<<"';";
-                eout << "'initializeProperties' failed with Unknown Exception";
-                eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-                LOG_ERROR(ApplicationFactory_impl, eout.str());
-                throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
-            }
-        }
-
-        LOG_TRACE(ApplicationFactory_impl, "Initializing component " << componentId);
-        try {
-            resource->initialize();
-        } catch (const CF::LifeCycle::InitializeError& error) {
-            // Dump the detailed initialization failure to the log
-            ostringstream logmsg;
-            std::string component_version(component->spd.getSoftPkgType());
-            std::string added_message = this->createVersionMismatchMessage(component_version);
-            logmsg << added_message;
-            logmsg << "Initializing component " << componentId << " failed";
-            for (CORBA::ULong index = 0; index < error.errorMessages.length(); ++index) {
-                logmsg << std::endl << error.errorMessages[index];
-            }
-            LOG_ERROR(ApplicationFactory_impl, logmsg.str());
-
-            ostringstream eout;
-            eout << added_message;
-            eout << "Unable to initialize component " << componentId;
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-        } catch (const CORBA::SystemException& exc) {
-            ostringstream eout;
-            std::string component_version(component->spd.getSoftPkgType());
-            std::string added_message = this->createVersionMismatchMessage(component_version);
-            eout << added_message;
-            eout << "CORBA " << exc._name() << " exception initializing component " << componentId;
-            LOG_ERROR(ApplicationFactory_impl, eout.str());
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-        }
+        deployment->initialize();
     }
 }
 
