@@ -819,8 +819,18 @@ CF::Application_ptr createHelper::create (
     std::vector<ConnectionNode> connections;
     std::vector<std::string> allocationIDs;
 
-    CF::ApplicationRegistrar_var app_reg = _application->appReg();
-    loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
+    try {
+        CF::ApplicationRegistrar_var app_reg = _application->appReg();
+        loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
+    } catch (const ossie::execute_error& exc) {
+        std::ostringstream eout;
+        eout << "Executing component " << exc.deployment()->getIdentifier();
+        eout << " implementation " << exc.deployment()->getImplementation()->getID();
+        eout << " failed on device " << exc.device()->identifier;
+        eout << ": " << exc.what();
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
+    }
+
     waitForComponentRegistration(app_deployment.getComponentDeployments());
 
     try {
@@ -1592,9 +1602,6 @@ std::string createHelper::resolveLoggingConfiguration(ossie::ComponentDeployment
 void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr registrar,
                                               ossie::ComponentDeployment* deployment)
 {
-    const ossie::SPD::Implementation* implementation = deployment->getImplementation();
-    const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
-
     // Get executable device reference
     boost::shared_ptr<DeviceNode> device = deployment->getAssignedDevice();
     CF::ExecutableDevice_var execdev = ossie::corba::_narrowSafe<CF::ExecutableDevice>(device->device);
@@ -1624,7 +1631,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         execParameters["NAME_BINDING"] = deployment->getInstantiation()->getFindByNamingServiceName();
     }
     execParameters["DOM_PATH"] = _baseNamingContext;
-    execParameters["PROFILE_NAME"] = softpkg->getSPDFile();
+    execParameters["PROFILE_NAME"] = deployment->getSoftPkg()->getSPDFile();
 
     // Pass logging configuration
     std::string logging_uri = resolveLoggingConfiguration(deployment);
@@ -1667,109 +1674,46 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         dep_seq[p]=CORBA::string_dup(resolved_softpkg_deps[p].c_str());
     }
 
-    CF::ExecutableDevice::ProcessID_Type tempPid = -1;
-
     // attempt to execute the component
+    LOG_TRACE(ApplicationFactory_impl, "Executing " << entryPoint << " on device " << device->label);
+    for (redhawk::PropertyMap::iterator prop = execParameters.begin(); prop != execParameters.end(); ++prop) {
+        LOG_TRACE(ApplicationFactory_impl, " exec param " << prop->getId() << " " << prop->getValue().toString());
+    }
+
+    // Get options list
+    redhawk::PropertyMap options = deployment->getOptions(); 
+    for (redhawk::PropertyMap::iterator opt = options.begin(); opt != options.end(); ++opt) {
+        LOG_TRACE(ApplicationFactory_impl, " RESOURCE OPTION: " << opt->getId()
+                  << " " << opt->getValue().toString());
+    }
+
+    CF::ExecutableDevice::ProcessID_Type pid = -1;
     try {
-        LOG_TRACE(ApplicationFactory_impl, "executing " << entryPoint << " on device " << device->label);
-        for (redhawk::PropertyMap::iterator prop = execParameters.begin(); prop != execParameters.end(); ++prop) {
-            LOG_TRACE(ApplicationFactory_impl, " exec param " << prop->getId() << " " << prop->getValue().toString());
-        }
-
-        // Get options list
-        redhawk::PropertyMap options = deployment->getOptions(); 
-        for (redhawk::PropertyMap::iterator opt = options.begin(); opt != options.end(); ++opt) {
-            LOG_TRACE(ApplicationFactory_impl, " RESOURCE OPTION: " << opt->getId()
-                      << " " << opt->getValue().toString());
-        }
-
         // call 'execute' on the ExecutableDevice to execute the component
-        tempPid = execdev->executeLinked(entryPoint.c_str(), options, execParameters, dep_seq);
-    } catch( CF::InvalidFileName& _ex ) {
-        std::string added_message = this->createVersionMismatchMessage(component_version);
-        ostringstream eout;
-        eout << "InvalidFileName when calling 'execute' on device with device id: '" << device->identifier << "' for component: '";
-        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
-        eout << " with implementation id: '" << implementation->getID() << "'";
-        eout << " in waveform '" << _waveformContextName<<"'";
-        eout << " with error: <" << _ex.msg << ">;";
-        eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-        LOG_TRACE(ApplicationFactory_impl, eout.str())
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    } catch( CF::Device::InvalidState& _ex ) {
-        std::string added_message = this->createVersionMismatchMessage(component_version);
-        ostringstream eout;
-        eout << "InvalidState when calling 'execute' on device with device id: '" << device->identifier << "' for component: '";
-        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
-        eout << " with implementation id: '" << implementation->getID() << "'";
-        eout << " in waveform '" << _waveformContextName<<"'";
-        eout << " with error: <" << _ex.msg << ">;";
-        eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-        LOG_TRACE(ApplicationFactory_impl, eout.str())
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    } catch( CF::ExecutableDevice::InvalidParameters& _ex ) {
-        std::string added_message = this->createVersionMismatchMessage(component_version);
-        ostringstream eout;
-        eout << "InvalidParameters when calling 'execute' on device with device id: '" << device->identifier << "' for component: '";
-        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
-        eout << " with implementation id: '" << implementation->getID() << "'";
-        eout << " in waveform '" << _waveformContextName<<"'";
-        eout << " with invalid params: <";
-        for (unsigned int propIdx = 0; propIdx < _ex.invalidParms.length(); propIdx++){
-            eout << "(" << _ex.invalidParms[propIdx].id << "," << ossie::any_to_string(_ex.invalidParms[propIdx].value) << ")";
-        }
-        eout << " > error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-        LOG_TRACE(ApplicationFactory_impl, eout.str())
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    } catch( CF::ExecutableDevice::InvalidOptions& _ex ) {
-        std::string component_version(component->spd.getSoftPkgType());
-        std::string added_message = this->createVersionMismatchMessage(component_version);
-        ostringstream eout;
-        eout << "InvalidOptions when calling 'execute' on device with device id: '" << device->identifier << "' for component: '";
-        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
-        eout << " with implementation id: '" << implementation->getID() << "'";
-        eout << " in waveform '" << _waveformContextName<<"'";
-        eout << " with invalid options: <";
-        for (unsigned int propIdx = 0; propIdx < _ex.invalidOpts.length(); propIdx++){
-            eout << "(" << _ex.invalidOpts[propIdx].id << "," << ossie::any_to_string(_ex.invalidOpts[propIdx].value) << ")";
-        }
-        eout << " > error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-        LOG_TRACE(ApplicationFactory_impl, eout.str())
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    } catch (CF::ExecutableDevice::ExecuteFail& ex) {
-        std::string added_message = this->createVersionMismatchMessage(component_version);
-        ostringstream eout;
-        eout << "ExecuteFail when calling 'execute' on device with device id: '" << device->identifier << "' for component: '";
-        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
-        eout << " with implementation id: '" << implementation->getID() << "'";
-        eout << " in waveform '" << _waveformContextName<<"'";
-        eout << " with message: '" << ex.msg << "'";
-        eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-        LOG_TRACE(ApplicationFactory_impl, eout.str())
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    } CATCH_THROW_LOG_ERROR(
-            ApplicationFactory_impl, "Caught an unexpected error when calling 'execute' on device with device id: '"
-            << device->identifier << "' for component: '" << softpkg->getName()
-            << "' with component id: '" << deployment->getIdentifier() << "' "
-            << " with implementation id: '" << implementation->getID() << "'"
-            << " in waveform '" << _waveformContextName<<"'"
-            << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__,
-            CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, "Caught an unexpected error when calling 'execute' on device"));
+        pid = execdev->executeLinked(entryPoint.c_str(), options, execParameters, dep_seq);
+    } catch (const CF::InvalidFileName&) {
+        throw ossie::execute_error(deployment, device, "invalid filename");
+    } catch (const CF::Device::InvalidState& exc) {
+        std::string message = "invalid device state " + std::string(exc.msg);
+        throw ossie::execute_error(deployment, device, message);
+    } catch (const CF::ExecutableDevice::InvalidParameters& exc) {
+        std::string message = "invalid parameters " + redhawk::PropertyMap::cast(exc.invalidParms).toString();
+        throw ossie::execute_error(deployment, device, message);
+    } catch (const CF::ExecutableDevice::InvalidOptions& exc) {
+        std::string message = "invalid options " + redhawk::PropertyMap::cast(exc.invalidOpts).toString();
+        throw ossie::execute_error(deployment, device, message);
+    } catch (const CF::ExecutableDevice::ExecuteFail& exc) {
+        std::string message = "execute failure " + std::string(exc.msg);
+        throw ossie::execute_error(deployment, device, message);
+    } catch (...) {
+        throw ossie::execute_error(deployment, device, "unexpected error");
+    }
 
     // handle pid output
-    if (tempPid < 0) {
-        std::string added_message = this->createVersionMismatchMessage(component_version);
-        ostringstream eout;
-        eout << added_message;
-        eout << "Failed to 'execute' component for component: '";
-        eout << softpkg->getName() << "' with component id: '" << deployment->getIdentifier() << "' ";
-        eout << " with implementation id: '" << implementation->getID() << "'";
-        eout << " in waveform '" << _waveformContextName<<"'";
-        eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-        LOG_TRACE(ApplicationFactory_impl, eout.str())
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EAGAIN, eout.str().c_str());
+    if (pid < 0) {
+        throw ossie::execute_error(deployment, device, "execute returned invalid process ID");
     } else {
-        _application->setComponentPid(deployment->getIdentifier(), tempPid);
+        _application->setComponentPid(deployment->getIdentifier(), pid);
     }
 }
 

@@ -56,6 +56,29 @@ namespace ossie {
         const ComponentDeployment* _deployment;
     };
 
+    class execute_error : public deployment_error {
+    public:
+        execute_error(const ComponentDeployment* deployment,
+                      const boost::shared_ptr<DeviceNode>& device,
+                      const std::string& message) :
+            deployment_error(deployment, message),
+            _device(device)
+        {
+        }
+
+        const boost::shared_ptr<DeviceNode>& device() const
+        {
+            return _device;
+        }
+
+        virtual ~execute_error() throw ()
+        {
+        }
+
+    private:
+        boost::shared_ptr<DeviceNode> _device;
+    };
+
     class configure_error : public deployment_error {
     public:
         configure_error(const ComponentDeployment* deployment,
