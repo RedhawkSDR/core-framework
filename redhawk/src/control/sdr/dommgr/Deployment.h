@@ -33,6 +33,52 @@ class Application_impl;
 
 namespace ossie {
 
+    class ComponentDeployment;
+
+    class deployment_error : public std::runtime_error {
+    public:
+        deployment_error(const ComponentDeployment* deployment, const std::string& message) :
+            std::runtime_error(message),
+            _deployment(deployment)
+        {
+        }
+
+        virtual ~deployment_error() throw ()
+        {
+        }
+
+        const ComponentDeployment* deployment() const
+        {
+            return _deployment;
+        }
+
+    private:
+        const ComponentDeployment* _deployment;
+    };
+
+    class configure_error : public deployment_error {
+    public:
+        configure_error(const ComponentDeployment* deployment,
+                        const CF::Properties& properties,
+                        const std::string& message) :
+            deployment_error(deployment, message),
+            _properties(properties)
+        {
+        }
+
+        virtual ~configure_error() throw ()
+        {
+        }
+
+        const redhawk::PropertyMap& properties() const
+        {
+            return _properties;
+        }
+
+    private:
+        const redhawk::PropertyMap _properties;
+    };
+
     class UsesDeviceAssignment
     {
     public:
@@ -167,6 +213,8 @@ namespace ossie {
                   CF::LoadableDevice_ptr device);
 
         std::string getLoggingConfiguration() const;
+
+        void configure();
 
     protected:
         CF::DataType getPropertyValue(const Property* property) const;

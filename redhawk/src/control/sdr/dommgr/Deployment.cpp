@@ -590,3 +590,60 @@ std::string ComponentDeployment::getLoggingConfiguration() const
 
     return std::string();
 }
+
+void ComponentDeployment::configure()
+{
+    if (!softpkg->isScaCompliant()) {
+        // If the component is non-SCA compliant then we don't expect anything beyond this
+        RH_NL_TRACE("ApplicationFactory_impl", "Skipping configure of non SCA-compliant component "
+                    << identifier);
+        return;
+    } else if (!isResource()) {
+        RH_NL_TRACE("ApplicationFactory_impl", "Skipping configure of non-resource component "
+                    << identifier);
+        return;
+    }
+
+    if (!instantiation->isNamingService()) {
+        // Per the old code, we only configure if the instantiation uses naming
+        // service to locate the component
+        return;
+    }
+
+    if (CORBA::is_nil(resource)) {
+        // NB: I think having a valid CORBA reference is a pre-condition of
+        // getting to this point in the first place
+        RH_NL_ERROR("ApplicationFactory_impl", "Could not get component reference");
+        throw std::runtime_error("Could not get component reference for component " + identifier);
+    }
+
+    redhawk::PropertyMap config_props = getInitialConfigureProperties();
+
+    // Check and warn for partial structs
+    CF::Properties partials = ossie::getPartialStructs(config_props);
+    if (partials.length() > 0) {
+        std::ostringstream eout;
+        eout << "Component " << identifier << " contains " << partials.length()
+             << "structure(s) with a mix of defined and nil values: ";
+        bool first = true;
+        for (int index = 0; index < partials.length(); ++index) {
+            if (!first) {
+                eout << ", ";
+            }
+            eout << partials[index].id;
+        }
+        eout << ". The behavior for the component is undefined";
+        RH_NL_WARN("ApplicationFactory_impl", eout.str());
+    }
+
+    try {
+        RH_NL_TRACE("ApplicationFactory_impl", "Configuring component " << identifier);
+        resource->configure(config_props);
+    } catch (const CF::PropertySet::InvalidConfiguration& ic) {
+        throw configure_error(this, ic.invalidProperties, "invalid configuration");
+    } catch (const CF::PropertySet::PartialConfiguration& pc) {
+        throw configure_error(this, pc.invalidProperties, "partial configuration");
+    } catch (...) {
+        throw std::runtime_error("unable to configure component " + identifier);
+    }
+}

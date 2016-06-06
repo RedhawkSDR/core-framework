@@ -106,7 +106,6 @@ private:
     void _validateDAS(ossie::ApplicationDeployment& appDeployment, const DeviceAssignmentMap& deviceAssignments);
     void _connectComponents(ossie::ApplicationDeployment& appDeployment,
         std::vector<ossie::ConnectionNode>& connections);
-    void _configureComponents(const DeploymentList& deployments);
     void setUpExternalPorts(ossie::ApplicationDeployment& appDeployment, Application_impl* application);
     void setUpExternalProperties(ossie::ApplicationDeployment& appDeployment, Application_impl* application);
     void _placeHostCollocation(ossie::ApplicationDeployment& appDeployment,
