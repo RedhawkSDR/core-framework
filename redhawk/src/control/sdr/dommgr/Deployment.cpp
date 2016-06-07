@@ -688,7 +688,7 @@ void ComponentDeployment::configure()
     if (partials.length() > 0) {
         std::ostringstream eout;
         eout << "Component " << identifier << " contains " << partials.length()
-             << "structure(s) with a mix of defined and nil values: ";
+             << " structure(s) with a mix of defined and nil values: ";
         bool first = true;
         for (size_t index = 0; index < partials.length(); ++index) {
             if (!first) {
