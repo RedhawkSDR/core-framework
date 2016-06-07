@@ -986,11 +986,6 @@ CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDev
  *  - Allocate capacity on usesdevice(s)
  *  - Find and implementation that has it's implementation-specific usesdevice dependencies satisfied
  *  - Allocate the component to a particular device
-
- Current implementation takes advantage of single failure then clean up everything..... To support collocation
- allocation failover for mulitple devices, then we need to clean up only the allocations that we made during a failed
- collocation request.  This requires that we know and cleanup only those allocations that we made..
-
  */
 void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployment,
                                      redhawk::ComponentDeployment* deployment,
