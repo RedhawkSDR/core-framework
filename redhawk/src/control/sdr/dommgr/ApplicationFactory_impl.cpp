@@ -705,7 +705,7 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         LOG_ERROR(ApplicationFactory_impl, "Component " << exc.identifier()
                   << " failed due to " << exc.what() << " " << exc.properties());
         throw CF::ApplicationFactory::InvalidInitConfiguration(exc.properties());
-    } catch (const redhawk::deployment_error& exc) {
+    } catch (const redhawk::component_error& exc) {
         // A component failed deployment in some other way, report details
         std::stringstream eout;
         eout << "Deploying component " << exc.identifier();
@@ -1513,7 +1513,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         std::string codeLocalFile = deployment->getLocalFile();
         if (codeLocalFile.empty()) {
             // This should be caught by validation, but just in case
-            throw redhawk::deployment_error(deployment, "empty localfile");
+            throw redhawk::component_error(deployment, "empty localfile");
         }
 
         // narrow to LoadableDevice interface
@@ -1531,7 +1531,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         try {
             deployment->load(_application, _appFact._fileMgr, loadabledev);
         } catch (const std::exception& exc) {
-            throw redhawk::deployment_error(deployment, exc.what());
+            throw redhawk::component_error(deployment, exc.what());
         }
                 
         if (deployment->isExecutable()) {
@@ -1811,12 +1811,12 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
         const std::string componentId = deployment->getIdentifier();
         CORBA::Object_var objref = _application->getComponentObject(componentId);
         if (CORBA::is_nil(objref)) {
-            throw redhawk::deployment_error(deployment, "component did not register with application");
+            throw redhawk::component_error(deployment, "component did not register with application");
         }
 
         CF::Resource_var resource = ossie::corba::_narrowSafe<CF::Resource>(objref);
         if (CORBA::is_nil(resource)) {
-            throw redhawk::deployment_error(deployment, "component object is not a CF::Resource");
+            throw redhawk::component_error(deployment, "component object is not a CF::Resource");
         }
 
         deployment->setResourcePtr(resource);

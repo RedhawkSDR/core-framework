@@ -22,6 +22,7 @@
 #define DEPLOYMENTEXCEPTIONS_H
 
 #include <string>
+#include <vector>
 #include <stdexcept>
 
 #include <boost/shared_ptr.hpp>
@@ -36,32 +37,18 @@ namespace ossie {
 
 namespace redhawk {
 
+    class ApplicationDeployment;
     class ComponentDeployment;
 
     class deployment_error : public std::runtime_error {
     public:
-        deployment_error(const ComponentDeployment* deployment, const std::string& message);
-
-        virtual ~deployment_error() throw ()
+        deployment_error(const std::string& message) :
+            std::runtime_error(message)
         {
         }
-
-        const std::string& identifier() const
-        {
-            return _identifier;
-        }
-
-        const std::string& implementation() const
-        {
-            return _implementation;
-        }
-
-    private:
-        std::string _identifier;
-        std::string _implementation;
     };
 
-    class placement_failure : public std::runtime_error {
+    class placement_failure : public deployment_error {
     public:
         placement_failure(const ossie::ComponentInstantiation* instantiation, const std::string& message);
 
@@ -80,12 +67,35 @@ namespace redhawk {
         std::string _name;
     };
 
-    class execute_error : public deployment_error {
+    class component_error : public deployment_error {
+    public:
+        component_error(const ComponentDeployment* deployment, const std::string& message);
+
+        virtual ~component_error() throw ()
+        {
+        }
+
+        const std::string& identifier() const
+        {
+            return _identifier;
+        }
+
+        const std::string& implementation() const
+        {
+            return _implementation;
+        }
+
+    private:
+        std::string _identifier;
+        std::string _implementation;
+    };
+
+    class execute_error : public component_error {
     public:
         execute_error(const ComponentDeployment* deployment,
                       const boost::shared_ptr<ossie::DeviceNode>& device,
                       const std::string& message) :
-            deployment_error(deployment, message),
+            component_error(deployment, message),
             _device(device)
         {
         }
@@ -103,12 +113,12 @@ namespace redhawk {
         boost::shared_ptr<ossie::DeviceNode> _device;
     };
 
-    class properties_error : public deployment_error {
+    class properties_error : public component_error {
     public:
         properties_error(const ComponentDeployment* deployment,
                          const CF::Properties& properties,
                          const std::string& message) :
-            deployment_error(deployment, message),
+            component_error(deployment, message),
             _properties(properties)
         {
         }

@@ -161,7 +161,7 @@ namespace redhawk {
          * @brief  Initializes the deployed component
          * @exception  ossie::properties_error  invalid properties in property
          *             initialization
-         * @exception  ossie::deployment_error  initialization failed
+         * @exception  ossie::component_error  initialization failed
          *
          * Handles initialization of new-style 'property' kind properties and
          * calls initialize on the component.
@@ -171,7 +171,7 @@ namespace redhawk {
         /**
          * @brief  Configures legacy properties to initial values
          * @exception  ossie::properties_error  invalid properties
-         * @exception  ossie::deployment_error  configure failed
+         * @exception  ossie::component_error  configure failed
          *
          * Handles configuration of legacy 'configure' kind properties.
          */

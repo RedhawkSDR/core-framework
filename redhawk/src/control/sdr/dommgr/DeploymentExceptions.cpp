@@ -25,8 +25,8 @@
 
 using namespace redhawk;
 
-deployment_error::deployment_error(const ComponentDeployment* deployment, const std::string& message) :
-    std::runtime_error(message),
+component_error::component_error(const ComponentDeployment* deployment, const std::string& message) :
+    deployment_error(message),
     _identifier(deployment->getIdentifier())
 {
     if (deployment->getImplementation()) {
@@ -36,14 +36,14 @@ deployment_error::deployment_error(const ComponentDeployment* deployment, const 
 
 placement_failure::placement_failure(const ossie::ComponentInstantiation* instantiation,
                                      const std::string& message) :
-    std::runtime_error(message),
+    deployment_error(message),
     _name("component " + instantiation->getID())
 {
 }
 
 placement_failure::placement_failure(const ossie::SoftwareAssembly::HostCollocation& collocation,
                                      const std::string& message) :
-    std::runtime_error(message),
+    deployment_error(message),
     _name("host collocation " + collocation.getID() + " (" + collocation.getName() + ")")
 {
 }
