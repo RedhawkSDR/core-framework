@@ -1512,16 +1512,8 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         // Get file name, load if it is not empty
         std::string codeLocalFile = deployment->getLocalFile();
         if (codeLocalFile.empty()) {
-            ostringstream eout;
-            eout << "code.localfile is empty for component: '";
-            eout << softpkg->getName();
-            eout << "' with component id: '" << deployment->getIdentifier() << "' ";
-            eout << " with implementation id: '" << implementation->getID() << "'";
-            eout << " on device id: '" << device->identifier << "'";
-            eout << " in waveform '" << _waveformContextName<<"'";
-            eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-            LOG_TRACE(ApplicationFactory_impl, eout.str())
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EBADF, eout.str().c_str());
+            // This should be caught by validation, but just in case
+            throw redhawk::deployment_error(deployment, "empty localfile");
         }
 
         // narrow to LoadableDevice interface
@@ -1539,13 +1531,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         try {
             deployment->load(_application, _appFact._fileMgr, loadabledev);
         } catch (const std::exception& exc) {
-            std::ostringstream message;
-            message << "Unable to load component " << softpkg->getName()
-                    << " implementation " << implementation->getID()
-                    << " on device " << device->identifier
-                    << ": " << exc.what();
-            LOG_ERROR(ApplicationFactory_impl, message.str());
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, message.str().c_str());
+            throw redhawk::deployment_error(deployment, exc.what());
         }
                 
         if (deployment->isExecutable()) {
