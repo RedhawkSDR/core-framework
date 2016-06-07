@@ -462,6 +462,9 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
     
     LOG_TRACE(ApplicationFactory_impl, "Placing " << deployments.size() << " components");
     if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices)) {
+        if (_allDevicesBusy(deploymentDevices)) {
+            throw redhawk::placement_failure(collocation, "all executable devices (GPPs) in the Domain are busy");
+        }
         throw redhawk::placement_failure(collocation, "failed to satisfy device dependencies");
     }
     LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
@@ -1082,11 +1085,19 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
     }
 
     // Report failure, checking if the problem was that all executable devices
-    // were busy; this can yield false negatives (or positives) since it's not
-    // atomic with the allocation, but should provide a little extra insight in
-    // most cases
-    bool allBusy = true;
-    for (ossie::DeviceList::iterator dev = _executableDevices.begin(); dev != _executableDevices.end(); ++dev) {
+    // were busy
+    if (_allDevicesBusy(_executableDevices)) {
+        throw redhawk::placement_failure(deployment->getInstantiation(), "all executable devices (GPPs) in the Domain are busy");
+    }
+    throw redhawk::placement_failure(deployment->getInstantiation(), "failed to satisfy device dependencies");
+}
+
+bool createHelper::_allDevicesBusy(ossie::DeviceList& devices)
+{
+    // While this can yield false negatives (or positives) since it's not
+    // atomic with component allocation, it should provide a little extra
+    // insight in most cases
+    for (ossie::DeviceList::iterator dev = devices.begin(); dev != devices.end(); ++dev) {
         CF::Device::UsageType state;
         try {
             state = (*dev)->device->usageState();
@@ -1095,14 +1106,10 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
             continue;
         }
         if (state != CF::Device::BUSY) {
-            allBusy = false;
-            break;
+            return false;
         }
     }
-    if (allBusy) {
-        throw redhawk::placement_failure(deployment->getInstantiation(), "all executable devices (GPPs) in the Domain are busy");
-    }
-    throw redhawk::placement_failure(deployment->getInstantiation(), "failed to satisfy device dependencies");
+    return true;
 }
 
 bool createHelper::allocateUsesDevices(const std::vector<UsesDevice>& usesDevices,

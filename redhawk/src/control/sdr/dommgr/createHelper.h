@@ -119,6 +119,7 @@ private:
                               const OSList& osDeps=OSList());
     void _handleUsesDevices(redhawk::ApplicationDeployment& appDeployment,
                             const std::string& appName);
+    bool _allDevicesBusy(ossie::DeviceList& devices);
 
     CF::Properties _consolidateAllocations(const DeploymentList& implementations);
     void _evaluateMATHinRequest(CF::Properties &request, const CF::Properties &configureProperties);
