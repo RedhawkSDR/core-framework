@@ -44,6 +44,7 @@
 #include "AllocationManager_impl.h"
 #include "RH_NamingContext.h"
 #include "ApplicationValidator.h"
+#include "DeploymentExceptions.h"
 
 namespace fs = boost::filesystem;
 using namespace ossie;
@@ -461,10 +462,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
     
     LOG_TRACE(ApplicationFactory_impl, "Placing " << deployments.size() << " components");
     if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices)) {
-        std::ostringstream eout;
-        eout << "Could not collocate components for collocation NAME: " << collocation.getName() << "  ID:" << collocation.id;
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationRequestError();
+        throw redhawk::placement_failure(collocation, "failed to satisfy device dependencies");
     }
     LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
               << collocation.getID() << " Components Placed: " << deployments.size());
@@ -682,11 +680,17 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
     } catch (CF::ApplicationFactory::CreateApplicationRequestError& ex) {
         LOG_ERROR(ApplicationFactory_impl, "Error in application creation")
         throw;
+    } catch (const redhawk::placement_failure& exc) {
+        // Unable to place a component or host collocation, report details
+        std::ostringstream eout;
+        eout << "Failed to place " << exc.name() << ": " << exc.what();
+        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
     } catch (const redhawk::execute_error& exc) {
         // A component failed execution, report details
         std::ostringstream eout;
-        eout << "Executing component " << exc.deployment()->getIdentifier();
-        eout << " implementation " << exc.deployment()->getImplementation()->getID();
+        eout << "Executing component " << exc.identifier();
+        eout << " implementation " << exc.implementation();
         eout << " failed on device " << exc.device()->identifier;
         eout << ": " << exc.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
@@ -695,14 +699,14 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         // Unfortunately, InvalidInitConfiguration does not include an error
         // message, so log the error here to give more details
         std::ostringstream eout;
-        LOG_ERROR(ApplicationFactory_impl, "Component " << exc.deployment()->getIdentifier()
-                  << " failed with " << exc.what() << " " << exc.properties());
+        LOG_ERROR(ApplicationFactory_impl, "Component " << exc.identifier()
+                  << " failed due to " << exc.what() << " " << exc.properties());
         throw CF::ApplicationFactory::InvalidInitConfiguration(exc.properties());
     } catch (const redhawk::deployment_error& exc) {
         // A component failed deployment in some other way, report details
         std::stringstream eout;
-        eout << "Component " << exc.deployment()->getIdentifier();
-        eout << " implementation " << exc.deployment()->getImplementation()->getID();
+        eout << "Deploying component " << exc.identifier();
+        eout << " implementation " << exc.implementation();
         eout << " failed: " << exc.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
@@ -1077,6 +1081,10 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
         return;
     }
 
+    // Report failure, checking if the problem was that all executable devices
+    // were busy; this can yield false negatives (or positives) since it's not
+    // atomic with the allocation, but should provide a little extra insight in
+    // most cases
     bool allBusy = true;
     for (ossie::DeviceList::iterator dev = _executableDevices.begin(); dev != _executableDevices.end(); ++dev) {
         CF::Device::UsageType state;
@@ -1092,19 +1100,9 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
         }
     }
     if (allBusy) {
-        // Report failure
-        std::ostringstream eout;
-        eout << "Unable to launch component '"<<deployment->getSoftPkg()->getName()<<"'. All executable devices (i.e.: GPP) in the Domain are busy";
-        LOG_DEBUG(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
+        throw redhawk::placement_failure(deployment->getInstantiation(), "all executable devices (GPPs) in the Domain are busy");
     }
-
-    // Report failure
-    std::ostringstream eout;
-    eout << "Failed to satisfy device dependencies for component: '";
-    eout << deployment->getSoftPkg()->getName() << "' with component id: '" << deployment->getIdentifier() << "'";
-    LOG_DEBUG(ApplicationFactory_impl, eout.str());
-    throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
+    throw redhawk::placement_failure(deployment->getInstantiation(), "failed to satisfy device dependencies");
 }
 
 bool createHelper::allocateUsesDevices(const std::vector<UsesDevice>& usesDevices,
@@ -1825,25 +1823,12 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
         const std::string componentId = deployment->getIdentifier();
         CORBA::Object_var objref = _application->getComponentObject(componentId);
         if (CORBA::is_nil(objref)) {
-            ostringstream eout;
-            eout << "No object found for component: '" << softpkg->getName()
-                 << "' with component id: '" << componentId
-                 << " assigned to device: '"<<deployment->getAssignedDevice()->identifier<<"'";
-            eout << " in waveform '" << _waveformContextName<<"';";
-            eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
+            throw redhawk::deployment_error(deployment, "component did not register with application");
         }
 
         CF::Resource_var resource = ossie::corba::_narrowSafe<CF::Resource>(objref);
         if (CORBA::is_nil(resource)) {
-            ostringstream eout;
-            eout << "CF::Resource::_narrow failed with Unknown Exception for component: '"
-                 << softpkg->getName()
-                 << "' with component id: '" << componentId
-                 << " assigned to device: '"<<deployment->getAssignedDevice()->identifier<<"'";
-            eout << " in waveform '" << _waveformContextName<<"';";
-            eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
+            throw redhawk::deployment_error(deployment, "component object is not a CF::Resource");
         }
 
         deployment->setResourcePtr(resource);

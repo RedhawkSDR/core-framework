@@ -34,6 +34,7 @@ DomainManager_SOURCES = connectionSupport.cpp \
                         DomainManager_impl.cpp \
                         FakeApplication.cpp \
                         Deployment.cpp \
+                        DeploymentExceptions.cpp \
                         ApplicationDeployment.cpp \
                         ApplicationValidator.cpp \
                         ProfileCache.cpp \

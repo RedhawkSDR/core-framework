@@ -27,6 +27,7 @@
 #include "Application_impl.h"
 #include "PersistenceStore.h"
 #include "Deployment.h"
+#include "DeploymentExceptions.h"
 
 using namespace redhawk;
 using namespace ossie;
@@ -642,8 +643,12 @@ void ComponentDeployment::initialize()
     } catch (const CF::LifeCycle::InitializeError& error) {
         // Dump the detailed initialization failure to the log
         std::ostringstream logmsg;
+        logmsg << "initialize error";
         for (CORBA::ULong index = 0; index < error.errorMessages.length(); ++index) {
-            logmsg << std::endl << error.errorMessages[index];
+            if (index > 0) {
+                logmsg << ",";
+            }
+            logmsg << " '" << error.errorMessages[index] << "'";
         }
         throw deployment_error(this, logmsg.str());
     } catch (const CORBA::SystemException& exc) {
