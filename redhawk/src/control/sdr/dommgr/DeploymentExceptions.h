@@ -40,23 +40,23 @@ namespace redhawk {
     class ApplicationDeployment;
     class ComponentDeployment;
 
-    class deployment_error : public std::runtime_error {
+    class DeploymentError : public std::runtime_error {
     public:
-        deployment_error(const std::string& message) :
+        DeploymentError(const std::string& message) :
             std::runtime_error(message)
         {
         }
     };
 
-    class connection_error : public deployment_error {
+    class ConnectionError : public DeploymentError {
     public:
-        connection_error(const std::string& identifier, const std::string& message) :
-            deployment_error(message),
+        ConnectionError(const std::string& identifier, const std::string& message) :
+            DeploymentError(message),
             _identifier(identifier)
         {
         }
 
-        virtual ~connection_error() throw()
+        virtual ~ConnectionError() throw()
         {
         }
 
@@ -69,13 +69,13 @@ namespace redhawk {
         const std::string _identifier;
     };
 
-    class placement_failure : public deployment_error {
+    class PlacementFailure : public DeploymentError {
     public:
-        placement_failure(const ossie::ComponentInstantiation* instantiation, const std::string& message);
+        PlacementFailure(const ossie::ComponentInstantiation* instantiation, const std::string& message);
 
-        placement_failure(const ossie::SoftwareAssembly::HostCollocation& collocation, const std::string& message);
+        PlacementFailure(const ossie::SoftwareAssembly::HostCollocation& collocation, const std::string& message);
 
-        virtual ~placement_failure() throw ()
+        virtual ~PlacementFailure() throw ()
         {
         }
 
@@ -88,11 +88,11 @@ namespace redhawk {
         std::string _name;
     };
 
-    class component_error : public deployment_error {
+    class ComponentError : public DeploymentError {
     public:
-        component_error(const ComponentDeployment* deployment, const std::string& message);
+        ComponentError(const ComponentDeployment* deployment, const std::string& message);
 
-        virtual ~component_error() throw ()
+        virtual ~ComponentError() throw ()
         {
         }
 
@@ -111,12 +111,12 @@ namespace redhawk {
         std::string _implementation;
     };
 
-    class execute_error : public component_error {
+    class ExecuteError : public ComponentError {
     public:
-        execute_error(const ComponentDeployment* deployment,
-                      const boost::shared_ptr<ossie::DeviceNode>& device,
-                      const std::string& message) :
-            component_error(deployment, message),
+        ExecuteError(const ComponentDeployment* deployment,
+                     const boost::shared_ptr<ossie::DeviceNode>& device,
+                     const std::string& message) :
+            ComponentError(deployment, message),
             _device(device)
         {
         }
@@ -126,7 +126,7 @@ namespace redhawk {
             return _device;
         }
 
-        virtual ~execute_error() throw ()
+        virtual ~ExecuteError() throw ()
         {
         }
 
@@ -134,17 +134,17 @@ namespace redhawk {
         boost::shared_ptr<ossie::DeviceNode> _device;
     };
 
-    class properties_error : public component_error {
+    class PropertiesError : public ComponentError {
     public:
-        properties_error(const ComponentDeployment* deployment,
+        PropertiesError(const ComponentDeployment* deployment,
                          const CF::Properties& properties,
                          const std::string& message) :
-            component_error(deployment, message),
+            ComponentError(deployment, message),
             _properties(properties)
         {
         }
 
-        virtual ~properties_error() throw ()
+        virtual ~PropertiesError() throw ()
         {
         }
 

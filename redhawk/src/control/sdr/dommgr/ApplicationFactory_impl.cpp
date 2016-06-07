@@ -449,9 +449,9 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
     LOG_TRACE(ApplicationFactory_impl, "Placing " << deployments.size() << " components");
     if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices)) {
         if (_allDevicesBusy(deploymentDevices)) {
-            throw redhawk::placement_failure(collocation, "all executable devices (GPPs) in the Domain are busy");
+            throw redhawk::PlacementFailure(collocation, "all executable devices (GPPs) in the Domain are busy");
         }
-        throw redhawk::placement_failure(collocation, "failed to satisfy device dependencies");
+        throw redhawk::PlacementFailure(collocation, "failed to satisfy device dependencies");
     }
     LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
               << collocation.getID() << " Components Placed: " << deployments.size());
@@ -669,13 +669,13 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
     } catch (CF::ApplicationFactory::CreateApplicationRequestError& ex) {
         LOG_ERROR(ApplicationFactory_impl, "Error in application creation")
         throw;
-    } catch (const redhawk::placement_failure& exc) {
+    } catch (const redhawk::PlacementFailure& exc) {
         // Unable to place a component or host collocation, report details
         std::ostringstream eout;
         eout << "Failed to place " << exc.name() << ": " << exc.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    } catch (const redhawk::execute_error& exc) {
+    } catch (const redhawk::ExecuteError& exc) {
         // A component failed execution, report details
         std::ostringstream eout;
         eout << "Executing component " << exc.identifier();
@@ -684,14 +684,14 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         eout << ": " << exc.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    } catch (const redhawk::properties_error& exc) {
+    } catch (const redhawk::PropertiesError& exc) {
         // Unfortunately, InvalidInitConfiguration does not include an error
         // message, so log the error here to give more details
         std::ostringstream eout;
         LOG_ERROR(ApplicationFactory_impl, "Component " << exc.identifier()
                   << " failed due to " << exc.what() << " " << exc.properties());
         throw CF::ApplicationFactory::InvalidInitConfiguration(exc.properties());
-    } catch (const redhawk::component_error& exc) {
+    } catch (const redhawk::ComponentError& exc) {
         // A component failed deployment in some other way, report details
         std::stringstream eout;
         eout << "Deploying component " << exc.identifier();
@@ -699,7 +699,7 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         eout << " failed: " << exc.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
-    } catch (const redhawk::connection_error& exc) {
+    } catch (const redhawk::ConnectionError& exc) {
         // A connection defined in the SAD could not be made, either because an
         // endpoint could not be resolved, or connectPort failed
         std::ostringstream eout;
@@ -1075,9 +1075,9 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
     // Report failure, checking if the problem was that all executable devices
     // were busy
     if (_allDevicesBusy(_executableDevices)) {
-        throw redhawk::placement_failure(deployment->getInstantiation(), "all executable devices (GPPs) in the Domain are busy");
+        throw redhawk::PlacementFailure(deployment->getInstantiation(), "all executable devices (GPPs) in the Domain are busy");
     }
-    throw redhawk::placement_failure(deployment->getInstantiation(), "failed to satisfy device dependencies");
+    throw redhawk::PlacementFailure(deployment->getInstantiation(), "failed to satisfy device dependencies");
 }
 
 bool createHelper::_allDevicesBusy(ossie::DeviceList& devices)
@@ -1506,7 +1506,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         std::string codeLocalFile = deployment->getLocalFile();
         if (codeLocalFile.empty()) {
             // This should be caught by validation, but just in case
-            throw redhawk::component_error(deployment, "empty localfile");
+            throw redhawk::ComponentError(deployment, "empty localfile");
         }
 
         // narrow to LoadableDevice interface
@@ -1524,7 +1524,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         try {
             deployment->load(_application, _appFact._fileMgr, loadabledev);
         } catch (const std::exception& exc) {
-            throw redhawk::component_error(deployment, exc.what());
+            throw redhawk::ComponentError(deployment, exc.what());
         }
                 
         if (deployment->isExecutable()) {
@@ -1664,30 +1664,30 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         // call 'execute' on the ExecutableDevice to execute the component
         pid = execdev->executeLinked(entryPoint.c_str(), options, execParameters, dep_seq);
     } catch (const CF::InvalidFileName&) {
-        throw redhawk::execute_error(deployment, device, "invalid filename");
+        throw redhawk::ExecuteError(deployment, device, "invalid filename");
     } catch (const CF::Device::InvalidState& exc) {
         std::string message = "invalid device state " + std::string(exc.msg);
-        throw redhawk::execute_error(deployment, device, message);
+        throw redhawk::ExecuteError(deployment, device, message);
     } catch (const CF::ExecutableDevice::InvalidParameters& exc) {
         std::string message = "invalid parameters " + redhawk::PropertyMap::cast(exc.invalidParms).toString();
-        throw redhawk::execute_error(deployment, device, message);
+        throw redhawk::ExecuteError(deployment, device, message);
     } catch (const CF::ExecutableDevice::InvalidOptions& exc) {
         std::string message = "invalid options " + redhawk::PropertyMap::cast(exc.invalidOpts).toString();
-        throw redhawk::execute_error(deployment, device, message);
+        throw redhawk::ExecuteError(deployment, device, message);
     } catch (const CF::ExecutableDevice::ExecuteFail& exc) {
         std::string message = "execute failure " + std::string(exc.msg);
-        throw redhawk::execute_error(deployment, device, message);
+        throw redhawk::ExecuteError(deployment, device, message);
     } catch (const CORBA::SystemException& exc) {
-        throw redhawk::execute_error(deployment, device, ossie::corba::describeException(exc));
+        throw redhawk::ExecuteError(deployment, device, ossie::corba::describeException(exc));
     } catch (...) {
-        // Should never happen, but turn anything else into an execute_error
+        // Should never happen, but turn anything else into an ExecuteError
         // just in case
-        throw redhawk::execute_error(deployment, device, "unexpected error");
+        throw redhawk::ExecuteError(deployment, device, "unexpected error");
     }
 
     // handle pid output
     if (pid < 0) {
-        throw redhawk::execute_error(deployment, device, "execute returned invalid process ID");
+        throw redhawk::ExecuteError(deployment, device, "execute returned invalid process ID");
     } else {
         _application->setComponentPid(deployment->getIdentifier(), pid);
     }
@@ -1804,12 +1804,12 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
         const std::string componentId = deployment->getIdentifier();
         CORBA::Object_var objref = _application->getComponentObject(componentId);
         if (CORBA::is_nil(objref)) {
-            throw redhawk::component_error(deployment, "component did not register with application");
+            throw redhawk::ComponentError(deployment, "component did not register with application");
         }
 
         CF::Resource_var resource = ossie::corba::_narrowSafe<CF::Resource>(objref);
         if (CORBA::is_nil(resource)) {
-            throw redhawk::component_error(deployment, "component object is not a CF::Resource");
+            throw redhawk::ComponentError(deployment, "component object is not a CF::Resource");
         }
 
         deployment->setResourcePtr(resource);
@@ -1869,10 +1869,10 @@ void createHelper::connectComponents(redhawk::ApplicationDeployment& appDeployme
         try {
             resolved = connectionManager.resolveConnection(connection);
         } catch (const std::exception& exc) {
-            throw redhawk::connection_error(connection.getID(), exc.what());
+            throw redhawk::ConnectionError(connection.getID(), exc.what());
         }
         if (!resolved) {
-            throw redhawk::connection_error(connection.getID(), "connection failed");
+            throw redhawk::ConnectionError(connection.getID(), "connection failed");
         }
     }
 

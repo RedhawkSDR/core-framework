@@ -169,21 +169,21 @@ void SoftPkgDeployment::load(Application_impl* application, CF::FileSystem_ptr f
     } catch (const CF::Device::InvalidState& exc) {
         std::string message = "device is in invalid state: ";
         message += exc.msg;
-        throw std::runtime_error(message);
+        throw DeploymentError(message);
     } catch (const CF::LoadableDevice::InvalidLoadKind& exc) {
-        throw std::runtime_error("invalid load kind for file " + fileName);
+        throw DeploymentError("invalid load kind for file " + fileName);
     } catch (const CF::InvalidFileName& exc) {
         std::string message = "file name '" + fileName + "' is invalid: ";
         message += exc.msg;
-        throw std::runtime_error(message);
+        throw DeploymentError(message);
     } catch (const CF::LoadableDevice::LoadFail& exc) {
         std::string message = "failure loading file '" + fileName + "': ";
         message += exc.msg;
-        throw std::runtime_error(message);
+        throw DeploymentError(message);
     } catch (const CORBA::SystemException& exc) {
         std::string message = ossie::corba::describeException(exc);
         message += " loading " + fileName;
-        throw std::runtime_error(message);
+        throw DeploymentError(message);
     }
     application->addComponentLoadedFile(componentId, fileName);
 }
@@ -608,26 +608,26 @@ void ComponentDeployment::initializeProperties()
             }
             eout << partials[index].id;
         }
-        throw component_error(this, eout.str());
+        throw ComponentError(this, eout.str());
     }
 
     RH_NL_DEBUG("ApplicationFactory_impl", "Initializing properties for component " << identifier);
     try {
         resource->initializeProperties(init_props);
     } catch (const CF::PropertySet::InvalidConfiguration& exc) {
-        throw properties_error(this, exc.invalidProperties, "invalid configuration in property initialization");
+        throw PropertiesError(this, exc.invalidProperties, "invalid configuration in property initialization");
     } catch (const CF::PropertySet::PartialConfiguration& exc) {
-        throw properties_error(this, exc.invalidProperties, "partial configuration in property initialization");
+        throw PropertiesError(this, exc.invalidProperties, "partial configuration in property initialization");
     } catch (const CF::PropertyEmitter::AlreadyInitialized&) {
         // The component should never be initialized twice, at least not by the
         // ApplicationFactory
-        throw component_error(this, "already initialized");
+        throw ComponentError(this, "already initialized");
     } catch (const CORBA::SystemException& exc) {
-        throw component_error(this, "initializing properties raised " + ossie::corba::describeException(exc));
+        throw ComponentError(this, "initializing properties raised " + ossie::corba::describeException(exc));
     } catch (...) {
-        // Should never happen, but turn anything else into a component_error
+        // Should never happen, but turn anything else into a ComponentError
         // just in case
-        throw component_error(this, "unexpected error initializing properties");
+        throw ComponentError(this, "unexpected error initializing properties");
     }
 }
 
@@ -650,13 +650,13 @@ void ComponentDeployment::initialize()
             }
             logmsg << " '" << error.errorMessages[index] << "'";
         }
-        throw component_error(this, logmsg.str());
+        throw ComponentError(this, logmsg.str());
     } catch (const CORBA::SystemException& exc) {
-        throw component_error(this, "initialize raised " + ossie::corba::describeException(exc));
+        throw ComponentError(this, "initialize raised " + ossie::corba::describeException(exc));
     } catch (...) {
-        // Should never happen, but turn anything else into a component_error
+        // Should never happen, but turn anything else into a ComponentError
         // just in case
-        throw component_error(this, "unexpected error in initialize");
+        throw ComponentError(this, "unexpected error in initialize");
     }
 }
 
@@ -683,7 +683,7 @@ void ComponentDeployment::configure()
         // NB: I think having a valid CORBA reference is a pre-condition of
         // getting to this point in the first place
         RH_NL_ERROR("ApplicationFactory_impl", "Could not get component reference");
-        throw redhawk::component_error(this, "no CORBA reference");
+        throw redhawk::ComponentError(this, "no CORBA reference");
     }
 
     redhawk::PropertyMap config_props = getInitialConfigureProperties();
@@ -709,12 +709,12 @@ void ComponentDeployment::configure()
     try {
         resource->configure(config_props);
     } catch (const CF::PropertySet::InvalidConfiguration& exc) {
-        throw properties_error(this, exc.invalidProperties, "invalid configuration in configure");
+        throw PropertiesError(this, exc.invalidProperties, "invalid configuration in configure");
     } catch (const CF::PropertySet::PartialConfiguration& exc) {
-        throw properties_error(this, exc.invalidProperties, "partial configuration in configure");
+        throw PropertiesError(this, exc.invalidProperties, "partial configuration in configure");
     } catch (const CORBA::SystemException& exc) {
-        throw component_error(this, "configure raised " + ossie::corba::describeException(exc));
+        throw ComponentError(this, "configure raised " + ossie::corba::describeException(exc));
     } catch (...) {
-        throw component_error(this, "unexpected error configuring component");
+        throw ComponentError(this, "unexpected error configuring component");
     }
 }
