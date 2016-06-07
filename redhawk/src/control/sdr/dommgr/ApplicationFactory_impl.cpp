@@ -1741,7 +1741,7 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
 {
     // Wait for all components to be registered before continuing
     int componentBindingTimeout = _appFact._domainManager->getComponentBindingTimeout();
-    LOG_TRACE(ApplicationFactory_impl, "Waiting " << componentBindingTimeout << "s for all components register");
+    LOG_TRACE(ApplicationFactory_impl, "Waiting " << componentBindingTimeout << "s for all components to register");
 
     // Track only SCA-compliant components; non-compliant components will never
     // register with the application, nor do they need to be initialized
@@ -1758,20 +1758,44 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
     if (!_application->waitForComponents(expected_components, componentBindingTimeout)) {
         // For reference, determine much time has really elapsed.
         time_t elapsed = time(NULL)-start;
-        LOG_ERROR(ApplicationFactory_impl, "Timed out waiting for component to bind to naming context (" << elapsed << "s elapsed)");
-        ostringstream eout;
-        for (unsigned int req_idx = 0; req_idx < deployments.size(); req_idx++) {
-            redhawk::ComponentDeployment* deployment = deployments[req_idx];
-            if (expected_components.count(deployment->getIdentifier())) {
-                eout << "Timed out waiting for component to register: '" << deployment->getSoftPkg()->getName()
-                     << "' with component id: '" << deployment->getIdentifier()
-                     << " assigned to device: '" << deployment->getAssignedDevice()->identifier;
-                break;
+        LOG_ERROR(ApplicationFactory_impl, "Timed out waiting for components to register (" << elapsed << "s elapsed)");
+    }
+
+    // Fetch the objects, finding any components that did not register
+    BOOST_FOREACH(redhawk::ComponentDeployment* deployment, deployments) {
+        if (deployment->getSoftPkg()->isScaCompliant()) {
+            // Find the component on the Application
+            const std::string componentId = deployment->getIdentifier();
+            CORBA::Object_var objref = _application->getComponentObject(componentId);
+            if (CORBA::is_nil(objref)) {
+                throw redhawk::ComponentError(deployment, "component did not register with application");
+            }
+
+            // Occasionally, omniORB may have a cached connection where the
+            // other end has terminated (this is particularly a problem with
+            // Java, because the Sun ORB never closes connections on shutdown).
+            // If the new component just happens to have the same TCP/IP
+            // address and port, the first time we try to reach the component,
+            // it will get a CORBA.COMM_FAILURE exception even though the
+            // reference is valid. In this case, a call to _non_existent()
+            // should cause omniORB to clean up the stale socket, and any
+            // subsequent calls behave normally.
+            try {
+                objref->_non_existent();
+            } catch (...) {
+                LOG_DEBUG(ApplicationFactory_impl, "Component object did not respond to initial ping");
+            }
+
+            // Convert to a CF::Resource object
+            if (deployment->isResource()) {
+                CF::Resource_var resource = ossie::corba::_narrowSafe<CF::Resource>(objref);
+                if (CORBA::is_nil(resource)) {
+                    throw redhawk::ComponentError(deployment, "component object is not a CF::Resource");
+                }
+
+                deployment->setResourcePtr(resource);
             }
         }
-        eout << " in waveform '" << _waveformContextName<<"';";
-        eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
     }
 }
 
@@ -1793,33 +1817,9 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
         if (!softpkg->isScaCompliant()) {
             LOG_TRACE(ApplicationFactory_impl, "Component is non SCA-compliant, continuing to next component");
             continue;
-        }
-
-        if (!deployment->isResource()) {
+        } else if (!deployment->isResource()) {
             LOG_TRACE(ApplicationFactory_impl, "Component is not a resource, continuing to next component");
             continue;
-        }
-
-        // Find the component on the Application
-        const std::string componentId = deployment->getIdentifier();
-        CORBA::Object_var objref = _application->getComponentObject(componentId);
-        if (CORBA::is_nil(objref)) {
-            throw redhawk::ComponentError(deployment, "component did not register with application");
-        }
-
-        CF::Resource_var resource = ossie::corba::_narrowSafe<CF::Resource>(objref);
-        if (CORBA::is_nil(resource)) {
-            throw redhawk::ComponentError(deployment, "component object is not a CF::Resource");
-        }
-
-        deployment->setResourcePtr(resource);
-
-        int initAttempts=3;
-        while ( initAttempts > 0 ) {
-            initAttempts--;
-            if ( ossie::corba::objectExists(resource) == true ) { initAttempts = 0; continue; }
-            LOG_DEBUG(ApplicationFactory_impl, "Retrying component ping............ comp:" << deployment->getIdentifier() << " waveform: " << _waveformContextName);
-            usleep(1000);
         }
 
         deployment->initialize();
