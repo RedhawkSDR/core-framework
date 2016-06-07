@@ -48,6 +48,27 @@ namespace redhawk {
         }
     };
 
+    class connection_error : public deployment_error {
+    public:
+        connection_error(const std::string& identifier, const std::string& message) :
+            deployment_error(message),
+            _identifier(identifier)
+        {
+        }
+
+        virtual ~connection_error() throw()
+        {
+        }
+
+        const std::string& identifier() const
+        {
+            return _identifier;
+        }
+
+    private:
+        const std::string _identifier;
+    };
+
     class placement_failure : public deployment_error {
     public:
         placement_failure(const ossie::ComponentInstantiation* instantiation, const std::string& message);

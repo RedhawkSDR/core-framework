@@ -182,7 +182,7 @@ CF::Resource_ptr ApplicationDeployment::lookupComponentByInstantiationId(const s
     if (deployment) {
         return deployment->getResourcePtr();
     }
-    return CF::Resource::_nil();
+    throw ossie::LookupError("component '" + identifier + "' not found");
 }
 
 CF::Device_ptr ApplicationDeployment::lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId)
@@ -191,14 +191,12 @@ CF::Device_ptr ApplicationDeployment::lookupDeviceThatLoadedComponentInstantiati
 
     ComponentDeployment* deployment = getComponentDeployment(componentId);
     if (!deployment) {
-        LOG_WARN(ApplicationDeployment, "[DeviceLookup] Component not found");
-        return CF::Device::_nil();
+        throw ossie::LookupError("component '" + componentId + "' not found");
     }
 
     boost::shared_ptr<ossie::DeviceNode> device = deployment->getAssignedDevice();
     if (!device) {
-        LOG_WARN(ApplicationDeployment, "[DeviceLookup] Component not assigned to device");
-        return CF::Device::_nil();
+        throw ossie::LookupError("component '" + componentId + "' is not assigned to a device");
     }
 
     LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Assigned device id " << device->identifier);
@@ -212,14 +210,12 @@ CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByComponentInstantiationId
 
     ComponentDeployment* deployment = getComponentDeployment(componentId);
     if (!deployment) {
-        LOG_WARN(ApplicationDeployment, "[DeviceLookup] Component not found");
-        return CF::Device::_nil();
+        throw ossie::LookupError("component '" + componentId + "' not found");
     }
 
     UsesDeviceAssignment* uses = deployment->getUsesDeviceAssignment(usesId);
     if (!uses) {
-        LOG_WARN(ApplicationDeployment, "[DeviceLookup] UsesDevice not found");
-        return CF::Device::_nil();
+        throw ossie::LookupError("component '" + componentId + "' has no usesdevice '" + usesId + "'");
     }
 
     CF::Device_var device = uses->getAssignedDevice();
@@ -234,8 +230,7 @@ CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByApplication(const std::s
 
     UsesDeviceAssignment* uses = getUsesDeviceAssignment(usesRefId);
     if (!uses) {
-        LOG_WARN(ApplicationDeployment, "[DeviceLookup] UsesDevice not found");
-        return CF::Device::_nil();
+        throw ossie::LookupError("application has no usesdevice '" + usesRefId + "'");
     }
 
     CF::Device_var device = uses->getAssignedDevice();

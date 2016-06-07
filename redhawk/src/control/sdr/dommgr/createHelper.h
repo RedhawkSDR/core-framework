@@ -104,8 +104,6 @@ private:
     void assignPlacementsToDevices(redhawk::ApplicationDeployment& appDeployment,
                                    const DeviceAssignmentMap& devices);
     void _validateDAS(redhawk::ApplicationDeployment& appDeployment, const DeviceAssignmentMap& deviceAssignments);
-    void _connectComponents(redhawk::ApplicationDeployment& appDeployment,
-        std::vector<ossie::ConnectionNode>& connections);
     void setUpExternalPorts(redhawk::ApplicationDeployment& appDeployment, Application_impl* application);
     void setUpExternalProperties(redhawk::ApplicationDeployment& appDeployment, Application_impl* application);
     void _placeHostCollocation(redhawk::ApplicationDeployment& appDeployment,

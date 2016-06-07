@@ -50,6 +50,14 @@ namespace ossie
         }
     };
 
+    class LookupError : public std::runtime_error {
+    public:
+        LookupError(const std::string& message) :
+            std::runtime_error(message)
+        {
+        }
+    };
+
     // Interface to look up components by their identifier.
     class ComponentLookup
     {
@@ -207,9 +215,6 @@ namespace ossie
         ENABLE_LOGGING;
 
     public:
-        ConnectionManager(DomainLookup* domainLookup,
-                          ComponentLookup* componentLookup,
-                          const std::string& namingContext);
         virtual ~ConnectionManager();
 
         static void disconnectAll(ConnectionList& connections, ossie::DomainLookup* domainLookup);
@@ -227,11 +232,18 @@ namespace ossie
         virtual CF::Device_ptr resolveDeviceUsedByThisComponentRef(const std::string& refid, const std::string& usesid) = 0;
         virtual CF::Device_ptr resolveDeviceUsedByApplication(const std::string& usesrefid) = 0;
 
+        bool exceptionsEnabled();
+
     protected:
+        ConnectionManager(DomainLookup* domainLookup,
+                          ComponentLookup* componentLookup,
+                          const std::string& namingContext,
+                          bool enableExceptions);
+
         ossie::DomainLookup* _domainLookup;
         ossie::ComponentLookup* _componentLookup;
         std::string _namingContext;
-
+        bool _enableExceptions;
     };
 
     class AppConnectionManager : public ConnectionManager

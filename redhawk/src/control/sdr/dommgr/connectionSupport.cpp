@@ -43,10 +43,12 @@ PREPARE_CF_LOGGING(ConnectionManager);
 
 ConnectionManager::ConnectionManager(DomainLookup* domainLookup,
                                      ComponentLookup* componentLookup,
-                                     const std::string& namingContext) :
+                                     const std::string& namingContext,
+                                     bool enableExceptions) :
     _domainLookup(domainLookup),
     _componentLookup(componentLookup),
-    _namingContext(namingContext)
+    _namingContext(namingContext),
+    _enableExceptions(enableExceptions)
 {
     assert(_domainLookup != 0);
     assert(_componentLookup != 0);
@@ -107,13 +109,18 @@ CORBA::Object_ptr ConnectionManager::resolveFindByNamingService(const std::strin
     return CORBA::Object::_nil();
 }
 
-PREPARE_CF_LOGGING(AppConnectionManager);
+bool ConnectionManager::exceptionsEnabled()
+{
+    return _enableExceptions;
+}
+
+PREPARE_LOGGING(AppConnectionManager);
 
 AppConnectionManager::AppConnectionManager(DomainLookup* domainLookup,
                                            ComponentLookup* componentLookup,
                                            DeviceLookup* deviceLookup,
                                            const std::string& namingContext) :
-    ConnectionManager(domainLookup, componentLookup, namingContext),
+    ConnectionManager(domainLookup, componentLookup, namingContext, true),
     _deviceLookup(deviceLookup),
     _connections()
 {
@@ -165,30 +172,18 @@ CORBA::Object_ptr AppConnectionManager::resolveFindByNamingService(const std::st
 
 CF::Device_ptr AppConnectionManager::resolveDeviceThatLoadedThisComponentRef(const std::string& refid)
 {
-    CF::Device_ptr device = _deviceLookup->lookupDeviceThatLoadedComponentInstantiationId(refid);
-    if (CORBA::is_nil(device)) {
-        LOG_ERROR(AppConnectionManager, "devicethatloadedthiscomponentref not found");
-    }
-    return device;
+    return _deviceLookup->lookupDeviceThatLoadedComponentInstantiationId(refid);
 }
 
 
 CF::Device_ptr AppConnectionManager::resolveDeviceUsedByThisComponentRef(const std::string& refid, const std::string& usesrefid)
 {
-    CF::Device_ptr device = _deviceLookup->lookupDeviceUsedByComponentInstantiationId(refid, usesrefid);
-    if (CORBA::is_nil(device)) {
-        LOG_ERROR(AppConnectionManager, "deviceusedbythiscomponentref not found");
-    }
-    return device;
+    return _deviceLookup->lookupDeviceUsedByComponentInstantiationId(refid, usesrefid);
 }
 
 CF::Device_ptr AppConnectionManager::resolveDeviceUsedByApplication(const std::string& usesrefid)
 {
-    CF::Device_ptr device = _deviceLookup->lookupDeviceUsedByApplication(usesrefid);
-    if (CORBA::is_nil(device)) {
-        LOG_ERROR(AppConnectionManager, "deviceusedbyapplication not found");
-    }
-    return device;
+    return _deviceLookup->lookupDeviceUsedByApplication(usesrefid);
 }
 
 const std::vector<ConnectionNode>& AppConnectionManager::getConnections() {
@@ -207,7 +202,7 @@ PREPARE_CF_LOGGING(DomainConnectionManager);
 DomainConnectionManager::DomainConnectionManager(DomainLookup* domainLookup,
                                                  ComponentLookup* componentLookup,
                                                  const std::string& domainName) :
-    ConnectionManager(domainLookup, componentLookup, domainName),
+    ConnectionManager(domainLookup, componentLookup, domainName, false),
     _connectionsByRequester()
 {
 }
@@ -692,12 +687,20 @@ bool ConnectionNode::connect(ConnectionManager& manager)
     try {
         usesObject = uses->resolve(manager);
     } catch ( ... ) {
-        LOG_TRACE(ConnectionNode, "Unable to resolve the uses object");
+        if (manager.exceptionsEnabled()) {
+            throw;
+        } else {
+            LOG_TRACE(ConnectionNode, "Unable to resolve the uses object");
+        }
     }
     try {
         providesPort = provides->resolve(manager);
     } catch ( ... ) {
-        LOG_TRACE(ConnectionNode, "Unable to resolve the provides object");
+        if (manager.exceptionsEnabled()) {
+            throw;
+        } else {
+            LOG_TRACE(ConnectionNode, "Unable to resolve the provides object");
+        }
     }
 
     if (CORBA::is_nil(usesObject) || CORBA::is_nil(providesPort)) {

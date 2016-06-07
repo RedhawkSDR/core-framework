@@ -237,20 +237,6 @@ ApplicationFactory_impl::~ApplicationFactory_impl ()
 
 }
 
-void createHelper::_connectComponents(redhawk::ApplicationDeployment& appDeployment,
-                                      std::vector<ConnectionNode>& connections){
-    try{
-        connectComponents(appDeployment, connections, _baseNamingContext);
-    } catch (CF::ApplicationFactory::CreateApplicationError& ex) {
-        throw;
-    } CATCH_THROW_LOG_TRACE(
-        ApplicationFactory_impl,
-        "Connecting components failed (unclear where this occurred)",
-        CF::ApplicationFactory::CreateApplicationError(
-            CF::CF_EINVAL, 
-            "Connecting components failed (unclear where this occurred)"));
-}
-
 void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& appDeployment,
                                              const DeviceAssignmentMap& devices)
 {
@@ -713,6 +699,13 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         eout << " failed: " << exc.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
+    } catch (const redhawk::connection_error& exc) {
+        // A connection defined in the SAD could not be made, either because an
+        // endpoint could not be resolved, or connectPort failed
+        std::ostringstream eout;
+        eout << "Unable to make connection '" << exc.identifier() << "': " << exc.what();
+        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
     } catch (const std::exception& ex) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while creating the application";
@@ -872,7 +865,7 @@ CF::Application_ptr createHelper::create (
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, message);
     }
 
-    _connectComponents(app_deployment, connections);
+    connectComponents(app_deployment, connections, _baseNamingContext);
     configureComponents(app_deployment.getComponentDeployments());
 
     setUpExternalPorts(app_deployment, _application);
@@ -1872,13 +1865,14 @@ void createHelper::connectComponents(redhawk::ApplicationDeployment& appDeployme
         LOG_TRACE(ApplicationFactory_impl, "Processing connection " << connection.getID());
 
         // Attempt to resolve the connection; if any connection fails, application creation fails.
-        if (!connectionManager.resolveConnection(connection)) {
-            LOG_ERROR(ApplicationFactory_impl, "Unable to make connection " << connection.getID());
-            ostringstream eout;
-            eout << "Unable to make connection " << connection.getID();
-            eout << " in waveform '"<< _waveformContextName<<"';";
-            eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
+        bool resolved;
+        try {
+            resolved = connectionManager.resolveConnection(connection);
+        } catch (const std::exception& exc) {
+            throw redhawk::connection_error(connection.getID(), exc.what());
+        }
+        if (!resolved) {
+            throw redhawk::connection_error(connection.getID(), "connection failed");
         }
     }
 
