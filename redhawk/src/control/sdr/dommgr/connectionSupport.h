@@ -50,6 +50,8 @@ namespace ossie
         }
     };
 
+    // Exception type that may be thrown when an implementation of one of the
+    // lookup interfaces cannot find the requested object.
     class LookupError : public std::runtime_error {
     public:
         LookupError(const std::string& message) :

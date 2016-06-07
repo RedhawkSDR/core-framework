@@ -2226,21 +2226,24 @@ CORBA::Object_ptr DomainManager_impl::lookupDomainObject (const std::string& typ
             LOG_TRACE(DomainManager_impl, "Found service " << name);
             return CORBA::Object::_duplicate(serviceNode->service);
         }
-        LOG_WARN(DomainManager_impl, "No service found for servicename '" << name << "'");
+        throw ossie::LookupError("no service '" + name + "' found");
     } else if (type == "servicetype") {
         ServiceList::iterator serviceNode = findServiceByType(name);
         if (serviceNode != _registeredServices.end()) {
             LOG_TRACE(DomainManager_impl, "Found service " << serviceNode->name << " supporting '" << name << "'");
             return CORBA::Object::_duplicate(serviceNode->service);
         }
-        LOG_WARN(DomainManager_impl, "No service found for servicetype '" << name << "'");
+        throw ossie::LookupError("no service found for type '" + name + "'");
     } else if (type == "domainmanager") {
         return _this();
     } else if (type == "application") {
         Application_impl* application = findApplicationById(name);
-        if (application) {
-            return application->_this();
+        if (!application) {
+            throw ossie::LookupError("no application '" + name + "' found");
         }
+        return application->_this();
+    } else {
+        throw ossie::LookupError("invalid domainfinder type '" + type + "'");
     }
     return CORBA::Object::_nil();
 }

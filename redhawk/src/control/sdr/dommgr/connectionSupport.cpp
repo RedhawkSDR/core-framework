@@ -85,7 +85,17 @@ CORBA::Object_ptr ConnectionManager::resolveComponent(const std::string& identif
 
 CORBA::Object_ptr ConnectionManager::resolveDomainObject(const std::string& type, const std::string& name)
 {
-    return _domainLookup->lookupDomainObject(type, name);
+    try {
+        return _domainLookup->lookupDomainObject(type, name);
+    } catch (const LookupError& error) {
+        if (exceptionsEnabled()) {
+            // Pass the exception on to the caller
+            throw;
+        } else {
+            LOG_WARN(ConnectionManager, "Failed to resolve domain object: " << error.what());
+        }
+    }
+    return CORBA::Object::_nil();
 }
 
 CORBA::Object_ptr ConnectionManager::resolveFindByNamingService(const std::string& name)
