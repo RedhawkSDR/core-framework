@@ -225,15 +225,9 @@ class SADPropertiesTest(scatest.CorbaTestCase):
             sadpath = '/waveforms/ExternalProperties/ExternalProperties'+extra+'.sad.xml'
         else:
             sadpath = '/waveforms/ExternalProperties/ExternalProperties'+extra+'NoJava.sad.xml'
-        self._domMgr.installApplication(sadpath)
-        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
-        appFact = self._domMgr._get_applicationFactories()[0]
 
         # Bad compref tag in externalproperties should throw appropriate error
-        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, appFact.create, appFact._get_name(), [], [])
-
-        self.assertNotEqual(self._domMgr, None)
-        self.assertNotEqual(self._devMgr, None)
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadpath)
 
     def test_ExternalPropOverride(self):
         self.assertNotEqual(self._domMgr, None)
