@@ -562,10 +562,7 @@ void createHelper::setUpExternalProperties(redhawk::ApplicationDeployment& appDe
         }
         const Property* property = deployment->getSoftPkg()->getProperties()->getProperty(prop->propid);
         if (!property){
-            LOG_ERROR(ApplicationFactory_impl, "Attempting to promote property: '" <<
-                    prop->propid << "' that does not exist in component: '" << prop->comprefid << "'");
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET,
-                    "Attempting to promote property that does not exist in component");
+            throw redhawk::DeploymentError("Attempting to promote property '" + prop->propid + "' that does not exist in component '" + prop->comprefid + "'");
         }
 
         CF::Resource_var comp = deployment->getResourcePtr();
@@ -715,6 +712,11 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         eout << "Unable to make connection '" << exc.identifier() << "': " << exc.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
+    } catch (const redhawk::DeploymentError& exc) {
+        // Some other problem occurred in deployment, just log and throw CORBA
+        // exception
+        LOG_ERROR(ApplicationFactory_impl, exc.what());
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, exc.what());
     } catch (const std::exception& ex) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while creating the application";
