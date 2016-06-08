@@ -25,6 +25,20 @@
 
 using namespace redhawk;
 
+UsesDeviceFailure::UsesDeviceFailure(const ApplicationDeployment&, const std::vector<std::string>& ids) :
+    DeploymentError("failed to satisfy usesdevice dependencies"),
+    _context("application"),
+    _ids(ids)
+{
+}
+
+UsesDeviceFailure::UsesDeviceFailure(const ComponentDeployment* component, const std::vector<std::string>& ids) :
+    DeploymentError("failed to satisfy usesdevice dependencies"),
+    _context("component '" + component->getInstantiation()->getID() + "'"),
+    _ids(ids)
+{
+}
+
 ComponentError::ComponentError(const ComponentDeployment* deployment, const std::string& message) :
     DeploymentError(message),
     _identifier(deployment->getIdentifier())

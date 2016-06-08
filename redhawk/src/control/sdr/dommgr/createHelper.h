@@ -117,6 +117,8 @@ private:
                               const OSList& osDeps=OSList());
     void _handleUsesDevices(redhawk::ApplicationDeployment& appDeployment,
                             const std::string& appName);
+    std::vector<std::string> _getFailedUsesDevices(const std::vector<ossie::UsesDevice>& usesDevices,
+                                                   redhawk::UsesDeviceDeployment& assignedDevices);
     bool _allDevicesBusy(ossie::DeviceList& devices);
 
     CF::Properties _consolidateAllocations(const DeploymentList& implementations);

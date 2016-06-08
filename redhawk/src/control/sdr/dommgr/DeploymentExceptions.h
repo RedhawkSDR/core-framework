@@ -48,6 +48,30 @@ namespace redhawk {
         }
     };
 
+    class UsesDeviceFailure : public DeploymentError {
+    public:
+        UsesDeviceFailure(const ApplicationDeployment& application, const std::vector<std::string>& ids);
+        UsesDeviceFailure(const ComponentDeployment* component, const std::vector<std::string>& ids);
+
+        virtual ~UsesDeviceFailure() throw()
+        {
+        }
+
+        const std::string& context() const
+        {
+            return _context;
+        }
+
+        const std::vector<std::string>& ids() const
+        {
+            return _ids;
+        }
+
+    private:
+        std::string _context;
+        std::vector<std::string> _ids;
+    };
+
     class ConnectionError : public DeploymentError {
     public:
         ConnectionError(const std::string& identifier, const std::string& message) :

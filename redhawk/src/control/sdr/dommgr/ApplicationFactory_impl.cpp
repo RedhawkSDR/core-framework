@@ -472,25 +472,23 @@ void createHelper::_handleUsesDevices(redhawk::ApplicationDeployment& appDeploym
     redhawk::UsesDeviceDeployment assignedDevices;
     if (!allocateUsesDevices(usesDevices, appProperties, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the application
-        ostringstream eout;
-        eout << "Failed to satisfy 'usesdevice' dependencies ";
-        bool first = true;
-        for (std::vector<UsesDevice>::const_iterator uses = usesDevices.begin(); uses != usesDevices.end(); ++uses) {
-            if (!assignedDevices.getUsesDeviceAssignment(uses->getID())) {
-                if (!first) {
-                    eout << ", ";
-                } else {
-                    first = false;
-                }
-                eout << uses->getID();
-            }
-        }
-        eout << "for application '" << appName << "'";
-        LOG_DEBUG(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
+        std::vector<std::string> failed_ids = _getFailedUsesDevices(usesDevices, assignedDevices);
+        throw redhawk::UsesDeviceFailure(appDeployment, failed_ids);
     }
 
     assignedDevices.transferUsesDeviceAssignments(appDeployment);
+}
+
+std::vector<std::string> createHelper::_getFailedUsesDevices(const std::vector<ossie::UsesDevice>& usesDevices,
+                                                             redhawk::UsesDeviceDeployment& assignedDevices)
+{
+    std::vector<std::string> failed_ids;
+    BOOST_FOREACH(const ossie::UsesDevice& uses, usesDevices) {
+        if (!assignedDevices.getUsesDeviceAssignment(uses.getID())) {
+            failed_ids.push_back(uses.getID());
+        }
+    }
+    return failed_ids;
 }
 
 void createHelper::setUpExternalPorts(redhawk::ApplicationDeployment& appDeployment,
@@ -675,6 +673,22 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         eout << "Failed to place " << exc.name() << ": " << exc.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
+    } catch (const redhawk::UsesDeviceFailure& exc) {
+        // One or more usesdevice(s) could not be allocated
+        std::ostringstream eout;
+        eout << "Failed to satisfy 'usesdevice' dependencies ";
+        bool first = true;
+        BOOST_FOREACH(const std::string& id, exc.ids()) {
+            if (!first) {
+                eout << ", ";
+            } else {
+                first = false;
+            }
+            eout << id;
+        }
+        eout << " for " << exc.context();
+        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
     } catch (const redhawk::ExecuteError& exc) {
         // A component failed execution, report details
         std::ostringstream eout;
@@ -987,26 +1001,12 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
     redhawk::PropertyMap alloc_context = deployment->getAllocationContext();
     
     // Find the devices that allocate the SPD's minimum required usesdevices properties
-    const std::vector<UsesDevice>& usesDevVec = deployment->getSoftPkg()->getUsesDevices();
+    const std::vector<UsesDevice>& usesDevices = deployment->getSoftPkg()->getUsesDevices();
     redhawk::UsesDeviceDeployment assignedDevices;
-    if (!allocateUsesDevices(usesDevVec, alloc_context, assignedDevices, this->_allocations)) {
+    if (!allocateUsesDevices(usesDevices, alloc_context, assignedDevices, this->_allocations)) {
         // There were unsatisfied usesdevices for the component
-        ostringstream eout;
-        eout << "Failed to satisfy 'usesdevice' dependencies ";
-        bool first = true;
-        for (std::vector<UsesDevice>::const_iterator uses = usesDevVec.begin(); uses != usesDevVec.end(); ++uses) {
-            if (!assignedDevices.getUsesDeviceAssignment(uses->getID())) {
-                if (!first) {
-                    eout << ", ";
-                } else {
-                    first = false;
-                }
-                eout << uses->getID();
-            }
-        }
-        eout << "for component '" << deployment->getIdentifier() << "'";
-        LOG_DEBUG(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
+        std::vector<std::string> failed_ids = _getFailedUsesDevices(usesDevices, assignedDevices);
+        throw redhawk::UsesDeviceFailure(deployment, failed_ids);
     }
 
     // now attempt to find an implementation that can have it's allocation requirements met
