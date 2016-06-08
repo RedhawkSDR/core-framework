@@ -424,11 +424,12 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         allocations_pre = self._getProperty(device, 'allocation_attempts')
         try:
             app = appFact.create(appFact._get_name(), [], [])
-            app.releaseObject()
-            self.fail("Expected app creation to fail")
-        except CF.ApplicationFactory.CreateApplicationRequestError:
+        except CF.ApplicationFactory.CreateApplicationError:
             # This is expected
             pass
+        else:
+            app.releaseObject()
+            self.fail("Expected app creation to fail")
 
         # Clean up a little
         domMgr.uninstallApplication(appFact._get_identifier())
