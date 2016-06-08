@@ -365,6 +365,9 @@ class BrowseWindow(BrowseWindowBase):
         except CF.ApplicationFactory.CreateApplicationError, e:
             QMessageBox.critical(self, 'Creation of waveform failed.', e.msg, QMessageBox.Ok)
             return
+        except:
+            QMessageBox.critical(self, 'Creation of waveform failed', str(sys.exc_info()[1]), QMessageBox.Ok)
+            return
         if app_inst == None:
             QMessageBox.critical(self, 'Creation of waveform failed.', 'Unable to create Application instance for $SDRROOT'+app, QMessageBox.Ok)
 
