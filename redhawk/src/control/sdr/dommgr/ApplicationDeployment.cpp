@@ -182,7 +182,7 @@ CF::Resource_ptr ApplicationDeployment::lookupComponentByInstantiationId(const s
     if (deployment) {
         return deployment->getResourcePtr();
     }
-    throw ossie::LookupError("component '" + identifier + "' not found");
+    return CF::Resource::_nil();
 }
 
 CF::Device_ptr ApplicationDeployment::lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId)

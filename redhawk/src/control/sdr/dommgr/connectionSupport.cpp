@@ -78,7 +78,11 @@ CORBA::Object_ptr ConnectionManager::resolveComponent(const std::string& identif
         target = _domainLookup->lookupDeviceManagerByInstantiationId(identifier);
     }
     if (CORBA::is_nil(target)) {
-        LOG_DEBUG(ConnectionManager, "Could not locate component with instantiation id " << identifier);
+        if (exceptionsEnabled()) {
+            throw ossie::LookupError("component '" + identifier + "' not found");
+        } else {
+            LOG_DEBUG(ConnectionManager, "Could not locate component with instantiation id " << identifier);
+        }
     }
     return target._retn();
 }
