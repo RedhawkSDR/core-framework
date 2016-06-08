@@ -37,14 +37,12 @@ const ComponentInstantiation* SoftwareAssembly::HostCollocation::getInstantiatio
 }
 
 SoftwareAssembly::SoftwareAssembly() :
-    _sad(0),
-    _assemblyController(0)
+    _sad(0)
 {
 }
 
 SoftwareAssembly::SoftwareAssembly(std::istream& input) throw (ossie::parser_error) :
-    _sad(0),
-    _assemblyController(0)
+    _sad(0)
 {
     this->load(input);
 }
@@ -61,10 +59,12 @@ void SoftwareAssembly::load(std::istream& input) throw (ossie::parser_error)
     }
     validateComponentPlacements(_sad->partitioning.placements);
 
-    // If assemblycontroller is set, make sure it was found during component
-    // validation
-    if (!_sad->assemblycontroller.empty() && !_assemblyController) {
-        throw ossie::parser_error("assemblycontroller has invalid componentinstantiationref " + _sad->assemblycontroller);
+    // Make sure assemblycontroller is set, and references a real component
+    if (_sad->assemblycontroller.empty()) {
+        throw ossie::parser_error("assemblycontroller is not set");
+    }
+    if (!getComponentInstantiation(_sad->assemblycontroller)) {
+        throw ossie::parser_error("assemblycontroller has invalid componentinstantiationref '" + _sad->assemblycontroller + "'");
     }
 }
 
@@ -74,15 +74,9 @@ void SoftwareAssembly::validateComponentPlacements(std::vector<ComponentPlacemen
         const std::string& file_ref = placement.getFileRefId();
         const ComponentFile* file = getComponentFile(file_ref);
         if (!file) {
-            throw ossie::parser_error("componentplacement has invalid componentfileref " + file_ref);
+            throw ossie::parser_error("componentplacement has invalid componentfileref '" + file_ref + "'");
         }
         placement.filename = file->filename;
-
-        BOOST_FOREACH(ComponentInstantiation& instance, placement.instantiations) {
-            if (!_sad->assemblycontroller.empty() && _sad->assemblycontroller == instance.instantiationId) {
-                _assemblyController = &instance;
-            }
-        }
     }
 }
 

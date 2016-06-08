@@ -862,22 +862,21 @@ CF::Application_ptr createHelper::create (
 
     waitForComponentRegistration(app_deployment.getComponentDeployments());
 
-    initializeComponents(app_deployment.getComponentDeployments());
-
     // Check that the assembly controller is valid
     LOG_TRACE(ApplicationFactory_impl, "Checking assembly controller");
     redhawk::ComponentDeployment* ac_deployment = app_deployment.getAssemblyController();
     if (!ac_deployment) {
-        const char* message = "Assembly controller has not been assigned";
-        LOG_ERROR(ApplicationFactory_impl, message);
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, message);
+        // This condition should have been prevented by parser validation
+        throw std::logic_error("Assembly controller has not been assigned");
     }
     CF::Resource_var assemblyController = assemblyController = ac_deployment->getResourcePtr();
     if (CORBA::is_nil(assemblyController) && ac_deployment->getSoftPkg()->isScaCompliant()) {
-        const char* message = "Assembly controller has not registered with the application";
-        LOG_ERROR(ApplicationFactory_impl, message);
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, message);
+        // Likewise, component registration should have already thrown an
+        // exception if an SCA-compliant component did not register
+        throw std::logic_error("Assembly controller has not registered with the application");
     }
+
+    initializeComponents(app_deployment.getComponentDeployments());
 
     connectComponents(app_deployment, connections, _baseNamingContext);
     configureComponents(app_deployment.getComponentDeployments());

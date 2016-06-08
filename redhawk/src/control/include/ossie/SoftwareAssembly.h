@@ -149,7 +149,6 @@ namespace ossie {
         void validateComponentPlacements(std::vector<ComponentPlacement>& placements);
 
         std::auto_ptr<SAD> _sad;
-        ComponentInstantiation* _assemblyController;
     };
 }
 #endif
