@@ -41,7 +41,7 @@ UsesDeviceFailure::UsesDeviceFailure(const ComponentDeployment* component, const
 
 ComponentError::ComponentError(const ComponentDeployment* deployment, const std::string& message) :
     DeploymentError(message),
-    _identifier(deployment->getIdentifier())
+    _identifier(deployment->getInstantiation()->getID())
 {
     if (deployment->getImplementation()) {
         _implementation = deployment->getImplementation()->getID();
