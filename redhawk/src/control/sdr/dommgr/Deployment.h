@@ -147,7 +147,7 @@ namespace redhawk {
         void overrideProperty(const std::string& id, const CORBA::Any& value);
 
         void setAssignedDevice(const boost::shared_ptr<ossie::DeviceNode>& device);
-        boost::shared_ptr<ossie::DeviceNode> getAssignedDevice();
+        const boost::shared_ptr<ossie::DeviceNode>& getAssignedDevice() const;
 
         void setResourcePtr(CF::Resource_ptr resource);
         CF::Resource_ptr getResourcePtr() const;

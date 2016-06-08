@@ -137,13 +137,7 @@ namespace redhawk {
 
     class ExecuteError : public ComponentError {
     public:
-        ExecuteError(const ComponentDeployment* deployment,
-                     const boost::shared_ptr<ossie::DeviceNode>& device,
-                     const std::string& message) :
-            ComponentError(deployment, message),
-            _device(device)
-        {
-        }
+        ExecuteError(const ComponentDeployment* deployment, const std::string& message);
 
         const boost::shared_ptr<ossie::DeviceNode>& device() const
         {

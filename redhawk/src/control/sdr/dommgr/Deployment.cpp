@@ -311,7 +311,7 @@ void ComponentDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>&
     assignedDevice = device;
 }
 
-boost::shared_ptr<DeviceNode> ComponentDeployment::getAssignedDevice()
+const boost::shared_ptr<DeviceNode>& ComponentDeployment::getAssignedDevice() const
 {
     return assignedDevice;
 }

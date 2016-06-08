@@ -48,6 +48,12 @@ ComponentError::ComponentError(const ComponentDeployment* deployment, const std:
     }
 }
 
+ExecuteError::ExecuteError(const ComponentDeployment* deployment, const std::string& message) :
+    ComponentError(deployment, message),
+    _device(deployment->getAssignedDevice())
+{
+}
+
 PlacementFailure::PlacementFailure(const ossie::ComponentInstantiation* instantiation,
                                    const std::string& message) :
     DeploymentError(message),

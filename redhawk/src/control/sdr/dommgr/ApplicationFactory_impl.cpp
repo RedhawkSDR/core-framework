@@ -1660,30 +1660,30 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         // call 'execute' on the ExecutableDevice to execute the component
         pid = execdev->executeLinked(entryPoint.c_str(), options, execParameters, dep_seq);
     } catch (const CF::InvalidFileName&) {
-        throw redhawk::ExecuteError(deployment, device, "invalid filename");
+        throw redhawk::ExecuteError(deployment, "invalid filename");
     } catch (const CF::Device::InvalidState& exc) {
         std::string message = "invalid device state " + std::string(exc.msg);
-        throw redhawk::ExecuteError(deployment, device, message);
+        throw redhawk::ExecuteError(deployment, message);
     } catch (const CF::ExecutableDevice::InvalidParameters& exc) {
         std::string message = "invalid parameters " + redhawk::PropertyMap::cast(exc.invalidParms).toString();
-        throw redhawk::ExecuteError(deployment, device, message);
+        throw redhawk::ExecuteError(deployment, message);
     } catch (const CF::ExecutableDevice::InvalidOptions& exc) {
         std::string message = "invalid options " + redhawk::PropertyMap::cast(exc.invalidOpts).toString();
-        throw redhawk::ExecuteError(deployment, device, message);
+        throw redhawk::ExecuteError(deployment, message);
     } catch (const CF::ExecutableDevice::ExecuteFail& exc) {
         std::string message = "execute failure " + std::string(exc.msg);
-        throw redhawk::ExecuteError(deployment, device, message);
+        throw redhawk::ExecuteError(deployment, message);
     } catch (const CORBA::SystemException& exc) {
-        throw redhawk::ExecuteError(deployment, device, ossie::corba::describeException(exc));
+        throw redhawk::ExecuteError(deployment, ossie::corba::describeException(exc));
     } catch (...) {
         // Should never happen, but turn anything else into an ExecuteError
         // just in case
-        throw redhawk::ExecuteError(deployment, device, "unexpected error");
+        throw redhawk::ExecuteError(deployment, "unexpected error");
     }
 
     // handle pid output
     if (pid < 0) {
-        throw redhawk::ExecuteError(deployment, device, "execute returned invalid process ID");
+        throw redhawk::ExecuteError(deployment, "execute returned invalid process ID");
     } else {
         _application->setComponentPid(deployment->getIdentifier(), pid);
     }
@@ -1764,7 +1764,7 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
             const std::string componentId = deployment->getIdentifier();
             CORBA::Object_var objref = _application->getComponentObject(componentId);
             if (CORBA::is_nil(objref)) {
-                throw redhawk::ComponentError(deployment, "component did not register with application");
+                throw redhawk::ExecuteError(deployment, "component did not register with application");
             }
 
             // Occasionally, omniORB may have a cached connection where the
