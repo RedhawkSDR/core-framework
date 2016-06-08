@@ -507,13 +507,8 @@ void createHelper::setUpExternalPorts(redhawk::ApplicationDeployment& appDeploym
         // Get the component from the instantiation identifier.
         redhawk::ComponentDeployment* deployment = appDeployment.getComponentDeployment(port->componentrefid);
         if (!deployment) {
-            LOG_ERROR(ApplicationFactory_impl,
-                      "Invalid componentinstantiationref ("
-                            <<port->componentrefid
-                            <<") given for an external port ");
-            throw(CF::ApplicationFactory::CreateApplicationError(
-                CF::CF_NOTSET,
-                "Invalid componentinstantiationref given for external port"));
+            // The SAD parser should have rejected invalid component references
+            throw std::logic_error("component not found for external port '" + port->getExternalName() + "'");
         }
 
         CF::Resource_var resource = deployment->getResourcePtr();
@@ -562,8 +557,8 @@ void createHelper::setUpExternalProperties(redhawk::ApplicationDeployment& appDe
         // Get the component from the compref identifier.
         redhawk::ComponentDeployment* deployment = appDeployment.getComponentDeployment(prop->comprefid);
         if (!deployment) {
-            LOG_ERROR(ApplicationFactory_impl, "Unable to find component for comprefid " << prop->comprefid);
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Unable to find component for given comprefid");
+            // The SAD parser should have rejected invalid component references
+            throw std::logic_error("component not found for external property '" + prop->getExternalID() + "'");
         }
         const Property* property = deployment->getSoftPkg()->getProperties()->getProperty(prop->propid);
         if (!property){

@@ -147,6 +147,8 @@ namespace ossie {
 
     protected:
         void validateComponentPlacements(std::vector<ComponentPlacement>& placements);
+        void validateExternalPorts(std::vector<Port>& ports);
+        void validateExternalProperties(std::vector<Property>& properties);
 
         std::auto_ptr<SAD> _sad;
     };

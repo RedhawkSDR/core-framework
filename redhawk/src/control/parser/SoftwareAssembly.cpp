@@ -66,6 +66,9 @@ void SoftwareAssembly::load(std::istream& input) throw (ossie::parser_error)
     if (!getComponentInstantiation(_sad->assemblycontroller)) {
         throw ossie::parser_error("assemblycontroller has invalid componentinstantiationref '" + _sad->assemblycontroller + "'");
     }
+
+    validateExternalPorts(_sad->externalports);
+    validateExternalProperties(_sad->externalproperties);
 }
 
 void SoftwareAssembly::validateComponentPlacements(std::vector<ComponentPlacement>& placements)
@@ -77,6 +80,24 @@ void SoftwareAssembly::validateComponentPlacements(std::vector<ComponentPlacemen
             throw ossie::parser_error("componentplacement has invalid componentfileref '" + file_ref + "'");
         }
         placement.filename = file->filename;
+    }
+}
+
+void SoftwareAssembly::validateExternalPorts(std::vector<SoftwareAssembly::Port>& ports)
+{
+    BOOST_FOREACH(SoftwareAssembly::Port& port, ports) {
+        if (!getComponentInstantiation(port.componentrefid)) {
+            throw ossie::parser_error("external port '" + port.getExternalName() + "' has invalid componentrefid '" + port.componentrefid + "'");
+        }
+    }
+}
+
+void SoftwareAssembly::validateExternalProperties(std::vector<SoftwareAssembly::Property>& properties)
+{
+    BOOST_FOREACH(SoftwareAssembly::Property& property, properties) {
+        if (!getComponentInstantiation(property.comprefid)) {
+            throw ossie::parser_error("external property '" + property.getExternalID() + "' has invalid comprefid '" + property.comprefid + "'");
+        }
     }
 }
 
