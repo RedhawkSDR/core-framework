@@ -654,37 +654,6 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
     } catch (CF::ApplicationFactory::CreateApplicationRequestError& ex) {
         LOG_ERROR(ApplicationFactory_impl, "Error in application creation")
         throw;
-    } catch (const redhawk::PlacementFailure& exc) {
-        // Unable to place a component or host collocation, report details
-        std::ostringstream eout;
-        eout << "Failed to place " << exc.name() << ": " << exc.what();
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    } catch (const redhawk::UsesDeviceFailure& exc) {
-        // One or more usesdevice(s) could not be allocated
-        std::ostringstream eout;
-        eout << "Failed to satisfy 'usesdevice' dependencies ";
-        bool first = true;
-        BOOST_FOREACH(const std::string& id, exc.ids()) {
-            if (!first) {
-                eout << ", ";
-            } else {
-                first = false;
-            }
-            eout << id;
-        }
-        eout << " for " << exc.context();
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
-    } catch (const redhawk::ExecuteError& exc) {
-        // A component failed execution, report details
-        std::ostringstream eout;
-        eout << "Executing component " << exc.identifier();
-        eout << " implementation " << exc.implementation();
-        eout << " failed on device " << exc.device()->identifier;
-        eout << ": " << exc.what();
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
     } catch (const redhawk::PropertiesError& exc) {
         // Unfortunately, InvalidInitConfiguration does not include an error
         // message, so log the error here to give more details
@@ -692,33 +661,11 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         LOG_ERROR(ApplicationFactory_impl, "Component " << exc.identifier()
                   << " failed due to " << exc.what() << " " << exc.properties());
         throw CF::ApplicationFactory::InvalidInitConfiguration(exc.properties());
-    } catch (const redhawk::ComponentError& exc) {
-        // A component failed deployment in some other way, report details
-        std::stringstream eout;
-        eout << "Deploying component " << exc.identifier();
-        eout << " implementation " << exc.implementation();
-        eout << " failed: " << exc.what();
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
-    } catch (const redhawk::ConnectionError& exc) {
-        // A connection defined in the SAD could not be made, either because an
-        // endpoint could not be resolved, or connectPort failed
-        std::ostringstream eout;
-        eout << "Unable to make connection '" << exc.identifier() << "': " << exc.what();
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
-    } catch (const redhawk::BadExternalPort& exc) {
-        std::stringstream eout;
-        eout << "Could not create external port '" << exc.name();
-        eout << "' from component '" << exc.component();
-        eout << "': " << exc.what();
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
     } catch (const redhawk::DeploymentError& exc) {
-        // Some other problem occurred in deployment, just log and throw CORBA
-        // exception
-        LOG_ERROR(ApplicationFactory_impl, exc.what());
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, exc.what());
+        // Convert from internal error to CORBA exception and report the error
+        const std::string message = exc.message();
+        LOG_ERROR(ApplicationFactory_impl, "Failed to create application '" << name << "': " << message);
+        throw CF::ApplicationFactory::CreateApplicationError(exc.errorNumber(), message.c_str());
     } catch (const std::exception& ex) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while creating the application";
@@ -805,9 +752,7 @@ CF::Application_ptr createHelper::create (
 
     // Fail immediately if there are no available devices to execute components
     if (_executableDevices.empty()) {
-        const char* message = "Domain has no executable devices (GPPs) to run components";
-        LOG_WARN(ApplicationFactory_impl, message);
-        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENODEV, message);
+        throw redhawk::NoExecutableDevices();
     }
 
     const std::string lastExecutableDevice = _appFact._domainManager->getLastDeviceUsedForDeployment();

@@ -43,7 +43,41 @@ namespace redhawk {
     class DeploymentError : public std::runtime_error {
     public:
         DeploymentError(const std::string& message) :
-            std::runtime_error(message)
+            std::runtime_error(message),
+            _errorNumber(CF::CF_NOTSET)
+        {
+        }
+
+        DeploymentError(CF::ErrorNumberType errorNum, const std::string& message) :
+            std::runtime_error(message),
+            _errorNumber(errorNum)
+        {
+        }
+
+        virtual std::string message() const
+        {
+            return std::string(what());
+        }
+
+        CF::ErrorNumberType errorNumber() const
+        {
+            return _errorNumber;
+        }
+
+    protected:
+        void errorNumber(CF::ErrorNumberType errorNum)
+        {
+            _errorNumber = errorNum;
+        }
+
+    private:
+        CF::ErrorNumberType _errorNumber;
+    };
+
+    class NoExecutableDevices : public DeploymentError {
+    public:
+        NoExecutableDevices() :
+            DeploymentError(CF::CF_ENODEV, "Domain has no executable devices (GPPs) to run components")
         {
         }
     };
@@ -56,6 +90,8 @@ namespace redhawk {
         virtual ~UsesDeviceFailure() throw()
         {
         }
+
+        virtual std::string message() const;
 
         const std::string& context() const
         {
@@ -75,7 +111,7 @@ namespace redhawk {
     class ConnectionError : public DeploymentError {
     public:
         ConnectionError(const std::string& identifier, const std::string& message) :
-            DeploymentError(message),
+            DeploymentError(CF::CF_EIO, message),
             _identifier(identifier)
         {
         }
@@ -83,6 +119,8 @@ namespace redhawk {
         virtual ~ConnectionError() throw()
         {
         }
+
+        virtual std::string message() const;
 
         const std::string& identifier() const
         {
@@ -103,6 +141,8 @@ namespace redhawk {
         {
         }
 
+        virtual std::string message() const;
+
         const std::string& name() const
         {
             return _name;
@@ -119,6 +159,8 @@ namespace redhawk {
         virtual ~ComponentError() throw ()
         {
         }
+
+        virtual std::string message() const;
 
         const std::string& identifier() const
         {
@@ -147,6 +189,8 @@ namespace redhawk {
         virtual ~ExecuteError() throw ()
         {
         }
+
+        virtual std::string message() const;
 
     private:
         boost::shared_ptr<ossie::DeviceNode> _device;
@@ -182,6 +226,8 @@ namespace redhawk {
         virtual ~BadExternalPort() throw ()
         {
         }
+
+        virtual std::string message() const;
 
         const std::string& name() const
         {
