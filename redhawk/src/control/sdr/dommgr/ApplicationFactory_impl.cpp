@@ -494,35 +494,27 @@ std::vector<std::string> createHelper::_getFailedUsesDevices(const std::vector<o
 void createHelper::setUpExternalPorts(redhawk::ApplicationDeployment& appDeployment,
                                       Application_impl* application)
 {
-    typedef std::vector<SoftwareAssembly::Port> PortList;
-    const PortList& ports = _appFact._sadParser.getExternalPorts();
     LOG_TRACE(ApplicationFactory_impl,
-              "Mapping " << ports.size() << " external port(s)");
+              "Mapping " << _appFact._sadParser.getExternalPorts().size() << " external port(s)");
 
-    for (PortList::const_iterator port = ports.begin(); port != ports.end(); ++port) {
-        LOG_TRACE(ApplicationFactory_impl,
-                  "Port component: " << port->componentrefid
-                        << " Port identifier: " << port->identifier);
+    BOOST_FOREACH(const SoftwareAssembly::Port& port, _appFact._sadParser.getExternalPorts()) {
+        LOG_TRACE(ApplicationFactory_impl, "External port '" << port.getExternalName()
+                  << "' from component '" << port.componentrefid
+                  << "' identifier '" << port.identifier << "'");
 
         // Get the component from the instantiation identifier.
-        redhawk::ComponentDeployment* deployment = appDeployment.getComponentDeployment(port->componentrefid);
+        redhawk::ComponentDeployment* deployment = appDeployment.getComponentDeployment(port.componentrefid);
         if (!deployment) {
             // The SAD parser should have rejected invalid component references
-            throw std::logic_error("component not found for external port '" + port->getExternalName() + "'");
+            throw std::logic_error("component not found for external port '" + port.getExternalName() + "'");
         }
 
         CF::Resource_var resource = deployment->getResourcePtr();
         CORBA::Object_var obj;
 
-        if (port->type == SoftwareAssembly::Port::SUPPORTEDIDENTIFIER) {
-            if (!resource->_is_a(port->identifier.c_str())) {
-                LOG_ERROR(
-                    ApplicationFactory_impl,
-                    "Component does not support requested interface: "
-                        << port->identifier);
-                throw(CF::ApplicationFactory::CreateApplicationError(
-                    CF::CF_NOTSET,
-                    "Component does not support requested interface"));
+        if (port.type == SoftwareAssembly::Port::SUPPORTEDIDENTIFIER) {
+            if (!resource->_is_a(port.identifier.c_str())) {
+                throw redhawk::BadExternalPort(port, "component does not support interface " + port.identifier);
             }
             obj = CORBA::Object::_duplicate(resource);
         } else {
@@ -532,17 +524,20 @@ void createHelper::setUpExternalPorts(redhawk::ApplicationDeployment& appDeploym
             // component's SCD.
             // Try to look up the port.
             try {
-                obj = resource->getPort(port->identifier.c_str());
-            } CATCH_THROW_LOG_ERROR(
-                ApplicationFactory_impl,
-                "Invalid port id",
-                CF::ApplicationFactory::CreateApplicationError(
-                    CF::CF_NOTSET,
-                    "Invalid port identifier"))
+                obj = resource->getPort(port.identifier.c_str());
+            } catch (const CF::PortSupplier::UnknownPort& exc) {
+                throw redhawk::BadExternalPort(port, "component has no port '" + port.identifier + "'");
+            } catch (const CORBA::SystemException& exc) {
+                throw redhawk::BadExternalPort(port, ossie::corba::describeException(exc));
+            } catch (...) {
+                // Should never happen, but turn anything else into a
+                // BadExternalPort just in case
+                throw redhawk::BadExternalPort(port, "unexpected error");
+            }
         }
 
         // Add it to the list of external ports on the application object.
-        application->addExternalPort(port->getExternalName(), obj);
+        application->addExternalPort(port.getExternalName(), obj);
     }
 }
 
@@ -712,6 +707,13 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         eout << "Unable to make connection '" << exc.identifier() << "': " << exc.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
+    } catch (const redhawk::BadExternalPort& exc) {
+        std::stringstream eout;
+        eout << "Could not create external port '" << exc.name();
+        eout << "' from component '" << exc.component();
+        eout << "': " << exc.what();
+        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EINVAL, eout.str().c_str());
     } catch (const redhawk::DeploymentError& exc) {
         // Some other problem occurred in deployment, just log and throw CORBA
         // exception

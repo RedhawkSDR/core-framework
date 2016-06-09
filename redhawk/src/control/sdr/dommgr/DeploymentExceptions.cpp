@@ -67,3 +67,10 @@ PlacementFailure::PlacementFailure(const ossie::SoftwareAssembly::HostCollocatio
     _name("host collocation " + collocation.getID() + " (" + collocation.getName() + ")")
 {
 }
+
+BadExternalPort::BadExternalPort(const ossie::SoftwareAssembly::Port& port, const std::string& message) :
+    DeploymentError(message),
+    _name(port.getExternalName()),
+    _component(port.componentrefid)
+{
+}

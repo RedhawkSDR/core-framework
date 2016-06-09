@@ -175,6 +175,28 @@ namespace redhawk {
         const redhawk::PropertyMap _properties;
     };
 
+    class BadExternalPort : public DeploymentError {
+    public:
+        BadExternalPort(const ossie::SoftwareAssembly::Port& port, const std::string& message);
+
+        virtual ~BadExternalPort() throw ()
+        {
+        }
+
+        const std::string& name() const
+        {
+            return _name;
+        }
+
+        const std::string& component() const
+        {
+            return _component;
+        }
+
+    private:
+        const std::string _name;
+        const std::string _component;
+    };
 }
 
 #endif // DEPLOYMENTEXCEPTIONS_H
