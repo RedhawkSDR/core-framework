@@ -1452,27 +1452,14 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
             self.fail('Application creation should fail')
 
     def test_NoAssemblyController(self):
-        # Test that creating an application that uses host collocation fails
-        # if all the components cannot be allocated on the same device.
+        # Test that installing an application without an assembly controller fails
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        domMgr.installApplication("/waveforms/CommandWrapperNoAssembly/CommandWrapper.sad.xml")
-        self.assertEqual(len(domMgr._get_applicationFactories()), 1)
-
-        appFact = domMgr._get_applicationFactories()[0]
-
-        try:
-            app = appFact.create(appFact._get_name(), [], [])
-        except:
-            pass
-        else:
-            app.stop()
-            app.releaseObject()
-            self.fail('Application creation should fail')
-        domMgr._get_identifier()
+        sadFile = "/waveforms/CommandWrapperNoAssembly/CommandWrapper.sad.xml"
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError, domMgr.installApplication, sadFile)
 
     def test_hostCollocationDAS(self):
         # Test that creating an application that uses host collocation with
