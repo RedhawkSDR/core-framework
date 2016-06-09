@@ -724,9 +724,9 @@ bool ConnectionNode::connect(ConnectionManager& manager)
             return false;
         } else {
             if (!uses->isResolved() && !uses->allowDeferral()) {
-                throw InvalidConnection("Uses endpoint for "+identifier+" cannot be resolved or deferred");
+                throw InvalidConnection(uses->description() + " cannot be resolved or deferred");
             } else {
-                throw InvalidConnection("Provides endpoint for "+identifier+" cannot be resolved or deferred");
+                throw InvalidConnection(provides->description() + " cannot be resolved or deferred");
             }
         }
     }

@@ -130,7 +130,9 @@ namespace ossie
 
         void release();
 
-        // Virtual copy contstructor
+        virtual std::string description() const = 0;
+
+        // Virtual copy constructor
         virtual Endpoint* clone() const = 0;
 
         static Endpoint* ParsePortSupplier(const Port* port);
