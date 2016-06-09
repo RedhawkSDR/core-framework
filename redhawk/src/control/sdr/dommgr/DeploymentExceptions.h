@@ -210,6 +210,8 @@ namespace redhawk {
         {
         }
 
+        virtual std::string message() const;
+
         const redhawk::PropertyMap& properties() const
         {
             return _properties;

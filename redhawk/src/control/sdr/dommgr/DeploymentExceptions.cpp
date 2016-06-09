@@ -80,7 +80,9 @@ std::string ComponentError::message() const
 {
     std::ostringstream msg;
     msg << "Deploying component " << identifier();
-    msg << " implementation " << implementation();
+    if (!implementation().empty()) {
+        msg << " implementation " << implementation();
+    }
     msg << " failed: " << what();
     return msg.str();
 }
@@ -101,6 +103,15 @@ std::string ExecuteError::message() const
     msg << " implementation " << implementation();
     msg << " failed on device " << device()->identifier;
     msg << ": " << what();
+    return msg.str();
+}
+
+std::string PropertiesError::message() const
+{
+    std::ostringstream msg;
+    msg << "Component " << identifier();
+    msg << " " << what();
+    msg << " " << properties();
     return msg.str();
 }
 

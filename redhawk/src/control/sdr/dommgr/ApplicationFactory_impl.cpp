@@ -648,24 +648,17 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
     CF::Application_ptr new_app;
     try {
         new_app = new_createhelper.create(name, initConfiguration, deviceAssignmentMap);
+    } catch (const redhawk::DeploymentError& exc) {
+        // Convert from internal error to CORBA exception and report the error
+        const std::string message = exc.message();
+        LOG_ERROR(ApplicationFactory_impl, "Failed to create application '" << name << "': " << message);
+        throw CF::ApplicationFactory::CreateApplicationError(exc.errorNumber(), message.c_str());
     } catch (CF::ApplicationFactory::CreateApplicationError& ex) {
         LOG_ERROR(ApplicationFactory_impl, "Error in application creation; " << ex.msg);
         throw;
     } catch (CF::ApplicationFactory::CreateApplicationRequestError& ex) {
         LOG_ERROR(ApplicationFactory_impl, "Error in application creation")
         throw;
-    } catch (const redhawk::PropertiesError& exc) {
-        // Unfortunately, InvalidInitConfiguration does not include an error
-        // message, so log the error here to give more details
-        std::ostringstream eout;
-        LOG_ERROR(ApplicationFactory_impl, "Component " << exc.identifier()
-                  << " failed due to " << exc.what() << " " << exc.properties());
-        throw CF::ApplicationFactory::InvalidInitConfiguration(exc.properties());
-    } catch (const redhawk::DeploymentError& exc) {
-        // Convert from internal error to CORBA exception and report the error
-        const std::string message = exc.message();
-        LOG_ERROR(ApplicationFactory_impl, "Failed to create application '" << name << "': " << message);
-        throw CF::ApplicationFactory::CreateApplicationError(exc.errorNumber(), message.c_str());
     } catch (const std::exception& ex) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while creating the application";
