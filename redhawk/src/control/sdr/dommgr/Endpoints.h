@@ -651,17 +651,24 @@ namespace ossie {
         virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
         {
             CORBA::Object_var supplierObject = supplier_->resolve(manager);
-            CF::PortSupplier_var portSupplier = ossie::corba::_narrowSafe<CF::PortSupplier>(supplierObject);
-            if (!CORBA::is_nil(portSupplier)) {
-                try {
-                    return portSupplier->getPort(name_.c_str());
-                } catch (const CF::PortSupplier::UnknownPort&) {
-                    LOG_ERROR(PortEndpoint, "Port supplier reports no port with name " << name_);
-                } CATCH_LOG_ERROR(PortEndpoint, "Failure in getPort");
-        
-                invalidPort_ = true;
-            } else {
+            if (CORBA::is_nil(supplierObject)) {
                 LOG_DEBUG(PortEndpoint, "Unable to resolve port supplier");
+            } else {
+                CF::PortSupplier_var portSupplier = ossie::corba::_narrowSafe<CF::PortSupplier>(supplierObject);
+                if (!CORBA::is_nil(portSupplier)) {
+                    try {
+                        return portSupplier->getPort(name_.c_str());
+                    } catch (const CF::PortSupplier::UnknownPort&) {
+                        LOG_ERROR(PortEndpoint, "Port supplier reports no port with name " << name_);
+                    } CATCH_LOG_ERROR(PortEndpoint, "Failure in getPort");
+                } else {
+                    if (manager.exceptionsEnabled()) {
+                        throw LookupError(supplier_->description() + " is not a port supplier");
+                    } else {
+                        LOG_ERROR(PortEndpoint, "Object " << supplier_->description() << " is not a port supplier");
+                    }
+                }
+                invalidPort_ = true;
             }
             return CORBA::Object::_nil();
         }
