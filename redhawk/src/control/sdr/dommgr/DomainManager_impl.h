@@ -155,6 +155,10 @@ public:
     void restoreEventChannels(const std::string& _db_uri);
 
     void addApplication(Application_impl* new_app);
+
+    void addPendingApplication(Application_impl* application);
+    void cancelPendingApplication(Application_impl* application);
+    void completePendingApplication(Application_impl* application);
     
     void releaseAllApplications();
     
@@ -280,7 +284,6 @@ protected:
     //
     void establishDomainManagementChannels( const std::string &db_uri );
     void disconnectDomainManagementChannels();
-    void handleIDMChannelMessages( const CORBA::Any &msg );
     void idmTerminationMessages( const redhawk::events::ComponentTerminationEvent &msg );
     void destroyEventChannels (void);
 
@@ -341,6 +344,7 @@ private:
     
     typedef std::map<std::string,Application_impl*> ApplicationTable;
     ApplicationTable _applications;
+    ApplicationTable _pendingApplications;
 
     typedef std::map<std::string,ApplicationFactory_impl*> ApplicationFactoryTable;
     ApplicationFactoryTable _applicationFactories;

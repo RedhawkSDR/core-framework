@@ -1783,7 +1783,7 @@ DomainManager_impl::addApplication(Application_impl* new_app)
 
         ApplicationNode appNode;
         appNode.name = ossie::corba::returnString(new_app->name());
-        appNode.identifier = ossie::corba::returnString(new_app->identifier());
+        appNode.identifier = new_app->getIdentifier();
         appNode.profile = ossie::corba::returnString(new_app->profile());
         appNode.contextName = new_app->_waveformContextName;
         appNode.context = CosNaming::NamingContext::_duplicate(new_app->_waveformContext);
@@ -1830,6 +1830,45 @@ DomainManager_impl::addApplication(Application_impl* new_app)
     }
 
     TRACE_EXIT(DomainManager_impl)
+}
+
+void DomainManager_impl::addPendingApplication(Application_impl* application)
+{
+    TRACE_ENTER(DomainManager_impl);
+    boost::recursive_mutex::scoped_lock lock(stateAccess);
+    application->_add_ref();
+    _pendingApplications[application->getIdentifier()] = application;
+    TRACE_EXIT(DomainManager_impl);
+}
+
+void DomainManager_impl::cancelPendingApplication(Application_impl* application)
+{
+    TRACE_ENTER(DomainManager_impl);
+    boost::recursive_mutex::scoped_lock lock(stateAccess);
+    ApplicationTable::iterator iter = _pendingApplications.find(application->getIdentifier());
+    if (iter == _pendingApplications.end()) {
+        LOG_ERROR(DomainManager_impl, "No pending application '" << application->getIdentifier() << "' to cancel");
+    } else {
+        _pendingApplications.erase(iter);
+        application->_remove_ref();
+    }
+    TRACE_EXIT(DomainManager_impl);
+}
+
+void DomainManager_impl::completePendingApplication(Application_impl* application)
+{
+    TRACE_ENTER(DomainManager_impl);
+    boost::recursive_mutex::scoped_lock lock(stateAccess);
+    ApplicationTable::iterator iter = _pendingApplications.find(application->getIdentifier());
+    if (iter == _pendingApplications.end()) {
+        LOG_ERROR(DomainManager_impl, "No pending application '" << application->getIdentifier()
+                  << "' to move to active state");
+    } else {
+        addApplication(application);
+        application->_remove_ref();
+        _pendingApplications.erase(iter);
+    }
+    TRACE_EXIT(DomainManager_impl);
 }
 
 void

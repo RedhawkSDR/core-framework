@@ -26,6 +26,7 @@
 #include <ossie/Events.h>
 #include "DomainManager_EventSupport.h"
 #include "DomainManager_impl.h"
+#include "Application_impl.h"
 
 using namespace ossie;
 
@@ -171,22 +172,23 @@ void DomainManager_impl::sendResourceStateChange( const std::string &source_id,
   ewriter.sendResourceStateChange( evt );
 }
 
+void DomainManager_impl::idmTerminationMessages(const redhawk::events::ComponentTerminationEvent& termMsg)
+{
+    boost::recursive_mutex::scoped_lock lock(stateAccess);
+    Application_impl* application = findApplicationById(termMsg.application_id);
+    if (!application) {
+        ApplicationTable::iterator iter = _pendingApplications.find(termMsg.application_id);
+        if (iter != _pendingApplications.end()) {
+            application = iter->second;
+        }
+    }
 
-
-void DomainManager_impl::handleIDMChannelMessages( const CORBA::Any &msg ) {
-
-  const StandardEvent::AbnormalComponentTerminationEventType *termMsg;
-  if ( msg >>= termMsg ) {
-    LOG_WARN(DomainManager_impl, "Abnormal Component Termination, Reporting Device: " << termMsg->deviceId << " Application/Component " << 
-             termMsg->applicationId << "/" << termMsg->componentId );
-  }
-
-}
-
-
-void DomainManager_impl::idmTerminationMessages( const redhawk::events::ComponentTerminationEvent &termMsg ) {
-  LOG_WARN(DomainManager_impl, "Abnormal Component Termination, Reporting Device: " << termMsg.device_id << " Application/Component " << 
-             termMsg.application_id << "/" << termMsg.component_id );
+    if (application) {
+        application->componentTerminated(termMsg.component_id, termMsg.device_id);
+    } else {
+        LOG_WARN(DomainManager_impl, "Abormal Component Termination, Reporting Device: " << termMsg.device_id
+                 << " Application/Component " << termMsg.application_id << "/" << termMsg.component_id);
+    }
 }
 
 

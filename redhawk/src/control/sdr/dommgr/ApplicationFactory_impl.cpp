@@ -787,6 +787,7 @@ CF::Application_ptr createHelper::create (
                                         _waveformContext,
                                         aware_application,
                                         _domainContext);
+    _appFact._domainManager->addPendingApplication(_application);
 
     // Activate the new Application servant
     PortableServer::ObjectId_var oid = Application_impl::Activate(_application);
@@ -879,7 +880,7 @@ CF::Application_ptr createHelper::create (
     // ApplicationSequence in DomainManager
     CF::Application_var appObj = _application->_this();
     try {
-        _appFact._domainManager->addApplication(_application);
+        _appFact._domainManager->completePendingApplication(_application);
     } catch (CF::DomainManager::ApplicationInstallationError& ex) {
         // something bad happened - clean up
         LOG_ERROR(ApplicationFactory_impl, ex.msg);
@@ -1884,6 +1885,7 @@ createHelper::~createHelper()
 void createHelper::_cleanupFailedCreate()
 {
     if (_application) {
+        _appFact._domainManager->cancelPendingApplication(_application);
         _application->releaseComponents();
         _application->terminateComponents();
         _application->unloadComponents();

@@ -72,6 +72,11 @@ namespace {
         return !CORBA::is_nil(component.componentObject);
     }
 
+    bool is_terminated(const ossie::ApplicationComponent& component)
+    {
+        return (component.processId == 0);
+    }
+
     CF::ComponentType to_component_type(const ossie::ApplicationComponent& component)
     {
         CF::ComponentType result;
@@ -1154,6 +1159,10 @@ throw (CORBA::SystemException)
     return new CF::DeviceAssignmentSequence(_componentDevices);
 }
 
+const std::string& Application_impl::getIdentifier() const
+{
+    return _identifier;
+}
 
 void Application_impl::addExternalPort (const std::string& identifier, CORBA::Object_ptr port)
 {
@@ -1187,7 +1196,7 @@ bool Application_impl::checkConnectionDependency (Endpoint::DependencyType type,
 bool Application_impl::_checkRegistrations (std::set<std::string>& identifiers)
 {
     for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (is_registered(*ii)) {
+        if (is_registered(*ii) || is_terminated(*ii)) {
             identifiers.erase(ii->identifier);
         }
     }
@@ -1358,5 +1367,17 @@ CORBA::Object_ptr Application_impl::getComponentObject(const std::string& identi
         return CORBA::Object::_nil();
     } else {
         return CORBA::Object::_duplicate(component->componentObject);
+    }
+}
+
+void Application_impl::componentTerminated(const std::string& componentId, const std::string& deviceId)
+{
+    LOG_WARN(Application_impl, "Component '" << componentId << "' from application '" << _identifier
+             << "' terminated abnormally on device '" << deviceId << "'");
+    ossie::ApplicationComponent* component = findComponent(componentId);
+    if (component) {
+        boost::mutex::scoped_lock lock(_registrationMutex);
+        component->processId = 0;
+        _registrationCondition.notify_all();
     }
 }

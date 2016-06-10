@@ -130,6 +130,8 @@ public:
     
     CF::ApplicationRegistrar_ptr appReg (void);
 
+    const std::string& getIdentifier() const;
+
     void addExternalPort (const std::string&, CORBA::Object_ptr);
     void addExternalProperty (const std::string&, const std::string&, CF::Resource_ptr);
 
@@ -151,6 +153,8 @@ public:
     void releaseComponents();
     void terminateComponents();
     void unloadComponents();
+
+    void componentTerminated(const std::string& componentId, const std::string& deviceId);
 
     bool waitForComponents(std::set<std::string>& identifiers, int timeout);
 
