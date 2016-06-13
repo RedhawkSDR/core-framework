@@ -245,6 +245,29 @@ namespace redhawk {
         const std::string _name;
         const std::string _component;
     };
+
+    class ComponentTerminated : public DeploymentError {
+    public:
+        ComponentTerminated(const std::string& identifier) :
+            DeploymentError("component terminated abnormally"),
+            _identifier(identifier)
+        {
+        }
+
+        virtual ~ComponentTerminated() throw ()
+        {
+        }
+
+        virtual std::string message() const;
+
+        const std::string& identifier() const
+        {
+            return _identifier;
+        }
+
+    private:
+        const std::string _identifier;
+    };
 }
 
 #endif // DEPLOYMENTEXCEPTIONS_H

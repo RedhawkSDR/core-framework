@@ -161,7 +161,7 @@ private:
 
     void attemptComponentExecution(CF::ApplicationRegistrar_ptr registrar, redhawk::ComponentDeployment* deployment);
 
-    void waitForComponentRegistration(const DeploymentList& deployments);
+    void waitForComponentRegistration(redhawk::ApplicationDeployment& appDeployment);
     void initializeComponents(const DeploymentList& deployments);
 
     void configureComponents(const DeploymentList& deployments);

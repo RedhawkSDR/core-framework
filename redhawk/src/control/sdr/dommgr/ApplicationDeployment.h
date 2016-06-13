@@ -63,6 +63,7 @@ namespace redhawk {
 
         const ComponentList& getComponentDeployments();
         ComponentDeployment* getComponentDeployment(const std::string& instantiationId);
+        ComponentDeployment* getComponentDeploymentByUniqueId(const std::string& identifier);
 
         void applyCpuReservations(const CpuReservations& reservations);
 

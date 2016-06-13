@@ -32,6 +32,7 @@
 #include "ApplicationRegistrar.h"
 #include "connectionSupport.h"
 #include "FakeApplication.h"
+#include "DeploymentExceptions.h"
 
 PREPARE_CF_LOGGING(Application_impl);
 
@@ -1196,8 +1197,10 @@ bool Application_impl::checkConnectionDependency (Endpoint::DependencyType type,
 bool Application_impl::_checkRegistrations (std::set<std::string>& identifiers)
 {
     for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (is_registered(*ii) || is_terminated(*ii)) {
+        if (is_registered(*ii)) {
             identifiers.erase(ii->identifier);
+        } else if (is_terminated(*ii)) {
+            throw redhawk::ComponentTerminated(ii->identifier);
         }
     }
     return identifiers.empty();

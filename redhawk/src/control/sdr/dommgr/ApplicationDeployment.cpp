@@ -122,6 +122,17 @@ ComponentDeployment* ApplicationDeployment::getComponentDeployment(const std::st
     return 0;
 }
 
+ComponentDeployment* ApplicationDeployment::getComponentDeploymentByUniqueId(const std::string& identifier)
+{
+    BOOST_FOREACH(ComponentDeployment* deployment, components) {
+        if (identifier == deployment->getIdentifier()) {
+            return deployment;
+        }
+    }
+
+    return 0;
+}
+
 void ApplicationDeployment::applyCpuReservations(const CpuReservations& reservations)
 {
     BOOST_FOREACH(ComponentDeployment* deployment, components) {

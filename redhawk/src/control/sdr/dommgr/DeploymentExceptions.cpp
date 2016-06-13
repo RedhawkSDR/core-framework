@@ -151,3 +151,10 @@ std::string BadExternalPort::message() const
     msg << "': " << what();
     return msg.str();
 }
+
+std::string ComponentTerminated::message() const
+{
+    std::ostringstream msg;
+    msg << "Component '" << identifier() << "' terminated abnormally";
+    return msg.str();
+}

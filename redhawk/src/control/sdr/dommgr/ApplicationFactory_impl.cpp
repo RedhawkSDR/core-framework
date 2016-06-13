@@ -798,7 +798,7 @@ CF::Application_ptr createHelper::create (
     CF::ApplicationRegistrar_var app_reg = _application->appReg();
     loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
 
-    waitForComponentRegistration(app_deployment.getComponentDeployments());
+    waitForComponentRegistration(app_deployment);
 
     // Check that the assembly controller is valid
     LOG_TRACE(ApplicationFactory_impl, "Checking assembly controller");
@@ -1674,7 +1674,7 @@ void createHelper::applyApplicationAffinityOptions(const DeploymentList& deploym
 }
 
 
-void createHelper::waitForComponentRegistration(const DeploymentList& deployments)
+void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& appDeployment)
 {
     // Wait for all components to be registered before continuing
     int componentBindingTimeout = _appFact._domainManager->getComponentBindingTimeout();
@@ -1683,6 +1683,7 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
     // Track only SCA-compliant components; non-compliant components will never
     // register with the application, nor do they need to be initialized
     std::set<std::string> expected_components;
+    const DeploymentList& deployments = appDeployment.getComponentDeployments();
     for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
         if ((*dep)->getSoftPkg()->isScaCompliant()) {
             expected_components.insert((*dep)->getIdentifier());
@@ -1692,10 +1693,28 @@ void createHelper::waitForComponentRegistration(const DeploymentList& deployment
     // Record current time, to measure elapsed time in the event of a failure
     time_t start = time(NULL);
 
-    if (!_application->waitForComponents(expected_components, componentBindingTimeout)) {
-        // For reference, determine much time has really elapsed.
-        time_t elapsed = time(NULL)-start;
+    // Wait for all required components to register, adding additional context
+    // to any termination exceptions that may be raised
+    bool complete;
+    try {
+        complete = _application->waitForComponents(expected_components, componentBindingTimeout);
+    } catch (const redhawk::ComponentTerminated& exc) {
+        redhawk::ComponentDeployment* deployment = appDeployment.getComponentDeploymentByUniqueId(exc.identifier());
+        if (!deployment) {
+            // The deployment should always be found, but in the event that it
+            // isn't, rethrow the original exception just in case; the outer
+            // create() exception handler will turn it into a CF exception
+            throw;
+        }
+        throw redhawk::ExecuteError(deployment, "component terminated before registering with application");
+    }
+
+    // For reference, determine much time has really elapsed.
+    time_t elapsed = time(NULL)-start;
+    if (!complete) {
         LOG_ERROR(ApplicationFactory_impl, "Timed out waiting for components to register (" << elapsed << "s elapsed)");
+    } else {
+        LOG_DEBUG(ApplicationFactory_impl, "Component registration completed in " << elapsed << "s");
     }
 
     // Fetch the objects, finding any components that did not register
