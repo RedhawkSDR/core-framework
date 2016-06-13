@@ -111,6 +111,9 @@ namespace redhawk {
 
         const ossie::ComponentInstantiation* getInstantiation() const;
 
+        void setContainer(ComponentDeployment* container);
+        ComponentDeployment* getContainer();
+
         bool isResource() const;
         bool isConfigurable() const;
 
@@ -200,6 +203,7 @@ namespace redhawk {
         bool assemblyController;
 
         boost::shared_ptr<ossie::DeviceNode> assignedDevice;
+        ComponentDeployment* container;
         CF::Resource_var resource;
 
         redhawk::PropertyMap overrides;

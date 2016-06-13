@@ -35,12 +35,27 @@
 
 namespace redhawk {
 
+    class ProfileCache;
+
+    class ContainerDeployment : public ComponentDeployment
+    {
+    public:
+        ContainerDeployment(const ossie::SoftPkg* softpkg,
+                            ossie::ComponentInstantiation* instantiation,
+                            const std::string& identifier);
+
+    protected:
+        // The instantiation does not appear in a SAD; take ownership here
+        boost::scoped_ptr<ossie::ComponentInstantiation> instance;
+    };
+
     class ApplicationDeployment : public ossie::ComponentLookup, public ossie::DeviceLookup, public UsesDeviceDeployment
     {
         ENABLE_LOGGING;
 
     public:
         typedef std::vector<ComponentDeployment*> ComponentList;
+        typedef std::vector<ContainerDeployment*> ContainerList;
         typedef std::map<std::string,float> CpuReservations;
 
         ApplicationDeployment(const ossie::SoftwareAssembly& sad,
@@ -67,6 +82,10 @@ namespace redhawk {
 
         void applyCpuReservations(const CpuReservations& reservations);
 
+        const ContainerList& getContainerDeployments();
+        ContainerDeployment* createContainer(redhawk::ProfileCache& cache,
+                                             const boost::shared_ptr<ossie::DeviceNode>& device);
+
         // Adapt interfaces for component and device search to support
         // ConnectionManager
         // ComponentLookup interface
@@ -82,11 +101,14 @@ namespace redhawk {
         void overrideAssemblyControllerProperties(ComponentDeployment* deployment);
         void overrideExternalProperties(ComponentDeployment* deployment);
 
+        ContainerDeployment* getContainer(const std::string& deviceId);
+
         const ossie::SoftwareAssembly& sad;
         const std::string identifier;
         const std::string instanceName;
         redhawk::PropertyMap initConfiguration;
         ComponentList components;
+        ContainerList containers;
     };
 }
 

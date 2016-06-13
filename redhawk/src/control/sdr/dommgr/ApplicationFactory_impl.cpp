@@ -262,6 +262,23 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
             }
             redhawk::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, &instantiation);
             allocateComponent(appDeployment, deployment, assigned_device);
+
+            // For components that run as shared libraries, create or reuse a
+            // matching container deployment
+            if (deployment->getImplementation()->getCodeType() == SPD::Code::SHARED_LIBRARY) {
+                LOG_DEBUG(ApplicationFactory_impl, "Component " << deployment->getInstantiation()->getID()
+                          << "' implementation " << deployment->getImplementation()->getID()
+                          << " is a shared library");
+                redhawk::ContainerDeployment* container = appDeployment.createContainer(_profileCache, deployment->getAssignedDevice());
+                if (!container->getAssignedDevice()) {
+                    // Use whether the device is assigned as a sentinel to check
+                    // whether the container was already created, and if not,
+                    // allocate it to the device
+                    allocateComponent(appDeployment, container, deployment->getAssignedDevice()->identifier);
+                }
+                deployment->setContainer(container);
+            }
+            
         }
     }
 }
@@ -792,12 +809,11 @@ CF::Application_ptr createHelper::create (
     // Activate the new Application servant
     PortableServer::ObjectId_var oid = Application_impl::Activate(_application);
 
-    std::vector<ConnectionNode> connections;
-    std::vector<std::string> allocationIDs;
-
     CF::ApplicationRegistrar_var app_reg = _application->appReg();
-    loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
+    loadAndExecuteContainers(app_deployment.getContainerDeployments(), app_reg);
+    waitForContainerRegistration(app_deployment);
 
+    loadAndExecuteComponents(app_deployment.getComponentDeployments(), app_reg);
     waitForComponentRegistration(app_deployment);
 
     // Check that the assembly controller is valid
@@ -816,6 +832,7 @@ CF::Application_ptr createHelper::create (
 
     initializeComponents(app_deployment.getComponentDeployments());
 
+    std::vector<ConnectionNode> connections;
     connectComponents(app_deployment, connections, _baseNamingContext);
     configureComponents(app_deployment.getComponentDeployments());
 
@@ -829,6 +846,7 @@ CF::Application_ptr createHelper::create (
     // collocated. This means that we assume the SAD <partitioning> 
     // element contains the <hostcollocation> element. NB: Ownership 
     // of the ConnectionManager is passed to the application.
+    std::vector<std::string> allocationIDs;
     _allocations.transfer(allocationIDs);
 
     // Fill in the uses devices for the application
@@ -1398,6 +1416,61 @@ string ApplicationFactory_impl::getBaseWaveformContext(string waveform_context)
     return base_naming_context;
 }
 
+void createHelper::loadAndExecuteContainers(const ContainerList& containers,
+                                            CF::ApplicationRegistrar_ptr _appReg)
+{
+    LOG_TRACE(ApplicationFactory_impl, "Loading and Executing " << containers.size() << " containers");
+    // TODO: Promote contained component affinity values
+
+    BOOST_FOREACH(redhawk::ContainerDeployment* container, containers) {
+        const ossie::SoftPkg* softpkg = container->getSoftPkg();
+        const ossie::SPD::Implementation* implementation = container->getImplementation();
+
+        boost::shared_ptr<ossie::DeviceNode> device = container->getAssignedDevice();
+        if (!device) {
+            std::ostringstream message;
+            message << "component " << container->getIdentifier() << " was not assigned to a device";
+            throw std::logic_error(message.str());
+        }
+
+        // Let the application know to expect the given component
+        _application->addComponent(container->getIdentifier(), softpkg->getSPDFile());
+        _application->setComponentImplementation(container->getIdentifier(), implementation->getID());
+        _application->setComponentDevice(container->getIdentifier(), device->device);
+
+        // get the code.localfile
+        LOG_TRACE(ApplicationFactory_impl, "Host is " << device->label << " Local file name is "
+                  << container->getLocalFile());
+
+        // Get file name, load if it is not empty
+        std::string codeLocalFile = container->getLocalFile();
+        if (codeLocalFile.empty()) {
+            // This should be caught by validation, but just in case
+            throw redhawk::ComponentError(container, "empty localfile");
+        }
+
+        // narrow to LoadableDevice interface
+        CF::LoadableDevice_var loadabledev = ossie::corba::_narrowSafe<CF::LoadableDevice>(device->device);
+        if (CORBA::is_nil(loadabledev)) {
+            std::ostringstream message;
+            message << "container " << container->getIdentifier() << " was assigned to non-loadable device "
+                    << device->identifier;
+            LOG_ERROR(ApplicationFactory_impl, message);
+            throw std::logic_error(message.str());
+        }
+
+        LOG_TRACE(ApplicationFactory_impl, "Loading " << codeLocalFile << " and dependencies on device "
+                  << device->label);
+        try {
+            container->load(_application, _appFact._fileMgr, loadabledev);
+        } catch (const std::exception& exc) {
+            throw redhawk::ComponentError(container, exc.what());
+        }
+                
+        attemptComponentExecution(_appReg, container);
+    }
+}
+
 /* Perform 'load' and 'execute' operations to launch component on the assigned device
  *  - Actually loads and executes the component on the given device
  */
@@ -1583,8 +1656,15 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         dep_seq[p]=CORBA::string_dup(resolved_softpkg_deps[p].c_str());
     }
 
-    // attempt to execute the component
-    LOG_TRACE(ApplicationFactory_impl, "Executing " << entryPoint << " on device " << device->label);
+    // Attempt to execute the component
+    if (deployment->getContainer()) {
+        LOG_TRACE(ApplicationFactory_impl, "Executing " << entryPoint << " via container on device " << device->label);
+        redhawk::ComponentDeployment* container = deployment->getContainer();
+        CF::Resource_var resource = container->getResourcePtr();
+        execdev = CF::ExecutableDevice::_narrow(resource);
+    } else {
+        LOG_TRACE(ApplicationFactory_impl, "Executing " << entryPoint << " on device " << device->label);
+    }
     for (redhawk::PropertyMap::iterator prop = execParameters.begin(); prop != execParameters.end(); ++prop) {
         LOG_TRACE(ApplicationFactory_impl, " exec param " << prop->getId() << " " << prop->getValue().toString());
     }
@@ -1673,6 +1753,50 @@ void createHelper::applyApplicationAffinityOptions(const DeploymentList& deploym
     }
 }
 
+
+void createHelper::waitForContainerRegistration(redhawk::ApplicationDeployment& appDeployment)
+{
+    // Wait for any containers to be registered before continuing
+    int timeout = _appFact._domainManager->getComponentBindingTimeout();
+    LOG_TRACE(ApplicationFactory_impl, "Waiting " << timeout << "s for containers to register");
+    std::set<std::string> expected_components;
+    BOOST_FOREACH(redhawk::ContainerDeployment* container, appDeployment.getContainerDeployments()) {
+        expected_components.insert(container->getIdentifier());
+    }
+
+    // Record current time, to measure elapsed time in the event of a failure
+    time_t start = time(NULL);
+
+    // Wait for all required components to register, adding additional context
+    // to any termination exceptions that may be raised
+    bool complete = _application->waitForComponents(expected_components, timeout);
+    // TODO: convert into ExecuteError
+
+    // For reference, determine much time has really elapsed.
+    time_t elapsed = time(NULL)-start;
+    if (!complete) {
+        LOG_ERROR(ApplicationFactory_impl, "Timed out waiting for container to register (" << elapsed << "s elapsed)");
+    } else {
+        LOG_DEBUG(ApplicationFactory_impl, "Container registration completed in " << elapsed << "s");
+    }
+
+    // Fetch the objects, finding any components that did not register
+    BOOST_FOREACH(redhawk::ContainerDeployment* container, appDeployment.getContainerDeployments()) {
+        // Find the component on the Application
+        const std::string component_id = container->getIdentifier();
+        CORBA::Object_var objref = _application->getComponentObject(component_id);
+        if (CORBA::is_nil(objref)) {
+            throw redhawk::ExecuteError(container, "container did not register with application");
+        }
+
+        CF::Resource_var resource = ossie::corba::_narrowSafe<CF::Resource>(objref);
+        if (CORBA::is_nil(resource)) {
+            throw redhawk::ComponentError(container, "component object is not a CF::Resource");
+        }
+
+        container->setResourcePtr(resource);
+    }
+}
 
 void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& appDeployment)
 {

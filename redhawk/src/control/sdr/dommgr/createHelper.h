@@ -97,6 +97,7 @@ private:
     redhawk::ProfileCache _profileCache;
 
     typedef std::vector<redhawk::ComponentDeployment*> DeploymentList;
+    typedef std::vector<redhawk::ContainerDeployment*> ContainerList;
     typedef std::vector<std::string> ProcessorList;
     typedef std::vector<ossie::SPD::NameVersionPair> OSList;
 
@@ -155,6 +156,10 @@ private:
                                                                 ossie::DeviceNode& device);
     
     // Supports loading, executing, initializing, configuring, & connecting
+    void loadAndExecuteContainers(const ContainerList& containers,
+                                  CF::ApplicationRegistrar_ptr _appReg);
+    void waitForContainerRegistration(redhawk::ApplicationDeployment& appDeployment);
+
     void loadAndExecuteComponents(const DeploymentList& deployments,
                                   CF::ApplicationRegistrar_ptr _appReg);
     void applyApplicationAffinityOptions(const DeploymentList& deployments);

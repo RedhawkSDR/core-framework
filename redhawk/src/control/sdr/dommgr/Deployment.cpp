@@ -248,7 +248,8 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
     SoftPkgDeployment(softpkg),
     instantiation(instantiation),
     identifier(identifier),
-    assemblyController(false)
+    assemblyController(false),
+    container(0)
 {
     // If the SoftPkg has an associated Properties, check the overrides for
     // validity
@@ -284,6 +285,16 @@ const std::string& ComponentDeployment::getIdentifier() const
 const ComponentInstantiation* ComponentDeployment::getInstantiation() const
 {
     return instantiation;
+}
+
+void ComponentDeployment::setContainer(ComponentDeployment* container)
+{
+    this->container = container;
+}
+
+ComponentDeployment* ComponentDeployment::getContainer()
+{
+    return container;
 }
 
 bool ComponentDeployment::isResource() const

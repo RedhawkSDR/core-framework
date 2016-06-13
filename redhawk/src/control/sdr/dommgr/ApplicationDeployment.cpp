@@ -26,11 +26,20 @@
 
 #include "PersistenceStore.h"
 #include "ApplicationDeployment.h"
+#include "ProfileCache.h"
 
 using namespace redhawk;
 using namespace ossie;
 
 PREPARE_LOGGING(ApplicationDeployment);
+
+ContainerDeployment::ContainerDeployment(const ossie::SoftPkg* softpkg,
+                                         ossie::ComponentInstantiation* instantiation,
+                                         const std::string& identifier) :
+    ComponentDeployment(softpkg, instantiation, identifier),
+    instance(instantiation)
+{
+}
 
 ApplicationDeployment::ApplicationDeployment(const SoftwareAssembly& sad,
                                              const std::string& instanceName,
@@ -106,9 +115,38 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(const Soft
     return deployment;
 }
 
+ContainerDeployment* ApplicationDeployment::createContainer(redhawk::ProfileCache& cache,
+                                                            const boost::shared_ptr<ossie::DeviceNode>& device)
+{
+    ContainerDeployment* container = getContainer(device->identifier);
+    if (container) {
+        LOG_DEBUG(ApplicationDeployment, "Using existing container " << container->getIdentifier());
+        return container;
+    }
+
+    const ossie::SoftPkg* softpkg = cache.loadSoftPkg("/components/rh/AppContainer/AppContainer.spd.xml");
+
+    // Create an instantiation with the ID based on the device label; the
+    // deployment will own this object
+    ossie::ComponentInstantiation* instantiation = new ossie::ComponentInstantiation;
+    instantiation->instantiationId = "Container_" + device->label;
+
+    LOG_DEBUG(ApplicationDeployment, "Creating container " << instantiation->getID());
+    std::string container_id = identifier + ":" + instantiation->getID();
+
+    container = new ContainerDeployment(softpkg, instantiation, container_id);
+    containers.push_back(container);
+    return container;
+}
+
 const ApplicationDeployment::ComponentList& ApplicationDeployment::getComponentDeployments()
 {
     return components;
+}
+
+const ApplicationDeployment::ContainerList& ApplicationDeployment::getContainerDeployments()
+{
+    return containers;
 }
 
 ComponentDeployment* ApplicationDeployment::getComponentDeployment(const std::string& instantiationId)
@@ -185,6 +223,16 @@ void ApplicationDeployment::overrideExternalProperties(ComponentDeployment* depl
             }
         }
     }
+}
+
+ContainerDeployment* ApplicationDeployment::getContainer(const std::string& deviceId)
+{
+    BOOST_FOREACH(ContainerDeployment* container, containers) {
+        if (container->getAssignedDevice() && container->getAssignedDevice()->identifier == deviceId) {
+            return container;
+        }
+    }
+    return 0;
 }
 
 CF::Resource_ptr ApplicationDeployment::lookupComponentByInstantiationId(const std::string& identifier)
