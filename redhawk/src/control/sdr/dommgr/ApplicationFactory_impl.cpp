@@ -865,6 +865,13 @@ CF::Application_ptr createHelper::create (
         ossie::corba::push_back(app_devices, assignment);
     }
 
+    BOOST_FOREACH(redhawk::ContainerDeployment* container, app_deployment.getContainerDeployments()) {
+        CF::DeviceAssignmentType comp_assignment;
+        comp_assignment.componentId = container->getIdentifier().c_str();
+        comp_assignment.assignedDeviceId = container->getAssignedDevice()->identifier.c_str();
+        ossie::corba::push_back(app_devices, comp_assignment);
+    }
+
     const DeploymentList& deployments = app_deployment.getComponentDeployments();    
     for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
         CF::DeviceAssignmentType comp_assignment;
@@ -1612,29 +1619,33 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     if (deployment->getInstantiation()->isNamingService()) {
         execParameters["NAME_BINDING"] = deployment->getInstantiation()->getFindByNamingServiceName();
     }
-    execParameters["DOM_PATH"] = _baseNamingContext;
     execParameters["PROFILE_NAME"] = deployment->getSoftPkg()->getSPDFile();
 
-    // Pass logging configuration
-    std::string logging_uri = resolveLoggingConfiguration(deployment);
-    if (!logging_uri.empty()) {
-        // Check for sca: URI type, and append the IOR for the file system
-        if (logging_uri.find("sca:/") == 0) {
-            string ior = ossie::corba::objectToString(_appFact._domainManager->_fileMgr);
-            logging_uri += ("?fs=" + ior);
-            LOG_TRACE(ApplicationFactory_impl, "Adding file system IOR " << logging_uri);
-        }
-        LOG_DEBUG(ApplicationFactory_impl, " LOGGING_CONFIG_URI: " << logging_uri);
-        execParameters["LOGGING_CONFIG_URI"] = logging_uri;
-    } else {
-        // No LOGGING_CONFIG_URI can be found, pass DEBUG_LEVEL
-        rh_logger::LoggerPtr dom_logger = _appFact._domainManager->getLogger();
-        if (dom_logger) {
-            rh_logger::LevelPtr dlevel = dom_logger->getLevel();
-            if (!dlevel) {
-                dlevel = rh_logger::Logger::getRootLogger()->getLevel();
+    // Pass logging configuration, unless the component is being run in a
+    // container
+    // TODO: Determine how to handle configuration of logging in containers
+    if (!deployment->getContainer()) {
+        execParameters["DOM_PATH"] = _baseNamingContext;
+        std::string logging_uri = resolveLoggingConfiguration(deployment);
+        if (!logging_uri.empty()) {
+            // Check for sca: URI type, and append the IOR for the file system
+            if (logging_uri.find("sca:/") == 0) {
+                string ior = ossie::corba::objectToString(_appFact._domainManager->_fileMgr);
+                logging_uri += ("?fs=" + ior);
+                LOG_TRACE(ApplicationFactory_impl, "Adding file system IOR " << logging_uri);
             }
-            execParameters["DEBUG_LEVEL"] = static_cast<CORBA::Long>(ossie::logging::ConvertRHLevelToDebug(dlevel));
+            LOG_DEBUG(ApplicationFactory_impl, " LOGGING_CONFIG_URI: " << logging_uri);
+            execParameters["LOGGING_CONFIG_URI"] = logging_uri;
+        } else {
+            // No LOGGING_CONFIG_URI can be found, pass DEBUG_LEVEL
+            rh_logger::LoggerPtr dom_logger = _appFact._domainManager->getLogger();
+            if (dom_logger) {
+                rh_logger::LevelPtr dlevel = dom_logger->getLevel();
+                if (!dlevel) {
+                    dlevel = rh_logger::Logger::getRootLogger()->getLevel();
+                }
+                execParameters["DEBUG_LEVEL"] = static_cast<CORBA::Long>(ossie::logging::ConvertRHLevelToDebug(dlevel));
+            }
         }
     }
 
