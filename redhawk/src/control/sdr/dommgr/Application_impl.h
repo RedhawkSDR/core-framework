@@ -142,6 +142,7 @@ public:
 
     // Set component state
     void addComponent(const std::string& identifier, const std::string& profile);
+    void addContainer(const std::string& identifier, const std::string& profile);
     void setComponentPid(const std::string& identifier, unsigned long pid);
     void setComponentNamingContext(const std::string& identifier, const std::string& name);
     void setComponentImplementation(const std::string& identifier, const std::string& implementationId);

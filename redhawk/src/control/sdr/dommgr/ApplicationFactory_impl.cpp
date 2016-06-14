@@ -1432,6 +1432,7 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
     BOOST_FOREACH(redhawk::ContainerDeployment* container, containers) {
         const ossie::SoftPkg* softpkg = container->getSoftPkg();
         const ossie::SPD::Implementation* implementation = container->getImplementation();
+        const ossie::ComponentInstantiation* instantiation = container->getInstantiation();
 
         boost::shared_ptr<ossie::DeviceNode> device = container->getAssignedDevice();
         if (!device) {
@@ -1441,7 +1442,11 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
         }
 
         // Let the application know to expect the given component
-        _application->addComponent(container->getIdentifier(), softpkg->getSPDFile());
+        _application->addContainer(container->getIdentifier(), softpkg->getSPDFile());
+        if (instantiation->isNamingService()) {
+            std::string lookupName = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
+            _application->setComponentNamingContext(container->getIdentifier(), lookupName);
+        }
         _application->setComponentImplementation(container->getIdentifier(), implementation->getID());
         _application->setComponentDevice(container->getIdentifier(), device->device);
 

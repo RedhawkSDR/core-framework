@@ -104,6 +104,7 @@ namespace ossie {
         unsigned long processId;
         CORBA::Object_var componentObject;
         CF::Device_var assignedDevice;
+        bool isContainer;
     };
     typedef std::list<ApplicationComponent> ComponentList;
 
@@ -261,6 +262,7 @@ namespace boost {
             ar & node.processId;
             ar & node.componentObject;
             ar & node.assignedDevice;
+            ar & node.isContainer;
         }
 
         template<class Archive>

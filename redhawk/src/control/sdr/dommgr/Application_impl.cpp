@@ -997,12 +997,27 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 void Application_impl::releaseComponents()
 {
     for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (CORBA::is_nil(ii->componentObject)) {
+        if (ii->isContainer || CORBA::is_nil(ii->componentObject)) {
             // Ignore components that never registered
             continue;
         }
 
         LOG_DEBUG(Application_impl, "Releasing component '" << ii->identifier << "'");
+        try {
+            CF::Resource_var resource = CF::Resource::_narrow(ii->componentObject);
+            unsigned long timeout = 3; // seconds
+            omniORB::setClientCallTimeout(resource, timeout * 1000);
+            resource->releaseObject();
+        } CATCH_LOG_WARN(Application_impl, "releaseObject failed for component '" << ii->identifier << "'");
+    }
+
+    for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
+        if (!(ii->isContainer) || CORBA::is_nil(ii->componentObject)) {
+            // Ignore components that never registered
+            continue;
+        }
+
+        LOG_DEBUG(Application_impl, "Releasing container '" << ii->identifier << "'");
         try {
             CF::Resource_var resource = CF::Resource::_narrow(ii->componentObject);
             unsigned long timeout = 3; // seconds
@@ -1017,7 +1032,7 @@ void Application_impl::terminateComponents()
     // Terminate any components that were executed on devices
     for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
         const unsigned long pid = ii->processId;
-        if (pid == 0) {
+        if (pid == 0 || pid >= 65536) {
             continue;
         }
 
@@ -1298,6 +1313,21 @@ ossie::ApplicationComponent* Application_impl::findComponent(const std::string& 
     return 0;
 }
 
+void Application_impl::addContainer(const std::string& identifier, const std::string& profile)
+{
+    if (findComponent(identifier)) {
+        LOG_ERROR(Application_impl, "Container '" << identifier << "' is already registered");
+        return;
+    }
+    LOG_DEBUG(Application_impl, "Adding container '" << identifier << "' with profile " << profile);
+    ossie::ApplicationComponent component;
+    component.identifier = identifier;
+    component.softwareProfile = profile;
+    component.processId = 0;
+    component.isContainer = true;
+    _components.push_back(component);
+}
+
 void Application_impl::addComponent(const std::string& identifier, const std::string& profile)
 {
     if (findComponent(identifier)) {
@@ -1309,6 +1339,7 @@ void Application_impl::addComponent(const std::string& identifier, const std::st
     component.identifier = identifier;
     component.softwareProfile = profile;
     component.processId = 0;
+    component.isContainer = false;
     _components.push_back(component);
 }
 
