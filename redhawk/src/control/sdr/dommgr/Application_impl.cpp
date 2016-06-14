@@ -92,7 +92,9 @@ namespace {
     void convert_sequence(Sequence& out, Iterator begin, const Iterator end, Function func)
     {
         for (; begin != end; ++begin) {
-            ossie::corba::push_back(out, func(*begin));
+            if (!begin->isContainer) {
+                ossie::corba::push_back(out, func(*begin));
+            }
         }
     }
 
@@ -106,7 +108,7 @@ namespace {
     void convert_sequence_if(Sequence& out, Iterator begin, const Iterator end, Function func, Predicate pred)
     {
         for (; begin != end; ++begin) {
-            if (pred(*begin)) {
+            if (!(begin->isContainer) && pred(*begin)) {
                 ossie::corba::push_back(out, func(*begin));
             }
         }

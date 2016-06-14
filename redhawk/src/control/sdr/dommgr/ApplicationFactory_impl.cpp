@@ -865,13 +865,6 @@ CF::Application_ptr createHelper::create (
         ossie::corba::push_back(app_devices, assignment);
     }
 
-    BOOST_FOREACH(redhawk::ContainerDeployment* container, app_deployment.getContainerDeployments()) {
-        CF::DeviceAssignmentType comp_assignment;
-        comp_assignment.componentId = container->getIdentifier().c_str();
-        comp_assignment.assignedDeviceId = container->getAssignedDevice()->identifier.c_str();
-        ossie::corba::push_back(app_devices, comp_assignment);
-    }
-
     const DeploymentList& deployments = app_deployment.getComponentDeployments();    
     for (DeploymentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
         CF::DeviceAssignmentType comp_assignment;
