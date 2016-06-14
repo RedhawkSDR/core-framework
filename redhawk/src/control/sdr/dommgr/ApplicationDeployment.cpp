@@ -126,10 +126,11 @@ ContainerDeployment* ApplicationDeployment::createContainer(redhawk::ProfileCach
 
     const ossie::SoftPkg* softpkg = cache.loadSoftPkg("/components/rh/AppContainer/AppContainer.spd.xml");
 
-    // Create an instantiation with the ID based on the device label; the
-    // deployment will own this object
+    // Create an instantiation with the ID and naming service name based on the
+    // device label; the deployment will own this object
     ossie::ComponentInstantiation* instantiation = new ossie::ComponentInstantiation;
     instantiation->instantiationId = "Container_" + device->label;
+    instantiation->namingservicename = instantiation->instantiationId;
 
     LOG_DEBUG(ApplicationDeployment, "Creating container " << instantiation->getID());
     std::string container_id = identifier + ":" + instantiation->getID();
