@@ -127,7 +127,7 @@ ContainerDeployment* ApplicationDeployment::createContainer(redhawk::ProfileCach
         return container;
     }
 
-    const ossie::SoftPkg* softpkg = cache.loadSoftPkg("/components/rh/AppContainer/AppContainer.spd.xml");
+    const ossie::SoftPkg* softpkg = cache.loadSoftPkg("/mgr/rh/ComponentHost/ComponentHost.spd.xml");
 
     // Create an instantiation with the ID and naming service name based on the
     // device identifier; the deployment will own this object

@@ -296,6 +296,7 @@ AC_CONFIG_FILES(Makefile \
                 control/sdr/Makefile \
                 control/sdr/dommgr/Makefile \
                 control/sdr/devmgr/Makefile \
+                control/sdr/ComponentHost/Makefile \
                 base/Makefile \
                 base/framework/python/Makefile \
                 base/framework/java/Makefile \

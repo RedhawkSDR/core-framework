@@ -31,7 +31,7 @@ nodesdir = $(devdir)/nodes
 dist_domain_DATA = domain/DomainManager.dmd.xml \
   domain/DomainManager.dmd.xml.template
 
-SUBDIRS = dommgr devmgr
+SUBDIRS = dommgr devmgr ComponentHost
 
 install-exec-hook:
 	$(mkdir_p) $(DESTDIR)$(depsdir)
