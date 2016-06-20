@@ -57,8 +57,11 @@ ApplicationDeployment::ApplicationDeployment(const SoftwareAssembly& sad,
 
 ApplicationDeployment::~ApplicationDeployment()
 {
-    for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
-        delete *comp;
+    BOOST_FOREACH(ComponentDeployment* component, components) {
+        delete component;
+    }
+    BOOST_FOREACH(ContainerDeployment* container, containers) {
+        delete container;
     }
 }
 
@@ -127,13 +130,14 @@ ContainerDeployment* ApplicationDeployment::createContainer(redhawk::ProfileCach
     const ossie::SoftPkg* softpkg = cache.loadSoftPkg("/components/rh/AppContainer/AppContainer.spd.xml");
 
     // Create an instantiation with the ID and naming service name based on the
-    // device label; the deployment will own this object
+    // device identifier; the deployment will own this object
     ossie::ComponentInstantiation* instantiation = new ossie::ComponentInstantiation;
-    instantiation->instantiationId = "Container_" + device->label;
+    instantiation->instantiationId = "Container_" + device->identifier;
     instantiation->namingservicename = instantiation->instantiationId;
 
+    // Use the same pattern as components to generate the unique runtime ID
     LOG_DEBUG(ApplicationDeployment, "Creating container " << instantiation->getID());
-    std::string container_id = identifier + ":" + instantiation->getID();
+    std::string container_id = instantiation->getID() + ":" + instanceName;
 
     container = new ContainerDeployment(softpkg, instantiation, container_id);
     containers.push_back(container);
