@@ -174,6 +174,9 @@ void LoadableDevice_impl::_init () {
               "bytes",
               "external",
               "configure");
+
+  // Default to the current working directory
+  cacheDirectory = ossie::getCurrentDirName();
 }
 
 
@@ -881,9 +884,7 @@ bool LoadableDevice_impl::isFileLoaded (const char* fileName)
 }
 
 
-void LoadableDevice_impl ::configure (const CF::Properties& capacities)
-throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
-       InvalidConfiguration, CORBA::SystemException)
+const std::string& LoadableDevice_impl::getCacheDirectory() const
 {
-    Device_impl::configure(capacities);
+    return cacheDirectory;
 }

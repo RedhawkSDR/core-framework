@@ -709,6 +709,7 @@ class LoadableDevice(Device):
         self.__cacheLock = threading.Lock()
         self._sharedPkgs = {}
         self.initialState = envStateContainer()
+        self._cacheDirectory = os.getcwd()
 
     def releaseObject(self):
         self._unloadAll()
@@ -1139,6 +1140,7 @@ class ExecutableDevice(LoadableDevice):
                     if self._sharedPkgs.has_key(dep):
                         selected_paths.append(self._sharedPkgs[dep])
                 self._update_selected_paths(selected_paths)
+                parameters.append(CF.DataType('RH::DEPLOYMENT_ROOT', any.to_any(self._cacheDirectory)))
                 pid = self.execute(name, options, parameters)
         finally:
             self._cmdLock.release()

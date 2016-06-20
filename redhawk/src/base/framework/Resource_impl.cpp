@@ -190,10 +190,17 @@ std::string& Resource_impl::getCurrentWorkingDirectory() {
     return this->currentWorkingDirectory;
 }
 
+const std::string& Resource_impl::getDeploymentRoot() const
+{
+    return _deploymentRoot;
+}
+
 void Resource_impl::setCommandLineProperty(const std::string& id, const redhawk::Value& value)
 {
     if (id == "PROFILE_NAME") {
         _softwareProfile = value.toString();
+    } else if (id == "RH::DEPLOYMENT_ROOT") {
+        _deploymentRoot = value.toString();
     } else {
         PropertySet_impl::setCommandLineProperty(id, value);
     }

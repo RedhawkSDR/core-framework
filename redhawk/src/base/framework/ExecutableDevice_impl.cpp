@@ -154,9 +154,11 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::executeLinked (const
     }
     update_selected_paths(selected_paths);
 
-    std::vector<std::string> prepend_args;
-    CF::ExecutableDevice::ProcessID_Type pid = execute(name, options, parameters);
-    return pid;
+    // Add the system-defined DEPLOYMENT_ROOT property to the command line
+    redhawk::PropertyMap arguments(parameters);
+    arguments["RH::DEPLOYMENT_ROOT"] = getCacheDirectory();
+
+    return execute(name, options, arguments);
 }
 
 CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::execute (const char* name, const CF::Properties& options, const CF::Properties& parameters) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)

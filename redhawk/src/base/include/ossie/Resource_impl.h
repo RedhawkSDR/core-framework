@@ -126,6 +126,8 @@ protected:
 
     void setDomainManager(CF::DomainManager_ptr domainManager);
 
+    const std::string& getDeploymentRoot() const;
+
     /*
      * Boolean describing whether or not this Resource is started
      */
@@ -158,6 +160,7 @@ private:
     std::string currentWorkingDirectory;
     boost::scoped_ptr<redhawk::DomainManagerContainer> _domMgr;
     bool _initialized;
+    std::string _deploymentRoot;
 
     ossie::notification<void (Resource_impl*)> _resourceReleased;
 

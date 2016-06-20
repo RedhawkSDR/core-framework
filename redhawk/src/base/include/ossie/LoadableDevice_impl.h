@@ -170,9 +170,6 @@ public:
     LoadableDevice_impl (char*, char*, char*, char*, char*);
     LoadableDevice_impl (char*, char*, char*, char*, CF::Properties capacities, char*);
     virtual ~LoadableDevice_impl ();
-    void configure (const CF::Properties& configProperties)
-    throw (CF::PropertySet::PartialConfiguration,
-           CF::PropertySet::InvalidConfiguration, CORBA::SystemException);
 
     // Externally visible function call to load a file
     void  load (CF::FileSystem_ptr fs, const char* fileName,
@@ -227,12 +224,16 @@ protected:
     // Transfer size when loading files
     CORBA::LongLong           transferSize;          // block transfer size when loading files
 
+    // Returns the base directory in use for the file cache
+    const std::string& getCacheDirectory() const;
+
  private:
     LoadableDevice_impl(); // No default constructor
     LoadableDevice_impl(LoadableDevice_impl&); // No copying
     void _init();
     std::map<std::string, time_t> cacheTimestamps;
     std::map<std::string, std::vector<std::string> > duplicate_filenames;
+    std::string cacheDirectory;
 
     void _loadTree(CF::FileSystem_ptr fs, std::string remotePath, boost::filesystem::path& localPath, std::string fileKey);
     void _deleteTree(const std::string &fileKey);
