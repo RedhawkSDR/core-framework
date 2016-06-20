@@ -1689,8 +1689,8 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     try {
         // call 'execute' on the ExecutableDevice to execute the component
         pid = execdev->executeLinked(entryPoint.c_str(), options, execParameters, dep_seq);
-    } catch (const CF::InvalidFileName&) {
-        throw redhawk::ExecuteError(deployment, "invalid filename");
+    } catch (const CF::InvalidFileName& exc) {
+        throw redhawk::ExecuteError(deployment, "invalid filename " + std::string(exc.msg));
     } catch (const CF::Device::InvalidState& exc) {
         std::string message = "invalid device state " + std::string(exc.msg);
         throw redhawk::ExecuteError(deployment, message);
