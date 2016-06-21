@@ -117,30 +117,51 @@ class VirtualDevice(object):
         self._processor = platform.machine()
         self._osName = platform.system()
 
-    def getEntryPoint(self, spd, implementation):
-        entry_point = implementation.get_code().get_entrypoint()
-        if not entry_point.startswith('/'):
-            entry_point = os.path.join(os.path.dirname(spd), entry_point)
-        return entry_point
-
     def _matchProcessor(self, implementation):
+        if not implementation.get_processor():
+            # Implementation specifies no processor dependency
+            return True
+
         for proc in implementation.get_processor():
             if proc.get_name() == self._processor:
                 return True
         return False
 
     def _matchOS(self, implementation):
+        if not implementation.get_os():
+            # Implementation specifies no OS dependency
+            return True
+
         for operating_system in implementation.get_os():
             if operating_system.get_name() == self._osName:
                 return True
         return False
 
-    def matchImplementation(self, profile, spd):
+    def _checkImplementation(self, sdrroot, profile, impl):
+        # Match device properties
+        log.debug("Checking processor and OS")
+        if not self._matchProcessor(impl) or not self._matchOS(impl):
+            return False
+
+        # Check that localfile points to a real location
+        localfile = sdrroot.relativePath(profile, impl.get_code().get_localfile().get_name())
+        log.debug("Checking localfile '%s' ('%s')", localfile, impl.get_code().get_localfile().get_name())
+        if not os.path.exists(localfile):
+            return False
+
+        # If the implementation has an entry point, make sure it exists too
+        if impl.get_code().get_entrypoint():
+            entry_point = sdrroot.relativePath(profile, impl.get_code().get_entrypoint())
+            log.debug("Checking entrypoint '%s'", entry_point)
+            if not os.path.exists(entry_point):
+                return False
+
+        return True
+
+    def matchImplementation(self, sdrroot, profile, spd):
         for impl in spd.get_implementation():
-            if self._matchProcessor(impl) and self._matchOS(impl):
-                entry_point = self.getEntryPoint(profile, impl)
-                if os.path.exists(entry_point):
-                    return impl
+            if self._checkImplementation(sdrroot, profile, impl):
+                return impl
         raise RuntimeError, "Softpkg '%s' has no usable implementation" % spd.get_name()
 
     def execute(self, entryPoint, deps, execparams, debugger, window):

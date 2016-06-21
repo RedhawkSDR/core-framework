@@ -61,6 +61,12 @@ class LocalSdrRoot(SdrRoot):
     def domPath(self, filename):
         return os.path.join(self.__sdrroot, 'dom' + filename)
 
+    def relativePath(self, base, path):
+        if path.startswith('/'):
+            return self.domPath(path)
+        else:
+            return os.path.join(os.path.dirname(base), path)
+
     def _fileExists(self, filename):
         return os.path.isfile(filename)
 
@@ -140,11 +146,11 @@ class LocalLauncher(SandboxLauncher):
                 impl = self._getImplementation(dep_spd, dep_impl.get_refid())
             else:
                 # No implementation requested, find one that matches the device
-                impl = device.matchImplementation(filename, dep_spd)
+                impl = device.matchImplementation(sdrRoot, local_filename, dep_spd)
 
             log.trace("Using implementation '%s'", impl.get_id())
             dep_localfile = impl.get_code().get_localfile().get_name()
-            dep_files.append(os.path.join(os.path.dirname(local_filename), dep_localfile))
+            dep_files.append(sdrRoot.relativePath(local_filename, dep_localfile))
 
             # Resolve nested dependencies.
             dep_files.extend(self._resolveDependencies(sdrRoot, device, impl))
@@ -196,18 +202,19 @@ class LocalLauncher(SandboxLauncher):
 
         # Find a suitable implementation
         device = launcher.VirtualDevice()
+        sdrroot = comp._sandbox.getSdrRoot()
         if comp._impl:
             impl = self._getImplementation(comp._spd, comp._impl)
         else:
-            impl = device.matchImplementation(comp._profile, comp._spd)
+            impl = device.matchImplementation(sdrroot, comp._profile, comp._spd)
         log.trace("Using implementation '%s'", impl.get_id())
 
         # Resolve all dependency localfiles
-        deps = self._resolveDependencies(comp._sandbox.getSdrRoot(), device, impl)
+        deps = self._resolveDependencies(sdrroot, device, impl)
 
         # Execute the entry point, either on the virtual device or the Sandbox
         # component host
-        entry_point = device.getEntryPoint(comp._profile, impl)
+        entry_point = sdrroot.relativePath(comp._profile, impl.get_code().get_entrypoint())
         if impl.get_code().get_type() == 'SharedLibrary':
             container = comp._sandbox._getComponentHost()
             parameters = [CF.DataType(k, to_any(str(v))) for k, v in execparams.iteritems()]
