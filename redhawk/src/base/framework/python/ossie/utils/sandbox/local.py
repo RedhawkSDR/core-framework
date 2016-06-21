@@ -35,7 +35,7 @@ from ossie.utils.model.connect import ConnectionManager
 
 from base import SdrRoot, Sandbox, SandboxLauncher
 from devmgr import DeviceManagerStub
-from naming import NamingContextStub
+from naming import ApplicationRegistrarStub
 import launcher
 from debugger import GDB, PDB, Valgrind
 import terminal
@@ -319,22 +319,22 @@ class LocalLauncher(SandboxLauncher):
 
 class LocalComponentLauncher(LocalLauncher):
     def launch(self, *args, **kwargs):
-        self.__namingContext = NamingContextStub()
-        log.trace('Activating virtual NamingContext')
-        namingContextId = poa.activate_object(self.__namingContext)
+        self.__registrar = ApplicationRegistrarStub()
+        log.trace('Activating virtual ApplicationRegistrar')
+        namingContextId = poa.activate_object(self.__registrar)
         try:
             return LocalLauncher.launch(self, *args, **kwargs)
         finally:
-            log.trace('Deactivating virtual NamingContext')
+            log.trace('Deactivating virtual ApplicationRegistrar')
             poa.deactivate_object(namingContextId)
-            del self.__namingContext
+            del self.__registrar
 
     def getReference(self, component):
-        return self.__namingContext.getObject(component._instanceName)
+        return self.__registrar.getObject(component._instanceName)
 
     def _getRequiredExecparams(self, component):
         return {'COMPONENT_IDENTIFIER': component._refid,
-                'NAMING_CONTEXT_IOR': orb.object_to_string(self.__namingContext._this()),
+                'NAMING_CONTEXT_IOR': orb.object_to_string(self.__registrar._this()),
                 'PROFILE_NAME': component._profile,
                 'NAME_BINDING': component._instanceName}
 
