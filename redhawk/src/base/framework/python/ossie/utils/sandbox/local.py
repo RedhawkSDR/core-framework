@@ -56,6 +56,9 @@ class LocalSdrRoot(SdrRoot):
         # Assume the filename points to somewhere in SDRROOT
         return os.path.join(self.__sdrroot, filename)
 
+    def domPath(self, filename):
+        return os.path.join(self.__sdrroot, 'dom' + filename)
+
     def _fileExists(self, filename):
         return os.path.isfile(filename)
 
@@ -114,6 +117,38 @@ class LocalLauncher(SandboxLauncher):
         self._configProps = configProps
         self._timeout = timeout
 
+    def _getImplementation(self, spd, identifier):
+        for implementation in spd.get_implementation():
+            if implementation.get_id() == identifier:
+                return implementation
+        raise KeyError, "Softpkg '%s' has no implementation '%s'" % (spd.get_name(), identifier)
+
+    def _resolveDependencies(self, sdrRoot, device, implementation):
+        dep_files = []
+        for dependency in implementation.get_dependency():
+            softpkg = dependency.get_softpkgref()
+            if not softpkg:
+                continue
+            filename = softpkg.get_localfile().get_name()
+            log.trace("Resolving softpkg dependency '%s'", filename)
+            local_filename = sdrRoot.domPath(filename)
+            dep_spd = parsers.spd.parse(local_filename)
+            dep_impl = softpkg.get_implref()
+            if dep_impl:
+                impl = self._getImplementation(dep_spd, dep_impl.get_refid())
+            else:
+                # No implementation requested, find one that matches the device
+                impl = device.matchImplementation(filename, dep_spd)
+
+            log.trace("Using implementation '%s'", impl.get_id())
+            dep_localfile = impl.get_code().get_localfile().get_name()
+            dep_files.append(os.path.join(os.path.dirname(local_filename), dep_localfile))
+
+            # Resolve nested dependencies.
+            dep_files.extend(self._resolveDependencies(sdrRoot, device, impl))
+
+        return dep_files
+
     def launch(self, comp):
         # Build up the full set of command line arguments
         execparams = comp._getExecparams()
@@ -158,15 +193,15 @@ class LocalLauncher(SandboxLauncher):
                 debugger = None
 
         # Find a suitable implementation
-        device = launcher.VirtualDevice(comp._sandbox)
+        device = launcher.VirtualDevice()
         if comp._impl:
-            impl = device.getImplementation(comp._spd, comp._impl)
+            impl = self._getImplementation(comp._spd, comp._impl)
         else:
             impl = device.matchImplementation(comp._profile, comp._spd)
         log.trace("Using implementation '%s'", impl.get_id())
 
         entry_point = device.getEntryPoint(comp._profile, impl)
-        deps = device.resolveDependencies(impl)
+        deps = self._resolveDependencies(comp._sandbox.getSdrRoot(), device, impl)
 
         if impl.get_code().get_type() == 'SharedLibrary':
             raise RuntimeError, 'SharedLibrary entry point not implemented'

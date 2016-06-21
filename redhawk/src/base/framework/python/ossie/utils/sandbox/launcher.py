@@ -114,8 +114,7 @@ class LocalProcess(object):
 
 
 class VirtualDevice(object):
-    def __init__(self, sandbox):
-        self._sandbox = sandbox
+    def __init__(self):
         self._processor = platform.machine()
         self._osName = platform.system()
 
@@ -124,12 +123,6 @@ class VirtualDevice(object):
         if not entry_point.startswith('/'):
             entry_point = os.path.join(os.path.dirname(spd), entry_point)
         return entry_point
-
-    def getImplementation(self, spd, identifier):
-        for implementation in spd.get_implementation():
-            if implementation.get_id() == identifier:
-                return implementation
-        raise KeyError, "Softpkg '%s' has no implementation '%s'" % (spd.get_name(), identifier)
 
     def _matchProcessor(self, implementation):
         for proc in implementation.get_processor():
@@ -152,23 +145,17 @@ class VirtualDevice(object):
         raise RuntimeError, "Softpkg '%s' has no usable implementation" % spd.get_name()
 
     def execute(self, entryPoint, deps, execparams, debugger, window):
-        # Make sure the entry point can be run.
-        if not os.access(entryPoint, os.X_OK|os.R_OK):
+        # Make sure the entry point exists and can be run.
+        if not os.path.exists(entryPoint):
+            raise RuntimeError, "Entry point '%s' does not exist" % entryPoint
+        elif not os.access(entryPoint, os.X_OK|os.R_OK):
             raise RuntimeError, "Entry point '%s' is not executable" % entryPoint
         log.trace("Using entry point '%s'", entryPoint)
 
         # Process softpkg dependencies and modify the child environment.
         environment = dict(os.environ.items())
         for dependency in deps:
-            if self._isSharedLibrary(dependency):
-                self._extendEnvironment(environment, "LD_LIBRARY_PATH", os.path.dirname(dependency))
-            elif self._isPythonLibrary(dependency):
-                self._extendEnvironment(environment, "PYTHONPATH", os.path.dirname(dependency))
-            elif self._isJarfile(dependency):
-                self._extendEnvironment(environment, "CLASSPATH", dependency)
-            else:
-                self._extendEnvironment(environment, "LD_LIBRARY_PATH", dependency)
-                self._extendEnvironment(environment, "OCTAVE_PATH", dependency)
+            self._processDependency(environment, dependency)
 
         for varname in ('LD_LIBRARY_PATH', 'PYTHONPATH', 'CLASSPATH'):
             log.trace('%s=%s', varname, environment.get(varname, '').split(':'))
@@ -212,30 +199,16 @@ class VirtualDevice(object):
 
         return process
 
-    def resolveDependencies(self, implementation):
-        dep_files = []
-        for dependency in implementation.get_dependency():
-            softpkg = dependency.get_softpkgref()
-            if not softpkg:
-                continue
-            filename = softpkg.get_localfile().get_name()
-            log.trace("Resolving softpkg dependency '%s'", filename)
-            local_filename = self._sandbox.getSdrRoot()._sdrPath('dom' + filename)
-            dep_spd = parsers.spd.parse(local_filename)
-            dep_impl = softpkg.get_implref()
-            if dep_impl:
-                impl = self.getImplementation(dep_spd, dep_impl.get_refid())
-            else: # no implementation requested. Search for a matching implementation
-                impl = self.matchImplementation(filename, dep_spd)
-
-            log.trace("Using implementation '%s'", impl.get_id())
-            dep_localfile = impl.get_code().get_localfile().name
-            dep_files.append(os.path.join(os.path.dirname(local_filename), dep_localfile))
-
-            # Resolve nested dependencies.
-            dep_files.extend(self.resolveDependencies(impl))
-
-        return dep_files
+    def _processDependency(self, environment, filename):
+        if self._isSharedLibrary(filename):
+            self._extendEnvironment(environment, "LD_LIBRARY_PATH", os.path.dirname(filename))
+        elif self._isPythonLibrary(filename):
+            self._extendEnvironment(environment, "PYTHONPATH", os.path.dirname(filename))
+        elif self._isJarfile(filename):
+            self._extendEnvironment(environment, "CLASSPATH", filename)
+        else:
+            self._extendEnvironment(environment, "LD_LIBRARY_PATH", filename)
+            self._extendEnvironment(environment, "OCTAVE_PATH", filename)
 
     def _isSharedLibrary(self, filename):
         status, output = commands.getstatusoutput('nm ' + filename)
