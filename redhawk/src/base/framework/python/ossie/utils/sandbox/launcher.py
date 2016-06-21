@@ -26,12 +26,13 @@ import commands
 import threading
 import tempfile
 import subprocess
+import platform
 
 from ossie.utils import log4py
 from ossie import parsers
 from ossie.utils.popen import Popen
 
-__all__ = ('LocalProcess', 'launchSoftpkg')
+__all__ = ('LocalProcess', 'VirtualDevice')
 
 log = logging.getLogger(__name__)
 
@@ -112,53 +113,65 @@ class LocalProcess(object):
         self.__children.append(process)
 
 
-class LocalLauncher(object):
-    def __init__(self, profile, sandbox):
+class VirtualDevice(object):
+    def __init__(self, sandbox):
         self._sandbox = sandbox
-        self._profile = profile
-        self._xmlpath = os.path.dirname(self._profile)
+        self._processor = platform.machine()
+        self._osName = platform.system()
 
-    def _selectImplementation(self, spd):
-        for implementation in spd.get_implementation():
-            entry_point = self._getEntryPoint(implementation)
-            if os.path.exists(entry_point):
-                return implementation
-        raise RuntimeError, "Softpkg '%s' has no usable entry point" % spd.get_name()
+    def getEntryPoint(self, spd, implementation):
+        entry_point = implementation.get_code().get_entrypoint()
+        if not entry_point.startswith('/'):
+            entry_point = os.path.join(os.path.dirname(spd), entry_point)
+        return entry_point
 
-    def _getImplementation(self, spd, identifier):
+    def getImplementation(self, spd, identifier):
         for implementation in spd.get_implementation():
             if implementation.get_id() == identifier:
                 return implementation
         raise KeyError, "Softpkg '%s' has no implementation '%s'" % (spd.get_name(), identifier)
 
-    def _getEntryPoint(self, implementation):
-        entry_point = implementation.get_code().get_entrypoint()
-        if not entry_point.startswith('/'):
-            entry_point = os.path.join(self._xmlpath, entry_point)
-        return entry_point
+    def _matchProcessor(self, implementation):
+        for proc in implementation.get_processor():
+            if proc.get_name() == self._processor:
+                return True
+        return False
 
-    def execute(self, spd, impl, execparams, debugger, window):
-        # Find a suitable implementation.
-        if impl:
-            implementation = self._getImplementation(spd, impl)
-        else:
-            implementation = self._selectImplementation(spd)
-        log.trace("Using implementation '%s'", implementation.get_id())
+    def _matchOS(self, implementation):
+        for operating_system in implementation.get_os():
+            if operating_system.get_name() == self._osName:
+                return True
+        return False
 
+    def matchImplementation(self, profile, spd):
+        for impl in spd.get_implementation():
+            if self._matchProcessor(impl) and self._matchOS(impl):
+                entry_point = self.getEntryPoint(profile, impl)
+                if os.path.exists(entry_point):
+                    return impl
+        raise RuntimeError, "Softpkg '%s' has no usable implementation" % spd.get_name()
+
+    def execute(self, entryPoint, deps, execparams, debugger, window):
         # Make sure the entry point can be run.
-        entry_point = self._getEntryPoint(implementation)
-        if not os.access(entry_point, os.X_OK|os.R_OK):
-            raise RuntimeError, "Entry point '%s' is not executable" % entry_point
-        log.trace("Using entry point '%s'", entry_point)
+        if not os.access(entryPoint, os.X_OK|os.R_OK):
+            raise RuntimeError, "Entry point '%s' is not executable" % entryPoint
+        log.trace("Using entry point '%s'", entryPoint)
 
         # Process softpkg dependencies and modify the child environment.
         environment = dict(os.environ.items())
-        for dependency in implementation.get_dependency():
-            for varname, pathname in self._resolveDependency(implementation, dependency):
-                self._extendEnvironment(environment, varname, pathname)
+        for dependency in deps:
+            if self._isSharedLibrary(dependency):
+                self._extendEnvironment(environment, "LD_LIBRARY_PATH", os.path.dirname(dependency))
+            elif self._isPythonLibrary(dependency):
+                self._extendEnvironment(environment, "PYTHONPATH", os.path.dirname(dependency))
+            elif self._isJarfile(dependency):
+                self._extendEnvironment(environment, "CLASSPATH", dependency)
+            else:
+                self._extendEnvironment(environment, "LD_LIBRARY_PATH", dependency)
+                self._extendEnvironment(environment, "OCTAVE_PATH", dependency)
 
         for varname in ('LD_LIBRARY_PATH', 'PYTHONPATH', 'CLASSPATH'):
-            log.trace('%s=%s', varname, environment.get(varname, ''))
+            log.trace('%s=%s', varname, environment.get(varname, '').split(':'))
 
         # Convert execparams into arguments.
         arguments = []
@@ -172,12 +185,12 @@ class LocalLauncher(object):
 
         if debugger and debugger.modifiesCommand():
             # Run the command in the debugger.
-            command, arguments = debugger.wrap(entry_point, arguments)
+            command, arguments = debugger.wrap(entryPoint, arguments)
             if debugger.isInteractive() and not debugger.canAttach():
                 window_mode = 'direct'
         else:
             # Run the command directly.
-            command = entry_point
+            command = entryPoint
 
         stdout = None
         if window_mode == 'monitor':
@@ -199,116 +212,30 @@ class LocalLauncher(object):
 
         return process
 
-    # this function checks that the base dependencies match an impl exactly
-    def _equalDeps(self, base, impl):
-        if len(base[0]) != len(impl[0]):
-            return False
-        if len(base[1]) != len(impl[1]):
-            return False
-        for val in base[0]:
-            if not val in impl[0]:
-                return False
-        for val in base[1]:
-            if not val in impl[1]:
-                return False
-        return True
-        
-    # this function checks if the base has a dependency not supported by impl for non-zero impls
-    def _subsetDeps(self, base, impl):
-        foundMatch = True
-        if len(impl[0]) != 0:
-            foundMatch = False
-            for val in base[0]:
-                if val in impl[0]:
-                    foundMatch = True
-        if not foundMatch:
-            return False
-        if len(impl[1]) != 0:
-            foundMatch = False
-            for val in base[1]:
-                if val in impl[1]:
-                    foundMatch = True
-        if not foundMatch:
-            return False
-        return True
+    def resolveDependencies(self, implementation):
+        dep_files = []
+        for dependency in implementation.get_dependency():
+            softpkg = dependency.get_softpkgref()
+            if not softpkg:
+                continue
+            filename = softpkg.get_localfile().get_name()
+            log.trace("Resolving softpkg dependency '%s'", filename)
+            local_filename = self._sandbox.getSdrRoot()._sdrPath('dom' + filename)
+            dep_spd = parsers.spd.parse(local_filename)
+            dep_impl = softpkg.get_implref()
+            if dep_impl:
+                impl = self.getImplementation(dep_spd, dep_impl.get_refid())
+            else: # no implementation requested. Search for a matching implementation
+                impl = self.matchImplementation(filename, dep_spd)
 
-    def _assembleOsProc(self, depimpl):
-        impl_os = []
-        impl_proc = []
-        for operating_system in depimpl.get_os():
-            impl_os.append(operating_system.get_name())
-        for proc in depimpl.get_processor():
-            impl_proc.append(proc.get_name())
-        return impl_os, impl_proc
-        
-    
-    def _findExactMatch(self, dep_spd, dep_base):
-        impl = None
-        for depimpl in dep_spd.get_implementation():
-            impl_os, impl_proc = self._assembleOsProc(depimpl)
-            if self._equalDeps(dep_base,(impl_os,impl_proc)):
-                impl = depimpl
-                break
-        return impl
-
-    def _findGenericMatch(self, dep_spd, dep_base):
-        impl = None
-        for depimpl in dep_spd.get_implementation():
-            impl_os, impl_proc = self._assembleOsProc(depimpl)
-            if self._subsetDeps(dep_base,(impl_os,impl_proc)):
-                impl = depimpl
-                break
-        return impl
-
-    def _resolveDependency(self, implementation, dependency):
-        softpkg = dependency.get_softpkgref()
-        if not softpkg:
-            return []
-        filename = softpkg.get_localfile().get_name()
-        log.trace("Resolving softpkg dependency '%s'", filename)
-        local_filename = self._sandbox.getSdrRoot()._sdrPath('dom' + filename)
-        dep_spd = parsers.spd.parse(local_filename)
-        dep_impl = softpkg.get_implref()
-        if dep_impl:
-            impl = self._getImplementation(dep_spd, dep_impl.get_refid())
-        else: # no implementation requested. Search for a matching implementation
-            try:
-                dep_base_os = []
-                dep_base_proc = []
-                for operating_system in implementation.get_os():
-                    dep_base_os.append(operating_system.get_name())
-                for proc in implementation.get_processor():
-                    dep_base_proc.append(proc.get_name())
-                impl = self._findExactMatch(dep_spd, (dep_base_os, dep_base_proc))
-                if impl == None:
-                    impl = self._findGenericMatch(dep_spd, (dep_base_os, dep_base_proc))
-            except:
-                raise RuntimeError, "Softpkg '%s' has no implementation" % dep_spd.get_name()
-        envvars = []
-        if impl != None:
             log.trace("Using implementation '%s'", impl.get_id())
             dep_localfile = impl.get_code().get_localfile().name
+            dep_files.append(os.path.join(os.path.dirname(local_filename), dep_localfile))
 
             # Resolve nested dependencies.
-            for dep in impl.dependency:
-                envvars.extend(self._resolveDependency(implementation, dep))
-      
-            localfile = os.path.join(os.path.dirname(local_filename), dep_localfile)
-            envvars.insert(0, self._getDependencyConfiguration(localfile))
-            if not self._isSharedLibrary(localfile) and not self._isPythonLibrary(localfile) and not self._isJarfile(localfile):
-                envvars.insert(0, ('OCTAVE_PATH', localfile))
-        return envvars
+            dep_files.extend(self.resolveDependencies(impl))
 
-    def _getDependencyConfiguration(self, localfile):
-        if self._isSharedLibrary(localfile):
-            return ('LD_LIBRARY_PATH', os.path.dirname(localfile))
-        elif self._isPythonLibrary(localfile):
-            return ('PYTHONPATH', os.path.dirname(localfile))
-        elif self._isJarfile(localfile):
-            return ('CLASSPATH', localfile)
-        else:
-            # Assume it's a set of shared libraries.
-            return ('LD_LIBRARY_PATH', localfile)
+        return dep_files
 
     def _isSharedLibrary(self, filename):
         status, output = commands.getstatusoutput('nm ' + filename)
@@ -339,7 +266,3 @@ class LocalLauncher(object):
                 return
             oldvalue.insert(0,value)
             env[keyname] = ':'.join(oldvalue)
-
-def launchSoftpkg(profile, sandbox, spd, impl, execparams, debugger, window):
-    launcher = LocalLauncher(profile, sandbox)
-    return launcher.execute(spd, impl, execparams, debugger, window)

@@ -157,8 +157,21 @@ class LocalLauncher(SandboxLauncher):
                 log.warning('Cannot run terminal %s (%s)', window, e)
                 debugger = None
 
-        process = launcher.launchSoftpkg(comp._profile, comp._sandbox, comp._spd,
-                                         comp._impl, execparams, debugger, window)
+        # Find a suitable implementation
+        device = launcher.VirtualDevice(comp._sandbox)
+        if comp._impl:
+            impl = device.getImplementation(comp._spd, comp._impl)
+        else:
+            impl = device.matchImplementation(comp._profile, comp._spd)
+        log.trace("Using implementation '%s'", impl.get_id())
+
+        entry_point = device.getEntryPoint(comp._profile, impl)
+        deps = device.resolveDependencies(impl)
+
+        if impl.get_code().get_type() == 'SharedLibrary':
+            raise RuntimeError, 'SharedLibrary entry point not implemented'
+
+        process = device.execute(entry_point, deps, execparams, debugger, window)
 
         # Set up a callback to notify when the component exits abnormally.
         name = comp._instanceName
