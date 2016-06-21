@@ -27,8 +27,10 @@ import pydoc
 import warnings
 
 from omniORB import CORBA
+from omniORB.any import to_any
 
 from ossie import parsers
+from ossie.cf import CF
 from ossie.utils.model.connect import ConnectionManager
 
 from base import SdrRoot, Sandbox, SandboxLauncher
@@ -200,22 +202,28 @@ class LocalLauncher(SandboxLauncher):
             impl = device.matchImplementation(comp._profile, comp._spd)
         log.trace("Using implementation '%s'", impl.get_id())
 
-        entry_point = device.getEntryPoint(comp._profile, impl)
+        # Resolve all dependency localfiles
         deps = self._resolveDependencies(comp._sandbox.getSdrRoot(), device, impl)
 
+        # Execute the entry point, either on the virtual device or the Sandbox
+        # component host
+        entry_point = device.getEntryPoint(comp._profile, impl)
         if impl.get_code().get_type() == 'SharedLibrary':
-            raise RuntimeError, 'SharedLibrary entry point not implemented'
+            container = comp._sandbox._getComponentHost()
+            parameters = [CF.DataType(k, to_any(str(v))) for k, v in execparams.iteritems()]
+            container.ref.executeLinked(entry_point, [], parameters, deps)
+            process = container._process
+        else:
+            process = device.execute(entry_point, deps, execparams, debugger, window)
 
-        process = device.execute(entry_point, deps, execparams, debugger, window)
-
-        # Set up a callback to notify when the component exits abnormally.
-        name = comp._instanceName
-        def terminate_callback(pid, status):
-            if status > 0:
-                print 'Component %s (pid=%d) exited with status %d' % (name, pid, status)
-            elif status < 0:
-                print 'Component %s (pid=%d) terminated with signal %d' % (name, pid, -status)
-        process.setTerminationCallback(terminate_callback)
+            # Set up a callback to notify when the component exits abnormally.
+            name = comp._instanceName
+            def terminate_callback(pid, status):
+                if status > 0:
+                    print 'Component %s (pid=%d) exited with status %d' % (name, pid, status)
+                elif status < 0:
+                    print 'Component %s (pid=%d) terminated with signal %d' % (name, pid, -status)
+            process.setTerminationCallback(terminate_callback)
 
         # Wait for the component to register with the virtual naming service or
         # DeviceManager.
@@ -248,8 +256,10 @@ class LocalLauncher(SandboxLauncher):
             process.addChild(debug_process)
 
         # Store the process on the component proxy.
-        comp._process = process
-        comp._pid = process.pid()
+        if impl.get_code().get_type() == 'SharedLibrary':
+            comp._process = None
+        else:
+            comp._process = process
 
         # Return the now-resolved CORBA reference.
         ref = self.getReference(comp)
@@ -378,6 +388,13 @@ class LocalSandbox(Sandbox):
         self.__components = {}
         self.__services = {}
         self._sdrroot = LocalSdrRoot(sdrroot)
+        self.__container = None
+
+    def _getComponentHost(self):
+        if self.__container is None:
+            spd_file = self._sdrroot.domPath('/mgr/rh/ComponentHost/ComponentHost.spd.xml')
+            self.__container = self.launch(spd_file)
+        return self.__container
 
     def _getComponentContainer(self, componentType):
         if componentType == 'service':
