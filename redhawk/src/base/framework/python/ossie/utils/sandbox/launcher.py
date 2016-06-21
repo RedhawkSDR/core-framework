@@ -22,7 +22,6 @@ import os
 import logging
 import signal
 import time
-import commands
 import threading
 import tempfile
 import subprocess
@@ -211,21 +210,25 @@ class VirtualDevice(object):
             self._extendEnvironment(environment, "OCTAVE_PATH", filename)
 
     def _isSharedLibrary(self, filename):
-        status, output = commands.getstatusoutput('nm ' + filename)
-        return status == 0
+        try:
+            with open(filename, 'rb') as f:
+                return f.read(4) == '\x7fELF'
+        except:
+            return False    
 
     def _isJarfile(self, filename):
         return filename.endswith('.jar')
 
     def _isPythonLibrary(self, filename):
-        if os.path.splitext(filename)[1] in ('.py', '.pyc', '.pyo'):
+        PYTHON_EXTS = ('.py', '.pyc', '.pyo')
+        if os.path.splitext(filename)[1] in PYTHON_EXTS:
             # File is a Python module
             return True
         elif os.path.isdir(filename):
             # Check for Python package
-            initpath = os.path.join(filename, '__init__.py')
-            for initfile in (initpath, initpath+'c', initpath+'o'):
-                if os.path.exists(initfile):
+            initpath = os.path.join(filename, '__init__')
+            for ext in PYTHON_EXTS:
+                if os.path.exists(initpath + ext):
                     return True
         return False
 
