@@ -400,6 +400,7 @@ class ComponentHost(SandboxComponent):
         pass
 
     def executeLinked(self, entryPoint, options, parameters, deps):
+        log.debug('Executing shared library %s %s', entryPoint, ' '.join('%s=%s' % (k,v) for k,v in parameters.iteritems()))
         params = [CF.DataType(k, to_any(str(v))) for k, v in parameters.iteritems()]
         self.ref.executeLinked(entryPoint, options, params, deps)
 
@@ -418,12 +419,19 @@ class LocalSandbox(Sandbox):
         return self.__container
 
     def _launchComponentHost(self):
+        # Directly create the sandbox object instead of going through launch()
         profile = self._sdrroot.domPath('/mgr/rh/ComponentHost/ComponentHost.spd.xml')
         spd, scd, prf = self._sdrroot.readProfile(profile)
         instanceName = self._createInstanceName('ComponentHost', 'resource')
         refid = str(uuid4())
         comp = ComponentHost(self, profile, spd, scd, prf, instanceName, refid, None)
-        comp._launcher = LocalComponentLauncher({}, {}, True, {}, None, None, None)
+
+        # Likewise, since the specific component type is known, create the
+        # launcher directly. The deployment root is overridden to point to the
+        # root of the local filesystem; all component paths provided to the
+        # component host will be absolute.
+        execparams = {'RH::DEPLOYMENT_ROOT':'/'}
+        comp._launcher = LocalComponentLauncher(execparams, {}, True, {}, None, None, None)
         comp._kick()
         return comp
 
