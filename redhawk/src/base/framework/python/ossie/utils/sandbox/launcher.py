@@ -115,7 +115,12 @@ class LocalProcess(object):
 class VirtualDevice(object):
     def __init__(self):
         self._processor = platform.machine()
+        if self._processor == 'i686':
+            # Map from Linux standard machine name to REDHAWK
+            self._processor = 'x86'
         self._osName = platform.system()
+
+        log.debug("VirtualDevice processor '%s' OS '%s'", self._processor, self._osName)
 
     def _matchProcessor(self, implementation):
         if not implementation.get_processor():
