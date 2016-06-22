@@ -97,7 +97,7 @@ class SADConnectionsTest(scatest.CorbaTestCase):
 
     def test_FindByAbsoluteNamingService(self):
         from ossie.utils import sb
-        comp=sb.Component('PortTest')
+        comp = sb.launch('PortTest')
         orb = CORBA.ORB_init()
         obj = orb.resolve_initial_references("NameService")
         rootContext = obj._narrow(CosNaming.NamingContext)
