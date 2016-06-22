@@ -87,6 +87,9 @@ class SandboxResource(ComponentBase, SandboxMixin):
     def _register(self):
         self._sandbox._registerComponent(self)
 
+    def _unregister(self):
+        self._sandbox._unregisterComponent(self)
+
     @property
     def _ports(self):
         #DEPRECATED: replaced with ports
@@ -112,7 +115,9 @@ class SandboxResource(ComponentBase, SandboxMixin):
     def releaseObject(self):
         # Break any connections involving this component.
         self._sandbox._breakConnections(self)
-        self._sandbox._unregisterComponent(self)
+
+        # Unregister from the sandbox
+        self._unregister()
 
         # Call superclass release, which calls the CORBA method.
         super(SandboxResource,self).releaseObject()

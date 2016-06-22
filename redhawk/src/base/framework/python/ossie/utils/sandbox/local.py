@@ -32,8 +32,9 @@ from omniORB.any import to_any
 from ossie import parsers
 from ossie.cf import CF
 from ossie.utils.model.connect import ConnectionManager
+from ossie.utils.uuid import uuid4
 
-from base import SdrRoot, Sandbox, SandboxLauncher
+from base import SdrRoot, Sandbox, SandboxLauncher, SandboxComponent
 from devmgr import DeviceManagerStub
 from naming import ApplicationRegistrarStub
 import launcher
@@ -217,8 +218,7 @@ class LocalLauncher(SandboxLauncher):
         entry_point = sdrroot.relativePath(comp._profile, impl.get_code().get_entrypoint())
         if impl.get_code().get_type() == 'SharedLibrary':
             container = comp._sandbox._getComponentHost()
-            parameters = [CF.DataType(k, to_any(str(v))) for k, v in execparams.iteritems()]
-            container.ref.executeLinked(entry_point, [], parameters, deps)
+            container.executeLinked(entry_point, [], execparams, deps)
             process = container._process
         else:
             process = device.execute(entry_point, deps, execparams, debugger, window)
@@ -389,6 +389,21 @@ class LocalServiceLauncher(LocalLauncher):
         return 'service'
 
 
+class ComponentHost(SandboxComponent):
+    def __init__(self, *args, **kwargs):
+        SandboxComponent.__init__(self, *args, **kwargs)
+
+    def _register(self):
+        pass
+
+    def _unregister(self):
+        pass
+
+    def executeLinked(self, entryPoint, options, parameters, deps):
+        params = [CF.DataType(k, to_any(str(v))) for k, v in parameters.iteritems()]
+        self.ref.executeLinked(entryPoint, options, params, deps)
+
+
 class LocalSandbox(Sandbox):
     def __init__(self, sdrroot):
         super(LocalSandbox, self).__init__()
@@ -399,9 +414,18 @@ class LocalSandbox(Sandbox):
 
     def _getComponentHost(self):
         if self.__container is None:
-            spd_file = self._sdrroot.domPath('/mgr/rh/ComponentHost/ComponentHost.spd.xml')
-            self.__container = self.launch(spd_file)
+            self.__container = self._launchComponentHost()
         return self.__container
+
+    def _launchComponentHost(self):
+        profile = self._sdrroot.domPath('/mgr/rh/ComponentHost/ComponentHost.spd.xml')
+        spd, scd, prf = self._sdrroot.readProfile(profile)
+        instanceName = self._createInstanceName('ComponentHost', 'resource')
+        refid = str(uuid4())
+        comp = ComponentHost(self, profile, spd, scd, prf, instanceName, refid, None)
+        comp._launcher = LocalComponentLauncher({}, {}, True, {}, None, None, None)
+        comp._kick()
+        return comp
 
     def _getComponentContainer(self, componentType):
         if componentType == 'service':
@@ -492,20 +516,34 @@ class LocalSandbox(Sandbox):
     def shutdown(self):
         ConnectionManager.instance().cleanup()
         self.stop()
+
+        # Clean up all components
         for name, component in self.__components.items():
             log.debug("Releasing component '%s'", name)
             try:
                 component.releaseObject()
             except:
                 log.debug("Component '%s' raised an exception while exiting", name)
+        self.__components = {}
+
+        # Terminate all services
         for name, service in self.__services.items():
             log.debug("Terminating service '%s'", name)
             try:
                 service._terminate()
             except:
                 log.debug("Service '%s' raised an exception while terminating", name)
-        self.__components = {}
         self.__services = {}
+
+        # Clean up the component host
+        if self.__container:
+            log.debug('Releasing component host')
+            try:
+                self.__container.releaseObject()
+            except:
+                log.debug('Component host raised an exception while terminating')
+        self.__container = None
+
         super(LocalSandbox,self).shutdown()
 
     def browse(self, searchPath=None, objType=None,withDescription=False):
