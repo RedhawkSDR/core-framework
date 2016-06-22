@@ -26,6 +26,7 @@ import threading
 import tempfile
 import subprocess
 import platform
+import zipfile
 
 from ossie.utils import log4py
 from ossie import parsers
@@ -242,10 +243,10 @@ class VirtualDevice(object):
             with open(filename, 'rb') as f:
                 return f.read(4) == '\x7fELF'
         except:
-            return False    
+            return False
 
     def _isJarfile(self, filename):
-        return filename.endswith('.jar')
+        return filename.endswith('.jar') and zipfile.is_zipfile(filename)
 
     def _isPythonLibrary(self, filename):
         PYTHON_EXTS = ('.py', '.pyc', '.pyo')
