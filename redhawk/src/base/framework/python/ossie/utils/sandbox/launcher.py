@@ -144,21 +144,23 @@ class VirtualDevice(object):
 
     def _checkImplementation(self, sdrroot, profile, impl):
         # Match device properties
-        log.debug("Checking processor and OS")
+        log.trace("Checking processor and OS for implementation '%s'", impl.get_id())
         if not self._matchProcessor(impl) or not self._matchOS(impl):
             return False
 
         # Check that localfile points to a real location
-        localfile = sdrroot.relativePath(profile, impl.get_code().get_localfile().get_name())
-        log.debug("Checking localfile '%s' ('%s')", localfile, impl.get_code().get_localfile().get_name())
-        if not os.path.exists(localfile):
+        localfile = impl.get_code().get_localfile().get_name()
+        filename = sdrroot.relativePath(profile, localfile)
+        log.trace("Checking localfile '%s' ('%s')", localfile, filename)
+        if not os.path.exists(filename):
             return False
 
         # If the implementation has an entry point, make sure it exists too
         if impl.get_code().get_entrypoint():
-            entry_point = sdrroot.relativePath(profile, impl.get_code().get_entrypoint())
-            log.debug("Checking entrypoint '%s'", entry_point)
-            if not os.path.exists(entry_point):
+            entry_point = impl.get_code().get_entrypoint()
+            filename = sdrroot.relativePath(profile, entry_point)
+            log.trace("Checking entrypoint '%s' ('%s')", entry_point, filename)
+            if not os.path.exists(filename):
                 return False
 
         return True
