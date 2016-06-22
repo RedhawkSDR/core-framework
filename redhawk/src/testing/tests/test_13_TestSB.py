@@ -18,24 +18,28 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest
-from _unitTestHelpers import scatest
-from ossie.cf import CF
-from ossie.cf import StandardEvent
-from omniORB import CORBA, any
 import os
 import Queue
-from ossie.utils import sb
-from ossie.utils import type_helpers
-from ossie import properties as _properties
-import threading
-globalsdrRoot = os.environ['SDRROOT']
+import unittest
 import sys
 import commands
 import cStringIO
 import time
 import copy
-import ossie.utils.bulkio.bulkio_helpers as _bulkio_helpers
+import threading
+import warnings
+
+from omniORB import CORBA, any
+
+from ossie import properties
+from ossie.cf import CF, StandardEvent
+from ossie.utils import sb, type_helpers
+from ossie.utils.bulkio import bulkio_helpers
+
+from _unitTestHelpers import scatest, runtestHelpers
+
+globalsdrRoot = os.environ['SDRROOT']
+java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 def _initSourceAndSink(dataFormat):
 
@@ -69,7 +73,7 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(len(sb.domainless._getSandbox().getComponents()), count)
 
     def tearDown(self):
-        sb.domainless._getSandbox().shutdown()
+        sb.release()
         sb.setDEBUG(False)
         os.environ['SDRROOT'] = globalsdrRoot
 
@@ -229,8 +233,10 @@ class SBTestTest(scatest.CorbaTestCase):
         comp.releaseObject()
 
         # Test with overrides in deprecated 'execparams' and 'configure' arguments
-        comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml',
-                         execparams={'cmdline':'override'}, configure={'initial':'override'})
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', DeprecationWarning)
+            comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml',
+                             execparams={'cmdline':'override'}, configure={'initial':'override'})
         self.assertFalse('initial' in comp.cmdline_args)
         self.assertFalse('cmdline' in comp.initialize_props)
         self.assertEquals('override', comp.cmdline)
@@ -1203,7 +1209,7 @@ class SBTestTest(scatest.CorbaTestCase):
         sandbox.
         """
         try:
-            comp = sb.launch('SlowComponent', execparams={'CREATE_DELAY': 15}, timeout=20)
+            comp = sb.launch('SlowComponent', properties={'CREATE_DELAY': 15}, timeout=20)
         except RuntimeError:
             self.fail('Launch timeout was not honored')
 
@@ -1215,7 +1221,7 @@ class SBTestTest(scatest.CorbaTestCase):
         # NB: The default value for 'complexCharProp' raises a non-fatal
         #     exception during launch. Overriding it avoids the error message,
         #     though in general, complex char properties should be avoided.
-        comp = sb.launch('TestComplexProps', configure={'complexCharProp':('a','b')})
+        comp = sb.launch('TestComplexProps', properties={'complexCharProp':('a','b')})
         value = range(4)
         try:
             comp.complexFloatSequence = value
@@ -1275,7 +1281,7 @@ class SBTestTest(scatest.CorbaTestCase):
         service1_id = service1._refid
 
         # Launch second instance by ID (added in 1.10)
-        service2 = sb.launch('BasicService', execparams={'PARAM4':True,'PARAM5':'Message'})
+        service2 = sb.launch('BasicService', properties={'PARAM4':True,'PARAM5':'Message'})
         service2_name = service2._instanceName
         service2_id = service2._refid
 
@@ -1302,19 +1308,19 @@ class SBTestTest(scatest.CorbaTestCase):
     def test_ComplexListConversions(self):
         # Test interleaved-to-complex
         inData = range(4)
-        outData = _bulkio_helpers.bulkioComplexToPythonComplexList(inData)
+        outData = bulkio_helpers.bulkioComplexToPythonComplexList(inData)
         self.assertEqual(outData,[complex(0,1),complex(2,3)])
 
         # Test complex-to-interleaved
         cxData = [complex(x+0.5,0) for x in xrange(4)]
-        outData = _bulkio_helpers.pythonComplexListToBulkioComplex(cxData)
+        outData = bulkio_helpers.pythonComplexListToBulkioComplex(cxData)
         self.assertEqual(outData, [0.5,0.0,1.5,0.0,2.5,0.0,3.5,0.0])
 
         # Ensure that conversion does not modify the original list
         self.assertTrue(isinstance(cxData[0],complex))
 
         # Test inline type conversion (should truncate)
-        outDataInt = _bulkio_helpers.pythonComplexListToBulkioComplex(cxData, int)
+        outDataInt = bulkio_helpers.pythonComplexListToBulkioComplex(cxData, int)
         self.assertEqual(outDataInt[0], 0)
         self.assertEqual(outDataInt, [int(x) for x in outData])
     
@@ -1444,7 +1450,7 @@ class BulkioTest(unittest.TestCase):
         if len(filter(isComplex, originalData)):
             # in this case, the DataSink will return bulkio complex data
             # convert the originalData to the bulkio data format.
-            originalData = _bulkio_helpers.pythonComplexListToBulkioComplex(originalData)
+            originalData = bulkio_helpers.pythonComplexListToBulkioComplex(originalData)
 
             # make sure the mode flag was automatically set
             self.assertEquals(sink.sri().mode, True)
@@ -1696,7 +1702,7 @@ class MessagePortTest(scatest.CorbaTestCase):
                self.count=0
 
            def msgCallback(self, id, msg):
-               self.msg = _properties.prop_to_dict(msg)
+               self.msg = properties.prop_to_dict(msg)
                self.count = self.count + 1
                self.cond.acquire()
                self.cond.notify()
