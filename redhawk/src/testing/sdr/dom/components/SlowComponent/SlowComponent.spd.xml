@@ -43,6 +43,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         </code>
         <os name="Linux"/>
         <processor name="x86"/>
+        <processor name="x86_64"/>
         <dependency type="runtime_requirements">
             <!-- BogoMips capacity -->
             <propertyref refid="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8" value="2000000"/>
