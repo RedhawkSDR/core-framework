@@ -607,6 +607,8 @@ namespace bulkio {
   typedef InPort< FloatPortTraits >                InFloatPort;
   // Bulkio double input
   typedef InPort< DoublePortTraits >               InDoublePort;
+  // Maintained for backwards compatibility
+  typedef InFilePort InURLPort;
 
 }  // end of bulkio namespace
 
