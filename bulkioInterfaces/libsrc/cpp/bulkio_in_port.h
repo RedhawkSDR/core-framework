@@ -562,6 +562,8 @@ namespace bulkio {
     // @param streamID - name of the stream the vector and stream context data are associated with
     virtual void pushPacket(const char *data, CORBA::Boolean EOS, const char* streamID);
 
+    void pushPacket(const char* data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID) __attribute__ ((deprecated));
+
     // Local push version
     void pushPacket(const std::string& data, CORBA::Boolean EOS, const std::string& streamID);
   };

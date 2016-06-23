@@ -22,6 +22,9 @@
 #include "Bulkio_InPort_Fixture.h"
 #include "bulkio.h"
 
+// Suppress warnings for call to deprecated InXMLPort::pushPacket
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 // Registers the fixture into the 'registry'
 CPPUNIT_TEST_SUITE_REGISTRATION( Bulkio_InPort_Fixture );
 
@@ -248,7 +251,7 @@ void  Bulkio_InPort_Fixture::test_port_api( bulkio::InXMLPort *port  ) {
 
   bulkio::InXMLPort::PortSequenceType v = new bulkio::InXMLPort::TransportType[1];
   BULKIO::PrecisionUTCTime TS;
-  port->pushPacket( v, TS, false, "test_port_api" );
+  port->pushPacket( v, false, "test_port_api" );
 
   // grab off packet
   pkt  = port->getPacket(bulkio::Const::NON_BLOCKING );

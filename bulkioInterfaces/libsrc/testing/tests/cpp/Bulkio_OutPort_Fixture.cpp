@@ -20,6 +20,9 @@
 #include "Bulkio_OutPort_Fixture.h"
 #include "bulkio.h"
 
+// Suppress warnings for access to deprecated methods
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 
 // Registers the fixture into the 'registry'
 CPPUNIT_TEST_SUITE_REGISTRATION( Bulkio_OutPort_Fixture );

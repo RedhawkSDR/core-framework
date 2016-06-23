@@ -889,6 +889,15 @@ namespace  bulkio {
     this->pushPacket(buffer, EOS, streamID);
   }
 
+  void InXMLPort::pushPacket(const char* data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+  {
+    std::string buffer;
+    if (data) {
+      buffer = data;
+    }
+    this->queuePacket(buffer, T, EOS, streamID);
+  }
+
   void InXMLPort::pushPacket(const std::string& data, CORBA::Boolean EOS, const std::string& streamID)
   {
     this->queuePacket(data, BULKIO::PrecisionUTCTime(), EOS, streamID);
