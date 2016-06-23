@@ -25,37 +25,6 @@
 CPPUNIT_TEST_SUITE_REGISTRATION( Bulkio_OutPort_Fixture );
 
 
-class MyOutFloatPort : public bulkio::OutFloatPort {
-
-public:
-
-  MyOutFloatPort( std::string pname, bulkio::LOGGER_PTR logger ) :
-    bulkio::OutFloatPort( pname, logger ) {};
-
-
-  void pushPacket( bulkio::OutFloatPort::NativeSequenceType & data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
-
-    stats[streamID].update( 1, 1.0, false, "testing" );
-    bulkio::OutFloatPort::pushPacket( data, T, EOS, streamID );
-  }
-
-};
-
-class NewSriCallback  {
-
-public:
-
-    std::vector<std::string>  sids;
-
-    ~NewSriCallback() {};
-
-    void newSriCB( const BULKIO::StreamSRI& sri) {
-        std::string sid(sri.streamID);
-        sids.push_back( sid );
-    }
-};
-
-
 // Global connection/disconnection callbacks
 static void port_connected( const char* connectionId ) {
 
@@ -597,29 +566,3 @@ Bulkio_OutPort_Fixture::test_sdds()
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
-
-
-void
-Bulkio_OutPort_Fixture::test_sdds_sri()
-{
-  bulkio::OutSDDSPort *port = new bulkio::OutSDDSPort("test_sdds_sri", logger );
-  CPPUNIT_ASSERT( port != NULL );
-
-  test_port_sri< bulkio::OutSDDSPort, bulkio::InSDDSPort > ( port );
-
-  CPPUNIT_ASSERT_NO_THROW( port );
-}
-
-
-
-void
-Bulkio_OutPort_Fixture::test_subclass()
-{
-  bulkio::OutFloatPort *port = new MyOutFloatPort("test_api_subclass", logger );
-  CPPUNIT_ASSERT( port != NULL );
-
-  test_port_api<bulkio::OutFloatPort,bulkio::InFloatPort >( port );
-
-  CPPUNIT_ASSERT_NO_THROW( port );
-}
-

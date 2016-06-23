@@ -55,29 +55,6 @@ private:
 };
 
 
-class MyFloatPort : public bulkio::InFloatPort {
-
-public:
-
-  MyFloatPort( std::string pname, bulkio::LOGGER_PTR logger ) : 
-    bulkio::InFloatPort( pname, logger ) {};
-
-  //
-  // over ride default behavior for pushPacket and pushSRI
-  //
-  void pushPacket(const bulkio::InFloatPort::PortSequenceType & data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID) {
-      stats->update(10, (float)workQueue.size()/(float)queueSem->getMaxValue(), EOS, streamID, false);
-      queueSem->setCurrValue(workQueue.size());
-      bulkio::InFloatPort::pushPacket( data, T, EOS, streamID );
-  }
-
-  void pushSRI(const BULKIO::StreamSRI& H) {
-      queueSem->setCurrValue(workQueue.size());
-      bulkio::InFloatPort::pushSRI(H);
-  }
-};
-
-
 void 
 Bulkio_InPort_Fixture::setUp()
 {
@@ -623,17 +600,3 @@ Bulkio_InPort_Fixture::test_sdds()
   CPPUNIT_ASSERT_NO_THROW( port );
 
 }
-
-
-void 
-Bulkio_InPort_Fixture::test_subclass()
-{
-  bulkio::InFloatPort *port = new MyFloatPort("test_api_subclass", logger );
-  
-  CPPUNIT_ASSERT( port != NULL );
-
-  test_port_api( port );
-
-  CPPUNIT_ASSERT_NO_THROW( port );
-}
-

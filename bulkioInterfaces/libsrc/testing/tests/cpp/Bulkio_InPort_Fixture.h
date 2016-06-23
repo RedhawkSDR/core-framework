@@ -50,7 +50,6 @@ class Bulkio_InPort_Fixture : public CppUnit::TestFixture
   CPPUNIT_TEST( test_xml );
   CPPUNIT_TEST( test_create_sdds );
   CPPUNIT_TEST( test_sdds );
-  CPPUNIT_TEST( test_subclass );
   CPPUNIT_TEST_SUITE_END();
 
 public:
