@@ -29,10 +29,11 @@
 
 #include <BULKIO/bio_runtimeStats.h>
 
+#include <ossie/ExecutorService.h>
+
 #include "UsesPort.h"
 #include "BurstStatistics.h"
 #include "PortTraits.h"
-#include "ExecutorService.h"
 #include "utils.h"
 #include "debug.h"
 
@@ -274,7 +275,7 @@ namespace burstio {
         RoutingModeType routingMode_;
         RouteTable routes_;
 
-        ExecutorService monitor_;
+        redhawk::ExecutorService monitor_;
 
         using super::updatingPortsLock;
         using super::connections_;
