@@ -55,7 +55,9 @@ class LocalSdrRoot(SdrRoot):
     def _sdrPath(self, filename):
         # Give precedence to filenames that are valid as-is
         if os.path.isfile(filename):
-            return filename
+            # Convert to an absolute path, to avoid any problems with relative
+            # paths when passed to other contexts
+            return os.path.abspath(filename)
         # Assume the filename points to somewhere in SDRROOT
         return os.path.join(self.__sdrroot, filename)
 
