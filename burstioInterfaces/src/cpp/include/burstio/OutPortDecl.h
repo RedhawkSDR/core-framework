@@ -188,7 +188,7 @@ namespace burstio {
         // Support function for automatic component-managed stop.
         virtual void stopPort ();
 
-		std::string getRepid() const;
+        std::string getRepid() const;
 
     protected:
         class Queue : public OutputPolicy

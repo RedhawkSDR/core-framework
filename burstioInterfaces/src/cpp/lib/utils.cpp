@@ -19,6 +19,8 @@
  */
 #include <time.h>
 
+#include <bulkio/bulkio_time_operators.h>
+
 #include <burstio/utils.h>
 
 namespace burstio {
@@ -38,42 +40,38 @@ namespace burstio {
 
         double elapsed (const BULKIO::PrecisionUTCTime& begin, const BULKIO::PrecisionUTCTime& end)
         {
-            return (end.twsec - begin.twsec) + (end.tfsec - begin.tfsec);
+            return end - begin;
         }
 
-
-        BURSTIO::BurstSRI createSRI ( const std::string &streamID, double xdelta) {
-          BURSTIO::BurstSRI sri;
-          sri.hversion = 1;
-          sri.streamID = streamID.c_str();
-          sri.id = "";
-          sri.xdelta = xdelta;
-          sri.mode = (short)0;
-          sri.flags = (short)0;
-          sri.tau = 0.0;
-          sri.theta = 0.0f;
-          sri.gain = 0.0f;
-          sri.uwlength = (short)0;
-          sri.bursttype = (short)0;
-          sri.burstLength = 0;
-          sri.CHAN_RF = 0.0;
-          sri.baudestimate = 0.0f;
-          sri.carrieroffset = 0.0;
-          sri.SNR = 0.0;
-          sri.modulation = "";
-          sri.baudrate = 0.0;
-          sri.fec = "";
-          sri.fecrate = "";
-          sri.randomizer = "";
-          sri.overhead = "";
-          sri.expectedStartOfBurstTime = burstio::utils::now();
-          sri.keywords.length(0);
-          return sri;
+        BURSTIO::BurstSRI createSRI (const std::string& streamID, double xdelta)
+        {
+            BURSTIO::BurstSRI sri;
+            sri.hversion = 1;
+            sri.streamID = streamID.c_str();
+            sri.id = "";
+            sri.xdelta = xdelta;
+            sri.mode = (short)0;
+            sri.flags = (short)0;
+            sri.tau = 0.0;
+            sri.theta = 0.0f;
+            sri.gain = 0.0f;
+            sri.uwlength = (short)0;
+            sri.bursttype = (short)0;
+            sri.burstLength = 0;
+            sri.CHAN_RF = 0.0;
+            sri.baudestimate = 0.0f;
+            sri.carrieroffset = 0.0;
+            sri.SNR = 0.0;
+            sri.modulation = "";
+            sri.baudrate = 0.0;
+            sri.fec = "";
+            sri.fecrate = "";
+            sri.randomizer = "";
+            sri.overhead = "";
+            sri.expectedStartOfBurstTime = burstio::utils::now();
+            sri.keywords.length(0);
+            return sri;
         }
-
-      BURSTIO::BurstSRI createSRI ( const std::string &streamID ) {
-        return createSRI( streamID, 1.0 );
-      }
 
     }
 }

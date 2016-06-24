@@ -310,10 +310,10 @@ namespace burstio {
         stop();
     }
 
-	template <class Traits>
+    template <class Traits>
     std::string OutPort<Traits>::getRepid () const
     {
-        return PortType::_PD_repoId;;
+        return PortType::_PD_repoId;
     }
 
     template <class Traits>
