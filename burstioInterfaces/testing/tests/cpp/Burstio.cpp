@@ -18,6 +18,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 #include <iostream>
+#include <stdlib.h>
 #include <cppunit/CompilerOutputter.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
@@ -28,14 +29,18 @@
 #include "log4cxx/basicconfigurator.h"
 #include "log4cxx/propertyconfigurator.h"
 #include "log4cxx/helpers/exception.h"
-using namespace std;
-
 
 int main(int argc, char* argv[])
 {
+  // Locate the logging configuration file relative to the source directory
+  std::string log_config = "log4j.props";
+  char* srcdir = getenv("srcdir");
+  if (srcdir) {
+    log_config = std::string(srcdir) + "/" + log_config;
+  }
 
   // Set up a simple configuration that logs on the console.
-  log4cxx::PropertyConfigurator::configure("log4j.props");
+  log4cxx::PropertyConfigurator::configure(log_config);
 
   // Get the top level suite from the registry
   CppUnit::Test *suite = CppUnit::TestFactoryRegistry::getRegistry().makeTest();
@@ -47,7 +52,7 @@ int main(int argc, char* argv[])
   controller.addListener ( &result );
   CppUnit::TextUi::TestRunner *runner = new CppUnit::TextUi::TestRunner;
 
-  ofstream xmlout ( "../cppunit-results.xml" );
+  std::ofstream xmlout ( "../cppunit-results.xml" );
   CppUnit::XmlOutputter xmlOutputter ( &result, xmlout );
   CppUnit::CompilerOutputter compilerOutputter ( &result, std::cerr );
 
