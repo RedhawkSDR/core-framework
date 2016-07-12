@@ -72,7 +72,7 @@ if test "x$enable_java" != "xno"; then
 
   # Set up CLASSPATH for REDHAWK, CF and BULKIO
   RH_PKG_CLASSPATH([OSSIE], [ossie])
-  RH_PKG_CLASSPATH([BULKIO], [bulkioInterfaces])
+  RH_PKG_CLASSPATH([BULKIO], [bulkio])
 
   if test -n "$HAVE_JNI_H"; then
     # The omnijni package must be available to generate JNI stubs and skeletons.
@@ -136,6 +136,10 @@ AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 AC_ARG_ENABLE([testing], AS_HELP_STRING([--enable-testing], [enable build of unit tests]))
 AS_IF([test "x$enable_testing" == "xyes"], [
   AM_PATH_CPPUNIT(1.9.6)
+  AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
+    dnl Use RPM location hard-coded for now
+    AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")
+  ])
 ])
 AM_CONDITIONAL(ENABLE_TESTING, test "x$enable_testing" == "xyes")
 
@@ -149,6 +153,7 @@ AC_CONFIG_FILES([Makefile \
                  src/python/Makefile \
                  src/python/setup.py \
                  src/idl/Makefile \
-                 testing/tests/cpp/Makefile])
+                 testing/tests/cpp/Makefile \
+                 testing/tests/java/Makefile])
 
 AC_OUTPUT

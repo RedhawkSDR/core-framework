@@ -26,6 +26,9 @@ if HAVE_JAVASUPPORT
 endif
 if ENABLE_TESTING
   SUBDIRS += testing/tests/cpp
+if HAVE_JAVASUPPORT
+  SUBDIRS += testing/tests/java
+endif
 endif
 
 pkgconfigdir = $(libdir)/pkgconfig
