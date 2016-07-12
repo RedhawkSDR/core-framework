@@ -45,7 +45,7 @@ PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
 PKG_CHECK_MODULES(OSSIE, ossie >= 2.1.0,,exit)
 RH_PKG_IDLDIR([OSSIE], [ossie])
 
-PKG_CHECK_MODULES([BULKIO], [bulkioInterfaces >= 2.0])
+PKG_CHECK_MODULES([BULKIO], [bulkio >= 2.0])
 RH_PKG_IDLDIR([BULKIO], [bulkioInterfaces])
 
 AX_BOOST_BASE([1.41])
@@ -132,6 +132,13 @@ AC_MSG_RESULT($HAVE_JAVASUPPORT)
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 # End optional java support
 
+# Optionally enable unit tests
+AC_ARG_ENABLE([testing], AS_HELP_STRING([--enable-testing], [enable build of unit tests]))
+AS_IF([test "x$enable_testing" == "xyes"], [
+  AM_PATH_CPPUNIT(1.9.6)
+])
+AM_CONDITIONAL(ENABLE_TESTING, test "x$enable_testing" == "xyes")
+
 AC_SUBST(idldir, '${prefix}/share/idl')
 
 AC_CONFIG_FILES([Makefile \
@@ -141,6 +148,7 @@ AC_CONFIG_FILES([Makefile \
                  src/java/Makefile \
                  src/python/Makefile \
                  src/python/setup.py \
-                 src/idl/Makefile])
+                 src/idl/Makefile \
+                 testing/tests/cpp/Makefile])
 
 AC_OUTPUT

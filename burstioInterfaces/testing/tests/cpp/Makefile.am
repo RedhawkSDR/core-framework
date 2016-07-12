@@ -18,17 +18,12 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-ACLOCAL_AMFLAGS = -I m4 -I ${OSSIEHOME}/share/aclocal/ossie -I acinclude
-
-burstio_top=../../..
-burstio_cpplib_top=$(burstio_top)/src/cpp
-Burstio_SOURCES = Burstio.cpp Burstio_InPort.cpp Burstio_OutPort.cpp  Burstio_PushTest.cpp Burstio_Utils_Test.cpp
-Burstio_INCLUDES = -I$(burstio_cpplib_top)/include -I$(burstio_cpplib_top)/include/burstio  -I$(burstio_cpplib_top)/redhawk -I$(burstio_cpplib_top)/
-Burstio_CXXFLAGS = $(CPPUNIT_CFLAGS) $(Burstio_INCLUDES) $(BOOST_CPPFLAGS) $(BULKIO_CFLAGS) $(RH_DEPS_CFLAGS)
-Burstio_LDADD = -L$(burstio_cpplib_top)/.libs -lburstio -lburstioInterfaces $(BULKIO_LIBS) $(RH_DEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(CPPUNIT_LIBS) -llog4cxx -ldl
-
+burstio_include=$(top_srcdir)/src/cpp/include
+Burstio_SOURCES = Burstio.cpp Burstio_InPort.cpp Burstio_OutPort.cpp Burstio_PushTest.cpp Burstio_Utils_Test.cpp
+Burstio_INCLUDES = -I$(burstio_include) -I$(burstio_include)/burstio -I$(top_builddir)/src/cpp/redhawk
+Burstio_CXXFLAGS = $(CPPUNIT_CFLAGS) $(Burstio_INCLUDES) $(BOOST_CPPFLAGS) $(BULKIO_CFLAGS)
+Burstio_LDADD = $(BULKIO_LIBS) $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(CPPUNIT_LIBS) -llog4cxx -ldl
+Burstio_LDADD += $(top_builddir)/src/cpp/libburstio.la $(top_builddir)/src/cpp/libburstioInterfaces.la
 
 TESTS = Burstio
-noinst_PROGRAMS=$(TESTS)
 check_PROGRAMS=$(TESTS)
-
