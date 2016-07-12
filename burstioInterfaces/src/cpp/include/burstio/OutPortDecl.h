@@ -39,18 +39,6 @@
 
 namespace burstio {
 
-    struct PortStatus
-    {
-        PortStatus(const std::string& name, size_t bitsPerElement):
-            stats(name, bitsPerElement),
-            alive(true)
-        {
-        }
-
-        SenderStatistics stats;
-        bool alive;
-    };
-
     enum RoutingModeType {
         ROUTE_ALL_INTERLEAVED,
         ROUTE_ALL_STREAMS,
@@ -68,15 +56,41 @@ namespace burstio {
         virtual void flush () = 0;
     };
 
+    template <typename Traits>
+    class BurstTransport : public BasicTransport<typename Traits::PortType>
+    {
+    public:
+        typedef BasicTransport<typename Traits::PortType> super;
+        typedef typename Traits::PortType PortType;
+        typedef typename Traits::BurstSequenceType BurstSequenceType;
+        typedef typename Traits::ElementType ElementType;
+
+        BurstTransport(typename PortType::_ptr_type port, const std::string& connectionId, const std::string& name) :
+            super(port, connectionId),
+            stats_(name, sizeof(ElementType) * 8)
+        {
+        }
+
+        virtual void pushBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth) = 0;
+
+        BULKIO::PortStatistics* getStatistics() const
+        {
+            return stats_.retrieve();
+        }
+
+    protected:
+        SenderStatistics stats_;
+    };
+
     template <class Traits>
-    class OutPort : public UsesPort<typename Traits::PortType, PortStatus>,
+    class OutPort : public UsesPort<typename Traits::PortType, BurstTransport<Traits> >,
                     public virtual POA_BULKIO::UsesPortStatisticsProvider
     {
         ENABLE_INSTANCE_LOGGING;
 
     public:
-        typedef UsesPort<typename Traits::PortType, PortStatus> super;
-		typedef typename Traits::PortType PortType;
+        typedef UsesPort<typename Traits::PortType, BurstTransport<Traits> > super;
+        typedef typename Traits::PortType PortType;
         typedef typename Traits::BurstType BurstType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
         typedef typename Traits::ElementType ElementType;
@@ -242,17 +256,20 @@ namespace burstio {
             std::string streamID_;
         };
 
+        class RemoteTransport;
+        friend class RemoteTransport;
+
         friend class Queue;
 
         typedef typename super::ConnectionMap ConnectionMap;
-        typedef typename super::Connection Connection;
+        typedef typename super::transport_type TransportType;
 
         typedef std::map<std::string,Queue*> QueueMap;
 
         typedef std::map<std::string,std::set<std::string> > RouteTable;
 
         void sendBursts (const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID);
-        void partitionBursts (const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID, const Connection& connection);
+        // void partitionBursts (const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID, const Connection& connection);
 
         void scheduleCheck (boost::system_time when);
         void checkQueues ();
@@ -260,8 +277,7 @@ namespace burstio {
         void queueBurst (SequenceType& data, const BURSTIO::BurstSRI& sri,
                          const BULKIO::PrecisionUTCTime& timestamp, bool eos, bool isComplex);
 
-        virtual void connectionAdded (const std::string& connectionId, Connection& connection);
-        virtual void connectionModified (const std::string& connectionId, Connection& connection);
+        virtual TransportType* _createConnection(typename PortType::_ptr_type port, const std::string& connectionId);
 
         const Queue& getQueueForStream (const std::string& streamID) const;
         Queue& getQueueForStream (const std::string& streamID);
