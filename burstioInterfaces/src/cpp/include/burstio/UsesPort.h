@@ -55,7 +55,7 @@ namespace burstio {
 
         ptr_type objref() const
         {
-            return port_;
+            return port_type::_duplicate(port_);
         }
 
     protected:
@@ -198,7 +198,7 @@ namespace burstio {
             if (existing == connections_.end()) {
                 throw std::invalid_argument("No connection " + connectionId);
             }
-            return port_type::_duplicate(existing->second->objref());
+            return existing->second->objref();
         }
 
         connection_list getConnections()
@@ -206,7 +206,7 @@ namespace burstio {
             boost::mutex::scoped_lock lock(updatingPortsLock);
             connection_list result;
             for (typename ConnectionMap::iterator ii = connections_.begin(); ii != connections_.end(); ++ii) {
-                result.push_back(std::make_pair(ii->first, port_type::_duplicate(ii->second->objref())));
+                result.push_back(std::make_pair(ii->first, ii->second->objref()));
             }
             return result;
         }
