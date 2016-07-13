@@ -40,7 +40,7 @@ namespace burstio {
         typedef typename port_type::_ptr_type ptr_type;
         typedef typename port_type::_var_type var_type;
 
-        BasicTransport(var_type port, const std::string& connectionId) :
+        BasicTransport(ptr_type port, const std::string& connectionId) :
             port_(port_type::_duplicate(port)),
             connectionId_(connectionId)
         {
