@@ -126,14 +126,16 @@ namespace burstio {
                 // Record delay from queueing of first burst to now
                 boost::posix_time::time_duration delay = boost::get_system_time() - startTime;
 
-                localPort_->pushBursts(bursts);
-
                 // Count up total elements
                 size_t total_elements = 0;
-                for (CORBA::ULong index = 0; index < bursts.length(); ++index) {
+                size_t total_bursts = bursts.length();
+                for (CORBA::ULong index = 0; index < total_bursts; ++index) {
                     total_elements += bursts[index].data.length();
                 }
-                this->stats_.record(bursts.length(), total_elements, queueDepth, delay.total_microseconds() * 1e-6);
+
+                localPort_->pushBursts(bursts);
+
+                this->stats_.record(total_bursts, total_elements, queueDepth, delay.total_microseconds() * 1e-6);
             } catch (const CORBA::Exception& ex) {
                 RH_ERROR(parent_->__logger, "pushBursts to " << this->connectionId_ << " failed: CORBA::" << ex._name());
             } catch (...) {
