@@ -285,7 +285,12 @@ namespace burstio {
     {
         if (bursts_.length() > 0) {
             port_->sendBursts(bursts_, startTime_, bursts_.length()/(float)maxBursts_, streamID_);
-            bursts_.length(0);
+            // Reset the burst queue to empty, reallocating if necessary
+            if (bursts_.maximum() < maxBursts_) {
+                bursts_.replace(maxBursts_, 0, BurstSequenceType::allocbuf(maxBursts_), true);
+            } else {
+                bursts_.length(0);
+            }
             bytes_ = 0;
             startTime_ = boost::posix_time::ptime();
         }
