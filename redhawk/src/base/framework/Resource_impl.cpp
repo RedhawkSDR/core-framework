@@ -222,6 +222,11 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
             name_binding = prop->getValue().toString();
         } else if (id == "NAMING_CONTEXT_IOR") {
             application_registrar_ior = prop->getValue().toString();
+        } else if (id == "DEBUG_LEVEL") {
+            // If DEBUG_LEVEL is in the parameters, this component is being
+            // created from a shared library entry point, not the command line;
+            // logging has already been set up by the component host.
+            // TODO: Revisit as part of logging update
         } else {
             cmdlineProps.push_back(*prop);
         }
