@@ -257,7 +257,7 @@ namespace burstio {
         };
 
         class RemoteTransport;
-        friend class RemoteTransport;
+        class LocalTransport;
 
         friend class Queue;
 

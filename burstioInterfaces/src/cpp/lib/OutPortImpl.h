@@ -20,7 +20,10 @@
 #ifndef BURSTIO_OUTPORTIMPL_H
 #define BURSTIO_OUTPORTIMPL_H
 
+#include <ossie/CorbaUtils.h>
+
 #include <burstio/utils.h>
+#include <burstio/InPortDecl.h>
 
 #include "debug_impl.h"
 
@@ -99,6 +102,48 @@ namespace burstio {
 
         OutPort<Traits>* parent_;
         bool alive_;
+    };
+
+    template <class Traits>
+    class OutPort<Traits>::LocalTransport : public BurstTransport<Traits>
+    {
+    public:
+        typedef BurstTransport<Traits> super;
+        typedef typename Traits::PortType PortType;
+        typedef typename Traits::BurstType BurstType;
+        typedef typename Traits::BurstSequenceType BurstSequenceType;
+
+        LocalTransport(OutPort<Traits>* parent, InPort<Traits>* localPort, typename PortType::_ptr_type port, const std::string& connectionId) :
+            super(port, connectionId, parent->name),
+            parent_(parent),
+            localPort_(localPort)
+        {
+        }
+
+        void pushBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth)
+        {
+            try {
+                // Record delay from queueing of first burst to now
+                boost::posix_time::time_duration delay = boost::get_system_time() - startTime;
+
+                localPort_->pushBursts(bursts);
+
+                // Count up total elements
+                size_t total_elements = 0;
+                for (CORBA::ULong index = 0; index < bursts.length(); ++index) {
+                    total_elements += bursts[index].data.length();
+                }
+                this->stats_.record(bursts.length(), total_elements, queueDepth, delay.total_microseconds() * 1e-6);
+            } catch (const CORBA::Exception& ex) {
+                RH_ERROR(parent_->__logger, "pushBursts to " << this->connectionId_ << " failed: CORBA::" << ex._name());
+            } catch (...) {
+                RH_ERROR(parent_->__logger, "pushBursts to " << this->connectionId_ << " failed");
+            }
+        }
+
+    private:
+        OutPort<Traits>* parent_;
+        InPort<Traits>* localPort_;
     };
 
     template <class Traits>
@@ -503,7 +548,14 @@ namespace burstio {
     typename OutPort<Traits>::TransportType* OutPort<Traits>::_createConnection (typename PortType::_ptr_type port,
                                                                                  const std::string& connectionId)
     {
-        return new RemoteTransport(this, port, connectionId);
+        InPort<Traits>* local_port = ossie::corba::getLocalServant<InPort<Traits> >(port);
+        if (local_port) {
+            LOG_INSTANCE_DEBUG("Using local connection to port " << local_port->getName()
+                               << " for connection " << connectionId);
+            return new LocalTransport(this, local_port, port, connectionId);
+        } else {
+            return new RemoteTransport(this, port, connectionId);
+        }
     }
 
     template <class Traits>
