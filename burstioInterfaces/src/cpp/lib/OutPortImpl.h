@@ -20,6 +20,8 @@
 #ifndef BURSTIO_OUTPORTIMPL_H
 #define BURSTIO_OUTPORTIMPL_H
 
+#include <boost/foreach.hpp>
+
 #include <ossie/CorbaUtils.h>
 
 #include <burstio/utils.h>
@@ -43,6 +45,11 @@ namespace burstio {
             parent_(parent),
             alive_(true)
         {
+        }
+
+        bool modifiesBursts() const
+        {
+            return false;
         }
 
         void pushBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth)
@@ -118,6 +125,11 @@ namespace burstio {
             parent_(parent),
             localPort_(localPort)
         {
+        }
+
+        bool modifiesBursts() const
+        {
+            return true;
         }
 
         void pushBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth)
@@ -482,8 +494,8 @@ namespace burstio {
     template <class Traits>
     void OutPort<Traits>::sendBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID)
     {
-        //LOG_INSTANCE_DEBUG("Sending " << bursts.length() << " bursts");
-
+        LOG_INSTANCE_TRACE("Sending " << bursts.length() << " bursts");
+        std::vector<TransportType*> deferred_ports;
         boost::mutex::scoped_lock lock(updatingPortsLock);
         for (typename ConnectionMap::iterator ii = connections_.begin(); ii != connections_.end(); ++ii) {
             const std::string& connectionId = ii->first;
@@ -493,7 +505,29 @@ namespace burstio {
                 continue;
             }
 
-            connection->pushBursts(bursts, startTime, queueDepth);
+            // If this connection may modify the burst sequence, save the push
+            // until the second pass
+            if (connection->modifiesBursts()) {
+                deferred_ports.push_back(connection);
+            } else {
+                connection->pushBursts(bursts, startTime, queueDepth);
+            }
+        }
+
+        // Second pass: push to connections that may modify (i.e., steal) the
+        // burst sequence, making copies as needed
+        if (!deferred_ports.empty()) {
+            // There are remaining ports that may require a copy
+            int remaining = deferred_ports.size();
+            BOOST_FOREACH(TransportType* connection, deferred_ports) {
+                if (remaining == 1) {
+                    // Last connection, can allow it to steal the buffer
+                    connection->pushBursts(bursts, startTime, queueDepth);
+                } else {
+                    // There are more connections, make an (unnamed) copy
+                    connection->pushBursts(BurstSequenceType(bursts), startTime, queueDepth);
+                }
+            }
         }
     }
 

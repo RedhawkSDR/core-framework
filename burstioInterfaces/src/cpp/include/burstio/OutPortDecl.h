@@ -78,6 +78,10 @@ namespace burstio {
             return stats_.retrieve();
         }
 
+        // Return true if this connection may modify the burst sequence memory
+        // on push
+        virtual bool modifiesBursts () const = 0;
+
     protected:
         SenderStatistics stats_;
     };
