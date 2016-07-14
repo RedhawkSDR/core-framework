@@ -88,6 +88,8 @@ ${className}::${className}(const char *uuid, const char *label) :
     ${baseClass}(uuid, label),
     ThreadedComponent()
 {
+    setThreadName(label);
+
 /*{% block constructorBody %}*/
     loadProperties();
 /*{% for port in component.ports %}*/
