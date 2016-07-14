@@ -285,18 +285,31 @@ static void sigint_handler(int signum)
 
 void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, char* argv[])
 {
-    int debug_level = -1; // use log config uri as log level context
-    std::string logcfg_uri;
-    std::string dpath("");
-    bool skip_run = false;
+    // Scan the arguments for NAME_BINDING, setting the thread/process name
+    // based on the name. If this isn't done prior to initializing CORBA, the
+    // ORB creates some threads that will get the original process name, and
+    // any threads they create, and so on.
+    for (size_t index = 1; index < argc; ++index) {
+        if (strcmp("NAME_BINDING", argv[index]) == 0) {
+            if (++index < argc) {
+                std::string value = argv[index];
+                value = value.substr(0, 15);
+                pthread_setname_np(pthread_self(), value.c_str());
+            }
+            break;
+        }
+    }
 
     // The ORB must be initialized before anything that might depend on CORBA,
     // such as PropertyMap and logging configuration
     ossie::corba::CorbaInit(argc, argv);
 
-    redhawk::PropertyMap cmdlineProps;
-
     // Parse command line arguments.
+    int debug_level = -1; // use log config uri as log level context
+    std::string logcfg_uri;
+    std::string dpath("");
+    bool skip_run = false;
+    redhawk::PropertyMap cmdlineProps;
     for (int i = 1; i < argc; i++) {
         if (strcmp("SKIP_RUN", argv[i]) == 0) {
             skip_run = true;
