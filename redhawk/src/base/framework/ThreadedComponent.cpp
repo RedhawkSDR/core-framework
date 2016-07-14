@@ -22,10 +22,11 @@
 
 namespace ossie {
 
-ProcessThread::ProcessThread(ThreadedComponent *target, float delay) :
+ProcessThread::ProcessThread(ThreadedComponent *target, float delay, const std::string& name) :
     _thread(0),
     _running(false),
     _target(target),
+    _name(name),
     _mythread(_thread)
 {
     updateDelay(delay);
@@ -41,6 +42,14 @@ void ProcessThread::start()
 
 void ProcessThread::run()
 {
+    // If a name was given, set it on the current thread
+    // NB: On RHEL/CentOS 6, the name is limited to 15 characters, and the call
+    //     fails if the name exceeds that limit
+    if (!_name.empty()) {
+        std::string name = _name.substr(0, 15);
+        pthread_setname_np(pthread_self(), name.c_str());
+    }
+
     while (_running) {
         int state = _target->serviceFunction();
         if (state == FINISH) {
@@ -102,6 +111,7 @@ bool ProcessThread::threadRunning()
 ThreadedComponent::ThreadedComponent() :
     serviceThread(0),
     serviceThreadLock(),
+    _threadName(),
     _defaultDelay(0.1)
 {
 }
@@ -114,8 +124,8 @@ void ThreadedComponent::startThread ()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (!serviceThread) {
-      serviceThread = new ossie::ProcessThread(this, _defaultDelay);
-      serviceThread->start();
+        serviceThread = new ossie::ProcessThread(this, _defaultDelay, _threadName);
+        serviceThread->start();
     }
 }
 
@@ -144,4 +154,10 @@ void ThreadedComponent::setThreadDelay (float delay)
     if (serviceThread) {
         serviceThread->updateDelay(delay);
     }
+}
+
+void ThreadedComponent::setThreadName (const std::string& name)
+{
+    boost::mutex::scoped_lock lock(serviceThreadLock);
+    _threadName = name;
 }

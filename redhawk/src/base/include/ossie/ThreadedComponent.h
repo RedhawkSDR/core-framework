@@ -57,7 +57,10 @@ protected:
     ossie::ProcessThread* serviceThread;
     boost::mutex serviceThreadLock;
 
+    void setThreadName(const std::string& name);
+
 private:
+    std::string _threadName;
     float _defaultDelay;
 };
 
