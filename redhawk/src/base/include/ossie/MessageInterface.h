@@ -217,9 +217,6 @@ public:
 
     void push(const CORBA::Any& data);
 
-    CosEventChannelAdmin::ProxyPushConsumer_ptr removeConsumer(std::string consumer_id);
-    void extendConsumers(std::string consumer_id, CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer);
-
     // Send a single message
     template <typename Message>
     void sendMessage(const Message& message) {
@@ -255,12 +252,16 @@ public:
         push(data);
     }
 
-	std::string getRepid() const;
+    std::string getRepid() const;
 
 protected:
+    class MessageTransport;
+    class RemoteTransport;
+    class LocalTransport;
+    typedef std::map<std::string,MessageTransport*> TransportMap;
+    TransportMap _connections;
+
     boost::mutex portInterfaceAccess;
-    std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var> consumers;
-    std::map<std::string, CosEventChannelAdmin::EventChannel_ptr> _connections;
 
 };
 

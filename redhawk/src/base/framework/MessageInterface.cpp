@@ -18,8 +18,8 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#include "ossie/MessageInterface.h"
-#include <iostream>
+#include <ossie/MessageInterface.h>
+#include <ossie/PropertyMap.h>
 
 PREPARE_CF_LOGGING(MessageConsumerPort)
 
@@ -179,6 +179,80 @@ std::string MessageConsumerPort::getDirection() const
     return CF::PortSet::DIRECTION_BIDIR;
 }
 
+
+class MessageSupplierPort::MessageTransport
+{
+public:
+    MessageTransport(CosEventChannelAdmin::EventChannel_ptr channel) :
+        _channel(CosEventChannelAdmin::EventChannel::_duplicate(channel))
+    {
+    }
+
+    virtual void push(const CORBA::Any& data) = 0;
+    virtual void disconnect() = 0;
+
+private:
+    CosEventChannelAdmin::EventChannel_var _channel;
+};
+
+class MessageSupplierPort::RemoteTransport : public MessageSupplierPort::MessageTransport
+{
+public:
+    RemoteTransport(CosEventChannelAdmin::EventChannel_ptr channel) :
+        MessageTransport(channel)
+    {
+        CosEventChannelAdmin::SupplierAdmin_var supplier_admin = channel->for_suppliers();
+        _consumer = supplier_admin->obtain_push_consumer();
+        _consumer->connect_push_supplier(CosEventComm::PushSupplier::_nil());
+    }
+
+    void push(const CORBA::Any& data)
+    {
+        _consumer->push(data);
+    }
+
+    void disconnect()
+    {
+        try {
+            _consumer->disconnect_push_consumer();
+        } catch (...) {
+            // Ignore errors on disconnect
+        }
+    }
+
+private:
+    CosEventChannelAdmin::ProxyPushConsumer_var _consumer;
+};
+
+class MessageSupplierPort::LocalTransport : public MessageSupplierPort::MessageTransport
+{
+public:
+    LocalTransport(MessageConsumerPort* consumer, CosEventChannelAdmin::EventChannel_ptr channel) :
+        MessageTransport(channel),
+        _consumer(consumer)
+    {
+    }
+
+    void push(const CORBA::Any& data)
+    {
+        CF::Properties* temp;
+        if (!(data >>= temp)) {
+            return;
+        }
+        const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+        for (redhawk::PropertyMap::const_iterator msg = props.begin(); msg != props.end(); ++msg) {
+            _consumer->fireCallback(msg->getId(), msg->getValue());
+        }
+    }
+
+    void disconnect()
+    {
+    }
+
+private:
+    MessageConsumerPort* _consumer;
+};
+
 MessageSupplierPort::MessageSupplierPort (std::string port_name) :
     Port_Uses_base_impl(port_name)
 {
@@ -190,58 +264,45 @@ MessageSupplierPort::~MessageSupplierPort (void)
 
 void MessageSupplierPort::connectPort(CORBA::Object_ptr connection, const char* connectionId)
 {
-    boost::mutex::scoped_lock lock(portInterfaceAccess);
-    this->active = true;
     CosEventChannelAdmin::EventChannel_var channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(connection);
     if (CORBA::is_nil(channel)) {
         throw CF::Port::InvalidPort(0, "The object provided did not narrow to a CosEventChannelAdmin::EventChannel type");
     }
-    CosEventChannelAdmin::SupplierAdmin_var supplier_admin = channel->for_suppliers();
-    CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer = supplier_admin->obtain_push_consumer();
-    proxy_consumer->connect_push_supplier(CosEventComm::PushSupplier::_nil());
-    extendConsumers(connectionId, proxy_consumer);
+
+    {
+        boost::mutex::scoped_lock lock(portInterfaceAccess);
+        MessageTransport* transport;
+        MessageConsumerPort* local_port = ossie::corba::getLocalServant<MessageConsumerPort>(channel);
+        if (local_port) {
+            transport = new LocalTransport(local_port, channel);
+        } else {
+            transport = new RemoteTransport(channel);
+        }
+        _connections[connectionId] = transport;
+    }
 }
 
 void MessageSupplierPort::disconnectPort(const char* connectionId)
 {
     boost::mutex::scoped_lock lock(portInterfaceAccess);
-    CosEventChannelAdmin::ProxyPushConsumer_var consumer = removeConsumer(connectionId);
-    if (CORBA::is_nil(consumer)) {
+    TransportMap::iterator connection = _connections.find(connectionId);
+    if (connection == _connections.end()) {
         return;
     }
-    consumer->disconnect_push_consumer();
-    if (this->consumers.empty()) {
-        this->active = false;
-    }
+    connection->second->disconnect();
+    delete connection->second;
+    _connections.erase(connection);
 }
 
 void MessageSupplierPort::push(const CORBA::Any& data)
 {
     boost::mutex::scoped_lock lock(portInterfaceAccess);
-    std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var>::iterator connection = consumers.begin();
-    while (connection != consumers.end()) {
+    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
         try {
-            (connection->second)->push(data);
+            connection->second->push(data);
         } catch ( ... ) {
         }
-        connection++;
     }
-}
-
-CosEventChannelAdmin::ProxyPushConsumer_ptr MessageSupplierPort::removeConsumer(std::string consumer_id)
-{
-    std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var>::iterator connection = consumers.find(consumer_id);
-    if (connection == consumers.end()) {
-        return CosEventChannelAdmin::ProxyPushConsumer::_nil();
-    }
-    CosEventChannelAdmin::ProxyPushConsumer_var consumer = connection->second;
-    consumers.erase(connection);
-    return consumer._retn();
-}
-
-void MessageSupplierPort::extendConsumers(std::string consumer_id, CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer)
-{
-    consumers[std::string(consumer_id)] = proxy_consumer;
 }
 
 std::string MessageSupplierPort::getRepid() const 
