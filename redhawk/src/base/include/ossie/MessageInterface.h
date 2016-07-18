@@ -132,6 +132,10 @@ public:
     
 
 protected:
+    friend class MessageSupplierPort;
+
+    bool pushLocal (const std::string& id, const void* data);
+
     void addSupplier (const std::string& connectionId, CosEventComm::PushSupplier_ptr supplier);
 
     CosEventComm::PushSupplier_ptr removeSupplier (const std::string& connectionId);
@@ -149,6 +153,7 @@ protected:
     {
     public:
         virtual void operator() (const std::string& value, const CORBA::Any& data) = 0;
+        virtual void operator() (const std::string& value, const void* data) = 0;
         virtual ~MessageCallback () { }
 
     protected:
@@ -171,6 +176,12 @@ protected:
             if (data >>= message) {
                 (target_.*func_)(value, message);
             }
+        }
+
+        virtual void operator() (const std::string& value, const void* data)
+        {
+            const M* message = reinterpret_cast<const M*>(data);
+            (target_.*func_)(value, *message);
         }
 
     protected:
@@ -235,26 +246,38 @@ public:
     template <typename Iterator>
     void sendMessages(Iterator first, Iterator last)
     {
-        CF::Properties properties;
-        properties.length(std::distance(first, last));
-        for (CORBA::ULong ii = 0; first != last; ++ii, ++first) {
-            // Workaround for older components whose structs have a non-const,
-            // non-static member function getId(): determine the type of value
-            // pointed to by the iterator, and const_cast the dereferenced
-            // value; this ensures that it works for both bare pointers and
-            // "true" iterators
-            typedef typename std::iterator_traits<Iterator>::value_type value_type;
-            properties[ii].id = const_cast<value_type&>(*first).getId().c_str();
-            properties[ii].value <<= *first;
+        boost::mutex::scoped_lock lock(portInterfaceAccess);
+        _beginMessageQueue(std::distance(first, last));
+        for (; first != last; ++first) {
+            _queueMessage(*first);
         }
-        CORBA::Any data;
-        data <<= properties;
-        push(data);
+        _sendMessageQueue();
     }
 
     std::string getRepid() const;
 
 protected:
+    template <class Message>
+    inline void _queueMessage(const Message& message)
+    {
+        // Workaround for older components whose structs have a non-const,
+        // non-static member function getId(): const_cast the value
+        const std::string messageId = const_cast<Message&>(message).getId();
+        _queueMessage(messageId, &message, &MessageSupplierPort::_serializeMessage<Message>);
+    }
+
+    template <class Message>
+    static void _serializeMessage(CORBA::Any& any, const void* data)
+    {
+        any <<= *(reinterpret_cast<const Message*>(data));
+    }
+
+    typedef boost::function<void(CORBA::Any&,const void*)> SerializerFunc;
+
+    void _beginMessageQueue(size_t count);
+    void _queueMessage(const std::string& msgId, const void* msgData, SerializerFunc serializer);
+    void _sendMessageQueue();
+
     class MessageTransport;
     class RemoteTransport;
     class LocalTransport;

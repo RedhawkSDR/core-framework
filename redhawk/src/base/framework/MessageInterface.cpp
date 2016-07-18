@@ -169,6 +169,15 @@ void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any&
     generic_callbacks_(id, data);
 };
 
+bool MessageConsumerPort::pushLocal (const std::string& id, const void* data) {
+    CallbackTable::iterator callback = callbacks_.find(id);
+    if (callback != callbacks_.end()) {
+        (*callback->second)(id, data);
+        return true;
+    }
+    return false;
+}
+
 std::string MessageConsumerPort::getRepid() const 
 {
     return ExtendedEvent::MessageEvent::_PD_repoId;
@@ -189,6 +198,11 @@ public:
     }
 
     virtual void push(const CORBA::Any& data) = 0;
+
+    virtual void beginQueue(size_t count) = 0;
+    virtual void queueMessage(const std::string& msgId, const void* msgData, MessageSupplierPort::SerializerFunc serializer) = 0;
+    virtual void sendMessages() = 0;
+
     virtual void disconnect() = 0;
 
 private:
@@ -211,6 +225,32 @@ public:
         _consumer->push(data);
     }
 
+    void beginQueue(size_t count)
+    {
+        // Pre-allocate enough space to hold the entire queue
+        if (_queue.maximum() < count) {
+            _queue.replace(count, 0, CF::Properties::allocbuf(count), true);
+        } else {
+            _queue.length(0);
+        }
+    }
+
+    void queueMessage(const std::string& msgId, const void* msgData, MessageSupplierPort::SerializerFunc serializer)
+    {
+        CORBA::ULong index = _queue.length();
+        _queue.length(index+1);
+        CF::DataType& message = _queue[index];
+        message.id = msgId.c_str();
+        serializer(message.value, msgData);
+    }
+
+    void sendMessages()
+    {
+        CORBA::Any data;
+        data <<= _queue;
+        push(data);
+    }
+
     void disconnect()
     {
         try {
@@ -222,6 +262,7 @@ public:
 
 private:
     CosEventChannelAdmin::ProxyPushConsumer_var _consumer;
+    CF::Properties _queue;
 };
 
 class MessageSupplierPort::LocalTransport : public MessageSupplierPort::MessageTransport
@@ -243,6 +284,25 @@ public:
         for (redhawk::PropertyMap::const_iterator msg = props.begin(); msg != props.end(); ++msg) {
             _consumer->fireCallback(msg->getId(), msg->getValue());
         }
+    }
+
+    void beginQueue(size_t /*unused*/)
+    {
+    }
+
+    void queueMessage(const std::string& msgId, const void* msgData, MessageSupplierPort::SerializerFunc serializer)
+    {
+        if (_consumer->pushLocal(msgId, msgData)) {
+            return;
+        }
+
+        CORBA::Any data;
+        serializer(data, msgData);
+        _consumer->fireCallback(msgId, data);
+    }
+
+    void sendMessages()
+    {
     }
 
     void disconnect()
@@ -308,4 +368,28 @@ void MessageSupplierPort::push(const CORBA::Any& data)
 std::string MessageSupplierPort::getRepid() const 
 {
     return ExtendedEvent::MessageEvent::_PD_repoId;
+}
+
+void MessageSupplierPort::_beginMessageQueue(size_t count)
+{
+    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+        connection->second->beginQueue(count);
+    }
+}
+
+void MessageSupplierPort::_queueMessage(const std::string& msgId, const void* msgData, SerializerFunc serializer)
+{
+    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+        try {
+            connection->second->queueMessage(msgId, msgData, serializer);
+        } catch ( ... ) {
+        }
+    }
+}
+
+void MessageSupplierPort::_sendMessageQueue()
+{
+    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+        connection->second->sendMessages();
+    }
 }
