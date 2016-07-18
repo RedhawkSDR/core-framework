@@ -146,7 +146,7 @@ CosEventComm::PushSupplier_ptr MessageConsumerPort::removeSupplier (const std::s
 void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any& data) {
     CallbackTable::iterator callback = callbacks_.find(id);
     if (callback != callbacks_.end()) {
-        (*callback->second)(id, data);
+        callback->second->dispatch(id, data);
     } else {
         if (generic_callbacks_.empty()) {
             std::string warning = "no callbacks registered for messages with id: "+id+".";
@@ -172,7 +172,7 @@ void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any&
 bool MessageConsumerPort::pushLocal (const std::string& id, const void* data) {
     CallbackTable::iterator callback = callbacks_.find(id);
     if (callback != callbacks_.end()) {
-        (*callback->second)(id, data);
+        callback->second->dispatch(id, data);
         return true;
     }
     return false;

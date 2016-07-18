@@ -100,7 +100,7 @@ public:
     template <class Class, class MessageStruct>
     void registerMessage (const std::string& id, Class* target, void (Class::*func)(const std::string&, const MessageStruct&))
     {
-        callbacks_[id] = new MemberCallback<Class, MessageStruct>(*target, func);
+        callbacks_[id] = new MessageCallback<MessageStruct>(boost::bind(func, target, _1, _2));
     }
 
     template <class Target, class Func>
@@ -147,58 +147,50 @@ protected:
     SupplierAdmin_i *supplier_admin;
     
     /*
-     * Abstract interface for message callbacks.
+     * Abstract untyped interface for message callbacks.
      */
-    class MessageCallback
+    class MessageCallbackBase
     {
     public:
-        virtual void operator() (const std::string& value, const CORBA::Any& data) = 0;
-        virtual void operator() (const std::string& value, const void* data) = 0;
-        virtual ~MessageCallback () { }
-
-    protected:
-        MessageCallback () { }
+        virtual void dispatch (const std::string& value, const CORBA::Any& data) = 0;
+        virtual void dispatch (const std::string& value, const void* data) = 0;
+        virtual ~MessageCallbackBase () { }
     };
 
 
     /*
-     * Concrete class for member function property change callbacks.
+     * Concrete typed class for message callbacks.
      */
-    template <class Class, class M>
-    class MemberCallback : public MessageCallback
+    template <class Message>
+    class MessageCallback : public MessageCallbackBase
     {
     public:
-        typedef void (Class::*MemberFn)(const std::string&, const M&);
+        typedef boost::function<void (const std::string&, const Message&)> CallbackFunc;;
 
-        virtual void operator() (const std::string& value, const CORBA::Any& data)
-        {
-            M message;
-            if (data >>= message) {
-                (target_.*func_)(value, message);
-            }
-        }
-
-        virtual void operator() (const std::string& value, const void* data)
-        {
-            const M* message = reinterpret_cast<const M*>(data);
-            (target_.*func_)(value, *message);
-        }
-
-    protected:
-        // Only allow MessageConsumerPort to instantiate this class.
-        MemberCallback (Class& target, MemberFn func) :
-            target_(target),
+        MessageCallback (CallbackFunc func) :
             func_(func)
         {
         }
 
-        friend class MessageConsumerPort;
+        virtual void dispatch (const std::string& value, const CORBA::Any& data)
+        {
+            Message message;
+            if (data >>= message) {
+                func_(value, message);
+            }
+        }
 
-        Class& target_;
-        MemberFn func_;
+        virtual void dispatch (const std::string& value, const void* data)
+        {
+            const Message* message = reinterpret_cast<const Message*>(data);
+            func_(value, *message);
+        }
+
+    private:
+        CallbackFunc func_;
     };
 
-    typedef std::map<std::string, MessageCallback*> CallbackTable;
+    typedef std::map<std::string, MessageCallbackBase*> CallbackTable;
     CallbackTable callbacks_;
 
     ossie::notification<void (const std::string&, const CORBA::Any&)> generic_callbacks_;
