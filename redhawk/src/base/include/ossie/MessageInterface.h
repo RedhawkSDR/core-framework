@@ -26,6 +26,8 @@
 #include <vector>
 #include <iterator>
 
+#include <boost/utility/enable_if.hpp>
+
 #include "CF/ExtendedEvent.h"
 #include "CF/cf.h"
 #include "CorbaUtils.h"
@@ -80,6 +82,42 @@ class SupplierAdmin_i : public virtual POA_CosEventChannelAdmin::SupplierAdmin {
      */
 #endif
 
+namespace internal {
+    template <class T>
+    struct has_format
+    {
+        typedef ::boost::type_traits::no_type no_type;
+        typedef ::boost::type_traits::yes_type yes_type;
+        template <typename U, U> struct type_check;
+
+        template <typename U>
+        static yes_type& check(type_check<const char* (*)(), &U::getFormat>*);
+
+        template <typename>
+        static no_type& check(...);
+
+        static bool const value = (sizeof(check<T>(0)) == sizeof(yes_type));
+    };
+
+    template <class T, class Enable=void>
+    struct message_traits
+    {
+        static const char* format()
+        {
+            return "";
+        }
+    };
+
+    template <class T>
+    struct message_traits<T, typename boost::enable_if<has_format<T> >::type>
+    {
+        static const char* format()
+        {
+            return T::getFormat();
+        }
+    };
+}
+
 class MessageConsumerPort : public Port_Provides_base_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
 , public virtual POA_ExtendedEvent::MessageEvent
@@ -100,7 +138,8 @@ public:
     template <class Class, class MessageStruct>
     void registerMessage (const std::string& id, Class* target, void (Class::*func)(const std::string&, const MessageStruct&))
     {
-        callbacks_[id] = new MessageCallback<MessageStruct>(boost::bind(func, target, _1, _2));
+        const char* format = ::internal::message_traits<MessageStruct>::format();
+        callbacks_[id] = new MessageCallback<MessageStruct>(format, boost::bind(func, target, _1, _2));
     }
 
     template <class Target, class Func>
@@ -134,7 +173,7 @@ public:
 protected:
     friend class MessageSupplierPort;
 
-    bool pushLocal (const std::string& id, const void* data);
+    bool pushLocal (const std::string& id, const char* format, const void* data);
 
     void addSupplier (const std::string& connectionId, CosEventComm::PushSupplier_ptr supplier);
 
@@ -155,6 +194,26 @@ protected:
         virtual void dispatch (const std::string& value, const CORBA::Any& data) = 0;
         virtual void dispatch (const std::string& value, const void* data) = 0;
         virtual ~MessageCallbackBase () { }
+
+        bool isCompatible (const char* format)
+        {
+            if (_format.empty()) {
+                // Message type has no format descriptor, assume that it cannot
+                // be passed via void*
+                return false;
+            }
+            // The format descriptors must be identical, otherwise go through
+            // CORBA::Any
+            return _format == format;
+        }
+
+    protected:
+        MessageCallbackBase(const std::string& format) :
+            _format(format)
+        {
+        }
+
+        const std::string _format;
     };
 
 
@@ -167,7 +226,8 @@ protected:
     public:
         typedef boost::function<void (const std::string&, const Message&)> CallbackFunc;;
 
-        MessageCallback (CallbackFunc func) :
+        MessageCallback (const std::string& format, CallbackFunc func) :
+            MessageCallbackBase(format),
             func_(func)
         {
         }
@@ -255,7 +315,8 @@ protected:
         // Workaround for older components whose structs have a non-const,
         // non-static member function getId(): const_cast the value
         const std::string messageId = const_cast<Message&>(message).getId();
-        _queueMessage(messageId, &message, &MessageSupplierPort::_serializeMessage<Message>);
+        const char* format = ::internal::message_traits<Message>::format();
+        _queueMessage(messageId, format, &message, &MessageSupplierPort::_serializeMessage<Message>);
     }
 
     template <class Message>
@@ -267,7 +328,7 @@ protected:
     typedef boost::function<void(CORBA::Any&,const void*)> SerializerFunc;
 
     void _beginMessageQueue(size_t count);
-    void _queueMessage(const std::string& msgId, const void* msgData, SerializerFunc serializer);
+    void _queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer);
     void _sendMessageQueue();
 
     class MessageTransport;

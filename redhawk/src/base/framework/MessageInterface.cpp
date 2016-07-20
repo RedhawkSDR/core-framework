@@ -169,9 +169,9 @@ void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any&
     generic_callbacks_(id, data);
 };
 
-bool MessageConsumerPort::pushLocal (const std::string& id, const void* data) {
+bool MessageConsumerPort::pushLocal (const std::string& id, const char* format, const void* data) {
     CallbackTable::iterator callback = callbacks_.find(id);
-    if (callback != callbacks_.end()) {
+    if (callback != callbacks_.end() && callback->second->isCompatible(format)) {
         callback->second->dispatch(id, data);
         return true;
     }
@@ -200,7 +200,7 @@ public:
     virtual void push(const CORBA::Any& data) = 0;
 
     virtual void beginQueue(size_t count) = 0;
-    virtual void queueMessage(const std::string& msgId, const void* msgData, MessageSupplierPort::SerializerFunc serializer) = 0;
+    virtual void queueMessage(const std::string& msgId, const char* format, const void* msgData, MessageSupplierPort::SerializerFunc serializer) = 0;
     virtual void sendMessages() = 0;
 
     virtual void disconnect() = 0;
@@ -235,7 +235,7 @@ public:
         }
     }
 
-    void queueMessage(const std::string& msgId, const void* msgData, MessageSupplierPort::SerializerFunc serializer)
+    void queueMessage(const std::string& msgId, const char* /*unused*/, const void* msgData, MessageSupplierPort::SerializerFunc serializer)
     {
         CORBA::ULong index = _queue.length();
         _queue.length(index+1);
@@ -290,9 +290,9 @@ public:
     {
     }
 
-    void queueMessage(const std::string& msgId, const void* msgData, MessageSupplierPort::SerializerFunc serializer)
+    void queueMessage(const std::string& msgId, const char* format, const void* msgData, MessageSupplierPort::SerializerFunc serializer)
     {
-        if (_consumer->pushLocal(msgId, msgData)) {
+        if (_consumer->pushLocal(msgId, format, msgData)) {
             return;
         }
 
@@ -377,11 +377,11 @@ void MessageSupplierPort::_beginMessageQueue(size_t count)
     }
 }
 
-void MessageSupplierPort::_queueMessage(const std::string& msgId, const void* msgData, SerializerFunc serializer)
+void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer)
 {
     for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
         try {
-            connection->second->queueMessage(msgId, msgData, serializer);
+            connection->second->queueMessage(msgId, format, msgData, serializer);
         } catch ( ... ) {
         }
     }
