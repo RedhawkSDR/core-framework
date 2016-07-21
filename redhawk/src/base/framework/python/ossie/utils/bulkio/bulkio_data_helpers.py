@@ -977,6 +977,7 @@ class SDDSSink(object):
         self.attachments = {}
         self.port_lock = threading.Lock()
         self.parent = parent
+        self.sri = None
 
     def __del__(self):
         if self.outFile != None:
@@ -1025,7 +1026,7 @@ class SDDSSink(object):
         return None
 
     def pushSRI(self, H, T):
-        pass
+        self.sri = H
 
     def detach(self, attachId):
         self.port_lock.acquire()

@@ -498,6 +498,22 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.over_simple, "override")
         self.assertEquals(comp.over_struct_seq, [{'a_word': 'something', 'a_number': 1}])
 
+    def test_SDDS_SRI(self):
+        c = sb.launch('sdds_src')
+        self.assertNotEquals(c, None)
+        snk = sb.DataSinkSDDS()
+        c.connect(snk)
+        sb.start()
+        count = 0
+        sri = None
+        while count < 4:
+            sri = snk.sri()
+            if sri != None:
+                break
+            count += 1
+            time.sleep(0.5)
+        self.assertNotEquals(sri, None)
+
     def test_loadSADFileSpecialChar(self):
         retval = sb.loadSADFile('sdr/dom/waveforms/comp_prop_special_char_w/comp_prop_special_char_w.sad.xml')
         self.assertEquals(retval, True)

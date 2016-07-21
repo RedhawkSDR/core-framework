@@ -881,19 +881,19 @@ class DataSinkSDDS(_SinkBase):
 
     It is the responsibility of the user to consume the SDDS data
 
-    DataSinkSDDS manages attachment Ids under the port (self._snk) dictionary attachments
+    DataSinkSDDS manages attachment Ids under the port (self._sink) dictionary attachments
 
     register an attach callback by passing a function to registerAttachCallback
     register an detach callback by passing a function to registerDetachCallback
     """
     def __init__(self):
         _SinkBase.__init__(self, formats=['sdds'])
-        self._snk = _bulkio_data_helpers.SDDSSink(self)
+        self._sink = _bulkio_data_helpers.SDDSSink(self)
         self.attach_cb = self.__attach_cb
         self.detach_cb = self.__detach_cb
 
     def getPort(self, portName):
-        return self._snk.getPort()
+        return self._sink.getPort()
 
     def __attach_cb(self, streamDef, user_id):
         print 'attach received: ',streamDef, user_id
