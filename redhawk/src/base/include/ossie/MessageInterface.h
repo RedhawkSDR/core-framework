@@ -305,7 +305,7 @@ public:
     template <typename Iterator>
     void sendMessages(Iterator first, Iterator last)
     {
-        boost::mutex::scoped_lock lock(portInterfaceAccess);
+        boost::mutex::scoped_lock lock(updatingPortsLock);
         _beginMessageQueue(std::distance(first, last));
         for (; first != last; ++first) {
             _queueMessage(*first);
@@ -343,9 +343,6 @@ protected:
     class LocalTransport;
     typedef std::map<std::string,MessageTransport*> TransportMap;
     TransportMap _connections;
-
-    boost::mutex portInterfaceAccess;
-
 };
 
 #endif // MESSAGEINTERFACE_H

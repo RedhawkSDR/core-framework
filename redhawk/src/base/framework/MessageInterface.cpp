@@ -392,7 +392,7 @@ void MessageSupplierPort::connectPort(CORBA::Object_ptr connection, const char* 
     }
 
     {
-        boost::mutex::scoped_lock lock(portInterfaceAccess);
+        boost::mutex::scoped_lock lock(updatingPortsLock);
         MessageTransport* transport;
         MessageConsumerPort* local_port = ossie::corba::getLocalServant<MessageConsumerPort>(channel);
         if (local_port) {
@@ -406,7 +406,7 @@ void MessageSupplierPort::connectPort(CORBA::Object_ptr connection, const char* 
 
 void MessageSupplierPort::disconnectPort(const char* connectionId)
 {
-    boost::mutex::scoped_lock lock(portInterfaceAccess);
+    boost::mutex::scoped_lock lock(updatingPortsLock);
     TransportMap::iterator connection = _connections.find(connectionId);
     if (connection == _connections.end()) {
         return;
@@ -419,7 +419,7 @@ void MessageSupplierPort::disconnectPort(const char* connectionId)
 ExtendedCF::UsesConnectionSequence* MessageSupplierPort::connections()
 {
     ExtendedCF::UsesConnectionSequence_var result = new ExtendedCF::UsesConnectionSequence();
-    boost::mutex::scoped_lock lock(portInterfaceAccess);
+    boost::mutex::scoped_lock lock(updatingPortsLock);
     result->length(_connections.size());
     CORBA::ULong index = 0;
     for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
@@ -431,7 +431,7 @@ ExtendedCF::UsesConnectionSequence* MessageSupplierPort::connections()
 
 void MessageSupplierPort::push(const CORBA::Any& data)
 {
-    boost::mutex::scoped_lock lock(portInterfaceAccess);
+    boost::mutex::scoped_lock lock(updatingPortsLock);
     for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
         try {
             connection->second->push(data);
