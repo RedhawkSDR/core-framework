@@ -29,6 +29,7 @@
 #include <boost/utility/enable_if.hpp>
 
 #include "CF/ExtendedEvent.h"
+#include "CF/QueryablePort.h"
 #include "CF/cf.h"
 #include "CorbaUtils.h"
 #include "Port_impl.h"
@@ -269,7 +270,7 @@ protected:
 
 class MessageSupplierPort : public Port_Uses_base_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
-, public virtual POA_CF::Port
+, public virtual POA_ExtendedCF::QueryablePort
 #endif
 {
 
@@ -280,6 +281,9 @@ public:
     // CF::Port methods
     void connectPort(CORBA::Object_ptr connection, const char* connectionId);
     void disconnectPort(const char* connectionId);
+
+    // ExtendedCF::QueryablePort methods
+    ExtendedCF::UsesConnectionSequence* connections();
 
     void push(const CORBA::Any& data);
 

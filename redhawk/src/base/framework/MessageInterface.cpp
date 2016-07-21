@@ -215,6 +215,11 @@ public:
 
     virtual void disconnect() = 0;
 
+    CosEventChannelAdmin::EventChannel_ptr objref()
+    {
+        return CosEventChannelAdmin::EventChannel::_narrow(_channel);
+    }
+
 private:
     CosEventChannelAdmin::EventChannel_var _channel;
 };
@@ -409,6 +414,19 @@ void MessageSupplierPort::disconnectPort(const char* connectionId)
     connection->second->disconnect();
     delete connection->second;
     _connections.erase(connection);
+}
+
+ExtendedCF::UsesConnectionSequence* MessageSupplierPort::connections()
+{
+    ExtendedCF::UsesConnectionSequence_var result = new ExtendedCF::UsesConnectionSequence();
+    boost::mutex::scoped_lock lock(portInterfaceAccess);
+    result->length(_connections.size());
+    CORBA::ULong index = 0;
+    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+        result[index].connectionId = connection->first.c_str();
+        result[index].port = connection->second->objref();
+    }
+    return result._retn();
 }
 
 void MessageSupplierPort::push(const CORBA::Any& data)
