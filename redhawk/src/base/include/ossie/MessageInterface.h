@@ -139,7 +139,7 @@ public:
     void registerMessage (const std::string& id, Class* target, void (Class::*func)(const std::string&, const MessageStruct&))
     {
         const char* format = ::internal::message_traits<MessageStruct>::format();
-        callbacks_[id] = new MessageCallback<MessageStruct>(format, boost::bind(func, target, _1, _2));
+        callbacks_[id] = new MessageCallbackImpl<MessageStruct>(format, boost::bind(func, target, _1, _2));
     }
 
     template <class Target, class Func>
@@ -173,11 +173,12 @@ public:
 protected:
     friend class MessageSupplierPort;
 
-    bool pushLocal (const std::string& id, const char* format, const void* data);
-
     void addSupplier (const std::string& connectionId, CosEventComm::PushSupplier_ptr supplier);
 
     CosEventComm::PushSupplier_ptr removeSupplier (const std::string& connectionId);
+
+    bool hasGenericCallbacks();
+    void dispatchGeneric(const std::string& id, const CORBA::Any& data);
     
     boost::mutex portInterfaceAccess;
     std::map<std::string, Consumer_i*> consumers;
@@ -188,12 +189,12 @@ protected:
     /*
      * Abstract untyped interface for message callbacks.
      */
-    class MessageCallbackBase
+    class MessageCallback
     {
     public:
         virtual void dispatch (const std::string& value, const CORBA::Any& data) = 0;
         virtual void dispatch (const std::string& value, const void* data) = 0;
-        virtual ~MessageCallbackBase () { }
+        virtual ~MessageCallback () { }
 
         bool isCompatible (const char* format)
         {
@@ -208,7 +209,7 @@ protected:
         }
 
     protected:
-        MessageCallbackBase(const std::string& format) :
+        MessageCallback(const std::string& format) :
             _format(format)
         {
         }
@@ -221,13 +222,13 @@ protected:
      * Concrete typed class for message callbacks.
      */
     template <class Message>
-    class MessageCallback : public MessageCallbackBase
+    class MessageCallbackImpl : public MessageCallback
     {
     public:
-        typedef boost::function<void (const std::string&, const Message&)> CallbackFunc;;
+        typedef boost::function<void (const std::string&, const Message&)> CallbackFunc;
 
-        MessageCallback (const std::string& format, CallbackFunc func) :
-            MessageCallbackBase(format),
+        MessageCallbackImpl (const std::string& format, CallbackFunc func) :
+            MessageCallback(format),
             func_(func)
         {
         }
@@ -250,8 +251,10 @@ protected:
         CallbackFunc func_;
     };
 
-    typedef std::map<std::string, MessageCallbackBase*> CallbackTable;
+    typedef std::map<std::string, MessageCallback*> CallbackTable;
     CallbackTable callbacks_;
+
+    MessageCallback* getMessageCallback(const std::string& msgId);
 
     ossie::notification<void (const std::string&, const CORBA::Any&)> generic_callbacks_;
 

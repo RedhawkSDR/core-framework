@@ -144,9 +144,9 @@ CosEventComm::PushSupplier_ptr MessageConsumerPort::removeSupplier (const std::s
 };
 
 void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any& data) {
-    CallbackTable::iterator callback = callbacks_.find(id);
-    if (callback != callbacks_.end()) {
-        callback->second->dispatch(id, data);
+    MessageCallback* callback = getMessageCallback(id);
+    if (callback) {
+        callback->dispatch(id, data);
     } else {
         if (generic_callbacks_.empty()) {
             std::string warning = "no callbacks registered for messages with id: "+id+".";
@@ -157,8 +157,8 @@ void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any&
                 warning += " The only registered callback is for message with id: "+callbacks_.begin()->first;
             } else { 
                 warning += " The available message callbacks are for messages with any of the following id: ";
-                for (callback = callbacks_.begin();callback != callbacks_.end(); callback++) {
-                    warning += callback->first+" ";
+                for (CallbackTable::iterator cb = callbacks_.begin(); cb != callbacks_.end(); ++cb) {
+                    warning += cb->first+" ";
                 }
             }
             LOG_WARN(MessageConsumerPort,warning);
@@ -166,16 +166,26 @@ void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any&
     }
 
     // Invoke the callback for those messages that are generic
-    generic_callbacks_(id, data);
+    dispatchGeneric(id, data);
 };
 
-bool MessageConsumerPort::pushLocal (const std::string& id, const char* format, const void* data) {
+MessageConsumerPort::MessageCallback* MessageConsumerPort::getMessageCallback(const std::string& id)
+{
     CallbackTable::iterator callback = callbacks_.find(id);
-    if (callback != callbacks_.end() && callback->second->isCompatible(format)) {
-        callback->second->dispatch(id, data);
-        return true;
+    if (callback != callbacks_.end()) {
+        return callback->second;
     }
-    return false;
+    return 0;
+}
+
+bool MessageConsumerPort::hasGenericCallbacks()
+{
+    return !generic_callbacks_.empty();
+}
+
+void MessageConsumerPort::dispatchGeneric(const std::string& id, const CORBA::Any& data)
+{
+    generic_callbacks_(id, data);
 }
 
 std::string MessageConsumerPort::getRepid() const 
@@ -292,13 +302,29 @@ public:
 
     void queueMessage(const std::string& msgId, const char* format, const void* msgData, MessageSupplierPort::SerializerFunc serializer)
     {
-        if (_consumer->pushLocal(msgId, format, msgData)) {
-            return;
+        CallbackEntry* entry = getCallback(msgId, format);
+        if (entry) {
+            // There is a message-specific callback registered; use direct
+            // dispatch if available, otherwise fall back to CORBA Any
+            if (entry->direct) {
+                entry->callback->dispatch(msgId, msgData); 
+            } else {
+                CORBA::Any data;
+                serializer(data, msgData);
+                entry->callback->dispatch(msgId, data);
+            }
         }
 
-        CORBA::Any data;
-        serializer(data, msgData);
-        _consumer->fireCallback(msgId, data);
+        // If the receiver has any generic callbacks registered, serialize the
+        // message to a CORBA Any (which, technically speaking, may have also
+        // been done above if the message format differed) and send it along.
+        // By serializing only when it's required, the best case of direct
+        // message dispatch runs significantly faster.
+        if (_consumer->hasGenericCallbacks()) {
+            CORBA::Any data;
+            serializer(data, msgData);
+            _consumer->dispatchGeneric(msgId, data);
+        }
     }
 
     void sendMessages()
@@ -310,7 +336,38 @@ public:
     }
 
 private:
+    struct CallbackEntry {
+        MessageConsumerPort::MessageCallback* callback;
+        bool direct;
+    };
+
+    typedef std::map<std::string,CallbackEntry> CallbackTable;
+
+    CallbackEntry* getCallback(const std::string& msgId, const char* format)
+    {
+        CallbackTable::iterator callback = _callbacks.find(msgId);
+        if (callback != _callbacks.end()) {
+            // The callback has already been found and negotiated
+            return &(callback->second);
+        }
+
+        // No callback has been found yet; ask the consumer for its callback,
+        // and if it has one, negotiate whether we can use direct dispatch via
+        // void*
+        CallbackEntry entry;
+        entry.callback = _consumer->getMessageCallback(msgId);
+        if (entry.callback) {
+            entry.direct = entry.callback->isCompatible(format);
+            callback = _callbacks.insert(std::make_pair(msgId, entry)).first;
+            return &(callback->second);
+        }
+
+        // There is no callback registered for the given message
+        return 0;
+    }
+
     MessageConsumerPort* _consumer;
+    CallbackTable _callbacks;
 };
 
 MessageSupplierPort::MessageSupplierPort (std::string port_name) :
