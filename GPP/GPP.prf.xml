@@ -492,16 +492,16 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
   </struct>
 
   <struct id="sys_limits" mode="readonly">
-    <simple id="current_threads" type="long">
+    <simple id="sys_limits::current_threads" name="current_threads" type="long">
       <description>The current number of threads running on the system</description>
     </simple>
-    <simple id="max_threads" type="long">
+    <simple id="sys_limits::max_threads" name="max_threads" type="long">
       <description>The maximum number of threads allowed to run on the system</description>
     </simple>
-    <simple id="current_open_files" type="long">
+    <simple id="sys_limits::current_open_files" name="current_open_files" type="long">
       <description>The current number of open file on the system.</description>
     </simple>
-    <simple id="max_open_files" type="long">
+    <simple id="sys_limits::max_open_files" name="max_open_files" type="long">
       <description>The maximum number of open file handles allowed for the system</description>
     </simple>
     <configurationkind kindtype="property"/>
