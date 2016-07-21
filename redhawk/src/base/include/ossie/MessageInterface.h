@@ -128,7 +128,7 @@ class MessageConsumerPort : public Port_Provides_base_impl
 
 public:
     MessageConsumerPort (std::string port_name);
-    virtual ~MessageConsumerPort (void) { };
+    virtual ~MessageConsumerPort (void);
 
     /*
      * Register a callback function

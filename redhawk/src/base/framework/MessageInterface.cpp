@@ -69,11 +69,28 @@ CosEventChannelAdmin::ProxyPullConsumer_ptr SupplierAdmin_i::obtain_pull_consume
     return CosEventChannelAdmin::ProxyPullConsumer::_nil();
 };
     
-MessageConsumerPort::MessageConsumerPort(std::string port_name) : Port_Provides_base_impl(port_name) {
-    supplier_admin = new SupplierAdmin_i(this);
+MessageConsumerPort::MessageConsumerPort(std::string port_name) :
+    Port_Provides_base_impl(port_name),
+    supplier_admin(0)
+{
 }
 
-    // CF::Port methods
+MessageConsumerPort::~MessageConsumerPort()
+{
+    // If a SupplierAdmin was created, deactivate and delete it
+    if (supplier_admin) {
+        PortableServer::POA_var poa = supplier_admin->_default_POA();
+        PortableServer::ObjectId_var oid = poa->servant_to_id(supplier_admin);
+        poa->deactivate_object(oid);
+        supplier_admin->_remove_ref();
+    }
+
+    for (CallbackTable::iterator callback = callbacks_.begin(); callback != callbacks_.end(); ++callback) {
+        delete callback->second;
+    }
+}
+
+// CF::Port methods
 void MessageConsumerPort::connectPort(CORBA::Object_ptr connection, const char* connectionId) {
     CosEventChannelAdmin::EventChannel_var channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(connection);
     if (CORBA::is_nil(channel)) {
@@ -101,6 +118,12 @@ CosEventChannelAdmin::ConsumerAdmin_ptr MessageConsumerPort::for_consumers() {
 };
     
 CosEventChannelAdmin::SupplierAdmin_ptr MessageConsumerPort::for_suppliers() {
+    boost::mutex::scoped_lock lock(portInterfaceAccess);
+    if (!supplier_admin) {
+        supplier_admin = new SupplierAdmin_i(this);
+        PortableServer::POA_var poa = supplier_admin->_default_POA();
+        PortableServer::ObjectId_var oid = poa->activate_object(supplier_admin);
+    }
     return supplier_admin->_this();
 };
     
@@ -204,6 +227,10 @@ class MessageSupplierPort::MessageTransport
 public:
     MessageTransport(CosEventChannelAdmin::EventChannel_ptr channel) :
         _channel(CosEventChannelAdmin::EventChannel::_duplicate(channel))
+    {
+    }
+
+    virtual ~MessageTransport()
     {
     }
 
@@ -382,6 +409,9 @@ MessageSupplierPort::MessageSupplierPort (std::string port_name) :
 
 MessageSupplierPort::~MessageSupplierPort (void)
 {
+    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+        delete connection->second;
+    }
 }
 
 void MessageSupplierPort::connectPort(CORBA::Object_ptr connection, const char* connectionId)
@@ -425,6 +455,7 @@ ExtendedCF::UsesConnectionSequence* MessageSupplierPort::connections()
     for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
         result[index].connectionId = connection->first.c_str();
         result[index].port = connection->second->objref();
+        ++index;
     }
     return result._retn();
 }
