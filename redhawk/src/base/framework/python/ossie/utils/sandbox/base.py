@@ -215,7 +215,7 @@ class Sandbox(object):
 
     def launch(self, descriptor, instanceName=None, refid=None, impl=None,
                debugger=None, window=None, properties={}, configure=True,
-               initialize=True, timeout=None, objType=None):
+               initialize=True, timeout=None, objType=None, shared=True):
         sdrRoot = self.getSdrRoot()
 
         # Parse the component XML profile.
@@ -257,7 +257,7 @@ class Sandbox(object):
 
         # Determine the class for the component type and create a new instance.
         comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
-        launcher = self._createLauncher(comptype, execparams, initProps, initialize, configProps, debugger, window, timeout)
+        launcher = self._createLauncher(comptype, execparams, initProps, initialize, configProps, debugger, window, timeout, shared)
         if not launcher:
             raise NotImplementedError("No support for component type '%s'" % comptype)
         comp._launcher = launcher

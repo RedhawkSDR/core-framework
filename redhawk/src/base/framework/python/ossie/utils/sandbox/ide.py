@@ -149,7 +149,8 @@ class IDESandbox(Sandbox):
         # "valid"
         return True
 
-    def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger, window, timeout):
+    def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger,
+                        window, timeout, shared):
         if comptype in ('resource', 'device', 'loadabledevice', 'executabledevice'):
             return IDELauncher(execparams, initProps, configProps)
         return None

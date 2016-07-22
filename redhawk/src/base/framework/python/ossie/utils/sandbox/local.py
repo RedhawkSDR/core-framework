@@ -119,7 +119,7 @@ class LocalSdrRoot(SdrRoot):
 
 
 class LocalLauncher(SandboxLauncher):
-    def __init__(self, execparams, initProps, initialize, configProps, debugger, window, timeout):
+    def __init__(self, execparams, initProps, initialize, configProps, debugger, window, timeout, shared):
         self._execparams = execparams
         self._debugger = debugger
         self._window = window
@@ -127,6 +127,7 @@ class LocalLauncher(SandboxLauncher):
         self._initialize = initialize
         self._configProps = configProps
         self._timeout = timeout
+        self._shared = shared
 
     def _getImplementation(self, spd, identifier):
         for implementation in spd.get_implementation():
@@ -219,7 +220,10 @@ class LocalLauncher(SandboxLauncher):
         # component host
         entry_point = sdrroot.relativePath(comp._profile, impl.get_code().get_entrypoint())
         if impl.get_code().get_type() == 'SharedLibrary':
-            container = comp._sandbox._getComponentHost()
+            if self._shared:
+                container = comp._sandbox._getComponentHost()
+            else:
+                container = comp._sandbox._launchComponentHost(comp._instanceName)
             container.executeLinked(entry_point, [], execparams, deps)
             process = container._process
         else:
@@ -265,7 +269,7 @@ class LocalLauncher(SandboxLauncher):
             process.addChild(debug_process)
 
         # Store the process on the component proxy.
-        if impl.get_code().get_type() == 'SharedLibrary':
+        if impl.get_code().get_type() == 'SharedLibrary' and self._shared:
             comp._process = None
         else:
             comp._process = process
@@ -420,11 +424,12 @@ class LocalSandbox(Sandbox):
             self.__container = self._launchComponentHost()
         return self.__container
 
-    def _launchComponentHost(self):
+    def _launchComponentHost(self, instanceName=None):
         # Directly create the sandbox object instead of going through launch()
         profile = self._sdrroot.domPath('/mgr/rh/ComponentHost/ComponentHost.spd.xml')
         spd, scd, prf = self._sdrroot.readProfile(profile)
-        instanceName = self._createInstanceName('ComponentHost', 'resource')
+        if instanceName is None:
+            instanceName = self._createInstanceName('ComponentHost', 'resource')
         refid = str(uuid4())
         comp = ComponentHost(self, profile, spd, scd, prf, instanceName, refid, None)
 
@@ -433,7 +438,7 @@ class LocalSandbox(Sandbox):
         # root of the local filesystem; all component paths provided to the
         # component host will be absolute.
         execparams = {'RH::DEPLOYMENT_ROOT':'/'}
-        comp._launcher = LocalComponentLauncher(execparams, {}, True, {}, None, None, None)
+        comp._launcher = LocalComponentLauncher(execparams, {}, True, {}, None, None, None, False)
         comp._kick()
         return comp
 
@@ -466,16 +471,17 @@ class LocalSandbox(Sandbox):
                 return False
         return True
 
-    def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger, window, timeout):
+    def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger,
+                        window, timeout, shared):
         if comptype == 'resource':
             clazz = LocalComponentLauncher
         elif comptype in ('device', 'loadabledevice', 'executabledevice'):
             clazz = LocalDeviceLauncher
         elif comptype == 'service':
-            clazz = LocalServiceLauncher
+            clazz = LocalServiceLauncher 
         else:
             return None
-        return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout)
+        return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout, shared)
 
     def getComponents(self):
         return self.__components.values()
