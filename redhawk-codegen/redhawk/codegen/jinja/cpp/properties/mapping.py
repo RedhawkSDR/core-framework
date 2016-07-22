@@ -19,11 +19,37 @@
 #
 
 from redhawk.codegen.lang import cpp
-from redhawk.codegen.lang.idl import IDLInterface
+from redhawk.codegen.lang.idl import IDLInterface, CorbaTypes
 
 from redhawk.codegen.jinja.mapping import PropertyMapper
 
+_formats = {
+    CorbaTypes.OCTET     : 'o',
+    CorbaTypes.BOOLEAN   : 'b',
+    CorbaTypes.CHAR      : 'c',
+    CorbaTypes.SHORT     : 'h',
+    CorbaTypes.USHORT    : 'H',
+    CorbaTypes.LONG      : 'i',
+    CorbaTypes.ULONG     : 'I',
+    CorbaTypes.LONGLONG  : 'l',
+    CorbaTypes.ULONGLONG : 'L',
+    CorbaTypes.FLOAT     : 'f',
+    CorbaTypes.DOUBLE    : 'd',
+    CorbaTypes.STRING    : 's',
+    CorbaTypes.OBJREF    : 's',
+}
+
 class CppPropertyMapper(PropertyMapper):
+    def _getSimpleFormat(self, prop, isSequence):
+        format = _formats[prop.type()]
+        if prop.isComplex():
+            format = '2' + format;
+        if isSequence:
+            format = '[' + format + ']'
+        if prop.isOptional():
+            format += '?'
+        return format
+
     def mapProperty(self, prop):
         cppprop = {}
         if prop.hasName():
@@ -42,6 +68,7 @@ class CppPropertyMapper(PropertyMapper):
             cppprop['cppvalue'] = cpp.literal(prop.value(), 
                                               prop.type(),
                                               prop.isComplex())
+        cppprop['format'] = self._getSimpleFormat(prop, False)
         return cppprop
 
     def mapSimpleSequenceProperty(self, prop):
@@ -53,6 +80,7 @@ class CppPropertyMapper(PropertyMapper):
                                                 prop.type(), 
                                                 prop.isComplex()) 
                                     for v in prop.value()]
+        cppprop['format'] = self._getSimpleFormat(prop, True)
         return cppprop
 
     def mapStructProperty(self, prop, fields):
@@ -60,6 +88,7 @@ class CppPropertyMapper(PropertyMapper):
         typename = self.getStructPropertyType(prop)
         cppprop['cpptype'] = typename
         cppprop['cppvalue'] = typename + '()'
+        cppprop['format'] = ''.join(f['format'] for f in fields)
         return cppprop
 
     def getStructPropertyType(self, prop):

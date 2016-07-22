@@ -107,11 +107,15 @@ struct ${struct.cpptype}${' : public '+struct.baseclass if struct.baseclass} {
 /*{%     endif %}*/
 /*{%   endif %}*/
 /*{% endfor %}*/
-    };
+    }
 
     static std::string getId() {
         return std::string("${struct.identifier}");
-    };
+    }
+
+    static const char* getFormat() {
+        return "${struct.format}";
+    }
 /*{% for field in struct.fields if not field.inherited %}*/
 /*{%   if loop.first %}*/
 
