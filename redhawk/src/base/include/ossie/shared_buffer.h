@@ -670,6 +670,28 @@ namespace redhawk {
         /// @endcond
     };
 
+    /**
+     * @brief  Buffer equality comparison.
+     * @param  lhs  A %shared_buffer.
+     * @param  rhs  A %shared_buffer of the same type as @a lhs.
+     * @return  True iff the size and elements of the shared_buffers are equal.
+     */
+    template <typename T>
+    inline bool operator==(const shared_buffer<T>& lhs, const shared_buffer<T>& rhs)
+    {
+        if (lhs.size() != rhs.size()) {
+            // Different sizes always compare unequal
+            return false;
+        } else if (lhs.data() == rhs.data()) {
+            // If the data pointer is the same (the size is already known to be
+            // the same), no further comparison is required
+            return true;
+        } else {
+            // Perform element-wise comparison
+            return std::equal(lhs.begin(), lhs.end(), rhs.begin());
+        }
+    }
+
 } // namespace redhawk
 
 #endif // REDHAWK_SHARED_BUFFER_H
