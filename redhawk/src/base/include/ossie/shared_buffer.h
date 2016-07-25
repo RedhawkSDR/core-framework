@@ -219,8 +219,22 @@ namespace redhawk {
         shared_buffer slice(size_t start, size_t end=size_t(-1)) const
         {
             shared_buffer result(*this);
-            this->_M_slice(result, start, end);
+            result.trim(start, end);
             return result;
+        }
+
+        /**
+         * @brief  Adjusts the start and end indices of this %shared_buffer.
+         * @param start  Index of first element.
+         * @param end  Index of last element, exclusive (default end).
+         */
+        void trim(size_t start, size_t end=size_t(-1))
+        {
+            if (end == (size_t)-1) {
+                end = this->size();
+            }
+            this->_M_start += start;
+            this->_M_finish = this->_M_start + end - start;
         }
 
         /**
@@ -331,17 +345,6 @@ namespace redhawk {
             this->_M_array.swap(other._M_array);
             std::swap(this->_M_start, other._M_start);
             std::swap(this->_M_finish, other._M_finish);
-        }
-
-        // Adjusts the start and end pointers of a shared_buffer to a the given
-        // slice indices.
-        void _M_slice(shared_buffer& result, size_t start, size_t end) const
-        {
-            if (end == (size_t)-1) {
-                end = result.size();
-            }
-            result._M_start += start;
-            result._M_finish = result._M_start + end - start;
         }
 
         // Internal implementation of copy. Copies the contents of this buffer
@@ -473,7 +476,7 @@ namespace redhawk {
          * @param size  Number of elements.
          * @param deleter  Callable object.
          *
-         * @a D must by copy-constructible. When the last %buffer pointing to
+         * @a D must be copy-constructible. When the last %buffer pointing to
          * @a data is destroyed, @a deleter will be called on @a data. This can
          * be used to define custom release behavior.
          */
@@ -599,7 +602,7 @@ namespace redhawk {
         buffer slice(size_t start, size_t end=size_t(-1))
         {
             buffer result(*this);
-            this->_M_slice(result, start, end);
+            result.trim(start, end);
             return result;
         }
 
