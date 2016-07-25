@@ -41,12 +41,15 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         # need to let event service clean up event channels...... 
         # cycle period is 10 milliseconds
         time.sleep(0.1)
+        redhawk.setTrackApps(False)
 
     def preconditions(self):
         self.assertNotEqual(self._domMgr, None, "DomainManager not available")
         self.assertNotEqual(self._devMgr, None, "DeviceManager not available")
 
     def test_createApplication1(self):
+        # Automatically clean up
+        redhawk.setTrackApps(True)
         # Create Application from $SDRROOT path
         app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
         self.assertNotEqual(app, None, "Application not created")
@@ -73,7 +76,36 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEquals(len(self._rhDom.apps), 0)
         self.assertEquals(len(self._rhDom._get_applications()), 0)
 
+    def test_createApplicationNoCleanup(self):
+        # Create Application from $SDRROOT path
+        app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
+        self.assertNotEqual(app, None, "Application not created")
+        self.assertEquals(len(self._rhDom._get_applications()), 1)
+        self.assertEquals(len(self._rhDom.apps), 1)
+
+        # Ensure that api() works.
+        try:
+            app.api()
+        except:
+            self.fail('App.api() raised an exception')
+
+        app2 = self._rhDom.createApplication("TestCppProps")
+        self.assertNotEqual(app2, None, "Application not created")
+        self.assertEquals(len(self._rhDom._get_applications()), 2)
+        self.assertEquals(len(self._rhDom.apps), 2)
+
+        app.releaseObject()
+        self.assertEquals(len(self._rhDom._get_applications()), 1)
+        self.assertEquals(len(self._rhDom.apps), 1)
+
+        # Use exit functions from module to release other launched app
+        redhawk.core._cleanUpLaunchedApps()
+        self.assertEquals(len(self._rhDom.apps), 1)
+        self.assertEquals(len(self._rhDom._get_applications()), 1)
+
     def test_cleanup_multiple_waves(self):
+        # Automatically clean up
+        redhawk.setTrackApps(True)
         # Create Application from $SDRROOT path
         app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
         self.assertNotEqual(app, None, "Application not created")

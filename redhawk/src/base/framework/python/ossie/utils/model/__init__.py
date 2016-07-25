@@ -44,7 +44,7 @@ import warnings as _warnings
 from connect import *
 
 _DEBUG = False 
-_trackLaunchedApps = True
+_trackLaunchedApps = False
 
 _idllib = idllib.IDLLibrary()
 if 'OSSIEHOME' in _os.environ:
