@@ -163,6 +163,7 @@ CF::ExecutableDevice::ProcessID_Type ComponentHost::executeLinked(const char* na
         LOG_DEBUG(ComponentHost, "Resolving module entry point");
         make_component = reinterpret_cast<ConstructorPtr>(module->symbol("make_component"));
     } catch (const std::exception& exc) {
+        LOG_ERROR(ComponentHost, "Unable to load module entry point: " << exc.what())
         make_component = 0;
     }
     if (!make_component) {
