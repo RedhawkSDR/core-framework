@@ -293,9 +293,9 @@ namespace redhawk {
          * @param data  Pointer to first element.
          * @param size  Number of elements.
          *
-         * Adapts externally aquired memory work with the %shared_buffer API;
-         * however, additional care must be taken to ensure that the data is
-         * copied if it needs to be held past the lifetime of the call.
+         * Adapts externally aquired memory to work with the %shared_buffer
+         * API; however, additional care must be taken to ensure that the data
+         * is copied if it needs to be held past the lifetime of the call.
          */
         static shared_buffer make_transient(const value_type* data, size_t size)
         {
@@ -690,6 +690,31 @@ namespace redhawk {
             // Perform element-wise comparison
             return std::equal(lhs.begin(), lhs.end(), rhs.begin());
         }
+    }
+
+    /**
+     * @brief  A convenience wrapper for creating a buffer.
+     * @param data  Pointer to first element.
+     * @param size  Number of elements.
+     * @return  A newly-constructed buffer<> of the appropriate type.
+     */
+    template <class T>
+    inline redhawk::buffer<T> make_buffer(T* data, size_t size)
+    {
+        return redhawk::buffer<T>(data, size);
+    }
+
+    /**
+     * @brief  A convenience wrapper for creating a buffer with a custom deleter.
+     * @param data  Pointer to first element.
+     * @param size  Number of elements.
+     * @param deleter  Callable object.
+     * @return  A newly-constructed buffer<> of the appropriate type.
+     */
+    template <class T, class D>
+    inline redhawk::buffer<T> make_buffer(T* data, size_t size, D deleter)
+    {
+        return redhawk::buffer<T>(data, size, deleter);
     }
 
 } // namespace redhawk
