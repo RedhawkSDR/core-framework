@@ -76,6 +76,24 @@ namespace bulkio {
     }
     void eraseKeyword(const std::string& name);
 
+    /**
+     * @brief  Returns the internal buffer size.
+     *
+     * A buffer size of 0 indicates that buffering is disabled.
+     */
+    size_t bufferSize() const;
+
+    /**
+     * @brief  Sets the internal buffer size.
+     * @param samples  Number of samples to buffer (0 disables buffering).
+     */
+    void setBufferSize(size_t samples);
+
+    /**
+     * Send all currently buffered data.
+     */
+    void flush();
+
     template <class T>
     void write(const std::vector<T>& data, const BULKIO::PrecisionUTCTime& time)
     {

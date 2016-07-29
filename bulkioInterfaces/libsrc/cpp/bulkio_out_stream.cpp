@@ -20,6 +20,7 @@
 
 #include "bulkio_out_stream.h"
 #include "bulkio_out_port.h"
+#include "bulkio_time_operators.h"
 #include "bulkio_p.h"
 
 using bulkio::OutputStream;
@@ -30,19 +31,13 @@ public:
   typedef typename OutputStream<PortTraits>::ScalarBuffer ScalarBuffer;
   typedef typename OutputStream<PortTraits>::ComplexBuffer ComplexBuffer;
 
-  Impl(const std::string& streamID, OutPortType* port) :
-    _streamID(streamID),
-    _port(port),
-    _sri(bulkio::sri::create(streamID)),
-    _sriUpdated(true)
-  {
-  }
-
   Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
     _streamID(sri.streamID),
     _port(port),
     _sri(sri),
-    _sriUpdated(true)
+    _sriUpdated(true),
+    _bufferSize(0),
+    _bufferOffset(0)
   {
   }
 
@@ -58,10 +53,11 @@ public:
 
   void setSRI(const BULKIO::StreamSRI& sri)
   {
+    _markDirtySRI();
+
     // Copy the new SRI, except for the stream ID, which is immutable
     _sri = sri;
     _sri.streamID = _streamID.c_str();
-    _sriUpdated = true;
   }
 
   void setXDelta(double delta)
@@ -81,20 +77,20 @@ public:
 
   void setKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& properties)
   {
+    _markDirtySRI();
     _sri.keywords = properties;
-    _sriUpdated = true;
   }
 
   void setKeyword(const std::string& name, const CORBA::Any& value)
   {
+    _markDirtySRI();
     redhawk::PropertyMap::cast(_sri.keywords)[name] = value;
-    _sriUpdated = true;
   }
 
   void eraseKeyword(const std::string& name)
   {
+    _markDirtySRI();
     redhawk::PropertyMap::cast(_sri.keywords).erase(name);
-    _sriUpdated = true;
   }
 
   void write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
@@ -103,7 +99,14 @@ public:
       _port->pushSRI(_sri);
       _sriUpdated = false;
     }
-    _send(data, time, false);
+
+    // If buffering is disabled, or the buffer is empty and the input data is
+    // large enough for a full buffer, send it immediately
+    if ((_bufferSize == 0) || (_bufferOffset == 0 && (data.size() >= _bufferSize))) {
+      _send(data, time, false);
+    } else {
+      _doBuffer(data, time);
+    }
   }
 
   void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
@@ -136,14 +139,64 @@ public:
     }
   }
 
+  size_t bufferSize() const
+  {
+    return _bufferSize;
+  }
+
+  void setBufferSize(size_t samples)
+  {
+    // Avoid needless thrashing
+    if (samples == _bufferSize) {
+      return;
+    }
+    _bufferSize = samples;
+
+    // If the new buffer size is less than the currently buffered data, flush
+    if (_bufferSize < _bufferOffset) {
+      flush();
+    } else if (_bufferSize > _buffer.size()) {
+      // The buffer size is increasing beyond the existing allocation; allocate
+      // a new buffer of the desired size and copy existing data
+      redhawk::buffer<ScalarType> new_buffer(_bufferSize);
+      if (_bufferOffset > 0) {
+        std::copy(&_buffer[0], &_buffer[_bufferOffset], &new_buffer[0]);
+      }
+
+      // Replace the old buffer with the new one
+      _buffer.swap(new_buffer);
+    }
+  }
+
+  void flush()
+  {
+    if (_bufferOffset == 0) {
+      return;
+    }
+
+    _flush(false);
+  }
+
   void close()
   {
-    // Send an empty packet with an end-of-stream marker; since there is no
-    // sample data, the timestamp does not matter
-    _send(ScalarBuffer(), bulkio::time::utils::notSet(), true);
+    if (_bufferOffset > 0) {
+      // Add the end-of-stream marker to the buffered data and its timestamp
+      _flush(true);
+    } else {
+      // Send an empty packet with an end-of-stream marker; since there is no
+      // sample data, the timestamp does not matter
+      _send(ScalarBuffer(), bulkio::time::utils::notSet(), true);
+    }
   }
 
 private:
+  void _markDirtySRI()
+  {
+    // Flush buffered data still using the old SRI
+    flush();
+    _sriUpdated = true;
+  }
+
   void _send(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time, bool eos)
   {
     _port->pushPacket(data, time, eos, _streamID);
@@ -152,17 +205,58 @@ private:
   template <typename Field, typename Value>
   void _setStreamMetadata(Field& field, Value value)
   {
+    _markDirtySRI();
     if (field == value) {
       return;
     }
     field = value;
-    _sriUpdated = true;
+  }
+
+  void _flush(bool eos)
+  {
+    // Push out all buffered data, which must be less than the full allocated
+    // size otherwise it would have already been sent
+    _send(_buffer.slice(0, _bufferOffset), _bufferTime, eos);
+
+    // Allocate a new buffer and reset the offset index
+    _buffer = redhawk::buffer<ScalarType>(_bufferSize);
+    _bufferOffset = 0;
+  }
+
+  void _doBuffer(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
+  {
+    // If this is the first data being queued, use its timestamp for the start
+    // time of the buffered data
+    if (_bufferOffset == 0) {
+      _bufferTime = time;
+    }
+
+    // Only buffer up to the currently configured buffer size
+    size_t count = std::min(data.size(), _bufferSize - _bufferOffset);
+    std::copy(&data[0], &data[count], &_buffer[_bufferOffset]);
+
+    // Advance buffer offset, flushing if the buffer is full
+    _bufferOffset += count;
+    if (_bufferOffset >= _bufferSize) {
+      _flush(false);
+    }
+
+    // Handle remaining data
+    if (count < data.size()) {
+      BULKIO::PrecisionUTCTime next = time + (_sri.xdelta * count);
+      _doBuffer(data.slice(count), next);
+    }
   }
 
   const std::string _streamID;
   OutPortType* _port;
   BULKIO::StreamSRI _sri;
   bool _sriUpdated;
+
+  redhawk::buffer<ScalarType> _buffer;
+  BULKIO::PrecisionUTCTime _bufferTime;
+  size_t _bufferSize;
+  size_t _bufferOffset;
 };
 
 template <class PortTraits>
@@ -229,6 +323,24 @@ template <class PortTraits>
 void OutputStream<PortTraits>::blocking(bool mode)
 {
   _impl->setBlocking(mode);
+}
+
+template <class PortTraits>
+size_t OutputStream<PortTraits>::bufferSize() const
+{
+  return _impl->bufferSize();
+}
+
+template <class PortTraits>
+void OutputStream<PortTraits>::setBufferSize(size_t samples)
+{
+  _impl->setBufferSize(samples);
+}
+
+template <class PortTraits>
+void OutputStream<PortTraits>::flush()
+{
+  _impl->flush();
 }
 
 template <class PortTraits>
