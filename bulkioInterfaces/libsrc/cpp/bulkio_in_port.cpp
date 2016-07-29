@@ -280,12 +280,12 @@ namespace  bulkio {
 
 
   template < typename PortTraits >
-  typename InPortBase< PortTraits >::Packet* InPortBase< PortTraits >::peekPacket(float timeout)
+  typename InPortBase< PortTraits >::Packet* InPortBase< PortTraits >::peekPacket(float timeout,
+                                                                                  boost::unique_lock<boost::mutex>& lock)
   {
     uint64_t secs = (unsigned long)(trunc(timeout));
     uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
     boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
-    boost::mutex::scoped_lock lock(this->dataBufferLock);
     while (!breakBlock && packetQueue.empty()) {
       if (timeout == 0) {
         break;
@@ -652,7 +652,8 @@ namespace  bulkio {
 
     // Otherwise, return the stream that owns the next packet on the queue,
     // potentially waiting for one to be received
-    Packet* packet = this->peekPacket(timeout);
+    boost::mutex::scoped_lock lock(this->dataBufferLock);
+    Packet* packet = this->peekPacket(timeout, lock);
     if (packet) {
       return getStream(packet->streamID);
     }

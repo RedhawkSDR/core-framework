@@ -330,7 +330,7 @@ namespace bulkio {
     // Returns a pointer to the first packet in the queue, blocking for up to
     // timeout seconds for one to be available
     //
-    Packet* peekPacket(float timeout);
+    Packet* peekPacket(float timeout, boost::unique_lock<boost::mutex>& lock);
 
     virtual void createStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
     virtual void removeStream(const std::string& streamID);
