@@ -198,10 +198,6 @@ namespace  bulkio {
       return;
     }
 
-    if (!isStreamEnabled(streamID)) {
-      return;
-    }
-
     BULKIO::StreamSRI* sri;
     bool sriChanged = false;
 
@@ -273,8 +269,6 @@ namespace  bulkio {
       dataAvailable.notify_all();
     }
 
-    packetReceived(streamID);
-
     TRACE_EXIT( logger, "InPort::pushPacket"  );
   }
 
@@ -304,27 +298,6 @@ namespace  bulkio {
       return packetQueue.front();
     }
   }
-
-  template < typename PortTraits >
-  bool InPortBase< PortTraits >::isStreamActive(const std::string& streamID)
-  {
-    return true;
-  }
-
-  template < typename PortTraits >
-  bool InPortBase< PortTraits >::isStreamEnabled(const std::string& streamID)
-  {
-    return true;
-  }
-
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::packetReceived(const std::string& streamID)
-  {
-    if (isStreamActive(streamID)) {
-      packetWaiters.notify(streamID);
-    }
-  }
-
 
   template < typename PortTraits >
   void InPortBase< PortTraits >::enableStats( bool enable )
@@ -514,11 +487,6 @@ namespace  bulkio {
 
   template < typename PortTraits >
   void InPortBase< PortTraits >::createStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
-  {
-  }
-
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::removeStream(const std::string& streamID)
   {
   }
 
@@ -738,6 +706,22 @@ namespace  bulkio {
     }
 
     return result;
+  }
+
+  template < typename PortTraits >
+  void InPort< PortTraits >::queuePacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID)
+  {
+    if (isStreamEnabled(streamID)) {
+      super::queuePacket(data, T, EOS, streamID);
+
+      if (isStreamActive(streamID)) {
+        packetWaiters.notify(streamID);
+      }
+    } else if (EOS) {
+      // Acknowledge the end-of-stream by removing the disabled stream before
+      // discarding the packet
+      removeStream(streamID);
+    }
   }
 
   template < typename PortTraits >

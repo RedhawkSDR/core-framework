@@ -333,13 +333,8 @@ namespace bulkio {
     Packet* peekPacket(float timeout, boost::unique_lock<boost::mutex>& lock);
 
     virtual void createStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
-    virtual void removeStream(const std::string& streamID);
-
-    virtual bool isStreamActive(const std::string& streamID);
-    virtual bool isStreamEnabled(const std::string& streamID);
 
     Packet* fetchPacket(const std::string& streamID);
-    void packetReceived(const std::string& streamID);
 
     friend class InputStream<PortTraits>;
     size_t samplesAvailable(const std::string& streamID, bool firstPacket);
@@ -476,11 +471,14 @@ namespace bulkio {
     // end-of-stream has been queued but not yet read 
     std::multimap<std::string,StreamType> pendingStreams;
 
-    virtual void createStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
-    virtual void removeStream(const std::string& streamID);
+    // Override of base class queuePacket to add stream-related behavior
+    void queuePacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
 
-    virtual bool isStreamActive(const std::string& streamID);
-    virtual bool isStreamEnabled(const std::string& streamID);
+    virtual void createStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
+    void removeStream(const std::string& streamID);
+
+    bool isStreamActive(const std::string& streamID);
+    bool isStreamEnabled(const std::string& streamID);
 
     StreamList getReadyStreams(size_t samples);
   };
