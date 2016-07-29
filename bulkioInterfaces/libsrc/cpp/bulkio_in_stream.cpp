@@ -37,6 +37,7 @@ public:
     _sri(sri),
     _eosReceived(false),
     _eosReached(false),
+    _eosReported(false),
     _port(port),
     _queue(),
     _pending(0),
@@ -69,6 +70,13 @@ public:
       // exactly the remaining data, and the stream will never report a ready
       // state again
       _fetchPacket(false);
+    }
+    if (_eosReached && !_eosReported) {
+      // This is the first time end-of-stream has been checked since it was
+      // reached; remove the stream from the port now, since the caller knows
+      // that the stream ended
+      _port->removeStream(_streamID);
+      _eosReported = true;
     }
     return _eosReached;
   }
@@ -120,6 +128,14 @@ public:
     if (!sri) {
       // No SRI retreived implies no data will be retrieved, either due to end-
       // of-stream or because it would block
+      if (_eosReached && !_eosReported) {
+        // If this is the first time end-of-stream could be reported, remove
+        // the stream from the port; since the returned data block is invalid,
+        // that's a cue for the caller to check end-of-stream, but they don't
+        // have to
+        _port->removeStream(_streamID);
+        _eosReported = true;
+      }
       return DataBlockType();
     }
 
@@ -221,7 +237,14 @@ public:
 
   bool hasBufferedData() const
   {
-    return !_queue.empty() || _pending;
+    if (_eosReached && !_eosReported) {
+      // Technically, there is no data to report; however, to nudge the caller
+      // to check end-of-stream, return true
+      return true;
+    } else {
+      // Return true if either there are queued or pending packets
+      return !_queue.empty() || _pending;
+    }
   }
 
 private:
@@ -250,9 +273,6 @@ private:
     // Acknowledge any end-of-stream flag and delete the packet
     PacketType* packet = _queue.front();
     _eosReached = packet->EOS;
-    if (_eosReached) {
-      _port->removeStream(_streamID);
-    }
 
     delete packet;
     _queue.erase(_queue.begin());
@@ -401,7 +421,6 @@ private:
       if (_queue.empty()) {
         // No queued packets, read pointer has reached end-of-stream
         _eosReached = true;
-        _port->removeStream(_streamID);
       } else {
         // Assign the end-of-stream flag to the last packet in the queue so
         // that it is handled on read
@@ -423,6 +442,7 @@ private:
   BULKIO::StreamSRI _sri;
   bool _eosReceived;
   bool _eosReached;
+  bool _eosReported;
   InPortType* _port;
   std::vector<PacketType*> _queue;
   PacketType* _pending;
