@@ -162,6 +162,11 @@ namespace bulkio {
 
     class Impl;
     boost::shared_ptr<Impl> _impl;
+
+    typedef boost::shared_ptr<Impl> OutputStream::*unspecified_bool_type;
+
+  public:
+    operator unspecified_bool_type() const;
   };
 
   typedef OutputStream<bulkio::CharPortTraits>      OutCharStream;

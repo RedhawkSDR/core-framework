@@ -230,6 +230,12 @@ void DataBlock<T>::inputQueueFlushed(bool flushed)
 }
 
 template <class T>
+DataBlock<T>::operator unspecified_bool_type() const
+{
+  return _impl?&DataBlock::_impl:0;
+}
+
+template <class T>
 void DataBlock<T>::swap(std::vector<ScalarType>& other)
 {
   // Copy the vector data into a new shared buffer

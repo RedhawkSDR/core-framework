@@ -440,6 +440,12 @@ void OutputStream<PortTraits>::close()
   _impl.reset();
 }
 
+template <class PortTraits>
+OutputStream<PortTraits>::operator unspecified_bool_type() const
+{
+  return _impl?&OutputStream::_impl:0;
+}
+
 template class OutputStream<bulkio::CharPortTraits>;
 template class OutputStream<bulkio::OctetPortTraits>;
 template class OutputStream<bulkio::ShortPortTraits>;

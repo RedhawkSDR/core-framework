@@ -549,6 +549,12 @@ size_t InputStream<PortTraits>::samplesAvailable()
 }
 
 template <class PortTraits>
+InputStream<PortTraits>::operator unspecified_bool_type() const
+{
+  return _impl?&InputStream::_impl:0;
+}
+
+template <class PortTraits>
 bool InputStream<PortTraits>::operator!() const
 {
   return !_impl;

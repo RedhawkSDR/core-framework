@@ -100,6 +100,11 @@ namespace bulkio {
   private:
     struct Impl;
     boost::shared_ptr<Impl> _impl;
+
+    typedef boost::shared_ptr<Impl> DataBlock::*unspecified_bool_type;
+
+  public:
+    operator unspecified_bool_type() const;
   };
 
   typedef DataBlock<int8_t>           CharDataBlock;
