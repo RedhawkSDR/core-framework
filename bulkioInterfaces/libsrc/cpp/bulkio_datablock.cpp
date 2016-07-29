@@ -150,18 +150,32 @@ namespace {
     double expected = (end.offset - begin.offset)*xdelta;
     return real-expected;
   }
+
+  void validate_timestamps(const std::list<SampleTimestamp>& timestamps)
+  {
+    // Validity checks
+    if (timestamps.empty()) {
+      throw std::logic_error("block contains no timestamps");
+    } else if (timestamps.front().offset != 0) {
+      throw std::logic_error("no timestamp at offset 0");
+    }
+  }
+}
+
+template <class T>
+const BULKIO::PrecisionUTCTime& DataBlock<T>::getStartTime() const
+{
+  const std::list<SampleTimestamp>& timestamps = _impl->timestamps;
+  validate_timestamps(timestamps);
+
+  return _impl->timestamps.front().time;
 }
 
 template <class T>
 double DataBlock<T>::getNetTimeDrift() const
 {
   const std::list<SampleTimestamp>& timestamps = _impl->timestamps;
-  // Validity checks
-  if (timestamps.empty()) {
-    throw std::logic_error("block contains no timestamps");
-  } else if (timestamps.front().offset != 0) {
-    throw std::logic_error("no timestamp at offset 0");
-  }
+  validate_timestamps(timestamps);
 
   return get_drift(timestamps.front(), timestamps.back(), _impl->sri.xdelta);
 }
@@ -170,12 +184,7 @@ template <class T>
 double DataBlock<T>::getMaxTimeDrift() const
 {
   const std::list<SampleTimestamp>& timestamps = _impl->timestamps;
-  // Validity checks
-  if (timestamps.empty()) {
-    throw std::logic_error("block contains no timestamps");
-  } else if (timestamps.front().offset != 0) {
-    throw std::logic_error("no timestamp at offset 0");
-  }
+  validate_timestamps(timestamps);
 
   double max = 0.0;
   std::list<SampleTimestamp>::const_iterator current = timestamps.begin();

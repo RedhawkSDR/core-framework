@@ -81,6 +81,7 @@ namespace bulkio {
     void inputQueueFlushed(bool flush);
 
     void addTimestamp(const SampleTimestamp& timestamp);
+    const BULKIO::PrecisionUTCTime& getStartTime() const;
     std::list<SampleTimestamp> getTimestamps() const;
     double getNetTimeDrift() const;
     double getMaxTimeDrift() const;
