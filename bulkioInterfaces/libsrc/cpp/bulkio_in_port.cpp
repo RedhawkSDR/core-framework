@@ -497,7 +497,7 @@ namespace  bulkio {
 
   template < typename PortTraits >
   std::string   InPortBase< PortTraits >::getRepid() const {
-	return PortType::_PD_repoId;
+    return PortType::_PD_repoId;
   }
 
   template < typename PortTraits >
@@ -554,7 +554,7 @@ namespace  bulkio {
   }
 
   /*
-   * Specializations of base class methods for dataXML ports
+   * Specializations of base class methods for dataFile ports
    */
 
   template <>
@@ -562,10 +562,6 @@ namespace  bulkio {
   {
     return 1;
   }
-
-  /*
-   * Specializations of base class methods for dataFile ports
-   */
 
   //
   template < typename PortTraits >
