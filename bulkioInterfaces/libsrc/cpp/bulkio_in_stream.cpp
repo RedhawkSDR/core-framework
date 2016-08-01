@@ -248,7 +248,7 @@ public:
     // packets with this stream ID are for a different instance), purge any
     // packets for this stream from the port's queue
     if (!_eosReceived) {
-        // TODO
+      _port->discardPacketsForStream(_streamID);
     }
   }
 

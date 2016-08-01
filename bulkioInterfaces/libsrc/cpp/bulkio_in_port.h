@@ -336,6 +336,10 @@ namespace bulkio {
 
     Packet* fetchPacket(const std::string& streamID);
 
+    // Discard currently queued packets for the given stream ID, up to the
+    // first end-of-stream
+    void discardPacketsForStream(const std::string& streamID);
+
     friend class InputStream<PortTraits>;
     size_t samplesAvailable(const std::string& streamID, bool firstPacket);
 

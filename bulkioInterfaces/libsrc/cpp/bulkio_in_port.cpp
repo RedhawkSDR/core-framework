@@ -445,6 +445,28 @@ namespace  bulkio {
   }
 
 
+  namespace {
+    template <class T>
+    inline typename std::deque<T>::iterator do_erase(std::deque<T>& container, typename std::deque<T>::iterator pos)
+    {
+      if (pos == container.begin()) {
+        // PERFORMANCE NOTE:
+        // In a 1-item deque, erase will end up calling pop_back(); however,
+        // this can lead to greatly reduced performance (observed as 1/4 the
+        // data rate on some systems). In the case where the deque alternates
+        // between 0 and 1 packets (i.e., data is consumed as fast as it is
+        // produced), alternating calls to push_back() and pop_back() will
+        // always cause allocation and deallocation. Explicitly calling
+        // pop_front() if it's the first element prevents this worst case
+        // scenario.
+        container.pop_front();
+        return container.begin();
+      } else {
+        return container.erase(pos);
+      }
+    }
+  }
+
   template < typename PortTraits >
   typename InPortBase< PortTraits >::Packet * InPortBase< PortTraits >::fetchPacket(const std::string &streamID)
   {
@@ -460,20 +482,7 @@ namespace  bulkio {
     for (typename PacketQueue::iterator ii = packetQueue.begin(); ii != packetQueue.end(); ++ii) {
       if ((*ii)->streamID == streamID) {
         Packet* packet = *ii;
-        if (ii == packetQueue.begin()) {
-          // PERFORMANCE NOTE:
-          // In a 1-item deque, erase will end up calling pop_back(); however,
-          // this can lead to greatly reduced performance (observed as 1/4 the
-          // data rate on some systems). In the case where the deque alternates
-          // between 0 and 1 packets (i.e., data is consumed as fast as it is
-          // produced), alternating calls to push_back() and pop_back() will
-          // always cause allocation and deallocation. Explicitly calling
-          // pop_front() if it's the first element prevents this worst case
-          // scenario.
-          packetQueue.pop_front();
-        } else {
-          packetQueue.erase(ii);
-        }
+        bulkio::do_erase(packetQueue, ii);
         return packet;
       }
     }
@@ -481,18 +490,22 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
-  void InPortBase< PortTraits >::setNewStreamListener(SriListener* newListener) {
-    newStreamCallback = boost::ref(*newListener);
-  }
-
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::createStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
+  void InPortBase< PortTraits >::discardPacketsForStream(const std::string& streamID)
   {
-  }
-
-  template < typename PortTraits >
-  void   InPortBase< PortTraits >::setLogger( LOGGER_PTR newLogger ) {
-    logger = newLogger;
+    SCOPED_LOCK lock(dataBufferLock);
+    for (typename PacketQueue::iterator ii = packetQueue.begin(); ii != packetQueue.end();) {
+      if ((*ii)->streamID == streamID) {
+        bool eos = (*ii)->EOS;
+        delete *ii;
+        ii = bulkio::do_erase(packetQueue, ii);
+        queueAvailable.notify_one();
+        if (eos) {
+          break;
+        }
+      } else {
+        ++ii;
+      }
+    }
   }
 
   template < typename PortTraits >
