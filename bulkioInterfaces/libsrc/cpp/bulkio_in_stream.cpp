@@ -22,6 +22,8 @@
 #include "bulkio_time_operators.h"
 #include "bulkio_in_port.h"
 
+#include <boost/ptr_container/ptr_deque.hpp>
+
 using bulkio::InputStream;
 
 template <class PortTraits>
@@ -87,7 +89,7 @@ public:
     size_t queued = _samplesQueued;
     if (queued > 0) {
       // Adjust number of samples to account for complex data, if necessary
-      const BULKIO::StreamSRI& sri = _queue.front()->SRI;
+      const BULKIO::StreamSRI& sri = _queue.front().SRI;
       if (sri.mode) {
         queued /= 2;
       }
@@ -116,7 +118,7 @@ public:
       return DataBlockType();
     }
     // Only read up to the end of the first packet in the queue
-    const size_t samples = _queue.front()->buffer.size() - _sampleOffset;
+    const size_t samples = _queue.front().buffer.size() - _sampleOffset;
     return _readData(samples, samples);
   }
 
@@ -232,7 +234,22 @@ public:
   void disable()
   {
     _enabled = false;
-    // TODO: purge queue
+
+    // Clear queued packets, which implicitly deletes them
+    _queue.clear();
+
+    // Explicitly delete pending packet
+    if (_pending) {
+      delete _pending;
+      _pending = 0;
+    }
+
+    // Unless end-of-stream has been received by the port (meaning any further
+    // packets with this stream ID are for a different instance), purge any
+    // packets for this stream from the port's queue
+    if (!_eosReceived) {
+        // TODO
+    }
   }
 
   bool hasBufferedData() const
@@ -251,7 +268,7 @@ private:
   void _consumeData(size_t count)
   {
     while (count > 0) {
-      const SharedBufferType& data = _queue.front()->buffer;
+      const SharedBufferType& data = _queue.front().buffer;
 
       const size_t available = data.size() - _sampleOffset;
       const size_t pass = std::min(available, count);
@@ -271,11 +288,8 @@ private:
   void _consumePacket()
   {
     // Acknowledge any end-of-stream flag and delete the packet
-    PacketType* packet = _queue.front();
-    _eosReached = packet->EOS;
-
-    delete packet;
-    _queue.erase(_queue.begin());
+    _eosReached = _queue.front().EOS;
+    _queue.pop_front();
 
     // If the queue is empty, move the pending packet onto the queue
     if (_queue.empty() && _pending) {
@@ -287,28 +301,28 @@ private:
   DataBlockType _readData(size_t count, size_t consume)
   {
     // Acknowledge pending SRI change
-    PacketType* front = _queue.front();
+    PacketType& front = _queue.front();
     int sriChangeFlags = bulkio::sri::NONE;
-    if (front->sriChanged) {
-      sriChangeFlags = bulkio::sri::compareFields(_sri, front->SRI);
-      front->sriChanged = false;
-      _sri = front->SRI;
+    if (front.sriChanged) {
+      sriChangeFlags = bulkio::sri::compareFields(_sri, front.SRI);
+      front.sriChanged = false;
+      _sri = front.SRI;
     }
 
     // Allocate empty data block and propagate the SRI change and input queue
     // flush flags
     DataBlockType data(_sri);
     data.sriChangeFlags(sriChangeFlags);
-    if (front->inputQueueFlushed) {
+    if (front.inputQueueFlushed) {
       data.inputQueueFlushed(true);
-      front->inputQueueFlushed = false;
+      front.inputQueueFlushed = false;
     }
 
     size_t last_offset = _sampleOffset + count;
-    if (last_offset <= front->buffer.size()) {
+    if (last_offset <= front.buffer.size()) {
       // The requsted sample count can be satisfied from the first packet
-      _addTimestamp(data, _sampleOffset, 0, front->T);
-      data.buffer(front->buffer.slice(_sampleOffset, last_offset));
+      _addTimestamp(data, _sampleOffset, 0, front.T);
+      data.buffer(front.buffer.slice(_sampleOffset, last_offset));
     } else {
       // We have to span multiple packets to get the data
       redhawk::buffer<NativeType> buffer(count);
@@ -319,11 +333,11 @@ private:
       size_t packet_index = 0;
       size_t packet_offset = _sampleOffset;
       while (count > 0) {
-        PacketType* packet = _queue[packet_index];
-        const SharedBufferType& input_data = packet->buffer;
+        PacketType& packet = _queue[packet_index];
+        const SharedBufferType& input_data = packet.buffer;
 
         // Add the timestamp for this pass
-        _addTimestamp(data, packet_offset, data_offset, packet->T);
+        _addTimestamp(data, packet_offset, data_offset, packet.T);
 
         // The number of samples copied on this pass may be less than the total
         // remaining
@@ -382,7 +396,7 @@ private:
       }
     }
 
-    return &(_queue.front()->SRI);
+    return &(_queue.front().SRI);
   }
 
   bool _fetchPacket(bool blocking)
@@ -424,10 +438,13 @@ private:
       } else {
         // Assign the end-of-stream flag to the last packet in the queue so
         // that it is handled on read
-        _queue.back()->EOS = true;
+        _queue.back().EOS = true;
       }
+      // Explicitly delete the packet, since it isn't being queued
       delete packet;
     } else {
+      // Add the packet to the queue, taking ownership; it will be deleted when
+      // it's consumed
       _samplesQueued += packet->buffer.size();
       _queue.push_back(packet);
     }
@@ -444,7 +461,7 @@ private:
   bool _eosReached;
   bool _eosReported;
   InPortType* _port;
-  std::vector<PacketType*> _queue;
+  boost::ptr_deque<PacketType> _queue;
   PacketType* _pending;
   size_t _samplesQueued;
   size_t _sampleOffset;
