@@ -118,15 +118,10 @@ namespace  bulkio {
   BULKIO::StreamSRISequence * InPortBase< PortTraits >::activeSRIs()
   {
     SCOPED_LOCK lock(sriUpdateLock);
-    BULKIO::StreamSRISequence seq_rtn;
-    SriMap::iterator currH;
-    int i = 0;
-    for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-      i++;
-      seq_rtn.length(i);
-      seq_rtn[i-1] = currH->second.first;
+    BULKIO::StreamSRISequence_var retSRI = new BULKIO::StreamSRISequence();
+    for (SriMap::iterator currH = currentHs.begin(); currH != currentHs.end(); ++currH) {
+      ossie::corba::push_back(retSRI, currH->second.first);
     }
-    BULKIO::StreamSRISequence_var retSRI = new BULKIO::StreamSRISequence(seq_rtn);
 
     // NOTE: You must delete the object that this function returns!
     return retSRI._retn();
@@ -164,13 +159,13 @@ namespace  bulkio {
     }
 
     const std::string streamID(H.streamID);
-    BULKIO::StreamSRI tmpH = H; // mutable copy for callbacks
     LOG_TRACE(logger,"pushSRI - FIND- PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );
 
     SCOPED_LOCK lock(sriUpdateLock);
     SriMap::iterator currH = currentHs.find(streamID);
     if (currH == currentHs.end()) {
       LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
+      BULKIO::StreamSRI tmpH = H; // mutable copy for callbacks
       if (newStreamCallback) {
         newStreamCallback(tmpH);
       }
@@ -179,9 +174,9 @@ namespace  bulkio {
       
       createStream(streamID, tmpH);
     } else {
-      if ( sri_cmp && !sri_cmp(tmpH, currH->second.first)) {
+      if ( sri_cmp && !sri_cmp(H, currH->second.first)) {
         LOG_DEBUG(logger,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
-        currentHs[streamID] = std::make_pair(tmpH, true);
+        currentHs[streamID] = std::make_pair(H, true);
       }
     }
     TRACE_EXIT( logger, "InPort::pushSRI"  );
@@ -201,11 +196,10 @@ namespace  bulkio {
     BULKIO::StreamSRI* sri;
     bool sriChanged = false;
 
-    SriMap::iterator currH;
     {
       SCOPED_LOCK lock(sriUpdateLock);
 
-      currH = currentHs.find(streamID);
+      SriMap::iterator currH = currentHs.find(streamID);
       if (currH != currentHs.end()) {
         sri = &currH->second.first;
         sriChanged = currH->second.second;
