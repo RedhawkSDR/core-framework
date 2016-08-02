@@ -462,6 +462,11 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
+  void InPortBase< PortTraits >::createStream(const std::string& /*unused*/, const BULKIO::StreamSRI& /*unused*/)
+  {
+  }
+
+  template < typename PortTraits >
   typename InPortBase< PortTraits >::Packet * InPortBase< PortTraits >::fetchPacket(const std::string &streamID)
   {
     if (streamID.empty()) {
