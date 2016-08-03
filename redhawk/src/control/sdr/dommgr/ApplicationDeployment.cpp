@@ -130,13 +130,13 @@ ContainerDeployment* ApplicationDeployment::createContainer(redhawk::ProfileCach
     const ossie::SoftPkg* softpkg = cache.loadSoftPkg("/mgr/rh/ComponentHost/ComponentHost.spd.xml");
 
     // Create an instantiation with the ID and naming service name based on the
-    // device identifier; the deployment will own this object
+    // device label; the deployment will own this object
     ossie::ComponentInstantiation* instantiation = new ossie::ComponentInstantiation;
-    instantiation->instantiationId = "Container_" + device->identifier;
+    instantiation->instantiationId = "ComponentHost_" + device->label;
     instantiation->namingservicename = instantiation->instantiationId;
 
     // Use the same pattern as components to generate the unique runtime ID
-    LOG_DEBUG(ApplicationDeployment, "Creating container " << instantiation->getID());
+    LOG_DEBUG(ApplicationDeployment, "Creating component host " << instantiation->getID());
     std::string container_id = instantiation->getID() + ":" + instanceName;
 
     container = new ContainerDeployment(softpkg, instantiation, container_id);
