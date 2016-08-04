@@ -238,6 +238,17 @@ namespace redhawk {
         }
 
         /**
+         * @brief  Adjusts the beginning and end of this %shared_buffer.
+         * @param start  Iterator to first element.
+         * @param end  Iterator to last element, exclusive (default end).
+         */
+        void trim(iterator first, iterator last=end())
+        {
+            this->_M_start = const_cast<value_type*>(first);
+            this->_M_finish = const_cast<value_type*>(last);
+        }
+
+        /**
          * @brief  Returns a copy of this %shared_buffer.
          *
          * The returned %buffer points to a newly-allocated array.
