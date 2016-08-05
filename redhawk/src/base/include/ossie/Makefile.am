@@ -67,4 +67,6 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
 nobase_pkginclude_HEADERS = internal/equals.h \
 	     logging/rh_logger.h \
 	     logging/LogConfigUriResolver.h \
-	     logging/loghelpers.h
+	     logging/loghelpers.h \
+	     debug/checked_allocator.h \
+	     debug/checked_iterator.h

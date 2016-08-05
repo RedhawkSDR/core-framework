@@ -26,6 +26,15 @@
 
 #include <boost/shared_array.hpp>
 
+#ifdef _RH_SHARED_BUFFER_DEBUG
+#include "debug/checked_allocator.h"
+#include "debug/checked_iterator.h"
+
+#define _RH_SHARED_BUFFER_CHECK(X) assert(X)
+#else // !_RH_SHARED_BUFFER_DEBUG
+#define _RH_SHARED_BUFFER_CHECK(X)
+#endif
+
 namespace redhawk {
 
     /**
@@ -96,7 +105,11 @@ namespace redhawk {
          * Note that all access to %shared_buffer is const. This means that
          * %iterator and %const_iterator are equivalent.
          */
+#ifdef _RH_SHARED_BUFFER_DEBUG
+        typedef ::redhawk::debug::checked_iterator<const value_type*,shared_buffer> iterator;
+#else
         typedef const value_type* iterator;
+#endif
         /**
          * @brief A random access iterator to const value_type.
          *
@@ -164,7 +177,7 @@ namespace redhawk {
          */
         iterator begin() const
         {
-            return iterator(this->_M_begin());
+            return _M_iterator(this->_M_begin());
         }
 
         /**
@@ -173,12 +186,12 @@ namespace redhawk {
          */
         iterator end() const
         {
-            return iterator(this->_M_end());
+            return _M_iterator(this->_M_end());
         }
 
         /**
          * @brief  Subscript access to the data contained in the %shared_buffer.
-         * @param index The index of the element to access
+         * @param index  The index of the element to access
          * @return  Read-only reference to element
          */
         const value_type& operator[] (size_t index) const
@@ -233,6 +246,8 @@ namespace redhawk {
             if (end == (size_t)-1) {
                 end = this->size();
             }
+            _RH_SHARED_BUFFER_CHECK(end >= start);
+            _RH_SHARED_BUFFER_CHECK(end <= this->size());
             this->_M_start += start;
             this->_M_finish = this->_M_start + end - start;
         }
@@ -244,8 +259,7 @@ namespace redhawk {
          */
         void trim(iterator first, iterator last=end())
         {
-            this->_M_start = const_cast<value_type*>(first);
-            this->_M_finish = const_cast<value_type*>(last);
+            this->_M_trim(first, last);
         }
 
         /**
@@ -335,6 +349,7 @@ namespace redhawk {
         // use.
         value_type& _M_index(size_t index) const
         {
+            _RH_SHARED_BUFFER_CHECK(index < this->size());
             return this->_M_start[index];
         }
 
@@ -348,6 +363,28 @@ namespace redhawk {
         value_type* _M_end() const
         {
             return this->_M_finish;
+        }
+
+        // Converts a pointer into an iterator; if debug is enabled, the ctor
+        // requires an additional parameter (a pointer back to the originating
+        // conatiner), otherwise, it's a no-op
+        inline iterator _M_iterator(value_type* iter) const
+        {
+#ifdef _RH_SHARED_BUFFER_DEBUG
+            return iterator(iter, this);
+#else
+            return iterator(iter);
+#endif
+        }
+
+        // Internal implementation of trim to support checked iterators, which
+        // are different classes for shared_buffer and buffer
+        void _M_trim(const value_type* first, const value_type* last)
+        {
+            _RH_SHARED_BUFFER_CHECK(last >= first);
+            _RH_SHARED_BUFFER_CHECK(last <= this->_M_finish);
+            this->_M_start = const_cast<value_type*>(first);
+            this->_M_finish = const_cast<value_type*>(last);
         }
 
         // Internal implementation of swap.
@@ -425,11 +462,23 @@ namespace redhawk {
         /// @brief  The element type (T).
         typedef T value_type;
         /// @brief  A random access iterator to value_type.
+#ifdef _RH_SHARED_BUFFER_DEBUG
+        typedef ::redhawk::debug::checked_iterator<value_type*,buffer> iterator;
+#else
         typedef value_type* iterator;
+#endif
         /// @brief  A random access iterator to const value_type.
+#ifdef _RH_SHARED_BUFFER_DEBUG
+        typedef ::redhawk::debug::checked_iterator<const value_type*,buffer> const_iterator;
+#else
         typedef const value_type* const_iterator;
+#endif
         /// @brief  The default allocator class.
+#ifdef _RH_SHARED_BUFFER_DEBUG
+        typedef ::redhawk::debug::checked_allocator<T> default_allocator;
+#else
         typedef std::allocator<T> default_allocator;
+#endif
 
         /**
          * @brief  Construct an empty %buffer.
@@ -511,7 +560,7 @@ namespace redhawk {
          */
         iterator begin()
         {
-            return iterator(this->_M_begin());
+            return _M_iterator(this->_M_begin());
         }
 
         /**
@@ -520,7 +569,7 @@ namespace redhawk {
          */
         const_iterator begin() const
         {
-            return const_iterator(this->_M_begin());
+            return _M_const_iterator(this->_M_begin());
         }
 
         /**
@@ -529,7 +578,7 @@ namespace redhawk {
          */
         iterator end()
         {
-            return iterator(this->_M_end());
+            return _M_iterator(this->_M_end());
         }
 
         /**
@@ -538,7 +587,7 @@ namespace redhawk {
          */
         const_iterator end() const
         {
-            return const_iterator(this->_M_end());
+            return _M_const_iterator(this->_M_end());
         }
 
         /**
@@ -618,6 +667,26 @@ namespace redhawk {
         }
 
         /**
+         * @brief  Adjusts the start and end indices of this %buffer.
+         * @param start  Index of first element.
+         * @param end  Index of last element, exclusive (default end).
+         */
+        void trim(size_t start, size_t end=size_t(-1))
+        {
+            read_type::trim(start, end);
+        }
+
+        /**
+         * @brief  Adjusts the beginning and end of this %buffer.
+         * @param start  Iterator to first element.
+         * @param end  Iterator to last element, exclusive (default end).
+         */
+        void trim(iterator first, iterator last=end())
+        {
+            this->_M_trim(first, last);
+        }
+
+        /**
          * @brief  Returns a copy of this %buffer.
          *
          * The returned %buffer points to a newly-allocated array.
@@ -669,6 +738,27 @@ namespace redhawk {
 
     protected:
         /// @cond IMPL
+
+        // Converts a pointer into an iterator (see shared_buffer::_M_iterator
+        // for more explanation)
+        inline iterator _M_iterator(value_type* iter)
+        {
+#ifdef _RH_SHARED_BUFFER_DEBUG
+            return iterator(iter, this);
+#else
+            return iterator(iter);
+#endif
+        }
+
+        // Converts a const pointer into an const_iterator (see above)
+        inline const_iterator _M_const_iterator(const value_type* iter) const
+        {
+#ifdef _RH_SHARED_BUFFER_DEBUG
+            return const_iterator(iter, this);
+#else
+            return const_iterator(iter);
+#endif
+        }
 
         // Implementation of allocate.
         template <class Alloc>
