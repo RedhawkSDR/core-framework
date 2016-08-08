@@ -247,10 +247,7 @@ namespace redhawk {
             if (end == (size_t)-1) {
                 end = this->size();
             }
-            _RH_SHARED_BUFFER_CHECK(end >= start);
-            _RH_SHARED_BUFFER_CHECK(end <= this->size());
-            this->_M_start += start;
-            this->_M_finish = this->_M_start + end - start;
+            this->_M_trim(this->_M_begin() + start, this->_M_begin() + end);
         }
 
         /**
