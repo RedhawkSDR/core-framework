@@ -138,6 +138,11 @@ const ValueSequence& Value::asSequence() const
     return ValueSequence::cast(*prop_seq);
 }
 
+std::ostream& redhawk::operator<<(std::ostream& out, const CORBA::Any& value)
+{
+    out << Value::cast(value).toString();
+    return out;
+}
 
 ValueSequence::ValueSequence() :
     CORBA::AnySeq()

@@ -94,6 +94,7 @@ namespace redhawk {
         }
     };
 
+    std::ostream& operator<<(std::ostream& out, const CORBA::Any& value);
 
     class ValueSequence : public CORBA::AnySeq {
     public:
