@@ -24,6 +24,8 @@
 #include <cstddef>
 #include <stdint.h>
 
+#include "check.h"
+
 namespace redhawk {
 
     namespace debug {
@@ -82,9 +84,9 @@ namespace redhawk {
                 magic_type* front = _M_get_front(ptr);
 
                 // Check that neither the front or the back pad has been written to
-                assert(_M_is_unmodified(front));
+                _RH_DEBUG_CHECK(_M_is_unmodified(front));
                 magic_type* back = _M_get_back(ptr, count);
-                assert(_M_is_unmodified(back));
+                _RH_DEBUG_CHECK(_M_is_unmodified(back));
 
                 ::operator delete(front);
             }

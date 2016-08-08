@@ -38,6 +38,8 @@
 
 #include <iterator>
 
+#include "check.h"
+
 namespace redhawk {
 
     namespace debug {
@@ -129,7 +131,7 @@ namespace redhawk {
              */
             reference operator*() const
             {
-                assert(_M_can_dereference());
+                _RH_DEBUG_CHECK(_M_can_dereference());
                 return *_M_current;
             }
 
@@ -139,7 +141,7 @@ namespace redhawk {
              */
             pointer operator->() const
             {
-                assert(_M_can_dereference());
+                _RH_DEBUG_CHECK(_M_can_dereference());
                 return &*_M_current;
             }
 
@@ -150,7 +152,7 @@ namespace redhawk {
             checked_iterator operator++(int)
             {
                 // Can't increment past the end
-                assert(!_M_is_end());
+                _RH_DEBUG_CHECK(!_M_is_end());
                 checked_iterator tmp(*this);
                 ++_M_current;
                 return tmp;
@@ -163,7 +165,7 @@ namespace redhawk {
             checked_iterator& operator++()
             {
                 // Can't increment past the end
-                assert(!_M_is_end());
+                _RH_DEBUG_CHECK(!_M_is_end());
                 ++_M_current;
                 return *this;
             }
@@ -175,7 +177,7 @@ namespace redhawk {
             checked_iterator operator--(int)
             {
                 // Can't decrement past the first element
-                assert(!_M_is_begin());
+                _RH_DEBUG_CHECK(!_M_is_begin());
                 checked_iterator tmp(*this);
                 --_M_current;
                 return tmp;
@@ -188,7 +190,7 @@ namespace redhawk {
             checked_iterator& operator--()
             {
                 // Can't decrement past the first element
-                assert(!_M_is_begin());
+                _RH_DEBUG_CHECK(!_M_is_begin());
                 --_M_current;
                 return *this;
             }
@@ -200,7 +202,7 @@ namespace redhawk {
              */
             reference operator[](const difference_type& index) const
             {
-                assert(_M_can_increment(index+1));
+                _RH_DEBUG_CHECK(_M_can_increment(index+1));
                 return _M_current[index];
             }
 
@@ -211,7 +213,7 @@ namespace redhawk {
              */
             checked_iterator& operator+=(const difference_type& offset)
             {
-                assert(_M_can_increment(offset));
+                _RH_DEBUG_CHECK(_M_can_increment(offset));
                 _M_current += offset;
                 return *this;
             }
@@ -237,7 +239,7 @@ namespace redhawk {
              */
             checked_iterator& operator-=(const difference_type& offset)
             {
-                assert(_M_can_decrement(offset));
+                _RH_DEBUG_CHECK(_M_can_decrement(offset));
                 _M_current -= offset;
                 return *this;
             }
@@ -327,7 +329,7 @@ namespace redhawk {
         inline bool operator==(const checked_iterator<I1, Sequence>& lhs,
                                const checked_iterator<I2, Sequence>& rhs)
         {
-            assert(lhs._M_can_compare(rhs));
+            _RH_DEBUG_CHECK(lhs._M_can_compare(rhs));
             return lhs.base() == rhs.base();
         }
 
@@ -335,7 +337,7 @@ namespace redhawk {
         inline bool operator!=(const checked_iterator<I1, Sequence>& lhs,
                                const checked_iterator<I2, Sequence>& rhs)
         {
-            assert(lhs._M_can_compare(rhs));
+            _RH_DEBUG_CHECK(lhs._M_can_compare(rhs));
             return lhs.base() != rhs.base();
         }
 
@@ -343,7 +345,7 @@ namespace redhawk {
         inline bool operator<(const checked_iterator<I1, Sequence>& lhs,
                               const checked_iterator<I2, Sequence>& rhs)
         {
-            assert(lhs._M_can_compare(rhs));
+            _RH_DEBUG_CHECK(lhs._M_can_compare(rhs));
             return lhs.base() < rhs.base();
         }
 
@@ -351,7 +353,7 @@ namespace redhawk {
         inline bool operator<=(const checked_iterator<I1, Sequence>& lhs,
                                const checked_iterator<I2, Sequence>& rhs)
         {
-            assert(lhs._M_can_compare(rhs));
+            _RH_DEBUG_CHECK(lhs._M_can_compare(rhs));
             return lhs.base() <= rhs.base();
         }
 
@@ -359,7 +361,7 @@ namespace redhawk {
         inline bool operator>(const checked_iterator<I1, Sequence>& lhs,
                               const checked_iterator<I2, Sequence>& rhs)
         {
-            assert(lhs._M_can_compare(rhs));
+            _RH_DEBUG_CHECK(lhs._M_can_compare(rhs));
             return lhs.base() > rhs.base();
         }
 
@@ -367,7 +369,7 @@ namespace redhawk {
         inline bool operator>=(const checked_iterator<I1, Sequence>& lhs,
                                const checked_iterator<I2, Sequence>& rhs)
         {
-            assert(lhs._M_can_compare(rhs));
+            _RH_DEBUG_CHECK(lhs._M_can_compare(rhs));
             return lhs.base() >= rhs.base();
         }
 
@@ -376,7 +378,7 @@ namespace redhawk {
         operator-(const checked_iterator<I1, Sequence>& lhs,
                   const checked_iterator<I2, Sequence>& rhs)
         {
-            assert(lhs._M_can_compare(rhs));
+            _RH_DEBUG_CHECK(lhs._M_can_compare(rhs));
             return lhs.base() - rhs.base();
         }
 

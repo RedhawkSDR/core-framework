@@ -27,10 +27,11 @@
 #include <boost/shared_array.hpp>
 
 #ifdef _RH_SHARED_BUFFER_DEBUG
+#include "debug/check.h"
 #include "debug/checked_allocator.h"
 #include "debug/checked_iterator.h"
 
-#define _RH_SHARED_BUFFER_CHECK(X) assert(X)
+#define _RH_SHARED_BUFFER_CHECK(X) _RH_DEBUG_CHECK(X)
 #else // !_RH_SHARED_BUFFER_DEBUG
 #define _RH_SHARED_BUFFER_CHECK(X)
 #endif
