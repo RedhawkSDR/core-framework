@@ -238,21 +238,40 @@
       <configurationkind kindtype="configure"/>
     </struct>
     <structvalue>
-      <simpleref refid="structSeqStringSimpleDefValue" value=""/>
+      <simpleref refid="structSeqStringSimpleDefValue" value="foo"/>
       <simpleref refid="structSeqBoolSimpleDefValue" value="false"/>
-      <simpleref refid="structSeqShortSimpleDefValue" value="0"/>
-      <simpleref refid="structSeqFloatSimpleDefValue" value="0.0"/>
+      <simpleref refid="structSeqShortSimpleDefValue" value="4"/>
+      <simpleref refid="structSeqFloatSimpleDefValue" value="10.0"/>
       <simpleref refid="structSeqCharSimpleDefValue" value="A"/>
       <simpleref refid="structSeqOctetSimpleDefValue" value="1"/>
     </structvalue>
     <structvalue>
-      <simpleref refid="structSeqStringSimpleDefValue" value=""/>
-      <simpleref refid="structSeqBoolSimpleDefValue" value="false"/>
-      <simpleref refid="structSeqShortSimpleDefValue" value="0"/>
-      <simpleref refid="structSeqFloatSimpleDefValue" value="0.0"/>
+      <simpleref refid="structSeqStringSimpleDefValue" value="bar"/>
+      <simpleref refid="structSeqBoolSimpleDefValue" value="true"/>
+      <simpleref refid="structSeqShortSimpleDefValue" value="3"/>
+      <simpleref refid="structSeqFloatSimpleDefValue" value="20.0"/>
       <simpleref refid="structSeqCharSimpleDefValue" value="B"/>
-      <simpleref refid="structSeqOctetSimpleDefValue" value="1"/>
+      <simpleref refid="structSeqOctetSimpleDefValue" value="2"/>
     </structvalue>
     <configurationkind kindtype="configure"/>
+  </structsequence>
+  <structsequence id="foo" mode="readwrite">
+    <struct id="bar">
+      <simple id="a" name="x" type="string"/>
+      <simple id="b" name="y" type="string"/>
+    </struct>
+    <structvalue>
+      <simpleref refid="a" value="c"/>
+      <simpleref refid="b" value="d"/>
+    </structvalue>
+    <structvalue>
+      <simpleref refid="a" value="e"/>
+      <simpleref refid="b" value="f"/>
+    </structvalue>
+    <structvalue>
+      <simpleref refid="a" value="g"/>
+      <simpleref refid="b" value="h"/>
+    </structvalue>
+    <configurationkind kindtype="property"/>
   </structsequence>
 </properties>

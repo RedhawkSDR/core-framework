@@ -7,6 +7,62 @@ from ossie import properties, resource
 from ossie.cf import CF, PortTypes
 import copy
 import struct
+from ossie.utils import sb
+
+class ComponentTestsNew(ossie.utils.testing.RHTestCase):
+    SPD_FILE = '../props.spd.xml'
+
+    # setUp is run before every function preceded by "test" is executed
+    # tearDown is run after every function preceded by "test" is executed
+    
+    # self.comp is a component using the sandbox API
+    # to create a data source, the package sb contains data sources like DataSource or FileSource
+    # to create a data sink, there are sinks like DataSink and FileSink
+    # to connect the component to get data from a file, process it, and write the output to a file, use the following syntax:
+    #  src = sb.FileSource('myfile.dat')
+    #  snk = sb.DataSink()
+    #  src.connect(self.comp)
+    #  self.comp.connect(snk)
+    #  sb.start()
+    #
+    # components/sources/sinks need to be started. Individual components or elements can be started
+    #  src.start()
+    #  self.comp.start()
+    #
+    # every component/elements in the sandbox can be started
+    #  sb.start()
+
+    def setUp(self):
+        # Launch the component, using the selected implementation
+        self.comp = sb.launch(self.spd_file, impl=self.impl, initialize=False, configure=None)
+    
+    def tearDown(self):
+        # Clean up all sandbox artifacts created during test
+        sb.release()
+
+    def testStructSeqDefVal(self):
+        #######################################################################
+        # Make sure start and stop can be called without throwing exceptions
+        self.assertEqual(len(self.comp.foo),3)
+        self.assertEqual(self.comp.foo[0].x,"c")
+        self.assertEqual(self.comp.foo[0].y,"d")
+        self.assertEqual(self.comp.foo[1].x,"e")
+        self.assertEqual(self.comp.foo[1].y,"f")
+        self.assertEqual(self.comp.foo[2].x,"g")
+        self.assertEqual(self.comp.foo[2].y,"h")
+        self.assertEqual(len(self.comp.structSeqPropDefValue),2)
+        self.assertEqual(self.comp.structSeqPropDefValue[0].structSeqStringSimpleDefValue,"foo")
+        self.assertEqual(self.comp.structSeqPropDefValue[0].structSeqBoolSimpleDefValue,False)
+        self.assertEqual(self.comp.structSeqPropDefValue[0].structSeqShortSimpleDefValue,4)
+        self.assertEqual(self.comp.structSeqPropDefValue[0].structSeqFloatSimpleDefValue,10)
+        self.assertEqual(self.comp.structSeqPropDefValue[0].structSeqCharSimpleDefValue,"A")
+        self.assertEqual(self.comp.structSeqPropDefValue[0].structSeqOctetSimpleDefValue,1)
+        self.assertEqual(self.comp.structSeqPropDefValue[1].structSeqStringSimpleDefValue,"bar")
+        self.assertEqual(self.comp.structSeqPropDefValue[1].structSeqBoolSimpleDefValue,True)
+        self.assertEqual(self.comp.structSeqPropDefValue[1].structSeqShortSimpleDefValue,3)
+        self.assertEqual(self.comp.structSeqPropDefValue[1].structSeqFloatSimpleDefValue,20)
+        self.assertEqual(self.comp.structSeqPropDefValue[1].structSeqCharSimpleDefValue,"B")
+        self.assertEqual(self.comp.structSeqPropDefValue[1].structSeqOctetSimpleDefValue,2)
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in props"""
@@ -152,7 +208,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     
     
     def testConfigureQuerySeqs(self):
-        print
         #######################################################################
         # Launch the component with the default execparams
         execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
