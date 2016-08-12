@@ -22,6 +22,8 @@ import unittest
 from _unitTestHelpers import scatest
 import time
 from omniORB import CORBA
+from xml.dom import minidom
+import os as _os
 from ossie.cf import CF
 from ossie.utils import redhawk
 from ossie.utils import type_helpers
@@ -375,7 +377,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEquals(app.seq_longlong_name[0], -9223372036854775808)
         self.assertEquals(app.seq_longlong_name[1], 9223372036854775807)
         self.assertEquals(app.seq_ulonglong_name[0], 0)
-        #self.assertEauals(app.seq_ulonglong_name[1], 18446744073709551615)
+        #self.assertEquals(app.seq_ulonglong_name[1], 18446744073709551615)
 
         # Test one beyond upper bound
         self.assertRaises(type_helpers.OutOfRangeException, app.seq_octet.configureValue, [0, 256])
@@ -543,6 +545,33 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertNotEqual(app2, None, 'Application not created')
         self.assert_(app2.ns_name.startswith(name))
         self.assertNotEqual(app1.ns_name, app2.ns_name)
+
+    def test_createApplicationDeviceAssignment(self):
+        """
+        Tests that createApplication() allows the definition of a Device Assignment sequence
+        """
+        sadfile = '/waveforms/TestCppProps/TestCppProps.sad.xml'
+        name = 'TestWave'
+        initConfig = {}
+        devAssignment = []
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node_2/DeviceManager.dcd.xml")
+        
+        devAssignment.append(CF.DeviceAssignmentType('DCE:87f4687e-6b67-458c-a32d-bef8f99a1064',''))
+        self.assertEqual(len(self._rhDom._get_deviceManagers()), 2)
+        dev_1 = self._rhDom.devMgrs[0].devs[0]._get_identifier()
+        dev_2 = self._rhDom.devMgrs[1].devs[0]._get_identifier()
+        
+        devAssignment[0].assignedDeviceId = dev_1
+        app = self._rhDom.createApplication(sadfile, name, {}, devAssignment)
+        self.assertNotEqual(app, None, 'Application not created')
+        self.assertEquals(app._get_componentDevices()[0].assignedDeviceId, dev_1)
+        app.releaseObject()
+        
+        devAssignment[0].assignedDeviceId = dev_2
+        app = self._rhDom.createApplication(sadfile, name, {}, devAssignment)
+        self.assertNotEqual(app, None, 'Application not created')
+        self.assertEquals(app._get_componentDevices()[0].assignedDeviceId, dev_2)
+        app.releaseObject()
 
     def test_createApplication1InitConfig(self):
         """

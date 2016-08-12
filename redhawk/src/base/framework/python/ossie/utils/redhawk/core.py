@@ -1749,7 +1749,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             
         app_obj.ref.releaseObject()
 
-    def createApplication(self, application_sad='', name=None, initConfiguration={}):
+    def createApplication(self, application_sad='', name=None, initConfiguration={}, deviceAssignment=[]):
         """Install and create a particular waveform. This function returns
             a pointer to the instantiated waveform"""
         uninstallAppWhenDone = True
@@ -1791,7 +1791,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             initConfiguration = properties.props_from_dict(initConfiguration)
 
         try:
-            app = app_factory.create(name, initConfiguration, [])
+            app = app_factory.create(name, initConfiguration, deviceAssignment)
         finally:
             if uninstallAppWhenDone:
                 self.ref.uninstallApplication(app_id)
