@@ -19,7 +19,7 @@ details.
 You should have received a copy of the GNU Lesser General Public License along
 with this program.  If not, see http://www.gnu.org/licenses/.
 -->
-<softpkg version="2.0.4" id="DCE:4e20362c-4442-4656-af6d-aedaaf13b275" name="GPP" type="sca_compliant">
+<softpkg version="2.1.0" id="DCE:4e20362c-4442-4656-af6d-aedaaf13b275" name="GPP" type="sca_compliant">
   <title>Redhawk GPP</title>
   <author>
     <name>null</name>
