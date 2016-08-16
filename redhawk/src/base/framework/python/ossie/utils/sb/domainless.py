@@ -106,7 +106,7 @@ import logging
 import string as _string
 import cStringIO
 import warnings
-
+import traceback
 from omniORB import CORBA, any
 
 from ossie import parsers
@@ -466,64 +466,116 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
                 if overload.id == entry.id:
                     allProps.pop(overload.id)
                     structValue = {}
+
+                    # create map of clean keys to overloaded keys
+                    _keys = {}
+                    translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_" 
+                    for _key in overload.value:
+                        _keys[_key.translate(translation)] = _key
+
+                    # for each simple entry in the struct
                     for simple in entry.valueType:
-                        if overload.value.has_key(str(simple[0])):
-                            _keys = {}
-                            translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_"
-                            for _key in overload.value:
-                                _keys[_key.translate(translation)] = _key
-                            if len(simple) == 3:
-                                clean_name = str(simple[0])
+                        
+                        # get id to use for override
+                        if len(simple) == 3:
+                            # no name specified in prf, use id value
+                            st_clean = str(simple[0])
+                        else:
+                            st_clean = str(simple[3])
+
+                        # find a matching key to provide the overloaded value
+                        _ov_key=None
+                        for kl in [ st_clean, simple[0] ]:
+                            kl_clean = kl.translate(translation)
+                            if overload.value.has_key(kl):
+                                _ov_key = kl
                             else:
-                                clean_name = str(simple[3])
-                            _key = clean_name
-                            if not overload.value.has_key(clean_name):
-                                _key = _keys[clean_name]
-                            if simple[1] == 'string' or simple[1] == 'char':
-                                structValue[clean_name] = overload.value[_key]
-                            elif simple[1] == 'boolean':
-                                structValue[clean_name] = bool(overload.value[_key])
-                            elif simple[1] == 'ulong' or simple[1] == 'short' or simple[1] == 'octet' or \
-                                 simple[1] == 'ushort' or simple[1] == 'long' or simple[1] == 'longlong' or \
-                                 simple[1] == 'ulonglong':
-                                structValue[clean_name] = int(overload.value[_key])
-                            elif simple[1] == 'float' or simple[1] == 'double':
-                                structValue[clean_name] = float(overload.value[_key])
-                            else:
-                                print "the proposed overload (id="+entry.id+") is not of a supported type ("+entry.valueType+")"
-                            
+                                if _keys.has_key(kl_clean) and overload.value.has_key(_keys.get(kl_clean)):
+                                    _ov_key = _keys[kl_clean]
+                                    break
+
+                        if _ov_key == None or not overload.value.has_key(_ov_key):
+                            if _DEBUG:
+                                print "Struct::Simple:  id:", str(simple[0]), " cleaned id:", st_clean, "  Unable to match overloaded key: ", _ov_key
+                            continue
+
+                        if _DEBUG:
+                            print "Struct::Simple:  id:", str(simple[0]), " cleaned id:", st_clean, " Overloaded ID: ", overload.id, " value: ", overload.value, " key:", _ov_key
+
+                        # cleanup struct key if it has illegal characters...
+                        st_clean = st_clean.translate(translation)
+                        if simple[1] == 'string' or simple[1] == 'char':
+                            structValue[st_clean] = overload.value[_ov_key]
+                        elif simple[1] == 'boolean':
+                            structValue[st_clean] = bool(overload.value[_ov_key])
+                        elif simple[1] == 'ulong' or simple[1] == 'short' or simple[1] == 'octet' or \
+                                simple[1] == 'ushort' or simple[1] == 'long' or simple[1] == 'longlong' or \
+                                simple[1] == 'ulonglong':
+                                structValue[st_clean] = int(overload.value[_ov_key])
+                        elif simple[1] == 'float' or simple[1] == 'double':
+                            structValue[st_clean] = float(overload.value[_ov_key])
+                        else:
+                             print "the proposed overload (id="+entry.id+") is not of a supported type ("+entry.valueType+")"
+
+                    if _DEBUG:
+                         print "setattr  ", component, " clean name ", entry.clean_name,  " struct ", structValue
                     setattr(component, entry.clean_name, structValue)
             for overload in structseq:
                 if overload.id == entry.id:
                     allProps.pop(overload.id)
                     structSeqValue = []
                     for overloadedValue in overload.value:
+
                         structValue = {}
                         translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_"
+                        # create map of clean keys to overloaded keys
+                        _keys = {}
+                        for _key in overloadedValue:
+                            _keys[_key.translate(translation)] = _key
+
+                        # for each simple entry in the struct
                         for simple in entry.valueType:
-                            if overloadedValue.has_key(str(simple[0])):
-                                _keys = {}
-                                for _key in overloadedValue:
-                                    _keys[_key.translate(translation)] = _key
-                                if len(simple) == 3:
-                                    clean_name = str(simple[0])
+                            if len(simple) == 3:
+                                # no name specified, use id value
+                                st_clean = str(simple[0])
+                            else:
+                                st_clean = str(simple[3])
+
+                            # find a matching key to provide the overloaded value
+                            _ov_key=None
+                            for kl in [ st_clean, simple[0] ]:
+                                kl_clean = kl.translate(translation)
+                                if overloadedValue.has_key(kl):
+                                    _ov_key = kl
                                 else:
-                                    clean_name = str(simple[3])
-                                _key = clean_name
-                                if not overloadedValue.has_key(clean_name):
-                                    _key = _keys[clean_name]
-                                if simple[1] == 'string' or simple[1] == 'char':
-                                    structValue[_key] = overloadedValue[_key]
-                                elif simple[1] == 'boolean':
-                                    structValue[_key] = bool(overloadedValue[_key])
-                                elif simple[1] == 'ulong' or simple[1] == 'short' or simple[1] == 'octet' or \
+                                    if _keys.has_key(kl_clean) and overloadedValue.has_key(_keys.get(kl_clean)):
+                                        _ov_key = _keys[kl_clean]
+                                        break
+
+                            if _ov_key == None or not overloadedValue.has_key(_ov_key):
+                                if _DEBUG:
+                                    print "StructSeq::Struct::Simple:  id:",str(simple[0]), " cleaned id:", st_clean, "  Unable to match overloaded key: ", _ov_key
+                                continue
+
+                            if _DEBUG:
+                                print "StructSeq::Struct::Simple:  id:", str(simple[0]), " cleaned id:", st_clean, " Overloaded  value: ", overloadedValue, " key:", _ov_key
+
+                            # cleanup struct key if it has illegal characters...
+                            st_clean = st_clean.translate(translation)
+                            if simple[1] == 'string' or simple[1] == 'char':
+                                structValue[st_clean] = overloadedValue[_ov_key]
+                            elif simple[1] == 'boolean':
+                                structValue[st_clean] = bool(overloadedValue[_ov_key])
+                            elif simple[1] == 'ulong' or simple[1] == 'short' or simple[1] == 'octet' or \
                                     simple[1] == 'ushort' or simple[1] == 'long' or simple[1] == 'longlong' or \
                                     simple[1] == 'ulonglong':
-                                    structValue[_key] = int(overloadedValue[_key])
-                                elif simple[1] == 'float' or simple[1] == 'double':
-                                    structValue[_key] = float(overloadedValue[_key])
-                                else:
-                                    print "the proposed overload (id="+entry.id+") is not of a supported type ("+entry.valueType+")"
+                                    structValue[st_clean] = int(overloadedValue[_ov_key])
+                            elif simple[1] == 'float' or simple[1] == 'double':
+                                structValue[st_clean] = float(overloadedValue[_ov_key])
+                            else:
+                                 print "the proposed overload (id="+entry.id+") is not of a supported type ("+entry.valueType+")"
+
+
                         structSeqValue.append(structValue)
                     setattr(component, entry.clean_name, structSeqValue)
         for prop in allProps:
@@ -536,8 +588,25 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
 def loadSADFile(filename, props={}):
     '''
     Load the graph/configuration described in the SAD file onto the sandbox
+    
+    Parameters:
+    ----------
+    filename - string
+               Path to the sad.xml file
+    props    - dict
+               Property dictionary of name/value pairs for Assembly Controller and External properties. { 'prop1' : value1 }
+    
+    Returns:
+    --------
+    True  - If the SAD file was loaded and deployed.
+
+    Exceptions:
+    RuntimeError - An error occurred during execution
+
+    Warning - The SAD file was deployed but not all property overloads were processed.
     '''
     log.debug("loading SAD file '%s'", filename)
+    launchedComponents = []
     try:
         sandbox = _getSandbox()
         sdrroot = sandbox.getSdrRoot()
@@ -549,7 +618,6 @@ def loadSADFile(filename, props={}):
         sad = parsers.sad.parseString(sadFileString)
         log.debug("waveform ID '%s'", sad.get_id())
         log.debug("waveform name '%s'", sad.get_name())
-        launchedComponents = []
         validRequestedComponents = {} 
         # Loop over each <componentfile> entry to determine SPD filenames and which components are kickable
         for component in sad.componentfiles.get_componentfile():
@@ -571,6 +639,14 @@ def loadSADFile(filename, props={}):
             log.debug("ASSEMBLY CONTROLLER component instantiation ref '%s'", assemblyControllerRefid)
         if not assemblyControllerRefid:
             log.warn('SAD file did not specify an assembly controller')
+
+        #
+        # Allow for external properties to be set
+        # 
+        externprops=[]
+        if sad.get_externalproperties():
+            externprops=[ { 'comprefid' : x.comprefid, 'propid' : x.propid, 'externalpropid' : x.externalpropid } for x in sad.get_externalproperties().get_property() ]
+            log.info( "External Props:", externprops )
 
         # Loop over each <componentplacement> entry to determine actual instance name for component
         # NOTE: <componentplacement> can also occur within <hostcollocation> elements if that exists
@@ -648,8 +724,10 @@ def loadSADFile(filename, props={}):
                     # NB: Explicitly request no configure call is made on the component
                     newComponent = launch(componentName, instanceName,instanceID,configure=None,execparams=simple_exec_vals, objType="components")
                     launchedComponents.append(newComponent)
-                except:
-                    log.exception("Failed to launch component '%s'", instanceName)
+                except Exception as e:
+                    msg = "Failed to launch component '%s', REASON: %s" %  (instanceName, str(e))
+                    print msg
+                    raise RuntimeError(msg)
 
         # Set up component connections
         if sad.connections:
@@ -743,10 +821,13 @@ def loadSADFile(filename, props={}):
 
             if sandboxComponent != None and componentProps != None:
                 properties=component.get_componentinstantiation()[0].get_componentproperties()
+                simple_vals=[]
+                simpleseq_vals=[]
+                struct_vals=[]
+                structseq_vals = []
                 if properties != None:
                     #simples
                     simples = properties.get_simpleref()
-                    simple_vals = []
                     for simple in simples:
                         if not (simple.refid in configurable[sandboxComponent._instanceName]):
                             continue
@@ -754,10 +835,15 @@ def loadSADFile(filename, props={}):
                         if simple.refid in props and assemblyController:
                             overload_value = props[simple.refid]
                             props.pop(simple.refid)
+                        for ep in externprops:
+                            if simple.refid == ep['propid'] and instanceID == ep['comprefid']:
+                                if ep['externalpropid'] in props:
+                                    overload_value = props[ep['externalpropid']]
+                                    log.debug('overriding external simple property ' + str(ep) )
+                                    props.pop(ep['externalpropid'])
                         simple_vals.append(overloadContainer(str(simple.refid),overload_value))
                     #simple sequences
                     simpleseqs = properties.get_simplesequenceref()
-                    simpleseq_vals = []
                     if simpleseqs != None:
                         for simpleseq in simpleseqs:
                             if not (simpleseq.refid in configurable[sandboxComponent._instanceName]):
@@ -766,10 +852,16 @@ def loadSADFile(filename, props={}):
                             if simpleseq.refid in props and assemblyController:
                                 values_vals = props[simpleseq.refid]
                                 props.pop(simpleseq.refid)
+                            for ep in externprops:
+                                if simpleseq.refid == ep['propid'] and instanceID == ep['comprefid']:
+                                    if ep['externalpropid'] in props:
+                                        overload_value = props[ep['externalpropid']]
+                                        log.debug('overriding external simple sequence property ' + str(ep) )
+                                        props.pop(ep['externalpropid'])
+
                             simpleseq_vals.append(overloadContainer(str(simpleseq.refid),values_vals))
                     #structs
                     structs = properties.get_structref()
-                    struct_vals = []
                     if structs != None:
                         for struct in structs:
                             if not (struct.refid in configurable[sandboxComponent._instanceName]):
@@ -781,10 +873,15 @@ def loadSADFile(filename, props={}):
                             if struct.refid in props and assemblyController:
                                 value = props[struct.refid]
                                 props.pop(struct.refid)
+                            for ep in externprops:
+                                if struct.refid == ep['propid'] and instanceID == ep['comprefid']:
+                                    if ep['externalpropid'] in props:
+                                        overload_value = props[ep['externalpropid']]
+                                        log.debug('overriding external structure property ' + str(ep) )
+                                        props.pop(ep['externalpropid'])
                             struct_vals.append(overloadContainer(str(struct.refid),value))
                     #struct sequences
                     structseqs = properties.get_structsequenceref()
-                    structseq_vals = []
                     if structseqs != None:
                         for structseq in structseqs:
                             if not (structseq.refid in configurable[sandboxComponent._instanceName]):
@@ -799,9 +896,43 @@ def loadSADFile(filename, props={}):
                             if structseq.refid in props and assemblyController:
                                 values_vals = props[structseq.refid]
                                 props.pop(structseq.refid)
+                            for ep in externprops:
+                                if structseq.refid == ep['propid'] and instanceID == ep['comprefid']:
+                                    if ep['externalpropid'] in props:
+                                        overload_value = props[ep['externalpropid']]
+                                        log.debug('overriding external structured sequence property ' + str(ep) )
+                                        props.pop(ep['externalpropid'])
                             structseq_vals.append(overloadContainer(str(structseq.refid),values_vals))
-                    if len(sandboxComponent._properties) > 0:
-                        overloadProperty(sandboxComponent, simple_vals, simpleseq_vals, struct_vals, structseq_vals)
+
+                # for external properties that do not have sad file overrides, process them here
+                if len(props) > 0 :
+                    prop_types = { 'simple' : ([],[]), 'simpleseq' : ([],[]), 'struct' : ([],[]), 'structseq' : ([],[]) }
+                    prop_set = sandboxComponent._prf.get_simple()
+                    prop_types['simple'] = ([str(prop_iter.get_id()) for prop_iter in prop_set], [])
+                    prop_set = sandboxComponent._prf.get_simplesequence()
+                    prop_types['simpleseq'] = ([str(prop_iter.get_id()) for prop_iter in prop_set], [])
+                    prop_set = sandboxComponent._prf.get_struct()
+                    prop_types['struct'] = ([str(prop_iter.get_id()) for prop_iter in prop_set], [])
+                    prop_set = sandboxComponent._prf.get_structsequence()
+                    prop_types['structseq'] = ([str(prop_iter.get_id()) for prop_iter in prop_set], [])
+                    for ep in externprops:
+                        prop = ep['propid']
+                        ext_prop_id=ep['externalpropid']
+                        if instanceID != ep['comprefid'] or ext_prop_id not in props:
+                            continue
+
+                        for prop_type in prop_types:
+                            if prop in prop_types[prop_type][0] and ext_prop_id in props:
+                                prop_types[prop_type][1].append(overloadContainer(str(prop), props[ext_prop_id]))
+                                props.pop( ext_prop_id )
+
+                    simple_vals += prop_types['simple'][1]
+                    simpleseq_vals += prop_types['simpleseq'][1]
+                    struct_vals += prop_types['struct'][1]
+                    structseq_vals += prop_types['structseq'][1]
+
+                if len(sandboxComponent._properties) > 0:
+                    overloadProperty(sandboxComponent, simple_vals, simpleseq_vals, struct_vals, structseq_vals)
             if assemblyController and len(props) > 0 :
                 prop_types = {}
                 prop_types['simple'] = []
@@ -826,16 +957,26 @@ def loadSADFile(filename, props={}):
                                     prop_to_pop.append(str(prop))
                 for prop_to_pop_iter in prop_to_pop:
                     props.pop(prop_to_pop_iter)
+                if _DEBUG:
+                    print "OverLoad Assembly Controller ", (sandboxComponent, prop_types['simple'][1], prop_types['simpleseq'][1], prop_types['struct'][1], prop_types['structseq'][1])
                 overloadProperty(sandboxComponent, prop_types['simple'][1], prop_types['simpleseq'][1], prop_types['struct'][1], prop_types['structseq'][1])
             
         launchedComponents = []
-        if len(props) != 0:
-            for prop in props:
-                print "Overload property '"+prop+"' was ignored because it is not on the Assembly Controller"
-        return True
-    except Exception, e:
-        print "loadSADFile(): ERROR - Failed to load sad file " + str(filename) + " " + str(e)
-        return False
+    except Exception as e:
+        traceback.print_exc()
+        msg=" ERROR - Failed to load sad file: " + str(filename) + " REASON: " + str(e)
+        for lc in launchedComponents:
+            lc.releaseObject()
+        raise RuntimeError(msg)
+
+    if len(props) != 0:
+        pnames=""
+        for prop in props:
+            pnames += ", " + prop
+            print "Overload property '"+prop+"' was ignored because it is not on the Assembly Controller"
+        raise Warning('Requested property overloads not assigned' + pnames )
+    return True
+
 
 def getSDRROOT():
     '''

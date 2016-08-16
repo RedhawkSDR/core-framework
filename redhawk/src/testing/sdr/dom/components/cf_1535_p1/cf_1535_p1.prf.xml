@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="p1" mode="readwrite" name="p1" type="string">
+    <description>can you dig it { ( [</description>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="window" mode="readwrite" name="window" type="string">
+    <enumerations>
+      <enumeration label="w1" value="type1"/>
+      <enumeration label="w2" value="type2"/>
+      <enumeration label="w3" value="type3"/>
+    </enumerations>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="freq" mode="readwrite" name="freq" type="float">
+    <value>0</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="s1" mode="readwrite" name="s1" type="long">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
+  <struct id="st1" mode="readwrite" name="st1">
+    <simple id="st1::a1" name="a1" type="string"/>
+    <simple id="st1::b1" mode="readwrite" name="b1" type="float">
+      <kind kindtype="property"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="property"/>
+  </struct>
+  <structsequence id="ss1" mode="readwrite" name="ss1">
+    <struct id="ss1::st1" name="ss1::st1">
+      <simple id="ss1::st1::a1" name="a1" type="string"/>
+      <simple id="ss1::st1::b1" mode="readwrite" name="b1" type="float">
+        <kind kindtype="property"/>
+        <action type="external"/>
+      </simple>
+    </struct>
+    <configurationkind kindtype="property"/>
+  </structsequence>
+</properties>

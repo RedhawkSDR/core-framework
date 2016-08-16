@@ -592,9 +592,8 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp_ac.my_long, 10)
 
     def test_loadSADFile_overload_create(self):
-        retval = sb.loadSADFile('sdr/dom/waveforms/ticket_462_w/ticket_462_w.sad.xml', props={'my_simple':'not foo','over_simple':'not override'})
+        self.assertRaises(Warning, sb.loadSADFile, 'sdr/dom/waveforms/ticket_462_w/ticket_462_w.sad.xml', props={'my_simple':'not foo','over_simple':'not override'})
         #retval = sb.loadSADFile('sdr/dom/waveforms/ticket_462_w/ticket_462_w.sad.xml', props=[{'my_simple':'not foo'},{'over_simple':'not override'}])
-        self.assertEquals(retval, True)
         comp_ac = sb.getComponent('ticket_462_ac_1')
         self.assertNotEquals(comp_ac, None)
         comp = sb.getComponent('ticket_462_1')
@@ -604,6 +603,18 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp_ac.basic_struct.some_simple, '4')
         self.assertEquals(comp.over_simple, "override")
         self.assertEquals(comp.over_struct_seq, [{'a_word': 'something', 'a_number': 1}])
+
+    def test_loadSADFile_overload_external_props(self):
+        retval = sb.loadSADFile('sdr/dom/waveforms/cf_1535/cf_1535.sad.xml', props={'freq_3': '2222', 's1_3': [ 1,2,3 ], 'st1_3' : { 'st1::b1' : 2 , 'st1::a1' : 'setting st1::a1' } , 'ss1_3' : [ { 'b1' : 3, 'a1' : 'struct1 a1' }, { 'b1' : 4 , 'ss1::st1::a1' : 'struct2 a1' }]} )
+        self.assertEquals(retval, True)
+        comp = sb.getComponent('P1_3')
+        self.assertNotEquals(comp, None)
+        self.assertAlmostEquals(comp.freq, 2222.0)
+        self.assertEquals(comp.s1, [1,2,3])
+        self.assertEquals(comp.st1.a1, 'setting st1::a1' )
+        self.assertEquals(comp.st1.b1,  2.0  )
+        self.assertEquals(comp.ss1, [ { 'ss1::st1::a1': 'struct1 a1', 'ss1::st1::b1': 3.0  }, { 'ss1::st1::a1': 'struct2 a1', 'ss1::st1::b1': 4.0  } ] )
+
 
     def test_simplePropertyRange(self):
         comp = sb.launch('TestPythonPropsRange')
