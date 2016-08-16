@@ -28,7 +28,7 @@ if [ "$1" = "rpm" ]; then
         mydir=`dirname $0`
         tmpdir=`mktemp -d`
         cp -r ${mydir} ${tmpdir}/{{dirname}}
-        tar czf ${tmpdir}/{{tarfile}} --exclude=".svn" -C ${tmpdir} {{dirname}}
+        tar czf ${tmpdir}/{{tarfile}} --exclude=".svn" --exclude=".git" -C ${tmpdir} {{dirname}}
         rpmbuild -ta ${tmpdir}/{{tarfile}}
         rm -rf $tmpdir
     else
