@@ -126,6 +126,13 @@ class ConnectionManager(object):
                 connections[_identifier] = (identifier, uses, provides)
         return connections
 
+    def getConnectionsFor(self, usesComponent):
+        connections = {}
+        for _identifier, (identifier, uses, provides) in self.__connections.iteritems():
+            if uses.hasComponent(usesComponent):
+                connections[_identifier] = (identifier, uses, provides)
+        return connections
+
     def registerConnection(self, identifier, uses, provides):
         _name = uses.getName()
         if _name+identifier in self.__connections:

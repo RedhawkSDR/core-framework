@@ -46,6 +46,7 @@ import logging as _logging
 import socket as _socket
 from omniORB import any as _any
 from omniORB import CORBA as _CORBA
+import CosEventComm__POA
 import warnings as _warnings
 
 from ossie.utils.model import PortSupplier, OutputBase
@@ -58,7 +59,7 @@ import domainless
 log = _logging.getLogger(__name__)
 
 __all__ = ('DataSink', 'DataSource', 'FileSink', 'FileSource', 'MessageSink',
-           'MessageSource','Plot', 'SRIKeyword', 'compareSRI', 'helperBase',
+           'MessageSource','MsgSupplierHelper', 'Plot', 'SRIKeyword', 'compareSRI', 'helperBase',
            'probeBULKIO','createSDDSStreamDefinition', 'DataSourceSDDS',
            'DataSinkSDDS')
 
@@ -273,6 +274,116 @@ class MessageSource(helperBase, PortSupplier):
 
     def sri(self):
         return None
+
+
+class MsgSupplierHelper(object):
+    class Supplier_i(CosEventComm__POA.PushSupplier):
+        def disconnect_push_supplier(self):
+            pass
+
+    """
+    Helper class to send messages to connections of an ExtendedEvent/MessageEvent output Port
+    """
+    def __init__(self, component):
+        self.comp = component
+        # holds supplier ports when messages are connected..
+        self._msg_ports=[]
+
+    def _packMessageData(self, data):
+        if isinstance(data, dict):
+            props = _properties.props_from_dict(data)
+        elif isinstance(data, _CORBA.Any):
+            props = [_CF.DataType('sb', data)]
+        else:
+            # Assume it's something that can be mapped to an any
+            props = [_CF.DataType('sb', _any.to_any(data))]
+        return _properties.props_to_any(props)
+
+
+    def _connectSupplierToEventChannel(self, channel):
+        connection = { 'port': channel }
+
+        supplier_admin = channel.for_suppliers()
+        proxy_consumer = supplier_admin.obtain_push_consumer()
+        connection['proxy_consumer'] = proxy_consumer
+        connection['supplier'] = self.Supplier_i()
+        proxy_consumer.connect_push_supplier(connection['supplier']._this())
+
+        return connection
+
+    def sendMessage(self, msg, msg_id=None, msg_port=None ):
+        # try to find port first...
+        _msg_port=None
+        msg_ports=[ x for x in self.comp.ports if getattr(x,'_using') and x._using.name == 'MessageEvent' ]
+        if len(msg_ports) > 1 and msg_port is None:
+            print "Unable to determine message port, please specify the msg_port parameter, available ports: ", [ x._name for x in msg_ports ]
+            return
+        
+        if msg_port:
+            for x in msg_ports:
+                if x._name == msg_port:
+                    _msg_port = x
+                    break
+        else:
+            _msg_port = msg_ports[0]
+
+        if _msg_port is None:
+            print "Unable to determine message port, please specify the msg_port parameter, available ports: ", [ x._name for x in msg_ports ]
+
+
+        # get current connection for the component and the msg_port
+        _evt_connects=[]
+        if _msg_port:
+            manager = ConnectionManager.instance()
+            for k, (identifier, uses, provides) in manager.getConnectionsFor(self.comp).iteritems():
+                if uses.getPortName() == _msg_port._name:
+                    _evt_connects.append( provides )
+
+        if len(_evt_connects) == 0:
+            print "No available registered connections for sending a message."
+            return
+
+        outmsg=msg
+        if not isinstance(msg, _CORBA.Any):
+            # now look at message structure
+            _msg_struct = None
+            _msg_structs = [ x for x in self.comp._properties if x.kinds == ['message']  ]
+            if len(_msg_structs) > 1 and msg_id is None:
+                print "Unable to determine message structure, please specify the msg_id parameter, available structures: ", [ x.id for x in _msg_structs ]
+                return
+
+            if msg_id:
+                for x in _msg_structs:
+                    if x.id == msg_id:
+                        _msg_struct = x
+                        break
+            else:
+                _msg_struct = _msg_structs[0]
+
+            if _msg_struct is None:
+                print "Unable to determine message structure, please specify the msg_id parameter, available structures: ", [ x.id for x in _msg_structs ]
+
+            messageId = _msg_struct.id
+            payload = self._packMessageData(msg)
+            outgoing = [_CF.DataType(messageId, payload)]
+            outmsg = _properties.props_to_any(outgoing)
+
+
+        for evt_conn in _evt_connects:
+            conn=None
+            ch=evt_conn.getReference()
+            for mp in self._msg_ports:
+                if mp[0] == ch :
+                    conn=mp[1]
+            if conn == None:
+                conn= self._connectSupplierToEventChannel(ch)
+                self._msg_ports.append( (ch, conn ) )
+
+            try:
+                conn['proxy_consumer'].push(outmsg)
+            except:
+                print "WARNING: Unable to send data to: ", conn
+
 
 class _DataPortBase(helperBase, PortSupplier):
 
