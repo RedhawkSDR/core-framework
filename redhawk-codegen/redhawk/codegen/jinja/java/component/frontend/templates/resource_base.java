@@ -104,9 +104,7 @@ public abstract class ${classname} extends ${superClass}
         }
     }
 
-    public final static boolean BOOLEAN_VALUE_HERE=false;
-
-    protected Map<String, String> listeners;
+    protected Map<String, String> listeners = new HashMap<String, String>();
 
     public void frontendTunerStatusChanged(final List<frontend_tuner_status_struct_struct> oldValue, final List<frontend_tuner_status_struct_struct> newValue)
     {
