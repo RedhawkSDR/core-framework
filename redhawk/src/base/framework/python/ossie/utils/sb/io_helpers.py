@@ -311,13 +311,13 @@ class MsgSupplierHelper(object):
 
         return connection
 
-    def sendMessage(self, msg, msg_id=None, msg_port=None ):
+    def sendMessage(self, msg, msg_id=None, msg_port=None, restrict=True ):
         # try to find port first...
         _msg_port=None
         msg_ports=[ x for x in self.comp.ports if getattr(x,'_using') and x._using.name == 'MessageEvent' ]
         if len(msg_ports) > 1 and msg_port is None:
             print "Unable to determine message port, please specify the msg_port parameter, available ports: ", [ x._name for x in msg_ports ]
-            return
+            return False
         
         if msg_port:
             for x in msg_ports:
@@ -341,7 +341,7 @@ class MsgSupplierHelper(object):
 
         if len(_evt_connects) == 0:
             print "No available registered connections for sending a message."
-            return
+            return False
 
         outmsg=msg
         if not isinstance(msg, _CORBA.Any):
@@ -350,20 +350,23 @@ class MsgSupplierHelper(object):
             _msg_structs = [ x for x in self.comp._properties if x.kinds == ['message']  ]
             if len(_msg_structs) > 1 and msg_id is None:
                 print "Unable to determine message structure, please specify the msg_id parameter, available structures: ", [ x.id for x in _msg_structs ]
-                return
+                return False
 
             if msg_id:
+                messageId = msg_id
                 for x in _msg_structs:
                     if x.id == msg_id:
                         _msg_struct = x
+                        messageId = _msg_struct.id
                         break
             else:
                 _msg_struct = _msg_structs[0]
+                messageId = _msg_struct.id
 
-            if _msg_struct is None:
+            if _msg_struct is None and restrict :
                 print "Unable to determine message structure, please specify the msg_id parameter, available structures: ", [ x.id for x in _msg_structs ]
+                return False
 
-            messageId = _msg_struct.id
             payload = self._packMessageData(msg)
             outgoing = [_CF.DataType(messageId, payload)]
             outmsg = _properties.props_to_any(outgoing)
@@ -383,7 +386,9 @@ class MsgSupplierHelper(object):
                 conn['proxy_consumer'].push(outmsg)
             except:
                 print "WARNING: Unable to send data to: ", conn
+                return False
 
+            return True
 
 class _DataPortBase(helperBase, PortSupplier):
 

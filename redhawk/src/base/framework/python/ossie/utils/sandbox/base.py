@@ -31,9 +31,7 @@ from ossie.utils import weakobj
 from ossie.utils.model import PortSupplier, PropertySet, ComponentBase, CorbaObject
 from ossie.utils.model.connect import ConnectionManager
 from ossie.utils.uuid import uuid4
-from ossie.utils.sb.io_helpers import MsgSupplierHelper
 from ossie.utils.sandbox.events import EventChannel
-
 
 log = logging.getLogger(__name__)
 
@@ -351,7 +349,7 @@ class SandboxComponent(ComponentBase):
         self._componentName = spd.get_name()
         self._propRef = {}
         self._configRef = {}
-        self._msgSupplierHelper = MsgSupplierHelper(self)
+        self._msgSupplierHelper = None
         for prop in self._getPropertySet(kinds=('configure',), modes=('readwrite', 'writeonly'), includeNil=False):
             if prop.defValue is None:
                 continue
@@ -362,7 +360,6 @@ class SandboxComponent(ComponentBase):
             self._propRef[str(prop.id)] = prop.defValue
 
         self.__ports = None
-        self._msg_ports=[]
         
     def _readProfile(self):
         sdrRoot = self._sandbox.getSdrRoot()
@@ -412,8 +409,23 @@ class SandboxComponent(ComponentBase):
         PortSupplier.api(self)
         PropertySet.api(self)
 
-    def sendMessage(self, msg, msg_id=None, msg_port=None ):
-        if self._msgSupplierHelper: self._msgSupplierHelper.sendMessage( msg, msg_id, msg_port )
+    def sendMessage(self, msg, msgId=None, msgPort=None, restrict=True ):
+        """
+        send a message out a component's message event port
+        
+        msg : dictionary of information to send or an any object
+        msgId : select a specific message structure property from the component, if None will 
+                choose first available message property structure for the component
+        msgPort : select a specified message event port to use, if None will try to autoselect
+        restrict : if True, will restrict msgId to only those message ids defined by the component
+                   if False, will allow for ad-hoc message to be sent
+        """
+        if self._msgSupplierHelper == None:
+            import ossie.utils
+            self._msgSupplierHelper = ossie.utils.sb.io_helpers.MsgSupplierHelper(self)
+        if self.ref and self.ref._get_started() == True and self._msgSupplierHelper: 
+            return self._msgSupplierHelper.sendMessage( msg, msgId, msgPort, restrict )
+        return False
 
 class SandboxEventChannel(EventChannel, CorbaObject):
     def __init__(self, name, sandbox):

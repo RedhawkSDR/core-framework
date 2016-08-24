@@ -1759,3 +1759,89 @@ class MessagePortTest(scatest.CorbaTestCase):
         sb.stop()
         self.assertEquals( mcb.msg, None)
         msink.releaseObject()
+
+
+    def test_SendMessage(self):
+        
+        class MCB:
+           def __init__(self, cond):
+               self.cond = cond
+               self.count=0
+               self.msg=None
+
+
+           def msgCallback(self, id, msg):
+               self.msg = _properties.prop_to_dict(msg)
+               self.count = self.count + 1
+               self.cond.acquire()
+               self.cond.notify()
+               self.cond.release()
+
+           def reset(self):
+               self.msg=None
+               self.count=0
+
+        def wait_for_msg(cond, timeout=2.0):       
+            cond.acquire()
+            cond.wait(timeout)
+            cond.release()
+                        
+        cond = threading.Condition()
+        c=sb.launch('MsgPort_P')
+        mcb = MCB(cond)
+        msink = sb.MessageSink( messageCallback=mcb.msgCallback )
+        c.connect(msink)
+        src_data={ 'field1': 'testing', 'field2': 100 }
+        c.sendMessage( src_data )
+        wait_for_msg(cond)
+        self.assertEquals( mcb.msg, None )
+        sb.start()
+        src_data={ 'field1': 'testing 2', 'field2': 100 }
+        c.sendMessage( src_data )
+        wait_for_msg(cond)
+        res_data = mcb.msg['msg_out']
+        self.assertEquals( src_data, res_data )        
+        src_data={ 'field1': 'testing 2-1', 'field2': 101 }
+        c.sendMessage( src_data, msgId='msg_out' )
+        wait_for_msg(cond)
+        res_data = mcb.msg['msg_out']
+        self.assertEquals( src_data, res_data )        
+        src_data={ 'field1': 'testing 2-2', 'field2': 102 }
+        c.sendMessage( src_data, msgId='msg_out', msgPort='msg_out' )
+        wait_for_msg(cond)
+        res_data = mcb.msg['msg_out']
+        self.assertEquals( src_data, res_data )        
+        sb.stop()
+
+        # terminate this sink object
+        msink.releaseObject()
+
+        # create new sink and connect to source 
+        msink = sb.MessageSink( messageCallback=mcb.msgCallback )
+        c.connect(msink, usesPortName='msg_out' )
+
+        # try and send message....wait should expire and msg == none
+        mcb.reset()
+        src_data={ 'field1': 'testing 3', 'field2': 100 }
+        ret=c.sendMessage( src_data, msgId='test_msg', msgPort='msg_out')
+        wait_for_msg(cond)
+        self.assertEquals( mcb.msg, None)
+
+        src_data={ 'field1': 'testing 4', 'field2': 400 }
+        sb.start()
+        ret=c.sendMessage( src_data, msgId='test_msg', msgPort='msg_out')        
+        wait_for_msg(cond)
+        self.assertEquals( ret, False )
+        ret=c.sendMessage( src_data, msgId='test_msg', msgPort='msg_out', restrict=False)        
+        wait_for_msg(cond)
+        res_data = mcb.msg['test_msg']
+        self.assertEquals( src_data, res_data )        
+        sb.stop()
+
+        #  reset receiver and cycle sandbox state
+        mcb.reset()
+        sb.start()
+        sb.stop()
+        self.assertEquals( mcb.msg, None)
+        c.releaseObject()
+        msink.releaseObject()
