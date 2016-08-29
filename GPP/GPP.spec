@@ -31,8 +31,8 @@ Prefix: %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           GPP
-Version:        2.0.3
-Release:        1%{?dist}
+Version:        2.0.2
+Release:        5%{?dist}
 Summary:        REDHAWK GPP
 
 Group:          Applications/Engineering
@@ -46,6 +46,7 @@ BuildRoot:      %{_tmppath}/%{name}-root
 Requires:       redhawk >= 2.0
 BuildRequires:  redhawk-devel >= 2.0
 BuildRequires:  numactl-devel >= 2.0
+Obsoletes:      %{name} < 2.0
 
 
 %package profile
@@ -54,6 +55,7 @@ Group:          Redhawk/Framework
 Requires(pre):  redhawk >= 2.0
 Requires(pre):  redhawk-sdrroot-dev-mgr >= 2.0
 Requires(pre):  %{name} = %{version}-%{release}
+Obsoletes:      %{name}-profile < 2.0
 
 %description
 A device representing a general purpose processor
