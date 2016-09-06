@@ -629,4 +629,19 @@ class FileManagerTest(scatest.CorbaTestCase):
         # Makes sure that File_impl::read() throws correct exception and doesn't kill domain
         # Issue #533
         self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, '/waveforms')
+    def test_ExistsException(self):
+        # Makes sure that FileSystem::exists() throws correct exception and
+        # doesn't kill domain for files in directories it cannot access
+        dirname = '/noaccess'
+        testdir = os.path.join(scatest.getSdrPath(), 'dom' + dirname)
+        if not os.path.exists(testdir):
+            os.mkdir(testdir, 0644)
+        else:
+            os.chmod(testdir, 0644)
 
+        self.assertNotEqual(self._domMgr, None)
+        fileMgr = self._domMgr._get_fileMgr()
+        try:
+            self.assertRaises(CF.InvalidFileName, fileMgr.exists, os.path.join(dirname, 'testfile'))
+        finally:
+            os.rmdir(testdir)

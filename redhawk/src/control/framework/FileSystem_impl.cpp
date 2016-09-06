@@ -291,7 +291,13 @@ bool FileSystem_impl::_local_exists (const char* fileName)
     fs::path fname(root / fileName);
     UnreliableFS fsops;
     LOG_TRACE(FileSystem_impl, "Checking for existence of local file " << fname.string());
-    return fsops.exists(fname);
+    try {
+        return fsops.exists(fname);
+    } catch (const CF::FileException& exc) {
+        // Convert the default CF::FileException to CF::InvalidFileName to
+        // match the declared signature of FileSystem::exists()
+        throw CF::InvalidFileName(exc.errorNumber, exc.msg);
+    }
 }
 
 CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* pattern) throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
