@@ -188,7 +188,10 @@ def attach(domain=None, location=None, connectDomainEvents=True):
         if len(domains) == 1:
             domain = domains[0]
         else:
-            print "Multiple domains found: "+str(domains)+". Please specify one."
+            if len(domains) == 0 :
+                print "No domains found."
+            else:
+                print "Multiple domains found: "+str(domains)+". Please specify one."
             return None
     
     dom_entry = _core.Domain(name=str(domain), location=location, connectDomainEvents=connectDomainEvents)
