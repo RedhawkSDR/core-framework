@@ -367,6 +367,7 @@ class SandboxComponent(ComponentBase):
 
     def _kick(self):
         self.ref = self._launch()
+        self._pid = self._process.pid()
         self._sandbox._registerComponent(self)
 
     @property
