@@ -32,7 +32,6 @@ class SandboxMixin(object):
 
     def _kick(self):
         self.ref = self._launcher.launch(self)
-	self._pid = self._process.pid()
         self._launcher.setup(self)
         self._register()
 

@@ -201,6 +201,7 @@ class LocalLauncher(SandboxLauncher):
 
         # Store the process on the component proxy.
         comp._process = process
+        comp._pid = process.pid()
 
         # Return the now-resolved CORBA reference.
         return self.getReference(comp)
