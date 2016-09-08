@@ -2398,13 +2398,29 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
             try {
                 LOG_TRACE(ApplicationFactory_impl, "loading " << codeLocalFile << " on device " << ossie::corba::returnString(loadabledev->label()));
                 loadabledev->load(_appFact._fileMgr, codeLocalFile.string().c_str(), implementation->getCodeType());
+            } catch( const CF::LoadableDevice::LoadFail &ex ) {
+                load_eout << "'load' failed for component: '";
+                load_eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
+                load_eout << " with implementation id: '" << implementation->getId() << "';";
+                load_eout << " on device id: '" << device->identifier << "'";
+                load_eout << " in waveform '" << _waveformContextName<<"'";
+                load_eout << "\nREASON: '" << ex.msg << "'\nError occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
+                throw;
+            } catch( const CF::InvalidFileName &ex ) {
+                load_eout << "'load' failed for component: '";
+                load_eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
+                load_eout << " with implementation id: '" << implementation->getId() << "';";
+                load_eout << " on device id: '" << device->identifier << "'";
+                load_eout << " in waveform '" << _waveformContextName<<"'";
+                load_eout << "\nREASON: '" << ex.msg << "'\nError occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
+                throw;
             } catch( ... ) {
                 load_eout << "'load' failed for component: '";
                 load_eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
                 load_eout << " with implementation id: '" << implementation->getId() << "';";
                 load_eout << " on device id: '" << device->identifier << "'";
                 load_eout << " in waveform '" << _waveformContextName<<"'";
-                load_eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
+                load_eout << "\nError occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
                 throw;
             }
         } catch( CF::InvalidFileName& _ex ) {

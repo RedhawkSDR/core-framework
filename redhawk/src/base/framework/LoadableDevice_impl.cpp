@@ -329,7 +329,14 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
         if (workingFileName[0] == '/') {
             relativeFileName = workingFileName.substr(1);
         }
-        if (fs::exists(relativeFileName)) {
+        bool fexists = false;
+        try {
+            fexists = fs::exists(relativeFileName);
+        }
+        catch(const fs::filesystem_error& ex){
+            throw CF::InvalidFileName(CF::CF_NOTSET, ex.what());
+        }
+        if (fexists) {
             bool reload = false;
             if (fileInfo->kind == CF::FileSystem::DIRECTORY) {
                 reload = !this->_treeIntact(std::string(fileName));
@@ -597,7 +604,15 @@ void LoadableDevice_impl::_loadTree(CF::FileSystem_ptr fs, std::string remotePat
             fs::path localDirectory(localPath / directoryName);
             LOG_DEBUG(LoadableDevice_impl, "Making directory " << directoryName << " in " << localPath)
             copiedFiles.insert(copiedFiles_type::value_type(fileKey, localDirectory.string()));
-            if (!fs::exists(localDirectory)) {
+            bool dexists = false;
+            try {
+                dexists = fs::exists(localDirectory);
+            } catch(const fs::filesystem_error& ex) {
+                std::string tmsg("Device SDR cache write error, ");
+                tmsg += ex.what();
+                throw CF::LoadableDevice::LoadFail(CF::CF_NOTSET, tmsg.c_str());
+            }
+            if (!dexists) {
                 fs::create_directories(localDirectory);
             }
             if (*(remotePath.end() - 1) == '/') {
@@ -643,7 +658,13 @@ bool LoadableDevice_impl::_treeIntact(const std::string &fileKey)
 
     for ( ; p.first != p.second; ) {
         --p.second;
-        if (not fs::exists(((*p.second).second).c_str()))
+        bool fexists=false;
+        try {
+            fexists=fs::exists(((*p.second).second).c_str());
+        } catch(...){
+            // if error occurs then exists == false
+        }
+        if (not fexists)
             return false;
     }
     return true;
@@ -651,10 +672,25 @@ bool LoadableDevice_impl::_treeIntact(const std::string &fileKey)
 
 void LoadableDevice_impl::_copyFile(CF::FileSystem_ptr fs, const std::string &remotePath, const std::string &localPath, const std::string &fileKey)
 {
-    CF::File_var fileToLoad= fs->open(remotePath.c_str(), true);
-    if ( CORBA::is_nil(fileToLoad) ) {
-        LOG_ERROR(LoadableDevice_impl, "Unable to open remote file: " << remotePath);
-        throw CF::FileException();
+    CF::File_var fileToLoad = CF::File::_nil();
+    try {
+       fileToLoad= fs->open(remotePath.c_str(), true);
+       if ( CORBA::is_nil(fileToLoad) ) {
+           std::string msg("Unable to open remote file: ");
+           msg += remotePath;
+           LOG_ERROR(LoadableDevice_impl, msg);
+           throw CF::LoadableDevice::LoadFail( CF::CF_NOTSET, msg.c_str());
+       }
+    }
+       catch(const CF::FileException &ex) {
+           std::string msg("Unable to access remote file: ");
+           msg += remotePath;
+           throw CF::LoadableDevice::LoadFail( CF::CF_NOTSET, msg.c_str() );
+    }
+    catch(...) {
+        std::string msg("Unable to open remote file: ");
+        msg += remotePath;
+        throw CF::LoadableDevice::LoadFail( CF::CF_NOTSET, msg.c_str() );
     }
 
     if ( transferSize < 1 ) 
