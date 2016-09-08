@@ -118,7 +118,8 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_pid(self):
         a = sb.launch('comp_src')
-        status,output = commands.getstatusoutput('ps -ww -f | grep comp_src')
+        #status,output = commands.getstatusoutput('ps -ef | grep comp_src | grep -v grep ')
+        status,output = commands.getstatusoutput('ps -ww -f | grep comp_src ')
         lines = output.split('\n')
         for line in lines:
           if 'IOR' in line:
