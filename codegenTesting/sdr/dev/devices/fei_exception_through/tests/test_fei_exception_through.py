@@ -115,7 +115,10 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
             except:
                 break
         
-        exception = (CORBA.COMM_FAILURE, CORBA.TRANSIENT)
+        if self.comp._impl == 'java':
+            exception = CORBA.COMM_FAILURE
+        else:
+            exception = CORBA.TRANSIENT
 
         self.assertRaises(exception, DigitalTuner_in.ref.getTunerType, 'hello')
         self.assertRaises(exception, DigitalTuner_in.ref.getTunerDeviceControl, 'hello')
