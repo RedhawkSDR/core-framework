@@ -47,7 +47,10 @@ class FrontendPortGenerator(JavaPortGenerator):
         return porttype
 
     def _ctorArgs(self, name):
-        return [java.stringLiteral(name)] 
+        if self.direction == 'uses':
+            return [java.stringLiteral(name)] 
+        else:
+            return [java.stringLiteral(name),"this"] 
 
     def constructor(self, name):
         return '%s(%s)' % (self.className(), ', '.join(self._ctorArgs(name)))

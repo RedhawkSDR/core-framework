@@ -291,13 +291,13 @@ import CF.InvalidObjectReference;
 /*{% endif %}*/
 /*{% if 'RFSource' in component.implements %}*/
 
-    public List<FRONTEND.RFInfoPkt> get_available_rf_inputs(final String port_name)
+    public FRONTEND.RFInfoPkt[] get_available_rf_inputs(final String port_name)
     {
-        List<FRONTEND.RFInfoPkt> inputs = null;
+        FRONTEND.RFInfoPkt[] inputs = null;
         return inputs;
     }
 
-    public void set_available_rf_inputs(final String port_name, final List<FRONTEND.RFInfoPkt> inputs)
+    public void set_available_rf_inputs(final String port_name, final FRONTEND.RFInfoPkt[] inputs)
     {
     }
 
