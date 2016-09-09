@@ -187,13 +187,18 @@
 #{% if 'GPS' in component.implements %}
 
     def get_gps_info(self,port_name):
-        return frontend.GPSInfo()
+        _time = bulkio.timestamp.now()
+        _gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
+        return _gpsinfo
 
     def set_gps_info(self,port_name, gps_info):
         pass
 
     def get_gps_time_pos(self,port_name):
-        return frontend.GpsTimePos()
+        _time = bulkio.timestamp.now()
+        _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _gpstimepos = FRONTEND.GpsTimePos(_positioninfo,_time)
+        return _gpstimepos
 
     def set_gps_time_pos(self,port_name, gps_time_pos):
         pass
@@ -201,7 +206,14 @@
 #{% if 'NavData' in component.implements %}
 
     def get_nav_packet(self,port_name):
-        return frontend.NavigationPacket()
+        _time = bulkio.timestamp.now()
+        _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _cartesianpos = FRONTEND.CartesianPositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _velocityinfo = FRONTEND.VelocityInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
+        _accelerationinfo = FRONTEND.AccelerationInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
+        _attitudeinfo = FRONTEND.AttitudeInfo(False,0.0,0.0,0.0)
+        _navpacket = FRONTEND.NavigationPacket('','',_positioninfo,_cartesianpos,_velocityinfo,_accelerationinfo,_attitudeinfo,_time,[])
+        return _navpacket
 
     def set_nav_packet(self,port_name, nav_info):
         pass
@@ -214,13 +226,19 @@
     - port_name is the port over which the call was received
     *************************************************************'''
     def get_rf_flow_id(self,port_name):
-        return "none"
+        return ""
 
     def set_rf_flow_id(self,port_name, id):
         pass
 
     def get_rfinfo_pkt(self,port_name):
-        return frontend.RFInfoPkt()
+        _antennainfo=FRONTEND.AntennaInfo('','','','')
+        _freqrange=FRONTEND.FreqRange(0,0,[])
+        _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
+        _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        return _rfinfopkt
 
     def set_rfinfo_pkt(self,port_name, pkt):
         pass
@@ -234,7 +252,13 @@
         pass
 
     def get_current_rf_input(self,port_name):
-        return frontend.RFInfoPkt()
+        _antennainfo = FRONTEND.AntennaInfo('','','','')
+        _freqrange = FRONTEND.FreqRange(0,0,[])
+        _feedinfo = FRONTEND.FeedInfo('','',_freqrange)
+        _sensorinfo = FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _rfcapabilities = FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _rfinfopkt = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        return _rfinfopkt
 
     def set_current_rf_input(self, port_name, pkt):
         pass
