@@ -37,6 +37,15 @@ done
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
 myDir=`dirname $0`
 
+# Path for Java
+if test -x $JAVA_HOME/bin/java; then
+  JAVA=$JAVA_HOME/bin/java
+else
+  JAVA=java
+fi
+
+# NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
+
 #Sun ORB start line
-exec $JAVA_HOME/bin/java -cp ::$myDir/TestComplexProps.jar:$myDir/bin:$CLASSPATH TestComplexProps.java.TestComplexProps "$@"
+exec $JAVA -cp ::$myDir/TestComplexProps.jar:$myDir/bin:$CLASSPATH TestComplexProps.java.TestComplexProps "$@"
 

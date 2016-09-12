@@ -21,10 +21,17 @@
 
 myDir=`dirname $0`
 
+# Path for Java
+if test -x $JAVA_HOME/bin/java; then
+  JAVA=$JAVA_HOME/bin/java
+else
+  JAVA=java
+fi
+
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
 
 #Sun ORB start line
-$JAVA_HOME/bin/java -cp :../../../../../base/framework/java/ossie.jar:../../../../../base/framework/java/log4j-1.2.15.jar:../../../../../base/framework/java/CFInterfaces.jar:$myDir/EventSend_java_impl1.jar:$myDir/bin:$CLASSPATH EventSend_java_impl1.EventSend_java_impl1 "$@"
+exec $JAVA -cp :../../../../../base/framework/java/ossie.jar:../../../../../base/framework/java/log4j-1.2.15.jar:../../../../../base/framework/java/CFInterfaces.jar:$myDir/EventSend_java_impl1.jar:$myDir/bin:$CLASSPATH EventSend_java_impl1.EventSend_java_impl1 "$@"
 
 #JacORB start lines
 #$JAVA_HOME/bin/java -cp :$OSSIEHOME/lib/ossie.jar:$OSSIEHOME/lib/CosEventChannelAdminInterfaces.jar:$OSSIEHOME/lib/log4j.jar:$OSSIEHOME/lib/CFInterfaces.jar::$myDir/jacorb.jar:$myDir/antlr.jar:$myDir/avalon-framework.jar:$myDir/backport-util-concurrent.jar:$myDir/logkit.jar:$myDir/EventSend_java_impl1.jar:$myDir/bin:$CLASSPATH EventSend_java_impl1.EventSend_java_impl1 "$@"

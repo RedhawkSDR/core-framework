@@ -25,4 +25,14 @@ myDir=`dirname $0`
 JAVA_LIBDIR=${myDir}/../../../../../base/framework/java
 JAVA_CLASSPATH="${JAVA_LIBDIR}/apache-commons-lang-2.4.jar:${JAVA_LIBDIR}/log4j-1.2.15.jar:${JAVA_LIBDIR}/CFInterfaces.jar:${JAVA_LIBDIR}/ossie.jar:${myDir}/TestJavaProps.jar:${myDir}:${CLASSPATH}"
 
-exec ${JAVA_HOME}/bin/java -cp ${JAVA_CLASSPATH} TestJavaProps "$@"
+# Path for Java
+if test -x $JAVA_HOME/bin/java; then
+  JAVA=$JAVA_HOME/bin/java
+else
+  JAVA=java
+fi
+
+# NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
+
+#Sun ORB start line
+exec $JAVA -cp ${JAVA_CLASSPATH} TestJavaProps "$@"

@@ -34,10 +34,17 @@ do
 	fi
 done
 
+# Path for Java
+if test -x $JAVA_HOME/bin/java; then
+  JAVA=$JAVA_HOME/bin/java
+else
+  JAVA=java
+fi
+
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
 
 #Sun ORB start line
-$JAVA_HOME/bin/java -cp ::$myDir/issue_111_java.jar:$myDir/bin:$CLASSPATH issue_111_java.java.issue_111_java "$@"
+exec $JAVA -cp ::$myDir/issue_111_java.jar:$myDir/bin:$CLASSPATH issue_111_java.java.issue_111_java "$@"
 
 #JacORB start lines
 #$JAVA_HOME/bin/java -cp ::$myDir/jacorb.jar:$myDir/antlr.jar:$myDir/avalon-framework.jar:$myDir/backport-util-concurrent.jar:$myDir/logkit.jar:$myDir/issue_111_java.jar:$myDir/bin:$CLASSPATH issue_111_java.java.issue_111_java "$@"
