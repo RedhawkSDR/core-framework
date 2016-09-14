@@ -98,7 +98,13 @@ AC_DEFUN([RH_SOFTPKG_CXX],
   AS_IF([test "${export_sdrroot} != false"], [
     export SDRROOT=${ossie_cv_sdr_root}
   ])
+
+  # Test for the existence of the SPD first
   rh_softpkg_spd="${ossie_cv_sdr_root}/dom$1"
+  AS_IF([test ! -f $rh_softpkg_spd], [
+    AC_MSG_ERROR([required soft package library $1 not found])
+  ])
+
   rh_softpkg_name=`redhawk-softpkg --name $rh_softpkg_spd`
   rh_softpkg_version_check=""
   AS_IF([test "x$3" != "x"], [
@@ -114,6 +120,12 @@ AC_DEFUN([RH_SOFTPKG_CXX],
   ], [
     AC_MSG_CHECKING([for C++ soft package library $rh_softpkg_name$rh_softpkg_version_check])
   ])
+
+  # Verify the existence of all dependencies
+  _rh_softpkg_check_error=`redhawk-softpkg --check $rh_softpkg_spd 2>&1`
+  AS_IF([test $? -ne 0], [
+    AC_MSG_ERROR([$_rh_softpkg_check_error])
+  ])
   
   # Save the prior pkg-config path
   rh_pkg_config_path_saved="$PKG_CONFIG_PATH"
@@ -123,8 +135,8 @@ AC_DEFUN([RH_SOFTPKG_CXX],
   PKG_CHECK_EXISTS([$rh_softpkg_name $rh_softpkg_version_check],[
     AC_MSG_RESULT([yes])
   ],[
-    AC_MSG_RESULT([no])
-    AC_MSG_ERROR([$rh_softpkg_name$rh_softpkg_version_check not found])
+    _rh_pkg_check_error=`$PKG_CONFIG --errors-to-stdout --print-errors "$rh_softpkg_name$rh_softpkg_version_check"`
+    AC_MSG_ERROR([$_rh_pkg_check_error])
   ])
 
   # Restore the pkg-config path

@@ -68,12 +68,15 @@ def walkDependencies(spdfile, implId, func):
         softpkgref = dep.get_softpkgref()
         if not softpkgref:
             continue
-        depfile = spdrelpath(spdfile, softpkgref.get_localfile().get_name())
+        depfile = softpkgref.get_localfile().get_name()
+        deppath = spdrelpath(spdfile, depfile)
         if softpkgref.get_implref():
             depimplid = softpkgref.get_implref().get_refid()
         else:
             depimplid = None
-        deps += walkDependencies(depfile, depimplid, func)
+        if not os.path.exists(deppath):
+            raise ValueError('%s, required by %s, does not exist' % (depfile, spd.get_name()))
+        deps += walkDependencies(deppath, depimplid, func)
 
     deps += func(spdfile, impl)
 
@@ -108,8 +111,13 @@ def getImplClasspath(spdfile, impl):
 def getClasspath(spdfile, implId):
     return walkDependencies(spdfile, implId, getImplClasspath)
 
+def checkDependencies(spdfile, implId):
+    # Make sure that the entire dependency tree is there; no other info needs
+    # to be collected (hence the lambda)
+    walkDependencies(spdfile, implId, lambda x,y:[])
+
 def main(args):
-    opts, args = getopt.getopt(args, '', ['impls', 'exists', 'pkgconfigpath', 'localfile', 'entrypoint', 'softpkgdeps', 'classpath', 'name'])
+    opts, args = getopt.getopt(args, '', ['impls', 'exists', 'pkgconfigpath', 'localfile', 'entrypoint', 'softpkgdeps', 'classpath', 'name', 'check'])
 
     try:
         filename = args[0]
@@ -173,6 +181,8 @@ def main(args):
         elif key == '--name':
             name = spd.get_name()
             print name
+        elif key == '--check':
+            checkDependencies(spdfile, implId)
 
 
 if __name__ == '__main__':
