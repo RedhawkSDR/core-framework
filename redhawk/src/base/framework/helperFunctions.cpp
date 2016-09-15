@@ -74,11 +74,13 @@ namespace ossie {
         uint8_t java_m2[6] = { 0x50, 0x4b, 0x03, 0x04, 0x0a, 0x00 };
         uint8_t tbuf[mlen];
         r_fs.read( (char *)tbuf, mlen );
-        retval=memcmp( tbuf, java_m1, mlen);
-        // check file contents against magic number sequence
-        if ( retval != 0 ) {
-          retval = memcmp( tbuf, java_m2, mlen);
-          if ( retval != 0 ) retval=1;
+        if (r_fs) {
+          retval=memcmp( tbuf, java_m1, mlen);
+          // check file contents against magic number sequence
+          if ( retval != 0 ) {
+            retval = memcmp( tbuf, java_m2, mlen);
+            if ( retval != 0 ) retval=1;
+          }
         }
       }
       return retval;
