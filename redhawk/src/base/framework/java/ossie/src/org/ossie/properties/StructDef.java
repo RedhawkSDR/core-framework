@@ -51,17 +51,17 @@ public abstract class StructDef {
         final List<Field> allFields = StructDef.getAllFields(new ArrayList<Field>(), getClass());
         for (final Field field : allFields) {
             try {
-                // Skip uninitialized fields, which can happen with classes derived
-                // from concrete subclasses of StructDef (such as the FRONTEND
-                // tuner status property)
-                if (field.get(this) == null) {
-                    continue;
-                }
                 if (IProperty.class.isAssignableFrom(field.getType())) {
                     if (!field.isAccessible()) {
                         field.setAccessible(true);
                     }
-                    addElement((IProperty) field.get(this));
+                    // Skip uninitialized fields, which can happen with classes derived
+                    // from concrete subclasses of StructDef (such as the FRONTEND
+                    // tuner status property)
+                    IProperty property = (IProperty) field.get(this);
+                    if (property != null) {
+                        addElement(property);
+                    }
                 }
             } catch (final IllegalArgumentException e) {
                 e.printStackTrace();
