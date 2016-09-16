@@ -94,6 +94,8 @@ SUBDIRS += sdr/dev/devices/BasicTestDevice_java/java \
            sdr/dom/components/TestJavaOptionalProps/java
 endif
 
+SUBDIRS += cpp
+
 all-local:
 	python setup.py $(OSSIE_V_pysetup) build
 
