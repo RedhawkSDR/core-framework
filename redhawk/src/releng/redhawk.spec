@@ -39,29 +39,18 @@ Vendor:         REDHAWK
 %define __arch_install_post %{nil}
 
 Requires:       util-linux-ng
-
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       java >= 1.7
-%else
-Requires:       java7 >= 1.7
-%endif
-
+Requires:       java >= 1:1.8.0
 Requires:       python
 Requires:       numpy
 Requires:       python-omniORB >= 3.0
 Requires:       omniORB-devel >= 4.1.0
 Requires:       binutils
+
 BuildRequires:  libuuid-devel
 BuildRequires:  boost-devel >= 1.41
 BuildRequires:  autoconf automake libtool
 BuildRequires:  expat-devel
-
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-BuildRequires:  java-devel >= 1.7
-%else
-BuildRequires:  java7-devel >= 1.7
-%endif
-
+BuildRequires:  java-1.8.0-openjdk-devel
 BuildRequires:  python-devel >= 2.4
 BuildRequires:  log4cxx-devel >= 0.10
 BuildRequires:  omniORB-devel >= 4.1.0
@@ -129,12 +118,7 @@ Requires:       omniORBpy-devel >= 3.0
 # Languages
 Requires:       gcc-c++
 Requires:       python-devel >= 2.4
-
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       java-devel >= 1.7
-%else
-Requires:       java7-devel >= 1.7
-%endif
+Requires:       java-1.8.0-openjdk-devel
 
 %description devel
 This package ensures that all requirements for REDHAWK development are installed. It also provides a useful development utilities.
@@ -273,6 +257,9 @@ fi
 
 
 %changelog
+* Fri Sep 16 2016 - 2.0.3-1
+- Update for dependency on Java 8
+
 * Wed Sep 9 2015 - 2.0.0-2
 - Add qt-tools package
 - Remove el5 support
