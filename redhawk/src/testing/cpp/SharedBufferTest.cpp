@@ -64,8 +64,8 @@ void SharedBufferTest::tearDown()
 
 void SharedBufferTest::testDefaultConstructor()
 {
-    // Empty shared buffer
-    redhawk::shared_buffer<short> shared;
+    // Empty const shared buffer
+    const redhawk::shared_buffer<short> shared;
     CPPUNIT_ASSERT(shared.size() == 0);
     CPPUNIT_ASSERT(shared.empty());
     CPPUNIT_ASSERT_EQUAL(shared.begin(), shared.end());
@@ -110,6 +110,28 @@ void SharedBufferTest::testEquals()
     CPPUNIT_ASSERT(first != second);
 }
 
+void SharedBufferTest::testIteration()
+{
+    // Create a buffer with known data
+    redhawk::buffer<unsigned long> buffer(20);
+    for (unsigned long index = 0; index < buffer.size(); ++index) {
+        buffer[index] = index;
+    }
+
+    // The distance between the begin and end iterators must be the same as the
+    // size, and iteration should yield the same result as sequential indexing
+    CPPUNIT_ASSERT(std::distance(buffer.begin(), buffer.end()) == buffer.size());
+    size_t offset = 0;
+    for (redhawk::buffer<unsigned long>::iterator iter = buffer.begin(); iter != buffer.end(); ++iter, ++offset) {
+        CPPUNIT_ASSERT_EQUAL(*iter, buffer[offset]);
+    }
+
+    // Repeat, via a const shared buffer alias
+    const redhawk::shared_buffer<unsigned long> shared = buffer;
+    CPPUNIT_ASSERT(std::distance(shared.begin(), shared.end()) == shared.size());
+    CPPUNIT_ASSERT(std::equal(shared.begin(), shared.end(), buffer.begin()));
+}
+
 void SharedBufferTest::testSharing()
 {
     // Fill a new buffer
@@ -118,8 +140,8 @@ void SharedBufferTest::testSharing()
         buffer[index] = std::complex<double>(0.5, 0.5) * (double) index;
     }
 
-    // Create a shared buffer aliasing the original
-    redhawk::shared_buffer<std::complex<double> > shared = buffer;
+    // Create a const shared buffer aliasing the original
+    const redhawk::shared_buffer<std::complex<double> > shared = buffer;
     CPPUNIT_ASSERT(shared == buffer);
 
     // Conjugate values and ensure that the buffers are still equal
@@ -137,13 +159,13 @@ void SharedBufferTest::testSlicing()
 
     // Take a 4-element slice from the middle and check that it points to the
     // same data (offset by the start index)
-    redhawk::shared_buffer<short> middle = buffer.slice(4, 8);
+    const redhawk::shared_buffer<short> middle = buffer.slice(4, 8);
     CPPUNIT_ASSERT_EQUAL(middle.size(), (size_t) 4);
     CPPUNIT_ASSERT(middle.data() == buffer.data() + 4);
 
     // Take a slice from the midpoint to the end, and check that the elements
     // match
-    redhawk::shared_buffer<short> end = buffer.slice(6);
+    const redhawk::shared_buffer<short> end = buffer.slice(6);
     CPPUNIT_ASSERT_EQUAL(end.size(), buffer.size() - 6);
     for (int index = 0; index < end.size(); ++index) {
         CPPUNIT_ASSERT_EQUAL(end[index], buffer[index + 6]);
