@@ -69,6 +69,12 @@ void SharedBufferTest::testDefaultConstructor()
     CPPUNIT_ASSERT(shared.size() == 0);
     CPPUNIT_ASSERT(shared.empty());
     CPPUNIT_ASSERT_EQUAL(shared.begin(), shared.end());
+
+    // Empty regular buffer
+    redhawk::buffer<short> buffer;
+    CPPUNIT_ASSERT(buffer.size() == 0);
+    CPPUNIT_ASSERT(buffer.empty());
+    CPPUNIT_ASSERT_EQUAL(buffer.begin(), buffer.end());
 }
 
 void SharedBufferTest::testConstructor()
@@ -94,7 +100,7 @@ void SharedBufferTest::testEquals()
     std::fill(first.begin(), first.end(), 8);
 
     // Create a second, identical buffer and check that it is equal
-    redhawk::buffer<long> second = first.copy();
+    redhawk::buffer<long> second(first.size());
     std::copy(first.begin(), first.end(), second.begin());
     CPPUNIT_ASSERT(first.data() != second.data());
     CPPUNIT_ASSERT(first == second);
@@ -130,6 +136,24 @@ void SharedBufferTest::testIteration()
     const redhawk::shared_buffer<unsigned long> shared = buffer;
     CPPUNIT_ASSERT(std::distance(shared.begin(), shared.end()) == shared.size());
     CPPUNIT_ASSERT(std::equal(shared.begin(), shared.end(), buffer.begin()));
+}
+
+void SharedBufferTest::testCopy()
+{
+    // Create a buffer with known data
+    redhawk::buffer<bool> original(9);
+    for (size_t index = 0; index < original.size(); ++index) {
+        // Value is true if index is odd
+        original[index] = index & ~1;
+    }
+
+    // Create a const shared buffer alias
+    const redhawk::shared_buffer<bool> buffer = original;
+    CPPUNIT_ASSERT(buffer.data() == original.data());
+
+    // Make a copy, and verify that it's a new underlying buffer
+    redhawk::buffer<bool> copy = buffer.copy();
+    CPPUNIT_ASSERT(copy.data() != buffer.data());
 }
 
 void SharedBufferTest::testSharing()
@@ -265,6 +289,27 @@ void SharedBufferTest::testAllocator()
     // that it's reset the allocated space to zeros
     buffer = redhawk::buffer<value_type>();
     CPPUNIT_ASSERT(std::count(arena.begin(), arena.end(), 0) == arena.size());
+}
+
+void SharedBufferTest::testAllocatorCopy()
+{
+    typedef CustomAllocator<double> allocator_type;
+
+    // Initialize source buffer
+    redhawk::buffer<double> buffer(16);
+    for (size_t index = 0; index < buffer.size(); ++index) {
+        buffer[index] = index * 2.0 * M_PI / buffer.size();
+    }
+
+    // Over-allocate memory for the custom allocator, just to be safe
+    std::vector<char> arena;
+    arena.resize(buffer.size() * sizeof(double) * 2);
+
+    // Create a copy using the custom allocator, then ensure that the copy was
+    // allocated into our memory (and the copy is correct)
+    redhawk::shared_buffer<double> copy = buffer.copy(allocator_type(&arena[0]));
+    CPPUNIT_ASSERT(reinterpret_cast<const void*>(copy.data()) == &arena[0]);
+    CPPUNIT_ASSERT(copy == buffer);
 }
 
 void SharedBufferTest::testCustomDeleter()
