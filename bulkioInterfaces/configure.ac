@@ -74,7 +74,7 @@ HAVE_JAVASUPPORT=no
 if test "x$enable_java" != "xno"; then
   # configure was run with java enabled
 
-  java_source_version=1.6
+  java_source_version=1.8
 
   RH_JAVA_HOME
   RH_PROG_JAVAC([$java_source_version])
