@@ -1779,7 +1779,7 @@ class MessagePortTest(scatest.CorbaTestCase):
 
 
            def msgCallback(self, id, msg):
-               self.msg = _properties.prop_to_dict(msg)
+               self.msg = properties.prop_to_dict(msg)
                self.count = self.count + 1
                self.cond.acquire()
                self.cond.notify()
