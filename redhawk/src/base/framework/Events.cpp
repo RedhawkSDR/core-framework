@@ -906,7 +906,6 @@ namespace events {
           PortableServer::ObjectId_var oid = poa->servant_to_id(_disconnectReceiver);
           RH_NL_TRACE("Publisher", "::connect activiting Suppiler servant." );
           poa->activate_object_with_id( oid, _disconnectReceiver );
-          _disconnectReceiver->_remove_ref();
         }
      }
      catch(...) {
@@ -934,7 +933,14 @@ namespace events {
         RH_NL_DEBUG("Publisher::DTOR", "DEACTIVATE RECEIVER" );
         PortableServer::POA_ptr poa = _disconnectReceiver->_default_POA();
         PortableServer::ObjectId_var oid = poa->servant_to_id(_disconnectReceiver);
+        int refcnt = _disconnectReceiver->_refcount_value();
         poa->deactivate_object( oid );
+        // we are done, remove extra references, leave 1 for poa
+        while ( refcnt > 1 ) {
+            _disconnectReceiver->_remove_ref();
+            refcnt--;
+        }
+
       }
       catch (...) {
       }
@@ -1053,12 +1059,16 @@ int Publisher::disconnect(const int retries,  const int retry_wait )
       break;
     }
     catch (CORBA::COMM_FAILURE& ex) {
-      RH_NL_ERROR("Publisher",  "::disconnect, Caught COMM_FAILURE Exception "
-                  << "disconnecting Push Supplier! Retrying..." );
+        if ( tries == retries )   {
+            RH_NL_WARN("Publisher",  "::disconnect, Caught COMM_FAILURE Exception "
+                       << "disconnecting Push Consumer! Retrying..." );
+        }
     }
     catch (...) {
-      RH_NL_ERROR("Publisher",  "::disconnect, UNKOWN Exception "
+        if ( tries == retries )  {
+            RH_NL_WARN("Publisher",  "::disconnect, UNKNOWN Exception "
                   << "disconnecting Push Consumer! Retrying..." );
+        }
     }
     if ( retry_wait > 0 ) {
       boost::this_thread::sleep( boost::posix_time::microseconds( retry_wait*1000 ) );
@@ -1072,8 +1082,6 @@ int Publisher::disconnect(const int retries,  const int retry_wait )
     RH_NL_DEBUG("Publisher",  "::disconnect Waiting for disconnect..........." );     
     _disconnectReceiver->wait_for_disconnect(1,3);
     RH_NL_DEBUG("Publisher",  "::disconnect received disconnect." );
-    // couters.... _this from connect method     
-    _disconnectReceiver->_remove_ref();
   }
 
   return retval;
@@ -1345,7 +1353,13 @@ int Publisher::disconnect(const int retries,  const int retry_wait )
       try {
         PortableServer::POA_ptr poa = consumer->_default_POA();
         PortableServer::ObjectId_var oid = poa->servant_to_id(consumer);
+        int refcnt= consumer->_refcount_value();
         poa->deactivate_object( oid );
+        // we are done with consumer, remove extra references, poa holds 1
+        while ( refcnt > 1 ) {
+            consumer->_remove_ref();
+            refcnt--;
+        }
       }
       catch (...) {
       }
@@ -1372,8 +1386,6 @@ int Publisher::disconnect(const int retries,  const int retry_wait )
       if (!CORBA::is_nil(poa) )  {
         PortableServer::ObjectId_var oid = poa->servant_to_id(consumer);
         poa->activate_object_with_id( oid, consumer );
-        // let poa manage memory....
-        consumer->_remove_ref();
       }
     }
     catch(...) {
@@ -1393,18 +1405,22 @@ int Subscriber::disconnect(const int retries,  const int retry_wait )
   if ( CORBA::is_nil(proxy) == false ) {
     do {
       try {
-        RH_NL_DEBUG("Subscriber",  "disconnect_push_supplier... ");
+        RH_NL_TRACE("Subscriber",  "disconnect_push_supplier... retry cnt: " << tries);
         proxy->disconnect_push_supplier();
         retval=0;
         break;
       }
       catch (CORBA::COMM_FAILURE& ex) {
-        RH_NL_WARN("Subscriber",  "Caught COMM_FAILURE Exception "
+          if ( tries == retries )  {
+              RH_NL_WARN("Subscriber",  "Caught COMM_FAILURE Exception "
                    << "disconnecting Push Supplier! Retrying..." );
+          }
       }
       catch (...) {
-        RH_NL_ERROR("Publisher",  "::disconnect, UNKOWN Exception "
+          if ( tries == retries )  {
+              RH_NL_WARN("Subscriber",  "::disconnect, UNKNOWN Exception "
                     << "disconnecting Push Supplier! Retrying..." );
+          }
       }
       if ( retry_wait > 0 ) {
         boost::this_thread::sleep( boost::posix_time::microseconds( retry_wait*1000 ) );
@@ -1420,8 +1436,6 @@ int Subscriber::disconnect(const int retries,  const int retry_wait )
     RH_NL_DEBUG("Subscriber", "Waiting for disconnect ........" );
     consumer->wait_for_disconnect(1,3);
     RH_NL_DEBUG("Subscriber",  "::disconnect received disconnect." );     
-    // counters.... _this from connect
-    consumer->_remove_ref();
   }
 
   return retval;

@@ -135,10 +135,15 @@ void EventChannelManager::terminate ( const bool destroyChannels ) {
       iter->second.channel = ossie::events::EventChannel::_nil();
     }
     catch(CORBA::OBJECT_NOT_EXIST){
-      ECM_ERROR("Terminate", "Remove Channel FAILED, CHANNEL:" << iter->first << " REASON: Object does not exists");
+        // only report issue when event service was available
+        if ( !CORBA::is_nil(_event_channel_factory) ) {
+             ECM_WARN("Terminate", "Remove Channel FAILED, CHANNEL:" << iter->first << " REASON: Object does not exists");
+        }
     }
     catch(...){
-      ECM_ERROR("Terminate","Remove Channel FAILED, CHANNEL:" << iter->first << " Possible legacy channels in event service ");
+        if ( !CORBA::is_nil(_event_channel_factory) ) {
+            ECM_WARN("Terminate","Remove Channel FAILED, CHANNEL:" << iter->first << " Possible legacy channels in event service ");
+        }
     }
   }
 
