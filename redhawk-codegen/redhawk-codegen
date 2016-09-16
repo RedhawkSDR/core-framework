@@ -303,8 +303,8 @@ if __name__ == '__main__':
                  else:
                      tkey=None
                      # get programming language from implementation
-                     pl = impl.programminglanguage()
-                     if pl == 'C++' :
+                     pl = implementation.programminglanguage()
+                     if pl.upper() == 'C++' :
                         tkey="cpp"
                      elif pl.upper() == 'PYTHON' :
                         tkey="python"
