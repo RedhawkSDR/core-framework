@@ -792,6 +792,18 @@ namespace redhawk {
     }
 
     /**
+     * @brief  Buffer inequality comparison.
+     * @param  lhs  A %shared_buffer.
+     * @param  rhs  A %shared_buffer of the same type as @a lhs.
+     * @return  True iff the size or elements of the shared_buffers are not equal.
+     */
+    template <typename T>
+    inline bool operator!=(const shared_buffer<T>& lhs, const shared_buffer<T>& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    /**
      * @brief  A convenience wrapper for creating a buffer.
      * @param data  Pointer to first element.
      * @param size  Number of elements.
