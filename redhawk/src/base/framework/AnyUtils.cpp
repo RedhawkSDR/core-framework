@@ -79,6 +79,24 @@ namespace {
         }
     }
 
+    // Specialization for boolean, first checking for literal values "true" and
+    // "false" (case insensitive), then convering via lexical cast to double
+    // (for widest range) and comparing with zero
+    template<>
+    inline bool stringToNumber (const std::string& str)
+    {
+        std::string out;
+        std::transform(str.begin(), str.end(), std::back_inserter(out), ::tolower);
+        if (out == "true") {
+            return true;
+        } else if (out == "false") {
+            return false;
+        } else {
+            double temp = boost::lexical_cast<double>(str);
+            return (temp != 0.0);
+        }
+    }
+
     // Specialization for CORBA::Octet (unsigned char), always converting via
     // double because lexical_cast throws a bad_lexical_cast exception with
     // CORBA::Octet
