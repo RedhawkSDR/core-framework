@@ -289,7 +289,7 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
     // based on the name. If this isn't done prior to initializing CORBA, the
     // ORB creates some threads that will get the original process name, and
     // any threads they create, and so on.
-    for (size_t index = 1; index < argc; ++index) {
+    for (int index = 1; index < argc; ++index) {
         if (strcmp("NAME_BINDING", argv[index]) == 0) {
             if (++index < argc) {
                 std::string value = argv[index];
