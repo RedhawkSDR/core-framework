@@ -251,11 +251,20 @@ namespace redhawk {
         }
 
         /**
+         * @brief  Adjusts the beginning of this %shared_buffer.
+         * @param start  Iterator to first element.
+         */
+        void trim(iterator first)
+        {
+            this->_M_trim(first, end());
+        }
+
+        /**
          * @brief  Adjusts the beginning and end of this %shared_buffer.
          * @param start  Iterator to first element.
-         * @param end  Iterator to last element, exclusive (default end).
+         * @param end  Iterator to last element, exclusive.
          */
-        void trim(iterator first, iterator last=end())
+        void trim(iterator first, iterator last)
         {
             this->_M_trim(first, last);
         }
