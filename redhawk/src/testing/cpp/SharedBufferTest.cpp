@@ -156,6 +156,36 @@ void SharedBufferTest::testCopy()
     CPPUNIT_ASSERT(copy.data() != buffer.data());
 }
 
+void SharedBufferTest::testSwap()
+{
+    // Create two mutable buffers with different contents
+    redhawk::buffer<int> first(3);
+    std::fill(first.begin(), first.end(), 7);
+    CPPUNIT_ASSERT(std::count(first.begin(), first.end(), 7) == first.size());
+    redhawk::buffer<int> second(5);
+    std::fill(second.begin(), second.end(), -2);
+    CPPUNIT_ASSERT(std::count(second.begin(), second.end(), -2) == second.size());
+
+    // Swap them and check that the swap worked as expected
+    first.swap(second);
+    CPPUNIT_ASSERT(first.size() == 5);
+    CPPUNIT_ASSERT(first[0] == -2);
+    CPPUNIT_ASSERT(second.size() == 3);
+    CPPUNIT_ASSERT(second[0] == 7);
+
+    // Create one shared buffer alias for each buffer
+    redhawk::shared_buffer<int> shared_first = first;
+    CPPUNIT_ASSERT(shared_first.data() == first.data());
+    redhawk::shared_buffer<int> shared_second = second;
+    CPPUNIT_ASSERT(shared_second.data() == second.data());
+
+    // Swap the shared buffers and make sure that the underlying data pointers
+    // are correct
+    shared_first.swap(shared_second);
+    CPPUNIT_ASSERT(shared_first.data() == second.data());
+    CPPUNIT_ASSERT(shared_second.data() == first.data());
+}
+
 void SharedBufferTest::testSharing()
 {
     // Fill a new buffer
