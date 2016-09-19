@@ -153,7 +153,14 @@ void SharedBufferTest::testCopy()
 
     // Make a copy, and verify that it's a new underlying buffer
     redhawk::buffer<bool> copy = buffer.copy();
+    CPPUNIT_ASSERT(copy == buffer);
     CPPUNIT_ASSERT(copy.data() != buffer.data());
+
+    // Make a second copy, exercising copy() from buffer (instead of
+    // shared_buffer)
+    redhawk::buffer<bool> second = copy.copy();
+    CPPUNIT_ASSERT(second == buffer);
+    CPPUNIT_ASSERT(second.data() != copy.data());
 }
 
 void SharedBufferTest::testSwap()
@@ -229,38 +236,48 @@ void SharedBufferTest::testSlicing()
     CPPUNIT_ASSERT(middle.slice(2) == end.slice(0, 2));
 }
 
-void SharedBufferTest::testTrim()
+template <class Buffer>
+void SharedBufferTest::testTrimImpl()
 {
-    // Fill a new buffer
-    redhawk::buffer<unsigned short> buffer(10);
-    for (size_t index = 0; index < buffer.size(); ++index) {
-        buffer[index] = index;
+    redhawk::buffer<typename Buffer::value_type> original(10);
+    for (size_t index = 0; index < original.size(); ++index) {
+        original[index] = index;
     }
 
-    // Create a shared buffer alias, then trim one element off each end
-    redhawk::shared_buffer<unsigned short> shared = buffer;
-    shared.trim(1, buffer.size() - 1);
-    CPPUNIT_ASSERT_EQUAL(shared.size(), buffer.size() - 2);
-    CPPUNIT_ASSERT(std::equal(shared.begin(), shared.end(), buffer.begin() + 1));
+    // Create an alias of the template type, then trim one element off each end
+    Buffer buffer = original;
+    buffer.trim(1, original.size() - 1);
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), original.size() - 2);
+    CPPUNIT_ASSERT(std::equal(buffer.begin(), buffer.end(), original.begin() + 1));
 
     // Trim another element off the beginning
-    shared.trim(1);
-    CPPUNIT_ASSERT_EQUAL(shared.size(), buffer.size() - 3);
-    CPPUNIT_ASSERT(std::equal(shared.begin(), shared.end(), buffer.begin() + 2));
+    buffer.trim(1);
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), original.size() - 3);
+    CPPUNIT_ASSERT(std::equal(buffer.begin(), buffer.end(), original.begin() + 2));
 
     // Iterator-based trim: find specific values and trim to [first, last)
-    redhawk::shared_buffer<unsigned short>::iterator first = std::find(shared.begin(), shared.end(), 4);
-    redhawk::shared_buffer<unsigned short>::iterator last = std::find(shared.begin(), shared.end(), 7);
-    CPPUNIT_ASSERT(first != shared.end());
-    CPPUNIT_ASSERT(last != shared.end());
-    shared.trim(first, last);
-    CPPUNIT_ASSERT(shared.size() == 3);
-    CPPUNIT_ASSERT_EQUAL(shared[0], (unsigned short) 4);
+    typename Buffer::iterator first = std::find(buffer.begin(), buffer.end(), 4);
+    typename Buffer::iterator last = std::find(buffer.begin(), buffer.end(), 7);
+    CPPUNIT_ASSERT(first != buffer.end());
+    CPPUNIT_ASSERT(last != buffer.end());
+    buffer.trim(first, last);
+    CPPUNIT_ASSERT(buffer.size() == 3);
+    CPPUNIT_ASSERT_EQUAL(buffer[0], (unsigned short) 4);
 
     // Use iterator-based trim to take another element off the beginning
-    shared.trim(shared.begin() + 1);
-    CPPUNIT_ASSERT(shared.size() == 2);
-    CPPUNIT_ASSERT_EQUAL(shared[0], (unsigned short) 5);
+    buffer.trim(buffer.begin() + 1);
+    CPPUNIT_ASSERT(buffer.size() == 2);
+    CPPUNIT_ASSERT_EQUAL(buffer[0], (unsigned short) 5);
+}
+
+void SharedBufferTest::testTrim()
+{
+    testTrimImpl<redhawk::buffer<unsigned short> >();
+}
+
+void SharedBufferTest::testTrimShared()
+{
+    testTrimImpl<redhawk::shared_buffer<unsigned short> >();
 }
 
 void SharedBufferTest::testRecast()
@@ -285,11 +302,13 @@ void SharedBufferTest::testRecast()
         CPPUNIT_ASSERT_EQUAL(cxbuffer[index/2].imag(), buffer[index+1]);
     }
 
-    // Recast into short; this is basically nonsensical, but technically valid,
-    // so only check that the size is correct
-    redhawk::shared_buffer<short> shbuffer;
-    shbuffer = redhawk::shared_buffer<short>::recast(buffer);
-    CPPUNIT_ASSERT_EQUAL(shbuffer.size(), buffer.size() * 2); 
+    // Recast into short, this time using buffer::recast (such that the result
+    // is mutable); this is basically nonsensical, but technically valid, so
+    // only check that the data pointer and size are correct
+    redhawk::buffer<short> short_buffer;
+    short_buffer = redhawk::buffer<short>::recast(buffer);
+    CPPUNIT_ASSERT_EQUAL((void*) short_buffer.data(), (void*) buffer.data()); 
+    CPPUNIT_ASSERT_EQUAL(short_buffer.size(), buffer.size() * 2); 
 }
 
 void SharedBufferTest::testAllocator()

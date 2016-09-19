@@ -15,6 +15,7 @@ class SharedBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testSharing);
     CPPUNIT_TEST(testSlicing);
     CPPUNIT_TEST(testTrim);
+    CPPUNIT_TEST(testTrimShared);
     CPPUNIT_TEST(testRecast);
     CPPUNIT_TEST(testAllocator);
     CPPUNIT_TEST(testAllocatorCopy);
@@ -40,6 +41,7 @@ public:
     void testSharing();
     void testSlicing();
     void testTrim();
+    void testTrimShared();
     void testRecast();
 
     // Advanced features
@@ -47,6 +49,10 @@ public:
     void testAllocatorCopy();
     void testCustomDeleter();
     void testTransient();
+
+private:
+    template <class Buffer>
+    void testTrimImpl();
 };
 
 #endif // SHARED_BUFFER_TEST_H
