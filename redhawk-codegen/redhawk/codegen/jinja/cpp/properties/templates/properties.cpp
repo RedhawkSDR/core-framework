@@ -56,7 +56,7 @@ addProperty(${prop.cppname},
 /*{% for value in prop.cppvalues %}*/
 /*{%   for key in value %}*/
 /*{%     for field in prop.structdef.fields %}*/
-/*{%       if field.cppname == key %}*/
+/*{%       if field.identifier == key %}*/
 /*{%         if field is simple %}*/
         __tmp.${field.cppname} = ${value[key]};
 /*{%         elif field is simplesequence%}*/
