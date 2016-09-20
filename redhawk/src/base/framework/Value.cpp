@@ -50,7 +50,7 @@ Value& Value::operator=(const Value& any)
     return operator=(static_cast<const CORBA::Any&>(any));
 }
 
-Value::Type Value::getType(CORBA::TypeCode_ptr typecode)
+Value::Type Value::GetType(CORBA::TypeCode_ptr typecode)
 {
     if (CF::_tc_Properties->equivalent(typecode)) {
         return TYPE_PROPERTIES;
@@ -104,7 +104,7 @@ bool Value::IsNumeric(Type type)
 Value::Type Value::getType() const
 {
     CORBA::TypeCode_var any_type = type();
-    return getType(any_type);
+    return Value::GetType(any_type);
 }
 
 bool Value::isNumeric() const
@@ -128,7 +128,7 @@ Value::Type Value::getElementType() const
     }
 
     CORBA::TypeCode_var element_type = any_type->content_type();
-    return getType(element_type);
+    return Value::GetType(element_type);
 }
 
 std::string Value::toString() const

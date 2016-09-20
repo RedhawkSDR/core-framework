@@ -82,7 +82,7 @@ namespace redhawk {
             return *this;
         }
 
-        static Type getType(CORBA::TypeCode_ptr typecode);
+        static Type GetType(CORBA::TypeCode_ptr typecode);
         static bool IsNumeric(Type type);
 
         Type getType() const;
