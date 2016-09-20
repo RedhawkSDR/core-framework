@@ -82,10 +82,34 @@ Value::Type Value::getType(CORBA::TypeCode_ptr typecode)
     }
 }
 
+bool Value::IsNumeric(Type type)
+{
+    switch (type) {
+    case TYPE_BOOLEAN:
+    case TYPE_OCTET:
+    case TYPE_SHORT:
+    case TYPE_USHORT:
+    case TYPE_LONG:
+    case TYPE_ULONG:
+    case TYPE_LONGLONG:
+    case TYPE_ULONGLONG:
+    case TYPE_FLOAT:
+    case TYPE_DOUBLE:
+        return true;
+    default:
+        return false;
+    }
+}
+
 Value::Type Value::getType() const
 {
     CORBA::TypeCode_var any_type = type();
     return getType(any_type);
+}
+
+bool Value::isNumeric() const
+{
+    return Value::IsNumeric(getType());
 }
 
 bool Value::isSequence() const

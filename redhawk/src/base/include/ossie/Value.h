@@ -83,8 +83,10 @@ namespace redhawk {
         }
 
         static Type getType(CORBA::TypeCode_ptr typecode);
+        static bool IsNumeric(Type type);
 
         Type getType() const;
+        bool isNumeric() const;
         bool isSequence() const;
         Type getElementType() const;
 
