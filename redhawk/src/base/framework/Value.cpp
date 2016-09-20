@@ -50,6 +50,63 @@ Value& Value::operator=(const Value& any)
     return operator=(static_cast<const CORBA::Any&>(any));
 }
 
+Value::Type Value::getType(CORBA::TypeCode_ptr typecode)
+{
+    if (CF::_tc_Properties->equivalent(typecode)) {
+        return TYPE_PROPERTIES;
+    } else if (CF::_tc_DataType->equivalent(typecode)) {
+        return TYPE_DATATYPE;
+    } else if (CORBA::_tc_AnySeq->equivalent(typecode)) {
+        return TYPE_VALUE_SEQUENCE;
+    }
+
+    // Remove any aliases
+    CORBA::TypeCode_var base_type = ossie::corba::unalias(typecode);
+    switch (base_type->kind()) {
+    case CORBA::tk_null:      return TYPE_NONE;
+    case CORBA::tk_boolean:   return TYPE_BOOLEAN;
+    case CORBA::tk_octet:     return TYPE_OCTET;
+    case CORBA::tk_short:     return TYPE_SHORT;
+    case CORBA::tk_ushort:    return TYPE_USHORT;
+    case CORBA::tk_long:      return TYPE_LONG;
+    case CORBA::tk_ulong:     return TYPE_ULONG;
+    case CORBA::tk_longlong:  return TYPE_LONGLONG;
+    case CORBA::tk_ulonglong: return TYPE_ULONGLONG;
+    case CORBA::tk_float:     return TYPE_FLOAT;
+    case CORBA::tk_double:    return TYPE_DOUBLE;
+    case CORBA::tk_string:    return TYPE_STRING;
+    case CORBA::tk_sequence:  return TYPE_SEQUENCE;
+    case CORBA::tk_any:       return TYPE_VALUE;
+    default:
+        return TYPE_OTHER;
+    }
+}
+
+Value::Type Value::getType() const
+{
+    CORBA::TypeCode_var any_type = type();
+    return getType(any_type);
+}
+
+bool Value::isSequence() const
+{
+    CORBA::TypeCode_var any_type = type();
+    any_type = ossie::corba::unalias(any_type);
+    return (any_type->kind() == CORBA::tk_sequence);
+}
+
+Value::Type Value::getElementType() const
+{
+    CORBA::TypeCode_var any_type = type();
+    any_type = ossie::corba::unalias(any_type);
+    if (any_type->kind() != CORBA::tk_sequence) {
+        return TYPE_NONE;
+    }
+
+    CORBA::TypeCode_var element_type = any_type->content_type();
+    return getType(element_type);
+}
+
 std::string Value::toString() const
 {
     return ossie::any_to_string(*this);

@@ -686,20 +686,22 @@ CF::Properties ossie::getPartialStructs(const CF::Properties& properties)
     CF::Properties partials;
     const redhawk::PropertyMap& configProps = redhawk::PropertyMap::cast(properties);
     for (redhawk::PropertyMap::const_iterator prop = configProps.begin(); prop != configProps.end(); ++prop) {
-        CORBA::TypeCode_var type = prop->getValue().type();
-        if (CORBA::_tc_AnySeq->equivalent(type)) {
-            const redhawk::ValueSequence& sequence = prop->getValue().asSequence();
-            for (redhawk::ValueSequence::const_iterator item = sequence.begin(); item != sequence.end(); ++item) {
-                type = item->type();
-                if (CF::_tc_Properties->equivalent(type)) {
-                    if (ossie::structContainsMixedNilValues(item->asProperties())) {
-                        ossie::corba::push_back(partials, *prop);
-                    }
-                }
-            }
-        } else if (CF::_tc_Properties->equivalent(type)) {
+        redhawk::Value::Type type = prop->getValue().getType();
+        if (type == redhawk::Value::TYPE_PROPERTIES) {
+            // Property is a struct
             if (ossie::structContainsMixedNilValues(prop->getValue().asProperties())) {
                 ossie::corba::push_back(partials, *prop);
+            }
+        } else if (type == redhawk::Value::TYPE_VALUE_SEQUENCE) {
+            // Property is a struct sequence
+            const redhawk::ValueSequence& sequence = prop->getValue().asSequence();
+            for (redhawk::ValueSequence::const_iterator item = sequence.begin(); item != sequence.end(); ++item) {
+                if (item->getType() == redhawk::Value::TYPE_PROPERTIES) {
+                    if (ossie::structContainsMixedNilValues(item->asProperties())) {
+                        ossie::corba::push_back(partials, *prop);
+                        continue;
+                    }
+                }
             }
         }
     }

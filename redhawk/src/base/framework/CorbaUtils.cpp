@@ -150,6 +150,15 @@ bool isPersistenceEnabled ()
     return persistenceEnabled;
 }
 
+CORBA::TypeCode_ptr unalias(CORBA::TypeCode_ptr type)
+{
+    if (type->kind() == CORBA::tk_alias) {
+        return type->content_type();
+    } else {
+        return CORBA::TypeCode::_duplicate(type);
+    }
+}
+
 bool isValidType (const CORBA::Any& lhs, const CORBA::Any& rhs)
 {
     CORBA::TypeCode_var tc1 = lhs.type();

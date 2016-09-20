@@ -204,6 +204,8 @@ namespace ossie {
             return std::string(static_cast<const char*>(corbaString));
         }
 
+        CORBA::TypeCode_ptr unalias(CORBA::TypeCode_ptr type);
+
         bool isValidType (const CORBA::Any& lhs, const CORBA::Any& rhs);
 
         inline bool objectExists(CORBA::Object_ptr obj) {
