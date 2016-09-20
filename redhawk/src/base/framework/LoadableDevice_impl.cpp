@@ -597,10 +597,8 @@ void LoadableDevice_impl::_loadTree(CF::FileSystem_ptr fs, std::string remotePat
                 _copyFile(fs, remotePath, localFile.string(), fileKey);
             }
             const redhawk::PropertyMap& fileprops = redhawk::PropertyMap::cast(fis[i].fileProperties);
-            redhawk::PropertyMap::const_iterator iter_fileprops = fileprops.find("EXECUTABLE");
-            if (iter_fileprops != fileprops.end()) {
-                if (fileprops["EXECUTABLE"].toBoolean())
-                    chmod(localFile.string().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+            if (fileprops.get("EXECUTABLE", false).toBoolean()) {
+                chmod(localFile.string().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
             }
         } else if (fis[i].kind == CF::FileSystem::DIRECTORY) {
             std::string directoryName(fis[i].name);
