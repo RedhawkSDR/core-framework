@@ -1342,6 +1342,7 @@ namespace bulkio {
       this->active = true;
       this->recConnectionsRefresh = true;
       this->refreshSRI = true;    
+      updateSRIForAllConnections();
       LOG_DEBUG( logger, "CONNECTION ESTABLISHED,  PORT/CONNECTION_ID:" << this->name << "/" << connectionId );
     }
 
