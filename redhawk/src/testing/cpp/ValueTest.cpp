@@ -224,6 +224,25 @@ void ValueTest::testStringConversion()
     CPPUNIT_ASSERT_EQUAL(std::string("-2.25e+40"), redhawk::Value((CORBA::Double) -2.25e40).toString());
 }
 
+void ValueTest::testConstCast()
+{
+    CORBA::Any any;
+    const double dval = 1.25;
+    any <<= dval;
+
+    // Create a const Value alias and check that it matches the Any
+    const CORBA::Any& const_any = any;
+    const redhawk::Value& value = redhawk::Value::cast(const_any);
+    CPPUNIT_ASSERT_EQUAL(redhawk::Value::TYPE_DOUBLE, value.getType());
+    CPPUNIT_ASSERT_EQUAL(dval, value.toDouble());
+
+    // Modify the Any and check that the change is reflected in the Value
+    const std::string stringval = "value";
+    any <<= stringval;
+    CPPUNIT_ASSERT_EQUAL(redhawk::Value::TYPE_STRING, value.getType());
+    CPPUNIT_ASSERT_EQUAL(stringval, value.toString());
+}
+
 void ValueTest::testCast()
 {
     CORBA::Any any;

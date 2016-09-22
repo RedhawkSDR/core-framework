@@ -30,6 +30,7 @@ class ValueTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testType);
     CPPUNIT_TEST(testNumericConversion);
     CPPUNIT_TEST(testStringConversion);
+    CPPUNIT_TEST(testConstCast);
     CPPUNIT_TEST(testCast);
     CPPUNIT_TEST_SUITE_END();
 
@@ -44,6 +45,7 @@ public:
     void testNumericConversion();
     void testStringConversion();
 
+    void testConstCast();
     void testCast();
 };
 
