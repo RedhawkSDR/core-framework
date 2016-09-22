@@ -142,11 +142,11 @@ void ValueSequenceTest::testConstIteration()
 
     // The distance between the begin and end iterators must be the same as the
     // size, and iteration should yield the same result as sequential indexing
-    CPPUNIT_ASSERT(std::distance(values.begin(), values.end()) == values.size());
     size_t offset = 0;
     for (redhawk::ValueSequence::const_iterator iter = values.begin(); iter != values.end(); ++iter, ++offset) {
         CPPUNIT_ASSERT_EQUAL(values[offset].toDouble(), iter->toDouble());
     }
+    CPPUNIT_ASSERT_EQUAL(values.size(), offset);
 }
 
 void ValueSequenceTest::testMutableIteration()

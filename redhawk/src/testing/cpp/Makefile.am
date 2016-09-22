@@ -1,5 +1,7 @@
 TESTS = standalone test_libossiecf
 
+AM_CPPFLAGS = -Wall
+
 check_PROGRAMS = $(TESTS)
 
 standalone_SOURCES = standalone.cpp SharedBufferTest.cpp SharedBufferTest.h

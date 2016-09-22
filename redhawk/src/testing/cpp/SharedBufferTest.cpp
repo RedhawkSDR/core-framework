@@ -126,15 +126,15 @@ void SharedBufferTest::testIteration()
 
     // The distance between the begin and end iterators must be the same as the
     // size, and iteration should yield the same result as sequential indexing
-    CPPUNIT_ASSERT(std::distance(buffer.begin(), buffer.end()) == buffer.size());
     size_t offset = 0;
     for (redhawk::buffer<unsigned long>::iterator iter = buffer.begin(); iter != buffer.end(); ++iter, ++offset) {
         CPPUNIT_ASSERT_EQUAL(*iter, buffer[offset]);
     }
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), offset);
 
     // Repeat, via a const shared buffer alias
     const redhawk::shared_buffer<unsigned long> shared = buffer;
-    CPPUNIT_ASSERT(std::distance(shared.begin(), shared.end()) == shared.size());
+    CPPUNIT_ASSERT_EQUAL((ptrdiff_t) shared.size(), std::distance(shared.begin(), shared.end()));
     CPPUNIT_ASSERT(std::equal(shared.begin(), shared.end(), buffer.begin()));
 }
 
@@ -168,10 +168,10 @@ void SharedBufferTest::testSwap()
     // Create two mutable buffers with different contents
     redhawk::buffer<int> first(3);
     std::fill(first.begin(), first.end(), 7);
-    CPPUNIT_ASSERT(std::count(first.begin(), first.end(), 7) == first.size());
+    CPPUNIT_ASSERT_EQUAL(first.size(), (size_t) std::count(first.begin(), first.end(), 7));
     redhawk::buffer<int> second(5);
     std::fill(second.begin(), second.end(), -2);
-    CPPUNIT_ASSERT(std::count(second.begin(), second.end(), -2) == second.size());
+    CPPUNIT_ASSERT_EQUAL(second.size(), (size_t) std::count(second.begin(), second.end(), -2));
 
     // Swap them and check that the swap worked as expected
     first.swap(second);
@@ -197,7 +197,7 @@ void SharedBufferTest::testSharing()
 {
     // Fill a new buffer
     redhawk::buffer<std::complex<double> > buffer(8);
-    for (int index = 0; index < buffer.size(); ++index) {
+    for (size_t index = 0; index < buffer.size(); ++index) {
         buffer[index] = std::complex<double>(0.5, 0.5) * (double) index;
     }
 
@@ -214,7 +214,7 @@ void SharedBufferTest::testSlicing()
 {
     // Fill a new buffer
     redhawk::buffer<short> buffer(12);
-    for (int index = 0; index < buffer.size(); ++index) {
+    for (size_t index = 0; index < buffer.size(); ++index) {
         buffer[index] = index;
     }
 
@@ -228,7 +228,7 @@ void SharedBufferTest::testSlicing()
     // match
     const redhawk::shared_buffer<short> end = buffer.slice(6);
     CPPUNIT_ASSERT_EQUAL(end.size(), buffer.size() - 6);
-    for (int index = 0; index < end.size(); ++index) {
+    for (size_t index = 0; index < end.size(); ++index) {
         CPPUNIT_ASSERT_EQUAL(end[index], buffer[index + 6]);
     }
 
@@ -322,7 +322,7 @@ void SharedBufferTest::testAllocator()
 
     // The initial condition of the arena should be all zeros
     std::fill(arena.begin(), arena.end(), 0);
-    CPPUNIT_ASSERT(std::count(arena.begin(), arena.end(), 0) == arena.size());
+    CPPUNIT_ASSERT_EQUAL(arena.size(), (size_t) std::count(arena.begin(), arena.end(), 0));
 
     // Create a new buffer using a custom allocator; we should see that it's
     // marked the allocated space with ones
@@ -337,7 +337,7 @@ void SharedBufferTest::testAllocator()
     // Release the buffer, which should trigger a deallocation; we should see
     // that it's reset the allocated space to zeros
     buffer = redhawk::buffer<value_type>();
-    CPPUNIT_ASSERT(std::count(arena.begin(), arena.end(), 0) == arena.size());
+    CPPUNIT_ASSERT_EQUAL(arena.size(), (size_t) std::count(arena.begin(), arena.end(), 0));
 }
 
 void SharedBufferTest::testAllocatorCopy()
