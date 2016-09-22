@@ -8,6 +8,7 @@ class SharedBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(SharedBufferTest);
     CPPUNIT_TEST(testDefaultConstructor);
     CPPUNIT_TEST(testConstructor);
+    CPPUNIT_TEST(testMakeBuffer);
     CPPUNIT_TEST(testEquals);
     CPPUNIT_TEST(testIteration);
     CPPUNIT_TEST(testCopy);
@@ -30,6 +31,7 @@ public:
     // Constructors
     void testDefaultConstructor();
     void testConstructor();
+    void testMakeBuffer();
 
     // Basic container behavior
     void testEquals();

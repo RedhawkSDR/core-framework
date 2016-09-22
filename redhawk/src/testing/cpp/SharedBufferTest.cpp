@@ -52,6 +52,12 @@ namespace {
 
         bool* _deleted;
     };
+
+    struct NullDeleter {
+        void operator() (void*)
+        {
+        }
+    };
 }
 
 void SharedBufferTest::setUp()
@@ -91,6 +97,19 @@ void SharedBufferTest::testConstructor()
     CPPUNIT_ASSERT(!shared.empty());
     CPPUNIT_ASSERT_EQUAL(shared.size(), buffer.size());
     CPPUNIT_ASSERT(shared.data() == buffer.data());
+}
+
+void SharedBufferTest::testMakeBuffer()
+{
+    // Simple wrapper for externally-allocated array
+    int* array = new int[16];
+    redhawk::buffer<int> buffer = redhawk::make_buffer(array, 16);
+    CPPUNIT_ASSERT_EQUAL(array, buffer.data());
+
+    // Use a custom deleter that is a no-op, with a stack-based array
+    double darray[4] = { 1.0, 2.0, 3.0, 4.0 };
+    redhawk::buffer<double> dbuffer = redhawk::make_buffer(darray, 4, NullDeleter());
+    CPPUNIT_ASSERT_EQUAL(&darray[0], dbuffer.data());
 }
 
 void SharedBufferTest::testEquals()
