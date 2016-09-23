@@ -29,6 +29,10 @@ class MessagingTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(MessagingTest);
     CPPUNIT_TEST(testConnections);
+    CPPUNIT_TEST(testSendMessage);
+    CPPUNIT_TEST(testSendMessageDirect);
+    CPPUNIT_TEST(testSendMessages);
+    CPPUNIT_TEST(testSendMessagesDirect);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -36,6 +40,12 @@ public:
     void tearDown();
 
     void testConnections();
+
+    void testSendMessage();
+    void testSendMessageDirect();
+
+    void testSendMessages();
+    void testSendMessagesDirect();
 
 private:
     MessageSupplierPort* _supplier;
