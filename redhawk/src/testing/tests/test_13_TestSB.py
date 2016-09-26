@@ -126,7 +126,7 @@ class SBTestTest(scatest.CorbaTestCase):
         for line in lines:
           if 'IOR' in line:
             break
-        _pid = line.split(' ')[2]
+        _pid = line.split()[1]
         self.assertEquals(int(_pid), a._pid)
 
     def test_doubleNamedConnection(self):
