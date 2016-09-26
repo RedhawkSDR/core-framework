@@ -74,6 +74,19 @@ void PropertyMapTest::testPropertiesConstructor()
     CPPUNIT_ASSERT_EQUAL((size_t) properties.length(), propmap.size());
 }
 
+void PropertyMapTest::testPropertyTypeFromAny()
+{
+    // Due to the implicit conversion from the templatized constructor for
+    // Value (the explicit keyword was removed for 2.1), it was necessary to
+    // add a constructor to PropertyType that takes a CORBA::Any as the value
+    // argument to prevent accidental nesting of Anys; this test simply ensures
+    // that this works
+    CORBA::Any any;
+    any <<= CF::Properties();
+    redhawk::PropertyType prop("test", any);
+    CPPUNIT_ASSERT_EQUAL(redhawk::Value::TYPE_PROPERTIES, prop.getValue().getType());
+}
+
 void PropertyMapTest::testConstCast()
 {
     // Create a known set of CF::Properties

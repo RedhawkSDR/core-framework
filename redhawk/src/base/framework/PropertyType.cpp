@@ -32,11 +32,18 @@ PropertyType::PropertyType(const CF::DataType& dt) :
 {
 }
 
+PropertyType::PropertyType(const std::string& identifier, const CORBA::Any& value) :
+    CF::DataType()
+{
+    setId(identifier);
+    this->value = value;
+}
+
 PropertyType::PropertyType(const std::string& identifier, const Value& value) :
     CF::DataType()
 {
     setId(identifier);
-    setValue(value);
+    this->value = value;
 }
 
 PropertyType& PropertyType::operator=(const CF::DataType& dt)

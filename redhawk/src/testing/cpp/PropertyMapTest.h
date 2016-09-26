@@ -28,6 +28,7 @@ class PropertyMapTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(PropertyMapTest);
     CPPUNIT_TEST(testDefaultConstructor);
     CPPUNIT_TEST(testPropertiesConstructor);
+    CPPUNIT_TEST(testPropertyTypeFromAny);
     CPPUNIT_TEST(testConstCast);
     CPPUNIT_TEST(testCast);
     CPPUNIT_TEST(testPushBack);
@@ -51,6 +52,7 @@ public:
 
     void testDefaultConstructor();
     void testPropertiesConstructor();
+    void testPropertyTypeFromAny();
 
     void testConstCast();
     void testCast();
