@@ -41,6 +41,21 @@ public:
 
 };
 
+class NewSriCallback  {
+
+public:
+
+    std::vector<std::string>  sids;
+
+    ~NewSriCallback() {};
+
+    void newSriCB( const BULKIO::StreamSRI& sri) {
+        std::string sid(sri.streamID);
+        sids.push_back( sid );
+    }
+};
+
+
 // Global connection/disconnection callbacks
 static void port_connected( const char* connectionId ) {
 
@@ -49,6 +64,7 @@ static void port_connected( const char* connectionId ) {
 static void port_disconnected( const char* connectionId ) {
 
 }
+
 
 
 void
@@ -319,6 +335,45 @@ void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutSDDSPort, bulkio::InSDDS
   port->setLogger(logger);
 }
 
+template<  >
+void  Bulkio_OutPort_Fixture::test_port_sri< bulkio::OutSDDSPort, bulkio::InSDDSPort >( bulkio::OutSDDSPort *port  ) {
+
+  ExtendedCF::UsesConnectionSequence *clist = port->connections();
+  CPPUNIT_ASSERT( clist != NULL );
+  delete clist;
+
+
+  NewSriCallback sri_cb;
+  bulkio::InSDDSPort *p  = new bulkio::InSDDSPort("sink_1", logger );
+  PortableServer::ObjectId_var p_oid = ossie::corba::RootPOA()->activate_object(p);
+  p->setNewSriListener(&sri_cb, &NewSriCallback::newSriCB );
+
+  BULKIO::StreamSRI sri;
+  BULKIO::SDDSStreamDefinition sdds;
+  sri.streamID = "stream1";
+  sri.xdelta = 1/1000.0;
+  sdds.id = "stream1";
+  sdds.dataFormat = BULKIO::SDDS_SB;
+  sdds.multicastAddress = "bad.ip.address";
+  sdds.port = 9999;
+  sdds.vlan = 0;
+  port->addStream(sdds);
+  port->pushSRI(sri, bulkio::time::utils::now());
+
+  sri.streamID = "stream2";
+  sdds.id = "stream2";
+  port->addStream(sdds);
+  port->pushSRI(sri, bulkio::time::utils::now());
+
+  port->connectPort( p->_this(), "connection_1");
+
+  int slen = sri_cb.sids.size();
+  CPPUNIT_ASSERT( slen == 2 ) ;
+  
+  port->disconnectPort( "connection_1");
+  ossie::corba::RootPOA()->deactivate_object(p_oid);
+}
+
 
 
 
@@ -539,6 +594,18 @@ Bulkio_OutPort_Fixture::test_sdds()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api< bulkio::OutSDDSPort, bulkio::InSDDSPort > ( port );
+
+  CPPUNIT_ASSERT_NO_THROW( port );
+}
+
+
+void
+Bulkio_OutPort_Fixture::test_sdds_sri()
+{
+  bulkio::OutSDDSPort *port = new bulkio::OutSDDSPort("test_sdds_sri", logger );
+  CPPUNIT_ASSERT( port != NULL );
+
+  test_port_sri< bulkio::OutSDDSPort, bulkio::InSDDSPort > ( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }

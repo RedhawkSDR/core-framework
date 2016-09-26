@@ -858,6 +858,7 @@ class OutAttachablePort(OutPort):
                 if not portListed:
                     self.streamContainer.addConnectionToAllStreams(connectionId,port) 
 
+                self.updateSRIForAllConnections()
             except Exception, e:
                 if self.logger:
                     self.logger.error("Exception while calling connectPort for connectionId %s: %s" % (connectionId, str(e)))

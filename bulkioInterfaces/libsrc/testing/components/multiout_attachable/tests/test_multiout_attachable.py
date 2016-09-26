@@ -280,6 +280,25 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(self.sink2.callback_stats.num_sdds_attaches, 3)
         self.assertEquals(self.sink3.callback_stats.num_sdds_attaches, 3)
         self.assertEquals(self.sink4.callback_stats.num_sdds_attaches, 3)
+
+    def testAddingSDDSConnectionsAfterStreamDefinitions(self):
+        self.addSddsStream("Stream1")
+        self.pushSRI('Stream1')
+        self.addSddsStream("Stream2")
+        self.pushSRI('Stream2')
+        self.addSddsStream("Stream3")
+        self.pushSRI('Stream3')
+        self.connectAllSdds()
+        
+        self.assertEquals(self.sink1.callback_stats.num_sdds_attaches, 3)
+        self.assertEquals(self.sink2.callback_stats.num_sdds_attaches, 3)
+        self.assertEquals(self.sink3.callback_stats.num_sdds_attaches, 3)
+        self.assertEquals(self.sink4.callback_stats.num_sdds_attaches, 3)
+
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 3)
     
     #
     # Test removing streams
@@ -471,6 +490,25 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 3)
         self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 3)
         self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 3)
+
+    def testAddingVITAConnectionsAfterStreamDefinitions(self):
+        self.addVitaStream("Stream1")
+        self.pushSRI('Stream1')
+        self.addVitaStream("Stream2")
+        self.pushSRI('Stream2')
+        self.addVitaStream("Stream3")
+        self.pushSRI('Stream3')
+        self.connectAllVita()
+        
+        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 3)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 3)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 3)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 3)
+
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 3)
     
     #
     # Test removing streams

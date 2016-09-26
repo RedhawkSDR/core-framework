@@ -459,7 +459,7 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
 	    }
         }
         this.streamContainer.printState("After connectPort");
-
+        this.updateSRIForAllConnections();
     }
 
     /**

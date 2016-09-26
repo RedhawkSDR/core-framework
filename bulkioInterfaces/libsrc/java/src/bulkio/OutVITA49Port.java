@@ -459,7 +459,7 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
 	    }
         }
         this.streamContainer.printState("After connectPort");
-
+        this.updateSRIForAllConnections();
     }
 
     /**
