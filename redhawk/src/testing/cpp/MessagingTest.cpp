@@ -149,6 +149,24 @@ namespace {
         std::vector<message_type> _received;
         std::vector<const message_type*> _addresses;
     };
+
+    // Utility class for generic message (CORBA::Any) callbacks
+    class GenericReceiver
+    {
+    public:
+        void messageReceived(const std::string& messageId, const CORBA::Any& msgData)
+        {
+            _received.push_back(redhawk::PropertyType(messageId, msgData));
+        }
+
+        const redhawk::PropertyMap& received() const
+        {
+            return _received;
+        }
+
+    private:
+        redhawk::PropertyMap _received;
+    };
 }
 
 void MessagingTest::setUp()
@@ -350,4 +368,37 @@ void MessagingTest::testSendMessagesDirect()
     for (size_t index = 0; index < messages.size(); ++index) {
         CPPUNIT_ASSERT_MESSAGE("direct message transfer not used", &messages[index] == receiver.addresses()[index]);
     }
+}
+
+void MessagingTest::testGenericCallback()
+{
+    // Set up receiver
+    GenericReceiver receiver;
+    _consumer->registerMessage(&receiver, &GenericReceiver::messageReceived);
+
+    // Send legacy_message and direct_message; with a generic callback,
+    // everything necessarily goes through Any serialization, so there's no
+    // distinction made other than there being two different message types
+    legacy_message_struct legacy;
+    legacy.value = 50;
+    _supplier->sendMessage(legacy);
+
+    direct_message_struct direct;
+    direct.value = 100;
+    direct.body = "lorem ipsum";
+    _supplier->sendMessage(direct);
+
+    // Check that the messages were received (see above re: threading)
+    const redhawk::PropertyMap& messages = receiver.received();
+    CPPUNIT_ASSERT_EQUAL((size_t) 2, messages.size());
+
+    legacy_message_struct legacy_out;
+    CPPUNIT_ASSERT_EQUAL(std::string("legacy_message"), messages[0].getId());
+    CPPUNIT_ASSERT(messages[0].getValue() >>= legacy_out);
+    CPPUNIT_ASSERT_EQUAL(legacy.value, legacy_out.value);
+
+    direct_message_struct direct_out;
+    CPPUNIT_ASSERT_EQUAL(direct_message_struct::getId(), messages[1].getId());
+    CPPUNIT_ASSERT(messages[1].getValue() >>= direct_out);
+    CPPUNIT_ASSERT(direct == direct_out);
 }

@@ -33,6 +33,7 @@ class MessagingTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testSendMessageDirect);
     CPPUNIT_TEST(testSendMessages);
     CPPUNIT_TEST(testSendMessagesDirect);
+    CPPUNIT_TEST(testGenericCallback);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -46,6 +47,8 @@ public:
 
     void testSendMessages();
     void testSendMessagesDirect();
+
+    void testGenericCallback();
 
 private:
     MessageSupplierPort* _supplier;
