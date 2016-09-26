@@ -27,6 +27,7 @@ class ValueTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(ValueTest);
     CPPUNIT_TEST(testConstructor);
+    CPPUNIT_TEST(testCopyConstructor);
     CPPUNIT_TEST(testType);
     CPPUNIT_TEST(testNumericConversion);
     CPPUNIT_TEST(testStringConversion);
@@ -39,6 +40,7 @@ public:
     void tearDown();
 
     void testConstructor();
+    void testCopyConstructor();
 
     void testType();
 

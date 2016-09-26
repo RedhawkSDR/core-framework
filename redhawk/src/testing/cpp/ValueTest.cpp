@@ -77,6 +77,24 @@ void ValueTest::testConstructor()
     ASSERT_CTOR(CF::Properties, properties);
 }
 
+void ValueTest::testCopyConstructor()
+{
+    CORBA::Any any;
+    CF::Properties properties;
+    any <<= properties;
+    CORBA::TypeCode_ptr typecode = any.type();
+    redhawk::Value::Type type = redhawk::Value::GetType(typecode);
+
+    // Copy constructor from Any (mostly making sure the type is the same, as
+    // opposed to nesting another level of Any)
+    redhawk::Value value(any);
+    CPPUNIT_ASSERT_EQUAL(type, value.getType());
+
+    // Copy constructor (again, checking that no accidental nesting occurred)
+    redhawk::Value copy(value);
+    CPPUNIT_ASSERT_EQUAL(type, copy.getType());
+}
+
 void ValueTest::testType()
 {
     redhawk::Value value;
