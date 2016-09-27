@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+
 #ifndef REDHAWK_EXECUTORSERVICE_H
 #define REDHAWK_EXECUTORSERVICE_H
 
@@ -28,142 +29,209 @@
 
 namespace redhawk {
 
+    /**
+     * @brief  A class for scheduling functions to run at a later time.
+     *
+     * %ExecutorService provides an interface for queueing functions to run on
+     * another thread at a specified time. This can be used for implementing
+     * periodic monitors, executing deferred callbacks, or other operations
+     * that do not need to be performed immediately (and do not require a
+     * return value).
+     */
     class ExecutorService {
     public:
-        ExecutorService() :
-            thread_(0),
-            running_(false)
-        {
-        }
+        /**
+         * @brief  Construct an %ExecutorService.
+         *
+         * The %ExecutorService is created in a stopped state.  To begin
+         * executing scheduled functions, call start().
+         */
+        ExecutorService();
 
-        void start ()
-        {
-            boost::mutex::scoped_lock lock(mutex_);
-            if (running_) {
-                return;
-            }
+        /**
+         * @brief  Starts executing scheduled functions.
+         *
+         * If the executor thread is not running, it is started. Any functions
+         * scheduled for the current time (or earlier) will be run at the next
+         * possible time.
+         */
+        void start ();
 
-            running_ = true;
-            thread_ = new boost::thread(&ExecutorService::run, this);
-        }
+        /**
+         * @brief  Stops executing scheduled functions.
+         *
+         * If the executor thread is running, it is stopped. Any remaining
+         * scheduled functions will not be run until the %ExecutorService is
+         * started again.
+         */
+        void stop ();
 
-        void stop ()
-        {
-            boost::thread* old_thread = 0;
-            {
-                boost::mutex::scoped_lock lock(mutex_);
-                running_ = false;
-                old_thread = thread_;
-                thread_ = 0;
-                cond_.notify_all();
-            }
-            if (old_thread) {
-                old_thread->join();
-                delete old_thread;
-            }
-        }
-
+        /**
+         * @brief  Calls a function on the executor thread.
+         * @param func  Callable object.
+         *
+         * Queues the callable object @a func to be called on the executor
+         * thread at the next possible time. This function does not wait for
+         * @a func to execute.
+         *
+         * If the %ExecutorService is not running, @a func will run after the
+         * next call to start().
+         */
         template <class F>
         void execute (F func)
         {
             insert_sorted(func);
         }
 
+        /**
+         * @brief  Calls a function on the executor thread.
+         * @param func  Callable object.
+         * @param A1  Argument to pass to callable object.
+         *
+         * Queues the callable object @a func to be called with the single
+         * argument @a A1 on the executor thread at the next possible time.
+         * This function does not wait for @a func to execute.
+         *
+         * If @a func is a class member function, the class instance should be
+         * passed as @a A1.
+         *
+         * If the %ExecutorService is not running, @a func will run after the
+         * next call to start().
+         */
         template <class F, class A1>
         void execute (F func, A1 arg1)
         {
             insert_sorted(boost::bind(func, arg1));
         }
 
+        /**
+         * @brief  Calls a function on the executor thread.
+         * @param func  Callable object.
+         * @param A1  First argument to pass to callable object.
+         * @param A2  Second argument to pass to callable object.
+         *
+         * Queues the callable object @a func to be called with the arguments
+         * @a A1 and @a A2 on the executor thread at the next possible time.
+         * This function does not wait for @a func to execute.
+         *
+         * If @a func is a class member function, the class instance should be
+         * passed as @a A1.
+         *
+         * If the %ExecutorService is not running, @a func will run after the
+         * next call to start().
+         */
         template <class F, class A1, class A2>
         void execute (F func, A1 arg1, A2 arg2)
         {
             insert_sorted(boost::bind(func, arg1, arg2));
         }
 
+        /**
+         * @brief  Schedules a function on the executor thread.
+         * @param when  The time at which to run the function.
+         * @param func  Callable object.
+         *
+         * Queues the callable object @a func to be called on the executor
+         * thread at @a when. The actual time at which it runs is guaranteed to
+         * be at least @a when, but may be later, depending on the system and
+         * what the %ExecutorService is doing at the time.
+         *
+         * If the %ExecutorService is not running at the scheduled time,
+         * @a func will run after the next call to start().
+         */
         template <class F>
         void schedule (boost::system_time when, F func)
         {
             insert_sorted(func, when);
         }
 
+        /**
+         * @brief  Schedules a function on the executor thread.
+         * @param when  The time at which to run the function.
+         * @param func  Callable object.
+         * @param A1  Argument to pass to callable object.
+         *
+         * Queues the callable object @a func to be called with the single
+         * argument @a A1 on the executor thread at @a when. The actual time
+         * at which it runs is guaranteed to be at least @a when, but may be
+         * later, depending on the system and what the %ExecutorService is
+         * doing at the time.
+         *
+         * If @a func is a class member function, the class instance should be
+         * passed as @a A1.
+         *
+         * If the %ExecutorService is not running at the scheduled time,
+         * @a func will run after the next call to start().
+         */
         template <class F, class A1>
         void schedule (boost::system_time when, F func, A1 arg1)
         {
             insert_sorted(boost::bind(func, arg1), when);
         }
 
+        /**
+         * @brief  Schedules a function on the executor thread.
+         * @param when  The time at which to run the function.
+         * @param func  Callable object.
+         * @param A1  First argument to pass to callable object.
+         * @param A2  Second argument to pass to callable object.
+         *
+         * Queues the callable object @a func to be called with the arguments
+         * @a A1 and @a A2 on the executor thread at @a when. The actual time
+         * at which it runs is guaranteed to be at least @a when, but may be
+         * later, depending on the system and what the %ExecutorService is
+         * doing at the time.
+         *
+         * If @a func is a class member function, the class instance should be
+         * passed as @a A1.
+         *
+         * If the %ExecutorService is not running at the scheduled time,
+         * @a func will run after the next call to start().
+         */
         template <class F, class A1, class A2>
         void schedule (boost::system_time when, F func, A1 arg1, A2 arg2)
         {
             insert_sorted(boost::bind(func, arg1, arg2), when);
         }
 
-        void clear ()
-        {
-            boost::mutex::scoped_lock lock(mutex_);
-            queue_.clear();
-            cond_.notify_all();
-        }
+        /**
+         * @brief  Discards all pending functions.
+         */
+        void clear ();
 
+        /**
+         * @brief  Returns the number of queued functions to be run.
+         */
         size_t pending ();
 
     private:
+        /// @cond IMPL
+
         typedef boost::function<void ()> func_type;
         typedef std::pair<boost::system_time,func_type> task_type;
         typedef std::list<task_type> task_queue;
 
-        void run ()
-        {
-            boost::mutex::scoped_lock lock(mutex_);
-            while (running_) {
-                while (!queue_.empty()) {
-                    // Start at the front of the queue every time--a task may
-                    // have been added while the lock was released to service
-                    // the last task
-                    task_queue::iterator task = queue_.begin();
-                    if (task->first > boost::get_system_time()) {
-                        // Head of queue is scheduled in the future
-                        break;
-                    }
+        // Thread main function.
+        void _run ();
 
-                    // Copy the task's function and remove it from the queue
-                    func_type func = task->second;
-                    queue_.erase(task);
+        // Inserts a callable object into the task queue at the given time,
+        // defaulting to now (i.e., run at the next possible time).
+        void _insertSorted (func_type func, boost::system_time when=boost::get_system_time());
 
-                    // Run task with the lock released
-                    lock.unlock();
-                    func();
-                    lock.lock();
-                }
-
-                if (queue_.empty()) {
-                    cond_.wait(lock);
-                } else {
-                    boost::system_time when = queue_.front().first;
-                    cond_.timed_wait(lock, when);
-                }
-            }
-        }
-
-        void insert_sorted (func_type func, boost::system_time when=boost::get_system_time())
-        {
-            boost::mutex::scoped_lock lock(mutex_);
-            task_queue::iterator pos = queue_.begin();
-            while ((pos != queue_.end()) && (when > pos->first)) {
-                ++pos;
-            }
-            queue_.insert(pos, std::make_pair(when, func));
-            cond_.notify_all();
-        }
-
-
-        boost::mutex mutex_;
-        boost::condition_variable cond_;
+        // Mutex/condvar pair to synchronize access and handle waiting for the
+        // next scheduled event.
+        boost::mutex _mutex;
+        boost::condition_variable _cond;
         
-        boost::thread* thread_;
-        task_queue queue_;
-        bool running_;
+        // Executor thread and control flag.
+        boost::thread* _thread;
+        volatile bool _running;
+
+        // Function queue, sorted by scheduled time such that the first item on
+        // the queue is the next function to call.
+        task_queue _queue;
+
+        /// @endcond
     };
 
 }
