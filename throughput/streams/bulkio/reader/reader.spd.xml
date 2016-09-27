@@ -32,9 +32,9 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   </descriptor>
   <implementation id="cpp">
     <description>The implementation contains descriptive information about the template for a software component.</description>
-    <code type="Executable">
-      <localfile name="cpp/reader"/>
-      <entrypoint>cpp/reader</entrypoint>
+    <code type="SharedLibrary">
+      <localfile name="cpp/reader.so"/>
+      <entrypoint>cpp/reader.so</entrypoint>
     </code>
     <compiler name="/usr/bin/gcc" version="4.1.2"/>
     <programminglanguage name="C++"/>

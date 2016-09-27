@@ -1,8 +1,8 @@
-1a313dab45817ac1afff2bb0d33fea5a  reader_base.cpp
-f2bb62c7e2ca437dd8e3e549cdbbd98e  main.cpp
+bb780ee6cc14bbe61373f5da8b83cdc4  reader_base.cpp
+a93fd9c0203f708c0bccb34cf8b02360  main.cpp
 8bfcd22353c3a57fee561ad86ee2a56b  reconf
-7babbadc243db5a457c46cb3953f7465  configure.ac
-a8bc574b27dc23d05cb5632e36afa093  Makefile.am
+994527613365ab24d8f01fa45a2c6399  configure.ac
+e6c2f53ac60077a6b5bfe2d7df24b1c1  Makefile.am
 2aefaeaafd472e72e6f06082f92b1322  Makefile.am.ide
 09d75d4d9a1858282f95a52ec7e70552  reader.h
 24dad4cedd3684f44f41b9857dae6681  reader_base.h

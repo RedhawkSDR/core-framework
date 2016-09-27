@@ -43,10 +43,12 @@ class NumaLauncher(object):
 
 class BulkioStream(object):
     def __init__(self, format, numa_policy):
+        # TODO: Use NUMA launcher when supported in sandbox for .so components
         launcher = NumaLauncher(numa_policy)
-        self.writer = sb.launch(os.path.join(PATH, 'writer/writer.spd.xml'), debugger=launcher)
-        self.reader = sb.launch(os.path.join(PATH, 'reader/reader.spd.xml'), debugger=launcher)
+        self.writer = sb.launch(os.path.join(PATH, 'writer/writer.spd.xml'))
+        self.reader = sb.launch(os.path.join(PATH, 'reader/reader.spd.xml'))
         self.writer.connect(self.reader)
+        self.container = sb.domainless._getSandbox()._getComponentHost()
 
     def start(self):
         sb.start()
@@ -55,10 +57,10 @@ class BulkioStream(object):
         sb.stop()
 
     def get_reader(self):
-        return self.reader._process.pid()
+        return self.container._process.pid()
 
     def get_writer(self):
-        return self.writer._process.pid()
+        return self.container._process.pid()
 
     def transfer_size(self, size):
         self.writer.transfer_length = int(size)

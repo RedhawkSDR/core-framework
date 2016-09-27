@@ -37,6 +37,7 @@ class writer_i : public writer_base
         std::vector<CORBA::Octet> buffer;
         bulkio::OutOctetStream stream;
 
+        size_t lastSize;
         double totalSeconds;
 };
 

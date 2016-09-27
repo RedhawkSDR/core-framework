@@ -33,6 +33,8 @@ writer_base::writer_base(const char *uuid, const char *label) :
     Component(uuid, label),
     ThreadedComponent()
 {
+    setThreadName(label);
+
     loadProperties();
 
     dataOctet_out = new bulkio::OutOctetPort("dataOctet_out");

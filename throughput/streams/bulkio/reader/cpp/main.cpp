@@ -21,10 +21,10 @@
 #include "ossie/ossieSupport.h"
 
 #include "reader.h"
-int main(int argc, char* argv[])
-{
-    reader_i* reader_servant;
-    Component::start_component(reader_servant, argc, argv);
-    return 0;
+extern "C" {
+    Resource_impl* make_component(const std::string& uuid, const std::string& identifier)
+    {
+        return new reader_i(uuid.c_str(), identifier.c_str());
+    }
 }
 

@@ -33,6 +33,8 @@ reader_base::reader_base(const char *uuid, const char *label) :
     Component(uuid, label),
     ThreadedComponent()
 {
+    setThreadName(label);
+
     loadProperties();
 
     dataOctet_in = new bulkio::InOctetPort("dataOctet_in");
