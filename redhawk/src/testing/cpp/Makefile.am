@@ -1,12 +1,12 @@
-TESTS = standalone test_libossiecf
+TESTS = test_standalone test_libossiecf
 
 AM_CPPFLAGS = -Wall
 
 check_PROGRAMS = $(TESTS)
 
-standalone_SOURCES = standalone.cpp SharedBufferTest.cpp SharedBufferTest.h
-standalone_CXXFLAGS = $(CPPUNIT_CFLAGS) -I $(top_srcdir)/base/include
-standalone_LDFLAGS = $(CPPUNIT_LIBS)
+test_standalone_SOURCES = test_standalone.cpp SharedBufferTest.cpp SharedBufferTest.h
+test_standalone_CXXFLAGS = $(CPPUNIT_CFLAGS) -I $(top_srcdir)/base/include
+test_standalone_LDFLAGS = $(CPPUNIT_LIBS)
 
 test_libossiecf_SOURCES = test_libossiecf.cpp
 test_libossiecf_SOURCES += ValueTest.cpp ValueTest.h
