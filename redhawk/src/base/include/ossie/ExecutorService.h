@@ -106,6 +106,8 @@ namespace redhawk {
             cond_.notify_all();
         }
 
+        size_t pending ();
+
     private:
         typedef boost::function<void ()> func_type;
         typedef std::pair<boost::system_time,func_type> task_type;

@@ -158,20 +158,65 @@ void ExecutorServiceTest::testSchedule()
     CPPUNIT_ASSERT_EQUAL(2, tracker.count());
 }
 
+void ExecutorServiceTest::testStop()
+{
+    _service.start();
+
+    CommandTracker tracker;
+
+    // Schedule a task far enough in the future that we can stop the service's
+    // thread before it is executed
+    boost::system_time when = boost::get_system_time() + boost::posix_time::microseconds(1000);
+    _service.schedule(when, &CommandTracker::run, &tracker);
+
+    // Stop the service; check that the scheduled time for the task is still in
+    // the future, and that it was not executed
+    _service.stop();
+    CPPUNIT_ASSERT_MESSAGE("scheduled time already passed", boost::get_system_time() < when);
+    CPPUNIT_ASSERT_EQUAL(0, tracker.count());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1, _service.pending());
+
+    // Wait until the scheduled time for the task has passed, plus a small
+    // fudge factor to account for thread timing
+    when += boost::posix_time::microseconds(500);
+    while (boost::get_system_time() < when) {
+        CPPUNIT_ASSERT(!tracker.wait(1, when));
+    }
+    CPPUNIT_ASSERT_MESSAGE("failed to wait requested time", boost::get_system_time() >= when);
+
+    // The task should still not have executed
+    CPPUNIT_ASSERT_EQUAL(0, tracker.count());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1, _service.pending());
+
+    // Start the service; it should be able to run the task as soon as the
+    // thread begins
+    _service.start();
+
+    // Wait a little bit to give the service's thread time to execute the task
+    // and check that it has, in fact, happenend
+    boost::system_time timeout = boost::get_system_time() + boost::posix_time::microseconds(500);
+    CPPUNIT_ASSERT(tracker.wait(1, timeout));
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, _service.pending());
+}
+
 void ExecutorServiceTest::testClear()
 {
     CommandTracker tracker;
 
+    // Queue a command to be executed now, and one in the future
     _service.execute(&CommandTracker::run, &tracker);
-
     boost::system_time when = boost::get_system_time() + boost::posix_time::seconds(1);
     _service.schedule(when, &CommandTracker::run, &tracker);
 
+    // Check that both tasks are currently pending
+    CPPUNIT_ASSERT_EQUAL((size_t) 2, _service.pending());
+
+    // Clear the pending tasks and then start the service--doing it in this
+    // order makes it deterministic whether any tasks are executed
     _service.clear();
     _service.start();
 
-    // TODO: Better determination of pending
-    usleep(1000);
-
+    // There should be no pending tasks, and nothing should have been executed
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, _service.pending());
     CPPUNIT_ASSERT_EQUAL(0, tracker.count());
 }

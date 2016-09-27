@@ -30,6 +30,7 @@ class ExecutorServiceTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(ExecutorServiceTest);
     CPPUNIT_TEST(testExecute);
     CPPUNIT_TEST(testSchedule);
+    CPPUNIT_TEST(testStop);
     CPPUNIT_TEST(testClear);
     CPPUNIT_TEST_SUITE_END();
 
@@ -39,6 +40,7 @@ public:
 
     void testExecute();
     void testSchedule();
+    void testStop();
     void testClear();
 
 private:
