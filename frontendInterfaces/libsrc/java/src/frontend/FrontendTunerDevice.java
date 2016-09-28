@@ -839,7 +839,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
             "FRONTEND::TUNER", //default value
             Mode.READONLY, //mode
             Action.EQ, //action
-            new Kind[] {Kind.ALLOCATION,Kind.CONFIGURE} //kind
+            new Kind[] {Kind.ALLOCATION,Kind.PROPERTY} //kind
             );
 
     protected StringProperty device_model =
@@ -849,7 +849,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
             "", //default value
             Mode.READONLY, //mode
             Action.EQ, //action
-            new Kind[] {Kind.ALLOCATION,Kind.CONFIGURE} //kind
+            new Kind[] {Kind.ALLOCATION,Kind.PROPERTY} //kind
             );
 
     protected StructProperty<frontend.FETypes.frontend_tuner_allocation_struct> frontend_tuner_allocation =
@@ -881,7 +881,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
             frontend_tuner_status_class_type, //type
             new ArrayList<TunerStatusStructType>(),
             Mode.READONLY, //mode
-            new Kind[] { Kind.CONFIGURE } //kind
+            new Kind[] { Kind.PROPERTY } //kind
         );
 
     protected Map<String, Integer> allocation_id_to_tuner_id;

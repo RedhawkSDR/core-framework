@@ -278,7 +278,7 @@ namespace frontend {
                     "readonly",
                     "",
                     "eq",
-                    "allocation,configure");
+                    "allocation,property");
 
         addProperty(device_model,
                     "",
@@ -287,7 +287,7 @@ namespace frontend {
                     "readonly",
                     "",
                     "eq",
-                    "allocation,configure");
+                    "allocation,property");
 
         addProperty(frontend_tuner_allocation,
                     frontend::frontend_tuner_allocation_struct(),
@@ -313,7 +313,7 @@ namespace frontend {
                     "readonly",
                     "",
                     "external",
-                    "configure");
+                    "property");
 
     }
 

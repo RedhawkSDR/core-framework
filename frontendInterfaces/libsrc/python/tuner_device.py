@@ -1044,7 +1044,7 @@ class FrontendTunerDevice(Device):
                                   defvalue="FRONTEND::TUNER",
                                   mode="readonly",
                                   action="eq",
-                                  kinds=("allocation","configure"),
+                                  kinds=("allocation","property"),
                                   description="""This specifies the device kind"""
                                   )
     device_model = simple_property(id_="DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb",
@@ -1053,7 +1053,7 @@ class FrontendTunerDevice(Device):
                                    defvalue="",
                                    mode="readonly",
                                    action="eq",
-                                   kinds=("allocation","configure"),
+                                   kinds=("allocation","property"),
                                    description=""" This specifies the specific device"""
                                    )
     frontend_tuner_allocation = struct_property(id_="FRONTEND::tuner_allocation",
@@ -1074,7 +1074,7 @@ class FrontendTunerDevice(Device):
                                                name="frontend_tuner_status",
                                                structdef=default_frontend_tuner_status_struct_struct,
                                                defvalue=[],
-                                               configurationkind=("configure",),
+                                               configurationkind=("property",),
                                                mode="readonly",
                                                description="""Frontend Interfaces v2.0 status structure. One element for every frontend resource (receiver, transmitter) configured on this hardware"""
                                                )
