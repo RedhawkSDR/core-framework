@@ -177,7 +177,7 @@ void DomainManager_impl::handleIDMChannelMessages( const CORBA::Any &msg ) {
 
   const StandardEvent::AbnormalComponentTerminationEventType *termMsg;
   if ( msg >>= termMsg ) {
-    LOG_WARN(DomainManager_impl, "Abormal Component Termination, Reporting Device: " << termMsg->deviceId << " Application/Component " << 
+    LOG_WARN(DomainManager_impl, "Abnormal Component Termination, Reporting Device: " << termMsg->deviceId << " Application/Component " << 
              termMsg->applicationId << "/" << termMsg->componentId );
   }
 
@@ -185,7 +185,7 @@ void DomainManager_impl::handleIDMChannelMessages( const CORBA::Any &msg ) {
 
 
 void DomainManager_impl::idmTerminationMessages( const redhawk::events::ComponentTerminationEvent &termMsg ) {
-  LOG_WARN(DomainManager_impl, "Abormal Component Termination, Reporting Device: " << termMsg.device_id << " Application/Component " << 
+  LOG_WARN(DomainManager_impl, "Abnormal Component Termination, Reporting Device: " << termMsg.device_id << " Application/Component " << 
              termMsg.application_id << "/" << termMsg.component_id );
 }
 
