@@ -183,25 +183,25 @@ void DomainManager_impl::parseDMDProfile()
         dmdStream.close();
     } catch (const parser_error& e) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager; error parsing domain manager configuration " <<  _domainManagerProfile << ". " << parser_error_line << "The XML parser returned the following error: " << e.what())
+        LOG_FATAL(DomainManager_impl, "Stopping domain manager; error parsing domain manager configuration DMD: " <<  _domainManagerProfile << ". " << parser_error_line << " The XML parser returned the following error: " << e.what())
         _exit(EXIT_FAILURE);
     } catch (const std::ios_base::failure& e) {
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager; IO error reading domain manager configuration; " << e.what())
+        LOG_FATAL(DomainManager_impl, "Stopping domain manager;  domain manager configuration DMD: " <<  _domainManagerProfile << " IO failure exception: " << e.what())
         _exit(EXIT_FAILURE);
     } catch( CF::InvalidFileName& _ex ) {
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager; invalid domain manager configuration file name; " << _ex.msg)
+        LOG_FATAL(DomainManager_impl, "Stopping domain manager;  domain manager configuration DMD: " <<  _domainManagerProfile << " Invalid file name exception: " << _ex.msg)
         _exit(EXIT_FAILURE);
     } catch( CF::FileException& _ex ) {
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager; file error while opening domain manager configuration; " << _ex.msg)
+        LOG_FATAL(DomainManager_impl, "Stopping domain manager; domain manager configuration DMD: " <<  _domainManagerProfile << " File exception: " << _ex.msg)
         _exit(EXIT_FAILURE);
     } catch ( std::exception& ex ) {
         std::ostringstream eout;
-        eout << "The following standard exception occurred: "<<ex.what()<<" while loading domain manager configuration from " << _domainManagerProfile;
+        eout << "The following standard exception occurred: "<<ex.what()<<" while loading domain manager configuration DMD: " << _domainManagerProfile;
         LOG_FATAL(DomainManager_impl, eout.str())
         _exit(EXIT_FAILURE);
     } catch ( CORBA::Exception& ex ) {
         std::ostringstream eout;
-        eout << "The following CORBA exception occurred: "<<ex._name()<<" while loading domain manager configuration from " << _domainManagerProfile;
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while loading domain manager configuration DMD: " << _domainManagerProfile;
         LOG_FATAL(DomainManager_impl, eout.str())
         _exit(EXIT_FAILURE);
     }
@@ -1031,7 +1031,7 @@ void DomainManager_impl::_local_registerDeviceManager (CF::DeviceManager_ptr dev
             dcd.close();
         } catch ( ossie::parser_error& e ) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-            LOG_ERROR(DomainManager_impl, "failed device manager registration; error parsing device manager DCD " << deviceMgr->deviceConfigurationProfile() << ". " << parser_error_line << "The XML parser returned the following error: " << e.what())
+            LOG_ERROR(DomainManager_impl, "Failed device manager registration; error parsing device manager DCD: " << deviceMgr->deviceConfigurationProfile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what())
             throw(CF::DomainManager::RegisterError());
         }
 
@@ -2430,7 +2430,7 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
         node.spd.load(spd, node.softwareProfile);
     } catch (const ossie::parser_error& error) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(error.what());
-        LOG_WARN(DomainManager_impl, "Error parsing SPD for device " << node.identifier << ". " << parser_error_line << "The XML parser returned the following error: " << error.what());
+        LOG_WARN(DomainManager_impl, "Error parsing SPD: " <<  node.softwareProfile << "  Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
     } catch (...) {
         LOG_WARN(DomainManager_impl, "Unable to cache SPD for device " << node.identifier);
     }
@@ -2443,7 +2443,7 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
             node.prf.load(prf);
         } catch (const ossie::parser_error& error) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(error.what());
-            LOG_WARN(DomainManager_impl, "Error parsing PRF for device " << node.identifier << ". " << parser_error_line << "The XML parser returned the following error: " << error.what());
+            LOG_WARN(DomainManager_impl, "Error parsing PRF: " << node.spd.getPRFFile() << " Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
         } catch (...) {
             LOG_WARN(DomainManager_impl, "Unable to cache PRF for device " << node.identifier);
         }
@@ -2461,9 +2461,9 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
                 node.prf.join(prf_file);
             } catch (const ossie::parser_error& error) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(error.what());
-                LOG_WARN(DomainManager_impl, "Error parsing implementation-specific PRF for device " << node.identifier << ". " << parser_error_line << "The XML parser returned the following error: " << error.what());
+                LOG_WARN(DomainManager_impl, "Error parsing implementation-specific PRF for Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
             } catch (...) {
-                LOG_WARN(DomainManager_impl, "Unable to cache implementation-specific PRF for device " << node.identifier);
+                LOG_WARN(DomainManager_impl, "Unable to cache implementation-specific PRF for Device: " << node.identifier);
             }
         }
     }
@@ -2477,9 +2477,9 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
         dcd.load(dcd_file);
     } catch (const ossie::parser_error& error) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(error.what());
-        LOG_WARN(DomainManager_impl, "Error parsing DCD overrides for device " << node.identifier << ". " << parser_error_line << "The XML parser returned the following error: " << error.what());
+        LOG_WARN(DomainManager_impl, "Error parsing DCD: " << deviceManagerProfile.c_str() << " overrides for Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
     } catch (...) {
-        LOG_WARN(DomainManager_impl, "Unable to cache DCD overrides for device " << node.identifier);
+        LOG_WARN(DomainManager_impl, "Unable to cache DCD overrides for Device: " << node.identifier);
     }
 
 

@@ -408,10 +408,10 @@ bool SoftpkgInfo::parseProfile(CF::FileManager_ptr fileMgr)
         spd_file.close();
     } catch (const ossie::parser_error& e) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-        LOG_ERROR(SoftpkgInfo, "building component info problem; error parsing spd. " << parser_error_line << "The XML parser returned the following error: " << e.what());
+        LOG_ERROR(SoftpkgInfo, "Building component info problem; error parsing SPD: " << _spdFileName << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
         return false;
     } catch (...) {
-        LOG_ERROR(SoftpkgInfo, "building component info problem; unknown error parsing spd;");
+        LOG_ERROR(SoftpkgInfo, "Building component info problem; unknown error parsing SPD: " << _spdFileName );
         return false;
     }
 
@@ -510,11 +510,11 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileManager_ptr 
             _scd.close();
         } catch (ossie::parser_error& e) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-            LOG_ERROR(ComponentInfo, "building component info problem; error parsing scd. " << parser_error_line << "The XML parser returned the following error: " << e.what());
+            LOG_ERROR(ComponentInfo, "Building component info problem; error parsing SCD: " << newComponent->spd.getSCDFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
             delete newComponent;
             return 0;
         } catch( ... ) {
-            LOG_ERROR(ComponentInfo, "building component info problem; unknown error parsing scd;");
+            LOG_ERROR(ComponentInfo, "Building component info problem; unknown error parsing SCD: " << newComponent->spd.getSCDFile() );
             delete newComponent;
             return 0;
         }
@@ -530,11 +530,11 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileManager_ptr 
             _prf.close();
         } catch (ossie::parser_error& e) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-            LOG_ERROR(ComponentInfo, "building component info problem; error parsing prf. " << parser_error_line << "The XML parser returned the following error: " << e.what());
+            LOG_ERROR(ComponentInfo, "Building component info problem; error parsing PRF: " << newComponent->spd.getPRFFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
             delete newComponent;
             return 0;
         } catch( ... ) {
-            LOG_ERROR(ComponentInfo, "building component info problem; unknown error parsing prf;");
+            LOG_ERROR(ComponentInfo, "Building component info problem; unknown error parsing PRF: " << newComponent->spd.getPRFFile());
             delete newComponent;
             return 0;
         }

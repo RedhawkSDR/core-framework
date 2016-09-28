@@ -224,17 +224,19 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
             spdParser.load( _spd,  sfw_profile.c_str() );
             _spd.close();
         } catch (ossie::parser_error& ex) {
+            ostringstream eout;
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-            LOG_ERROR(ApplicationFactory_impl, "SPD file failed validation; parser error on file " << sfw_profile << parser_error_line << "The XML parser returned the following error: " << ex.what());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.what());
+            eout << "Failed to parse SPD: " << sfw_profile << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
+            LOG_ERROR(ApplicationFactory_impl, eout.str() );
+            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, eout.str().c_str());
         } catch (CF::InvalidFileName ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD due to invalid file name " << ex.msg);
+            LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD: " << sfw_profile << ". Invalid file name exception: " << ex.msg);
             throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
         } catch (CF::FileException ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD due to file exception" << ex.msg);
+            LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD: " << sfw_profile << ". File exception: " << ex.msg);
             throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
         } catch ( ... ) {
-            LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating PRF " << sfw_profile);
+            LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating SPD: " << sfw_profile );
             throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "");
         }
 
@@ -299,21 +301,23 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
                 LOG_TRACE(ApplicationFactory_impl, "Closing stream")
                 prfStream.close();
             } catch (ossie::parser_error& ex ) {
+                ostringstream eout;
                 std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-                LOG_ERROR(ApplicationFactory_impl, "Error validating PRF " << spdParser.getPRFFile() << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
-                throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.what());
+                eout <<  "Failed to parse PRF: " << spdParser.getPRFFile() << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
+                LOG_ERROR(ApplicationFactory_impl, eout.str() );
+                throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, eout.str().c_str());
             } catch (CF::InvalidFileName ex) {
               if ( require_prf ) {
-                LOG_ERROR(ApplicationFactory_impl, "Failed to validate PRF due to invalid file name " << ex.msg);
+                  LOG_ERROR(ApplicationFactory_impl, "Failed to validate PRF: " << spdParser.getPRFFile() << " Invalid file name exception: "  << ex.msg);
                 throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
               }
             } catch (CF::FileException ex) {
               if ( require_prf ) {
-                LOG_ERROR(ApplicationFactory_impl, "Failed to validate PRF due to file exception" << ex.msg);
+                  LOG_ERROR(ApplicationFactory_impl, "Failed to validate PRF: " << spdParser.getPRFFile() << " File exception: "  << ex.msg);
                 throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
               }
             } catch ( ... ) {
-                LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating PRF " << spdParser.getPRFFile());
+                LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating PRF: " << spdParser.getPRFFile());
                 throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "");
             }
         } else {
@@ -335,20 +339,22 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
                 _scd.close();
             } catch (ossie::parser_error& ex) {
                 std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-                LOG_ERROR(ApplicationFactory_impl, "SCD file failed validation; parser error on file " << spdParser.getSCDFile() << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
-                throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.what());
+                ostringstream eout;
+                eout << "Failed to parse SCD: " << spdParser.getSCDFile() << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
+                LOG_ERROR(ApplicationFactory_impl, eout.str() );
+                throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, eout.str().c_str());
             } catch (CF::InvalidFileName ex) {
               if ( require_scd ){
-                LOG_ERROR(ApplicationFactory_impl, "Failed to validate SCD due to invalid file name " << ex.msg);
+                  LOG_ERROR(ApplicationFactory_impl, "Failed to validate SCD: " << spdParser.getSCDFile() << " Invalid file name exception: " << ex.msg);
                 throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
               }
             } catch (CF::FileException ex) {
               if ( require_scd ) {
-                LOG_ERROR(ApplicationFactory_impl, "Failed to validate SCD due to file exception" << ex.msg);
+                LOG_ERROR(ApplicationFactory_impl, "Failed to validate SCD: " << spdParser.getSCDFile() <<  " File exception: " << ex.msg);
                 throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
               }
             } catch ( ... ) {
-                LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating PRF " << spdParser.getSCDFile());
+                LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating SCD: " << spdParser.getSCDFile());
                 throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "");
             }
         } else if (spdParser.isScaCompliant() and require_scd ) {
@@ -359,15 +365,15 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
         }
 
     } catch (CF::InvalidFileName& ex) {
-        LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD due to " << ex.msg);
+        LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD: " << sfw_profile << ", exception: " << ex.msg);
         throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
     } catch (CF::FileException& ex) {
-        LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD due to " << ex.msg);
+        LOG_ERROR(ApplicationFactory_impl, "Failed to validate SPD: " << sfw_profile << ", exception: " << ex.msg);
         throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
     } catch (CF::DomainManager::ApplicationInstallationError& ex) {
         throw;
     } catch ( ... ) {
-        LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating SPD " << sfw_profile);
+        LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating SPD: " << sfw_profile);
         throw CF::DomainManager::ApplicationInstallationError ();
     }
 
@@ -420,12 +426,12 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
     } catch (const ossie::parser_error& ex) {
         ostringstream eout;
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-        eout << "Failed to parse SAD file " << _softwareProfile << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what();
+        eout << "Failed to parse SAD file: " << _softwareProfile << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
         LOG_ERROR(ApplicationFactory_impl, eout.str());
-        throw CF::DomainManager::ApplicationInstallationError(CF::CF_ENOENT, eout.str().c_str());
+        throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch ( std::exception& ex ) {
         ostringstream eout;
-        eout << "The following standard exception occurred: "<<ex.what()<<" While loading "<<_softwareProfile;
+        eout << "The following standard exception occurred: "<<ex.what()<<". While loading "<<_softwareProfile;
         LOG_ERROR(ApplicationFactory_impl, eout.str())
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch( CF::InvalidFileName& ex ) {
@@ -435,7 +441,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, eout.str().c_str());
     } catch ( const CF::FileException& ex ) {
         ostringstream eout;
-        eout << "The following FileException occurred: "<<ex.msg<<" While loading "<<_softwareProfile;
+        eout << "The following FileException occurred: "<<ex.msg<<"  While loading "<<_softwareProfile;
         LOG_ERROR(ApplicationFactory_impl, eout.str())
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch ( const CORBA::Exception& ex ) {
@@ -445,7 +451,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch( ... ) {
         ostringstream eout;
-        eout << "Parsing SAD failed with unknown exception;";
+        eout << "Parsing SAD file: " <<_softwareProfile << " Failed with unknown exception.";
         LOG_ERROR(ApplicationFactory_impl, eout.str());
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_ENOENT, eout.str().c_str());
     }
@@ -540,7 +546,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
             } catch(ossie::parser_error& ex ) {
               std::ostringstream os;
               std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-              os << "Invalid PRF file: " << prf_file << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what();
+              os << "Invalid PRF file: " << prf_file << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
               LOG_ERROR(ApplicationFactory_impl, os.str() );
               throw CF::DomainManager::ApplicationInstallationError(CF::CF_NOTSET, os.str().c_str());
             } catch( ... ) {
@@ -969,7 +975,7 @@ void createHelper::_getComponentsToPlace(
 
         if (!component) {
             ostringstream eout;
-            eout << "failed to create application; unable to recover component Id (error parsing the SAD file "<<_appFact._softwareProfile<<")";
+            eout << "Failed to create application; unable to recover component Id (error parsing the SAD file: "<<_appFact._softwareProfile<<")";
             LOG_ERROR(ApplicationFactory_impl, eout.str());
             throw CF::ApplicationFactory::CreateApplicationError(
                 CF::CF_EAGAIN,
@@ -2845,7 +2851,7 @@ void createHelper::initializeComponents()
           CF::Properties partialStruct = component->containsPartialStructConstruct();
           if (partialStruct.length() != 0) {
             ostringstream eout;
-            eout << "Failed to 'configure' Assembly Controller: '";
+            eout << "Failed to 'initializeProperties' component: '";
             eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
             eout <<  "This component contains structure"<<partialStruct[0].id<<" with a mix of defined and nil values.";
@@ -2979,7 +2985,7 @@ void createHelper::configureComponents()
                 bool partialWarn = false;
                 if (partialStruct.length() != 0) {
                     ostringstream eout;
-                    eout <<  "Component " << component->getIdentifier() << " contains structure"<< partialStruct[0].id <<" with a mix of defined and nil values. The behavior for the component is undefined";
+                    eout <<  "Component " << component->getIdentifier() << " contains structure: "<< partialStruct[0].id <<" with a mix of defined and nil values. The behavior for the component is undefined";
                     LOG_WARN(ApplicationFactory_impl, eout.str());
                     partialWarn = true;
                 }

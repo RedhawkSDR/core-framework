@@ -108,20 +108,20 @@ void DeviceManager_impl::parseDCDProfile(
         _dcd.close();
     } catch ( ossie::parser_error& e ) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-        LOG_FATAL(DeviceManager_impl, "exiting device manager; failure parsing DCD file " << _deviceConfigurationProfile << ". " << parser_error_line << "The XML parser returned the following error: " << e.what());
+        LOG_FATAL(DeviceManager_impl, "Exiting device manager; failure parsing DCD: " << _deviceConfigurationProfile << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
         throw std::runtime_error(e.what());
     } catch ( std::exception& ex ) {
         std::ostringstream eout;
-        eout << "The following standard exception occurred: "<<ex.what()<<" while parsing the DCD file";
+        eout << "The following standard exception occurred: "<<ex.what()<<", while parsing the DCD: " << _deviceConfigurationProfile;
         LOG_FATAL(DeviceManager_impl, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch ( CORBA::Exception& ex ) {
         std::ostringstream eout;
-        eout << "The following CORBA exception occurred: "<<ex._name()<<" while parsing the DCD file";
+        eout << "The following CORBA exception occurred: "<<ex._name()<<", while parsing the DCD: " << _deviceConfigurationProfile;
         LOG_FATAL(DeviceManager_impl, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch ( ... ) {
-        LOG_FATAL(DeviceManager_impl, "exiting device manager; unexpected failure parsing DCD file ");
+        LOG_FATAL(DeviceManager_impl, "Exiting device manager; Unexpected failure parsing DCD: " << _deviceConfigurationProfile );
         throw std::runtime_error("unexpected error");
     }
 
@@ -203,7 +203,7 @@ bool DeviceManager_impl::loadSPD(
     LOG_TRACE(DeviceManager_impl, "Getting file name for refid " << componentPlacement.getFileRefId());
     const char* spdFile = DCDParser.getFileNameFromRefId(componentPlacement.getFileRefId());
     if (spdFile == 0) {
-        LOG_ERROR(DeviceManager_impl, "cannot instantiate component; component file for id " << componentPlacement.getFileRefId() << " isn't defined")
+        LOG_ERROR(DeviceManager_impl, "Cannot instantiate component; component file for id " << componentPlacement.getFileRefId() << " isn't defined")
         return false;
     }
 
@@ -213,20 +213,20 @@ bool DeviceManager_impl::loadSPD(
         _spd.close();
     } catch ( ossie::parser_error& e ) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-        LOG_FATAL(DeviceManager_impl, "stopping device manager; error parsing SPD " << spdFile << ". " << parser_error_line << "The XML parser returned the following error: " << e.what());
+        LOG_FATAL(DeviceManager_impl, "Stopping device manager; error parsing SPD: " << spdFile << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
         throw std::runtime_error("unexpected error");
     } catch ( std::exception& ex ) {
         std::ostringstream eout;
-        eout << "The following standard exception occurred: "<<ex.what()<<" while parsing the SPD " << spdFile;
+        eout << "The following standard exception occurred: "<<ex.what()<<" while parsing the SPD: " << spdFile;
         LOG_FATAL(DeviceManager_impl, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch ( CORBA::Exception& ex ) {
         std::ostringstream eout;
-        eout << "The following CORBA exception occurred: "<<ex._name()<<" while parsing the SPD " << spdFile;
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while parsing the SPD: " << spdFile;
         LOG_FATAL(DeviceManager_impl, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch ( ... ) {
-        LOG_FATAL(DeviceManager_impl, "stopping device manager; unknown error parsing SPD")
+       LOG_FATAL(DeviceManager_impl, "Stopping device manager; unknown error parsing SPD: " << spdFile)
         throw std::runtime_error("unexpected error");
     }
 
@@ -338,20 +338,21 @@ void DeviceManager_impl::parseSpd(
         spd.close();
     } catch (ossie::parser_error& e) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-        LOG_ERROR(DeviceManager_impl, "creating device manager error; error parsing spd " << devmgrsoftpkg << ". " << parser_error_line << "The XML parser returned the following error: " << e.what());
+        LOG_ERROR(DeviceManager_impl, "Creating device manager error; error parsing SPD: " << devmgrsoftpkg << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
         throw std::runtime_error("unexpected error");
     } catch ( std::exception& ex ) {
         std::ostringstream eout;
-        eout << "The following standard exception occurred: "<<ex.what()<<" while parsing the spd " << devmgrsoftpkg;
+        eout << "The following standard exception occurred: "<<ex.what()<<" while parsing the SPD: " << devmgrsoftpkg;
         LOG_ERROR(DeviceManager_impl, eout.str())
+
         throw std::runtime_error(eout.str().c_str());
     } catch ( CORBA::Exception& ex ) {
         std::ostringstream eout;
-        eout << "The following CORBA exception occurred: "<<ex._name()<<" while parsing the spd " << devmgrsoftpkg;
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while parsing the SPD: " << devmgrsoftpkg;
         LOG_ERROR(DeviceManager_impl, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch( ... ) {
-        LOG_ERROR(DeviceManager_impl, "creating device manager error; unknown error parsing spd " << devmgrsoftpkg);
+        LOG_ERROR(DeviceManager_impl, "Creating device manager error; unknown error parsing SPD: " << devmgrsoftpkg);
         throw std::runtime_error("unexpected error");
     }
 }
@@ -618,15 +619,15 @@ bool DeviceManager_impl::loadScdToParser(
     } catch (ossie::parser_error& ex) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
         LOG_ERROR(DeviceManager_impl, 
-                  "SCD file failed validation; parser error on file " <<  scdpath << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
+                  "Error parsing SCD: " <<  scdpath << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what());
     } catch (CF::InvalidFileName ex) {
-        LOG_ERROR(DeviceManager_impl, "Failed to validate SCD due to invalid file name " << ex.msg);
+        LOG_ERROR(DeviceManager_impl, "Failed to validate SCD: " << scdpath << " Invalid file name exception: " << ex.msg);
     } catch (CF::FileException ex) {
-        LOG_ERROR(DeviceManager_impl, "Failed to validate SCD due to file exception" << ex.msg);
+        LOG_ERROR(DeviceManager_impl, "Failed to validate SCD: " << scdpath << " File exception: " << ex.msg);
     } catch ( std::exception& ex ) {
-        LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what() <<". Unable to parse the SCD")
+        LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what() <<". Unable to parse the SCD: " << scdpath );
     } catch ( ... ) {
-        LOG_ERROR(DeviceManager_impl, "Unexpected error parsing SCD " << scdpath);
+        LOG_ERROR(DeviceManager_impl, "Unexpected error parsing SCD: " << scdpath);
     }
 
     return success;
@@ -1737,8 +1738,8 @@ bool DeviceManager_impl::joinPRFProperties (const std::string& prfFile, ossie::P
         }
     } catch (const ossie::parser_error& ex) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-        LOG_ERROR(DeviceManager_impl, "Error parsing PRF file " << prfFile << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
-    } CATCH_LOG_ERROR(DeviceManager_impl, "Failure parsing PRF file " << prfFile);
+        LOG_ERROR(DeviceManager_impl, "Error parsing PRF: " << prfFile << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what());
+    } CATCH_LOG_ERROR(DeviceManager_impl, "Failure parsing PRF: " << prfFile);
 
     return false;
 }
@@ -2188,6 +2189,7 @@ throw (CORBA::SystemException)
     LOG_DEBUG(DeviceManager_impl, "SHUTDOWN START........." << *_internalShutdown)
 
     if ((_adminState == DEVMGR_SHUTTING_DOWN) || (_adminState == DEVMGR_SHUTDOWN)) {
+        LOG_DEBUG(DeviceManager_impl, "SHUTTIING DOWN NOW......" );
         return;
     }
 
@@ -2199,8 +2201,10 @@ throw (CORBA::SystemException)
     // everything per SR::503
     try {
         CF::DeviceManager_var self = _this();
-        _dmnMgr->unregisterDeviceManager(self);
-        LOG_DEBUG(DeviceManager_impl, "SHUTDOWN ......... unregisterDeviceManager ");
+        if ( !CORBA::is_nil(_dmnMgr ) ) {
+            _dmnMgr->unregisterDeviceManager(self);
+            LOG_DEBUG(DeviceManager_impl, "SHUTDOWN ......... unregisterDeviceManager ");
+        }
     } catch( ... ) {
     }
 
@@ -2208,12 +2212,14 @@ throw (CORBA::SystemException)
     // release any event channels that we registered against
     //
     try {
-      CF::EventChannelManager_ptr ecm = _dmnMgr->eventChannelMgr();
-      if ( CORBA::is_nil(ecm) == false && idm_registration.operator->() != NULL ){
-        LOG_INFO(DeviceManager_impl, "Unregister IDM CHANNEL:" << idm_registration->reg.reg_id);
-        ecm->unregister( idm_registration->reg );
-      }
-      LOG_DEBUG(DeviceManager_impl, "SHUTDOWN ......... Unregister IDM_CHANNEL");
+        if ( !CORBA::is_nil(_dmnMgr ) ) {
+            CF::EventChannelManager_ptr ecm = _dmnMgr->eventChannelMgr();
+            if ( CORBA::is_nil(ecm) == false && idm_registration.operator->() != NULL ){
+                LOG_INFO(DeviceManager_impl, "Unregister IDM CHANNEL:" << idm_registration->reg.reg_id);
+                ecm->unregister( idm_registration->reg );
+            }
+            LOG_DEBUG(DeviceManager_impl, "SHUTDOWN ......... Unregister IDM_CHANNEL");
+        }
     }catch(...){
     }
 

@@ -518,7 +518,12 @@ int main(int argc, char* argv[])
     sigthread.stop();
 
     if ( pstage > 0 ) {
-      DeviceManager_servant->_remove_ref();
+        int refcnt= DeviceManager_servant->_refcount_value();
+        // we are done, remove extra references, poa holds 1
+        while ( refcnt > 1 ) {
+            DeviceManager_servant->_refcount_value();
+            refcnt--;
+        }
     }
     else {
       delete DeviceManager_servant;
