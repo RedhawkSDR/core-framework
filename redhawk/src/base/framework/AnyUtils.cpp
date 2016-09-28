@@ -163,12 +163,16 @@ namespace {
 #define ANY_TO_NUMERIC_TYPE(T,N)                                    \
 bool ossie::any::toNumber (const CORBA::Any& any, T& value)         \
 {                                                                   \
-    return anyToNumber(any, value);                                 \
+    try {                                                           \
+        return ::anyToNumber(any, value);                           \
+    } catch (...) {                                                 \
+        return false;                                               \
+    }                                                               \
 }                                                                   \
 T ossie::any::to##N (const CORBA::Any& any)                         \
 {                                                                   \
-    T value;                                                        \
-    if (ossie::any::toNumber(any, value)) {                         \
+    T value = 0;                                                    \
+    if (::anyToNumber(any, value)) {                                \
         return value;                                               \
     } else {                                                        \
         throw std::invalid_argument("Non-numeric Any type");        \
