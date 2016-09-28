@@ -5,11 +5,14 @@
     <description>This specifies the device kind</description>
     <value>FRONTEND::TUNER</value>
     <kind kindtype="allocation"/>
+    <kind kindtype="property"/>
     <action type="eq"/>
   </simple>
   <simple id="DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb" mode="readonly" name="device_model" type="string">
     <description> This specifies the specific device</description>
+    <value>some_model</value>
     <kind kindtype="allocation"/>
+    <kind kindtype="configure"/>
     <action type="eq"/>
   </simple>
   <structsequence id="FRONTEND::tuner_status" mode="readonly" name="frontend_tuner_status">

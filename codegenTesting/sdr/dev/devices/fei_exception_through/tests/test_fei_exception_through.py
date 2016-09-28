@@ -6,11 +6,24 @@ from bulkio.bulkioInterfaces import BULKIO
 from redhawk.frontendInterfaces import FRONTEND
 import os, time
 from omniORB import CORBA
+import ossie.utils.sandbox
+import logging
+
+    
+class varLog(logging.Handler):
+    def __init__(self, parent):
+        logging.Handler.__init__(self)
+        self.parent = parent
+        self.parent.got_logmsg = False
+            
+    def emit(self, record):
+        self.parent.got_logmsg = True
 
 class DeviceTests(ossie.utils.testing.RHTestCase):
     # Path to the SPD file, relative to this file. This must be set in order to
     # launch the device.
     SPD_FILE = '../fei_exception_through.spd.xml'
+    got_logmsg = False
 
     # setUp is run before every function preceded by "test" is executed
     # tearDown is run after every function preceded by "test" is executed
@@ -34,13 +47,17 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
 
     def setUp(self):
         # Launch the device, using the selected implementation
+        self.var=varLog(self)
+        ossie.utils.sandbox.local.log.addHandler(self.var)
         self.comp = sb.launch(self.spd_file, impl=self.impl)
     
     def tearDown(self):
         # Clean up all sandbox artifacts created during test
+        ossie.utils.sandbox.local.log.removeHandler(self.var)
         sb.release()
 
     def testBasicBehavior(self):
+        self.assertEquals(self.got_logmsg, False)
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         exc_src = sb.launch('./build/fei_exception_through/tests/fei_exc_src/fei_exc_src.spd.xml')
