@@ -31,74 +31,214 @@ CPPUNIT_TEST_SUITE_REGISTRATION(AnyUtilsTest);
 namespace {
 
     template <typename T>
-    struct range_test
+    class NumericTestImpl
     {
+    public:
+        typedef T (*conversion_func)(const CORBA::Any&);
+
         typedef std::numeric_limits<T> limits;
 
-        static T min()
+        NumericTestImpl(conversion_func func) :
+            func(func)
         {
-            return limits::min();
         }
 
-        static T max()
+        void testFromBoolean()
         {
-            return limits::max();
+            CORBA::Any any;
+
+            any <<= true;
+            CPPUNIT_ASSERT_EQUAL((T) 1, func(any));
+
+            any <<= false;
+            CPPUNIT_ASSERT_EQUAL((T) 0, func(any));
         }
 
-        static double exceed_min()
+        void testFromString()
         {
-            return limits::min() - 1.0;
+            const T mid = (limits::min() / 2) + (limits::max() / 2);
+            std::ostringstream oss;
+            oss << mid;
+
+            CORBA::Any any;
+            any <<= oss.str();
+            CPPUNIT_ASSERT_EQUAL(mid, func(any));
+
+            any <<= "1.27e2";
+            CPPUNIT_ASSERT_EQUAL((T) 127, func(any));
         }
 
-        static double exceed_max()
+        void testFromNumber()
         {
-            return limits::max() + 1.0;
+            CORBA::Any any;
+
+            any <<= CORBA::Any::from_octet(1);
+            CPPUNIT_ASSERT_EQUAL((T) 1, func(any));
+
+            any <<= (CORBA::Short) 2;
+            CPPUNIT_ASSERT_EQUAL((T) 2, func(any));
+
+            any <<= (CORBA::UShort) 3;
+            CPPUNIT_ASSERT_EQUAL((T) 3, func(any));
+
+            any <<= (CORBA::Long) 4;
+            CPPUNIT_ASSERT_EQUAL((T) 4, func(any));
+
+            any <<= (CORBA::ULong) 5;
+            CPPUNIT_ASSERT_EQUAL((T) 5, func(any));
+
+            any <<= (CORBA::LongLong) 6;
+            CPPUNIT_ASSERT_EQUAL((T) 6, func(any));
+
+            any <<= (CORBA::ULongLong) 7;
+            CPPUNIT_ASSERT_EQUAL((T) 7, func(any));
+
+            any <<= (CORBA::Float) 8;
+            CPPUNIT_ASSERT_EQUAL((T) 8, func(any));
+
+            any <<= (CORBA::Double) 9;
+            CPPUNIT_ASSERT_EQUAL((T) 9, func(any));
         }
 
-        static double epsilon()
+        void testRange()
         {
-            int bits = limits::digits - std::numeric_limits<double>::digits;
-            if (bits < 0) {
-                bits = 0;
-            }
-            return 1 << bits;
+            T min = limits::min();
+            T max = limits::max();
+            testRangeImpl(min, max, min - 1.0, max + 1.0);
         }
+
+    private:
+        void testRangeImpl(T min, T max, double under, double over)
+        {
+            CORBA::Any any;
+            any <<= (double) min;
+            T result;
+            CPPUNIT_ASSERT_NO_THROW(result = func(any));
+            CPPUNIT_ASSERT_EQUAL(min, result);
+
+            result = max;
+            CPPUNIT_ASSERT(ossie::any::toNumber(any, result));
+            CPPUNIT_ASSERT_EQUAL(min, result);
+
+            any <<= (double) max;
+            CPPUNIT_ASSERT_NO_THROW(result = func(any));
+            CPPUNIT_ASSERT_EQUAL(max, result);
+
+            result = min;
+            CPPUNIT_ASSERT(ossie::any::toNumber(any, result));
+            CPPUNIT_ASSERT_EQUAL(max, result);
+
+            any <<= under;
+            CPPUNIT_ASSERT_THROW(func(any), std::range_error);
+            CPPUNIT_ASSERT(!ossie::any::toNumber(any, result));
+
+            any <<= over;
+            CPPUNIT_ASSERT_THROW(func(any), std::range_error);
+            CPPUNIT_ASSERT(!ossie::any::toNumber(any, result));
+        }
+
+        conversion_func func;
     };
 
     template <>
-    CORBA::LongLong range_test<CORBA::LongLong>::min()
+    void NumericTestImpl<CORBA::LongLong>::testRange()
     {
-        return limits::min() + epsilon();
+        // Double has a wider range but less precision (52 bits) than 64-bit
+        // integers, so it cannot precisely represent the maximum or minimum
+        // values. To ensure that the minimum and maximum are within the legal
+        // range of the converters (see boost::numeric::converter), adjust the
+        // test values towards zero by the effective epsilon (the minimum
+        // difference representible with a double at a given magnitude). In
+        // other words, the double values are quantized, so explicitly pick the
+        // nearest value that is less than the "real" value.
+        int bits = limits::digits - std::numeric_limits<double>::digits;
+        double epsilon = (1 << bits);
+        CORBA::LongLong min = limits::min() + epsilon;
+        // In essence, mask out the least significant bits of the maximum
+        CORBA::LongLong max = limits::max() - (epsilon - 1);
+        testRangeImpl(min, max, min - epsilon, max + epsilon);
     }
 
     template <>
-    CORBA::LongLong range_test<CORBA::LongLong>::max()
+    void NumericTestImpl<CORBA::ULongLong>::testRange()
     {
-        return limits::max() - (epsilon() - 1);
+        // See above, except only the maximum actually uses the full precision
+        int bits = limits::digits - std::numeric_limits<double>::digits;
+        double epsilon = (1 << bits);
+        CORBA::ULongLong max = limits::max() - (epsilon - 1);
+        testRangeImpl(0, max, -1.0, max + epsilon);
     }
 
     template <>
-    CORBA::ULongLong range_test<CORBA::ULongLong>::max()
+    void NumericTestImpl<CORBA::Octet>::testFromString()
     {
-        return limits::max() - (epsilon() - 1);
+        CORBA::Any any;
+        any <<= "0";
+        CPPUNIT_ASSERT_EQUAL((CORBA::Octet) 0, ossie::any::toOctet(any));
+
+        any <<= "255";
+        CPPUNIT_ASSERT_EQUAL((CORBA::Octet) 255, ossie::any::toOctet(any));
+
+        any <<= "256";
+        CPPUNIT_ASSERT_THROW(ossie::any::toOctet(any), std::range_error);
     }
 
     template <>
-    float range_test<float>::min()
+    void NumericTestImpl<CORBA::Float>::testRange()
     {
-        return -max();
+        CORBA::Float max = limits::max();
+        testRangeImpl(-max, max, -2.0 * max, 2.0 * max);
     }
 
     template <>
-    double range_test<float>::exceed_max()
+    void NumericTestImpl<CORBA::Float>::testFromString()
     {
-        return 2.0 * max();
+        // Very large value
+        CORBA::Any any;
+        any <<= "1.125e+38";
+        CPPUNIT_ASSERT_EQUAL(1.125e38f, ossie::any::toFloat(any));
+
+        // Very small value
+        any <<= "-1.0002441406250e-32";
+        CPPUNIT_ASSERT_EQUAL(-1.0002441406250e-32f, ossie::any::toFloat(any));
+
+        // Beyond the maximum range of float should throw an exception
+        any <<= "7e40";
+        CPPUNIT_ASSERT_THROW(ossie::any::toFloat(any), std::range_error);
+
+        // Number too small to be represented as a float (but valid for double)
+        // should get rounded to zero
+        any <<= "5.03125e-46";
+        CPPUNIT_ASSERT_EQUAL(0.0f, ossie::any::toFloat(any));
     }
 
     template <>
-    double range_test<float>::exceed_min()
+    void NumericTestImpl<CORBA::Double>::testRange()
     {
-        return -exceed_max();
+        // Double has the largest range of the common numeric primitive types,
+        // so it's not possible to exceed its range with another primitive type
+        // (this test is here so that double tests can be created using the
+        // same macros as the other types)
+    }
+
+    template <>
+    void NumericTestImpl<CORBA::Double>::testFromString()
+    {
+        CORBA::Any any;
+
+        // Simple integer conversion
+        any <<= "100000";
+        CPPUNIT_ASSERT_EQUAL(100000.0, ossie::any::toDouble(any));
+
+        // Use a floating point value that is known to show a decimal point and
+        // exponent
+        double value = 1.125e7;
+        std::ostringstream oss;
+        oss << value;
+        any <<= oss.str();
+
+        // Conversion back to double should be simple
+        CPPUNIT_ASSERT_EQUAL(value, ossie::any::toDouble(any));
     }
 }
 
@@ -166,136 +306,11 @@ void AnyUtilsTest::testToBoolean()
     CPPUNIT_ASSERT(!ossie::any::toNumber(any, result));
 }
 
-void AnyUtilsTest::testOctetConversion()
-{
-    CORBA::Any any;
-    any <<= "0";
-    CPPUNIT_ASSERT_EQUAL((CORBA::Octet) 0, ossie::any::toOctet(any));
+#define DEFINE_NUMERIC_TEST(T,NAME)                             \
+    void AnyUtilsTest::testTo##T##NAME()                        \
+    {                                                           \
+        NumericTestImpl<CORBA::T> impl(ossie::any::to##T);      \
+        impl.test##NAME();                                      \
+    }
 
-    any <<= "255";
-    CPPUNIT_ASSERT_EQUAL((CORBA::Octet) 255, ossie::any::toOctet(any));
-
-    any <<= "256";
-    CPPUNIT_ASSERT_THROW(ossie::any::toOctet(any), std::range_error);
-
-    testConversionImpl(&ossie::any::toOctet);
-}
-
-void AnyUtilsTest::testShortConversion()
-{
-    testConversionImpl(&ossie::any::toShort);
-}
-
-void AnyUtilsTest::testUShortConversion()
-{
-    testConversionImpl(&ossie::any::toUShort);
-}
-
-void AnyUtilsTest::testLongConversion()
-{
-    testConversionImpl(&ossie::any::toLong);
-}
-
-void AnyUtilsTest::testULongConversion()
-{
-    testConversionImpl(&ossie::any::toULong);
-}
-
-void AnyUtilsTest::testLongLongConversion()
-{
-    testConversionImpl(&ossie::any::toLongLong);
-}
-
-void AnyUtilsTest::testULongLongConversion()
-{
-    testConversionImpl(&ossie::any::toULongLong);
-}
-
-void AnyUtilsTest::testFloatConversion()
-{
-    testConversionImpl(&ossie::any::toFloat);
-}
-
-void AnyUtilsTest::testStringToNumber()
-{
-    CORBA::Any any;
-
-    // Simple integer conversion
-    any <<= "100000";
-    CORBA::Long lval;
-    CPPUNIT_ASSERT_NO_THROW(lval = ossie::any::toLong(any));
-    CPPUNIT_ASSERT_EQUAL((CORBA::Long) 100000, lval);
-
-    // Use a floating point value that is known to show a decimal point and
-    // exponent
-    double value = 1.125e7;
-    std::ostringstream oss;
-    oss << value;
-    any <<= oss.str();
-
-    // Conversion back to double should be simple
-    double dval;
-    CPPUNIT_ASSERT_NO_THROW(dval = ossie::any::toDouble(any));
-    CPPUNIT_ASSERT_EQUAL(value, dval);
-
-    // Conversion to an integer requires it to parse the number as a double
-    // (because of the decimal point and exponent) before converting to the
-    // final integer type
-    lval = 0;
-    CPPUNIT_ASSERT_NO_THROW(lval = ossie::any::toLong(any));
-    CPPUNIT_ASSERT_EQUAL((CORBA::Long)value, lval);
-}
-
-template <typename T>
-void AnyUtilsTest::testFromBoolean(T (*func)(const CORBA::Any&))
-{
-    CORBA::Any any;
-
-    any <<= true;
-    CPPUNIT_ASSERT_EQUAL((T) 1, func(any));
-
-    any <<= false;
-    CPPUNIT_ASSERT_EQUAL((T) 0, func(any));
-}
-
-template <typename T>
-void AnyUtilsTest::testConversionRange(T (*func)(const CORBA::Any&))
-{
-    testFromBoolean(func);
-
-    const T min = ::range_test<T>::min();
-    const T max = ::range_test<T>::max();
-
-    CORBA::Any any;
-    any <<= (double) min;
-    T result;
-    CPPUNIT_ASSERT_NO_THROW(result = func(any));
-    CPPUNIT_ASSERT_EQUAL(min, result);
-
-    result = max;
-    CPPUNIT_ASSERT(ossie::any::toNumber(any, result));
-    CPPUNIT_ASSERT_EQUAL(min, result);
-
-    any <<= (double) max;
-    CPPUNIT_ASSERT_NO_THROW(result = func(any));
-    CPPUNIT_ASSERT_EQUAL(max, result);
-
-    result = min;
-    CPPUNIT_ASSERT(ossie::any::toNumber(any, result));
-    CPPUNIT_ASSERT_EQUAL(max, result);
-
-    any <<= ::range_test<T>::exceed_min();
-    CPPUNIT_ASSERT_THROW(result = func(any), std::range_error);
-    CPPUNIT_ASSERT(!ossie::any::toNumber(any, result));
-
-    any <<= ::range_test<T>::exceed_max();
-    CPPUNIT_ASSERT_THROW(result = func(any), std::range_error);
-    CPPUNIT_ASSERT(!ossie::any::toNumber(any, result));
-}
-
-template <typename T>
-void AnyUtilsTest::testConversionImpl(T (*func)(const CORBA::Any&))
-{
-    testFromBoolean(func);
-    testConversionRange(func);
-}
+FOREACH_TYPE_TEST(DEFINE_NUMERIC_TEST);

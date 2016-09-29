@@ -25,20 +25,31 @@
 
 #include <ossie/AnyUtils.h>
 
+#define FOREACH_TEST(X, T)                      \
+    X(T, FromBoolean)                           \
+    X(T, FromNumber)                            \
+    X(T, FromString)                            \
+    X(T, Range)
+
+#define FOREACH_TYPE_TEST(X)                    \
+    FOREACH_TEST(X, Octet)                      \
+    FOREACH_TEST(X, Short)                      \
+    FOREACH_TEST(X, UShort)                     \
+    FOREACH_TEST(X, Long)                       \
+    FOREACH_TEST(X, ULong)                      \
+    FOREACH_TEST(X, LongLong)                   \
+    FOREACH_TEST(X, ULongLong)                  \
+    FOREACH_TEST(X, Float)                      \
+    FOREACH_TEST(X, Double)
+
 class AnyUtilsTest : public CppUnit::TestFixture
 {
+#define REGISTER_TESTS(T,NAME) CPPUNIT_TEST(testTo##T##NAME);
+
     CPPUNIT_TEST_SUITE(AnyUtilsTest);
     CPPUNIT_TEST(testIsNull);
     CPPUNIT_TEST(testToBoolean);
-    CPPUNIT_TEST(testOctetConversion);
-    CPPUNIT_TEST(testShortConversion);
-    CPPUNIT_TEST(testUShortConversion);
-    CPPUNIT_TEST(testLongConversion);
-    CPPUNIT_TEST(testULongConversion);
-    CPPUNIT_TEST(testLongLongConversion);
-    CPPUNIT_TEST(testULongLongConversion);
-    CPPUNIT_TEST(testFloatConversion);
-    CPPUNIT_TEST(testStringToNumber);
+    FOREACH_TYPE_TEST(REGISTER_TESTS);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -48,26 +59,9 @@ public:
     void testIsNull();
 
     void testToBoolean();
-    void testOctetConversion();
-    void testShortConversion();
-    void testUShortConversion();
-    void testLongConversion();
-    void testULongConversion();
-    void testLongLongConversion();
-    void testULongLongConversion();
-    void testFloatConversion();
 
-    void testStringToNumber();
-
-private:
-    template <typename T>
-    void testConversionImpl(T (*func)(const CORBA::Any&));
-
-    template <typename T>
-    void testFromBoolean(T (*func)(const CORBA::Any&));
-
-    template <typename T>
-    void testConversionRange(T (*func)(const CORBA::Any&));
+#define DECLARE_TESTS(T,NAME) void testTo##T##NAME();
+    FOREACH_TYPE_TEST(DECLARE_TESTS);
 };
 
 #endif // ANYUTILS_TEST_H
