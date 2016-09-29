@@ -9,6 +9,7 @@ test_standalone_CXXFLAGS = $(CPPUNIT_CFLAGS) -I $(top_srcdir)/base/include
 test_standalone_LDFLAGS = $(CPPUNIT_LIBS)
 
 test_libossiecf_SOURCES = test_libossiecf.cpp
+test_libossiecf_SOURCES += AnyUtilsTest.cpp AnyUtilsTest.h
 test_libossiecf_SOURCES += ValueTest.cpp ValueTest.h
 test_libossiecf_SOURCES += ValueSequenceTest.cpp ValueSequenceTest.h
 test_libossiecf_SOURCES += PropertyMapTest.cpp PropertyMapTest.h
