@@ -190,14 +190,6 @@ void ApplicationFactory_impl::ValidateSoftPkgDep (CF::FileManager_ptr fileMgr, c
 }
 
 void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr, 
-                                          const std::string& sfw_profile, 
-                                          const bool require_prf, 
-                                          const bool require_scd) {
-  SoftPkg pkg;
-  ValidateSPD(fileMgr, pkg, false, false );
-}
-
-void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr, 
                                           SoftPkg &spdParser, 
                                           const std::string& sfw_profile, 
                                           const bool require_prf, 
@@ -270,7 +262,7 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
           for(; dep != deps.end(); dep++ ) {
             try {
               LOG_TRACE(ApplicationFactory_impl, "Validating Dependency: " << dep->localfile);
-              ValidateSoftPkgDep( fileMgr, dep->localfile.c_str() );
+              ValidateSoftPkgDep(fileMgr, dep->localfile);
             } catch (CF::InvalidFileName ex) {
               LOG_ERROR(ApplicationFactory_impl, "Invalid Code File,  PROFILE:" << sfw_profile << "  CODE:" << impl->getCodeFile());
               throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
@@ -493,7 +485,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         if ( _sadParser.getSPDById(comp->getFileRefId())) {
             p_name = _sadParser.getSPDById(comp->getFileRefId());
             LOG_DEBUG(ApplicationFactory_impl, "Validating...  COMP profile: " << p_name);
-            ValidateSPD( _fileMgr, comp_pkg, p_name.c_str() ) ;
+            ValidateSPD(_fileMgr, comp_pkg, p_name) ;
         }
         else {
           LOG_ERROR(ApplicationFactory_impl, "installApplication: invalid  componentfileref: " << comp->getFileRefId() );
