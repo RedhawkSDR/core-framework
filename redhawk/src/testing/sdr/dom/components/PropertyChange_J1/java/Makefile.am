@@ -1,6 +1,6 @@
 PropertyChange_J1_jar_CLASSPATH = $(CLASSPATH_SOFTPKG_DEP)$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar
 
-PropertyChange_J1.jar: $(PropertyChange_J1_jar_SOURCES)
+PropertyChange_J1.jar$(EXEEXT): $(PropertyChange_J1_jar_SOURCES)
 	mkdir -p bin
 	$(JAVAC) -cp $(OSSIE_CLASSPATH) -d bin $(PropertyChange_J1_jar_SOURCES)
 	$(JAR) cf ./PropertyChange_J1.jar -C bin .

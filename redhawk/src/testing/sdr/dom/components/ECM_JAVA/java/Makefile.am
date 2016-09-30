@@ -1,7 +1,7 @@
 ECM_JAVA_jar_CLASSPATH = $(CLASSPATH_SOFTPKG_DEP)$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar
 #ECM_JAVA_jar_CLASSPATH = $(CLASSPATH_SOFTPKG_DEP)$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar
 
-ECM_JAVA.jar: $(ECM_JAVA_jar_SOURCES)
+ECM_JAVA.jar$(EXEEXT): $(ECM_JAVA_jar_SOURCES)
 	mkdir -p bin
 	$(JAVAC) -cp $(OSSIE_CLASSPATH) -d bin $(ECM_JAVA_jar_SOURCES)
 	$(JAR) cf ./ECM_JAVA.jar -C bin .
