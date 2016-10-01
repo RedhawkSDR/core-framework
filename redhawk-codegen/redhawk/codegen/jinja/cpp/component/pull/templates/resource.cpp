@@ -132,6 +132,14 @@ void ${className}::updateUsageState()
         To create a StreamSRI object, use the following code:
                 std::string stream_id = "testStream";
                 BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+/*{% if component is device %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
+
+        To create a StreamSRI object based on tuner status structure index 'idx' and collector center frequency of 100:
+                std::string stream_id = "my_stream_id";
+                BULKIO::StreamSRI sri = this->create(stream_id, this->frontend_tuner_status[idx], 100);
+/*{% endif %}*/
+/*{% endif %}*/
 
     Time:
         To create a PrecisionUTCTime object, use the following code:

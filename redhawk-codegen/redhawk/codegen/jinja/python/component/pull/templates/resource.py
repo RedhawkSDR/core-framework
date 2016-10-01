@@ -95,7 +95,14 @@ class ${className}(${baseClass}):
             
         StreamSRI:
             To create a StreamSRI object, use the following code (this generates a normalized SRI that does not flush the queue when full):
-                self.sri = bulkio.sri.create(self.stream_id)
+                sri = bulkio.sri.create("my_stream_id")
+#{% if component is device %}
+#{% if 'FrontendTuner' in component.implements %}
+
+            To create a StreamSRI object based on tuner status structure index 'idx' and collector center frequency of 100:
+                sri = frontend.sri.create("my_stream_id", self.frontend_tuner_status[idx], self._id, collector_frequency=100)
+#{% endif %}
+#{% endif %}
 
         PrecisionUTCTime:
             To create a PrecisionUTCTime object, use the following code:

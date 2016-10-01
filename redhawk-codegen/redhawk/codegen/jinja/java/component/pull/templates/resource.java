@@ -255,6 +255,13 @@ public class ${classname} extends ${baseclass} {
      *            sri.subsize = 0;
      *            sri.xunits = 1; // TIME_S
      *            sri.streamID = (stream_id != null) ? stream_id : "";
+/*{% if component is device %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
+     *
+     *    To create a StreamSRI object based on tuner status structure index 'idx':
+     *            BULKIO.StreamSRI sri = this.create("my_stream_id", this.frontend_tuner_status.getValue().get(idx));
+/*{% endif %}*/
+/*{% endif %}*/
      *
      * PrecisionUTCTime:
      *    To create a PrecisionUTCTime object, use the following code:
