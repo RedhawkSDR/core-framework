@@ -34,3 +34,5 @@ if [ $# == 1 ]; then
 else
     make -j $*
 fi
+
+exit $?

@@ -61,6 +61,10 @@ else
         else
             echo "No build.sh found for $impl"
         fi
+        retval=$?
+        if [ $retval != '0' ]; then
+            exit $retval
+        fi
         cd -
     done
 fi
