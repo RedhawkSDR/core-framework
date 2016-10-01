@@ -35,3 +35,5 @@ from input_ports import *
 
 from output_ports import *
 
+import sri
+
