@@ -185,9 +185,9 @@ def checkEndPoints(process, verbose):
                     # If invalid, this will result in  the following error:
                     #    omniORB: Error: Unable to create an endpoint of this description:
                     #    Failed to initialise the ORB / POA: INITIALIZE_TransportError
-                    if len(endPoint.split(":")) != 4:
+                    if len(endPoint.split(":")) != 3:
                         print "ERROR(" + str(process) + "): Invalid format for giop:unix endPoint in /etc/omniORB.cfg - " + endPoint 
-                        print "SOLUTION: giop:unix endPoint format must contain two colons.  Expected format is giop:unix:[<filename>]. If the filename is left blank, a filename is created based on the process ID and the current timestamp"
+                        print "SOLUTION: giop:unix endPoint format must contain one trailing colon.  Expected format is giop:unix:[<filename>]. If the filename is left blank, a filename is created based on the process ID and the current timestamp"
                         print "=========================================================================="
                         errorFound = True
                     else:
