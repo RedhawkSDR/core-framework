@@ -98,7 +98,10 @@ class PythonPropertyMapper(PropertyMapper):
         # Perform a quasi-camel casing, with words separated on underscores.
         def _upcase(s):
             if s:
-                return s[0].upper() + s[1:]
+                upcase = s[0].upper() + s[1:]
+                if upcase == s:
+                    upcase = '_'+s
+                return upcase
             else:
                 return s
         return ''.join([_upcase(part) for part in name.split('_')])
