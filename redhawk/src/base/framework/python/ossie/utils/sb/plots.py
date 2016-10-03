@@ -56,6 +56,7 @@ def _deferred_imports():
 from ossie.utils.bulkio import bulkio_data_helpers, bulkio_helpers
 from ossie.utils.model import PortSupplier
 from ossie.utils.model.connect import PortEndpoint
+from ossie.utils.sb import domainless
 
 from io_helpers import helperBase
 
@@ -151,6 +152,7 @@ class PlotBase(helperBase, PortSupplier):
 
         self.breakBlock = False
         self._thread = None
+        self._started = domainless._getSandbox()._get_started()
 
         # Create a new figure and axes.
         self._figure = pyplot.figure()
@@ -255,6 +257,7 @@ class PlotBase(helperBase, PortSupplier):
         read input data and refresh the display until it is stopped.
         """
         self.breakBlock = False
+        self._started = True
         if self._thread:
             return
         self._thread = threading.Thread(target=self._run)
@@ -267,6 +270,7 @@ class PlotBase(helperBase, PortSupplier):
         the display.
         """
         self.breakBlock = True
+        self._started = False
         if self._thread:
             self._thread.join()
             self._thread = None
@@ -358,6 +362,7 @@ class LineBase(PlotBase):
                 raise KeyError, "Trace '%s' already exists" % traceName
 
             sink = self._createSink(port['Port Interface'])
+            
             options = self._lineOptions()
             line, = self._plot.plot([], [], label=name, scalex=False, scaley=False, **options)
             trace = { 'sink':   sink,
@@ -367,6 +372,8 @@ class LineBase(PlotBase):
             self._lines[traceName] = trace
         finally:
             self._linesLock.release()
+        if self._started:
+            self.start()
  
     def _updateTrace(self, trace):
         sink = trace['sink']

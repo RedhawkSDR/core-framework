@@ -150,6 +150,7 @@ class SdrRoot(object):
 class Sandbox(object):
     def __init__(self):
         self._eventChannels = {}
+        self._started = False
 
     def createEventChannel(self, name, exclusive=False):
         """
@@ -188,8 +189,12 @@ class Sandbox(object):
     def _removeEventChannel(self, name):
         del self._eventChannels[name]
 
+    def _get_started(self):
+        return self._started
+
     def start(self):
         log.debug('start()')
+        self._started = True
         for component in self.getComponents():
             if not component:
                 continue
@@ -198,6 +203,7 @@ class Sandbox(object):
 
     def stop(self):
         log.debug('stop()')
+        self._started = False
         for component in self.getComponents():
             if not component:
                 continue

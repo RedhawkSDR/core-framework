@@ -125,7 +125,7 @@ __all__ = ('show', 'loadSADFile', 'IDELocation', 'connectedIDE', 'getIDE_REF',
            'getDEBUG', 'setDEBUG', 'getComponent', 'IDE_REF', 'setIDE_REF',
            'stop', 'catalog', 'redirectSTDOUT', 'orb', 'reset', 'launch', 'api',
            'createEventChannel', 'getEventChannel', 'getService', 'browse',
-           'release')
+           'release', '_get_started')
 
 # Set up logging
 log = logging.getLogger(__name__)
@@ -1117,6 +1117,9 @@ def api(descriptor, objType=None):
         table.write()
 
 
+
+def _get_started():
+    return _getSandbox()._get_started()
 
 def start():
     _getSandbox().start()
