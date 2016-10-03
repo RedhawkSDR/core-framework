@@ -1355,7 +1355,10 @@ void DeviceManager_impl::postConstructor (
     LOG_TRACE(DeviceManager_impl, "Creating DevMgr cache: " << devmgrcache)
     bool retval = this->makeDirectory(devmgrcache);
     if (not retval) {
-        LOG_ERROR(DeviceManager_impl, "Unable to create the Device Manager cache: " << devmgrcache)
+        std::ostringstream eout;
+        eout << "Unable to create the Device Manager cache: " << devmgrcache;
+        LOG_ERROR(DeviceManager_impl, eout.str())
+        throw std::runtime_error(eout.str().c_str());
     }
 
     //parse filesystem names
@@ -2441,7 +2444,8 @@ bool DeviceManager_impl::makeDirectory(std::string path)
     }
     bool retval = checkWriteAccess(path);
     if (not retval) {
-        LOG_WARN(DeviceManager_impl, "The Device Manager (or one of its children) does not have write permission to one or more files in the cache. This may lead to unexpected behavior.")
+        LOG_ERROR(DeviceManager_impl, "The Device Manager (or one of its children) does not have write permission to one or more files in the cache.")
+        return false;
     }
     return success;
 }

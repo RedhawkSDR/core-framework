@@ -28,8 +28,12 @@ import CosNaming
 import tempfile
 import commands
 import shutil
+import ossie.utils.sandbox
 
 java_support = runtestHelpers.haveJavaSupport('../Makefile')
+
+import logging
+
 
 def getChildren(parentPid):
     process_listing = commands.getoutput('ls /proc').split('\n')
@@ -64,6 +68,24 @@ def killChildProcesses(parentPid):
             os.waitpid(pid, 0)
         except OSError:
             pass
+
+class DeviceManagerCacheTest(scatest.CorbaTestCase):
+    def setUp(self):
+        nodebooter, self._domMgr = self.launchDomainManager()
+        self._domBooter = nodebooter
+
+    def tearDown(self):
+        scatest.CorbaTestCase.tearDown(self)
+        killChildProcesses(os.getpid())
+        (status,output) = commands.getstatusoutput('chmod 755 '+os.getcwd()+'/sdr/cache/.BasicTestDevice_node')
+        (status,output) = commands.getstatusoutput('rm -rf devmgr_runtest.props')
+
+    def test_NoWriteCache(self):
+        (status,output) = commands.getstatusoutput('mkdir -p '+os.getcwd()+'/sdr/cache/.BasicTestDevice_node')
+        (status,output) = commands.getstatusoutput('chmod 000 '+os.getcwd()+'/sdr/cache/.BasicTestDevice_node')
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self.assertEquals(255, devmgr_nb.returncode)
+        self.assertEquals(devMgr, None)
 
 class DeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):
