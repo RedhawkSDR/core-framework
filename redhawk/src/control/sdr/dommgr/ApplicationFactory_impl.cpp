@@ -161,7 +161,7 @@ static std::vector<ossie::SPD::NameVersionPair> mergeOsDeps(const ossie::Impleme
     return osDeps;
 }
 
-PREPARE_LOGGING(ApplicationFactory_impl);
+PREPARE_CF_LOGGING(ApplicationFactory_impl);
 
 void
 ApplicationFactory_impl::ValidateFileLocation( CF::FileManager_ptr fileMgr, const std::string &profile_file)

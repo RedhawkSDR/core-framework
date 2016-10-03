@@ -58,7 +58,7 @@ static void addProperty(const CF::DataType& dt, CF::Properties& prop)
 /*
  * ImplementationInfo member function definitions
  */
-PREPARE_LOGGING(ImplementationInfo);
+PREPARE_CF_LOGGING(ImplementationInfo);
 
 ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
     id(spdImpl.getID()),
@@ -284,7 +284,7 @@ void ImplementationInfo::clearSelectedDependencyImplementations()
 }
 
 
-PREPARE_LOGGING(SoftpkgInfo);
+PREPARE_CF_LOGGING(SoftpkgInfo);
 
 SoftpkgInfo::SoftpkgInfo(const std::string& spdFileName):
   _spdFileName(spdFileName),
@@ -418,7 +418,7 @@ const ImplementationInfo &SoftpkgInfo::getSelectedImplementation() const
 /*
  * ResourceInfo member function definitions
  */
-PREPARE_LOGGING(ResourceInfo);
+PREPARE_CF_LOGGING(ResourceInfo);
 
 void ResourceInfo::LoadResource(CF::FileSystem_ptr fileSys, 
 					       const char* spdFileName,

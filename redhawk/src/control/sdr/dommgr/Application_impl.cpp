@@ -33,7 +33,7 @@
 #include "connectionSupport.h"
 #include "FakeApplication.h"
 
-PREPARE_LOGGING(Application_impl);
+PREPARE_CF_LOGGING(Application_impl);
 
 using namespace ossie;
 

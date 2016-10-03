@@ -39,7 +39,7 @@
 
 using namespace ossie;
 
-PREPARE_LOGGING(ConnectionManager);
+PREPARE_CF_LOGGING(ConnectionManager);
 
 ConnectionManager::ConnectionManager(DomainLookup* domainLookup,
                                      ComponentLookup* componentLookup,
@@ -107,7 +107,7 @@ CORBA::Object_ptr ConnectionManager::resolveFindByNamingService(const std::strin
     return CORBA::Object::_nil();
 }
 
-PREPARE_LOGGING(AppConnectionManager);
+PREPARE_CF_LOGGING(AppConnectionManager);
 
 AppConnectionManager::AppConnectionManager(DomainLookup* domainLookup,
                                            ComponentLookup* componentLookup,
@@ -202,7 +202,7 @@ void AppConnectionManager::addConnection_(const ConnectionNode& connection)
 }
 
 
-PREPARE_LOGGING(DomainConnectionManager);
+PREPARE_CF_LOGGING(DomainConnectionManager);
 
 DomainConnectionManager::DomainConnectionManager(DomainLookup* domainLookup,
                                                  ComponentLookup* componentLookup,
@@ -495,8 +495,8 @@ EXPORT_CLASS_SERIALIZATION(PortEndpoint);
 #endif
 
 
-PREPARE_LOGGING(Endpoint);
-PREPARE_LOGGING(PortEndpoint);
+PREPARE_CF_LOGGING(Endpoint);
+PREPARE_CF_LOGGING(PortEndpoint);
 
 Endpoint* Endpoint::ParsePortSupplier(const Port* port)
 {
@@ -631,7 +631,7 @@ void Endpoint::release()
     object_ = CORBA::Object::_nil();
 }
 
-PREPARE_LOGGING(ConnectionNode);
+PREPARE_CF_LOGGING(ConnectionNode);
 
 ConnectionNode* ConnectionNode::ParseConnection(const Connection& connection)
 {

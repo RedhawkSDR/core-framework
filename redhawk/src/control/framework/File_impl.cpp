@@ -28,7 +28,7 @@
 #include "ossie/CorbaUtils.h"
 #include "ossie/debug.h"
 
-PREPARE_LOGGING(File_impl)
+PREPARE_CF_LOGGING(File_impl)
 
 
 File_impl* File_impl::Create (const char* fileName, FileSystem_impl *ptrFs)

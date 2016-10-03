@@ -26,13 +26,13 @@
 
 using namespace ossie;
 
-PREPARE_LOGGING(Properties)
-PREPARE_LOGGING(PRF)
-PREPARE_LOGGING(Property)
-PREPARE_LOGGING(SimpleProperty)
-PREPARE_LOGGING(SimpleSequenceProperty)
-PREPARE_LOGGING(StructProperty)
-PREPARE_LOGGING(StructSequenceProperty)
+PREPARE_CF_LOGGING(Properties)
+PREPARE_CF_LOGGING(PRF)
+PREPARE_CF_LOGGING(Property)
+PREPARE_CF_LOGGING(SimpleProperty)
+PREPARE_CF_LOGGING(SimpleSequenceProperty)
+PREPARE_CF_LOGGING(StructProperty)
+PREPARE_CF_LOGGING(StructSequenceProperty)
 
 /*
  * PRF class

@@ -42,7 +42,7 @@
 
 namespace fs = boost::filesystem;
 
-PREPARE_LOGGING(DeviceManager_impl);
+PREPARE_CF_LOGGING(DeviceManager_impl);
 
 using namespace ossie;
 

@@ -65,7 +65,7 @@ static const ComponentInstantiation* findComponentInstantiation (const std::vect
     return 0;
 }
 
-PREPARE_LOGGING(DomainManager_impl)
+PREPARE_CF_LOGGING(DomainManager_impl)
 
 // If _overrideDomainName == NULL read the domain name from the DMD file
 DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpath, const char* domainName, 

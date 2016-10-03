@@ -24,7 +24,7 @@
 
 using namespace ossie;
 
-PREPARE_LOGGING(DeviceManagerConfiguration);
+PREPARE_CF_LOGGING(DeviceManagerConfiguration);
 
 DeviceManagerConfiguration::DeviceManagerConfiguration(std::istream& input) throw (ossie::parser_error) {
     this->load(input);

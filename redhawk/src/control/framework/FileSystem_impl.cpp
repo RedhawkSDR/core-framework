@@ -140,7 +140,7 @@ namespace {
 }
 
 
-PREPARE_LOGGING(FileSystem_impl)
+PREPARE_CF_LOGGING(FileSystem_impl)
 
 
 FileSystem_impl::FileSystem_impl (const char* _root):

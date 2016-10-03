@@ -119,7 +119,7 @@ void UsesDeviceInfo::clearAssignedDeviceId()
 /*
  * UsesDeviceContext member function definitions
  */
-PREPARE_LOGGING(UsesDeviceContext);
+PREPARE_CF_LOGGING(UsesDeviceContext);
 
 UsesDeviceContext::UsesDeviceContext() :
     usesDevices()
@@ -160,7 +160,7 @@ const UsesDeviceInfo* UsesDeviceContext::getUsesDeviceById(const std::string& id
 /*
  * ImplementationInfo member function definitions
  */
-PREPARE_LOGGING(ImplementationInfo);
+PREPARE_CF_LOGGING(ImplementationInfo);
 
 ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
     id(spdImpl.getID()),
@@ -362,7 +362,7 @@ void ImplementationInfo::clearSelectedDependencyImplementations()
 }
 
 
-PREPARE_LOGGING(SoftpkgInfo);
+PREPARE_CF_LOGGING(SoftpkgInfo);
 
 SoftpkgInfo::SoftpkgInfo(const std::string& spdFileName):
     _spdFileName(spdFileName),
@@ -490,7 +490,7 @@ const UsesDeviceInfo* SoftpkgInfo::getUsesDeviceById(const std::string& id) cons
 /*
  * ComponentInfo member function definitions
  */
-PREPARE_LOGGING(ComponentInfo);
+PREPARE_CF_LOGGING(ComponentInfo);
 
 ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileManager_ptr fileMgr, const char* spdFileName)
 {
@@ -1087,7 +1087,7 @@ CF::Resource_ptr ComponentInfo::getResourcePtr()
 /*
  * ApplicationInfo member function definitions
  */
-PREPARE_LOGGING(ApplicationInfo);
+PREPARE_CF_LOGGING(ApplicationInfo);
 
 ApplicationInfo::ApplicationInfo()
 {

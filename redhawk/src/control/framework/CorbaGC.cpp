@@ -39,7 +39,7 @@ namespace PortableServer {
 
 using ossie::corba::GCServantLocator;
 
-PREPARE_LOGGING(GCServantLocator);
+PREPARE_CF_LOGGING(GCServantLocator);
 
 GCServantLocator::GCServantLocator()
 {

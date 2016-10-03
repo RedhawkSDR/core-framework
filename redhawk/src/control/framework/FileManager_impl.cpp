@@ -69,7 +69,7 @@ std::string FileManager_impl::MountPoint::getRelativePath (const std::string& fi
 }
 
 
-PREPARE_LOGGING(FileManager_impl);
+PREPARE_CF_LOGGING(FileManager_impl);
 
 FileManager_impl::FileManager_impl (const char* _fsroot):
     FileSystem_impl(_fsroot),

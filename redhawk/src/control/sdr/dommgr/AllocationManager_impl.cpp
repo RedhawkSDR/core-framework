@@ -58,7 +58,7 @@ namespace {
     }
 }
 
-PREPARE_LOGGING(AllocationManager_impl);
+PREPARE_CF_LOGGING(AllocationManager_impl);
 
 AllocationManager_impl::AllocationManager_impl (DomainManager_impl* domainManager) :
     _domainManager(domainManager),

@@ -342,7 +342,7 @@ namespace rh_logger {
   //
   // save off the resource logger name when the resource gets it's initial logger
   //
-  std::string _rsc_logger_name;
+  static std::string _rsc_logger_name;
 
 
   //

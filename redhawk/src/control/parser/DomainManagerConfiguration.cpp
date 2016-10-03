@@ -27,7 +27,7 @@ using namespace dmd;
 
 // The implementation of these functions should come from the XSD produced drivers
 // When the XSD changes you will need to update these functions.
-PREPARE_LOGGING(DomainManagerConfiguration)
+PREPARE_CF_LOGGING(DomainManagerConfiguration)
 
 DomainManagerConfiguration::DomainManagerConfiguration(std::istream& input) throw (ossie::parser_error) : _dmd(0) {
     this->load(input);
