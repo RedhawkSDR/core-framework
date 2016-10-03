@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:2cf86a19-a249-42c4-b00a-b91e843a1415" name="struct_override" type="2.0.3">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="struct_override.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="struct_override.scd.xml"/>
+  </descriptor>
+  <implementation id="python">
+    <description>The implementation contains descriptive information about the template for a software resource.</description>
+    <code type="Executable">
+      <localfile name="python"/>
+      <entrypoint>python/struct_override.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <runtime name="python" version="2.6.6"/>
+    <os name="Linux"/>
+  </implementation>
+</softpkg>
