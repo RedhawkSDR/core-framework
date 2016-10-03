@@ -52,7 +52,7 @@ class PythonParserTestCase(scatest.OssieTestCase):
         tmpfile = tempfile.mktemp()
         try:
             tmp = open(tmpfile, "w")
-            spd.export(tmp, 0, name_="softpkg")
+            spd.export(tmp, 0)
             tmp.close()
             status = self._xmllint(tmpfile, "SPD")
             self.assertEqual(status, 0, "Python parser did not emit DTD compliant XML")
@@ -85,7 +85,7 @@ class PythonParserTestCase(scatest.OssieTestCase):
         tmpfile = tempfile.mktemp()
         try:
             tmp = open(tmpfile, "w")
-            prf.export(tmp, 0, name_="properties")
+            prf.export(tmp, 0)
             tmp.close()
             status = self._xmllint(tmpfile, "PRF")
             self.assertEqual(status, 0, "Python parser did not emit DTD compliant XML")

@@ -460,14 +460,14 @@ class softPkg(GeneratedsSuper):
         else:
             eol_ = ''
         showIndent(outfile, level, pretty_print)
-        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        outfile.write('<%s%s%s' % (namespace_, 'softpkg', namespacedef_ and ' ' + namespacedef_ or '', ))
         already_processed = []
         self.exportAttributes(outfile, level, already_processed, namespace_, name_='softPkg')
         if self.hasContent_():
             outfile.write('>%s' % (eol_, ))
             self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
             showIndent(outfile, level, pretty_print)
-            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+            outfile.write('</%s%s>%s' % (namespace_, 'softpkg', eol_))
         else:
             outfile.write('/>%s' % (eol_, ))
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='softPkg'):
