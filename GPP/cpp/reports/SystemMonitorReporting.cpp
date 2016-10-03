@@ -27,8 +27,8 @@
 
 static const size_t BYTES_PER_MEGABYTE = 1024*1024;
 
-SystemMonitor::SystemMonitor( const CpuList & cpu_list ):
-  cpu_usage_stats_( new CpuUsageStats(cpu_list) ),
+SystemMonitor::SystemMonitor( const CpuList & cpu_list, const int nhistory ):
+    cpu_usage_stats_( new CpuUsageStats(cpu_list,nhistory) ),
     mem_usage_state_(new ProcMeminfo()),
     sys_limit_state_(new SysLimits())
 {

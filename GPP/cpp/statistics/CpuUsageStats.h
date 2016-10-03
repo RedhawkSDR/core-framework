@@ -48,6 +48,7 @@ public:
   //CpuUsageStats( );
   CpuUsageStats( const int nhistory=5 );
   CpuUsageStats( const CpuList &cpus, const int nhistory=5 );
+  CpuUsageStats( const CpuUsageStats &src );
 
   virtual ~CpuUsageStats() {}
 

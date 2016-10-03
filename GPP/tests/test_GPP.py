@@ -330,10 +330,14 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             procs.append(subprocess.Popen('./busy.py'))
         time.sleep(sleep_time)
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
+        br=self.comp.busy_reason
+        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
+        self.assertEqual(br_cpu, True)
         for proc in procs:
             proc.kill()
         time.sleep(sleep_time)
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
+        self.assertEqual(self.comp.busy_reason, "")
         
         fs_stub = ComponentTests.FileSystemStub()
         fs_stub_var = fs_stub._this()
@@ -357,10 +361,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             procs.append(subprocess.Popen('./busy.py'))
         time.sleep(sleep_time)
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
+        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
         for proc in procs:
             proc.kill()
         time.sleep(sleep_time)
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.ACTIVE)
+        self.assertEqual(self.comp.busy_reason, "")
         
         try:
             os.kill(pid, 0)
@@ -376,6 +382,81 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             pass
         else:
             self.fail("Process failed to terminate")
+
+
+    def visual_testBusy(self):
+        self.runGPP()
+
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
+        cores = multiprocessing.cpu_count()
+        sleep_time = 3+cores/10.0
+        if sleep_time < 7:
+            sleep_time = 7
+        procs = []
+        for core in range(cores*2):
+            procs.append(subprocess.Popen('./busy.py'))
+        end_time = time.time() + sleep_time
+        while end_time > time.time():
+            print str(time.time()) + " busy reason: " + str(self.comp.busy_reason)
+            time.sleep(.4)
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
+        br=self.comp.busy_reason
+        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
+        self.assertEqual(br_cpu, True)
+        for proc in procs:
+            proc.kill()
+        time.sleep(sleep_time)
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
+        self.assertEqual(self.comp.busy_reason, "")
+
+        fs_stub = ComponentTests.FileSystemStub()
+        fs_stub_var = fs_stub._this()
+
+        self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
+        self.assertEqual(os.path.isfile("component_stub.py"), True) # Technically this is an internal implementation detail that the file is loaded into the CWD of the device
+
+        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
+        app_id = "waveform_1"
+        appReg = ApplicationRegistrarStub(comp_id, app_id)
+        appreg_ior = sb.orb.object_to_string(appReg._this())
+        pid = self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)),
+                                                               CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
+                                                               CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
+        self.assertNotEqual(pid, 0)
+        time.sleep(1)
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.ACTIVE)
+        cores = multiprocessing.cpu_count()
+        procs = []
+        for core in range(cores*2):
+            procs.append(subprocess.Popen('./busy.py'))
+        end_time = time.time() + sleep_time
+        while end_time > time.time():
+            print str(time.time()) + " busy reason: " + str(self.comp.busy_reason)
+            time.sleep(.4)
+
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
+        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
+        for proc in procs:
+            proc.kill()
+        time.sleep(sleep_time)
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.ACTIVE)
+        self.assertEqual(self.comp.busy_reason, "")
+
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            self.fail("Process failed to execute")
+        time.sleep(1)
+        self.comp_obj.terminate(pid)
+        try:
+            # kill all busy.py just in case
+            os.system('pkill -9 -f busy.py')
+            os.kill(pid, 0)
+        except OSError:
+            pass
+        else:
+            self.fail("Process failed to terminate")
+
 
     def No_testScreenExecute(self):
         self.runGPP({"DCE:218e612c-71a7-4a73-92b6-bf70959aec45": True})

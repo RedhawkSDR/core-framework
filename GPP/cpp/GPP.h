@@ -292,7 +292,16 @@ class GPP_i : public GPP_base
           redhawk::events::SubscriberPtr                      odm_consumer;       // interface that receives ODM_Channel events
           redhawk::events::ManagerPtr                         mymgr;              // interface to manage event channel access
 
+          std::string                                         _busy_reason;
+          boost::posix_time::ptime                            _busy_timestamp;          // time when busy reason was initially set
+
         private:
+
+          //
+          // set the busy reason property for the GPP..  
+          //
+          void  _resetReason();
+          void  _setReason( const std::string &reason, const std::string &event, const bool enable_timestamp = true );
 
           bool  _component_cleanup( const int pid, const int exit_status );
 

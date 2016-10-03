@@ -78,6 +78,8 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         threshold_event_struct threshold_event;
         // threshold items to watch
         thresholds_struct thresholds;
+        /// Property  to annotate why the system is busy 
+        std::string busy_reason;
         // time between cycles to refresh threshold metrics
         CORBA::ULong threshold_cycle_time;
         // ulimits for the GPP process

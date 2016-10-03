@@ -348,6 +348,14 @@ void GPP_base::loadProperties()
                 "external",
                 "message");
 
+    addProperty(busy_reason,
+                "busy_reason",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
     addProperty(thresholds,
                 thresholds_struct(),
                 "thresholds",

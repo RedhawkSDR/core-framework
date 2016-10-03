@@ -62,7 +62,7 @@ class SystemMonitor : public Reporting
   };
   
 public:
-  SystemMonitor( const CpuList &cpu_list );
+  SystemMonitor( const CpuList &cpu_list, const int nhistory=5 );
 
 
   SystemMonitor( const CpuStatsPtr & cpu_usage_stats,

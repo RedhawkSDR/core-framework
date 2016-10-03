@@ -56,6 +56,18 @@ CpuUsageStats::CpuUsageStats(const CpuList &cpus, const int nhistory  ):
   _update_stats();
 }
 
+
+CpuUsageStats::CpuUsageStats(const CpuUsageStats &src  )
+{
+    prev_cpus_stat_ = src.prev_cpus_stat_;
+    current_cpus_stat_ = src.current_cpus_stat_;
+    proc_stat_ = src.proc_stat_;
+    cpus_ = src.cpus_;
+    metrics_ = src.metrics_;
+    average_ = src.average_;
+    history_db_ = src.history_db_;
+}
+
 double CpuUsageStats::get_user_percent() const
 {
   return metrics_[ ProcStat::CPU_JIFFIES_USER ];

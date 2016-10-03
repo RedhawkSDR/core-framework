@@ -43,6 +43,7 @@
 #include <sys/sysinfo.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/asio.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
@@ -442,6 +443,7 @@ void GPP_i::_init() {
 
   // default cycle time setting for updating data model, metrics and state
   threshold_cycle_time = 500;
+  thresholds.ignore = false;
 
   //
   // Add property change listeners and allocation modifiers
@@ -458,6 +460,9 @@ void GPP_i::_init() {
 
   // add property change listener
   addPropertyChangeListener("DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1", this, &GPP_i::mcastnicThreshold_changed);
+
+  // RESOLVE:: add property change thesholds to change monitor to disable/enable
+  //addPropertyChangeListener("thresholds", this, &GPP_i::threshold_changed);
 
   utilization_entry_struct cpu;
   cpu.description = "CPU cores";
@@ -1418,6 +1423,22 @@ bool GPP_i::_check_limits( const thresholds_struct &thresholds)
 
 void GPP_i::updateUsageState()
 {
+    // allow for global ignore of thresholds
+    if ( thresholds.ignore == true  ) {
+        LOG_TRACE(GPP_i, "Ignoring threshold checks ");
+        if (getPids().size() == 0) {
+            LOG_TRACE(GPP_i, "Usage State IDLE (trigger) pids === 0...  ");
+            _resetReason();
+            setUsageState(CF::Device::IDLE);
+        }
+        else {
+            LOG_TRACE(GPP_i, "Usage State ACTIVE.....  ");
+            _resetReason();
+            setUsageState(CF::Device::ACTIVE);
+        }
+        return;
+    }
+
   double sys_idle = system_monitor->get_idle_percent();
   double sys_idle_avg = system_monitor->get_idle_average();
   double sys_load = system_monitor->get_loadavg();
@@ -1429,44 +1450,90 @@ void GPP_i::updateUsageState()
   
   if (sys_idle < modified_thresholds.cpu_idle) {
     if ( sys_idle_avg < modified_thresholds.cpu_idle) {
-      LOG_DEBUG(GPP_i, "Usage State Busy (trigger) IDLE Constraint: modified/sys idle/avg" <<  modified_thresholds.cpu_idle << "/sys " << sys_idle << "/" << sys_idle_avg );
-      setUsageState(CF::Device::BUSY);
+        std::ostringstream oss;
+        oss << "Threshold: " <<  modified_thresholds.cpu_idle << " Actual/Average: " << sys_idle << "/" << sys_idle_avg ;
+        _setReason( "CPU IDLE", oss.str() );
+        setUsageState(CF::Device::BUSY);
     }
   }
   else if ( mem_free < (unsigned long)modified_thresholds.mem_free) {
-    LOG_DEBUG(GPP_i, "Usage State Busy (trigger) MEM   modified/sys " <<  modified_thresholds.mem_free << "/" << system_monitor->get_mem_free() );
-    setUsageState(CF::Device::BUSY);
+        std::ostringstream oss;
+        oss << "Threshold: " <<  modified_thresholds.mem_free << " Actual: " << mem_free;
+        _setReason( "FREE MEMORY", oss.str() );
+        setUsageState(CF::Device::BUSY);
   }
   else if ( sys_load > modified_thresholds.load_avg ) {
-    LOG_DEBUG(GPP_i, "Usage State Busy (loadavg)  LIMITS....  ");
-    setUsageState(CF::Device::BUSY);
+      std::ostringstream oss;
+      oss << "Threshold: " <<  modified_thresholds.load_avg << " Actual: " << sys_load;
+      _setReason( "LOAD AVG", oss.str() );
+      setUsageState(CF::Device::BUSY);
   }
   else if ( reserved_capacity_per_component != 0 && (subscribed > max_allowable_load) ) {
-    LOG_DEBUG(GPP_i, "Usage State Busy (reservation load exceed)  LIMITS....  ");
-    setUsageState(CF::Device::BUSY);
+      std::ostringstream oss;
+      oss << "Threshold: " << max_allowable_load << " Actual(subscribed) " << subscribed;
+      _setReason( "RESERVATION CAPACITY", oss.str() );
+      setUsageState(CF::Device::BUSY);
   }
   else if ( ((mcastnicInterface != "" ) or (mcastnicIngressThresholdValue > 0)) && (mcastnicIngressCapacity >  mcastnicIngressThresholdValue) ) {
-    LOG_DEBUG(GPP_i, "Usage State Busy (multicast nic)  LIMITS....  ");
-    setUsageState(CF::Device::BUSY);
+      std::ostringstream oss;
+      oss << "Interface: " <<  mcastnicInterface << " Threshold: " << mcastnicIngressThresholdValue << " Actual: " << mcastnicIngressCapacity;
+      _setReason( "MULTICAST INGRESS", oss.str() );
+      setUsageState(CF::Device::BUSY);
   }
   else if ( ((mcastnicInterface != "" ) or (mcastnicEgressThresholdValue  > 0)) && (mcastnicEgressCapacity >  mcastnicEgressThresholdValue) ) {
-    LOG_DEBUG(GPP_i, "Usage State Busy (multicast nic)  LIMITS....  ");
+      std::ostringstream oss;
+      oss << "Interface:" << mcastnicInterface << " Threshold: " << mcastnicEgressThresholdValue << " Actual: " << mcastnicEgressCapacity;
+      _setReason( "MULTICAST EGRESS", oss.str() );
     setUsageState(CF::Device::BUSY);
   }
   else if (_check_limits(thresholds)) {
-    LOG_DEBUG(GPP_i, "Usage State Busy (trigger)  LIMITS....  ");
-    setUsageState(CF::Device::BUSY);
+      std::ostringstream oss;
+      oss << "Threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads;
+      _setReason( "ULIMIT (MAX_THREADS)", oss.str() );
+      setUsageState(CF::Device::BUSY);
   }
   else if (getPids().size() == 0) {
     LOG_TRACE(GPP_i, "Usage State IDLE (trigger) pids === 0...  ");
+    _resetReason();
     setUsageState(CF::Device::IDLE);
   }
   else {
     LOG_TRACE(GPP_i, "Usage State ACTIVE.....  ");
+    _resetReason();
     setUsageState(CF::Device::ACTIVE);
   }
 }
 
+
+void GPP_i::_resetReason() {
+    _setReason("","");
+}
+
+void GPP_i::_setReason( const std::string &reason, const std::string &event, const bool enable_timestamp ) {
+
+    if ( reason != "" ) {
+        if ( reason != _busy_reason ) {
+            LOG_DEBUG(GPP_i, "GPP BUSY, REASON: " << reason << " " << event );
+            _busy_timestamp = boost::posix_time::microsec_clock::local_time();
+            _busy_reason = reason;
+            std::ostringstream oss;
+            oss << "(time: " << _busy_timestamp << ") REASON: " << _busy_reason << " EXCEEDED " << event;
+            busy_reason = oss.str();
+        }
+        else if ( reason == _busy_reason ) {
+            boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+            boost::posix_time::time_duration dur = now - _busy_timestamp;
+            std::ostringstream oss;
+            oss << "(first/duration: " << _busy_timestamp << "/" << dur << ") REASON: " << _busy_reason << " EXCEEDED " << event;
+            busy_reason = oss.str();
+        }
+    }
+    else {
+        _busy_timestamp = boost::posix_time::microsec_clock::local_time();
+        busy_reason = reason;
+        _busy_reason = reason;
+    }
+}
 
 /**
   override ExecutableDevice::set_resource_affinity to handle localized settings.
