@@ -66,6 +66,7 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
                         ${"retVal = " if operation.returns}port.${operation.name}(${operation.args|join(', ')})
                     except Exception:
                         self.parent._log.exception("The call to ${operation.name} failed on port %s connection %s instance %s", self.name, connId, port)
+                        raise
         finally:
             self.port_lock.release()
 #{% if operation.returns %}

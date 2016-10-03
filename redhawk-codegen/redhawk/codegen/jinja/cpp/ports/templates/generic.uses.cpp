@@ -49,6 +49,7 @@ ${operation.returns} ${classname}::${operation.name}(${operation.arglist})
                 ${"retval = " if hasreturn}((*i).first)->${operation.name}(${operation.argnames});
             } catch(...) {
                 LOG_ERROR(${classname},"Call to ${operation.name} by ${classname} failed");
+                throw;
             }
         }
     }
