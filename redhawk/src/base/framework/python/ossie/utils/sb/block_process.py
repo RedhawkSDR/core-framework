@@ -157,7 +157,7 @@ def matchPortFormat(dataFormat, portType):
                 return True
     return False
 
-def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execparams={},configure={},providesPortName=None,usesPortName=None,timeout=None,objType="component"):
+def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execparams={},configure={},providesPortName=None,usesPortName=None,timeout=None,objType="components"):
     '''
     This function launches a component, passes a file through the component, saves the result
     in another file, and then terminates the component. The output file format is determined
@@ -270,7 +270,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
             
     if comp!=None:
         try:
-            _comp=_sandbox.launch(comp,objType="component",instanceName=instanceName, refid=refid, impl=impl, debugger=debugger, window=window, execparams=execparams, configure=configure, initialize=initialize, timeout=timeout)
+            _comp=_sandbox.launch(comp,objType="components",instanceName=instanceName, refid=refid, impl=impl, debugger=debugger, window=window, execparams=execparams, configure=configure, initialize=initialize, timeout=timeout)
         except Exception, e:
             undo_all(undos)
             raise
@@ -326,12 +326,12 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
     
         if outputDataConverter:
             try:
-                _dataConverter_out=_sandbox.launch('DataConverter', timeout=timeout)
+                _dataConverter_out=_sandbox.launch('rh.DataConverter', timeout=timeout)
             except Exception, e:
                 undo_all(undos)
                 if type(e).__name__ == "ValueError" and \
-                   str(e) == "'DataConverter' is not a valid softpkg name or SPD file":
-                    raise Exception("DataConverter component is not installed in SDRROOT.")
+                   str(e) == "'rh.DataConverter' is not a valid softpkg name or SPD file":
+                    raise Exception("rh.DataConverter component is not installed in SDRROOT.")
                 else:
                     raise
             try:
@@ -374,12 +374,12 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         raise
     if inputDataConverter:
         try:
-            _dataConverter=_sandbox.launch('DataConverter', timeout=timeout)
+            _dataConverter=_sandbox.launch('rh.DataConverter', timeout=timeout)
         except Exception, e:
             undo_all(undos)
             if type(e).__name__ == "ValueError" and \
-               str(e) == "'DataConverter' is not a valid softpkg name or SPD file":
-                raise Exception("DataConverter component is not installed in SDRROOT.")
+               str(e) == "'rh.DataConverter' is not a valid softpkg name or SPD file":
+                raise Exception("rh.DataConverter component is not installed in SDRROOT.")
             else:
                 raise
         try:
