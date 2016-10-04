@@ -271,9 +271,11 @@ if java_support:
 class FileLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
         self.cname = "TestLoggingAPI"
+        self.comp = None
         
     def tearDown(self):
-        self.comp.releaseObject()
+        if self.comp:
+           self.comp.releaseObject()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
@@ -324,26 +326,27 @@ class FileLoggingConfig(scatest.CorbaTestCase):
         self.assertNotEquals(fp, None)
 
     def test_comp_macro_directories_config_java(self):
-        file_loc = os.getcwd()
-        self.comp = sb.launch(self.cname, impl="java", execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'} )
-        fp = None
-        try:
-            fp = open('foo/bar/test.log','r')
-        except:
-            pass
-        try:
-            os.remove('foo/bar/test.log')
-        except:
-            pass
-        try:
-            os.rmdir('foo/bar')
-        except:
-            pass
-        try:
-            os.rmdir('foo')
-        except:
-            pass
-        self.assertNotEquals(fp, None)
+        if java_support:
+            file_loc = os.getcwd()
+            self.comp = sb.launch(self.cname, impl="java", execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'} )
+            fp = None
+            try:
+                fp = open('foo/bar/test.log','r')
+            except:
+                pass
+            try:
+                os.remove('foo/bar/test.log')
+            except:
+                pass
+            try:
+                os.rmdir('foo/bar')
+            except:
+                pass
+            try:
+                os.rmdir('foo')
+            except:
+                pass
+            self.assertNotEquals(fp, None)
 
 
 class PythonLoggingConfig(scatest.CorbaTestCase):
@@ -679,9 +682,10 @@ class LoggingConfigCategory(scatest.CorbaTestCase):
         self.assertEquals( proj, lvl )
 
     def test_LoggingCategoryJava(self):
-        self.cname = "TestLoggingAPI"
-        self.comp = sb.launch(self.cname, impl="java" )
-        self._test_LoggingCategory()
+        if java_support:
+            self.cname = "TestLoggingAPI"
+            self.comp = sb.launch(self.cname, impl="java" )
+            self._test_LoggingCategory()
 
     def test_LoggingCategoryPython(self):
         self.cname = "TestLoggingAPI"
