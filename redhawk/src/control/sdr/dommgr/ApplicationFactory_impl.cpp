@@ -2344,6 +2344,8 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
 
         LOG_TRACE(ApplicationFactory_impl, "Component - " << component->getName()
                   << "   Assigned device - " << device->identifier);
+        LOG_INFO(ApplicationFactory_impl, "APPLICATION: " << _waveformContextName << " COMPONENT ID: " 
+                 << component->getIdentifier()  << " ASSIGNED TO DEVICE ID/LABEL: " << device->identifier << "/" << device->label);
 
         // Let the application know to expect the given component
         _application->addComponent(component->getIdentifier(), component->getSpdFileName());
