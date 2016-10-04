@@ -1144,9 +1144,12 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
         self.dom.devMgrs[0].devs[0].threshold_cycle_time = 50
         count = 0
         while count < 20:
-            app_1=self.dom.createApplication('/waveforms/empty_comp_w/empty_comp_w.sad.xml','empty_comp_w',[])
-            app_1.releaseObject()
-            time.sleep(0.1)
+            try:
+               app_1=self.dom.createApplication('/waveforms/empty_comp_w/empty_comp_w.sad.xml','empty_comp_w',[])
+               app_1.releaseObject()
+               time.sleep(0.1)
+            except:
+               pass
             count += 1
     
     def testSystemReservation(self):
