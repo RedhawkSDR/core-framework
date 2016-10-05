@@ -433,19 +433,19 @@ class BlueFileWriter(object):
                 else:
                     data_format = 'C'
 
-                if(str(self.port_type) == "bulkio.bulkioInterfaces.BULKIO__POA.dataShort"):
+                if self.port_type == BULKIO__POA.dataShort:
                     data_format = data_format + 'I'
-                elif(str(self.port_type) == "bulkio.bulkioInterfaces.BULKIO__POA.dataUshort"):
+                elif self.port_type == BULKIO__POA.dataUshort:
                     data_format = data_format + 'I'
-                elif(str(self.port_type) == "bulkio.bulkioInterfaces.BULKIO__POA.dataFloat"):
+                elif self.port_type == BULKIO__POA.dataFloat:
                     data_format = data_format + 'F'
-                elif(str(self.port_type) == "bulkio.bulkioInterfaces.BULKIO__POA.dataDouble"):
+                elif self.port_type == BULKIO__POA.dataDouble:
                     data_format = data_format + 'D'
-                elif(str(self.port_type) == "bulkio.bulkioInterfaces.BULKIO__POA.dataChar"):
+                elif self.port_type == BULKIO__POA.dataChar:
                     data_format = data_format + 'B'
-                elif(str(self.port_type) == "bulkio.bulkioInterfaces.BULKIO__POA.dataUlong"):
+                elif self.port_type == BULKIO__POA.dataUlong:
                     data_format = data_format + 'L'
-                elif(str(self.port_type) == "bulkio.bulkioInterfaces.BULKIO__POA.dataLong"):
+                elif self.port_type == BULKIO__POA.dataLong:
                     data_format = data_format + 'L'
                 # default to double precision data
                 else:
