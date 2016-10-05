@@ -349,7 +349,7 @@ class BaseVectorPort(unittest.TestCase):
         bio.addConnectListener( self.connect_cb )
         bio.addDisconnectListener( self.disconnect_cb)
 
-        inport = CORBA.Object()
+        inport = None
         self.assertRaises( CF.Port.InvalidPort, bio.connectPort,  inport,"connection_1")
 
         bio.connectPort( ip1._this(), "connection_1" )
