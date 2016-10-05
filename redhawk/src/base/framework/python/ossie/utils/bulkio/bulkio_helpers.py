@@ -545,7 +545,7 @@ def createBULKIOInputPort(portType):
     # to mimic an SDDS input port
     if portType == BULKIO__POA.dataSDDS:
         PortClass = classobj('Port',
-                             (object,portType),
+                             (portType,object),
                              {'pushSRI':SDDS_pushSRI,
                               'attach':attach,
                               'detach':detach,
@@ -558,7 +558,7 @@ def createBULKIOInputPort(portType):
         return retval
     else:
         PortClass = classobj('PortClass',
-                             (object,portType),
+                             (portType,object),
                              {'pushPacket':pushPacket,
                               'getPacket':getPacket,
                               'pushSRI':pushSRI,
