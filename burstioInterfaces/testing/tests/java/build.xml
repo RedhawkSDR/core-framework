@@ -55,6 +55,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <target name="test" depends="compile">
     <junit fork="yes" printsummary="yes" haltonfailure="no">
       <classpath refid="junit.class.path"/>
+      <sysproperty key="java.library.path" value="${java.library.path}:${basedir}/../../../src/java/.libs"/>
       <formatter type="xml" />
       <batchtest todir="${basedir}/../" >
         <fileset dir="${basedir}">
