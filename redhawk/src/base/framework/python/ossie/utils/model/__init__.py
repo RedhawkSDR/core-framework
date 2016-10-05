@@ -627,21 +627,21 @@ class Service(CorbaObject):
     def _getInterface(self):
         return self._repid
 
+    def _addProxyMethod(self, name):
+        if hasattr(self.ref, name):
+            func = getattr(self.ref, name)
+            self.__setattr__(name, func)
+
     def populateMemberFunctions(self):
-        objMembers = inspect.getmembers(self.ref)
         # Add member function mapping for each service operation 
         for function in self._operations:
-            for name, func  in objMembers:
-                if name == function.name:
-                    self.__setattr__(name, func)
+            self._addProxyMethod(function.name)
         
         # Added member function mapping for each service attribute
         for attr in self._attributes:
-            for name, func in objMembers:
-                # Python attributes start with either _get_ or _set_, so ignore first 5 chars
-                if name[5:] == attr.name:
-                    self.__setattr__(name, func)
-
+            self._addProxyMethod('_get_' + attr.name)
+            if not attr.readonly:
+                self._addProxyMethod('_set_' + attr.name)
 
     def log_level(self, newLogLevel=None ):
         if newLogLevel == None:
