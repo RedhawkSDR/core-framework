@@ -93,9 +93,3 @@ if __name__ == '__main__':
     if options.verbose:
         print "Starting omniEvents"
     retval=commands.getstatusoutput('/etc/init.d/omniEvents start')
-    while "FAILED" in retval[1]:   
-        if options.verbose:
-            print "Starting omniEvents Failed"
-        retval=commands.getstatusoutput('/etc/init.d/omniEvents start')
-    if options.verbose:
-        print "Starting omniEvents"
