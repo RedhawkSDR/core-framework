@@ -29,30 +29,36 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   </simple>
   <simple id="DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb" mode="readonly" name="device_model" type="string">
     <description> This specifies the specific device</description>
+    <value>REDHAWK GPP</value>
+    <kind kindtype="property"/>
     <kind kindtype="configure"/>
     <kind kindtype="allocation"/>
     <action type="eq"/>
   </simple>
   <simple id="DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b" mode="readonly" name="processor_name" type="string">
     <description>SCA required property describing the CPU type</description>
+    <kind kindtype="property"/>
     <kind kindtype="configure"/>
     <kind kindtype="allocation"/>
     <action type="eq"/>
   </simple>
   <simple id="DCE:4a23ad60-0b25-4121-a630-68803a498f75" mode="readonly" name="os_name" type="string">
     <description>SCA required property describing the Operating System Name</description>
+    <kind kindtype="property"/>
     <kind kindtype="configure"/>
     <kind kindtype="allocation"/>
     <action type="eq"/>
   </simple>
   <simple id="DCE:0f3a9a37-a342-43d8-9b7f-78dc6da74192" mode="readonly" name="os_version" type="string">
     <description>SCA required property describing the Operating System Version</description>
+    <kind kindtype="property"/>
     <kind kindtype="configure"/>
     <kind kindtype="allocation"/>
     <action type="eq"/>
   </simple>
   <simple id="DCE:9190eb70-bd1e-4556-87ee-5a259dcfee39" mode="readonly" name="hostName" type="string">
     <description>Host name on which the device is deployed</description>
+    <kind kindtype="property"/>
     <kind kindtype="configure"/>
     <kind kindtype="event"/>
     <action type="external"/>

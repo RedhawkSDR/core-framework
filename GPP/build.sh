@@ -25,7 +25,7 @@ if [ "$1" = "rpm" ]; then
         mydir=`dirname $0`
         tmpdir=`mktemp -d`
         cp -r ${mydir} ${tmpdir}/GPP-2.0.4
-        tar czf ${tmpdir}/GPP-2.0.4.tar.gz --exclude=".svn" -C ${tmpdir} GPP-2.0.4
+        tar czf ${tmpdir}/GPP-2.0.4.tar.gz --exclude=".svn" --exclude=".git" -C ${tmpdir} GPP-2.0.4
         rpmbuild -ta ${tmpdir}/GPP-2.0.4.tar.gz
         rm -rf $tmpdir
     else

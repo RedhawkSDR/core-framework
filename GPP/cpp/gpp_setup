@@ -1,0 +1,588 @@
+#!/usr/bin/env python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
+# distributed with this source distribution.
+#
+# This file is part of REDHAWK core.
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+import os, sys, commands, logging, platform, shutil, socket
+from ossie import parsers
+from ossie.utils.model import _uuidgen as uuidgen
+import traceback
+
+class ConfigurationError(StandardError):
+    pass
+
+class BaseConfigurator(object):
+    def __init__(self, options, cmdlineProps, logname='Configurator' ):
+        # Basic setup
+        self.scriptname = os.path.basename(__file__)
+        self._log = logging.getLogger(logname)
+        self.options = options
+        self.cmdlineProps = cmdlineProps
+        self.hostname = socket.gethostname()
+
+        # dictionary of properties that we are going to add to DCD
+        self.props = {}
+        self.props_prf_omit = {}
+        self.props_dcd_omit = {}
+
+        if self.options.add_os_props:
+            # seed with common property values that will be added to the DCD file
+            self.props['device_model']='REDHAWK GPP'
+            self.props['os_name']=''
+            self.props['os_version']=''
+            self.props['processor_name']=''
+            self.props['hostName']=''
+        else:
+            self.props_dcd_omit['device_model']=''
+            self.props_dcd_omit['os_name']=''
+            self.props_dcd_omit['os_version']=''
+            self.props_dcd_omit['processor_name']=''
+            self.props_dcd_omit['hostName']=''
+
+
+        # seed with common property values that will be added to the DCD file
+        #self.props['threshold_cycle_time']=500
+        self.props['reserved_capacity_per_component']=0.01
+        self.props['thresholds']= { 'ignore' : False,
+                                    'cpu_idle': 10,
+                                    'load_avg' : 80,
+                                    'mem_free' : 10,
+                                    'nic_usage' : 900,
+                                    'files_available' : 3,
+                                    'threads' : 3 };
+
+        # older properties
+        self.props['loadCapacityPerCore'] = 1.0
+
+
+    def generate(self):
+        pass
+
+    def remove(self):
+        pass
+
+    def _ver2rel(self, ver):
+        return float(ver[0:1]) + float(ver[2:3])*0.1 + float(ver[4:5])*0.000001
+
+    def _gather_system_information(self):
+        # get some platform information
+        self.props['os_name']    = platform.system()
+        self.props['os_version'] = platform.release()
+        self.props['hostName'] = self.hostname
+        tmp_uname_p    = platform.processor()
+        tmp_proc_map   = {'i386':'x86',
+                          'i686':'x86',
+                          'x86_64':'x86_64',
+                          'armv7l':'armv7l'}
+        self.props['processor_name']  = tmp_proc_map.get(tmp_uname_p, 'x86')
+
+
+
+        # Output some debug information
+        if not self.options.silent:
+            self._log.debug("System Information for: <" + self.hostname + ">")
+            k = self.props.keys()
+            k.sort()
+            for n in k:
+                self._log.debug("  %-30s %s ", n, self.props[n])
+
+    def _gather_mcastnic_information(self):
+
+        if not self.options.silent:
+            self._log.debug("Checking nic capacity...")
+
+        # If the multicast NIC isn't specified, attempt to locate using the default route
+        if not self.options.mcastnic:
+            text = commands.getoutput("/sbin/route -n").split("\n")
+            for line in text[2:]:
+                fields = [x.strip() for x in line.split()]
+                if fields[0] == "224.0.0.0":
+                    self.options.mcastnic = fields[7]
+                    if self.options.mcastnic.find(".") != -1:
+                        self.options.mcastnic = self.options.mcastnic.split(".")[0]
+                    if not self.options.silent:
+                        self._log.info("Auto-detected %s as multicast nic", self.options.mcastnic)
+                    break
+
+        if not self.options.mcastnic:
+            if not self.options.silent:
+                self._log.warn("You must provide a multicast NIC port in order to have NIC capacity managment")
+            return
+
+        self.props["mcastnicInterface"] = self.options.mcastnic
+        self.props["mcastnicThreshold"] =80
+        testInterface = self.options.mcastnic
+
+        # Check if the interface is bonded and adjust accordingly by getting the active enslaved interface
+        bondpath = '/sys/class/net/%s/bonding/active_slave' % testInterface
+        if os.path.exists(bondpath):
+            try:
+                bondfile = open(bondpath, 'r')
+                bondintf = bondfile.readline(100)
+                testInterface = bondintf.strip()
+                if not self.options.silent:
+                    self._log.debug("Ingress/egress will be calculated using the active slave interface '%s' of bonded interface '%s'" % (testInterface, self.options.mcastnic))
+                bondfile.close()
+            except:
+                if not self.options.silent:
+                    self._log.warn("Unable to read information for bonded multicast interface")
+                return
+
+        # Must be root to query the interface
+        self.props["mcastnicIngressTotal"] = 0
+        self.props["mcastnicEgressTotal"] = 0
+        if os.getuid() != 0:
+            if not self.options.silent:
+                self._log.warn("You must run " + self.scriptname + " as root in order to get a calculated nic capacity for devices")
+
+        (exitstatus, ethtool_info) = commands.getstatusoutput("/sbin/ethtool " + testInterface)
+        if exitstatus != 0:
+            if not self.options.silent:
+                self._log.debug("Invalid multicast NIC provided.")
+            return
+
+        speed = ''
+        link = ''
+        duplex = 'Full'
+        for i in ethtool_info.splitlines():
+            if 'Speed:' in i:
+                speed = i.strip().lstrip('Speed: ').strip()
+            elif 'Link detected:' in i:
+                link = i.strip().lstrip('Link detected: ').strip()
+            elif 'Duplex:' in i:
+                duplex = i.strip().lstrip('Duplex: ').strip()
+
+        # check link status
+        link = link.upper()
+        if link == 'YES':
+            link = True
+        elif link == 'NO':
+            link = False
+            if not self.options.silent:
+                self._log.warn("Multicast NIC not up.")
+        else:
+            link = False
+            if not self.options.silent:
+                self._log.warn("Unable to determine if multicast NIC is up")
+
+        # get speed
+        speed = speed.rstrip('Mb/s')
+        if speed.isdigit():
+            speed = int(speed)
+        else:
+            speed = 0
+
+        self.props["mcastnicIngressTotal"] = speed
+        self.props["mcastnicEgressTotal"] = speed
+        if duplex != "Full":
+            if not self.options.silent:
+                self._log.debug("Interface is half-duplex.")
+            self.props["mcastnicIngressTotal"] = speed / 2
+            self.props["mcastnicEgressTotal"] = speed / 2
+
+    def _update_GPP_prf(self):
+        # generate the prf file
+        prfpath = os.path.join(self.gpp_path, 'GPP.prf.xml')
+        if not self.options.silent:
+            self._log.info("Opening source GPP PRF: " + prfpath)
+
+        _prf = parsers.PRFParser.parse(prfpath)
+
+
+        # For simple properties, we allow adding in a value either:
+        #   1) By command-line param
+        #   2) By values we've determined from our tests
+        for simple in _prf.get_simple():
+            pname = simple.get_name()
+
+            # check if we should not add specific properties
+            if pname in self.props_prf_omit:
+                if not self.options.silent:
+                    self._log.debug('PRF config, OMIT GPP Property: ' + str(pname) )
+                continue
+
+            if pname in self.cmdlineProps:
+                if not self.options.silent:
+                    self._log.debug('PRF config, GPP Property: ' + str(pname) + ' ' + str(self.cmdlineProps[pname]))
+                simple.set_value(str(self.cmdlineProps[pname]))
+                continue
+
+            if pname in self.props:
+                if not self.options.silent:
+                    self._log.debug('PRF config, GPP Property: ' + str(pname) + ' ' + str(self.props[pname]))
+                simple.set_value(str(self.props[pname]))
+
+
+        for structseq in _prf.get_structsequence():
+            pname = structseq.get_name()
+
+            # check if we should not add specific properties
+            if pname in self.props_prf_omit:
+                if not self.options.silent:
+                    self._log.debug('PRF config, OMIT GPP Property: ' + str(pname) )
+                continue
+
+            if pname in self.props:
+                if not self.options.silent:
+                    self._log.debug('PRF config, GPP Property: ' + str(pname) )
+                for values in self.props[pname]:
+                    sv = parsers.PRFParser.structValue()
+                    for field_id, field_val in values.items():
+                        if not self.options.silent:
+                           self._log.debug('PRF config, GPP Property: ' + str(pname) + ' ' + str(self.props[pname]))
+                        sv.add_simpleref(parsers.PRFParser.simpleRef(refid=field_id, value=str(field_val)))
+                    structseq.add_structvalue(sv)
+
+        if not self.options.silent:
+            self._log.info("Writing GPP PRF results file: " + prfpath)
+        prf_out = open(prfpath, 'w')
+        prf_out.write(parsers.parserconfig.getVersionXML())
+        _prf.export(prf_out,0)
+        prf_out.close()
+
+
+
+class GppProfile(BaseConfigurator):
+    def __init__(self,options,cmdlineProps ):
+        BaseConfigurator.__init__(self, options, cmdlineProps, 'GPP-Profile' )
+        self.location = options.location
+
+
+        # Verify the base GPP profile exists
+        self.location  =  self.options.location
+        if self.options.location:
+            # Verify the base GPP profile exists
+            self.gpp_templates = {"spd": os.path.join(self.location,"GPP.spd.xml"),
+                                  "prf": os.path.join(self.location,"GPP.prf.xml"),
+                                  "scd": os.path.join(self.location,"GPP.scd.xml")}
+        else:
+            self.gpp_templates = {"spd": os.path.join(self.options.sdrroot, "dev", self.options.gpppath[1:], "GPP.spd.xml"),
+                                  "prf": os.path.join(self.options.sdrroot, "dev", self.options.gpppath[1:], "GPP.prf.xml"),
+                                  "scd": os.path.join(self.options.sdrroot, "dev", self.options.gpppath[1:], "GPP.scd.xml")}
+
+        for template in self.gpp_templates.values():
+            if not os.path.exists(template):
+                raise ConfigurationError("%s missing" % template)
+
+        # Figure out where we are going to write the GPP profile
+        if self.options.location:
+            self.gpp_path = os.path.join(self.location)
+        else:
+            self.gpp_path = os.path.join(self.options.sdrroot, "dev", "devices", "GPP")
+            self.location = self.gpp_path
+
+
+    def generate(self):
+        if not self.options.silent:
+            self._log.debug("Generating...")
+        self._gather_system_information()
+        self._gather_mcastnic_information()
+        self._update_GPP_prf()
+        if not self.options.silent:
+            self._log.info("GPP profile complete,  GPP " + self.location)
+
+
+    def remove(self):
+        if not self.options.silent:
+            self._log.info("Remove operation not permitted,  GPP " + self.location)
+
+
+
+class DeviceManagerProfile(BaseConfigurator):
+    def __init__(self,options,cmdlineProps ):
+        BaseConfigurator.__init__(self, options, cmdlineProps, 'CreateNode' )
+        self.localfile_nodeprefix = '/mgr'
+
+        # prep uuids
+        self.uuids = {}
+        self.uuids["softpkg"                ] = 'DCE:' + uuidgen()
+        self.uuids["implementation"         ] = 'DCE:' + uuidgen()
+        self.uuids["deviceconfiguration"    ] = 'DCE:' + uuidgen()
+        self.uuids["componentfile"          ] = 'DCE:' + uuidgen()
+        self.uuids["componentinstantiation" ] = 'DCE:' + uuidgen()
+        self.uuids["componentimplementation"] = 'DCE:' + uuidgen()
+        self.uuids["componentsoftpkg"       ] = 'DCE:' + uuidgen()
+
+        # check domainname
+        if options.domainname == None:
+            raise ConfigurationError("A domainname is required")
+
+        # Verify the base GPP profile exists
+        self.location = self.options.location
+        if self.options.location:
+            # Verify the base GPP profile exists
+            self.gpp_templates = {"spd": os.path.join(self.location,"GPP.spd.xml"),
+                                  "prf": os.path.join(self.location,"GPP.prf.xml"),
+                                  "scd": os.path.join(self.location,"GPP.scd.xml")}
+        else:
+            self.gpp_templates = {"spd": os.path.join(self.options.sdrroot, "dev", self.options.gpppath[1:], "GPP.spd.xml"),
+                                  "prf": os.path.join(self.options.sdrroot, "dev", self.options.gpppath[1:], "GPP.prf.xml"),
+                                  "scd": os.path.join(self.options.sdrroot, "dev", self.options.gpppath[1:], "GPP.scd.xml")}
+
+        for template in self.gpp_templates.values():
+            if not os.path.exists(template):
+                raise ConfigurationError("%s missing" % template)
+
+        self.nodedir = os.path.join(self.options.sdrroot, "dev", "nodes", self.options.nodename)
+        self.path_to_dcd = os.path.join(self.nodedir , "DeviceManager.dcd.xml")
+
+        # Figure out where we are going to write the GPP profile
+        if self.options.location:
+            self.gpp_path = os.path.join(self.location)
+        else:
+            if self.options.inplace:
+                self.gpp_path = os.path.join(self.options.sdrroot, "dev", "devices", "GPP")
+            else:
+                self.gpp_path = os.path.join(self.nodedir, "GPP")
+
+
+    def generate(self):
+        if not self.options.silent:
+            self._log.debug("Generating...")
+        self._gather_system_information()
+        self._gather_mcastnic_information()
+        self._createDeviceManagerProfile()
+        if not self.options.silent:
+            self._log.info("Node generation completed, DMD: " + self.path_to_dcd)
+
+    def remove(self):
+        if not self.options.silent:
+            self._log.debug("Removing...")
+        if os.path.isdir(self.nodedir):
+            if not self.options.silent:
+                self._log.debug("  Removing <" + self.nodedir + ">")
+            shutil.rmtree(self.nodedir)
+
+    def _add_GPP_properties(self, DCDParser, comp_inst ):
+        # generate the prf file
+        prfpath = os.path.join(self.gpp_path, 'GPP.prf.xml')
+        _prf = parsers.PRFParser.parse(prfpath)
+
+        cp = DCDParser.componentproperties()
+
+        # For simple properties, we allow adding in a value either:
+        #   1) By command-line param
+        #   2) By values we've determined from our nodeconfig tests
+        for simple in _prf.get_simple():
+            pname =simple.get_name()
+            refid =simple.get_id()
+
+            # check if we should not add specific properties
+            if pname in self.props_dcd_omit:
+                if not self.options.silent:
+                    self._log.debug('DCD config, OMIT GPP Property: ' + str(pname) )
+                continue
+
+            if pname in self.cmdlineProps:
+                if not self.options.silent:
+                    self._log.debug('DCD config, GPP Property: ' + str(pname) + ' ' + str(self.cmdlineProps[pname]))
+                si=DCDParser.simpleref( refid, self.cmdlineProps[pname] )
+                cp.add_simpleref(si)
+                continue
+
+            if pname in self.props:
+                if not self.options.silent:
+                    self._log.debug('DCD config, GPP Property: ' + str(pname) + ' ' + str(self.props[pname]))
+                si=DCDParser.simpleref( refid, self.props[pname] )
+                cp.add_simpleref(si)
+
+        for st_def in _prf.get_struct():
+            pname=st_def.get_name()
+            refid=st_def.get_id()
+
+            if pname in self.props_dcd_omit:
+                if not self.options.silent:
+                    self._log.debug('DCD config, OMIT GPP Property: ' + str(pname) )
+                continue
+
+            if refid in self.props:
+                st=DCDParser.structref( refid )
+                for k,v in self.props[refid].iteritems():
+                    refid=k
+                    if not self.options.silent:
+                        self._log.debug('DCD config, GPP Property: ' + str(refid) + ' ' + str(v))
+                    si=DCDParser.simpleref( refid, v )
+                    st.add_simpleref(si)
+                cp.add_structref(st)
+
+        comp_inst.set_componentproperties(cp)
+
+
+    def _createDeviceManagerProfile(self):
+        #####################
+        # Setup environment
+        #####################
+
+        # make sure node hasn't already been created
+        if os.path.exists(self.path_to_dcd):
+            self._log.error("Cannot create node definition : " + self.options.nodename + ",  a previous configuration was found. DCD: " + str(self.path_to_dcd))
+            sys.exit(1)
+
+        try:
+            if not os.path.isdir(self.nodedir):
+                os.makedirs(self.nodedir)
+            else:
+                if not self.options.silent:
+                    self._log.debug("Node directory already exists; skipping directory creation")
+                pass
+        except OSError:
+            raise Exception, "Could not create device manager directory"
+
+        GPP_componentfile = 'GPP_' + uuidgen()
+        if self.options.inplace:
+            compfiles = [{'id':GPP_componentfile, 'localfile':os.path.join('/devices', 'GPP', 'GPP.spd.xml')}]
+        else:
+            compfiles = [{'id':GPP_componentfile, 'localfile':os.path.join('/nodes', self.options.nodename, 'GPP', 'GPP.spd.xml')}]
+        usagename = self.options.gppname.replace('.','_')
+        nodename = self.options.nodename.replace('.','_')
+        compplacements = [{'refid':GPP_componentfile, 'instantiations':[{'id': nodename+':'+usagename, 'usagename': usagename }]}]
+        if self.options.noevents:
+            connections = []
+        else:
+            connections = [{'usesport':{'id':'propEvent', 'refid':self.uuids["componentinstantiation"]}, 'findby':{'type':'eventchannel', 'name':'GPP_Channel'}}]
+
+        #####################
+        # DeviceManager files
+        #####################
+        if not self.options.silent:
+            self._log.debug("Creating DeviceManager profile <" + self.options.nodename + ">")
+
+        # set deviceconfiguration info
+        _dcd = parsers.DCDParser.deviceconfiguration()
+        _dcd.set_id(self.uuids["deviceconfiguration"])
+        _dcd.set_name(self.options.nodename)
+        _localfile = parsers.DCDParser.localfile(name=os.path.join(self.localfile_nodeprefix, 'DeviceManager.spd.xml'))
+        _dcd.devicemanagersoftpkg = parsers.DCDParser.devicemanagersoftpkg(localfile=_localfile)
+
+        # add componentfiles and componentfile(s)
+        _dcd.componentfiles = parsers.DCDParser.componentfiles()
+        for in_cf in compfiles:
+            cf = parsers.DCDParser.componentfile(type_='SPD', id_=in_cf['id'], localfile=parsers.DCDParser.localfile(name=in_cf['localfile']))
+            _dcd.componentfiles.add_componentfile(cf)
+
+        # add partitioning/componentplacements
+        _dcd.partitioning = parsers.DCDParser.partitioning()
+        for in_cp in compplacements:
+            _comp_fileref = parsers.DCDParser.componentfileref(refid=in_cp['refid'])
+            _comp_placement = parsers.DCDParser.componentplacement(componentfileref=_comp_fileref)
+            for ci in in_cp['instantiations']:
+                comp_inst = parsers.DCDParser.componentinstantiation(id_=ci['id'], usagename=ci['usagename'])
+                self._add_GPP_properties( parsers.DCDParser, comp_inst )
+                _comp_placement.add_componentinstantiation(comp_inst)
+            _dcd.partitioning.add_componentplacement(_comp_placement)
+
+        # add connections if we're doing events
+        if len(connections) > 0:
+            _dcd.connections = parsers.DCDParser.connections()
+        for connection in connections:
+            connectinterface = parsers.DCDParser.connectinterface()
+            if 'usesport' in connection:
+                usesport = parsers.DCDParser.usesport()
+                usesport.usesidentifier = connection['usesport']['id']
+                usesport.componentinstantiationref = parsers.DCDParser.componentinstantiationref(refid=connection['usesport']['refid'])
+                connectinterface.usesport = usesport
+            if 'findby' in connection:
+                findby = parsers.DCDParser.findby()
+                findby.domainfinder = parsers.DCDParser.domainfinder(type_=connection['findby']['type'], name=connection['findby']['name'])
+                connectinterface.findby = findby;
+            _dcd.connections.add_connectinterface(connectinterface)
+
+        # add domainmanager lookup
+        if self.options.domainname:
+            _tmpdomainname = self.options.domainname + '/' + self.options.domainname
+
+        _dcd.domainmanager = parsers.DCDParser.domainmanager(namingservice=parsers.DCDParser.namingservice(name=_tmpdomainname))
+        dcd_out = open(self.path_to_dcd, 'w')
+        dcd_out.write(parsers.parserconfig.getVersionXML())
+        _dcd.export(dcd_out,0)
+        dcd_out.close()
+
+
+###########################
+# Run from command line
+###########################
+if __name__ == "__main__":
+
+    ##################
+    # setup arg parser
+    ##################
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.usage = "%s [options] [simple_prop1 simple_value1]..."
+    parser.add_option("--domainname", dest="domainname", default="REDHAWK_DEV",
+                      help="domain that the Device Manager connects with")
+    parser.add_option("--sdrroot", dest="sdrroot", default=os.path.expandvars("${SDRROOT}"),
+                      help="path to the sdrroot; if none is given, ${SDRROOT} is used.")
+    parser.add_option("--nodecfg", dest="nodecfg", default=False, action="store_true",
+                      help="run setup to configure GPP for a node")
+    parser.add_option("--gppcfg", dest="gppcfg", default=False, action="store_true",
+                      help="run setup to setup GPP xml profile")
+    parser.add_option("--location", dest="location", default=None,
+                      help="location to store XML profile files")
+    parser.add_option("--nodename", dest="nodename", default="DevMgr_%s" % socket.gethostname(),
+                      help="desired nodename, if none is given DevMgr_${HOST} is used")
+    parser.add_option("--gppname", dest="gppname", default="GPP_%s" % socket.gethostname(),
+                      help="set the GPP name in the node definition, if none is given GPP_${HOST} is used")
+    parser.add_option("--inplace", dest="inplace", default=True, action="store_true",
+                      help="update the GPP profile in-place in its directory (i.e.: --gpppath); setting this to false modifies the GPP configuration as a subdirectory in the node directory")
+    parser.add_option("--mcastnic", dest="mcastnic", default='',
+                      help="Specify the default mcastnic interfaces (i.e. 'eth1'); if none is given the route associated with default multicast is used")
+    parser.add_option("--gpppath", dest="gpppath", default="/devices/GPP",
+                      help="the device manager file system absolute path to the GPP, default '/devices/GPP'")
+    parser.add_option("--enableevents", dest="noevents", default=True, action="store_false",
+                      help="enable event channel registration")
+    parser.add_option("--addosprops", dest="add_os_props", default=False, action="store_true",
+                      help="add OS and device readonly properties to node defintion")
+    parser.add_option("--silent", dest="silent", default=False, action="store_true",
+                      help="suppress all logging except errors")
+    parser.add_option("--clean", dest="clean", default=False, action="store_true",
+                      help="clean up the previous configuration for this node first (delete entire node)")
+    parser.add_option("-v", "--verbose", dest="verbose", default=False, action="store_true",
+                      help="enable verbose logging")
+
+    (options, args) = parser.parse_args()
+
+    # Configure logging
+    logging.basicConfig(format='%(name)-12s:%(levelname)-8s: %(message)s', level=logging.INFO)
+    _log = logging.getLogger()
+    if options.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    if len(args) % 2 == 1:
+       logging.getLogger().error("Invalid command line arguments - properties must be specified with values")
+       sys.exit(1)
+    cmdlineProps = {}
+    for i in range(len(args)):
+        if i % 2 == 0:
+            cmdlineProps[args[i]] = args[i + 1]
+
+    try:
+       configurator=None
+       if options.gppcfg:
+            configurator = GppProfile(options, cmdlineProps )
+       else:
+           configurator = DeviceManagerProfile(options, cmdlineProps )
+
+       if options.clean:
+            configurator.remove()
+       configurator.generate()
+
+    except ConfigurationError, e:
+        _log.error("%s", e)
+        sys.exit(1)

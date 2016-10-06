@@ -122,15 +122,15 @@ void GPP_base::loadProperties()
                 "readonly",
                 "",
                 "eq",
-                "allocation,configure");
+                "property,allocation,configure");
 
     addProperty(device_model,
                 "DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb",
                 "device_model",
                 "readonly",
-                "",
+                "REDHAWK GPP",
                 "eq",
-                "allocation,configure");
+                "property,allocation,configure");
 
     addProperty(processor_name,
                 "DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b",
@@ -138,7 +138,7 @@ void GPP_base::loadProperties()
                 "readonly",
                 "",
                 "eq",
-                "allocation,configure");
+                "property,allocation,configure");
 
     addProperty(os_name,
                 "DCE:4a23ad60-0b25-4121-a630-68803a498f75",
@@ -146,7 +146,7 @@ void GPP_base::loadProperties()
                 "readonly",
                 "",
                 "eq",
-                "allocation,configure");
+                "property,allocation,configure");
 
     addProperty(os_version,
                 "DCE:0f3a9a37-a342-43d8-9b7f-78dc6da74192",
@@ -154,7 +154,7 @@ void GPP_base::loadProperties()
                 "readonly",
                 "",
                 "eq",
-                "allocation,configure");
+                "property,allocation,configure");
 
     addProperty(hostName,
                 "DCE:9190eb70-bd1e-4556-87ee-5a259dcfee39",
@@ -162,7 +162,7 @@ void GPP_base::loadProperties()
                 "readonly",
                 "",
                 "external",
-                "configure,event");
+                "property,configure,event");
 
     addProperty(useScreen,
                 false,
