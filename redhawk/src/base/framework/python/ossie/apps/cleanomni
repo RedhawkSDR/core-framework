@@ -29,6 +29,13 @@ Use this program only if the Domain is hopelessly damaged and a complete cleanup
 """
 import os, sys, commands
 
+def read_pid(filename):
+    try:
+        with open(filename, 'r') as fp:
+            return int(fp.read())
+    except:
+        return None
+
 if __name__ == '__main__':
     # Grab command line arguments and options
     import sys
@@ -39,17 +46,11 @@ if __name__ == '__main__':
 
     options, args = parser.parse_args()
     
-    fp = None
-    try:
-        fp=open('/var/run/omniEvents.pid','r')
-    except Exception, e:
-        if e.errno == 13:
-            print "This script must be run with root privileges"
-            sys.exit(-1)
-    oe_pid=None
-    if fp:
-        oe_pid=int(fp.read())
-        fp.close()
+    if os.geteuid() != 0:
+        print "This script must be run with root privileges"
+        sys.exit(-1)
+
+    oe_pid = read_pid('/var/run/omniEvents.pid')
     oe_up = False
     if oe_pid:
         try:
