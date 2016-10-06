@@ -60,10 +60,10 @@ if __name__ == '__main__':
             oe_up = False
     if options.verbose:
         print "Stopping omniEvents"
-    retval=commands.getstatusoutput('/etc/init.d/omniEvents stop')
+    retval=commands.getstatusoutput('/sbin/service omniEvents stop')
     if options.verbose:
         print "Stopping omniNames"
-    retval=commands.getstatusoutput('/etc/init.d/omniNames stop')
+    retval=commands.getstatusoutput('/sbin/service omniNames stop')
     if oe_up:
         try:
             retval = os.getsid(oe_pid)
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     retval=commands.getstatusoutput('rm -rf /var/lib/omniEvents/*')
     if options.verbose:
         print "Starting omniNames"
-    retval=os.system('/etc/init.d/omniNames start')
+    retval=os.system('/sbin/service omniNames start')
     if options.verbose:
         print "Starting omniEvents"
-    retval=commands.getstatusoutput('/etc/init.d/omniEvents start')
+    retval=commands.getstatusoutput('/sbin/service omniEvents start')
