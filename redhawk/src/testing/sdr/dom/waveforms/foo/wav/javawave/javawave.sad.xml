@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:e7f327e7-91e4-4411-96b5-433727ce0131" name="foo.wav.javawave">
+  <componentfiles>
+    <componentfile id="jv_13f628ea-787b-4265-aa75-86ebcd062be5" type="SPD">
+      <localfile name="/components/foo/bar/jv/jv.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="jv_13f628ea-787b-4265-aa75-86ebcd062be5"/>
+      <componentinstantiation id="jv_1" startorder="0">
+        <usagename>jv_1</usagename>
+        <findcomponent>
+          <namingservice name="jv_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="jv_1"/>
+  </assemblycontroller>
+</softwareassembly>

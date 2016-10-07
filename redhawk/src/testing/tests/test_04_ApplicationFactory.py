@@ -236,22 +236,32 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         domMgr.uninstallApplication(appFact._get_identifier())
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
 
-    def test_NamespacedWaveform(self):
+    def _test_NamespacedWaveform(self, name):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        domMgr.installApplication("/waveforms/foo/wav/wav.sad.xml")
+        domMgr.installApplication("/waveforms/foo/wav/%s/%s.sad.xml" % (name,name))
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
         appFact = domMgr._get_applicationFactories()[0]
 
         app = appFact.create(appFact._get_name(), [], [])
         self.assertEqual(len(domMgr._get_applications()), 1)
         number_components = len(app._get_registeredComponents())
-        self.assertEqual(number_components, 3)
+        self.assertEqual(number_components, 1)
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
+
+    def test_NamespacedWaveformCpp(self):
+        self._test_NamespacedWaveform('cppwave')
+
+    def test_NamespacedWaveformPython(self):
+        self._test_NamespacedWaveform('pywave')
+
+    @scatest.requireJava
+    def test_NamespacedWaveformJava(self):
+        self._test_NamespacedWaveform('javawave')
 
     def test_PartialStructConfiguration(self):
         nodebooter, domMgr = self.launchDomainManager()

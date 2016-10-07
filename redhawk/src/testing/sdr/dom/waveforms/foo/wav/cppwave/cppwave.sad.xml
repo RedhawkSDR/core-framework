@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:8d8c0199-88d1-4421-bc31-281681c4e36f" name="foo.wav.cppwave">
+  <componentfiles>
+    <componentfile id="comp_704fd5e9-0e49-416e-80e3-818f410c7267" type="SPD">
+      <localfile name="/components/foo/bar/comp/comp.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="comp_704fd5e9-0e49-416e-80e3-818f410c7267"/>
+      <componentinstantiation id="comp_1" startorder="0">
+        <usagename>comp_1</usagename>
+        <findcomponent>
+          <namingservice name="comp_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="comp_1"/>
+  </assemblycontroller>
+</softwareassembly>

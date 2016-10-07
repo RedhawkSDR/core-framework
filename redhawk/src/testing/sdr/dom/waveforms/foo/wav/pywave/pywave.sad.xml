@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:9efb3ca1-e4ef-4021-8b71-6f9134a9d984" name="foo.wav.pywave">
+  <componentfiles>
+    <componentfile id="py_ce13efad-d32d-480a-98b1-a9b73139ef8e" type="SPD">
+      <localfile name="/components/foo/bar/py/py.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="py_ce13efad-d32d-480a-98b1-a9b73139ef8e"/>
+      <componentinstantiation id="py_1" startorder="0">
+        <usagename>py_1</usagename>
+        <findcomponent>
+          <namingservice name="py_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="py_1"/>
+  </assemblycontroller>
+</softwareassembly>
