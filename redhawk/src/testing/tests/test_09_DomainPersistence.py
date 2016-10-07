@@ -741,7 +741,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
         self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
 
-        self._domMgr.installApplication("/waveforms/ExternalProperties/ExternalProperties.sad.xml")
+        self._domMgr.installApplication("/waveforms/CommandWrapperStartOrderTests/CommandWrapperWithOrder.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         app = appFact.create(appFact._get_name(), [], [])
         app.start()
@@ -779,7 +779,9 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
         self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
 
-        self._domMgr.installApplication("/waveforms/ExternalProperties/ExternalProperties.sad.xml")
+        # The specific application doesn't matter, just so long as it has
+        # several components, none of which require Java
+        self._domMgr.installApplication("/waveforms/CommandWrapperStartOrderTests/CommandWrapperWithOrder.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         app = appFact.create(appFact._get_name(), [], [])
 
@@ -862,11 +864,13 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
         self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
 
-        self._domMgr.installApplication("/waveforms/ExternalProperties/ExternalProperties.sad.xml")
+        self._domMgr.installApplication("/waveforms/ExternalProperties/ExternalPropertiesNoJava.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         app = appFact.create(appFact._get_name(), [], [])
 
+        # Get the initial properties, and check that there are at least some
         props = app.query([])
+        self.assertNotEqual(len(props), 0)
 
         # Kill the domainMgr
         os.kill(self._nb_domMgr.pid, signal.SIGTERM)
