@@ -310,6 +310,7 @@ class MultiDomainTest(scatest.CorbaTestCase):
         self.assertEqual(allocMgr_2.allocations([]), [])
         self.assertEqual(allocMgr_2.localAllocations([]), [])
 
+@scatest.requirePersistence
 class MultiDomainPersistenceTest(scatest.CorbaTestCase):
     def tearDown(self):
         if self._domainBooter_1:
@@ -362,10 +363,6 @@ class MultiDomainPersistenceTest(scatest.CorbaTestCase):
         self.assertEqual(pre.keys(), post.keys())
         for allocId, status in pre.iteritems():
             self.assert_(allocMgrHelpers.compareAllocationStatus(status, post[allocId]))
-
-# Only run these tests if persistence was enabled at compile time
-if not scatest.persistenceEnabled():
-    del MultiDomainPersistenceTest
 
 if __name__ == "__main__":
   # Run the unittests

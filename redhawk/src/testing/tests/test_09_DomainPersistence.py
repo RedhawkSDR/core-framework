@@ -81,6 +81,7 @@ def comm_failure_retry(cookie, n_retries, exception):
         return False
 omniORB.installCommFailureExceptionHandler(None, comm_failure_retry)
 
+@scatest.requirePersistence
 class DomainPersistenceTest(scatest.CorbaTestCase):
     def setUp(self):
         self._dbfile = tempfile.mktemp()
@@ -965,8 +966,3 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.assertEqual(lhsProps, rhsProps)
         self.assert_(lhs.allocatedDevice._is_equivalent(rhs.allocatedDevice))
         self.assert_(lhs.allocationDeviceManager._is_equivalent(rhs.allocationDeviceManager))
-
-# Only run these tests if persistence was enabled at compile time
-if not scatest.persistenceEnabled():
-    del DomainPersistenceTest
-

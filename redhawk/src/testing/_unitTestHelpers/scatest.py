@@ -193,6 +193,12 @@ def requireLog4cxx(obj):
     log4cxx = runtestHelpers.haveLoggingSupport('../Makefile')
     return _skipUnless(log4cxx, 'log4cxx is disabled')(obj)
 
+def requirePersistence(obj):
+    """
+    Decorator to conditionally disable a test if persistence is not enabled.
+    """
+    return _skipUnless(persistenceEnabled(), 'persistence is not enabled')(obj)
+
 DEBUG_NODEBOOTER=False
 GDB_CMD_FILE=None
 def spawnNodeBooter(dmdFile=None, 
