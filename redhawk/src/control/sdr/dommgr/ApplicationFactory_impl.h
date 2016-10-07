@@ -72,9 +72,12 @@ private:
     std::string getBaseWaveformContext(std::string waveform_context);
 
     static void ValidateFileLocation ( CF::FileManager_ptr fileMgr, const std::string &profile );
-    static void ValidateSoftPkgDep( CF::FileManager_ptr fileMgr, const std::string &profile );
-    static void ValidateSPD (CF::FileManager_ptr fileMgr, ossie::SoftPkg &spd, const std::string &profile, const bool require_prf=true, const bool require_scd=true );
+    static void ValidateSoftPkgDep( CF::FileManager_ptr fileMgr, DomainManager_impl *domMgr, const std::string &profile );
+    static void ValidateSPD (CF::FileManager_ptr fileMgr, DomainManager_impl *domMgr, ossie::SoftPkg &spd, const std::string &profile, const bool require_prf=true, const bool require_scd=true );
 
+protected:
+    static std::string xmlParsingVersionMismatch(DomainManager_impl *domMgr, std::string &component_version);
+    
 public:
     ApplicationFactory_impl (const std::string& softwareProfile, 
                              const std::string& domainName, 
@@ -105,7 +108,7 @@ public:
 
     const std::string & getID () { return _identifier; }
     const std::string & getName () { return _name; }
-
+    
     // allow createHelper to have access to ApplicationFactory_impl
     friend class createHelper;
     friend class ScopedAllocations;
@@ -306,5 +309,8 @@ private:
         const std::string& componentId, 
         const std::string& usesId);
     CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId);
+    
+    std::string createVersionMismatchMessage(std::string &component_version);
+
 };
 #endif

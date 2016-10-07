@@ -34,6 +34,7 @@
 #include <ossie/CF/WellKnownProperties.h>
 #include <ossie/FileStream.h>
 #include <ossie/prop_helpers.h>
+#include <ossie/Versions.h>
 
 #include "Application_impl.h"
 #include "ApplicationFactory_impl.h"
@@ -184,12 +185,31 @@ ApplicationFactory_impl::ValidateFileLocation( CF::FileManager_ptr fileMgr, cons
 }
 
 
-void ApplicationFactory_impl::ValidateSoftPkgDep (CF::FileManager_ptr fileMgr, const std::string& sfw_profile )  {
+void ApplicationFactory_impl::ValidateSoftPkgDep (CF::FileManager_ptr fileMgr, DomainManager_impl *domMgr, const std::string& sfw_profile )  {
   SoftPkg pkg;
-  ValidateSPD(fileMgr, pkg, sfw_profile, false, false );
+  ValidateSPD(fileMgr, domMgr, pkg, sfw_profile, false, false );
+}
+
+std::string ApplicationFactory_impl::xmlParsingVersionMismatch(DomainManager_impl *domMgr, std::string &component_version)
+{
+    std::string added_message;
+    if (!component_version.empty()) {
+        try {
+            static std::string version = domMgr->getRedhawkVersion();
+            if (redhawk::compareVersions(component_version, version) < 0) {
+                added_message = "Attempting to run a component from version ";
+                added_message += component_version;
+                added_message += " on REDHAWK version ";
+                added_message += version;
+                added_message += ". ";
+            }
+        } catch ( ... ) {}
+    }
+    return added_message;
 }
 
 void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr, 
+                                          DomainManager_impl *domMgr, 
                                           SoftPkg &spdParser, 
                                           const std::string& sfw_profile, 
                                           const bool require_prf, 
@@ -212,11 +232,28 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
         LOG_TRACE(ApplicationFactory_impl, "validating " << sfw_profile);
 
         try {
-          File_stream _spd(fileMgr, sfw_profile.c_str());
+            File_stream _spd(fileMgr, sfw_profile.c_str());
             spdParser.load( _spd,  sfw_profile.c_str() );
             _spd.close();
         } catch (ossie::parser_error& ex) {
+            File_stream _spd(fileMgr, sfw_profile.c_str());
+            std::string line;
+            std::string component_version;
+            while (std::getline(_spd, line)) {
+                size_t type_idx = line.find("type");
+                if (type_idx != std::string::npos) {
+                    size_t first_quote = line.find('"', type_idx);
+                    if (first_quote == std::string::npos)
+                        continue;
+                    size_t second_quote = line.find('"', first_quote + 1);
+                    if (second_quote == std::string::npos)
+                        continue;
+                    component_version = line.substr(first_quote + 1, second_quote-(first_quote+1));
+                    break;
+                }
+            }
             ostringstream eout;
+            eout << xmlParsingVersionMismatch(domMgr, component_version);
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
             eout << "Failed to parse SPD: " << sfw_profile << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
             LOG_ERROR(ApplicationFactory_impl, eout.str() );
@@ -262,7 +299,7 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
           for(; dep != deps.end(); dep++ ) {
             try {
               LOG_TRACE(ApplicationFactory_impl, "Validating Dependency: " << dep->localfile);
-              ValidateSoftPkgDep(fileMgr, dep->localfile);
+              ValidateSoftPkgDep(fileMgr, domMgr, dep->localfile);
             } catch (CF::InvalidFileName ex) {
               LOG_ERROR(ApplicationFactory_impl, "Invalid Code File,  PROFILE:" << sfw_profile << "  CODE:" << impl->getCodeFile());
               throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
@@ -294,6 +331,8 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
                 prfStream.close();
             } catch (ossie::parser_error& ex ) {
                 ostringstream eout;
+                std::string component_version(spdParser.getSoftPkgType());
+                eout << xmlParsingVersionMismatch(domMgr, component_version);
                 std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
                 eout <<  "Failed to parse PRF: " << spdParser.getPRFFile() << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
                 LOG_ERROR(ApplicationFactory_impl, eout.str() );
@@ -330,8 +369,10 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
                 ComponentDescriptor scdParser (_scd);
                 _scd.close();
             } catch (ossie::parser_error& ex) {
-                std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
                 ostringstream eout;
+                std::string component_version(spdParser.getSoftPkgType());
+                eout << xmlParsingVersionMismatch(domMgr, component_version);
+                std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
                 eout << "Failed to parse SCD: " << spdParser.getSCDFile() << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
                 LOG_ERROR(ApplicationFactory_impl, eout.str() );
                 throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, eout.str().c_str());
@@ -485,7 +526,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         if ( _sadParser.getSPDById(comp->getFileRefId())) {
             p_name = _sadParser.getSPDById(comp->getFileRefId());
             LOG_DEBUG(ApplicationFactory_impl, "Validating...  COMP profile: " << p_name);
-            ValidateSPD(_fileMgr, comp_pkg, p_name) ;
+            ValidateSPD(_fileMgr, _domainManager, comp_pkg, p_name) ;
         }
         else {
           LOG_ERROR(ApplicationFactory_impl, "installApplication: invalid  componentfileref: " << comp->getFileRefId() );
@@ -2593,6 +2634,22 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
     }
 }
 
+std::string createHelper::createVersionMismatchMessage(std::string &component_version)
+{
+    std::string version = this->_appFact._domainManager->getRedhawkVersion();
+    std::string added_message;
+    try {
+        if (redhawk::compareVersions(component_version, version) < 0) {
+            added_message = "Attempting to run a component from version ";
+            added_message += component_version;
+            added_message += " on REDHAWK version ";
+            added_message += version;
+            added_message += ". ";
+        }
+    } catch ( ... ) {}
+    return added_message;
+}
+
 void createHelper::attemptComponentExecution (
         const fs::path&                                           executeName,
         CF::ExecutableDevice_ptr                                  execdev,
@@ -2604,6 +2661,7 @@ void createHelper::attemptComponentExecution (
     // get entrypoint
     CF::ExecutableDevice::ProcessID_Type tempPid = -1;
 
+    std::string component_version(component->spd.getSoftPkgType());
     // attempt to execute the component
     try {
         LOG_TRACE(ApplicationFactory_impl, "executing " << executeName << " on device " << ossie::corba::returnString(execdev->label()));
@@ -2627,6 +2685,7 @@ void createHelper::attemptComponentExecution (
 
         tempPid = execdev->executeLinked(executeName.string().c_str(), cop, component->getPopulatedExecParameters(), dep_seq);
     } catch( CF::InvalidFileName& _ex ) {
+        std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
         eout << "InvalidFileName when calling 'execute' on device with device id: '" << component->getAssignedDeviceId() << "' for component: '";
         eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
@@ -2637,6 +2696,7 @@ void createHelper::attemptComponentExecution (
         LOG_TRACE(ApplicationFactory_impl, eout.str())
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
     } catch( CF::Device::InvalidState& _ex ) {
+        std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
         eout << "InvalidState when calling 'execute' on device with device id: '" << component->getAssignedDeviceId() << "' for component: '";
         eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
@@ -2647,6 +2707,7 @@ void createHelper::attemptComponentExecution (
         LOG_TRACE(ApplicationFactory_impl, eout.str())
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
     } catch( CF::ExecutableDevice::InvalidParameters& _ex ) {
+        std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
         eout << "InvalidParameters when calling 'execute' on device with device id: '" << component->getAssignedDeviceId() << "' for component: '";
         eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
@@ -2660,6 +2721,8 @@ void createHelper::attemptComponentExecution (
         LOG_TRACE(ApplicationFactory_impl, eout.str())
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
     } catch( CF::ExecutableDevice::InvalidOptions& _ex ) {
+        std::string component_version(component->spd.getSoftPkgType());
+        std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
         eout << "InvalidOptions when calling 'execute' on device with device id: '" << component->getAssignedDeviceId() << "' for component: '";
         eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
@@ -2673,7 +2736,9 @@ void createHelper::attemptComponentExecution (
         LOG_TRACE(ApplicationFactory_impl, eout.str())
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
     } catch (CF::ExecutableDevice::ExecuteFail& ex) {
+        std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
+        eout << added_message;
         eout << "ExecuteFail when calling 'execute' on device with device id: '" << component->getAssignedDeviceId() << "' for component: '";
         eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
         eout << " with implementation id: '" << implementation->getId() << "'";
@@ -2683,7 +2748,7 @@ void createHelper::attemptComponentExecution (
         LOG_TRACE(ApplicationFactory_impl, eout.str())
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
     } CATCH_THROW_LOG_ERROR(
-            ApplicationFactory_impl, "Caught an unexpected error when calling 'execute' on device with device id: '"
+            ApplicationFactory_impl, this->createVersionMismatchMessage(component_version)<<"Caught an unexpected error when calling 'execute' on device with device id: '"
             << component->getAssignedDeviceId() << "' for component: '" << component->getName()
             << "' with component id: '" << component->getIdentifier() << "' "
             << " with implementation id: '" << implementation->getId() << "'"
@@ -2693,7 +2758,9 @@ void createHelper::attemptComponentExecution (
 
     // handle pid output
     if (tempPid < 0) {
+        std::string added_message = this->createVersionMismatchMessage(component_version);
         ostringstream eout;
+        eout << added_message;
         eout << "Failed to 'execute' component for component: '";
         eout << component->getName() << "' with component id: '" << component->getIdentifier() << "' ";
         eout << " with implementation id: '" << implementation->getId() << "'";
@@ -2741,8 +2808,6 @@ void createHelper::applyApplicationAffinityOptions() {
   }
 
 }
-    
-
 
 void createHelper::waitForComponentRegistration()
 {
@@ -2769,6 +2834,9 @@ void createHelper::waitForComponentRegistration()
         ostringstream eout;
         for (unsigned int req_idx = 0; req_idx < _requiredComponents.size(); req_idx++) {
             if (expected_components.count(_requiredComponents[req_idx]->getIdentifier())) {
+                std::string component_version(_requiredComponents[req_idx]->spd.getSoftPkgType());
+                std::string added_message = this->createVersionMismatchMessage(component_version);
+                eout << added_message;
                 eout << "Timed out waiting for component to register: '" << _requiredComponents[req_idx]->getName() << "' with component id: '" << _requiredComponents[req_idx]->getIdentifier()<< " assigned to device: '"<<_requiredComponents[req_idx]->getAssignedDeviceId()<<"'";
                 break;
             }
@@ -2820,6 +2888,9 @@ void createHelper::initializeComponents()
         }
         if (CORBA::is_nil(resource)) {
             ostringstream eout;
+            std::string component_version(component->spd.getSoftPkgType());
+            std::string added_message = this->createVersionMismatchMessage(component_version);
+            eout << added_message;
             eout << "CF::Resource::_narrow failed with Unknown Exception for component: '" << component->getName() << "' with component id: '" << componentId << " assigned to device: '"<<component->getAssignedDeviceId()<<"'";
             eout << " in waveform '" << _waveformContextName<<"';";
             eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
@@ -2845,6 +2916,9 @@ void createHelper::initializeComponents()
           CF::Properties partialStruct = component->containsPartialStructConstruct();
           if (partialStruct.length() != 0) {
             ostringstream eout;
+            std::string component_version(component->spd.getSoftPkgType());
+            std::string added_message = this->createVersionMismatchMessage(component_version);
+            eout << added_message;
             eout << "Failed to 'initializeProperties' component: '";
             eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
@@ -2884,6 +2958,9 @@ void createHelper::initializeComponents()
             throw CF::ApplicationFactory::InvalidInitConfiguration(e.invalidProperties);
           } catch( ... ) {
             ostringstream eout;
+            std::string component_version(component->spd.getSoftPkgType());
+            std::string added_message = this->createVersionMismatchMessage(component_version);
+            eout << added_message;
             eout << "Failed to initialize component properties: '";
             eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
             eout << " in waveform '"<< _waveformContextName<<"';";
@@ -2900,16 +2977,24 @@ void createHelper::initializeComponents()
         } catch (const CF::LifeCycle::InitializeError& error) {
             // Dump the detailed initialization failure to the log
             ostringstream logmsg;
+            std::string component_version(component->spd.getSoftPkgType());
+            std::string added_message = this->createVersionMismatchMessage(component_version);
+            logmsg << added_message;
             logmsg << "Initializing component " << componentId << " failed";
             for (CORBA::ULong index = 0; index < error.errorMessages.length(); ++index) {
                 logmsg << std::endl << error.errorMessages[index];
             }
             LOG_ERROR(ApplicationFactory_impl, logmsg.str());
 
-            const std::string errmsg = "Unable to initialize component " + componentId;
-            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, errmsg.c_str());
+            ostringstream eout;
+            eout << added_message;
+            eout << "Unable to initialize component " << componentId;
+            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
         } catch (const CORBA::SystemException& exc) {
             ostringstream eout;
+            std::string component_version(component->spd.getSoftPkgType());
+            std::string added_message = this->createVersionMismatchMessage(component_version);
+            eout << added_message;
             eout << "CORBA " << exc._name() << " exception initializing component " << componentId;
             LOG_ERROR(ApplicationFactory_impl, eout.str());
             throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EIO, eout.str().c_str());
@@ -2965,6 +3050,9 @@ void createHelper::configureComponents()
             if (CORBA::is_nil(_rsc)) {
                 LOG_ERROR(ApplicationFactory_impl, "Could not get component reference");
                 ostringstream eout;
+                std::string component_version(component->spd.getSoftPkgType());
+                std::string added_message = this->createVersionMismatchMessage(component_version);
+                eout << added_message;
                 eout << "Could not get component reference for component: '" 
                      << component->getName() << "' with component id: '" 
                      << component->getIdentifier() << " assigned to device: '"
@@ -3021,6 +3109,9 @@ void createHelper::configureComponents()
                     throw CF::ApplicationFactory::InvalidInitConfiguration(e.invalidProperties);
                 } catch( ... ) {
                     ostringstream eout;
+                    std::string component_version(component->spd.getSoftPkgType());
+                    std::string added_message = this->createVersionMismatchMessage(component_version);
+                    eout << added_message;
                     eout << "Failed to instantiate component: '";
                     eout << component->getName() << "' with component id: '" << component->getIdentifier() << " assigned to device: '"<<component->getAssignedDeviceId() << "' ";
                     eout << " in waveform '"<< _waveformContextName<<"';";

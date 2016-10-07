@@ -60,7 +60,8 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              signalling.h \
              OptionalProperty.h \
              PropertyMonitor.h \
-             Autocomplete.h
+             Autocomplete.h \
+             Versions.h
 
 nobase_pkginclude_HEADERS = internal/equals.h \
 	     logging/rh_logger.h \

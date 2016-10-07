@@ -232,6 +232,8 @@ public:
     rh_logger::LoggerPtr  getLogger() const { return __logger; };
 
     bool   bindToDomain() { return _bindToDomain; };
+    
+    std::string getRedhawkVersion() { return redhawk_version; };
 
 /////////////////////////////
 // Internal Helper Functions
