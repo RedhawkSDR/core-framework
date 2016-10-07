@@ -43,7 +43,6 @@ if not has_omniORB:
     except:
         pass
     
-from ossie.cf import CF, CF__POA
 import CosNaming
 import os
 
