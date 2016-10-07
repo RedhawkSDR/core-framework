@@ -25,10 +25,6 @@ from ossie.cf import CF
 from ossie.utils import redhawk
 from omniORB import any
 import time
-from _unitTestHelpers import runtestHelpers
-
-java_support = runtestHelpers.haveJavaSupport('../Makefile')
-
 
 maxcpus=32
 maxnodes=2
@@ -96,10 +92,8 @@ class TestNodeAffinity(scatest.CorbaTestCase):
         self.assertEqual(cpus_allowed[1],affinity_match)
         return
         
-
+    @scatest.requireJava
     def test_NodeDeployment(self):
-        if not java_support:
-            return
         nodebooter, domMgr = self.launchDomainManager()
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_affinity_node_unlocked/DeviceManager.dcd.xml")
 

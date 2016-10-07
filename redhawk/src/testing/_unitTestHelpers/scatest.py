@@ -166,6 +166,32 @@ def which(command):
             return execpath
     return None
 
+def _skip(obj):
+    return None
+
+def _id(obj):
+    return obj
+
+def _skipUnless(condition, reason):
+    if hasattr(unittest, 'skipUnless'):
+        return unittest.skipUnless(condition, reason)
+    elif not condition:
+        return _skip
+    else:
+        return _id
+
+def requireJava(obj):
+    """
+    Decorator to conditionally disable a test if Java support is not enabled.
+    """
+    return _skipUnless(hasJavaSupport(), 'Java is disabled')(obj)
+
+def requireLog4cxx(obj):
+    """
+    Decorator to conditionally disable a test if log4cxx is not enabled.
+    """
+    log4cxx = runtestHelpers.haveLoggingSupport('../Makefile')
+    return _skipUnless(log4cxx, 'log4cxx is disabled')(obj)
 
 DEBUG_NODEBOOTER=False
 GDB_CMD_FILE=None

@@ -24,9 +24,6 @@ from _unitTestHelpers import scatest
 from ossie.cf import CF
 from omniORB import CORBA
 import struct
-from _unitTestHelpers import runtestHelpers
-
-java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 class TestAllTypes(scatest.CorbaTestCase):
     def setUp(self):
@@ -61,16 +58,22 @@ class TestAllTypes(scatest.CorbaTestCase):
             except:
                 pass
 
-    def test_AllPropTypes(self):
-        languages = ['Cpp', 'Python']
-        if java_support:
-            languages.append('Java')
-        for lang in languages:
-            self.launchApplication(lang)
-            self.preconditions()
-            res = self._app.query([])
-            for r in res:
-                self._app.configure([r])
+    def _test_AllPropTypes(self, lang):
+        self.launchApplication(lang)
+        self.preconditions()
+        res = self._app.query([])
+        for r in res:
+            self._app.configure([r])
+
+    def test_AllPropTypesCpp(self):
+        self._test_AllPropTypes('Cpp')
+
+    def test_AllPropTypesPython(self):
+        self._test_AllPropTypes('Python')
+
+    @scatest.requireJava
+    def test_AllPropTypesJava(self):
+        self._test_AllPropTypes('Java')
 
     def checkValue(self, results, prop_id, value):
         for r in results:

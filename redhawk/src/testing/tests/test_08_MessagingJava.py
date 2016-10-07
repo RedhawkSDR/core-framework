@@ -25,7 +25,7 @@ from ossie.cf import CF
 import threading
 import time
 
-
+@scatest.requireJava
 class EventPortConnectionsTest(scatest.CorbaTestCase):
     def setUp(self):
         self._domBooter, self._domMgr = self.launchDomainManager()

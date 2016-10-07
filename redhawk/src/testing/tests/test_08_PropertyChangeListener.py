@@ -224,9 +224,8 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         self._app=None
 
 
+    @scatest.requireJava
     def test_PropertyChangeListener_JAVA(self):
-        if not java_support:
-            return
         self.localEvent = threading.Event()
         self.eventFlag = False
 
@@ -523,9 +522,8 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         app.releaseObject()
         self._app=None
 
+    @scatest.requireJava
     def test_PropertyChangeListener_EC_JAVA(self):
-        if not java_support:
-            return
         self.localEvent = threading.Event()
         self.eventFlag = False
 

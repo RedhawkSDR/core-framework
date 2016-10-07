@@ -23,6 +23,7 @@ from _unitTestHelpers import scatest
 from omniORB import URI, any
 from ossie.cf import CF
 
+@scatest.requireLog4cxx
 class LoggingConfigTest(scatest.CorbaTestCase):
 
     def _testLoggingConfigURI(self, domLoggingConfigArg, devLoggingConfigArg):

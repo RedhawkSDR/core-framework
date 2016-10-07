@@ -21,14 +21,11 @@
 import unittest, os, signal, time, sys, shutil, platform
 from subprocess import Popen
 from _unitTestHelpers import scatest
-from _unitTestHelpers import runtestHelpers
 from xml.dom import minidom
 from omniORB import CORBA, URI, any
 import omniORB
 from ossie.cf import CF, CF__POA
 import commands
-
-java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 def getChildren(parentPid):
     process_listing = commands.getoutput('ls /proc').split('\n')
@@ -2054,9 +2051,8 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         domMgr.uninstallApplication(appFact._get_identifier())
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
 
+    @scatest.requireJava
     def test_JavasoftpkgDependency(self):
-        if not java_support:
-            return
         dommgr_nb, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
@@ -2074,9 +2070,8 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         domMgr.uninstallApplication(appFact._get_identifier())
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
 
+    @scatest.requireJava
     def test_JavasoftpkgDependency_CppDev(self):
-        if not java_support:
-            return
         dommgr_nb, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")

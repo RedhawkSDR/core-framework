@@ -25,11 +25,9 @@ from omniORB import URI
 import CosNaming
 import CosEventChannelAdmin
 from ossie.utils import sb
-from _unitTestHelpers import runtestHelpers
 import os
 
-java_support = runtestHelpers.haveJavaSupport('../Makefile')
-
+@scatest.requireLog4cxx
 class CppLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
         self.cname = "TestLoggingAPI"
@@ -159,8 +157,8 @@ class CppLoggingConfig(scatest.CorbaTestCase):
         c_cfg=self.comp.ref.stop()
 
 
-if java_support:
-  class JavaLoggingConfig(scatest.CorbaTestCase):
+@scatest.requireJava
+class JavaLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
         self.cname = "TestLoggingAPI"
         self.comp = sb.launch(self.cname, impl="java" )
@@ -303,6 +301,7 @@ class FileLoggingConfig(scatest.CorbaTestCase):
             pass
         self.assertNotEquals(fp, None)
 
+    @scatest.requireLog4cxx
     def test_comp_macro_directories_config_cpp(self):
         file_loc = os.getcwd()
         self.comp = sb.launch(self.cname, impl="cpp", execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'} )
@@ -325,28 +324,28 @@ class FileLoggingConfig(scatest.CorbaTestCase):
             pass
         self.assertNotEquals(fp, None)
 
+    @scatest.requireJava
     def test_comp_macro_directories_config_java(self):
-        if java_support:
-            file_loc = os.getcwd()
-            self.comp = sb.launch(self.cname, impl="java", execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'} )
-            fp = None
-            try:
-                fp = open('foo/bar/test.log','r')
-            except:
-                pass
-            try:
-                os.remove('foo/bar/test.log')
-            except:
-                pass
-            try:
-                os.rmdir('foo/bar')
-            except:
-                pass
-            try:
-                os.rmdir('foo')
-            except:
-                pass
-            self.assertNotEquals(fp, None)
+        file_loc = os.getcwd()
+        self.comp = sb.launch(self.cname, impl="java", execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'} )
+        fp = None
+        try:
+            fp = open('foo/bar/test.log','r')
+        except:
+            pass
+        try:
+            os.remove('foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('foo')
+        except:
+            pass
+        self.assertNotEquals(fp, None)
 
 
 class PythonLoggingConfig(scatest.CorbaTestCase):
@@ -681,17 +680,18 @@ class LoggingConfigCategory(scatest.CorbaTestCase):
         lvl=self.comp.log_level()
         self.assertEquals( proj, lvl )
 
+    @scatest.requireJava
     def test_LoggingCategoryJava(self):
-        if java_support:
-            self.cname = "TestLoggingAPI"
-            self.comp = sb.launch(self.cname, impl="java" )
-            self._test_LoggingCategory()
+        self.cname = "TestLoggingAPI"
+        self.comp = sb.launch(self.cname, impl="java" )
+        self._test_LoggingCategory()
 
     def test_LoggingCategoryPython(self):
         self.cname = "TestLoggingAPI"
         self.comp = sb.launch(self.cname, impl="python", execparams={'DISABLE_CB':True } )
         self._test_LoggingCategory()
 
+    @scatest.requireLog4cxx
     def test_LoggingCategoryCpp(self):
         self.cname = "TestLoggingAPI"
         self.comp = sb.launch(self.cname, impl="cpp" )

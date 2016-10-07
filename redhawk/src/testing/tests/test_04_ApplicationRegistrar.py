@@ -29,9 +29,6 @@ from ossie.utils.sandbox.launcher import LocalProcess
 from ossie import parsers
 from ossie.utils.sandbox.naming import NamingContextStub
 from ossie.utils import sb
-from _unitTestHelpers import runtestHelpers
-
-java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 def getChildren(parentPid):
     process_listing = commands.getoutput('ls /proc').split('\n')
@@ -199,9 +196,8 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         self.assertEqual(dom_id, "")
         os.kill(pid, 2)
 
+    @scatest.requireJava
     def test_javaNamingContextOnly(self):
-        if not java_support:
-            return
         self.setupStandalone('sdr/dom/components/java_comp/java_comp.spd.xml', 'java_comp', 'java')
         process,ref = execute(self, self.spd, self.impl, {})
         pid = process.pid()
@@ -263,9 +259,8 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
 
+    @scatest.requireJava
     def test_javaCompBasic(self):
-        if not java_support:
-            return
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
@@ -308,9 +303,8 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         self.assertEqual(devmgr_id, devMgr._get_identifier())
         self.assertEqual(dom_id, domMgr._get_identifier())
 
+    @scatest.requireJava
     def test_javaDevBasic(self):
-        if not java_support:
-            return
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/java_dev_n/DeviceManager.dcd.xml")
@@ -332,9 +326,8 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         self.assertEqual(dev.dom_id, "")
         dev.releaseObject()
 
+    @scatest.requireJava
     def test_javaDevDomainless(self):
-        if not java_support:
-            return
         dev = sb.launch('sdr/dev/devices/java_dev/java_dev.spd.xml')
         self.assertEqual(dev.devmgr_id, "")
         self.assertEqual(dev.dom_id, "")
@@ -392,9 +385,8 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
 
+    @scatest.requireJava
     def test_javaCompUnaware(self):
-        if not java_support:
-            return
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
@@ -468,9 +460,8 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
 
+    @scatest.requireJava
     def test_javaCompAware(self):
-        if not java_support:
-            return
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")

@@ -20,10 +20,10 @@
 
 import unittest, os
 from _unitTestHelpers import scatest
-from _unitTestHelpers import buildconfig
 from ossie.cf import CF
 from omniORB import any
 
+@scatest.requireJava
 class JavaDeviceTest(scatest.CorbaTestCase):
 
     def test_BasicDevice(self):
@@ -176,7 +176,3 @@ class JavaDeviceTest(scatest.CorbaTestCase):
         devMgr.shutdown()
 
         self.assertEqual(len(domMgr._get_deviceManagers()), 0)
-
-if buildconfig.HAVE_JAVASUPPORT != "yes":
-    del JavaDeviceTest
-

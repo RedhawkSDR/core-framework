@@ -27,7 +27,7 @@ import time
 from ossie.utils import sb
 from ossie.utils import redhawk
 
-
+@scatest.requireJava
 class JavaPropertiesTest(scatest.CorbaTestCase):
     """
     Test new-style 1.9+ Java properties.
@@ -231,6 +231,7 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
 			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
 
 
+@scatest.requireJava
 class LegacyJavaPropertiesTest(scatest.CorbaTestCase):
     """
     Test backwards compatibility with pre-1.9 Java properties.
@@ -296,6 +297,7 @@ class LegacyJavaPropertiesTest(scatest.CorbaTestCase):
         self.assertEqual(self.comp.structseq_prop, newvalue)
 
 
+@scatest.requireJava
 class JavaPropertiesRangeTest(scatest.CorbaTestCase):
 
     def setUp(self):
@@ -660,8 +662,7 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
 			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
 
 
-
-
+@scatest.requireJava
 class JAVAPropertyTest(scatest.CorbaTestCase):
     def setUp(self):
         self._domBooter, self._domMgr = self.launchDomainManager()
