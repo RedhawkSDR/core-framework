@@ -33,7 +33,6 @@ from ossie.events import ChannelManager
 from ossie.utils import redhawk
 from ossie.events import Subscriber
 
-java_support = scatest.hasJavaSupport()
 execDeviceNode = "/nodes/test_GPP_node/DeviceManager.dcd.xml"
 
 class Consumer_i(CosEventComm__POA.PushConsumer):
@@ -95,10 +94,7 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
 
         self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
         self.assertNotEqual(self._devBooter, None)
-        if java_support:
-            self._domMgr.installApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
-        else:
-            self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
+        self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
         app = appFact.create(appFact._get_name(), [], [])
@@ -163,10 +159,7 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
 
         self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
         self.assertNotEqual(self._devBooter, None)
-        if java_support:
-            self._domMgr.installApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
-        else:
-            self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
+        self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
         app = appFact.create(appFact._get_name(), [], [])
@@ -296,7 +289,7 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
 
         self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
         self.assertNotEqual(self._devBooter, None)
-        self._domMgr.installApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
+        self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
         app = appFact.create(appFact._get_name(), [], [])
@@ -414,10 +407,7 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
 
         self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
         self.assertNotEqual(self._devBooter, None)
-        if java_support:
-            self._domMgr.installApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
-        else:
-            self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
+        self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
         app = appFact.create(appFact._get_name(), [], [])
@@ -471,10 +461,7 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
 
         self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
         self.assertNotEqual(self._devBooter, None)
-        if java_support:
-            self._domMgr.installApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
-        else:
-            self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
+        self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
         app = appFact.create(appFact._get_name(), [], [])
@@ -583,7 +570,7 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
 
         self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
         self.assertNotEqual(self._devBooter, None)
-        self._domMgr.installApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
+        self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
         app = appFact.create(appFact._get_name(), [], [])

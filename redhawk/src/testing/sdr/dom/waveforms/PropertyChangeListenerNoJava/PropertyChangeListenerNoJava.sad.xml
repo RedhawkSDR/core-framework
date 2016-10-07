@@ -32,4 +32,7 @@
   <assemblycontroller>
     <componentinstantiationref refid="PropertyChange_P1_1"/>
   </assemblycontroller>
+  <externalproperties>
+    <property comprefid="PropertyChange_C1_1" propid="prop1" externalpropid="app_prop1"/>
+  </externalproperties>
 </softwareassembly>
