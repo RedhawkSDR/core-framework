@@ -26,6 +26,9 @@ from omniORB import CORBA, URI, any
 import omniORB
 from ossie.cf import CF, CF__POA
 import commands
+from ossie.utils import redhawk
+from ossie import properties
+
 
 def getChildren(parentPid):
     process_listing = commands.getoutput('ls /proc').split('\n')
@@ -72,6 +75,52 @@ def getProcessName(pid):
 def pidExists(pid):
     process_listing = commands.getoutput('ls /proc').split('\n')
     return str(pid) in process_listing
+
+class ApplicationExceptionTest(scatest.CorbaTestCase):
+    def setUp(self):
+        cfg = "log4j.rootLogger=DEBUG,STDOUT,FILE\n " + \
+            "# Direct log messages to FILE\n" + \
+            "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
+            "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.FILE=org.apache.log4j.FileAppender\n" + \
+            "log4j.appender.FILE.File=tmp_logfile.log\n" + \
+            "log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.CONSOLE.layout.ConversionPattern=%p:%c - %m [%F:%L]%n\n" + \
+            "log4j.appender.FILE.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.FILE.layout.ConversionPattern=%d %p:%c - %m [%F:%L]%n\n"
+            
+        fp = open('tmp_logfile.config','w')
+        fp.write(cfg)
+        fp.close()
+        self.domBooter, self._domMgr = self.launchDomainManager(loggingURI=os.getcwd()+'/tmp_logfile.config')
+        self.devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self._app = None
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+        if os.path.exists('tmp_logfile.config'):
+            os.remove('tmp_logfile.config')
+        if os.path.exists('sdr/tmp_logfile.log'):
+            os.remove('sdr/tmp_logfile.log')
+
+    def preconditions(self):
+        self.assertNotEqual(self._domMgr, None, "DomainManager not available")
+        self.assertNotEqual(self._devMgr, None, "DeviceManager not available")
+        self.assertNotEqual(self._app, None, "Application not created")
+
+    def test_description_runTest_props(self):
+        dom=redhawk.attach(self._domMgr._get_name())
+        sadpath = "/waveforms/python_runtest_w/python_runtest_w.sad.xml"
+        self._app = dom.createApplication(sadpath, 'appname', [], [])
+        self.preconditions()
+        self.assertRaises(CF.UnknownProperties, dom.apps[0].runTest, 0,properties.props_from_dict({'hello':5, 'hey':9}))
+        fp = open('sdr/tmp_logfile.log','r')
+        contents = fp.read()
+        fp.close()
+        self.assertNotEquals(contents.find('Run test failed with CF::UnknownProperties for Test ID 0 for properties: hello, hey.'),-1)
+
 
 class ApplicationFactoryTest(scatest.CorbaTestCase):
     def setUp(self):

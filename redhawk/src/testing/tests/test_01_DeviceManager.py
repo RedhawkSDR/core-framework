@@ -27,9 +27,6 @@ import CosNaming
 import tempfile
 import commands
 import shutil
-import ossie.utils.sandbox
-
-import logging
 
 
 def getChildren(parentPid):

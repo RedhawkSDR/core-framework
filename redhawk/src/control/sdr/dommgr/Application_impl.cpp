@@ -819,8 +819,16 @@ throw (CORBA::SystemException, CF::UnknownProperties, CF::TestableObject::Unknow
         LOG_TRACE(Application_impl, "Calling runTest on assembly controller")
         assemblyController->runTest (_testId, _props);
     } catch( CF::UnknownProperties& up ) {
-        // It would be helpful to list all properties in 'up' as part of the error message
-        LOG_ERROR(Application_impl, "Run test failed with CF::UnknownProperties for Test ID " << _testId)
+        std::ostringstream eout;
+        eout << "Run test failed with CF::UnknownProperties for Test ID " << _testId << " for properties: ";
+        for (unsigned int i=0; i<up.invalidProperties.length(); i++) {
+            eout << up.invalidProperties[i].id;
+            if (i == up.invalidProperties.length()-1)
+                eout << ".";
+            else
+                eout << ", ";
+        }
+        LOG_ERROR(Application_impl, eout.str())
         throw;
     } catch( CF::TestableObject::UnknownTest& ) {
         LOG_ERROR(Application_impl, "Run test failed with CF::TestableObject::UnknownTest for Test ID " << _testId)

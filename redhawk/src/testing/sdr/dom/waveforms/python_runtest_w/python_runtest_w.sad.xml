@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:620d3349-b67e-498e-a966-781db4f923d7" name="python_runtest_w">
+  <componentfiles>
+    <componentfile id="python_runtest_86962313-a43b-402e-94b1-a542e44b7f95" type="SPD">
+      <localfile name="/components/python_runtest/python_runtest.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="python_runtest_86962313-a43b-402e-94b1-a542e44b7f95"/>
+      <componentinstantiation id="python_runtest_1" startorder="0">
+        <usagename>python_runtest_1</usagename>
+        <findcomponent>
+          <namingservice name="python_runtest_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="python_runtest_1"/>
+  </assemblycontroller>
+</softwareassembly>
