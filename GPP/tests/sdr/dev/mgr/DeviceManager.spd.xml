@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg name="DeviceManager" id="DCE:82f6515a-de05-47f0-8e7a-1c9f621c00ee">
+    <author>
+        <name></name>
+    </author>
+    <propertyfile>
+        <localfile name="DeviceManager.prf.xml"/>
+    </propertyfile>
+    <descriptor>
+        <localfile name="DeviceManager.scd.xml"/>
+    </descriptor>
+    <implementation id="DCE:d3e8aba5-4421-45c5-9be6-372b763883e7">
+        <description>x86 Implementation of a Device Manager</description>
+        <propertyfile>
+            <localfile name="DeviceManager.Linux.x86.prf.xml"/>
+        </propertyfile>
+        <code type="Executable">
+            <localfile name="DeviceManager"/>
+            <entrypoint>DeviceManager</entrypoint>
+        </code>
+        <os name="Linux" />
+        <processor name="x86"/>
+    </implementation>
+    <implementation id="DCE:5fbef908-52fa-4fd8-ad88-2a72a6b8b5d4">
+        <description>x86_64 Implementation of a Device Manager</description>
+        <propertyfile>
+            <localfile name="DeviceManager.Linux.x86_64.prf.xml"/>
+        </propertyfile>
+        <code type="Executable">
+            <localfile name="DeviceManager"/>
+            <entrypoint>DeviceManager</entrypoint>
+        </code>
+        <os name="Linux" />
+        <processor name="x86_64"/>
+    </implementation>
+</softpkg>

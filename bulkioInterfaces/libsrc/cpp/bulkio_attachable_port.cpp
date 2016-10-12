@@ -22,27 +22,6 @@
 
 namespace bulkio {
   
-  /**
-   * Wrap Callback functions as SriListerer objects
-   */
-  class StaticSriCallback : public SriListener
-  {
-  public:
-    virtual void operator() ( BULKIO::StreamSRI& sri)
-    {
-      (*func_)(sri);
-    }
-
-    StaticSriCallback ( SriListenerCallbackFn func) :
-      func_(func)
-    {
-    }
-
-  private:
-
-    SriListenerCallbackFn func_;
-  };
-  
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::InAttachablePort(std::string port_name, 
                                      InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::Callback *attach_detach_cb,
@@ -249,7 +228,7 @@ namespace bulkio {
       {
         // Upgrade lock to unique - Blocks all reads
         boost::upgrade_to_unique_lock< boost::shared_mutex > uniqueLock(lock);
-        currentHs.insert(std::make_pair(CORBA::string_dup(H.streamID), std::make_pair(H, T)));
+        currentHs.insert(std::make_pair(ossie::corba::returnString(H.streamID), std::make_pair(H, T)));
         sriChanged = true;
       }
 
@@ -526,6 +505,12 @@ namespace bulkio {
     } else {
       return PortType::ACTIVE;
     }
+  }
+
+  template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
+  std::string InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::getRepid() const
+  {
+	return PortType::_PD_repoId;
   }
 
   //
@@ -1627,8 +1612,7 @@ namespace bulkio {
 
       if (!portListed) {
          for (ConnectionsIter i = outConnections.begin(); i != outConnections.end(); ++i) {
-            std::string connectionId = CORBA::string_dup(i->second.c_str());
-            LOG_DEBUG(logger,"pushSRI -2- PORT:" << this->name << " CONNECTION:" << connectionId << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );
+            LOG_DEBUG(logger,"pushSRI -2- PORT:" << this->name << " CONNECTION:" << i->second << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );
             try {
                i->first->pushSRI(H, T);
                sri_iter->second.connections.insert( i->second );
@@ -1952,6 +1936,12 @@ namespace bulkio {
       }
     }
     return PortType::_nil();
+  }
+
+  template <typename StreamDefinition, typename PortType, typename StreamSequence>
+  std::string OutAttachablePort<StreamDefinition,PortType,StreamSequence>::getRepid() const
+  {
+  	return PortType::_PD_repoId;
   }
 
   template class InAttachablePort<BULKIO::VITA49StreamDefinition, 

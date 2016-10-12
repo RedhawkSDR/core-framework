@@ -26,13 +26,9 @@ import FRONTEND.GPSOperations;
 import FRONTEND.GPSHelper;
 import FRONTEND.GPSInfo;
 import FRONTEND.GpsTimePos;
+import org.ossie.component.PortBase;
 
-
-public class OutGPSPort extends QueryableUsesPort<GPSOperations> implements GPSOperations {
-
-    protected String name;
- 
-    protected Object updatingPortsLock;
+public class OutGPSPort extends QueryableUsesPort<GPSOperations> implements GPSOperations, PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -41,7 +37,6 @@ public class OutGPSPort extends QueryableUsesPort<GPSOperations> implements GPSO
 
     public OutGPSPort( String portName) {
         super(portName);
-        this.name = portName;
         this.outConnections = new HashMap<String, GPSOperations>();
     }
 
@@ -81,7 +76,13 @@ public class OutGPSPort extends QueryableUsesPort<GPSOperations> implements GPSO
         synchronized(updatingPortsLock){
             if (this.active) {
                 for (GPSOperations p : this.outConnections.values()) {
-                    retval = p.gps_info();
+                    try {
+                        retval = p.gps_info();
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
@@ -93,7 +94,13 @@ public class OutGPSPort extends QueryableUsesPort<GPSOperations> implements GPSO
         synchronized(updatingPortsLock){
             if (this.active) {
                 for (GPSOperations p : this.outConnections.values()) {
-                    p.gps_info(data);
+                    try {
+                        p.gps_info(data);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
@@ -106,7 +113,13 @@ public class OutGPSPort extends QueryableUsesPort<GPSOperations> implements GPSO
         synchronized(this.updatingPortsLock) { 
             if (this.active) {
                 for (GPSOperations p : this.outConnections.values()) {
-                    retval = p.gps_time_pos();
+                    try {
+                        retval = p.gps_time_pos();
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
@@ -118,10 +131,24 @@ public class OutGPSPort extends QueryableUsesPort<GPSOperations> implements GPSO
         synchronized(this.updatingPortsLock) {
             if (this.active) {
                 for (GPSOperations p : this.outConnections.values()) {
-                    p.gps_time_pos(data);
+                    try {
+                        p.gps_time_pos(data);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
+    }
+
+    public String getRepid() {
+        return GPSHelper.id();
+    }
+
+    public String getDirection() {
+        return "Uses";
     }
 }
 

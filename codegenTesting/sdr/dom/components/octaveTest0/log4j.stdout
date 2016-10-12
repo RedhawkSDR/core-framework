@@ -1,0 +1,27 @@
+
+
+
+log4j.rootLogger=INFO,stdout, file, F2
+
+# Direct log messages to stdout
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.Target=System.out
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+ 
+# Direct log messages to a log file
+log4j.appender.file=org.apache.log4j.RollingFileAppender
+log4j.appender.file.File=logs/@@@COMPONENT.NAME@@@.@@@WAVEFORM.NAME@@@
+log4j.appender.file.MaxFileSize=1MB
+log4j.appender.file.MaxBackupIndex=1
+log4j.appender.file.layout=org.apache.log4j.PatternLayout
+log4j.appender.file.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+
+
+# Direct log messages to a log file
+log4j.appender.F2=org.apache.log4j.RollingFileAppender
+log4j.appender.F2.File=logs/@@@WAVEFORM.NAME@@@.@@@COMPONENT.NAME@@@.@@@WAVEFORM.NAME@@@
+log4j.appender.F2.MaxFileSize=1MB
+log4j.appender.F2.MaxBackupIndex=1
+log4j.appender.F2.layout=org.apache.log4j.PatternLayout
+log4j.appender.F2.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n

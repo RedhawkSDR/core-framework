@@ -33,3 +33,7 @@ if [ "X$OSSIEHOME" = X ] ; then
     fi
     export PYTHONPATH=${OSSIEHOME}/lib64/python:${OSSIEHOME}/lib/python${PYTHONPATH}
 fi
+if [ "X$LD_LIBRARY_PATH" = X ] ; then
+    export LD_LIBRARY_PATH=@libdir@
+fi
+

@@ -18,6 +18,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#include "ossie/Autocomplete.h"
 #include "fe_gps_port_impl.h"
 #include "fe_navdata_port_impl.h"
 #include "fe_rfinfo_port_impl.h"

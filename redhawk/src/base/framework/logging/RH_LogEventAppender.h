@@ -35,7 +35,8 @@ namespace log4cxx
 class RH_LogEventAppender : public AppenderSkeleton
 {
  public:
-  DECLARE_LOG4CXX_OBJECT(RH_LogEventAppender)
+
+  DECLARE_LOG4CXX_OBJECT_WITH_CUSTOM_CLASS(RH_LogEventAppender, ClassRH_LogEventAppender )
  
     BEGIN_LOG4CXX_CAST_MAP()
     LOG4CXX_CAST_ENTRY(RH_LogEventAppender)
@@ -64,7 +65,7 @@ class RH_LogEventAppender : public AppenderSkeleton
 
  private:
 
-  typedef boost::shared_ptr< ossie::event::PushEventSupplier >     PushEventSupplierPtr;
+  typedef boost::shared_ptr< ossie::events::PushEventSupplier >     PushEventSupplierPtr;
 
   std::vector< std::string >                                ArgList;
 

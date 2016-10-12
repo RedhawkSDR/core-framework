@@ -27,50 +27,6 @@
 
 *******************************************************************************************/
 
-/**************************************************************************************
-    Main processing thread
-
-    General functionality:
-    this class call a service function in the main component class. When the return
-    value is the string "NOOP", then the thread class waits for a set amount of time
-    before making another call
-
-**************************************************************************************/
-ProcessThread::ProcessThread(SimpleComponent_cpp_impl1_base *_target, float _delay)
-{
-    target = _target;
-    udelay = (__useconds_t)(_delay * 1000000);
-    _thread_running = true;
-    _thread_exited = new omni_condition(&_thread_exited_mutex);
-}
-
-ProcessThread::~ProcessThread()
-{
-    if (_thread_exited != 0) {
-        delete _thread_exited;
-    }
-}
-
-bool ProcessThread::release(unsigned long secs, unsigned long nanosecs)
-{
-    _thread_running = false;
-    unsigned long abs_secs = 0;
-    unsigned long abs_nsec = 0;
-    get_time(&abs_secs, &abs_nsec, secs, nanosecs);
-    return _thread_exited->timedwait(abs_secs, abs_nsec);
-}
-
-void ProcessThread::run(void *args)
-{
-    int state = NORMAL;
-    while (_thread_running and (state != FINISH)) {
-        state = target->serviceFunction();
-        if (state == NOOP) {
-            usleep(udelay);
-        }
-    }
-    _thread_exited->signal();
-}
 
 /******************************************************************************************
 
@@ -81,15 +37,15 @@ void ProcessThread::run(void *args)
 ******************************************************************************************/
  
 SimpleComponent_cpp_impl1_base::SimpleComponent_cpp_impl1_base(const char *uuid, const char *label) :
-                                     Resource_impl(uuid, label), serviceThread(0) {
+    Component(uuid, label),
+    ThreadedComponent()
+{
     construct();
 }
 
 void SimpleComponent_cpp_impl1_base::construct() {
 
     loadProperties();
-    serviceThread = 0;
-
 }
 
 SimpleComponent_cpp_impl1_base::~SimpleComponent_cpp_impl1_base(void)
@@ -101,31 +57,19 @@ SimpleComponent_cpp_impl1_base::~SimpleComponent_cpp_impl1_base(void)
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void SimpleComponent_cpp_impl1_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
-{
-}
-
 void SimpleComponent_cpp_impl1_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
 {
-    boost::mutex::scoped_lock lock(serviceThreadLock);
-    if (serviceThread == 0) {
-        serviceThread = new ProcessThread(this, 0.1);
-        serviceThread->start();
-    }
+    Component::start();
+    ThreadedComponent::startThread();
 }
 
 void SimpleComponent_cpp_impl1_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
 {
-    boost::mutex::scoped_lock lock(serviceThreadLock);
-    // release the child thread (if it exists)
-    if (serviceThread != 0) {
-        if (!serviceThread->release(2)) {
-            throw CF::Resource::StopError(CF::CF_NOTSET, "Processing thread did not die");
-        }
-        serviceThread = 0;
+    Component::stop();
+    if (!ThreadedComponent::stopThread()) {
+        throw CF::Resource::StopError(CF::CF_NOTSET, "Processing thread did not die");
     }
 }
-
 
 void SimpleComponent_cpp_impl1_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 {
@@ -136,12 +80,7 @@ void SimpleComponent_cpp_impl1_base::releaseObject() throw (CORBA::SystemExcepti
         // TODO - this should probably be logged instead of ignored
     }
 
-    // deactivate ports
-    releaseInPorts();
-    releaseOutPorts();
-
- 
-    Resource_impl::releaseObject();
+    Component::releaseObject();
 }
 
 void SimpleComponent_cpp_impl1_base::configure(const CF::Properties& props) throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration, CF::PropertySet::PartialConfiguration)

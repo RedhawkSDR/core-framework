@@ -32,7 +32,7 @@ namespace CORBA {
 
         class Object {
         public:
-            static void fromJObject (CORBA::Object_var& out, JNIEnv* env, jobject bj);
+            static void fromJObject (CORBA::Object_out out, JNIEnv* env, jobject bj);
             static jobject toJObject (CORBA::Object_ptr in, JNIEnv* env);
 
             static jclass getJClass (JNIEnv* env)
@@ -53,7 +53,7 @@ namespace CORBA {
 
 } // namespace CORBA
 
-inline void fromJObject (CORBA::Object_var& out, JNIEnv* env, jobject obj)
+inline void fromJObject (CORBA::Object_out out, JNIEnv* env, jobject obj)
 {
     CORBA::jni::Object::fromJObject(out, env, obj);
 }

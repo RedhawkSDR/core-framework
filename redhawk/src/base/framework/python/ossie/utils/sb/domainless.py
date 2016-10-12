@@ -103,6 +103,8 @@ import os
 import fnmatch
 import sys
 import logging
+import string as _string
+import cStringIO
 import warnings
 
 from omniORB import CORBA, any
@@ -122,7 +124,8 @@ __all__ = ('show', 'loadSADFile', 'IDELocation', 'connectedIDE', 'getIDE_REF',
            'start', 'getSDRROOT', 'setSDRROOT', 'Component', 'generateSADXML',
            'getDEBUG', 'setDEBUG', 'getComponent', 'IDE_REF', 'setIDE_REF',
            'stop', 'catalog', 'redirectSTDOUT', 'orb', 'reset', 'launch', 'api',
-           'createEventChannel', 'getEventChannel', 'getService')
+           'createEventChannel', 'getEventChannel', 'getService', 'browse',
+           'release')
 
 # Set up logging
 log = logging.getLogger(__name__)
@@ -216,8 +219,8 @@ def reset():
     '''
     # Save connection state.
     connectionList = []
-    for connectionId, connection in ConnectionManager.instance().getConnections().iteritems():
-        uses, provides = connection
+    for _connectionId, connection in ConnectionManager.instance().getConnections().iteritems():
+        connectionId, uses, provides = connection
         entry = { 'USES_REFID': uses.getRefid(),
                   'USES_PORT_NAME': uses.getPortName(),
                   'PROVIDES_REFID': provides.getRefid(),
@@ -271,7 +274,7 @@ def IDELocation(location=None):
 def redirectSTDOUT(filename):
     if _DEBUG == True:
         print "redirectSTDOUT(): redirecting stdout/stderr to filename " + str(filename)
-    if filename != None:
+    if type(filename) == str:
         dirname = os.path.dirname(filename)
         if len(dirname) == 0 or \
            (len(dirname) > 0 and os.path.isdir(dirname)):
@@ -282,6 +285,12 @@ def redirectSTDOUT(filename):
                 sys.stderr = f 
             except Exception, e:
                 print "redirectSTDOUT(): ERROR - Unable to open file " + str(filename) + " for writing stdout and stderr " + str(e)
+    elif type(filename) == cStringIO.OutputType:
+        sys.stdout = filename
+        sys.stderr = filename
+    else:
+        print 'redirectSTDOUT(): failed to redirect stdout/stderr to ' + str(filename)
+        print 'redirectSTDOUT(): argument must be: string filename, cStringIO.StringIO object'
         
 def show():
     '''
@@ -302,7 +311,11 @@ def show():
 
     print "Component Connections:"
     print "---------------------"
-    for uses, provides in ConnectionManager.instance().getConnections().values():
+    if connectedIDE:
+        log.trace('Scan for new connections')
+        ConnectionManager.instance().resetConnections()
+        ConnectionManager.instance().refreshConnections(sandbox.getComponents())
+    for connectionid, uses, provides in ConnectionManager.instance().getConnections().values():
         print "%s [%s] -> %s [%s]" % (uses.getName(), uses.getInterface(),
                                       provides.getName(), provides.getInterface())
     
@@ -321,9 +334,15 @@ def show():
 
 def getComponent(name):
     '''
-    Retrieve a pointer to a running component instance
+    Retrieve a pointer to a running component instance. This function is being deprecated
     '''
     return _getSandbox().getComponent(name)
+
+def retrieve(name):
+    '''
+    Retrieve a pointer to a running component instance (replaces getComponent)
+    '''
+    return _getSandbox().retrieve(name)
 
 def getService(name):
     """
@@ -449,20 +468,27 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
                     structValue = {}
                     for simple in entry.valueType:
                         if overload.value.has_key(str(simple[0])):
+                            _keys = {}
+                            translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_"
+                            for _key in overload.value:
+                                _keys[_key.translate(translation)] = _key
                             if len(simple) == 3:
                                 clean_name = str(simple[0])
                             else:
                                 clean_name = str(simple[3])
+                            _key = clean_name
+                            if not overload.value.has_key(clean_name):
+                                _key = _keys[clean_name]
                             if simple[1] == 'string' or simple[1] == 'char':
-                                structValue[clean_name] = overload.value[clean_name]
+                                structValue[clean_name] = overload.value[_key]
                             elif simple[1] == 'boolean':
-                                structValue[clean_name] = bool(overload.value[clean_name])
+                                structValue[clean_name] = bool(overload.value[_key])
                             elif simple[1] == 'ulong' or simple[1] == 'short' or simple[1] == 'octet' or \
                                  simple[1] == 'ushort' or simple[1] == 'long' or simple[1] == 'longlong' or \
                                  simple[1] == 'ulonglong':
-                                structValue[clean_name] = int(overload.value[clean_name])
+                                structValue[clean_name] = int(overload.value[_key])
                             elif simple[1] == 'float' or simple[1] == 'double':
-                                structValue[clean_name] = float(overload.value[clean_name])
+                                structValue[clean_name] = float(overload.value[_key])
                             else:
                                 print "the proposed overload (id="+entry.id+") is not of a supported type ("+entry.valueType+")"
                             
@@ -473,22 +499,29 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
                     structSeqValue = []
                     for overloadedValue in overload.value:
                         structValue = {}
+                        translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_"
                         for simple in entry.valueType:
                             if overloadedValue.has_key(str(simple[0])):
+                                _keys = {}
+                                for _key in overloadedValue:
+                                    _keys[_key.translate(translation)] = _key
                                 if len(simple) == 3:
                                     clean_name = str(simple[0])
                                 else:
                                     clean_name = str(simple[3])
+                                _key = clean_name
+                                if not overloadedValue.has_key(clean_name):
+                                    _key = _keys[clean_name]
                                 if simple[1] == 'string' or simple[1] == 'char':
-                                    structValue[clean_name] = overloadedValue[clean_name]
+                                    structValue[_key] = overloadedValue[_key]
                                 elif simple[1] == 'boolean':
-                                    structValue[clean_name] = bool(overloadedValue[clean_name])
+                                    structValue[_key] = bool(overloadedValue[_key])
                                 elif simple[1] == 'ulong' or simple[1] == 'short' or simple[1] == 'octet' or \
                                     simple[1] == 'ushort' or simple[1] == 'long' or simple[1] == 'longlong' or \
                                     simple[1] == 'ulonglong':
-                                    structValue[clean_name] = int(overloadedValue[clean_name])
+                                    structValue[_key] = int(overloadedValue[_key])
                                 elif simple[1] == 'float' or simple[1] == 'double':
-                                    structValue[clean_name] = float(overloadedValue[clean_name])
+                                    structValue[_key] = float(overloadedValue[_key])
                                 else:
                                     print "the proposed overload (id="+entry.id+") is not of a supported type ("+entry.valueType+")"
                         structSeqValue.append(structValue)
@@ -497,7 +530,7 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
             dV = allProps[prop].defValue
             if dV == None:
                 continue
-            if allProps[prop].mode != "readonly":
+            if allProps[prop].mode != "readonly" and 'configure' in allProps[prop].kinds:
                 setattr(component, allProps[prop].clean_name, allProps[prop].defValue)
 
 def loadSADFile(filename, props={}):
@@ -525,7 +558,7 @@ def loadSADFile(filename, props={}):
             log.debug("COMPONENT FILE type '%s'", component.get_type())
             try:
                 localfile = 'dom' + component.get_localfile().get_name()
-                spdFilename = sdrroot.findProfile(localfile,objType="component")
+                spdFilename = sdrroot.findProfile(localfile,objType="components")
                 log.debug("Found softpkg '%s'", spdFilename)
                 validRequestedComponents[component.get_id()] = spdFilename
             except:
@@ -555,13 +588,13 @@ def loadSADFile(filename, props={}):
             refid = component.componentfileref.refid
             if validRequestedComponents.has_key(refid):
                 instanceName = component.get_componentinstantiation()[0].get_usagename()
-                componentName = os.path.basename(validRequestedComponents[refid] ).split('.')[0]
                 instanceID = component.get_componentinstantiation()[0].id_
                 log.debug("launching component '%s'", instanceName)
                 properties=component.get_componentinstantiation()[0].get_componentproperties()
                 #simples
                 spd = validRequestedComponents[refid]
                 parsed_spd = parsers.spd.parse(spd)
+                componentName = parsed_spd.get_name()
                 pathToComponentXML = os.path.dirname(spd)
                 prfFilename = pathToComponentXML+'/'+parsed_spd.get_propertyfile().get_localfile().name
                 _prf = parsers.prf.parse(prfFilename)
@@ -573,8 +606,15 @@ def loadSADFile(filename, props={}):
                     if prop_check.get_kind()[0].get_kindtype() == 'configure':
                         if prop_check.get_mode() == 'readwrite' or prop_check.get_mode() == 'writeonly':
                             configurable[instanceName].append(str(prop_check.get_id()))
+                    if prop_check.get_kind()[0].get_kindtype() == 'property':
+                        if prop_check.get_mode() == 'readwrite' or prop_check.get_mode() == 'writeonly':
+                            configurable[instanceName].append(str(prop_check.get_id()))
                 for prop_check in _prf.get_simplesequence():
                     if prop_check.get_kind()[0].get_kindtype() == 'configure':
+                        if prop_check.get_mode() == 'readwrite' or prop_check.get_mode() == 'writeonly':
+                            configurable[instanceName].append(str(prop_check.get_id()))
+                for prop_check in _prf.get_simplesequence():
+                    if prop_check.get_kind()[0].get_kindtype() == 'property':
                         if prop_check.get_mode() == 'readwrite' or prop_check.get_mode() == 'writeonly':
                             configurable[instanceName].append(str(prop_check.get_id()))
                 for prop_check in _prf.get_struct():
@@ -592,14 +632,21 @@ def loadSADFile(filename, props={}):
                     if not (simple.refid in execprops):
                         continue
                     overload_value = str(simple.value)
-                    if simple.refid in props and assemblyController:
+                    if simple.refid in props and instanceID == assemblyControllerRefid:
                         overload_value = props[simple.refid]
                         props.pop(simple.refid)
                     container = overloadContainer(str(simple.refid),overload_value)
                     simple_exec_vals[container.id] = container.value
+                # If AC execparam property is overriden in props but not SAD file, update value
+                for prop in list(props):
+                    if prop in execprops and instanceID == assemblyControllerRefid:
+                        overload_value = props[prop]
+                        props.pop(prop)
+                        container = overloadContainer(str(prop),overload_value)
+                        simple_exec_vals[container.id] = container.value
                 try:
                     # NB: Explicitly request no configure call is made on the component
-                    newComponent = launch(componentName, instanceName,instanceID,configure=None,execparams=simple_exec_vals, objType="component")
+                    newComponent = launch(componentName, instanceName,instanceID,configure=None,execparams=simple_exec_vals, objType="components")
                     launchedComponents.append(newComponent)
                 except:
                     log.exception("Failed to launch component '%s'", instanceName)
@@ -755,7 +802,7 @@ def loadSADFile(filename, props={}):
                             structseq_vals.append(overloadContainer(str(structseq.refid),values_vals))
                     if len(sandboxComponent._properties) > 0:
                         overloadProperty(sandboxComponent, simple_vals, simpleseq_vals, struct_vals, structseq_vals)
-            if assemblyController:
+            if assemblyController and len(props) > 0 :
                 prop_types = {}
                 prop_types['simple'] = []
                 prop_types['simpleseq'] = []
@@ -833,6 +880,8 @@ def catalog(searchPath=None, printResults=False, returnSPDs=False, objType="comp
     else:
         return componentNames
 
+def browse(searchPath=None, objType=None, withDescription=False):
+    _getSandbox().browse(searchPath, objType, withDescription)
 
 class Component(object):
     """
@@ -875,6 +924,18 @@ def api(descriptor, objType=None):
     profile = sdrRoot.findProfile(descriptor, objType=objType)
     spd, scd, prf = sdrRoot.readProfile(profile)
     #spd,scd,prf = _getSandbox().getSdrRoot().readProfile(descriptor)
+    if spd:
+        if spd.description == None:
+            if spd.get_implementation()[0].description == None or \
+               spd.get_implementation()[0].description == "The implementation contains descriptive information about the template for a software component.":
+                description = None
+            else:
+                description = spd.get_implementation()[0].description
+        else:
+            description = spd.description
+    if description:
+        print '\nDescription ======================\n'
+        print description
     print '\nPorts ======================'
     print '\nUses (output)'
     table = TablePrinter('Port Name', 'Port Interface')
@@ -899,15 +960,19 @@ def api(descriptor, objType=None):
             kinds = []
             mode = struct.get_mode()
             table.append(_id, 'struct')
-            for simple in struct.get_simple():
-                table.append('  '+simple.get_id(),simple.get_type())
+            for prop in struct.get_simple():
+                table.append('  '+prop.get_id(),prop.get_type())
+            for prop in struct.get_simplesequence():
+                table.append('  '+prop.get_id(),prop.get_type())
         for struct in prf.structsequence:
             _id = struct.get_id()
             kinds = []
             mode = struct.get_mode()
             table.append(_id, 'struct sequence')
-            for simple in struct.get_struct().get_simple():
-                table.append('  '+simple.get_id(),simple.get_type())
+            for prop in struct.get_struct().get_simple():
+                table.append('  '+prop.get_id(),prop.get_type())
+            for prop in struct.get_struct().get_simplesequence():
+                table.append('  '+prop.get_id(),prop.get_type())
         table.write()
 
 
@@ -917,6 +982,13 @@ def start():
 
 def stop():
     _getSandbox().stop()
+
+def release():
+    """
+    Releases and cleans up all launched components, devices, services and
+    helpers.
+    """
+    _getSandbox().shutdown()
 
 def launch(descriptor, instanceName=None, refid=None, impl=None,
            debugger=None, window=None, execparams={}, configure={},

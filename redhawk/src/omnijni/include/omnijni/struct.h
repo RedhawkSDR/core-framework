@@ -36,14 +36,12 @@ namespace omnijni {
 
     inline void fromJObject (CORBA::Object_Member& member, JNIEnv* env, jobject obj)
     {
-        // TODO
         member = CORBA::Object::_nil();
     }
 
     template <class T, class T_Helper>
     void fromJObject(_CORBA_ObjRef_Member<T,T_Helper>& member, JNIEnv* env, jobject obj)
     {
-        // TODO
     }
 
     template <class T>

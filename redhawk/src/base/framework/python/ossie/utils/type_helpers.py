@@ -63,15 +63,20 @@ def _splitComplex(value):
     return value, 0
 
 def _SIStringToNumeric(value):
+    num=""
+    suffix=""
     siMap = {('K','KB'):1,
              ('M','MB'):2,
              ('G','GB'):3,
              ('T','TB'):4,
              ('P','PB'):5,
              ('E','EB'):6}   
-
-    i=map(str.isalpha,value).index(True)
-    num,suffix=value[:i],value[i:]
+    
+    for c in value:
+        if c.isdigit() or c == ".":
+            num += c
+        if c.isalpha():
+            suffix += c
     if len(num) > 0 and len(suffix) > 0:
         for suffixKey in siMap.keys():
             if suffixKey[0] == suffix:
@@ -79,7 +84,7 @@ def _SIStringToNumeric(value):
                     return float(num) * pow(1000,siMap[suffixKey])
                 else:
                     return int(num) * pow(1000,siMap[suffixKey])
-            if suffixKey[1] == suffix:
+            elif suffixKey[1] == suffix:
                 if "." in num:
                     return float(num) * pow(1024,siMap[suffixKey])
                 else:

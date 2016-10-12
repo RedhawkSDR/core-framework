@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:c741deb7-6576-4c4e-ae8a-c2a518c89cbe" name="Property_T2">
+  <componentfiles>
+    <componentfile id="Property_JAVA_e7f06246-755d-4aaa-92ef-fe5acb966d09" type="SPD">
+      <localfile name="/components/Property_JAVA/Property_JAVA.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="Property_JAVA_e7f06246-755d-4aaa-92ef-fe5acb966d09"/>
+      <componentinstantiation id="Property_JAVA_1" startorder="0">
+        <usagename>Property_JAVA_1</usagename>
+        <componentproperties>
+          <structref refid="p4">
+            <simpleref refid="p4sub1" value="prop2"/>
+            <simpleref refid="p4sub2" value="890.1"/>
+          </structref>
+          <simpleref refid="p3" value="567"/>
+          <simpleref refid="p2" value="123.4"/>
+          <simpleref refid="p1" value="prop1"/>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="Property_JAVA_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="Property_JAVA_1"/>
+  </assemblycontroller>
+</softwareassembly>

@@ -222,6 +222,11 @@ pre ()
 }
 
 void provides_pimpl::
+description (const ::std::string& description)
+{
+}
+
+void provides_pimpl::
 porttype ()
 {
 }
@@ -250,6 +255,11 @@ post_provides ()
 
 void uses_pimpl::
 pre ()
+{
+}
+
+void uses_pimpl::
+description (const ::std::string& description)
 {
 }
 

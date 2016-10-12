@@ -25,13 +25,9 @@ import org.ossie.component.QueryableUsesPort;
 import FRONTEND.RFSourceOperations;
 import FRONTEND.RFSourceHelper;
 import FRONTEND.RFInfoPkt;
+import org.ossie.component.PortBase;
 
-
-public class OutRFSourcePort extends QueryableUsesPort<RFSourceOperations> implements RFSourceOperations {
-
-    protected String name;
- 
-    protected Object updatingPortsLock;
+public class OutRFSourcePort extends QueryableUsesPort<RFSourceOperations> implements RFSourceOperations, PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -40,7 +36,6 @@ public class OutRFSourcePort extends QueryableUsesPort<RFSourceOperations> imple
 
     public OutRFSourcePort( String portName) {
         super(portName);
-        this.name = portName;
         this.outConnections = new HashMap<String, RFSourceOperations>();
     }
 
@@ -77,7 +72,13 @@ public class OutRFSourcePort extends QueryableUsesPort<RFSourceOperations> imple
         synchronized(updatingPortsLock){
             if (this.active) {
                 for (RFSourceOperations p : this.outConnections.values()) {
-                    retval = p.available_rf_inputs();
+                    try {
+                        retval = p.available_rf_inputs();
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
@@ -88,7 +89,13 @@ public class OutRFSourcePort extends QueryableUsesPort<RFSourceOperations> imple
         synchronized(updatingPortsLock){
             if (this.active) {
                 for (RFSourceOperations p : this.outConnections.values()) {
-                    p.available_rf_inputs(data);
+                    try {
+                        p.available_rf_inputs(data);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
@@ -100,7 +107,13 @@ public class OutRFSourcePort extends QueryableUsesPort<RFSourceOperations> imple
         synchronized(updatingPortsLock){
             if (this.active) {
                 for (RFSourceOperations p : this.outConnections.values()) {
-                    retval = p.current_rf_input();
+                    try {
+                        retval = p.current_rf_input();
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
@@ -111,10 +124,24 @@ public class OutRFSourcePort extends QueryableUsesPort<RFSourceOperations> imple
         synchronized(updatingPortsLock){
             if (this.active) {
                 for (RFSourceOperations p : this.outConnections.values()) {
-                    p.current_rf_input(data);
+                    try {
+                        p.current_rf_input(data);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
+    }
+
+    public String getRepid() {
+        return RFSourceHelper.id();
+    }
+
+    public String getDirection() {
+        return "Uses";
     }
 }
 

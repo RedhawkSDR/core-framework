@@ -24,6 +24,8 @@
 
 #include <boost/make_shared.hpp>
 
+#include <ossie/PropertyMap.h>
+
 #include "PortTraits.h"
 
 namespace burstio {
@@ -78,6 +80,16 @@ namespace burstio {
         // Get the SRI for this burst.
         inline BURSTIO::BurstSRI& getSRI() {
             return sri_;
+        }
+
+        // Get the SRI keywords for this burst as a PropertyMap.
+        inline redhawk::PropertyMap& getKeywords() {
+            return redhawk::PropertyMap::cast(sri_.keywords);
+        }
+
+        // Get the SRI keywords for this burst as a const PropertyMap.
+        inline const redhawk::PropertyMap& getKeywords() const {
+            return redhawk::PropertyMap::cast(sri_.keywords);
         }
 
         // Returns true if a pushBursts call blocked since the last burst was

@@ -1,0 +1,51 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef __CF_PORT_DEFINED
+#define __CF_PORT_DEFINED
+
+module CF {
+
+    /* This interface provides operations for managing associations between ports. An application defines a specific Port type by specifying an interface that inherits the Port interface. */
+    interface Port {
+        /* This exception indicates one of the following errors has occurred in the specification of a Port association. */
+        exception InvalidPort {
+            unsigned short errorCode;
+            string msg;
+        };
+        /* This exception indicates the Port is unable to accept any additional connections. */
+        exception OccupiedPort {
+        };
+        /* The connectPort operation makes a connection to the component identified by the input parameters. The connectPort operation establishes only half of the association; therefore two calls are required to create a two-way association. A port may support several connections. */
+        void connectPort (
+            in Object connection,
+            in string connectionId
+            )
+            raises (CF::Port::InvalidPort,CF::Port::OccupiedPort);
+        /* The disconnectPort operation breaks the connection to the component identified by the input parameters. */
+        void disconnectPort (
+            in string connectionId
+            )
+            raises (CF::Port::InvalidPort);
+    };
+
+};
+
+#endif

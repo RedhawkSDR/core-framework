@@ -194,7 +194,7 @@ int RH_LogEventAppender::connect_() {
   int retval = 0;
   if ( _orb == NULL ) {
     // RESOLVE need to parse args to list of strings..
-    /**
+    /*
     LOG4CXX_ENCODE_CHAR(t,_args);
     int largc=args.size();
 
@@ -206,7 +206,7 @@ int RH_LogEventAppender::connect_() {
     for( pp=largv,  ii=args.begin(); ii != args.end();  ii++, pp++ ) {
       *pp = &((*ii)[0]);
     }
-    **/
+    */
     int largc=0;
     char **largv=NULL;
     try {

@@ -19,3 +19,4 @@
 #
 
 from unit_test_helpers import *
+from rhunittest import *

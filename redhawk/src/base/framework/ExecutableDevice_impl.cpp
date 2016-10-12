@@ -20,6 +20,7 @@
 
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <algorithm>
 #include <sys/types.h>
@@ -42,14 +43,17 @@
 #endif
 
 #include <errno.h>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <sys/time.h>
+#include <libgen.h>
 
 #include "ossie/ExecutableDevice_impl.h"
 #include "ossie/prop_helpers.h"
+#include "ossie/affinity.h"
+#include "logging/rh_logger_stdout.h"
 
-
-//vector<CF::ExecutableDevice::ProcessID_Type> ExecutableDevice_impl::PID;
-PREPARE_LOGGING(ExecutableDevice_impl)
-
+PREPARE_CF_LOGGING(ExecutableDevice_impl)
 
 /* ExecutableDevice_impl ****************************************
     - constructor 1: no capacities defined
@@ -89,141 +93,339 @@ ExecutableDevice_impl::ExecutableDevice_impl (char* devMgr_ior, char* id, char* 
 {
 }
 
+std::string ExecutableDevice_impl::component_name_from_profile_name(const std::string& profile_name)
+{
+    std::string component_name = profile_name;
+
+    // Strip ".spd.xml" from end of profile_name
+    std::size_t pos = component_name.find(".spd.xml");
+    if( pos != std::string::npos )
+    {
+        component_name = component_name.substr( 0, pos );
+    }
+
+    // Strip directory path
+    pos = component_name.find_last_of( "/" );
+    if( pos != std::string::npos )
+    {
+        component_name = component_name.substr( pos+1 );
+    }
+
+    return component_name;
+}
+
+std::string ExecutableDevice_impl::get_component_name_from_exec_params(const CF::Properties& parameters)
+{
+    for (CORBA::ULong i = 0; i < parameters.length(); ++i) {
+        if (ossie::corba::returnString(parameters[i].id) == std::string("PROFILE_NAME"))
+            return component_name_from_profile_name( ossie::any_to_string(parameters[i].value) );
+    }
+    
+    LOG_ERROR(ExecutableDevice_impl, __FUNCTION__ << ": Could not extract component name from exec params" );
+    throw CF::ExecutableDevice::InvalidParameters(parameters);
+}
+
+CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::executeLinked (const char* name, const CF::Properties& options, const CF::Properties& parameters, const CF::StringSequence& deps) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
+{
+    boost::recursive_mutex::scoped_lock lock;
+    try
+    {
+        lock = boost::recursive_mutex::scoped_lock(load_execute_lock);
+    }
+    catch( const boost::thread_resource_error& e )
+    {
+        std::stringstream errstr;
+        errstr << "Error acquiring lock (errno=" << e.native_error() << " msg=\"" << e.what() << "\")";
+        LOG_ERROR(ExecutableDevice_impl, __FUNCTION__ << ": " << errstr.str() );
+        throw CF::Device::InvalidState(errstr.str().c_str());
+    }
+    
+    boost::shared_ptr<envState> initial_env(new envState());
+    this->initialState.set();
+    
+    std::vector<sharedLibraryStorage> selected_paths;
+    for (unsigned int i=0; i<deps.length(); i++) {
+        std::string dep = ossie::corba::returnString(deps[i]);
+        if (this->sharedPkgs.find(dep) == this->sharedPkgs.end()) {
+            // it is not a loaded package
+        } else {
+            selected_paths.push_back(this->sharedPkgs[dep]);
+        }
+    }
+    update_selected_paths(selected_paths);
+
+    std::vector<std::string> prepend_args;
+    CF::ExecutableDevice::ProcessID_Type pid = execute(name, options, parameters);
+    return pid;
+}
+
+CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::execute (const char* name, const CF::Properties& options, const CF::Properties& parameters) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
+{
+    boost::recursive_mutex::scoped_lock lock;
+    try
+    {
+        lock = boost::recursive_mutex::scoped_lock(load_execute_lock);
+    }
+    catch( const boost::thread_resource_error& e )
+    {
+        std::stringstream errstr;
+        errstr << "Error acquiring lock (errno=" << e.native_error() << " msg=\"" << e.what() << "\")";
+        LOG_ERROR(ExecutableDevice_impl, __FUNCTION__ << ": " << errstr.str() );
+        throw CF::Device::InvalidState(errstr.str().c_str());
+    }
+    
+    std::vector<std::string> prepend_args;
+    CF::ExecutableDevice::ProcessID_Type pid = do_execute(name, options, parameters, prepend_args);
+    return pid;
+}
+
+
+
+void ExecutableDevice_impl::set_resource_affinity( const CF::Properties& options, const pid_t rsc_pid, const char*rsc_name, const redhawk::affinity::CpuList &blacklist ) {
+
+   //
+   // check if affinity namespaced options exists...
+   //   
+   try {
+     if ( redhawk::affinity::has_affinity( options ) ) {
+         LOG_DEBUG(ExecutableDevice_impl, "Has Affinity....ExecDevice/Resource:" << label() << "/" << rsc_name);
+       if ( redhawk::affinity::is_disabled() ) {
+         LOG_WARN(ExecutableDevice_impl, "Resource has affinity directives but processing disabled, ExecDevice/Resource:" << 
+                  label() << "/" << rsc_name);
+       }
+       else {
+         LOG_DEBUG(ExecutableDevice_impl, "Calling set resource affinity....ExecDevice/Resource:" <<
+                  label() << "/" << rsc_name);
+         redhawk::affinity::set_affinity( options, rsc_pid, blacklist );
+       }
+     }
+     else {
+         LOG_TRACE(ExecutableDevice_impl, "No Affinity Found....ExecDevice/Resource:" << label() << "/" << rsc_name);
+     }
+   }
+   catch( redhawk::affinity::AffinityFailed &e) {
+     LOG_WARN(ExecutableDevice_impl, "AFFINITY REQUEST FAILED: " << e.what() );
+     throw;
+   }
+
+
+}
 
 /* execute *****************************************************************
     - executes a process on the device
 ************************************************************************* */
-CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::execute (const char* name, const CF::Properties& options, const CF::Properties& parameters) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
+CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const char* name, const CF::Properties& options, const CF::Properties& parameters, const std::vector<std::string> prepend_args) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
 {
-    CORBA::TypeCode_var tc;                       // CORBA type code
-    const char* tempStr;                          // temporary character string
-    CF::ExecutableDevice::ProcessID_Type PID;     // process ID
-    int size = 2 * parameters.length () + 2;      // length of the POSIX argv arguments
-    char** argv = new char *[size];               // POSIX arguments
-    CORBA::ULong stackSize, priority;             // CORBA unsigned longs for options storage
-
-    // verify device is in the correct state
-    if (!isUnlocked () || isDisabled ()) {
-        DEBUG(5, ExecutableDevice_impl, "Cannot execute. System is either LOCKED, SHUTTING DOWN or DISABLED.")
-        throw (CF::Device::InvalidState("Cannot execute. System is either LOCKED, SHUTTING DOWN or DISABLED."));
-    }
-
-    priority = 0;                                 // this is the default value for the priority (it's actually meaningless in this version)
-    stackSize = 4096;                             // this is the default value for the stacksize (it's actually meaningless in this version)
-
-    {
-    // verify valid options, both STACK_SIZE_ID and PRIORITY_ID must have unsigned-long types
     CF::Properties invalidOptions;
-    invalidOptions.length(0);
+    std::string path;
+    char* tmp;
 
-    for (unsigned i = 0; i < options.length (); i++) {
-        tc = options[i].value.type ();
+    // throw and error if name does not begin with a /
+    if (strncmp(name, "/", 1) != 0)
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Filename must be absolute");
+    if (isLocked())
+        throw CF::Device::InvalidState("System is locked down");
+    if (isDisabled())
+        throw CF::Device::InvalidState("System is disabled");
 
-        // extract priority and stack size from the options list
-        if (strcmp (options[i].id, CF::ExecutableDevice::PRIORITY_ID)) {
-            if (tc->kind () == CORBA::tk_ulong) {
-                options[i].value >>= priority; 
-            } else {
-                LOG_ERROR(ExecutableDevice_impl, "Incorrect type provided for option PRIORITY");
+    //process options and throw InvalidOptions errors if they are not ULong
+    for (CORBA::ULong i = 0; i < options.length(); ++i) {
+        if (options[i].id == CF::ExecutableDevice::PRIORITY_ID) {
+            CORBA::TypeCode_var atype = options[i].value.type();
+            if (atype->kind() != CORBA::tk_ulong) {
                 invalidOptions.length(invalidOptions.length() + 1);
-                invalidOptions[invalidOptions.length() - 1] = options[i];
+                invalidOptions[invalidOptions.length() - 1].id = options[i].id;
+                invalidOptions[invalidOptions.length() - 1].value
+                        = options[i].value;
+            } else
+                LOG_WARN(ExecutableDevice_impl, "Received a PRIORITY_ID execute option...ignoring.")
             }
-        } else if (strcmp (options[i].id, CF::ExecutableDevice::STACK_SIZE_ID)) {
-            if (tc->kind () == CORBA::tk_ulong) {
-                options[i].value >>= stackSize;
-            } else {
-                LOG_ERROR(ExecutableDevice_impl, "Incorrect type provided for option STACK_SIZE");
+        if (options[i].id == CF::ExecutableDevice::STACK_SIZE_ID) {
+            CORBA::TypeCode_var atype = options[i].value.type();
+            if (atype->kind() != CORBA::tk_ulong) {
                 invalidOptions.length(invalidOptions.length() + 1);
-                invalidOptions[invalidOptions.length() - 1] = options[i];
+                invalidOptions[invalidOptions.length() - 1].id = options[i].id;
+                invalidOptions[invalidOptions.length() - 1].value
+                        = options[i].value;
+            } else
+                LOG_WARN(ExecutableDevice_impl, "Received a STACK_SIZE_ID execute option...ignoring.")
             }
-        } else {
-            LOG_ERROR(ExecutableDevice_impl, "Unsupported option " << options[i].id << " provided ");
-            invalidOptions.length(invalidOptions.length() + 1);
-            invalidOptions[invalidOptions.length() - 1] = options[i];
-        }
     }
 
     if (invalidOptions.length() > 0) {
         throw CF::ExecutableDevice::InvalidOptions(invalidOptions);
     }
+
+    // retrieve current working directory
+    tmp = getcwd(NULL, 200);
+    if (tmp != NULL) {
+        path = std::string(tmp);
+        free(tmp);
     }
 
-// convert input parameters to the POSIX standard argv format
+    // append relative path of the executable
+    path.append(name);
 
-    char* name_temp = new char[strlen (name) + 1];
-    if (name[0] == '/')
-        { strcpy (name_temp, &name[1]); }
-    else
-        { strcpy (name_temp, name); }
-    argv[0] = name_temp;
-    DEBUG(5, ExecutableDevice_impl, "Executing " << argv[0]) {
-        for (unsigned int i = 0; i < parameters.length (); i++) {
-            name_temp = new char[strlen (parameters[i].id) + 1];
-            strcpy (name_temp, parameters[i].id);
-            argv[2 * i + 1] = name_temp;
-
-            std::string interimTempStr = ossie::any_to_string(parameters[i].value);
-            tempStr = interimTempStr.c_str();
-            name_temp = new char[strlen (tempStr) + 1];
-            strcpy (name_temp, tempStr);
-            argv[2 * i + 2] = name_temp;
-        }
-        argv[size-1] = NULL;
+    // check file existence
+    if (access(path.c_str(), F_OK) == -1) {
+        std::string errMsg = "File could not be found " + path;
+        throw CF::InvalidFileName(CF::CF_EINVAL,
+                CORBA::string_dup(errMsg.c_str()));
     }
 
-// execute file or function, pass arguments and options and execute, handler is returned
-    CF::ExecutableDevice::ProcessID_Type new_pid;
-
-    if ((new_pid = fork()) < 0) {
-        DEBUG(5, ExecutableDevice_impl, "Error executing fork()")
-        return((CF::ExecutableDevice::ProcessID_Type) - 1);
+    // change permissions to 7--
+    if (chmod(path.c_str(), S_IRWXU) != 0) {
+        LOG_ERROR(ExecutableDevice_impl, "Unable to change permission on executable");
+        throw CF::ExecutableDevice::ExecuteFail(CF::CF_EACCES,
+                "Unable to change permission on executable");
     }
 
-    if (new_pid > 0) {
-
-// in parent process
-        PID = new_pid;
-    } else {
-// in child process
-        if (getenv("VALGRIND")) {
-            char* new_argv[24];
-            strcpy(new_argv[0], "/usr/local/bin/valgrind");
-            std::string logFile = "--log-file=";
-            logFile += argv[0];
-            new_argv[1] = (char*)logFile.c_str();
-            unsigned int i;
-            for (i = 2; argv[i-2]; i++) {
-                new_argv[i] = argv[i-2];
-            }
-            new_argv[i] = NULL;
-            DEBUG(3, ExecutableDevice_impl, "chmod'ing " << new_argv[0])
-            struct stat stat_buf;
-            stat(new_argv[0], &stat_buf);
-            chmod(new_argv[0], stat_buf.st_mode | S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-            DEBUG(3, ExecutableDevice_impl, "execv'ing " << new_argv[0])
-            execv(new_argv[0], new_argv);
+    // assemble argument list
+    std::vector<std::string> args = prepend_args;
+    if (getenv("VALGRIND")) {
+        char* valgrind = getenv("VALGRIND");
+        if (strlen(valgrind) == 0) {
+            // Assume that valgrind is somewhere on the path
+            args.push_back("valgrind");
         } else {
-            DEBUG(3, ExecutableDevice_impl, "chmod'ing " << argv[0])
-            DEBUG(3, ExecutableDevice_impl, "execv'ing " << argv[0])
-            struct stat stat_buf;
-            stat(argv[0], &stat_buf);
-            chmod(argv[0], stat_buf.st_mode | S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-            execv(argv[0], argv);
+            // Environment variable is path to valgrind executable
+            args.push_back(valgrind);
         }
+        // Put the log file in the cache next to the component entrypoint;
+        // include the pid to avoid clobbering existing files
+        std::string logFile = "--log-file=";
+        char* name_temp = strdup(path.c_str());
+        logFile += dirname(name_temp);
+        free(name_temp);
+        logFile += "/valgrind.%p.log";
+        args.push_back(logFile);
+    }
+    args.push_back(path);
 
-        DEBUG(5, ExecutableDevice_impl, strerror(errno))
-        exit(-1);                                 // If we ever get here the program we tried to start and failed
+    LOG_DEBUG(ExecutableDevice_impl, "Building param list for process " << path);
+    for (CORBA::ULong i = 0; i < parameters.length(); ++i) {
+        LOG_DEBUG(ExecutableDevice_impl, "id=" << ossie::corba::returnString(parameters[i].id) << " value=" << ossie::any_to_string(parameters[i].value));
+        CORBA::TypeCode_var atype = parameters[i].value.type();
+        args.push_back(ossie::corba::returnString(parameters[i].id));
+        args.push_back(ossie::any_to_string(parameters[i].value));
     }
 
-    {
-        for (int i = 0; i < size; i++) {          /// \bug Does this leak memory when executeProcess Fails?
-            delete argv[i];
+    LOG_DEBUG(ExecutableDevice_impl, "Forking process " << path);
+
+    std::vector<char*> argv(args.size() + 1, NULL);
+    for (std::size_t i = 0; i < args.size(); ++i) {
+        // const_cast because execv does not modify values in argv[].
+        // See:  http://pubs.opengroup.org/onlinepubs/9699919799/functions/exec.html
+        argv[i] = const_cast<char*> (args[i].c_str());
+    }
+
+    rh_logger::LevelPtr  lvl = ExecutableDevice_impl::__logger->getLevel();
+
+    // fork child process
+    int pid = fork();
+
+    if (pid == 0) {
+
+      int num_retries = 5;
+      int returnval = 0;
+
+      //
+      // log4cxx will cause dead locks between fork and execv, use the stdout logger object, this will only replace the new process'
+      // ExecutableDevice's logger object till execv envoked.
+      //
+      ExecutableDevice_impl::__logger = rh_logger::StdOutLogger::getRootLogger();
+      ExecutableDevice_impl::__logger->setLevel(lvl);
+      // set affinity logger method so we do not use log4cxx during affinity processing routine
+      redhawk::affinity::set_affinity_logger( ExecutableDevice_impl::__logger ) ;
+      LOG_DEBUG(ExecutableDevice_impl, " Calling set resource affinity....exec:" << name << " options=" << options.length());
+
+      // set affinity preference before exec
+      try {
+        LOG_DEBUG(ExecutableDevice_impl, " Calling set resource affinity....exec:" << name << " options=" << options.length());
+        set_resource_affinity( options, getpid(), name );
+      }
+      catch( redhawk::affinity::AffinityFailed &ex ) {
+        LOG_WARN(ExecutableDevice_impl, "Unable to satisfy affinity request for: " << name << " Reason: " << ex.what() );
+        errno=EPERM<<2;
+        returnval=-1;
+        ossie::corba::OrbShutdown(true);
+        exit(returnval);
+      }
+      catch( ... ) {
+        LOG_WARN(ExecutableDevice_impl,  "Unhandled exception during affinity processing for resource: " << name  );
+        ossie::corba::OrbShutdown(true);
+        exit(returnval);
+      }
+
+      // reset mutex in child...
+      pthread_mutex_init(load_execute_lock.native_handle(),0);
+      
+      // set the forked component as the process group leader
+      setpgid(getpid(), 0);
+      
+      // Run executable
+      while(true)
+        {
+          if (strcmp(argv[0], "valgrind") == 0) {
+              // Find valgrind in the path
+              returnval = execvp(argv[0], &argv[0]);
+          } else {
+              returnval = execv(argv[0], &argv[0]);
+          }
+
+          num_retries--;
+          if( num_retries <= 0 || errno!=ETXTBSY)
+                break;
+
+          // Only retry on "text file busy" error
+          LOG_WARN(ExecutableDevice_impl, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
+          usleep(100000);
+        }
+
+        if( returnval ) {
+            LOG_ERROR(ExecutableDevice_impl, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
+            ossie::corba::OrbShutdown(true);
+        }
+
+        LOG_DEBUG(ExecutableDevice_impl, "Exiting FAILED subprocess:" << returnval );
+        exit(returnval);
+    }
+    else if (pid < 0 ){
+        LOG_ERROR(ExecutableDevice_impl, "Error forking child process (errno: " << errno << " msg=\"" << strerror(errno) << "\")" );
+        switch (errno) {
+            case E2BIG:
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_E2BIG,
+                        "Argument list too long");
+            case EACCES:
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_EACCES,
+                        "Permission denied");
+            case ENAMETOOLONG:
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_ENAMETOOLONG,
+                        "File name too long");
+            case ENOENT:
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_ENOENT,
+                        "No such file or directory");
+            case ENOEXEC:
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_ENOEXEC,
+                        "Exec format error");
+            case ENOMEM:
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_ENOMEM,
+                        "Out of memory");
+            case ENOTDIR:
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_ENOTDIR,
+                        "Not a directory");
+            case EPERM:
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM,
+                        "Operation not permitted");
+            default:
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_NOTSET,
+                        "ERROR ON FORK");
         }
     }
-    delete argv;
 
-// create a PID and return it
-    return (PID);
+    LOG_DEBUG(ExecutableDevice_impl, "Execute success: name:" << name << " : "<< path);
+
+    return pid;
 }
 
 
@@ -233,7 +435,11 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::execute (const char*
 void
 ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CORBA::SystemException, CF::ExecutableDevice::InvalidProcess, CF::Device::InvalidState)
 {
-
+    std::vector< std::pair< int, float > > _signals;
+    _signals.push_back(std::make_pair(SIGINT, 2));
+    _signals.push_back(std::make_pair(SIGQUIT, 2));
+    _signals.push_back(std::make_pair(SIGTERM, 2));
+    _signals.push_back(std::make_pair(SIGKILL, 0.5));
 // validate device state
     if (isLocked () || isDisabled ()) {
         printf ("Cannot terminate. System is either LOCKED or DISABLED.");
@@ -242,12 +448,41 @@ ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId
                ("Cannot terminate. System is either LOCKED or DISABLED."));
     }
 
-// go ahead and terminate the process
-    int status;
-    kill(processId, SIGKILL);
-    waitpid(processId, &status, 0);
-}
+  // go ahead and terminate the process
+  pid_t pgroup = getpgid(processId);
+  bool processes_dead = false;
+  for (std::vector< std::pair< int, float > >::iterator _signal=_signals.begin();!processes_dead &&_signal!=_signals.end();_signal++) {
+    int retval = killpg(pgroup, _signal->first);
+    LOG_TRACE(ExecutableDevice_impl,"Intitial Process Termination pid/group " << processId << "/" << pgroup << "   RET= " << retval);
+    if ( retval == -1 && errno == EPERM ) {
+      LOG_ERROR(ExecutableDevice_impl,"Error sending pid/group " << processId << "/" <<  pgroup);
+      continue;
+    }
+    if ( retval == -1 && errno == ESRCH )  { 
+      LOG_TRACE(ExecutableDevice_impl,"Process group is dead " << processId << "/" <<  pgroup);
+     processes_dead = true; 
+      continue;
+    }
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    double now = tv.tv_sec + (((float)tv.tv_usec)/1e6) ;
+    double end_time = now + _signal->second;
+    int cnt=0;
+    while (!processes_dead && (retval != -1) and ( now < end_time )) {
+      retval = killpg(pgroup, 0);
+      LOG_TRACE(ExecutableDevice_impl,"Terminating Process.... (loop:" << cnt++ << " signal:" << _signal->first << ") pid/group " << processId << "/" << pgroup << "   RET= " << retval);
+      if (retval == -1 and (errno == ESRCH)) {
+        LOG_TRACE(ExecutableDevice_impl,"Process group terminated  " << processId << "/" <<  pgroup);
+        processes_dead = true;
+        continue;
+      }
 
+      usleep(100000);
+      gettimeofday(&tv, NULL);
+      now = tv.tv_sec + (((double)tv.tv_usec)/1e6);
+    }
+  }
+}
 
 void  ExecutableDevice_impl::configure (const CF::Properties& capacities)
 throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
@@ -255,4 +490,3 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
 {
     Device_impl::configure(capacities);
 }
-

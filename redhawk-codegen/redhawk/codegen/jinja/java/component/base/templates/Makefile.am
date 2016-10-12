@@ -18,18 +18,24 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #}
 #% set target = automake.canonicalName(component.jarfile)
-#% set classpath = ['CFInterfaces.jar', 'log4j-'+versions.log4j+'.jar', 'ossie.jar'] + component.interfacejars
-{{target}}_CLASSPATH = $(CLASSPATH_SOFTPKG_DEP){{classpath|prepend('$(OSSIE_HOME)/lib/')|join(':')}}
+#% set componentdir = component.name.replace('.','/')
+#% set classpath = component.interfacejars
+ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
+AUTOMAKE_OPTIONS = subdir-objects
 
-{{component.jarfile}}: $({{target}}_SOURCES)
+{{target}}_CLASSPATH = $(SOFTPKG_CLASSPATH):$(REDHAWK_CLASSPATH):{{classpath|prepend('$(OSSIE_HOME)/lib/')|join(':')}}
+
+{{component.jarfile}}$(EXEEXT): $({{target}}_SOURCES)
 	mkdir -p bin
-	$(JAVAC) -cp $({{target}}_CLASSPATH) -d bin $({{target}}_SOURCES)
+	$(JAVAC) -cp $({{target}}_CLASSPATH) -g -d bin $({{target}}_SOURCES)
 	$(JAR) cf ./{{component.jarfile}} -C bin .
+	$(JAR) uf ./{{component.jarfile}} -C src .
 
 clean-local:
 	rm -rf bin
 
 distclean-local:
+	rm -rf m4
 	rm -f config.*
 	rm -rf autom4te.cache
 	rm -f acinclude.m4
@@ -44,13 +50,13 @@ distclean-local:
 
 #{% set outputdir = generator.getOutputDir() %}
 ossieName = {{component.name}}
-bindir = $(prefix)/{{component.sdrpath}}/{{component.name}}/{{outputdir}}/
+bindir = $(prefix)/{{component.sdrpath}}/{{componentdir}}/{{outputdir}}/
 bin_PROGRAMS = {{component.jarfile}}
 {{target}}_SOURCES := $(shell find ./src -name "*.java")
 
-xmldir = $(prefix)/{{component.sdrpath}}/{{component.name}}/
+xmldir = $(prefix)/{{component.sdrpath}}/{{componentdir}}/
 dist_xml_DATA = {{component.profile.values()|relpath(outputdir)|join(' ')}}
 
 #{% set sdrbranch = component.sdrpath.split('/')[0] %}
-{{sdrbranch}}dir = $(prefix)/{{component.sdrpath}}/{{component.name}}/{{outputdir}}/
+{{sdrbranch}}dir = $(prefix)/{{component.sdrpath}}/{{componentdir}}/{{outputdir}}/
 dist_{{sdrbranch}}_SCRIPTS = {{component.impl.entrypoint|relpath(outputdir)}}

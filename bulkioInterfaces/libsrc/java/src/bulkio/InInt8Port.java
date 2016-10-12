@@ -42,12 +42,12 @@ import bulkio.linkStatistics;
 import bulkio.DataTransfer;
 import bulkio.Int8Size;
 
-
+import org.ossie.component.PortBase;
 
 /**
  * 
  */
-public class InInt8Port extends BULKIO.jni.dataCharPOA {
+public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.component.PortBase {
 
     /**
      * A class to hold packet data.
@@ -356,7 +356,7 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA {
         }
 
         boolean portBlocking = false;
-        StreamSRI tmpH = new StreamSRI(1, 0.0, 1.0, (short)1, 0, 0.0, 0.0, (short)0, (short)0, streamID, false, new DataType[0]);
+        StreamSRI tmpH = null;
         boolean sriChanged = false;
         synchronized (this.sriUpdateLock) {
             if (this.currentHs.containsKey(streamID)) {
@@ -366,6 +366,16 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA {
 		    this.currentHs.get(streamID).setChanged(false);
 		}
                 portBlocking = blocking;
+            } else {
+                if (logger != null) {
+                    logger.warn("bulkio.InPort pushPacket received data from stream '" + streamID + "' with no SRI");
+                }
+                tmpH = new StreamSRI(1, 0.0, 1.0, (short)1, 0, 0.0, 0.0, (short)0, (short)0, streamID, false, new DataType[0]);
+                if (sriCallback != null) {
+                    sriCallback.newSRI(tmpH);
+                }
+                sriChanged = true;
+                currentHs.put(streamID, new sriState(tmpH, false));
             }
         }
 
@@ -395,14 +405,24 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA {
 		    }
 
                     boolean sriChangedHappened = false;
+                    boolean flagEOS = false;
                     for (Iterator< Packet > itr = this.workQueue.iterator(); itr.hasNext();) {
-                        if (itr.next().sriChanged) {
-                            sriChangedHappened = true;
+                        if (sriChangedHappened && flagEOS) {
                             break;
+                        }
+                        Packet currentPacket = itr.next();
+                        if (currentPacket.sriChanged) {
+                            sriChangedHappened = true;
+                        }
+                        if (currentPacket.EOS) {
+                            flagEOS = true;
                         }
                     }
                     if (sriChangedHappened) {
                         sriChanged = true;
+                    }
+                    if (flagEOS) {
+                        eos = true;
                     }
                     this.workQueue.clear();
                     p = new Packet( data, time, eos, streamID, tmpH, sriChanged, true);
@@ -497,6 +517,15 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA {
         return p;
     }
 
+	public String getRepid()
+	{
+		return BULKIO.dataCharHelper.id();
+	}
+
+	public String getDirection()
+	{
+		return "Provides";
+	}
 
 }
 

@@ -26,8 +26,8 @@ Prefix:         %{_sdrroot}
 Prefix:         %{_sysconfdir}
 
 Name:           redhawk
-Version:        1.10.1
-Release:        3%{?dist}
+Version:        2.0.3
+Release:        2%{?dist}
 Summary:        REDHAWK is a Software Defined Radio framework
 
 Group:          Applications/Engineering
@@ -36,37 +36,32 @@ URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-# BuildRoot required for el5
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-
-# el6 gives us issues with rpaths
-%if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
 %define __arch_install_post %{nil}
+
+Requires:       util-linux-ng
+
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+Requires:       java >= 1.7
+%else
+Requires:       java7 >= 1.7
 %endif
 
-%if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
-Requires:       util-linux-ng
-%else
-Requires:       e2fsprogs
-Requires:       python-elementtree
-%endif
-Requires:       java >= 1.6
 Requires:       python
 Requires:       numpy
 Requires:       python-omniORB >= 3.0
+Requires:       omniORB-devel >= 4.1.0
 Requires:       binutils
-
-%if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
 BuildRequires:  libuuid-devel
 BuildRequires:  boost-devel >= 1.41
-%else
-BuildRequires:  e2fsprogs-devel
-BuildRequires:  boost141-devel
-BuildRequires:  python-elementtree
-%endif
 BuildRequires:  autoconf automake libtool
 BuildRequires:  expat-devel
-BuildRequires:  java-devel >= 1.6
+
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+BuildRequires:  java-devel >= 1.7
+%else
+BuildRequires:  java7-devel >= 1.7
+%endif
+
 BuildRequires:  python-devel >= 2.4
 BuildRequires:  log4cxx-devel >= 0.10
 BuildRequires:  omniORB-devel >= 4.1.0
@@ -74,15 +69,19 @@ BuildRequires:  omniORBpy-devel >= 3.0
 BuildRequires:  libomniEvents2-devel
 BuildRequires:  xsd >= 3.3.0
 
-# qtbrowse
-%if 0%{?rhel} >= 6 || 0%{?fedora} >= 8
-Requires:       PyQt4
-%endif
-
 %description
 REDHAWK is a Software Defined Radio framework.
  * Commit: __REVISION__
  * Source Date/Time: __DATETIME__
+
+%package qt-tools
+Summary:        PyQt Tools
+Group:          Applications/Engineering
+Requires:       %{name} = %{version}-%{release}
+Requires:       PyQt4
+
+%description qt-tools
+PyQt-based applications (qtbrowse and rhlauncher)
 
 %package sdrroot-dom-mgr
 Summary:        Domain Manager
@@ -118,13 +117,8 @@ Group:          Applications/Engineering
 Requires:       redhawk = %{version}-%{release}
 
 # Base dependencies
-%if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
 Requires:       libuuid-devel
 Requires:       boost-devel >= 1.41
-%else
-Requires:       e2fsprogs-devel
-Requires:       boost141-devel
-%endif
 Requires:       autoconf automake libtool
 Requires:       log4cxx-devel >= 0.10
 
@@ -135,7 +129,12 @@ Requires:       omniORBpy-devel >= 3.0
 # Languages
 Requires:       gcc-c++
 Requires:       python-devel >= 2.4
-Requires:       java-devel >= 1.6
+
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+Requires:       java-devel >= 1.7
+%else
+Requires:       java7-devel >= 1.7
+%endif
 
 %description devel
 This package ensures that all requirements for REDHAWK development are installed. It also provides a useful development utilities.
@@ -160,12 +159,6 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 cd src
 make install DESTDIR=$RPM_BUILD_ROOT
 
-%if (0%{?rhel} && 0%{?rhel} < 6) || (0%{?fedora} && 0%{?fedora} < 8)
-  # qtbrowse not supported
-  rm $RPM_BUILD_ROOT%{_bindir}/qtbrowse
-  rm -r $RPM_BUILD_ROOT%{_prefix}/lib/python/ossie/apps/qtbrowse
-%endif
-
 
 %clean
 rm -rf --preserve-root $RPM_BUILD_ROOT
@@ -187,6 +180,8 @@ fi
 %{_bindir}
 %exclude %{_bindir}/prf2py.py
 %exclude %{_bindir}/py2prf
+%exclude %{_bindir}/qtbrowse
+%exclude %{_bindir}/rhlauncher
 %dir %{_includedir}
 %dir %{_prefix}/lib
 %ifarch x86_64
@@ -197,22 +192,33 @@ fi
 %{_prefix}/lib/log4j-1.2.15.jar
 %{_prefix}/lib/ossie.jar
 %{_prefix}/lib/python
+%exclude %{_prefix}/lib/python/ossie/apps/qtbrowse
+%exclude %{_prefix}/lib/python/ossie/apps/rhlauncher
 %{_libdir}/libomnijni.so.*
 %{_libdir}/libossiecf.so.*
 %{_libdir}/libossiecfjni.so.*
 %{_libdir}/libossieidl.so.*
 %{_libdir}/libossieparser.so.*
+%{_libdir}/libossielogcfg.so.*
 %dir %{_libdir}/pkgconfig
 %{_datadir}
 %{_sysconfdir}/profile.d/redhawk.csh
 %{_sysconfdir}/profile.d/redhawk.sh
 %{_sysconfdir}/ld.so.conf.d/redhawk.conf
 
+%files qt-tools
+%defattr(-,root,root,-)
+%{_bindir}/qtbrowse
+%{_bindir}/rhlauncher
+%{_prefix}/lib/python/ossie/apps/qtbrowse
+%{_prefix}/lib/python/ossie/apps/rhlauncher
+
 %files sdrroot-dom-mgr
 %defattr(664,redhawk,redhawk)
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/components
+%attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/deps
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/domain
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/mgr
 %attr(775,redhawk,redhawk) %{_sdrroot}/dom/mgr/DomainManager
@@ -253,6 +259,8 @@ fi
 %{_libdir}/libossieidl.*a
 %{_libdir}/libossieparser.*a
 %{_libdir}/libossieparser.so
+%{_libdir}/libossielogcfg.*a
+%{_libdir}/libossielogcfg.so
 %{_libdir}/pkgconfig/ossie.pc
 %{_sysconfdir}/bash_completion.d/nodeBooter
 
@@ -265,6 +273,13 @@ fi
 
 
 %changelog
+* Wed Sep 9 2015 - 2.0.0-2
+- Add qt-tools package
+- Remove el5 support
+
+* Wed Sep 15 2014 - 1.11.0-1
+- Update for dependency on java7
+
 * Wed May 21 2014 - 1.10.0-7
 - Move a dependency that was on the wrong package
 

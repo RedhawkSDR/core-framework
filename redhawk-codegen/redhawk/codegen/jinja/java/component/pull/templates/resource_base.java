@@ -26,9 +26,29 @@
 //% set artifactType = component.artifacttype
 package ${component.package};
 
+//% set listImported = false
 /*{% if component.hasmultioutport %}*/
 import java.util.List;
+//% set listImported = true
 /*{% endif %}*/
+
+/*{% for prop in component.properties %}*/
+/*{%   if prop is struct %}*/
+/*{%     for p in prop.fields %}*/
+/*{%       if p is simplesequence and not listImported %}*/
+import java.util.List;
+//%          set listImported = true
+/*{%       endif %}*/
+/*{%     endfor %}*/
+/*{%   elif prop is structsequence %}*/
+/*{%     for p in prop.structdef.fields %}*/
+/*{%       if p is simplesequence and not listImported %}*/
+import java.util.List;
+//%          set listImported = true
+/*{%       endif %}*/
+/*{%     endfor %}*/
+/*{%   endif %}*/
+/*{% endfor %}*/
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -73,6 +93,10 @@ import ${portgen.package}.${portgen.className()};
 import bulkio.connection_descriptor_struct;
 /*{% endif %}*/
 
+/*{% block baseadditionalimports %}*/
+/*# Allow for child class imports #*/
+/*{% endblock %}*/
+
 /**
  * This is the ${artifactType} code. This file contains all the access points
  * you need to use to be able to access all input and output ports,
@@ -82,7 +106,10 @@ import bulkio.connection_descriptor_struct;
  *
  * @generated
  */
+
+/*{% block classdeclaration %}*/
 public abstract class ${classname} extends ${superClass} {
+/*{% endblock %}*/
     /**
      * @generated
      */
@@ -90,13 +117,17 @@ public abstract class ${classname} extends ${superClass} {
 
 /*{% import "base/properties.java" as properties with context %}*/
 /*{% for prop in component.properties %}*/
+/*{%   if not prop.inherited %}*/
     ${properties.create(prop)|indent(4)}
+//%    endif
 /*{% endfor %}*/
 /*{% for port in component.ports if port is provides %}*/
 /*{%   if loop.first %}*/
     // Provides/inputs
 /*{%   endif %}*/
     /**
+     * ${port.description|default("If the meaning of this port isn't clear, a description should be added.", true)}
+     *
      * @generated
      */
     public ${port.javatype} ${port.javaname};
@@ -107,6 +138,8 @@ public abstract class ${classname} extends ${superClass} {
     // Uses/outputs
 /*{%   endif %}*/
     /**
+     * ${port.description|default("If the meaning of this port isn't clear, a description should be added.", true)}
+     *
      * @generated
      */
     public ${port.javatype} ${port.javaname};
@@ -118,12 +151,20 @@ public abstract class ${classname} extends ${superClass} {
     public ${classname}()
     {
         super();
+
+        setLogger( logger, ${classname}.class.getName() );
+
 /*{% for prop in component.properties %}*/
 /*{%   if loop.first %}*/
 
         // Properties
 /*{%   endif %}*/
+/*{%   if not prop.inherited %}*/
         addProperty(${prop.javaname});
+
+/*{%   elif prop.javavalue and prop.javavalue != "null" %}*/
+        ${prop.javaname}.setValue(${prop.javavalue});
+/*{%   endif %}*/
 /*{% endfor %}*/
 /*{% for port in component.ports if port is provides %}*/
 /*{%   if loop.first %}*/
@@ -131,7 +172,11 @@ public abstract class ${classname} extends ${superClass} {
         // Provides/inputs
 /*{%   endif %}*/
         this.${port.javaname} = new ${port.constructor};
+/*{%   if port.hasDescription %}*/
+        this.addPort("${port.name}", "${port.description}", this.${port.javaname}); 
+/*{%   else %}*/
         this.addPort("${port.name}", this.${port.javaname});
+/*{%   endif %}*/
 /*{% endfor %}*/
 /*{% for port in component.ports if port is uses %}*/
 /*{%   if loop.first %}*/
@@ -139,9 +184,16 @@ public abstract class ${classname} extends ${superClass} {
         // Uses/outputs
 /*{%   endif %}*/
         this.${port.javaname} = new ${port.constructor};
+/*{%   if port.hasDescription %}*/
+        this.addPort("${port.name}", "${port.description}", this.${port.javaname}); 
+/*{%   else %}*/
         this.addPort("${port.name}", this.${port.javaname});
+/*{%   endif %}*/
 /*{% endfor %}*/
 /*{% if component.hasmultioutport %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
+        this.listeners = new HashMap<String, String>();
+/*{% endif %}*/
 
         this.connectionTable.addChangeListener(new PropertyListener<List<connection_descriptor_struct>>() {
             public void valueChanged (List<connection_descriptor_struct> oldValue, List<connection_descriptor_struct> newValue)
@@ -195,6 +247,11 @@ public abstract class ${classname} extends ${superClass} {
     }
 /*{% endif %}*/
 
+/*{% block extensions %}*/
+/*# Allow for child class extensions #*/
+/*{% endblock %}*/
+
+/*{% block resourcemain %}*/
     /**
      * The main function of your ${artifactType}.  If no args are provided, then the
      * CORBA object is not bound to an SCA Domain or NamingService and can
@@ -230,4 +287,5 @@ public abstract class ${classname} extends ${superClass} {
             e.printStackTrace();
         }
     }
+/*{% endblock %}*/
 }

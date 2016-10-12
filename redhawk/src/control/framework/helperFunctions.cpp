@@ -20,60 +20,23 @@
 
 
 #include <string>
-#include <iostream>
-
 #include <uuid/uuid.h>
 
 #include <boost/filesystem/path.hpp>
 
-#include <ossie/CF/cf.h>
-#include <ossie/CorbaUtils.h>
 #include <ossie/ossieSupport.h>
-#include <ossie/debug.h>
+#include <ossie/boost_compat.h>
 
 namespace fs = boost::filesystem;
 
-void ossie::createProfileFromFileName(std::string fileName, std::string& profile)
+bool ossie::isValidFileName(const std::string& fileName)
 {
-    profile = "<profile filename=\"" + fileName + "\" />";
-
-    return;
-}
-
-bool ossie::isValidFileName(const char* fileName)
-{
-    int fsOpSuccessAttempts = 0;
-    bool fsOpSuccess = false;
-    if (fileName[0] == 0) {
-        return fsOpSuccess;
+    if (fileName.empty()) {
+        return false;
     }
-    while (!fsOpSuccess) {
-        try {
-#if BOOST_FILESYSTEM_VERSION < 3            
-	    fs::path testPath(fileName, fs::portable_posix_name);
-#else
-	    fs::path testPath(fileName);
-#endif
-            fsOpSuccess = true;
-        } catch ( ... ) {
-            fsOpSuccessAttempts++;
-            if (fsOpSuccessAttempts == 10)
-                { break; }
-            usleep(10000);
-        }
-    }
-    return fsOpSuccess;
-}
 
-const char* ossie::spd_rel_file(const char* spdFile, const char* name, std::string& fileName)
-{
-    fs::path spdPath(spdFile);
-
-    fs::path filePath = spdPath.branch_path() / name;
-
-    fileName = filePath.string();
-
-    return fileName.c_str();
+    const fs::path testPath(fileName);
+    return true;
 }
 
 std::string ossie::generateUUID()

@@ -30,156 +30,90 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <omniORB4/omniURI.h>
 #include "ossie/debug.h"
+#include "ossie/CorbaUtils.h"
 #include "ossie/EventChannelSupport.h"
 
 
 namespace ossie {
-void sendStateChangeEvent( LOGGER logger, const char* producerId, const char* sourceId,
-    StandardEvent::StateChangeCategoryType stateChangeCategory, 
-    StandardEvent::StateChangeType stateChangeFrom, 
-    StandardEvent::StateChangeType stateChangeTo,
-    CosEventChannelAdmin::ProxyPushConsumer_ptr _proxy_consumer)
-{
-    if (_proxy_consumer != CosEventChannelAdmin::ProxyPushConsumer::_nil()) {
-        CORBA::Any outboundMessage;
-        StandardEvent::StateChangeEventType new_message;
-        new_message.producerId = CORBA::string_dup(producerId);
-        new_message.sourceId = CORBA::string_dup(sourceId);
-        new_message.stateChangeCategory = stateChangeCategory;
-        new_message.stateChangeFrom = stateChangeFrom;
-        new_message.stateChangeTo = stateChangeTo;
-        outboundMessage <<= new_message;
-        try {
-            _proxy_consumer->push(outboundMessage);
-        } catch ( ... ) {
-            RH_WARN(logger, "Unable to send the following StateChangeEvent (the event service might not be running):\n  producer id:"<<producerId<<" source id:"<<sourceId<<" state change category:"<<stateChangeCategory<<" state change from/to: "<<stateChangeFrom<<"/"<<stateChangeTo);
-        }
-    }
-}
-
-void sendObjectAddedEvent( LOGGER logger, const char* producerId, const char* sourceId, const char* sourceName, 
-    CORBA::Object_ptr sourceIOR, StandardEvent::SourceCategoryType sourceCategory, 
-    CosEventChannelAdmin::ProxyPushConsumer_ptr _proxy_consumer)
-{
-    if (_proxy_consumer != CosEventChannelAdmin::ProxyPushConsumer::_nil()) {
-        CORBA::Any outboundMessage;
-        StandardEvent::DomainManagementObjectAddedEventType new_message;
-        new_message.producerId = CORBA::string_dup(producerId);
-        new_message.sourceId = CORBA::string_dup(sourceId);
-        new_message.sourceName = CORBA::string_dup(sourceName);
-        new_message.sourceCategory = sourceCategory;
-        new_message.sourceIOR = CORBA::Object::_duplicate(sourceIOR);
-        outboundMessage <<= new_message;
-        try {
-            _proxy_consumer->push(outboundMessage);
-        } catch ( ... ) {
-            RH_WARN(logger, "Unable to send the following ObjectAddedEvent (the event service might not be running):\n  producer id:"<<producerId<<" source id:"<<sourceId<<" source name:"<<sourceName<<" source category: "<<sourceCategory);
-        }
-    }
-}
-
-void sendObjectRemovedEvent( LOGGER logger, const char* producerId, const char* sourceId, const char* sourceName, 
-    StandardEvent::SourceCategoryType sourceCategory, CosEventChannelAdmin::ProxyPushConsumer_ptr _proxy_consumer)
-{
-    if (_proxy_consumer != CosEventChannelAdmin::ProxyPushConsumer::_nil()) {
-        CORBA::Any outboundMessage;
-        StandardEvent::DomainManagementObjectRemovedEventType new_message;
-        new_message.producerId = CORBA::string_dup(producerId);
-        new_message.sourceId = CORBA::string_dup(sourceId);
-        new_message.sourceName = CORBA::string_dup(sourceName);
-        new_message.sourceCategory = sourceCategory;
-        outboundMessage <<= new_message;
-        try {
-            _proxy_consumer->push(outboundMessage);
-        } catch ( ... ) {
-            RH_WARN(logger, "Unable to send the following ObjectRemovedEvent (the event service might not be running):\n  producer id:"<<producerId<<" source id:"<<sourceId<<" source name:"<<sourceName<<" source category: "<<sourceCategory);
-        }
-    }
-}
 
 
-namespace event {
+namespace events {
 
-CREATE_LOGGER(EventChannelSupport);
 
-#define LNTRACE( lname, expression ) RH_TRACE( rh_logger::Logger::getLogger(lname), expression )
-#define LNDEBUG( lname, expression ) RH_DEBUG( rh_logger::Logger::getLogger(lname), expression )
-#define LNINFO( lname, expression )  RH_INFO( rh_logger::Logger::getLogger(lname), expression )
-#define LNWARN( lname, expression )  RH_WARN( rh_logger::Logger::getLogger(lname), expression )
-#define LNERROR( lname, expression ) RH_ERROR( rh_logger::Logger::getLogger(lname), expression )
-#define LNFATAL( lname, expression ) RH_FATAL( rh_logger::Logger::getLogger(lname), expression )
-
-CosLifeCycle::GenericFactory_ptr getEventChannelFactory ()
-{
-    TRACE_ENTER(EventChannelSupport);
+  EventChannelFactory_ptr getEventChannelFactory ()
+  {
+    RH_NL_TRACE_ENTER(EventChannelSupport)
 
     // Attempt to locate the OmniEvents event channel factory to create the event channels.
     // First, check for an initial reference in the omniORB configuration; if it cannot be
     // resolved in this manner, look it up via the naming service.
-    LOG_TRACE(EventChannelSupport, "Locating EventChannelFactory via initial reference");
+    RH_NL_TRACE("EventChannelSupport", "Locating EventChannelFactory via initial reference");
     CORBA::Object_var factoryObj;
     try {
-        factoryObj = ossie::corba::Orb()->resolve_initial_references("EventService");
+      factoryObj = ossie::corba::Orb()->resolve_initial_references("EventService");
     } catch (const CORBA::ORB::InvalidName&) {
-        LOG_TRACE(EventChannelSupport, "No initial reference for 'EventService'");
+      RH_NL_TRACE("EventChannelSupport", "No initial reference for 'EventService'");
     } catch (const CORBA::Exception& e) {
-        LOG_WARN(EventChannelSupport, "CORBA " << e._name() << " exception locating EventChannelFactory via initial reference");
+      RH_NL_WARN("EventChannelSupport", "CORBA " << e._name() << " exception locating EventChannelFactory via initial reference");
     }
 
     if (CORBA::is_nil(factoryObj)) {
-        LOG_TRACE(EventChannelSupport, "Looking up EventChannelFactory in NameService");
-        CosNaming::Name_var factoryName = ossie::corba::stringToName("EventChannelFactory");
+      RH_NL_TRACE("EventChannelSupport", "Looking up EventChannelFactory in NameService");
+      CosNaming::Name_var factoryName = ossie::corba::stringToName("EventChannelFactory");
 
-        try {
-            factoryObj = ossie::corba::InitialNamingContext()->resolve(factoryName);
-        } catch (const CosNaming::NamingContext::NotFound&) {
-            LOG_TRACE(EventChannelSupport, "No naming service entry for 'EventChannelFactory'");
-        } catch (const CORBA::Exception& e) {
-            LOG_WARN(EventChannelSupport, "CORBA " << e._name() << " exception looking up EventChannelFactory in name service");
-        }
+      try {
+        factoryObj = ossie::corba::InitialNamingContext()->resolve(factoryName);
+      } catch (const CosNaming::NamingContext::NotFound&) {
+        RH_NL_TRACE("EventChannelSupport", "No naming service entry for 'EventChannelFactory'");
+      } catch (const CORBA::Exception& e) {
+        RH_NL_WARN("EventChannelSupport", "CORBA " << e._name() << " exception looking up EventChannelFactory in name service");
+      }
     }
 
-    CosLifeCycle::GenericFactory_var factory;
+    //CosLifeCycle::GenericFactory_var factory;
+    EventChannelFactory_var factory;
     if (!CORBA::is_nil(factoryObj)) {
-        try {
-            if (!factoryObj->_non_existent()) {
-                factory = CosLifeCycle::GenericFactory::_narrow(factoryObj);
-            }
-        } catch (const CORBA::TRANSIENT&) {
-            LOG_WARN(EventChannelSupport, "Could not contact EventChannelFactory");
-        } 
+      try {
+        if (!factoryObj->_non_existent()) {
+          factory = CosLifeCycle::GenericFactory::_narrow(factoryObj);
+        }
+      } catch (const CORBA::TRANSIENT&) {
+        RH_NL_WARN("EventChannelSupport", "Could not contact EventChannelFactory");
+      } 
     }
-    TRACE_EXIT(EventChannelSupport);
+    RH_NL_TRACE_EXIT(EventChannelSupport);
     return factory._retn();
-}
+  }
 
-CosEventChannelAdmin::EventChannel_ptr connectToEventChannel (CosNaming::NamingContext_ptr context, const std::string& name)
-{
-    TRACE_ENTER(EventChannelSupport);
+  EventChannel_ptr connectToEventChannel (CosNaming::NamingContext_ptr context, const std::string& name)
+  {
+    RH_NL_TRACE_ENTER(EventChannelSupport);
     CosNaming::Name_var boundName = ossie::corba::stringToName(name);
     try {
-        CORBA::Object_var obj = context->resolve(boundName);
-        LOG_TRACE(EventChannelSupport, "Existing event channel " << name << " found");
-        return CosEventChannelAdmin::EventChannel::_narrow(obj);
+      CORBA::Object_var obj = context->resolve(boundName);
+      EventChannel_var ret = EventChannel::_nil();
+       ret =  ossie::events::EventChannel::_narrow(obj);
+       RH_NL_TRACE("EventChannelSupport", "Existing event channel " << name << " found");
+      return ret;
     } catch (const CosNaming::NamingContext::NotFound&) {
-        // The channel does not exist and can be safely created.
+      // The channel does not exist and can be safely created.
     } catch (const CORBA::Exception& e) {
-        LOG_WARN(EventChannelSupport, "CORBA (" << e._name() << ") exception connecting to event channel " << name <<". Continue without connecting to the channel (the event service might not be running)");
+      RH_NL_WARN("EventChannelSupport", "CORBA (" << e._name() << ") exception connecting to event channel " << name <<". Continue without connecting to the channel (the event service might not be running)");
     }
 
-    TRACE_EXIT(EventChannelSupport);
-    return CosEventChannelAdmin::EventChannel::_nil();
-}
+    RH_NL_TRACE_EXIT(EventChannelSupport);
+    return EventChannel::_nil();
+  }
 
-CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& name)
-{
-    TRACE_ENTER(EventChannelSupport);
+  EventChannel_ptr createEventChannel (const std::string& name)
+  {
+    RH_NL_TRACE_ENTER(EventChannelSupport);
 
-    CosLifeCycle::GenericFactory_var factory = getEventChannelFactory();
+    EventChannelFactory_ptr factory = getEventChannelFactory();
     if (CORBA::is_nil(factory)) {
-        LOG_WARN(EventChannelSupport, "Event channel " << name << " not created");
-        TRACE_EXIT(EventChannelSupport);
-        return CosEventChannelAdmin::EventChannel::_nil();
+      RH_NL_WARN("EventChannelSupport", "Event channel " << name << " not created");
+      RH_NL_TRACE_EXIT(EventChannelSupport);
+      return EventChannel::_nil();
     }
 
     CosLifeCycle::Key key;
@@ -193,64 +127,22 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
     criteria[0].name = "InsName";
     criteria[0].value <<= insName.c_str();
 
-    CosEventChannelAdmin::EventChannel_var eventChannel;
+    EventChannel_var eventChannel;
 
-    LOG_TRACE(EventChannelSupport, "Creating event channel " << name);
+    RH_NL_TRACE("EventChannelSupport", "Creating event channel " << name);
+    RH_NL_INFO("EventChannelSupport", "Creating event channel " << name);
     try {
-        CORBA::Object_var obj = factory->create_object(key, criteria);
-        eventChannel = CosEventChannelAdmin::EventChannel::_narrow(obj);
+      CORBA::Object_var obj = factory->create_object(key, criteria);
+      eventChannel = ossie::events::EventChannel::_narrow(obj);
     } catch (const CosLifeCycle::InvalidCriteria&) {
-        LOG_WARN(EventChannelSupport, "Invalid Criteria for creating event channel " << name);
+      RH_NL_WARN("EventChannelSupport", "Invalid Criteria for creating event channel " << name);
     } catch (const CORBA::Exception& ex) {
-        LOG_WARN(EventChannelSupport, "CORBA " << ex._name() << " exception creating event channel " << name);
+      RH_NL_WARN("EventChannelSupport", "CORBA " << ex._name() << " exception creating event channel " << name);
     }
 
-    TRACE_EXIT(EventChannelSupport);
+    RH_NL_TRACE_EXIT(EventChannelSupport);
     return eventChannel._retn();
-}
-
-  ////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////
-
-   struct OrbContext;
-   typedef OrbContext*  OrbPtr;
- 
-    //
-    // Orb
-    //
-    // Context for access to ORB and common CORBA services
-    //
-    struct OrbContext {
-
-      // orb instantiation
-      CORBA::ORB_ptr                          orb;
-
-      // root POA for to handle object requests
-      PortableServer::POA_ptr                 rootPOA;
-
-      // handle to naming service
-      CosNaming::NamingContext_ptr            namingService;
-
-      // handle to naming service
-      CosNaming::NamingContextExt_ptr         namingServiceCtx;
-
-      virtual ~OrbContext() {};
-
-      OrbContext() {
-	orb = ossie::corba::Orb();
-	rootPOA = ossie::corba::RootPOA();
-	namingService = ossie::corba::InitialNamingContext();
-	namingServiceCtx = CosNaming::NamingContextExt::_nil();
-	try {
-	  CORBA::Object_ptr obj;
-	  obj=orb->resolve_initial_references("NameService");
-	  namingServiceCtx = CosNaming::NamingContextExt::_narrow(obj);
-	}
-	catch(...){
-	};
-      };
-
-    };
+  }
 
 
   ////////////////////////////////////////////////////////////////
@@ -264,58 +156,58 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
   // (Taken from eventc.cc)
   //
   //
-/**
-   This requires libomniEvent.so....
+  /*
+     This requires libomniEvent.so....
 
-  omniEvents::EventChannelFactory_ptr GetEventChannelFactory ( corba::OrbPtr &orb ) {
+     omniEvents::EventChannelFactory_ptr GetEventChannelFactory ( corba::OrbPtr &orb ) {
     
-    CORBA::Object_var ecf_obj;
-    omniEvents::EventChannelFactory_var ecf = omniEvents::EventChannelFactory::_nil();
-    LNDEBUG( "GetEventChannelFactory", " Look up EventChannelFactory" );
-    try {
-      //ecf_obj = orb.namingServiceCtx->resolve_str(str2name("EventChannelFactory"));
-      ecf_obj = orb->namingServiceCtx->resolve_str("EventChannelFactory");
-      if (!CORBA::is_nil(ecf_obj)) {
-	LNDEBUG( "GetEventChannelFactory",  " Narrow object to EventChannelFactory" );
-	ecf = omniEvents::EventChannelFactory::_narrow(ecf_obj);
-	LNDEBUG( "GetEventChannelFactory",  " Narrowed to ... EventChannelFactory" );
-      }
-    } catch (const CosNaming::NamingContext::NotFound&) {
-      LNWARN( "GetEventChannelFactory", " No naming service entry for 'EventChannelFactory'" );
-    } catch (const CORBA::Exception& e) {
-      LNWARN( "GetEventChannelFactory",  " CORBA " << e._name() << ", exception looking up EventChannelFactory." );
-    } 
-    return ecf._retn();
+     CORBA::Object_var ecf_obj;
+     omniEvents::EventChannelFactory_var ecf = omniEvents::EventChannelFactory::_nil();
+     RH_NL_DEBUG( "GetEventChannelFactory", " Look up EventChannelFactory" );
+     try {
+     //ecf_obj = orb.namingServiceCtx->resolve_str(str2name("EventChannelFactory"));
+     ecf_obj = orbCtx.namingServiceCtx->resolve_str("EventChannelFactory");
+     if (!CORBA::is_nil(ecf_obj)) {
+     RH_NL_DEBUG( "GetEventChannelFactory",  " Narrow object to EventChannelFactory" );
+     ecf = omniEvents::EventChannelFactory::_narrow(ecf_obj);
+     RH_NL_DEBUG( "GetEventChannelFactory",  " Narrowed to ... EventChannelFactory" );
+     }
+     } catch (const CosNaming::NamingContext::NotFound&) {
+     RH_NL_WARN( "GetEventChannelFactory", " No naming service entry for 'EventChannelFactory'" );
+     } catch (const CORBA::Exception& e) {
+     RH_NL_WARN( "GetEventChannelFactory",  " CORBA " << e._name() << ", exception looking up EventChannelFactory." );
+     } 
+     return ecf._retn();
 
-  }
+     }
 
-  CosLifeCycle::GenericFactory_ptr GetEventChannelFactory ( ) {
+     CosLifeCycle::GenericFactory_ptr GetEventChannelFactory ( ) {
     
-    Orb _orb;
-    OrbPtr orb=&_orb;
+     Orb orbCtx;
+     OrbPtr orb=&orbCtx;
 
-    CORBA::Object_var ecf_obj;
-    //omniEvents::EventChannelFactory_var ecf = omniEvents::EventChannelFactory::_nil();
-    CosLifeCycle::GenericFactory_var  ecf;
-    LNDEBUG( "GetEventChannelFactory", " Look up EventChannelFactory" );
-    try {
-      //ecf_obj = orb.namingServiceCtx->resolve_str(str2name("EventChannelFactory"));
-      ecf_obj = orb->namingServiceCtx->resolve_str("EventChannelFactory");
-      if (!CORBA::is_nil(ecf_obj)) {
-	LNDEBUG( "GetEventChannelFactory",  " Narrow object to EventChannelFactory" );
-	ecf = CosLifeCycle::GenericFactory::_narrow(ecf_obj);
-	//ecf = omniEvents::EventChannelFactory::_narrow(ecf_obj);
-	LNDEBUG( "GetEventChannelFactory",  " Narrowed to ... EventChannelFactory" );
-      }
-    } catch (const CosNaming::NamingContext::NotFound&) {
-      LNWARN( "GetEventChannelFactory", " No naming service entry for 'EventChannelFactory'" );
-    } catch (const CORBA::Exception& e) {
-      LNWARN( "GetEventChannelFactory",  " CORBA " << e._name() << ", exception looking up EventChannelFactory." );
-    } 
-    return ecf._retn();
+     CORBA::Object_var ecf_obj;
+     //omniEvents::EventChannelFactory_var ecf = omniEvents::EventChannelFactory::_nil();
+     CosLifeCycle::GenericFactory_var  ecf;
+     RH_NL_DEBUG( "GetEventChannelFactory", " Look up EventChannelFactory" );
+     try {
+     //ecf_obj = orb.namingServiceCtx->resolve_str(str2name("EventChannelFactory"));
+     ecf_obj = orbCtx.namingServiceCtx->resolve_str("EventChannelFactory");
+     if (!CORBA::is_nil(ecf_obj)) {
+     RH_NL_DEBUG( "GetEventChannelFactory",  " Narrow object to EventChannelFactory" );
+     ecf = CosLifeCycle::GenericFactory::_narrow(ecf_obj);
+     //ecf = omniEvents::EventChannelFactory::_narrow(ecf_obj);
+     RH_NL_DEBUG( "GetEventChannelFactory",  " Narrowed to ... EventChannelFactory" );
+     }
+     } catch (const CosNaming::NamingContext::NotFound&) {
+     RH_NL_WARN( "GetEventChannelFactory", " No naming service entry for 'EventChannelFactory'" );
+     } catch (const CORBA::Exception& e) {
+     RH_NL_WARN( "GetEventChannelFactory",  " CORBA " << e._name() << ", exception looking up EventChannelFactory." );
+     } 
+     return ecf._retn();
 
-  }
-**/
+     }
+  **/
 
   //
   // GetEventChannel
@@ -328,16 +220,16 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
   //
   // If channel was not found and create==true then create the channel from the EventChannelFactory
   //
-  CosEventChannelAdmin::EventChannel_ptr GetEventChannel ( const std::string& name, 
+  EventChannel_ptr GetEventChannel ( const std::string& name, 
 							   const bool create,
 							   const std::string &host ) {
-    LNDEBUG("GetEventChannel",  " : NamingService look up, Channel " << name );
+    RH_NL_DEBUG("GetEventChannel",  " : NamingService look up, Channel " << name );
 
-    OrbContext _orb;
-    OrbPtr     orb=&_orb;
+    ossie::corba::OrbContext orbCtx;
 
     // return value if no event channel was found or error occured
-    CosEventChannelAdmin::EventChannel_var event_channel = CosEventChannelAdmin::EventChannel::_nil();
+    //CosEventChannelAdmin::EventChannel_var event_channel = CosEventChannelAdmin::EventChannel::_nil();
+    EventChannel_var event_channel = EventChannel::_nil();
 
     //
     // Look up event channel
@@ -357,14 +249,18 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
     //
     try {
       if ( found == false ) {
-	LNDEBUG( "GetEventChannel", " : Trying InitRef Lookup " << name );
-	CORBA::Object_var obj = orb->orb->resolve_initial_references(name.c_str());
-	event_channel = CosEventChannelAdmin::EventChannel::_narrow(obj);
-	found =true;
-	LNDEBUG( "GetEventChannel", " : FOUND EXISTING, Channel " << name );
+	RH_NL_DEBUG( "GetEventChannel", " : Trying InitRef Lookup " << name );
+	CORBA::Object_var obj = orbCtx.orb->resolve_initial_references(name.c_str());
+        if ( CORBA::is_nil(obj) == false ){
+	  //CosEventChannelAdmin::EventChannel_var tchannel = CosEventChannelAdmin::EventChannel::_narrow(obj);
+          //event_channel = EventChannel::_unchecked_narrow(tchannel);
+          event_channel = EventChannel::_narrow(obj);
+          found =true;
+          RH_NL_DEBUG( "GetEventChannel", " : FOUND EXISTING, Channel " << name );
+        }
       } 
     }catch (const CORBA::Exception& e) {
-      LNWARN( "GetEventChannel", "  Unable to lookup with InitRef:" << name << ",  CORBA RETURNED(" << e._name() << ")" );
+      RH_NL_DEBUG( "GetEventChannel", "  Unable to lookup with InitRef:" << name << ",  CORBA RETURNED(" << e._name() << ")" );
     } 
 
 
@@ -383,15 +279,19 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
 	else
 	  os << name;
 	tname=os.str();
-	LNDEBUG( "GetEventChannel", " : Trying corbaname resolution " << tname );
-	CORBA::Object_var obj = obj=orb->orb->string_to_object(tname.c_str());
-	event_channel = CosEventChannelAdmin::EventChannel::_narrow(obj);
-	found =true;
-	LNDEBUG( "GetEventChannel", " : FOUND EXISTING, Channel " << tname );
+	RH_NL_DEBUG( "GetEventChannel", " : Trying corbaname resolution " << tname );
+	CORBA::Object_var obj = obj=orbCtx.orb->string_to_object(tname.c_str());
+        if ( CORBA::is_nil(obj) == false ){
+	  //CosEventChannelAdmin::EventChannel_var tchannel = CosEventChannelAdmin::EventChannel::_narrow(obj);
+	  //          event_channel = EventChannel::_unchecked_narrow(tchannel);
+          event_channel = ossie::events::EventChannel::_narrow(obj);
+          found =true;
+          RH_NL_DEBUG( "GetEventChannel", " : FOUND EXISTING, Channel " << tname );
+        }
       } 
 
     }catch (const CORBA::Exception& e) {
-      LNWARN( "GetEventChannel",  "  Unable to lookup with corbaname:  URI:" << tname << ",  CORBA RETURNED(" << e._name() << ")");
+      RH_NL_DEBUG( "GetEventChannel",  "  Unable to lookup with corbaname:  URI:" << tname << ",  CORBA RETURNED(" << e._name() << ")");
     }
 
 
@@ -406,48 +306,52 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
 	// 
 	os << "corbaloc::"<<host<<":11169/"<< name;
 	tname=os.str();
-	LNDEBUG( "GetEventChannel"," : Trying corbaloc resolution " << tname );
-	CORBA::Object_var obj = orb->orb->string_to_object(tname.c_str());
+	RH_NL_DEBUG( "GetEventChannel"," : Trying corbaloc resolution " << tname );
+	CORBA::Object_var obj = orbCtx.orb->string_to_object(tname.c_str());
 	if ( !CORBA::is_nil(obj) ) {
-	    event_channel = CosEventChannelAdmin::EventChannel::_narrow(obj);
-	    found = true;
-	    LNDEBUG( "GetEventChannel", " : FOUND EXISTING, Channel " << tname );
+          //CosEventChannelAdmin::EventChannel_var tchannel = CosEventChannelAdmin::EventChannel::_narrow(obj);
+          //event_channel = EventChannel::_unchecked_narrow(tchannel);
+          event_channel = ossie::events::EventChannel::_narrow(obj);
+          found = true;
+          RH_NL_DEBUG( "GetEventChannel", " : FOUND EXISTING, Channel " << tname );
 	}
 	else {
-	  LNDEBUG( "GetEventChannel", " : SEARCH FOR Channel " << tname << " FAILED");
+	  RH_NL_DEBUG( "GetEventChannel", " : SEARCH FOR Channel " << tname << " FAILED");
 	}
       } 
     }catch (const CORBA::Exception& e) {
-      LNWARN( "GetEventChannel", "  Unable to lookup with corbaloc URI:" << tname << ", CORBA RETURNED(" << e._name() << ")" );
+      if ( !create ) {
+        RH_NL_WARN( "GetEventChannel", "  Unable to lookup with corbaloc URI:" << tname << ", CORBA RETURNED(" << e._name() << ")" );
+      }
     }
 
     try{
       if ( !found && create ) {
 
-	LNDEBUG( "GetEventChannel", " CREATE NEW CHANNEL " << name );
-	event_channel = CreateEventChannel( name );
+	RH_NL_DEBUG( "GetEventChannel", " CREATE NEW CHANNEL " << name );
+	event_channel = CreateEventChannel( name, ossie::corba::NS_NOBIND);
 	if ( !CORBA::is_nil(event_channel) )
-	  LNINFO( "GetEventChannel", " --- CREATED NEW CHANNEL ---" << name );
+	  RH_NL_INFO( "GetEventChannel", " --- CREATED NEW CHANNEL ---" << name );
       }
     } catch (const CORBA::Exception& e) {
-      LNERROR( "GetEventChannel", "  CORBA (" << e._name() << ") during event creation, channel " << name );
+      RH_NL_ERROR( "GetEventChannel", "  CORBA (" << e._name() << ") during event creation, channel " << name );
     }
 
+    RH_NL_DEBUG( "GetEventChannel", "  RETURN: channel " << name  << " found " << found );
     return event_channel._retn();
   }
 
 
-  CosEventChannelAdmin::EventChannel_ptr GetEventChannel ( const std::string& name, 
+ EventChannel_ptr GetEventChannel ( const std::string& name, 
 							   const std::string &nc_name, 
 							   const bool create,
 							   const std::string &host )
   {
 
     // return value if no event channel was found or error occured
-    CosEventChannelAdmin::EventChannel_var event_channel = CosEventChannelAdmin::EventChannel::_nil();
+    EventChannel_var event_channel = EventChannel::_nil();
     // set orb context..
-    OrbContext    _orb;
-    OrbPtr orb = &_orb;
+    ossie::corba::OrbContext    orbCtx;
     //
     // Look up event channel in NamingService from root context...
     // if lookup fails then return nil if create== false,
@@ -461,34 +365,84 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
       //
       // Lookup in NamingService...
       //
-      LNDEBUG("GetEventChannel",  " : NamingService look up, NC<"<<nc_name<<"> Channel " << name );
+      RH_NL_DEBUG("GetEventChannel",  " : NamingService look up, NC<"<<nc_name<<"> Channel " << name );
       std::string cname=name;
       if ( nc_name != "" )
 	cname=nc_name+"/"+name;
 
-      LNDEBUG("GetEventChannel",  " : NamingService look up : " << cname );
-      CORBA::Object_var obj = orb->namingServiceCtx->resolve_str(cname.c_str());
-      event_channel = CosEventChannelAdmin::EventChannel::_narrow(obj);
-
-      LNDEBUG("GetEventChannel", " : FOUND EXISTING, Channel NC<"<<nc_name<<"> Channel " << name );
-      found = true;
+      RH_NL_DEBUG("GetEventChannel",  " : NamingService look up : " << cname );
+      CORBA::Object_var obj = orbCtx.namingServiceCtx->resolve_str(cname.c_str());
+        if ( CORBA::is_nil(obj) == false ){
+	  // CosEventChannelAdmin::EventChannel_var tchannel = CosEventChannelAdmin::EventChannel::_narrow(obj);
+          //event_channel = EventChannel::_unchecked_narrow(tchannel);
+          event_channel = ossie::events::EventChannel::_narrow(obj);
+          found =true;
+          RH_NL_INFO( "GetEventChannel", " : FOUND EXISTING, CHANNEL " << name  << " FROM CONTEXT: " << nc_name );
+        }
     } catch (const CosNaming::NamingContext::NotFound&) {
-      LNWARN("GetEventChannel",  "  Unable to resolve event channel (" << name << ") in NamingService..." );
+      RH_NL_DEBUG("GetEventChannel",  "  Unable to resolve event channel (" << name << ") in NamingService..." );
     } catch (const CORBA::Exception& e) {
-      LNERROR("GetEventChannel", "  CORBA (" << e._name() << ") exception during event channel look up, CH:" << name );
+      RH_NL_ERROR("GetEventChannel", "  CORBA (" << e._name() << ") exception during event channel look up, CH:" << name );
     }
+
+    //
+    // try to resolve with corbaloc method and string_to_object method
+    //
+    try {
+      if ( found == false ) {	
+	std::ostringstream os;
+	//
+	// last gasp... try the corbaloc method...corbaloc::host:11169/<channel name>
+	// 
+	os << "corbaloc::"<<host<<":11169/";
+        if ( nc_name != "" ) { 
+          os << nc_name << "." << name;
+        }
+        else {
+          os << name;
+        }
+	tname=os.str();
+	RH_NL_DEBUG( "GetEventChannel"," : Trying corbaloc resolution " << tname );
+	CORBA::Object_var obj = orbCtx.orb->string_to_object(tname.c_str());
+	if ( !CORBA::is_nil(obj) ) {
+          event_channel = ossie::events::EventChannel::_narrow(obj);
+          found = true;
+          RH_NL_DEBUG( "GetEventChannel", " : FOUND EXISTING, Channel " << tname );
+
+          try {
+            if(!CORBA::is_nil(orbCtx.namingService) and nc_name != "" ) {
+              RH_NL_DEBUG( "GetEventChannel", " : Trying to bind EXISTING Event Channel " << tname );
+              ossie::corba::Bind( name, event_channel.in(), nc_name, true );
+            }
+            
+          } 
+          catch (const CORBA::Exception& ex) {
+            RH_NL_ERROR( "CreateEventChannel", " CHANNEL: CORBA " << ex._name() << " exception during create operation, CHANNEL:" << name );
+          }
+
+	}
+	else {
+	  RH_NL_DEBUG( "GetEventChannel", " : SEARCH FOR Channel " << tname << " FAILED");
+	}
+      } 
+    }catch (const CORBA::Exception& e) {
+      if ( !create ) {
+        RH_NL_WARN( "GetEventChannel", "  Unable to lookup with corbaloc URI:" << tname << ", CORBA RETURNED(" << e._name() << ")" );
+      }
+    }
+
 
 
     try{
       if ( !found && create ) {
 
-	LNDEBUG( "GetEventChannel", " CREATE NEW CHANNEL " << name );
-	event_channel = CreateEventChannel( name, nc_name );
+	RH_NL_DEBUG( "GetEventChannel", " CREATE NEW CHANNEL " << name );
+	event_channel = CreateEventChannel( name, nc_name);
 	if ( !CORBA::is_nil(event_channel) )
-	  LNINFO( "GetEventChannel", " --- CREATED NEW CHANNEL ---" << name );
+	  RH_NL_INFO( "GetEventChannel", " --- CREATED NEW CHANNEL ---" << name << " ASSIGNED TO CONTEXT:" << nc_name);
       }
     } catch (const CORBA::Exception& e) {
-      LNERROR( "GetEventChannel", "  CORBA (" << e._name() << ") during event creation, channel " << name );
+      RH_NL_ERROR( "GetEventChannel", "  CORBA (" << e._name() << ") during event creation, channel " << name );
     }
 
     return event_channel._retn();
@@ -500,27 +454,25 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
   //
   // @param orb  context of the orb we are associated with 
   // @param name human readable path to the event channel being requested
-  // @parm  bind bind the channel name to the object in the NamingService if channel was created
+  // @parm  action bind the channel name to the object in the NamingService if channel was created
   //
-  CosEventChannelAdmin::EventChannel_ptr CreateEventChannel (  const std::string& name, 
-							      corba::NS_ACTION action  ) {
+  EventChannel_ptr CreateEventChannel (  const std::string& name, 
+                                                               corba::NS_ACTION action  ) {
     return CreateEventChannel( name, "", action );
   }
 
-  CosEventChannelAdmin::EventChannel_ptr CreateEventChannel ( const std::string& name, 
+  EventChannel_ptr CreateEventChannel ( const std::string& name, 
 							      const std::string &nc_name, 
 							      corba::NS_ACTION action  )
   {
-    OrbContext  _orb;
-    OrbPtr orb = &_orb;
+    ossie::corba::OrbContext  orbCtx;
 
-    CosEventChannelAdmin::EventChannel_var event_channel = CosEventChannelAdmin::EventChannel::_nil();
-    //omniEvents::EventChannelFactory_var event_channel_factory = GetEventChannelFactory( );
-    CosLifeCycle::GenericFactory_var event_channel_factory = getEventChannelFactory( );
-    LNDEBUG( "CreateEventChannel", " Request to create event channel:" << name << " bind action:" << action );
+    EventChannel_var event_channel =  EventChannel::_nil();
+    EventChannelFactory_var event_channel_factory = getEventChannelFactory( );
+    RH_NL_DEBUG( "CreateEventChannel", " Request to create event 44channel:" << name << " bind action:" << action );
 
     if (CORBA::is_nil(event_channel_factory)) {
-      LNERROR( "CreateEventChannel", "CHANNEL(CREATE): Could not find EventChannelFactory" );
+      RH_NL_ERROR( "CreateEventChannel", "CHANNEL(CREATE): Could not find EventChannelFactory" );
       return event_channel._retn();
     }
 
@@ -529,80 +481,80 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
     key[0].id = CORBA::string_dup("EventChannel");
     key[0].kind = CORBA::string_dup("object interface");
 
-    LNDEBUG( "CreateEventChannel", " action - event channel factory api" );
+    RH_NL_DEBUG( "CreateEventChannel", " action - event channel factory api" );
     if(!event_channel_factory->supports(key))
       {
-	LNWARN( "CreateEventChannel", " EventChannelFactory does not support Event Channel Interface!" );
+	RH_NL_WARN( "CreateEventChannel", " EventChannelFactory does not support Event Channel Interface!" );
 	return event_channel._retn();	
       }
 
     // 
     // Our EventChannels will always be created with InsName
     //
-    LNINFO( "CreateEventChannel", " Request to create event channel:" << name.c_str() << " bind action:" << action );
+    std::string tname(name);
+    if ( nc_name != "" ) { tname=nc_name+"."+name;  }
+    RH_NL_INFO( "CreateEventChannel", " Request to create event channel:" << tname << " bind action:" << action );
     CosLifeCycle::Criteria criteria;
-    criteria.length(2);
+    criteria.length(1);
     criteria[0].name=CORBA::string_dup("InsName");
-    criteria[0].value<<=name.c_str();
-    criteria[1].name=CORBA::string_dup("CyclePeriod_ns");
-    criteria[1].value<<=(CORBA::ULong)10;
+    criteria[0].value<<=tname.c_str();
 
     //
     // Create Event Channel Object.
     //
-    LNDEBUG( "CreateEventChannel", " action - create EventChannel object" );
+    RH_NL_DEBUG( "CreateEventChannel", " action - create EventChannel object" );
 
     CORBA::Object_var obj;
     try {
       obj =event_channel_factory->create_object(key, criteria);
     }
     catch (CosLifeCycle::CannotMeetCriteria& ex) /* create_object() */ {
-      LNERROR( "CreateEventChannel", "create_object failed, channel: " << name << " reason: CannotMeetCriteria " );
+      RH_NL_ERROR( "CreateEventChannel", "create_object failed, channel: " << name << " reason: CannotMeetCriteria " );
     }
     catch (CosLifeCycle::InvalidCriteria& ex) /* create_object() */ {
-      LNERROR( "CreateEventChannel", "create_object failed, channel: " << name << " reason: InvalidCriteria " );
+      RH_NL_ERROR( "CreateEventChannel", "create_object failed, channel: " << name << " reason: InvalidCriteria " );
       if(ex.invalid_criteria.length()>0) {
 	int j;
 	for (  j=0; (unsigned int)j < ex.invalid_criteria.length(); j++ ) { 
-	  LNERROR( "CreateEventChannel", "--- Criteria Name: " << ex.invalid_criteria[j].name );
+	  RH_NL_ERROR( "CreateEventChannel", "--- Criteria Name: " << ex.invalid_criteria[j].name );
 	  CORBA::ULong xx;
 	  ex.invalid_criteria[j].value >>= xx;
-	  LNERROR( "CreateEventChannel", "--- Criteria Value : " << xx );
+	  RH_NL_ERROR( "CreateEventChannel", "--- Criteria Value : " << xx );
 	}
       }
     }
     catch( CORBA::Exception &ex ) {
-      LNERROR( "CreateEventChannel", " create_object failed, channel:" << name << " reason: corba exception" );
+      RH_NL_ERROR( "CreateEventChannel", " create_object failed, channel:" << name << " reason: corba exception" );
     }
 
     if (CORBA::is_nil(obj)) {
-      LNERROR( "CreateEventChannel", " Factory failed to create channel: " << name );
+      RH_NL_ERROR( "CreateEventChannel", " Factory failed to create channel: " << name );
       return event_channel._retn();
     }
 
     try {
-      LNDEBUG( "CreateEventChannel", " action - Narrow EventChannel" );
-      event_channel = CosEventChannelAdmin::EventChannel::_narrow(obj);
+      RH_NL_DEBUG( "CreateEventChannel", " action - Narrow EventChannel" );
+      event_channel = ossie::events::EventChannel::_narrow(obj);
     }
     catch( CORBA::Exception &ex ) {
-      LNERROR( "CreateEventChannel", " Failed Narrow to EventChannel for:" << name  );
+      RH_NL_ERROR( "CreateEventChannel", " Failed Narrow to EventChannel for:" << name  );
     }
-    LNDEBUG( "CreateEventChannel", " created event channel " << name );
+    RH_NL_DEBUG( "CreateEventChannel", " created event channel " << name );
     try {
 
-      if(!CORBA::is_nil(orb->namingService) && ( action == ossie::corba::NS_BIND) ) {
+      if(!CORBA::is_nil(orbCtx.namingService) && ( action == ossie::corba::NS_BIND) ) {
 	ossie::corba::Bind( name, event_channel.in(), nc_name, true );
       }
 
     } 
     catch (const CosLifeCycle::InvalidCriteria& ex) {
-      LNERROR( "CreateEventChannel", " CHANNEL: Invalid Criteria: " << ex._name() << " - for creating event channel " << name );
+      RH_NL_ERROR( "CreateEventChannel", " CHANNEL: Invalid Criteria: " << ex._name() << " - for creating event channel " << name );
     } catch (const CORBA::Exception& ex) {
-      LNERROR( "CreateEventChannel", " CHANNEL: CORBA " << ex._name() << " exception during create operation, CHANNEL:" << name );
+      RH_NL_ERROR( "CreateEventChannel", " CHANNEL: CORBA " << ex._name() << " exception during create operation, CHANNEL:" << name );
     }
 
 
-    LNDEBUG( "CreateEventChannel", " completed create event channel : " << name );
+    RH_NL_DEBUG( "CreateEventChannel", " completed create event channel : " << name );
     return event_channel._retn();
 
   }
@@ -628,41 +580,41 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
 
     event_channel = GetEventChannel( name, false  );
     if ( CORBA::is_nil(event_channel) == true ) {
-      LNDEBUG( "DeleteEventChannel", " Cannot find event channel name " << name << " to object, try to remove from naming context." );
+      RH_NL_DEBUG( "DeleteEventChannel", " Cannot find event channel name " << name << " to object, try to remove from naming context." );
       if ( ( action == ossie::corba::NS_UNBIND) &&  ossie::corba::Unbind( name ) == 0 ) {
-	  LNINFO( "DeleteEventChannel", "Deregister EventChannel with the NamingService, CHANNEL:" << name );
-	}
+        RH_NL_INFO( "DeleteEventChannel", "Deregister EventChannel with the NamingService, CHANNEL:" << name );
+      }
       retval=-1;
       return retval;
     }
 
     try {
       event_channel->destroy();
-      LNINFO( "DeleteEventChannel", " Deleted event channel, CHANNEL: " << name );
+      RH_NL_INFO( "DeleteEventChannel", " Deleted event channel, CHANNEL: " << name );
     } 
     catch(CORBA::SystemException& ex) {
       // this will happen if channel is destroyed but 
-      LNWARN( "DeleteEventChannel", " System exception occured, ex " << ex._name() );
+      RH_NL_WARN( "DeleteEventChannel", " System exception occured, ex " << ex._name() );
       retval=-1;
     }
     catch(CORBA::Exception& ex) {
-      LNWARN( "DeleteEventChannel", " CORBA exception occured, ex " << ex._name() );
+      RH_NL_WARN( "DeleteEventChannel", " CORBA exception occured, ex " << ex._name() );
       retval=-1;
     }
 
     try {
       if( (action == ossie::corba::NS_UNBIND) &&  ossie::corba::Unbind( name ) == 0 ) {
-	LNINFO( "DeleteEventChannel", "Deregister EventChannel with the NamingService, CHANNEL:" << name );
+	RH_NL_INFO( "DeleteEventChannel", "Deregister EventChannel with the NamingService, CHANNEL:" << name );
       }
 
     } catch(CosNaming::NamingContext::InvalidName& ex) {
-      LNWARN( "DeleteEventChannel", " Invalid name to unbind, name: " << name  );
+      RH_NL_WARN( "DeleteEventChannel", " Invalid name to unbind, name: " << name  );
     }
     catch(CosNaming::NamingContext::NotFound& ex) { // resolve
-      LNWARN( "DeleteEventChannel", " Name not found, name: " << name  );
+      RH_NL_WARN( "DeleteEventChannel", " Name not found, name: " << name  );
     }
     catch(CosNaming::NamingContext::CannotProceed& ex) { // resolve
-      LNERROR( "DeleteEventChannel", " Cannot Process error, name: " << name );
+      RH_NL_ERROR( "DeleteEventChannel", " Cannot Process error, name: " << name );
       retval=-1;
     }
 
@@ -670,9 +622,9 @@ CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& na
   }
 
 
-int DeleteEventChannel (  const std::string& name, 
-			   const std::string& nc_name, 
-			   corba::NS_ACTION action )
+  int DeleteEventChannel (  const std::string& name, 
+                            const std::string& nc_name, 
+                            corba::NS_ACTION action )
   {
     
     int retval = 0;
@@ -681,41 +633,41 @@ int DeleteEventChannel (  const std::string& name,
 
     event_channel = GetEventChannel( name, nc_name, false  );
     if ( CORBA::is_nil(event_channel) == true ) {
-      LNDEBUG( "DeleteEventChannel", " Cannot find event channel name " << name << " to object, try to remove from naming context." );
+      RH_NL_DEBUG( "DeleteEventChannel", " Cannot find event channel name " << name << " to object, try to remove from naming context." );
       if ( ( action == ossie::corba::NS_UNBIND) &&  ossie::corba::Unbind( name, nc_name ) == 0 ) {
-	  LNINFO( "DeleteEventChannel", "Deregister EventChannel with the NamingService, CHANNEL:" << name );
-	}
+        RH_NL_INFO( "DeleteEventChannel", "Deregister EventChannel with the NamingService, CHANNEL:" << name );
+      }
       retval=-1;
       return retval;
     }
 
     try {
       event_channel->destroy();
-      LNINFO( "DeleteEventChannel", " Deleted event channel, CHANNEL: " << name );
+      RH_NL_INFO( "DeleteEventChannel", " Deleted event channel, CHANNEL: " << name );
     } 
     catch(CORBA::SystemException& ex) {
       // this will happen if channel is destroyed but 
-      LNWARN( "DeleteEventChannel", " System exception occured, ex " << ex._name() );
+      RH_NL_WARN( "DeleteEventChannel", " System exception occured, ex " << ex._name() );
       retval=-1;
     }
     catch(CORBA::Exception& ex) {
-      LNWARN( "DeleteEventChannel", " CORBA exception occured, ex " << ex._name() );
+      RH_NL_WARN( "DeleteEventChannel", " CORBA exception occured, ex " << ex._name() );
       retval=-1;
     }
 
     try {
       if( (action == ossie::corba::NS_UNBIND) &&  ossie::corba::Unbind( name, nc_name ) == 0 ) {
-	LNINFO( "DeleteEventChannel", "Deregister EventChannel with the NamingService, CHANNEL:" << name );
+	RH_NL_INFO( "DeleteEventChannel", "Deregister EventChannel with the NamingService, CHANNEL:" << name );
       }
 
     } catch(CosNaming::NamingContext::InvalidName& ex) {
-      LNWARN( "DeleteEventChannel", " Invalid name to unbind, name: " << name  );
+      RH_NL_WARN( "DeleteEventChannel", " Invalid name to unbind, name: " << name  );
     }
     catch(CosNaming::NamingContext::NotFound& ex) { // resolve
-      LNWARN( "DeleteEventChannel", " Name not found, name: " << name  );
+      RH_NL_WARN( "DeleteEventChannel", " Name not found, name: " << name  );
     }
     catch(CosNaming::NamingContext::CannotProceed& ex) { // resolve
-      LNERROR( "DeleteEventChannel", " Cannot Process error, name: " << name );
+      RH_NL_ERROR( "DeleteEventChannel", " Cannot Process error, name: " << name );
       retval=-1;
     }
 
@@ -729,10 +681,10 @@ int DeleteEventChannel (  const std::string& name,
   //
   //  PushEventSupplier class implementation
   //
-PushEventSupplier::PushEventSupplier( const std::string &channelName, 
-				      Supplier          *inSupplier,
-				      int                retries, 
-				      int                retry_wait ) :
+  PushEventSupplier::PushEventSupplier( const std::string &channelName, 
+                                        Supplier          *inSupplier,
+                                        int                retries, 
+                                        int                retry_wait ) :
     name(channelName),
     nc_name(""),
     supplier(inSupplier),
@@ -757,9 +709,9 @@ PushEventSupplier::PushEventSupplier( const std::string &channelName,
     _init();
   }
 
-PushEventSupplier::PushEventSupplier(   const std::string &channelName, 
-					int               retries, 
-					int               retry_wait ) :
+  PushEventSupplier::PushEventSupplier(   const std::string &channelName, 
+                                          int               retries, 
+                                          int               retry_wait ) :
     name(channelName),
     nc_name(""),
     supplier(NULL),
@@ -784,14 +736,15 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 
   void PushEventSupplier::_init( ) 
   {
-    LNDEBUG("PushEventSupplier", " GetEventChannel " << name );
+    RH_NL_DEBUG("PushEventSupplier", " GetEventChannel " << name );
     channel = GetEventChannel( name, nc_name, true );
    
     if ( CORBA::is_nil(channel) == true ) {
-      LNERROR("PushEventSupplier", " Channel resource not available, channel " << name );
+      RH_NL_ERROR("PushEventSupplier", " Channel resource not available, channel " << name );
       return;
     }
 
+    CosEventChannelAdmin::SupplierAdmin_var     supplier_admin;
     int tries=retries;
     do
       {
@@ -811,12 +764,12 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 
     if ( CORBA::is_nil(supplier_admin) ) return;
     
-    LNDEBUG("PushEventSupplier", "Obtained SupplierAdmin." );
+    RH_NL_TRACE("PushEventSupplier", "Obtained SupplierAdmin." );
 
     tries=retries;
     do {
       try {
-	proxy_for_consumer = supplier_admin->obtain_push_consumer ();
+	proxy = supplier_admin->obtain_push_consumer ();
 	break;
       }
       catch (CORBA::COMM_FAILURE& ex) {
@@ -829,31 +782,31 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
       tries--;
     } while ( tries );
 
-    LNDEBUG("PushEventSupplier", "Obtained ProxyPushConsumer." );
-    if ( CORBA::is_nil(proxy_for_consumer) ) return;
+    RH_NL_TRACE("PushEventSupplier", "Obtained ProxyPushConsumer." );
+    if ( CORBA::is_nil(proxy) ) return;
 
     if ( supplier == NULL ) {      
-      LNDEBUG("PushEventSupplier", "Create Local Supplier Object." );
+      RH_NL_DEBUG("PushEventSupplier", "Create Local Supplier Object." );
       supplier = new PushEventSupplier::Supplier();
     }
 
-    CosEventComm::PushSupplier_var sptr =CosEventComm::PushSupplier::_nil();
+    EventPublisherSupplier_var sptr = EventPublisherSupplier::_nil();
     sptr = supplier->_this();
 
     // now attach supplier to the proxy
     do {
       try {
-	proxy_for_consumer->connect_push_supplier(sptr.in());
+	proxy->connect_push_supplier(sptr.in());
       }
       catch (CORBA::BAD_PARAM& ex) {
-	LNERROR("PushEventSupplier", "Caught BAD_PARAM " );
+	RH_NL_ERROR("PushEventSupplier", "Caught BAD_PARAM " );
 	break;
       }
       catch (CosEventChannelAdmin::AlreadyConnected& ex) {
 	break;
       }
       catch (CORBA::COMM_FAILURE& ex) {
-	LNERROR("PushEventSupplier",  "Caught COMM_FAILURE Exception "  << 
+	RH_NL_ERROR("PushEventSupplier",  "Caught COMM_FAILURE Exception "  << 
 		"connecting Push Supplier! Retrying..." );
       }
       if ( retry_wait > 0 ) {
@@ -865,25 +818,25 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
     } while ( tries );
 
 
-    LNDEBUG("PushEventSupplier",  "Connected Push Supplier." );
+    RH_NL_DEBUG("PushEventSupplier",  "Connected Push Supplier." );
 
   };
     
   PushEventSupplier::~PushEventSupplier( ) {
 
-    LNDEBUG("PushEventSupplier", "DTOR - START." );
+    RH_NL_DEBUG("PushEventSupplier", "DTOR - START." );
     CORBA::ORB_ptr orb = ossie::corba::Orb();
     int tries = retries;
-    if ( CORBA::is_nil(proxy_for_consumer) == false && 
+    if ( CORBA::is_nil(proxy) == false && 
          CORBA::is_nil(orb) == false ) {
-     // Disconnect - retrying on Comms Failure.
-     do {
+      // Disconnect - retrying on Comms Failure.
+      do {
         try {
-           proxy_for_consumer->disconnect_push_consumer();
-           break;
+          proxy->disconnect_push_consumer();
+          break;
         }
         catch (CORBA::COMM_FAILURE& ex) {
-	  LNERROR("PushEventSupplier",  "Caught COMM_FAILURE Exception "
+	  RH_NL_ERROR("PushEventSupplier",  "Caught COMM_FAILURE Exception "
 		  << "disconnecting Push Supplier! Retrying..." );
         }
 	if ( retry_wait > 0 ) {
@@ -893,7 +846,7 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 	}
 	tries--;
       } while(tries);
-      LNDEBUG("PushEventSupplier", "ProxyPushConsumer disconnected." );
+      RH_NL_DEBUG("PushEventSupplier", "ProxyPushConsumer disconnected." );
       
     }
     
@@ -901,7 +854,7 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
       supplier->_remove_ref();
     }
 
-    LNDEBUG("PushEventSupplier", "DTOR - END." );
+    RH_NL_DEBUG("PushEventSupplier", "DTOR - END." );
 
   }
 
@@ -969,22 +922,23 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 
   void PushEventConsumer::_init( ) 
   {
-    LNDEBUG("PushEventConsumer", " GetEventChannel " << name );
+    RH_NL_DEBUG("PushEventConsumer", " GetEventChannel " << name );
     try {
       //channel = corba::GetEventChannel( orb, name, nc_name, true );
       channel = GetEventChannel( name, nc_name, true );
     }
     catch(...){
-        LNERROR("PushEventConsumer", " Channel " << name );
-	return;
+      RH_NL_ERROR("PushEventConsumer", " Channel " << name );
+      return;
     }
     
     if ( CORBA::is_nil(channel) == true ) {
-      LNERROR("PushEventConsumer", " Channel resource not available, channel " << name );
+      RH_NL_ERROR("PushEventConsumer", " Channel resource not available, channel " << name );
       return;
     }
 
     int tries=retries;
+    CosEventChannelAdmin::ConsumerAdmin_var     consumer_admin;
     do
       {
 	try {
@@ -1003,12 +957,12 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 
     if ( CORBA::is_nil(consumer_admin) ) return;
     
-    LNDEBUG("PushEventConsumer", "Obtained ConsumerAdmin." );
+    RH_NL_TRACE("PushEventConsumer", "Obtained ConsumerAdmin." );
 
     tries=retries;
     do {
       try {
-	proxy_for_supplier = consumer_admin->obtain_push_supplier ();
+	proxy = consumer_admin->obtain_push_supplier ();
 	break;
       }
       catch (CORBA::COMM_FAILURE& ex) {
@@ -1021,8 +975,8 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
       tries--;
     } while ( tries );
 
-    LNDEBUG("PushEventConsumer", "Obtained ProxyPushConsumer." );
-    if ( CORBA::is_nil(proxy_for_supplier) ) return;
+    RH_NL_TRACE("PushEventConsumer", "Obtained ProxyPushConsumer." );
+    if ( CORBA::is_nil(proxy) ) return;
 
     if  ( consumer == NULL ) {
       consumer = new PushEventConsumer::CallbackConsumer(*this);
@@ -1035,17 +989,17 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
     do {
       try {
 	// connect the the consumer object to the supplier's proxy
-	proxy_for_supplier->connect_push_consumer(sptr.in());
+	proxy->connect_push_consumer(sptr.in());
       }
       catch (CORBA::BAD_PARAM& ex) {
-	LNERROR("PushEventConsumer", "Caught BAD_PARAM " );
+	RH_NL_ERROR("PushEventConsumer", "Caught BAD_PARAM " );
 	break;
       }
       catch (CosEventChannelAdmin::AlreadyConnected& ex) {
 	break;
       }
       catch (CORBA::COMM_FAILURE& ex) {
-	LNERROR("PushEventConsumer",  "Caught COMM_FAILURE Exception "  << 
+	RH_NL_ERROR("PushEventConsumer",  "Caught COMM_FAILURE Exception "  << 
 		"connecting Push Consumer! Retrying..." );
       }
       if ( retry_wait > 0 ) {
@@ -1057,25 +1011,25 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
     } while ( tries );
 
 
-    LNDEBUG("PushEventConsumer",  "Connected Push Consumer." );
+    RH_NL_DEBUG("PushEventConsumer",  "Connected Push Consumer." );
 
   };
     
   PushEventConsumer::~PushEventConsumer( ) {
 
-    LNDEBUG("PushEventConsumer", "DTOR - START." );
+    RH_NL_DEBUG("PushEventConsumer", "DTOR - START." );
     CORBA::ORB_ptr orb = ossie::corba::Orb();
     int tries = retries;
-    if ( CORBA::is_nil(proxy_for_supplier) == false && 
+    if ( CORBA::is_nil(proxy) == false && 
          CORBA::is_nil(orb) == false ) {
-     // Disconnect - retrying on Comms Failure.
-     do {
+      // Disconnect - retrying on Comms Failure.
+      do {
         try {
-           proxy_for_supplier->disconnect_push_supplier();
-           break;
+          proxy->disconnect_push_supplier();
+          break;
         }
         catch (CORBA::COMM_FAILURE& ex) {
-	  LNERROR("PushEventConsumer",  "Caught COMM_FAILURE Exception "
+	  RH_NL_ERROR("PushEventConsumer",  "Caught COMM_FAILURE Exception "
 		  << "disconnecting Push Consumer! Retrying..." );
         }
 	if ( retry_wait > 0 ) {
@@ -1085,7 +1039,7 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 	}
 	tries--;
       } while(tries);
-      LNDEBUG("PushEventConsumer", "ProxyPushSupplier disconnected." );
+      RH_NL_DEBUG("PushEventConsumer", "ProxyPushSupplier disconnected." );
       
     }
 
@@ -1093,13 +1047,13 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
       consumer->_remove_ref();
     }
 
-    LNDEBUG("PushEventConsumer", "DTOR - END." );
+    RH_NL_DEBUG("PushEventConsumer", "DTOR - END." );
   }
 
 #if 0
   void   PushEventConsumer::detach() {
 
-    LNDEBUG("PushEventConsumer", "DETTACH - START." );
+    RH_NL_DEBUG("PushEventConsumer", "DETTACH - START." );
     CORBA::ORB_ptr orb = ossie::corba::Orb();
     int tries = retries;
     if ( CORBA::is_nil(proxy_for_supplier) == false &&
@@ -1111,7 +1065,7 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 	  break;
         }
         catch (CORBA::COMM_FAILURE& ex) {
-	  LNERROR("PushEventConsumer",  "Caught COMM_FAILURE Exception "
+	  RH_NL_ERROR("PushEventConsumer",  "Caught COMM_FAILURE Exception "
 		  << "disconnecting Push Consumer! Retrying..." );
         }
 	if ( retry_wait > 0 ) {
@@ -1121,11 +1075,11 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 	}
 	tries--;
       } while(tries);
-      LNDEBUG("PushEventConsumer", "ProxyPushSupplier disconnected." );
+      RH_NL_DEBUG("PushEventConsumer", "ProxyPushSupplier disconnected." );
       
     }
     else {
-      LNDEBUG("PushEventConsumer", "DETTACH - ProxyForSupplier is Nil." );    
+      RH_NL_DEBUG("PushEventConsumer", "DETTACH - ProxyForSupplier is Nil." );    
     }
   }
 
@@ -1133,10 +1087,10 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 
   void   PushEventConsumer::attach() {
 
-    LNDEBUG("PushEventConsumer", "ATTACH - START." );
+    RH_NL_DEBUG("PushEventConsumer", "ATTACH - START." );
     if ( consumer == NULL ) return;
 
-    LNDEBUG("PushEventConsumer", "Register Consumer." );    
+    RH_NL_DEBUG("PushEventConsumer", "Register Consumer." );    
     CORBA::ORB_ptr orb = ossie::corba::Orb();
     CosEventComm::PushConsumer_var sptr = consumer->_this();
     int tries = retries;
@@ -1150,15 +1104,15 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 	  proxy_for_supplier->connect_push_consumer(sptr.in());
 	}
 	catch (CORBA::BAD_PARAM& ex) {
-	  LNERROR("PushEventConsumer", "Caught BAD_PARAM " );
+	  RH_NL_ERROR("PushEventConsumer", "Caught BAD_PARAM " );
 	  break;
 	}
 	catch (CosEventChannelAdmin::AlreadyConnected& ex) {
-	  LNDEBUG("PushEventConsumer", "ATTACH - Already Connected Consumer." );    
+	  RH_NL_DEBUG("PushEventConsumer", "ATTACH - Already Connected Consumer." );    
 	  break;
 	}
 	catch (CORBA::COMM_FAILURE& ex) {
-	  LNERROR("PushEventConsumer",  "Caught COMM_FAILURE Exception "  << 
+	  RH_NL_ERROR("PushEventConsumer",  "Caught COMM_FAILURE Exception "  << 
 		  "connecting Push Consumer! Retrying..." );
 	}
 	if ( retry_wait > 0 ) {
@@ -1171,7 +1125,7 @@ PushEventSupplier::PushEventSupplier(   const std::string &channelName,
 
     }
     else {
-      LNDEBUG("PushEventConsumer", "ATTACH - ProxyForSupplier is Nil." );    
+      RH_NL_DEBUG("PushEventConsumer", "ATTACH - ProxyForSupplier is Nil." );    
     }
   }
 

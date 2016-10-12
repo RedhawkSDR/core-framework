@@ -2,10 +2,10 @@
 # Runs relative to burstio project
 #
 
-burstio_top=../../../
-burstio_libsrc_top=$burstio_top/libsrc
-export LD_LIBRARY_PATH=$burstio_libsrc_top/.libs:$burstio_top/.libs:${LD_LIBRARY_PATH}
-export PYTHONPATH=$burstio_libsrc_top/build/lib:${PYTHONPATH}
+burstio_top=../../..
+burstio_libsrc_top=$burstio_top/src
+export LD_LIBRARY_PATH=$burstio_libsrc_top/cpp/.libs:$burstio_libsrc_top/java/.libs:${LD_LIBRARY_PATH}
+export PYTHONPATH=$burstio_libsrc_top/python/redhawk:$burstio_libsrc_top/python:${PYTHONPATH}
 
 #
 #  Run Python based testing..
@@ -13,15 +13,15 @@ export PYTHONPATH=$burstio_libsrc_top/build/lib:${PYTHONPATH}
 if [ $# -gt 0 ]
 then
     # run an associated test script
-    pushd python
+    cd python
     python  $*
-    popd
+    cd -
 else
-    pushd python
+    cd python
     for pt in test_*.py ; do
        python $pt
     done
-    popd
+    cd -
 fi
 
 
@@ -39,8 +39,8 @@ fi
 #
 #  Run C++ based testing
 #
-pushd cpp
+cd cpp
 ./runtests
-popd
+cd -
 
 

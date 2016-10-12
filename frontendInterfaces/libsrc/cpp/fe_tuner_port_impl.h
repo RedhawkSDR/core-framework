@@ -128,6 +128,9 @@ namespace frontend {
                 std::string _id(id);
                 return (this->parent->getTunerStatus(_id));
             };
+            std::string getRepid() const {
+                return "IDL:FRONTEND/FrontendTuner:1.0";
+            };
         protected:
             boost::mutex portAccess;
         private:
@@ -203,6 +206,9 @@ namespace frontend {
                 std::string _id(id);
                 return (this->parent->getTunerEnable(_id));
             };
+            std::string getRepid() const {
+                return "IDL:FRONTEND/AnalogTuner:1.0";
+            };
         private:
             analog_tuner_delegation *parent;
     };
@@ -226,6 +232,9 @@ namespace frontend {
                 std::string _id(id);
                 return (this->parent->getTunerOutputSampleRate(_id));
             };
+            std::string getRepid() const {
+                return "IDL:FRONTEND/DigitalTuner:1.0";
+            };
         private:
             digital_tuner_delegation *parent;
     };
@@ -240,77 +249,62 @@ namespace frontend {
             ~OutFrontendTunerPortT(){};
             
             std::string getTunerType(std::string &id) {
-                CORBA::String_var retval;
+                CORBA::String_var retval = "";
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerType(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerType(id.c_str());
                     }
                 }
                 std::string str_retval = ossie::corba::returnString(retval);
                 return str_retval;
             };
             bool getTunerDeviceControl(std::string &id) {
-                CORBA::Boolean retval;
+                CORBA::Boolean retval = false;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerDeviceControl(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerDeviceControl(id.c_str());
                     }
                 }
                 return retval;
             };
             std::string getTunerGroupId(std::string &id) {
-                CORBA::String_var retval;
+                CORBA::String_var retval = "";
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerGroupId(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerGroupId(id.c_str());
                     }
                 }
                 std::string str_retval = ossie::corba::returnString(retval);
                 return str_retval;
             };
             std::string getTunerRfFlowId(std::string &id) {
-                CORBA::String_var retval;
+                CORBA::String_var retval = "";
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerRfFlowId(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerRfFlowId(id.c_str());
                     }
                 }
                 std::string str_retval = ossie::corba::returnString(retval);
                 return str_retval;
             };
             CF::Properties* getTunerStatus(std::string &id) {
-                CF::Properties* retval;
+                CF::Properties_var retval = new CF::Properties();
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerStatus(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerStatus(id.c_str());
                     }
                 }
-                return retval;
+                return retval._retn();
             };
     };
  
@@ -327,24 +321,18 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            ((*i).first)->setTunerCenterFrequency(id.c_str(), freq);
-                        } catch(...) {
-                        }
+                        ((*i).first)->setTunerCenterFrequency(id.c_str(), freq);
                     }
                 }
                 return;
             };
             double getTunerCenterFrequency(std::string &id) {
-                CORBA::Double retval;
+                CORBA::Double retval = 0;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerCenterFrequency(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerCenterFrequency(id.c_str());
                     }
                 }
                 return retval;
@@ -354,24 +342,18 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            ((*i).first)->setTunerBandwidth(id.c_str(), bw);
-                        } catch(...) {
-                        }
+                        ((*i).first)->setTunerBandwidth(id.c_str(), bw);
                     }
                 }
                 return;
             };
             double getTunerBandwidth(std::string &id) {
-                CORBA::Double retval;
+                CORBA::Double retval = 0;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerBandwidth(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerBandwidth(id.c_str());
                     }
                 }
                 return retval;
@@ -381,24 +363,18 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            ((*i).first)->setTunerAgcEnable(id.c_str(), enable);
-                        } catch(...) {
-                        }
+                        ((*i).first)->setTunerAgcEnable(id.c_str(), enable);
                     }
                 }
                 return;
             };
             bool getTunerAgcEnable(std::string &id) {
-                CORBA::Boolean retval;
+                CORBA::Boolean retval = false;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerAgcEnable(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerAgcEnable(id.c_str());
                     }
                 }
                 return retval;
@@ -408,24 +384,18 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            ((*i).first)->setTunerGain(id.c_str(), gain);
-                        } catch(...) {
-                        }
+                        ((*i).first)->setTunerGain(id.c_str(), gain);
                     }
                 }
                 return;
             };
             float getTunerGain(std::string &id) {
-                CORBA::Float retval;
+                CORBA::Float retval = 0;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerGain(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerGain(id.c_str());
                     }
                 }
                 return retval;
@@ -435,24 +405,18 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            ((*i).first)->setTunerReferenceSource(id.c_str(), source);
-                        } catch(...) {
-                        }
+                        ((*i).first)->setTunerReferenceSource(id.c_str(), source);
                     }
                 }
                 return;
             };
             int getTunerReferenceSource(std::string &id) {
-                CORBA::Long retval;
+                CORBA::Long retval = 0;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerReferenceSource(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerReferenceSource(id.c_str());
                     }
                 }
                 return retval;
@@ -462,24 +426,18 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            ((*i).first)->setTunerEnable(id.c_str(), enable);
-                        } catch(...) {
-                        }
+                        ((*i).first)->setTunerEnable(id.c_str(), enable);
                     }
                 }
                 return;
             };
             bool getTunerEnable(std::string &id) {
-                CORBA::Boolean retval;
+                CORBA::Boolean retval = false;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerEnable(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerEnable(id.c_str());
                     }
                 }
                 return retval;
@@ -499,24 +457,18 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            ((*i).first)->setTunerOutputSampleRate(id.c_str(), sr);
-                        } catch(...) {
-                        }
+                        ((*i).first)->setTunerOutputSampleRate(id.c_str(), sr);
                     }
                 }
                 return;
             };
             double getTunerOutputSampleRate(std::string &id) {
-                CORBA::Double retval;
+                CORBA::Double retval = 0;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->getTunerOutputSampleRate(id.c_str());
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->getTunerOutputSampleRate(id.c_str());
                     }
                 }
                 return retval;

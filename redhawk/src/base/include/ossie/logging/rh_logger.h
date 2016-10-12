@@ -66,11 +66,11 @@ namespace rh_logger {
 
   typedef boost::mutex                 Mutex;
 
-  /**
+  /*
    */
   namespace spi
   {
-      /**
+      /*
        * This class represents the location of a logging statement.
        *
        */
@@ -112,7 +112,7 @@ namespace rh_logger {
       };
   };
 
-  /**
+  /*
    */
   class Appender {
 
@@ -133,7 +133,7 @@ namespace rh_logger {
   };
 
   
-  /**
+  /*
    * Level
    *  
    * Mimics log4cxx logging levels and enumerations
@@ -202,7 +202,7 @@ namespace rh_logger {
       
   };
 
-  /**
+  /*
    * Logger
    *
    * Encapsulates the underlying logging implementation. 
@@ -254,6 +254,9 @@ namespace rh_logger {
     //
     static LoggerPtr getLogger( const std::string &name );
     static LoggerPtr getLogger( const char *name );
+
+    static LoggerPtr getResourceLogger( const std::string &name );
+    static const std::string &getResourceLoggerName();
 
     //
     // Set the logging level for this logger

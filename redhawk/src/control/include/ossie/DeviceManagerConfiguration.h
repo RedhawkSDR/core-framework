@@ -37,7 +37,7 @@ namespace ossie {
     ENABLE_LOGGING
 
     public:
-        /**
+        /*
          *
          */
         class DCD {
@@ -52,19 +52,19 @@ namespace ossie {
         };
 
     public:
-        /**
+        /*
          * Create a DeviceManagerConfiguration that has not yet been populated with
          * information from a DCD file.  You must call load() before calling any
          * other functions on this class.
          */
         DeviceManagerConfiguration() : _dcd(0) {}
 
-        /**
+        /*
          * Create a DeviceManagerConfiguration, parsing the DCD information provided by input.
          */
         DeviceManagerConfiguration(std::istream& input) throw (ossie::parser_error);
 
-        /**
+        /*
          * Assignment operator.
          */
         DeviceManagerConfiguration& operator=(DeviceManagerConfiguration other)

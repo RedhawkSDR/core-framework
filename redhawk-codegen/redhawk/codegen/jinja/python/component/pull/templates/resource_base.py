@@ -34,14 +34,16 @@ from ossie.utils import uuid
 from ${parent.package} import ${parent.name}
 #{% endfor %}
 from ossie.threadedcomponent import *
-#{% if component.properties|test('simple') is sometimes(true) or component.structdefs %}
+#{% if component.properties|test('simple') is sometimes(true) %}
 from ossie.properties import simple_property
+#{% endif %}
+#{% if component.structdefs %}
+from ossie.properties import simple_property
+from ossie.properties import simpleseq_property
+from ossie.properties import struct_property
 #{% endif %}
 #{% if component.properties|test('simplesequence') is sometimes(true) %}
 from ossie.properties import simpleseq_property
-#{% endif %}
-#{% if component.structdefs %}
-from ossie.properties import struct_property
 #{% endif %}
 #{% if component.properties|test('structsequence') is sometimes(true) %}
 from ossie.properties import structseq_property
@@ -57,6 +59,9 @@ ${statement}
 #{%   endfor %}
 #{% endfor %}
 #{% endfilter %}
+#{% block baseadditionalimports %}
+#{# Allow additional child class imports #}
+#{% endblock %}
 
 class ${className}(${component.poaclass}, ${component.superclasses|join(', ', attribute='name')}, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class
@@ -74,10 +79,13 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% else %}
         def __init__(self, identifier, execparams):
             loggerName = (execparams['NAME_BINDING'].replace('/', '.')).rsplit("_", 1)[0]
-            Resource.__init__(self, identifier, execparams, loggerName=loggerName)
+            Component.__init__(self, identifier, execparams, loggerName=loggerName)
 #{% endif %}
             ThreadedComponent.__init__(self)
 
+#{% if 'FrontendTuner' in component.implements %}
+            self.listeners={}
+#{% endif %}
             # self.auto_start is deprecated and is only kept for API compatibility
             # with 1.7.X and 1.8.0 ${artifactType}s.  This variable may be removed
             # in future releases
@@ -89,13 +97,18 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% if component.hasmultioutport %}
             self.addPropertyChangeListener('connectionTable',self.updated_connectionTable)
 #{% endif %}
+#{% for prop in component.properties if prop.inherited and prop.pyvalue %}
+            self.${prop.pyname} = ${prop.pyvalue}
+#{% endfor %}
 
         def start(self):
-#{% for port in component.ports if port.start%}
-            self.${port.pyname}.${port.start}
-#{% endfor %}
             ${superclass}.start(self)
             ThreadedComponent.startThread(self, pause=self.PAUSE)
+
+        def stop(self):
+            ${superclass}.stop(self)
+            if not ThreadedComponent.stopThread(self, self.TIMEOUT):
+                raise CF.Resource.StopError(CF.CF_NOTSET, "Processing thread did not die")
 
 #{% if component.hasmultioutport %}
         def updated_connectionTable(self, id, oldval, newval):
@@ -104,14 +117,6 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% endfor %}
 
 #{% endif %}
-        def stop(self):
-#{% for port in component.ports if port.stop%}
-            self.${port.pyname}.${port.stop}
-#{% endfor %}
-            if not ThreadedComponent.stopThread(self, self.TIMEOUT):
-                raise CF.Resource.StopError(CF.CF_NOTSET, "Processing thread did not die")
-            ${superclass}.stop(self)
-
         def releaseObject(self):
             try:
                 self.stop()
@@ -141,7 +146,12 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{%   filter codealign %}
         ${port.pyname} = ${port.generator.direction}port(name="${port.name}",
                                                          repid="${port.repid}",
-                                                         type_="${port.types[0]}")
+                                                         type_="${port.types[0]}"
+#%-   if port.hasDescription
+,
+                                                         description="""${port.description}"""
+#%   endif
+)
 #{%   endfilter %}
 
 #{% endfor %}
@@ -151,9 +161,20 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
         # DO NOT ADD NEW PROPERTIES HERE.  You can add properties in your derived class, in the PRF xml file
         # or by using the IDE.
 #{% import "base/properties.py" as properties with context %}
+#{% filter codealign %}
 #{% for prop in component.properties %}
-        ${properties.create(prop)|indent(8)}
+#{%   if prop is struct and not prop.builtin %}
+        ${properties.structdef(prop)|indent(8)}
+
+#{%   elif prop is structsequence and not prop.structdef.builtin %}
+        ${properties.structdef(prop.structdef,False)|indent(8)}
+
+#{%   endif %}
+#{%   if not prop.inherited %}
+        ${properties.create(prop)}
+#{%   endif %}
 #{% endfor %}
+#{% endfilter %}
 #{% for portgen in component.portgenerators if portgen is provides and portgen.hasImplementation() %}
 
 #{%   if loop.first %}
@@ -170,3 +191,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{%   endif %}
 #{% include portgen.implementation() %}
 #{% endfor %}
+
+#{% block extensions %}
+#{# Allow for child class extensions #}
+#{% endblock %}

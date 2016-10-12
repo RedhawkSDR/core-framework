@@ -2132,7 +2132,7 @@ def pack_data_to_stream(hdr, f, data, endian='@', t4index=None):
                                         'got %s' % (file_class, shape,
                                                     numpy.shape(frame)))
                     if endian != '@'  and  endian != _native_endian:
-                        f.write(frame.astype(packing).byteswapped().tostring())
+                        f.write(frame.astype(packing).byteswap().tostring())
                     else:
                         f.write(frame.astype(packing).tostring())
             except KeyError:
@@ -2474,7 +2474,7 @@ def unpack_data_from_stream(hdr, f, elements='all', endian='@', fstart=None,
             # If the endian-ness does not match (checked above), byteswap the
             # array.
             if swap_bytes:
-                pydata = pydata.byteswapped()
+                pydata = pydata.byteswap()
 
             # Determine the appropriate shape of the output array based on
             # the frame size (type 2000) and and data type (i.e. scalars per
@@ -2667,7 +2667,7 @@ def unpack_keywords(buf, endian='@', lcase=0, start=0, structured=0):
                 if isinstance(data, str):
                     data = numpy.fromstring(data, _xm_to_numpy[format])
                     if byteswap:
-                        data = data.byteswapped()
+                        data = data.byteswap()
                     if len(data) == 1:
                         data = data[0]
                         if format == 'X':
@@ -2871,7 +2871,7 @@ def pack_keywords(keywords, endian='@', ucase=0, structured=0):
                     value = value.astype(typecode)
                 format = _numpy_to_xm[typecode]
                 if byteswap:
-                    value = value.byteswapped()
+                    value = value.byteswap()
                 value = value.tostring()
             elif structured and value is None:
                 format = 'A'

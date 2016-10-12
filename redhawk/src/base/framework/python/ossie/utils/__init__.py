@@ -23,10 +23,7 @@ from popen import Popen
 # Try to use the uuid module from Python 2.5 or newer; if that fails, use our
 # fallback compatibility module. Should the minimum Python version ever be
 # raised to 2.5, the compatibility module can be eliminated.
-try:
-    import uuid
-except ImportError:
-    import _uuid as uuid
+import _uuid as uuid
 
 # Manually insert the uuid module into sys.modules to allow statements such as
 # "import ossie.utils.uuid" to work as expected.

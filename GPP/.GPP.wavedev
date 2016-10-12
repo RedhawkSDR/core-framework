@@ -20,15 +20,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 
 <codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
-  <implSettings key="DCE:35406744-52f8-4fed-aded-0bcd3aae362b">
-    <value name="GPP" outputDir="python" template="gov.redhawk.ide.codegen.jet.python.pattern.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.python.PythonGenerator">
-      <properties id="use_old_style" value="false"/>
-      <properties id="auto_start_component" value="false"/>
-      <generatedFileCRCs crc="1787536146" file="GPP_base.py"/>
-      <generatedFileCRCs crc="995963531" file="Makefile.am"/>
-      <generatedFileCRCs crc="2387508217" file="configure.ac"/>
-      <generatedFileCRCs crc="1746641546" file="reconf"/>
-      <generatedFileCRCs crc="3428330638" file="../GPP.spec"/>
-    </value>
+  <implSettings key="cpp">
+    <value outputDir="cpp" template="redhawk.codegen.jinja.cpp.component.pull" generatorId="gov.redhawk.ide.codegen.jinja.cplusplus.CplusplusGenerator" primary="true"/>
   </implSettings>
 </codegen:WaveDevSettings>

@@ -1,0 +1,10 @@
+576c8ed9778cc9c711ea3cbb287c75d4  cpp_comp_base.cpp
+2804f000889bb5ddb86c6c97c208cd05  main.cpp
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+6ad6368b2ba7301f5d34829c5d5b2776  cpp_comp.cpp
+1ed7299dba1ba2d8faef90da07da8255  configure.ac
+108f3a3742bd84c5f60f277f539fdd59  Makefile.am
+27aafd8fb07d02d92a6d329a875498d1  cpp_comp_base.h
+cf8cf8ef460630f97f0a925012922884  Makefile.am.ide
+5176671114a2699815d4d3bada7070a5  cpp_comp.h
+2edeb4570ba55b42155b992f38587fb6  build.sh

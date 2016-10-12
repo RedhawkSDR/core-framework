@@ -22,25 +22,33 @@
 #ifndef __DOMAINMANAGER_IMPL__
 #define __DOMAINMANAGER_IMPL__
 
+#include <set>
 #include <vector>
 #include <string>
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 
-#include <COS/CosEventComm.hh>
 #include <COS/CosEventChannelAdmin.hh>
 
 #include <ossie/CF/cf.h>
 #include <ossie/PropertySet_impl.h>
-#include <ossie/DomainManagerConfiguration.h>
 #include <ossie/Runnable.h>
+#include <ossie/Events.h>
+#include <ossie/logging/loghelpers.h>
+#include <ossie/FileManager_impl.h>
 
 #include "PersistenceStore.h"
 #include "connectionSupport.h"
+#include "DomainManager_EventSupport.h"
+#include "EventChannelManager.h"
+
 
 class Application_impl;
+class ApplicationFactory_impl;
 class AllocationManager_impl;
+class ConnectionManager_impl;
+
 
 class DomainManager_impl: public virtual POA_CF::DomainManager, public PropertySet_impl, public ossie::ComponentLookup, public ossie::DomainLookup, public ossie::Runnable
 {
@@ -50,10 +58,10 @@ class DomainManager_impl: public virtual POA_CF::DomainManager, public PropertyS
 // Constructors/Destructors
 ///////////////////////////
 public:
-    DomainManager_impl (const char*, const char*, const char*, const char*, const char*);
+
+      DomainManager_impl (const char*, const char*, const char*, const char *, const char*, bool, bool );
     ~DomainManager_impl ();
 
-    friend class IDM_Channel_Consumer_i;
     friend class ODM_Channel_Supplier_i;
 
 private:
@@ -78,6 +86,10 @@ public:
     CF::FileManager_ptr fileMgr (void) throw (CORBA::SystemException);
     
     CF::AllocationManager_ptr allocationMgr (void) throw (CORBA::SystemException);
+
+    CF::EventChannelManager_ptr eventChannelMgr (void) throw (CORBA::SystemException);
+
+    CF::ConnectionManager_ptr connectionMgr (void) throw (CORBA::SystemException);
     
     CF::DomainManager::ApplicationFactorySequence * applicationFactories (void) throw (CORBA::SystemException);
     
@@ -89,13 +101,11 @@ public:
         
     void registerDevice (CF::Device_ptr registeringDevice, CF::DeviceManager_ptr registeredDeviceMgr)
         throw (CF::DomainManager::RegisterError, CF::DomainManager::DeviceManagerNotRegistered, CF::InvalidProfile, CF::InvalidObjectReference, CORBA::SystemException);
-    void _local_registerDevice (CF::Device_ptr registeringDevice, CF::DeviceManager_ptr registeredDeviceMgr)
-        throw (CF::DomainManager::RegisterError, CF::DomainManager::DeviceManagerNotRegistered, CF::InvalidProfile, CF::InvalidObjectReference, CORBA::SystemException);
+    void _local_registerDevice (CF::Device_ptr registeringDevice, CF::DeviceManager_ptr registeredDeviceMgr);
         
     void registerDeviceManager (CF::DeviceManager_ptr deviceMgr)
         throw (CF::DomainManager::RegisterError, CF::InvalidProfile, CF::InvalidObjectReference, CORBA::SystemException);
-    void _local_registerDeviceManager (CF::DeviceManager_ptr deviceMgr)
-        throw (CF::DomainManager::RegisterError, CF::InvalidProfile, CF::InvalidObjectReference, CORBA::SystemException);
+    void _local_registerDeviceManager (CF::DeviceManager_ptr deviceMgr);
         
     void unregisterDeviceManager (CF::DeviceManager_ptr deviceMgr)
         throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException);
@@ -103,40 +113,37 @@ public:
     void unregisterDevice (CF::Device_ptr unregisteringDevice)
         throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException);
         
+    CF::Application_ptr createApplication(const char* profileFileName, const char* name, const CF::Properties& initConfiguration, const CF::DeviceAssignmentSequence& deviceAssignments);
+
     void installApplication (const char* profileFileName)
         throw (CF::DomainManager::ApplicationInstallationError, CF::InvalidFileName, CF::InvalidProfile, CORBA::SystemException, CF::DomainManager::ApplicationAlreadyInstalled);
-    void _local_installApplication (const char* profileFileName)
-        throw (CF::DomainManager::ApplicationInstallationError, CF::InvalidFileName, CF::InvalidProfile, CORBA::SystemException, CF::DomainManager::ApplicationAlreadyInstalled);
+    void _local_installApplication (const char* profileFileName);
            
     void uninstallApplication (const char* applicationId)
         throw (CF::DomainManager::ApplicationUninstallationError, CF::DomainManager::InvalidIdentifier, CORBA::SystemException);
-    void _local_uninstallApplication (const char* applicationId)
-        throw (CF::DomainManager::ApplicationUninstallationError, CF::DomainManager::InvalidIdentifier, CORBA::SystemException);
+    void _local_uninstallApplication (const char* applicationId);
            
     void registerService (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name)
         throw (CF::DomainManager::RegisterError, CF::DomainManager::DeviceManagerNotRegistered, CF::InvalidObjectReference, CORBA::SystemException);
-    void _local_registerService (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name)
-        throw (CF::DomainManager::RegisterError, CF::DomainManager::DeviceManagerNotRegistered, CF::InvalidObjectReference, CORBA::SystemException);
+    void _local_registerService (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name);
            
     void unregisterService (CORBA::Object_ptr unregisteringService, const char* name)
         throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException);
            
     void registerWithEventChannel (CORBA::Object_ptr registeringObject, const char* registeringId, const char* eventChannelName)
         throw (CF::DomainManager::AlreadyConnected, CF::DomainManager::InvalidEventChannelName, CF::InvalidObjectReference, CORBA::SystemException);
-    void _local_registerWithEventChannel (CORBA::Object_ptr registeringObject, const char* registeringId, const char* eventChannelName)
-        throw (CF::DomainManager::AlreadyConnected, CF::DomainManager::InvalidEventChannelName, CF::InvalidObjectReference, CORBA::SystemException);
+    void _local_registerWithEventChannel (CORBA::Object_ptr registeringObject, std::string &registeringId, std::string &eventChannelName);
            
     void unregisterFromEventChannel (const char* unregisteringId, const char* eventChannelName)
         throw (CF::DomainManager::NotConnected, CF::DomainManager::InvalidEventChannelName, CORBA::SystemException);
-    void _local_unregisterFromEventChannel (const char* unregisteringId, const char* eventChannelName)
-        throw (CF::DomainManager::NotConnected, CF::DomainManager::InvalidEventChannelName, CORBA::SystemException);
+    void _local_unregisterFromEventChannel (std::string &unregisteringId, std::string &eventChannelName);
 
     void registerRemoteDomainManager (CF::DomainManager_ptr registeringRemoteDomainManager)
         throw (CF::DomainManager::RegisterError, CF::InvalidObjectReference, CORBA::SystemException);
 
     void unregisterRemoteDomainManager (CF::DomainManager_ptr unregisteringRemoteDomainManager)
         throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException);
-    
+
 ////////////////////////////////////////////////////////
 // Public Helper Functions and Members
 // Mostly used by ApplicationFactory and Application
@@ -145,6 +152,7 @@ public:
     void shutdown(int signal);
 
     void restoreState(const std::string& _db_uri);
+    void restoreEventChannels(const std::string& _db_uri);
 
     void addApplication(Application_impl* new_app);
     
@@ -161,12 +169,12 @@ public:
         return _domainName;
     }
 
-    const std::string& getFullDomainManagerName (void) const {
-        return _fullDomainManagerName;
+    std::string getFullDomainManagerName (void) const {
+        return _domainName + "/" + _domainName;
     }
     
     int getComponentBindingTimeout (void) const {
-        return componentBindingTimeout;
+      return componentBindingTimeout;
     }
 
     ossie::DeviceList getRegisteredDevices(); // Get a copy of registered devices
@@ -175,28 +183,55 @@ public:
 
     // DomainLookup methods
     CORBA::Object_ptr lookupDomainObject (const std::string& type, const std::string& name);
-
-    // ComponentLookup methods
-    CF::Resource_ptr lookupComponentByInstantiationId(const std::string& identifier);
     CF::DeviceManager_ptr lookupDeviceManagerByInstantiationId(const std::string& identifier);
-    CosEventChannelAdmin::EventChannel_ptr lookupEventChannel(const std::string &EventChannelName);
+
+
+    ossie::events::EventChannel_ptr lookupEventChannel(const std::string &EventChannelName);
     unsigned int incrementEventChannelConnections(const std::string &EventChannelName);
     unsigned int decrementEventChannelConnections(const std::string &EventChannelName);
 
+    // ComponentLookup methods
+    CF::Resource_ptr lookupComponentByInstantiationId(const std::string& identifier);
+
     CosEventChannelAdmin::EventChannel_ptr getEventChannel(const std::string &name);
     bool eventChannelExists(const std::string &name);
-    CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& name);
+    ::ossie::events::EventChannel_ptr createEventChannel (const std::string& name);
+
     void destroyEventChannel (const std::string& name);
 
-    CosEventChannelAdmin::ProxyPushConsumer_var proxy_consumer;
+    void sendAddEvent( const std::string &prod_id, 
+                       const std::string &source_id, 
+                       const std::string &source_name,
+                       CORBA::Object_ptr obj,
+                       StandardEvent::SourceCategoryType sourceCategory);
+
+    void sendRemoveEvent( const std::string &prod_id, 
+                       const std::string &source_id, 
+                       const std::string &source_name,
+                       StandardEvent::SourceCategoryType sourceCategory);
+    
+    void sendResourceStateChange( const std::string &source_id,
+                       const std::string &source_name,
+                       const ExtendedEvent::ResourceStateChangeType stateChangeFrom, 
+                       const ExtendedEvent::ResourceStateChangeType stateChangeTo);
+
     std::map<std::string, ossie::consumerContainer> registeredConsumers;
 
     CF::FileManager_var _fileMgr;
 
     AllocationManager_impl* _allocationMgr;
 
+
     std::string getLastDeviceUsedForDeployment();
     void setLastDeviceUsedForDeployment(const std::string& identifier);
+
+    bool getUseLogConfigResolver() { return _useLogConfigUriResolver; };
+    
+    void closeAllOpenFileHandles();
+
+    rh_logger::LoggerPtr  getLogger() const { return __logger; };
+
+    bool   bindToDomain() { return _bindToDomain; };
 
 /////////////////////////////
 // Internal Helper Functions
@@ -208,20 +243,13 @@ protected:
     ossie::ServiceList::iterator _local_unregisterService (ossie::ServiceList::iterator service);
 
     void parseDMDProfile();
-    void validate (const char* _profile);
-    void validateSPD (const char* _spdProfile, int _cnt = 0) throw (CF::DomainManager::ApplicationInstallationError);
-    void removeSPD (const char* _spdProfile, int _cnt = 0);
     void storeDeviceInDomainMgr (CF::Device_ptr, CF::DeviceManager_ptr);
     void storeServiceInDomainMgr (CORBA::Object_ptr, CF::DeviceManager_ptr, const char*, const char*);
     bool deviceMgrIsRegistered (CF::DeviceManager_ptr);
     bool domainMgrIsRegistered (CF::DomainManager_ptr);
     bool deviceIsRegistered (CF::Device_ptr);
     bool serviceIsRegistered (const char*);
-    void disconectEventService ();
-    void sendEventToOutgoingChannel (CORBA::Any& _event);
     void addDeviceMgr (CF::DeviceManager_ptr deviceMgr);
-    void addDeviceMgrDevices (CF::DeviceManager_ptr deviceMgr);
-    void addDeviceMgrServices (CF::DeviceManager_ptr deviceMgr);
     void mountDeviceMgrFileSys (CF::DeviceManager_ptr deviceMgr);
     void addDomainMgr (CF::DomainManager_ptr domainMgr);
     void catastrophicUnregisterDeviceManager (ossie::DeviceManagerList::iterator node);
@@ -243,12 +271,20 @@ protected:
     ossie::ServiceList::iterator findServiceByName (const std::string& name);
     ossie::ServiceList::iterator findServiceByType (const std::string& repId);
 
-    void createEventChannels (void);
-    void destroyEventChannels (void);
-    void connectToOutgoingEventChannel (void);
-    void connectToIncomingEventChannel (void);
-
     void parseDeviceProfile (ossie::DeviceNode& node);
+
+    //
+    // Events/Event Channel Management 
+    //
+    void establishDomainManagementChannels( const std::string &db_uri );
+    void disconnectDomainManagementChannels();
+    void handleIDMChannelMessages( const CORBA::Any &msg );
+    void idmTerminationMessages( const redhawk::events::ComponentTerminationEvent &msg );
+    void destroyEventChannels (void);
+
+    bool applicationDependsOnDevice (Application_impl* application, const std::string& deviceId);
+
+    Application_impl* findApplicationById (const std::string& identifier);
 
 /////////////////////////
 // Protected Domain State
@@ -257,28 +293,38 @@ protected:
     ossie::PersistenceStore db;
 
     boost::recursive_mutex stateAccess;
-    boost::recursive_mutex appAccess;
 
     // The PersistenceStore is used to persist the state of the following members
     ossie::DomainManagerList _registeredDomainManagers;
     ossie::DeviceManagerList _registeredDeviceManagers;
     ossie::DeviceList _registeredDevices;
-    std::vector < ossie::ApplicationFactoryNode > _installedApplications;
+    std::set<std::string> _installedApplications;
     std::vector < ossie::ApplicationNode > _runningApplications;
-    ossie::AllocationManagerNode _allocationMgrNode;
     ossie::ServiceList _registeredServices;
     std::vector < ossie::EventChannelNode > _eventChannels;
+
+
+
+    //
+    // Handle to EventChannelManager for the Domain
+    //
+    EventChannelManager*                 _eventChannelMgr;
+
+
+    DOM_Publisher_ptr                    publisher( const std::string &cname );
+    DOM_Subscriber_ptr                   subscriber( const std::string &cname );
+
+    DOM_Publisher_ptr                    _odm_publisher;
+    redhawk::events::DomainEventReader   _idm_reader;
 
 ///////////////////////
 // Private Domain State
 ///////////////////////
 private:
-    ossie::DomainManagerConfiguration _configuration;
-    std::string _domainName;
-    std::string _domainManagerProfile;
+    std::string _identifier;
+    const std::string _domainName;
+    const std::string _domainManagerProfile;
 
-    std::string _fullDomainManagerName;
-    
     PortableServer::POA_var poa;
     PortableServer::POA_var appFact_poa;
 
@@ -287,17 +333,32 @@ private:
     CosNaming::NamingContext_var rootContext;
 
     ossie::DomainConnectionManager _connectionManager;
+
+    friend class ConnectionManager_impl;
+    ConnectionManager_impl* _connectionMgr;
     
-    CF::DomainManager::ApplicationSequence _applications;
-    CF::DomainManager::ApplicationFactorySequence _applicationFactories;
+    typedef std::map<std::string,Application_impl*> ApplicationTable;
+    ApplicationTable _applications;
+
+    typedef std::map<std::string,ApplicationFactory_impl*> ApplicationFactoryTable;
+    ApplicationFactoryTable _applicationFactories;
 
     // Identifier of last device that was successfully used for deployment
     std::string _lastDeviceUsedForDeployment;
 
-    std::string logging_config_uri;
-    StringProperty* logging_config_prop;
-    CORBA::ULong componentBindingTimeout;
-    std::string redhawk_version;
+    std::string      logging_config_uri;
+    StringProperty*  logging_config_prop;
+    CORBA::ULong     componentBindingTimeout;
+    std::string      redhawk_version;
+    bool             _useLogConfigUriResolver;
+
+    void _exit(int __status) {
+        ossie::logging::Terminate();            //no more logging....
+        exit(__status);
+    };
+    FileManager_impl* fileMgr_servant;
+
+    bool             _bindToDomain;
 };                                            /* END CLASS DEFINITION DomainManager */
 
 

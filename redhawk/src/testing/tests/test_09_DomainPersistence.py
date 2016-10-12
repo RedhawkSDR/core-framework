@@ -894,7 +894,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         newApp.configure(props)
 
     def test_RegisteredDomains(self):
-        nb, domMgr = self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile, debug=self.debuglevel)
+        nb, domMgr = self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile)
 
         testMgr1 = TestDomainManager('test1')
         domMgr.registerRemoteDomainManager(testMgr1._this())
@@ -919,7 +919,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         poa.deactivate_object(oid)
 
         # Re-launch and check that the remote domain is restored
-        nb, domMgr = self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile, debug=self.debuglevel)
+        nb, domMgr = self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile)
         remotes = domMgr._get_remoteDomainManagers()
         self.assertEqual(len(remotes), 1)
         self.assertEqual(remotes[0]._get_identifier(), testMgr1._get_identifier())
@@ -935,7 +935,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         nicCapacityId = 'DCE:4f9a57fc-8fb3-47f6-b779-3c2692f52cf9'
         allocations = { 'test1': {memCapacityId:2048, nicCapacityId:0.125},
                         'test2': {bogoMipsId:10000}}
-        requests = [CF.AllocationManager.AllocationRequestType(k, properties.props_from_dict(v), [], []) for k,v in allocations.iteritems()]
+        requests = [CF.AllocationManager.AllocationRequestType(k, properties.props_from_dict(v), [], [], 'test_Allocations') for k,v in allocations.iteritems()]
         results = allocMgr.allocate(requests)
         self.assertEqual(len(results), len(requests))
 
@@ -950,7 +950,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         # Re-launch and check that the allocation state remains the same;
         # implicitly tests that the AllocationManager reference is persistent
-        self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile, debug=self.debuglevel)
+        self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile)
         post = dict((al.allocationID, al) for al in allocMgr.allocations([]))
         self.assertEqual(len(pre), len(post))
         self.assertEqual(pre.keys(), post.keys())

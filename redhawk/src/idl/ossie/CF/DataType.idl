@@ -1,0 +1,45 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+//Source file: DataType.idl
+#ifndef __CF_DATATYPE_DEFINED
+#define __CF_DATATYPE_DEFINED
+
+module CF {
+
+    /* This type is a CORBA IDL struct type which can be used to hold any CORBA basic type or static IDL type. */
+    struct DataType {
+        /* The id attribute indicates the kind of value and type. The id can be an UUID string, an integer string, or a name identifier. */
+        string id;
+        /* The value attribute can be any static IDL type or CORBA basic type. */
+        any value;
+    };
+    /* The Properties is a CORBA IDL unbounded sequence of CF DataType(s), which can be used in defining a sequence of name and value pairs. */
+    typedef sequence <DataType> Properties;
+
+    /* This type is a CORBA unbounded sequence of octets. */
+    typedef sequence <octet> OctetSequence;
+    /* This type defines a sequence of strings */
+    typedef sequence <string> StringSequence;
+
+};
+
+#endif
+

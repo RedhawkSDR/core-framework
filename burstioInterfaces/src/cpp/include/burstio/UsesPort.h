@@ -27,6 +27,7 @@
 #include <boost/thread/mutex.hpp>
 
 #include <ossie/Port_impl.h>
+#include <ossie/callback.h>
 
 #include "utils.h"
 
@@ -44,28 +45,46 @@ namespace burstio {
         typedef std::pair<std::string,var_type> connection_type;
         typedef std::vector<connection_type> connection_list;
 
-        template <class Target, class Base>
-        void addConnectListener (Target* target, void (Base::*func)(const std::string&))
+        // Register the member function 'func' to be called on class instance
+        // 'target' when a new connection is made. The function receives one
+        // argument, the connection ID:
+        //
+        //   void Target::func(const std::string&);
+        //
+        template <class Target, class Func>
+        void addConnectListener (Target target, Func func)
         {
-            connectListeners_.push_back(boost::bind(func, static_cast<Base*>(target), _1));
+            connectListeners_.add(target, func);
         }
 
-        template <class Target, class Base>
-        void removeConnectListener (Target* target, void (Base::*func)(const std::string&))
+        // Unregister the member function 'func' on class instance 'target'
+        // from further connection notifications. If the pair has not been
+        // registered previously, it is ignored.
+        template <class Target, class Func>
+        void removeConnectListener (Target target, Func func)
         {
-            burstio::utils::remove(connectListeners_, boost::bind(func, static_cast<Base*>(target), _1));
+            connectListeners_.remove(target, func);
         }
 
-        template <class Target, class Base>
-        void addDisconnectListener (Target* target, void (Base::*func)(const std::string&))
+        // Register the member function 'func' to be called on class instance
+        // 'target' when an existing connection is broken. The function
+        // receives one argument, the connection ID:
+        //
+        //   void Target::func(const std::string&);
+        //
+        template <class Target, class Func>
+        void addDisconnectListener (Target target, Func func)
         {
-            disconnectListeners_.push_back(boost::bind(func, static_cast<Base*>(target), _1));
+            disconnectListeners_.add(target, func);
         }
 
-        template <class Target, class Base>
-        void removeDisconnectListener (Target* target, void (Base::*func)(const std::string&))
+        // Unregister the member function 'func' on class instance 'target'
+        // from further disconnection notifications. If the pair has not been
+        // registered previously, it is ignored.
+        template <class Target, class Func>
+        void removeDisconnectListener (Target target, Func func)
         {
-            burstio::utils::remove(disconnectListeners_, boost::bind(func, static_cast<Base*>(target), _1));
+            disconnectListeners_.remove(target, func);
         }
 
         virtual void connectPort(CORBA::Object_ptr connection, const char* connectionId)
@@ -115,7 +134,7 @@ namespace burstio {
                 }
             }
 
-            notifyConnect(connectionId);
+            connectListeners_(connectionId);
         }
 
         virtual void disconnectPort(const char* connectionId)
@@ -135,7 +154,7 @@ namespace burstio {
                 connections_.erase(existing);
             }
 
-            notifyDisconnect(connectionId);
+            disconnectListeners_(connectionId);
         }
 
         virtual ExtendedCF::UsesConnectionSequence* connections()
@@ -199,16 +218,6 @@ namespace burstio {
         {
         }
 
-        void notifyConnect (const std::string& connectionId)
-        {
-            burstio::utils::call_each(connectListeners_.begin(), connectListeners_.end(), connectionId);
-        }
-
-        void notifyDisconnect (const std::string& connectionId)
-        {
-            burstio::utils::call_each(disconnectListeners_.begin(), disconnectListeners_.end(), connectionId);
-        }
-        
         typedef std::map<std::string, Connection> ConnectionMap;
         ConnectionMap connections_;
 
@@ -222,8 +231,8 @@ namespace burstio {
             return connections_.insert(std::make_pair(connectionId, Connection(port))).first;
         }
 
-        std::list<boost::function<void (const std::string&)> > connectListeners_;
-        std::list<boost::function<void (const std::string&)> > disconnectListeners_;
+        ossie::notification<void (const std::string&)> connectListeners_;
+        ossie::notification<void (const std::string&)> disconnectListeners_;
     };
 
 }

@@ -33,6 +33,11 @@ public class StringSequenceProperty extends AbstractSequenceProperty<String> {
         super(id, name, "string", value, mode, action, kinds);
     }
 
+    public StringSequenceProperty(String id, String name, List<String> value, Mode mode,
+                                  Action action, Kind[] kinds, boolean optional) {
+        super(id, name, "string", value, mode, action, kinds, optional);
+    }
+
     public static List<String> asList(String... array) {
         return new ArrayList<String>(Arrays.asList(array));
     }

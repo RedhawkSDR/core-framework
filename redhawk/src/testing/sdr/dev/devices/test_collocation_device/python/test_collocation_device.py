@@ -79,6 +79,9 @@ class test_collocation_device_i(test_collocation_device_base):
             self._log.exception("Error sending properties event")
             
             
+    def allocate_additional_supported_components(self, value):
+        return True
+            
     def allocate_supported_components(self, value):
         self._log.info("Allocate:   Value/Total Allowed/Current Deployed " + str(value) + "/" + str( self.supported_components) +
                             "/" + str(self.current_components) )

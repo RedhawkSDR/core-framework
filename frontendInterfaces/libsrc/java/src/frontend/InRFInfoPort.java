@@ -21,14 +21,20 @@ package frontend;
 
 import frontend.RFInfoDelegate;
 import FRONTEND.RFInfoPkt;
+import FRONTEND.RFInfoHelper;
+import org.ossie.component.PortBase;
 
-public class InRFInfoPort extends FRONTEND.RFInfoPOA {
+public class InRFInfoPort extends FRONTEND.RFInfoPOA implements PortBase {
 
     protected String name;
  
     protected Object portAccess = null;
 
     protected RFInfoDelegate delegate = null;    
+
+    public InRFInfoPort( String portName) {
+        this(portName, null);
+    }
 
     public InRFInfoPort( String portName,
                          RFInfoDelegate d) {
@@ -41,12 +47,15 @@ public class InRFInfoPort extends FRONTEND.RFInfoPOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null ){ 
-                    return delegate.fe_getRFFlowId();
+                    return delegate.get_rf_flow_id(this.name);
+                } else {
+                    throw new RuntimeException("InRFInfoPort get_rf_flow_id() callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InRFInfoPort rf_flow_id() exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
-            return null;
         }
     }
 
@@ -54,10 +63,14 @@ public class InRFInfoPort extends FRONTEND.RFInfoPOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null) {
-                    delegate.fe_setRFFlowId(data);
+                    delegate.set_rf_flow_id(this.name, data);
+                } else {
+                    throw new RuntimeException("InRFInfoPort set_rf_flow_id(String data) callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InRFInfoPort rf_flow_id(String data) exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
         }
     }
@@ -66,14 +79,15 @@ public class InRFInfoPort extends FRONTEND.RFInfoPOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null) {
-                    return (delegate.fe_getRFInfoPkt());
-                } else { 
-                    return null;
+                    return (delegate.get_rfinfo_pkt(this.name));
+                } else {
+                    throw new RuntimeException("InRFInfoPort get_rfinfo_pkt() callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InRFInfoPort rfinfo_pkt() exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
-            return null;
         }
     }
 
@@ -81,15 +95,27 @@ public class InRFInfoPort extends FRONTEND.RFInfoPOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null) {
-                    delegate.fe_setRFInfoPkt(data);
+                    delegate.set_rfinfo_pkt(this.name, data);
+                } else {
+                    throw new RuntimeException("InRFInfoPort set_rfinfo_pkt(RFInfoPkt data) callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InRFInfoPort rfinfo_pkt(RFInfoPkt data) exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
         }
     }
 
     public void setDelegate( RFInfoDelegate d ) {
         delegate = d;
+    }
+
+    public String getRepid() {
+        return RFInfoHelper.id();
+    }
+
+    public String getDirection() {
+        return "Provides";
     }
 }

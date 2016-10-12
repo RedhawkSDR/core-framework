@@ -28,6 +28,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.lang.reflect.Array;
+import org.omg.CORBA.MARSHAL;
 
 import org.apache.log4j.Logger;
 
@@ -37,7 +39,9 @@ import org.ossie.properties.StructDef;
 import burstio.stats.SenderStatistics;
 import burstio.traits.BurstTraits;
 
-abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA {
+import org.ossie.component.PortBase;
+
+abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA implements PortBase {
     public static final int DEFAULT_MAX_BURSTS = 100;
     public static final int DEFAULT_LATENCY_THRESHOLD = 10000; // 10000 us = 10ms
 
@@ -289,7 +293,12 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA {
             int index = 0;
             for (Map.Entry<String,Connection<E>> entry : this.connections_.entrySet()) {
                 Connection<E> connection = entry.getValue();
-                results[index++] = new ExtendedCF.UsesConnection(entry.getKey(), (org.omg.CORBA.Object)connection.port);
+                org.omg.CORBA.Object my_obj = (org.omg.CORBA.Object)connection.port;
+                if (my_obj instanceof omnijni.ObjectImpl) {
+                    String ior = omnijni.ORB.object_to_string(my_obj);
+                    my_obj = this._orb().string_to_object(ior);
+                }
+                results[index++] = new ExtendedCF.UsesConnection(entry.getKey(), my_obj);
             }
             return results;
         }
@@ -512,6 +521,16 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA {
         this.pushBursts(this.traits_.toArray(bursts));
     }
 
+	public String getRepid ()
+	{
+		return "IDL:CORBA/Object:1.0";
+	}
+
+	public String getDirection ()
+	{
+		return "Uses";
+	}
+
     protected void sendBursts(B[] bursts, long startTime, float queueDepth, final String streamID)
     {
         int total_elements = 0;
@@ -533,6 +552,15 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA {
                     this.pushBursts(connection.port, bursts);
                     connection.alive = true;
                     connection.stats.record(bursts.length, total_elements, queueDepth, delay * 1e-9);
+                } catch (org.omg.CORBA.SystemException ex) {
+                    if (bursts.length == 1) {
+                        if (connection.alive) {
+                            this.logger_.error("pushBursts to " + connectionId + " failed the burst size is too long");
+                            connection.alive = false;
+                        }
+                    } else {
+                        this.partitionBursts(bursts, startTime, queueDepth, connection);
+                    }
                 } catch (final Exception ex) {
                     if (connection.alive) {
                         this.logger_.error("pushBursts to " + connectionId + " failed: " + ex);
@@ -543,12 +571,50 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA {
         }
     }
 
+    protected void partitionBursts (B[] bursts, long startTime, float queueDepth, final Connection<E> connection)
+    {
+        B[] first_burst = this.createBursts(bursts.length/2);
+        B[] second_burst = this.createBursts(bursts.length - first_burst.length);
+        long delay = System.nanoTime() - startTime;
+        for (int i=0; i<bursts.length; i++) {
+            if (i<first_burst.length) {
+                first_burst[i] = bursts[i];
+            } else {
+                second_burst[i-first_burst.length] = bursts[i];
+            }
+        }
+        try {
+            int total_elements = 0;
+            for (B burst : first_burst) {
+                total_elements += this.traits_.burstLength(burst);
+            }
+            this.pushBursts(connection.port, first_burst);
+            connection.alive = true;
+            connection.stats.record(first_burst.length, total_elements, queueDepth, delay * 1e-9);
+        } catch (org.omg.CORBA.SystemException ex) {
+            this.partitionBursts(first_burst, startTime, queueDepth, connection);
+        }
+        try {
+            int total_elements = 0;
+            for (B burst : second_burst) {
+                total_elements += this.traits_.burstLength(burst);
+            }
+            this.pushBursts(connection.port, second_burst);
+            connection.alive = true;
+            connection.stats.record(second_burst.length, total_elements, queueDepth, delay * 1e-9);
+        } catch (org.omg.CORBA.SystemException ex) {
+            this.partitionBursts(second_burst, startTime, queueDepth, connection);
+        }
+    }
+    
     protected void sendBursts (Collection<B> bursts, long startTime, float queueDepth, final String streamID)
     {
         this.sendBursts(this.traits_.toArray(bursts), startTime, queueDepth, streamID);
     }
     
     protected abstract void pushBursts(E port, B[] burts);
+    
+    protected abstract B[] createBursts(int size);
 
     protected boolean isStreamRoutedToConnection (final String streamID, final String connectionID)
     {

@@ -23,7 +23,12 @@
 USAGE="""\
 usage: %prog [options] <domainname> <channelname>
 
- -f --force: if the channel does not exist, then create it
+options:
+    -f --force        : if the channel does not exist, then create it
+    -p --prettyprint  : print event channel messages in a human-readable format
+    -i --include      : comma-separated list of message fields to include when pretty-printing
+    -x --exclude      : comma-separated list of message fields to exclude when pretty-printing
+    -s --search       : regular expression used to search for event channel messages to print; only messages containing a match to the regex will be printed
 """
 
 from omniORB import any
@@ -40,12 +45,44 @@ except:
 
 # create a class for consuming events
 class Consumer_i(CosEventComm__POA.PushConsumer):
-    def __init__(self):
-        pass
+    def __init__(self, prettyprint=False, excludeList=[], includeList=[], regex=None):
+        self.pp = prettyprint
+        self.excludeList = excludeList
+        self.includeAll = False
+        if (len(includeList) == 0):
+            self.includeAll = True
+        self.includeList = includeList
+        self.regex = regex
    
     def push(self, data):
         event = any.from_any(data)
-        print event
+        stringToPrint = ""
+        if (self.pp):
+            stringToPrint = self.getPrettyPrintFormat(event)
+        else:
+            stringToPrint = str(event)
+
+        printString = True
+        if (self.regex != None):
+            import re
+            pattern = re.compile(self.regex)
+            printString = pattern.search(stringToPrint)
+
+        if (printString):
+            print stringToPrint
+
+    def getPrettyPrintFormat(self, event):
+        prettyStr = ""
+        for topLevelField in event:
+            prettyStr = prettyStr + str(topLevelField['id']) + ':\n'
+            fieldList = sorted(topLevelField['value'])
+            for field in fieldList:
+                fieldName = str(field['id'])
+                fieldValue = str(field['value'])
+                if (not(fieldName in self.excludeList)) and ((self.includeAll) or (fieldName in self.includeList)):
+                    prettyStr = prettyStr + '\t' + fieldName + " : " + fieldValue + '\n'
+        return prettyStr
+
     
     def disconnect_push_consumer (self):
         pass
@@ -59,6 +96,10 @@ if __name__ == '__main__':
 
     parser = OptionParser(usage=USAGE)
     parser.add_option("-f", "--force", dest="force", action="store_true", help="if the channel does not exist, then create it", default=False)
+    parser.add_option("-p", "--prettyprint", dest="prettyprint", action="store_true", help="print event channel messages in a human-readable format", default=False)
+    parser.add_option("-i", "--include", dest="includeListStr", action="store", help="comma-separated list of message fields to include when pretty printing", default=None)
+    parser.add_option("-x", "--exclude", dest="excludeListStr", action="store", help="comma-separated list of message fields to exclude when pretty printing", default=None)
+    parser.add_option("-s", "--search", dest="regexStr", action="store", help="regular expression used to search for event channel messages to print; only messages containing a match to the regex will be printed", default=None)
 
     options, args = parser.parse_args()
 
@@ -90,7 +131,14 @@ if __name__ == '__main__':
             print "No such channel exists"
             sys.exit(-1)
     
-    _consumer = Consumer_i()
+    excludeList = []
+    if (options.excludeListStr):
+        excludeList = options.excludeListStr.split(',')
+    includeList = []
+    if (options.includeListStr):
+        includeList = options.includeListStr.split(',')
+    _consumer = Consumer_i(prettyprint=options.prettyprint, excludeList=excludeList, includeList=includeList, regex=options.regexStr)
+
     try:
         dom.registerWithEventChannel(_consumer._this(), os.environ['USER']+str(os.getpid()), channelname)
     except CF.DomainManager.InvalidEventChannelName:

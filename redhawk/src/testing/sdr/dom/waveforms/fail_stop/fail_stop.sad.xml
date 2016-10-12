@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:fafa0692-9b26-44bf-8fa9-3be9de29d04d" name="fail_stop">
+  <componentfiles>
+    <componentfile id="FailableComponent_8b500c14-bde1-4b0a-b45a-8eeeaa27c2a3" type="SPD">
+      <localfile name="/components/FailableComponent/FailableComponent.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="FailableComponent_8b500c14-bde1-4b0a-b45a-8eeeaa27c2a3"/>
+      <componentinstantiation id="FailableComponent_1" startorder="0">
+        <usagename>FailableComponent_1</usagename>
+        <findcomponent>
+          <namingservice name="FailableComponent_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="FailableComponent_8b500c14-bde1-4b0a-b45a-8eeeaa27c2a3"/>
+      <componentinstantiation id="FailableComponent_2" startorder="1">
+        <usagename>FailableComponent_2</usagename>
+        <componentproperties>
+          <simpleref refid="fail_stop" value="true"/>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="FailableComponent_2"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="FailableComponent_1"/>
+  </assemblycontroller>
+</softwareassembly>

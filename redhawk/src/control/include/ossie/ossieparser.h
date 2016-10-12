@@ -25,6 +25,8 @@
 #include <memory>
 #include <cassert>
 #include <vector>
+#include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
 
 #define OSSIEPARSER_API
 
@@ -33,6 +35,19 @@
 // in the libossieparser library.  This allows the underlying parser
 // and data structures to be changed without requiring a recompilation.
 namespace ossie {
+
+  
+  class Property;
+  class ComponentProperty;
+
+    typedef boost::ptr_map< std::string, ComponentProperty >   ComponentPropertyMap;
+
+    typedef boost::ptr_vector< ComponentProperty >             ComponentPropertyList;
+
+    typedef boost::ptr_vector< Property >                      PropertyList;
+
+    typedef boost::ptr_map< std::string, Property >            PropertyMapList;
+
 
     template<class T>
     class optional_value

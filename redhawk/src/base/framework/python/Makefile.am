@@ -31,9 +31,6 @@ ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 
 all-local:
 	python setup.py $(OSSIE_V_pysetup) build
-if INSTALL_PYTHON_BACKPORTS
-	cd backports; python setup-backports.py build
-endif
 
 clean-local:
 	python setup.py clean
@@ -46,6 +43,8 @@ EXTRA_DIST = setup.py
 
 BUILT_SOURCES = \
  ossie/cf/cf_idl.py \
+ ossie/cf/DataType_idl.py \
+ ossie/cf/Port_idl.py \
  ossie/cf/PortTypes_idl.py \
  ossie/cf/StandardEvent_idl.py \
  ossie/cf/ExtendedEvent_idl.py \
@@ -53,7 +52,8 @@ BUILT_SOURCES = \
  ossie/cf/QueryablePort_idl.py \
  ossie/cf/WellKnownProperties_idl.py \
  ossie/cf/sandbox_idl.py \
- ossie/cf/LogInterfaces_idl.py
+ ossie/cf/LogInterfaces_idl.py \
+ ossie/cf/EventChannelManager_idl.py
 
 CLEANFILES = $(BUILT_SOURCES)
 
@@ -61,9 +61,6 @@ PYTHON_INSTALL_FILES=".pythonInstallFiles"
 
 install-exec-hook:
 	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix) --record $(PYTHON_INSTALL_FILES)
-if INSTALL_PYTHON_BACKPORTS
-	cd backports; python setup-backports.py install --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
-endif
 
 uninstall:
 	rm `cat $(PYTHON_INSTALL_FILES)`

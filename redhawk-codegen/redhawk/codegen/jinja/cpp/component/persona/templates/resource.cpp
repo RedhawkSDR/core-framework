@@ -145,6 +145,30 @@ ${className}::~${className}()
             myOutput->pushPacket(*output, tmp->T, tmp->EOS, tmp->streamID);
 
         Interactions with non-BULKIO ports are left up to the ${artifactType} developer's discretion
+        
+    Messages:
+    
+        To receive a message, you need (1) an input port of type MessageEvent, (2) a message prototype described
+        as a structure property of kind message, (3) a callback to service the message, and (4) to register the callback
+        with the input port.
+        
+        Assuming a property of type message is declared called "my_msg", an input port called "msg_input" is declared of
+        type MessageEvent, create the following code:
+        
+        void ${className}::my_message_callback(const std::string& id, const my_msg_struct &msg){
+        }
+        
+        Register the message callback onto the input port with the following form:
+        this->msg_input->registerMessage("my_msg", this, &${className}::my_message_callback);
+        
+        To send a message, you need to (1) create a message structure, (2) a message prototype described
+        as a structure property of kind message, and (3) send the message over the port.
+        
+        Assuming a property of type message is declared called "my_msg", an output port called "msg_output" is declared of
+        type MessageEvent, create the following code:
+        
+        ::my_msg_struct msg_out;
+        this->msg_output->sendMessage(msg_out);
 
     Properties:
         

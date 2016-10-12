@@ -27,6 +27,8 @@ frontend
 #
 
 # 
+from fe_types import *
+
 from tuner_device import *
 
 from input_ports import *

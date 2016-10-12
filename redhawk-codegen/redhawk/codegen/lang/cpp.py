@@ -121,7 +121,10 @@ def literal(value, typename, complex=False):
         real, imag = (literal(str(x), typename) for x in (real, imag))
         return "%s(%s,%s)" % (cppType(typename, complex), real, imag)
     elif typename == CorbaTypes.STRING:
-        return stringLiteral(value)
+        if type(value) == list:
+            return
+        else:
+            return stringLiteral(value)
     elif typename == CorbaTypes.BOOLEAN:
         if parseBoolean(value):
             return TRUE
@@ -129,7 +132,8 @@ def literal(value, typename, complex=False):
             return FALSE
     elif typename in (CorbaTypes.LONGLONG, CorbaTypes.ULONGLONG):
         # Explicitly mark the literal as a 'long long' for 32-bit systems
-        return value + 'LL'
+        if not isinstance(value, list):
+            return value + 'LL'
     elif typename == CorbaTypes.CHAR:
         return charLiteral(value)
     else:

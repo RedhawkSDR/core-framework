@@ -18,10 +18,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+
 myDir=`dirname $0`
 
 # Setup the OSSIEHOME Lib jars on the classpath
-libDir=../base/framework/java
+libDir=${SDRROOT}/../../base/framework/java
 libFiles=`ls -1 $libDir/*.jar`
 for file in $libFiles
 do

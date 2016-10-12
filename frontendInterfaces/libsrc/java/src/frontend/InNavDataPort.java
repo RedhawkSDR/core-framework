@@ -20,18 +20,24 @@
 package frontend;
 
 import FRONTEND.NavigationPacket;
+import FRONTEND.NavDataHelper;
 import frontend.NavDataDelegate;
+import org.ossie.component.PortBase;
 
 // ----------------------------------------------------------------------------------------
 // InNavDataPort definition
 // ----------------------------------------------------------------------------------------
-public class InNavDataPort extends FRONTEND.NavDataPOA{
+public class InNavDataPort extends FRONTEND.NavDataPOA implements PortBase {
 
     protected String name;
 
     protected Object portAccess = null;
 
     protected NavDataDelegate delegate = null;
+
+    public InNavDataPort( String portName) {
+        this(portName, null);
+    }
 
     public InNavDataPort( String portName,
                           NavDataDelegate d){
@@ -44,12 +50,15 @@ public class InNavDataPort extends FRONTEND.NavDataPOA{
         synchronized(this.portAccess){
             try{
                 if ( delegate != null ) {
-                    return delegate.fe_getNavPkt();
+                    return delegate.get_nav_packet(this.name);
+                } else {
+                    throw new RuntimeException("InNavDataPort get_nav_packet() callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InNavDataPort nav_packet() exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
-            return null;
         }
     }
 
@@ -57,15 +66,27 @@ public class InNavDataPort extends FRONTEND.NavDataPOA{
         synchronized(this.portAccess){
             try{
                 if ( delegate != null) {
-                    delegate.fe_setNavPkt(data);
+                    delegate.set_nav_packet(this.name, data);
+                } else {
+                    throw new RuntimeException("InNavDataPort set_nav_packet(NavigationPacket data) callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InNavDataPort nav_packet(NavigationPacket data) exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
         }
     }
 
     public void setDelegate( NavDataDelegate d ) {
         delegate = d;
+    }
+
+    public String getRepid() {
+        return NavDataHelper.id();
+    }
+
+    public String getDirection() {
+        return "Provides";
     }
 }

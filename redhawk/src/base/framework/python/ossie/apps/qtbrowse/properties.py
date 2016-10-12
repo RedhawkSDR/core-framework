@@ -142,10 +142,8 @@ def getPropertiesFromPRF (xmlfile, fs):
                 values = valuesNode[0].getElementsByTagName('value')
                 property['values'] = [str(v.childNodes[0].data) for v in values]
         elif node.tagName == 'struct':
-            # TODO: struct values
             pass
         elif node.tagName == 'structsequence':
-            # TODO: structsequence values
             pass
                 
         properties.append(property)
@@ -160,8 +158,7 @@ def getPropertiesFromComponentInstantiation(instantiationNode):
 
     properties = []
     for node in propertiesNode[0].childNodes:
-        # TODO: Add support for structref and structsequenceref
-        if node.nodeName not in ['simpleref', 'simplesequenceref']:
+        if node.nodeName not in ['simpleref', 'simplesequenceref']: # Add support for structref and structsequenceref
             continue
 
         try:

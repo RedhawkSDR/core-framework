@@ -22,7 +22,7 @@
 /*{% endblock %}*/
 //% set className = component.reprogclass.name
 //% set baseClass = component.baseclass.name
-//% set includeGuard = component.name.upper() + '_IMPL_REPROG_H'
+//% set includeGuard = baseClass.upper() + '_IMPL_REPROG_H'
 #ifndef ${includeGuard}
 #define ${includeGuard}
 

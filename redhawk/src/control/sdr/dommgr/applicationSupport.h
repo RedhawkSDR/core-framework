@@ -45,37 +45,21 @@
 
 namespace ossie
 {
-    /**
-     *
-     */
-    class AllocPropsInfo {
-    public:
-        AllocPropsInfo() : device(CF::Device::_nil()) {}
+    class DeviceNode;
 
-        AllocPropsInfo(CF::Device_ptr _device, CF::Properties& _properties) {
-            device = CF::Device::_duplicate(_device);
-            properties = _properties;
-        }
-
-        AllocPropsInfo(const AllocPropsInfo& other) {
-            device = CF::Device::_duplicate(other.device);
-            properties = other.properties;
-        }
-
-        AllocPropsInfo& operator=(const AllocPropsInfo& other) {
-            if (this != &other) {
-                device = CF::Device::_duplicate(other.device);
-                properties = other.properties;
-            }
-            return *this;
-        }
-
-    public:
-        CF::Device_var device;
-        CF::Properties properties;
+    struct ApplicationComponent {
+        std::string identifier;
+        std::string softwareProfile;
+        std::string namingContext;
+        std::string implementationId;
+        std::vector<std::string> loadedFiles;
+        unsigned long processId;
+        CORBA::Object_var componentObject;
+        CF::Device_var assignedDevice;
     };
+    typedef std::list<ApplicationComponent> ComponentList;
 
-    /**
+    /*
      *
      */
     class UsesDeviceInfo
@@ -105,33 +89,34 @@ namespace ossie
         std::string assignedDeviceId;
     };
 
-    /** Base class to contain data for components and implementations
+    /* Base class to contain data for components and implementations
      *  - Used to store information about about UsesDevice relationships
      *    since these are handled the same for both components and
      *    component implementations.
      */
-    class ComponentImplementationInfo
+    class UsesDeviceContext
     {
         ENABLE_LOGGING;
 
     public:
-        ComponentImplementationInfo();
-        virtual ~ComponentImplementationInfo();
+        UsesDeviceContext();
+        virtual ~UsesDeviceContext();
 
-        bool checkUsesDevices(ossie::Properties& _prf, CF::Properties& allocProps, unsigned int usesDevIdx, const CF::Properties& configureProperties) const;
         void addUsesDevice(UsesDeviceInfo* usesDevice);
         const UsesDeviceInfo::List & getUsesDevices() const;
-        virtual const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const = 0;
+        virtual const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
 
 
     protected:
         UsesDeviceInfo::List usesDevices;
     };
 
-    /** Base class to contain data for implementations
+    class SoftpkgInfo;
+
+    /* Base class to contain data for implementations
      *  - Used to store information about about implementations
      */
-    class ImplementationInfo : public ComponentImplementationInfo
+    class ImplementationInfo : public UsesDeviceContext
     {
         ENABLE_LOGGING;
 
@@ -151,14 +136,14 @@ namespace ossie
         const CORBA::ULong getPriority() const;
         const bool hasStackSize() const;
         const bool hasPriority() const;
-        const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
         const std::vector<SPD::PropertyRef>& getDependencyProperties() const;
-        const std::vector<SPD::SoftPkgRef>& getSoftPkgDependency() const;
+        const std::vector<SoftpkgInfo*>& getSoftPkgDependency() const;
 
-        CF::Properties getAllocationProperties(const ossie::Properties& prf, const CF::Properties& configureProperties) const
-            throw (ossie::PropertyMatchingError);
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
-        bool checkMatchingDependencies(const ossie::Properties& prf, const std::string& softwareProfile, const CF::DeviceManager_var& devMgr) const;
+
+        void clearSelectedDependencyImplementations();
+
+        static ImplementationInfo* buildImplementationInfo(CF::FileManager_ptr fileMgr, const SPD::Implementation& spdImpl);
 
     private:
         ImplementationInfo (const ImplementationInfo&);
@@ -168,7 +153,7 @@ namespace ossie
         void setStackSize(const unsigned long long *_stackSize);
         void setPriority(const unsigned long long *_priority);
         void addDependencyProperty(const ossie::SPD::PropertyRef& property);
-        void addSoftPkgDependency(const SPD::SoftPkgRef& softpkg);
+        void addSoftPkgDependency(SoftpkgInfo* softpkg);
 
         std::string id;
         CF::LoadableDevice::LoadType codeType;
@@ -181,90 +166,116 @@ namespace ossie
         std::vector<std::string> processorDeps;
         std::vector<ossie::SPD::NameVersionPair> osDeps;
         std::vector<SPD::PropertyRef> dependencyProperties;
-        std::vector<SPD::SoftPkgRef> softPkgDependencies;
+        std::vector<SoftpkgInfo*> softPkgDependencies;
 
     };
 
-    /** Base class to contain data for components
-     *  - Used to store information about about components
-     */
-    class ComponentInfo : public ComponentImplementationInfo
+    class SoftpkgInfo : public UsesDeviceContext
     {
         ENABLE_LOGGING
 
     public:
+        
+        SoftpkgInfo (const std::string& spdFileName);
+        ~SoftpkgInfo ();
 
-        ComponentInfo ();
+        const char* getSpdFileName();
+        const char* getName();
+
+        void addImplementation(ImplementationInfo* impl);
+        void getImplementations(ImplementationInfo::List& res);
+
+        const ImplementationInfo* getSelectedImplementation() const;
+        void setSelectedImplementation(ImplementationInfo* implementation);
+        void clearSelectedImplementation();
+
+        virtual const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
+
+        static SoftpkgInfo* buildSoftpkgInfo (CF::FileManager_ptr fileMgr, const char* spdFileName);
+
+        SoftPkg spd;
+
+    protected:
+        bool parseProfile (CF::FileManager_ptr fileMgr);
+
+        const std::string _spdFileName;
+        std::string _name; // Component name from SPD File
+
+        ImplementationInfo::List _implementations;
+        ImplementationInfo* _selectedImplementation; // Implementation selected to run on assigned device.
+    };
+
+    /* Base class to contain data for components
+     *  - Used to store information about about components
+     */
+    class ComponentInfo : public SoftpkgInfo
+    {
+        ENABLE_LOGGING
+
+    public:
+      typedef ossie::ComponentInstantiation::AffinityProperties AffinityProperties;
+      typedef ossie::ComponentInstantiation::LoggingConfig    LoggingConfig;
+
+        ComponentInfo (const std::string& spdFileName);
         ~ComponentInfo ();
 
-        void setName(const char* name);
         void setIdentifier(const char* identifier, std::string instance_id);
-        void setAssignedDeviceId(const char* name);
-        void setSelectedImplementation(const ImplementationInfo* implementation);
-        void addImplementation(ImplementationInfo* impl);
-        void setImplPRFFile(const char* _PRFFile);
+        void setAssignedDevice(boost::shared_ptr<DeviceNode> device);
         void setNamingService(const bool isNamingService);
         void setNamingServiceName(const char* NamingServiceName);
         void setUsageName(const char* usageName);
         void setIsAssemblyController(bool isAssemblyController);
         void setIsScaCompliant(bool isScaCompliant);
-        void setSpdFileName(const char* spdFileName);
-
-        void setDeployedOnResourceFactory(bool _deployedOnResourceFactory);
-        void setDeployedOnExecutableDevice(bool _deployedOnExecutableDevice);
-        void setPID(CF::ExecutableDevice::ProcessID_Type _pid);
-        void setDeployedOnLoadableDevice(bool _deployedOnLoadableDevice);
-
-        const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
+        void setNicAssignment(std::string nic);
+        void setAffinity( const AffinityProperties &affinity );
+        void mergeAffinityOptions( const CF::Properties &new_affinity );
+        void setLoggingConfig( const LoggingConfig &logcfg );
+        void addResolvedSoftPkgDependency(const std::string &dep);
+        std::vector<std::string> getResolvedSoftPkgDependencies();
 
         void addFactoryParameter(CF::DataType dt);
         void addExecParameter(CF::DataType dt);
         void addDependencyProperty(std::string implId, CF::DataType dt);
         void addConfigureProperty(CF::DataType dt);
+        void addConstructProperty(CF::DataType dt);
 
         void overrideProperty(const ossie::ComponentProperty* propref);
         void overrideProperty(const char* id, const CORBA::Any& value);
-        void overrideSimpleProperty(const char* id, const std::string value);
 
         void setResourcePtr(CF::Resource_ptr);
-        void setDevicePtr(CF::Device_ptr);
 
-        const char* getName();
         const char* getInstantiationIdentifier();
         const char* getIdentifier();
+        boost::shared_ptr<DeviceNode> getAssignedDevice();
         const char* getAssignedDeviceId();
-        const ImplementationInfo* getSelectedImplementation() const;
-        void  getImplementations( ImplementationInfo::List &res );
-        const char* getImplPRFFile();
         const bool  getNamingService();
         const char* getUsageName();
         const char* getNamingServiceName();
-        const char* getSpdFileName();
         const bool  isResource();
         const bool  isConfigurable();
         const bool  isAssemblyController();
         const bool  isScaCompliant();
+        const std::string getNicAssignment();
 
         bool isAssignedToDevice() const;
-
-        const bool  getDeployedOnResourceFactory();
-        const bool  getDeployedOnExecutableDevice();
-        const CF::ExecutableDevice::ProcessID_Type getPID();
-        bool  getDeployedOnLoadableDevice() const;
+        CF::Properties containsPartialStructConfig();
+        CF::Properties containsPartialStructConstruct();
+        CF::Properties iteratePartialStruct(CF::Properties &props);
+        bool checkStruct(CF::Properties &props);
 
         CF::Properties getNonNilConfigureProperties();
+        CF::Properties getNonNilNonExecConstructProperties();
         CF::Properties getConfigureProperties();
+        CF::Properties getConstructProperties();
         CF::Properties getOptions();
+        CF::Properties getAffinityOptions();
+        CF::Properties getAffinityOptionsWithAssignment();
         CF::Properties getExecParameters();
-
-        CF::Properties getAllocationProperties(const ossie::Properties& prf, std::string implId);
-        bool checkUsesDevice(const ossie::Properties& _prf, CF::Properties& allocProps, unsigned int usesDevIdx);
+        CF::Properties getPopulatedExecParameters();
 
         CF::Resource_ptr getResourcePtr();
-        CF::Device_ptr getDevicePtr();
 
         static ComponentInfo* buildComponentInfoFromSPDFile(CF::FileManager_ptr fileMgr, const char* _SPDFile);
-        SoftPkg spd;
         ComponentDescriptor scd;
         ossie::Properties prf;
 
@@ -276,38 +287,32 @@ namespace ossie
         bool _isConfigurable;
         bool _isScaCompliant;
         bool isNamingService;
-        bool deployedOnResourceFactory;
-        bool deployedOnLoadableDevice;
-        bool deployedOnExecutableDevice;
 
-        std::string name;    // Component name from SPD File
-        std::string assignedDeviceId;  // Device to deploy component on from DAS.
-        const ImplementationInfo* selectedImplementation; // Implementation selected to run on assigned device.
+        boost::shared_ptr<DeviceNode> assignedDevice;
 
-        ImplementationInfo::List  implementations;
-        std::string implPRF;
         std::string usageName;
         std::string identifier;
         std::string instantiationId;
         std::string namingServiceName;
-        std::string SpdFileName;
-        std::map<std::string, bool> isReadWrite;
+        std::string nicAssignment;
 
-        // CF::LoadableDevice::LoadType codeType;
+        ossie::Properties _affinity_prf;
+        LoggingConfig    loggingConfig;
 
         CF::Properties configureProperties;
+        CF::Properties ctorProperties;
         CF::Properties options;
         CF::Properties factoryParameters;
         CF::Properties execParameters;
-
-        CF::ExecutableDevice::ProcessID_Type PID;
+        CF::Properties affinityOptions;
+        
+        std::vector<std::string> resolved_softpkg_dependencies;
 
         CF::Resource_var rsc;
-        CF::Device_var devicePtr;
 
     };
 
-    /**
+    /*
      * Class to store information for device assignment support
      */
     class DeviceAssignmentInfo
@@ -318,13 +323,13 @@ namespace ossie
         CF::Device_var  device;
     };
 
-    /** Base class to contain data for applications
+    /* Base class to contain data for applications
      *  - Used to store information about about:
      *       -> ExternalPorts
      *       -> External Properties
      *       -> UsesDevice relationships
      */
-    class ApplicationInfo
+    class ApplicationInfo : public UsesDeviceContext
     {
         ENABLE_LOGGING;
 
@@ -338,20 +343,14 @@ namespace ossie
         const CF::Properties getACProperties() const;
         void populateApplicationInfo(const SoftwareAssembly& sad);
         void populateExternalProperties(CF::Properties& props);
-        const std::vector<UsesDeviceInfo*>& getUsesDevices() const;
-        const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
         void addComponent(ComponentInfo* comp);
         ComponentInfo* findComponentByInstantiationId(const std::string id);
-        bool checkUsesDevice(const std::vector<ossie::SoftwareAssembly::PropertyRef>& usesProps,
-                                  const std::vector<const Property*>& devProps,
-                                  CF::Properties& allocProps);
 
     protected:
         std::vector<SoftwareAssembly::Port> externalPorts;
         std::vector<SoftwareAssembly::Property> externalProperties;
         CF::Properties acProps;
         std::vector<ComponentInfo*> components;
-        UsesDeviceInfo::List usesDevices;
     };
 }
 #endif

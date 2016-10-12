@@ -23,6 +23,7 @@ AM_CPPFLAGS = -I../include
 lib_LTLIBRARIES = libossiecf.la
 libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
                         PortSupplier_impl.cpp \
+                        PortSet_impl.cpp \
                         Device_impl.cpp \
                         PropertySet_impl.cpp \
                         LifeCycle_impl.cpp \
@@ -33,11 +34,11 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
                         LoadableDevice_impl.cpp \
                         TestableObject_impl.cpp \
                         helperFunctions.cpp \
+                        affinity.cpp \
                         Port_impl.cpp \
                         FileStream.cpp \
                         POACreator.cpp \
                         CorbaUtils.cpp \
-                        ORB.cpp \
                         prop_helpers.cpp \
                         MessageInterface.cpp \
                         PropertyInterface.cpp \
@@ -48,9 +49,14 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
                         logging/rh_logger.cpp \
                         logging/StringInputStream.cpp \
                         logging/RH_LogEventAppender.cpp \
-                        EventChannelSupport.cpp
+                        EventChannelSupport.cpp \
+	                Events.cpp \
+			Component.cpp \
+			Value.cpp \
+			PropertyType.cpp \
+			PropertyMap.cpp
 
 libossiecf_la_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
-libossiecf_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS)
+libossiecf_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) -ldl
 libossiecf_la_LDFLAGS = -Wall -version-info $(LIBOSSIECF_VERSION_INFO)
 

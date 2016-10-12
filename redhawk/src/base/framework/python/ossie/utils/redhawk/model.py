@@ -119,6 +119,40 @@ class CorbaAttribute(object):
             self.changed(oldValue, value)
 
 
+class IteratorContainer(object):
+    def __init__(self, name, iter ):
+        self.name = name
+        self.iter = iter
+
+    def destroy(self):
+        if self.iter:
+            self.iter.destroy()
+            self.iter = None
+
+    def next_one(self):
+        retval=None
+        if self.iter:
+            try:
+               iter_ret = self.iter.next_one()
+               if len(iter_ret) > 1 and iter_ret[0]:
+                   return iter_ret[1]
+            except:
+                pass
+        return retval
+
+
+    def next_n(self, n=10 ):
+        retval=None
+        if self.iter:
+            try:
+               iter_ret = self.iter.next_n(n)
+               if len(iter_ret) > 1 and iter_ret[0]:
+                   return iter_ret[1]
+            except:
+                pass
+        return retval
+
+
 class DomainObjectList(object):
     @notification
     def itemAdded(self, item):
@@ -144,7 +178,7 @@ class DomainObjectList(object):
         self.__lock = threading.RLock()
 
     def __add(self, identifier, value, notify):
-        if identifier in self.__data:
+        if identifier in self.__data and self.__data[identifier].ref._is_equivalent(value):
             # Item already exists.
             return self.__data[identifier]
 

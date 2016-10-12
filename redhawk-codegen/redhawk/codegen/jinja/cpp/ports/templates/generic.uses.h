@@ -41,12 +41,11 @@ class ${classname} : public Port_Uses_base_impl, public POA_ExtendedCF::Queryabl
                 }
                 recConnectionsRefresh = false;
             }
-            ExtendedCF::UsesConnectionSequence_var retVal = new ExtendedCF::UsesConnectionSequence(recConnections);
             // NOTE: You must delete the object that this function returns!
-            return retVal._retn();
-        };
+            return new ExtendedCF::UsesConnectionSequence(recConnections);
+        }
 
-//% if portgen.interfaceClass() != "CF::Port" 
+/*{% if portgen.interfaceClass() != "CF::Port"  %}*/
         void connectPort(CORBA::Object_ptr connection, const char* connectionId)
         {
             boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
@@ -54,7 +53,7 @@ class ${classname} : public Port_Uses_base_impl, public POA_ExtendedCF::Queryabl
             outConnections.push_back(std::make_pair(port, connectionId));
             active = true;
             recConnectionsRefresh = true;
-        };
+        }
 
         void disconnectPort(const char* connectionId)
         {
@@ -70,13 +69,15 @@ class ${classname} : public Port_Uses_base_impl, public POA_ExtendedCF::Queryabl
                 active = false;
             }
             recConnectionsRefresh = true;
-        };
-//% endif 
+        }
+
+/*{% endif %}*/
+        std::string getRepid () const;
 
         std::vector< std::pair<${vartype}, std::string> > _getConnections()
         {
             return outConnections;
-        };
+        }
 
     protected:
         ${component.userclass.name} *parent;

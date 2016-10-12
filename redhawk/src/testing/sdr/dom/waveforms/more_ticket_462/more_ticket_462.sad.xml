@@ -84,7 +84,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
              </values>
           </simplesequenceref>
           <structref refid="struct_prop">
-             <simpleref refid="prop_two" value="string overload"/>
+             <simpleref refid="prop_two" value="string override"/>
           </structref>
           <structsequenceref refid="struct_seq_prop">
              <structvalue>
@@ -96,7 +96,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
                <simpleref refid="prop_six" value="345.0"/>
              </structvalue>
              <structvalue>
-               <simpleref refid="prop_four" value="string_overload"/>
+               <simpleref refid="prop_four" value="string_override"/>
                <simpleref refid="prop_five" value="3"/>
                <simpleref refid="prop_six" value="678.0"/>
              </structvalue>

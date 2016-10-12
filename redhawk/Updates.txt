@@ -1,0 +1,48 @@
+New Feature list
+January/February/March/April 2015
+- Connection Manager
+- createApplication call on DomainManager object (do not have to install application and call create on ApplicationFactory object)
+- Event Channel Manager
+- Stream-based input support for BulkIO (C++ only)
+- Struct properties can have optional members
+- Struct properties can have sequence members
+- New property type "property" (deprecates "execparam" and "configure" types, although they're still supported)
+- C++ helper (redhawk::PropertyMap) for accessing CF::Properties
+- DomainManager and Application pointers as Component members
+- DomainManager and DeviceManager pointers as Device/Service members
+- Allocated NIC provided as member of Component class
+- Component and Waveform namespaces
+- IDM_Channel event notifying of the death of a Component
+- ODM_Channel event notifying start/stop of an Application
+- eventl utility that lists all event channels managed by the EventChannel service
+- rmeventall utility that destroys all event channels managed by the EventChannel service
+- New executeLinked call on the ExecutableDevice allows for the deployment of Components with colliding softpkg dependencies
+- C++ GPP replaces the Python GPP. Capacity reservation does not require the explicit declaration on the Component's SPD
+- Softpkg dependency wizard and code generators
+- Graphical usesdevice support in waveforms for FrontEnd devices
+- Port monitoring statistics are reflected graphically in waveform / node diagrams
+- Improved wizards / graphics for findby's in the waveform diagram
+- Added menu to interact with component logging at runtime
+- Added shortcut icons to the hover-pad that appears when hovering over items in a diagram
+- Added ability to expand/collapse components in a waveform diagram to simplify the diagram
+- Waveform and node digrams highlight potential ports when making connections
+
+May 2015
+- Device Manager and Domain Manager properties are available through the Python interface
+- Support for complex char types in the Java any utils
+- __version__ added to the Python package
+- Tilde is supported to reference the home directory when launching from the sandbox
+- File refresh on Component load checks subdirectories in the loaded package to see if they need to be refreshed
+- Execute bit is maintained on a Component package load
+- BurstIO output succeeds with oversized push
+- Eclipse updates, including the PyDev editor
+- Improved help tooltips for FrontEnd allocation wizard
+- C++ code completion / editor support when referencing REDHAWK shared libraries
+- Improve port highlighting in waveform/node diagrams whem making connections
+- UI support for new property 'kind' when editing PRF
+- Ports have been give their own tab in the SPD editor; allows editing the new description field
+
+June 2015
+- GPP performs affinity (NUMA balancing) on the deployed waveform
+- Comments added to assist in Doxygen generation
+- Preprocessor directives added to limit the scope of visible items on code content assist

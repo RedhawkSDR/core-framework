@@ -18,7 +18,6 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #}
 #{% macro simple(prop) %}
-#{%   filter codealign %}
 ${prop.pyname} = simple_property(id_="${prop.identifier}",
 #%    if prop.name
                                  name="${prop.name}",
@@ -38,11 +37,9 @@ ${prop.pyname} = simple_property(id_="${prop.identifier}",
                                  description="""${prop.description}"""
 #%-   endif
 )
-#{%   endfilter %}
 #{% endmacro %}
 
 #{% macro simplesequence(prop) %}
-#{%   filter codealign %}
 ${prop.pyname} = simpleseq_property(id_="${prop.identifier}",
 #%    if prop.name
                                     name="${prop.name}",
@@ -50,12 +47,14 @@ ${prop.pyname} = simpleseq_property(id_="${prop.identifier}",
                                     type_="${prop.type}",
 #%    if prop.pyvalue
                                     defvalue=[
+#{%-  filter trim|lines|join(', ') %}
 #{%   for val in prop.pyvalue %}
-                                              ${val},
+${val}
 #{%   endfor %}
+#{%   endfilter %}
                                              ],
 #%    else
-                                    defvalue=None,
+                                    defvalue=[],
 #%    endif
 #%    if prop.units
                                     units="${prop.units}",
@@ -71,11 +70,9 @@ ${prop.pyname} = simpleseq_property(id_="${prop.identifier}",
                                     description="""${prop.description}"""
 #%-   endif
 )
-#{%   endfilter %}
 #{% endmacro %}
 
 #{% macro struct(prop) %}
-#{%   filter codealign %}
 ${prop.pyname} = struct_property(id_="${prop.identifier}",
 #%    if prop.name
                                  name="${prop.name}",
@@ -88,11 +85,9 @@ ${prop.pyname} = struct_property(id_="${prop.identifier}",
                                  description="""${prop.description}"""
 #%-   endif
 )
-#{%   endfilter %}
 #{% endmacro %}
 
 #{% macro structsequence(prop) %}
-#{%   filter codealign %}
 ${prop.pyname} = structseq_property(id_="${prop.identifier}",
 #%    if prop.name
                                     name="${prop.name}",
@@ -106,42 +101,91 @@ ${prop.pyname} = structseq_property(id_="${prop.identifier}",
                                     description="""${prop.description}"""
 #%-   endif
 )
-#{%   endfilter %}
 #{% endmacro %}
 
 #{% macro initializer(fields) %}
-#{%   filter trim|lines|join(', ') %}
+#{%  filter trim|lines|join(', ') %}
 #{%   for field in fields %}
+#{%    if field is simplesequence %}
+#{%     if field.pyvalue %}
+${field.pyname}=[
+#{%-     filter trim|lines|join(', ') %}
+#{%       for val in field.pyvalue %}
+${val}
+#{%       endfor %}
+#{%      endfilter %}
+]
+#{%     else %}
+${field.pyname}=[]
+#{%     endif %}
+#{%    elif field is simple %}
 ${field.pyname}=${field.pyvalue|default(python.defaultValue(field.type))}
+#{%    endif %}
+#{%   endfor %}
+#{%  endfilter %}
+#{% endmacro %}
+
+#{#
+# Creates the argument list for calling a base class __init__ method
+#}
+#{% macro baseinit(fields) %}
+#{%   filter trim|lines|join %}
+#{%   for field in fields if field.inherited %}
+, ${field.pyname}=${field.pyname}
 #{%   endfor %}
 #{%   endfilter %}
 #{% endmacro %}
 
 #{% macro members(fields) %}
 #{%   filter trim|lines|join(',') %}
-#{%   for field in fields %}
+#{%   for field in fields if not field.inherited %}
 ("${field.pyname}",self.${field.pyname})
 #{%   endfor %}
 #{%   endfilter %}
 #{% endmacro %}
 
 #{% macro structdef(struct, initialize=true) %}
-class ${struct.pyclass}(object):
-#{%   for field in struct.fields %}
+class ${struct.pyclass}(${struct.baseclass|default('object')}):
+#{%   for field in struct.fields if not field.inherited %}
 #{%   filter codealign %}
-    ${field.pyname} = simple_property(id_="${field.identifier}",
+#%    if field is simplesequence
+    ${field.pyname} = simpleseq_property(
+#%    elif field is simple
+    ${field.pyname} = simple_property(
+#%    endif
+                                      id_="${field.identifier}",
+
 #%      if field.name
                                       name="${field.name}",
 #%      endif
                                       type_="${field.type}"
 #%-     if field.pyvalue is defined
 ,
+#%        if field is simple
                                       defvalue=${field.pyvalue}
+#%        elif field is simplesequence
+                                      defvalue=[
+#{%-        filter trim|lines|join(', ') %}
+#{%          for val in field.pyvalue %}
+${val}
+#{%          endfor %}
+#{%         endfilter %}
+]
+#%        endif
+#%      else
+#%        if field is simplesequence
+,
+                                      defvalue=[]
+#%        endif
 #%-     endif
 #%-     if field.isComplex
 ,
                                       complex=True
 #%-     endif
+#%-	if field.isOptional
+,
+                                      optional=True
+#%-	endif
 )
 #{%   endfilter %}
 
@@ -149,14 +193,17 @@ class ${struct.pyclass}(object):
 #{%   if initialize: %}
     def __init__(self, **kw):
         """Construct an initialized instance of this struct definition"""
-        for attrname, classattr in type(self).__dict__.items():
-            if type(classattr) == simple_property:
+        for classattr in type(self).__dict__.itervalues():
+            if isinstance(classattr, (simple_property, simpleseq_property)):
                 classattr.initialize(self)
         for k,v in kw.items():
             setattr(self,k,v)
 #{%   else %}
     def __init__(self, ${initializer(struct.fields)}):
-#{%     for field in struct.fields %}
+#{%     if struct.baseclass %}
+        ${struct.baseclass}.__init__(self${baseinit(struct.fields)})
+#{%     endif %}
+#{%     for field in struct.fields if not field.inherited %}
         self.${field.pyname} = ${field.pyname}
 #{%     endfor %}
 #{%   endif %}
@@ -169,14 +216,20 @@ class ${struct.pyclass}(object):
 #{%   endfor %}
         return str(d)
 
-    def getId(self):
+    @classmethod
+    def getId(cls):
         return "${struct.identifier}"
 
-    def isStruct(self):
+    @classmethod
+    def isStruct(cls):
         return True
 
     def getMembers(self):
+#{%   if struct.baseclass %}
+        return ${struct.baseclass}.getMembers(self) + [${members(struct.fields)}]
+#{%   else %}
         return [${members(struct.fields)}]
+#{%   endif %}
 #{% endmacro %}
 
 #{% macro create(prop) %}
@@ -185,14 +238,8 @@ ${simple(prop)}
 #{% elif prop is simplesequence %}
 ${simplesequence(prop)}
 #{% elif prop is struct %}
-#{%   if not prop.builtin %}
-${structdef(prop)}
-#{%   endif %}
 ${struct(prop)}
 #{% elif prop is structsequence %}
-#{%   if not prop.structdef.builtin %}
-${structdef(prop.structdef,False)}
-#{%   endif %}
 ${structsequence(prop)}
 #{% endif %}
 #{% endmacro %}

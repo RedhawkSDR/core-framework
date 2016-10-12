@@ -68,4 +68,15 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	<units>bps</units>
         <kind kindtype="allocation"/>
     </simple>
+
+    <!-- Provide two external capacities that can be allocated -->
+    <simple id="prop3"
+            name="prop3"
+            mode="readonly"
+            type="string">
+        <description>
+            matching property for allocations
+        </description>
+        <kind kindtype="allocation"/>
+    </simple>
 </properties>

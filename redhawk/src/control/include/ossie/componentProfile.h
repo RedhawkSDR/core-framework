@@ -18,20 +18,21 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-/**
+/*
  * This file provides the data-structure classes that are shared between
  * the SoftwareAssembly and the DeviceManagerConfiguration.
  */
 #ifndef __COMPONENT_PROFILE_H__
 #define __COMPONENT_PROFILE_H__
 
-#include "ossie/ossieparser.h"
 #include <vector>
 #include <map>
 #include <string>
+#include <memory>
+#include "ossie/ossieparser.h"
 
 namespace ossie {
-    /**
+    /*
      *
      */
     class ComponentFile {
@@ -46,22 +47,47 @@ namespace ossie {
         const char* getID() const;
     };
 
-    /**
+    /*
      *
      */
     class ComponentProperty {
     public:
         std::string _id;
 
-        virtual ~ComponentProperty();
+        ComponentProperty() {};
+
+        virtual ~ComponentProperty() {};
 
         const char* getID() const;
+        
+        ComponentProperty* clone() const {
+          return _clone();
+        }       
+        
+        const std::string asString() const {
+          return _asString();
+        }
+        
 
-        virtual ComponentProperty* clone() const = 0;
+    protected:
+    ComponentProperty( const ComponentProperty &a ):
+        _id(a._id)
+          {};
+
+        void operator=( const ComponentProperty &src) {
+          _id = src._id;
+        };
+        
+    private:
+        virtual const std::string _asString() const = 0;
+
     
-        virtual const std::string asString() const = 0;
-    }
-    ;
+        virtual ComponentProperty* _clone() const = 0;
+
+    };
+
+    ComponentProperty *new_clone(const ComponentProperty &a);
+
     template< typename charT, typename Traits>
     std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const ComponentProperty& prop)
     {
@@ -69,73 +95,93 @@ namespace ossie {
         return out;
     }
 
-    /**
+    /*
      *
      */
     class SimplePropertyRef : public ComponentProperty {
     public:
-        std::string _value;
+      
+      std::string _value;
+      
+      const char* getValue() const;
 
-        const char* getValue() const;
-
-        virtual ComponentProperty* clone() const;
+    private:
+        ComponentProperty* _clone() const;
         
-        virtual const std::string asString() const;
+        const std::string _asString() const;
     };
 
-    /**
+    /*
      *
      */
     class SimpleSequencePropertyRef : public ComponentProperty {
     public:
-        std::vector<std::string> _values;
+      typedef std::vector<std::string> ValuesList;
 
-        virtual ComponentProperty* clone() const;
+      const ValuesList & getValues() const;
 
-        const std::vector<std::string>& getValues() const;
-
-        virtual const std::string asString() const;
+      ValuesList _values;
+   
+    private:
+        ComponentProperty* _clone() const;
+        const std::string  _asString() const;
     };
 
-    /**
+    /*
      *
      */
     class StructPropertyRef : public ComponentProperty {
     public:
-        std::map<std::string, std::string> _values;
-        virtual ComponentProperty* clone() const;
-        const std::map<std::string, std::string>& getValue() const;
-        virtual const std::string asString() const;
+      typedef ComponentPropertyMap  ValuesMap;
+      
+      virtual ~StructPropertyRef();
+      const ValuesMap & getValue() const;
+
+      ValuesMap   _values;
+
+    private:
+      ComponentProperty* _clone() const;
+      const std::string  _asString() const;
     };
 
-    /**
+    /*
      *
      */
     class StructSequencePropertyRef : public ComponentProperty {
-        public:
-            std::vector<std::map<std::string, std::string> > _values;
-            virtual ComponentProperty* clone() const;
-            const std::vector<std::map<std::string, std::string> >& getValues() const;
-            virtual const std::string asString() const;
+    public:
+      typedef std::vector< ossie::ComponentPropertyMap > ValuesList;
+
+           virtual ~StructSequencePropertyRef();
+           const ValuesList & getValues() const;
+
+           ValuesList _values;
+    private:
+           ComponentProperty* _clone() const;
+           const std::string  _asString() const;
+
     };
 
-    /**
+    /*
      *
      */
     class ComponentInstantiation {
     public:
+      typedef std::pair<std::string,std::string>  LoggingConfig;
+      typedef ossie::ComponentPropertyList        AffinityProperties;
+
         std::string instantiationId;
         ossie::optional_value<std::string> namingservicename;
         ossie::optional_value<std::string> usageName;
-        std::vector<ComponentProperty*> properties;
+        ossie::ComponentPropertyList       properties;
         std::string _startOrder;
-
+        AffinityProperties affinityProperties;
+        LoggingConfig loggingConfig;
     public:
         ComponentInstantiation();
 
         ComponentInstantiation(const ComponentInstantiation& other);
 
-        ComponentInstantiation& operator=(ComponentInstantiation other);
+        ComponentInstantiation& operator=(const ComponentInstantiation &other);
 
         virtual ~ComponentInstantiation();
 
@@ -146,14 +192,18 @@ namespace ossie {
 
         const char* getUsageName() const;
 
-        const std::vector<ComponentProperty*>& getProperties() const;
+        const ossie::ComponentPropertyList & getProperties() const;
+
+        const LoggingConfig &getLoggingConfig() const;
+
+        const AffinityProperties &getAffinity() const;
 
         bool isNamingService() const;
 
         const char* getFindByNamingServiceName() const;
     };
 
-    /**
+    /*
      *
      */
     class ComponentPlacement {
@@ -184,7 +234,7 @@ namespace ossie {
         bool isDomainManager() const;
     };
 
-    /**
+    /*
      *
      */
     class FindBy
@@ -241,7 +291,7 @@ namespace ossie {
 
     };
 
-    /**
+    /*
      *
      */
     class Port
@@ -366,7 +416,7 @@ namespace ossie {
 
     };
 
-    /**
+    /*
      *
      */
     class UsesPort : public Port
@@ -380,7 +430,7 @@ namespace ossie {
 
     };
 
-    /**
+    /*
      *
      */
     class ProvidesPort : public Port
@@ -393,7 +443,7 @@ namespace ossie {
         };
     };
 
-    /**
+    /*
      *
      */
     class ComponentSupportedInterface : public Port
@@ -406,7 +456,7 @@ namespace ossie {
         }
     };
 
-    /**
+    /*
      *
      */
     class Connection {

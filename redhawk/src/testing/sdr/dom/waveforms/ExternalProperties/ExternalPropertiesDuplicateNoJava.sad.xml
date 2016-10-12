@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:e5a8376c-aad3-4539-b94b-976965154ea1" name="ExternalPropertiesDuplicateNoJava">
+  <componentfiles>
+    <componentfile id="TestCppProps_279bffa6-3c5a-4af8-aa9c-40a9ce0c9269" type="SPD">
+      <localfile name="/components/TestCppProps/TestCppProps.spd.xml"/>
+    </componentfile>
+    <componentfile id="TestPythonProps_e0efd5b5-c70a-4aa3-add3-3b282c2e3a3b" type="SPD">
+      <localfile name="/components/TestPythonProps/TestPythonProps.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="TestCppProps_279bffa6-3c5a-4af8-aa9c-40a9ce0c9269"/>
+      <componentinstantiation id="DCE:0a3663dd-7747-4b7f-b9cb-20f1e52e7089">
+        <usagename>TestCppProps_1</usagename>
+        <findcomponent>
+          <namingservice name="TestCppProps_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="TestPythonProps_e0efd5b5-c70a-4aa3-add3-3b282c2e3a3b"/>
+      <componentinstantiation id="TestPythonProps_1" startorder="2">
+        <usagename>TestPythonProps_1</usagename>
+        <findcomponent>
+          <namingservice name="TestPythonProps_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="DCE:0a3663dd-7747-4b7f-b9cb-20f1e52e7089"/>
+  </assemblycontroller>
+  <externalproperties>
+    <property comprefid="DCE:0a3663dd-7747-4b7f-b9cb-20f1e52e7089" propid="DCE:9d1e3621-27ca-4cd0-909d-90b7448b8f71" externalpropid="ext_prop_string"/>
+    <property comprefid="TestPythonProps_1" propid="DCE:b8f43ac8-26b5-40b3-9102-d127b84f9e4b" externalpropid="ext_prop_string"/>
+  </externalproperties>
+</softwareassembly>

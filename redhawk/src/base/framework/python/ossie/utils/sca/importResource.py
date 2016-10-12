@@ -25,7 +25,7 @@ import base
 
 availableTypes = ["boolean", "char", "double", "float", "short", "long",
                     "objref", "octet", "string", "ulong","ushort"]
-availableKinds = ["allocation", "configure", "test", "execparam", "factoryparam"]
+availableKinds = ["allocation", "property", "configure", "test", "execparam", "factoryparam"]
 availableActions = ["eq", "ne", "gt", "lt", "ge", "le", "external"]
 availableModes = ["readonly", "readwrite", "writeonly"]
 

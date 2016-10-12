@@ -26,8 +26,8 @@ import FRONTEND.NotSupportedException;
 
 public interface NavDataDelegate {
 
-    public NavigationPacket fe_getNavPkt() throws FrontendException, BadParameterException, NotSupportedException; 
+    public NavigationPacket get_nav_packet(String port_name) throws FrontendException, BadParameterException, NotSupportedException; 
 
-    public void fe_setNavPkt(NavigationPacket data) throws FrontendException, BadParameterException, NotSupportedException;
+    public void set_nav_packet(String port_name, NavigationPacket data) throws FrontendException, BadParameterException, NotSupportedException;
 
 }

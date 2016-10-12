@@ -1,0 +1,10 @@
+988f5f90e4b4e7ad3ae51682f05e0b43  test_spd_dep.h
+b0d5cf54e12fb6dbf732a9f4d4ad3612  main.cpp
+989601ae97c6521017baba0265c2f2c7  test_spd_dep_base.h
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+30386a0698ad048059a59473199a72ef  test_spd_dep_base.cpp
+b789f904451142b77a995374d54d30f3  configure.ac
+fbbfe45b07e0a2d23f313310b69823fd  Makefile.am
+6ad15ae9ab0944244378b3dcc29e7d3a  Makefile.am.ide
+2edeb4570ba55b42155b992f38587fb6  build.sh
+7cc62e2541804dbec7ff0d7a2060eeae  test_spd_dep.cpp

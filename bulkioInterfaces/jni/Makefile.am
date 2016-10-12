@@ -28,7 +28,7 @@ ossie/BULKIO :
 	@mkdir -p $@
 
 ossie/BULKIO/jni_%.cpp ossie/BULKIO/jni_%.h: $(BULKIO_IDLDIR)/ossie/BULKIO/%.idl | ossie/BULKIO
-	$(AM_V_GEN)$(IDLJNICXX) -I $(BULKIO_IDLDIR) -I $(OSSIE_IDLDIR) -Wbincprefix=BULKIO -C ossie/BULKIO $<
+	$(AM_V_GEN)$(IDLJNICXX) -I $(BULKIO_IDLDIR) -I $(OSSIE_IDLDIR) -I $(OMNICOS_IDLDIR) -I $(OMNIORB_IDLDIR) -Wbincprefix=BULKIO -C ossie/BULKIO $<
 
 libbulkiojni_la_CPPFLAGS = -Iossie/BULKIO -I. $(BULKIO_CFLAGS) $(JNI_CPPFLAGS) $(OSSIE_CFLAGS)
 libbulkiojni_la_CXXFLAGS = -Wall

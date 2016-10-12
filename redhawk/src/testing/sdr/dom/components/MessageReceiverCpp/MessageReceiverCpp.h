@@ -36,10 +36,6 @@ public:
     MessageReceiverCpp (const char* uuid, const char* label);
     ~MessageReceiverCpp (void);
  
-    CORBA::Object_ptr getPort (const char*) throw (CF::PortSupplier::UnknownPort, CORBA::SystemException);
- 
-    void releaseObject (void) throw (CORBA::SystemException, CF::LifeCycle::ReleaseError);
-
     void messageReceived (const std::string&, const test_message_struct&);
 
 private:

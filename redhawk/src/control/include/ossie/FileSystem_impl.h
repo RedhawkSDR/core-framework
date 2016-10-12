@@ -72,6 +72,8 @@ public:
         throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
 
     std::string getLocalPath(const char* fileName);
+    
+    void closeAllFiles();
 
 protected:
     CORBA::ULongLong getSize () const;
@@ -92,7 +94,7 @@ private:
 
     void incrementFileIORCount(std::string &fileName, std::string &fileIOR);
     void decrementFileIORCount(std::string &fileName, std::string &fileIOR);
-    IORList getFileIOR(std::string &fileName);
+    IORList getFileIOR(const std::string& fileName);
 
     IORTable fileOpenIOR;
 

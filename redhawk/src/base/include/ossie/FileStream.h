@@ -30,7 +30,7 @@
 class File_buffer : public std::streambuf
 {
     public:
-        explicit File_buffer(CF::File_ptr fptr, std::size_t buff_sz = 1024, std::size_t put_back = 8);
+        explicit File_buffer(CF::File_ptr fptr, std::size_t buff_sz = 32768, std::size_t put_back = 8);
 
         virtual void close() throw(std::ios_base::failure);
 
@@ -50,7 +50,7 @@ class File_buffer : public std::streambuf
 class File_stream : public std::istream
 {
     public:
-        /**
+        /*
          * Open a stream given a SCA FileSystem and a path on the file system, this is the preferred constructor.
          *
          * Opening a stream using this constructor will ensure that the SCA file get's closed automatically
@@ -66,7 +66,7 @@ class File_stream : public std::istream
             }
         }
 
-        /**
+        /*
          * Open a stream given a SCA File.
          *
          * Note: the caller is responsible for closing the provided file. 

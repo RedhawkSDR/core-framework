@@ -69,13 +69,15 @@ namespace ossie {
                 ports_p.parsers (provides_p,
                                 uses_p);
 
-                provides_p.parsers (portType_p,
+                provides_p.parsers (string_p,
+				    portType_p,
                                     string_p,
                                     string_p);
 
                 portType_p.parsers (type_p);
 
-                uses_p.parsers (portType_p,
+                uses_p.parsers (string_p,
+				portType_p,
                                 string_p,
                                 string_p);
 

@@ -22,9 +22,8 @@
 
 
 *******************************************************************************************/
-#include <bulkio_p.h>
-#include <uuid/uuid.h>
-
+#include "bulkio_p.h"
+#include "bulkio_traits.h"
 
 namespace  bulkio {
 

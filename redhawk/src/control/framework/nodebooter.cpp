@@ -41,15 +41,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/exception.hpp>
-#ifndef BOOST_VERSION
-#include <boost/version.hpp>
-#endif
-
-#if BOOST_VERSION < 103499
-#  include <boost/filesystem/cerrno.hpp>
-#else
-#  include <boost/cerrno.hpp>
-#endif
+#include <boost/cerrno.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -73,7 +65,7 @@ static pid_t devPid = 0;
 
 typedef std::map<std::string, std::string> ExecParams;
 
-/**
+/*
  * Iterate through all of the implementations and find the first implementation
  * that matches the operating system and processor requirements specified in
  * deviceProps.
@@ -101,7 +93,7 @@ const ossie::SPD::Implementation* matchImplementation (
     return 0;
 }
 
-/**
+/*
  * If filePath is absolute (i.e., starts with "/"), return:
  *
  *      sdrroot/filePath
@@ -127,7 +119,7 @@ std::string getLocalPath (
     return localPath.string();
 }
 
-/**
+/*
  * Iterate through the properties tagged as execparams; add simple, execparam
  * properties with default values to execParams.
  */
@@ -148,8 +140,8 @@ void loadPRFExecParams (const std::string& prfFile, ExecParams& execParams)
     try {
         prf.load(prfStream);
     } catch (const ossie::parser_error& ex) {
-        LOG_ERROR(nodebooter, "Failed to parse PRF file " << prfStream);
-        LOG_ERROR(nodebooter, ex.what());
+        std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
+        LOG_ERROR(nodebooter, "Failed to parse PRF file " << prfStream<< ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
         exit(EXIT_FAILURE);
     }
     prfStream.close();
@@ -176,6 +168,7 @@ static pid_t launchSPD (
     const std::string&                         spdFile,
     const fs::path&                            sdrRoot,
     const ExecParams&                          overrideExecParams,
+    const ExecParams&                          optionParams,
     const std::vector<const ossie::Property*>& deviceProps,
     bool                                       doFork)
 {
@@ -193,8 +186,8 @@ static pid_t launchSPD (
     try {
         spd.load(spdStream, spdFile);
     } catch (const ossie::parser_error& ex) {
-        LOG_ERROR(nodebooter, "Failed to parse SPD file " << spdFile);
-        LOG_ERROR(nodebooter, ex.what());
+        std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
+        LOG_ERROR(nodebooter, "Failed to parse SPD file " << spdFile << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
         exit(EXIT_FAILURE);
     }
     spdStream.close();
@@ -252,6 +245,12 @@ static pid_t launchSPD (
         LOG_TRACE(nodebooter, "EXEC_PARAM: " << param->first << "=\"" << param->second << "\"");
         argv.push_back(param->first.c_str());
         argv.push_back(param->second.c_str());
+    }
+
+    // push options as command line args
+    for (ExecParams::const_iterator param = optionParams.begin(); param != optionParams.end(); ++param) {
+        LOG_TRACE(nodebooter, "EXEC_PARAM (option): " << param->first );
+        argv.push_back(param->first.c_str());
     }
 
     argv.push_back(NULL);
@@ -397,8 +396,6 @@ static void initializeDaemon (
     // Clear umask.
     umask(0);
 
-    chdir("/");
-
     // Redirect stdin, stdout and stderr to /dev/null.
     freopen("/dev/null", "r", stdin);
     freopen("/dev/null", "w", stdout);
@@ -418,6 +415,8 @@ void usage()
     std::cerr << "    -sdrcache <abs path>       Set sdr cache with absolute path to cache directory" << std::endl;
     std::cerr << "    -debug                     Set the threshold used for logging, the default is 3 (5=TRACE,4=DEBUG,3=INFO,2=WARN,1=ERROR,0=FATAL)" << std::endl << std::endl;
     std::cerr << "    -logcfgfile <config file>  Pass in a logging config file uri" << std::endl;
+    std::cerr << "    --useloglib                Use libossielogcfg.so to generate LOGGING_CONFIG_URI " << std::endl;
+    std::cerr << "    --bindapps                 Bind application and component registrations to the Domain and not the NamingService (DomainManager only)" << std::endl;
     std::cerr << "    --dburl                    Store domain state in the following URL" << std::endl;
     std::cerr << "    --nopersist                Disable DomainManager IOR persistence" << std::endl;
     std::cerr << "    --force-rebind             Overwrite any existing name binding for the DomainManager" << std::endl;
@@ -479,7 +478,9 @@ void startDomainManager(
     const fs::path&                            sdrRootPath,
     const int&                                 debugLevel,
     const bool&                                noPersist,
+    const bool &                               bind_apps,
     const string&                              logfile_uri,
+    const bool&                                use_loglib,
     const string&                              db_uri,
     const string&                              endPoint,
     const bool&                                forceRebind,
@@ -503,8 +504,8 @@ void startDomainManager(
     try {
         dmd.load(dmdStream);
     } catch (const ossie::parser_error& ex) {
-        LOG_ERROR(nodebooter, "Failed to parse DMD file " << dcdFile);
-        LOG_ERROR(nodebooter, ex.what());
+        std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
+        LOG_ERROR(nodebooter, "Failed to parse DMD file " << dcdFile << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
         exit(EXIT_FAILURE);
     }
     dmdStream.close();
@@ -523,6 +524,7 @@ void startDomainManager(
     }
 
     ExecParams execParams;
+    ExecParams optionParams;
     execParams["DMD_FILE"] = dmdFile;
     execParams["DOMAIN_NAME"] = domainName;
     execParams["SDRROOT"] = sdrRootPath.string();
@@ -558,8 +560,16 @@ void startDomainManager(
          }
     }
 
+    if (use_loglib) {
+        optionParams["USELOGCFG"] =  "";
+    }
+    
+    if (bind_apps) {
+        optionParams["BINDAPPS"] =  "";
+    }
+    
     try {
-        domPid = launchSPD(spdFile, domRootPath, execParams, systemProps, doFork);
+      domPid = launchSPD(spdFile, domRootPath, execParams, optionParams, systemProps, doFork);
     } catch (const std::runtime_error& ex) {
         LOG_ERROR(nodebooter, "Unable to launch DomainManager Softpkg: " << ex.what());
         exit(EXIT_FAILURE);
@@ -574,6 +584,7 @@ void startDeviceManager(
     const fs::path&                            sdrRootPath,
     const int&                                 debugLevel,
     const string&                              logfile_uri,
+    const bool&                                use_loglib,
     const string&                              orb_init_ref,
     const std::vector<string>&                 execparams,
     const std::vector<const ossie::Property*>& systemProps,
@@ -595,8 +606,8 @@ void startDeviceManager(
     try {
         dcd.load(dcdStream);
     } catch (const ossie::parser_error& ex) {
-        LOG_ERROR(nodebooter, "Failed to parse DCD file " << dcdFile);
-        LOG_ERROR(nodebooter, ex.what());
+        std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
+        LOG_ERROR(nodebooter, "Failed to parse DCD file " << dcdFile << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
         exit(EXIT_FAILURE);
     }
     dcdStream.close();
@@ -640,6 +651,7 @@ void startDeviceManager(
 
     // Build up the execparams based on the DCD and command line arguments.
     ExecParams execParams;
+    ExecParams optionParams;
     execParams["DCD_FILE"] = dcdFile;
     execParams["DOMAIN_NAME"] = domainName;
     execParams["SDRROOT"] = sdrRootPath.string();
@@ -667,8 +679,12 @@ void startDeviceManager(
          }
     }
 
+    if (use_loglib) {
+        optionParams["USELOGCFG"] =  "";
+    }
+
     try {
-        devPid = launchSPD(spdFile, devRootPath, execParams, systemProps, doFork);
+      devPid = launchSPD(spdFile, devRootPath, execParams, optionParams, systemProps, doFork);
     } catch (const std::runtime_error& ex) {
         LOG_ERROR(nodebooter, "Unable to launch DeviceManager Softpkg: " << ex.what());
         exit(EXIT_FAILURE);
@@ -703,6 +719,32 @@ void logDeviceManagerExit(int status)
     }
 }
 
+bool isParentPath(const fs::path& parent, const fs::path& target)
+{
+    // Simple string-based check whether 'target' starts with 'parent'
+    return (target.string().find(parent.string()) == 0);
+}
+
+fs::path relativePath (const fs::path& parent, const fs::path& target)
+{
+    // Assuming that isParentPath(parent, target) is true, simply return the
+    // substring of target that starts after parent
+    const std::string parent_str = parent.string();
+    const std::string target_str = target.string();
+    return target_str.substr(parent_str.size());
+}
+
+fs::path findParentDir (const fs::path& current, const std::string& name)
+{
+    if (current.empty()) {
+        return fs::path();
+    } else if (current.filename() == name) {
+        return current;
+    } else {
+        return findParentDir(current.parent_path(), name);
+    }
+}
+
 int main(int argc, char* argv[])
 {
     // parse command line options
@@ -716,6 +758,7 @@ int main(int argc, char* argv[])
     string domainName;
     string endPoint;
     int debugLevel = 3;
+    bool   bind_apps=false;
 
     bool startDeviceManagerRequested = false;
     bool startDomainManagerRequested = false;
@@ -727,6 +770,9 @@ int main(int argc, char* argv[])
 
     // If "--nopersist" is asserted, turn off persistent IORs.
     bool noPersist = false;
+
+    // enable/disable use of libossielogcfg.so to resolve LOGGING_CONFIG_URI values
+    bool use_loglib = false;
 
     // If "--force-rebind" is asserted, the DomainManager will replace any
     // existing name binding.
@@ -820,6 +866,12 @@ int main(int argc, char* argv[])
             }
         }
 
+
+        if (( strcmp( argv[i], "--bindapps" ) == 0 )) {
+            bind_apps = true;
+        }
+
+
         if (( strcmp( argv[i], "-log4cxx" ) == 0 ) || ( strcmp( argv[i], "-logcfgfile" ) == 0 )) {
             if( i + 1 <argc && strcmp( argv[i + 1], "--" ) != 0) {
                 logfile_uri = argv[i+1];
@@ -829,6 +881,11 @@ int main(int argc, char* argv[])
                 exit(EXIT_FAILURE);
             }
         }
+
+        if (( strcmp( argv[i], "--useloglib" ) == 0 )) {
+            use_loglib = true;
+        }
+
 
         if (( strcmp( argv[i], "-dburl" ) == 0 )) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
@@ -942,8 +999,6 @@ int main(int argc, char* argv[])
 
     // We have to have a real SDRROOT
     fs::path sdrRootPath;
-    fs::path domRootPath;
-    fs::path devRootPath;
     if (!sdrRoot.empty()) {
         sdrRootPath = sdrRoot;
     } else {
@@ -955,103 +1010,76 @@ int main(int argc, char* argv[])
         }
     }
 
-    string SDR_FOLDER = "sdr";
-    string NODE_FOLDER = "nodes";
-    string DOM_FOLDER = "domain";
-    fs::path defaultPathDev = sdrRootPath.string() + "/dev" + dcdFile;
-    fs::path defaultPathDom = sdrRootPath.string() + "/dom" + dmdFile;
-    fs::path path;
-
     // Checks if dom path is available in SDRROOT
     // If not tries to use as a relative path
-    if (startDomainManagerRequested && !fs::exists(defaultPathDom)){
-        string dmdPath;
-        string temp = "";
+    const std::string DOM_FOLDER = "dom";
+    fs::path domRootPath = sdrRootPath / DOM_FOLDER;
+    if (startDomainManagerRequested) {
+        // Assume relative paths are relative to the current directory, and
+        // turn into an absolute path
+        fs::path dmdPath = fs::system_complete(dmdFile);
 
-        // Checks to see if given path is from root or current dir
-        if (dmdFile[0] == '/'){
-            path = dmdFile;
-        } else {
-            path = fs::current_path() / dmdFile;
-        }
-
-        // Loops to find the sdr root from given path
-        for (bool foundSdr = false ; !foundSdr; ){
-            if (fs::exists(path)){
-#if BOOST_FILESYSTEM_VERSION < 3
-                if (path.filename().compare(SDR_FOLDER) == 0){
-#else
-                if (path.filename().string().compare(SDR_FOLDER) == 0){
-#endif
-                    sdrRootPath = path.string();
-                    foundSdr = true;
-#if BOOST_FILESYSTEM_VERSION < 3
-                } else if (path.filename().compare(DOM_FOLDER) == 0){
-#else
-                } else if (path.filename().string().compare(DOM_FOLDER) == 0){
-#endif
-                    dmdPath = "/" + DOM_FOLDER + temp;
-                }
-#if BOOST_FILESYSTEM_VERSION < 3
-                temp = "/" + path.filename() + temp;
-#else 
-                temp = "/" + path.filename().string() + temp;               
-#endif	
-		path = path.parent_path();
-            } else {
-                std::cerr << "[nodeBooter] ERROR: can't find relative dmd.xml path" << std::endl;
+        // First, check if the DMD path is relative to $SDRROOT/dom
+        if (!fs::exists(domRootPath / dmdPath)) {
+            // DMD path is absolute; check that it really exists
+            if (!fs::exists(dmdPath)) {
+                std::cerr << "[nodeBooter] ERROR: .dmd.xml file does not exist" << std::endl;
                 exit(EXIT_FAILURE);
             }
+
+            // Check if the path is within $SDRROOT/dom
+            if (!isParentPath(domRootPath, dmdPath)) {
+                // If it's not in $SDRROOT/dom, try to determine the effective
+                // SDRROOT by backtracking in the path to find a directory
+                // named "dom"
+                domRootPath = findParentDir(dmdPath, DOM_FOLDER);
+                if (domRootPath.empty()) {
+                    std::cerr << "[nodeBooter] ERROR: can't determine domain SDRROOT" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+                sdrRootPath = domRootPath.parent_path();
+            }
+
+            // Normalize the DMD path to be relative to $SDRROOT/dom
+            dmdFile = relativePath(domRootPath, dmdPath).string();
         }
-        dmdFile = dmdPath;
     }
+
 
     // Checks if dev path is available in SDRROOT
     // If not tries to use as a relative path
-    if (startDeviceManagerRequested && !fs::exists(defaultPathDev)){
-        string dcdPath;
-        string temp = "";
+    const std::string DEV_FOLDER = "dev";
+    fs::path devRootPath = sdrRootPath / DEV_FOLDER;
+    if (startDeviceManagerRequested) {
+        // Assume relative paths are relative to the current directory, and
+        // turn into an absolute path
+        fs::path dcdPath = fs::system_complete(dcdFile);
 
-        // Checks to see if given path is from root or current dir
-        if (dcdFile[0] == '/'){
-            path = dcdFile;
-        } else {
-            path = fs::current_path() / dcdFile;
-        }
-
-        // Loops to find the sdr root from given path
-        for (bool foundSdr = false; !foundSdr; ){
-            if (fs::exists(path)){
-#if BOOST_FILESYSTEM_VERSION < 3
-                if (path.filename().compare(SDR_FOLDER) == 0){
-#else
-                if (path.filename().string().compare(SDR_FOLDER) == 0){
-#endif                    
-		    sdrRootPath = path.string();
-                    foundSdr = true;
-#if BOOST_FILESYSTEM_VERSION < 3
-                } else if (path.filename().compare(NODE_FOLDER) == 0){
-#else
-                } else if (path.filename().string().compare(NODE_FOLDER) == 0){
-#endif                    
-		    dcdPath = "/" + NODE_FOLDER + temp;
-                }
-#if BOOST_FILESYSTEM_VERSION < 3
-                temp = "/" + path.filename() + temp;
-#else
-                temp = "/" + path.filename().string() + temp;
-#endif
-                path = path.parent_path();
-            } else {
-                std::cerr << "[nodeBooter] ERROR: can't find relative dcd.xml path" << std::endl;
+        // First, check if the DCD path is relative to $SDRROOT/dev
+        if (!fs::exists(devRootPath / dcdPath)) {
+            // DCD path is absolute; check that it really exists
+            if (!fs::exists(dcdPath)) {
+                std::cerr << "[nodeBooter] ERROR: .dcd.xml file does not exist" << std::endl;
                 exit(EXIT_FAILURE);
             }
-        }
-        dcdFile = dcdPath;
-    }
 
-    domRootPath = sdrRootPath / "dom";
-    devRootPath = sdrRootPath / "dev";
+            // Check if the path is in $SDRROOT/dev
+            if (!isParentPath(devRootPath, dcdPath)) {
+                // If it's not in $SDRROOT/dev, try to determine the effective
+                // SDRROOT by backtracking in the path to find a directory
+                // named "dev"
+                devRootPath = findParentDir(dcdPath, DEV_FOLDER);
+                if (devRootPath.empty()) {
+                    std::cerr << "[nodeBooter] ERROR: can't determine device SDRROOT" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+                sdrRootPath = devRootPath.parent_path();
+            }
+
+            // Normalize the DCD path to be relative to $SDRROOT/dev
+            dcdFile = relativePath(devRootPath, dcdPath).string();
+        }
+    }
 
     // Verify the path exists
     if (!fs::is_directory(sdrRootPath)) {
@@ -1126,7 +1154,9 @@ int main(int argc, char* argv[])
                                  "eq",
                                  kinds,
                                  std::string(un.sysname),
-                                 "false");
+                                 "false",
+                                 "false",
+				 "false");
     ossie::SimpleProperty procProp("DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b",
                                    "processor_name",
                                    "string",
@@ -1134,7 +1164,9 @@ int main(int argc, char* argv[])
                                    "eq",
                                    kinds,
                                    std::string(un.machine),
-                                   "false");
+                                   "false",
+                                   "false",
+				   "false");
     std::vector<const ossie::Property*> systemProps;
     systemProps.push_back(&osProp);
     systemProps.push_back(&procProp);
@@ -1149,7 +1181,9 @@ int main(int argc, char* argv[])
                                sdrRootPath,
                                debugLevel,
                                noPersist,
+                               bind_apps,
                                logfile_uri,
+                               use_loglib,
                                db_uri,
                                endPoint,
                                forceRebind,
@@ -1167,6 +1201,7 @@ int main(int argc, char* argv[])
                                sdrRootPath,
                                debugLevel,
                                logfile_uri,
+                               use_loglib,
                                orb_init_ref,
                                execparams,
                                systemProps,

@@ -20,7 +20,6 @@
 
 #ifndef __PROPERTIES_H__
 #define __PROPERTIES_H__
-
 #include<vector>
 #include<map>
 #include<string>
@@ -29,6 +28,7 @@
 #include<ostream>
 #include<cassert>
 #include<sstream>
+#include <boost/shared_ptr.hpp>
 
 #include "ossie/CF/cf.h"
 #include "ossie/debug.h"
@@ -39,7 +39,7 @@ namespace ossie {
 
     class ComponentProperty;
 
-    /**
+    /*
      * Abstract data structure that represents a property. 
      */
     class Property
@@ -52,12 +52,17 @@ namespace ossie {
         Property() {}
 
         Property(const std::string& id, 
-             const std::string& name, 
-             const std::string& mode, 
-             const std::string& action, 
-             const std::vector<std::string>& kinds) :
-            id(id), name(name), mode(mode), action(action), kinds(kinds)
-        {}
+                 const std::string& name, 
+                 const std::string& mode, 
+                 const std::string& action, 
+                 const std::vector<std::string>& kinds);
+
+        Property(const std::string& id, 
+                 const std::string& name, 
+                 const std::string& mode, 
+                 const std::string& action, 
+                 const std::vector<std::string>& kinds,
+                 const std::string& cmdline );
 
         virtual ~Property();
 
@@ -66,7 +71,9 @@ namespace ossie {
         bool isWriteOnly() const;
         bool isAllocation() const;
         bool isConfigure() const;
+        bool isProperty() const;
         bool isTest() const;
+        bool isCommandLine() const;
         bool isExecParam() const;
         bool isFactoryParam() const;
         bool isEqual() const;
@@ -97,13 +104,15 @@ namespace ossie {
         std::string mode;
         std::string action;
         std::vector <std::string> kinds;
+        std::string commandline;
+
         
         // Pure virtual functions
         virtual void override(const Property* otherProp) = 0;
         virtual void override(const ComponentProperty* newValue) = 0;
     };
 
-    /**
+    /*
      * 
      */
     class SimpleProperty : public Property
@@ -121,7 +130,9 @@ namespace ossie {
                const std::string& action, 
                const std::vector<std::string>& kinds,
                const optional_value<std::string>& value,
-               const std::string& complex_);
+               const std::string& complex_,
+               const std::string& commandline,
+	       const std::string& optional);
 
         SimpleProperty(const std::string& id, 
                const std::string& name, 
@@ -142,6 +153,8 @@ namespace ossie {
         virtual const Property* clone() const;
         const char* getType() const;
         const char* getComplex() const;
+        const char* getCommandLine() const;
+	const char* getOptional() const;
 
     protected:
         virtual void override(const Property* otherProp);
@@ -151,9 +164,10 @@ namespace ossie {
         std::string type;
         optional_value<std::string> value;
         std::string _complex;
+	std::string optional;
     };
 
-    /**
+    /*
      *
      */
     class SimpleSequenceProperty : public Property
@@ -171,7 +185,8 @@ namespace ossie {
                                const std::string&              action, 
                                const std::vector<std::string>& kinds,
                                const std::vector<std::string>& values,
-                               const std::string&              complex_);
+                               const std::string&              complex_,
+			       const std::string& 	       optional);
 
         SimpleSequenceProperty(const std::string&              id, 
                                const std::string&              name, 
@@ -190,6 +205,7 @@ namespace ossie {
         virtual const Property* clone() const;
         const char* getType() const;
         const char* getComplex() const;
+	const char* getOptional() const;
 
     protected:
         virtual void override(const Property* otherProp);
@@ -199,9 +215,10 @@ namespace ossie {
         std::string type;
         std::vector<std::string> values;
         std::string _complex;
+	std::string optional;
     };
 
-    /**
+    /*
      *
      */
     class StructProperty : public Property
@@ -216,29 +233,57 @@ namespace ossie {
                    const std::string& name, 
                    const std::string& mode, 
                    const std::vector<std::string>& configurationkinds,
-                   const std::vector<SimpleProperty>& value) :
-            Property(id, name, mode, "external", configurationkinds),
-            value(value)
-        {}
+                   const std::vector<Property*>& value) :
+            Property(id, name, mode, "external", configurationkinds) 
+        {
+	    std::vector<Property*>::const_iterator it;
+	    for(it=value.begin(); it != value.end(); ++it) {
+                this->value.push_back(const_cast<Property*>((*it)->clone()));
+	    }
+	}
+
+        StructProperty(const std::string& id, 
+                   const std::string& name, 
+                   const std::string& mode, 
+                   const std::vector<std::string>& configurationkinds,
+                       const ossie::PropertyList & value) :
+            Property(id, name, mode, "external", configurationkinds) 
+        {
+          ossie::PropertyList::const_iterator it;
+	    for(it=value.begin(); it != value.end(); ++it) {
+                this->value.push_back(const_cast<Property*>(it->clone()));
+	    }
+	}
+
+	StructProperty(const StructProperty& other) :
+          Property(other.id, other.name, other.mode, other.action, other.kinds)
+        {
+	    std::vector<Property*>::const_iterator it;
+	    for(it=other.value.begin(); it != other.value.end(); ++it) {
+	        this->value.push_back(const_cast<Property*>((*it)->clone()));
+	    }
+        }
 
         virtual ~StructProperty();
         virtual bool isNone() const;
         virtual const std::string asString() const;
         virtual const Property* clone() const;
 
-        const std::vector<SimpleProperty>& getValue() const ;
+        StructProperty &operator=(const StructProperty& src);
 
-        const SimpleProperty* getField(const std::string& id) const;
+        const std::vector<Property*>& getValue() const ;
+
+        const Property* getField(const std::string& id) const;
 
     protected:
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);
 
     private:
-        std::vector<SimpleProperty> value;
+        std::vector<Property*> value;
     };
 
-    /**
+    /*
      *
      */
     class StructSequenceProperty : public Property
@@ -258,9 +303,20 @@ namespace ossie {
             Property(id, name, mode, "external", configurationkinds),
             structdef(structdef),
             values(values)
-        {}
+        {
+        }
 
         virtual ~StructSequenceProperty();
+
+        StructSequenceProperty(const StructSequenceProperty &src ) :
+        Property(src.id, src.name, src.mode, src.action, src.kinds),
+          structdef(src.structdef),
+          values(src.values)
+        {
+        }
+
+        StructSequenceProperty & operator=( const StructSequenceProperty &src );
+        
         virtual bool isNone() const;
         virtual const std::string asString() const;
         virtual const Property* clone() const;
@@ -284,7 +340,7 @@ namespace ossie {
         return out;
     }
 
-    /**
+    /*
      *
      */
     class PRF
@@ -295,6 +351,7 @@ namespace ossie {
         std::map<std::string, const ossie::Property*> _properties;
         std::vector<const Property*> _allProperties;
         std::vector<const Property*> _configProperties;
+        std::vector<const Property*> _ctorProperties;
         std::vector<const Property*> _allocationProperties;
         std::vector<const Property*> _execProperties;
         std::vector<const Property*> _factoryProperties;
@@ -303,6 +360,7 @@ namespace ossie {
         _properties(), 
         _allProperties(), 
         _configProperties(), 
+        _ctorProperties(), 
         _allocationProperties(), 
         _execProperties(), 
         _factoryProperties() 
@@ -318,6 +376,7 @@ namespace ossie {
 
         _allProperties.clear();
         _configProperties.clear();
+        _ctorProperties.clear();
         _allocationProperties.clear();
         _execProperties.clear();
         _factoryProperties.clear();
@@ -334,7 +393,7 @@ namespace ossie {
 
     };
 
-    /**
+    /*
      * Helper class that deals with PRF files.
      */
     class Properties
@@ -346,7 +405,7 @@ namespace ossie {
         
         Properties(std::istream& input) throw(ossie::parser_error);
 
-        Properties& operator=(Properties other);
+        Properties& operator=( const Properties &other);
 
         virtual ~Properties();
 
@@ -356,6 +415,8 @@ namespace ossie {
 
         const std::vector<const Property*>& getConfigureProperties() const;
 
+        const std::vector<const Property*>& getConstructProperties() const;
+
         const std::vector<const Property*>& getAllocationProperties() const;
 
         const Property* getAllocationProperty(const std::string& id);
@@ -364,29 +425,29 @@ namespace ossie {
 
         const std::vector<const Property*>& getFactoryParamProperties() const;
 
-        /**
+        /*
          * Load the contents of a PRF from an input stream
          */
         void load(std::istream& input) throw (ossie::parser_error);
 
-        /**
+        /*
          * Join the contents of another PRF along with this one.
          * This will override values for any properties with the same id
          */
         void join(std::istream& input) throw (ossie::parser_error);
         void join(ossie::Properties& props) throw (ossie::parser_error);
 
-        /**
+        /*
          * Overrides properties with values from another source
          */
-        void override(const std::vector<ossie::ComponentProperty*>& values);
+        void override(const ossie::ComponentPropertyList & values);
 
     protected:
         Properties(const Properties&) // Hide copy constructor
         {}
 
     private:
-        std::auto_ptr<ossie::PRF> _prf;
+	boost::shared_ptr<ossie::PRF> _prf;
     };
 
 }

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC '-//JTRS//DTD SCA V2.2.2 PRF//EN' 'properties.dtd'>
+<properties>
+    <simple id="DCE:a4e7b230-1d17-4a86-aeff-ddc6ea3df26e" mode="readwrite" name="command" type="string">
+        <description>The command to run when the component is started.</description> 
+        <value>/bin/echo</value>
+        <kind kindtype="configure"/>
+    </simple>
+    <simplesequence id="DCE:5d8bfe8d-bc25-4f26-8144-248bc343aa53" mode="readwrite" name="args" type="string">
+        <description>The arguments for the process.</description> 
+        <values>
+	    <value>Hello World</value>
+        </values>
+        <kind kindtype="configure"/>
+    </simplesequence>
+    <simple id="DCE:95f19cb8-679e-48fb-bece-dc199ef45f20" mode="readonly" name="commandAlive" type="boolean">
+        <description>Checks if the subprocess is still alive.</description> 
+        <value>false</value>
+        <kind kindtype="configure"/>
+    </simple>
+    <simple id="DCE:85d133fd-1658-4e4d-b3ff-1443cd44c0e2" mode="readonly" name="execparams" type="string">
+        <description>The execparms passed to the component.</description> 
+        <kind kindtype="configure"/>
+    </simple>
+    <simple id="EXEC_PARAM_1" mode="readonly" name="Parameter 1" type="string">
+        <value>Test1</value>
+        <kind kindtype="execparam"/>
+    </simple>
+    <simple id="EXEC_PARAM_2" mode="readonly" name="Parameter 2" type="string">
+        <value>2</value>
+        <kind kindtype="execparam"/>
+    </simple>
+    <simple id="EXEC_PARAM_3" mode="readonly" name="Parameter 3" type="string">
+        <value>3.3333</value>
+        <kind kindtype="execparam"/>
+    </simple>
+    <simple id="prop3" mode="readwrite" name="prop3" type="string">
+        <value>yes</value>
+        <kind kindtype="property"/>
+    </simple>
+</properties>

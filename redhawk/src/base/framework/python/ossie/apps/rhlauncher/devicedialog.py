@@ -31,13 +31,12 @@ class DeviceDialog(QtGui.QDialog):
     def __init__(self, *args, **kwargs):
         super(DeviceDialog,self).__init__(*args, **kwargs)
         ui.load('devicedialog.ui', self)
-        self._nodes = {}
         for domain in redhawk.scan():
             self.domainNameEdit.addItem(domain)
-        self.nodeListWidget.itemDoubleClicked.connect(self.onTreeWidgetItemDoubleClicked)
+        self.nodeTreeWidget.itemDoubleClicked.connect(self.onTreeWidgetItemDoubleClicked)
 
     def setSdrRoot(self, sdrroot):
-        self.nodeListWidget.clear()
+        self.nodeTreeWidget.clear()
         nodepath = os.path.join(sdrroot, 'dev/nodes/*/DeviceManager.dcd.xml')
         for dcdfile in glob.glob(nodepath):
             try:
@@ -45,18 +44,26 @@ class DeviceDialog(QtGui.QDialog):
                 name = node.get_name()
                 domain = node.get_domainmanager().get_namingservice().get_name()
                 domain = domain.split('/')[-1]
-                self._nodes[name] = {'dcd':dcdfile, 'domain':domain}
+                dcdfile = dcdfile.replace(os.path.join(sdrroot,'dev'), '')
+                # Add the node to the tree widget, including the default domain
+                # as a hidden column
+                QtGui.QTreeWidgetItem(self.nodeTreeWidget, [name, dcdfile, domain])
             except:
                 pass
-        for name in self._nodes.keys():
-            QtGui.QListWidgetItem(name, self.nodeListWidget)
+        # Readjust the column widths to ensure that the entire name is shown
+        # and that the scollbar allows viewing the entire DCD filename
+        self.nodeTreeWidget.resizeColumnToContents(0)
+        self.nodeTreeWidget.resizeColumnToContents(1)
+
+        # Sort alphabetically by name
+        self.nodeTreeWidget.sortByColumn(0, 0)
 
     def onTreeWidgetItemDoubleClicked(self, item):
         self.accept()
 
-    def selectionChanged(self, index):
-        name = str(self.nodeListWidget.item(index).text())
-        self.setDomainName(self._nodes[name]['domain'])
+    def selectionChanged(self):
+        domain = str(self.nodeTreeWidget.currentItem().text(2))
+        self.setDomainName(domain)
 
     def domainName(self):
         return str(self.domainNameEdit.currentText())
@@ -70,7 +77,7 @@ class DeviceDialog(QtGui.QDialog):
         return self.logLevelComboBox.currentIndex()
 
     def nodeName(self):
-        return str(self.nodeListWidget.currentItem().text())
+        return str(self.nodeTreeWidget.currentItem().text(0))
 
     def dcdFile(self):
-        return self._nodes[self.nodeName()]['dcd']
+        return str(self.nodeTreeWidget.currentItem().text(1))

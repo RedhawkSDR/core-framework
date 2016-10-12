@@ -38,6 +38,18 @@ abstract class AbstractSimpleProperty<T> extends Property<T> {
         this.type = type;
     }
 
+    protected AbstractSimpleProperty(String id,
+                                     String name,
+                                     String type,
+                                     T value,
+                                     Mode mode,
+                                     Action action,
+                                     Kind[] kinds,
+                                     boolean optional) {
+        super(id, name, value, mode, action, kinds, optional);
+        this.type = type;
+    }
+
     @Override
     public void fromString(String str) {
         this.value = parseString(str);

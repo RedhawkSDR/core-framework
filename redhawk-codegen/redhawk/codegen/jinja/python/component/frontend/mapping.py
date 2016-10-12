@@ -18,129 +18,114 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import sys
 from redhawk.codegen.model.softwarecomponent import ComponentTypes
 from redhawk.codegen.lang.idl import IDLInterface
 
 from redhawk.codegen.jinja.python.component.pull.mapping import PullComponentMapper
+from redhawk.codegen.jinja.python.properties import PythonPropertyMapper
 
 class FrontendComponentMapper(PullComponentMapper):
     def _mapComponent(self, softpkg):
-        pycomp = {}
-        pycomp['baseclass'] = self.baseClass(softpkg)
-        pycomp['userclass'] = self.userClass(softpkg)
-        pycomp['superclasses'] = self.superClasses(softpkg)
-        pycomp['poaclass'] = self.poaClass(softpkg)
-        pycomp['interfacedeps'] = self.getInterfaceDependencies(softpkg)
-        pycomp['hasbulkio'] = self.hasBulkioPorts(softpkg)
-        pycomp['hasfrontend'] = self.hasFrontendPorts(softpkg)
-        pycomp['hasfrontendprovides'] = self.hasFrontendProvidesPorts(softpkg)
-        pycomp['isafrontendtuner'] = self.isAFrontendTuner(softpkg)
-        pycomp['hasfrontendtunerprovides'] = self.hasFrontendTunerProvidesPorts(softpkg)
-        pycomp['hasdigitaltunerprovides'] = self.hasDigitalTunerProvidesPorts(softpkg)
-        pycomp['hasanalogtunerprovides'] = self.hasAnalogTunerProvidesPorts(softpkg)
+        # Defer most mapping to base class
+        pycomp = super(FrontendComponentMapper,self)._mapComponent(softpkg)
+
+        # Determine which FRONTEND interfaces this device implements (provides)
+        pycomp['implements'] = self.getImplementedInterfaces(softpkg)
+
         return pycomp
 
     @staticmethod
-    def userClass(softpkg):
-        return {'name'  : softpkg.name()+'_i',
-                'file'  : softpkg.name()+'.py'}
+    def getImplementedInterfaces(softpkg):
+        deviceinfo = set()
 
-    @staticmethod
-    def baseClass(softpkg):
-        baseclass = softpkg.name() + '_base'
-        return {'name'  : baseclass,
-                'file'  : baseclass+'.py'}
+        # Ensure that parent interfaces also gets added (so, e.g., a device
+        # with a DigitalTuner should also report that it's an AnalogTuner
+        # and FrontendTuner)
+        inherits = { 'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
+                     'AnalogTuner': ('FrontendTuner',) }
+
+        for port in softpkg.providesPorts():
+            idl = IDLInterface(port.repid())
+            # Ignore non-FRONTEND intefaces
+            if idl.namespace() != 'FRONTEND':
+                continue
+            interface = idl.interface()
+            deviceinfo.add(interface)
+            for parent in inherits.get(interface, []):
+                deviceinfo.add(parent)
+
+        return deviceinfo
 
     @staticmethod
     def superClasses(softpkg):
-        if softpkg.type() == ComponentTypes.RESOURCE:
-            name = 'Resource'
-            package = 'ossie.resource'
-        elif softpkg.type() == ComponentTypes.DEVICE:
-            name = 'Device'
-            package = 'ossie.device'
-            for port in softpkg.providesPorts():
-                idl = IDLInterface(port.repid())
-                if idl.namespace() == 'FRONTEND':
-                    if idl.interface().find('DigitalTuner') != -1 or \
-                       idl.interface().find('AnalogTuner') != -1 or \
-                       idl.interface().find('FrontendTuner') != -1:
-                        name = 'frontend.FrontendTunerDevice'
-        elif softpkg.type() == ComponentTypes.LOADABLEDEVICE:
-            name = 'LoadableDevice'
-            package = 'ossie.device'
-        elif softpkg.type() == ComponentTypes.EXECUTABLEDEVICE:
-            name = 'ExecutableDevice'
-            package = 'ossie.device'
-        else:
-            raise ValueError, 'Unsupported software component type', softpkg.type()
-        classes = [{'name': name, 'package': package}]
-        if softpkg.descriptor().supports('IDL:CF/AggregateDevice:1.0'):
-            classes.append({'name': 'AggregateDevice', 'package': 'ossie.device'})
+        # Start with the superclasses from the pull mapping, overriding only
+        # what's different for FRONTEND devices
+        classes = PullComponentMapper.superClasses(softpkg)
+
+        # Only plain devices are supported for FRONTEND
+        if softpkg.type() == ComponentTypes.DEVICE:
+            deviceinfo = FrontendComponentMapper.getImplementedInterfaces(softpkg)
+            # If this device is any type of tuner, replace the Device_impl base
+            # class with the FRONTEND-specific tuner device class
+            if 'FrontendTuner' in deviceinfo:
+                for parent in classes:
+                    if parent['name'] == 'Device':
+                        parent['name'] = 'FrontendTunerDevice'
+                        parent['package'] = 'frontend'
+
+                # Add the most specific tuner delegate interface:
+                #   (Digital > Analog > Frontend)
+                if 'DigitalTuner' in deviceinfo:
+                    classes.append({'name': 'digital_tuner_delegation', 'package': 'frontend'})
+                elif 'AnalogTuner' in deviceinfo:
+                    classes.append({'name': 'analog_tuner_delegation', 'package': 'frontend'})
+                else:
+                    classes.append({'name': 'frontend_tuner_delegation', 'package': 'frontend'})
+
+            # Add additonal FRONTEND delegate interfaces
+            if 'RFInfo' in deviceinfo:
+                classes.append({'name': 'rfinfo_delegation', 'package': 'frontend'})
+            if 'RFSource' in deviceinfo:
+                classes.append({'name': 'rfsource_delegation', 'package': 'frontend'})
+            if 'GPS' in deviceinfo:
+                classes.append({'name': 'gps_delegation', 'package': 'frontend'})
+            if 'NavData' in deviceinfo:
+                classes.append({'name': 'nav_delegation', 'package': 'frontend'})
+
         return classes
 
-    @staticmethod
-    def poaClass(softpkg):
-        aggregate = softpkg.descriptor().supports('IDL:CF/AggregateDevice:1.0')
-        if softpkg.type() == ComponentTypes.RESOURCE:
-            return 'CF__POA.Resource'
-        elif softpkg.type() == ComponentTypes.DEVICE:
-            if aggregate:
-                return 'CF__POA.AggregatePlainDevice'
-            else:
-                return 'CF__POA.Device'
-        elif softpkg.type() == ComponentTypes.LOADABLEDEVICE:
-            if aggregate:
-                return 'CF__POA.AggregateLoadableDevice'
-            else:
-                return 'CF__POA.LoadableDevice'
-        elif softpkg.type() == ComponentTypes.EXECUTABLEDEVICE:
-            if aggregate:
-                return 'CF__POA.AggregateExecutableDevice'
-            else:
-                return 'CF__POA.ExecutableDevice'
+class FrontendPropertyMapper(PythonPropertyMapper):
+    TUNER_STATUS_BASE_FIELDS = (
+        'tuner_type',
+        'allocation_id_csv',
+        'center_frequency',
+        'bandwidth',
+        'sample_rate',
+        'enabled',
+        'group_id',
+        'rf_flow_id'
+    )
+
+    FRONTEND_BUILTINS = (
+        'FRONTEND::tuner_allocation',
+        'FRONTEND::listener_allocation'
+    )
+
+    def mapStructProperty(self, prop, fields):
+        pyprop = super(FrontendPropertyMapper,self).mapStructProperty(prop, fields)
+        if prop.identifier() == 'FRONTEND::tuner_status_struct':
+            pyprop['baseclass'] = 'frontend.default_frontend_tuner_status_struct_struct'
+            for field in fields:
+                if field['pyname'] in self.TUNER_STATUS_BASE_FIELDS:
+                    field['inherited'] = True
+        elif prop.identifier() in self.FRONTEND_BUILTINS:
+            pyprop['pytype'] = "frontend.fe_types." + pyprop['pyname']
+            pyprop['pyvalue'] = pyprop['pytype'] + "()"
+            pyprop['builtin'] = True
+        return pyprop
+
+    def getStructPropertyType(self, prop):
+        if prop.identifier() in self.FRONTEND_BUILTINS:
+            return 'frontend.%s' % prop.name()
         else:
-            raise ValueError, 'Unsupported software component type', softpkg.type()
-
-    def hasFrontendPorts(self, softpkg):
-        for port in softpkg.ports():
-            if 'FRONTEND' in port.repid():
-                return True
-        return False
-
-    def hasFrontendProvidesPorts(self, softpkg):
-        for port in softpkg.providesPorts():
-            if 'FRONTEND' in port.repid():
-                return True
-        return False
-
-    def isAFrontendTuner(self,softpkg):
-        return self.hasFrontendTunerProvidesPorts(softpkg) or \
-               self.hasAnalogTunerProvidesPorts(softpkg) or \
-               self.hasDigitalTunerProvidesPorts(softpkg)
-
-    def hasFrontendTunerProvidesPorts(self, softpkg):
-        for port in softpkg.providesPorts():
-            idl = IDLInterface(port.repid())
-            if idl.namespace() == 'FRONTEND':
-                if idl.interface().find('FrontendTuner') != -1:
-                    return True
-        return False
-
-    def hasDigitalTunerProvidesPorts(self, softpkg):
-        for port in softpkg.providesPorts():
-            idl = IDLInterface(port.repid())
-            if idl.namespace() == 'FRONTEND':
-                if idl.interface().find('DigitalTuner') != -1:
-                    return True
-        return False
-
-    def hasAnalogTunerProvidesPorts(self, softpkg):
-        for port in softpkg.providesPorts():
-            idl = IDLInterface(port.repid())
-            if idl.namespace() == 'FRONTEND':
-                if idl.interface().find('AnalogTuner') != -1:
-                    return True
-        return False
-
+            return super(FrontendPropertyMapper,self).getStructPropertyType(prop)

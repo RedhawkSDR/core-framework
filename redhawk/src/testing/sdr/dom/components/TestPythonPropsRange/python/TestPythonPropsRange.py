@@ -1,36 +1,13 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
-# distributed with this source distribution.
-# 
-# This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
-# later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
-# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
-# details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
-# along with this program.  If not, see http://www.gnu.org/licenses/.
-#
-
 #
 # AUTO-GENERATED
 #
 # Source: TestPythonPropsRange.spd.xml
-# Generated on: Fri Dec 14 11:40:43 EST 2012
-# Redhawk IDE
-# Version:M.1.8.2
-# Build id: v201211201139RC3
-from ossie.resource import Resource, start_component
+from ossie.resource import start_component
 import logging
 
-from TestPythonPropsRange_base import * 
+from TestPythonPropsRange_base import *
 
 class TestPythonPropsRange_i(TestPythonPropsRange_base):
     """<DESCRIPTION GOES HERE>"""
@@ -45,8 +22,6 @@ class TestPythonPropsRange_i(TestPythonPropsRange_base):
         """
         TestPythonPropsRange_base.initialize(self)
         # TODO add customization here.
-        
-
     def process(self):
         """
         Basic functionality:
@@ -57,14 +32,11 @@ class TestPythonPropsRange_i(TestPythonPropsRange_base):
             
         StreamSRI:
             To create a StreamSRI object, use the following code (this generates a normalized SRI that does not flush the queue when full):
-                self.sri = BULKIO.StreamSRI(1, 0.0, 0.0, BULKIO.UNITS_TIME, 0, 0.0, 0.0, BULKIO.UNITS_NONE, 0, self.stream_id, True, [])
+                self.sri = bulkio.sri.create(self.stream_id)
 
         PrecisionUTCTime:
             To create a PrecisionUTCTime object, use the following code:
-                tmp_time = time.time()
-                wsec = math.modf(tmp_time)[1]
-                fsec = math.modf(tmp_time)[0]
-                tstamp = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0, wsec, fsec)
+                tstamp = bulkio.timestamp.now() 
   
         Ports:
 
@@ -83,12 +55,23 @@ class TestPythonPropsRange_i(TestPythonPropsRange_base):
         
             Properties are accessed directly as member variables. If the property name is baudRate,
             then accessing it (for reading or writing) is achieved in the following way: self.baudRate.
+
+            To implement a change callback notification for a property, create a callback function with the following form:
+
+            def mycallback(self, id, old_value, new_value):
+                pass
+
+            where id is the property id, old_value is the previous value, and new_value is the updated value.
+            
+            The callback is then registered on the component as:
+            self.addPropertyChangeListener('baudRate', self.mycallback)
+            
             
         Example:
         
             # This example assumes that the component has two ports:
-            #   - A provides (input) port of type BULKIO.dataShort called dataShort_in
-            #   - A uses (output) port of type BULKIO.dataFloat called dataFloat_out
+            #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
+            #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
             # The mapping between the port and the class if found in the component
             # base class.
             # This example also makes use of the following Properties:
@@ -119,9 +102,10 @@ class TestPythonPropsRange_i(TestPythonPropsRange_base):
         # TODO fill in your code here
         self._log.debug("process() example log message")
         return NOOP
-        
+
   
 if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.WARN)
+    logging.getLogger().setLevel(logging.INFO)
     logging.debug("Starting Component")
     start_component(TestPythonPropsRange_i)
+

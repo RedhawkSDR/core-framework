@@ -43,6 +43,8 @@ import logging
 # Define a TRACE logging level.
 logging.TRACE = 5
 logging.addLevelName(logging.TRACE, "TRACE")
+logging.OFF = logging.FATAL+1
+logging.addLevelName(logging.OFF, "OFF")
 
 # Add a free-standing trace method.
 def _trace(msg, *args, **kw):
@@ -54,12 +56,24 @@ del _trace
 # Extend logging class to add a "trace" method, and "getChild" if necessary.
 LoggerBase = logging.getLoggerClass()
 class RedhawkLogger(LoggerBase):
+  _ECM = None
   def trace(self, msg, *args, **kw):
     self.log(logging.TRACE, msg, *args, **kw)
+
+  @staticmethod
+  def SetEventChannelManager(ECM):
+    from ossie.utils.log4py.appenders import RH_LogEventAppender
+    RedhawkLogger._ECM = ECM
+    RH_LogEventAppender.ECM = ECM
+    for app in logging._handlerList:
+      if isinstance(app, RH_LogEventAppender ):
+        #print "RedhawkLogger....setEventChannelManager, " + str(ECM)
+        app.setEventChannelManager(ECM)
 
   if not hasattr(LoggerBase, 'getChild'):
     def getChild(self, suffix):
       return logging.getLogger(self.name + '.' + suffix)
+
 
 del LoggerBase
 

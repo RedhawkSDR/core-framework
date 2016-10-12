@@ -26,8 +26,12 @@
 #include "ossie/logging/rh_logger.h"
 #include "ossie/logging/loghelpers.h"
 #include "ossie/EventChannelSupport.h"
+#include "ossie/Autocomplete.h"
 
-class Logging_impl: public virtual POA_CF::Logging
+class Logging_impl
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+    : public virtual POA_CF::Logging
+#endif
 {
  public:
 
@@ -35,33 +39,33 @@ class Logging_impl: public virtual POA_CF::Logging
     
   virtual ~Logging_impl() {};
 
-  /// override this method to return the current logging configuration information
+  // override this method to return the current logging configuration information
   char *        getLogConfig ();
 
-  /// override this method to accept logging configuration information as a string
+  // override this method to accept logging configuration information as a string
   void         setLogConfig( const char *config_contents );
 
-  /// override this method to accept a string object that contains a URL. 
+  // override this method to accept a string object that contains a URL. 
   //  the contents of the URL will be used as the logging configuration information
   void         setLogConfigURL ( const char *config_url );
 
-  /// returns the current logging level state
+  // returns the current logging level state
   CF::LogLevel log_level();
 
-  /// sets the current logging level  for the resource, if LogLevelCallback is set
+  // sets the current logging level  for the resource, if LogLevelCallback is set
   void         log_level( const CF::LogLevel newLevel );
 
-  /// override this method to accept logging configuration information as a string
+  // override this method to accept logging configuration information as a string
   void         setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier);
 
-  /// returns the current logger assigned to the resource, by default it is the root logger
+  // returns the current logger assigned to the resource, by default it is the root logger
   LOGGER       getLogger();
 
-  /// Get a new logger object and if assign to resource if param is true
+  // Get a new logger object and if assign to resource if param is true
   LOGGER       getLogger( const std::string &logger_name, const bool assignToResource=false);
-  
 
-  /** 
+
+  /*
    * LogEventConsumer
    */
 
@@ -78,28 +82,28 @@ class Logging_impl: public virtual POA_CF::Logging
    */
   void   setLoggingMacros ( ossie::logging::MacroTable &tbl, bool applyCtx );
 
-  /**
+  /*
    *  setResourceContext
    *   
    *   
    */
   void    setResourceContext(  ossie::logging::ResourceCtxPtr ctx );
 
-  /**
+  /*
    *  setLoggingContext
    * Set the logging context for each type of Resource.
    * 
    */
   void    setLoggingContext( ossie::logging::ResourceCtxPtr ctx );
 
-  /**
+  /*
    *  setLoggingContext
    * Set the logging context for each type of Resource.
    * 
    */
   void    setLoggingContext( const std::string &url, int loglevel, ossie::logging::ResourceCtxPtr ctx );
 
-  /**
+  /*
    *  saveLoggingContext
    * Save the logging context for each type of Resource, do not apply setting to 
    * underlying logging library
@@ -128,7 +132,7 @@ class Logging_impl: public virtual POA_CF::Logging
 
   };
 
-  /**
+  /*
    * Allow for member functions to receive configuration notifications
    */
   template <class T>
@@ -159,7 +163,7 @@ class Logging_impl: public virtual POA_CF::Logging
       MemberFn func_;
     };
 
-  /**
+  /*
    * Wrap Callback functions as LogLevelListener objects
    */
   class StaticLogLevelListener : public LogLevelListener
@@ -193,7 +197,7 @@ class Logging_impl: public virtual POA_CF::Logging
 
   };
 
-  /**
+  /*
    * Allow for member functions to receive configuration notifications
    */
   template <class T>
@@ -224,7 +228,7 @@ class Logging_impl: public virtual POA_CF::Logging
       MemberFn func_;
     };
 
-  /**
+  /*
    * Wrap Callback functions as LogConfigListener objects
    */
   class StaticLogConfigListener : public LogConfigListener
@@ -277,34 +281,34 @@ class Logging_impl: public virtual POA_CF::Logging
   virtual void setLogLevelCallback(LogLevelListener *func);
   virtual void setLogLevelCallback(LogLevelCallbackFn  func);
 
-  /// logger identifier
+  // logger identifier
   std::string                    _logName;
 
-  /// current logging level set for this component via execparams, or  LogConfiguration API
+  // current logging level set for this component via execparams, or  LogConfiguration API
   CF::LogLevel                   _logLevel;
 
-  /// current logging object
+  // current logging object
   LOGGER                         _logger;
 
-  /// logging macro defintion table;
+  // logging macro defintion table;
   ossie::logging::MacroTable     _loggingMacros;
   
  private:
 
-  /// logging configuration data, 
+  // logging configuration data, 
   std::string                    _logCfgContents;
 
   std::string                    _logCfgURL;
 
   ossie::logging::ResourceCtxPtr _loggingCtx;
 
-  /// Event channel to listen for configuration and log level changes
-  boost::shared_ptr< ossie::event::PushEventConsumer > logConfigChannel;
+  // Event channel to listen for configuration and log level changes
+  boost::shared_ptr< ossie::events::PushEventConsumer > logConfigChannel;
 
-  /// callback to notify when logging configuration change is requested
+  // callback to notify when logging configuration change is requested
   LogConfigListenerPtr              logConfigCallback;
 
-  /// callback to notify when a logging level change is requested
+  // callback to notify when a logging level change is requested
   LogLevelListenerPtr              logLevelCallback;
 
 };

@@ -53,6 +53,27 @@ CF::DataType ossie::convertPropertyToDataType(const Property* prop) {
     return CF::DataType();
 }
 
+CF::DataType ossie::convertPropertyRefToDataType(const ComponentProperty* prop) {
+    if (dynamic_cast<const SimplePropertyRef*>(prop) != NULL) {
+        const SimplePropertyRef* simpref = dynamic_cast<const SimplePropertyRef*>(prop);
+        return convertPropertyToDataType(simpref);
+    } else if (dynamic_cast<const SimpleSequencePropertyRef*>(prop) != NULL) {
+        const SimpleSequencePropertyRef* simpseqref = dynamic_cast<const SimpleSequencePropertyRef*>(prop);
+        return convertPropertyToDataType(simpseqref);
+    } else if (dynamic_cast<const StructPropertyRef*>(prop) != NULL) {
+        const StructPropertyRef* struref = dynamic_cast<const StructPropertyRef*>(prop);
+        return convertPropertyToDataType(struref);
+    } else if (dynamic_cast<const StructSequencePropertyRef*>(prop) != NULL) {
+        const StructSequencePropertyRef* struseqref = dynamic_cast<const StructSequencePropertyRef*>(prop);
+        return convertPropertyToDataType(struseqref);
+    }
+    return CF::DataType();
+}
+
+CF::DataType ossie::convertPropertyRefToDataType(const ComponentProperty& prop) {
+  return convertPropertyRefToDataType(&prop);
+}
+
 CF::DataType ossie::overridePropertyValue(const Property* prop, const ComponentProperty* compprop) {
     if (dynamic_cast<const SimpleProperty*>(prop) != NULL) {
         const SimpleProperty* simp = dynamic_cast<const SimpleProperty*>(prop);
@@ -109,19 +130,11 @@ CF::DataType ossie::convertPropertyToDataType(const StructProperty* prop) {
     }
 
     CF::Properties structval_;
-    for (std::vector<SimpleProperty>::const_iterator i = prop->getValue().begin();
-         i != prop->getValue().end();
-         ++i) {
-
+    const std::vector<Property*>& propValue = prop->getValue();
+    std::vector<Property*>::const_iterator i;
+    for (i = propValue.begin(); i != propValue.end(); ++i) {
         CF::DataType dt;
-        dt.id = CORBA::string_dup(i->getID());
-        CORBA::TypeCode_ptr type = ossie::getTypeCode(static_cast<std::string>(i->getType()));
-        if (i->getValue()) {
-            dt.value = ossie::string_to_any(i->getValue(), type);
-            LOG_TRACE(prop_utils, "setting struct item " << i->getID());
-        } else {
-            LOG_TRACE(prop_utils, "struct item " << i->getID() << " has no default value");
-        }
+	dt = convertPropertyToDataType(*i);
         structval_.length(structval_.length() + 1);
         structval_[structval_.length() - 1] = dt;
     }
@@ -157,6 +170,15 @@ static CF::DataType overrideSimpleValue(const SimpleProperty* prop, const std::s
     return dataType;
 }
 
+static CF::DataType overrideSimpleSequenceValue(const SimpleSequenceProperty* prop, const std::vector<std::string>& values)
+{
+    CF::DataType dataType;
+    dataType.id = CORBA::string_dup(prop->getID());
+    CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(prop->getType()));
+    dataType.value = ossie::strings_to_any(values, kind);
+    return dataType;
+}
+
 CF::DataType ossie::overridePropertyValue(const SimpleProperty* prop, const ComponentProperty* compprop) {
     const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(compprop);
     if (!simpleref) {
@@ -181,117 +203,131 @@ CF::DataType ossie::overridePropertyValue(const SimpleSequenceProperty* prop, co
     return dataType;
 }
 
-static CF::Properties overrideStructValues(const StructProperty* prop, const std::map<std::string, std::string>& values)
+static CF::Properties overrideStructValues(const StructProperty* prop, const ossie::ComponentPropertyMap & values)
 {
-    const std::vector<SimpleProperty>& simpleProps = prop->getValue();
-    LOG_TRACE(prop_utils, "structure has " << simpleProps.size() << " elements");
+    const std::vector<Property*>& props = prop->getValue();
+    LOG_TRACE(prop_utils, "structure has " << props.size() << " elements");
     CF::Properties structval;
-    structval.length(simpleProps.size());
+    structval.length(props.size());
     for (CORBA::ULong ii = 0; ii < structval.length(); ++ii) {
-        const SimpleProperty& simple = simpleProps[ii];
-        const std::string id = simple.getID();
-        std::map<std::string, std::string>::const_iterator itemoverride = values.find(id);
+        const Property* property = props[ii];
+        const std::string id = property->getID();
+        ossie::ComponentPropertyMap::const_iterator itemoverride = values.find(id);
         if (itemoverride == values.end()) {
             LOG_TRACE(prop_utils, "using default value for struct element " << id);
-            structval[ii] = convertPropertyToDataType(&simple);
+            structval[ii] = convertPropertyToDataType(property);
         } else {
-            LOG_TRACE(prop_utils, "setting structure element " << id << " to " << itemoverride->second);
-            structval[ii] = overrideSimpleValue(&simple, itemoverride->second);
+            if (dynamic_cast<const SimpleProperty*>(property) != NULL) {
+                LOG_TRACE(prop_utils, "setting structure element " << id << " to " << (itemoverride->second)[0]);
+                structval[ii] = overrideSimpleValue(dynamic_cast<const SimpleProperty*>(property), static_cast<const SimplePropertyRef*>(itemoverride->second)->getValue());
+            } else if (dynamic_cast<const SimpleSequenceProperty*>(property) != NULL) {
+                LOG_TRACE(prop_utils, "setting structure element " << id);
+                structval[ii] = overrideSimpleSequenceValue(dynamic_cast<const SimpleSequenceProperty*>(property), static_cast<const SimpleSequencePropertyRef*>(itemoverride->second)->getValues()); 
+            }
         }
     }
 
     return structval;
 }
 
-static CF::Properties overrideStructValues(const StructProperty* prop, const std::map<std::string, std::string>& values, const CF::Properties& configureProperties)
+static CF::Properties overrideStructValues(const StructProperty* prop, const ossie::ComponentPropertyMap & values, const CF::Properties& configureProperties)
 {
-    const std::vector<SimpleProperty>& simpleProps = prop->getValue();
-    LOG_TRACE(prop_utils, "structure has " << simpleProps.size() << " elements");
+    const std::vector<Property*>& props = prop->getValue();
+    LOG_TRACE(prop_utils, "structure has " << props.size() << " elements");
     CF::Properties structval;
-    structval.length(simpleProps.size());
+    structval.length(props.size());
     for (CORBA::ULong ii = 0; ii < structval.length(); ++ii) {
-        const SimpleProperty& simple = simpleProps[ii];
-        const std::string id = simple.getID();
-        std::map<std::string, std::string>::const_iterator itemoverride = values.find(id);
-        if (itemoverride == values.end()) {
-            LOG_TRACE(prop_utils, "using default value for struct element " << id);
-            structval[ii] = convertPropertyToDataType(&simple);
-        } else {
-            LOG_TRACE(prop_utils, "setting structure element " << id << " to " << itemoverride->second);
-            std::string value = itemoverride->second;
-            if (strncmp(value.c_str(), "__MATH__", 8) == 0) {
-                CF::DataType dataType;
-                dataType.id = CORBA::string_dup(simple.getID());
-                CORBA::TCKind kind = ossie::getTypeKind(simple.getType());
-                LOG_TRACE(prop_utils, "Invoking custom OSSIE dynamic allocation property support")
-                // Turn propvalue into a string for easy parsing
-                std::string mathStatement = value.substr(8);
-                if ((*mathStatement.begin() == '(') && (*mathStatement.rbegin() == ')')) {
-                    // TODO - implement a more relaxed parser
-                    mathStatement.erase(mathStatement.begin(), mathStatement.begin() + 1);
-                    mathStatement.erase(mathStatement.end() - 1, mathStatement.end());
-                    std::vector<std::string> args;
-                    while ((mathStatement.length() > 0) && (mathStatement.find(',') != std::string::npos)) {
-                        args.push_back(mathStatement.substr(0, mathStatement.find(',')));
+        const Property* property = props[ii];
+        const std::string id = property->getID();
+        ossie::ComponentPropertyMap::const_iterator itemoverride = values.find(id);
+        if (dynamic_cast<const SimplePropertyRef*>(itemoverride->second) != NULL) {
+            if (itemoverride == values.end()) {
+                LOG_TRACE(prop_utils, "using default value for struct element " << id);
+                structval[ii] = convertPropertyToDataType(property);
+            } else {
+                LOG_TRACE(prop_utils, "setting structure element " << id << " to " << static_cast<const SimplePropertyRef*>(itemoverride->second)->getValue());
+                std::string value = static_cast<const SimplePropertyRef*>(itemoverride->second)->getValue();
+                if (strncmp(value.c_str(), "__MATH__", 8) == 0) {
+                    CF::DataType dataType;
+		    const SimpleProperty* simple = dynamic_cast<const SimpleProperty*>(property);
+                    dataType.id = CORBA::string_dup(simple->getID());
+                    CORBA::TCKind kind = ossie::getTypeKind(simple->getType());
+                    LOG_TRACE(prop_utils, "Invoking custom OSSIE dynamic allocation property support")
+                    // Turn propvalue into a string for easy parsing
+                    std::string mathStatement = value.substr(8);
+                    if ((*mathStatement.begin() == '(') && (*mathStatement.rbegin() == ')')) {
+                        mathStatement.erase(mathStatement.begin(), mathStatement.begin() + 1);
+                        mathStatement.erase(mathStatement.end() - 1, mathStatement.end());
+                        std::vector<std::string> args;
+                        while ((mathStatement.length() > 0) && (mathStatement.find(',') != std::string::npos)) {
+                            args.push_back(mathStatement.substr(0, mathStatement.find(',')));
+                            LOG_TRACE(prop_utils, "ARG " << args.back())
+                            mathStatement.erase(0, mathStatement.find(',') + 1);
+                        }
+                        args.push_back(mathStatement);
                         LOG_TRACE(prop_utils, "ARG " << args.back())
-                        mathStatement.erase(0, mathStatement.find(',') + 1);
-                    }
-                    args.push_back(mathStatement);
-                    LOG_TRACE(prop_utils, "ARG " << args.back())
 
-                    if (args.size() != 3) {
+                        if (args.size() != 3) {
+                            std::ostringstream eout;
+                            eout << " invalid __MATH__ statement; '" << mathStatement << "'";
+                            throw ossie::PropertyMatchingError(eout.str());
+                        }
+
+                        LOG_TRACE(prop_utils, "__MATH__ " << args[0] << " " << args[1] << " " << args[2])
+
+                        double operand;
+                        operand = strtod(args[0].c_str(), NULL);
+
+                        // See if there is a property in the component
+                        LOG_TRACE(prop_utils, "Attempting to find matching property for " << args[1])
+                        const CF::DataType* matchingCompProp = 0;
+                        for (unsigned int j = 0; j < configureProperties.length(); j++) {
+                            if (strcmp(configureProperties[j].id, args[1].c_str()) == 0) {
+                                LOG_TRACE(prop_utils, "Matched property for " << args[1])
+                                matchingCompProp = &configureProperties[j];
+                            }
+                            // See if the property we're looking for is a member of a struct
+                            //  **note: this only works because the dtd states that each
+                            //          property id is globally unique within the prf
+                            const CF::Properties* tmp_ref = NULL;
+                            configureProperties[j].value >>= tmp_ref;
+                            if (tmp_ref != NULL) {
+                                for (unsigned prop_idx = 0; prop_idx<tmp_ref->length(); prop_idx++) {
+                                    if (strcmp((*tmp_ref)[prop_idx].id, args[1].c_str()) == 0) {
+                                        LOG_TRACE(prop_utils, "Matched property for " << args[1])
+                                        matchingCompProp = &(*tmp_ref)[prop_idx];
+                                    }
+                                }
+                            }
+                        }
+
+                        if (matchingCompProp == 0) {
+                            std::ostringstream eout;
+                            eout << " failed to match component property in __MATH__ statement; property id = " << args[1] << " does not exist in component as a configure property";
+                            throw ossie::PropertyMatchingError(eout.str());
+                        }
+
+                        std::string math = args[2];
+                        CORBA::Any compValue = matchingCompProp->value;
+                        dataType.value = ossie::calculateDynamicProp(operand, compValue, math, kind);
+                    } else {
                         std::ostringstream eout;
                         eout << " invalid __MATH__ statement; '" << mathStatement << "'";
                         throw ossie::PropertyMatchingError(eout.str());
                     }
-
-                    LOG_TRACE(prop_utils, "__MATH__ " << args[0] << " " << args[1] << " " << args[2])
-
-                    double operand;
-                    operand = strtod(args[0].c_str(), NULL);
-
-                    // See if there is a property in the component
-                    LOG_TRACE(prop_utils, "Attempting to find matching property for " << args[1])
-                    const CF::DataType* matchingCompProp = 0;
-                    for (unsigned int j = 0; j < configureProperties.length(); j++) {
-                        if (strcmp(configureProperties[j].id, args[1].c_str()) == 0) {
-                            LOG_TRACE(prop_utils, "Matched property for " << args[1])
-                            matchingCompProp = &configureProperties[j];
-                        }
-                        // See if the property we're looking for is a member of a struct
-                        //  **note: this only works because the dtd states that each
-                        //          property id is globally unique within the prf
-                        const CF::Properties* tmp_ref = NULL;
-                        configureProperties[j].value >>= tmp_ref;
-                        if (tmp_ref != NULL) {
-                            for (unsigned prop_idx = 0; prop_idx<tmp_ref->length(); prop_idx++) {
-                                if (strcmp((*tmp_ref)[prop_idx].id, args[1].c_str()) == 0) {
-                                    LOG_TRACE(prop_utils, "Matched property for " << args[1])
-                                    matchingCompProp = &(*tmp_ref)[prop_idx];
-                                }
-                            }
-                        }
-                    }
-
-                    if (matchingCompProp == 0) {
-                        std::ostringstream eout;
-                        eout << " failed to match component property in __MATH__ statement; property id = " << args[1] << " does not exist in component as a configure property";
-                        throw ossie::PropertyMatchingError(eout.str());
-                    }
-
-                    std::string math = args[2];
-                    CORBA::Any compValue = matchingCompProp->value;
-                    dataType.value = ossie::calculateDynamicProp(operand, compValue, math, kind);
+                    structval[ii] = dataType;
                 } else {
-                    std::ostringstream eout;
-                    eout << " invalid __MATH__ statement; '" << mathStatement << "'";
-                    throw ossie::PropertyMatchingError(eout.str());
+                    structval[ii] = overrideSimpleValue(static_cast<const SimpleProperty*>(property), static_cast<const SimplePropertyRef*>(itemoverride->second)->getValue());
                 }
-                structval[ii] = dataType;
+            } 
+        } else if (dynamic_cast<const SimpleSequencePropertyRef*>(itemoverride->second) != NULL) {
+	    if (itemoverride == values.end()) {
+                LOG_TRACE(prop_utils, "using default value for struct element " << id);
+                structval[ii] = convertPropertyToDataType(property);
             } else {
-                structval[ii] = overrideSimpleValue(&simple, itemoverride->second);
+		structval[ii] = overrideSimpleSequenceValue(static_cast<const SimpleSequenceProperty*>(property), static_cast<const SimpleSequencePropertyRef*>(itemoverride->second)->getValues());
             }
-        }
+	}
     }
 
     return structval;
@@ -330,7 +366,7 @@ CF::DataType ossie::overridePropertyValue(const StructSequenceProperty* prop, co
     if (structsequenceref) {
         LOG_TRACE(prop_utils, "overriding structsequence property id " << dataType.id);
 
-        const std::vector<std::map<std::string, std::string> >& overrideValues = structsequenceref->getValues();
+        const StructSequencePropertyRef::ValuesList& overrideValues = structsequenceref->getValues();
         LOG_TRACE(prop_utils, "structsequence has " << overrideValues.size() << " values");
 
         CORBA::AnySeq values;
@@ -501,14 +537,12 @@ CF::DataType ossie::convertPropertyToDataType(const StructPropertyRef* prop) {
     dataType.id = CORBA::string_dup(prop->getID());
     
     CF::Properties structval_;
-    for (std::map<std::string, std::string>::const_iterator i = prop->getValue().begin(); i != prop->getValue().end(); ++i) {
+    StructPropertyRef::ValuesMap::const_iterator i;
+    for (i = prop->getValue().begin(); i != prop->getValue().end(); ++i) {
         CF::DataType dt;
-        dt.id = CORBA::string_dup((*i).first.c_str());
-        CORBA::TypeCode *tc = ossie::corba::TypeCode<std::string>();
-        dt.value = ossie::string_to_any((*i).second.c_str(), tc);
+        dt = convertPropertyRefToDataType((*i).second);
         LOG_TRACE(prop_utils, "setting struct item " << (*i).first);
-        structval_.length(structval_.length() + 1);
-        structval_[structval_.length() - 1] = dt;
+	ossie::corba::push_back(structval_, dt);
     }
     dataType.value <<= structval_;
     return dataType;
@@ -518,21 +552,19 @@ CF::DataType ossie::convertPropertyToDataType(const StructSequencePropertyRef* p
     CF::DataType dataType;
     dataType.id = CORBA::string_dup(prop->getID());
     
-    const std::vector<std::map<std::string, std::string> > propValues = prop->getValues();
+    const StructSequencePropertyRef::ValuesList propValues = prop->getValues();
     CORBA::AnySeq values;
     values.length(propValues.size());
     for (CORBA::ULong ii = 0; ii < values.length(); ++ii) {
         CF::DataType tmp_struct;
         tmp_struct.id = CORBA::string_dup("");
         CF::Properties structval_;
-        for (std::map<std::string, std::string>::const_iterator i = propValues[ii].begin(); i != propValues[ii].end(); ++i) {
+        ossie::ComponentPropertyMap::const_iterator i;
+        for (i = propValues[ii].begin(); i != propValues[ii].end(); ++i) {
             CF::DataType dt;
-            dt.id = CORBA::string_dup((*i).first.c_str());
-            CORBA::TypeCode *tc = ossie::corba::TypeCode<std::string>();
-            dt.value = ossie::string_to_any((*i).second.c_str(), tc);
+            dt = convertPropertyRefToDataType((*i).second);
             LOG_TRACE(prop_utils, "setting struct item " << (*i).first);
-            structval_.length(structval_.length() + 1);
-            structval_[structval_.length() - 1] = dt;
+            ossie::corba::push_back(structval_, dt);
         }
         tmp_struct.value <<= structval_;
         values[ii] <<= tmp_struct;
@@ -571,8 +603,8 @@ CF::DataType ossie::convertDataTypeToPropertyType(const CF::DataType& value, con
 
 CORBA::Any ossie::convertAnyToPropertyType(const CORBA::Any& value, const SimpleSequenceProperty* property)
 {
-    // TODO
-    return CORBA::Any();
+    CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(property->getType()));
+    return ossie::strings_to_any(ossie::any_to_strings(value), kind);
 }
 
 CORBA::Any ossie::convertAnyToPropertyType(const CORBA::Any& value, const StructProperty* property)
@@ -581,11 +613,11 @@ CORBA::Any ossie::convertAnyToPropertyType(const CORBA::Any& value, const Struct
     const CF::Properties *depProps;
     if (value >>= depProps) {
         CF::Properties tmp_props;
-        std::vector<ossie::SimpleProperty> structval = property->getValue();
+        std::vector<ossie::Property*> structval = property->getValue();
         for (unsigned int index = 0; index < depProps->length(); ++index) {
             const CF::DataType& item = (*depProps)[index];
             const std::string propid(item.id);
-            const ossie::SimpleProperty* field = property->getField(propid);
+            const ossie::Property* field = property->getField(propid);
             if (field) {
                 ossie::corba::push_back(tmp_props, convertDataTypeToPropertyType(item, field));
             }
@@ -599,3 +631,31 @@ CORBA::Any ossie::convertAnyToPropertyType(const CORBA::Any& value, const Struct
 {
     return CORBA::Any();
 }
+
+
+
+void ossie::convertComponentProperties( const ossie::ComponentPropertyList &cp_props,
+                                 CF::Properties &cf_props ) 
+{
+  ossie::ComponentPropertyList::const_iterator piter = cp_props.begin();
+  for ( ; piter != cp_props.end(); piter++ ) {
+    cf_props.length(cf_props.length()+1);
+    CF::DataType dt = ossie::convertPropertyRefToDataType( *piter );
+    cf_props[cf_props.length()-1] = dt;
+  }
+}
+    
+std::string ossie::retrieveParserErrorLineNumber(std::string message) {
+    size_t begin_n_line = message.find_first_of(':');
+    size_t end_n_line = std::string::npos;
+    if (begin_n_line != std::string::npos) {
+        end_n_line = message.find_first_of(':', begin_n_line+1);
+    }
+    std::string ret_message;
+    if (end_n_line != std::string::npos) {
+        ret_message = "Error occurred on or around line ";
+        ret_message += message.substr(begin_n_line+1,end_n_line-begin_n_line-1);
+        ret_message += ".";
+    }
+    return ret_message;
+};

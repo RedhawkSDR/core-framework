@@ -43,12 +43,18 @@ with this program.  If not, see http://www.gnu.org/licenses/.
       <structref refid="DCE:001fad60-b4b3-4ed2-94cb-40e1d956bf4f">
         <simpleref refid="long_capacity" value="75"/>
         <simpleref refid="float_capacity" value="0.75"/>
+	<simplesequenceref refid="struct_simple_seq">
+          <values><value>1</value><value>10</value></values>
+        </simplesequenceref>
       </structref>
     </dependency>
     <usesdevice id="DCE:aa486aad-fddf-4339-8254-19c2238dd685" type="">
       <structref refid="DCE:001fad60-b4b3-4ed2-94cb-40e1d956bf4f">
         <simpleref refid="long_capacity" value="50"/>
         <simpleref refid="float_capacity" value="0.5"/>
+	<simplesequenceref refid="struct_simple_seq">
+          <values><value>5</value><value>50</value></values>
+        </simplesequenceref>
       </structref>
     </usesdevice>
   </implementation>

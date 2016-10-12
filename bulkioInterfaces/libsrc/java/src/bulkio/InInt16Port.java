@@ -41,12 +41,12 @@ import bulkio.linkStatistics;
 import bulkio.DataTransfer;
 import bulkio.Int16Size;
 
-
+import org.ossie.component.PortBase;
 
 /**
  * 
  */
-public class InInt16Port extends BULKIO.jni.dataShortPOA {
+public class InInt16Port extends BULKIO.jni.dataShortPOA implements org.ossie.component.PortBase {
 
     /**
      * A class to hold packet data.
@@ -154,7 +154,7 @@ public class InInt16Port extends BULKIO.jni.dataShortPOA {
 		       bulkio.sri.Comparator compareSRI, 
 		       bulkio.SriListener sriCallback ) {
         this.name = portName;
-	this.logger = logger;
+		this.logger = logger;
         this.stats = new linkStatistics(this.name, new Int16Size() );
         this.sriUpdateLock = new Object();
         this.statUpdateLock = new Object();
@@ -350,7 +350,7 @@ public class InInt16Port extends BULKIO.jni.dataShortPOA {
         }
 
         boolean portBlocking = false;
-        StreamSRI tmpH = new StreamSRI(1, 0.0, 1.0, (short)1, 0, 0.0, 0.0, (short)0, (short)0, streamID, false, new DataType[0]);
+        StreamSRI tmpH = null;
         boolean sriChanged = false;
         synchronized (this.sriUpdateLock) {
             if (this.currentHs.containsKey(streamID)) {
@@ -360,6 +360,16 @@ public class InInt16Port extends BULKIO.jni.dataShortPOA {
 		    this.currentHs.get(streamID).setChanged(false);
 		}
                 portBlocking = blocking;
+            } else {
+                if (logger != null) {
+                    logger.warn("bulkio.InPort pushPacket received data from stream '" + streamID + "' with no SRI");
+                }
+                tmpH = new StreamSRI(1, 0.0, 1.0, (short)1, 0, 0.0, 0.0, (short)0, (short)0, streamID, false, new DataType[0]);
+                if (sriCallback != null) {
+                    sriCallback.newSRI(tmpH);
+                }
+                sriChanged = true;
+                currentHs.put(streamID, new sriState(tmpH, false));
             }
         }
 
@@ -387,14 +397,24 @@ public class InInt16Port extends BULKIO.jni.dataShortPOA {
 			logger.debug( "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE"  + this.workQueue.size() + ")" );
 		    }
                     boolean sriChangedHappened = false;
+                    boolean flagEOS = false;
                     for (Iterator< Packet > itr = this.workQueue.iterator(); itr.hasNext();) {
-                        if (itr.next().sriChanged) {
-                            sriChangedHappened = true;
+                        if (sriChangedHappened && flagEOS) {
                             break;
+                        }
+                        Packet currentPacket = itr.next();
+                        if (currentPacket.sriChanged) {
+                            sriChangedHappened = true;
+                        }
+                        if (currentPacket.EOS) {
+                            flagEOS = true;
                         }
                     }
                     if (sriChangedHappened) {
                         sriChanged = true;
+                    }
+                    if (flagEOS) {
+                        eos = true;
                     }
                     this.workQueue.clear();
                     p = new Packet( data, time, eos, streamID, tmpH, sriChanged, true);
@@ -487,6 +507,14 @@ public class InInt16Port extends BULKIO.jni.dataShortPOA {
         return p;
     }
 
+	public String getRepid()
+	{
+		return BULKIO.dataShortHelper.id();
+	}
 
+	public String getDirection()
+	{
+		return "Provides";
+	}
 }
 

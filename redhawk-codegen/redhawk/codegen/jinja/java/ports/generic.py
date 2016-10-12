@@ -95,6 +95,26 @@ def paramType(param):
     else:
         return outType(param.paramType)
 
+def defaultValue(typeobj):
+    kind = typeobj.kind()
+    if kind == CORBA.tk_alias:
+        return defaultValue(typeobj.aliasType())
+    elif kind == CORBA.tk_objref:
+        return java.NULL
+    elif kind == CORBA.tk_struct:
+        # The default constructor for CORBA structs sets all object-type fields
+        # to null, rather than a default value; the user will need to fill them
+        # in to avoid a CORBA.BAD_PARAM, but returning null for a struct is
+        # also unsafe
+        return 'new %s()' % baseType(typeobj)
+    elif kind == CORBA.tk_sequence:
+        return 'new %s[0]' % baseType(typeobj.sequenceType())
+    elif kind == CORBA.tk_enum:
+        value = typeobj.enumValues()[0].identifier()
+        return '%s.%s' % (baseType(typeobj), value)
+    else:
+        return java.defaultValue(baseType(typeobj))
+
 class GenericPortFactory(PortFactory):
     def match(cls, port):
         return True
@@ -115,11 +135,13 @@ class GenericPortGenerator(JavaPortGenerator):
                    'arglist': ', '.join('%s %s' % (paramType(p), p.name) for p in op.params),
                    'argnames': [p.name for p in op.params],
                    'throws': ', '.join(baseType(r) for r in op.raises),
+                   'defaultval': defaultValue(op.returnType),
                    'returns': baseType(op.returnType)}
         for attr in self.idl.attributes():
             yield {'name': attr.name,
                    'arglist': '',
                    'argnames': tuple(),
+                   'defaultval': defaultValue(attr.attrType),
                    'returns': baseType(attr.attrType)}
             if not attr.readonly:
                 yield {'name': attr.name,

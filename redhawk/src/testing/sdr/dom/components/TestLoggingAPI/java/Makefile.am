@@ -18,7 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-TestLoggingAPI.jar: $(TestLoggingAPI_jar_SOURCES)
+#TestLoggingAPI.jar: $(TestLoggingAPI_jar_SOURCES)
+TestLoggingAPI.jar$(EXEEXT): $(TestLoggingAPI_jar_SOURCES)
 	mkdir -p bin
 	$(JAVAC) -cp $(OSSIE_CLASSPATH) -d bin $(TestLoggingAPI_jar_SOURCES)
 	$(JAR) cf ./TestLoggingAPI.jar -C bin .

@@ -84,6 +84,7 @@ public:
   void test_subclass();
 
   template < typename T > void test_port_api( T *port );
+  template < typename T > void test_sri_change( T *port );
 
   rh_logger::LoggerPtr logger;
 };

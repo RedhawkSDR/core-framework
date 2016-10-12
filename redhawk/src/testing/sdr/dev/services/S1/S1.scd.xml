@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:CF/LogLevels:1.0"/>
+  <componenttype>service</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:CF/LogLevels:1.0" supportsname="LogLevels"/>
+    <ports/>
+  </componentfeatures>
+  <interfaces>
+    <interface name="LogLevels" repid="IDL:CF/LogLevels:1.0"/>
+  </interfaces>
+</softwarecomponent>

@@ -1073,19 +1073,23 @@ class ports(GeneratedsSuper):
 class provides(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, providesname=None, repid=None, porttype=None):
+    def __init__(self, providesname=None, repid=None, porttype=None, description=None):
         self.providesname = _cast(None, providesname)
         self.repid = _cast(None, repid)
         if porttype is None:
             self.porttype = []
         else:
             self.porttype = porttype
+        self.description = description
     def factory(*args_, **kwargs_):
         if provides.subclass:
             return provides.subclass(*args_, **kwargs_)
         else:
             return provides(*args_, **kwargs_)
     factory = staticmethod(factory)
+    def get_description(self): return self.description
+    def set_description(self, description): self.description = description
+    descriptionProp = property(get_description, set_description)
     def get_porttype(self): return self.porttype
     def set_porttype(self, porttype): self.porttype = porttype
     def add_porttype(self, value): self.porttype.append(value)
@@ -1125,10 +1129,14 @@ class provides(GeneratedsSuper):
             eol_ = '\n'
         else:
             eol_ = ''
+        if self.description is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%sdescription>%s</%sdescription>%s' % (namespace_, self.gds_format_string(quote_xml(self.description).encode(ExternalEncoding), input_name='description'), namespace_, eol_))
         for porttype_ in self.porttype:
             porttype_.export(outfile, level, namespace_, name_='porttype', pretty_print=pretty_print)
     def hasContent_(self):
         if (
+            self.description is not None or
             self.porttype
             ):
             return True
@@ -1149,6 +1157,9 @@ class provides(GeneratedsSuper):
             showIndent(outfile, level)
             outfile.write('repid = "%s",\n' % (self.repid,))
     def exportLiteralChildren(self, outfile, level, name_):
+        if self.description is not None:
+            showIndent(outfile, level)
+            outfile.write('description=%s,\n' % quote_python(self.description).encode(ExternalEncoding))
         showIndent(outfile, level)
         outfile.write('porttype=[\n')
         level += 1
@@ -1176,6 +1187,10 @@ class provides(GeneratedsSuper):
             already_processed.append('repid')
             self.repid = value
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'description':
+            description_ = child_.text
+            description_ = self.gds_validate_string(description_, node, 'description')
+            self.description = description_
         if nodeName_ == 'porttype':
             obj_ = portType.factory()
             obj_.build(child_)
@@ -1186,19 +1201,23 @@ class provides(GeneratedsSuper):
 class uses(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, usesname=None, repid=None, porttype=None):
+    def __init__(self, usesname=None, repid=None, porttype=None, description=None):
         self.usesname = _cast(None, usesname)
         self.repid = _cast(None, repid)
         if porttype is None:
             self.porttype = []
         else:
             self.porttype = porttype
+        self.description = description
     def factory(*args_, **kwargs_):
         if uses.subclass:
             return uses.subclass(*args_, **kwargs_)
         else:
             return uses(*args_, **kwargs_)
     factory = staticmethod(factory)
+    def get_description(self): return self.description
+    def set_description(self, description): self.description = description
+    descriptionProp = property(get_description, set_description)
     def get_porttype(self): return self.porttype
     def set_porttype(self, porttype): self.porttype = porttype
     def add_porttype(self, value): self.porttype.append(value)
@@ -1238,10 +1257,14 @@ class uses(GeneratedsSuper):
             eol_ = '\n'
         else:
             eol_ = ''
+        if self.description is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%sdescription>%s</%sdescription>%s' % (namespace_, self.gds_format_string(quote_xml(self.description).encode(ExternalEncoding), input_name='description'), namespace_, eol_))
         for porttype_ in self.porttype:
             porttype_.export(outfile, level, namespace_, name_='porttype', pretty_print=pretty_print)
     def hasContent_(self):
         if (
+            self.description is not None or
             self.porttype
             ):
             return True
@@ -1262,6 +1285,9 @@ class uses(GeneratedsSuper):
             showIndent(outfile, level)
             outfile.write('repid = "%s",\n' % (self.repid,))
     def exportLiteralChildren(self, outfile, level, name_):
+        if self.description is not None:
+            showIndent(outfile, level)
+            outfile.write('description=%s,\n' % quote_python(self.description).encode(ExternalEncoding))
         showIndent(outfile, level)
         outfile.write('porttype=[\n')
         level += 1
@@ -1289,6 +1315,10 @@ class uses(GeneratedsSuper):
             already_processed.append('repid')
             self.repid = value
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'description':
+            description_ = child_.text
+            description_ = self.gds_validate_string(description_, node, 'description')
+            self.description = description_
         if nodeName_ == 'porttype':
             obj_ = portType.factory()
             obj_.build(child_)

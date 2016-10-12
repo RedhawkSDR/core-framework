@@ -24,6 +24,7 @@
 
 #include <COS/CosEventComm.idl>
 #include <COS/CosEventChannelAdmin.idl>
+#include "ossie/CF/DataType.idl"
 #include "ossie/CF/cf.idl"
 
 module ExtendedEvent {

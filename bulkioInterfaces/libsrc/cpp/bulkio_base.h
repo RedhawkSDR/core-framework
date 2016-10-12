@@ -24,12 +24,14 @@
 #include <queue>
 #include <list>
 #include <vector>
+#include <set>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/locks.hpp>
 #include <ossie/debug.h>
 #include <ossie/BULKIO/bio_runtimeStats.h>
 #include <ossie/BULKIO/bulkioDataTypes.h>
+#include "ossie/Autocomplete.h"
 
 
 namespace bulkio {
@@ -70,6 +72,39 @@ namespace bulkio {
   typedef std::map< std::string, std::pair< BULKIO::StreamSRI, bool > >  SriMap;
 
   typedef std::vector< BULKIO::StreamSRI >                               SriList;
+
+  //
+  // Tracks an SRI and which connections have the most recent version
+  //
+  struct SriMapStruct {
+    BULKIO::StreamSRI        sri;
+    std::set<std::string>    connections;
+
+    SriMapStruct( const BULKIO::StreamSRI &in_sri ) {
+      sri = in_sri;
+    };
+
+    SriMapStruct( const SriMapStruct &src ) {
+      sri = src.sri;
+      connections = src.connections;
+    };
+  };
+
+
+  // Standard struct property for multi-out support
+  struct connection_descriptor_struct {
+    connection_descriptor_struct ()
+    {
+    };
+
+    static std::string getId() {
+      return std::string("connection_descriptor");
+    };
+
+    std::string connection_id;
+    std::string stream_id;
+    std::string port_name;
+  };
 
   //
   // Listing of Stream IDs for searching
@@ -119,7 +154,6 @@ namespace bulkio {
   typedef uint64_t                    UInt64;
   typedef float                       Float;
   typedef double                      Double;
-
 
   //
   // helper class for port statistics
@@ -215,19 +249,18 @@ namespace bulkio {
   };
 
 
-  //
-  //
-  // Time Stamp Helpers
-  //
-  //
+  /*
+   *
+   * Time Stamp Helpers
+   *
+   */
   namespace time {
 
-    /**
-       PrecisionUTCTime object as defined by bulkio_dataTypes.idl, definition provided for information only
-
-    //
-    // Time code modes
-    //
+    /*
+     * PrecisionUTCTime object as defined by bulkio_dataTypes.idl, definition provided for information only
+     *
+     * Time code modes
+     *
     const short TCM_OFF  = 0;
     const short TCM_CPU  = 1;
     const short TCM_ZTC  = 2;
@@ -250,53 +283,56 @@ namespace bulkio {
 
     namespace utils {
 
-      //
-      // Create a time stamp object from the provided input... 
-      //
+      /*
+       * Create a time stamp object from the provided input... 
+       */
       BULKIO::PrecisionUTCTime create( const double wholeSecs=-1.0, const double fractionalSecs=-1.0, const Int16 tsrc= BULKIO::TCM_CPU  );
 
-      //
-      // Create a time stamp object from the current time of day reported by the system
-      //
+      /*
+       * Create a time stamp object from the current time of day reported by the system
+       */
       BULKIO::PrecisionUTCTime now();
       
-      //
-      // Create a time stamp object from the current time of day reported by the system
-      //
+      /*
+       * Create a time stamp object from the current time of day reported by the system
+       */
       BULKIO::PrecisionUTCTime notSet();
 
-      //
-      // Return a new time stamp object which increments a given time stamp by numSamples*xdelta seconds
-      //
+      /*
+       * Return a new time stamp object which increments a given time stamp by numSamples*xdelta seconds
+       */
       BULKIO::PrecisionUTCTime addSampleOffset( const BULKIO::PrecisionUTCTime &T, const size_t numSamples, const double xdelta  );
 
+      /*
+       * Adjust the whole and fractional portions of a time stamp object to
+       * ensure there is no fraction in the whole seconds, and vice-versa
+       */
+      void normalize(BULKIO::PrecisionUTCTime& time);
     };
 
 
-    //
-    // A default time stamp comparison method 
-    //
+    /*
+     * A default time stamp comparison method 
+     */
     bool           DefaultComparator( const BULKIO::PrecisionUTCTime &a, const BULKIO::PrecisionUTCTime &b);
 
-    //
-    // Method signature for comparing time stamp objects
-    //
+    /*
+     * Method signature for comparing time stamp objects
+     */
     typedef bool  (*Compare)( const BULKIO::PrecisionUTCTime &a, const BULKIO::PrecisionUTCTime &b);
 
   };
 
 
-  //
-  // StreamSRI
-  //
-  // Convenience routines for building and working with StreamSRI objects
-  //
-  // TODO: 
-  //   Convenience templates to add key/value pairs
-  //
+  /*
+   * StreamSRI
+   *
+   * Convenience routines for building and working with StreamSRI objects
+   *
+   */
   namespace sri {
 
-    /**
+    /*
        StreamSRI object as defined by bulkio_dataTypes.idl, definition provided for information only
 
     struct StreamSRI {
@@ -313,23 +349,48 @@ namespace bulkio {
         boolean blocking;  flag to determine whether the receiving port should exhibit back pressure
         sequence<CF::DataType> keywords;  user defined keywords 
     };
-  **/
+    */
  
-    //
-    //  Comparator method to search for matching SRI information if "a" matches "b"
-    //
+    /*
+     *  Comparator method to search for matching SRI information if "a" matches "b"
+     */
     typedef bool  (*Compare)( const BULKIO::StreamSRI &a, const BULKIO::StreamSRI &b);
 
-    //
-    // Default comparator method when comparing SRI objects
-    //
-    // Performs a member wise comparision of a StreamSRI object. In addition to performing
-    // this comparison, any additional key/value pairs will be compared. The key identifiers 
-    // are compared in order, and their associated values are compared using the
-    // equivalency method of the REDHAWK framework compare_anys method.
-    //
+    // Bit flags for SRI fields
+    enum {
+      NONE     = 0,
+      HVERSION = (1<<0),
+      XSTART   = (1<<1),
+      XDELTA   = (1<<2),
+      XUNITS   = (1<<3),
+      SUBSIZE  = (1<<4),
+      YSTART   = (1<<5),
+      YDELTA   = (1<<6),
+      YUNITS   = (1<<7),
+      MODE     = (1<<8),
+      STREAMID = (1<<9),
+      BLOCKING = (1<<10),
+      KEYWORDS = (1<<11)
+    };
+
+    /*
+     * Do a field-by-field comparison of two SRI streams
+     */
+    int compareFields(const BULKIO::StreamSRI& lhs, const BULKIO::StreamSRI& rhs);
+
+    /*
+     * Default comparator method when comparing SRI objects
+     *
+     * Performs a member wise comparision of a StreamSRI object. In addition to performing
+     * this comparison, any additional key/value pairs will be compared. The key identifiers 
+     * are compared in order, and their associated values are compared using the
+     * equivalency method of the REDHAWK framework compare_anys method.
+     */
     bool           DefaultComparator( const BULKIO::StreamSRI &a, const BULKIO::StreamSRI &b);
     
+    /*
+     * Zeroize an SRI stream
+     */
     inline void zeroSRI(BULKIO::StreamSRI &sri) {
         sri.hversion = 1;
         sri.xstart = 0.0;
@@ -344,14 +405,17 @@ namespace bulkio {
         sri.keywords.length(0);
     };
     
+    /*
+     * Zeroize a PrecisionUTCTime timestamp
+     */
     inline void zeroTime(BULKIO::PrecisionUTCTime &timeTag) {
         timeTag = bulkio::time::utils::notSet();
         timeTag.tcmode = BULKIO::TCM_CPU;
     };
     
-    //
-    // Create a SRI object with default parameters
-    //
+    /*
+     * Create a SRI object with default parameters
+     */
     BULKIO::StreamSRI create( std::string sid="defStream", const double srate = 1.0, const Int16 xunits = BULKIO::UNITS_TIME, const bool blocking=false );
 
 

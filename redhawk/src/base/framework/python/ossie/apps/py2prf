@@ -58,7 +58,7 @@ def py2prf_using_introspection(filepath, classname=None):
 
     classestoexamine = {}
     for name, attr in module.__dict__.items():
-	if inspect.isclass(attr) and issubclass(attr, ossie.resource.Resource) and attr != ossie.resource.Resource:
+	if inspect.isclass(attr) and issubclass(attr, ossie.resource.Resource) and (attr != ossie.resource.Resource and attr != ossie.component.Component):
 	    classestoexamine[name] = attr
 
     clazz = None

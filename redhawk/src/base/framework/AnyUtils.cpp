@@ -21,14 +21,16 @@
 #include <stdexcept>
 
 #include <boost/numeric/conversion/converter.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <ossie/AnyUtils.h>
+#include <ossie/CorbaUtils.h>
 
 namespace {
     template <typename T>
     inline T extractAny (const CORBA::Any& any)
     {
-        T value;
+        T value = 0;
         any >>= value;
         return value;
     }
@@ -41,15 +43,54 @@ namespace {
         return value;
     }
 
-    template <typename Tout, typename Tin>
-    inline Tout extractAndConvert (const CORBA::Any& any)
+    template <typename Tin, typename Tout>
+    inline void extractAndConvert (const CORBA::Any& any, Tout& out)
     {
         typedef boost::numeric::converter<Tout,Tin> Converter; 
         Tin value = extractAny<Tin>(any);
         if (Converter::out_of_range(value)) {
             throw std::range_error("value out of range");
         }
-        return Converter::convert(value);
+        out = Converter::convert(value);
+    }
+
+    template <typename Tin>
+    inline void extractAndConvert (const CORBA::Any& any, bool& out)
+    {
+        Tin value = extractAny<Tin>(any);
+        out = value;
+    }
+
+    template <typename T>
+    inline T stringToNumber (const std::string& str)
+    {
+        if (str.find_first_not_of("-0123456789") != std::string::npos) {
+            // String has non-decimal digit, non-sign characters, so try going
+            // through double in case it's a decimal point or exponent
+            double temp = boost::lexical_cast<double>(str);
+            typedef boost::numeric::converter<T,double> Converter;
+            if (Converter::out_of_range(temp)) {
+                throw std::range_error("value out of range");
+            }
+            return Converter::convert(temp);
+        } else {
+            // invalid cast to wrong type will throw bad_lexical_cast
+            return boost::lexical_cast<T>(str);
+        }
+    }
+
+    // Specialization for CORBA::Octet (unsigned char), always converting via
+    // double because lexical_cast throws a bad_lexical_cast exception with
+    // CORBA::Octet
+    template<>
+    inline CORBA::Octet stringToNumber (const std::string& str)
+    {
+        double temp = boost::lexical_cast<double>(str);
+        typedef boost::numeric::converter<CORBA::Octet,double> Converter;
+        if (Converter::out_of_range(temp)) {
+            throw std::range_error("value out of range");
+        }
+        return Converter::convert(temp);
     }
 
     template <typename T>
@@ -57,32 +98,42 @@ namespace {
     {
         CORBA::TypeCode_var anyType = any.type();
         switch (anyType->kind()) {
+        case CORBA::tk_boolean:
+            extractAndConvert<bool>(any, value);
+            break;
         case CORBA::tk_octet:
-            value = extractAndConvert<T, CORBA::Octet>(any);
+            extractAndConvert<CORBA::Octet>(any, value);
             break;
         case CORBA::tk_short:
-            value = extractAndConvert<T, CORBA::Short>(any);
+            extractAndConvert<CORBA::Short>(any, value);
             break;
         case CORBA::tk_ushort:
-            value = extractAndConvert<T, CORBA::UShort>(any);
+            extractAndConvert<CORBA::UShort>(any, value);
             break;
         case CORBA::tk_long:
-            value = extractAndConvert<T, CORBA::Long>(any);
+            extractAndConvert<CORBA::Long>(any, value);
             break;
         case CORBA::tk_ulong:
-            value = extractAndConvert<T, CORBA::ULong>(any);
+            extractAndConvert<CORBA::ULong>(any, value);
             break;
         case CORBA::tk_longlong:
-            value = extractAndConvert<T, CORBA::LongLong>(any);
+            extractAndConvert<CORBA::LongLong>(any, value);
             break;
         case CORBA::tk_ulonglong:
-            value = extractAndConvert<T, CORBA::ULongLong>(any);
+            extractAndConvert<CORBA::ULongLong>(any, value);
             break;
         case CORBA::tk_float:
-            value = extractAndConvert<T, CORBA::Float>(any);
+            extractAndConvert<CORBA::Float>(any, value);
             break;
         case CORBA::tk_double:
-            value = extractAndConvert<T, CORBA::Double>(any);
+            extractAndConvert<CORBA::Double>(any, value);
+            break;
+        case CORBA::tk_string:
+            {
+                std::string str;
+                any >>= str;
+                value = stringToNumber<T>(str);
+            }
             break;
         default:
             return false;
@@ -91,14 +142,14 @@ namespace {
     }
 }
 
-#define ANY_TO_NUMERIC(N)                                           \
-bool ossie::any::toNumber (const CORBA::Any& any, CORBA::N& value)  \
+#define ANY_TO_NUMERIC_TYPE(T,N)                                    \
+bool ossie::any::toNumber (const CORBA::Any& any, T& value)         \
 {                                                                   \
     return anyToNumber(any, value);                                 \
 }                                                                   \
-CORBA::N ossie::any::to##N (const CORBA::Any& any)                  \
+T ossie::any::to##N (const CORBA::Any& any)                         \
 {                                                                   \
-    CORBA::N value;                                                 \
+    T value;                                                        \
     if (ossie::any::toNumber(any, value)) {                         \
         return value;                                               \
     } else {                                                        \
@@ -106,6 +157,9 @@ CORBA::N ossie::any::to##N (const CORBA::Any& any)                  \
     }                                                               \
 }
 
+#define ANY_TO_NUMERIC(N) ANY_TO_NUMERIC_TYPE(CORBA::N, N)
+
+ANY_TO_NUMERIC_TYPE(bool, Boolean);
 ANY_TO_NUMERIC(Octet);
 ANY_TO_NUMERIC(Short);
 ANY_TO_NUMERIC(UShort);

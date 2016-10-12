@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:b073d115-1835-45c8-9ff3-ba48e115d128" name="ECM2">
+  <componentfiles>
+    <componentfile id="ECM_PY_1372d593-fc29-4eaa-83da-6f5e2147a007" type="SPD">
+      <localfile name="/components/ECM_PY/ECM_PY.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="ECM_PY_1372d593-fc29-4eaa-83da-6f5e2147a007"/>
+      <componentinstantiation id="ECM_PY_1" startorder="0">
+        <usagename>ECM_PY_1</usagename>
+        <findcomponent>
+          <namingservice name="ECM_PY_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="ECM_PY_1"/>
+  </assemblycontroller>
+</softwareassembly>

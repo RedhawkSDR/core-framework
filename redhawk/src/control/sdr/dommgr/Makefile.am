@@ -25,10 +25,15 @@ domainmgr_PROGRAMS = DomainManager
 DomainManager_SOURCES = applicationSupport.cpp \
                         connectionSupport.cpp \
                         AllocationManager_impl.cpp \
+                        EventChannelManager.cpp \
                         Application_impl.cpp \
+                        ApplicationRegistrar.cpp \
                         ApplicationFactory_impl.cpp \
-                        DomainManager_Channels.cpp \
+                        DomainManager_EventSupport.cpp \
+                        ConnectionManager.cpp \
+                        RH_NamingContext.cpp \
                         DomainManager_impl.cpp \
+                        FakeApplication.cpp \
                         main.cpp
 DomainManager_CPPFLAGS = -I../../include -I../../parser -I$(top_srcdir)/base/include -I$(top_srcdir)/base $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
 DomainManager_CXXFLAGS = -Wall

@@ -23,11 +23,11 @@ namespace urn:mil:jpeojtrs:sca:dcd {
     include "map";
     include "../include/ossie/DeviceManagerConfiguration.h";
     deviceconfiguration "::std::auto_ptr<ossie::DeviceManagerConfiguration::DCD>";
-    componentfiles "::std::vector<ossie::ComponentFile>";
-    componentfile "::ossie::ComponentFile";
-    componentplacement "::ossie::ComponentPlacement";
+    componentfiles "const ::std::vector<ossie::ComponentFile>&"  "const ::std::vector<ossie::ComponentFile>&";
+    componentfile "const ::ossie::ComponentFile&" "const ::ossie::ComponentFile&";
+    componentplacement "const ::ossie::ComponentPlacement&" "const ::ossie::ComponentPlacement&";
     partitioning "::std::vector<ossie::ComponentPlacement>";
-    componentinstantiation "::ossie::ComponentInstantiation";
+    componentinstantiation "const ::ossie::ComponentInstantiation&" "const ::ossie::ComponentInstantiation&";
     connections "::std::vector<ossie::Connection>";
     connectinterface "::ossie::Connection";
     usesport "::ossie::UsesPort";
@@ -40,12 +40,12 @@ namespace urn:mil:jpeojtrs:sca:dcd {
     findby "::ossie::FindBy";
     namingservice "::std::string";
     domainfinder "::std::pair<std::string, std::string>";
-    componentproperties "::std::vector<ossie::ComponentProperty*>";
-    simpleref "ossie::SimplePropertyRef*";
-    simplesequenceref "ossie::SimpleSequencePropertyRef*";
-    structref "ossie::StructPropertyRef*";
-    structsequenceref "ossie::StructSequencePropertyRef*";
-    structvalue "::std::map<std::string, std::string>";
+    componentproperties "const ossie::ComponentPropertyList&" "const ossie::ComponentPropertyList&";
+    simpleref "const ossie::SimplePropertyRef&" "const ossie::SimplePropertyRef&";
+    simplesequenceref "const ossie::SimpleSequencePropertyRef&" "const ossie::SimpleSequencePropertyRef&";
+    structref "const ossie::StructPropertyRef&" "const ossie::StructPropertyRef&";
+    structsequenceref "const ossie::StructSequencePropertyRef&" "const ossie::StructSequencePropertyRef&";
+    structvalue "const ossie::ComponentPropertyMap&" "const ossie::ComponentPropertyMap&";
     values "::std::vector<std::string>";
     componentfileref "::std::string";
     deployondevice "::std::string";
@@ -54,4 +54,6 @@ namespace urn:mil:jpeojtrs:sca:dcd {
     componentinstantiationref "::std::string";
     devicethatloadedthiscomponentref "::std::string";
     deviceusedbythiscomponentref "::std::pair<std::string, std::string>";
+    affinity "const ossie::ComponentInstantiation::AffinityProperties&" "const ossie::ComponentInstantiation::AffinityProperties&";
+    loggingconfig  "const ossie::ComponentInstantiation::LoggingConfig&" "const ossie::ComponentInstantiation::LoggingConfig&";
 }

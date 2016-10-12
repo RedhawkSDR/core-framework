@@ -33,6 +33,8 @@
 #include "ossie/debug.h"
 #include "ossie/CorbaUtils.h"
 #include "ossie/logging/loghelpers.h"
+#include "ossie/Containers.h"
+#include "ossie/Autocomplete.h"
 #include <signal.h>
 
 class Service_impl
@@ -110,7 +112,7 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        /** Ignore SIGInterrupt because when you CTRL-C the node
+        /* Ignore SIGInterrupt because when you CTRL-C the node
         booter we don't want the device to die, and it's the shells responsibility
         to send CTRL-C to all foreground processes (even children) */
         signal(SIGINT, SIG_IGN);
@@ -126,6 +128,7 @@ public:
         ossie::corba::OrbShutdown(true);
     }
 
+    // Get the file path for the logging configuration file
     static std::string getLogConfig(const char* devmgr_ior, const char* log_config, std::string& devmgr_label) {
         // connect to the device manager and copy the log config file to the local directory
 
@@ -193,6 +196,7 @@ public:
     }
 
 protected:
+    // Enumerated type for comparison
     enum AnyComparisonType {
         FIRST_BIGGER,
         SECOND_BIGGER,
@@ -203,25 +207,36 @@ protected:
         UNKNOWN
     };
     CF::DeviceManager_ptr _deviceManager;
-    std::string _name;
-
     bool initialConfiguration;
     CF::Properties originalCap;
+    // Service instance name
+    std::string _name;
+
+    // Determine whether the contents of the argument are 0
     Service_impl::AnyComparisonType compareAnyToZero (CORBA::Any& first);
+    // Determine whether the contents of different arguments
     Service_impl::AnyComparisonType compareAnys (CORBA::Any& first, CORBA::Any& second);
 
 public:
     Service_impl (char*, char*);
-
+    Service_impl(); // Code that tries to use this constructor will not work
+    Service_impl(Service_impl&); // No copying
     ~Service_impl ();
     virtual void resolveDeviceManager ();
     virtual void registerServiceWithDevMgr ();
     virtual void run ();
     virtual void halt ();
+    // Function that is called as the Service terminates
     virtual void terminateService ();
     
-    Service_impl(); // Code that tries to use this constructor will not work
-    Service_impl(Service_impl&); // No copying
+    // Return the container with a reference to the Device Manager hosting the Service
+    redhawk::DeviceManagerContainer* getDeviceManager() {
+        return this->_devMgr;
+    }
+    // Return the container with a reference to the Domain Manager that hosts the Service
+    redhawk::DomainManagerContainer* getDomainManager() {
+        return this->_domMgr;
+    }
 
 protected:
     std::string _devMgr_ior;
@@ -230,6 +245,8 @@ protected:
 
 private:
     void initResources(char*, char*);
+    redhawk::DeviceManagerContainer *_devMgr;
+    redhawk::DomainManagerContainer *_domMgr;
 };
 
 

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:8d8c0199-88d1-4421-bc31-281681c4e36f" name="foo.wav">
+  <componentfiles>
+    <componentfile id="py_ce13efad-d32d-480a-98b1-a9b73139ef8e" type="SPD">
+      <localfile name="/components/foo/bar/py/py.spd.xml"/>
+    </componentfile>
+    <componentfile id="comp_704fd5e9-0e49-416e-80e3-818f410c7267" type="SPD">
+      <localfile name="/components/foo/bar/comp/comp.spd.xml"/>
+    </componentfile>
+    <componentfile id="jv_13f628ea-787b-4265-aa75-86ebcd062be5" type="SPD">
+      <localfile name="/components/foo/bar/jv/jv.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="py_ce13efad-d32d-480a-98b1-a9b73139ef8e"/>
+      <componentinstantiation id="py_1" startorder="0">
+        <usagename>py_1</usagename>
+        <findcomponent>
+          <namingservice name="py_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="comp_704fd5e9-0e49-416e-80e3-818f410c7267"/>
+      <componentinstantiation id="comp_1" startorder="1">
+        <usagename>comp_1</usagename>
+        <findcomponent>
+          <namingservice name="comp_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="jv_13f628ea-787b-4265-aa75-86ebcd062be5"/>
+      <componentinstantiation id="jv_1" startorder="2">
+        <usagename>jv_1</usagename>
+        <findcomponent>
+          <namingservice name="jv_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="py_1"/>
+  </assemblycontroller>
+</softwareassembly>

@@ -22,11 +22,7 @@ from ossie.cf import CF, CF__POA, ExtendedCF
 from ossie.cf.CF import Port
 from ossie.utils import uuid
 
-#import copy, time
 import threading
-#from ossie.resource import usesport, providesport
-#import bulkio
-#from redhawk.frontendInterfaces import FRONTEND__POA
 from redhawk.frontendInterfaces import FRONTEND
 
 
@@ -159,10 +155,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerType(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerType(id)
         finally:
             self.port_lock.release()
             
@@ -175,10 +168,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerDeviceControl(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerDeviceControl(id)
         finally:
             self.port_lock.release()
             
@@ -191,10 +181,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerGroupId(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerGroupId(id)
         finally:
             self.port_lock.release()
             
@@ -207,10 +194,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerRfFlowId(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerRfFlowId(id)
         finally:
             self.port_lock.release()
             
@@ -223,10 +207,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerStatus(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerStatus(id)
         finally:
             self.port_lock.release()
             
@@ -238,10 +219,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerCenterFrequency(id, freq)
-                    except Exception:
-                        pass
+                    port.setTunerCenterFrequency(id, freq)
         finally:
             self.port_lock.release()
             
@@ -252,10 +230,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerCenterFrequency(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerCenterFrequency(id)
         finally:
             self.port_lock.release()
             
@@ -267,10 +242,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerBandwidth(id, bw)
-                    except Exception:
-                        pass
+                    port.setTunerBandwidth(id, bw)
         finally:
             self.port_lock.release()
             
@@ -281,10 +253,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerBandwidth(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerBandwidth(id)
         finally:
             self.port_lock.release()
             
@@ -296,10 +265,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerAgcEnable(id, enable)
-                    except Exception:
-                        pass
+                    port.setTunerAgcEnable(id, enable)
         finally:
             self.port_lock.release()
             
@@ -310,10 +276,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerAgcEnable(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerAgcEnable(id)
         finally:
             self.port_lock.release()
             
@@ -325,10 +288,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerGain(id, gain)
-                    except Exception:
-                        pass
+                    port.setTunerGain(id, gain)
         finally:
             self.port_lock.release()
             
@@ -339,10 +299,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerGain(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerGain(id)
         finally:
             self.port_lock.release()
             
@@ -354,10 +311,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerReferenceSource(id, source)
-                    except Exception:
-                        pass
+                    port.setTunerReferenceSource(id, source)
         finally:
             self.port_lock.release()
             
@@ -368,10 +322,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerReferenceSource(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerReferenceSource(id)
         finally:
             self.port_lock.release()
             
@@ -383,10 +334,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerEnable(id, enable)
-                    except Exception:
-                        pass
+                    port.setTunerEnable(id, enable)
         finally:
             self.port_lock.release()
             
@@ -397,10 +345,7 @@ class OutAnalogTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerEnable(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerEnable(id)
         finally:
             self.port_lock.release()
             
@@ -417,10 +362,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerType(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerType(id)
         finally:
             self.port_lock.release()
             
@@ -433,10 +375,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerDeviceControl(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerDeviceControl(id)
         finally:
             self.port_lock.release()
             
@@ -449,10 +388,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerGroupId(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerGroupId(id)
         finally:
             self.port_lock.release()
             
@@ -465,10 +401,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerRfFlowId(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerRfFlowId(id)
         finally:
             self.port_lock.release()
             
@@ -481,10 +414,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerStatus(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerStatus(id)
         finally:
             self.port_lock.release()
             
@@ -496,10 +426,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerCenterFrequency(id, freq)
-                    except Exception:
-                        pass
+                    port.setTunerCenterFrequency(id, freq)
         finally:
             self.port_lock.release()
             
@@ -510,10 +437,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerCenterFrequency(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerCenterFrequency(id)
         finally:
             self.port_lock.release()
             
@@ -525,10 +449,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerBandwidth(id, bw)
-                    except Exception:
-                        pass
+                    port.setTunerBandwidth(id, bw)
         finally:
             self.port_lock.release()
             
@@ -539,10 +460,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerBandwidth(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerBandwidth(id)
         finally:
             self.port_lock.release()
             
@@ -554,10 +472,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerAgcEnable(id, enable)
-                    except Exception:
-                        pass
+                    port.setTunerAgcEnable(id, enable)
         finally:
             self.port_lock.release()
             
@@ -568,10 +483,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerAgcEnable(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerAgcEnable(id)
         finally:
             self.port_lock.release()
             
@@ -583,10 +495,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerGain(id, gain)
-                    except Exception:
-                        pass
+                    port.setTunerGain(id, gain)
         finally:
             self.port_lock.release()
             
@@ -597,10 +506,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerGain(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerGain(id)
         finally:
             self.port_lock.release()
             
@@ -612,10 +518,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerReferenceSource(id, source)
-                    except Exception:
-                        pass
+                    port.setTunerReferenceSource(id, source)
         finally:
             self.port_lock.release()
             
@@ -626,10 +529,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerReferenceSource(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerReferenceSource(id)
         finally:
             self.port_lock.release()
             
@@ -641,10 +541,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerEnable(id, enable)
-                    except Exception:
-                        pass
+                    port.setTunerEnable(id, enable)
         finally:
             self.port_lock.release()
             
@@ -655,10 +552,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerEnable(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerEnable(id)
         finally:
             self.port_lock.release()
             
@@ -670,10 +564,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port.setTunerOutputSampleRate(id, sr)
-                    except Exception:
-                        pass
+                    port.setTunerOutputSampleRate(id, sr)
         finally:
             self.port_lock.release()
             
@@ -684,10 +575,7 @@ class OutDigitalTunerPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port.getTunerOutputSampleRate(id)
-                    except Exception:
-                        pass
+                    retVal = port.getTunerOutputSampleRate(id)
         finally:
             self.port_lock.release()
             
@@ -704,10 +592,7 @@ class OutGPSPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port._get_gps_info()
-                    except Exception:
-                        pass
+                    retVal = port._get_gps_info()
         finally:
             self.port_lock.release()
             
@@ -719,10 +604,7 @@ class OutGPSPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port._set_gps_info(data)
-                    except Exception:
-                        pass
+                    port._set_gps_info(data)
         finally:
             self.port_lock.release()
             
@@ -733,10 +615,7 @@ class OutGPSPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port._get_gps_time_pos()
-                    except Exception:
-                        pass
+                    retVal = port._get_gps_time_pos()
         finally:
             self.port_lock.release()
             
@@ -748,10 +627,7 @@ class OutGPSPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port._set_gps_time_pos(data)
-                    except Exception:
-                        pass
+                    port._set_gps_time_pos(data)
         finally:
             self.port_lock.release()
             
@@ -766,10 +642,7 @@ class OutRFInfoPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port._get_rf_flow_id()
-                    except Exception:
-                        pass
+                    retVal = port._get_rf_flow_id()
         finally:
             self.port_lock.release()
             
@@ -781,10 +654,7 @@ class OutRFInfoPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port._set_rf_flow_id(data)
-                    except Exception:
-                        pass
+                    port._set_rf_flow_id(data)
         finally:
             self.port_lock.release()
             
@@ -795,10 +665,7 @@ class OutRFInfoPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port._get_rfinfo_pkt()
-                    except Exception:
-                        pass
+                    retVal = port._get_rfinfo_pkt()
         finally:
             self.port_lock.release()
             
@@ -810,10 +677,7 @@ class OutRFInfoPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port._set_rfinfo_pkt(data)
-                    except Exception:
-                        pass
+                    port._set_rfinfo_pkt(data)
         finally:
             self.port_lock.release()
             
@@ -828,10 +692,7 @@ class OutRFSourcePort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port._get_available_rf_inputs()
-                    except Exception:
-                        pass
+                    retVal = port._get_available_rf_inputs()
         finally:
             self.port_lock.release()
             
@@ -843,10 +704,7 @@ class OutRFSourcePort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port._set_available_rf_inputs(data)
-                    except Exception:
-                        pass
+                    port._set_available_rf_inputs(data)
         finally:
             self.port_lock.release()
             
@@ -857,10 +715,7 @@ class OutRFSourcePort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port._get_current_rf_input()
-                    except Exception:
-                        pass
+                    retVal = port._get_current_rf_input()
         finally:
             self.port_lock.release()
             
@@ -872,10 +727,7 @@ class OutRFSourcePort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port._set_current_rf_input(data)
-                    except Exception:
-                        pass
+                    port._set_current_rf_input(data)
         finally:
             self.port_lock.release()
             
@@ -890,10 +742,7 @@ class OutNavDataPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        retVal = port._get_nav_packet()
-                    except Exception:
-                        pass
+                    retVal = port._get_nav_packet()
         finally:
             self.port_lock.release()
             
@@ -905,9 +754,6 @@ class OutNavDataPort(OutPort):
         try:
             for connId, port in self.outConnections.items():
                 if port != None:
-                    try:
-                        port._set_nav_packet(data)
-                    except Exception:
-                        pass
+                    port._set_nav_packet(data)
         finally:
             self.port_lock.release()

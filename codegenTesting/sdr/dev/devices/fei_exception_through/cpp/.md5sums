@@ -1,0 +1,12 @@
+a9336fe3ee46a1ef5f03b25a354a8ad0  main.cpp
+b87651ea3565402473fb088004430fbf  build.sh
+8bfcd22353c3a57fee561ad86ee2a56b  reconf
+68de9ddc73d96c6a4e475424b836456a  fei_exception_through_base.h
+3794d396cf0a13810b91e7ae16e1bdf1  template_impl.cpp
+cb3360f303e0695415749c2020b4e119  configure.ac
+7e22a1a875e95049f82eeaebac12a3ea  Makefile.am
+e3401ef8ec95522e9c9517edbd5af3be  fei_exception_through.cpp
+29702ead4f73d3cb61f6a4bf45bc1149  Makefile.am.ide
+45876516427e0f73e0b911c945fa68f5  fei_exception_through.h
+81d200b84e294dc5c8d17b251865c235  fei_exception_through_base.cpp
+d499fb62071813c9aee70ef9f76a6c87  struct_props.h

@@ -243,23 +243,114 @@ void FileManager_impl::copy (const char* sourceFileName, const char* destination
         dstFile = destFS->create(dstPath.c_str());
     }
 
-    // Read the data
-    CF::OctetSequence_var data;
-    CORBA::ULong bytes = srcFile->sizeOf();
-    while (bytes > 0) {
+    std::ostringstream eout;
+    bool fe=false;
+    try {
+      // Read the data
+      CF::OctetSequence_var data;
+      CORBA::ULong bytes = srcFile->sizeOf();
+      const CORBA::ULong DEFAULT_CHUNK_SIZE =  ossie::corba::giopMaxMsgSize() * 0.95;
+      while (bytes > 0) {
         // Read the file data in 1MB chunks. If omniORB uses the GIOP protocol to talk to the source filesystem
         // (i.e. it is in a different ORB), reads of more than about 2MB will exceed the maximum GIOP packet
         // size and raise a MARSHAL exception.
-        const CORBA::ULong DEFAULT_CHUNK_SIZE = 1*1024*1024;
         CORBA::ULong chunkSize = std::min(bytes, DEFAULT_CHUNK_SIZE);
-        srcFile->read(data, chunkSize);
-        dstFile->write(data);
-        bytes -= data->length();
+        bytes -= chunkSize;
+        
+        try {
+          srcFile->read(data, chunkSize);
+        } catch ( std::exception& ex ) {
+          eout << "The following standard exception occurred: "<<ex.what()<<" While \"srcFile->read\"";
+          throw(CF::FileException());
+        } catch ( CF::FileException& ex ) {
+          eout << "File Exception occured,  While \"srcFile->read\"";
+          throw;
+        } catch ( CF::File::IOException& ex ) {
+          eout << "File IOException occured,  While \"srcFile->read\"";
+          throw;
+        } catch ( CORBA::Exception& ex ) {
+          eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"srcFile->read\"";
+          throw(CF::FileException());
+        } catch( ... ) {
+          eout << "[FileManager::copy] \"srcFile->read\" failed with Unknown Exception\n";
+          throw(CF::FileException());
+        }
+
+        // write the data
+        try {
+          dstFile->write(data);
+        } catch ( std::exception& ex ) {
+          std::ostringstream eout;
+          eout << "The following standard exception occurred: "<<ex.what()<<" While \"dstFile->write\"";
+          throw(CF::FileException());
+        } catch ( CF::FileException& ex ) {
+          eout << "File Exception occurred, during \"dstFile->write\"";
+          throw;
+        } catch ( CF::File::IOException& ex ) {
+          eout << "File IOException occurred, during \"dstFile->write\"";
+          throw;
+        } catch ( CORBA::Exception& ex ) {
+          eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"dstFile->write\"";
+          throw(CF::FileException());
+        } catch( ... ) {
+          eout << "[FileManager::copy] \"dstFile->write\" failed with Unknown Exception\n";
+          throw(CF::FileException());
+        }
+
+      }
+    }
+    catch(...) {
+      LOG_ERROR(FileManager_impl, eout.str());
+      fe = true;
     }
 
-    // Close the files
-    srcFile->close();
-    dstFile->close();
+   // close the files
+    try {
+      try {
+        srcFile->close();
+      } catch ( std::exception& ex ) {
+        eout << "The following standard exception occurred: "<<ex.what()<<" While \"srcFile->close\"";
+        throw(CF::FileException());
+      } catch ( CF::FileException& ex ) {
+        eout << "File Exception occured, during \"srcFile->close\"";
+        throw;
+      } catch ( CORBA::Exception& ex ) {
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"srcFile->close\"";
+        throw(CF::FileException());
+      } catch( ... ) {
+        eout << "[FileManager::copy] \"srcFile->close\" failed with Unknown Exception\n";
+        throw(CF::FileException());
+      }
+    } catch(...) {
+      LOG_ERROR(FileManager_impl, eout.str());
+      fe = true;
+    }
+
+
+    try {
+      try {
+        dstFile->close();
+      } catch ( std::exception& ex ) {
+        eout << "The following standard exception occurred: "<<ex.what()<<" While \"dstFile->close\"";
+        throw(CF::FileException());
+      } catch ( CF::FileException& ex ) {
+        eout << "File Exception occured, during \"srcFile->close\"";
+        throw;
+      } catch ( CORBA::Exception& ex ) {
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"dstFile->close\"";
+        throw(CF::FileException());
+      } catch( ... ) {
+        eout << "[FileManager::copy] \"dstFile->close\" failed with Unknown Exception\n";
+        throw(CF::FileException());
+      }
+    } catch(...) {
+      LOG_ERROR(FileManager_impl, eout.str());
+      fe = true;
+    }
+
+    if ( fe ) {
+        throw(CF::FileException());
+    }
 
     TRACE_EXIT(FileManager_impl);
 }
@@ -599,7 +690,8 @@ CF::FileManager::MountSequence* FileManager_impl::getMounts ()
     // but prevent changes to the mount table itself.
     boost::shared_lock<boost::shared_mutex> lock(mountsLock);
 
-    CF::FileManager::MountSequence_var result = new CF::FileManager::MountSequence(mountedFileSystems.size());
+    CF::FileManager::MountSequence_var result = new CF::FileManager::MountSequence();
+    result->length(mountedFileSystems.size());
     CORBA::ULong index = 0;
     for (MountList::iterator ii = mountedFileSystems.begin(); ii != mountedFileSystems.end(); ++ii, ++index) {
         result[index].mountPoint = ii->path.c_str();

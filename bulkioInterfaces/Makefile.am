@@ -62,7 +62,7 @@ IDL_EXTERNS := CF
 
 # In some cases, you may need to define python externs 
 #     f:p   Assume Python stub file for file f is in package p.
-PYTHON_EXTERNS := PortTypes:ossie.cf cf:ossie.cf bulkioDataTypes:bulkio.bulkioInterfaces QueryablePort:ossie.cf LogInterfaces:ossie.cf
+PYTHON_EXTERNS := PortTypes:ossie.cf DataType:ossie.cf Port:ossie.cf QueryablePort:ossie.cf bulkioDataTypes:bulkio.bulkioInterfaces
 
 # Relative path to the location of the IDL files
 IDL_SOURCE_PATH := .
@@ -93,6 +93,7 @@ BUNDLE_REQUIRED_EXECUTION_ENVIRONMENT := J2SE-$(JAVA_TARGET_VERSION)
 #            src/cpp/some_fileSK.cpp src/cpp/some_fileDynSK.cpp src/cpp/some_file.h
 lib_LTLIBRARIES = libbulkioInterfaces.la
 libbulkioInterfaces_la_LDFLAGS = -version-info $(LIBBULKIOINTERFACES_VERSION_INFO)
+libbulkioInterfaces_la_LIBADD = $(OSSIE_LIBS)
 
 # Again, we don't use the auto variable because order is important to us
 libbulkioInterfaces_la_SOURCES = \
@@ -151,7 +152,7 @@ AM_LIBS = $(OSSIE_LIBS)
 
 src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%DynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%SK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%.h: idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl
 	$(AM_V_at)mkdir -p "src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)"
-	$(AM_V_GEN)$(IDL) -I idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -C src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
+	$(AM_V_GEN)$(IDL) -I idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
 
 clean-cpp:
 	rm -rf src/cpp
@@ -177,7 +178,7 @@ PY_IDL_INCLUDES := -I idl
 
 $(PY_SRC_OUT_DIR)/__init__.py: $(PY_IDL_SRCS)
 	$(AM_V_at)mkdir -p $(PY_SRC_OUT_DIR)
-	$(AM_V_GEN)$(IDL) $(PY_IDL_INCLUDES) $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -C src/python -bpython -Wbpackage=$(PYTHON_PACKAGE) $(PY_IDL_EXTERNS) $^
+	$(AM_V_GEN)$(IDL) $(PY_IDL_INCLUDES) $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C src/python -bpython -Wbpackage=$(PYTHON_PACKAGE) $(PY_IDL_EXTERNS) $^
 
 # Mimic automake silent rules
 OSSIE_V_pysetup = $(ossie__v_pysetup_$(V))
@@ -241,8 +242,8 @@ build/java/META-INF/MANIFEST.MF: Makefile.am BULKIOInterfaces.filelist
 java_JARFILES = BULKIOInterfaces.jar
 java_DATA = BULKIOInterfaces.src.jar
 
-IDLJFLAGS = -i idl -i $(OSSIE_IDLDIR)
-IDLJNIFLAGS = -I idl -I $(OSSIE_IDLDIR) -Wblibname=bulkiojni
+IDLJFLAGS = -i idl -i $(OSSIE_IDLDIR) -I $(OMNICOS_IDLDIR) -I $(OMNIORB_IDLDIR)
+IDLJNIFLAGS = -I idl -I $(OSSIE_IDLDIR) -I $(OMNICOS_IDLDIR) -I $(OMNIORB_IDLDIR) -Wblibname=bulkiojni
 IDLJ_BUILDDIR = $(IDLJ_SRC_DEST)
 IDLJNI_BUILDDIR = $(IDLJ_BUILDDIR)
 

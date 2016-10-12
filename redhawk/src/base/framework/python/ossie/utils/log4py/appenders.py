@@ -23,8 +23,13 @@
 import logging, logging.handlers
 import sys
 import os
-
+from ossie import events
+from omniORB import CORBA
 import traceback
+from omniORB import any
+from ossie.cf import CF
+import CosEventChannelAdmin
+import ossie.logger
 
 # Override base logging.Handler handleError method to give better stack trace
 #  if string passed to log message is malformed
@@ -38,6 +43,9 @@ try:
     from logging import NullHandler
 except:
     class NullHandler(logging.Handler):
+        def __init__(self, *args, **kwargs):
+            logging.Handler.__init__(self, *args, **kwargs)
+        
         def emit(self, record):
             pass
 
@@ -90,6 +98,18 @@ class FileAppender(logging.FileHandler,object):
 
   def setFile(self, filename):
     self.filename = filename
+    if self.filename.count('/') > 0:
+        aggregate = os.getcwd()+'/'
+        dirs = self.filename.split('/')
+        for _dir in dirs[:-1]:
+            if _dir == '':
+                continue
+            aggregate += '/'+_dir
+            try:
+                os.mkdir(aggregate)
+            except:
+                pass
+            
     self.baseFilename = os.path.abspath(filename)
     self.log4pyProps['filename'] = filename
 
@@ -184,9 +204,8 @@ else:
       self.threshold = logging.NOTSET
       self.log4pyProps = {}
 
-    def setDatePattern(self, pattern):
+    def setDatePattern(self, pattern): # This needs to support the log4j patterns more accurately and without hardcoding
       self.pattern = pattern.strip()
-      # TODO : support the log4j patterns more accurately and without hardcoding
       if self.pattern == ".yyyy-ww":
         self.when="W0"
       elif self.pattern == ".yyyy-MM-dd":
@@ -219,6 +238,111 @@ else:
     def activateOptions(self):
       logging.handlers.TimedRotatingFileHandler.__init__(self, **self.log4pyProps)
       self.setLevel(self.threshold)
+
+class RH_LogEventAppender(logging.Handler):
+  ECM=None
+  def __init__(self, *args, **kwds):
+    logging.Handler.__init__(self, *args, **kwds )
+    self.log4pyProps = {}
+    self.channelName = None
+    self.nameContext = None
+    self.prodId = "RESOURCE.ID"
+    self.prodName = "RESOURCE.NAME"
+    self.prodFQN = "RESOURCE.FQN"
+    self._channelName = None
+    self._nameContext = None
+    self._event_channel = None
+    self._ecm = None
+    self._pub = None
+    self._enable = False
+    self.threshold = logging.NOTSET
+
+  def setOption(self, option, value):
+    if option.lower() == "event_channel": 
+      self.channelName = str(value)
+    elif option.lower() == "name_context":
+      self.nameContext = str(value)
+    elif option.lower() == "producer_id":
+      self.prodId = str(value)
+    elif option.lower() == "producer_name":
+      self.prodName = str(value)
+    elif option.lower() == "producer_fqn":
+      self.prodFQN = str(value)
+
+  def activateOptions(self):
+    self.setLevel(self.threshold)
+    if self.channelName != self._channelName and self.channelName != "":
+        if self._ecm or self.ECM:
+            if self.ECM:
+                self.connect( self.ECM )
+            else:
+                self.connect()
+
+            
+  def setEventChannelManager(self, ECM):
+      if ECM:
+          self.ECM = ECM
+          self.connect(ECM)
+      else:
+          # if no event channel manager is provided then we need to disable the handling of log messages
+          self._enable = False
+          if self._pub : 
+              self._pub.disconnect()
+
+          self._ecm = None
+   
+  def connect(self, ECM=None ):
+      retval=0
+      if self._ecm != None or ECM != None :
+          self._ecm = ECM
+          try:
+              self._pub = self._ecm.Publisher(self.channelName)
+              self._channelName = self.channelName
+              #print "RH_LogEventAppender::connect .... requesting connection to ECM::EVENT CHANNEL, " + str(self.channelName)
+              self._enable = True
+          except:
+              logging.error( "RH_LogEventAppender::connect .... connection FAILED  EVENT CHANNEL(EventChannelManager), " + str(self.channelName) )
+              retval=-1
+              pass
+      else:
+          if self.nameContext != None :
+              try:
+                  if self.channelName and self.nameContext:
+                      # try and get the configured orb
+                      orb=None
+                      try:
+                          orb = __orb__
+                      except:
+                          orb = CORBA.ORB_init()
+                          pass
+                      
+                      channelManager = events.ChannelManager(orb)
+                      #print "Channel " + str(self.channelName) + " Context" + str(self.nameContext)
+                      self._event_channel = self.channelManager.createEventChannel(self.channelName,self.nameContext)
+                      self._pub = Publisher( self._event_channel )
+                      self._enable = True
+              except:
+                  logging.error( "RH_LogEventAppender::connect .... connection FAILED  EVENT CHANNEL(library), " + str(self.channelName) )
+                  retval=-1
+                  pass
+
+      return retval
+
+
+  # This is equivalent to the log4j append method
+  def handle(self, logRecord):
+      if self._enable:
+          if self._ecm and self._pub :
+              #print "RH_LogEventAppender::handle  .... connection to ECM::Publisher rec: " + str(logRecord)
+              eventLogLevel = ossie.logger.ConvertLog4ToCFLevel(self.level)
+
+              logEvent = any.to_any(CF.LogEvent(self.prodId,self.prodName,self.prodFQN,long(logRecord.created),eventLogLevel,logRecord.getMessage())) 
+              try:
+                  self._pub.push(logEvent)
+              except Exception, e:
+                  print "RH_LogEventAppender::handle EVENT CHANNEL, PUSH OPERATION FAILED WITH EXCEPTION " + str(e)
+          else:
+                  print "RH_LogEventAppender::handle No EVENT CHANNEL to publish on."
 
 class SyslogAppender(logging.handlers.SysLogHandler, object):
   def __init__(self):

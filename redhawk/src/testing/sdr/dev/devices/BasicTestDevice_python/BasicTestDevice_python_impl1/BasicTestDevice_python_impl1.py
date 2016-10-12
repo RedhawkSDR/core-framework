@@ -25,12 +25,36 @@ import commands, os, sys
 import logging
 import WorkModule
 from BasicTestDevice_python_impl1Props import PROPERTIES
+import Queue, copy, time, threading
+
+NOOP = -1
+NORMAL = 0
+FINISH = 1
+class ProcessThread(threading.Thread):
+    def __init__(self, target, pause=0.0125):
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
+        self.target = target
+        self.pause = pause
+        self.stop_signal = threading.Event()
+
+    def stop(self):
+        self.stop_signal.set()
+
+    def run(self):
+        state = NORMAL
+        while (state != FINISH) and (not self.stop_signal.isSet()):
+            state = self.target()
+            if (state == NOOP):
+                # If there was no data to process sleep to avoid spinning
+                time.sleep(self.pause)
 
 class BasicTestDevice_python_impl1(CF__POA.AggregateExecutableDevice,ExecutableDevice, AggregateDevice):
     def __init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams):
         ExecutableDevice.__init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams, PROPERTIES)
         AggregateDevice.__init__(self)
 
+        self.process_thread = None
         self.__MAX_MEMORY   = 2048
         self.__MAX_BOGOMIPS = 1024
         self.allocated_mem  = 0
@@ -46,7 +70,38 @@ class BasicTestDevice_python_impl1(CF__POA.AggregateExecutableDevice,ExecutableD
     # CF::LifeCycle
     ###########################################
     def initialize(self):
-        self.work_mod = WorkModule.WorkClass(self) 
+        ExecutableDevice.initialize(self)
+
+
+    def start(self):
+        ExecutableDevice.start(self)
+        self.process_thread = ProcessThread(target=self.process, pause=self.PAUSE)
+        self.process_thread.start()
+
+    def process(self):
+        return NOOP
+
+    def stop(self):
+        # Technically not thread-safe but close enough for now
+        process_thread = self.process_thread
+        self.process_thread = None
+
+        if process_thread != None:
+            process_thread.stop()
+            process_thread.join(self.TIMEOUT)
+            if process_thread.isAlive():
+                raise CF.Resource.StopError(CF.CF_NOTSET, "Processing thread did not die")
+        ExecutableDevice.stop(self)
+
+    def releaseObject(self):
+        try:
+            self.stop()
+        except Exception, e:
+            if self._log != None :
+                self._log.exception("Error stopping: ", e)
+        ExecutableDevice.releaseObject(self)
+
+
     ###########################################
     # CF::PropertySet
     ###########################################
@@ -160,9 +215,6 @@ class BasicTestDevice_python_impl1(CF__POA.AggregateExecutableDevice,ExecutableD
         """
         pass
             
-    ###########################################
-    # system hardware functions
-    ###########################################
 ###########################################                    
 # program execution
 ###########################################
@@ -170,5 +222,5 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.WARN)
     logging.debug("Starting Device")
     start_device(BasicTestDevice_python_impl1)
-  
+
 

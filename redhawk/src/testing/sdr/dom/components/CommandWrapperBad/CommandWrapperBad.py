@@ -105,6 +105,9 @@ class CommandWrapper_i(CF__POA.Resource):
     def _get_identifier(self):
         return self.uuid
 
+    def _get_softwareProfile(self):
+        return '/components/CommandWrapperBad/CommandWrapperBad.spd.xml'
+
     ######################################
     # Implement the PropertySet interface
     def configure(self, props):

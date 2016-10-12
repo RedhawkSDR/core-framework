@@ -34,7 +34,7 @@ PREPARE_LOGGING(SimpleSequenceProperty)
 PREPARE_LOGGING(StructProperty)
 PREPARE_LOGGING(StructSequenceProperty)
 
-/**
+/*
  * PRF class
  */
 void PRF::addProperty(const Property* p) throw (ossie::parser_error)
@@ -53,6 +53,9 @@ void PRF::addProperty(const Property* p) throw (ossie::parser_error)
         if (p->isConfigure ()) {
             _configProperties.push_back(p);
         }
+        if (p->isProperty ()) {
+            _ctorProperties.push_back(p);
+        }
         if (p->isExecParam ()) {
             _execProperties.push_back(p);
         }
@@ -66,7 +69,7 @@ void PRF::addProperty(const Property* p) throw (ossie::parser_error)
     }
 }
 
-/**
+/*
  * Properties class
  */
 Properties::Properties()
@@ -74,7 +77,7 @@ Properties::Properties()
     _prf.reset(new ossie::PRF());
 }
 
-Properties::Properties(std::istream& input) throw(ossie::parser_error) : _prf(0)
+Properties::Properties(std::istream& input) throw(ossie::parser_error) 
 {
     LOG_TRACE(Properties, "Constructing properties")
     load(input);
@@ -85,23 +88,23 @@ Properties::~Properties()
     LOG_TRACE(Properties, "Destruction for properties")
 }
 
-Properties& Properties::operator=(Properties other) {
-    // IMPORTANT, pass 'other' by value to avoid having to explictly make a copy
-    this->_prf = other._prf;
-    return *this;
+Properties& Properties::operator=(const Properties &other) {
+  _prf = other._prf;
+  return *this;
 }
 
 
 void Properties::load(std::istream& input) throw (ossie::parser_error) {
-    _prf = ossie::internalparser::parsePRF(input);
+  std::auto_ptr<ossie::PRF> t = ossie::internalparser::parsePRF(input);
+  _prf.reset(t.release());
 }
 
 void Properties::join(std::istream& input) throw (ossie::parser_error) {
     LOG_TRACE(Properties, "Loading property set")
-    std::auto_ptr<ossie::PRF> _joinedprf = ossie::internalparser::parsePRF(input);
+      std::auto_ptr<ossie::PRF> _joinedprf = ossie::internalparser::parsePRF(input);
     if (_prf.get() == 0) {
         LOG_TRACE(Properties, "No initial load, using join set for properties")
-        _prf = _joinedprf;
+        _prf.reset(_joinedprf.release());
     } else {
         LOG_TRACE(Properties, "Merging property sets")
         std::vector<const Property*>::iterator jp_iter;
@@ -164,10 +167,10 @@ void Properties::join(ossie::Properties& props) throw (ossie::parser_error) {
     LOG_TRACE(Properties, "Done merging property sets, cleaning up")
 }
 
-void Properties::override(const std::vector<ComponentProperty*>& values)
+void Properties::override(const ossie::ComponentPropertyList & values)
 {
-    for (std::vector<ComponentProperty*>::const_iterator iter = values.begin(); iter != values.end(); ++iter) {
-        const ComponentProperty* new_value = *iter;
+  for ( ossie::ComponentPropertyList::const_iterator iter = values.begin(); iter != values.end(); ++iter) {
+    const ComponentProperty* new_value = &(*iter);
         Property* property = const_cast<Property*>(getProperty(new_value->getID()));
         if (!property) {
             LOG_TRACE(Properties, "Skipping override of non-existent property " << new_value->getID());
@@ -200,6 +203,13 @@ const std::vector<const Property*>& Properties::getConfigureProperties() const
     return _prf->_configProperties;
 }
 
+
+const std::vector<const Property*>& Properties::getConstructProperties() const
+{
+    assert(_prf.get() != 0);
+    return _prf->_ctorProperties;
+}
+
 const std::vector<const Property*>& Properties::getAllocationProperties() const
 {
     assert(_prf.get() != 0);
@@ -227,12 +237,32 @@ const std::vector<const Property*>& Properties::getFactoryParamProperties() cons
     return _prf->_factoryProperties;
 }
 
-/**
+/*
  * Property class
  */
+
+Property::Property(const std::string& id, 
+             const std::string& name, 
+             const std::string& mode, 
+             const std::string& action, 
+             const std::vector<std::string>& kinds) :
+             id(id), name(name), mode(mode), action(action), kinds(kinds),
+               commandline("false")
+{};
+
+Property::Property(const std::string& id, 
+                   const std::string& name, 
+                   const std::string& mode, 
+                   const std::string& action, 
+                   const std::vector<std::string>& kinds, 
+                   const std::string& cmdline ):
+  id(id), name(name), mode(mode), action(action), kinds(kinds),
+  commandline(cmdline)
+{};
+
 Property::~Property()
 {
-} 
+}
 
 bool Property::isAllocation() const
 {
@@ -249,13 +279,26 @@ bool Property::isAllocation() const
 bool Property::isConfigure() const
 {
     TRACE_ENTER(Property);
-
     if (kinds.size() == 0) {
-        return true;
+      return true;
     }
     for (unsigned int i = 0; i < kinds.size (); i++) {
-        if (kinds[i] == "configure")
-            { return true; }
+      if (kinds[i] == "configure")
+        { return true; }
+    }
+    return false;
+}
+
+bool Property::isProperty() const
+{
+    TRACE_ENTER(Property);
+    // RESOLVE, could be default behavior with old style properties
+    //if (kinds.size() == 0) {
+    //return true;
+    //}
+    for (unsigned int i = 0; i < kinds.size (); i++) {
+        if (kinds[i] == "property")
+          { return true; }
     }
 
     return false;
@@ -325,6 +368,11 @@ const std::vector <std::string>& Property::getKinds() const
 bool Property::isReadOnly() const
 {
     return (mode == "readonly");
+}
+
+bool Property::isCommandLine() const
+{
+    return (commandline == "true");
 }
 
 bool Property::isReadWrite() const
@@ -399,18 +447,18 @@ std::string Property::mapPrimitiveToComplex(const std::string& type) const
         newType = "complexULong";
     } else if (type.compare("ulonglong") == 0) {
         newType = "complexULongLong";
-    } 
+    }
     /*
      * else do nothing.  Either the primitive to complex
      * conversion has already been completed, or there
-     * is an invalid type.  In the event of an invalid
+     * is an invalid type.  In the event of an invalid"const ossie::SPD::SoftPkgRef&"; 
      * type, let downstream checks catch the error.
      */ 
 
     return newType;
 }
 
-/**
+/*
  * SimpleProperty class
  */
 SimpleProperty::SimpleProperty(const std::string& id, 
@@ -420,22 +468,32 @@ SimpleProperty::SimpleProperty(const std::string& id,
                                const std::string& action, 
                                const std::vector<std::string>& kinds,
                                const optional_value<std::string>& value, 
-                               const std::string& complex_) :
-Property(id, name, mode, action, kinds), value(value), _complex(complex_)
+                               const std::string& complex_,
+                               const std::string& commandline_,
+                               const std::string& optional) :
+  Property(id, name, mode, action, kinds, commandline_ ), 
+  value(value), 
+  _complex(complex_),
+  optional(optional)
 {
+    commandline = commandline_;
     if (_complex.compare("true") == 0) {
         /* 
          * Downstream processing expects complex types
          * (e.g., complexLong) rather than primitive 
          * types (e.g., long).
          */
-        this->type = mapPrimitiveToComplex(type);
+        if (type.find("complex") != std::string::npos) {
+            this->type = type;
+        } else {
+            this->type = mapPrimitiveToComplex(type);
+        }
     } else {
         this->type = type;
     }
 }
 
-/**
+/*
  * A constructor that does not require the specification of 
  * whether or not the property is complex.  If complexity
  * is not specified, the property is assumed to be primitive.
@@ -448,7 +506,7 @@ SimpleProperty::SimpleProperty(const std::string& id,
                                const std::vector<std::string>& kinds,
                                const optional_value<std::string>& value)
 {
-    SimpleProperty(id, name, type, mode, action, kinds, value, "false");
+    SimpleProperty(id, name, type, mode, action, kinds, value, "false", "false", "false");
 }
 
 SimpleProperty::~SimpleProperty()
@@ -488,6 +546,15 @@ const char* SimpleProperty::getComplex() const
     return _complex.c_str();
 }
 
+const char* SimpleProperty::getCommandLine() const
+{
+    return commandline.c_str();
+}
+
+const char* SimpleProperty::getOptional() const
+{
+    return optional.c_str();
+}
 
 const char* SimpleProperty::getValue() const
 {
@@ -513,11 +580,11 @@ const std::string SimpleProperty::asString() const {
 }
 
 const Property* SimpleProperty::clone() const {
-    return new SimpleProperty(id, name, type, mode, action, kinds, value, _complex);
+    return new SimpleProperty(id, name, type, mode, action, kinds, value, _complex, commandline, optional);
 }
 
 
-/**
+/*
  * SimpleSequenceProperty class
  */
 SimpleSequenceProperty::SimpleSequenceProperty(
@@ -528,11 +595,13 @@ SimpleSequenceProperty::SimpleSequenceProperty(
     const std::string&              action, 
     const std::vector<std::string>& kinds,
     const std::vector<std::string>& values,
-    const std::string&              complex_) :
+    const std::string&              complex_,
+    const std::string&              optional) :
         Property(id, name, mode, action, kinds), 
         type(type), 
         values(values), 
-        _complex(complex_)
+        _complex(complex_),
+        optional(optional)
 {
     if (_complex.compare("true") == 0) {
         /* 
@@ -540,13 +609,13 @@ SimpleSequenceProperty::SimpleSequenceProperty(
          * (e.g., complexLong) rather than primitive 
          * types (e.g., long).
          */
-        this->type = mapPrimitiveToComplex(type);
+         this->type = mapPrimitiveToComplex(type);
     } else {
         this->type = type;
     }
 }
 
-/**
+/*
  * A constructor that does not require the specification of 
  * whether or not the property is complex.  If complexity
  * is not specified, the property is assumed to be primitive.
@@ -567,6 +636,7 @@ SimpleSequenceProperty::SimpleSequenceProperty(
                            action, 
                            kinds, 
                            values, 
+                           "false",
                            "false");
 }
 
@@ -607,6 +677,11 @@ const char* SimpleSequenceProperty::getComplex() const
     return _complex.c_str();
 }
 
+const char* SimpleSequenceProperty::getOptional() const
+{
+    return optional.c_str();
+}
+
 const std::vector<std::string>& SimpleSequenceProperty::getValues() const
 {
     return values;
@@ -614,7 +689,7 @@ const std::vector<std::string>& SimpleSequenceProperty::getValues() const
 
 const std::string SimpleSequenceProperty::asString() const {
     std::ostringstream out;
-    out << "'" << this->id << "' '" << this->name;
+    out << "Simple Sequence Property: '" << this->id << "' '" << this->name << "'";
     std::vector<std::string>::const_iterator i;
     for (i = values.begin(); i != values.end(); ++i) {
         out << " '" << *i << "' ";
@@ -623,20 +698,50 @@ const std::string SimpleSequenceProperty::asString() const {
 }
 
 const Property* SimpleSequenceProperty::clone() const {
-    return new SimpleSequenceProperty(id, name, type, mode, action, kinds, values);
+    return new SimpleSequenceProperty(id, name, type, mode, action, kinds, values, _complex, optional);
 }
 
-/**
+/*
  * StructProperty class
  */
 StructProperty::~StructProperty()
 {
+  std::vector<Property*>::iterator i;
+  for (i = value.begin(); i != value.end(); ++i) {
+    if ( *i ) delete *i;
+  }
+  value.clear();
+}
+
+
+StructProperty& StructProperty::operator=(const StructProperty& src) 
+{
+  id = src.id;
+  name =src.name;
+  mode=src.mode;
+  commandline = src.commandline;
+  action=src.action;
+  kinds=src.kinds;
+  /// clean out my old...
+  std::vector<Property*>::iterator i;
+  for (i = value.begin(); i != value.end(); ++i) {
+    if ( *i ) delete *i;
+  }
+  value.clear();
+
+  // bring in the new...
+  std::vector<Property*>::const_iterator it;
+  for(it=src.value.begin(); it != src.value.end(); ++it) {
+    this->value.push_back(const_cast<Property*>((*it)->clone()));
+  }
+
+  return *this;
 }
 
 bool StructProperty::isNone() const {
     // it is not possible to set only one of the structure values
     if (value.size() > 0)
-        return (value[0].isNone());
+        return (value[0]->isNone());
     else
         return true;
 }
@@ -654,7 +759,6 @@ void StructProperty::override(const Property* otherProp) {
 void StructProperty::override(const ComponentProperty* newValue) {
     const StructPropertyRef* structRef = dynamic_cast<const StructPropertyRef*>(newValue);
     if (structRef) {
-        // TODO
     } else {
         LOG_WARN(StructProperty, "Ignoring override request");
     }
@@ -663,9 +767,9 @@ void StructProperty::override(const ComponentProperty* newValue) {
 const std::string StructProperty::asString() const {
     std::ostringstream out;
     out << "'" << this->id << "' '" << this->name;
-    std::vector<ossie::SimpleProperty>::const_iterator i;
+    std::vector<ossie::Property*>::const_iterator i;
     for (i = value.begin(); i != value.end(); ++i) {
-        out << "   " << *i << std::endl;
+        out << "   " << **i << std::endl;
     }
     return out.str();
 }
@@ -674,25 +778,39 @@ const Property* StructProperty::clone() const {
     return new StructProperty(id, name, mode, kinds, value);
 };
 
-const std::vector<SimpleProperty>& StructProperty::getValue() const {
+const std::vector<Property*>& StructProperty::getValue() const {
     return value;
 }
 
-const SimpleProperty* StructProperty::getField(const std::string& fieldId) const {
-    for (std::vector<SimpleProperty>::const_iterator field = value.begin(); field !=value.end(); ++field) {
-        if (fieldId == field->getID()) {
-            return &(*field);
+const Property* StructProperty::getField(const std::string& fieldId) const {
+    for (std::vector<Property*>::const_iterator field = value.begin(); field !=value.end(); ++field) {
+        if (fieldId == (*field)->getID()) {
+            return *field;
         }
     }
     return 0;
 }
 
-/**
+/*
  * StructSequenceProperty class
  */
 StructSequenceProperty::~StructSequenceProperty()
 {
 }
+
+StructSequenceProperty& StructSequenceProperty::operator=( const StructSequenceProperty &src ) 
+{
+  id = src.id;
+  name =src.name;
+  mode=src.mode;
+  commandline = src.commandline;
+  action=src.action;
+  kinds=src.kinds;
+  structdef = src.structdef;
+  values = values;
+  return *this;
+}
+
 
 bool StructSequenceProperty::isNone() const {
     return (values.size() == 0);
@@ -710,7 +828,6 @@ void StructSequenceProperty::override(const Property* otherProp) {
 void StructSequenceProperty::override(const ComponentProperty* newValue) {
     const StructSequencePropertyRef* structSeqRef = dynamic_cast<const StructSequencePropertyRef*>(newValue);
     if (structSeqRef) {
-        // TODO
     } else {
         LOG_WARN(StructSequenceProperty, "Ignoring override request");
     }

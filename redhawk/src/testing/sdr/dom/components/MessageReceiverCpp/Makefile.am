@@ -26,4 +26,4 @@ noinst_PROGRAMS = MessageReceiverCpp
 
 MessageReceiverCpp_SOURCES = MessageReceiverCpp.cpp main.cpp
 MessageReceiverCpp_CXXFLAGS = $(BOOST_CPPFLAGS)
-MessageReceiverCpp_LDADD = $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+MessageReceiverCpp_LDADD = $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la

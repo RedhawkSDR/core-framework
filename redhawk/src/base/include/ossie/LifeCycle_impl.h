@@ -23,25 +23,29 @@
 #define LIFECYCLE_IMPL_H
 
 #include "CF/cf.h"
+#include "ossie/Autocomplete.h"
 
 
-/**
+/*
 The LifeCycle interface defines generic operations for component
 initialization and and releasing instantiated objects.
 
  */
 
-class LifeCycle_impl: public virtual POA_CF::LifeCycle
+class LifeCycle_impl
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+    : public virtual POA_CF::LifeCycle
+#endif
 {
 public:
     LifeCycle_impl () {
     };
 
-    /// Override this method with component specific initialization.
+    // Override this method with component specific initialization.
     void initialize ()
     throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
 
-    /// Override this method with the code require to release the object.
+    // Override this method with the code require to release the object.
     void releaseObject ()
     throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
 

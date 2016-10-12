@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:faa441e8-ba31-4e14-89b3-b0a2cef4ed61" name="empty_comp_many_w">
+  <componentfiles>
+    <componentfile id="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e" type="SPD">
+      <localfile name="/components/empty_comp/empty_comp.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_1" startorder="0">
+        <usagename>empty_comp_1</usagename>
+        <findcomponent>
+          <namingservice name="empty_comp_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_2" startorder="1">
+        <usagename>empty_comp_2</usagename>
+        <findcomponent><namingservice name="empty_comp_2"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_3" startorder="2">
+        <usagename>empty_comp_3</usagename>
+        <findcomponent><namingservice name="empty_comp_3"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_4" startorder="3">
+        <usagename>empty_comp_4</usagename>
+        <findcomponent><namingservice name="empty_comp_4"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_5" startorder="4">
+        <usagename>empty_comp_5</usagename>
+        <findcomponent><namingservice name="empty_comp_5"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_6" startorder="5">
+        <usagename>empty_comp_6</usagename>
+        <findcomponent><namingservice name="empty_comp_6"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_7" startorder="6">
+        <usagename>empty_comp_7</usagename>
+        <findcomponent><namingservice name="empty_comp_7"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_8" startorder="7">
+        <usagename>empty_comp_8</usagename>
+        <findcomponent><namingservice name="empty_comp_8"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_9" startorder="8">
+        <usagename>empty_comp_9</usagename>
+        <findcomponent><namingservice name="empty_comp_9"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_10" startorder="9">
+        <usagename>empty_comp_10</usagename>
+        <findcomponent><namingservice name="empty_comp_10"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_11" startorder="10">
+        <usagename>empty_comp_11</usagename>
+        <findcomponent><namingservice name="empty_comp_11"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_12" startorder="11">
+        <usagename>empty_comp_12</usagename>
+        <findcomponent><namingservice name="empty_comp_12"/></findcomponent>
+      </componentinstantiation></componentplacement>
+    <componentplacement><componentfileref refid="empty_comp_567305c2-2ea2-4ee2-bc31-2fb34029498e"/>
+      <componentinstantiation id="empty_comp_13" startorder="12">
+        <usagename>empty_comp_13</usagename>
+        <findcomponent><namingservice name="empty_comp_13"/></findcomponent>
+      </componentinstantiation></componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="empty_comp_1"/>
+  </assemblycontroller>
+</softwareassembly>

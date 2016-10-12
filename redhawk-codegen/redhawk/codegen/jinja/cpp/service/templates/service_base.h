@@ -17,9 +17,9 @@
  * You should have received a copy of the GNU Lesser General Public License 
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  #*/
-//% set includeGuard = component.name.upper() + '_IMPL_BASE_H'
 //% set className = component.baseclass.name
 //% set superclass = component.superclass.name
+//% set includeGuard = className.upper() + '_IMPL_BASE_H'
 #ifndef ${includeGuard}
 #define ${includeGuard}
 

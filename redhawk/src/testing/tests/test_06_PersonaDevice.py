@@ -23,13 +23,13 @@ from _unitTestHelpers import scatest
 #the hwLoadRequest() must have the struct CF::Properties request set
 class PersonaTest(scatest.CorbaTestCase):
     def setUp(self):
-        self._nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self._nodebooter, self._domMgr = self.launchDomainManager()
 
     def tearDown(self):
         scatest.CorbaTestCase.tearDown(self)
 
     def launchNode(self, node):
-        self._devBooter,self._devMgr = self.launchDeviceManager("/nodes/%s/DeviceManager.dcd.xml" % (node),debug=self.debuglevel)
+        self._devBooter,self._devMgr = self.launchDeviceManager("/nodes/%s/DeviceManager.dcd.xml" % (node),)
 
     def checkRegisteredDevices(self,numDevices):
         self.assertEqual(len(self._devMgr._get_registeredDevices()),numDevices)

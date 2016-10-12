@@ -43,6 +43,11 @@
 #include "bulkio_base.h"
 
 //
+// Overloaded operators for BULKIO::PrecisionUTCTime
+//
+#include "bulkio_time_operators.h"
+
+//
 // Port Trait definitions that define the Type Traits for Input and Output Bulkio Ports
 //
 #include "bulkio_traits.h"

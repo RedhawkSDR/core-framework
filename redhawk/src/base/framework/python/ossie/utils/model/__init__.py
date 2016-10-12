@@ -39,6 +39,7 @@ from ossie.properties import getCFType
 from ossie.properties import getMemberType
 from ossie.cf import ExtendedCF as _ExtendedCF
 from ossie.utils.formatting import TablePrinter
+from ossie.utils import prop_helpers
 import warnings as _warnings
 from connect import *
 
@@ -136,7 +137,7 @@ def _readProfile(spdFilename, fileSystem):
     
     return spd, scd, prf
 
-def _formatSimple(prop, value,id):
+def _formatSimple(prop, value, id):
     currVal = str(value)
     # Checks if current prop is an enum
     try:
@@ -145,6 +146,10 @@ def _formatSimple(prop, value,id):
                 currVal += " (enum=" + prop._enums.keys()[prop._enums.values().index(value)] + ")"
     except:
         return currVal
+    return currVal
+
+def _formatSimpleSequence(prop, value, id):
+    currVal = str(value)
     return currVal
 
 def _formatType(propType):
@@ -377,7 +382,7 @@ class PortSupplier(object):
 
     def disconnect(self, providesComponent):
         manager = ConnectionManager.instance()
-        for connectionId, (uses, provides) in manager.getConnectionsBetween(self, providesComponent).items():
+        for _connectionId, (connectionId, uses, provides) in manager.getConnectionsBetween(self, providesComponent).items():
             usesPortRef = uses.getReference()
             try:
                 usesPortRef.disconnectPort(connectionId)
@@ -385,8 +390,32 @@ class PortSupplier(object):
                 pass
             if isinstance(providesComponent, PortSupplier):
                 providesComponent._disconnected(connectionId)
-            manager.unregisterConnection(connectionId)
+            manager.unregisterConnection(connectionId, uses)
 
+
+class PortSet(PortSupplier):
+    __log = log.getChild('PortSet')
+
+    def __init__(self):
+        PortSupplier.__init__(self)
+
+    def getPort(self, name):
+        retval = None
+        if self.ref:
+            try:
+              retval = self.ref.getPort(name)
+            except:
+              raise
+        return retval
+
+    def getPortSet(self):
+        retval = None
+        if self.ref:
+            try:
+              retval = self.ref.getPortSet()
+            except:
+              pass
+        return retval
 
 class PropertySet(object):
     __log = log.getChild('PropertySet')
@@ -399,7 +428,7 @@ class PropertySet(object):
         #DEPRICATED: replaced with _properties, _propertySet did not contain all kinds and actions
         _warnings.warn("'_propertySet' is deprecated", DeprecationWarning)
         try:
-            return [p for p in self._properties if 'execparam' in p.kinds or 'configure' in p.kinds]
+            return [p for p in self._properties if 'execparam' in p.kinds or 'configure' in p.kinds or 'property' in p.kinds]
         except:
             return None
     
@@ -424,17 +453,28 @@ class PropertySet(object):
             # Assume the exception occurred because props is not a dictionary
             pass
         self.ref.configure(props)
+
+    def initializeProperties(self, props):
+        self.__log.trace("initializeProperties('%s')", str(props))
+        if not self.ref:
+            pass
+        try:
+            # Turn a dictionary of Python values into a list of CF Properties
+            props = [self._itemToDataType(k,v) for k,v in props.iteritems()]
+        except AttributeError:
+            # Assume the exception occurred because props is not a dictionary
+            pass
+        self.ref.initializeProperties(props)
             
     def query(self, props):
-        if True:
-            self.__log.trace("query('%s')", str(props))
-            if self.ref:
-                return self.ref.query(props)
-            else:
-                return None
+        self.__log.trace("query('%s')", str(props))
+        if self.ref:
+            return self.ref.query(props)
+        else:
+            return None
    
     def api(self, externalPropInfo=None):
-        properties = [p for p in self._properties if 'configure' in p.kinds or 'execparam' in p.kinds]
+        properties = [p for p in self._properties if 'property' in p.kinds or 'configure' in p.kinds or 'execparam' in p.kinds]
         if not properties:
             return
 
@@ -464,7 +504,6 @@ class PropertySet(object):
             else:
                 writeOnly = True
                 currentValue = "N/A"
-
             scaType = _formatType(prop.type)
             if prop.type == 'structSeq':
                 table.append(name, '('+scaType+')')
@@ -488,7 +527,13 @@ class PropertySet(object):
                     name = ' ' + member.clean_name
                     scaType = _formatType(member.type)
                     if not writeOnly:
-                        _currentValue = _formatSimple(member, currentValue[member.id],member.id)
+                        if member.id in currentValue:
+                            if isinstance(member, prop_helpers.sequenceProperty):
+                                _currentValue = _formatSimpleSequence(member, currentValue[member.id], member.id)
+                            else:
+                                _currentValue = _formatSimple(member, currentValue[member.id], member.id)
+                        else:
+                            _currentValue = "N/A"
                     else: 
                         _currentValue = "N/A"
                     table.append(' '+name, '('+scaType+')', str(member.defValue), _currentValue)
@@ -499,12 +544,62 @@ class PropertySet(object):
         table.write()
 
 
+class PropertyEmitter(PropertySet):
+    __log = log.getChild('PropertyEmitter')
+
+    def __init__(self):
+        PropertySet.__init__(self)
+
+    
+    def registerPropertyListener( self, obj, prop_ids=[], interval=1.0):
+        self.__log.trace("registerPropertyListener('%s')", str(prop_ids))
+        if self.ref:
+            return self.ref.registerPropertyListener(obj, prop_ids, interval )
+        return None
+
+    def unregisterPropertyListener( self, reg_id ):
+        self.__log.trace("unregisterPropertyListener reg: ('%s')", str(reg_id))
+        if self.ref:
+            self.ref.unregisterPropertyListener(reg_id )
+
+
+class RogueService(CorbaObject):
+    def __init__(self, ref, instanceName ):
+        CorbaObject.__init__(self, ref)
+        self._instanceName = instanceName
+
+    def _matchInterface(self, repid):
+        return repid == self._repid
+
+    def _getInterface(self):
+        return self._repid
+
+    def log_level(self, newLogLevel=None ):
+        if newLogLevel == None:
+            return self.ref._get_log_level( newLogLevel )
+        else:
+            self.ref._set_log_level( newLogLevel )
+
+    def setLogLevel(self, logid, newLogLevel ):
+        self.ref.setLogLevel( logid, newLogLevel )
+
+    def getLogConfig(self):
+        return self.ref.getLogConfig()
+
+    def setLogConfig(self, new_log_config):
+        self.ref.setLogConfig( new_log_config )
+
+    def setLogConfigURL(self, log_config_url):
+        self.ref.setLogConfigURL( log_config_url )
+
+
 class Service(CorbaObject):
     def __init__(self, ref, profile, spd, scd, prf, instanceName, refid, impl):
         CorbaObject.__init__(self, ref)
 
         self._profile = profile
         self._refid = refid
+        self._id = refid
         self._spd = spd
         self._scd = scd
         self._prf = prf
@@ -567,7 +662,8 @@ class Service(CorbaObject):
         self.ref.setLogConfigURL( log_config_url )
 
 
-class Resource(CorbaObject, PortSupplier, PropertySet):
+##class Resource(CorbaObject, PortSupplier, PropertySet):
+class Resource(CorbaObject, PortSet, PropertyEmitter):
     __log = log.getChild('Resource')
 
     def __init__(self, ref=None):
@@ -610,13 +706,6 @@ class Resource(CorbaObject, PortSupplier, PropertySet):
         if self.ref:
             self.ref.initialize()
             
-    def getPort(self, name):
-        self.__log.trace("getPort('%s')", name)
-        if self.ref:
-            return self.ref.getPort(name)
-        else:
-            return None
-
     def runTest(self, testid, props):
         if self.ref:
             return self.ref.runTest(testid, props)
@@ -632,21 +721,29 @@ class Resource(CorbaObject, PortSupplier, PropertySet):
 
     def log_level(self, newLogLevel=None ):
         if newLogLevel == None:
-            return self.ref._get_log_level()
+            if self.ref:
+               return self.ref._get_log_level()
         else:
-            self.ref._set_log_level( newLogLevel )
+            if self.ref:
+               self.ref._set_log_level( newLogLevel )
 
     def setLogLevel(self, logid, newLogLevel ):
-        self.ref.setLogLevel( logid, newLogLevel )
+        if self.ref:
+           self.ref.setLogLevel( logid, newLogLevel )
 
     def getLogConfig(self):
-        return self.ref.getLogConfig()
+        if self.ref:
+           return self.ref.getLogConfig()
+        else:
+           None
 
     def setLogConfig(self, new_log_config):
-        self.ref.setLogConfig( new_log_config )
+        if self.ref:
+           self.ref.setLogConfig( new_log_config )
 
     def setLogConfigURL(self, log_config_url):
-        self.ref.setLogConfigURL( log_config_url )
+        if self.ref:
+           self.ref.setLogConfigURL( log_config_url )
     
 
 class Device(Resource):
@@ -708,13 +805,24 @@ class Device(Resource):
         if not self.ref:
             return None
         allocProps = self._capacitiesToAny(props)
-        return self.ref.allocateCapacity(allocProps)
+        results = self.ref.allocateCapacity(allocProps)
+        if results:
+            if not hasattr(self, '_alloc'):
+                self._alloc = [props]
+            else:
+                self._alloc.append(props)
+        return results
 
     def deallocateCapacity(self, props):
         if not self.ref:
             return
         allocProps = self._capacitiesToAny(props)
         self.ref.deallocateCapacity(allocProps)
+        try:
+            self._alloc.remove(props)
+        except:
+            if _DEBUG == True:
+                print ("attempted to deallocate a non-existent allocation")
 
     def api(self):
         print 'Allocation Properties ======'
@@ -773,19 +881,12 @@ class AggregateDevice(object):
             self.ref.removeDevice(associatedDevice)
 
 
-class ComponentBase(object):
-    def __init__(self, spd, scd, prf, instanceName, refid, impl, pid=0, devs=[]):
-        self._spd = spd
-        self._scd = scd
+class QueryableBase(object):
+    def __init__(self, prf, refid):
         self._prf = prf
-        self._instanceName = instanceName
         self._refid = refid
-        self._impl = impl
         self._configureTable = {}
-        self._pid = pid
-        self._id = None
-        self._devs = devs
-        self._properties = self._getPropertySet(kinds=("configure","execparam","allocation","event","message"),
+        self._properties = self._getPropertySet(kinds=("configure","property","execparam","allocation","event","message"),
                                           modes=("readwrite","readonly","writeonly"),
                                           action=("external","eq","ge","gt","le","lt","ne"),
                                           includeNil=True)
@@ -855,15 +956,19 @@ class ComponentBase(object):
         return propType
      
     def _getPropertySet(self, \
-                        kinds=("configure","execparam"), \
+                        kinds=("configure","property", "execparam"), \
                         modes=("readwrite", "writeonly", "readonly"), \
                         action=("external"), \
-                        includeNil=True):
+                        includeNil=True,
+                        commandline=None):
         """
         A useful utility function that extracts specified property types from
         the PRF file and turns them into a _CF.PropertySet
         """
-      
+        
+        _displayNames = {}
+        _duplicateNames = {}
+        
         if _DEBUG == True:
             print "Component: _getPropertySet() kinds " + str(kinds)
             print "Component: _getPropertySet() modes " + str(modes)
@@ -877,6 +982,14 @@ class ComponentBase(object):
             if _prop_helpers.isMatch(prop, modes, kinds, action):
                 if prop.get_value() == None and includeNil == False:
                     continue
+
+                # Only command line if the attribute is explicitly set to true
+                isCommandline = prop.get_commandline() == 'true'
+                # If a preference was given, skip over properties that are/are
+                # not command line
+                if commandline is not None and commandline != isCommandline:
+                    continue
+
                 propType = self._getPropType(prop)
                 try:
                     enum = prop.get_enumerations().get_enumeration()
@@ -897,11 +1010,11 @@ class ComponentBase(object):
                     kindList.append(k.get_kindtype())
                 p = _prop_helpers.simpleProperty(id=prop.get_id(), valueType=propType, enum=enum, compRef=weakref.proxy(self), kinds=kindList,defValue=defValue, mode=prop.get_mode(), action=act)
                 id_clean = _prop_helpers._cleanId(prop)
-                p.clean_name = _prop_helpers.addCleanName(id_clean, prop.get_id(), self._refid)
+                p.clean_name = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
                 propertySet.append(p)
         # Simple Sequences
         for prop in self._prf.get_simplesequence():
-            if _prop_helpers.isMatch(prop, modes, kinds, action):
+            if not commandline and _prop_helpers.isMatch(prop, modes, kinds, action):
                 values = prop.get_values()
                 propType = self._getPropType(prop)
                 if values:
@@ -919,29 +1032,38 @@ class ComponentBase(object):
                                                    defValue  = defValue, 
                                                    mode      = prop.get_mode())
                 id_clean = _prop_helpers._cleanId(prop)
-                p.clean_name = _prop_helpers.addCleanName(id_clean, 
-                                                          prop.get_id(), 
-                                                          self._refid)
+                p.clean_name = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
                 propertySet.append(p)
 
         # Structures
-        for prop in self._prf.get_struct():
-            if _prop_helpers.isMatch(prop, modes, kinds, action):
+        for structProp in self._prf.get_struct():
+            if not commandline and _prop_helpers.isMatch(structProp, modes, kinds, action):
                 members = []
                 structDefValue = {}
-                if prop.get_simple() != None:
-                    for simple in prop.get_simple():
-                        propType = self._getPropType(simple)
-                        val = simple.get_value()
-                        if str(val) == str(None):
-                            defValue = None
-                        else:
-                            defValue = _convertType(propType, val)
-                        id_clean = _prop_helpers._cleanId(simple)
-                        # Add individual property
-                        id_clean = _prop_helpers.addCleanName(id_clean, simple.get_id(), self._refid)
-                        members.append((simple.get_id(), propType, defValue, id_clean))
-                        structDefValue[simple.get_id()] = defValue
+                for prop in structProp.get_simple():
+                    propType = self._getPropType(prop)
+                    val = prop.get_value()
+                    if str(val) == str(None):
+                        defValue = None
+                    else:
+                        defValue = _convertType(propType, val)
+                    id_clean = _prop_helpers._cleanId(prop)
+                    # Add individual property
+                    id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
+                    members.append((prop.get_id(), propType, defValue, id_clean))
+                    structDefValue[prop.get_id()] = defValue
+                for prop in structProp.get_simplesequence():
+                    propType = self._getPropType(prop)
+                    vals = prop.get_values()
+                    if vals:
+                        defValue = [_convertType(propType, val) for val in vals.get_value()]
+                    else:
+                        defValue = None
+                    id_clean = _prop_helpers._cleanId(prop)
+                    # Add individual property
+                    id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
+                    members.append((prop.get_id(), propType, defValue, id_clean))
+                    structDefValue[prop.get_id()] = defValue
                 
                 hasDefault = False
                 for defValue in structDefValue.values():
@@ -951,63 +1073,87 @@ class ComponentBase(object):
                 if not hasDefault:
                     structDefValue = None
                 kindList = []
-                for k in prop.get_configurationkind():
+                for k in structProp.get_configurationkind():
                     kindList.append(k.get_kindtype())
-                p = _prop_helpers.structProperty(id=prop.get_id(),
+                p = _prop_helpers.structProperty(id=structProp.get_id(),
                                                  valueType=members,
                                                  kinds=kindList,
-                                                 props=prop.get_simple(),
+                                                 props=structProp.get_simple()+structProp.get_simplesequence(),
                                                  compRef=weakref.proxy(self),
                                                  defValue=structDefValue,
-                                                 mode=prop.get_mode())
-                id_clean = _prop_helpers._cleanId(prop)
-                p.clean_name = _prop_helpers.addCleanName(id_clean, prop.get_id(), self._refid)
+                                                 mode=structProp.get_mode())
+                id_clean = _prop_helpers._cleanId(structProp)
+                p.clean_name = _prop_helpers.addCleanName(id_clean, structProp.get_id(), _displayNames, _duplicateNames)
                 propertySet.append(p)
 
         # Struct Sequence
         for prop in self._prf.get_structsequence():
-            if _prop_helpers.isMatch(prop, modes, kinds, action):
+            if not commandline and _prop_helpers.isMatch(prop, modes, kinds, action):
                 if prop.get_struct() != None:
                     members = []
                     #get the struct definition
-                    for simple in prop.get_struct().get_simple():
-                        propType = self._getPropType(simple)
-                        val = simple.get_value()
+                    for prp in prop.get_struct().get_simple():
+                        propType = self._getPropType(prp)
+                        val = prp.get_value()
                         if str(val) == str(None):
-                            simpleDefValue = None
+                            defValue = None
                         else:
-                            simpleDefValue = _convertType(propType, val)
-                        id_clean = _prop_helpers._cleanId(simple)
+                            defValue = _convertType(propType, val)
+                        id_clean = _prop_helpers._cleanId(prp)
+                        # Add struct member
+                        members.append((prp.get_id(), propType, defValue, id_clean))
+                        _prop_helpers.addCleanName(id_clean, prp.get_id(), _displayNames, _duplicateNames)
+                    for prp in prop.get_struct().get_simplesequence():
+                        propType = self._getPropType(prp)
+                        vals = prp.get_values()
+                        if vals:
+                            defValue = [_convertType(propType, val) for val in vals.get_value()]
+                        else:
+                            defValue = None
+                        id_clean = _prop_helpers._cleanId(prp)
                         # Adds struct member
-                        members.append((simple.get_id(), propType, simpleDefValue, id_clean))
-                        _prop_helpers.addCleanName(id_clean, simple.get_id(), self._refid)
+                        members.append((prp.get_id(), propType, defValue, id_clean))
+                        _prop_helpers.addCleanName(id_clean, prp.get_id(), _displayNames, _duplicateNames)
                     
                     structSeqDefValue = None
                     structValues = prop.get_structvalue()
                     if len(structValues) != 0:
                         structSeqDefValue = []
                         for structValue in structValues:
-                            simpleRefs = structValue.get_simpleref()
                             newValue = {}
-                            for simpleRef in simpleRefs:
-                                value = simpleRef.get_value()
-                                id = simpleRef.get_refid()
+                            for propRef in structValue.get_simpleref():
+                                id_ = propRef.get_refid()
+                                _propType = None
+                                _value = None
+                                for _id, pt, dv, cv in members:
+                                    if _id == str(id_):
+                                        _propType = pt
+                                value = propRef.get_value()
                                 if str(value) == str(None):
                                     _value = None
                                 else:
-                                    _propType = None
-                                    for _id, pt, dv, cv in members:
-                                        if _id == str(id):
-                                            _propType = pt
                                     _value = _convertType(_propType, value)
-                                newValue[str(id)] = _value
+                                newValue[str(id_)] = _value
+                            for propRef in structValue.get_simplesequenceref():
+                                id_ = propRef.get_refid()
+                                _propType = None
+                                _value = None
+                                for _id, pt, dv, cv in members:
+                                    if _id == str(id_):
+                                        _propType = pt
+                                values = propRef.get_values()
+                                if not values:
+                                    _value = None
+                                else:
+                                    _value = [_convertType(_propType, val) for val in values.get_value()]
+                                newValue[str(id_)] = _value
                             structSeqDefValue.append(newValue)
                 kindList = []
                 for k in prop.get_configurationkind():
                     kindList.append(k.get_kindtype())
-                p = _prop_helpers.structSequenceProperty(id=prop.get_id(), structID=prop.get_struct().get_id(), valueType=members, kinds=kindList, props=prop.get_struct().get_simple(), compRef=weakref.proxy(self), defValue=structSeqDefValue, mode=prop.get_mode())
+                p = _prop_helpers.structSequenceProperty(id=prop.get_id(), structID=prop.get_struct().get_id(), valueType=members, kinds=kindList, props=prop.get_struct().get_simple()+prop.get_struct().get_simplesequence(), compRef=weakref.proxy(self), defValue=structSeqDefValue, mode=prop.get_mode())
                 id_clean = _prop_helpers._cleanId(prop)
-                p.clean_name = _prop_helpers.addCleanName(id_clean, prop.get_id(), self._refid)
+                p.clean_name = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
                 propertySet.append(p)
 
         if _DEBUG == True:
@@ -1021,15 +1167,9 @@ class ComponentBase(object):
         # create a map between prop ids and names
         if self._prf != None:
             self._props = _prop_helpers.getPropNameDict(self._prf)
-
+    
     #####################################
-    
-    def eos(self):
-        '''
-        Returns the value of the most recently received end-of-stream flag over a bulkio port
-        '''
-        return None
-    
+
     def _query(self, props=[], printResults=False):
         results = self.query(props)
         # If querying all properties, display all property names and values
@@ -1058,10 +1198,36 @@ class ComponentBase(object):
         prop = self._configureTable[propName]
         # Will generate a configure call on the component
         prop.configureValue(propValue)
+    
+    def _buildAPI(self):
+        for prop in self._properties:
+            #if set(['configure','property']).issubset(set(prop.kinds)):
+            if 'configure' in prop.kinds or 'property' in prop.kinds:
+                self._configureTable[prop.id] = prop
+    
+class ComponentBase(QueryableBase):
+    def __init__(self, spd, scd, prf, instanceName, refid, impl, pid=0, devs=[]):
+        super(ComponentBase, self).__init__(prf, refid)
+        self._spd = spd
+        self._scd = scd
+        self._instanceName = instanceName
+        self._impl = impl
+        self._pid = pid
+        self._id = None
+        self._devs = devs
+
+    #####################################
+    
+    def eos(self):
+        '''
+        Returns the value of the most recently received end-of-stream flag over a bulkio port
+        '''
+        return None
         
     def _buildAPI(self):
         if _DEBUG == True:
             print "Component:_buildAPI()"
+        super(ComponentBase,self)._buildAPI()
 
         for port in self._scd.get_componentfeatures().get_ports().get_provides():
             name = port.get_providesname()
@@ -1078,10 +1244,6 @@ class ComponentBase(object):
             self._usesPortDict[name] = {}
             self._usesPortDict[name]["Port Name"] = str(name)
             self._usesPortDict[name]["Port Interface"] = str(port.get_repid())
-
-        for prop in self._properties:
-            if 'configure' in prop.kinds:
-                self._configureTable[prop.id] = prop
 
         if _DEBUG == True:
             try:
@@ -1137,14 +1299,24 @@ class ComponentBase(object):
                 # See if interface python module has been loaded, if not then try to import it
                 if str(int_entry.nameSpace) not in interface_modules:
                     success = False
-                try:
-                    pkg_name = (int_entry.nameSpace.lower())+'.'+(int_entry.nameSpace.lower())+'Interfaces'
-                    _to = str(int_entry.nameSpace)
-                    mod = __import__(pkg_name,globals(),locals(),[_to])
-                    globals()[_to] = mod.__dict__[_to]
-                    success = True
-                except ImportError, msg:
-                    pass
+                if int_entry.nameSpace == 'ExtendedEvent':
+                    try:
+                        pkg_name = 'ossie.cf'
+                        _to = str(int_entry.nameSpace)
+                        mod = __import__(pkg_name,globals(),locals(),[_to])
+                        globals()[_to] = mod.__dict__[_to]
+                        success = True
+                    except ImportError, msg:
+                        pass
+                else:
+                    try:
+                        pkg_name = (int_entry.nameSpace.lower())+'.'+(int_entry.nameSpace.lower())+'Interfaces'
+                        _to = str(int_entry.nameSpace)
+                        mod = __import__(pkg_name,globals(),locals(),[_to])
+                        globals()[_to] = mod.__dict__[_to]
+                        success = True
+                    except ImportError, msg:
+                        pass
                 if not success:
                     std_idl_path = _os.path.join(_os.environ['OSSIEHOME'], 'lib/python')
                     for dirpath, dirs, files in _os.walk(std_idl_path):

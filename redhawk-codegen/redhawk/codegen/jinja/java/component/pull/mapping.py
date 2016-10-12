@@ -26,24 +26,23 @@ from redhawk.codegen import libraries
 from redhawk.codegen.jinja.java.component.base import BaseComponentMapper
 
 class PullComponentMapper(BaseComponentMapper):
-    def __init__(self, package):
-        self.package = package
-
     def _mapComponent(self, softpkg):
         javacomp = {}
-        javacomp['package'] = self.package
-        userclass = softpkg.name()
+        if self.package == '':
+            javacomp['package'] = softpkg.basename()+'.java'
+        else:
+            javacomp['package'] = self.package
+        userclass = softpkg.basename()
         baseclass = userclass + '_base'
         javacomp['baseclass'] = {'name': baseclass,
                                  'file': baseclass+'.java'}
         javacomp['userclass'] = {'name': userclass,
                                  'file': userclass+'.java'}
         javacomp['superclass'] = self.superclass(softpkg)
-        javacomp['mainclass'] = java.qualifiedName(userclass, self.package)
-        javacomp['jarfile'] = softpkg.name() + '.jar'
+        javacomp['mainclass'] = java.qualifiedName(userclass, javacomp['package'])
+        javacomp['jarfile'] = softpkg.basename() + '.jar'
         javacomp['interfacedeps'] = list(self.getInterfaceDependencies(softpkg))
         javacomp['interfacejars'] = self.getInterfaceJars(softpkg)
-        javacomp['softpkgcp'] = self.softPkgDeps(softpkg, format='cp')
         javacomp['hasmultioutport'] = self.hasMultioutPort(softpkg)
         return javacomp
 
@@ -58,9 +57,9 @@ class PullComponentMapper(BaseComponentMapper):
             jars.extend(library['jarfiles'])
         return jars
 
-    def superclass(self, softpkg):
+    def superclass(self,softpkg):
         if softpkg.type() == ComponentTypes.RESOURCE:
-            name = 'ThreadedResource'
+            name = 'Component'
         elif softpkg.type() == ComponentTypes.DEVICE:
             name = 'ThreadedDevice'
         elif softpkg.type() == ComponentTypes.LOADABLEDEVICE:

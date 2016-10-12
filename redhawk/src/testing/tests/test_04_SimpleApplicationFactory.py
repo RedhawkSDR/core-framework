@@ -32,7 +32,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         scatest.CorbaTestCase.tearDown(self)
 
     def test_BasicOperation(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -51,7 +51,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
             ds.append( CF.DeviceAssignmentType(str(componentid),str(assigndeviceid)) )
 
         # Ensure the expected device is available
-        nodebooter, devMgr = self.launchDeviceManager(dcdFile="/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager(dcdFile="/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(ds), 1)
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)

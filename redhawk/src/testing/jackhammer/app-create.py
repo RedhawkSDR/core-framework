@@ -20,6 +20,9 @@
 
 import os
 import sys
+import time
+
+from omniORB.any import to_any
 
 from ossie.cf import CF
 import ossie.parsers.sad
@@ -27,26 +30,59 @@ import ossie.parsers.sad
 import jackhammer
 
 class CreateApp(jackhammer.Jackhammer):
+    def __init__(self, *args, **kwargs):
+        super(CreateApp,self).__init__(*args, **kwargs)
+        self.__timeout = None
+        self.__ignore_app = False
+        self.__delay = 0.0
+
     def initialize (self, sadFile):
+        self.app_cnt = 0
+        if self.__timeout is not None:
+            self.domMgr.configure([CF.DataType('COMPONENT_BINDING_TIMEOUT', to_any(self.__timeout))])
+
         try:
             self.domMgr.installApplication(sadFile)
         except CF.DomainManager.ApplicationAlreadyInstalled:
             pass
         domRoot = os.path.join(os.environ["SDRROOT"], "dom")
         sad = ossie.parsers.sad.parse(domRoot + sadFile)
-        id = sad.get_id()
+        app_id = sad.get_id()
         for appFact in self.domMgr._get_applicationFactories():
-            if appFact._get_identifier() == id:
+            if appFact._get_identifier() == app_id:
                 self.appFact = appFact
                 return
 
         raise KeyError, "Couldn't find app factory"
 
     def test (self):
-        app = self.appFact.create(self.appFact._get_name(), [], [])
-        app.stop()
-        app.releaseObject()
+        if self.__ignore_app:
+            try:
+                print "Creating  app: " + str( self.app_cnt ) 
+                app = self.appFact.create(self.appFact._get_name(), [], [])
+                time.sleep(self.__delay)
+                app.releaseObject()
+                print "Cleaned up app: " + str( self.app_cnt ) 
+                self.app_cnt += 1
+            except:
+                pass
+        else:
+            app = self.appFact.create(self.appFact._get_name(), [], [])
+            time.sleep(self.__delay)
+            app.releaseObject()
 
+    def options(self):
+        return '', ['timeout=','ignore','delay=']
+
+    def setOption(self, key, value):
+        if key == '--timeout':
+            self.__timeout = int(value)
+        elif key == '--ignore':
+            self.__ignore_app = True
+        elif key == '--delay':
+            self.__delay = float(value)
+        else:
+            raise KeyError("Unknown option '%s'" % (key,))
 
 if __name__ == '__main__':
     jackhammer.run(CreateApp)

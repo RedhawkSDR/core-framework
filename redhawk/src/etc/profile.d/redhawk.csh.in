@@ -19,3 +19,7 @@ if (! $?OSSIEHOME) then
         setenv PYTHONPATH $OSSIEHOME/lib64/python:$OSSIEHOME/lib/python
     endif
 endif
+if (! $?LD_LIBRARY_PATH) then
+    setenv LD_LIBRARY_PATH @libdir@
+endif
+

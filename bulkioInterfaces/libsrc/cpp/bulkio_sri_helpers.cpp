@@ -22,7 +22,31 @@
 
 
 *******************************************************************************************/
-#include <bulkio_p.h>
+#include <ossie/prop_helpers.h>
+
+#include "bulkio_base.h"
+
+namespace {
+  bool compareKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& lhs,
+                       const _CORBA_Unbounded_Sequence<CF::DataType>& rhs)
+  {
+    if (lhs.length() != rhs.length()) {
+        return false;
+    }
+
+    std::string action = "eq";
+    for (unsigned int index=0; index<lhs.length(); index++) {
+        if (strcmp(lhs[index].id, rhs[index].id)) {
+            return false;
+        }
+        if (!ossie::compare_anys(lhs[index].value, rhs[index].value, action)) {
+            return false;
+        }
+    }
+
+    return true;
+  }
+}
 
 namespace  bulkio {
 
@@ -49,24 +73,29 @@ bool DefaultComparator( const BULKIO::StreamSRI &SRI_1, const BULKIO::StreamSRI 
         return false;
     if (strcmp(SRI_1.streamID, SRI_2.streamID) != 0)
         return false;
-    if (SRI_1.keywords.length() != SRI_2.keywords.length())
+    if (!compareKeywords(SRI_1.keywords, SRI_2.keywords))
         return false;
-    std::string action = "eq";
-    for (unsigned int i=0; i<SRI_1.keywords.length(); i++) {
-        if (strcmp(SRI_1.keywords[i].id, SRI_2.keywords[i].id)) {
-            return false;
-        }
-        CORBA::TypeCode_var SRI_1_type = SRI_1.keywords[i].value.type();
-        CORBA::TypeCode_var SRI_2_type = SRI_2.keywords[i].value.type();
-        if (!SRI_1_type->equivalent(SRI_2_type)) {
-            return false;
-        }
-        if (!ossie::compare_anys(SRI_1.keywords[i].value, SRI_2.keywords[i].value, action)) {
-            return false;
-        }
-    }
     return true;
 }
+
+  int compareFields(const BULKIO::StreamSRI& lhs, const BULKIO::StreamSRI& rhs)
+  {
+    int result = NONE;
+    if (lhs.hversion != rhs.hversion) result |= HVERSION;
+    if (lhs.xstart != rhs.xstart) result |= XSTART;
+    if (lhs.xdelta != rhs.xdelta) result |= XDELTA;
+    if (lhs.xunits != rhs.xunits) result |= XUNITS;
+    if (lhs.subsize != rhs.subsize) result |= SUBSIZE;
+    if (lhs.ystart != rhs.ystart) result |= YSTART;
+    if (lhs.ydelta != rhs.ydelta) result |= YDELTA;
+    if (lhs.yunits != rhs.yunits) result |= YUNITS;
+    if (lhs.mode != rhs.mode) result |= MODE;
+    if (lhs.blocking != rhs.blocking) result |= BLOCKING;
+    if (strcmp(lhs.streamID, rhs.streamID)) result |= STREAMID;
+    if (!compareKeywords(lhs.keywords, rhs.keywords)) result |= KEYWORDS;
+
+    return result;
+  }
 
   BULKIO::StreamSRI create( std::string sid, const double srate , const Int16 xunits, const bool blocking ) {
 

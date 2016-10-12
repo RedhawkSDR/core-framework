@@ -24,21 +24,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.omg.CORBA.TCKind;
-import org.ossie.properties.AnyUtils;
 import org.apache.log4j.Logger;
 import CF.DataType;
-import java.util.ArrayDeque;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
-import BULKIO.UsesPortStatistics;
-import ExtendedCF.UsesConnection;
-import BULKIO.PortUsageType;
 import BULKIO.dataFileOperations;
 
 import bulkio.linkStatistics;
@@ -51,51 +42,7 @@ import org.ossie.properties.*;
 /**
  * 
  */
-public class OutFilePort extends BULKIO.UsesPortStatisticsProviderPOA {
-
-    /**
-     * @generated
-     */
-    protected String name;
-
-    /**
-     * @generated
-     */
-    protected Object updatingPortsLock;
-
-    /**
-     * @generated
-     */
-    protected boolean active;
-
-    /**
-     * Map of connection Ids to port objects
-     * @generated
-     */
-    protected Map<String, dataFileOperations> outConnections = null;
-
-    /**
-     * Map of connection ID to statistics
-     * @generated
-     */
-    protected Map<String, linkStatistics > stats;
-
-    /**
-     * Map of stream IDs to streamSRI's
-     * @generated
-     */
-    protected Map<String, SriMapStruct > currentSRIs;
-
-    /**
-     *
-     */
-    protected Logger   logger = null;
-
-
-    /**
-     * Event listener when connect/disconnet events happen
-     */
-    protected ConnectionEventListener   callback = null;
+public class OutFilePort extends OutPortBase<dataFileOperations> {
 
     protected List<connection_descriptor_struct> filterTable = null;
 
@@ -115,108 +62,11 @@ public class OutFilePort extends BULKIO.UsesPortStatisticsProviderPOA {
     public OutFilePort(String portName,
 		       Logger logger,
 		       ConnectionEventListener  eventCB ) {
-        name = portName;
-        updatingPortsLock = new Object();
-        active = false;
-	outConnections = new HashMap<String, dataFileOperations>();
-        stats = new HashMap<String, linkStatistics >();
-        currentSRIs = new HashMap<String, SriMapStruct>();
-        callback = eventCB;
-        this.logger = logger;
+        super(portName, logger, eventCB);
         filterTable = null;
         if ( this.logger != null ) {
             this.logger.debug( "bulkio.OutPort CTOR port: " + portName ); 
         }
-    }
-
-    public void setLogger( Logger newlogger ){
-        synchronized (this.updatingPortsLock) {
-	    logger = newlogger;
-	}
-    }
-
-    public void setConnectionEventListener( ConnectionEventListener newListener ){
-        synchronized (this.updatingPortsLock) {
-	    callback = newListener;
-	}
-    }
-
-
-    /**
-     * @generated
-     */
-    public PortUsageType state() {
-        PortUsageType state = PortUsageType.IDLE;
-
-        if (this.outConnections.size() > 0) {
-            state = PortUsageType.ACTIVE;
-        }
-
-        return state;
-    }
-
-    /**
-     * @generated
-     */
-    public void enableStats(final boolean enable)
-    {
-        for (String connId : outConnections.keySet()) {
-            stats.get(connId).setEnabled(enable);
-        }
-    };
-
-    /**
-     * @generated
-     */
-    public UsesPortStatistics[] statistics() {
-        List<UsesPortStatistics> portStats = new ArrayList<UsesPortStatistics>();
-        synchronized (this.updatingPortsLock) {
-            for (String connId : this.outConnections.keySet()) {
-                portStats.add(new UsesPortStatistics(connId, this.stats.get(connId).retrieve()));
-            }
-        }
-        return portStats.toArray(new UsesPortStatistics[portStats.size()]);
-    }
-
-    /**
-     * @generated
-     */
-    public StreamSRI[] activeSRIs()
-    {
-        ArrayList<StreamSRI> sriList = new ArrayList<StreamSRI>();
-        for(Map.Entry<String, SriMapStruct > entry: this.currentSRIs.entrySet()) {
-            SriMapStruct srimap = entry.getValue();
-            sriList.add(srimap.sri);
-        }
-        return sriList.toArray(new StreamSRI[0]);
-    }
-
-    /**
-     * @generated
-     */
-    public boolean isActive() {
-        return this.active;
-    }
-
-    /**
-     * @generated
-     */
-    public void setActive(final boolean active) {
-        this.active = active;
-    }
-
-    /**
-     * @generated
-     */
-    public String getName() {
-        return this.name;
-    }
-
-    /**
-     * @generated
-     */
-    public HashMap<String, dataFileOperations> getPorts() {
-        return new HashMap<String, dataFileOperations>();
     }
 
     /**
@@ -531,17 +381,9 @@ public class OutFilePort extends BULKIO.UsesPortStatisticsProviderPOA {
 	}
     }
 
-    /**
-     * @generated
-     */
-    public UsesConnection[] connections() {
-        final List<UsesConnection> connList = new ArrayList<UsesConnection>();
-        synchronized (this.updatingPortsLock) {
-            for (Entry<String, dataFileOperations> ent : this.outConnections.entrySet()) {
-                connList.add(new UsesConnection(ent.getKey(), (org.omg.CORBA.Object) ent.getValue()));
-            }
-        }
-        return connList.toArray(new UsesConnection[connList.size()]);
+    public String getRepid() {
+        return BULKIO.dataFileHelper.id();
     }
 
 }
+

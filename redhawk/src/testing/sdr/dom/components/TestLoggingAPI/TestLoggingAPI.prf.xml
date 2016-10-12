@@ -19,4 +19,18 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 <!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
-<properties/>
+<properties>
+  <simple id="new_log_level" mode="readwrite" name="new_log_level" type="long">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="new_log_cfg" mode="readwrite" name="new_log_cfg" type="string">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DISABLE_CB" mode="readwrite" name="disable_cb" type="boolean" commandline="true">
+    <value>false</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+</properties>

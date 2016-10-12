@@ -18,8 +18,6 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import jinja2
-
 from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate
 from redhawk.codegen.jinja.cpp import CppCodeGenerator, CppTemplate

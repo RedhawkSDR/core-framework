@@ -25,8 +25,8 @@ from ossie.cf import CF
 
 class DeviceExceptionsTest(scatest.CorbaTestCase):
     def setUp(self):
-        domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BrokenExecutableDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BrokenExecutableDevice_node/DeviceManager.dcd.xml")
         try:
             self._device = self._devMgr._get_registeredDevices()[0]
         except:
@@ -118,7 +118,7 @@ class DeviceExceptionsTest(scatest.CorbaTestCase):
             self.fail("Unhandled error in application creation")
 
     def test_AllocateRaiseUnexpectedException (self):
-        devBooter_2, self._devMgr_2 = self.launchDeviceManager("/nodes/test_UnusableAllocateCapacity_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devBooter_2, self._devMgr_2 = self.launchDeviceManager("/nodes/test_UnusableAllocateCapacity_node/DeviceManager.dcd.xml")
         local_device = self._devMgr_2._get_registeredDevices()[0]
 
         # Cause a failure during the allocation process

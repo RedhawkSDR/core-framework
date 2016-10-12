@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:b21fee2e-db60-43f3-acd7-e485db1bce8f" name="prop_svc_node">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="svc_connect_dev_343ece48-2e7f-4464-8504-b138a06ab945" type="SPD">
+      <localfile name="/devices/svc_connect_dev/svc_connect_dev.spd.xml"/>
+    </componentfile>
+    <componentfile id="prop_svc_26d8ef84-5b41-44a4-8133-769325865762" type="SPD">
+      <localfile name="/services/prop_svc/prop_svc.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="svc_connect_dev_343ece48-2e7f-4464-8504-b138a06ab945"/>
+      <componentinstantiation id="svc_connect_dev_1">
+        <usagename>svc_connect_dev_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="prop_svc_26d8ef84-5b41-44a4-8133-769325865762"/>
+      <componentinstantiation id="prop_svc_1">
+        <usagename>prop_svc_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <connections>
+    <connectinterface id="connection_1">
+      <usesport>
+        <usesidentifier>prop_out</usesidentifier>
+        <componentinstantiationref refid="svc_connect_dev_1"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:CF/PropertySet:1.0</supportedidentifier>
+        <findby>
+          <namingservice name="prop_svc_1"/>
+        </findby>
+      </componentsupportedinterface>
+    </connectinterface>
+  </connections>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

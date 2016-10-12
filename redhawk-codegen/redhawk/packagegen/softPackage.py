@@ -21,24 +21,20 @@ import subprocess
 import os
 from ossie.parsers import spd
 
-OSSIEHOME=os.environ["OSSIEHOME"]
-
 class SoftPackage(object):
 
     def __init__(
             self,
             name,
             implementation,
-            outputDir="."):
+            outputDir=".",
+            ):
 
         self.name = name
         self.implementation = implementation
         self.outputDir = outputDir
-
         self.autotoolsDir = self.outputDir+'/'+self.name+'/'+self.implementation+'/'
-
-        self.mFiles = []
-
+        self.type = "";
         # Create empty objects that can be populated by classes inheriting
         # from SoftPackage
         self.spd = None
@@ -90,20 +86,23 @@ class SoftPackage(object):
             $ redhawk-codegen -m foo1.m -m foo2.m -f /home/user/bar.spd.xml
 
         """
+        self._preCodegen()
 
         codegenArgs = ["redhawk-codegen"]
-        for mFile in self.mFiles:
-            codegenArgs.append("-m")
-            codegenArgs.append(mFile)
 
         if force:
             codegenArgs.append("-f")
 
         if variant != "":
             codegenArgs.append("--variant=" + variant)
-
         codegenArgs.append(self.outputDir+"/"+self.name+"/"+self.name+".spd.xml")
         subprocess.call(codegenArgs)
+
+    def _preCodegen(self):
+        """
+        Override to perform additional tasks prior to code generation.
+        """
+        pass
 
     def _createWavedevContent(self, generator):
         # TODO: replace this with an XML template
@@ -121,7 +120,7 @@ class SoftPackage(object):
         Write the hidden .resource.wavedev file.
 
         '''
-
+        print self.name
         self.createOutputDirIfNeeded()
         outfile=open(self.outputDir+"/"+self.name+"/."+ self.name+".wavedev", 'w')
         outfile.write(self.wavedevContent)

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+rm -f config.cache
+[ -d m4 ] || mkdir m4
+autoreconf -i
+

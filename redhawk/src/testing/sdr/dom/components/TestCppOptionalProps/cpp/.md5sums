@@ -1,0 +1,11 @@
+be342afb8ff5fa5cbba1ff287261a8e4  TestCppOptionalProps_base.cpp
+c81d286f234f35d6bfd93e215fc5b2d9  main.cpp
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+a67163fadae1fb10a845c1e6b80593c2  TestCppOptionalProps_base.h
+f95b507340b3640554346edb3453b469  TestCppOptionalProps.cpp
+136c59e4f317ee1b07aea22f7c5e1dce  configure.ac
+4739ca9e509230f4cd04759783cf187f  Makefile.am
+a46de96cfbae71b724ad28787683b98a  struct_props.h
+afddee10d4398421ca5e03d997e798f8  Makefile.am.ide
+c8177da154cfb6fed9a0dcb84c372619  TestCppOptionalProps.h
+b87651ea3565402473fb088004430fbf  build.sh

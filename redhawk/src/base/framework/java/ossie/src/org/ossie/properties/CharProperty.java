@@ -26,6 +26,11 @@ public class CharProperty extends AbstractSimpleProperty<Character> {
         super(id, name, "char", value, mode, action, kinds);
     }
 
+    public CharProperty(String id, String name, Character value, Mode mode,
+                        Action action, Kind[] kinds, boolean optional) {
+        super(id, name, "char", value, mode, action, kinds, optional);
+    }
+
     protected Character extract(org.omg.CORBA.Any any) {
         try {
             return (Character)AnyUtils.convertAny(any);

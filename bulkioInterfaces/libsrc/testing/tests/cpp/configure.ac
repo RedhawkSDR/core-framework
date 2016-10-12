@@ -38,7 +38,7 @@ PKG_CHECK_MODULES([RH_DEPS], [ossie >= 1.7 omniORB4 >= 4.0.0])
 
 # set PKG_CONFIG_PATH to look at local xxx.pc files
 
-export PKG_CONFIG_PATH="../../../..:../../.."
+export PKG_CONFIG_PATH="../../../..:../../..":$PKG_CONFIG_PATH
 PKG_CHECK_MODULES([BIO], [ bulkio >= 1.0 bulkioInterfaces >= 1.8 ])
 
 AC_CORBA_ORB

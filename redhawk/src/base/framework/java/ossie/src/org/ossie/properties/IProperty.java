@@ -25,7 +25,7 @@ import org.omg.CORBA.Any;
 import CF.DevicePackage.InvalidCapacity;
 import CF.DevicePackage.InvalidState;
 
-public interface IProperty {
+public interface IProperty  {
     
     /**
      * Update the value of this property from an Any.
@@ -33,6 +33,18 @@ public interface IProperty {
      * @return
      */
     public void configure(Any value);
+    
+    /**
+     * Update the value of this property from an Any without triggering a callback.
+     *
+     * @return
+     */
+    public void configureNoCallbacks(Any value);
+    
+    /**
+     * Update the value of the property without callbacks
+     */
+    public void construct(Any value );
 
     /**
      * Attempt to allocate capacity from the property.
@@ -111,6 +123,13 @@ public interface IProperty {
      * @return whether or not the property is queryable
      */
     public boolean isQueryable();
+
+    /**
+     * This returns whether or not the property is new style property
+     * 
+     * @return whether or not the property is a property
+     */
+    public boolean isProperty();
     
     /**
      * This returns whether or not the property is configurable
@@ -118,7 +137,7 @@ public interface IProperty {
      * @return whether or not the property is configurable
      */
     public boolean isConfigurable();
-    
+
     /**
      * This returns whether or not the property is allocatable
      * 
@@ -132,4 +151,20 @@ public interface IProperty {
      * @return whether or not the property is eventable
      */
     public boolean isEventable();
+
+    /**
+     * Registers a listener for changes to this property's value.
+     */
+    public void addObjectListener( PropertyListener< Object > listener);
+    
+    /**
+     * Unregisters a listener for changes to this property's value.
+     */
+    public void removeObjectListener( PropertyListener< Object > listener);
+
+    /** This returns whether or not the property is set with a value
+     * 
+     * @return whether or not the property is set
+     */
+    public boolean isSet();
 }

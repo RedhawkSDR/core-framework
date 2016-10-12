@@ -27,7 +27,5 @@ class PythonPortMapper(PortMapper):
         pyport = {}
         pyport['pyname'] = python.identifier('port_'+port.name())
         pyport['constructor'] = generator.constructor(port)
-        pyport['start'] = generator.start()
-        pyport['stop'] = generator.stop()
         pyport['multiout'] = generator.supportsMultiOut()
         return pyport

@@ -22,4 +22,4 @@ if HAVE_JAVASUPPORT
   JAVADIR = framework/java
 endif
 
-SUBDIRS = framework/idl framework/python $(JAVADIR) parser framework include
+SUBDIRS = framework/idl framework/python $(JAVADIR) parser framework include plugin

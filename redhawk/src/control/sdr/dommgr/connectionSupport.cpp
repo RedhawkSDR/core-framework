@@ -35,6 +35,7 @@
 #include <ossie/ossieSupport.h>
 
 #include "connectionSupport.h"
+#include "Endpoints.h"
 
 using namespace ossie;
 
@@ -72,7 +73,7 @@ CORBA::Object_ptr ConnectionManager::resolveComponent(const std::string& identif
 {
     CORBA::Object_var target = _componentLookup->lookupComponentByInstantiationId(identifier);
     if (CORBA::is_nil(target)) {
-        target = _componentLookup->lookupDeviceManagerByInstantiationId(identifier);
+        target = _domainLookup->lookupDeviceManagerByInstantiationId(identifier);
     }
     if (CORBA::is_nil(target)) {
         LOG_DEBUG(ConnectionManager, "Could not locate component with instantiation id " << identifier);
@@ -207,7 +208,7 @@ DomainConnectionManager::DomainConnectionManager(DomainLookup* domainLookup,
                                                  ComponentLookup* componentLookup,
                                                  const std::string& domainName) :
     ConnectionManager(domainLookup, componentLookup, domainName),
-    _connections()
+    _connectionsByRequester()
 {
 }
 
@@ -233,26 +234,28 @@ CF::Device_ptr DomainConnectionManager::resolveDeviceUsedByApplication(const std
     return CF::Device::_nil();
 }
 
-void DomainConnectionManager::addConnection(const std::string& deviceManagerId, const Connection& connection)
+std::string DomainConnectionManager::addConnection(const std::string& deviceManagerId, const Connection& connection)
 {
     boost::scoped_ptr<ConnectionNode> connectionNode(ConnectionNode::ParseConnection(connection));
     if (!connectionNode.get()) {
         LOG_ERROR(DomainConnectionManager, "Skipping invalid connection for DeviceManager " << deviceManagerId);
-        return;
+        return "";
     }
 
     if (!connectionNode->connect(*this)) {
         if (!connectionNode->allowDeferral()) {
             LOG_ERROR(DomainConnectionManager, "Connection " << connectionNode->identifier << " is not resolvable");
-            return;
+            return "";
         }
     }
     
+    connectionNode.get()->setrequesterId(deviceManagerId);
     LOG_DEBUG(DomainConnectionManager, "Connection " << connectionNode->identifier << " could not be resolved, marked as pending");
-    addConnection_(deviceManagerId, *connectionNode);
+    std::string connectionRecordId = addConnection_(deviceManagerId, *connectionNode);
+    return connectionRecordId;
 }
 
-void DomainConnectionManager::restoreConnection(const std::string& deviceManagerId, ConnectionNode connection)
+std::string DomainConnectionManager::restoreConnection(const std::string& deviceManagerId, ConnectionNode connection)
 {
     if (connection.connected) {
         // Try to determine whether the connection is still active.
@@ -269,31 +272,68 @@ void DomainConnectionManager::restoreConnection(const std::string& deviceManager
         // DeviceManager has come online, it will register after the restoration completes.
     }
 
-    addConnection_(deviceManagerId, connection);
+    std::string connectionRecordId = addConnection_(deviceManagerId, connection);
+    return connectionRecordId;
 }
 
-void DomainConnectionManager::deviceManagerUnregistered(const std::string& deviceManagerId)
+void DomainConnectionManager::breakConnection(const std::string& connectionRecordId)
+{
+    boost::mutex::scoped_lock(_connectionMutex);
+    std::map< std::string, std::pair<std::string, std::string> >::iterator _gC_it = _globalConnections.find(connectionRecordId);
+    if (_gC_it == _globalConnections.end()) {
+        // connection already broken
+        throw (InvalidConnection("Connection already broken"));
+    }
+    std::string deviceManagerId = _gC_it->second.first;
+    std::string connectionId = _gC_it->second.second;
+    _globalConnections.erase(_gC_it);
+    ConnectionTable::iterator table = _connectionsByRequester.find(deviceManagerId);
+    if (table != _connectionsByRequester.end()) {
+        ConnectionList& connections = table->second;
+        for (ConnectionList::iterator ii = connections.begin(); ii != connections.end(); ++ii) {
+            if (ii->identifier == connectionId) {
+                ii->disconnect(_domainLookup);
+                connections.erase(ii);
+                return;
+            }
+        }
+    }
+}
+
+void DomainConnectionManager::deviceManagerUnregistered(const std::string& deviceManagerName)
 {
     TRACE_ENTER(DomainConnectionManager);
     boost::mutex::scoped_lock(_connectionLock);
-    ConnectionTable::iterator devMgr = _connections.find(deviceManagerId);
-    if (devMgr == _connections.end()) {
+    ConnectionTable::iterator devMgr = _connectionsByRequester.find(deviceManagerName);
+    if (devMgr == _connectionsByRequester.end()) {
         // DeviceManager has no connections.
         return;
     }
     ConnectionList& connectionList = devMgr->second;
-    LOG_TRACE(DomainConnectionManager, "Deleting " << connectionList.size() << " connection(s) from DeviceManager " << deviceManagerId);
+    LOG_TRACE(DomainConnectionManager, "Deleting " << connectionList.size() << " connection(s) from DeviceManager " << deviceManagerName);
     for (ConnectionList::iterator connection = connectionList.begin(); connection != connectionList.end(); ++connection) {
         connection->disconnect(_domainLookup);
+        try {
+            _globalConnections.erase(connection->connectionRecordId);
+        } catch ( ... ) {
+        }
     }
-    _connections.erase(devMgr);
+    _connectionsByRequester.erase(devMgr);
     TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::deviceRegistered(const std::string& deviceId)
 {
     TRACE_ENTER(DomainConnectionManager);
-    tryPendingConnections_(Endpoint::COMPONENT, deviceId);
+    try {
+        tryPendingConnections_(Endpoint::COMPONENT, deviceId);
+    } catch ( ossie::InvalidConnection &e ) {
+        std::ostringstream err;
+        err << "Invalid connection: "<<e.what();
+        LOG_WARN(DomainConnectionManager, err.str())
+    } catch ( ... ) {
+        LOG_WARN(DomainConnectionManager, "An error happened while trying to resolve the pending connections");
+    }
     TRACE_EXIT(DomainConnectionManager);
 }
 
@@ -307,7 +347,15 @@ void DomainConnectionManager::deviceUnregistered(const std::string& deviceId)
 void DomainConnectionManager::serviceRegistered(const std::string& serviceName)
 {
     TRACE_ENTER(DomainConnectionManager);
-    tryPendingConnections_(Endpoint::SERVICENAME, serviceName);
+    try {
+        tryPendingConnections_(Endpoint::SERVICENAME, serviceName);
+    } catch ( ossie::InvalidConnection &e ) {
+        std::ostringstream err;
+        err << "Invalid connection: "<<e.what();
+        LOG_WARN(DomainConnectionManager, err.str())
+    } catch ( ... ) {
+        LOG_WARN(DomainConnectionManager, "An error happened while trying to resolve the pending connections");
+    }
     TRACE_EXIT(DomainConnectionManager);
 }
 
@@ -318,18 +366,53 @@ void DomainConnectionManager::serviceUnregistered(const std::string& serviceName
     TRACE_EXIT(DomainConnectionManager);
 }
 
-const ConnectionTable& DomainConnectionManager::getConnections() const
+void DomainConnectionManager::applicationRegistered(const std::string& applicationId)
 {
-    return _connections;
+    TRACE_ENTER(DomainConnectionManager);
+    try {
+        tryPendingConnections_(Endpoint::APPLICATION, applicationId);
+    } catch ( ossie::InvalidConnection &e ) {
+        std::ostringstream err;
+        err << "Invalid connection: "<<e.what();
+        LOG_WARN(DomainConnectionManager, err.str())
+    } catch ( ... ) {
+        LOG_WARN(DomainConnectionManager, "An error happened while trying to resolve the pending connections");
+    }
+    TRACE_EXIT(DomainConnectionManager);
 }
 
-void DomainConnectionManager::addConnection_(const std::string& deviceManagerId, const ConnectionNode& connection)
+void DomainConnectionManager::applicationUnregistered(const std::string& applicationId)
+{
+    TRACE_ENTER(DomainConnectionManager);
+    breakConnections_(Endpoint::APPLICATION, applicationId);
+    TRACE_EXIT(DomainConnectionManager);
+}
+
+const ConnectionTable& DomainConnectionManager::getConnections() const
+{
+    return _connectionsByRequester;
+}
+
+std::string DomainConnectionManager::addConnection_(const std::string& requesterId, const ConnectionNode& connection)
 {
     boost::mutex::scoped_lock(_connectionMutex);
-    if (_connections.find(deviceManagerId) == _connections.end()) {
-        _connections[deviceManagerId] = ConnectionList();
+    if (_connectionsByRequester.find(requesterId) == _connectionsByRequester.end()) {
+        _connectionsByRequester[requesterId] = ConnectionList();
     }
-    _connections[deviceManagerId].push_back(connection);
+    std::string connectionRecordId = requesterId + std::string("_") + connection.identifier;
+    std::string orig_connectionRecordId = connectionRecordId;
+    int counter = 1;
+    while (_globalConnections.find(connectionRecordId) != _globalConnections.end()) {
+        std::ostringstream candidate;
+        candidate << orig_connectionRecordId<<"_"<<counter;
+        counter++;
+        connectionRecordId = candidate.str();
+    }
+    _globalConnections[connectionRecordId] = std::make_pair(requesterId, connection.identifier);
+    ConnectionNode tmpNode = connection;
+    tmpNode.setconnectionRecordId(connectionRecordId);
+    _connectionsByRequester[requesterId].push_back(tmpNode);
+    return connectionRecordId;
 }
 
 void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType type, const std::string& identifier)
@@ -337,7 +420,7 @@ void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType ty
     TRACE_ENTER(DomainConnectionManager);
 
     boost::mutex::scoped_lock lock(_connectionLock);
-    for (ConnectionTable::iterator devMgr = _connections.begin(); devMgr != _connections.end(); ++devMgr) {
+    for (ConnectionTable::iterator devMgr = _connectionsByRequester.begin(); devMgr != _connectionsByRequester.end(); ++devMgr) {
         // Go through the list of connections for each DeviceManager to check
         // for pending connections that have the given dependency, and attempt
         // to complete the connection.
@@ -349,8 +432,8 @@ void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType ty
             LOG_TRACE(DomainConnectionManager, "Resolving pending connection " << connection->identifier);
             if (!connection->connect(*this)) {
                 if (!connection->allowDeferral()) {
+                    // This connection needs to be removed from the list
                     LOG_ERROR(DomainConnectionManager, "Connection " << connection->identifier << " cannot be resolved");
-                    // TODO: Remove this connection.
                 } else {
                     LOG_TRACE(DomainConnectionManager, "Connection " << connection->identifier << " still has pending dependencies");
                 }
@@ -367,17 +450,30 @@ void DomainConnectionManager::breakConnections_(Endpoint::DependencyType type, c
     TRACE_ENTER(DomainConnectionManager);
 
     boost::mutex::scoped_lock lock(_connectionLock);
-    for (ConnectionTable::iterator devMgr = _connections.begin(); devMgr != _connections.end(); ++devMgr) {
+    for (ConnectionTable::iterator devMgr = _connectionsByRequester.begin(); devMgr != _connectionsByRequester.end(); ++devMgr) {
         // Go through the list of connections for each DeviceManager to check
-        // for connections that have the given dependency, and disconnect the
-        // uses side.
+        // for connections that have the given dependency
         ConnectionList& connections = devMgr->second;
-        for (ConnectionList::iterator connection = connections.begin(); connection != connections.end(); ++connection) {
-            if (!connection->connected || !connection->checkDependency(type, identifier)) {
-                continue;
+        for (ConnectionList::iterator connection = connections.begin(); connection != connections.end(); ) {
+            bool remove = false;
+            if (connection->checkDependency(type, identifier)) {
+                // If the connection does not allow deferral of this dependency
+                // (e.g, an application is going away), remove the connection
+                if (!connection->allowDeferral(type, identifier)) {
+                    remove = true;
+                }
+                // If the connection is still connected, break it
+                if (connection->connected) {
+                    LOG_TRACE(DomainConnectionManager, "Breaking connection " << connection->identifier);
+                    connection->disconnect(_domainLookup);
+                }
             }
-            LOG_TRACE(DomainConnectionManager, "Breaking connection " << connection->identifier);
-            connection->disconnect(_domainLookup);
+            if (remove) {
+                LOG_TRACE(DomainConnectionManager, "Removing connection " << connection->identifier << " that does not allow deferral");
+                connection = connections.erase(connection);
+            } else {
+                ++connection;
+            }
         }
     }
 
@@ -385,424 +481,22 @@ void DomainConnectionManager::breakConnections_(Endpoint::DependencyType type, c
 }
 
 
-namespace ossie {
-
-    class ComponentEndpoint : public Endpoint {
-    public:
-        ComponentEndpoint() { }
-
-        ComponentEndpoint(const std::string& identifier) :
-            identifier_(identifier)
-        {
-        }
-
-        ComponentEndpoint(const ComponentEndpoint& other):
-            Endpoint(other),
-            identifier_(other.identifier_)
-        {
-        }
-
-        virtual bool allowDeferral(void) { return true; }
-
-        virtual bool checkDependency(DependencyType type, const std::string& identifier) const
-        {
-            return ((type == COMPONENT) && (identifier == identifier_));
-        }
-
-        virtual ComponentEndpoint* clone() const
-        {
-            return new ComponentEndpoint(*this);
-        }
-
-    private:
-        virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
-        {
-            return manager.resolveComponent(identifier_);
-        }
-
 #if HAVE_BOOST_SERIALIZATION
-        friend class boost::serialization::access;
-        template <class Archive>
-        void serialize(Archive& ar, unsigned int version)
-        {
-            ar & boost::serialization::base_object<Endpoint>(*this);
-            ar & identifier_;
-        }
-#endif
-
-        std::string identifier_;
-    };
-
-
-    class DeviceLoadedEndpoint : public Endpoint {
-    public:
-        DeviceLoadedEndpoint() { }
-
-        DeviceLoadedEndpoint(const std::string& identifier) :
-            identifier_(identifier)
-        {
-        }
-
-        DeviceLoadedEndpoint(const DeviceLoadedEndpoint& other):
-            Endpoint(other),
-            identifier_(other.identifier_)
-        {
-        }
-
-        virtual bool allowDeferral(void) { return false; }
-
-        virtual bool checkDependency(DependencyType type, const std::string& identifier) const
-        {
-            // NOTE: Presently, this endpoint type will only appear in an
-            // application context, where we do not need to determine whether
-            // it depends on a given object.
-            return false;
-        }
-
-        virtual DeviceLoadedEndpoint* clone() const
-        {
-            return new DeviceLoadedEndpoint(*this);
-        }
-
-    private:
-        virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
-        {
-            return manager.resolveDeviceThatLoadedThisComponentRef(identifier_);
-        }
-
-#if HAVE_BOOST_SERIALIZATION
-        friend class boost::serialization::access;
-        template <class Archive>
-        void serialize(Archive& ar, unsigned int version)
-        {
-            ar & boost::serialization::base_object<Endpoint>(*this);
-            ar & identifier_;
-        }
-#endif
-
-        std::string identifier_;
-    };
-
-
-    class DeviceUsedEndpoint : public Endpoint {
-    public:
-        DeviceUsedEndpoint() { }
-
-        DeviceUsedEndpoint(const std::string& componentIdentifier, const std::string& usesIdentifier) :
-            componentIdentifier_(componentIdentifier),
-            usesIdentifier_(usesIdentifier)
-        {
-        }
-
-        DeviceUsedEndpoint(const DeviceUsedEndpoint& other):
-            Endpoint(other),
-            componentIdentifier_(other.componentIdentifier_),
-            usesIdentifier_(other.usesIdentifier_)
-        {
-        }
-
-        virtual bool allowDeferral(void) { return false; }
-
-        virtual bool checkDependency(DependencyType type, const std::string& identifier) const
-        {
-            // NOTE: Presently, this endpoint type will only appear in an
-            // application context, where we do not need to determine whether
-            // it depends on a given object.
-            return false;
-        }
-
-        virtual DeviceUsedEndpoint* clone() const
-        {
-            return new DeviceUsedEndpoint(*this);
-        }
-
-    private:
-        virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
-        {
-            return manager.resolveDeviceUsedByThisComponentRef(componentIdentifier_, usesIdentifier_);
-        }
-
-#if HAVE_BOOST_SERIALIZATION
-        friend class boost::serialization::access;
-        template <class Archive>
-        void serialize(Archive& ar, unsigned int version)
-        {
-            ar & boost::serialization::base_object<Endpoint>(*this);
-            ar & componentIdentifier_;
-            ar & usesIdentifier_;
-        }
-#endif
-
-        std::string componentIdentifier_;
-        std::string usesIdentifier_;
-    };
-
-    class ApplicationUsesDeviceEndpoint : public Endpoint {
-    public:
-        ApplicationUsesDeviceEndpoint() { }
-
-        ApplicationUsesDeviceEndpoint(const std::string usesIdentifier) :
-            usesIdentifier_(usesIdentifier)
-        {
-        }
-
-        ApplicationUsesDeviceEndpoint(const ApplicationUsesDeviceEndpoint& other) :
-            Endpoint(other),
-            usesIdentifier_(other.usesIdentifier_)
-        {
-        }
-
-        virtual bool allowDeferral(void) { return false; }
-
-        virtual bool checkDependency(DependencyType type, const std::string& identifier) const
-        {
-            // NOTE: Presently, this endpoint type will only appear in an
-            // application context, where we do not need to determine whether
-            // it depends on a given object.
-            return false;
-        }
-
-        virtual ApplicationUsesDeviceEndpoint* clone() const
-        {
-            return new ApplicationUsesDeviceEndpoint(*this);
-        }
-
-    private:
-        virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
-        {
-            return manager.resolveDeviceUsedByApplication(usesIdentifier_);
-        }
-
-#if HAVE_BOOST_SERIALIZATION
-        friend class boost::serialization::access;
-        template <class Archive>
-        void serialize(Archive& ar, unsigned int version)
-        {
-            ar & boost::serialization::base_object<Endpoint>(*this);
-            ar & usesIdentifier_;
-        }
-#endif
-
-        std::string usesIdentifier_;
-    };
-
-    class FindByNamingServiceEndpoint : public Endpoint {
-    public:
-        FindByNamingServiceEndpoint() { }
-
-        FindByNamingServiceEndpoint(const std::string& name) :
-            name_(name)
-        {
-        }
-
-        FindByNamingServiceEndpoint(const FindByNamingServiceEndpoint& other):
-            Endpoint(other),
-            name_(other.name_)
-        {
-        }
-
-        virtual bool allowDeferral(void) { return false; }
-
-        virtual bool checkDependency(DependencyType type, const std::string& identifier) const
-        {
-            // NOTE: There is no simple way to map a namingservice reference
-            // to a given object in the domain, so assume that there is no
-            // relationship.
-            return false;
-        }
-
-        virtual FindByNamingServiceEndpoint* clone() const
-        {
-            return new FindByNamingServiceEndpoint(*this);
-        }
-
-    private:
-        virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
-        {
-            return manager.resolveFindByNamingService(name_);
-        }
-
-#if HAVE_BOOST_SERIALIZATION
-        friend class boost::serialization::access;
-        template <class Archive>
-        void serialize(Archive& ar, unsigned int version)
-        {
-            ar & boost::serialization::base_object<Endpoint>(*this);
-            ar & name_;
-        }
-#endif
-
-        std::string name_;
-    };
-
-
-    class FindByDomainFinderEndpoint : public Endpoint {
-    public:
-        FindByDomainFinderEndpoint() { }
-
-        FindByDomainFinderEndpoint(const std::string& type, const std::string& name) :
-            type_(type),
-            name_(name)
-        {
-        }
-
-        FindByDomainFinderEndpoint(const FindByDomainFinderEndpoint& other):
-            Endpoint(other),
-            type_(other.type_),
-            name_(other.name_)
-        {
-        }
-
-        virtual bool allowDeferral(void) { return true; }
-
-        virtual bool checkDependency(DependencyType type, const std::string& identifier) const
-        {
-            return ((type == Endpoint::SERVICENAME) && (identifier == name_));
-        }
-
-        virtual FindByDomainFinderEndpoint* clone() const
-        {
-            return new FindByDomainFinderEndpoint(*this);
-        }
-
-        std::string type() const
-        {
-            return type_;
-        }
-
-        std::string name() const
-        {
-            return name_;
-        }
-
-    private:
-        virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
-        {
-            return manager.resolveDomainObject(type_, name_);
-        }
-
-#if HAVE_BOOST_SERIALIZATION
-        friend class boost::serialization::access;
-        template <class Archive>
-        void serialize(Archive& ar, unsigned int version)
-        {
-            ar & boost::serialization::base_object<Endpoint>(*this);
-            ar & type_;
-            ar & name_;
-        }
-#endif
-
-        std::string type_;
-        std::string name_;
-    };
-
-
-    class PortEndpoint : public Endpoint {
-
-        ENABLE_LOGGING;
-
-    public:
-        PortEndpoint() { }
-
-        PortEndpoint(Endpoint* supplier, const std::string& name) :
-            supplier_(supplier),
-            name_(name),
-            invalidPort_(false)
-        {
-            assert(supplier != 0);
-        }
-
-        PortEndpoint(const PortEndpoint& other) :
-            Endpoint(other),
-            supplier_(other.supplier_->clone()),
-            name_(other.name_),
-            invalidPort_(other.invalidPort_)
-        {
-        }
-
-        virtual bool allowDeferral(void)
-        {
-            // If the port is known to be invalid, we will never be able to resolve it.
-            if (invalidPort_) {
-                return false;
-            }
-
-            // Otherwise, it's up to the port supplier.
-            return supplier_->allowDeferral();
-        }
-
-        virtual bool checkDependency(DependencyType type, const std::string& identifier) const
-        {
-            // Defer to the port supplier.
-            return supplier_->checkDependency(type, identifier);
-        }
-
-        virtual PortEndpoint* clone() const
-        {
-            return new PortEndpoint(*this);
-        }
-
-    private:
-        virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
-        {
-            CORBA::Object_var supplierObject = supplier_->resolve(manager);
-            CF::PortSupplier_var portSupplier = ossie::corba::_narrowSafe<CF::PortSupplier>(supplierObject);
-            if (!CORBA::is_nil(portSupplier)) {
-                try {
-                    return portSupplier->getPort(name_.c_str());
-                } catch (const CF::PortSupplier::UnknownPort&) {
-                    LOG_ERROR(PortEndpoint, "Port supplier reports no port with name " << name_);
-                } CATCH_LOG_ERROR(PortEndpoint, "Failure in getPort");
-        
-                invalidPort_ = true;
-            } else {
-                LOG_DEBUG(PortEndpoint, "Unable to resolve port supplier");
-            }
-            return CORBA::Object::_nil();
-        }
-
-        virtual void release_()
-        {
-            // Pass along the release to the port supplier.
-            supplier_->release();
-
-            // Clear "invalid port" status, since a future resolution could
-            // yield a new port supplier that has a port with the given name.
-            invalidPort_ = false;
-        }
-
-#if HAVE_BOOST_SERIALIZATION
-        friend class boost::serialization::access;
-        template <class Archive>
-        void serialize(Archive& ar, unsigned int version)
-        {
-            ar & boost::serialization::base_object<Endpoint>(*this);
-            ar & supplier_;
-            ar & name_;
-        }
-#endif
-
-        boost::scoped_ptr<Endpoint> supplier_;
-        std::string name_;
-        bool invalidPort_;
-    };
-
-    PREPARE_LOGGING(PortEndpoint);
-    
-};
-
-#if HAVE_BOOST_SERIALIZATION
+EXPORT_CLASS_SERIALIZATION(ApplicationEndpoint);
 EXPORT_CLASS_SERIALIZATION(ComponentEndpoint);
 EXPORT_CLASS_SERIALIZATION(DeviceLoadedEndpoint);
 EXPORT_CLASS_SERIALIZATION(DeviceUsedEndpoint);
 EXPORT_CLASS_SERIALIZATION(ApplicationUsesDeviceEndpoint);
 EXPORT_CLASS_SERIALIZATION(FindByDomainFinderEndpoint);
+EXPORT_CLASS_SERIALIZATION(ServiceEndpoint);
+EXPORT_CLASS_SERIALIZATION(EventChannelEndpoint);
 EXPORT_CLASS_SERIALIZATION(FindByNamingServiceEndpoint);
 EXPORT_CLASS_SERIALIZATION(PortEndpoint);
 #endif
 
 
 PREPARE_LOGGING(Endpoint);
+PREPARE_LOGGING(PortEndpoint);
 
 Endpoint* Endpoint::ParsePortSupplier(const Port* port)
 {
@@ -872,12 +566,31 @@ Endpoint* Endpoint::ParseFindBy(const FindBy* findby)
         assert(findby->getFindByDomainFinderName() != 0);
         std::string type = findby->getFindByDomainFinderType();
         std::string name = findby->getFindByDomainFinderName();
+        if (type == "servicename") {
+            LOG_TRACE(Endpoint, "ServiceEndpoint name=" << name);
+            return new ServiceEndpoint(name);
+        } else if (type == "eventchannel") {
+            LOG_TRACE(Endpoint, "EventChannelEndpoint name=" << name);
+            return new EventChannelEndpoint(name);
+        }
         LOG_TRACE(Endpoint, "FindByDomainFinderEndpoint type=" << type << " name=" << name);
         return new FindByDomainFinderEndpoint(type, name);
     } else {
         LOG_ERROR(Endpoint, "Unknown findby type");
     }
     return 0;
+}
+
+CF::ConnectionManager::EndpointStatusType Endpoint::toEndpointStatusType() const
+{
+    CF::ConnectionManager::EndpointStatusType status;
+    status.endpointObject = CORBA::Object::_duplicate(object_);
+    status.portName = "";
+    if (!CORBA::is_nil(object_)) {
+        status.repositoryId = ossie::corba::mostDerivedRepoId(status.endpointObject);
+    }
+    status.entityId = CORBA::string_dup(identifier__.c_str());
+    return status;
 }
 
 bool Endpoint::isResolved()
@@ -897,6 +610,16 @@ CORBA::Object_ptr Endpoint::resolve(ConnectionManager& manager)
 CORBA::Object_ptr Endpoint::object()
 {
     return object_;
+}
+
+std::string Endpoint::getIdentifier()
+{
+    return identifier__;
+}
+
+void Endpoint::setIdentifier(std::string identifier)
+{
+    identifier__ = identifier;
 }
 
 void Endpoint::release()
@@ -932,13 +655,15 @@ ConnectionNode* ConnectionNode::ParseConnection(const Connection& connection)
         connectionId = ossie::generateUUID();
     }
 
-    return new ConnectionNode(usesEndpoint.release(), providesEndpoint.release(), connectionId);
+    return new ConnectionNode(usesEndpoint.release(), providesEndpoint.release(), connectionId, "", "");
 }
 
-ConnectionNode::ConnectionNode(Endpoint* uses_, Endpoint* provides_, const std::string& identifier_) :
+ConnectionNode::ConnectionNode(Endpoint* uses_, Endpoint* provides_, const std::string& identifier_, const std::string& requesterId_, const std::string& connectionRecordId_) :
     uses(uses_),
     provides(provides_),
     identifier(identifier_),
+    requesterId(requesterId_),
+    connectionRecordId(connectionRecordId_),
     connected(false)
 {
     assert(uses);
@@ -949,6 +674,8 @@ ConnectionNode::ConnectionNode(const ConnectionNode& other) :
     uses(other.uses->clone()),
     provides(other.provides->clone()),
     identifier(other.identifier),
+    requesterId(other.requesterId),
+    connectionRecordId(other.connectionRecordId),
     connected(other.connected)
 {
 }
@@ -975,19 +702,22 @@ bool ConnectionNode::connect(ConnectionManager& manager)
 
     if (CORBA::is_nil(usesObject) || CORBA::is_nil(providesPort)) {
         LOG_TRACE(ConnectionNode, "Unable to establish a connection because one or more objects cannot be resolved (i.e.: cannot create an event channel or device is not available)");
-        if (uses->allowDeferral() && provides->allowDeferral()) {
+        if (allowDeferral()) {
             LOG_DEBUG(ConnectionNode, "Connection is deferred to a later date");
             return false;
+        } else {
+            if (!uses->isResolved() && !uses->allowDeferral()) {
+                throw InvalidConnection("Uses endpoint for "+identifier+" cannot be resolved or deferred");
+            } else {
+                throw InvalidConnection("Provides endpoint for "+identifier+" cannot be resolved or deferred");
+            }
         }
-        //throw InvalidConnection("Connection cannot be deferred");
-        return false;
     }
 
     CF::Port_var usesPort = ossie::corba::_narrowSafe<CF::Port>(usesObject);
     if (CORBA::is_nil(usesPort)) {
         LOG_ERROR(ConnectionNode, "Uses port is not a CF::Port");
-        //throw InvalidConnection("Uses port is not a CF::Port");
-        return false;
+        throw InvalidConnection("Uses port is not a CF::Port");
     }
 
     try {
@@ -995,15 +725,16 @@ bool ConnectionNode::connect(ConnectionManager& manager)
         connected = true;
         return true;
     } catch (const CF::Port::InvalidPort& ip) {
-        LOG_ERROR(ConnectionNode, "Invalid port: " << ip.msg);
-        //throw InvalidConnection(std::string("Invalid port: ") + ip.msg);
+        std::ostringstream err;
+        err << "Invalid port: " << ip.msg;
+        LOG_ERROR(ConnectionNode, err.str());
+        throw InvalidConnection(err.str());
     } catch (const CF::Port::OccupiedPort& op) {
         LOG_ERROR(ConnectionNode, "Port is occupied");
-        //throw InvalidConnection("Port is occupied");
+        throw InvalidConnection("Port is occupied");
     } CATCH_LOG_ERROR(ConnectionNode, "Port connection failed for connection " << identifier);
 
-    //throw InvalidConnection("Unknown error");
-    return false;
+    throw InvalidConnection("Unknown error");
 }
 
 void ConnectionNode::disconnect(DomainLookup* domainLookup)
@@ -1049,6 +780,19 @@ bool ConnectionNode::allowDeferral()
     }
 
     if (!(provides->isResolved() || provides->allowDeferral())) {
+        return false;
+    }
+
+    return true;
+}
+
+bool ConnectionNode::allowDeferral(Endpoint::DependencyType type, const std::string& identifier)
+{
+    if (uses->checkDependency(type, identifier) && !uses->allowDeferral()) {
+        return false;
+    }
+
+    if (provides->checkDependency(type, identifier) && !provides->allowDeferral()) {
         return false;
     }
 

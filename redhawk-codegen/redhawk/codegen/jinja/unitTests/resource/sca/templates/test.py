@@ -18,74 +18,54 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #}
 #!/usr/bin/env python
-#% set resourceName = component.name
 
-import unittest
 import ossie.utils.testing
-import os
-from omniORB import any
+from ossie.utils import sb
 
-class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
-    """Test for all resource implementations in ${resourceName}"""
+class ${component.artifacttype|capitalize}Tests(ossie.utils.testing.RHTestCase):
+    # Path to the SPD file, relative to this file. This must be set in order to
+    # launch the ${component.artifacttype}.
+    SPD_FILE = '${component.profile.spd|relpath(generator.getOutputDir())}'
 
-    def testScaBasicBehavior(self):
+    # setUp is run before every function preceded by "test" is executed
+    # tearDown is run after every function preceded by "test" is executed
+    
+    # self.comp is a ${component.artifacttype} using the sandbox API
+    # to create a data source, the package sb contains data sources like DataSource or FileSource
+    # to create a data sink, there are sinks like DataSink and FileSink
+    # to connect the component to get data from a file, process it, and write the output to a file, use the following syntax:
+    #  src = sb.FileSource('myfile.dat')
+    #  snk = sb.DataSink()
+    #  src.connect(self.comp)
+    #  self.comp.connect(snk)
+    #  sb.start()
+    #
+    # components/sources/sinks need to be started. Individual components or elements can be started
+    #  src.start()
+    #  self.comp.start()
+    #
+    # every component/elements in the sandbox can be started
+    #  sb.start()
+
+    def setUp(self):
+        # Launch the ${component.artifacttype}, using the selected implementation
+        self.comp = sb.launch(self.spd_file, impl=self.impl)
+    
+    def tearDown(self):
+        # Clean up all sandbox artifacts created during test
+        sb.release()
+
+    def testBasicBehavior(self):
+#{% if component is service %}
         #######################################################################
-        # Launch the resource with the default execparams
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        self.launch(execparams)
-
-        #######################################################################
-        # Verify the basic state of the resource
+        # Check that service launched as expected
         self.assertNotEqual(self.comp, None)
-        self.assertEqual(self.comp.ref._non_existent(), False)
-
-        self.assertEqual(self.comp.ref._is_a("IDL:CF/Resource:1.0"), True)
-
-        #######################################################################
-        # Validate that query returns all expected parameters
-        # Query of '[]' should return the following set of properties
-        expectedProps = []
-        expectedProps.extend(self.getPropertySet(kinds=("configure", "execparam"), modes=("readwrite", "readonly"), includeNil=True))
-        expectedProps.extend(self.getPropertySet(kinds=("allocate",), action="external", includeNil=True))
-        props = self.comp.query([])
-        props = dict((x.id, any.from_any(x.value)) for x in props)
-        # Query may return more than expected, but not less
-        for expectedProp in expectedProps:
-            self.assertEquals(props.has_key(expectedProp.id), True)
-
-        #######################################################################
-        # Verify that all expected ports are available
-        for port in self.scd.get_componentfeatures().get_ports().get_uses():
-            port_obj = self.comp.getPort(str(port.get_usesname()))
-            self.assertNotEqual(port_obj, None)
-            self.assertEqual(port_obj._non_existent(), False)
-            self.assertEqual(port_obj._is_a("IDL:CF/Port:1.0"),  True)
-
-        for port in self.scd.get_componentfeatures().get_ports().get_provides():
-            port_obj = self.comp.getPort(str(port.get_providesname()))
-            self.assertNotEqual(port_obj, None)
-            self.assertEqual(port_obj._non_existent(), False)
-            self.assertEqual(port_obj._is_a(port.get_repid()),  True)
-
+#{% else %}
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         self.comp.start()
         self.comp.stop()
-
-        #######################################################################
-        # Simulate regular resource shutdown
-        self.comp.releaseObject()
-
-#% block additionalTests
-#% endblock
-
-    # TODO Add additional tests here
-    #
-    # See:
-    #   ossie.utils.bulkio.bulkio_helpers,
-    #   ossie.utils.bluefile.bluefile_helpers
-    # for modules that will assist with testing resource with BULKIO ports
+#{% endif %}
 
 if __name__ == "__main__":
-    ossie.utils.testing.main("../${resourceName}.spd.xml") # By default tests all implementations
+    ossie.utils.testing.main() # By default tests all implementations

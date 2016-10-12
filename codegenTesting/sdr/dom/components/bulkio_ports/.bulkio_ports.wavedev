@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="ASCII"?>
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="java">
+    <value outputDir="java" template="gov.redhawk.ide.codegen.jet.java.JavaGenerator" generatorId="gov.redhawk.ide.codegen.jet.java.JavaGenerator">
+      <properties id="java_package" value="bulkio_ports"/>
+      <properties id="use_jni" value="TRUE"/>
+      <generatedFileCRCs crc="3068226435" file="reconf"/>
+      <generatedFileCRCs crc="3591683346" file="startJava.sh"/>
+      <generatedFileCRCs crc="840657536" file="bulkio_ports_java_impl1.spec"/>
+      <generatedFileCRCs crc="1663114138" file="configure.ac"/>
+      <generatedFileCRCs crc="3516996273" file="Makefile.am"/>
+      <generatedFileCRCs crc="3545330783" file="../bulkio_ports.spec"/>
+    </value>
+  </implSettings>
+  <implSettings key="cpp">
+    <value outputDir="cpp" template="gov.redhawk.ide.codegen.jet.cplusplus.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.cplusplus.CplusplusGenerator">
+      <generatedFileCRCs crc="3068226435" file="reconf"/>
+      <generatedFileCRCs crc="2134669141" file="port_impl.cpp"/>
+      <generatedFileCRCs crc="3416800062" file="bulkio_ports_cpp_impl1_base.h"/>
+      <generatedFileCRCs crc="3920745921" file="bulkio_ports_cpp_impl1.h"/>
+      <generatedFileCRCs crc="581096937" file="build.sh"/>
+      <generatedFileCRCs crc="830006583" file="configure.ac"/>
+      <generatedFileCRCs crc="3316126545" file="port_impl.h"/>
+      <generatedFileCRCs crc="3667171838" file="main.cpp"/>
+      <generatedFileCRCs crc="4037455673" file="struct_props.h"/>
+      <generatedFileCRCs crc="3927820817" file="bulkio_ports_cpp_impl1.spec"/>
+      <generatedFileCRCs crc="1266972356" file="bulkio_ports_cpp_impl1_base.cpp"/>
+      <generatedFileCRCs crc="1735723360" file="bulkio_ports_cpp_impl1.cpp"/>
+      <generatedFileCRCs crc="3366463694" file="Makefile.am"/>
+      <generatedFileCRCs crc="3545330783" file="../bulkio_ports.spec"/>
+    </value>
+  </implSettings>
+  <implSettings key="python">
+    <value outputDir="python" template="gov.redhawk.ide.codegen.jet.python.pattern.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.python.PythonGenerator">
+      <generatedFileCRCs crc="3068226435" file="reconf"/>
+      <generatedFileCRCs crc="2748505786" file="bulkio_ports_python_impl1.py"/>
+      <generatedFileCRCs crc="2479769301" file="bulkio_ports_python_impl1.spec"/>
+      <generatedFileCRCs crc="1372141323" file="bulkio_ports_python_impl1_base.py"/>
+      <generatedFileCRCs crc="3284081258" file="configure.ac"/>
+      <generatedFileCRCs crc="2157942488" file="Makefile.am"/>
+      <generatedFileCRCs crc="3545330783" file="../bulkio_ports.spec"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>

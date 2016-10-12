@@ -25,26 +25,18 @@
 #include <jni.h>
 
 #include "class.h"
+#include "string.h"
 
 namespace omnijni {
 
-    inline jobject toJObject (const char* str, JNIEnv* env)
-    {
-        return env->NewStringUTF(str);
-    }
-
     inline void fromJObject (_CORBA_String_element str, JNIEnv* env, jobject obj)
     {
-        jstring jstr = (jstring)obj;
-        const char* utf = env->GetStringUTFChars(jstr, NULL);
-        str = utf;
-        env->ReleaseStringUTFChars(jstr, utf);
+        str = stringCopy(env, (jstring)obj);
     }
 
     template <class T, class T_Helper>
     void fromJObject(_CORBA_ObjRef_Element<T,T_Helper> member, JNIEnv* env, jobject obj)
     {
-        // TODO
     }
 
     template <class T>

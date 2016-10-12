@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>331</height>
+    <width>658</width>
+    <height>464</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,7 +15,27 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QListWidget" name="nodeListWidget"/>
+    <widget class="QTreeWidget" name="nodeTreeWidget">
+     <property name="rootIsDecorated">
+      <bool>false</bool>
+     </property>
+     <property name="uniformRowHeights">
+      <bool>true</bool>
+     </property>
+     <property name="sortingEnabled">
+      <bool>true</bool>
+     </property>
+     <column>
+      <property name="text">
+       <string>Name</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>DCD File</string>
+      </property>
+     </column>
+    </widget>
    </item>
    <item>
     <layout class="QGridLayout" name="gridLayout">
@@ -141,23 +161,23 @@
    </hints>
   </connection>
   <connection>
-   <sender>nodeListWidget</sender>
-   <signal>currentRowChanged(int)</signal>
+   <sender>nodeTreeWidget</sender>
+   <signal>itemSelectionChanged()</signal>
    <receiver>DeviceLauncherDialog</receiver>
-   <slot>selectionChanged(int)</slot>
+   <slot>selectionChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>216</x>
-     <y>95</y>
+     <x>328</x>
+     <y>181</y>
     </hint>
     <hint type="destinationlabel">
-     <x>359</x>
-     <y>268</y>
+     <x>328</x>
+     <y>231</y>
     </hint>
    </hints>
   </connection>
  </connections>
  <slots>
-  <slot>selectionChanged(int)</slot>
+  <slot>selectionChanged()</slot>
  </slots>
 </ui>

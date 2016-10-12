@@ -67,6 +67,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT componentinstantiation
 	( usagename?
 	, componentproperties?
+        , affinity?
+        , loggingconfig?
 	, findcomponent?
 	)>
 <!ATTLIST componentinstantiation
@@ -74,6 +76,17 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	startorder	CDATA	#IMPLIED>
 
 <!ELEMENT usagename (#PCDATA)>
+
+<!ELEMENT loggingconfig (#PCDATA)>
+<!ATTLIST loggingconfig 
+          level CDATA #IMPLIED >
+
+<!ELEMENT affinity
+	( simpleref
+	| simplesequenceref
+	| structref
+	| structsequenceref
+	)+ >
 
 <!ELEMENT componentproperties 
 	( simpleref
@@ -125,7 +138,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	refid		CDATA	#REQUIRED>
 
 <!ELEMENT structref
-	(simpleref+        
+	( (simpleref | simplesequenceref)+       
 	)>
 <!ATTLIST structref
 	refid		CDATA	#REQUIRED>
@@ -137,7 +150,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	refid		CDATA	#REQUIRED>
 
 <!ELEMENT structvalue
-	(simpleref+
+	( (simpleref | simplesequenceref)+
 	)>
 		
 <!ELEMENT values

@@ -85,6 +85,7 @@ namespace ossie
     std::string complexAnyToString(const CORBA::Any& value);
     std::string simpleAnyToString(const CORBA::Any& value);
     std::string any_to_string(const CORBA::Any& value);
+    std::vector<std::string> any_to_strings(const CORBA::Any& value);
 
     CORBA::Any::from_boolean strings_to_boolean(const std::vector<std::string> &values);
     CORBA::Any::from_char strings_to_char(const std::vector<std::string> &values);
@@ -116,6 +117,7 @@ namespace ossie
     CORBA::TCKind       getTypeKind(std::string type);
     CORBA::TypeCode_ptr getTypeCode(std::string type);
     CORBA::TypeCode_ptr getTypeCode(CORBA::TCKind kind, std::string structName);
+    CF::Properties      getNonNilProperties(CF::Properties& originalProperties);
     CF::Properties      getNonNilConfigureProperties(CF::Properties& originalProperties);
 }
 

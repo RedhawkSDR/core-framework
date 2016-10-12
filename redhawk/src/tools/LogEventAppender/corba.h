@@ -390,7 +390,7 @@
 
       };
 
-      /**
+      /*
        * Allow for member functions to receive connect/disconnect notifications
        */
       template <class T>
@@ -421,7 +421,7 @@
 	  MemberFn func_;
 	};
 
-      /**
+      /*
        * Wrap Callback functions as ConnectionEventListener objects
        */
       class StaticDataArrivedListener : public DataArrivedListener

@@ -32,6 +32,7 @@ import traceback
 import StringIO
 import types
 import struct
+import inspect
 
 # From section 1.3 of the CORBA Python language mapping
 __TYPE_MAP = {
@@ -174,7 +175,13 @@ def to_pyvalue(data, type_):
             if type_.find("complex") == 0:
                 data = _toPyComplex(data, type_)
             else:
-                data = pytype(data)
+               if pytype in [int, long] :
+                  if type(data) in (str,unicode):
+                      data = pytype(data,0)
+                  else:
+                      data = pytype(data)
+               else:
+                  data = pytype(data)
     return data
 
 def to_xmlvalue(data, type_):
@@ -245,6 +252,16 @@ def to_tc_value(data, type_):
     elif __TYPE_MAP.has_key(type_):
         # If the typecode is known, use that
         pytype, tc = __TYPE_MAP[type_]
+
+        # If the value is already an Any, check its type; if it's already the
+        # right type, nothing needs to happen, otherwise extract the value and
+        # convert
+        if isinstance(data, CORBA.Any):
+            if data.typecode().equal(tc):
+                return data
+            else:
+                data = data.value()
+
         # Convert to the correct Python type, if necessary
         if not isinstance(data, pytype):
             data = to_pyvalue(data, type_)
@@ -263,6 +280,17 @@ def struct_fields(value):
     fields = getattr(clazz, '__fields', None)
     if fields is None:
         fields = [p for p in clazz.__dict__.itervalues() if isinstance(p, simple_property)]
+        fields += [p for p in clazz.__dict__.itervalues() if isinstance(p, simpleseq_property)]
+    members = inspect.getmembers(value)
+    for member in members:
+        if isinstance(member[1], simple_property) or isinstance(member[1], simpleseq_property):
+            foundMatch = False
+            for field in fields:
+                if member[1].id_ == field.id_:
+                    foundMatch = True
+                    break
+            if not foundMatch:
+                fields += [member[1]]
     return fields
 
 def struct_values(value):
@@ -298,11 +326,14 @@ def struct_from_props(value, structdef):
 
     # For each field, try to set the value
     for name, attr in structdef.__dict__.items():
-        if type(attr) is not simple_property:
+        if type(attr) is not simple_property and type(attr) is not simpleseq_property:
             continue
+        if attr.optional == True:
+            if attr.id_ not in newvalues:
+                newvalues[attr.id_] = None
         try:
             value = newvalues[attr.id_]
-        except KeyError:
+        except: 
             raise ValueError, "provided value is missing element " + attr.id_
         else:
             attr.set(structval, value)
@@ -502,7 +533,7 @@ class _property(object):
                  units=None, 
                  mode="readwrite", 
                  action="external", 
-                 kinds=("configure",), 
+                 kinds=("configure","property"), 
                  description=None, 
                  fget=None, 
                  fset=None, 
@@ -569,7 +600,6 @@ class _property(object):
         # By default operators are not supported
         if operator != None:
             raise AttributeError, "this property doesn't support configure/query operators"
-
         value = self._query(obj)
 
         # Only try to do conversion to CORBA Any if the value is not already
@@ -579,7 +609,7 @@ class _property(object):
         else:
             return self._toAny(value)
 
-    def configure(self, obj, value, operator=None):
+    def construct(self, obj, value ):
         # By default operators are not supported
         if operator != None:
             raise AttributeError, "this property doesn't support configure/query operators"
@@ -588,7 +618,18 @@ class _property(object):
         # should be a class instance, not a dictionary).
         value = self._fromAny(value)
         self.checkValue(value, obj)
-        self._configure(obj, value)
+        self._configure(obj, value, disableCallbacks=True )
+
+    def configure(self, obj, value, operator=None, disableCallbacks=False):
+        # By default operators are not supported
+        if operator != None:
+            raise AttributeError, "this property doesn't support configure/query operators"
+
+        # Convert the value to its proper representation (e.g. structs
+        # should be a class instance, not a dictionary).
+        value = self._fromAny(value)
+        self.checkValue(value, obj)
+        self._configure(obj, value, disableCallbacks=disableCallbacks)
 
     def _checkBoundsOfSimpleProperty(self, value):
         goodValue = True
@@ -703,15 +744,19 @@ class _property(object):
 
     # Generic behavior
     def isConfigurable(self):
-        configurable = ("configure" in self.kinds)
+        configurable = ("configure" in self.kinds) or self.isProperty()
         return (configurable and self.isWritable())
+
+    # Generic behavior
+    def isProperty(self):
+        return ("property" in self.kinds)
 
     def isSendEventChange(self):
         iseventchange = ("event" in self.kinds)
-        return (iseventchange and (("configure" in self.kinds) or (("allocation" in self.kinds) and ("external" == self.action))))
+        return (iseventchange and (("configure" in self.kinds) or ("property" in self.kinds) or (("allocation" in self.kinds) and ("external" == self.action))))
 
     def isQueryable(self):
-        queryable = (("configure" in self.kinds) or ("execparam" in self.kinds) or (("allocation" in self.kinds) and ("external" == self.action)))
+        queryable = (("configure" in self.kinds) or ("property" in self.kinds) or ("execparam" in self.kinds) or (("allocation" in self.kinds) and ("external" == self.action)))
         return (queryable and self.isReadable())
 
     def isAllocatable(self):
@@ -802,7 +847,13 @@ class _property(object):
         else: 
             return self.get(obj)
 
-    def _configure(self, obj, value):
+    def _configure(self, obj, value, disableCallbacks=False ):
+        if self._complex:
+            if type(value) == list:
+                for idx in range(len(value)):
+                    value[idx] = _toPyComplex(value[idx],'')
+            else:
+                value = _toPyComplex(value,'')
         # Try the implicit callback, then fall back
         # to the automatic attribute
         if self.fval != None and not self.fval(obj, value):
@@ -818,6 +869,8 @@ class _property(object):
             configure(oldvalue, value)
         else:
             self.set(obj, value)
+        
+        if disableCallbacks == True : return
             
         valueChanged = self.compareValues(oldvalue, value)
         if valueChanged and self.isSendEventChange():
@@ -842,7 +895,7 @@ class _sequence_property(_property):
                  units=None, 
                  mode        = "readwrite", 
                  action      = "external", 
-                 kinds       = ("configure",), 
+                 kinds       = ("configure","property"), 
                  description = None, 
                  fget        = None, 
                  fset        = None, 
@@ -895,7 +948,8 @@ class _sequence_property(_property):
         # standard conversion routine.
         return self._toAny(value)
 
-    def configure(self, obj, value, operator=None):
+
+    def construct(self, obj, value ):
         # Convert the input value to the desired new value for the property,
         # applying any operators.
         if operator == "[@]":
@@ -907,7 +961,22 @@ class _sequence_property(_property):
             self.checkValue(value, obj)
 
         # Set the new value via the base interface.
-        self._configure(obj, value)
+        self._configure(obj, value, disableCallbacks=True )
+
+
+    def configure(self, obj, value, operator=None, disableCallbacks=False):
+        # Convert the input value to the desired new value for the property,
+        # applying any operators.
+        if operator == "[@]":
+            v = any.from_any(value)
+            oldvalue = self.get(obj)
+            value = self._setKeyValuePairsOperator(oldvalue, v, operator)
+        else:
+            value = self._fromAny(value)
+            self.checkValue(value, obj)
+
+        # Set the new value via the base interface.
+        self._configure(obj, value, disableCallbacks=disableCallbacks )
 
     def _itemToAny(self, value):
         return any.to_any(check_type_for_long(value))
@@ -1013,12 +1082,13 @@ class simple_property(_property):
                  units=None, 
                  mode="readwrite", 
                  action="external", 
-                 kinds=("configure",), 
+                 kinds=("configure","property"), 
                  description=None, 
                  fget=None, 
                  fset=None, 
                  fval=None,
-                 complex=False):
+                 complex=False,
+		 optional=False):
         _property.__init__(self, 
                            id_, 
                            type_, 
@@ -1033,6 +1103,7 @@ class simple_property(_property):
                            fval, 
                            complex)
         self.defvalue = defvalue
+        self.optional = optional
 
     def rebind(self, fget=None, fset=None, fval=None):
         return simple_property(self.id_, 
@@ -1066,11 +1137,14 @@ class simple_property(_property):
             simp.add_kind(ossie.parsers.prf.kind(kindtype=kind))
 
         xml = StringIO.StringIO()
-        simp.export(xml, level)
+        simp.export(xml, level, name_='simple')
         return xml.getvalue()
 
     def initialize(self, obj):
         self.set(obj, self.defvalue)
+
+    def _fromAny(self, value):
+        return to_pyvalue(any.from_any(value), self.type_)
 
     def _toAny(self, value):
         return to_tc_value(value, self.type_)
@@ -1099,12 +1173,13 @@ class simpleseq_property(_sequence_property):
                  units       = None, 
                  mode        = "readwrite", 
                  action      = "external", 
-                 kinds       = ("configure",), 
+                 kinds       = ("configure","property"), 
                  description = None, 
                  fget        = None, 
                  fset        = None, 
                  fval        = None, 
-                 complex     = False):
+                 complex     = False,
+                 optional    = False):
         _sequence_property.__init__(self, 
                                     id_, 
                                     type_, 
@@ -1119,6 +1194,7 @@ class simpleseq_property(_sequence_property):
                                     fval, 
                                     complex)
         self.defvalue = defvalue
+        self.optional = optional
         
     def rebind(self, fget=None, fset=None, fval=None):
         return simpleseq_property(self.id_,  
@@ -1151,11 +1227,21 @@ class simpleseq_property(_sequence_property):
             simpseq.set_values(values)
 
         xml = StringIO.StringIO()
-        simpseq.export(xml, level)
+        simpseq.export(xml, level, name_='simplesequence')
         return xml.getvalue()
 
     def initialize(self, obj):
         self.set(obj, self.defvalue)
+
+    def _fromAny(self, value):
+        values = any.from_any(value)
+        if values is None:
+            return None
+        if self.type_ in ('char', 'octet'):
+            return values
+        if not isinstance(values, list):
+            raise ValueError('value is not a sequence')
+        return [to_pyvalue(v, self.type_) for v in values]
 
     def _toAny(self, value):
         if value is None:
@@ -1200,7 +1286,7 @@ class struct_property(_property):
                  structdef,
                  name=None, 
                  mode="readwrite", 
-                 configurationkind=("configure",),
+                 configurationkind=("configure","property"),
                  description=None, 
                  fget=None, 
                  fset=None, 
@@ -1223,6 +1309,8 @@ class struct_property(_property):
         self.fields = {} # Map field id's to attribute names
         for name, attr in self.structdef.__dict__.items():
             if type(attr) is simple_property:
+                self.fields[attr.id_] = (name, attr)
+            elif type(attr) is simpleseq_property:
                 self.fields[attr.id_] = (name, attr)
     
     def rebind(self, fget=None, fset=None, fval=None):
@@ -1254,20 +1342,27 @@ class struct_property(_property):
                                                 value=to_xmlvalue(attr.defvalue, attr.type_),
                                                 units=attr.units)
                 struct.add_simple(simp)
-
+            elif type(attr) is simpleseq_property:
+                simpseq = ossie.parsers.prf.simpleSequence(id_=attr.id_,
+                                                           type_=attr.type_,
+                                                           name=attr.name,
+                                                           description=attr.__doc__,
+                                                           values=[to_xmlvalue(v, attr.type_) for v in attr.defvalue],
+                                                           units=attr.units)
+                struct.add_simplesequence(simpseq)
 
         xml = StringIO.StringIO()
-        struct.export(xml, level)
+        struct.export(xml, level, name_='struct')
         return xml.getvalue()
 
     def compareValues(self, oldValue, newValue):
         if newValue != None:
-            new_member_values = set([x[1] for x in struct_values(newValue)])
+            new_member_values = [x[1] for x in struct_values(newValue)]
         else:
             new_member_values = None
             
         if oldValue != None:
-            old_member_values = set([x[1] for x in struct_values(oldValue)])
+            old_member_values = [x[1] for x in struct_values(oldValue)]
         else:
             old_member_values = None
 
@@ -1276,9 +1371,11 @@ class struct_property(_property):
     def initialize(self, obj):
         # Create an initial object
         structval = self.structdef()
-        # Initialize all of the simples in the struct
+        # Initialize all of the properties in the struct
         for name, attr in self.structdef.__dict__.items():
             if type(attr) is simple_property: 
+                attr.initialize(structval)
+            elif type(attr) is simpleseq_property:
                 attr.initialize(structval)
         # Set the default value
         self.set(obj, structval)
@@ -1297,7 +1394,7 @@ class structseq_property(_sequence_property):
                  name=None,
                  defvalue=None,
                  mode="readwrite", 
-                 configurationkind=("configure",),
+                 configurationkind=("configure","property"),
                  description=None, 
                  fget=None, 
                  fset=None, 
@@ -1315,6 +1412,8 @@ class structseq_property(_sequence_property):
         self.fields = {} # Map field id's to attribute names
         for name, attr in self.structdef.__dict__.items():
             if type(attr) is simple_property:
+                self.fields[attr.id_] = (name, attr)
+            elif type(attr) is simpleseq_property:
                 self.fields[attr.id_] = (name, attr)                
         self.defvalue = defvalue
 
@@ -1351,6 +1450,13 @@ class structseq_property(_sequence_property):
                                                 description=attr.__doc__,
                                                 units=attr.units)
                 struct.add_simple(simp)
+            elif type(attr) is simpleseq_property: 
+                simpseq = ossie.parsers.prf.simpleSequence(id_=attr.id_, 
+                                                           type_=attr.type_,
+                                                           name=attr.name, 
+                                                           description=attr.__doc__,
+                                                           units=attr.units)
+                struct.add_simplesequence(simpseq)
         structseq.set_struct(struct)
 
         if self.defvalue:
@@ -1361,10 +1467,14 @@ class structseq_property(_sequence_property):
                         id_=attr.id_
                         value = to_xmlvalue(attr.get(v), attr.type_)
                         structval.add_simpleref(ossie.parsers.prf.simpleRef(id_, value))
+                    elif type(attr) is simpleseq_property:
+                        id_=attr.id_
+                        values = [to_xmlvalue(val, attr.type_) for val in attr.defvalue]
+                        structval.add_simpleseqref(ossie.parsers.prf.simpleSequenceRef(id_, values))
                 structseq.add_structvalue(structval)
 
         xml = StringIO.StringIO()
-        structseq.export(xml, level)
+        structseq.export(xml, level, name_='structsequence')
         return xml.getvalue()
         
     def initialize(self, obj):
@@ -1392,14 +1502,14 @@ class structseq_property(_sequence_property):
         if newValue != None:
             new_member_values = []
             for strct in newValue:
-                new_member_values.append(set([x[1] for x in struct_values(strct)]))
+                new_member_values.append([x[1] for x in struct_values(strct)])
         else:
             new_member_values = None
         
         if oldValue != None:
             old_member_values = []
             for strct in oldValue:
-                old_member_values.append(set([x[1] for x in struct_values(strct)]))
+                old_member_values.append([x[1] for x in struct_values(strct)])
         else:
             old_member_values = None
 
@@ -1536,16 +1646,47 @@ class PropertyStorage:
         return prop.query(self.__resource, operator)
 
 
-    def configure(self, propid, value):
+    def construct(self, propid, value):
         prop = None
         id_, operator = self.splitId(propid)
         # First lookup by propid
         prop = self.__properties[id_]
         oldvalue = prop.get(self.__resource)
-        prop.configure(self.__resource, value, operator)
+        prop.configure(self.__resource, value, operator, disableCallbacks=True)
         newvalue = prop.get(self.__resource)
+
+    def configure(self, propid, value, disableCallbacks=False ):
+        prop = None
+        id_, operator = self.splitId(propid)
+        # First lookup by propid
+        prop = self.__properties[id_]
+        oldvalue = prop.get(self.__resource)
+        prop.configure(self.__resource, value, operator, disableCallbacks=disableCallbacks)
+        newvalue = prop.get(self.__resource)
+        if (prop._complex):
+            if oldvalue != None:
+                if type(oldvalue) == list:
+                    for idx in range(len(oldvalue)):
+                        oldvalue[idx] = _toPyComplex(oldvalue[idx],'')
+                else:
+                    oldvalue = _toPyComplex(oldvalue,'')
+            if newvalue != None:
+                if type(newvalue) == list:
+                    for idx in range(len(newvalue)):
+                        newvalue[idx] = _toPyComplex(newvalue[idx],'')
+                else:
+                    newvalue = _toPyComplex(newvalue,'')
+        if disableCallbacks: return
         if id_ in self._changeListeners:
-            self._changeListeners[id_](id_, oldvalue, newvalue)
+            if 'configure' in prop.kinds or 'execparam'in prop.kinds:
+                self._changeListeners[id_](id_, oldvalue, newvalue)
+            else: # property kind
+                if oldvalue != newvalue:
+                    if self._changeListeners[id_].func_code.co_argcount != 4:
+                        raise CF.PropertySet.InvalidConfiguration(msg='callback function '+self._changeListeners[id_].func_name+' has the wrong number of arguments',invalidProperties=prop)
+                    self._changeListeners[id_](id_, oldvalue, newvalue)
+                else:
+                    self.__resource._log.debug("Value has not changed on configure for property "+id_+". Not triggering callback")
         for callback in self._genericListeners:
             callback(id_, oldvalue, newvalue)
         
@@ -1648,6 +1789,11 @@ class PropertyStorage:
         id_, operator = self.splitId(propid)
         return self.__properties[id_].isConfigurable()
 
+    # Make helper functions for command truth testing inquiries
+    def isProperty(self, propid):
+        id_, operator = self.splitId(propid)
+        return self.__properties[id_].isProperty()
+
     def isAllocatable(self, propid):
         id_, operator = self.splitId(propid)
         return self.__properties[id_].isAllocatable()
@@ -1688,7 +1834,7 @@ class PropertyStorage:
         if value == None:
             return None
         if typename == "boolean":
-            return {"TRUE": True, "FALSE": False}[value.strip().upper()]
+            return {"TRUE": True, "FALSE": False, "1": True, "0": False}[value.strip().upper()]
         elif typename in ("short", "long", "ulong", "ushort"):
             return int(value)
         elif typename == "double":

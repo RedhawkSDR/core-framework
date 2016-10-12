@@ -23,7 +23,7 @@
 idl_srcdir = $(top_srcdir)/src/idl
 
 # Map external IDL modules to Python packages
-CF_MODULES = cf PortTypes QueryablePort LogInterfaces
+CF_MODULES = cf PortTypes QueryablePort Port DataType
 BULKIO_MODULES = bulkioDataTypes bio_runtimeStats
 PYTHON_EXTERNS = $(CF_MODULES:%=%:ossie.cf) $(BULKIO_MODULES:%=%:bulkio.bulkioInterfaces)
 

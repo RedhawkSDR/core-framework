@@ -38,13 +38,13 @@ class ServiceMapper(ComponentMapper):
 
     @staticmethod
     def userClass(softpkg):
-        return {'name'  : softpkg.name()+'_i',
-                'header': softpkg.name()+'.h',
-                'file'  : softpkg.name()+'.cpp'}
+        return {'name'  : softpkg.basename()+'_i',
+                'header': softpkg.basename()+'.h',
+                'file'  : softpkg.basename()+'.cpp'}
 
     @staticmethod
     def baseClass(softpkg):
-        baseclass = softpkg.name() + '_base'
+        baseclass = softpkg.basename() + '_base'
         return {'name'  : baseclass,
                 'header': baseclass+'.h',
                 'file'  : baseclass+'.cpp'}

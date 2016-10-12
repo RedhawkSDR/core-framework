@@ -150,10 +150,9 @@ namespace frontend {
         }
     };
 
-    //////////////////////////////////
-    //    TUNER CLASS DEFINITION    //
-    //////////////////////////////////
-
+    /*
+     *    Frontend tuner class definition
+     */
     template < typename TunerStatusStructType >
     class FrontendTunerDevice : public Device_impl
     {
@@ -206,10 +205,11 @@ namespace frontend {
             ///////////////////////////////
             virtual std::string getControlAllocationId(size_t tuner_id);
             virtual std::vector<std::string> getListenerAllocationIds(size_t tuner_id);
+            virtual long getTunerMapping(std::string allocation_id);
             std::string createAllocationIdCsv(size_t tuner_id);
+            virtual void sendEOS(std::string allocation_id);
             virtual bool removeTunerMapping(size_t tuner_id, std::string allocation_id);
             virtual bool removeTunerMapping(size_t tuner_id);
-            virtual long getTunerMapping(std::string allocation_id);
             virtual void assignListener(const std::string& listen_alloc_id, const std::string& alloc_id);
             virtual void removeListener(const std::string& listen_alloc_id);
             virtual void removeAllocationIdRouting(const size_t tuner_id) = 0;

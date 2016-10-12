@@ -28,7 +28,7 @@ import os
 
 class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
     def setUp(self):
-        nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, self._domMgr = self.launchDomainManager()
 
     def tearDown(self):
         scatest.CorbaTestCase.tearDown(self)
@@ -48,13 +48,13 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
 
         Each node in this case, manages 2 test_collocation_devices each having a supported_components property == 1
         """
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node2_2dev1cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node2_2dev1cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
@@ -80,13 +80,13 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
 
 
     def test_collocationSuccess(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev2cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev2cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
@@ -112,9 +112,9 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         self._domMgr.uninstallApplication(appFact._get_identifier())
 
     def test_collocationMixed(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_nodes_1dev4cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_nodes_1dev4cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
@@ -139,10 +139,41 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
 
         self._domMgr.uninstallApplication(appFact._get_identifier())
 
-    def test_collocationPartialProcMixed(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+    def test_collocationCombinedAllocationCall(self):
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_nodes_1dev4cap/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(devMgr, None)
+
+        domMgr.installApplication("/waveforms/test_collocation_combined/test_collocation_combined.sad.xml")
+        self.assertEqual(len(domMgr._get_applicationFactories()), 1)
+
+        appFact = domMgr._get_applicationFactories()[0]
+
+        app = None
+        try:
+          app = appFact.create(appFact._get_name(), [], [])
+        except:
+          pass
+
+        ## need to check that all the comopnents were allocated to devices from test_collocation_node1_2dev2cap
+
+        self.assertNotEqual(app, None )
+
+        if ( app ) :
+          app.stop()
+          app.releaseObject()
+
+        device = devMgr._get_registeredDevices()[0]
+        self.assertEqual(self._getProperty(device, 'allocation_attempts'), 1)
+
+        self._domMgr.uninstallApplication(appFact._get_identifier())
+
+    def test_collocationPartialProcMixed(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
@@ -168,9 +199,9 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         self._domMgr.uninstallApplication(appFact._get_identifier())
 
     def test_collocationPartialProcMixedReversed(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
@@ -196,9 +227,9 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         self._domMgr.uninstallApplication(appFact._get_identifier())
 
     def test_collocationFailPythonFirst(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
@@ -224,13 +255,13 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         self._domMgr.uninstallApplication(appFact._get_identifier())
 
     def test_collocationWithComponentImplementationRollover(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev2cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev2cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
@@ -258,13 +289,13 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
 
 
     def test_collocationNOOPMixture(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node2_2dev1cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node2_2dev1cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
@@ -291,13 +322,13 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
 
 
     def test_collocationNoCollocation(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node2_2dev1cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node2_2dev1cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
@@ -324,13 +355,13 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
 
     def test_collocationMixAndNoCollocation(self):
 
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev1cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev2cap/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_node1_2dev2cap/DeviceManager.dcd.xml")
 
         self.assertNotEqual(devMgr, None)
 
@@ -438,20 +469,20 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
           pass
 
     def test_collocationLastSuccessfulDevice(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
 
         # Launch the node with a device that can't satisfy the host collocation
         # first, then launch the node with a device that can (it also helps
         # that 'test_collocation_bad1_node:bad_device_1' comes before
         # 'test_collocation_good_node:good_device_1' in lexicographical order)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_bad1_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_bad1_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         # Store a reference to the "bad" device
         bad_device = devMgr._get_registeredDevices()[0]
         self.assertTrue('bad' in bad_device._get_identifier())
 
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_good_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_collocation_good_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # Use the "single" collocation waveform, which should fail on the "bad"

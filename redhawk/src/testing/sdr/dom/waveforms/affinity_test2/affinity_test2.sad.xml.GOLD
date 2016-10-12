@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:6f0d3a76-8f9e-4707-b5e8-ada0a3e3ef15" name="affinity_test2">
+  <componentfiles>
+    <componentfile id="C2_5fb7296e-b543-43fc-bc14-88a9299b458b" type="SPD">
+      <localfile name="/components/C2/C2.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="C2_5fb7296e-b543-43fc-bc14-88a9299b458b"/>
+      <componentinstantiation id="C2_1" startorder="1">
+        <usagename>C2_1</usagename>
+        <affinity>
+          <simpleref refid="affinity::exec_directive_class" value="socket" />
+          <simpleref refid="affinity::exec_directive_value" value="XXXsock1XXX"/>
+          </affinity>
+         <findcomponent>
+          <namingservice name="C2_1"/>
+         </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="C2_1"/>
+  </assemblycontroller>
+</softwareassembly>

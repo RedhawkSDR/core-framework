@@ -20,6 +20,8 @@
 
 #include <ossie/ThreadedComponent.h>
 
+namespace ossie {
+
 ProcessThread::ProcessThread(ThreadedComponent *target, float delay) :
     _thread(0),
     _running(false),
@@ -94,6 +96,9 @@ bool ProcessThread::threadRunning()
 {
     return _running;
 }
+
+};   //end of ossie namespace
+
 ThreadedComponent::ThreadedComponent() :
     serviceThread(0),
     serviceThreadLock(),
@@ -109,8 +114,8 @@ void ThreadedComponent::startThread ()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (!serviceThread) {
-        serviceThread = new ProcessThread(this, _defaultDelay);
-        serviceThread->start();
+      serviceThread = new ossie::ProcessThread(this, _defaultDelay);
+      serviceThread->start();
     }
 }
 

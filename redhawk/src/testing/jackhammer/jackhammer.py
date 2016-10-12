@@ -30,7 +30,7 @@ import CosNaming
 from ossie.cf import CF
 import ossie.parsers.dmd
 
-class Jackhammer:
+class Jackhammer(object):
     def __init__ (self):
         args = ["-ORBoneCallPerConnection", "0"]
         self.orb = CORBA.ORB_init(args, CORBA.ORB_ID)
@@ -94,9 +94,26 @@ class Jackhammer:
         """
         pass
 
+    def options(self):
+        """
+        Override in subclasses to add command line options. Must return a tuple
+        of short and long options, in getopt format.
+        """
+        return "", []
+
+    def setOption(self, key, value):
+        """
+        Override in subclasses to handle command line options.
+        """
+        pass
+
 
 def run(TestClass):
-    opts, args = getopt.getopt(sys.argv[1:], "", [ "domainname=", "threads=" ])
+    hammer = TestClass()
+    shortopts, longopts = hammer.options()
+    shortopts = "" + shortopts
+    longopts = [ "domainname=", "threads=" ] + longopts
+    opts, args = getopt.getopt(sys.argv[1:], shortopts, longopts)
 
     try:
         dmdFile = os.path.join(os.environ["SDRROOT"], "dom", "domain", "DomainManager.dmd.xml")
@@ -109,14 +126,15 @@ def run(TestClass):
     for key, value in opts:
         if key == "--threads":
             nThreads = int(value)
-        if key == "--domainname":
+        elif key == "--domainname":
             domainName = value
+        else:
+            hammer.setOption(key, value)
 
     if domainName is None:
         print >>sys.stderr, "Unable to determine domain name; use --domainname=<name>"
         sys.exit(1)
 
-    hammer = TestClass()
     hammer.setup(domainName, *args)
     hammer.createThreads(nThreads)
     hammer.jackhammer()

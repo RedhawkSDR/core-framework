@@ -1,0 +1,6 @@
+8bfcd22353c3a57fee561ad86ee2a56b  reconf
+aa3952ffa6cc519c61f6823f13edec0c  property_init_base.py
+cf24876636dd99634d417b45846a65e2  configure.ac
+77fec59e37be4720205edc5fe3dd1a5b  Makefile.am
+6c24f2fc5c1ed1a5d5ec8babc7ba7f14  Makefile.am.ide
+fe0b084d9d24c731951c72aa1999c254  property_init.py

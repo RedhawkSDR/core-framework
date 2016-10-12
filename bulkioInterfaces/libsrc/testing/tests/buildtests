@@ -7,43 +7,58 @@ bulkio_libsrc_top=$bulkio_top/libsrc
 export LD_LIBRARY_PATH=$bulkio_libsrc_top/.libs:$bulkio_top/.libs:${LD_LIBRARY_PATH}
 export PYTHONPATH=$bulkio_libsrc_top/build/lib:${PYTHONPATH}
 
-pushd ../components/CPP_Ports/cpp
+cd ../components/CPP_Ports/cpp
 ./reconf; ./configure; make -j
-popd
+cd -
 
-pushd ../components/sri_changed_cpp/cpp
+cd ../components/sri_changed_cpp/cpp
 ./reconf; ./configure; make -j
-popd
+cd -
 
-pushd ../components/Java_Ports/java
+cd ../components/Java_Ports/java
 ./reconf; ./configure; make
-popd
+cd -
 
-pushd ../components/Python_Ports/python
+cd ../components/Python_Ports/python
 ./reconf; ./configure; make
-popd
+cd -
 
-
-pushd ../components/TestLargePush/cpp
+cd ../components/TestLargePush/cpp
 ./reconf; ./configure; make -j
-popd
+cd -
 
-pushd ../components/TestLargePush/java
+cd ../components/TestLargePush/java
 ./reconf; ./configure; make
-popd
+cd -
 
-pushd ../components/TestLargePush/python
+cd ../components/TestLargePush/python
 ./reconf; ./configure; make
-popd
+cd -
 
-pushd ../components/multiout_attachable/cpp
+cd ../components/multiout_attachable/cpp
 ./reconf; ./configure; make -j
-popd
+cd -
 
-pushd ../components/multiout_attachable/java
+cd ../components/multiout_attachable/java
 ./reconf; ./configure; make
-popd
+cd -
 
-pushd cpp 
+cd ../components/Oversized_framedata/cpp
+./reconf; ./configure; make -j
+cd -
+
+cd ../components/Oversized_framedata/java
+./reconf; ./configure; make
+cd -
+
+cd ../devices/dev_src/java
+./reconf; ./configure; make
+cd -
+
+cd ../devices/dev_snk/java
+./reconf; ./configure; make
+cd -
+
+cd cpp
 ./reconf; ./configure;
-popd
+cd -

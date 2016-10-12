@@ -27,12 +27,9 @@ import FRONTEND.FrontendTunerHelper;
 import FRONTEND.FrontendException;
 import FRONTEND.BadParameterException;
 import FRONTEND.NotSupportedException;
+import org.ossie.component.PortBase;
 
-public class OutFrontendTunerPort extends QueryableUsesPort<FrontendTunerOperations> implements FrontendTunerOperations {
-
-    protected String name;
-
-    protected Object updatingPortsLock;
+public class OutFrontendTunerPort extends QueryableUsesPort<FrontendTunerOperations> implements FrontendTunerOperations, PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -41,7 +38,6 @@ public class OutFrontendTunerPort extends QueryableUsesPort<FrontendTunerOperati
 
     public OutFrontendTunerPort(String portName) { 
         super(portName);
-        this.name = portName;
         this.outConnections = new HashMap<String, FrontendTunerOperations>();
     }
 
@@ -72,53 +68,77 @@ public class OutFrontendTunerPort extends QueryableUsesPort<FrontendTunerOperati
         }
     }
 
-    public String getTunerType(String id) throws FrontendException, BadParameterException, NotSupportedException {
+    public String getTunerType(String id) {
         String retval = "";
 
         synchronized(this.updatingPortsLock) {
             if (this.active) {
                 for (FrontendTunerOperations p : this.outConnections.values()) {
+                        try {
                     retval = p.getTunerType(id);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
         return retval;
     }
  
-    public boolean getTunerDeviceControl(String id) throws FrontendException, BadParameterException, NotSupportedException {
+    public boolean getTunerDeviceControl(String id) {
         boolean retval = false;
 
         synchronized(this.updatingPortsLock) { 
             if (this.active) {
                 for (FrontendTunerOperations p : this.outConnections.values()) {
-                    retval = p.getTunerDeviceControl(id);
+                    try {
+                        retval = p.getTunerDeviceControl(id);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
         return retval;
     }
  
-    public String getTunerGroupId(String id) throws FrontendException, BadParameterException, NotSupportedException {
+    public String getTunerGroupId(String id) {
         String retval = "";
 
         synchronized(this.updatingPortsLock) {
             if (this.active) {
                 for (FrontendTunerOperations p : this.outConnections.values()) {
-                    retval = p.getTunerGroupId(id);
+                    try {
+                        retval = p.getTunerGroupId(id);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         } 
         return retval;
     }
  
-    public String getTunerRfFlowId(String id) throws FrontendException, BadParameterException, NotSupportedException {
+    public String getTunerRfFlowId(String id) {
         String retval = "";
 
         synchronized(this.updatingPortsLock) {
             if (this.active) {
                 
                 for (FrontendTunerOperations p : this.outConnections.values()) {
-                    retval = p.getTunerRfFlowId(id);
+                    try {
+                        retval = p.getTunerRfFlowId(id);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         } 
@@ -126,16 +146,30 @@ public class OutFrontendTunerPort extends QueryableUsesPort<FrontendTunerOperati
         return retval;
     }
  
-    public CF.DataType[] getTunerStatus(String id) throws FrontendException, BadParameterException, NotSupportedException {
+    public CF.DataType[] getTunerStatus(String id) {
         CF.DataType[] retval = null;
 
         synchronized(this.updatingPortsLock) { 
             if (this.active) {
                 for (FrontendTunerOperations p : this.outConnections.values()) {
-                    retval = p.getTunerStatus(id);
+                    try {
+                        retval = p.getTunerStatus(id);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
         return retval;
+    }
+
+    public String getRepid() {
+        return FrontendTunerHelper.id();
+    }
+
+    public String getDirection() {
+        return "Uses";
     }
  }

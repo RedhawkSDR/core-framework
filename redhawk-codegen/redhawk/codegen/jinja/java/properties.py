@@ -102,19 +102,19 @@ class JavaPropertyMapper(PropertyMapper):
         else:
             value = java.NULL
         javaprop['javavalue'] = value
-
+        javaprop['isOptional'] = prop.isOptional()
         return javaprop
 
     def mapSimpleSequenceProperty(self, prop):
         javaprop, javatype = self._createComplexJavaProp(prop)
+	values = []
         if prop.hasValue():
-            values = []
             for value in prop.value(): 
                 values.append(java.literal(value,
                                            javatype,
                                            complex = prop.isComplex()))
-            javaprop['javavalues'] = values
-
+	javaprop['javavalues'] = values
+        javaprop['isOptional'] = prop.isOptional()
         return javaprop
 
     def mapStructProperty(self, prop, fields):
@@ -137,7 +137,14 @@ class JavaPropertyMapper(PropertyMapper):
             else:
                 itemvalue = field.get('value', None)
             if itemvalue is not None:
-                newval.append(java.literal(itemvalue, field['javatype']))
+                if isinstance(itemvalue, list):
+                    vals = []
+                    for val in itemvalue:
+                        vals.append(java.literal(val, field['javatype']))
+                    addval = field['javaclass']+'SequenceProperty.asList('+','.join(vals)+')'
+                    newval.append(addval)
+                else:
+                    newval.append(java.literal(itemvalue, field['javatype']))
             else:
                 newval.append(java.NULL)
         return newval

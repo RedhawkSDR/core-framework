@@ -22,7 +22,7 @@
 /*{% endblock %}*/
 //% set className = component.reprogclass.name
 //% set baseClass = component.baseclass.name
-//% set includeGuard = component.name.upper() + '_IMPL_REPROG_H'
+//% set includeGuard = className.upper() + '_IMPL_REPROG_H'
 //% set executesHWComponents = component.executesHWComponents 
 //% set executesPersonaDevices = not executesHWComponents
 //% set executeType = "resource" if executesHWComponents else "persona"
@@ -282,11 +282,6 @@ class ${className} : public ${baseClass}
             // Save off the name-pid and name-object mappings
             _${executeType}Map[${executeType}Id] = ${executeType};
             _processMap[++_processIdIncrement] = ${executeType}Id;
-
-/*{% if executesPersonaDevices %}*/
-            // Update the device manager with the new device
-            _deviceManager->registerDevice(${executeType}->_this());
-/*{% endif %}*/
 
             LOG_DEBUG(${className}, __FUNCTION__ <<
                     ": ${executeType.capitalize()} '" << ${executeType}Id << "' has been successfully instantiated");

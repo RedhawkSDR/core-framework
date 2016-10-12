@@ -35,7 +35,7 @@ def uuid1(node=None, clock_seq=None):
     """
     (result, output) = _commands.getstatusoutput('uuidgen -t')
     if (result == 0): return output
-    return _commands.getoutput('uuid -t')
+    return _commands.getoutput('uuid -v 1 -m')
 
 def uuid4():
     """
@@ -45,4 +45,4 @@ def uuid4():
     """
     (result, output) = _commands.getstatusoutput('uuidgen -r')
     if (result == 0): return output
-    return _commands.getoutput('uuid -r')
+    return _commands.getoutput('uuid -v 4 -m')

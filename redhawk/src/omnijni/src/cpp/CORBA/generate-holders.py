@@ -79,7 +79,7 @@ from omniidl import idlast, idltype
 from omnijni import cppcode
 from omnijni import idljni
 
-holderTypes = (
+holderKinds = (
     idltype.tk_boolean,
     idltype.tk_octet,
     idltype.tk_char,
@@ -94,18 +94,7 @@ holderTypes = (
     idltype.tk_any
     )
 
-class HolderType(idltype.Type):
-    def __init__(self, kind):
-        idltype.Type.__init__(self, kind, False)
-
-    def identifier(self):
-        return self.scopedName()[-1]
-
-    def scopedName(self):
-        return idljni.typeString(self.aliasType()).split('::')
-
-    def aliasType(self):
-        return idltype.Base(self.kind())
+holderTypes = [idltype.Base(k) for k in holderKinds] + [idltype.String(0)]
 
 if __name__ == '__main__':
     header = cppcode.Header('holders.h')
@@ -119,10 +108,7 @@ if __name__ == '__main__':
     module.include('"holders.h"')
 
     helper = idljni.HolderHelper()
-    for kind in holderTypes:
-        # Create a fake IDL type object for the generator to use
-        node = HolderType(kind)
-
+    for node in holderTypes:
         # Generate declarations
         body.append(helper.generateDecl(node))
         body.append()

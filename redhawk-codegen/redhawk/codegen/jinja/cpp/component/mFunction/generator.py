@@ -22,6 +22,8 @@ from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, Autoco
 from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.template import TemplateFile
 from redhawk.codegen.jinja.cpp import CppTemplate
+from redhawk.codegen import versions
+
 from mapping import MFunctionMapper
 
 if not '__package__' in locals():
@@ -110,5 +112,10 @@ class OctaveComponentGenerator(PullComponentGenerator):
         return component
 
     def componentMapper(self):
-        return MFunctionMapper()
+        return MFunctionMapper(self.outputdir)
 
+    def rpmRequires(self):
+        return super(OctaveComponentGenerator,self).rpmRequires() + ['octave >= '+versions.octave]
+
+    def rpmBuildRequires(self):
+        return super(OctaveComponentGenerator,self).rpmRequires() + ['octave-devel >= '+versions.octave]

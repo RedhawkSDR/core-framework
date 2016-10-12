@@ -80,7 +80,7 @@ namespace rh_logger {
   };
 
 
-  /**
+  /*
    */
   namespace spi
   {
@@ -88,7 +88,7 @@ namespace rh_logger {
     const char* const LocationInfo::NA = "?";
     const char* const LocationInfo::NA_METHOD = "?::?";
 
-    /**
+    /*
      *   When location information is not available the constant
      * <code>NA</code> is returned. Current value of this string constant is <b>?</b>.
      */
@@ -339,6 +339,11 @@ namespace rh_logger {
   //
   LoggerPtr Logger::_rootLogger;
 
+  //
+  // save off the resource logger name when the resource gets it's initial logger
+  //
+  std::string _rsc_logger_name;
+
 
   //
   //  Return the root logger object as a shared pointer
@@ -354,6 +359,16 @@ namespace rh_logger {
     }
     STDOUT_DEBUG( "RH_LOGGER getRootLogger  END ");
     return _rootLogger;
+  }
+
+
+  LoggerPtr Logger::getResourceLogger( const std::string &name ) {
+      _rsc_logger_name = name;
+      return getLogger( name );
+  }
+
+  const std::string &Logger::getResourceLoggerName() {
+      return _rsc_logger_name;
   }
 
   LoggerPtr Logger::getLogger( const std::string &name ) {
@@ -398,6 +413,7 @@ namespace rh_logger {
 
   LevelPtr Logger::getLevel () const {
     STDOUT_DEBUG( " RH LOGGER  getLevel - logger: " << name );
+    if ( !level ) return getRootLogger()->getLevel();
     return level;
   }
 
@@ -412,37 +428,43 @@ namespace rh_logger {
   }
 
   void Logger::fatal( const std::string &msg )  {
-    if ( Level::FATAL_INT >= level->toInt() ) {
+    LevelPtr lvl = getLevel();
+    if ( Level::FATAL_INT >= lvl->toInt() ) {
       handleLogEvent( Level::getFatal(), msg );
     }
   }
 
   void Logger::error( const std::string &msg )  {
-    if ( Level::ERROR_INT >= level->toInt() ) {
+    LevelPtr lvl = getLevel();
+    if ( Level::ERROR_INT >= lvl->toInt() ) {
       handleLogEvent( Level::getError(), msg );
     }
   }
 
   void Logger::warn( const std::string &msg )  {
-    if ( Level::WARN_INT >= level->toInt() ) {
+    LevelPtr lvl = getLevel();
+    if ( Level::WARN_INT >= lvl->toInt() ) {
       handleLogEvent( Level::getWarn(),msg );
     }
   }
 
   void Logger::info( const std::string &msg )  {
-    if ( Level::INFO_INT >= level->toInt() ) {
+    LevelPtr lvl = getLevel();
+    if ( Level::INFO_INT >= lvl->toInt() ) {
       handleLogEvent( Level::getInfo(), msg );
     }
   }
 
   void Logger::debug( const std::string &msg )  {
-    if ( Level::DEBUG_INT >= level->toInt() ) {
+    LevelPtr lvl = getLevel();
+    if ( Level::DEBUG_INT >= lvl->toInt() ) {
       handleLogEvent( Level::getDebug(), msg );
     }
   }
 
   void Logger::trace( const std::string &msg )  {
-    if ( Level::TRACE_INT >= level->toInt() ) {
+    LevelPtr lvl = getLevel();
+    if ( Level::TRACE_INT >= lvl->toInt() ) {
       handleLogEvent( Level::getTrace(), msg );
     }
   }
@@ -489,7 +511,7 @@ namespace rh_logger {
     return level;
   }
 
-  /**
+  /*
   void Logger::handleLogEvent( const LevelPtr &level, const std::string &msg )  {
     STDOUT_DEBUG( " RH LOGGER  handleLogEvent " << msg );
     if ( getLevel() ) {
@@ -500,7 +522,7 @@ namespace rh_logger {
     }
     appendLogRecord( level, msg );
   }
-  **/
+  */
 
 
   AppenderPtr Logger::getAppender( const std::string &name ) {
@@ -757,9 +779,10 @@ namespace rh_logger {
         return ConvertLog4ToRHLevel( l4l );
       }
     }
+
     STDOUT_DEBUG(  " L4Logger::getLevel:  level ptr: " << level.get()  );
     STDOUT_DEBUG(  " L4Logger::getLevel:  END logger: " << name  );
-    return level;
+    return rh_logger::Logger::getLevel();
   }
 
 

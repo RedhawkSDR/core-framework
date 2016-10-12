@@ -37,10 +37,14 @@ libbulkio_@BULKIO_API_VERSION@_la_LDFLAGS = -version-info $(BULKIO_SO_VERSION)
 libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/bulkio.cpp \
     cpp/bulkio_in_port.cpp \
+    cpp/bulkio_in_stream.cpp \
     cpp/bulkio_out_port.cpp \
+    cpp/bulkio_out_stream.cpp \
 	cpp/bulkio_attachable_port.cpp \
     cpp/bulkio_sri_helpers.cpp \
     cpp/bulkio_time_helpers.cpp \
+    cpp/bulkio_time_operators.cpp \
+    cpp/bulkio_datablock.cpp \
     cpp/bulkio_p.h
 
 ## Define the list of public header files and their install location.
@@ -48,10 +52,15 @@ library_includedir = $(includedir)/bulkio
 library_include_HEADERS = cpp/bulkio.h \
 	cpp/BULKIO_Interfaces.h \
 	cpp/bulkio_base.h \
+	cpp/bulkio_callbacks.h \
 	cpp/bulkio_traits.h \
 	cpp/bulkio_in_port.h \
+	cpp/bulkio_in_stream.h \
 	cpp/bulkio_out_port.h \
+	cpp/bulkio_out_stream.h \
 	cpp/bulkio_attachable_base.h \
+	cpp/bulkio_time_operators.h \
+	cpp/bulkio_datablock.h \
 	cpp/bulkio_compat.h
 
 ## The generated configuration header is installed in its own subdirectory of
@@ -126,6 +135,7 @@ InUShortPort.java \
 InXMLPort.java \
 linkStatistics.java \
 OutCharPort.java \
+OutDataPort.java \
 OutDoublePort.java \
 OutFilePort.java \
 OutFloatPort.java \
@@ -136,6 +146,7 @@ OutInt8Port.java \
 OutLongLongPort.java \
 OutLongPort.java \
 OutOctetPort.java \
+OutPortBase.java \
 OutSDDSPort.java \
 OutVITA49Port.java \
 OutShortPort.java \

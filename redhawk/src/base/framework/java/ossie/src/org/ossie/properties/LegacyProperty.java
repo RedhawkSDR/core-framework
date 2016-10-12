@@ -69,7 +69,6 @@ abstract class LegacyProperty<T> extends Property<T> {
             return orb.string_to_object(theString);
         } else if (type.equals("octet")) {
             return theString.getBytes()[0];
-            // TODO: complex
         } else {
             throw new IllegalArgumentException("Unknown CORBA Type: " + type);
         }
@@ -115,7 +114,6 @@ abstract class LegacyProperty<T> extends Property<T> {
             return TCKind.tk_wchar;
         } else if (type.equals("wstring")) {
             return TCKind.tk_wstring;
-            // TODO: complex
         } else {
             throw new IllegalArgumentException("Unknown type: " + type);
         }

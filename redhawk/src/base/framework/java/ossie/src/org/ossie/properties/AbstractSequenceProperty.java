@@ -36,6 +36,12 @@ abstract class AbstractSequenceProperty<T> extends Property<List<T>> {
         this.type = type;
     }
 
+    protected AbstractSequenceProperty(String id, String name, String type, List<T> value,
+                                       Mode mode,  Action action, Kind[] kinds, boolean optional) {
+        super(id, name, value, mode, action, kinds, optional);
+        this.type = type;
+    }
+
     @Override
     public void fromString(String str) {
         throw new IllegalArgumentException("Only simple properties can be initialized with strings");

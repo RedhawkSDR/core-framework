@@ -46,11 +46,12 @@ import bulkio.linkStatistics;
 import bulkio.DataTransfer;
 import bulkio.Int16Size;
 
+import org.ossie.component.PortBase;
 
 /**
  * @generated
  */
-public class InVITA49Port extends BULKIO.jni.dataVITA49POA {
+public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.component.PortBase {
 
     public interface Callback  {
 
@@ -444,5 +445,15 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA {
     public boolean hasSriChanged() {
         return this.sriChanged;
     }
+
+	public String getRepid()
+	{
+		return BULKIO.dataVITA49Helper.id();
+	}
+
+	public String getDirection()
+	{
+		return "Provides";
+	}
 
 }

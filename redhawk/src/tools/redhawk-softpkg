@@ -1,0 +1,182 @@
+#!/usr/bin/python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+import sys
+import os
+import getopt
+
+from ossie.parsers import SPDParser
+
+def sdrPath(filename):
+    return os.path.join(os.environ['SDRROOT'], 'dom') + filename
+
+def findSpd(filename):
+    if os.path.isfile(filename):
+        return os.path.abspath(filename)
+    elif filename.startswith('/'):
+        filename = sdrPath(filename)
+        if os.path.isfile(filename):
+            return filename
+
+    return None
+
+def spdrelpath(spdfile, filename):
+    if filename.startswith('/'):
+        return sdrPath(filename)
+    else:
+        return os.path.join(os.path.dirname(spdfile), filename)
+
+def getImplementations(spd):
+    return [impl.get_id() for impl in spd.get_implementation()]
+
+def getImplementation(spd, implId):
+    if not implId:
+        if len(spd.get_implementation()) == 1:
+            return spd.get_implementation()[0]
+        else:
+            raise ValueError('%s has multiple implementations, none selected' % (spd.get_name(),))
+
+    for impl in spd.get_implementation():
+        if impl.get_id() == implId:
+            return impl
+    raise ValueError('%s has no implementation %s' % (spd.get_name(), implId))
+
+def walkDependencies(spdfile, implId, func):
+    spd = SPDParser.parse(spdfile)
+    impl = getImplementation(spd, implId)
+
+    deps = []
+    for dep in impl.get_dependency():
+        softpkgref = dep.get_softpkgref()
+        if not softpkgref:
+            continue
+        depfile = spdrelpath(spdfile, softpkgref.get_localfile().get_name())
+        if softpkgref.get_implref():
+            depimplid = softpkgref.get_implref().get_refid()
+        else:
+            depimplid = None
+        deps += walkDependencies(depfile, depimplid, func)
+
+    deps += func(spdfile, impl)
+
+    return deps
+
+def getImplPkgConfigPath(spdfile, impl):
+    # Use the localfile to locate the pkgconfig directory
+    localfile = os.path.join(spdrelpath(spdfile, impl.get_code().get_localfile().name))
+    if not os.path.exists(localfile):
+        localfile = os.path.dirname(localfile)
+    if os.path.exists(localfile):
+        if not os.path.isdir(localfile):
+            # The localfile is a regular file (e.g., libname.so); assume that
+            # the pkgconfig directory is a peer
+            localfile = os.path.dirname(localfile)
+        pcpath = os.path.join(localfile, 'pkgconfig')
+        if os.path.exists(pcpath):
+            return [pcpath]
+
+    return []
+
+def getPkgConfigPath(spdfile, implId):
+    return walkDependencies(spdfile, implId, getImplPkgConfigPath)
+
+def getImplClasspath(spdfile, impl):
+    jarfile = spdrelpath(spdfile, impl.get_code().get_localfile().name)
+    if jarfile.endswith('.jar'):
+        return [jarfile]
+    else:
+        return []
+
+def getClasspath(spdfile, implId):
+    return walkDependencies(spdfile, implId, getImplClasspath)
+
+def main(args):
+    opts, args = getopt.getopt(args, '', ['impls', 'exists', 'pkgconfigpath', 'localfile', 'entrypoint', 'softpkgdeps', 'classpath', 'name'])
+
+    try:
+        filename = args[0]
+    except:
+        raise ValueError('No SPD file given')
+    
+    try:
+        sdrroot = os.environ['SDRROOT']
+    except:
+        raise ValueError('SDRROOT is not set')
+
+    # Check for implementation specifier (/path/to/file.spd.xml:XXXX)
+    implId = None
+    if ':' in filename:
+        filename, implId = filename.split(':')
+        
+    spdfile = findSpd(filename)
+    if not spdfile:
+        raise ValueError('Cannot find SPD file '+filename)
+
+    try:
+        spd = SPDParser.parse(spdfile)
+    except Exception, exc:
+        raise ValueError('Invalid SPD file %s:\n%s' % (filename, exc))
+
+    for key, value in opts:
+        if key == '--impls':
+            print ' '.join(getImplementations(spd))
+        elif key == '--exists':
+            impl = getImplementation(spd, implId)
+            localfile = impl.get_code().get_localfile().get_name()
+            if not os.path.exists(spdrelpath(spdfile, localfile)):
+                raise SystemExit('%s localfile does not exist: %s' % (spd.get_name(), localfile))
+            entrypoint = impl.get_code().get_entrypoint()
+            if entrypoint and not os.path.exists(spdrelpath(spdfile, entrypoint)):
+                raise SystemExit('%s entrypoint does not exist: %s' % (spd.get_name(), entrypoint))
+        elif key == '--localfile':
+            impl = getImplementation(spd, implId)
+            print impl.get_code().get_localfile().get_name()
+        elif key == '--entrypoint':
+            impl = getImplementation(spd, implId)
+            entrypoint = impl.get_code().get_entrypoint()
+            if entrypoint:
+                print entrypoint
+        elif key == '--pkgconfigpath':
+            pkgconfig = getPkgConfigPath(spdfile, implId)
+            print ':'.join(pkgconfig)
+        elif key == '--softpkgdeps':
+            impl = getImplementation(spd, implId)
+            libs = []
+            for dep in impl.get_dependency():
+                softpkgref = dep.get_softpkgref()
+                if softpkgref:
+                    depspd = softpkgref.get_localfile().get_name()
+                    if softpkgref.get_implref():
+                        depspd += ':' + softpkgref.get_implref().get_refid()
+                    print depspd
+        elif key == '--classpath':
+            classpath = getClasspath(spdfile, implId)
+            print ':'.join(classpath)
+        elif key == '--name':
+            name = spd.get_name()
+            print name
+
+
+if __name__ == '__main__':
+    try:
+        main(sys.argv[1:])
+    except Exception, exc:
+        raise SystemExit(exc)

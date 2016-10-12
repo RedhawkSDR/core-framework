@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="msg_recv" mode="readwrite" name="msg_recv" type="long">
+    <value>0</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="msg_xmit" mode="readwrite" name="msg_xmit" type="long">
+    <value>0</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="msg_limit" mode="readwrite" name="msg_limit" type="long">
+    <value>5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+</properties>

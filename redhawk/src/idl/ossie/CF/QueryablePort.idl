@@ -22,7 +22,8 @@
 #ifndef _QUERYABLE_PORT_IDL_
 #define _QUERYABLE_PORT_IDL_
 
-#include "ossie/CF/cf.idl"
+#include "ossie/CF/DataType.idl"
+#include "ossie/CF/Port.idl"
 
 module ExtendedCF {
 

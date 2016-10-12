@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:ExtendedEvent/MessageEvent:1.0"/>
+  <componenttype>service</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:ExtendedEvent/MessageEvent:1.0" supportsname="MessageEvent"/>
+    <ports/>
+  </componentfeatures>
+  <interfaces>
+    <interface name="MessageEvent" repid="IDL:ExtendedEvent/MessageEvent:1.0"/>
+  </interfaces>
+</softwarecomponent>

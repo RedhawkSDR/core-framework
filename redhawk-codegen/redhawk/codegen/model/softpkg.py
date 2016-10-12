@@ -26,9 +26,24 @@ from redhawk.codegen.utils import strenum
 import properties
 from softwarecomponent import SoftwareComponent, ComponentTypes
 
+
+class SoftpkgRef(object):
+    def __init__(self, ref):
+        self.spdfile = ref.localfile.name
+        if ref.implref:
+            self.impl = ref.implref.refid
+        else:
+            self.impl = None
+
+
 class Implementation(object):
     def __init__(self, impl):
         self.__impl = impl
+        self.__softpkgdeps = []
+        for dep in self.__impl.dependency:
+            if not dep.softpkgref:
+                continue
+            self.__softpkgdeps.append(SoftpkgRef(dep.softpkgref))
 
     def prfFile(self):
         if self.__impl.propertyfile:
@@ -44,8 +59,15 @@ class Implementation(object):
             return self.__impl.code.localfile.name
         return self.__impl.code.entrypoint
 
+    def localfile(self):
+        return self.__impl.code.localfile.name
+
     def programminglanguage(self):
         return self.__impl.programminglanguage.name
+
+    def softpkgdeps(self):
+        return self.__softpkgdeps
+
 
 def softPkgRef(root_impl, name, localfile, implref):
     try:
@@ -76,186 +98,6 @@ def resolveSoftPkgDeps(spd=None, root_impl=None):
                 softpkgdeps += resolveSoftPkgDeps(softpkgdeps[-1]['spd'], troot)
     return softpkgdeps
 
-class mFunctionParameters:
-    """
-    A simple struct for storing off inputs, output, and function mame
-    of an m function.
-
-    """
-    def __init__(self, outputs, inputs, functionName, defaults={}):
-        self.outputs      = outputs
-        self.inputs       = inputs
-        self.functionName = functionName
-        self.defaults     = defaults
-        if "__sampleRate" in self.defaults:
-            del self.defaults["__sampleRate"]
-
-def stringToList(stringInput):
-    """
-    Convert a string of the form:
-
-        "[1,2,3]"
-
-    To:
-
-        ["1", "2", "3"]
-
-    """
-
-    stringInput = stringInput[1:-1]
-    stringInput = stringInput.replace(" ", "")  # remove whitespace
-    return stringInput.split(",")
-
-def parseDefaults(inputs):
-    """
-    Parse out default values that have been specified in the input parameters
-    of the function declaration.
-
-    Example:
-
-        inputs = ["var1", "var2=5"]
-
-    will return:
-
-        inputs = ["var1", "var2"]
-        defaults = {"var2" = "5"}
-
-    """
-
-    defaults = {}
-    for index in range(len(inputs)):
-        if inputs[index].find("=") != -1:
-            splits = inputs[index].split("=")
-            inputs[index] = splits[0]
-            defaults[inputs[index]] = splits[1]
-            if defaults[inputs[index]].find("[") != -1:
-                defaults[inputs[index]] = stringToList(defaults[inputs[index]])
-
-    return inputs, defaults
-
-def getInputArguments(inputString):
-    """
-    Get arguments within a string between "(" and ")".  This is a special
-    sub-case of getArguments, as it can handle nested lists (i.e., sequence
-    properties).  Also, it can be assumed that the input arguments are comma-
-    separated.
-
-    See also getArguments.
-
-    """
-    def _splitFirstArg(args):
-        """
-        Given an input "a,b,c", return ["a", "b,c"].  Honors brackets (e.g.,
-        "a=[1,2],b,c" will return ["a=[1,2]","b,c"].
-        """
-
-        openBracket = args.find("[")
-        closeBracket = args.find("]")
-        commaLocation = args.find(",")
-        if commaLocation == -1:
-            # last argument
-            retVal = [args, None]
-        elif commaLocation < openBracket or openBracket == -1:
-            # this is not a sequence
-            retVal = [args[0:commaLocation], args[commaLocation+1:]]
-        else:
-            # this is a sequence
-            retVal = [args[0:closeBracket+1], args[closeBracket+2:]]
-
-        return retVal
-
-    inputString = inputString.replace(" ", "")
-
-    args = inputString[inputString.find("(")+1:
-                       inputString.find(")")]
-
-    if args == "":
-        # Special case: no input arguments.  This will prevent us from
-        # returning an input argument with a blank name.
-        return []
-
-    args = _splitFirstArg(args)
-    prevLength = -1
-    while args[-1] != None:
-        retVal = _splitFirstArg(args[-1])
-        args = args[:-1] # strip off last val
-        args.extend(retVal)
-
-    args = args[:-1] # strip off last val
-
-    return args
-
-def getArguments(inputString, openDelimiter, closeDelimiter):
-    """
-    Get arguments within a string.  For example, if openDelimiter="(", 
-    closeDelimiter=")", and inputString = "function [a] = foo(b, c, d)",
-    this function will return ["b","c","d"].
-
-    """
-
-    args = inputString[inputString.find(openDelimiter)+1: 
-                       inputString.find(closeDelimiter)]
-    if args.find(",") != -1:
-        args = args.split(',')
-    else:
-        args = args.split()
-
-    args = [x.replace(" ","") for x in args] # get rid of extra whitespace
-
-    # TODO: remove comments from strings
-    return args
-
-def parseMFile(filename):
-    """
-    Parse file specified by filename to get inputs, outputs, and function
-    name of the first function defined in the m file.
-
-    """
-    # Get the contents of the file as a single string
-    file  = open(filename)
-    fileLines = file.readlines()
-    file.close()
-
-    fileStringNoComments = ""
-    for line in fileLines:
-        if line.find("#") != 0 and line.find("%") != 0:
-            # get a copy of the m file with no comments
-            fileStringNoComments += line
-
-    # the declaration consists of all content up to the first ")"
-    declaration  = fileStringNoComments[0:fileStringNoComments.find(")")+1]
-
-    # get output arguments
-    bracket1 = declaration.find("[")
-    if declaration.find("=") == -1 or declaration.find("=") > declaration.find("("):
-        # no output arguments, either because no equals sign was found or
-        # because no equals sign was found before the input arguments.
-        outputs = []
-    elif bracket1 != -1 and declaration.find("=") > bracket1:
-        # if a bracket is found before the first equals sign, parse
-        # the output argument that are between the first set of brackets
-        outputs = getArguments(declaration, "[", "]")
-    else:
-        # list of output arguments without brackets
-        outputs = getArguments(declaration, " ", "=")
-
-    # get input arguments
-    inputs = getInputArguments(declaration)
-    inputs, defaults = parseDefaults(inputs)
-
-    # get function name
-    if declaration.find("=") == -1 or declaration.find("=") > declaration.find("("):
-        # if there are no outputs
-        functionName = getArguments(declaration, "function", "(")[0]
-    else:
-        # If there are output arguments (output variables present)
-        functionName = getArguments(declaration, "=", "(")[0]
-
-    # store off outputs, inputs and function name in a struct
-    return mFunctionParameters(outputs      = outputs, 
-                               inputs       = inputs, 
-                               functionName = functionName,
-                               defaults     = defaults)
 
 class SoftPkg(object):
     def __init__(self, spdFile):
@@ -264,7 +106,7 @@ class SoftPkg(object):
         self.__softpkgdeps = resolveSoftPkgDeps(self.__spd)
         self.__impls = dict((impl.id_, Implementation(impl)) for impl in self.__spd.implementation)
 
-        self.__path = os.path.dirname(spdFile)
+        self.__path = os.path.dirname(os.path.abspath(spdFile))
 
         if self.__spd.get_descriptor():
             self.__scdFile = self.__spd.descriptor.localfile.name
@@ -283,25 +125,6 @@ class SoftPkg(object):
             self.__props = []
             self.__prfFile = None
 
-        self.__mFunctionParameters = mFunctionParameters(outputs      = [],
-                                                         inputs       = [],
-                                                         functionName = "")
-        for prop in self.__props:
-            if str(prop.identifier()) == "__mFunction":
-                # m function support only enabled for cpp
-                # point towards the m file that has been copied
-                # to the cpp directory
-                self.__mFunctionParameters = parseMFile(os.path.join(self.__path, "cpp/"+prop.value()+".m"))
-
-    def mFileFunctionName(self):
-        return self.__mFunctionParameters.functionName
-
-    def mFileOutputs(self):
-        return self.__mFunctionParameters.outputs
-
-    def mFileInputs(self):
-        return self.__mFunctionParameters.inputs
- 
     def spdFile(self):
         return self.__spdFile
 
@@ -310,6 +133,9 @@ class SoftPkg(object):
 
     def scdFile(self):
         return self.__scdFile
+
+    def path(self):
+        return self.__path
 
     def type(self):
         if self.__desc:
@@ -325,6 +151,12 @@ class SoftPkg(object):
 
     def name(self):
         return self.__spd.name
+
+    def namespace(self):
+        return self.__spd.name.split('.')[:-1]
+
+    def basename(self):
+        return self.__spd.name.split('.')[-1]
 
     def version(self):
         if not self.__spd.version:

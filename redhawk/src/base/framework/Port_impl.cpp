@@ -36,4 +36,3 @@ void Port_impl::connectPort(CORBA::Object_ptr connection, const char* connection
 void Port_impl::disconnectPort(const char* connectionId)
 {
 }
-

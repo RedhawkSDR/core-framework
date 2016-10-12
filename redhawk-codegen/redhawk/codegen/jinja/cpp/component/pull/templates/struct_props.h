@@ -34,6 +34,17 @@
 /*{% block includes %}*/
 #include <ossie/CorbaUtils.h>
 #include <CF/cf.h>
+#include <ossie/PropertyMap.h>
+/*{% set isSet = False %}*/
+/*{% for struct in component.structdefs %}*/
+/*{%   for field in struct.fields %}*/
+/*{%     if field.isOptional and isSet == False %}*/
+#include <ossie/OptionalProperty.h>
+#include <ossie/AnyUtils.h>
+/*{%       set isSet = True %}*/
+/*{%     endif %}*/
+/*{%   endfor %}*/
+/*{% endfor %}*/
 /*{% if component['hasmultioutport'] %}*/
 #include <bulkio/bulkio.h>
 typedef bulkio::connection_descriptor_struct connection_descriptor_struct;

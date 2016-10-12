@@ -38,7 +38,10 @@ class InstallDialogBase(QDialog):
 
         InstallDialogBaseLayout = QHBoxLayout(self)
 
-        self.appListBox = QListWidget(self)
+        self.appListBox = QTreeWidget(self)
+        self.appListBox.setColumnCount(2)
+        self.appListBox.setHeaderLabels(['Name', 'SAD file'])
+        self.appListBox.setRootIsDecorated(False)
         InstallDialogBaseLayout.addWidget(self.appListBox)
 
         layout6 = QVBoxLayout(None)

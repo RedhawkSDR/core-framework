@@ -28,12 +28,26 @@ class InstallDialog(InstallDialogBase):
 
     def __init__(self, fileList, parent = None,name = None,modal = 0,fl = 0):
         InstallDialogBase.__init__(self,parent,name,modal,fl)
-        for file in fileList:
-            QListWidgetItem(file, self.appListBox)
+        for appname, filename in fileList:
+            QTreeWidgetItem(self.appListBox, [appname, filename])
+
+        # Resize both columns to show everything
+        self.appListBox.resizeColumnToContents(0)
+        self.appListBox.resizeColumnToContents(1)
+
+        # Turn on column sorting and default to alpha order on names
+        self.appListBox.setSortingEnabled(True)
+        self.appListBox.sortByColumn(0, 0)
+
+        # Ensure that the window is large enough to display the entire name and
+        # a reasonable portion of the SAD filename
+        minWidth = 2*self.appListBox.columnWidth(0)
+        self.appListBox.setMinimumWidth(minWidth)
+        self.appListBox.setMinimumHeight(250)
 
     def selectedApp (self):
         tmp = self.appListBox.currentItem()
-        return str(tmp.text())
+        return str(tmp.text(1))
 
 def getApplicationFile (appList, parent):
     d = InstallDialog(appList, parent)

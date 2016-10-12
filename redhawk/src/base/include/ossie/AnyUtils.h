@@ -22,6 +22,7 @@
 #define OSSIE_ANYUTILS_H
 
 #include <omniORB4/CORBA.h>
+#include "ossie/prop_helpers.h"
 
 namespace ossie {
 
@@ -29,10 +30,12 @@ namespace ossie {
 
         // Returns true if an Any has no value (i.e., type is null).
         inline bool isNull (const CORBA::Any& any) {
-            return (any.type()->kind() == CORBA::tk_null);
+            CORBA::TypeCode_var type = any.type();
+            return (type->kind() == CORBA::tk_null);
         }
 
         // Numeric conversion of Any types, using standard C++ rules
+        bool toBoolean (const CORBA::Any&);
         CORBA::Octet toOctet (const CORBA::Any&);
         CORBA::Short toShort (const CORBA::Any&);
         CORBA::UShort toUShort (const CORBA::Any&);
@@ -43,6 +46,7 @@ namespace ossie {
         CORBA::Float toFloat (const CORBA::Any&);
         CORBA::Double toDouble (const CORBA::Any&);
 
+        bool toNumber (const CORBA::Any&, bool&);
         bool toNumber (const CORBA::Any&, CORBA::Octet&);
         bool toNumber (const CORBA::Any&, CORBA::Short&);
         bool toNumber (const CORBA::Any&, CORBA::UShort&);

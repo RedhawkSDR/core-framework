@@ -37,7 +37,7 @@ ${operation.returns} ${classname}::${operation.name}(${operation.arglist})
 {
 //% set hasreturn = operation.returns != 'void'
 /*{% if hasreturn %}*/
-    ${operation.returns} retval;
+    ${operation.temporary} retval${' = %s' % operation.initializer if operation.initializer};
 /*{% endif %}*/
     std::vector < std::pair < ${vartype}, std::string > >::iterator i;
 
@@ -54,9 +54,16 @@ ${operation.returns} ${classname}::${operation.name}(${operation.arglist})
     }
 
 /*{% if hasreturn %}*/
+/*{%   if operation.temporary.endswith('_var') %}*/
+    return retval._retn();
+/*{%   else %}*/
     return retval;
-/*{% else %}*/
-    return;
+/*{%   endif %}*/
 /*{% endif %}*/
 }
 /*{% endfor %}*/
+
+std::string ${classname}::getRepid() const
+{
+    return ${portgen.interfaceClass()}::_PD_repoId;
+}

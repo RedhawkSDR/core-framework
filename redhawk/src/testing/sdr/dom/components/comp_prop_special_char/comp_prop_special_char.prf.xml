@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <struct id="my:base" mode="readwrite">
+    <simple id="my:element" type="string">
+      <value>foo</value>
+    </simple>
+    <simple id="my.stuff" type="string">
+      <value>bar</value>
+    </simple>
+    <configurationkind kindtype="property"/>
+  </struct>
+  <structsequence id="my:seq" mode="readwrite">
+    <struct id="my:str">
+      <simple id="my_seq:my_str:my_prop" type="string">
+        <value>qwe</value>
+      </simple>
+    </struct>
+    <configurationkind kindtype="property"/>
+  </structsequence>
+</properties>

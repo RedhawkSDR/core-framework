@@ -27,8 +27,8 @@ from omniORB import any
 class JavaDeviceTest(scatest.CorbaTestCase):
 
     def test_BasicDevice(self):
-        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_java_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, domMgr = self.launchDomainManager()
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_java_node/DeviceManager.dcd.xml")
 
         # Ensure the expected device is available
         self.assertNotEqual(devMgr, None)

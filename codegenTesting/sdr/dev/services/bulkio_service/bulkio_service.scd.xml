@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<!-- Created with REDHAWK IDE-->
+<!-- Powered by Eclipse -->
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:BULKIO/dataFloat:1.0"/>
+  <componenttype>service</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:BULKIO/dataFloat:1.0" supportsname="dataFloat"/>
+    <ports/>
+  </componentfeatures>
+  <interfaces>
+      <interface name="dataFloat" repid="IDL:BULKIO/dataFloat:1.0"/>
+  </interfaces>
+</softwarecomponent>

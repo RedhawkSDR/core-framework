@@ -18,10 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import jinja2
-
 from redhawk.codegen.jinja.common import ShellTemplate, SpecfileTemplate
-from redhawk.codegen.jinja.project.component.generator import ComponentProjectGenerator
+from redhawk.codegen.jinja.generator import TopLevelGenerator
 from redhawk.codegen.jinja.loader import CodegenLoader
 from mapping import DependencyProjectMapper
 
@@ -31,7 +29,7 @@ if not '__package__' in locals():
 
 loader = CodegenLoader(__package__)
 
-class DependencyProjectGenerator(ComponentProjectGenerator):
+class DependencyProjectGenerator(TopLevelGenerator):
 
     def loader(self, project):
         return loader
@@ -39,7 +37,7 @@ class DependencyProjectGenerator(ComponentProjectGenerator):
     def templates(self, project):
         return [
             ShellTemplate('build.sh'),
-            SpecfileTemplate('dependency.spec', project['name']+'.spec')
+            SpecfileTemplate('dependency.spec', project['specfile'])
             ]
 
     def projectMapper(self):

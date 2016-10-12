@@ -25,7 +25,10 @@ IDLFLAGS = -I$(OSSIE_IDLDIR) -I$(IDLDIR) -I$(OMNICOS_IDLDIR)
 lib_LTLIBRARIES = libossiecfjni.la
 
 nodist_libossiecfjni_la_SOURCES = ossie/CF/jni_LogInterfaces.cpp \
+				  ossie/CF/jni_EventChannelManager.cpp \
 				  ossie/CF/jni_cf.cpp \
+				  ossie/CF/jni_DataType.cpp \
+				  ossie/CF/jni_Port.cpp \
 				  ossie/CF/jni_AggregateDevices.cpp \
 				  ossie/CF/jni_QueryablePort.cpp \
 				  ossie/CF/jni_StandardEvent.cpp \
@@ -38,6 +41,9 @@ libossiecfjni_la_CPPFLAGS = $(OMNIJNI_CPPFLAGS) $(OSSIE_CFLAGS)
 libossiecfjni_la_LDFLAGS = -version-info $(LIBOSSIECFJNI_VERSION_INFO)
 
 nobase_nodist_include_HEADERS = ossie/CF/jni_LogInterfaces.h \
+				ossie/CF/jni_EventChannelManager.h \
+				ossie/CF/jni_DataType.h \
+				ossie/CF/jni_Port.h \
 				ossie/CF/jni_cf.h \
 				ossie/CF/jni_AggregateDevices.h \
 				ossie/CF/jni_QueryablePort.h \
@@ -49,12 +55,11 @@ nobase_nodist_include_HEADERS = ossie/CF/jni_LogInterfaces.h \
 
 # Ensure that the headers get built first to avoid potential race conditions,
 # as many of the .cpp files depend on one or more other headers
-BUILT_SOURCES = $(nobase_nodist_include_HEADERS)
+BUILT_SOURCES = $(nobase_nodist_include_HEADERS) $(nodist_libossiecfjni_la_SOURCES)
 
 libossiecfjni_la_LIBADD = COS/libcosjni.la $(OMNICOS_LIBS) $(OSSIEIDL_LIBS) $(OMNIJNI_LIBS)
 
-clean-local:
-	rm -rf ossie
+CLEANFILES = $(BUILT_SOURCES)
 
 ossie/CF:
 	mkdir -p $@

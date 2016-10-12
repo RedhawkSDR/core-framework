@@ -24,20 +24,27 @@
 #include <exception>
 #include <signal.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/utsname.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/signalfd.h>
+
 #include <sys/resource.h>
 #include <sys/time.h>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/asio/ip/host_name.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/thread.hpp>
 
 #include <ossie/CF/cf.h>
 #include <ossie/CorbaUtils.h>
 #include <ossie/ossieSupport.h>
 #include <ossie/debug.h>
 #include <ossie/logging/loghelpers.h>
+#include <ossie/SimpleThread.h>
 
 #include "DeviceManager_impl.h"
 
@@ -45,9 +52,13 @@ namespace fs = boost::filesystem;
 
 static DeviceManager_impl* DeviceManager_servant = 0;
 static bool internalShutdown_devMgr;
+static int sig_fd=-1;
 
 
 CREATE_LOGGER(DeviceManager);
+
+
+
 
 // There's a known bug in log4cxx where it can segfault if it is
 //  used during a program exit (so don't use the logger in the signal catcher)
@@ -64,10 +75,6 @@ static void shutdown (void)
             DeviceManager_servant->shutdown();
         }
     }
-    // Do not wait for shutdown to complete in the interrupt handler. When it is
-    // done, orb->run() will return. If the ORB has already been shut down, this is
-    // a no-op.
-    ossie::corba::OrbShutdown(false);
 }
 
 
@@ -87,8 +94,11 @@ static void child_exit (int sig)
     pid_t pid;
     int status;
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+      if (  DeviceManager_servant) {
         DeviceManager_servant->childExited(pid, status);
+      }
     }
+    
 }
 
 
@@ -111,6 +121,78 @@ static void raise_limit(int resource, const char* name, const rlim_t DEFAULT_MAX
 }
 
 
+/*
+  sigprocessor
+  
+  Called from controlling SimpleThread object that will check the file descriptor created by
+  signalfd. Each iteration will check the file descriptor for watched signals that are blocked.
+  This allows for io operations
+
+*/
+
+int sigprocessor(void ) {
+
+  // Check if any children died....
+  fd_set readfds;
+  FD_ZERO(&readfds);
+  FD_SET(sig_fd, &readfds);
+  struct timeval tv = {0, 50};
+  int retval=SimpleThread::NOOP;
+
+  if ( sig_fd > -1 ) {
+
+    // don't care about writefds and exceptfds:
+    LOG_TRACE(DeviceManager, "Checking for signals from SIGNALFD......" << sig_fd);
+    select(sig_fd+1, &readfds, NULL, NULL, &tv);
+    if (FD_ISSET(sig_fd, &readfds)) {
+
+      retval=SimpleThread::NORMAL;
+      struct signalfd_siginfo si;
+      ssize_t s = read(sig_fd, &si, sizeof(struct signalfd_siginfo));
+      if (s != sizeof(struct signalfd_siginfo)){
+        LOG_ERROR(DeviceManager, "SIGCHLD handling error ...");
+      }
+ 
+      // check for SIGCHLD
+      LOG_TRACE(DeviceManager, "Signals are active....." << sig_fd);
+      if ( si.ssi_signo == SIGCHLD) {
+          // Only concerned with children that exited; the status will be reported by
+          // the DeviceManager's child handler
+          switch (si.ssi_code) {
+          case CLD_EXITED:
+          case CLD_KILLED:
+          case CLD_DUMPED:
+              child_exit(si.ssi_signo);
+              break;
+          }
+      }
+
+      // check if we need to exit...
+      if ( si.ssi_signo == SIGINT ||si.ssi_signo == SIGQUIT || 
+           si.ssi_signo == SIGTERM ) {
+        LOG_INFO(DeviceManager, "DeviceManager exiting.... signal:" << si.ssi_pid);
+        shutdown();
+      }
+    }
+
+    // need to handle last child died was captured..so we can release control back to main
+    if (DeviceManager_servant) {
+      if (internalShutdown_devMgr &&  
+          DeviceManager_servant->allChildrenExited() &&
+          DeviceManager_servant->isShutdown() ) {
+        LOG_DEBUG(DeviceManager, "Release the ORB, control back to main.cpp" );
+        // devmgr is done with using orb.... release orb so control goes back to main
+        ossie::corba::OrbShutdown(false);
+        retval=SimpleThread::FINISH;   // stop us too
+      }
+    }
+
+  }
+
+  return retval;
+}
+
+
 int main(int argc, char* argv[])
 {
     // parse command line options
@@ -121,7 +203,9 @@ int main(int argc, char* argv[])
     std::string domainName;
     int debugLevel = 3;
     std::string dpath("");
-    std::string name_binding("DEVICE_MANAGER");
+    std::string cpuBlackList("");
+    std::string node_name("DEVICE_MANAGER");
+    bool        useLogCfgResolver=false;
 
     std::map<std::string, char*>execparams;
 
@@ -130,6 +214,11 @@ int main(int argc, char* argv[])
 
     for (int ii = 1; ii < argc; ++ii) {
         std::string param = argv[ii];
+        std::string pupper = boost::algorithm::to_upper_copy(param);
+        if (pupper == "USELOGCFG") {
+          useLogCfgResolver=true;
+          continue;
+        }
         if (++ii >= argc) {
             std::cerr << "ERROR: No value given for " << param << std::endl;
             exit(EXIT_FAILURE);
@@ -145,6 +234,10 @@ int main(int argc, char* argv[])
             domainName = argv[ii];
         } else if (param == "LOGGING_CONFIG_URI") {
             logfile_uri = argv[ii];
+        } else if (pupper == "NOLOGCFG") {
+          useLogCfgResolver=false;
+        } else if (pupper == "CPUBLACKLIST") {
+          cpuBlackList=argv[ii];
         } else if (param == "DEBUG_LEVEL") {
             debugLevel = atoi(argv[ii]);
             if (debugLevel > 5) {
@@ -184,13 +277,20 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
+
     pid_t pid = getpid();
     std::ostringstream os;
-    os << domainName << "/" << name_binding << "_" << pid;;
-    dpath= os.str();
+    os << boost::asio::ip::host_name() << ":" << node_name << "_" << pid;
+    node_name = os.str();
 
-    // setup logging context for a component resource
-    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::DeviceMgrCtx(name_binding, domainName, dpath ) );
+    os.str("");
+    os << domainName << "/" << node_name;
+    dpath= os.str();
+    
+    //
+    // setup logging context for this DeviceManager
+    //
+    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::DeviceMgrCtx(node_name, domainName, dpath ) );
 
     std::string logcfg_uri=logfile_uri;
     if ( !logfile_uri.empty() ) {
@@ -235,6 +335,9 @@ int main(int argc, char* argv[])
         }
     }
 
+    //
+    // apply logging settings to the library
+    //
     ossie::logging::Configure(logcfg_uri, debugLevel, ctx);
 
     ///////////////////////////////////////////////////////////////////////////
@@ -242,31 +345,42 @@ int main(int argc, char* argv[])
     ///////////////////////////////////////////////////////////////////////////
 
     // Create signal handler to catch system interrupts SIGINT and SIGQUIT
-    struct sigaction sa;
-    sa.sa_handler = signal_catcher;
-    sa.sa_flags = 0;
-    sigemptyset(&sa.sa_mask);
-
-    // Associate SIGINT to signal_catcher interrupt handler
-    if (sigaction(SIGINT, &sa, NULL) == -1) {
-        LOG_ERROR(DeviceManager, "sigaction(SIGINT): " << strerror(errno));
-        exit(EXIT_FAILURE);
+    // Install signal handler to properly handle SIGCHLD signals
+    // we are using signalfd to remove io restriction when handling signals
+    int err;
+    sigset_t  sigset;
+    err=sigemptyset(&sigset);
+    err = sigaddset(&sigset, SIGINT);
+    if ( err ) {
+      LOG_ERROR(DeviceManager, "sigaction(SIGINT): " << strerror(errno));
+      exit(EXIT_FAILURE);
     }
 
-    // Associate SIGQUIT to signal_catcher interrupt handler
-    if (sigaction(SIGQUIT, &sa, NULL) == -1) {
-        LOG_ERROR(DeviceManager, "sigaction(SIGQUIT): " << strerror(errno));
-        exit(EXIT_FAILURE);
+    err = sigaddset(&sigset, SIGQUIT);
+    if ( err ) {
+      LOG_ERROR(DeviceManager, "sigaction(SIGQUIT): " << strerror(errno));
+      exit(EXIT_FAILURE);
     }
 
-    // Associate SIGTERM to signal_catcher interrupt handler
-    if (sigaction(SIGTERM, &sa, NULL) == -1) {
-        LOG_ERROR(DeviceManager, "sigaction(SIGTERM): " << strerror(errno));
-        exit(EXIT_FAILURE);
+    err = sigaddset(&sigset, SIGTERM);
+    if ( err ) {
+      LOG_ERROR(DeviceManager, "sigaction(SIGTERM): " << strerror(errno));
+      exit(EXIT_FAILURE);
+    }
+    err = sigaddset(&sigset, SIGCHLD);
+    if ( err ) {
+      LOG_ERROR(DeviceManager, "sigaction(SIGCHLD): " << strerror(errno));
+      exit(EXIT_FAILURE);
     }
 
-    sa.sa_handler = child_exit;
-    sigaction(SIGCHLD, &sa, NULL);
+    // We must block the signals in order for signalfd to receive them 
+    err = sigprocmask(SIG_BLOCK, &sigset, NULL);
+    // Create the signalfd
+    sig_fd = signalfd(-1, &sigset, SFD_NONBLOCK | SFD_CLOEXEC);
+    if ( sig_fd == -1 ) {
+      LOG_ERROR(DeviceManager, "signalfd failed: " << strerror(errno));
+      exit(EXIT_FAILURE);
+    }
 
     // Start CORBA. Persistence is not currently supported in the DeviceManager.
     CORBA::ORB_ptr orb = ossie::corba::OrbInit(argc, argv, false);
@@ -277,9 +391,10 @@ int main(int argc, char* argv[])
     mgr->hold_requests(1);
 
     // Install our own adapter to create POAs as needed.
-    ossie::corba::POACreator activator_servant;
-    PortableServer::AdapterActivator_var activator = activator_servant._this();
+    ossie::corba::POACreator *activator_servant = new ossie::corba::POACreator();
+    PortableServer::AdapterActivator_var activator = activator_servant->_this();
     root_poa->the_activator(activator);
+    activator->_remove_ref();
 
     // Re-activate the root POA manager.
     mgr->activate();
@@ -328,20 +443,29 @@ int main(int argc, char* argv[])
         devMgrCache = devRootPath.string();
     }
 
-        LOG_INFO(DeviceManager, "Starting Device Manager with " << dcdFile);
-        LOG_DEBUG(DeviceManager, "Root of DeviceManager FileSystem set to " << devRootPath);
-        LOG_DEBUG(DeviceManager, "DevMgr cache set to " << devMgrCache);
-        LOG_DEBUG(DeviceManager, "Domain Name set to " << domainName);
+    LOG_INFO(DeviceManager, "Starting Device Manager with " << dcdFile);
+    LOG_DEBUG(DeviceManager, "Root of DeviceManager FileSystem set to " << devRootPath);
+    LOG_DEBUG(DeviceManager, "DevMgr cache set to " << devMgrCache);
+    LOG_DEBUG(DeviceManager, "Domain Name set to " << domainName);
 
+    SimpleThread sigthread( sigprocessor );
+    int pstage=-1;
     try {
+      try {
         DeviceManager_servant = new DeviceManager_impl(dcdFile.c_str(),
                                                        devRootPath.string().c_str(),
                                                        devMgrCache.c_str(),
                                                        (logfile_uri.empty()) ? NULL : logfile_uri.c_str(),
                                                        un,
+                                                       useLogCfgResolver,
+                                                       cpuBlackList.c_str(),
                                                        &internalShutdown_devMgr
                                                        );
         DeviceManager_servant->setExecparamProperties(execparams);
+        pstage=0;
+
+        // start signal catching thread
+        sigthread.start();
 
         // Activate the DeviceManager servant into its own POA, giving the POA responsibility
         // for its deletion.
@@ -350,37 +474,60 @@ int main(int argc, char* argv[])
 
         // finish initializing the Device Manager
         try {
-            CF::DeviceManager_var DeviceManager_obj = DeviceManager_servant->_this();
-            DeviceManager_servant->post_constructor(DeviceManager_obj, domainName.c_str());
+          pstage++;
+          DeviceManager_servant->postConstructor(domainName.c_str());
         } catch (const CORBA::Exception& ex) {
-            LOG_FATAL(DeviceManager, "Startup failed with CORBA::" << ex._name() << " exception");
-            shutdown();
-            exit(-1);
+          LOG_FATAL(DeviceManager, "Startup failed with CORBA::" << ex._name() << " exception");
+          shutdown();
+          throw pstage;
         } catch (const std::runtime_error& e) {
-            LOG_FATAL(DeviceManager, "Startup failed: " << e.what() );
-            shutdown();
-            exit(-1);
+          LOG_FATAL(DeviceManager, "Startup failed: " << e.what() );
+          shutdown();
+          throw pstage;
         } catch (...) {
-            LOG_FATAL(DeviceManager, "Startup failed; unknown exception");
-            shutdown();
-            exit(-1);
+          LOG_FATAL(DeviceManager, "Startup failed; unknown exception");
+          shutdown();
+          throw pstage;
         }
 
+        pstage++;
         LOG_INFO(DeviceManager, "Starting ORB!");
         orb->run();
 
+        pstage++;
         LOG_INFO(DeviceManager, "Goodbye!");
-    } catch (const CORBA::Exception& ex) {
+      } catch (const CORBA::Exception& ex) {
         LOG_ERROR(DeviceManager, "Terminated with CORBA::" << ex._name() << " exception");
-        exit(-1);
-    } catch (const std::exception& ex) {
+        throw pstage ;
+ 
+      } catch (const std::exception& ex) {
         LOG_ERROR(DeviceManager, "Terminated with exception: " << ex.what());
-        exit(-1);
+        throw pstage;
+      }
+    }catch(int x ) {
     }
-    while (not DeviceManager_servant->allChildrenExited()) {
+    
+    // check if we ran.... this should 
+    if ( pstage > 1 ) {
+      while (not DeviceManager_servant->allChildrenExited()) {
+        printf("waiting for child processes to stop \n");
         usleep(10000);  // sleep 10 ms to wait for all children to exit
+      }
     }
-    DeviceManager_servant->_remove_ref();
-    ossie::corba::OrbShutdown(true);
+
+    sigthread.stop();
+
+    if ( pstage > 0 ) {
+      DeviceManager_servant->_remove_ref();
+    }
+    else {
+      delete DeviceManager_servant;
+      DeviceManager_servant = 0;
+    }
+
     LOG_DEBUG(DeviceManager, "Farewell!")
+    ossie::corba::OrbShutdown(true);
+    ossie::logging::Terminate();
+
+    exit( pstage>1?0:-1);
 }

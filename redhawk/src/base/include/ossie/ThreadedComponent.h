@@ -20,48 +20,13 @@
 
 #ifndef OSSIE_THREADEDCOMPONENT_H
 #define OSSIE_THREADEDCOMPONENT_H
-
-#include <time.h>
-#include <boost/thread.hpp>
+#include "ossie/ProcessThread.h"
+#include "ossie/Autocomplete.h"
 
 enum {
     NOOP   = 0,
     FINISH = -1,
     NORMAL = 1
-};
-
-class ThreadedComponent;
-
-class ProcessThread
-{
-public:
-    ProcessThread(ThreadedComponent* target, float delay);
-    ~ProcessThread();
-
-    // Kicks off the thread
-    void start ();
-
-    // Manages calls to target's service function
-    void run ();
-
-    // Stops thread and wait for termination
-    bool release (unsigned long secs = 0, unsigned long usecs = 0);
-
-    void stop();
-
-    // Changes the delay between calls to service function after a NOOP
-    void updateDelay (float delay);
-
-    bool threadRunning();
-
-private:
-    boost::thread* _thread;
-    volatile bool _running;
-    ThreadedComponent* _target;
-    struct timespec _delay;
-
-public: 
-    boost::thread*& _mythread;
 };
 
 //
@@ -89,7 +54,7 @@ protected:
     // Changes the delay between calls to service function after a NOOP
     void setThreadDelay (float delay);
 
-    ProcessThread* serviceThread;
+    ossie::ProcessThread* serviceThread;
     boost::mutex serviceThreadLock;
 
 private:

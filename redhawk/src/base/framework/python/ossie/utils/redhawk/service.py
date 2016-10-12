@@ -23,3 +23,7 @@ from ossie.utils import model
 class Service(model.Service):
     def __init__(self, profile, spd, scd, prf, serviceRef, instanceName, refid, impl):
         model.Service.__init__(self, serviceRef, profile, spd, scd, prf, instanceName, refid, impl)
+
+class RogueService(model.RogueService):
+    def __init__(self, serviceRef, instanceName ):
+        model.RogueService.__init__(self, serviceRef, instanceName )

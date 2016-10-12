@@ -33,6 +33,8 @@
 #include "ossie/CorbaUtils.h"
 #include "ossie/ossieSupport.h"
 #include "ossie/prop_helpers.h"
+#include <ossie/PropertyMap.h>
+#include <ossie/boost_compat.h>
 
 namespace fs = boost::filesystem;
 
@@ -174,23 +176,16 @@ void FileSystem_impl::remove (const char* fileName) throw (CF::FileException, CF
     } else if (!fsops.exists(fname)) {
         throw CF::FileException(CF::CF_EEXIST, "File does not exist");
     }
-#if BOOST_FILESYSTEM_VERSION < 3    
-    std::string searchPattern = fname.filename();
-#else
-    std::string searchPattern = fname.filename().string();
-#endif     
+
+    std::string searchPattern = BOOST_PATH_STRING(fname.filename());
     LOG_TRACE(FileSystem_impl, "Remove using search pattern " << searchPattern << " in " << dirPath);
     
     const fs::directory_iterator end_itr; // an end iterator (by boost definition)
     for (fs::directory_iterator itr = fsops.begin(dirPath); itr != end_itr; fsops.increment(itr)) {
-#if BOOST_FILESYSTEM_VERSION < 3    
-        const std::string& filename = itr->filename();
-#else
-        const std::string& filename = itr->path().filename().string();
-#endif     
+        const std::string& filename = BOOST_PATH_STRING(itr->path().filename());
         if (fnmatch(searchPattern.c_str(), filename.c_str(), 0) == 0) {
             LOG_TRACE(FileSystem_impl, "Removing file " << itr->path().string());  
-	    if (!fsops.remove(itr->path())) {
+            if (!fsops.remove(itr->path())) {
                 throw CF::FileException(CF::CF_EEXIST, "File does not exist");
             }
         }
@@ -316,32 +311,18 @@ CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* patt
         throw CF::FileException(CF::CF_ENOTDIR, "Path is not a directory");
     }
 
-    std::string searchPattern;
-#if BOOST_FILESYSTEM_VERSION < 3    
-    if ((filePath.filename() == ".") && (fsops.is_directory(filePath))) {
+    std::string searchPattern = BOOST_PATH_STRING(filePath.filename());
+    if ((searchPattern == ".") && (fsops.is_directory(filePath))) {
         searchPattern = "*";
-    } else {
-        searchPattern = filePath.filename();
     }
-#else
-    if ((filePath.filename().string() == ".") && (fsops.is_directory(filePath))) {
-        searchPattern = "*";
-    } else {
-        searchPattern = filePath.filename().string();
-    }
-#endif
     LOG_TRACE(FileSystem_impl, "List using search pattern " << searchPattern << " in " << dirPath);
 
     CF::FileSystem::FileInformationSequence_var result = new CF::FileSystem::FileInformationSequence;
 
     const fs::directory_iterator end_itr; // an end iterator (by boost definition)
     for (fs::directory_iterator itr = fsops.begin(dirPath); itr != end_itr; fsops.increment(itr)) {
-#if BOOST_FILESYSTEM_VERSION < 3    
-        const std::string filename = itr->filename();
-#else
-        const std::string filename = itr->path().filename().string();
-#endif     
-	 if (fnmatch(searchPattern.c_str(), filename.c_str(), 0) == 0) {
+        const std::string filename = BOOST_PATH_STRING(itr->path().filename());
+        if (fnmatch(searchPattern.c_str(), filename.c_str(), 0) == 0) {
             if ((filename.length() > 0) && (filename[0] == '.') && (filename != searchPattern)) {
                 LOG_TRACE(FileSystem_impl, "Ignoring hidden match " << filename);
                 continue;
@@ -356,7 +337,6 @@ CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* patt
             } else {
                 result[index].name = CORBA::string_dup(filename.c_str());
             }
-            bool readonly = (access(itr->path().string().c_str(), W_OK));
             if (fsops.is_directory(*itr)) {
                 result[index].kind = CF::FileSystem::DIRECTORY;
                 result[index].size = 0;
@@ -372,25 +352,18 @@ CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* patt
                 }
             }
 
-            CF::Properties prop;
-            prop.length(5);
-            prop[0].id = CORBA::string_dup(CF::FileSystem::CREATED_TIME_ID);
-            prop[0].value <<= static_cast<CORBA::ULongLong>(fs::last_write_time(*itr));
-            prop[1].id = CORBA::string_dup(CF::FileSystem::MODIFIED_TIME_ID);
-            prop[1].value <<= static_cast<CORBA::ULongLong>(fs::last_write_time(*itr));
-            prop[2].id = CORBA::string_dup(CF::FileSystem::LAST_ACCESS_TIME_ID);
-            prop[2].value <<= static_cast<CORBA::ULongLong>(fs::last_write_time(*itr));
-            prop[3].id = CORBA::string_dup("READ_ONLY");
-            prop[3].value <<= CORBA::Any::from_boolean(readonly);
-            prop[4].id = CORBA::string_dup("IOR_AVAILABLE");
-#if BOOST_FILESYSTEM_VERSION < 3            
-	    std::string localFilename = itr->string();
-#else
-	    std::string localFilename = itr->path().string();
+            const std::string localFilename = itr->path().string();
+            bool readonly = access(localFilename.c_str(), W_OK);
+            bool executable = !access(localFilename.c_str(), X_OK);
+            CORBA::ULongLong modtime = fs::last_write_time(*itr);
 
-#endif
-            prop[4].value = ossie::strings_to_any(getFileIOR(localFilename), CORBA::tk_string);
-            result[index].fileProperties = prop;
+            redhawk::PropertyMap& props = redhawk::PropertyMap::cast(result[index].fileProperties);
+            props[CF::FileSystem::CREATED_TIME_ID] = modtime;
+            props[CF::FileSystem::MODIFIED_TIME_ID] = modtime;
+            props[CF::FileSystem::LAST_ACCESS_TIME_ID] = modtime;
+            props["READ_ONLY"] = readonly;
+            props["EXECUTABLE"] = executable;
+            props["IOR_AVAILABLE"] = getFileIOR(localFilename);
         }
     }
 
@@ -414,8 +387,36 @@ CF::File_ptr FileSystem_impl::create (const char* fileName) throw (CORBA::System
     PortableServer::ObjectId_var oid = poa->activate_object(file);
     file->_remove_ref();
 
+    CF::File_var fileServant = file->_this();
+    std::string fileIOR = ossie::corba::objectToString(fileServant);
+    file->setIOR(fileIOR);
+
     TRACE_EXIT(FileSystem_impl);
-    return file->_this();
+    return fileServant._retn();
+}
+
+void FileSystem_impl::closeAllFiles() {
+    LOG_TRACE(FileSystem_impl, "Closing all open file handles");
+    std::vector<std::string> iors;
+    {
+        boost::mutex::scoped_lock lock(fileIORCountAccess);
+        for (IORTable::iterator iortable_iter = fileOpenIOR.begin();iortable_iter != fileOpenIOR.end();iortable_iter++) {
+            iors.push_back(iortable_iter->second[0]); 
+        }
+    }
+    std::vector<std::string>::iterator iors_iter = iors.begin();
+    while (iors_iter != iors.end()) {
+        try {
+            CORBA::Object_var obj = ossie::corba::stringToObject(iors_iter->c_str());
+            CF::File_var open_file = CF::File::_narrow(obj);
+            std::cout<<"(1)"<<std::endl;
+            open_file->close();
+            std::cout<<"(2s)"<<std::endl;
+        } catch ( ... ) {
+            // the file may not be there anymore
+        }
+        iors_iter++;
+    }
 }
 
 void FileSystem_impl::incrementFileIORCount(std::string &fileName, std::string &fileIOR) {
@@ -447,7 +448,7 @@ void FileSystem_impl::decrementFileIORCount(std::string &fileName, std::string &
     }
 }
 
-std::vector< std::string > FileSystem_impl::getFileIOR(std::string &fileName) {
+std::vector< std::string > FileSystem_impl::getFileIOR(const std::string& fileName) {
     boost::mutex::scoped_lock lock(fileIORCountAccess);
     std::vector< std::string > retVal;
     if (fileOpenIOR.count(fileName) != 0) {
@@ -475,6 +476,7 @@ CF::File_ptr FileSystem_impl::open (const char* fileName, CORBA::Boolean read_On
     std::string strFileName = root.string();
     strFileName += fileName;
     incrementFileIORCount(strFileName, fileIOR);
+    file->setIOR(fileIOR);
 
     TRACE_EXIT(FileSystem_impl);
     return fileObj._retn();
@@ -606,5 +608,3 @@ CORBA::ULongLong FileSystem_impl::getAvailableSpace () const
         return 0;
     }
 }
-
-///\todo Implement File object reference clean up.

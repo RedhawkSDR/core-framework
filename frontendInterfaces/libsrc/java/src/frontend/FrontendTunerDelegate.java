@@ -25,14 +25,14 @@ import FRONTEND.NotSupportedException;
 
 public interface FrontendTunerDelegate {
 
-    public String fe_getTunerType(String id) throws FrontendException, BadParameterException, NotSupportedException;
+    public String getTunerType(String id) throws FrontendException, BadParameterException, NotSupportedException;
 
-    public boolean fe_getTunerDeviceControl(String id) throws FrontendException, BadParameterException, NotSupportedException;
+    public boolean getTunerDeviceControl(String id) throws FrontendException, BadParameterException, NotSupportedException;
 
-    public String fe_getTunerGroupId(String id) throws FrontendException, BadParameterException, NotSupportedException;
+    public String getTunerGroupId(String id) throws FrontendException, BadParameterException, NotSupportedException;
 
-    public String fe_getTunerRfFlowId(String id) throws FrontendException, BadParameterException, NotSupportedException;
+    public String getTunerRfFlowId(String id) throws FrontendException, BadParameterException, NotSupportedException;
 
-    public CF.DataType[] fe_getTunerStatus(String id) throws FrontendException, BadParameterException, NotSupportedException;
+    public CF.DataType[] getTunerStatus(String id) throws FrontendException, BadParameterException, NotSupportedException;
 
 }

@@ -22,11 +22,14 @@ import unittest
 from _unitTestHelpers import scatest
 from omniORB import URI, any, CORBA
 from ossie.cf import CF
+from _unitTestHelpers import runtestHelpers
+
+java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 class SADPropertiesTest(scatest.CorbaTestCase):
     def setUp(self):
-        domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self._app = None
 
     def tearDown(self):
@@ -42,7 +45,10 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         self.assertNotEqual(self._domMgr, None)
         self.assertNotEqual(self._devMgr, None)
 
-        sadpath = "/waveforms/ExternalProperties/ExternalProperties"+extra+".sad.xml"
+        if java_support:
+            sadpath = "/waveforms/ExternalProperties/ExternalProperties"+extra+".sad.xml"
+        else:
+            sadpath = "/waveforms/ExternalProperties/ExternalProperties"+extra+"NoJava.sad.xml"
         self._domMgr.installApplication(sadpath)
         self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -86,12 +92,19 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         javaProp = CF.DataType(id="ext_prop_ulong", value=CORBA.Any(CORBA.TC_ulong, 111))
 
         # Configure all
-        self._app.configure([javaProp, pythonProp, cppProp])
+        props = [pythonProp, cppProp]
+        number_props = 5
+        to_find = 2
+        if java_support:
+            props.append(javaProp)
+            number_props = 6
+            to_find = 3
+        self._app.configure(props)
         # Make sure all were set
         found = 0
         props = self._app.query([])
         # Should have 3 external properties and 3 AC properties (the 4th AC prop is promoted as external)
-        self.assertEquals(len(props), 6)
+        self.assertEquals(len(props), number_props)
         for p in props:
             if p.id == "ext_prop_long":
                 self.assertEquals(p.value.value(), -111)
@@ -103,7 +116,7 @@ class SADPropertiesTest(scatest.CorbaTestCase):
                 self.assertEquals(p.value.value(), 111)
                 found += 1
        # Make sure all 3 external prop IDs were found
-        if not found == 3:
+        if not found == to_find:
             self.fail('Unable to query() all required external property IDs')
 
         # Can still configure other AC internal props
@@ -122,33 +135,48 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         # Make sure can do individual queries on external properties
         pythonProp= CF.DataType(id="ext_prop_string", value=CORBA.Any(CORBA.TC_string, "HELLO WORLD"))
         javaProp = CF.DataType(id="ext_prop_ulong", value=CORBA.Any(CORBA.TC_ulong, 222))
-        self._app.configure([pythonProp, javaProp])
+        props = [pythonProp]
+        if java_support:
+            props.append(javaProp)
+        self._app.configure(props)
         pythonProp= CF.DataType(id="ext_prop_string", value=any.to_any(None))
         javaProp = CF.DataType(id="ext_prop_ulong", value=any.to_any(None))
-        pythonRet = self._app.query([pythonProp, javaProp])[0]
-        javaRet = self._app.query([pythonProp, javaProp])[1]
+        if java_support:
+            pythonRet = self._app.query([pythonProp, javaProp])[0]
+            javaRet = self._app.query([pythonProp, javaProp])[1]
+            self.assertEquals(javaRet.value.value(), 222)
+        else:
+            pythonRet = self._app.query([pythonProp])[0]
         self.assertEquals(pythonRet.value.value(), "HELLO WORLD")
-        self.assertEquals(javaRet.value.value(), 222)
 
         # Individual queries of mix of AC & external properties
         cppProp = CF.DataType(id="ext_prop_long", value=CORBA.Any(CORBA.TC_long, -333))
         cppPropInternal = CF.DataType(id="DCE:4e7c1977-5f53-4061-bae7-cb8c1072f4b7", value=CORBA.Any(CORBA.TC_string, "HELLO WORLD2"))
         pythonProp= CF.DataType(id="ext_prop_string", value=CORBA.Any(CORBA.TC_string, "hello world2"))
         javaProp = CF.DataType(id="ext_prop_ulong", value=CORBA.Any(CORBA.TC_ulong, 333))
-        self._app.configure([pythonProp, javaProp, cppProp, cppPropInternal])
+        if java_support:
+            self._app.configure([pythonProp, javaProp, cppProp, cppPropInternal])
+        else:
+            self._app.configure([pythonProp, cppProp, cppPropInternal])
 
         cppProp = CF.DataType(id="ext_prop_long", value=any.to_any(None))
         cppPropInternal = CF.DataType(id="DCE:4e7c1977-5f53-4061-bae7-cb8c1072f4b7", value=any.to_any(None))
         pythonProp= CF.DataType(id="ext_prop_string", value=any.to_any(None))
         javaProp = CF.DataType(id="ext_prop_ulong", value=any.to_any(None))
 
-        pythonRet = self._app.query([pythonProp, javaProp, cppPropInternal, cppProp])[0]
-        javaRet = self._app.query([pythonProp, javaProp, cppPropInternal, cppProp])[1]
-        cppRet2 = self._app.query([pythonProp, javaProp, cppPropInternal, cppProp])[2]
-        cppRet = self._app.query([pythonProp, javaProp, cppPropInternal, cppProp])[3]
+        if java_support:
+            pythonRet = self._app.query([pythonProp, javaProp, cppPropInternal, cppProp])[0]
+            javaRet = self._app.query([pythonProp, javaProp, cppPropInternal, cppProp])[1]
+            cppRet2 = self._app.query([pythonProp, javaProp, cppPropInternal, cppProp])[2]
+            cppRet = self._app.query([pythonProp, javaProp, cppPropInternal, cppProp])[3]
+        else:
+            pythonRet = self._app.query([pythonProp, cppPropInternal, cppProp])[0]
+            cppRet2 = self._app.query([pythonProp, cppPropInternal, cppProp])[1]
+            cppRet = self._app.query([pythonProp, cppPropInternal, cppProp])[2]
 
         self.assertEquals(pythonRet.value.value(), "hello world2")
-        self.assertEquals(javaRet.value.value(), 333)
+        if java_support:
+            self.assertEquals(javaRet.value.value(), 333)
         self.assertEquals(cppRet2.value.value(), "HELLO WORLD2")
         self.assertEquals(cppRet.value.value(), -333)
 
@@ -193,7 +221,10 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         self.assertNotEqual(self._domMgr, None)
         self.assertNotEqual(self._devMgr, None)
 
-        sadpath = '/waveforms/ExternalProperties/ExternalProperties'+extra+'.sad.xml'
+        if java_support:
+            sadpath = '/waveforms/ExternalProperties/ExternalProperties'+extra+'.sad.xml'
+        else:
+            sadpath = '/waveforms/ExternalProperties/ExternalProperties'+extra+'NoJava.sad.xml'
         self._domMgr.installApplication(sadpath)
         self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -208,12 +239,16 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         self.assertNotEqual(self._domMgr, None)
         self.assertNotEqual(self._devMgr, None)
 
-        self._domMgr.installApplication('/waveforms/ExternalProperties/ExternalProperties.sad.xml')
+        if java_support:
+            self._domMgr.installApplication('/waveforms/ExternalProperties/ExternalProperties.sad.xml')
+        else:
+            self._domMgr.installApplication('/waveforms/ExternalProperties/ExternalPropertiesNoJava.sad.xml')
         self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
         appFact = self._domMgr._get_applicationFactories()[0]
 
         props = []
-        props.append(CF.DataType(id='ext_prop_ulong', value=any.to_any(123456)))
+        if java_support:
+            props.append(CF.DataType(id='ext_prop_ulong', value=any.to_any(123456)))
         props.append(CF.DataType(id='DCE:b8f43ac8-26b5-40b3-9102-d127b84f9e4b', value=any.to_any("Override_value")))
         props.append(CF.DataType(id='DCE:0a3663dd-7747-4b7f-b9cb-20f1e52e7089', value=any.to_any(98765)))
         props.append(CF.DataType(id='test_float', value=any.to_any(99.9)))
@@ -233,7 +268,7 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         # Props that are not external should not be configured
         comps = app._get_registeredComponents()
         for c in comps:
-            if c.identifier == 'TestPythonProps_1:ExternalProperties_1':
+            if c.identifier == 'TestPythonProps_1:ExternalPropertiesNoJava_1' or c.identifier == 'TestPythonProps_1:ExternalProperties_1':
                 comp = c
         res = comp.componentObject.query([])
         for r in res:

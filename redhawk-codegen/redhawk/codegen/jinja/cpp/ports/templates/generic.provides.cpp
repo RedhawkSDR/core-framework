@@ -32,21 +32,22 @@ ${classname}::~${classname}()
 ${operation.returns} ${classname}::${operation.name}(${operation.arglist})
 {
     boost::mutex::scoped_lock lock(portAccess);
-/*{% if operation.returns != 'void' %}*/
-/*{%   if operation.returns == 'CORBA::Object_ptr' %}*/
-    ${operation.returns} tmpVal = CORBA::Object::_nil();
-/*{%   else %}*/
-    ${operation.returns} tmpVal;
-/*{%   endif %}*/
+//% set hasreturn = operation.returns != 'void'
+/*{% if hasreturn %}*/
+    ${operation.temporary} retval${' = %s' % operation.initializer if operation.initializer};
 /*{% endif %}*/
     // TODO: Fill in this function
-/*{% if operation.returns != 'void' %}*/
-
-/*{%   if operation.returns == 'char*' %}*/
-    return CORBA::string_dup(tmpVal);
+/*{% if hasreturn %}*/
+/*{%   if operation.temporary.endswith('_var') %}*/
+    return retval._retn();
 /*{%   else %}*/
-    return tmpVal;
+    return retval;
 /*{%   endif %}*/
 /*{% endif %}*/
 }
 /*{% endfor %}*/
+
+std::string ${classname}::getRepid() const
+{
+    return ${portgen.interfaceClass()}::_PD_repoId;
+}

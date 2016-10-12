@@ -32,7 +32,7 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from ossie.utils import sb
 import copy
-from ossie.utils import redhawk,prop_helpers
+from ossie.utils import redhawk,prop_helpers,type_helpers
 import structdialog
 
 def createPlotMenu(parent):
@@ -83,9 +83,11 @@ def setPropValue(prop, itemtext):
             except:
                 pass
         else:
+            value = type_helpers._SIStringToNumeric(itemtext)
+            if isinstance(value, str):
+                value = float(itemtext)
             try:
-                mynum = float(itemtext)
-                prop.configureValue(mynum)
+                prop.configureValue(value)
             except:
                 pass
 
@@ -710,7 +712,7 @@ class TreeWidget(QTreeWidget):
 class BrowseWindowBase(QMainWindow):
     def __init__(self,parent = None,name = None,fl = 0,domainName=None):
         QMainWindow.__init__(self)
-        self.statusBar()
+        base = self.statusBar()
 
         self.setCentralWidget(QWidget(self))
         BrowseWindowBaseLayout = QVBoxLayout(self.centralWidget())
@@ -721,6 +723,8 @@ class BrowseWindowBase(QMainWindow):
 
         self.textLabel1 = QLabel("textLabel1", self.centralWidget())
         layout1.addWidget(self.textLabel1)
+        self.textLabel2 = QLabel("", self.centralWidget())
+        base.addWidget(self.textLabel2)
 
         self.domainLabel = QLabel("domainLabel", self.centralWidget())
         layout1.addWidget(self.domainLabel)
@@ -752,11 +756,18 @@ class BrowseWindowBase(QMainWindow):
     def languageChange(self, domainName):
         if domainName == None:
             self.setWindowTitle(self.__tr("REDHAWK Domain Browser"))
+            try:
+                redhawk.scan()
+            except RuntimeError:
+                self.setStatusBar()
         else:
             self.setWindowTitle(self.__tr("REDHAWK Domain Browser: "+domainName))
         self.textLabel1.setText(self.__tr("Domain:"))
         self.domainLabel.setText(QString())
         self.refreshButton.setText(self.__tr("&Refresh"))
+
+    def setStatusBar(self):
+        self.textLabel2.setText(self.__tr("NameService not found"))
 
     def refreshView(self):
         print "BrowseWindowBase.refreshView(): Not implemented yet"

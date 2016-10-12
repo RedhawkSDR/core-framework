@@ -102,6 +102,12 @@ namespace burstio {
         stop();
     }
 
+	template <class Traits>
+	std::string InPort<Traits>::getRepid() const
+	{
+		return PortType::_PD_repoId;
+	}
+
     template <class Traits>
     void InPort<Traits>::pushBursts(const InPort<Traits>::BurstSequenceType& bursts)
     {

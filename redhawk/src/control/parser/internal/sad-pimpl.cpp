@@ -222,28 +222,26 @@ namespace sad
   void componentplacement_pimpl::
   pre ()
   {
-    componentPlacement.reset(new ossie::ComponentPlacement());
+    componentPlacement.instantiations.clear();
+    componentPlacement = ossie::ComponentPlacement();
   }
 
   void componentplacement_pimpl::
   componentfileref (const ::std::string& componentfileref)
   {
-    assert(componentPlacement.get() != 0);
-    componentPlacement->_componentFileRef = componentfileref;
+    componentPlacement._componentFileRef = componentfileref;
   }
 
   void componentplacement_pimpl::
   componentinstantiation (const ::ossie::ComponentInstantiation& componentinstantiation)
   {
-    assert(componentPlacement.get() != 0);
-    (componentPlacement->instantiations).push_back(componentinstantiation);
+    componentPlacement.instantiations.push_back(componentinstantiation);
   }
 
-  ::ossie::ComponentPlacement componentplacement_pimpl::
+  const ::ossie::ComponentPlacement& componentplacement_pimpl::
   post_componentplacement ()
   {
-    assert(componentPlacement.get() != 0);
-    return *componentPlacement;
+    return componentPlacement;
   }
 
   // componentfileref_pimpl
@@ -273,49 +271,116 @@ namespace sad
   void componentinstantiation_pimpl::
   pre ()
   {
-    componentInstantiation.reset(new ossie::ComponentInstantiation());
+    componentInstantiation.properties.clear();
+    componentInstantiation = ::ossie::ComponentInstantiation();
   }
   
   void componentinstantiation_pimpl::
   startorder (const ::std::string& startorder)
   {
-    componentInstantiation->_startOrder = startorder;
+    componentInstantiation._startOrder = startorder;
   }
 
   void componentinstantiation_pimpl::
   usagename (const ::std::string& usagename)
   {
-    assert(componentInstantiation.get() != 0);
-    componentInstantiation->usageName = usagename;
+    componentInstantiation.usageName = usagename;
   }
 
   void componentinstantiation_pimpl::
-  componentproperties (const ::std::vector<ossie::ComponentProperty*>& componentproperties)
+  componentproperties ( const ossie::ComponentPropertyList& componentproperties)
   {
-    assert(componentInstantiation.get() != 0);
-    componentInstantiation->properties = componentproperties;
+    componentInstantiation.properties = componentproperties;
   }
 
   void componentinstantiation_pimpl::
   findcomponent (const ::std::string& namingservicename)
   {
-    assert(componentInstantiation.get() != 0);
-    LOG_TRACE(sad_parser, "setting instantiation naming service name " << namingservicename)
-    componentInstantiation->namingservicename = namingservicename;
+    LOG_TRACE(sad_parser, "setting instantiation naming service name " << namingservicename);
+    componentInstantiation.namingservicename = namingservicename;
   }
 
   void componentinstantiation_pimpl::
   id (const ::std::string& id)
   {
-    assert(componentInstantiation.get() != 0);
-    componentInstantiation->instantiationId = id;
+    componentInstantiation.instantiationId = id;
   }
 
-  ::ossie::ComponentInstantiation componentinstantiation_pimpl::
+  void componentinstantiation_pimpl::
+  affinity (const ossie::ComponentInstantiation::AffinityProperties& affinityProperties)
+  {
+    LOG_TRACE(sad_parser, "affinity properties");
+    componentInstantiation.affinityProperties= affinityProperties;
+  }
+
+  void componentinstantiation_pimpl::loggingconfig ( const ossie::ComponentInstantiation::LoggingConfig& log_cfg )
+  {
+    componentInstantiation.loggingConfig = log_cfg;
+  }
+
+
+  const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   post_componentinstantiation ()
   {
-    assert(componentInstantiation.get() != 0);
-    return *componentInstantiation;
+    return componentInstantiation;
+  }
+
+  void affinity_pimpl::
+  pre ()
+  {
+    affinityProperties.clear();
+  }
+
+  void affinity_pimpl::
+  simpleref (const ossie::SimplePropertyRef& simpleref)
+  {
+    LOG_TRACE(sad_parser, "Adding simpleref ");
+    affinityProperties.push_back(simpleref.clone());
+  }
+
+  void affinity_pimpl::
+  simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
+  {
+    LOG_TRACE(sad_parser, "Adding simplesequenceref");
+    affinityProperties.push_back(simplesequenceref.clone());
+  }
+
+  void affinity_pimpl::
+  structref (const ossie::StructPropertyRef& structref)
+  {
+    LOG_TRACE(sad_parser, "Adding structref");
+    affinityProperties.push_back(structref.clone());
+  }
+
+  void affinity_pimpl::
+  structsequenceref (const ossie::StructSequencePropertyRef& structsequenceref)
+  {
+    LOG_TRACE(sad_parser, "Adding structsequenceref");
+    affinityProperties.push_back(structsequenceref.clone());
+  }
+
+  const ossie::ComponentInstantiation::AffinityProperties& affinity_pimpl::post_affinity ()
+  {
+    return affinityProperties;
+  }
+
+  //
+  // loggingconfig_pimpl
+  //
+  void loggingconfig_pimpl::pre ()
+  {
+    info = ossie::ComponentInstantiation::LoggingConfig("","");
+  }
+
+  void loggingconfig_pimpl::level ( const ::std::string &v )
+  {
+    info.second=v;
+  }
+
+  const ossie::ComponentInstantiation::LoggingConfig& loggingconfig_pimpl::post_loggingconfig ( )
+  {
+    info.first = this->post_string();
+    return info;
   }
 
   // componentproperties_pimpl
@@ -328,34 +393,30 @@ namespace sad
   }
 
   void componentproperties_pimpl::
-  simpleref (ossie::SimplePropertyRef* simpleref)
+  simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-    assert(simpleref != 0);
-    componentProperties.push_back(simpleref);
+    componentProperties.push_back(simpleref.clone());
   }
 
   void componentproperties_pimpl::
-  simplesequenceref (ossie::SimpleSequencePropertyRef* simplesequenceref)
+  simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
   {
-    assert(simplesequenceref != 0);
-    componentProperties.push_back(simplesequenceref);
+    componentProperties.push_back(simplesequenceref.clone());
   }
 
   void componentproperties_pimpl::
-  structref (ossie::StructPropertyRef* structref)
+  structref (const ossie::StructPropertyRef& structref)
   {
-    assert(structref != 0);
-    componentProperties.push_back(structref);
+    componentProperties.push_back(structref.clone());
   }
 
   void componentproperties_pimpl::
-  structsequenceref (ossie::StructSequencePropertyRef* structsequenceref)
+  structsequenceref ( const ossie::StructSequencePropertyRef& structsequenceref)
   {
-    assert(structsequenceref != 0);
-    componentProperties.push_back(structsequenceref);
+    componentProperties.push_back(structsequenceref.clone());
   }
 
-  ::std::vector<ossie::ComponentProperty*> componentproperties_pimpl::
+  const ossie::ComponentPropertyList& componentproperties_pimpl::
   post_componentproperties ()
   {
     return componentProperties;
@@ -491,28 +552,28 @@ namespace sad
   }
 
   void resourcefactoryproperties_pimpl::
-  simpleref (ossie::SimplePropertyRef* simpleref)
+  simpleref (const ossie::SimplePropertyRef& simpleref)
   {
     // TODO
     //
   }
 
   void resourcefactoryproperties_pimpl::
-  simplesequenceref (ossie::SimpleSequencePropertyRef* simplesequenceref)
+  simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
   {
     // TODO
     //
   }
 
   void resourcefactoryproperties_pimpl::
-  structref (ossie::StructPropertyRef* structref)
+  structref (const ossie::StructPropertyRef& structref)
   {
     // TODO
     //
   }
 
   void resourcefactoryproperties_pimpl::
-  structsequenceref (ossie::StructSequencePropertyRef* structsequenceref)
+  structsequenceref (const ossie::StructSequencePropertyRef& structsequenceref)
   {
     // TODO
     //
@@ -529,27 +590,24 @@ namespace sad
   void simpleref_pimpl::
   pre ()
   {
-    simple = new ossie::SimplePropertyRef();
+    simple = ossie::SimplePropertyRef();
   }
 
   void simpleref_pimpl::
   refid (const ::std::string& refid)
   {
-    assert(simple != 0);
-    simple->_id = refid;
+    simple._id = refid;
   }
 
   void simpleref_pimpl::
   value (const ::std::string& value)
   {
-    assert(simple != 0);
-    simple->_value = value;
+    simple._value = value;
   }
 
-  ossie::SimplePropertyRef* simpleref_pimpl::
+  const ossie::SimplePropertyRef& simpleref_pimpl::
   post_simpleref ()
   {
-    assert(simple != 0);
     return simple;
   }
 
@@ -559,24 +617,23 @@ namespace sad
   void simplesequenceref_pimpl::
   pre ()
   {
-      simpleseq = new ossie::SimpleSequencePropertyRef();
+    simpleseq._values.clear();
+    simpleseq = ossie::SimpleSequencePropertyRef();
   }
 
   void simplesequenceref_pimpl::
   values (const ::std::vector<std::string>& values)
   {
-      assert(simpleseq != 0);
-      simpleseq->_values = values;
+      simpleseq._values = values;
   }
 
   void simplesequenceref_pimpl::
   refid (const ::std::string& refid)
   {
-      assert(simpleseq != 0);
-      simpleseq->_id = refid;
+      simpleseq._id = refid;
   }
 
-  ossie::SimpleSequencePropertyRef* simplesequenceref_pimpl::
+  const ossie::SimpleSequencePropertyRef& simplesequenceref_pimpl::
   post_simplesequenceref ()
   {
       return simpleseq;
@@ -588,28 +645,31 @@ namespace sad
   void structref_pimpl::
   pre ()
   {
-      structref = new ossie::StructPropertyRef();
+    structref._values.clear();
+    structref = ossie::StructPropertyRef();
   }
 
   void structref_pimpl::
-  simpleref (ossie::SimplePropertyRef* simpleref)
+  simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-      assert(structref != 0);
-      structref->_values[simpleref->_id] = simpleref->_value;
-      delete simpleref;
+    structref._values.insert(simpleref._id,std::auto_ptr<ossie::ComponentProperty>(simpleref.clone()) );
+  }
+
+  void structref_pimpl::
+  simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
+  {
+    structref._values.insert(simplesequenceref._id,std::auto_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
   }
 
   void structref_pimpl::
   refid (const ::std::string& refid)
   {
-      assert(structref != 0);
-      structref->_id = refid;
+    structref._id = refid;
   }
 
-  ossie::StructPropertyRef* structref_pimpl::
+  const ossie::StructPropertyRef& structref_pimpl::
   post_structref ()
   {
-      assert(structref != 0);
       return structref;
   }
 
@@ -619,28 +679,26 @@ namespace sad
   void structsequenceref_pimpl::
   pre ()
   {
-      structsequenceref = new ossie::StructSequencePropertyRef();
+    structsequenceref._values.clear();
+    structsequenceref = ossie::StructSequencePropertyRef();
   }
 
   void structsequenceref_pimpl::
-  structvalue (const std::map<std::string, std::string>& value)
+  structvalue (const ossie::ComponentPropertyMap& value)
   {
-      assert(structsequenceref != 0);
-      structsequenceref->_values.push_back(value);
+      structsequenceref._values.push_back(value);
   }
 
   void structsequenceref_pimpl::
   refid (const ::std::string& refid)
   {
-      assert(structsequenceref != 0);
-      structsequenceref->_id = refid;
+      structsequenceref._id = refid;
   }
 
-  ossie::StructSequencePropertyRef* structsequenceref_pimpl::
+  const  ossie::StructSequencePropertyRef& structsequenceref_pimpl::
   post_structsequenceref ()
   {
-      assert(structsequenceref != 0);
-      return structsequenceref;
+    return structsequenceref;
   }
 
   // structvalue_pimpl
@@ -653,16 +711,21 @@ namespace sad
   }
 
   void structvalue_pimpl::
-  simpleref (ossie::SimplePropertyRef* simpleref)
+  simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-      values[simpleref->_id] = simpleref->_value;
-      delete simpleref;
+    values.insert(simpleref._id,std::auto_ptr<ossie::ComponentProperty>(simpleref.clone()) );
   }
 
-  std::map<std::string, std::string> structvalue_pimpl::
+  void structvalue_pimpl::
+  simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
+  {
+    values.insert(simplesequenceref._id,std::auto_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
+  }
+
+  const ossie::ComponentPropertyMap& structvalue_pimpl::
   post_structvalue ()
   {
-      return values;
+    return values;
   }
 
   // values_pimpl
@@ -1243,27 +1306,27 @@ namespace sad
   }
 
   void usesdevice_pimpl::
-  simpleref (ossie::SimplePropertyRef* propRef)
+  simpleref (const ossie::SimplePropertyRef& propRef)
   {
-      uses->dependencies.push_back(propRef->clone());
+    uses->dependencies.push_back(propRef.clone());
   }
 
   void usesdevice_pimpl::
-  simplesequenceref (ossie::SimpleSequencePropertyRef* propRef)
+  simplesequenceref (const ossie::SimpleSequencePropertyRef& propRef)
   {
-      uses->dependencies.push_back(propRef->clone());
+      uses->dependencies.push_back(propRef.clone());
   }
 
   void usesdevice_pimpl::
-  structref (ossie::StructPropertyRef* propRef)
+  structref (const ossie::StructPropertyRef& propRef)
   {
-      uses->dependencies.push_back(propRef->clone());
+      uses->dependencies.push_back(propRef.clone());
   }
 
   void usesdevice_pimpl::
-  structsequenceref (ossie::StructSequencePropertyRef* propRef)
+  structsequenceref (const ossie::StructSequencePropertyRef& propRef)
   {
-      uses->dependencies.push_back(propRef->clone());
+      uses->dependencies.push_back(propRef.clone());
   }
 
   void usesdevice_pimpl::

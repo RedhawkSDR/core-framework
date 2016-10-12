@@ -20,6 +20,7 @@
 
 from ossie.cf import CF
 from omniORB import any, CORBA
+import omniORB
 hasEvents = True
 try:
     import CosEventComm__POA
@@ -31,6 +32,8 @@ except:
 import ossie.resource as resource
 import ossie.utils
 import ossie.logger
+from  ossie.events import Publisher
+from  ossie.events import  Manager
 import sys
 import logging
 import signal
@@ -43,6 +46,7 @@ from Queue import Queue
 import time
 import traceback
 import zipfile
+import containers
 
 
 if hasEvents:
@@ -79,6 +83,83 @@ def _checkpg(pid):
     except OSError:
         return False
 
+class sharedLibraryStorage():
+    _filename = ''
+    _modifications = []
+    
+    def __init__(self, filename):
+        self._filename = filename
+
+    def addModification(self, path_to_modify, path_modification):
+        self._modifications.append((path_to_modify, path_modification))
+
+class envStateContainer():
+    ld_lib_path = ''
+    pythonpath = ''
+    classpath = ''
+    octave_path = ''
+    
+    def __init__(self):
+        if (os.getenv("LD_LIBRARY_PATH")):
+            self.ld_lib_path = os.getenv("LD_LIBRARY_PATH")
+        else:
+            self.ld_lib_path = ''
+        if (os.getenv("PYTHONPATH")):
+            self.pythonpath = os.getenv("PYTHONPATH")
+        else:
+            self.pythonpath = ''
+        if (os.getenv("CLASSPATH")):
+            self.classpath = os.getenv("CLASSPATH")
+        else:
+            self.classpath = ''
+        if (os.getenv("OCTAVE_PATH")):
+            self.octave_path = os.getenv("OCTAVE_PATH")
+        else:
+            self.octave_path = ''
+    
+    def set(self):
+        os.putenv("LD_LIBRARY_PATH", self.ld_lib_path)
+        os.putenv("PYTHONPATH", self.pythonpath)
+        os.putenv("CLASSPATH", self.classpath)
+        os.putenv("OCTAVE_PATH", self.octave_path)
+        os.environ["LD_LIBRARY_PATH"] = self.ld_lib_path
+        os.environ["PYTHONPATH"] = self.pythonpath
+        os.environ["CLASSPATH"] = self.classpath
+        os.environ["OCTAVE_PATH"] = self.octave_path
+
+class envState():
+    ld_lib_path = ''
+    pythonpath = ''
+    classpath = ''
+    octave_path = ''
+    def __enter__(self):
+        if (os.getenv("LD_LIBRARY_PATH")):
+            self.ld_lib_path = os.getenv("LD_LIBRARY_PATH")
+        else:
+            self.ld_lib_path = ''
+        if (os.getenv("PYTHONPATH")):
+            self.pythonpath = os.getenv("PYTHONPATH")
+        else:
+            self.pythonpath = ''
+        if (os.getenv("CLASSPATH")):
+            self.classpath = os.getenv("CLASSPATH")
+        else:
+            self.classpath = ''
+        if (os.getenv("OCTAVE_PATH")):
+            self.octave_path = os.getenv("OCTAVE_PATH")
+        else:
+            self.octave_path = ''
+            
+    def __exit__(self,exc_type,exc_value,traceback):
+        os.putenv("LD_LIBRARY_PATH", self.ld_lib_path)
+        os.putenv("PYTHONPATH", self.pythonpath)
+        os.putenv("CLASSPATH", self.classpath)
+        os.putenv("OCTAVE_PATH", self.octave_path)
+        os.environ["LD_LIBRARY_PATH"] = self.ld_lib_path
+        os.environ["PYTHONPATH"] = self.pythonpath
+        os.environ["CLASSPATH"] = self.classpath
+        os.environ["OCTAVE_PATH"] = self.octave_path
+
 class Device(resource.Resource):
     """A basic device implementation that deals with the core SCA requirements for a device.
     You are required to implement:
@@ -106,27 +187,46 @@ class Device(resource.Resource):
     """
 
     def __init__(self, devmgr, identifier, label, softwareProfile, compositeDevice, execparams, propertydefs=(),loggerName=None):
+        if not loggerName and label: loggerName = label.rsplit("_", 1)[0]
         resource.Resource.__init__(self, identifier, execparams, propertydefs, loggerName=loggerName)
         self._log.debug("Initializing Device %s %s %s %s", identifier, execparams, propertydefs, loggerName)
         self._label = label
+        self._name = label
         self._softwareProfile = softwareProfile
         self._devmgr = devmgr
+        self._devMgr = containers.DeviceManagerContainer(devmgr)
+        self._domMgr = containers.DomainManagerContainer(devmgr._get_domMgr())
         self._compositeDevice = compositeDevice
-        self._capacityLock = threading.Lock()
-        self._proxy_consumer = None
+        self._capacityLock = threading.RLock()
+        self._idm_publisher = None
+        self._cmdLock = threading.RLock()
+        self._allocationCallbacks = {}
 
         self.__initialize()
+    
+    class allocationCallbackStructDef():
+        _allocate = None
+        _deallocate = None
+        def __init__(self, alloc, dealloc):
+            self._allocate = alloc
+            self._deallocate = dealloc
+    
+    def getDeviceManager(self):
+        return self._devMgr
+    
+    def setAllocationImpl(self, prop_name, alloc_callback, dealloc_callback):
+        self._allocationCallbacks[prop_name] = self.allocationCallbackStructDef(alloc_callback, dealloc_callback)
 
     def registerDevice(self):
         """This function registers the device with the device manager.
         This should be called by the process that instantiates the device.
         """
         if self._devmgr:
-            self._log.info("Registering Device")
+            self._log.info("Registering Device:" + str(self._label) )
             self._register()
 
         if self._compositeDevice:
-            self._log.info("Adding device to parent")
+            self._log.info("Adding Device:" + str(self._label)  + " to parent" )
             deviceAdded = False
             while not deviceAdded:
                 try:
@@ -134,6 +234,58 @@ class Device(resource.Resource):
                     deviceAdded = True
                 except:
                     time.sleep(0.01)
+
+    def postConstruction(self, registrar_ior=None, idm_ior=None ):
+        # resolves Domain and Device Manger relationships
+        # resolveDomainAwareness( registrar_ior ) -- done during CTOR 
+
+        try:
+            if self._domMgr:
+                self._ecm = ossie.events.Manager.GetManager(self)
+        except:
+            pass
+
+        # establish IDM Channel connectivity
+        self.connectIDMChannel( idm_ior );
+
+        # register ourself with my DeviceManager
+        self.registerDevice()
+
+
+    def connectIDMChannel(self, idm_ior=None ):
+        self._log.debug("Connecting to IDM CHANNEL idm_ior:" + str(idm_ior) )
+
+        if self._idm_publisher == None:
+            if idm_ior != None and idm_ior != "":
+                # Get DomainManager incoming event channel and connect the device to it,
+                # where applicable.
+                try:
+                    
+                    idm_channel_obj = resource.createOrb().string_to_object(idm_ior)
+                    idm_channel = idm_channel_obj._narrow(CosEventChannelAdmin.EventChannel)
+                    self._idm_publisher = Publisher( idm_channel )
+                    self._log.info("Connected to IDM CHANNEL, (command line IOR).... DEV-ID:" + self._id )
+                except Exception, err:
+                    #traceback.print_exc()
+                    self._log.warn("Unable to connect to IDM channel (command line IOR).... DEV-ID:" + self._id )
+            else:
+                try:
+                    # make sure we have access to get to the EventChanneManager for the domain
+                    if self._domMgr:
+                        if self._ecm == None:
+                            self._log.debug("Setting up EventManager .... DEV-ID:" + self._id )
+                            evt_mgr= Manager.GetManager(self)
+                            self._ecm = evt_mgr
+                        else:
+                            evt_mgr = self._ecm
+                        self._log.debug("Requesting registration with IDM Channel .... DEV-ID:" + self._id )
+                        self._idm_publisher = evt_mgr.Publisher( ossie.events.IDM_Channel_Spec )
+                        self._log.info("Registered with IDM CHANNEL (Domain::EventChannelManager).... DEV-ID:" + self._id )
+                except:
+                    #traceback.print_exc()
+                    self._log.warn("Unable to connect to IDM channel (Domain::EventChannelManager).... DEV-ID:" + self._id )
+
+
 
 
     #########################################
@@ -169,6 +321,10 @@ class Device(resource.Resource):
             raise CF.LifeCycle.ReleaseError(str(e))
 
         self._adminState = CF.Device.LOCKED
+        try:
+            self._cmdLock.release()
+        except:
+            pass
         try:
             resource.Resource.releaseObject(self)
         except:
@@ -249,6 +405,9 @@ class Device(resource.Resource):
     def _allocateCapacity(self, propname, value):
         """Override this if you want if you don't want magic dispatch"""
         self._log.debug("_allocateCapacity(%s, %s)", propname, value)
+        if self._allocationCallbacks.has_key(propname):
+            return self._allocationCallbacks[propname]._allocate(value)
+        
         modified_propname = ''
         for ch in propname:
             if ch.isalnum():
@@ -297,7 +456,8 @@ class Device(resource.Resource):
             propdef = self._props.getPropDef(prop.id)
             propdict[prop.id] = propdef._fromAny(prop.value)
         try:
-            return self._allocateCapacities(propdict)
+            retval = self._allocateCapacities(propdict)
+            return retval
         except CF.Device.InvalidCapacity:
             raise # re-raise valid exceptions
         except CF.Device.InvalidState:
@@ -305,7 +465,6 @@ class Device(resource.Resource):
         except Exception, e:
             self._log.exception("Unexpected error in _allocateCapacities: %s", str(e))
             return False
-
 
 
     def _deallocateCapacities(self, propDict):
@@ -343,6 +502,8 @@ class Device(resource.Resource):
     def _deallocateCapacity(self, propname, value):
         """Override this if you want if you don't want magic dispatch"""
         methodName = "deallocate_%s" % propname.replace(" ", "_")
+        if self._allocationCallbacks.has_key(propname):
+            return self._allocationCallbacks[propname]._deallocate(value)
         deallocate = _getCallback(self, methodName)
         if deallocate:
             deallocate(value)
@@ -477,32 +638,21 @@ class Device(resource.Resource):
         self._adminState = CF.Device.UNLOCKED
         self._operationalState = CF.Device.ENABLED
 
-    def _connectEventChannel(self, idm_channel):
-        if idm_channel is None:
-            return
-        self._log.debug("Connecting to IDM channel")
-
-        try:
-            supplier_admin = idm_channel.for_suppliers()
-            self._proxy_consumer = supplier_admin.obtain_push_consumer()
-
-            self._supplier = Supplier_i()
-            self._proxy_consumer.connect_push_supplier(self._supplier._this())
-        except:
-            self._log.warn("Failed to connect to IDM channel")
 
     def __sendStateChangeEvent(self, eventType, fromState, toState):
-        if self._proxy_consumer is None:
+        if self._idm_publisher is None:
             # Gracefully handle an unconnected event channel
             return
 
         try:
             event = StandardEvent.StateChangeEventType(self._id, self._id, eventType, stateMap[fromState], stateMap[toState])
+
         except:
             self._log.warn("Error creating StateChangeEvent")
 
         try:
-            self._proxy_consumer.push(any.to_any(event))
+            if self._idm_publisher.push(any.to_any(event)) != 0 :
+                self._log.debug("Sending state change event......" + str((self._id, self._id, eventType, stateMap[fromState], stateMap[toState])) )
         except:
             self._log.warn("Error sending event")
 
@@ -557,6 +707,8 @@ class LoadableDevice(Device):
         self._loadedFiles = {}
         # Acquire this lock before modifying the device cache
         self.__cacheLock = threading.Lock()
+        self._sharedPkgs = {}
+        self.initialState = envStateContainer()
 
     def releaseObject(self):
         self._unloadAll()
@@ -565,8 +717,9 @@ class LoadableDevice(Device):
     ###########################################
     # CF::LoadableDevice
     def load(self, fileSystem, fileName, loadType):
-        loadedPaths = []
         try:
+            self._cmdLock.acquire()
+            loadedPaths = []
             self._log.debug("load(%s, %s)", fileName, loadType)
             if not fileName.startswith("/"):
                 raise CF.InvalidFileName(CF.CF_EINVAL, "Filename must be absolute, given '%s'"%fileName)
@@ -600,6 +753,12 @@ class LoadableDevice(Device):
 
                     localFilePath = os.path.join(loadPoint, os.path.basename(fileName))
                     exist = os.path.exists(localFilePath)
+                    # If this is a directory, make sure that all of the sub-directories
+                    # and files exist
+                    for loadedFile in loadedFiles:
+                        if exist == False:
+                            break
+                        exist = exist & os.path.exists(loadedFile)
                     self._log.debug("File %s has reference count %s and local file existence is %s", fileName, refCnt, exist)
 
                     # Check if the remote file is newer than the local file, and if so, update the file
@@ -619,11 +778,14 @@ class LoadableDevice(Device):
 
             # If we're loading a shared library, try to set up any language-specific environment vars.
             if loadType == CF.LoadableDevice.SHARED_LIBRARY:
-                self._setEnvVars(localFilePath)
+                self._setEnvVars(localFilePath, fileName)
 
         except Exception, e:
             self._log.exception(e)
             raise CF.LoadableDevice.LoadFail(CF.CF_EINVAL, "Unknown Error loading '%s'"%fileName)
+        finally:
+            self._cmdLock.release()
+            
 
     def _getEnvVarAsList(self, var):
         # Split the path up
@@ -653,11 +815,21 @@ class LoadableDevice(Device):
         if not foundValue:
             # The value does not already exist
             if os.environ.has_key(envVar):
-                os.environ[envVar] = newVal+os.path.pathsep + os.environ[envVar]+os.path.pathsep
+                newpath = newVal+os.path.pathsep + os.getenv(envVar)+os.path.pathsep
             else:
-                os.environ[envVar] = newVal+os.path.pathsep
+                newpath = newVal+os.path.pathsep
+            os.putenv(envVar, newpath)
+            os.environ[envVar] = newpath
 
-    def _setEnvVars(self, localFilePath):
+    def _update_selected_paths(self, selected_paths):
+        for path in selected_paths:
+            for mod in path._modifications:
+                path_to_modify = mod[0]
+                path_modification = mod[1]
+                self._prependToEnvVar(path_modification, path_to_modify)
+    
+    def _setEnvVars(self, localFilePath, fileName):
+        env_changes = sharedLibraryStorage(fileName)
         matchesPattern = False
         # check to see if it's a C shared library
         status, output = commands.getstatusoutput('nm '+localFilePath)
@@ -674,7 +846,7 @@ class LoadableDevice(Device):
             for substring in subdirs:
                 pathToAdd += substring + '/'
 
-            self._prependToEnvVar(pathToAdd, 'LD_LIBRARY_PATH')
+            env_changes.addModification('LD_LIBRARY_PATH', pathToAdd)
 
             matchesPattern = True
 
@@ -710,7 +882,8 @@ class LoadableDevice(Device):
                 exec('import '+importFile)
                 newFileValue = importFile
             candidatePath = currentdir+'/'+aggregateChange
-            self._prependToEnvVar(candidatePath, 'PYTHONPATH')
+            env_changes.addModification('PYTHONPATH', candidatePath)
+            self._log.debug("PYTHONPATH : ADDING:" + str(candidatePath) + " PATH:" + str(os.environ['PYTHONPATH']) )
 
             matchesPattern = True
         except:
@@ -723,7 +896,8 @@ class LoadableDevice(Device):
             currentdir=os.getcwd()
             subdirs = localFilePath.split('/')
             candidatePath = currentdir+'/'+localFilePath
-            self._prependToEnvVar(candidatePath, 'CLASSPATH')
+            env_changes.addModification('CLASSPATH', candidatePath)
+            #self._prependToEnvVar(candidatePath, 'CLASSPATH')
             matchesPattern = True
 
         # it matches no patterns. Assume that it's a set of libraries
@@ -735,8 +909,11 @@ class LoadableDevice(Device):
             # this path before appending
             candidatePath = os.path.abspath(localFilePath)
 
-            self._prependToEnvVar(candidatePath, 'LD_LIBRARY_PATH')
-            self._prependToEnvVar(candidatePath, 'OCTAVE_PATH')
+            env_changes.addModification('LD_LIBRARY_PATH', candidatePath)
+            env_changes.addModification('OCTAVE_PATH', candidatePath)
+            
+        self._update_selected_paths([env_changes])
+        self._sharedPkgs[env_changes._filename] = env_changes
 
     def _modTime(self, fileSystem, remotePath):
         try:
@@ -801,6 +978,11 @@ class LoadableDevice(Device):
                 loadedFiles.append(localFile)
                 if modified_file != None:
                     loadedFiles.append(modified_file)
+                for prop in fileInformation.fileProperties:
+                    if prop.id == 'EXECUTABLE':
+                        if prop.value._v == True:
+                            command = localFile
+                            os.chmod(command, os.stat(command)[0] | stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
             elif fileInformation.kind == CF.FileSystem.DIRECTORY:
                 localDirectory = os.path.join(localPath, fileInformation.name)
                 if not os.path.exists(localDirectory):
@@ -872,24 +1054,27 @@ class LoadableDevice(Device):
             self.__cacheLock.release()
 
     def unload(self, fileName):
-        self._log.debug("unload(%s)", fileName)
-        # SR:435
-        if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
-        if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
+        try:
+            self._cmdLock.acquire()
+            self._log.debug("unload(%s)", fileName)
+            # SR:435
+            if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
+            if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
 
-        self._unload(fileName)
+            self._unload(fileName)
+        finally:
+            self._cmdLock.release()
 
 class ExecutableDevice(LoadableDevice):
 
     STOP_SIGNALS = ((signal.SIGINT, 2),
-                    (signal.SIGQUIT, 3),
-                    (signal.SIGTERM, 15),
-                    (signal.SIGKILL, 0.1))
+                    (signal.SIGQUIT, 2),
+                    (signal.SIGTERM, 2),
+                    (signal.SIGKILL, 0.5))
 
     def __init__(self, devmgr, identifier, label, softwareProfile, compositeDevice, execparams, propertydefs=(),loggerName=None):
         LoadableDevice.__init__(self, devmgr, identifier, label, softwareProfile, compositeDevice, execparams, propertydefs,loggerName=loggerName)
         self._applications = {}
-
         # Install our own SIGCHLD handler to allow reporting on abnormally terminated children,
         # keeping the old one around so that it can be chained (in case a subclass creates its
         # own children, for example).
@@ -904,52 +1089,72 @@ class ExecutableDevice(LoadableDevice):
     ###########################################
     # CF::ExecutableDevice
     def execute(self, name, options, parameters):
-        self._log.debug("execute(%s, %s, %s)", name, options, parameters)
-        if not name.startswith("/"):
-            raise CF.InvalidFileName(CF.CF_EINVAL, "Filename must be absolute")
+        try:
+            self._cmdLock.acquire()
+            self._log.debug("execute(%s, %s, %s)", name, options, parameters)
+            if not name.startswith("/"):
+                raise CF.InvalidFileName(CF.CF_EINVAL, "Filename must be absolute")
 
-        if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
-        if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
+            if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
+            if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
 
-        # TODO SR:448
-        priority = 0
-        stack_size = 4096
-        invalidOptions = []
-        for option in options:
-            val = option.value.value()
-            if option.id == CF.ExecutableDevice.PRIORITY_ID:
-                if ((not isinstance(val, int)) and (not isinstance(val, long))):
-                    invalidOptions.append(option)
-                else:
-                    priority = val
-            elif option.id == CF.ExecutableDevice.STACK_SIZE_ID:
-                if ((not isinstance(val, int)) and (not isinstance(val, long))):
-                    invalidOptions.append(option)
-                else:
-                    stack_size = val
-        if len(invalidOptions) > 0:
-            self._log.error("execute() received invalid options %s", invalidOptions)
-            raise CF.ExecutableDevice.InvalidOptions(invalidOptions)
+            priority = 0
+            stack_size = 4096
+            invalidOptions = []
+            for option in options:
+                val = option.value.value()
+                if option.id == CF.ExecutableDevice.PRIORITY_ID:
+                    if ((not isinstance(val, int)) and (not isinstance(val, long))):
+                        invalidOptions.append(option)
+                    else:
+                        priority = val
+                elif option.id == CF.ExecutableDevice.STACK_SIZE_ID:
+                    if ((not isinstance(val, int)) and (not isinstance(val, long))):
+                        invalidOptions.append(option)
+                    else:
+                        stack_size = val
+            if len(invalidOptions) > 0:
+                self._log.error("execute() received invalid options %s", invalidOptions)
+                raise CF.ExecutableDevice.InvalidOptions(invalidOptions)
 
-        command = name[1:] # This is relative to our CWD
-        self._log.debug("Running %s %s", command, os.getcwd())
+            command = name[1:] # This is relative to our CWD
+            self._log.debug("Running %s %s", command, os.getcwd())
 
-        # SR:452
-        # TODO should we also check the load file reference count?
-        # Workaround
-        if not os.path.isfile(command):
-            raise CF.InvalidFileName(CF.CF_EINVAL, "File could not be found %s" % command)
-        os.chmod(command, os.stat(command)[0] | stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
+            if not os.path.isfile(command):
+                raise CF.InvalidFileName(CF.CF_EINVAL, "File could not be found %s" % command)
+            os.chmod(command, os.stat(command)[0] | stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
+        finally:
+            self._cmdLock.release()
 
         return self._execute(command, options, parameters)
 
-    def terminate(self, pid):
-        self._log.debug("terminate(%s)", pid)
-        # SR:457
-        if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
-        if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
+    def executeLinked(self, name, options, parameters, deps):
+        try:
+            self._cmdLock.acquire()
+            pid = 0
+            with envState():
+                self.initialState.set()
+                selected_paths = []
+                for dep in deps:
+                    if self._sharedPkgs.has_key(dep):
+                        selected_paths.append(self._sharedPkgs[dep])
+                self._update_selected_paths(selected_paths)
+                pid = self.execute(name, options, parameters)
+        finally:
+            self._cmdLock.release()
+        return pid
 
-        self._terminate(pid)
+    def terminate(self, pid):
+        try:
+            self._cmdLock.acquire()
+            self._log.debug("terminate(%s)", pid)
+            # SR:457
+            if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
+            if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
+
+            self._terminate(pid)
+        finally:
+            self._cmdLock.release()
 
     def _execute(self, command, options, parameters):
         """
@@ -980,7 +1185,6 @@ class ExecutableDevice(LoadableDevice):
             sp = ossie.utils.Popen(args, executable=command, cwd=os.getcwd(), close_fds=True, stdin=self._devnull, preexec_fn=os.setpgrp)
         except OSError, e:
             # SR:455
-            # TODO: SR:444
             # CF error codes do not map directly to errno codes, so at present
             # we omit the enumerated value.
             self._log.error("subprocess.Popen: %s", e.strerror)
@@ -1005,21 +1209,41 @@ class ExecutableDevice(LoadableDevice):
             raise CF.ExecutableDevice.InvalidProcess(CF.CF_ENOENT,
                 "Cannot terminate.  Process %s does not exist." % str(pid))
         # SR:456
-        sp = self._applications[pid]
-        for sig, timeout in self.STOP_SIGNALS:
-            if not _checkpg(pid):
-                break
-            self._log.debug('Sending signal %d to process group %d', sig, pid)
-            try:
-                # the group id is used to handle child processes (if they exist) of the component being cleaned up
-                os.killpg(pid, sig)
-            except OSError:
-                pass
-            giveup_time = time.time() + timeout
-            while _checkpg(pid) and time.time() < giveup_time:
-                time.sleep(0.1)
         try:
-            del self._applications[pid]
+            sp = self._applications[pid]
+            for sig, timeout in self.STOP_SIGNALS:
+                try:
+                    self._log.debug('Sending signal %d to process group %d', sig, pid)
+                    # the group id is used to handle child processes (if they exist) of the component being cleaned up
+                    os.killpg(pid, sig)
+                except OSError:
+                    pass
+
+                # check if pid has finished
+                status=None
+                try:
+                    status = self._applications[pid].poll()
+                except KeyError:
+                    time.sleep(0.01)                    
+                    continue
+            
+                if status != None: 
+                    self._log.debug('Process has stopped...pocess group ' + str(pid) + ' status' + str(status))
+                    time.sleep(0.01)                    
+                    continue
+            
+                if not _checkpg(pid): break
+                giveup_time = time.time() + timeout
+                while _checkpg(pid) and time.time() < giveup_time:
+                    time.sleep(0.1)
+
+                if not _checkpg(pid): break
+
+            try:
+                self._log.debug(' Delete APP (_terminate)  %d', pid)
+                del self._applications[pid]
+            except:
+                pass
         except:
             pass
 
@@ -1040,6 +1264,7 @@ class ExecutableDevice(LoadableDevice):
             if status < 0:
                 self._log.error("Child process %d terminated with signal %s", pid, -status)
                 try:
+                    self._log.debug(' Delete APP (_child_handler)  %d', pid)
                     del self._applications[pid]
                 except:
                     pass
@@ -1134,8 +1359,13 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
             debug_level = execparams.get("DEBUG_LEVEL", None)
             if debug_level != None: debug_level = int(debug_level)
             dpath=execparams.get("DOM_PATH", "")
+            category=loggerName
+            try:
+              if not category and label != "": category=label.rsplit("_", 1)[0]
+            except:
+                pass 
             ctx = ossie.logger.DeviceCtx( label, id, dpath )
-            ossie.logger.Configure( log_config_uri, debug_level, ctx )
+            ossie.logger.Configure( log_config_uri, debug_level, ctx, category )
 
             # instantiate the provided device
             logging.debug("Instantiating Device")
@@ -1147,30 +1377,32 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
                                         execparams)
             devicePOA.activate_object(component_Obj)
 
+            idm_channel_ior=execparams.get("IDM_CHANNEL_IOR",None)
+            registrar_ior=execparams.get("DEVICE_MGR_IOR",None)
+            component_Obj.postConstruction( registrar_ior, idm_channel_ior )
+
             # set logging context for resource to supoprt CF::Logging
             component_Obj.saveLoggingContext( log_config_uri, debug_level, ctx )
 
-            # Get DomainManager incoming event channel and connect the device to it,
-            # where applicable.
-            if hasEvents and execparams.has_key("IDM_CHANNEL_IOR"):
-                try:
-                    idm_channel_obj = orb.string_to_object(execparams["IDM_CHANNEL_IOR"])
-                    idm_channel = idm_channel_obj._narrow(CosEventChannelAdmin.EventChannel)
-                    component_Obj._connectEventChannel(idm_channel)
-                except:
-                    logging.warn("Error connecting to IDM channel")
-
-            component_Var = component_Obj._this()
-            component_Obj.registerDevice()
             if not interactive:
                 logging.debug("Starting ORB event loop")
                 objectActivated = True
                 obj = devicePOA.servant_to_id(component_Obj)
                 if skip_run:
                     return component_Obj
+
+                # Establish a handler for CORBA::COMM_FAILURE exceptions that
+                # can occur with persistence enabled; if the DomainManager dies
+                # and comes back, there may be a cached connection that has to
+                # fail once before establishing a new connection. More than one
+                # failure indicates a more serious problem.
+                def retry_on_failure(cookie, retries, exc):
+                    return retries == 0
+                omniORB.installCommFailureExceptionHandler(None, retry_on_failure)
+
                 while objectActivated:
                     try:
-                        obj = devicePOA.reference_to_servant(component_Var)
+                        obj = devicePOA.reference_to_servant(component_Obj._this())
                         time.sleep(0.5)
                     except:
                         objectActivated = False
@@ -1185,7 +1417,7 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
                     obj = devicePOA.servant_to_id(component_Obj)
                     while objectActivated:
                         try:
-                            obj = devicePOA.reference_to_servant(component_Var)
+                            obj = devicePOA.reference_to_servant(component_Obj._this())
                             time.sleep(0.5)
                         except:
                             objectActivated = False

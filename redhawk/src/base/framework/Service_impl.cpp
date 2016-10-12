@@ -24,8 +24,7 @@
 #include "ossie/Service_impl.h"
 #include "ossie/CorbaUtils.h"
 
-PREPARE_LOGGING(Service_impl)
-
+PREPARE_CF_LOGGING(Service_impl)
 
 void Service_impl::initResources (char* devMgr_ior, char* name)
 {
@@ -33,7 +32,6 @@ void Service_impl::initResources (char* devMgr_ior, char* name)
     _devMgr_ior = devMgr_ior;
     initialConfiguration = true;
 }                          
-
 
 Service_impl::Service_impl (char* devMgr_ior, char* _name) :
     component_running_mutex(),
@@ -57,6 +55,11 @@ void  Service_impl::resolveDeviceManager ()
     if (CORBA::is_nil(_deviceManager)) {
         LOG_ERROR(Service_impl, "Could not narrow device manager IOR");
         exit(-1);
+    }
+    this->_devMgr = new redhawk::DeviceManagerContainer(_deviceManager);
+    if (!CORBA::is_nil(_deviceManager)) {
+        this->_domMgr = new redhawk::DomainManagerContainer(_deviceManager->domMgr());
+        return;
     }
     LOG_TRACE(Service_impl, "leaving resolveDeviceManager()");
 }
@@ -85,9 +88,12 @@ void Service_impl::terminateService ()
     // code generator fills this function in the implementation
 }
 
-
 Service_impl::~Service_impl ()
 {
+    if (this->_devMgr != NULL)
+        delete this->_devMgr;
+    if (this->_domMgr != NULL)
+        delete this->_domMgr;
 }
 
 // compareAnys function compares both Any type inputs

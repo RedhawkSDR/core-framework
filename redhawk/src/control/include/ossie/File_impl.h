@@ -24,7 +24,7 @@
 #define FILE_IMPL_H
 
 #include <string>
-
+#include <vector>
 #include <omniORB4/CORBA.h>
 
 #include <boost/thread/mutex.hpp>
@@ -51,6 +51,7 @@ public:
     void setFilePointer (CORBA::ULong _filePointer) throw (CF::FileException, CF::File::InvalidFilePointer, CORBA::SystemException);
     CORBA::ULong filePointer () throw (CORBA::SystemException);
     CORBA::ULong sizeOf () throw (CF::FileException, CORBA::SystemException);
+    void setIOR( const std::string &ior);
 
 private:
     File_impl (const char* fileName, FileSystem_impl *ptrFs, bool readOnly, bool create);
@@ -63,5 +64,7 @@ private:
     int fd;
     FileSystem_impl *ptrFs;
     boost::mutex interfaceAccess;
+    std::vector<uint8_t>     _buf;
+    std::string  fileIOR;
 };                                                /* END CLASS DEFINITION File */
 #endif                                            /* __FILE_IMPL__ */

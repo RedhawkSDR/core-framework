@@ -28,6 +28,7 @@ from ossie.utils import uuid
 
 from ossie.resource import Resource
 from ossie.threadedcomponent import *
+from ossie.properties import simple_property
 
 import Queue, copy, time, threading
 
@@ -77,3 +78,24 @@ class TestLoggingAPI_base(CF__POA.Resource, Resource, ThreadedComponent):
         # DO NOT ADD NEW PROPERTIES HERE.  You can add properties in your derived class, in the PRF xml file
         # or by using the IDE.
 
+        new_log_level = simple_property(id_="new_log_level",
+                                        name="new_log_level",
+                                        type_="long",
+                                        mode="readwrite",
+                                        action="external",
+                                        kinds=("property",))
+        
+        new_log_cfg = simple_property(id_="new_log_cfg",
+                                      name="new_log_cfg",
+                                      type_="string",
+                                      mode="readwrite",
+                                      action="external",
+                                      kinds=("property",))
+
+        disable_cb = simple_property(id_="DISABLE_CB",
+                                     name="disable_cb",
+                                     type_="boolean",
+                                     defvalue=False,
+                                     mode="readwrite",
+                                     action="external",
+                                     kinds=("property",))

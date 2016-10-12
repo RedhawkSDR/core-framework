@@ -44,7 +44,10 @@ class IDESdrRoot(SdrRoot):
         self.__fileSystem = self.__ide._get_fileManager()
 
     def _fileExists(self, filename):
-        return self.__fileSystem.exists(filename)
+        try:
+            return self.__fileSystem.exists(filename)
+        except CF.InvalidFileName:
+            return False
 
     def _readFile(self, filename):
         fileObj = self.__fileSystem.open(filename, True)
@@ -53,28 +56,49 @@ class IDESdrRoot(SdrRoot):
         finally:
             fileObj.close()
 
-    def getProfiles(self, objType=None):
+    def _sdrPath(self, filename):
+        # Assume the correct path was given by the IDE
+        return filename
+
+    def _getSearchPaths(self, objTypes):
+        # Search everything
+        return ['']
+
+    def _getAvailableProfiles(self, searchPath):
         profiles = self.__ide._get_availableProfiles()
-        if objType is None:
-            return profiles
+        if searchPath:
+            # Treat the search path as a prefix, and filter out any profiles
+            # that are not in a subdirectory thereof
+            if not searchPath.endswith('/'):
+                # Avoid partial matches (e.g., '/dev' matching '/devices/')
+                searchPath += '/'
+            return [p for p in profiles if p.startswith(searchPath)]
         else:
-            if not objType in ('components', 'devices', 'services'):
-                raise ValueError, "'%s' is not a valid object type" % objType
-            prefix = '/' + objType + '/'
-            return [p for p in profiles if p.startswith(prefix)]
+            return profiles
 
     def getLocation(self):
         return 'REDHAWK IDE virtual SDR'
 
 
 class IDEMixin(object):
-    def __init__(self, execparams):
+    def __init__(self, execparams, initProps, configProps):
         self._execparams = execparams
+        self._initProps = initProps
+        self._configProps = configProps
 
     def _launch(self):
-        execparams = self._getExecparams()
-        execparams.update(self._execparams)
-        ref = self._sandbox._createResource(self._profile, self._instanceName, execparams, self._impl)
+        # Pack the execparams into an array of string-valued properties
+        properties = [CF.DataType(k, to_any(str(v))) for k, v in self._execparams.iteritems()]
+        # Pack the remaining props by having the component do the conversion
+        properties.extend(self._itemToDataType(k,v) for k,v in self._initProps.iteritems())
+        properties.extend(self._itemToDataType(k,v) for k,v in self._configProps.iteritems())
+
+        # Tell the IDE to launch a specific implementation, if given
+        if self._impl is not None:
+            properties.append(CF.DataType('__implementationID', to_any(self._impl)))
+
+        ref = self._sandbox._createResource(self._profile, self._instanceName, properties)
+
         # The IDE sandbox API only allows us to specify the instance name, not
         # the identifier, so update by querying the component itself
         self._refid = ref._get_identifier()
@@ -89,13 +113,10 @@ class IDEMixin(object):
 
 
 class IDESandboxComponent(SandboxComponent, IDEMixin):
-    def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl, execparams, debugger, window, timeout, autokick=True):
+    def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl, execparams,
+                 initProps, configProps):
         SandboxComponent.__init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl)
-        IDEMixin.__init__(self, execparams)
-
-        if autokick:
-            self._kick()
-
+        IDEMixin.__init__(self, execparams, initProps, configProps)
         self._parseComponentXMLFiles()
         self._buildAPI()
 
@@ -143,7 +164,7 @@ class IDESandbox(Sandbox):
         }
 
     def __init__(self, ideRef):
-        super(IDESandbox, self).__init__(autoInit=False)
+        super(IDESandbox, self).__init__()
         self.__ide = ideRef
         self.__components = {}
         self.__services = {}
@@ -168,18 +189,19 @@ class IDESandbox(Sandbox):
         # "valid"
         return True
 
-    def _createResource(self, profile, name, execparams={}, impl=None):
+    def _launch(self, profile, spd, scd, prf, instanceName, refid, impl, execparams,
+                initProps, initialize, configProps, debugger, window, timeout):
+        # Determine the class for the component type and create a new instance.
+        clazz = self.__comptypes__[scd.get_componenttype()]
+        comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, execparams, initProps, configProps)
+        comp._kick()
+        return comp
+
+    def _createResource(self, profile, name, qualifiers=[]):
         log.debug("Creating resource '%s' with profile '%s'", name, profile)
 
-        # Pack the execparams into an array of string-valued properties
-        properties = [CF.DataType(k, to_any(str(v))) for k, v in execparams.iteritems()]
-
-        # Tell the IDE to launch a specific implementation, if given
-        if impl is not None:
-            properties.append(CF.DataType('__implementationID', to_any(impl)))
-
         rescFactory = self.__ide.getResourceFactoryByProfile(profile)
-        return rescFactory.createResource(name, properties)
+        return rescFactory.createResource(name, qualifiers)
 
     def _registerComponent(self, component):
         self.__components[component._instanceName] = component
@@ -190,7 +212,14 @@ class IDESandbox(Sandbox):
             del self.__components[name]
 
     def _isRegistered(self, name):
-        return name in self.__components
+        componentAlive = False
+        if name in self.__components:
+            componentAlive = True
+            try:
+                self.__component[name]._get_identifier()
+            except:
+                componentAlive = False
+        return componentAlive
 
     def _scanChalkboard(self):
         # Remember the names of known components, so that any that are no longer
@@ -231,7 +260,7 @@ class IDESandbox(Sandbox):
                 # Create the component/device sandbox wrapper, disabling the
                 # automatic launch since it is already running
                 spd, scd, prf = self.getSdrRoot().readProfile(profile)
-                comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, {}, None, None, None, False)
+                comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, {}, {}, {})
                 comp.ref = resource
                 self.__components[instanceName] = comp
             except Exception, e:
@@ -270,18 +299,75 @@ class IDESandbox(Sandbox):
         if searchPath:
             log.warn("IDE sandbox does not support alternate paths")
 
+        return super(IDESandbox,self).catalog(searchPath, objType)
+
+    def browse(self, searchPath=None, objType=None, withDescription=False):
+        if searchPath:
+            log.warn("IDE sandbox does not support alternate paths")
+
         sdrroot = self.getSdrRoot()
 
-        files = {}
-        for profile in sdrroot.getProfiles(objType):
-            try:
-                spd, scd, prf = sdrroot.readProfile(profile)
-                files[str(spd.get_name())] = profile
-            except:
-                pass
-        return files
+        output_text = ""
+        rsrcDict = {}
+        for profile in sdrroot.getProfiles():
+            rsrcType = "components"
+            if profile.find("/components") != -1:
+                rsrcType = "components"
+            elif profile.find("/devices") != -1:
+                rsrcType = "devices"
+            elif profile.find("/services") != -1:
+                rsrcType = "services"
+            spd, scd, prf = sdrroot.readProfile(profile)
+            if rsrcDict.has_key(rsrcType) == False:
+                rsrcDict[rsrcType] = []
+            if withDescription == True:
+                new_item = {}
+                new_item['name'] = spd.get_name()
+                if spd.description == None:
+                    if spd.get_implementation()[0].description == None or \
+                        spd.get_implementation()[0].description == "The implementation contains descriptive information about the template for a software component.":
+                        new_item['description'] = None
+                    else:
+                        new_item['description'] = spd.get_implementation()[0].description.encode("utf-8")
+                else:
+                    new_item['description'] = spd.description
+                rsrcDict[rsrcType].append(new_item)
+            else:
+                rsrcDict[rsrcType].append(spd.get_name())
+
+        for key in sorted(rsrcDict.iterkeys()):
+            output_text += "************************ " + str(key) + " ***************************\n"
+
+            value = rsrcDict[key]
+            value.sort()
+            if withDescription == True:
+                for item in value:
+                    if item['description']:
+                        output_text += str(item['name']) + " - " + str(item['description']) + "\n"
+                    else:
+                        output_text += str(item['name']) + "\n"
+                    output_text += "--------------------------------------\n"
+            else:
+                l = value
+                while len(l) % 4 != 0:
+                    l.append(" ")
+
+                split = len(l)/4
+
+                l1 = l[0:split]
+                l2 = l[split:2*split]
+                l3 = l[2*split:3*split]
+                l4 = l[3*split:4*split]
+                for v1,v2,v3,v4 in zip(l1,l2,l3,l4):
+                    output_text += '%-30s%-30s%-30s%-30s\n' % (v1,v2,v3,v4)
+                output_text += "\n"
+        print output_text
 
     def getComponent(self, name):
+        self._scanChalkboard()
+        return self.__components.get(name, None)
+
+    def retrieve(self, name):
         self._scanChalkboard()
         return self.__components.get(name, None)
 

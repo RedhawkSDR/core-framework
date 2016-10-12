@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:5e6a076a-67af-4ef3-b899-1e2190c3b63d" name="C1" type="2.0.0">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="C1.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="C1.scd.xml"/>
+  </descriptor>
+  <implementation id="cpp">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="cpp/C1"/>
+      <entrypoint>cpp/C1</entrypoint>
+    </code>
+    <compiler name="/usr/bin/gcc" version="4.1.2"/>
+    <programminglanguage name="C++"/>
+    <humanlanguage name="EN"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
+    <dependency type="allocation">
+      <structref refid="nic_allocation">
+      	<simpleref refid="nic_allocation::identifier" value=""/>
+      	<simpleref refid="nic_allocation::data_rate" value="10.0"/>
+       	<simpleref refid="nic_allocation::data_size" value="1"/>
+        <simpleref refid="nic_allocation::multicast_support" value=""/>
+        <simpleref refid="nic_allocation::ip_addressable" value=""/>
+        <simpleref refid="nic_allocation::interface" value="em1"/>
+      </structref>
+    </dependency>
+  </implementation>
+</softpkg>

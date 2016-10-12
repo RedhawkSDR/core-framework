@@ -22,7 +22,7 @@ ${gplHeader(component)}
 
 //% set className = component.userclass.name
 //% set baseClass = component.baseclass.name
-//% set includeGuard = component.name.upper() + '_IMPL_H'
+//% set includeGuard = component.userclass.name.upper() + '_IMPL_H'
 #ifndef ${includeGuard}
 #define ${includeGuard}
 

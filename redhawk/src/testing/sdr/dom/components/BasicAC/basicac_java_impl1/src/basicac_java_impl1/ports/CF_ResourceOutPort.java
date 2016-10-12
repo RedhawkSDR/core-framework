@@ -115,6 +115,11 @@ public class CF_ResourceOutPort extends UsesPort<ResourceOperations> implements 
         
         return retval;
     }
+
+    public void initializeProperties(CF.DataType[] configProperties) throws CF.PropertySetPackage.InvalidConfiguration, CF.PropertySetPackage.PartialConfiguration
+    {
+    }
+
     /**
      * @generated
      */
@@ -157,6 +162,23 @@ public class CF_ResourceOutPort extends UsesPort<ResourceOperations> implements 
         
         return;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String registerPropertyListener(final org.omg.CORBA.Object listener, String[] prop_ids, float interval)
+        throws CF.UnknownProperties, CF.InvalidObjectReference
+    {
+        throw new CF.UnknownProperties();
+    }
+
+
+    public void unregisterPropertyListener(final String reg_id)
+        throws CF.InvalidIdentifier
+    {
+        throw new CF.InvalidIdentifier();
+    }
+
     /**
      * @generated
      */
@@ -180,6 +202,13 @@ public class CF_ResourceOutPort extends UsesPort<ResourceOperations> implements 
         
         return retval;
     }
+
+    public CF.PortSetPackage.PortInfoType[] getPortSet()
+    {
+        CF.PortSetPackage.PortInfoType[] retval = new CF.PortSetPackage.PortInfoType[1];
+        return retval;
+    }
+
     /**
      * @generated
      */

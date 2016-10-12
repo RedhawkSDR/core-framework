@@ -43,20 +43,21 @@ extern "C" {
     }
 }
 /*{% else %}*/
+/*{% set servant = component.basename + '_servant' %}*/
 extern "C" {
     Resource_impl* construct(int argc, char* argv[], Device_impl* parentDevice) {
 
-        ${component.userclass.name}* ${component.name}_servant;
-        Resource_impl::start_component(${component.name}_servant, argc, argv);
+        ${component.userclass.name}* ${servant};
+        Resource_impl::start_component(${servant}, argc, argv);
 
         // Any addition parameters passed into construct can now be
         // set directly onto component_servant since it is the instantiated
         // Redhawk component
         //      Example:
         //         component_servant->setSharedAPI(sharedAPI);
-        ${component.name}_servant->setParentDevice(parentDevice);
+        ${servant}->setParentDevice(parentDevice);
 
-        return ${component.name}_servant;
+        return ${servant};
     }
 }
 /*{% endif %}*/

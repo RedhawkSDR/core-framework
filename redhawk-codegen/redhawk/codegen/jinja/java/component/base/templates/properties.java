@@ -25,7 +25,11 @@
  */
 public static class ${prop.javatype} extends StructDef {
 /*{% for field in prop.fields %}*/
+/*{%   if field is simple %}*/
     ${simple(field)|indent(4)}
+/*{%   elif field is simplesequence %}*/
+    ${simplesequence(field)|indent(4)}
+/*{%   endif %}*/
 /*{% endfor %}*/
 
     /**
@@ -34,12 +38,16 @@ public static class ${prop.javatype} extends StructDef {
     public ${prop.javatype}(
 /*{%- filter trim|lines|join(', ') %}*/
 /*{%   for field in prop.fields %}*/
+/*{%     if field is simple %}*/
 ${field.javatype} ${field.javaname}
+/*{%     elif field is simplesequence %}*/
+List<${field.javatype}> ${field.javaname}
+/*{%     endif %}*/
 /*{%   endfor %}*/
 /*{% endfilter -%}*/
 ) {
         this();
-/*{% for field in prop.fields %}*/
+/*{% for field in prop.fields if not field.inherited %}*/
         this.${field.javaname}.setValue(${field.javaname});
 /*{% endfor %}*/
     }
@@ -47,8 +55,20 @@ ${field.javatype} ${field.javaname}
     /**
      * @generated
      */
+/*{% for field in prop.fields if not field.inherited %}*/
+    public void set_${field.javaname}(/*{% if field is simple %}*/${field.javatype} ${field.javaname}/*{% elif field is simplesequence %}*/List<${field.javatype}> ${field.javaname}/*{% endif%}*/) {
+        this.${field.javaname}.setValue(${field.javaname});
+    }
+    public /*{% if field is simple %}*/${field.javatype}/*{% elif field is simplesequence %}*/List<${field.javatype}>/*{% endif%}*/ get_${field.javaname}() {
+        return this.${field.javaname}.getValue();
+    }
+/*{% endfor %}*/
+
+    /**
+     * @generated
+     */
     public ${prop.javatype}() {
-/*{% for field in prop.fields %}*/
+/*{% for field in prop.fields if not field.inherited %}*/
         addElement(this.${field.javaname});
 /*{% endfor %}*/
     }
@@ -67,7 +87,12 @@ public final ${prop.javaclass}Property ${prop.javaname} =
         ${prop.javavalue}, //default value
         Mode.${prop.mode|upper}, //mode
         Action.${prop.action|upper}, //action
-        new Kind[] {${prop.javakinds|join(',')}} //kind
+/*{% if prop.isOptional %}*/
+        new Kind[] {${prop.javakinds|join(',')}}, //kind
+        true
+/*{% else %}*/
+        new Kind[] {${prop.javakinds|join(',')}}
+/*{% endif %}*/
         );
 /*{% endmacro %}*/
 
@@ -79,7 +104,12 @@ public final ${prop.javaclass}SequenceProperty ${prop.javaname} =
         ${prop.javaclass}SequenceProperty.asList(${prop.javavalues|join(',')}), //default value
         Mode.${prop.mode|upper}, //mode
         Action.${prop.action|upper}, //action
-        new Kind[] {${prop.javakinds|join(',')}} //kind
+/*{% if prop.isOptional %}*/
+        new Kind[] {${prop.javakinds|join(',')}}, //kind
+        true
+/*{% else %}*/
+        new Kind[] {${prop.javakinds|join(',')}}
+/*{% endif %}*/
         );
 /*{% endmacro %}*/
 

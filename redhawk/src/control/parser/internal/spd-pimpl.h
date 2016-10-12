@@ -329,16 +329,16 @@ namespace spd
     propertyref (const ossie::SPD::PropertyRef&);
 
     virtual void
-    simpleref (ossie::SimplePropertyRef*);
+    simpleref (const ossie::SimplePropertyRef&);
 
     virtual void
-    simplesequenceref (ossie::SimpleSequencePropertyRef*);
+    simplesequenceref (const ossie::SimpleSequencePropertyRef&);
 
     virtual void
-    structref (ossie::StructPropertyRef*);
+    structref (const ossie::StructPropertyRef&);
 
     virtual void
-    structsequenceref (ossie::StructSequencePropertyRef*);
+    structsequenceref (const ossie::StructSequencePropertyRef&);
 
     virtual void
     type (const ::std::string&);
@@ -385,7 +385,7 @@ namespace spd
     post_propertyRef ();
 
     private:
-    std::auto_ptr<ossie::SimplePropertyRef> _ref;
+    ossie::SimplePropertyRef _ref;
   };
 
   class softPkgRef_pimpl: public virtual softPkgRef_pskel
@@ -435,16 +435,16 @@ namespace spd
     propertyref (const ossie::SPD::PropertyRef&);
 
     virtual void
-    simpleref (ossie::SimplePropertyRef*);
+    simpleref (const ossie::SimplePropertyRef&);
 
     virtual void
-    simplesequenceref (ossie::SimpleSequencePropertyRef*);
+    simplesequenceref (const ossie::SimpleSequencePropertyRef&);
 
     virtual void
-    structref (ossie::StructPropertyRef*);
+    structref (const ossie::StructPropertyRef&);
 
     virtual void
-    structsequenceref (ossie::StructSequencePropertyRef*);
+    structsequenceref (const ossie::StructSequencePropertyRef&);
 
     virtual void
     id (const ::std::string&);
@@ -493,11 +493,11 @@ namespace spd
     virtual void
     value (const ::std::string&);
 
-    virtual ossie::SimplePropertyRef*
+    virtual const ossie::SimplePropertyRef&
     post_simpleref ();
     
     private:
-    ossie::SimplePropertyRef* simple;
+    ossie::SimplePropertyRef simple;
   };
 
   class simplesequenceref_pimpl: public virtual simplesequenceref_pskel
@@ -512,10 +512,10 @@ namespace spd
     virtual void
     refid (const ::std::string&);
 
-    virtual ossie::SimpleSequencePropertyRef*
+    virtual const ossie::SimpleSequencePropertyRef&
     post_simplesequenceref ();
     private:
-    ossie::SimpleSequencePropertyRef* simpleseq;
+    ossie::SimpleSequencePropertyRef simpleseq;
   };
 
   class structref_pimpl: public virtual structref_pskel
@@ -525,16 +525,19 @@ namespace spd
     pre ();
 
     virtual void
-    simpleref (ossie::SimplePropertyRef*);
+    simpleref (const ossie::SimplePropertyRef&);
+
+    virtual void
+    simplesequenceref (const ossie::SimpleSequencePropertyRef&);
 
     virtual void
     refid (const ::std::string&);
 
-    virtual ossie::StructPropertyRef*
+    virtual const ossie::StructPropertyRef &
     post_structref ();
 
     private:
-    ossie::StructPropertyRef* structref;
+    ossie::StructPropertyRef structref;
   };
 
   class structsequenceref_pimpl: public virtual structsequenceref_pskel
@@ -544,16 +547,16 @@ namespace spd
     pre ();
 
     virtual void
-    structvalue (const ::std::map<std::string, std::string>&);
+      structvalue (const ossie::ComponentPropertyMap & );
 
     virtual void
     refid (const ::std::string&);
 
-    virtual ossie::StructSequencePropertyRef*
+    virtual const ossie::StructSequencePropertyRef&
     post_structsequenceref ();
 
     private:
-    ossie::StructSequencePropertyRef* structsequenceref;
+    ossie::StructSequencePropertyRef structsequenceref;
   };
 
   class structvalue_pimpl: public virtual structvalue_pskel
@@ -563,13 +566,16 @@ namespace spd
     pre ();
 
     virtual void
-    simpleref (ossie::SimplePropertyRef*);
+    simpleref (const ossie::SimplePropertyRef&);
 
-    virtual ::std::map<std::string, std::string>
+    virtual void
+    simplesequenceref (const ossie::SimpleSequencePropertyRef&);
+
+    virtual const ossie::ComponentPropertyMap&
     post_structvalue ();
 
     private:
-    std::map<std::string, std::string> values;
+    ossie::ComponentPropertyMap values;
   };
 
   class values_pimpl: public virtual values_pskel

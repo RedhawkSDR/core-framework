@@ -66,25 +66,41 @@ fi
 #   Bulkio_Helper_Fixture - test bulkio helper api
 #
 #
-pushd cpp
+cd cpp
 ./runtests
-popd
+cd -
 
 
 #
 #  Run Large Packet Size Test
 #
 #
-pushd ../components/TestLargePush/tests/
+cd ../components/TestLargePush/tests/
 ./test_TestLargePush.py
-popd
+cd -
 
 #
 #  Run Attachable/Multiout Test
 #
 #
-pushd ../components/multiout_attachable/tests/
+cd ../components/multiout_attachable/tests/
 ./test_multiout_attachable.py
-popd
+cd -
+
+#
+#  Run Oversized frame data Test
+#
+#
+cd ../components/Oversized_framedata/tests/
+./test_Oversized_framedata.py
+cd -
+
+#
+#  Run jni reference resolution
+#
+#
+cd ../devices/dev_src/tests/
+python test_dev_src.py
+cd -
 
 rm $bulkio_libsrc_top/build/lib/bulkio/bulkioInterfaces

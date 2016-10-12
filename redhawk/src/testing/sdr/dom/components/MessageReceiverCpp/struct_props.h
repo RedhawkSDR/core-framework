@@ -22,15 +22,24 @@
 #ifndef STRUCTPROPS_H
 #define STRUCTPROPS_H
 
+/*******************************************************************************************
+
+    AUTO-GENERATED CODE. DO NOT MODIFY
+
+*******************************************************************************************/
+
 #include <ossie/CorbaUtils.h>
+#include <ossie/CF/cf.h>
 
 struct test_message_struct {
-    test_message_struct () { };
-    
-    std::string getName() {
-        return std::string("test_message");
+    test_message_struct ()
+    {
     };
-    
+
+    static std::string getId() {
+        return std::string("DCE:ced3f264-3ac8-4eea-8877-66a97428ded7");
+    };
+
     float item_float;
     std::string item_string;
 };
@@ -39,9 +48,24 @@ inline bool operator>>= (const CORBA::Any& a, test_message_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
     CF::Properties& props = *temp;
-    if (props.length() != 2) return false;
-    if (!(props[0].value >>= s.item_float)) return false;
-    if (!(props[1].value >>= s.item_string)) return false;
+    for (unsigned int idx = 0; idx < props.length(); idx++) {
+        if (!strcmp("item_float", props[idx].id)) {
+            if (!(props[idx].value >>= s.item_float)) {
+                CORBA::TypeCode_var typecode = props[idx].value.type();
+                if (typecode->kind() != CORBA::tk_null) {
+                    return false;
+                }
+            }
+        }
+        else if (!strcmp("item_string", props[idx].id)) {
+            if (!(props[idx].value >>= s.item_string)) {
+                CORBA::TypeCode_var typecode = props[idx].value.type();
+                if (typecode->kind() != CORBA::tk_null) {
+                    return false;
+                }
+            }
+        }
+    }
     return true;
 };
 
@@ -55,4 +79,16 @@ inline void operator<<= (CORBA::Any& a, const test_message_struct& s) {
     a <<= props;
 };
 
-#endif
+inline bool operator== (const test_message_struct& s1, const test_message_struct& s2) {
+    if (s1.item_float!=s2.item_float)
+        return false;
+    if (s1.item_string!=s2.item_string)
+        return false;
+    return true;
+};
+
+inline bool operator!= (const test_message_struct& s1, const test_message_struct& s2) {
+    return !(s1==s2);
+};
+
+#endif // STRUCTPROPS_H

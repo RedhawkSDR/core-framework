@@ -310,6 +310,12 @@ namespace burstio {
         stop();
     }
 
+	template <class Traits>
+    std::string OutPort<Traits>::getRepid () const
+    {
+        return PortType::_PD_repoId;;
+    }
+
     template <class Traits>
     BULKIO::PortUsageType OutPort<Traits>::state ()
     {
@@ -378,6 +384,23 @@ namespace burstio {
                     LOG_INSTANCE_ERROR("pushBursts to " << ii->first << " failed: " << ex.what());
                 }
                 connection.info->alive = false;
+            } catch (const CORBA::MARSHAL& ex) {
+                if (bursts.length() == 1) {
+                    // the burst length is 1. There's nothing we can do
+                    if (connection.info->alive) {
+                        LOG_INSTANCE_ERROR("pushBursts to " << ii->first << " failed because the burst size is too long");
+                    }
+                    connection.info->alive = false;
+                } else {
+                    try {
+                        partitionBursts(bursts, startTime, queueDepth, streamID, connection);
+                    } catch (...) {
+                        if (connection.info->alive) {
+                            LOG_INSTANCE_ERROR("Paritioned pushBursts to " << ii->first << " failed");
+                        }
+                        connection.info->alive = false;
+                    }
+                }
             } catch (const CORBA::Exception& ex) {
                 if (connection.info->alive) {
                     LOG_INSTANCE_ERROR("pushBursts to " << ii->first << " failed: CORBA::" << ex._name());
@@ -389,6 +412,46 @@ namespace burstio {
                 }
                 connection.info->alive = false;
             }
+        }
+    }
+    
+    template <class Traits>
+    void OutPort<Traits>::partitionBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID, const Connection& connection)
+    {
+        // cut the burst length in half and try again....
+        BurstSequenceType first_burst;
+        BurstSequenceType second_burst;
+        first_burst.length(bursts.length()/2);
+        second_burst.length(bursts.length()-first_burst.length());
+        boost::posix_time::time_duration delay = boost::get_system_time() - startTime;
+        for (int i=0; i<bursts.length(); i++) {
+            if (i<first_burst.length()) {
+                first_burst[i] = bursts[i];
+            } else {
+                second_burst[i-first_burst.length()] = bursts[i];
+            }
+        }
+        try {
+            size_t total_elements = 0;
+            for (CORBA::ULong index = 0; index < first_burst.length(); ++index) {
+                total_elements += first_burst[index].data.length();
+            }
+            connection.port->pushBursts(first_burst);
+            connection.info->alive = true;
+            connection.info->stats.record(first_burst.length(), total_elements, queueDepth, delay.total_microseconds() * 1e-6);
+        } catch (const CORBA::MARSHAL& ex) {
+            partitionBursts(first_burst, startTime, queueDepth, streamID, connection);
+        }
+        try {
+            size_t total_elements = 0;
+            for (CORBA::ULong index = 0; index < first_burst.length(); ++index) {
+                total_elements += first_burst[index].data.length();
+            }
+            connection.port->pushBursts(second_burst);
+            connection.info->alive = true;
+            connection.info->stats.record(second_burst.length(), total_elements, queueDepth, delay.total_microseconds() * 1e-6);
+        } catch (const CORBA::MARSHAL& ex) {
+            partitionBursts(second_burst, startTime, queueDepth, streamID, connection);
         }
     }
 

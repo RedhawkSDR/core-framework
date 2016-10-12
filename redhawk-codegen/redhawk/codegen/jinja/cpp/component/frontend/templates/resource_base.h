@@ -21,7 +21,6 @@
 /*{% block defines %}*/
 ${super()}
 #define BOOL_VALUE_HERE 0
-#define DOUBLE_VALUE_HERE 0
 /*{% endblock %}*/
 
 /*{% block extendedPublic %}*/
@@ -50,5 +49,8 @@ ${super()}
 
 /*{% block extendedProtected%}*/
 
+/*{%   if 'FrontendTuner' in component.implements %}*/
         virtual void setNumChannels(size_t num);
+        virtual void setNumChannels(size_t num, std::string tuner_type);
+/*{%   endif %}*/
 /*{% endblock %}*/

@@ -30,20 +30,18 @@ class PullComponentMapper(BaseComponentMapper):
         cppcomp['userclass'] = self.userClass(softpkg)
         cppcomp['superclasses'] = self.superClasses(softpkg)
         cppcomp['interfacedeps'] = tuple(self.getInterfaceDependencies(softpkg))
-        cppcomp['softpkgdeps'] = self.softPkgDeps(softpkg, format='deps')
-        cppcomp['pkgconfigsoftpkgdeps'] = self.softPkgDeps(softpkg, format='pkgconfig')
         cppcomp['hasmultioutport'] = self.hasMultioutPort(softpkg)
         return cppcomp
 
     @staticmethod
     def userClass(softpkg):
-        return {'name'  : softpkg.name()+'_i',
-                'header': softpkg.name()+'.h',
-                'file'  : softpkg.name()+'.cpp'}
+        return {'name'  : softpkg.basename()+'_i',
+                'header': softpkg.basename()+'.h',
+                'file'  : softpkg.basename()+'.cpp'}
 
     @staticmethod
     def baseClass(softpkg):
-        baseclass = softpkg.name() + '_base'
+        baseclass = softpkg.basename() + '_base'
         return {'name'  : baseclass,
                 'header': baseclass+'.h',
                 'file'  : baseclass+'.cpp'}
@@ -51,7 +49,7 @@ class PullComponentMapper(BaseComponentMapper):
     @staticmethod
     def superClasses(softpkg):
         if softpkg.type() == ComponentTypes.RESOURCE:
-            name = 'Resource_impl'
+            name = 'Component'
         elif softpkg.type() == ComponentTypes.DEVICE:
             name = 'Device_impl'
             aggregate = 'virtual POA_CF::AggregatePlainDevice'

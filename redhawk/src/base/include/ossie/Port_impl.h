@@ -30,6 +30,7 @@
 #include <boost/thread/mutex.hpp>
 
 #include "CF/cf.h"
+#include "ossie/Autocomplete.h"
 
 namespace _seqVector {
 
@@ -112,7 +113,10 @@ template<typename _Tp>
 } // namespace _seqVector
 
 
-class Port_impl : public virtual POA_CF::Port
+class Port_impl
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+: public virtual POA_CF::Port
+#endif
 {
 public:
     Port_impl();
@@ -129,17 +133,21 @@ public:
     ~Port_Uses_impl();
     void connectPort(CORBA::Object_ptr connection, const char* connectionId);
     void disconnectPort(const char* connectionId);
-    bool isActive();
     void setActiveStatus(bool active_flag);
     void releasePort();
     std::vector< std::pair<class PortType::_var_type, std::string> > get_ports();
+    // Return whether this Port is connected to another Port
+    bool isActive();
+    // Return the Port name
     std::string getName();
 
 protected:
+    // Pointer to the Component or Device that owns this Port
     ComponentType* parent;
+    // Vector of all outgoing connections
+    std::vector < std::pair<class PortType::_var_type, std::string> > outPorts;
     bool active;
     std::string name;
-    std::vector < std::pair<class PortType::_var_type, std::string> > outPorts;
     boost::mutex updatingPortsLock;
     bool refreshSRI;
 };
@@ -221,6 +229,7 @@ class Port_Provides_impl
 public:
     Port_Provides_impl(ComponentType* _parent, std::string port_name);
     ~Port_Provides_impl();
+    // Return this Port's name
     std::string getName();
 
 protected:
@@ -247,11 +256,14 @@ std::string Port_Provides_impl<PortType, ComponentType>::getName()
 };
 
 
-class PortBase : public virtual PortableServer::ServantBase
+class PortBase
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+: public virtual PortableServer::ServantBase
+#endif
 {
 public:
     PortBase (const std::string& name) :
-        name(name)
+        name(name), description("")
     {
     }
 
@@ -259,9 +271,9 @@ public:
     {
     }
 
-    virtual std::string getName ()
+    virtual void setDescription(const std::string& desc)
     {
-        return name;
+		description = desc;
     }
 
     virtual void startPort ()
@@ -276,8 +288,33 @@ public:
     {
     }
 
+    // Return the Port name
+    virtual std::string getName ()
+    {
+        return name;
+    }
+
+    // Return the Port description
+    virtual std::string getDescription ()
+    {
+		return description;
+    }
+
+    // Return the interface that this Port supports
+    virtual std::string getRepid () const
+    {
+		return "IDL:CORBA/Object:1.0";
+    }
+
+    // Return the direction (uses/provides) for this Port
+    virtual std::string getDirection() const 
+    {
+        return "Direction";
+    }
+
 protected:
     std::string name;
+    std::string description;
 };
 
 class Port_Uses_base_impl : public PortBase
@@ -301,14 +338,21 @@ public:
     {
     }
 
+    virtual void setActiveStatus(bool active_flag)
+    {
+        active = active_flag;
+    }
+
+    // Return true if this Port is connected to another Port
     virtual bool isActive()
     {
         return active;
     }
 
-    virtual void setActiveStatus(bool active_flag)
+    // Return the direction (uses/provides) for this Port
+    virtual std::string getDirection () const 
     {
-        active = active_flag;
+        return "Uses";	
     }
 
 protected:
@@ -327,6 +371,12 @@ public:
 
     virtual ~Port_Provides_base_impl()
     {
+    }
+
+    // Return the direction (uses/provides) for this Port
+    virtual std::string getDirection () const 
+    {
+        return "Provides";	
     }
 };
 

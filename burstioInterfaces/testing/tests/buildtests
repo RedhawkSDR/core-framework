@@ -7,9 +7,9 @@ burstio_libsrc_top=$burstio_top/libsrc
 export LD_LIBRARY_PATH=$burstio_libsrc_top/.libs:$burstio_top/.libs:${LD_LIBRARY_PATH}
 export PYTHONPATH=$burstio_libsrc_top/build/lib:${PYTHONPATH}
 
-pushd cpp
+cd cpp
 ./reconf; ./configure; make
-popd
+cd -
 
 #
 # Build supporting components for burstio test framework

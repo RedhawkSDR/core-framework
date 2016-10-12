@@ -42,6 +42,7 @@ namespace burstio {
         ENABLE_INSTANCE_LOGGING;
 
     public:
+		typedef typename Traits::PortType PortType;
         typedef typename Traits::BurstType BurstType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
         typedef typename Traits::ElementType ElementType;
@@ -122,6 +123,8 @@ namespace burstio {
 
         // Support function for automatic component-managed stop.
         virtual void stopPort ();
+
+		std::string getRepid() const;
 
     protected:
         // Wait timeout seconds for a burst to become available; the caller

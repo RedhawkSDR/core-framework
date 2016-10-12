@@ -56,7 +56,10 @@ namespace ossie {
                 structSequence_pimpl structSequence_p;
                 structValue_pimpl structValue_p;
                 IsComplex_pimpl IsComplex_p;
+                IsCommandLine_pimpl IsCommandLine_p;
+                IsOptional_pimpl IsOptional_p;
                 simpleRef_pimpl simpleRef_p;
+                simpleSequenceRef_pimpl simpleSequenceRef_p;
 
                 // Connect the parsers together.
                 //
@@ -78,6 +81,8 @@ namespace ossie {
                                 AccessType_p,
                                 string_p,
                                 IsComplex_p,
+                                IsCommandLine_p,
+                                IsOptional_p,
                                 PropertyValueType_p);
 
                 range_p.parsers (string_p,
@@ -102,7 +107,8 @@ namespace ossie {
                                         AccessType_p,
                                         string_p,
                                         PropertyValueType_p,
-                                        IsComplex_p);
+                                        IsComplex_p,
+                                        IsOptional_p);
 
                 values_p.parsers (string_p);
 
@@ -117,6 +123,7 @@ namespace ossie {
 
                 struct_p.parsers (string_p,
                                 simple_p,
+				simpleSequence_p,
                                 configurationKind_p,
                                 string_p,
                                 AccessType_p,
@@ -132,10 +139,14 @@ namespace ossie {
                                         AccessType_p,
                                         string_p);
 
-                structValue_p.parsers (simpleRef_p);
+                structValue_p.parsers (simpleRef_p,
+                                       simpleSequenceRef_p);
 
                 simpleRef_p.parsers (string_p,
-                                    string_p);
+                                     string_p);
+
+                simpleSequenceRef_p.parsers (values_p,
+                                             string_p);
 
                 // Parse the XML document.
                 //

@@ -88,6 +88,5 @@ ${super()}
         bool deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, size_t tuner_id);
 
 /*{% endif %}*/
-        void construct();
 /*{% endblock %}*/
 

@@ -27,28 +27,3 @@ from redhawk.codegen.jinja.mapping import ComponentMapper
 class BaseComponentMapper(ComponentMapper):
     def __init__(self, package):
         self.package = package
-
-    def _mapComponent(self, softpkg):
-        javacomp = {}
-        javacomp['softpkgcp'] = self.softPkgDeps(softpkg, format='cp')
-        return javacomp
-
-    def softPkgDeps(self, softpkg, format='cp'):
-        deps = ''
-        for spd_dep in softpkg.getSoftPkgDeps():
-            spd_file = '/dom'+spd_dep['localfile']
-            spd_dir = '$SDRROOT'+spd_file[:spd_file.rfind('/')]
-            try:
-                spd = ossie.parsers.spd.parse(os.getenv('SDRROOT')+spd_file)
-            except:
-                continue
-            found_dep = False
-            for impl in spd.get_implementation():
-                localfile = impl.get_code().get_entrypoint()
-                if localfile[-4:] != '.jar':
-                    continue
-                found_dep = True
-                if format == 'cp':
-                    deps += spd_dir+'/'+localfile+':'
-                break
-        return deps

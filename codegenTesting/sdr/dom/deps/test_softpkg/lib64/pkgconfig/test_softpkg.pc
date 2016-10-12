@@ -1,0 +1,12 @@
+prefix=../../../sdr/dom/deps/test_softpkg
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib64
+includedir=${prefix}/include
+
+Name: test_softpkg
+Description: test softpkg dependencies
+Requires: 
+Version: 0.1.0
+Libs: -L${libdir} -ltest_softpkg
+Cflags: -I${includedir}
+

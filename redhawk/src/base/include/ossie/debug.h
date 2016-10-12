@@ -38,7 +38,7 @@
 
 #include <ossie/debug_old.h>
 
-#else    //  NO_RH_LOGGER NOT SET   (default)
+#else    //  NO_RH_LOGGER NOT SET   (default), 
 
 //
 //  Begin Macros to use RedHawk Logging Abstraction
@@ -52,6 +52,10 @@
     static rh_logger::LoggerPtr __logger;
 
 #define PREPARE_LOGGING(classname) \
+    rh_logger::LoggerPtr classname::__logger(rh_logger::Logger::getResourceLogger(#classname));
+
+
+#define PREPARE_CF_LOGGING(classname) \
     rh_logger::LoggerPtr classname::__logger(rh_logger::Logger::getLogger(#classname));
 
 
@@ -74,6 +78,9 @@
   }
 
 
+//
+//  Gen 1 Macros, use classname to resolve logger instance to use
+//
 #define LOG_TRACE(classname, expression)  _RH_LOG( Trace,  classname::__logger, expression)
 #define LOG_DEBUG(classname, expression)  _RH_LOG( Debug,  classname::__logger, expression)
 #define LOG_INFO(classname, expression)   _RH_LOG( Info,   classname::__logger, expression)
@@ -81,12 +88,27 @@
 #define LOG_ERROR(classname, expression)  _RH_LOG( Error,   classname::__logger, expression)
 #define LOG_FATAL(classname, expression)  _RH_LOG( Fatal,   classname::__logger, expression)
 
+//
+//  Gen 2 Macros, use specified logger instance to use
+//
 #define RH_TRACE( logger, expression )  _RH_LOG( Trace,  logger, expression)
 #define RH_DEBUG( logger, expression )  _RH_LOG( Debug,  logger, expression)
 #define RH_INFO( logger, expression )   _RH_LOG( Info,   logger, expression)
 #define RH_WARN( logger, expression )   _RH_LOG( Warn,   logger, expression)
 #define RH_ERROR( logger, expression )  _RH_LOG( Error,  logger, expression)
 #define RH_FATAL( logger, expression )  _RH_LOG( Fatal,  logger, expression)
+
+
+//
+//  Gen 3 Macros, use named logger to lookup logger instance to use
+//
+#define RH_NL_TRACE( loggerName, expression )  _RH_LOG( Trace,  rh_logger::Logger::getLogger(loggerName), expression)
+#define RH_NL_DEBUG( loggerName, expression )  _RH_LOG( Debug,  rh_logger::Logger::getLogger(loggerName), expression)
+#define RH_NL_INFO( loggerName, expression )   _RH_LOG( Info,   rh_logger::Logger::getLogger(loggerName), expression)
+#define RH_NL_WARN( loggerName, expression )   _RH_LOG( Warn,   rh_logger::Logger::getLogger(loggerName), expression)
+#define RH_NL_ERROR( loggerName, expression )  _RH_LOG( Error,  rh_logger::Logger::getLogger(loggerName), expression)
+#define RH_NL_FATAL( loggerName, expression )  _RH_LOG( Fatal,  rh_logger::Logger::getLogger(loggerName), expression)
+
 
 
 #ifdef HAVE_LOG4CXX
@@ -117,9 +139,28 @@
 #define TRACE_EXIT(classname) \
     LOG_TRACE(classname, "Exiting " << #classname << "." << __PRETTY_FUNCTION__ << " [" << __FILE__ << ":" << __LINE__ << "]")
 
+#define RH_TRACE_ENTER(logger) \
+    RH_TRACE(logger, "Entering " << __PRETTY_FUNCTION__ << " [" << __FILE__ << ":" << __LINE__ << "]")
+
+
+#define RH_TRACE_EXIT(logger) \
+  RH_TRACE(logger, "Exiting " << __PRETTY_FUNCTION__ << " [" << __FILE__ << ":" << __LINE__ << "]")
+
+
+#define RH_NL_TRACE_ENTER(loggerName) \
+    RH_NL_TRACE(#loggerName, "Entering " << #loggerName << "." << __PRETTY_FUNCTION__ << " [" << __FILE__ << ":" << __LINE__ << "]")
+
+
+#define RH_NL_TRACE_EXIT(loggerName) \
+  RH_NL_TRACE(#loggerName, "Exiting " << #loggerName << "." << __PRETTY_FUNCTION__ << " [" << __FILE__ << ":" << __LINE__ << "]")
+
 #else
 #define TRACE_ENTER(classname)
 #define TRACE_EXIT(classname)
+#define RH_TRACE_ENTER(logger)
+#define RH_TRACE_EXIT(logger)
+#define RH_NL_TRACE_ENTER(classname)
+#define RH_NL_TRACE_EXIT(classname)
 
 #endif
 

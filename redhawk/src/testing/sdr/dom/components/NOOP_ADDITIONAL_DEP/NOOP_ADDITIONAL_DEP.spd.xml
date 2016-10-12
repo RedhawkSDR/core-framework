@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:73924477-9817-470b-8662-7f0ca5533f81" name="NOOP_ADDITIONAL_DEP" type="2.0.0">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="NOOP_ADDITIONAL_DEP.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="NOOP_ADDITIONAL_DEP.scd.xml"/>
+  </descriptor>
+  <implementation id="python">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="python"/>
+      <entrypoint>python/NOOP_ADDITIONAL_DEP.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <runtime name="python" version="2.6.6"/>
+    <os name="Linux"/>
+    <dependency type="allocation">
+      <propertyref refid="additional_supported_components" value="1"/>
+    </dependency>
+  </implementation>
+</softpkg>

@@ -37,16 +37,60 @@ namespace ossie {
     template <typename T>
     struct traits
     {
+        // Default implementation: try to demangle the type name as returned by
+        // the typeid operator
 	static inline const std::string name()
 	{
 	    return ossie::internal::demangle(typeid(T).name());
 	}
     };
 
+    // Specializations for explicitly-sized types to avoid confusion about the
+    // correct type; if, e.g., a 32-bit integer type is required, it should
+    // return the same type name regardless of the architecture (long is 32
+    // bits on x86, but 64 on x86_64)
+    template <>
+    inline const std::string traits<CORBA::Long>::name ()
+    {
+	return "CORBA::Long";
+    }
+
+    template <>
+    inline const std::string traits<CORBA::ULong>::name ()
+    {
+	return "CORBA::ULong";
+    }
+
+    template <>
+    inline const std::string traits<CORBA::LongLong>::name ()
+    {
+	return "CORBA::LongLong";
+    }
+
+    template <>
+    inline const std::string traits<CORBA::ULongLong>::name ()
+    {
+	return "CORBA::ULongLong";
+    }
+
+    // Specializations for other common types, to ensure that a meaningful name
+    // is returned if the demangling API is unavailable
     template <>
     inline const std::string traits<char>::name ()
     {
 	return "char";
+    }
+
+    template <>
+    inline const std::string traits<signed char>::name ()
+    {
+	return "signed char";
+    }
+
+    template <>
+    inline const std::string traits<unsigned char>::name ()
+    {
+	return "unsigned char";
     }
 
     template <>
@@ -74,30 +118,6 @@ namespace ossie {
     }
 
     template <>
-    inline const std::string traits<CORBA::Long>::name ()
-    {
-	return "CORBA::Long";
-    }
-
-    template <>
-    inline const std::string traits<CORBA::ULong>::name ()
-    {
-	return "CORBA::ULong";
-    }
-
-    template <>
-    inline const std::string traits<CORBA::LongLong>::name ()
-    {
-	return "CORBA::LongLong";
-    }
-
-    template <>
-    inline const std::string traits<CORBA::ULongLong>::name ()
-    {
-	return "CORBA::ULongLong";
-    }
-
-    template <>
     inline const std::string traits<float>::name ()
     {
 	return "float";
@@ -109,6 +129,24 @@ namespace ossie {
 	return "double";
     }
 
+#if SIZEOF_LONG == 8
+    // Specialization for 64-bit machines--even though both "long" and
+    // "long long" are 64 bits, they are distinct types
+    template <>
+    inline const std::string traits<long long>::name ()
+    {
+	return "long long";
+    }
+
+    template <>
+    inline const std::string traits<unsigned long long>::name ()
+    {
+	return "unsigned long long";
+    }
+#endif
+
+    // Specializations for common template classes to ensure that primitive
+    // types follow the naming above
     template <typename T>
     struct traits<std::complex<T> >
     {
@@ -127,6 +165,55 @@ namespace ossie {
 	}
     };
 
+    // Specializations for CV-qualified types; may be combined with other
+    // modifiers, but "const volatile" is a distinct specialization to resolve
+    // ambiguities
+    template <typename T>
+    struct traits<const T>
+    {
+        static inline const std::string name ()
+        {
+            return traits<T>::name() + " const";
+        }
+    };
+
+    template <typename T>
+    struct traits<volatile T>
+    {
+        static inline const std::string name ()
+        {
+            return traits<T>::name() + " volatile";
+        }
+    };
+
+    template <typename T>
+    struct traits<const volatile T>
+    {
+        static inline const std::string name ()
+        {
+            return  traits<T>::name() + " const volatile";
+        }
+    };
+
+    // Specialization for pointer types; may be combined with other modifiers
+    template <typename T>
+    struct traits<T*>
+    {
+        static inline const std::string name ()
+        {
+            return traits<T>::name() + "*";
+        }
+    };
+
+    // Specialization for reference types; may be combined with other modifiers
+    template <typename T>
+    struct traits<T&>
+    {
+        static inline const std::string name ()
+        {
+            return traits<T>::name() + "&";
+        }
+    };
 }
 
 #endif // OSSIE_TYPE_TRAITS_H

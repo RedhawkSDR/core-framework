@@ -28,6 +28,7 @@ import java.util.Set;
 import burstio.stats.ReceiverStatistics;
 import burstio.traits.BurstTraits;
 
+
 public class InPortImpl<E> implements InPort<E>
 {
     public static final int DEFAULT_QUEUE_THRESHOLD = 100;
@@ -229,4 +230,5 @@ public class InPortImpl<E> implements InPort<E>
         }
         return !queue_.isEmpty();
     }
+
 }

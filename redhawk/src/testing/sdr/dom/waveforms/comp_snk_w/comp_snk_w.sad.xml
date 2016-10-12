@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:f171b4b5-db79-4098-bdc3-dbb586400261" name="comp_snk_w">
+  <componentfiles>
+    <componentfile id="comp_snk_263f8b5c-f651-44d0-8a1b-9f6a0e3cbe96" type="SPD">
+      <localfile name="/components/comp_snk/comp_snk.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="comp_snk_263f8b5c-f651-44d0-8a1b-9f6a0e3cbe96"/>
+      <componentinstantiation id="comp_snk_1" startorder="0">
+        <usagename>comp_snk_1</usagename>
+        <findcomponent>
+          <namingservice name="comp_snk_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="comp_snk_1"/>
+  </assemblycontroller>
+</softwareassembly>

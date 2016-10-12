@@ -1,0 +1,197 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _FRONTEND_IDL_
+#define _FRONTEND_IDL_
+
+#include "ossie/CF/DataType.idl"
+
+
+/************************************************************************/
+/** THIS FILE DEFINES CONSTANTS AND EXCEPTIONS FOR FRONT END INTERFACES */
+/************************************************************************/
+
+
+module FRONTEND {
+
+    /************************/
+    /**     EXCEPTIONS      */
+    /************************/
+    exception FrontendException { string msg; };
+    exception BadParameterException { string msg; };
+    exception NotSupportedException { string msg; };
+
+    
+    /***********************/
+    /**     CONSTANTS      */
+    /***********************/
+
+    /** Output data formats */
+    const string OF_DIGRAPH_SP = "SP"; /** scalar packed */
+    const string OF_DIGRAPH_SB = "SB"; /** scalar byte (1B) */
+    const string OF_DIGRAPH_SO = "SO"; /** scalar offset byte (1B) */
+    const string OF_DIGRAPH_SI = "SI"; /** scalar int (2B) */
+    const string OF_DIGRAPH_SL = "SL"; /** scalar long (4B) */
+    const string OF_DIGRAPH_SX = "SX"; /** scalar extra long int (8B) */
+    const string OF_DIGRAPH_SF = "SF"; /** scalar float (4B) */
+    const string OF_DIGRAPH_SD = "SD"; /** scalar double (8b) */
+    const string OF_DIGRAPH_CP = "CP"; /** complex packed */
+    const string OF_DIGRAPH_CB = "CB"; /** complex byte (1B) */
+    const string OF_DIGRAPH_CO = "CO"; /** complex offset byte (1B) */
+    const string OF_DIGRAPH_CI = "CI"; /** complex int (2B) */
+    const string OF_DIGRAPH_CL = "CL"; /** complex long (4B) */
+    const string OF_DIGRAPH_CX = "CX"; /** complex extra long int (8B) */
+    const string OF_DIGRAPH_CF = "CF"; /** complex float (4B) */
+    const string OF_DIGRAPH_CD = "CD"; /** complex double (8b) */
+
+    /** Payload types */
+    const string PAYLOAD_SDDS = "SDDS";
+    const string PAYLOAD_VITA49 = "VITA49";
+    const string PAYLOAD_SOTF = "SOTF";
+    const string PAYLOAD_PCAP = "PCAP";
+    const string PAYLOAD_RAW = "RAW";
+    
+    /** Antenna Types */
+    const string ANTENNA_TYPE_OMNI = "OMNI";
+    const string ANTENNA_TYPE_DIPL = "DIPOLE";
+    const string ANTENNA_TYPE_MONPL = "MONOPOLE";
+    const string ANTENNA_TYPE_LOOP = "LOOP";
+    const string ANTENNA_TYPE_WIRE = "WIRE";
+    const string ANTENNA_TYPE_YAGI = "YAGI";
+    const string ANTENNA_TYPE_HELICAL = "HELICAL";
+    const string ANTENNA_TYPE_DCONE = "DISCONE";
+    const string ANTENNA_TYPE_LOGA = "LOGARITHMIC";
+    const string ANTENNA_TYPE_OTHER = "OTHER";
+
+    /** Polarization Types */
+    const string POLARIZATION_HOR = "HOR";   /** Linear Horizontal */
+    const string POLARIZATION_VER = "VER";   /** Linear Vertical */
+    const string POLARIZATION_LHC = "LHC";   /** Left-hand Circular */
+    const string POLARIZATION_RHC = "RHC";   /** Right-hand Circular */
+
+    const string DATUM_WGS84 = "WGS84";  /** WGS84 Datum **/
+    const string DATUM_MSL = "MSL";  /** MSL datum **/
+
+    const string CS_ECF = "ECF"; 
+    const string CS_NED = "NED"; 
+    const string CS_ENU = "ENU";
+
+    
+    /************************/
+    /**     STRUCTURES      */
+    /************************/
+    
+    /** Describes freq range or available freqs. Units: Hertz */
+    struct FreqRange {
+        double min_val; 
+        double max_val;
+        sequence <double> values;
+    };
+
+    /** Describes a Cartesian Position */
+    struct CartesianPositionInfo {
+    	boolean valid;
+        string datum; /** Default: DATUM_WGS84 */
+        double x; /** Default Unit: Degrees */
+        double y; /** Default Unit: Degrees */
+        double z; /** Default Unit: Meters */
+    };
+
+    /** Describes a Geodetic Position */
+    struct PositionInfo {
+    	boolean valid;
+        string datum; /** Default: DATUM_WGS84 */
+        double lat; /** Default Unit: Degrees */
+        double lon; /** Default Unit: Degrees */
+        double alt; /** Default Unit: Meters */
+    };
+    
+    /** Describes Attitude */
+    struct AttitudeInfo {
+        boolean valid;
+        double pitch; /** Default Unit: Degrees */
+        double yaw;   /** Default Unit: Degrees */
+        double roll;  /** Default Unit: Degrees */
+    };
+     
+    /** Describes Velocity */
+    struct VelocityInfo {
+        boolean valid;
+        string datum; /** Default: DATUM_WGS84 */
+        string coordinate_system;  /** Values: CS_ECF, CS_ENU, CS_NED **/
+        double x;   /** Default Unit: Meters/Second */
+        double y;   /** Default Unit: Meters/Second */
+        double z;   /** Default Unit: Meters/Second */
+    };
+    
+    /** Describes Acceleration */
+    struct AccelerationInfo {
+        boolean valid;
+        string datum; /** Default: DATUM_WGS84 */
+        string coordinate_system;  /** Values: CS_ECF, CS_ENU, CS_NED **/
+        double x;  /** Default Unit: Meters/Second^2 */
+        double y;  /** Default Unit: Meters/Second^2 */
+        double z;  /** Default Unit: Meters/Second^2 */
+    };
+
+    
+    /** Describes an Antenna */
+    struct AntennaInfo {
+        string name;
+        string type;
+        string size;
+        string description;
+    };
+
+    /** Describes a Feed */
+    struct FeedInfo {
+        string name;
+        string polarization;
+        FreqRange freq_range;
+    };
+    
+    /** Describes a Sensor: Antenna/Feed combo */
+    struct SensorInfo {
+        string mission;
+        string collector;
+        string rx; 
+        AntennaInfo antenna;
+        FeedInfo feed;
+    };
+
+    /** Describes RF Cap */
+    struct RFCapabilities {
+        FreqRange freq_range;
+        FreqRange bw_range;
+    };
+    
+	/** Lists path delay */
+    struct PathDelay {
+        double freq;
+        double delay_ns;
+    };
+    typedef sequence <PathDelay> PathDelays;
+
+  
+  
+
+};
+
+#endif

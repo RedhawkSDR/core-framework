@@ -121,13 +121,12 @@ def classDescriptor (itype, isOut=False):
 def dependencyClass (itype, isOut=False):
     if isinstance(itype, idlast.Typedef):
         itype = itype.aliasType()
-    if isPrimitiveType(itype) or isString(itype):
-        return None
-    elif isSequence(itype) and not isOut:
-        return dependencyClass(itype.unalias().seqType())
-    name = helperName(itype)
-    if isOut:
-        name += 'Holder'
+    if not isOut:
+        if isPrimitiveType(itype) or isString(itype):
+            return None
+        elif isSequence(itype):
+            return dependencyClass(itype.unalias().seqType())
+    name = helperName(itype, isOut)
     return name
 
 def methodDescriptor (retType, argList):
@@ -167,6 +166,8 @@ def parameterType(param):
     if isPrimitiveType(paramType) or isEnum(paramType):
         byRef = param.is_out()
     elif not param.is_in():
+        if isString(paramType):
+            decl = 'CORBA::String'
         decl += '_out'
         byRef = False
     elif isInterface(paramType):
@@ -182,6 +183,24 @@ def parameterType(param):
     if byRef:
         decl += '&'
     return decl
+
+def temporaryType(itype, owner=True):
+    if isinstance(itype, idlast.Parameter):
+        owner = not itype.is_in()
+        itype = itype.paramType()
+    if isEnum(itype) or isPrimitiveType(itype):
+        # Primitives and enums are by-value, no need to take ownership
+        owner = False
+    if isString(itype) or isInterface(itype) or owner:
+        return varType(itype)
+    else:
+        return typeString(itype)
+
+def varType (itype):
+    if isString(itype):
+        return 'CORBA::String_var'
+    else:
+        return typeString(itype) + '_var'
 
 def jniType (itype):
     itype = itype.unalias()
@@ -237,13 +256,29 @@ def jniScopedName (name):
     scopedName = name.scopedName()
     return scopedName[:-1] + ['jni'] + scopedName[-1:]
 
-def helperName (itype):
+def helperName (itype, isOut=False):
     if isAny(itype):
         scopedName = ['CORBA', 'Any']
+    elif isString(itype):
+        scopedName = ['CORBA', 'String']
+    elif isPrimitiveType(itype):
+        scopedName = typeString(itype).split('::')
+    elif isinstance(itype, idltype.Sequence) and not isOut:
+        # Bare sequence (no typedef); use the functions from the 'omnijni'
+        # namespace directly.
+        return 'omnijni'
     else:
+        if isDeclared(itype):
+            itype = removeAlias(itype)
         scopedName = itype.scopedName()[:]
     scopedName.insert(1, 'jni')
-    return '::'.join(scopedName)
+    helper = '::'.join(scopedName)
+    if isOut:
+        helper += 'Holder'
+    return helper
+
+def holderName (itype):
+    return helperName(itype, True)
 
 def getDependency (itype):
     if isinstance(itype, idltype.Type):
@@ -261,8 +296,13 @@ def getDependency (itype):
 
 def dependencyHeader (dependency):
     dirname = os.path.dirname(dependency)
-    filename = os.path.basename(dependency)
-    return '<%s>' % (os.path.join(dirname, 'jni_' + filename.replace('.idl', '.h')),)
+    filename = 'jni_' + os.path.basename(dependency).replace('.idl', '.h')
+    if not dirname:
+        # No directory path on include file, assume it was a local include
+        include = '"%s"'
+    else:
+        include = '<%s>'
+    return include % (os.path.join(dirname, filename))
 
 
 class HelperBase(object):
@@ -297,7 +337,7 @@ class HelperBase(object):
 
         if isinstance(self, PeerHelper):
             # Conversion from Java object
-            clazz.append('static void fromJObject (%s& out, JNIEnv* env, jobject obj);', self.outType(node))
+            clazz.append('static void fromJObject (%s out, JNIEnv* env, jobject obj);', self.outType(node))
 
             # Conversion to Java object
             clazz.append('static jobject toJObject (%s in, JNIEnv* env);', self.inType(node))
@@ -367,7 +407,7 @@ class HelperBase(object):
         # For classes with a Java peer
         if isinstance(self, PeerHelper):
             # Conversion from Java object
-            body = code.Function('void %s::fromJObject (%s& out, JNIEnv* env, jobject obj)', qualName, self.outType(node))
+            body = code.Function('void %s::fromJObject (%s out, JNIEnv* env, jobject obj)', qualName, self.outType(node))
             self.generateFromJObject(body, node)
             code.append()
 
@@ -418,7 +458,7 @@ class PeerHelper (HelperBase):
         return '::'.join(node.scopedName())
 
     def outType(self, node):
-        return self.typeName(node)
+        return self.typeName(node) + '&'
 
     def inType (self, node):
         typeName = self.typeName(node)
@@ -467,23 +507,41 @@ class HolderHelper(PeerHelper):
         return nonnull_set([dependencyClass(node)])
 
     def name (self, node):
-        return HelperBase.name(self, node) + 'Holder'
+        if isPrimitiveType(node) or isAny(node):
+            return typeString(node).split('::')[-1] + 'Holder'
+        elif isString(node):
+            return 'StringHolder'
+        else:
+            return HelperBase.name(self, node) + 'Holder'
+
+    def typeName (self, node):
+        if isPrimitiveType(node) or isAny(node) or isString(node):
+            return typeString(node)
+        else:
+            return super(HolderHelper, self).typeName(node)
 
     def qualifiedName (self, node):
         return HelperBase.qualifiedName(self, node) + 'Holder'
 
     def javaClass (self, node):
-        return HelperBase.javaClass(self, node) + 'Holder'
+        if isString(node):
+            return qualifiedJavaName('CORBA.StringHolder')
+        else:
+            return HelperBase.javaClass(self, node) + 'Holder'
 
     def inType (self, node):
-        if isinstance(node, idlast.Interface):
+        if isString(node):
+            return 'const char*'
+        elif isinstance(node, idlast.Interface):
             return super(HolderHelper, self).typeName(node) + '_ptr'
         else:
             return super(HolderHelper, self).inType(node)
 
     def outType (self, node):
-        if isinstance(node, idlast.Interface):
-            return super(HolderHelper, self).typeName(node) + '_var'
+        if isString(node):
+            return 'CORBA::String_out'
+        elif isinstance(node, idlast.Interface):
+            return super(HolderHelper, self).typeName(node) + '_out'
         else:
             return super(HolderHelper, self).outType(node)
 
@@ -538,6 +596,25 @@ class HolderHelper(PeerHelper):
         body.append('value_ = env->GetFieldID(cls_, "value", "%s");', desc)
 
 
+class SequenceHelper (object):
+
+    def generateDecl (self, node):
+        name = node.identifier()
+        clazz = cppcode.Class(name)
+        clazz.append('public:')
+
+        typeName = '::'.join(node.scopedName())
+        # Conversion from Java object
+        body = clazz.Function('static inline void fromJObject (%s& out, JNIEnv* env, jobject obj)', typeName)
+        body.append('omnijni::fromJObject(out, env, obj);')
+
+        # Conversion to Java object
+        body = clazz.Function('static inline jobject toJObject (%s in, JNIEnv* env)', typeName)
+        body.append('return omnijni::toJObject(in, env);')
+
+        return clazz
+
+
 class StructHelper (PeerHelper):
 
     def dependencies (self, node):
@@ -555,20 +632,14 @@ class StructHelper (PeerHelper):
             idlType = m.memberType()
             decl = m.declarators()[0]
             fieldName = decl.identifier()
-            idlType = idlType.unalias()
             if isPrimitiveType(idlType):
                 kind = jniType(idlType)
                 kind = kind[1].upper() + kind[2:]
                 ctorArgs.append('in.'+fieldName)
                 continue
             argName = 'arg%d__' % (index,)
-            if isString(idlType):
-                pre.append('jstring %s = env->NewStringUTF(in.%s);', argName, fieldName)
-            elif isSequence(idlType):
-                pre.append('jobject %s = omnijni::toJObject(in.%s, env);', argName, fieldName)
-            else:
-                qualName = helperName(idlType)
-                pre.append('jobject %s = %s::toJObject(in.%s, env);', argName, qualName, fieldName);
+            qualName = helperName(idlType)
+            pre.append('jobject %s = %s::toJObject(in.%s, env);', argName, qualName, fieldName);
             ctorArgs.append(argName)
             post.append('env->DeleteLocalRef(%s);', argName)
 
@@ -633,10 +704,96 @@ class ExceptionHelper(StructHelper):
         body.append()
 
 
+class UnionHelper(PeerHelper):
+
+    def dependencies (self, node):
+        depend = [node.switchType()]
+        depend.extend(c.caseType() for c in node.cases())
+        return nonnull_set(dependencyClass(d) for d in depend)
+
+    def byValue (self, node):
+        return False
+
+    def _generateCaseLabels (self, body, node, case):
+        # TODO: primitive discriminant typess
+        enumscope = '::'.join(node.switchType().scopedName()[:-1])
+        for label in case.labels():
+            code = body.Case(enumscope + '::' + label.value().identifier())
+        return code
+
+    def generateFromJObject (self, body, node):
+        body.append('jobject jdisc = env->CallObjectMethod(obj, disc_);')
+        body.append('%s disc;', typeString(node.switchType()))
+        body.append('%s::fromJObject(disc, env, jdisc);', helperName(node.switchType()))
+        body.append('env->DeleteLocalRef(jdisc);')
+        body.append('jobject jvalue = NULL;')
+        switch = body.Switch('disc')
+        for index, case in enumerate(node.cases()):
+            code = self._generateCaseLabels(switch, node, case)
+            inner = code.Scope()
+            caseType = case.caseType()
+            inner.append('%s value;', temporaryType(caseType, True))
+            if isPrimitiveType(caseType):
+                inner.append('value = env->Call%sMethod(obj, get_[%d]);', methodNameType(caseType), index)
+            else:
+                inner.append('jvalue = env->CallObjectMethod(obj, get_[%d]);', index)
+                inner.append('%s::fromJObject(value, env, jvalue);', helperName(caseType))
+            inner.append('out.%s(value);', case.declarator().identifier())
+            code.append('break;')
+        cleanup = body.If('jvalue != NULL')
+        cleanup.append('env->DeleteLocalRef(jvalue);')
+        body.append()
+
+    def generateToJObject (self, body, node):
+        body.append('jobject out = env->NewObject(cls_, ctor_);')
+        body.append('jobject value = NULL;')
+        switch = body.Switch('in._d()')
+        for index, case in enumerate(node.cases()):
+            code = self._generateCaseLabels(switch, node, case)
+            caseType = case.caseType()
+            caseName = case.declarator().identifier()
+            if isPrimitiveType(caseType):
+                code.append('env->CallVoidMethod(out, set_[%d], (%s)in.%s());', index, jniType(caseType), caseName)
+            else:
+                helper = helperName(caseType)
+                code.append('value = %s::toJObject(in.%s(), env);', helper, caseName)
+                code.append('env->CallVoidMethod(out, set_[%d], value);', index)
+            code.append('break;')
+        switch.Default().append('break;')
+        cleanup = body.If('value != NULL')
+        cleanup.append('env->DeleteLocalRef(value);')
+        body.append('return out;')
+
+    def generateOnLoad (self, body, node):
+        body.append('ctor_ = env->GetMethodID(cls_, "<init>", "()V");')
+        body.append('disc_ = env->GetMethodID(cls_, "discriminator", "()%s");', javaDescriptor(node.switchType()))
+        for index, case in enumerate(node.cases()):
+            desc = javaDescriptor(case.caseType())
+            name = case.declarator().identifier()
+            body.append('get_[%d] = env->GetMethodID(cls_, "%s", "()%s");', index, name, desc)
+            body.append('set_[%d] = env->GetMethodID(cls_, "%s", "(%s)V");', index, name, desc)
+
+    def generateMemberDecls (self, body, node):
+        body.append('static jmethodID ctor_;')
+        body.append('static jmethodID disc_;')
+        body.append('static jmethodID get_[%d];', len(node.cases()))
+        body.append('static jmethodID set_[%d];', len(node.cases()))
+
+    def generateMemberImpls (self, body, node):
+        qualName = self.qualifiedName(node)
+        body.append('jmethodID %s::ctor_ = 0;', qualName)
+        body.append('jmethodID %s::disc_ = 0;', qualName)
+        body.append('jmethodID %s::get_[%d];', qualName, len(node.cases()))
+        body.append('jmethodID %s::set_[%d];', qualName, len(node.cases()))
+
 class POAHelper (HelperBase):
+
+    def inherits (self, node):
+        return ['::'.join(jniScopedName(inh))+'POA' for inh in node.inherits()]
 
     def dependencies (self, node):
         deps = set()
+        deps.update(self.inherits(node))
         for method in self.__methods:
             deps.update(self.methodDeps(method))
         return deps
@@ -657,7 +814,9 @@ class POAHelper (HelperBase):
         parent = node.scopedName()[:]
         parent[-2] = 'POA_' + parent[-2]
         poaBase = 'public virtual ' + '::'.join(parent)
-        return ['public omnijni::Servant', poaBase]
+        classes = ['public virtual omnijni::Servant', poaBase]
+        classes.extend('public virtual '+inh for inh in self.inherits(node))
+        return classes
 
     def qualifiedName (self, node):
         return HelperBase.qualifiedName(self, node) + 'POA'
@@ -756,39 +915,23 @@ class POAHelper (HelperBase):
 
             argname = param.identifier()
             localname = 'arg%d__' % (argnum,)
-            if isPrimitiveType(paramType):
-                # Must be an out (or in/out) parameter at this point.
-                cppType = typeString(paramType)
-                holder = cppType.replace('::', '::jni::') + 'Holder'
-                if param.is_in():
-                    pre.append('jobject %s = %s::toJObject(%s, env__);', localname, holder, argname)
-                else:
-                    pre.append('jobject %s = %s::newInstance(env__);', localname, holder)
-                post.append('%s::fromJObject(%s, env__, %s);', holder, argname, localname)
-            elif isString(paramType):
-                if param.is_out():
-                    pre.append('// TODO: Out string')
-                pre.append('jstring %s = env__->NewStringUTF(%s);', localname, argname)
-            elif param.is_out():
-                holder = helperName(paramType) + 'Holder'
-                if param.is_in():
-                    pre.append('jobject %s = %s::toJObject(%s, env__);', localname, holder, argname)
-                    post.append('%s::fromJObject(%s, env__, %s);', holder, argname, localname)
-                else:
-                    objType = typeString(paramType)
-                    pre.append('jobject %s = %s::newInstance(env__);', localname, holder)
-                    varname = localname + 'var__'
-                    post.append('%s_var %s;', objType, varname)
-                    if not isInterface(paramType):
-                        post.append('%s = new %s();', varname, objType)
-                    post.append('%s::fromJObject(%s, env__, %s);', holder, varname, localname)
-                    post.append('%s = %s._retn();', param.identifier(), varname)
-            else:
-                if isSequence(paramType):
-                    helper = ''
-                else:
-                    helper = helperName(paramType)
+
+            helper = helperName(paramType, param.is_out())
+
+            if param.is_in():
                 pre.append('jobject %s = %s::toJObject(%s, env__);', localname, helper, argname)
+            else:
+                pre.append('jobject %s = %s::newInstance(env__);', localname, helper)
+
+            if param.is_out():
+                if not param.is_in() and (isSequence(paramType) or isStruct(paramType)):
+                    # Sequence and struct out types work a little differently,
+                    # requiring us to allocate a new instance and dereference
+                    # the pointer when passing to the conversion function
+                    post.append('%s = new %s();', argname, typeString(paramType))
+                    argname = '*'+argname+'.ptr()'
+
+                post.append('%s::fromJObject(%s, env__, %s);', helper, argname, localname)
 
             args.append(localname)
             post.append('env__->DeleteLocalRef(%s);', localname)
@@ -811,36 +954,32 @@ class POAHelper (HelperBase):
         if jtype != 'void':
             if isPrimitiveType(retType):
                 func.append('return rv__;')
-            elif isEnum(retType):
-                func.append('%s renum__;', typeString(retType))
-                func.append('%s::fromJObject(renum__, env__, rv__);', helperName(retType))
-                func.append('return renum__;')
-            elif isString(retType):
-                func.append('const char* str__ = env__->GetStringUTFChars((jstring)rv__, NULL);')
-                func.append('char* rstr__ = CORBA::string_dup(str__);')
-                func.append('env__->ReleaseStringUTFChars((jstring)rv__, str__);')
-                func.append('return rstr__;')
             else:
-                rclass = typeString(retType)
-                if isInterface(retType):
-                    func.append('%s_var rvvar__;', rclass)
-                    func.append('%s::fromJObject(rvvar__, env__, rv__);', helperName(retType))
+                if isEnum(retType):
+                    func.append('%s rvout__ = (%s)0;', rtype, rtype)
+                    rval = 'rvout__'
                 else:
-                    func.append('%s_var rvvar__ = new %s();', rclass, rclass)
-                    func.append('fromJObject(rvvar__, env__, rv__);')
+                    func.append('%s rvout__;', varType(retType))
+                    if isSequence(retType) or isStruct(retType):
+                        func.append('rvout__ = new %s();', typeString(retType))
+                    rval = 'rvout__._retn()'
+
+                func.append('%s::fromJObject(rvout__, env__, rv__);', helperName(retType))
                 func.append('env__->DeleteLocalRef(rv__);')
-                func.append('return rvvar__._retn();')
+                func.append('return %s;', rval)
 
         body.append()
 
     def generateMemberDecls (self, body, node):
         body.append('static JavaVM* jvm_;')
-        body.append('static jmethodID mid_[%d];', len(self.__methods))
+        if self.__methods:
+            body.append('static jmethodID mid_[%d];', len(self.__methods))
 
     def generateMemberImpls (self, body, node):
         qualName = self.qualifiedName(node)
         body.append('JavaVM* %s::jvm_ = NULL;', qualName)
-        body.append('jmethodID %s::mid_[%d];', qualName, len(self.__methods))
+        if self.__methods:
+            body.append('jmethodID %s::mid_[%d];', qualName, len(self.__methods))
 
     def generateOnLoad (self, body, node):
         body.append('env->GetJavaVM(&jvm_);')
@@ -849,11 +988,11 @@ class POAHelper (HelperBase):
             body.append('mid_[%d] = env->GetMethodID(cls_, "%s", "%s");', index, method.name(), args)
 
     def generateDecl (self, node):
-        self.__methods = MethodVisitor().getMethods(node)
+        self.__methods = MethodVisitor().getMethods(node, False)
         return HelperBase.generateDecl(self, node)
 
     def generateImpl (self, node):
-        self.__methods = MethodVisitor().getMethods(node)
+        self.__methods = MethodVisitor().getMethods(node, False)
         return HelperBase.generateImpl(self, node)
 
 
@@ -880,7 +1019,7 @@ class StubHelper (PeerHelper):
         return self.typeName(node) + '_ptr'
 
     def outType (self, node):
-        return self.typeName(node) + '_var'
+        return self.typeName(node) + '_out'
 
     def generateToJObject (self, body, node):
         body.append('jlong ref = reinterpret_cast<jlong>(%s::_duplicate(in));', self.typeName(node))
@@ -906,7 +1045,7 @@ class StubHelper (PeerHelper):
         body.append('jmethodID %s::ctor_ = 0;', self.qualifiedName(node))
 
     def generateMethodImpls (self, body, node):
-        # Generate wrappers for evey method the stub supports.
+        # Generate wrappers for every method the stub supports.
         for method in MethodVisitor().getMethods(node):
             self._generateWrapper(body, node, method)
             body.append()
@@ -963,26 +1102,15 @@ class StubHelper (PeerHelper):
 
             argname = param.identifier()
             localname = 'arg%d__' % (index,)
-            if isPrimitiveType(paramType):
-                # Must be an out (or in/out) parameter at this point.
-                cppType = typeString(paramType)
-                pre.append('%s %s;', cppType, localname)
-                helper = cppType.replace('::', '::jni::') + 'Holder'
-                if param.is_in():
-                    pre.append('%s::fromJObject(%s, env__, %s);', helper, localname, argname)
-                post.append('%s::setValue(env__, %s, %s);', helper, argname, localname)
-            elif isString(paramType):
-                if param.is_out():
-                    post.append('// TODO: StringHolder')
-                else:
-                    pre.append('omnijni::StringWrapper %s(%s, env__);', localname, argname)
-            elif isSequence(paramType):
+            if isString(paramType) and not param.is_out():
+                pre.append('omnijni::StringWrapper %s(%s, env__);', localname, argname)
+            elif isSequence(paramType) and not param.is_out():
                 seqType = paramType.unalias().seqType()
 
                 # For most primitive types, except char (which is 16-bit in Java and 8-bit in CORBA),
                 # skip conversion and borrow the underlying buffer.
                 borrowBuffer = isPrimitiveType(seqType) and seqType.unalias().kind() != idltype.tk_char
-                if borrowBuffer and not param.is_out():
+                if borrowBuffer:
                     wrapper = 'wrap%d__' % (index,)
                     primType = jniType(seqType)
                     elemType = primType[1:].title()
@@ -991,43 +1119,18 @@ class StubHelper (PeerHelper):
                     pre.append('%s %s(%s.size(), %s.size(), (%s*)%s.data(), 0);', cppType, localname, wrapper, wrapper, typeString(seqType), wrapper)
                 else:
                     cppType = '::'.join(paramType.scopedName())
-                    if param.is_in():
-                        pre.append('%s %s;', cppType, localname)
-                        if param.is_out():
-                            helper = helperName(paramType) + 'Holder'
-                            pre.append('%s::fromJObject(%s, env__, %s);', helper, localname, argname)
-                        else:
-                            pre.append('fromJObject(%s, env__, %s);', localname, argname)
-                    else:
-                        pre.append('%s_var %s;', cppType, localname)
-                    if param.is_out():
-                        helper = helperName(paramType) + 'Holder'
-                        post.append('%s::setValue(env__, %s, %s);', helper, argname, localname)
-            elif isEnum(paramType):
-                cppType = '::'.join(paramType.scopedName())
-                helper = helperName(paramType)
-                pre.append('%s %s;', cppType, localname)
-                if not param.is_out():
-                    pre.append('%s::fromJObject(%s, env__, %s);', helper, localname, argname)
-                else:
-                    pre.append('// TODO: Out enum')
-            else:
-                cppType = typeString(paramType)
-                varType = cppType + '_var'
-                if isInterface(paramType):
-                    cppType = varType
-                if param.is_out():
-                    holder = helperName(paramType) + 'Holder'
-                    if param.is_in():
-                        pre.append('%s %s;', cppType, localname);
-                        pre.append('%s::fromJObject(%s, env__, %s);', holder, localname, argname)
-                    else:
-                        pre.append('%s %s;', varType, localname)
-                    post.append('%s::setValue(env__, %s, %s);', holder, argname, localname)
-                else:
-                    helper = helperName(paramType)
                     pre.append('%s %s;', cppType, localname)
+                    pre.append('fromJObject(%s, env__, %s);', localname, argname)
+            else:
+                pre.append('%s %s;', temporaryType(param), localname);
+                if param.is_in():
+                    helper = helperName(paramType, param.is_out())
                     pre.append('%s::fromJObject(%s, env__, %s);', helper, localname, argname)
+            
+            # Set value inside of holder for out params
+            if param.is_out():
+                post.append('%s::setValue(env__, %s, %s);', holderName(paramType), argname, localname)
+
             args.append(localname)
         argstr = ', '.join(args)
 
@@ -1037,17 +1140,7 @@ class StubHelper (PeerHelper):
 
         objcall = 'ptr__->%s(%s);' % (method.name(), argstr)
         if rtype != 'void':
-            if isPrimitiveType(retType):
-                cppRet = rtype
-            elif isString(retType):
-                cppRet = 'CORBA::String_var'
-            elif isAny(retType):
-                cppRet = 'CORBA::Any*'
-            elif isinstance(retType, idltype.Declared):
-                cppRet = '::'.join(retType.scopedName())
-                if not isEnum(retType):
-                    cppRet += '_var'
-            body.append(cppRet + ' retval__;')
+            body.append('%s retval__;', temporaryType(retType, True))
             objcall = 'retval__ = ' + objcall;
 
         tryscope = body.Try()
@@ -1077,19 +1170,12 @@ class StubHelper (PeerHelper):
             retType = retType.unalias()
             if isPrimitiveType(retType):
                 func.append('return retval__;')
-            elif isString(retType):
-                func.append('return env__->NewStringUTF(retval__);')
             elif isSequence(retType):
                 seqType = retType.seqType()
                 if isPrimitiveType(seqType):
                     func.append('return NULL; // TODO: primitive sequence')
                 else:
                     func.append('return (jobjectArray)toJObject(retval__, env__);')
-            elif isAny(retType):
-                block = func.If('retval__')
-                block.append('return CORBA::jni::Any::toJObject(*retval__, env__);')
-                block = block.Else()
-                block.append('return NULL;')
             else:
                 helper = helperName(retType)
                 func.append('return %s::toJObject(retval__, env__);', helper)
@@ -1122,10 +1208,14 @@ class DeclHelper (idlvisitor.AstVisitor):
         self._generateDecl(StructHelper, node)
         self._generateDecl(HolderHelper, node)
 
+    def visitUnion (self, node):
+        self._generateDecl(UnionHelper, node)
+
     def visitTypedef (self, node):
         aliasType = node.aliasType()
         if not isSequence(aliasType):
             return
+        self._generateDecl(SequenceHelper, node.declarators()[0])
         self._generateDecl(HolderHelper, node)
 
     def visitException (self, node):
@@ -1150,19 +1240,22 @@ class HeaderVisitor (idlvisitor.AstVisitor):
     def visitEnum (self, node):
         enumName = '::'.join(node.scopedName())
         helper = helperName(node)
-        self.generateFromJObjectWrapper(self.__global, enumName, helper)
+        self.generateFromJObjectWrapper(self.__global, enumName+'&', helper)
         self.generateToJObjectWrapper(self.__global, enumName, helper)
         self.generateGetJClassWrapper(self.__global, enumName, helper)
 
     def visitInterface (self, node):
+        for inherits in node.inherits():
+            self.checkDependency(inherits)
+
         for t in node.declarations():
             t.accept(self)        
  
         interfaceName = '::'.join(node.scopedName())
-        varName = interfaceName + '_var'
+        outName = interfaceName + '_out'
         ptrName = interfaceName + '_ptr'
         helper = helperName(node)
-        self.generateFromJObjectWrapper(self.__global, varName, helper)
+        self.generateFromJObjectWrapper(self.__global, outName, helper)
         self.generateToJObjectWrapper(self.__global, ptrName, helper)
         self.generateGetJClassWrapper(self.__global, interfaceName+'Ref', helper)
 
@@ -1195,12 +1288,16 @@ class HeaderVisitor (idlvisitor.AstVisitor):
     def visitStruct (self, node):
         structName = '::'.join(node.scopedName())
         helper = helperName(node)
-        self.generateFromJObjectWrapper(self.__global, structName, helper)
+        self.generateFromJObjectWrapper(self.__global, structName+'&', helper)
         self.generateToJObjectWrapper(self.__global, structName+'&', helper)
         self.generateGetJClassWrapper(self.__global, structName, helper)
 
+    def visitUnion (self, node):
+        # TODO: Can unions use the same global wrapper code as structs?
+        self.visitStruct(node)
+
     def generateFromJObjectWrapper (self, code, name, helper):
-        func = code.Function('inline void fromJObject (%s& out, JNIEnv* env, jobject obj)', name)
+        func = code.Function('inline void fromJObject (%s out, JNIEnv* env, jobject obj)', name)
         func.append('%s::fromJObject(out, env, obj);', helper)
         code.append()
 
@@ -1218,10 +1315,21 @@ class HeaderVisitor (idlvisitor.AstVisitor):
     def visitTypedef (self, node):
         aliasType = node.aliasType()
         if isSequence(aliasType):
+            # Ensure that the item type's dependency is checked; because they
+            # call a templatized function, the sequence conversion methods
+            # implicitly depend on the item conversion methods
+            seqType = aliasType.unalias().seqType()
+            self.checkDependency(seqType)
+
             seqName = '::'.join(node.declarators()[0].scopedName())
-            self.generateFromJObjectWrapper(self.__global, seqName, 'omnijni')
+            self.generateFromJObjectWrapper(self.__global, seqName+'&', 'omnijni')
             self.generateToJObjectWrapper(self.__global, seqName+'&', 'omnijni')
 
+    def checkDependency (self, idlType):
+        dep = getDependency(idlType)
+        if dep:
+            header = dependencyHeader(dep)
+            self.__module.include(header)
 
 class CppVisitor (idlvisitor.AstVisitor):
 
@@ -1264,7 +1372,16 @@ class CppVisitor (idlvisitor.AstVisitor):
         self._generateImpl(StructHelper, node)
         self._generateImpl(HolderHelper, node)
 
+    def visitUnion (self, node):
+        for case in node.cases():
+            self.checkDependency(case.caseType())
+
+        self._generateImpl(UnionHelper, node)
+
     def visitInterface (self, node):
+        for inherits in node.inherits():
+            self.checkDependency(inherits)
+
         for decl in node.declarations():
             decl.accept(self)
 

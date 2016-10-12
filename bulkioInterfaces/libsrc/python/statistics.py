@@ -134,6 +134,10 @@ class OutStats:
 
     def setEnabled(self, enableStats):
         self.enabled = enableStats
+    
+    def remove(self, connectionId):
+        if self.receivedStatistics.has_key(connectionId):
+            self.receivedStatistics.pop(connectionId)
 
     def update(self, elementsReceived, queueSize, EOS, streamID, connectionId):
         if not self.enabled:

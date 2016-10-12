@@ -22,9 +22,12 @@ from ossie.utils.idl import omniidl
 from omniidl import idlast, idlvisitor, idlutil, main, idltype
 from ossie.utils.idl import _omniidl
 import os
+import threading
 from omniORB import CORBA
 
 #import base
+
+_lock = threading.Lock()
 
 valList = ('null','void','short','long','ushort','ulong','float','double','boolean',
            'char','octet','any','TypeCode','Principal','objref','struct','union','enum',
@@ -81,7 +84,10 @@ class IDLType(object):
             aliasType = IDLType.instance(type.decl().alias().aliasType())
             return AliasType(aliasType, type.scopedName())
         elif kind == CORBA.tk_TypeCode:
-                return NamedType(kind, ['CORBA', 'TypeCode'])
+            return NamedType(kind, ['CORBA', 'TypeCode'])
+        elif kind == CORBA.tk_enum:
+            values = [EnumValue(en.scopedName()) for en in type.decl().enumerators()]
+            return EnumType(type.scopedName(), values)
         else:
             return NamedType(kind, type.scopedName())
 
@@ -117,6 +123,24 @@ class AliasType(NamedType):
 
     def aliasType(self):
         return self._aliasType
+
+class EnumValue(object):
+    def __init__(self, scopedName):
+        self._scopedName = scopedName
+
+    def identifier(self):
+        return self._scopedName[-1]
+
+    def scopedName(self):
+        return self._scopedName
+
+class EnumType(NamedType):
+    def __init__(self, scopedName, values):
+        super(EnumType,self).__init__(CORBA.tk_enum, scopedName)
+        self._enumValues = values
+
+    def enumValues(self):
+        return self._enumValues
 
 def ExceptionType(type):
     return NamedType(CORBA.tk_except, type.scopedName())
@@ -308,23 +332,28 @@ def getInterfacesFromFile(filename, includepath=None):
             popen_cmd += ' -I "' + newpath + '"'
     popen_cmd += ' "' + filename + '"'
     f = os.popen(popen_cmd, 'r')
-    try:
-        tree = _omniidl.compile(f)
-    except TypeError:
-        tree = _omniidl.compile(f, filename)
 
-    if tree == None:
-        return []
-
+    _lock.acquire()
     try:
-        ints = run(tree,'')
-    except:
-        pass
-    f.close()
-    del tree
-    idlast.clear()
-    idltype.clear()
-    _omniidl.clear()
+        try:
+            tree = _omniidl.compile(f)
+        except TypeError:
+            tree = _omniidl.compile(f, filename)
+        if tree == None:
+            return []
+
+        try:
+            ints = run(tree,'')
+        except:
+            pass
+        f.close()
+        del tree
+        idlast.clear()
+        idltype.clear()
+        _omniidl.clear()
+    finally:
+        _lock.release()
+
     #store file name and location information for each interface
     for x in ints:
         if not x.fullpath.startswith('/'):

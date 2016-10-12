@@ -20,7 +20,7 @@
 
 #include <ossie/PortSupplier_impl.h>
 
-PREPARE_LOGGING(PortSupplier_impl);
+PREPARE_CF_LOGGING(PortSupplier_impl);
 
 PortSupplier_impl::PortSupplier_impl ()
 {
@@ -46,6 +46,13 @@ void PortSupplier_impl::addPort (const std::string& name, PortBase* servant)
     LOG_TRACE(PortSupplier_impl, "Activating port '" << name << "'");
     PortableServer::POA_var poa = servant->_default_POA();
     PortableServer::ObjectId_var oid = poa->activate_object(servant);
+}
+
+void PortSupplier_impl::addPort (const std::string& name, const std::string& description, PortBase* servant)
+{
+    LOG_TRACE(PortSupplier_impl, "Adding port '" << name << "': " << description);
+    addPort(name, servant);
+    servant->setDescription(description);
 }
 
 void PortSupplier_impl::startPorts ()

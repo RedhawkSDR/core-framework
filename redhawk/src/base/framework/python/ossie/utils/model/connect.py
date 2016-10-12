@@ -121,27 +121,67 @@ class ConnectionManager(object):
 
     def getConnectionsBetween(self, usesComponent, providesComponent):
         connections = {}
-        for identifier, (uses, provides) in self.__connections.iteritems():
+        for _identifier, (identifier, uses, provides) in self.__connections.iteritems():
             if uses.hasComponent(usesComponent) and provides.hasComponent(providesComponent):
-                connections[identifier] = (uses, provides)
+                connections[_identifier] = (identifier, uses, provides)
         return connections
 
     def registerConnection(self, identifier, uses, provides):
-        if identifier in self.__connections:
+        _name = uses.getName()
+        if _name+identifier in self.__connections:
             log.warn("Skipping registration of duplicate connection id '%s'", identifier)
             return
         log.debug("Registering connection '%s' from %s to %s", identifier, uses, provides)
-        self.__connections[identifier] = (uses, provides)
+        self.__connections[_name+identifier] = (identifier, uses, provides)
 
-    def unregisterConnection(self, identifier):
-        if not identifier in self.__connections:
+    def unregisterConnection(self, identifier, _uses):
+        _name = _uses.getName()
+        if not _name+identifier in self.__connections:
             log.warn("Skipping unregistration of unknown connection id '%s'", identifier)
             return
         log.debug("Unregistering connection '%s'", identifier)
-        del self.__connections[identifier]
+        del self.__connections[_name+identifier]
+    
+    def resetConnections(self):
+        self.__connections = {}
+    
+    def refreshConnections(self, components):
+        providesPorts = []
+        for component in components:
+            for port in component.ports:
+                if port._direction == 'Provides':
+                    providesPorts.append((component,port))
+                    
+        for component in components:
+            for port in component.ports:
+                if port._direction == 'Uses':
+                    usesPort = {}
+                    usesPort["Port Name"] = port.name
+                    usesPort["Port Interface"] = None
+                    for connection in port._get_connections():
+                        if usesPort["Port Interface"] == None:
+                            usesPort["Port Interface"] = connection.port._NP_RepositoryId
+                            _usesPortEndpoint = PortEndpoint(component, usesPort)
+                        _providesPortEndpoint = None
+                        for component in components:
+                            if connection.port._is_equivalent(component.ref):
+                                _providesPortEndpoint = ComponentEndpoint(component)
+                                self.registerConnection(connection.connectionId, _usesPortEndpoint, _providesPortEndpoint)
+                                break
+                        if _providesPortEndpoint != None:
+                            continue
+                        for _provides in providesPorts:
+                            if connection.port._is_equivalent(_provides[1].ref):
+                                provPort = {}
+                                provPort["Port Name"] = _provides[1].name
+                                provPort["Port Interface"] = usesPort["Port Interface"]
+                                _providesPortEndpoint = PortEndpoint(_provides[0],provPort)
+                                self.registerConnection(connection.connectionId, _usesPortEndpoint, _providesPortEndpoint)
+                                break
 
-    def breakConnection(self, identifier):
-        uses, provides = self.__connections[identifier]
+    def breakConnection(self, identifier, _uses):
+        _name = _uses.getName()
+        _identifier, uses, provides = self.__connections[_name+identifier]
         log.debug("Breaking connection '%s'", identifier)
         try:
             usesPort = uses.getReference()
@@ -152,6 +192,6 @@ class ConnectionManager(object):
         provides.disconnected(identifier)
 
     def cleanup(self):
-        for identifier in self.__connections.iterkeys():
-            self.breakConnection(identifier)
+        for _identifier in self.__connections.iterkeys():
+            self.breakConnection(self.__connections[_identifier][0], self.__connections[_identifier][1])
         self.__connections = {}

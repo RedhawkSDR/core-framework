@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="ASCII"?>
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="python">
+    <value outputDir="python" template="gov.redhawk.ide.codegen.jet.python.pattern.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.python.PythonGenerator">
+      <generatedFileCRCs crc="3068226435" file="reconf"/>
+      <generatedFileCRCs crc="3303220926" file="event_props_base.py"/>
+      <generatedFileCRCs crc="775294323" file="configure.ac"/>
+      <generatedFileCRCs crc="1026234268" file="../event_props.spec"/>
+      <generatedFileCRCs crc="2132044526" file="event_props.py"/>
+      <generatedFileCRCs crc="3611662017" file="Makefile.am"/>
+    </value>
+  </implSettings>
+  <implSettings key="cpp">
+    <value outputDir="cpp" template="gov.redhawk.ide.codegen.jet.cplusplus.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.cplusplus.CplusplusGenerator" primary="true">
+      <generatedFileCRCs crc="1026234268" file="../event_props.spec"/>
+      <generatedFileCRCs crc="189550280" file="Makefile.am"/>
+      <generatedFileCRCs crc="581096937" file="build.sh"/>
+      <generatedFileCRCs crc="1438908132" file="configure.ac"/>
+      <generatedFileCRCs crc="918559876" file="event_props.cpp"/>
+      <generatedFileCRCs crc="829667333" file="event_props.h"/>
+      <generatedFileCRCs crc="3733363286" file="event_props_base.cpp"/>
+      <generatedFileCRCs crc="3713092355" file="event_props_base.h"/>
+      <generatedFileCRCs crc="1668787641" file="main.cpp"/>
+      <generatedFileCRCs crc="3588963218" file="port_impl.cpp"/>
+      <generatedFileCRCs crc="1160281507" file="port_impl.h"/>
+      <generatedFileCRCs crc="3068226435" file="reconf"/>
+      <generatedFileCRCs crc="3174146423" file="struct_props.h"/>
+    </value>
+  </implSettings>
+  <implSettings key="java">
+    <value outputDir="java" template="gov.redhawk.ide.codegen.jet.java.JavaGenerator" generatorId="gov.redhawk.ide.codegen.jet.java.JavaGenerator">
+      <properties id="java_package" value="event_props.java"/>
+      <generatedFileCRCs crc="1026234268" file="../event_props.spec"/>
+      <generatedFileCRCs crc="681321213" file="Makefile.am"/>
+      <generatedFileCRCs crc="2999748484" file="configure.ac"/>
+      <generatedFileCRCs crc="3068226435" file="reconf"/>
+      <generatedFileCRCs crc="1096188773" file="startJava.sh"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>

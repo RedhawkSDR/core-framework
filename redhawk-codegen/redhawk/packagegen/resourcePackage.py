@@ -70,7 +70,6 @@ class ResourcePackage(SoftPackage):
             spdTemplateFile = OSSIEHOME+DEFAULT_SPD_TEMPLATE,
             scdTemplateFile = OSSIEHOME+DEFAULT_SCD_TEMPLATE,
             prfTemplateFile = OSSIEHOME+DEFAULT_PRF_TEMPLATE,
-            mFiles = [],
             loggingConfigUri = None):
         '''
         Create a resource with no ports/properties.  Use helper methods to add
@@ -90,8 +89,6 @@ class ResourcePackage(SoftPackage):
         self._setNameInSpd()
         self._setPropertyFileInSpd()
         self._setDescriptorInSpd()
-
-        self.mFiles = mFiles
 
         self._createWavedevContent(generator=generator)
 

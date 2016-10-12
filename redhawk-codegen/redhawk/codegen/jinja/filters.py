@@ -39,23 +39,44 @@ def do_codealign(value):
     """
     scope_start = '({['
     scope_end = ']})'
+    string_delim = '\'"'
     lines = []
     indent = []
+    quoted = None
     for line in value.split('\n'):
-        if indent and line:
-            # Only apply indent on non-empty lines
-            lines.append(indent[-1] + line.strip())
-        else:
-            lines.append(line)
+        if indent and line and not quoted:
+            # Only apply indent on non-empty, non-quoted lines
+            line = indent[-1] + line.strip()
+
+        lines.append(line)
 
         # Adjust indentation based on scopes opened or closed on line.
-        # NB: Scopes are not checked to ensure they match; likewise, scope
-        #     markers inside of strings are not ignored.
+        # NB: Scopes are not checked to ensure they match
         for ii in xrange(len(line)):
-            if line[ii] in scope_start:
+            current = line[ii]
+            if current in string_delim:
+                # Naive tracking of string literal entry and exit--each quote
+                # mark toggles the "quoted" state (exit must match). Escaping
+                # is not handled, but it works in most cases for C++ and Python
+                # (except that triple-quotes are not treated as a single token,
+                # so embedded quotes can toggle quoted state).
+                if quoted:
+                    if current == quoted:
+                        quoted = None
+                else:
+                    quoted = current
+            elif quoted:
+                continue
+            elif current in scope_start:
                 indent.append(' '*(ii+1))
-            elif line[ii] in scope_end:
-                indent.pop()
+            elif current in scope_end:
+                try:
+                    indent.pop()
+                except IndexError:
+                    # Unbalanced scope closing character; usually, this should
+                    # only occur within a string literal, such as a property
+                    # description. Otherwise, the output code is malformed.
+                    pass
 
     return '\n'.join(lines)
 

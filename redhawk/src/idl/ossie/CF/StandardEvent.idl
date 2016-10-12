@@ -47,6 +47,12 @@ module StandardEvent {
         StandardEvent::StateChangeType stateChangeFrom;
         StandardEvent::StateChangeType stateChangeTo;
     };
+    /* Type AbnormalComponentTerminationEventType is a structure used to indicate that a Component has terminated abnormally. */
+    struct AbnormalComponentTerminationEventType {
+        string deviceId;
+        string componentId;
+        string applicationId;
+    };
     /* Type SourceCategoryType is an enumeration that is utilized in the DomainManagementObjectAddedEventType and DomainManagementObjectRemovedEventType. Is used to identify the type of object that has been added to or removed from the domain. */
     enum SourceCategoryType {
         DEVICE_MANAGER,

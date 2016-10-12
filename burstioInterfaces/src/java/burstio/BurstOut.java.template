@@ -15,6 +15,10 @@ public class Burst@name@Out extends OutPort<burst@name@Operations, BURSTIO.@name
         super(name, new @name@Traits());
     }
 
+    protected BURSTIO.@name@Burst[] createBursts(int size) {
+        return new BURSTIO.@name@Burst[size];
+    }
+
     protected void pushBursts(burst@name@Operations port, BURSTIO.@name@Burst[] bursts) {
         port.pushBursts(bursts);
     }
@@ -28,4 +32,9 @@ public class Burst@name@Out extends OutPort<burst@name@Operations, BURSTIO.@name
     {
         return BURSTIO.burst@name@Helper.id();
     }
+
+	public String getRepid ()
+	{
+		return repoId();
+	}
 }

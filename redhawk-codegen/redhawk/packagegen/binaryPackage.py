@@ -63,7 +63,6 @@ class BinaryPackage(ResourcePackage):
             implementation = "python",
             outputDir = outputDir,
             generator = "python.component.binary",
-            mFiles = [],
             loggingConfigUri = loggingConfigUri)
 
         self._addDefaultProps(inputfile=inputFile,outputfile=outputFile,inputFmt=inputFmt,outputFmt=outputFmt)

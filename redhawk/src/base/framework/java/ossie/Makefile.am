@@ -95,23 +95,34 @@ src/org/ossie/properties/Complex%SequenceProperty.java : src/org/ossie/propertie
 
 # Regular source files
 ossie_jar_SOURCE = src/org/ossie/component/AllocCapacity.java \
+		   src/org/ossie/component/Logging.java \
 		   src/org/ossie/component/Device.java \
 		   src/org/ossie/component/ProvidesPort.java \
 		   src/org/ossie/component/ProcessThread.java \
 		   src/org/ossie/component/QueryableUsesPort.java \
+		   src/org/ossie/component/PropertyChangeRec.java \
 		   src/org/ossie/component/Resource.java \
+		   src/org/ossie/component/Component.java \
 		   src/org/ossie/component/ThreadedComponent.java \
 		   src/org/ossie/component/ThreadedDevice.java \
 		   src/org/ossie/component/ThreadedResource.java \
 		   src/org/ossie/component/Service.java \
 		   src/org/ossie/component/UsesPort.java \
+           src/org/ossie/component/PortBase.java \
 		   src/org/ossie/logging/logging.java \
+		   src/org/ossie/logging/RH_LogEventAppender.java \
 		   src/org/ossie/events/Consumer_i.java \
 		   src/org/ossie/events/EventCallback.java \
 		   src/org/ossie/events/MessageConsumerPort.java \
 		   src/org/ossie/events/MessageSupplierPort.java \
 		   src/org/ossie/events/PropertyEventSupplier.java \
 		   src/org/ossie/events/SupplierAdmin_i.java \
+		   src/org/ossie/events/Manager.java \
+		   src/org/ossie/events/MessageAdapter.java \
+		   src/org/ossie/events/MessageListener.java \
+		   src/org/ossie/events/Publisher.java \
+		   src/org/ossie/events/Subscriber.java \
+		   src/org/ossie/corba/utils.java \
 		   src/org/ossie/properties/AbstractSequenceProperty.java \
 		   src/org/ossie/properties/AbstractSimpleProperty.java \
 		   src/org/ossie/properties/Action.java \
@@ -137,7 +148,11 @@ ossie_jar_SOURCE = src/org/ossie/component/AllocCapacity.java \
 		   src/org/ossie/properties/StructDef.java \
 		   src/org/ossie/properties/StructProperty.java \
 		   src/org/ossie/properties/StructSequenceProperty.java \
-		   src/org/ossie/properties/UnsignedUtils.java
+		   src/org/ossie/properties/UnsignedUtils.java \
+                   src/org/ossie/redhawk/ApplicationContainer.java \
+                   src/org/ossie/redhawk/DomainManagerContainer.java \
+                   src/org/ossie/redhawk/NetworkContainer.java \
+                   src/org/ossie/redhawk/DeviceManagerContainer.java
 
 # Deprecated generic property classes, replaced by strongly-typed classes but
 # maintained for source compatibility.

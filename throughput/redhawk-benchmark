@@ -1,0 +1,400 @@
+#!/usr/bin/python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
+# distributed with this source distribution.
+#
+# This file is part of REDHAWK throughput.
+#
+# REDHAWK throughput is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# REDHAWK throughput is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+import sys
+import os
+import time
+import getopt
+import numpy
+import itertools
+import multiprocessing
+
+from streams import raw, corba, bulkio
+from benchmark import utils, numa
+from benchmark.procinfo import CpuInfo, ProcessInfo
+from benchmark.tests import TestMonitor, BenchmarkTest
+from benchmark.csv import CSVOutput
+
+usage = """Usage: %s [options]
+Options:
+\t-t <time>\t\tTime between samples, in seconds [0.25]
+\t-w <num>\t\tMinimum number of samples per measurement [5]
+\t-d <std deviations>\tTolerance for measurement stability [0.1]
+\t--numa-distance=<n>\tNumber of NUMA hops between components, if
+\t\t\t\tsupported [0]
+\t--no-gui\t\tDisplay text results only
+\t--transport=<type>\tTransport type ["unix" (default), "tcp"]""" % os.path.basename(sys.argv[0])
+
+class TextDisplay(TestMonitor):
+    def test_started(self, name, **kw):
+        self.best_rate = 0.0
+        self.peak_rate = 0.0
+        print 'Measuring', name
+
+    def test_complete(self, **kw):
+        print 'Best average:', utils.to_binary(self.best_size), utils.to_gbps(self.best_rate) + 'GBps'
+        print 'Best peak:   ', utils.to_binary(self.peak_size), utils.to_gbps(self.peak_rate) + 'GBps'
+
+    def pass_started(self, size, **kw):
+        sys.stdout.write(utils.to_binary(size))
+        sys.stdout.flush()
+
+    def sample_added(self, size, rate, **kw):
+        if rate > self.peak_rate:
+            self.peak_size = size
+            self.peak_rate = rate
+        sys.stdout.write('.')
+        sys.stdout.flush()
+
+    def pass_complete(self, size, rate, rate_min, rate_max, **kw):
+        if rate > self.best_rate:
+            self.best_size = size
+            self.best_rate = rate
+        print '%s GBps (%s,%s)' % (utils.to_gbps(rate), utils.to_gbps(rate_min), utils.to_gbps(rate_max))
+
+    def wait(self):
+        pass
+
+
+class BarGraph(TestMonitor):
+    def __init__(self, bins):
+        # Quiet the warning about GTK Tooltip deprecation
+        import warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning)
+            self.figure = pyplot.figure()
+
+        self.figure.canvas.set_window_title('REDHAWK Benchmark')
+
+        # Create a bar graph of average throughput vs. transfer size
+        self.bar_plot = self.figure.add_subplot(111)
+        self.bar_plot.set_xlabel('Transfer size (B)')
+        self.bar_plot.set_ylabel('Throughput (Bps)')
+
+        self.width = 1.0/3.0
+        self.colors = itertools.cycle('bgrcmyk')
+
+        self.bins = dict((bin, index) for index, bin in enumerate(bins))
+        self.bar_plot.set_xticks(numpy.arange(len(self.bins))+0.5)
+        self.bar_plot.set_xticklabels([utils.to_binary(b) for b in bins])
+        self.bar_plot.set_xbound(0.0, len(self.bins))
+
+        self.series = []
+
+        self.figure.show()
+
+    def update_progress(self):
+        series = self.series[-1]
+        name = series['name']
+        progress = 100.0*series['progress']/len(self.bins)
+        self.bar_plot.set_title('Measuring %s (%.1f%%)' % (name, progress))
+
+    def test_started(self, name, **kw):
+        series = {
+            'name':name,
+            'color':self.colors.next(),
+            'offset':len(self.series),
+            'progress':0
+            }
+        self.series.append(series)
+
+        # Create an updated legend. There are no bars for this series yet;
+        # create an otherwise unused rectangle to provide the color for each
+        # series.
+        from matplotlib.patches import Rectangle
+        bars = [Rectangle((0,0),0,0,facecolor=s['color']) for s in self.series]
+        names = [s['name'] for s in self.series]
+        self.bar_plot.legend(bars, names, loc='upper left')
+
+        self.update_progress()
+
+    def pass_complete(self, size, rate, rate_min, rate_max, **kw):
+        series = self.series[-1]
+        series['progress'] += 1
+        self.update_progress()
+
+        offset = series['offset']
+        color = series['color']
+        error = (rate-rate_min,rate_max-rate)
+        self.draw_bar(size, rate, error, offset, color)
+
+    def wait(self):
+        # Clear the title
+        self.bar_plot.set_title('')
+        self.figure.canvas.draw()
+        pyplot.show()
+
+    def update(self):
+        self.figure.canvas.flush_events()
+
+    def draw_bar(self, bin, value, error, offset, color):
+        pos = self.bins[bin] + (offset*self.width)
+        self.bar_plot.bar([pos], [value], color=color, width=self.width)
+
+        # Since bar() only supports singular values for yerr, asymmetric upper
+        # and lower bounds require calling errorbar() directly
+        try:
+            # Try to unpack the lower and upper error values and repack them in
+            # the format errorbar() expects
+            lower, upper = error
+            error = [[lower], [upper]]
+        except:
+            # Assume it's a single value
+            pass
+        center = pos + (self.width/2)
+        self.bar_plot.errorbar([center], [value], yerr=error, ecolor='black')
+
+        self.bar_plot.set_xbound(0.0, len(self.bins))
+        self.figure.canvas.draw()
+
+
+class Averager(object):
+    def __init__(self, window_size):
+        self.values = []
+        self.window_size = window_size
+        self.max_window_size = 2 * self.window_size
+
+    def add_sample(self, value):
+        self.values.append(value)
+
+    def reset(self):
+        self.values = []
+
+    def is_stable(self, tolerance):
+        if len(self.values) < self.window_size:
+            return False
+        elif len(self.values) >= self.max_window_size:
+            return True
+
+        # Compare the normalized standard deviation to the tolerance
+        data = self.get_data()
+        variance = numpy.std(data)/numpy.mean(data)
+        return variance <= tolerance
+
+    def get_data(self):
+        return self.values
+
+    def mean(self):
+        return numpy.mean(self.get_data())
+
+    def minimum(self):
+        return min(self.get_data())
+
+    def maximum(self):
+        return max(self.get_data())
+
+    def length(self):
+        return len(self.values)
+
+
+class TransferSizeTest(BenchmarkTest):
+    def __init__(self, sizes, poll_time, window_size, tolerance):
+        BenchmarkTest.__init__(self)
+        self.sizes = sizes
+        self.poll_time = poll_time
+        self.window_size = window_size
+        self.tolerance = tolerance
+        self.num_cpus = multiprocessing.cpu_count()
+
+    def run(self, name, stream):
+        window = Averager(self.window_size)
+
+        reader_stats = ProcessInfo(stream.get_reader())
+        writer_stats = ProcessInfo(stream.get_writer())
+
+        cpu_info = CpuInfo()
+
+        self.test_started(name=name)
+
+        stream.start()
+
+        start = time.time()
+        next = start + self.poll_time
+
+        now = start
+        last_time = start
+        last_total = 0
+
+        for transfer_size in self.sizes:
+            self.pass_started(size=transfer_size)
+
+            stream.transfer_size(transfer_size)
+            window.reset()
+
+            # Wait until window is stable (or it's taken long enough that we can
+            # assume it will never stabilize) to make decisions
+            while not window.is_stable(self.tolerance):
+                # Allow UI to update, etc.
+                self.idle_tasks()
+
+                # Wait until next scheduled poll time
+                sleep_time = next - time.time()
+                if sleep_time > 0.0:
+                    time.sleep(sleep_time)
+
+                # Measure time elapsed since last sample
+                now = time.time()
+                elapsed = now - last_time
+                last_time = now
+
+                # Set next expected sample time based on the current time, in
+                # case there was an unusually long sample period
+                next = now + self.poll_time
+
+                # Calculate average throughput over the sample period
+                current_total = stream.received()
+                delta = current_total - last_total
+                last_total = current_total
+                current_rate = delta / elapsed
+
+                window.add_sample(current_rate)
+
+                # Aggregate CPU usage
+                reader = reader_stats.poll()
+                writer = writer_stats.poll()
+
+                system = cpu_info.poll()
+                sys_cpu = self.num_cpus * 100.0 / sum(system.values())
+
+                sample = {'time': now-start,
+                          'rate': current_rate,
+                          'size': transfer_size,
+                          'write_cpu': writer['cpu'] * sys_cpu,
+                          'write_rss': writer['rss'],
+                          'write_majflt': writer['majflt'],
+                          'write_minflt': writer['minflt'],
+                          'write_threads': writer['threads'],
+                          'read_cpu': reader['cpu'] * sys_cpu,
+                          'read_rss': reader['rss'],
+                          'read_majflt': reader['majflt'],
+                          'read_minflt': reader['minflt'],
+                          'read_threads': reader['threads'],
+                          'cpu_user': system['user'] * sys_cpu,
+                          'cpu_system': system['system'] * sys_cpu,
+                          'cpu_idle': system['idle'] * sys_cpu,
+                          'cpu_iowait': system['iowait'] * sys_cpu,
+                          'cpu_irq': system['irq'] * sys_cpu,
+                          'cpu_softirq': system['softirq'] * sys_cpu,
+                          }
+                self.sample_added(**sample)
+
+            # The current pass is complete, notify monitors of the average rate
+            # and min/max
+            sample = {'size': transfer_size,
+                      'rate': window.mean(),
+                      'rate_min': window.minimum(),
+                      'rate_max': window.maximum()}
+
+            self.pass_complete(**sample)
+
+        stream.stop()
+
+        self.test_complete()
+
+
+if __name__ == '__main__':
+    transport = 'unix'
+    numa_distance = None
+    poll_time = 0.25
+    window_size = 5
+    tolerance = 0.1
+    nogui = False
+
+    opts, args = getopt.getopt(sys.argv[1:], 'hw:t:d:', ['help', 'transport=', 'numa-distance=', 'no-gui'])
+    for key, value in opts:
+        if key in ('-h', '--help'):
+            raise SystemExit(usage)
+        elif key == '-w':
+            window_size = int(value)
+        elif key == '-t':
+            poll_time = float(value)
+        elif key == '-d':
+            tolerance = float(value)
+        elif key == '--transport':
+            transport = value
+        elif key == '--numa-distance':
+            numa_distance = int(value)
+        elif key == '--no-gui':
+            nogui = True
+
+    # Try powers of two from 16K to 32M
+    transfer_sizes = [2**x for x in xrange(14, 26)]
+    test = TransferSizeTest(transfer_sizes, poll_time, window_size, tolerance)
+
+    if nogui:
+        display = TextDisplay()
+    else:
+        from matplotlib import pyplot
+        display = BarGraph(transfer_sizes)
+        test.add_idle_task(display.update)
+    test.add_monitor(display)
+
+    csv = CSVOutput()
+    csv.add_field('time', 'time(s)')
+    csv.add_field('rate', 'rate(Bps)')
+    csv.add_field('size', 'transfer size(B)')
+    csv.add_field('write_cpu', 'writer cpu(%)')
+    csv.add_field('write_rss', 'writer rss')
+    csv.add_field('write_majflt', 'writer major faults')
+    csv.add_field('write_minflt', 'writer minor faults')
+    csv.add_field('write_threads', 'writer threads')
+    csv.add_field('read_cpu', 'reader cpu(%)')
+    csv.add_field('read_rss', 'reader rss')
+    csv.add_field('read_majflt', 'reader major faults')
+    csv.add_field('read_minflt', 'reader minor faults')
+    csv.add_field('read_threads', 'reader threads')
+    csv.add_field('cpu_user', 'user CPU(%)')
+    csv.add_field('cpu_system', 'system CPU(%)')
+    csv.add_field('cpu_idle', 'idle CPU(%)')
+    csv.add_field('cpu_iowait', 'I/O wait CPU(%)')
+    csv.add_field('cpu_irq', 'IRQ CPU(%)')
+    csv.add_field('cpu_softirq', 'soft IRQ CPU(%)')
+
+    test.add_monitor(csv)
+
+    if numa.is_numa_supported():
+        print '%d NUMA sockets' % len(numa.get_nodes())
+        if numa_distance is None:
+            numa_distance = 0
+        if not numa.is_numactl_available():
+            print 'WARNING: numactl is not available'
+            numa_distance = None
+    else:
+        print 'No NUMA support'
+        numa_distance = None
+
+    for interface in ('Raw', 'CORBA', 'BulkIO'):
+        if interface == 'Raw':
+            factory = raw.factory(transport)
+        elif interface == 'CORBA':
+            factory = corba.factory(transport)
+        elif interface == 'BulkIO':
+            factory = bulkio.factory(transport)
+
+        numa_policy = numa.NumaPolicy(numa_distance)
+
+        stream = factory.create('octet', numa_policy.next())
+        try:
+            test.run(interface, stream)
+        finally:
+            stream.terminate()
+
+    display.wait()

@@ -18,13 +18,18 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest, os, signal, time
+import unittest, os, signal, time, platform
 from _unitTestHelpers import scatest
+from _unitTestHelpers import runtestHelpers
 from omniORB import URI, any, CORBA
 from ossie.cf import CF
 import commands
 import CosNaming
 import tempfile
+import commands
+import shutil
+
+java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 def getChildren(parentPid):
     process_listing = commands.getoutput('ls /proc').split('\n')
@@ -62,7 +67,7 @@ def killChildProcesses(parentPid):
 
 class DeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):
-        nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, self._domMgr = self.launchDomainManager()
         self._domBooter = nodebooter
 
     def tearDown(self):
@@ -71,11 +76,13 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         killChildProcesses(os.getpid())
 
     def test_CleanShutDown(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        
+        self.assertTrue(self._domMgr._is_equivalent(devMgr._get_domMgr()))
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
@@ -87,7 +94,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
 
     def test_BadReleaseShutDown(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BadReleaseDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BadReleaseDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -110,7 +117,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
 
     def test_deadDeviceShutdownNode(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -128,7 +135,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
     def test_deadDeviceManager(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -147,12 +154,12 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # as per DeviceManager requirement SR:482
         devMgr.shutdown()
 
-        time.sleep(0.5)
+        time.sleep(1.0)
         self.assertNotEqual(devmgr_nb.poll(), None, "Nodebooter did not die after shutdown")
 
     def test_CatatrophicUnregister(self):
         # Test that if a device manager dies unexpectedly and then re-registers there are no problems
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -166,7 +173,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         self.waitTermination(devmgr_nb)
 
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
 
@@ -178,7 +185,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
     def test_IgnoreDevMgrDuplicate(self):
         # These two nodes use the same identifier, but have different names to distinguish them
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -188,7 +195,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # Because the DeviceManager has the same identifier, we cannot use the launchDeviceManager
         # method; however, to get automatic cleanup in the event of a failure, we manually add the
         # nodebooter to the list of DeviceManager nodebooters.
-        devmgr2_nb = scatest.spawnNodeBooter(dcdFile="/nodes/test_BasicTestDeviceSameDevMgrId_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr2_nb = scatest.spawnNodeBooter(dcdFile="/nodes/test_BasicTestDeviceSameDevMgrId_node/DeviceManager.dcd.xml")
         self._deviceBooters.append(devmgr2_nb)
         time.sleep(2)
 
@@ -203,7 +210,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
     def test_IgnoreDeviceDuplicate(self):
         # These two nodes use the same identifier, but have different names to distinguish them
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_DuplicateTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_DuplicateTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -212,16 +219,16 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
     def test_DeviceInitializeFail(self):
         # These two nodes use the same identifier, but have different names to distinguish them
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/bad_init_device_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/bad_init_device_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
+        # Device initialization failed, so remove the Device from the registered Device list
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 0)
 
     def test_ReRegDevMgrDuplicate(self):
         # These two nodes use the same identifier, but have different names to distinguish them
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -231,7 +238,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.terminateChild(devmgr_nb, signals=(signal.SIGKILL,))
         self.assertNotEqual(devmgr_nb.poll(), None)
 
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDeviceSameDevMgrId_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDeviceSameDevMgrId_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -248,14 +255,14 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
     def test_IgnoreDevDuplicate(self):
         # These two nodes have devices with the same identifier, but have different names to distinguish them
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
         dev = devMgr._get_registeredDevices()[0]
         self.assertEqual(dev._get_label(), "BasicTestDevice1")
 
-        devmgr2_nb, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDeviceSameDevId_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr2_nb, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDeviceSameDevId_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 2)
         self.assertEqual(len(devMgr2._get_registeredDevices()), 1)
@@ -266,7 +273,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
     def test_ReRegDevDuplicate(self):
         # These two nodes have devices with the same identifier, but have different names to distinguish them
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
@@ -276,7 +283,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.terminateChildren(devmgr_nb, signals=(signal.SIGKILL,))
         self.assertNotEqual(devmgr_nb.poll(), None)
 
-        devmgr2_nb, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDeviceSameDevId_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr2_nb, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDeviceSameDevId_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 2)
         self.assertEqual(len(devMgr2._get_registeredDevices()), 1)
@@ -286,7 +293,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # TODO how do we test that this indeed worked?
 
     def test_ComponentPlacementPropertyOverride(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -316,9 +323,44 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         d = dict([(d["id"], d["value"]) for d in struct_propseq])
         self.assertEqual(d, {"item1": "the new value", "item2": 400, "item3": 1.414})
 
+    def test_cmdline_props(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/cmdline_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        
+        status,output = commands.getstatusoutput('ps -ww -f | grep cmdline_dev')
+        lines = output.split('\n')
+        for line in lines:
+          if 'IOR' in line:
+            break
+        
+        items = line.split(' ')
+        self.assertEqual(items.count('testprop'),1)
+        props=[CF.DataType(id='testprop',value=any.to_any(None))]
+        retprops = devMgr._get_registeredDevices()[0].query(props)
+        self.assertEqual('abc',retprops[0].value._v)
+
+    def test_nocmdline_props(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/nocmdline_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        
+        status,output = commands.getstatusoutput('ps -ww -f | grep cmdline_dev')
+        lines = output.split('\n')
+        for line in lines:
+          if 'IOR' in line:
+            break
+        
+        items = line.split(' ')
+        self.assertEqual(items.count('testprop'),0)
+        props=[CF.DataType(id='testprop',value=any.to_any(None))]
+        retprops = devMgr._get_registeredDevices()[0].query(props)
+        self.assertEqual('abc',retprops[0].value._v)
 
     def test_ComponentPlacementSimpleSeqPropertyOverride(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_DCDSimpleSeq_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_DCDSimpleSeq_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -335,7 +377,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
 
     def test_ComponentPlacementNoPropOverride(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_DCDSimpleSeq_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_DCDSimpleSeq_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -353,7 +395,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
 
     def test_ComponentPlacementNoPropertyOverride(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDeviceNoOverrides_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDeviceNoOverrides_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -373,7 +415,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
 
     def test_DevicePlacementPropertyOverride_cpp(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecParamOverride_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecParamOverride_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -522,7 +564,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(device.allocateCapacity(props),True)
 
     def test_ComponentPropertyOverride_cpp(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -581,19 +623,19 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
 
     def test_MultipleComponentPlacements(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleExecutableDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         self.assertEqual(len(devMgr._get_registeredDevices()), 4)
 
     def test_BadDeviceManagerName(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BadDeviceManagerName_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BadDeviceManagerName_node/DeviceManager.dcd.xml")
         self.assertEqual(devMgr, None)
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
     def test_AbsPaths(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_AbsPathNode/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_AbsPathNode/DeviceManager.dcd.xml")
 
     def test_MultipleDevicesWithSameName(self):
         # Test that two different device managers can start devices with the same name
@@ -601,8 +643,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # TODO We should check that these two actually have a device that has the same name
         # because, if someone changes the XML unwittingly then this test will pass
         # without really testing anything
-        nb1, devMgr1 = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
-        nb2, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDevice2_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nb1, devMgr1 = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        nb2, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDevice2_node/DeviceManager.dcd.xml")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 2)
         for devMgr in self._domMgr._get_deviceManagers():
@@ -620,7 +662,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(dev2, None)
 
     def test_connectToDeviceManager(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_PortUsesTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_PortUsesTestDevice_node/DeviceManager.dcd.xml")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
         for device in devMgr._get_registeredDevices():
@@ -628,7 +670,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             self.assertEqual(DeviceManager_id[0].value._v, 'DCE:5e51ac08-ada2-41fc-8996-0270bf05c236')
 
     def test_DeviceExecParamOverride(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
 
@@ -707,7 +749,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
 
     def test_ReleaseDevice(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -743,7 +785,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
     def test_NoConfigureNilDeviceProperties(self):
         # This test is pretty limited and should be expanded to other complex property types
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDeviceNoOverrides_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDeviceNoOverrides_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # Test that the DCD file execparam get's sent to Device
@@ -762,6 +804,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self._test_BasicService('test_BasicService_node', 'BasicService1')
 
     def test_JavaService(self):
+        if not java_support:
+            return
         self._test_BasicService('test_BasicService_java_node', 'BasicService_java_1')
 
     def _test_BasicService(self, node, expected_name):
@@ -812,7 +856,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             self.fail("Expected service to not exist in the naming service")
 
     def test_ExternalServices(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleService_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleService_node/DeviceManager.dcd.xml")
         import ossie.utils.popen as _popen
 
         serviceName = "BasicService10"
@@ -916,11 +960,48 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # Makes sure all children are cleaned
         self.assertEquals(len(getChildren(devmgr_nb.pid)), 0)
 
+    def test_RogueService(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        import ossie.utils.popen as _popen
+        from ossie.utils import redhawk
+        rhdom= redhawk.attach(scatest.getTestDomainName())
+
+        serviceName = "fake_1"
+        args = []
+        args.append("sdr/dev/services/fake/python/fake.py")
+        args.append("DEVICE_MGR_IOR")
+        args.append(self._orb.object_to_string(devMgr))
+        args.append("SERVICE_NAME")
+        args.append(serviceName)
+        exec_file = "sdr/dev/services/fake/python/fake.py"
+        external_process = _popen.Popen(args, executable=exec_file, cwd=os.getcwd(), preexec_fn=os.setpgrp)
+
+        time.sleep(2)
+
+        names=[serviceName]
+        for svc in devMgr._get_registeredServices():
+            self.assertNotEqual(svc, None)
+            self.assertEqual(svc.serviceName in names, True)
+
+        for svc in rhdom.services:
+            self.assertNotEqual(svc, None)
+            self.assertEqual(svc._instanceName in names, True)
+
+        # Kill the external services
+        os.kill(external_process.pid, signal.SIGINT)
+
+        time.sleep(1)
+
+        # check rogue service is removed
+        self.assertEquals(len(devMgr._get_registeredServices()), 0)
+        self.assertEquals(len(rhdom.services), 0)
+
+
     def test_ServiceShutdown_DomMgr(self):
         num_services = 5
         num_devices = 1
         # This test makes sure that services are unregistered from the naming service upon shutdown of the DomainManager
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleService_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleService_node/DeviceManager.dcd.xml")
         timeout = 5
         begin_time = time.time()
         done = False
@@ -994,7 +1075,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         num_devices = 1
 
         # This test makes sure that services are unregistered from the naming service upon shutdown of the DeviceManager
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleService_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleService_node/DeviceManager.dcd.xml")
         self.assertEqual(len(devMgr._get_registeredServices()), num_services)
 
         # Makes sure that the correct number of processes forked
@@ -1053,4 +1134,57 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         # Makes sure that all children are dead
         self.assertEquals(len(getChildren(devmgr_nb.pid)), 0)
+
+    def _test_Valgrind(self, valgrind):
+        # Clear the device cache to prevent false positives
+        deviceCacheDir = os.path.join(scatest.getSdrCache(), ".ExecutableDevice_node", "ExecutableDevice1")
+        shutil.rmtree(deviceCacheDir, ignore_errors=True)
+
+        os.environ['VALGRIND'] = valgrind
+        try:
+            # Checking that the node and device launch as expected
+            nb, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        finally:
+            del os.environ['VALGRIND']
+
+        self.assertFalse(devMgr is None)
+        self.assertEquals(len(devMgr._get_registeredDevices()), 1, msg='device failed to launch with valgrind')
+        children = getChildren(nb.pid)
+        self.assertEqual(len(children), 1)
+        devMgr.shutdown()
+
+        # Check that a valgrind logfile exists
+        logfile = os.path.join(deviceCacheDir, 'valgrind.%s.log' % children[0])
+        self.assertTrue(os.path.exists(logfile))
+
+    def test_ValgrindOption(self):
+        # Make sure that valgrind exists and is in the path
+        valgrind = scatest.which('valgrind')
+        if not valgrind:
+            raise RuntimeError('Valgrind is not installed')
+
+        # Let the device manager find valgrind on the path
+        self._test_Valgrind('')
+
+        # Set an explicit path to valgrind, using a symbolic link to a non-path
+        # location as an additional check
+        altpath = os.path.join(scatest.getSdrPath(), 'valgrind')
+        os.symlink(valgrind, altpath)
+
+        # patch for ubuntu valgrind script
+        ub_patch=False
+        try:
+           if 'UBUNTU' in platform.linux_distribution()[0].upper():
+               ub_patch=True
+               valgrind_bin = scatest.which('valgrind.bin')
+               os.symlink(valgrind_bin, altpath+'.bin')
+        except:
+             pass
+
+        try:
+            self._test_Valgrind(altpath)
+        finally:
+            os.unlink(altpath)
+            if ub_patch:
+                os.unlink(altpath+'.bin')
 

@@ -46,4 +46,5 @@ nodist_cosinclude_HEADERS = jni_CosEventComm.h \
 			    jni_CosEventChannelAdmin.h \
 			    jni_CosNaming.h
 
-CLEANFILES = jni_*.h jni_*.cpp
+BUILT_SOURCES = $(nodist_cosinclude_HEADERS) $(nodist_libcosjni_la_SOURCES)
+CLEANFILES = $(BUILT_SOURCES)

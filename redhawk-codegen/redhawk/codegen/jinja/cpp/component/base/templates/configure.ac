@@ -22,7 +22,8 @@
 #{% endblock %}
 #{% block acInit %}
 AC_INIT({{component.name}}, {{component.version}})
-AM_INIT_AUTOMAKE(nostdinc)
+AM_INIT_AUTOMAKE([nostdinc foreign])
+AC_CONFIG_MACRO_DIR([m4])
 #{% endblock %}
 
 #{% block acChecks %}
@@ -41,14 +42,18 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Dependencies
 #{% block pkgConfigPath %}
-export PKG_CONFIG_PATH="{{component.pkgconfigsoftpkgdeps}}$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
 #{% endblock %}
 #{% block projectDeps %}
-PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= {{versions.redhawk}} omniORB4 >= {{versions.omniORB4}} {{component.softpkgdeps}}#{% endblock %} ])
+PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= {{versions.redhawk}} omniORB4 >= {{versions.omniORB4}}#{% endblock %}])
 #{% block interfaceDeps %}
 #{% if component.interfacedeps %}
 PKG_CHECK_MODULES([INTERFACEDEPS], [{{component.interfacedeps|join(', ')}}])
 #{% endif %}
+#{% endblock %}
+#{% block softpkgDeps %}
+#{% for dep in component.impl.softpkgdeps %}
+RH_SOFTPKG_CXX([{{dep.spd}}]{{',[%s]' % dep.impl if dep.impl}})
+#{% endfor %}
 #{% endblock %}
 #{% block coreDeps %}
 OSSIE_ENABLE_LOG4CXX

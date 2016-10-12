@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:b1b7995c-7360-45fc-b86d-fd2f230566e3" name="CommandWrapperUsesDeviceProperty">
+    <title/>
+    <author>
+        <name>REDHAWK test author</name>
+    </author>
+    <description>A python script that can wrap a non-sca command.  This is useful because
+    OSSIE doesn't support components with the non-sca-compliant type.
+    </description> 
+    <propertyfile type="PRF">
+        <localfile name="CommandWrapper.prf.xml"/>
+    </propertyfile>
+    <descriptor>
+        <localfile name="CommandWrapper.scd.xml"/>
+    </descriptor>
+    <implementation id="DCE:535a68a7-64e4-424b-9045-5ffc7659bf9d">
+        <description>The command wraper executable uses a property to determine
+        which command to launch when start is called.
+        </description> 
+        <code type="Executable">
+            <localfile name="../CommandWrapper/CommandWrapper.py"/>
+            <entrypoint>../CommandWrapper/CommandWrapper.py</entrypoint>
+        </code>
+        <os name="Linux"/>
+        <processor name="x86"/>
+        <!--                                       -->
+        <!-- Test a variety of matching properties -->
+        <!--                                       -->
+        <dependency type="device_matching">
+            <!-- Check DeviceKind -->
+            <propertyref refid="DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b" value="BasicTestDevice"/>
+        </dependency>
+        <dependency type="device_matching">
+            <!-- Check HasXMIDAS -->
+            <propertyref refid="DCE:021f10cf-7a05-46ec-a507-04b513b84bd4" value="true"/>
+        </dependency>
+        <dependency type="device_matching">
+            <!-- Provide RunsAs -->
+            <propertyref refid="DCE:64303822-4c67-4c04-9a5c-bf670f27cf39" value="ossie"/>
+        </dependency>
+        <dependency type="device_matching">
+            <!-- Check ProvidedCpuCores is at least 4-->
+            <propertyref refid="DCE:ac73446e-f935-40b6-8b8d-4d9adb6b403f" value="4"/>
+        </dependency>
+        <dependency type="device_matching">
+            <!-- Check CoreClockRateGHz is less than 4.0 GHz-->
+            <propertyref refid="DCE:dd339b67-b387-4018-94d2-9a72955d85b9" value="4.0"/>
+        </dependency>
+        <!--                                                  -->
+        <!-- Test some basic 'external' allocation properties -->
+        <!--                                                  -->
+        <dependency type="runtime_requirements">
+            <!-- Consume memory capacity -->
+            <propertyref refid="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb" value="1000000"/>
+        </dependency>
+        <dependency type="runtime_requirements">
+            <!-- BogoMips capacity -->
+            <propertyref refid="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8" value="1000"/>
+        </dependency>
+        <usesdevice id="DCE:f490bfe6-b33b-4375-9732-eda1c9486cc4" type="">
+            <propertyref refid="DCE:8cad8ca5-c155-4d1d-ae40-e194aa1d855f" value="50000"/>
+        </usesdevice>
+    </implementation>
+    <usesdevice id="DCE:1c860fb2-85d9-4f60-beb5-eaa851f012f8" type="">
+        <propertyref refid="prop3" value="__MATH__(1,prop3,=)"/>
+        <propertyref refid="DCE:8cad8ca5-c155-4d1d-ae40-e194aa1d855f" value="100000"/>
+    </usesdevice>
+</softpkg>

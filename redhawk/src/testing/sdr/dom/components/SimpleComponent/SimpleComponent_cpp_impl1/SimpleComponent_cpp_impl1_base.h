@@ -23,52 +23,21 @@
 #define SIMPLECOMPONENT_CPP_IMPL1_IMPL_BASE_H
 
 #include <boost/thread/mutex.hpp>
-#include <ossie/Resource_impl.h>
+#include <boost/thread.hpp>
+#include <ossie/Component.h>
+#include <ossie/ThreadedComponent.h>
 
 #include "port_impl.h"
 #include "struct_props.h"
 
 class SimpleComponent_cpp_impl1_base;
 
-class ProcessThread : public omni_thread
-{
-    public:
-        ProcessThread(SimpleComponent_cpp_impl1_base *_target, float _delay);
-
-        bool release(unsigned long secs, unsigned long nanosecs = 0);
-
-        // main omni_thread function
-        void run(void *args);
-        
-    protected:
-        // Per omni_thread guidance:
-        // ... a thread object must be allocated with new - it cannot 
-        // be statically or automatically allocated. The destructor of a 
-        // class that inherits from omni_thread shouldn't be public either 
-        // (otherwise the thread object can be destroyed while the 
-        //  underlying thread is still running).
-        // 
-        // Basically you should never call "delete" on an omni_thread as
-        // it will delete itself when the thread exits.  Making the destructor
-        // protected prevents calling "delete"
-        virtual ~ProcessThread();
-        
-    private:
-        bool _thread_running;
-        omni_mutex _thread_exited_mutex;
-        omni_condition* _thread_exited;
-        SimpleComponent_cpp_impl1_base *target;
-        __useconds_t udelay;
-};
-
-class SimpleComponent_cpp_impl1_base : public Resource_impl
+class  SimpleComponent_cpp_impl1_base  : public Component, protected ThreadedComponent
 {
 
     public: 
         SimpleComponent_cpp_impl1_base(const char *uuid, const char *label);
         
-   
-
         ~SimpleComponent_cpp_impl1_base(void);
 
         void start() throw (CF::Resource::StartError, CORBA::SystemException);
@@ -77,17 +46,11 @@ class SimpleComponent_cpp_impl1_base : public Resource_impl
 
         void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
 
-        void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        void loadProperties();
 
         void configure(const CF::Properties&) throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration, CF::PropertySet::PartialConfiguration);
 
-        void loadProperties();
-
-        virtual int serviceFunction() = 0;
-    
     protected:
-        ProcessThread *serviceThread; 
-        boost::mutex serviceThreadLock;  
     
     	// Member variables exposed as properties
 		std::string ep_only;

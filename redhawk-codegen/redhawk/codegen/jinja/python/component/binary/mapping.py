@@ -37,12 +37,12 @@ class BinaryComponentMapper(PullComponentMapper):
 
     @staticmethod
     def userClass(softpkg):
-        return {'name'  : softpkg.name()+'_i',
-                'file'  : softpkg.name()+'.py'}
+        return {'name'  : softpkg.basename()+'_i',
+                'file'  : softpkg.basename()+'.py'}
 
     @staticmethod
     def baseClass(softpkg):
-        baseclass = softpkg.name() + '_base'
+        baseclass = softpkg.basename() + '_base'
         return {'name'  : baseclass,
                 'file'  : baseclass+'.py'}
 

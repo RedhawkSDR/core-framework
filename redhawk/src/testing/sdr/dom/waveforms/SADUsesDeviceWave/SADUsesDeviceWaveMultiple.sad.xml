@@ -73,6 +73,12 @@ with this program.  If not, see http://www.gnu.org/licenses/.
       <structref refid="DCE:001fad60-b4b3-4ed2-94cb-40e1d956bf4f">
         <simpleref refid="long_capacity" value="10"/>
         <simpleref refid="float_capacity" value="0.1"/>
+        <simplesequenceref refid="struct_simple_seq">
+	  <values>
+	    <value>5</value>
+            <value>50</value>
+	  </values>
+	</simplesequenceref>
       </structref>
     </usesdevice>
     <usesdevice id="usesdevice2">

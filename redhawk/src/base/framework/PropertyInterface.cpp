@@ -46,33 +46,51 @@ void PropertyInterface::enableNil (bool enable)
 
 bool PropertyInterface::isQueryable () const
 {
-    if (mode != std::string("writeonly")) {
-        std::vector<std::string>::const_iterator p = kinds.begin();
-        while (p != kinds.end()) {
-            if ((*p) == std::string("configure"))
-                return true;
-            if ((*p) == std::string("execparam"))
-                return true;
-            if ((*p) == std::string("allocation"))
-                if (action == std::string("external"))
-                    return true;
-            p++;
-        }
+  if (mode != std::string("writeonly")) {
+    std::vector<std::string>::const_iterator p = kinds.begin();
+    while (p != kinds.end()) {
+      if ((*p) == std::string("property"))
+        return true;
+      if ((*p) == std::string("configure"))
+        return true;
+      if ((*p) == std::string("execparam"))
+        return true;
+      if ((*p) == std::string("allocation"))
+        if (action == std::string("external"))
+          return true;
+      p++;
     }
-    return false;
+  }
+  return false;
+
+}
+
+
+bool PropertyInterface::isProperty () const
+{
+  std::vector<std::string>::const_iterator p = kinds.begin();
+  while (p != kinds.end()) {
+    if ((*p) == std::string("property"))
+      return true;
+    p++;
+  }
+  return false;
 }
 
 bool PropertyInterface::isConfigurable () const
 {
-    if (mode != std::string("readonly")) {
-        std::vector<std::string>::const_iterator p = kinds.begin();
-        while (p != kinds.end()) {
-            if ((*p) == std::string("configure"))
-                return true;
-            p++;
-        }
+  if (mode != std::string("readonly")) {
+    std::vector<std::string>::const_iterator p = kinds.begin();
+    while (p != kinds.end()) {
+      if ((*p) == std::string("configure"))
+        return true;
+      if ((*p) == std::string("property"))
+        return true;
+      p++;
     }
-    return false;
+  }
+  return false;
+  
 }
 
 bool PropertyInterface::isAllocatable () const
@@ -173,6 +191,12 @@ inline void SimplePropertyWrapper<unsigned char>::toAny (const CORBA::Octet& v, 
 }
 
 template <>
+inline bool SimplePropertyWrapper<bool>::fromAny (const CORBA::Any& a, bool& v)
+{
+    return ossie::any::toNumber(a, v);
+}
+
+template <>
 inline short SimplePropertyWrapper<std::string>::compare (const CORBA::Any& a)
 {
     const char* tmp;
@@ -183,7 +207,7 @@ inline short SimplePropertyWrapper<std::string>::compare (const CORBA::Any& a)
     }
 }
 
-/**
+/*
  *
  */
 template <typename T>
@@ -368,3 +392,77 @@ COMPLEX_SEQUENCE_FACTORY_CREATE(LongLong, CORBA::LongLong);
 COMPLEX_SEQUENCE_FACTORY_CREATE(ULongLong, CORBA::ULongLong);
 COMPLEX_SEQUENCE_FACTORY_CREATE(Float, CORBA::Float);
 COMPLEX_SEQUENCE_FACTORY_CREATE(Double, CORBA::Double);
+
+
+namespace PropertyChange {
+
+#define SIMPLEMONITOR_FACTORY_CREATE(N,T)                     \
+N##Property* MonitorFactory::Create (T& value) \
+{                                                      \
+    return new SimpleMonitor< T >(value);      \
+}
+
+SIMPLEMONITOR_FACTORY_CREATE(String, std::string);
+SIMPLEMONITOR_FACTORY_CREATE(Boolean, bool);
+SIMPLEMONITOR_FACTORY_CREATE(Char, char);
+
+SIMPLEMONITOR_FACTORY_CREATE(Octet, CORBA::Octet);
+SIMPLEMONITOR_FACTORY_CREATE(Short, CORBA::Short);
+SIMPLEMONITOR_FACTORY_CREATE(UShort, CORBA::UShort);
+SIMPLEMONITOR_FACTORY_CREATE(Long, CORBA::Long);
+SIMPLEMONITOR_FACTORY_CREATE(ULong, CORBA::ULong);
+SIMPLEMONITOR_FACTORY_CREATE(LongLong, CORBA::LongLong);
+SIMPLEMONITOR_FACTORY_CREATE(ULongLong, CORBA::ULongLong);
+SIMPLEMONITOR_FACTORY_CREATE(Float, CORBA::Float);
+SIMPLEMONITOR_FACTORY_CREATE(Double, CORBA::Double);
+
+#define COMPLEXMONITOR_FACTORY_CREATE(N, T) \
+    SIMPLEMONITOR_FACTORY_CREATE(Complex##N, std::complex<T>)
+
+COMPLEXMONITOR_FACTORY_CREATE(Boolean, bool);
+COMPLEXMONITOR_FACTORY_CREATE(Char, char);
+COMPLEXMONITOR_FACTORY_CREATE(Octet, unsigned char);
+COMPLEXMONITOR_FACTORY_CREATE(Short, short);
+COMPLEXMONITOR_FACTORY_CREATE(UShort, unsigned short);
+COMPLEXMONITOR_FACTORY_CREATE(Long, CORBA::Long);
+COMPLEXMONITOR_FACTORY_CREATE(ULong, CORBA::ULong);
+COMPLEXMONITOR_FACTORY_CREATE(LongLong, CORBA::LongLong);
+COMPLEXMONITOR_FACTORY_CREATE(ULongLong, CORBA::ULongLong);
+COMPLEXMONITOR_FACTORY_CREATE(Float, CORBA::Float);
+COMPLEXMONITOR_FACTORY_CREATE(Double, CORBA::Double);
+
+#define SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(N,T)                            \
+N##SeqProperty* MonitorFactory::Create (std::vector<T>& value) \
+{                                                                      \
+    return new SequenceMonitor< T >(value);                     \
+}
+
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(String, std::string);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Boolean, bool);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Char, char);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Octet, CORBA::Octet);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Short, CORBA::Short);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(UShort, CORBA::UShort);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Long, CORBA::Long);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(ULong, CORBA::ULong);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(LongLong, CORBA::LongLong);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(ULongLong, CORBA::ULongLong);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Float, CORBA::Float);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Double, CORBA::Double);
+
+#define COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(N, T) \
+    SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Complex##N, std::complex<T>)
+
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(Boolean, bool);
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(Char, char);
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(Octet, unsigned char);
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(Short, short);
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(UShort, unsigned short);
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(Long, CORBA::Long);
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(ULong, CORBA::ULong);
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(LongLong, CORBA::LongLong);
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(ULongLong, CORBA::ULongLong);
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(Float, CORBA::Float);
+COMPLEXMONITOR_SEQUENCE_FACTORY_CREATE(Double, CORBA::Double);
+
+};

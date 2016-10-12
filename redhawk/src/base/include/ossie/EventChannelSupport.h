@@ -31,30 +31,17 @@
 #include <ossie/CorbaUtils.h>
 #include <ossie/CF/StandardEvent.h>
 #include <ossie/debug.h>
+#include <ossie/EventTypes.h>
+#include <ossie/CF/EventChannelManager.h>
 
 namespace ossie 
 {
 
-  void sendStateChangeEvent( LOGGER logger, const char* producerId, const char* sourceId,
-			    StandardEvent::StateChangeCategoryType stateChangeCategory, 
-			    StandardEvent::StateChangeType stateChangeFrom, 
-			    StandardEvent::StateChangeType stateChangeTo,
-			    CosEventChannelAdmin::ProxyPushConsumer_ptr _proxy_consumer);
-
-  void sendObjectAddedEvent( LOGGER logger, const char* producerId, const char* sourceId, const char* sourceName, 
-			    CORBA::Object_ptr sourceIOR, StandardEvent::SourceCategoryType sourceCategory, 
-			    CosEventChannelAdmin::ProxyPushConsumer_ptr _proxy_consumer);
-
-  void sendObjectRemovedEvent(LOGGER logger, const char* producerId, const char* sourceId, const char* sourceName, 
-			      StandardEvent::SourceCategoryType sourceCategory, CosEventChannelAdmin::ProxyPushConsumer_ptr _proxy_consumer);
-
-  namespace event 
+  namespace events 
   {
-    CosEventChannelAdmin::EventChannel_ptr connectToEventChannel (CosNaming::NamingContext_ptr context, const std::string& name);
-    CosEventChannelAdmin::EventChannel_ptr createEventChannel (const std::string& name);
-    CosLifeCycle::GenericFactory_ptr getEventChannelFactory ();
 
-
+    EventChannel_ptr                connectToEventChannel (CosNaming::NamingContext_ptr context, const std::string& name);
+    EventChannel_ptr                createEventChannel (const std::string& name);
 
     //
     // GetEventChannel
@@ -66,9 +53,9 @@ namespace ossie
     // @param name    name of event channel to use for look up methods
     // @param create  create event channel if one does not exist
     // @param host    host name to use for resolving object
-    CosEventChannelAdmin::EventChannel_ptr GetEventChannel ( const std::string&  name, 
-							     const bool          create=false,
-							     const std::string   &host="localhost" );
+    EventChannel_ptr GetEventChannel ( const std::string&  name, 
+                                      const bool          create=false,
+                                      const std::string   &host="localhost" );
 
     //
     // GetEventChannel
@@ -81,7 +68,7 @@ namespace ossie
     // @param ns_context naming context to look up event under,
     // @param create  create event channel if one does not exist, bind event to the naming context
     // @param host    host name to use for resolving object
-    CosEventChannelAdmin::EventChannel_ptr GetEventChannel ( const std::string&  name, 
+    EventChannel_ptr GetEventChannel ( const std::string&  name, 
 							     const std::string& ns_context, 
 							     const bool          create=false,
 							     const std::string   &host="localhost" );
@@ -90,12 +77,12 @@ namespace ossie
     //
     // Create an EventChannel within the current ORB context, once created, bind to the same name....
     //
-    CosEventChannelAdmin::EventChannel_ptr CreateEventChannel( const std::string& name, 
-							       ossie::corba::NS_ACTION action=ossie::corba::NS_BIND );
+    EventChannel_ptr CreateEventChannel( const std::string& name, 
+					 ossie::corba::NS_ACTION action=ossie::corba::NS_BIND );
 
-    CosEventChannelAdmin::EventChannel_ptr CreateEventChannel( const std::string& name, 
-							       const std::string& ns_context,
-							       ossie::corba::NS_ACTION action=ossie::corba::NS_BIND );
+    EventChannel_ptr CreateEventChannel( const std::string& name, 
+					 const std::string& ns_context,
+					 ossie::corba::NS_ACTION action=ossie::corba::NS_BIND );
 
     //
     // Delete Event Channel
@@ -123,7 +110,7 @@ namespace ossie
       //
       //
       //
-      class Supplier : virtual public POA_CosEventComm::PushSupplier {
+      class Supplier : virtual public EventPublisherSupplierPOA {
     public:
       Supplier () {} ;
       virtual ~Supplier() {};
@@ -185,8 +172,8 @@ namespace ossie
       try {
 	CORBA::Any data;
 	data <<= msg;
-	if (!CORBA::is_nil(proxy_for_consumer)) {
-	  proxy_for_consumer->push(data);
+	if (!CORBA::is_nil(proxy)) {
+	  proxy->push(data);
 	}
 	else{
 	  retval=-1;
@@ -204,8 +191,8 @@ namespace ossie
       try {
 	CORBA::Any data;
 	data <<= msg;
-	if (!CORBA::is_nil(proxy_for_consumer)) {
-	  proxy_for_consumer->push(data);
+	if (!CORBA::is_nil(proxy)) {
+	  proxy->push(data);
 	}
 	else{
 	  retval=-1;
@@ -220,8 +207,8 @@ namespace ossie
     int     push( CORBA::Any &data ) {
       int retval=0;
       try {
-	if (!CORBA::is_nil(proxy_for_consumer)) {
-	  proxy_for_consumer->push(data);
+	if (!CORBA::is_nil(proxy)) {
+	  proxy->push(data);
 	}
 	else{
 	  retval=-1;
@@ -253,22 +240,17 @@ namespace ossie
     //
     // handle to the EventChannel
     //
-    CosEventChannelAdmin::EventChannel_var      channel;
-
-    //
-    // Get Supplier Admin interface 
-    //
-    CosEventChannelAdmin::SupplierAdmin_var     supplier_admin;
+    EventChannel_var                            channel;
 
     //
     // Get proxy consumer 
     //
-    CosEventChannelAdmin::ProxyPushConsumer_var proxy_for_consumer;
+    EventPublisher_var                           proxy;
 
     //
     // Push Supplier...
     //
-    Supplier                                      *supplier;
+    Supplier                                     *supplier;
 
     //
     // number of retries to perform (-1 == try forever)
@@ -314,7 +296,7 @@ namespace ossie
 
       };
 
-      /**
+      /*
        * Allow for member functions to receive connect/disconnect notifications
        */
       template <class T>
@@ -345,7 +327,7 @@ namespace ossie
 	  MemberFn func_;
 	};
 
-      /**
+      /*
        * Wrap Callback functions as ConnectionEventListener objects
        */
       class StaticDataArrivedListener : public DataArrivedListener
@@ -489,17 +471,12 @@ namespace ossie
     //
     // handle to the EventChannel
     //
-    CosEventChannelAdmin::EventChannel_var      channel;
-
-    //
-    // Get Supplier Admin interface 
-    //
-    CosEventChannelAdmin::ConsumerAdmin_var     consumer_admin;
+    EventChannel_var                           channel;
 
     //
     // Get proxy supplier that is providing the data
     //
-    CosEventChannelAdmin::ProxyPushSupplier_var proxy_for_supplier;
+    EventSubscriber_var                         proxy;
 
     //
     // Push Consumer

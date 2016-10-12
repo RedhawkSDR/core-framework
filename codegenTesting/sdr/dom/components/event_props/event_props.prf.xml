@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="eventShortSimple" mode="readwrite" name="eventShortSimple" type="short">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventStringSimple" mode="readwrite" name="eventStringSimple" type="string">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventBoolSimple" mode="readwrite" name="eventBoolSimple" type="boolean">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventUlongSimple" mode="readwrite" name="eventUlongSimple" type="ulong">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventFloatSimple" mode="readwrite" name="eventFloatSimple" type="float">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventOctetSimple" mode="readwrite" name="eventOctetSimple" type="octet">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventCharSimple" mode="readwrite" name="eventCharSimple" type="char">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventUshortSimple" mode="readwrite" name="eventUshortSimple" type="ushort">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventDoubleSimple" mode="readwrite" name="eventDoubleSimple" type="double">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventLongSimple" mode="readwrite" name="eventLongSimple" type="long">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventLonglongSimple" mode="readwrite" name="eventLonglongSimple" type="longlong">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="eventUlonglongSimple" mode="readwrite" name="eventUlonglongSimple" type="ulonglong">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="eventStringSeq" mode="readwrite" name="eventStringSeq" type="string">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventBoolSeq" mode="readwrite" name="eventBoolSeq" type="boolean">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventUlongSeq" mode="readwrite" name="eventUlongSeq" type="ulong">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventFloatSeq" mode="readwrite" name="eventFloatSeq" type="float">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventOctetSeq" mode="readwrite" name="eventOctetSeq" type="octet">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventCharSeq" mode="readwrite" name="eventCharSeq" type="char">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventUshortSeq" mode="readwrite" name="eventUshortSeq" type="ushort">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventDoubleSeq" mode="readwrite" name="eventDoubleSeq" type="double">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventLongSeq" mode="readwrite" name="eventLongSeq" type="long">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventLonglongSeq" mode="readwrite" name="eventLonglongSeq" type="longlong">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventUlonglongSeq" mode="readwrite" name="eventUlonglongSeq" type="ulonglong">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="eventShortSeq" mode="readwrite" name="eventShortSeq" type="short">
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simplesequence>
+  <struct id="eventStruct" mode="readwrite">
+    <simple id="shortSimple" mode="readwrite" name="shortSimple" type="short">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="stringSimple" mode="readwrite" name="stringSimple" type="string">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="boolSimple" mode="readwrite" name="boolSimple" type="boolean">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="ulongSimple" mode="readwrite" name="ulongSimple" type="ulong">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="floatSimple" mode="readwrite" name="floatSimple" type="float">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="octetSimple" mode="readwrite" name="octetSimple" type="octet">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="ushortSimple" mode="readwrite" name="ushortSimple" type="ushort">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="doubleSimple" mode="readwrite" name="doubleSimple" type="double">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="longSimple" mode="readwrite" name="longSimple" type="long">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="longlongSimple" mode="readwrite" name="longlongSimple" type="longlong">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="ulonglongSimple" mode="readwrite" name="ulonglongSimple" type="ulonglong">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="charSimple" mode="readwrite" name="charSimple" type="char">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="event"/>
+  </struct>
+  <structsequence id="eventStructSeq" mode="readwrite" name="eventStructSeq">
+    <struct id="ss_struct" name="ss_struct">
+      <simple id="ss_stringSimple" mode="readwrite" name="ss_stringSimple" type="string">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="ss_boolSimple" mode="readwrite" name="ss_boolSimple" type="boolean">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="ss_shortSimple" mode="readwrite" name="ss_shortSimple" type="short">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="ss_floatSimple" mode="readwrite" name="ss_floatSimple" type="float">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+    </struct>
+    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="event"/>
+  </structsequence>
+  <simple id="eventSent" mode="readwrite" name="eventSent" type="boolean">
+    <value>False</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="propToSend" mode="readwrite" name="propToSend" type="string">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+</properties>

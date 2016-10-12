@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:511172b2-11f5-4804-b40f-6a7b83ccf5ef" name="svc_node">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="svc_a_0c74ab11-c9b3-471b-be0e-093e8da7a790" type="SPD">
+      <localfile name="/services/svc_a/svc_a.spd.xml"/>
+    </componentfile>
+    <componentfile id="svc_b_21550c36-9e71-44af-9a46-d5b9f6a825e3" type="SPD">
+      <localfile name="/services/svc_b/svc_b.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="svc_a_0c74ab11-c9b3-471b-be0e-093e8da7a790"/>
+      <componentinstantiation id="svc_a_1">
+        <usagename>svc_a_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="svc_b_21550c36-9e71-44af-9a46-d5b9f6a825e3"/>
+      <componentinstantiation id="svc_b_1">
+        <usagename>svc_b_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <connections>
+    <connectinterface id="connection_1">
+      <usesport>
+        <usesidentifier>dataFloat</usesidentifier>
+        <findby>
+          <domainfinder name="svc_a_1" type="servicename"/>
+        </findby>
+      </usesport>
+      <providesport>
+        <providesidentifier>dataFloat</providesidentifier>
+        <findby>
+          <domainfinder name="svc_b_1" type="servicename"/>
+        </findby>
+      </providesport>
+    </connectinterface>
+  </connections>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

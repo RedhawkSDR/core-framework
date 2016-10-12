@@ -24,6 +24,7 @@ log4j.appender.FILE.threshold=TRACE
 #log4j.logger.Application_impl=TRACE
 #log4j.logger.ComponentInfo=TRACE
 #log4j.logger.ConnectionManager=TRACE
+#log4j.logger.ConnectionNode=TRACE
 #log4j.logger.DeviceManager_impl=TRACE
 #log4j.logger.DeviceManagerConfiguration=TRACE
 #log4j.logger.ImplementationInfo=TRACE

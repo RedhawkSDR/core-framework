@@ -22,7 +22,7 @@
 #define _BURSTIODATATYPES_IDL_
 
 #include "ossie/CF/PortTypes.idl"
-#include "ossie/CF/cf.idl"
+#include "ossie/CF/DataType.idl"
 #include "ossie/BULKIO/bio_runtimeStats.idl"
 
 

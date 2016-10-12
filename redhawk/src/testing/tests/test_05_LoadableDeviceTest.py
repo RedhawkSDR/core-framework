@@ -132,6 +132,22 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
 
         self._domMgr.uninstallApplication(appFact._get_identifier())
 
+    def test_cpp_RefreshSubdir(self):
+        self.assertNotEqual(self._domMgr, None)
+
+        # Ensure the expected device is available
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        device = devMgr._get_registeredDevices()[0]
+        device.load(devMgr._get_fileSys(), "/data/subdir_test", CF.LoadableDevice.EXECUTABLE)
+        self.assertEqual(os.listdir('sdr/cache/.ExecutableDevice_node/ExecutableDevice1/data/subdir_test/subdir_two'),['second_file.txt'])
+        os.remove('sdr/cache/.ExecutableDevice_node/ExecutableDevice1/data/subdir_test/subdir_two/second_file.txt')
+        self.assertEqual(os.listdir('sdr/cache/.ExecutableDevice_node/ExecutableDevice1/data/subdir_test/subdir_two'),[])
+        device.load(devMgr._get_fileSys(), "/data/subdir_test", CF.LoadableDevice.EXECUTABLE)
+        self.assertEqual(os.listdir('sdr/cache/.ExecutableDevice_node/ExecutableDevice1/data/subdir_test/subdir_two'),['second_file.txt'])
+        device.unload("/data/subdir_test")
+
     def test_cpp_DirectoryLoad(self):
         self.assertNotEqual(self._domMgr, None)
 
@@ -219,6 +235,22 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         self.assertEqual(len(self._domMgr._get_applications()), 0)
 
         self._domMgr.uninstallApplication(appFact._get_identifier())
+
+    def test_py_RefreshSubdir(self):
+        self.assertNotEqual(self._domMgr, None)
+
+        # Ensure the expected device is available
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        device = devMgr._get_registeredDevices()[0]
+        device.load(devMgr._get_fileSys(), "/data/subdir_test", CF.LoadableDevice.EXECUTABLE)
+        self.assertEqual(os.listdir('sdr/cache/.BasicTestDevice_node/BasicTestDevice1/data/subdir_test/subdir_two'),['second_file.txt'])
+        os.remove('sdr/cache/.BasicTestDevice_node/BasicTestDevice1/data/subdir_test/subdir_two/second_file.txt')
+        self.assertEqual(os.listdir('sdr/cache/.BasicTestDevice_node/BasicTestDevice1/data/subdir_test/subdir_two'),[])
+        device.load(devMgr._get_fileSys(), "/data/subdir_test", CF.LoadableDevice.EXECUTABLE)
+        self.assertEqual(os.listdir('sdr/cache/.BasicTestDevice_node/BasicTestDevice1/data/subdir_test/subdir_two'),['second_file.txt'])
+        device.unload("/data/subdir_test")
 
     def test_py_DirectoryLoad(self):
         self.assertNotEqual(self._domMgr, None)

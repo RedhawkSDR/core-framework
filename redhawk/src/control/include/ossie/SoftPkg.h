@@ -26,6 +26,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <boost/shared_ptr.hpp>
 #include "ossie/exceptions.h"
 #include "ossie/ossieparser.h"
 #include "ossie/componentProfile.h"
@@ -47,8 +48,18 @@ namespace ossie {
 
         class PropertyRef : public DependencyRef {
             public:
+                PropertyRef() :
+                    property()
+                {
+                }
+
                 PropertyRef(ComponentProperty* prop) :
                     property(prop)
+                {
+                }
+
+                PropertyRef(const ComponentProperty &prop) :
+                    property(prop.clone())
                 {
                 }
 
@@ -57,7 +68,7 @@ namespace ossie {
                 {
                 }
 
-                ComponentProperty* property;
+                boost::shared_ptr< ossie::ComponentProperty > property;
 
                 virtual const std::string asString() const;
                 virtual ~PropertyRef();
@@ -71,6 +82,10 @@ namespace ossie {
                 virtual const std::string asString() const;
                 virtual ~SoftPkgRef() {};
         };
+
+
+        typedef std::vector< ossie::SPD::SoftPkgRef > SoftPkgDependencies;
+
 
         class Author {
             public:
@@ -150,7 +165,7 @@ namespace ossie {
                 std::vector<NameVersionPair> osDeps;
                 std::vector<std::string> processorDeps;
                 std::vector<PropertyRef> dependencies;
-                std::vector<SoftPkgRef> softPkgDependencies;
+                SoftPkgDependencies       softPkgDependencies;
                 std::vector<UsesDevice> usesDevice;
 
                 // Fields that are not used at runtime
@@ -212,10 +227,13 @@ namespace ossie {
                     return dependencies;
                 }
             
-                const std::vector<SoftPkgRef>& getSoftPkgDependencies() const {
+                const ossie::SPD::SoftPkgDependencies& getSoftPkgDependencies() const {
                     return softPkgDependencies;
                 }
         };
+
+    public:
+        typedef std::vector< ossie::SPD::Implementation > Implementations;
 
             // SPD Members
         public:
@@ -228,7 +246,7 @@ namespace ossie {
             optional_value<std::string> properties;
             optional_value<std::string> descriptor;
             std::vector<Author> authors;
-            std::vector<Implementation> implementations;
+            Implementations  implementations;
             std::vector<UsesDevice> usesDevice;
     };
 
@@ -325,7 +343,8 @@ namespace ossie {
                 return _spd->authors;
             }
 
-            const std::vector<ossie::SPD::Implementation>& getImplementations() const {
+            //const std::vector<ossie::SPD::Implementation>& getImplementations() const {
+            const ossie::SPD::Implementations& getImplementations() const {
                 assert(_spd.get() != 0);
                 return _spd->implementations; 
             }

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:bc459954-385b-4012-a59b-e2f469fd36e8" name="nocmdline_node">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="nocmdline_dev_eef3ff89-9587-408c-9942-f9d389aec7c2" type="SPD">
+      <localfile name="/devices/nocmdline_dev/nocmdline_dev.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="nocmdline_dev_eef3ff89-9587-408c-9942-f9d389aec7c2"/>
+      <componentinstantiation id="nocmdline_dev_1">
+        <usagename>nocmdline_dev_1</usagename>
+        <componentproperties>
+          <simpleref refid="testprop" value="abc"/>
+        </componentproperties>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

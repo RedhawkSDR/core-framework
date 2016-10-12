@@ -164,7 +164,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	)>
 <!ATTLIST usesdevice
 	id		ID	#REQUIRED
-	type		CDATA	#REQUIRED>
+	type		CDATA	#IMPLIED>
 
 <!ELEMENT simpleref EMPTY>
 <!ATTLIST simpleref
@@ -179,7 +179,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	refid		CDATA	#REQUIRED>
 
 <!ELEMENT structref
-	(simpleref+        
+	( (simpleref | simplesequenceref)+        
 	)>
 <!ATTLIST structref
 	refid		CDATA	#REQUIRED>
@@ -191,7 +191,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	refid		CDATA	#REQUIRED>
 
 <!ELEMENT structvalue
-	(simpleref+
+	( (simpleref | simplesequenceref)+
 	)>
 		
 <!ELEMENT values

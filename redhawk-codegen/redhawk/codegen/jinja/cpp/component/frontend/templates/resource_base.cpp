@@ -19,10 +19,19 @@
  #*/
 //% extends "pull/resource_base.cpp"
 /*{% block extensions %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
 /* This sets the number of entries in the frontend_tuner_status struct sequence property
  * as well as the tuner_allocation_ids vector. Call this function during initialization
  */
 void ${className}::setNumChannels(size_t num)
+{
+    this->setNumChannels(num, "RX_DIGITIZER");
+}
+/* This sets the number of entries in the frontend_tuner_status struct sequence property
+ * as well as the tuner_allocation_ids vector. Call this function during initialization
+ */
+
+void ${className}::setNumChannels(size_t num, std::string tuner_type)
 {
     frontend_tuner_status.clear();
     frontend_tuner_status.resize(num);
@@ -30,9 +39,9 @@ void ${className}::setNumChannels(size_t num)
     tuner_allocation_ids.resize(num);
     for (std::vector<frontend_tuner_status_struct_struct>::iterator iter=frontend_tuner_status.begin(); iter!=frontend_tuner_status.end(); iter++) {
         iter->enabled = false;
+        iter->tuner_type = tuner_type;
     }
 }
-/*{% if 'FrontendTuner' in component.implements %}*/
 
 void ${className}::frontendTunerStatusChanged(const std::vector<frontend_tuner_status_struct_struct>* oldValue, const std::vector<frontend_tuner_status_struct_struct>* newValue)
 {

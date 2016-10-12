@@ -17,9 +17,17 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+
+import os
+
 from redhawk.codegen.jinja.cpp.component.pull.mapping import PullComponentMapper
+from redhawk.codegen.lang import mfile
 
 class MFunctionMapper(PullComponentMapper):
+    def __init__(self, outputdir):
+        PullComponentMapper.__init__(self)
+        self._outputdir = outputdir
+
     def _mapComponent(self, softpkg):
         '''
         Extends the pull mapper _mapComponent method by defining the
@@ -27,14 +35,31 @@ class MFunctionMapper(PullComponentMapper):
 
         '''
 
-        component = {}
+        component = PullComponentMapper._mapComponent(self, softpkg)
 
-        component['mFunction'] = {'name'      : softpkg.mFileFunctionName(),
-                                  'inputs'    : softpkg.mFileInputs(),
-                                  'numInputs' : len(softpkg.mFileInputs()),
-                                  'outputs'   : softpkg.mFileOutputs()}
+        mFunction = None
+        for prop in softpkg.properties():
+            if str(prop.identifier()) == "__mFunction":
+                mFunction = prop.value()
+                break
+
+        if mFunction:
+            # point towards the m file that has been copied
+            # to the implementation directory
+            mFilePath = os.path.join(softpkg.path(), self._outputdir, mFunction+".m")
+            parameters = mfile.parse(mFilePath)
+            name = parameters.functionName
+            inputs = parameters.inputs
+            outputs = parameters.outputs
+        else:
+            name = ""
+            inputs = []
+            outputs = []
+
+        component['mFunction'] = {'name'      : name,
+                                  'inputs'    : inputs,
+                                  'numInputs' : len(inputs),
+                                  'outputs'   : outputs}
         component['license'] = "GPL"
-
-        component.update(PullComponentMapper._mapComponent(self, softpkg))
 
         return component

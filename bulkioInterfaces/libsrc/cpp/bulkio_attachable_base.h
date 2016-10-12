@@ -30,11 +30,11 @@
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 
+#include <ossie/ossieSupport.h>
+
 #include "bulkio_base.h"
 #include "bulkio_traits.h"
-#include "ossie/ossieSupport.h"
-
-#include "bulkio_in_port.h" // For SriListener Definition
+#include "bulkio_callbacks.h"
 
 namespace bulkio {
   
@@ -252,6 +252,8 @@ namespace bulkio {
     // @return   typename PortType::InputUsageState return the current state of the port base on how many attach requests have been received
     //            
     virtual typename PortType::InputUsageState usageState();
+
+	std::string getRepid() const;
  
 
   protected:
@@ -697,6 +699,8 @@ namespace bulkio {
     // remove 
     //
     virtual void removeStream(const std::string& streamId);
+
+	std::string getRepid() const;
 
 
   protected:

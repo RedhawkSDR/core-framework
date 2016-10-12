@@ -62,12 +62,6 @@ class PythonPortGenerator(PortGenerator):
     def constructor(self, port):
         return '%s(%s)' % (self.className(), ', '.join(self._ctorArgs(port)))
 
-    def start(self):
-        return None
-
-    def stop(self):
-        return None
-
     def supportsMultiOut(self):
         return False
 

@@ -19,7 +19,7 @@
  #*/
 //% set className = component.userclass.name
 //% set baseClass = component.baseclass.name
-//% set includeGuard = component.name.upper() + '_IMPL_H'
+//% set includeGuard = className.upper() + '_IMPL_H'
 //% set operations = component.operations
 #ifndef ${includeGuard}
 #define ${includeGuard}

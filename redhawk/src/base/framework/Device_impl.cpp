@@ -20,15 +20,15 @@
 
 #include <iostream>
 #include <string.h>
-
+#include <signal.h>
+#include <sys/signalfd.h>
 
 #include "ossie/Device_impl.h"
 #include "ossie/CorbaUtils.h"
+#include "ossie/Events.h"
 
-#include "ossie/EventChannelSupport.h"
 
-
-PREPARE_LOGGING(Device_impl)
+PREPARE_CF_LOGGING(Device_impl)
 
 //
 // Helper class for performing cleanup when an allocation partially succeeds
@@ -86,10 +86,11 @@ void Device_impl::initResources (char* devMgr_ior, char* _id,
     _operationalState = CF::Device::ENABLED;
     _adminState = CF::Device::UNLOCKED;
     initialConfiguration = true;
+    sig_fd=-1;
 
     useNewAllocation = false;
+    this->_devMgr = NULL;
 }                          
-
 
 Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrfl) : Resource_impl(_id)
 {
@@ -142,27 +143,66 @@ Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrf
         _aggregateDevice->addDevice(this->_this());
     }
 
+
     LOG_TRACE(Device_impl, "Done Constructing Device")
+}
+
+const CF::DeviceManager_ptr Device_impl::getDeviceManager() const {
+  if ( _devMgr ) return _devMgr->getRef();
+  return CF::DeviceManager::_nil();
+}
+
+
+void  Device_impl::postConstruction (std::string &profile, 
+                                     std::string &registrar_ior, 
+                                     const std::string &idm_channel_ior,
+                                     const std::string &nic,
+                                     const int sigfd )
+{
+
+  // signalfd for processing sigXX events in service function, removes deadlock issue with io operations
+  sig_fd = sigfd;   
+  
+  // resolves Domain and Device Manger relationships
+  setAdditionalParameters(profile, registrar_ior, nic);
+
+    // establish IDM Channel connectivity
+    connectIDMChannel( idm_channel_ior );
+
+   // register ourself with my DeviceManager
+   _deviceManager->registerDevice(this->_this());
+}
+
+
+
+void  Device_impl::setAdditionalParameters ( std::string &profile, 
+                                             std::string &registrar_ior,
+                                             const std::string &nic )
+{
+  // set parent's domain context
+  std::string tnic(nic);
+  Resource_impl::setAdditionalParameters(profile,registrar_ior, tnic);
+
+  _devMgr_ior = registrar_ior;
+  _deviceManager = CF::DeviceManager::_nil();
+  CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(_devMgr_ior.c_str());
+  if (CORBA::is_nil(obj)) {
+    LOG_ERROR(Device_impl, "Invalid device manager IOR");
+    exit(-1);
+  }
+  _deviceManager = CF::DeviceManager::_narrow(obj);
+  if (CORBA::is_nil(_deviceManager)) {
+    LOG_ERROR(Device_impl, "Could not narrow device manager IOR");
+    exit(-1);
+  }
+
+  this->_devMgr = new redhawk::DeviceManagerContainer(_deviceManager);
 }
 
 
 void  Device_impl::run ()
 {
-    _deviceManager = CF::DeviceManager::_nil();
-    CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(_devMgr_ior.c_str());
-    if (CORBA::is_nil(obj)) {
-        LOG_ERROR(Device_impl, "Invalid device manager IOR");
-        exit(-1);
-    }
-    _deviceManager = CF::DeviceManager::_narrow(obj);
-    if (CORBA::is_nil(_deviceManager)) {
-        LOG_ERROR(Device_impl, "Could not narrow device manager IOR");
-        exit(-1);
-    }
-
-    _deviceManager->registerDevice(this->_this());
- 
-    Resource_impl::run(); // This won't return until halt is called
+  Resource_impl::run(); // This won't return until halt is called
 }
 
 void  Device_impl::halt ()
@@ -182,7 +222,6 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
         setAdminState(CF::Device::SHUTTING_DOWN);
 
         // SR:418
-        // TODO Release aggregate devices if more than one exists
         if (!CORBA::is_nil(_aggregateDevice)) {
             try {
                 _aggregateDevice->removeDevice(this->_this());
@@ -202,15 +241,29 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
         }
         LOG_DEBUG(Device_impl, "Done Releasing Device")
     }
-    
+
+    RH_NL_DEBUG("Device", "Clean up IDM_CHANNEL. DEV-ID:"  << _identifier );
+    if ( idm_publisher )  idm_publisher.reset();
+    delete this->_devMgr;
+    this->_devMgr=NULL;
     Resource_impl::releaseObject();
 }
 
-
 Device_impl::~Device_impl ()
 {
-}
 
+  RH_NL_TRACE("Device", "DTOR START  DEV-ID:"  << _identifier );
+
+  RH_NL_DEBUG("Device", "Clean up event channel allocations");
+  if ( idm_publisher ) idm_publisher.reset();
+  
+  if (this->_devMgr != NULL) {
+      delete this->_devMgr;
+   }
+
+  RH_NL_TRACE("Device", "DTOR END  DEV-ID:"  << _identifier );
+
+}
 
 /* Alternate implementation*/
 CORBA::Boolean Device_impl::allocateCapacity (const CF::Properties& capacities)
@@ -273,8 +326,8 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
     
     CF::Properties currentCapacities;
 
-    bool extraCap = false;  /// Flag to check remaining extra capacity to allocate
-    bool foundProperty;     /// Flag to indicate if the requested property was found
+    bool extraCap = false;  // Flag to check remaining extra capacity to allocate
+    bool foundProperty;     // Flag to indicate if the requested property was found
 
     if (!isBusy ()) {
         // The try is just a formality in this case
@@ -719,6 +772,26 @@ Device_impl::AnyComparisonType Device_impl::compareAnyToZero (CORBA::Any& first)
     return UNKNOWN;
 }
 
+void Device_impl::sendStateChange( StandardEvent::StateChangeType &stateChangeFrom, 
+                                   StandardEvent::StateChangeType &stateChangeTo,
+                                   StandardEvent::StateChangeCategoryType stateCategory ) {
+
+  std::string producerId = _identifier;
+  std::string sourceId = _identifier;
+  if ( idm_publisher ) {
+    redhawk::events::SendStateChangeEvent( producerId.c_str(), 
+                                      sourceId.c_str(),
+                                      stateCategory,
+                                      stateChangeFrom,
+                                      stateChangeTo,
+                                      idm_publisher );
+  }
+  else {
+    RH_NL_WARN("Device", "Unable to publish state change, DEV-ID:"  << _identifier );
+  }
+
+}
+
 
 void Device_impl::setUsageState (CF::Device::UsageType newUsageState)
 {
@@ -747,8 +820,8 @@ void Device_impl::setUsageState (CF::Device::UsageType newUsageState)
             new_state = StandardEvent::BUSY;
             break;
     }
-    ossie::sendStateChangeEvent(Device_impl::__logger, _identifier.c_str(), _identifier.c_str(), StandardEvent::USAGE_STATE_EVENT, 
-        current_state, new_state, proxy_consumer);
+    if ( current_state != new_state ) 
+      sendStateChange( current_state, new_state, StandardEvent::USAGE_STATE_EVENT );
     _usageState = newUsageState;
 }
 
@@ -779,8 +852,7 @@ void Device_impl::setAdminState (CF::Device::AdminType new_adminState)
             new_state = StandardEvent::SHUTTING_DOWN;
             break;
     }
-    ossie::sendStateChangeEvent(Device_impl::__logger, _identifier.c_str(), _identifier.c_str(), StandardEvent::ADMINISTRATIVE_STATE_EVENT, 
-        current_state, new_state, proxy_consumer);
+    sendStateChange( current_state, new_state, StandardEvent::ADMINISTRATIVE_STATE_EVENT );
     _adminState = new_adminState;
 }
 
@@ -898,116 +970,39 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
     PropertySet_impl::configure(capacities);
 }
 
-IDM_Channel_Supplier_i::IDM_Channel_Supplier_i (Device_impl *_dev)
-{
-    TRACE_ENTER(Device_impl)
 
-    _device = _dev;
+void Device_impl::connectIDMChannel( const std::string &idm_channel_ior ) {
 
-    TRACE_EXIT(Device_impl)
-}
-
-
-void IDM_Channel_Supplier_i::disconnect_push_supplier ()
-{
-    TRACE_ENTER(Device_impl)
-
-    TRACE_EXIT(Device_impl)
-}
-
-
-void Device_impl::connectSupplierToIncomingEventChannel(CosEventChannelAdmin::EventChannel_ptr idm_channel)
-{
-    TRACE_ENTER(Device_impl);
-
-    IDM_channel = CosEventChannelAdmin::EventChannel::_duplicate(idm_channel);
-
-    CosEventChannelAdmin::SupplierAdmin_var supplier_admin;
-    unsigned int number_tries;
-    unsigned int maximum_tries = 10;
-
-    number_tries = 0;
-    while (true)
-    {
-        try {
-            supplier_admin = IDM_channel->for_suppliers ();
-            if (CORBA::is_nil(supplier_admin))
-            {
-                IDM_channel = CosEventChannelAdmin::EventChannel::_nil();
-                return;
-            }
-            break;
-        }
-        catch (CORBA::COMM_FAILURE& ex) {
-            if (number_tries == maximum_tries) {
-                IDM_channel = CosEventChannelAdmin::EventChannel::_nil();
-                return;
-            }
-            usleep(1000);   // wait 1 ms
-            number_tries++;
-            continue;
-        }
+  
+  if ( idm_channel_ior.size() > 0 and idm_channel_ior != "" ) {
+    try {
+      CORBA::Object_var IDM_channel_obj = ossie::corba::Orb()->string_to_object(idm_channel_ior.c_str());
+      if (CORBA::is_nil(IDM_channel_obj)) {
+        LOG_ERROR(Device_impl, "Invalid IDM channel IOR: " << idm_channel_ior << "  DEV-ID:" << _identifier );
+      } else {
+        ossie::events::EventChannel_var idm_channel = ossie::events::EventChannel::_narrow(IDM_channel_obj);
+        idm_publisher = redhawk::events::PublisherPtr(new redhawk::events::Publisher( idm_channel ));
+      }
     }
+    CATCH_LOG_WARN(Device_impl, "Unable to connect to IDM channel");
+  }
+  else {
 
-    proxy_consumer = CosEventChannelAdmin::ProxyPushConsumer::_nil();
-    number_tries = 0;
-    while (true)
-    {
-        try {
-            proxy_consumer = supplier_admin->obtain_push_consumer ();
-            if (CORBA::is_nil(proxy_consumer))
-            {
-                IDM_channel = CosEventChannelAdmin::EventChannel::_nil();
-                return;
-            }
-            break;
-        }
-        catch (CORBA::COMM_FAILURE& ex) {
-            if (number_tries == maximum_tries) {
-                IDM_channel = CosEventChannelAdmin::EventChannel::_nil();
-                return;
-            }
-            usleep(1000);   // wait 1 ms
-            number_tries++;
-            continue;
-        }
+    try {
+      RH_NL_DEBUG("Device", "Getting EventManager.... DEV-ID:" << _identifier );
+      redhawk::events::ManagerPtr evt_mgr = redhawk::events::Manager::GetManager( this );
+      
+      if ( evt_mgr ) {
+        RH_NL_INFO("Device", "DEV-ID:" << _identifier << " Requesting IDM CHANNEL " << redhawk::events::IDM_Channel_Spec  );
+        idm_publisher = evt_mgr->Publisher( redhawk::events::IDM_Channel_Spec );
+      
+        if (idm_publisher == NULL ) throw -1;
+      }
     }
-
-    //
-    // Connect Push Supplier - retrying on Comms Failure.
-    PortableServer::POA_var root_poa = PortableServer::POA::_narrow(ossie::corba::RootPOA());
-
-    IDM_Channel_Supplier_i* supplier_servant = new IDM_Channel_Supplier_i(this);
-
-    PortableServer::ObjectId_var oid = root_poa->activate_object(supplier_servant);
-
-    CosEventComm::PushSupplier_var sptr = supplier_servant->_this();
-    
-    supplier_servant->_remove_ref();
-    number_tries = 0;
-    while (true)
-    {
-        try {
-            proxy_consumer->connect_push_supplier(sptr.in());
-            break;
-        }
-        catch (CORBA::BAD_PARAM& ex) {
-            IDM_channel = CosEventChannelAdmin::EventChannel::_nil();
-            return;
-        }
-        catch (CosEventChannelAdmin::AlreadyConnected& ex) {
-            break;
-        }
-        catch (CORBA::COMM_FAILURE& ex) {
-            if (number_tries == maximum_tries) {
-                IDM_channel = CosEventChannelAdmin::EventChannel::_nil();
-                return;
-            }
-            usleep(1000);   // wait 1 ms
-            number_tries++;
-            continue;
-        }
-    }
+    catch(...) { 
+      LOG_ERROR(Device_impl, "Unable to connect to Domain's IDM Channel,  DEV-ID:" << _identifier );
+    }  
+  }
 
 }
 
@@ -1017,7 +1012,8 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
     char* id = 0;
     char* label = 0;
     char* profile = 0;
-    char* idm_channel_ior = 0;
+    //char* idm_channel_ior = 0;
+    std::string idm_channel_ior("");
     char* composite_device = 0;
     const char* logging_config_uri = 0;
     int debug_level = -1; // use log level from configuration file 
@@ -1026,6 +1022,7 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
     std::string log_id("");
     std::string log_label("");
     bool skip_run = false;
+    bool enablesigfd=false;
         
     std::map<std::string, char*> execparams;
                 
@@ -1051,14 +1048,37 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
             debug_level = atoi(argv[++i]);
         } else if (strcmp("DOM_PATH", argv[i]) == 0) {
             log_dpath = argv[++i];
+        } else if (strcmp("USESIGFD", argv[i]) == 0){
+            enablesigfd = true;
         } else if (strcmp("SKIP_RUN", argv[i]) == 0){
             skip_run = true;
+            i++;             // skip flag has bogus argument need to skip over so execparams is processed correctly
         } else if (i > 0) {  // any other argument besides the first one is part of the execparams
             std::string paramName = argv[i];
             execparams[paramName] = argv[++i];
         }
     }
-                       
+
+    // signal assist with processing SIGCHLD events for executable devices..
+    int sig_fd=-1;
+    if ( enablesigfd  ){
+      int err;
+      sigset_t  sigset;
+      err=sigemptyset(&sigset);
+      err=sigaddset(&sigset, SIGCHLD);
+      /* We must block the signals in order for signalfd to receive them */
+      err = sigprocmask(SIG_BLOCK, &sigset, NULL);
+      if ( err != 0 ) {
+        LOG_FATAL(Device_impl, "Failed to create signalfd for SIGCHLD");
+        exit(EXIT_FAILURE);
+      }
+      /* Create the signalfd */
+      sig_fd = signalfd(-1, &sigset,0);
+      if ( sig_fd == -1 ) {
+        LOG_FATAL(Device_impl, "Failed to create signalfd for SIGCHLD");
+        exit(EXIT_FAILURE);
+      }
+    }
 
     // The ORB must be initialized before configuring logging, which may use
     // CORBA to get its configuration file. Devices do not need persistent IORs.
@@ -1101,13 +1121,13 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
         exit(EXIT_FAILURE);
     }
 
-    /** Ignore SIGInterrupt because when you CTRL-C the node
+    /* Ignore SIGInterrupt because when you CTRL-C the node
         booter we don't want the device to die, and it's the shells responsibility
         to send CTRL-C to all foreground processes (even children) */
     signal(SIGINT, SIG_IGN);
 
     Device_impl* device = ctor(devMgr_ior, id, label, profile, composite_device);
-        
+    
     if ( !skip_run ) {
         // assign logging context to the resource..to support logging interface
         device->saveLoggingContext( logcfg_uri, debug_level, ctx );
@@ -1116,24 +1136,25 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
     // setting all the execparams passed as argument, this method resides in the Resource_impl class
     device->setExecparamProperties(execparams);
 
-    if (idm_channel_ior) {
-        try {
-            CORBA::Object_var IDM_channel_obj = ossie::corba::Orb()->string_to_object(idm_channel_ior);
-            if (CORBA::is_nil(IDM_channel_obj)) {
-                LOG_ERROR(Device_impl, "Invalid IDM channel IOR: " << idm_channel_ior);
-            } else {
-                CosEventChannelAdmin::EventChannel_var idm_channel = CosEventChannelAdmin::EventChannel::_narrow(IDM_channel_obj);
-                device->connectSupplierToIncomingEventChannel(idm_channel);
-            }
-        }
-        CATCH_LOG_WARN(Device_impl, "Unable to connect to IDM channel");
+    //perform post construction operations for the device
+    std::string tmp_devMgr_ior = devMgr_ior;
+    std::string tmp_profile = profile;
+    std::string nic = "";
+    try {
+      device->postConstruction( tmp_profile, tmp_devMgr_ior, idm_channel_ior, nic, sig_fd);
     }
+    catch( CF::InvalidObjectReference &ex ) {
+      LOG_FATAL(Device_impl, "Device " << label << ", Failed initialization and registration, terminating execution");
+      exit(EXIT_FAILURE);
+    }
+
     if (skip_run) {
         return;
     }    
     device->run();
     LOG_DEBUG(Device_impl, "Goodbye!");
     device->_remove_ref();
+    ossie::logging::Terminate();
     ossie::corba::OrbShutdown(true);
 }
 

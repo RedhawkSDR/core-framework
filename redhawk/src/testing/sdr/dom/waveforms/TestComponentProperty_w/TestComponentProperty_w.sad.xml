@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:b2324093-b9c2-4394-8865-7cb9c6d8e500" name="TestComponentProperty_w">
+  <componentfiles>
+    <componentfile id="TestComponentProperty_ae1b04c9-17c2-48a8-b622-ddbcc425ba90" type="SPD">
+      <localfile name="/components/TestComponentProperty/TestComponentProperty.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="TestComponentProperty_ae1b04c9-17c2-48a8-b622-ddbcc425ba90"/>
+      <componentinstantiation id="TestComponentProperty_1" startorder="0">
+        <usagename>TestComponentProperty_1</usagename>
+        <componentproperties>
+          <structref refid="tests">
+            <simpleref refid="b" value="16"/>
+          </structref>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="TestComponentProperty_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="TestComponentProperty_1"/>
+  </assemblycontroller>
+</softwareassembly>

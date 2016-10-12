@@ -23,6 +23,7 @@
 
 #include<memory>
 #include<istream>
+#include <boost/shared_ptr.hpp>
 #include"ossie/componentProfile.h"
 #include"ossie/exceptions.h"
 
@@ -83,18 +84,24 @@ namespace ossie {
             {
             }
 
+            PropertyRef(const ComponentProperty &prop) :
+                property(prop.clone())
+            {
+            }
+
             PropertyRef (const PropertyRef& copy) :
                 property (copy.property->clone())
             {
             }
 
-            std::string refId;
-            ComponentProperty* property;
-
-            ~PropertyRef ()
+            virtual ~PropertyRef ()
             {
-                delete property;
+              
             }
+
+            std::string refId;
+            boost::shared_ptr< ossie::ComponentProperty > property;
+
         };
 
         class UsesDevice {

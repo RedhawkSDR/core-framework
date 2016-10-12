@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>TestCppOptionalProps</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+	</buildSpec>
+	<natures>
+		<nature>org.python.pydev.pythonNature</nature>
+		<nature>gov.redhawk.ide.natures.scaproject</nature>
+		<nature>gov.redhawk.ide.natures.sca.component</nature>
+	</natures>
+</projectDescription>

@@ -1,27 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
-#
-# This file is protected by Copyright. Please refer to the COPYRIGHT file
-# distributed with this source distribution.
-#
-# This file is part of REDHAWK core.
-#
-# REDHAWK core is free software: you can redistribute it and/or modify it under
-# the terms of the GNU Lesser General Public License as published by the Free
-# Software Foundation, either version 3 of the License, or (at your option) any
-# later version.
-#
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
-# details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see http://www.gnu.org/licenses/.
-#
 
 #
-# Generated Thu Sep 12 14:49:30 2013 by generateDS.py version 2.7c.
+# Generated Thu Oct  1 16:02:25 2015 by generateDS.py version 2.7c.
 #
 
 import sys
@@ -1278,12 +1259,14 @@ class simple(GeneratedsSuper):
     the type of the kind element is "configure"."""
     subclass = None
     superclass = None
-    def __init__(self, complex='false', type_=None, id_=None, name=None, mode='readwrite', description=None, value=None, units=None, range_=None, enumerations=None, kind=None, action=None):
-        self.complex = _cast(None, complex)
-        self.type_ = _cast(None, type_)
-        self.id_ = _cast(None, id_)
+    def __init__(self, name=None, type_=None, commandline='false', complex='false', mode='readwrite', optional='false', id_=None, description=None, value=None, units=None, range_=None, enumerations=None, kind=None, action=None):
         self.name = _cast(None, name)
+        self.type_ = _cast(None, type_)
+        self.commandline = _cast(None, commandline)
+        self.complex = _cast(None, complex)
         self.mode = _cast(None, mode)
+        self.optional = _cast(None, optional)
+        self.id_ = _cast(None, id_)
         self.description = description
         self.value = value
         self.units = units
@@ -1326,30 +1309,42 @@ class simple(GeneratedsSuper):
     def get_action(self): return self.action
     def set_action(self, action): self.action = action
     actionProp = property(get_action, set_action)
-    def get_complex(self): return self.complex
-    def set_complex(self, complex): self.complex = complex
-    complexProp = property(get_complex, set_complex)
-    def validate_IsComplex(self, value):
-        # Validate type IsComplex, a restriction on xs:string.
-        pass
+    def get_name(self): return self.name
+    def set_name(self, name): self.name = name
+    nameProp = property(get_name, set_name)
     def get_type(self): return self.type_
     def set_type(self, type_): self.type_ = type_
     typeProp = property(get_type, set_type)
     def validate_PropertyValueType(self, value):
         # Validate type PropertyValueType, a restriction on xs:string.
         pass
-    def get_id(self): return self.id_
-    def set_id(self, id): self.id_ = id
-    idProp = property(get_id, set_id)
-    def get_name(self): return self.name
-    def set_name(self, name): self.name = name
-    nameProp = property(get_name, set_name)
+    def get_commandline(self): return self.commandline
+    def set_commandline(self, commandline): self.commandline = commandline
+    commandlineProp = property(get_commandline, set_commandline)
+    def validate_IsCommandLine(self, value):
+        # Validate type IsCommandLine, a restriction on xs:string.
+        pass
+    def get_complex(self): return self.complex
+    def set_complex(self, complex): self.complex = complex
+    complexProp = property(get_complex, set_complex)
+    def validate_IsComplex(self, value):
+        # Validate type IsComplex, a restriction on xs:string.
+        pass
     def get_mode(self): return self.mode
     def set_mode(self, mode): self.mode = mode
     modeProp = property(get_mode, set_mode)
     def validate_AccessType(self, value):
         # Validate type AccessType, a restriction on xs:string.
         pass
+    def get_optional(self): return self.optional
+    def set_optional(self, optional): self.optional = optional
+    optionalProp = property(get_optional, set_optional)
+    def validate_IsOptional(self, value):
+        # Validate type IsOptional, a restriction on xs:string.
+        pass
+    def get_id(self): return self.id_
+    def set_id(self, id_): self.id_ = id_
+    idProp = property(get_id, set_id)
     def export(self, outfile, level, namespace_='', name_='simple', namespacedef_='', pretty_print=True):
         if pretty_print:
             eol_ = '\n'
@@ -1367,21 +1362,27 @@ class simple(GeneratedsSuper):
         else:
             outfile.write('/>%s' % (eol_, ))
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='simple'):
-        if self.complex is not None and 'complex' not in already_processed:
-            already_processed.append('complex')
-            outfile.write(' complex=%s' % (quote_attrib(self.complex), ))
-        if self.type_ is not None and 'type_' not in already_processed:
-            already_processed.append('type_')
-            outfile.write(' type=%s' % (quote_attrib(self.type_), ))
-        if self.id_ is not None and 'id' not in already_processed:
-            already_processed.append('id')
-            outfile.write(' id=%s' % (self.gds_format_string(quote_attrib(self.id_).encode(ExternalEncoding), input_name='id'), ))
         if self.name is not None and 'name' not in already_processed:
             already_processed.append('name')
             outfile.write(' name=%s' % (self.gds_format_string(quote_attrib(self.name).encode(ExternalEncoding), input_name='name'), ))
+        if self.type_ is not None and 'type_' not in already_processed:
+            already_processed.append('type_')
+            outfile.write(' type=%s' % (quote_attrib(self.type_), ))
+        if self.commandline is not None and 'commandline' not in already_processed:
+            already_processed.append('commandline')
+            outfile.write(' commandline=%s' % (quote_attrib(self.commandline), ))
+        if self.complex is not None and 'complex' not in already_processed:
+            already_processed.append('complex')
+            outfile.write(' complex=%s' % (quote_attrib(self.complex), ))
         if self.mode is not None and 'mode' not in already_processed:
             already_processed.append('mode')
             outfile.write(' mode=%s' % (quote_attrib(self.mode), ))
+        if self.optional is not None and 'optional' not in already_processed:
+            already_processed.append('optional')
+            outfile.write(' optional=%s' % (quote_attrib(self.optional), ))
+        if self.id_ is not None and 'id' not in already_processed:
+            already_processed.append('id')
+            outfile.write(' id=%s' % (self.gds_format_string(quote_attrib(self.id_).encode(ExternalEncoding), input_name='id'), ))
     def exportChildren(self, outfile, level, namespace_='', name_='simple', fromsubclass_=False, pretty_print=True):
         if pretty_print:
             eol_ = '\n'
@@ -1423,26 +1424,34 @@ class simple(GeneratedsSuper):
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
-        if self.complex is not None and 'complex' not in already_processed:
-            already_processed.append('complex')
-            showIndent(outfile, level)
-            outfile.write('complex = "%s",\n' % (self.complex,))
-        if self.type_ is not None and 'type_' not in already_processed:
-            already_processed.append('type_')
-            showIndent(outfile, level)
-            outfile.write('type_ = "%s",\n' % (self.type_,))
-        if self.id_ is not None and 'id' not in already_processed:
-            already_processed.append('id')
-            showIndent(outfile, level)
-            outfile.write('id = "%s",\n' % (self.id_,))
         if self.name is not None and 'name' not in already_processed:
             already_processed.append('name')
             showIndent(outfile, level)
             outfile.write('name = "%s",\n' % (self.name,))
+        if self.type_ is not None and 'type_' not in already_processed:
+            already_processed.append('type_')
+            showIndent(outfile, level)
+            outfile.write('type_ = "%s",\n' % (self.type_,))
+        if self.commandline is not None and 'commandline' not in already_processed:
+            already_processed.append('commandline')
+            showIndent(outfile, level)
+            outfile.write('commandline = "%s",\n' % (self.commandline,))
+        if self.complex is not None and 'complex' not in already_processed:
+            already_processed.append('complex')
+            showIndent(outfile, level)
+            outfile.write('complex = "%s",\n' % (self.complex,))
         if self.mode is not None and 'mode' not in already_processed:
             already_processed.append('mode')
             showIndent(outfile, level)
             outfile.write('mode = "%s",\n' % (self.mode,))
+        if self.optional is not None and 'optional' not in already_processed:
+            already_processed.append('optional')
+            showIndent(outfile, level)
+            outfile.write('optional = "%s",\n' % (self.optional,))
+        if self.id_ is not None and 'id' not in already_processed:
+            already_processed.append('id')
+            showIndent(outfile, level)
+            outfile.write('id = "%s",\n' % (self.id_,))
     def exportLiteralChildren(self, outfile, level, name_):
         if self.description is not None:
             showIndent(outfile, level)
@@ -1489,29 +1498,39 @@ class simple(GeneratedsSuper):
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
     def buildAttributes(self, node, attrs, already_processed):
-        value = find_attr_value_('complex', node)
-        if value is not None and 'complex' not in already_processed:
-            already_processed.append('complex')
-            self.complex = value
-            self.validate_IsComplex(self.complex)    # validate type IsComplex
+        value = find_attr_value_('name', node)
+        if value is not None and 'name' not in already_processed:
+            already_processed.append('name')
+            self.name = value
         value = find_attr_value_('type', node)
         if value is not None and 'type' not in already_processed:
             already_processed.append('type')
             self.type_ = value
             self.validate_PropertyValueType(self.type_)    # validate type PropertyValueType
-        value = find_attr_value_('id', node)
-        if value is not None and 'id' not in already_processed:
-            already_processed.append('id')
-            self.id_ = value
-        value = find_attr_value_('name', node)
-        if value is not None and 'name' not in already_processed:
-            already_processed.append('name')
-            self.name = value
+        value = find_attr_value_('commandline', node)
+        if value is not None and 'commandline' not in already_processed:
+            already_processed.append('commandline')
+            self.commandline = value
+            self.validate_IsCommandLine(self.commandline)    # validate type IsCommandLine
+        value = find_attr_value_('complex', node)
+        if value is not None and 'complex' not in already_processed:
+            already_processed.append('complex')
+            self.complex = value
+            self.validate_IsComplex(self.complex)    # validate type IsComplex
         value = find_attr_value_('mode', node)
         if value is not None and 'mode' not in already_processed:
             already_processed.append('mode')
             self.mode = value
             self.validate_AccessType(self.mode)    # validate type AccessType
+        value = find_attr_value_('optional', node)
+        if value is not None and 'optional' not in already_processed:
+            already_processed.append('optional')
+            self.optional = value
+            self.validate_IsOptional(self.optional)    # validate type IsOptional
+        value = find_attr_value_('id', node)
+        if value is not None and 'id' not in already_processed:
+            already_processed.append('id')
+            self.id_ = value
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         if nodeName_ == 'description':
             description_ = child_.text
@@ -1630,15 +1649,103 @@ class simpleRef(GeneratedsSuper):
 # end class simpleRef
 
 
+class simpleSequenceRef(GeneratedsSuper):
+    subclass = None
+    superclass = None
+    def __init__(self, refid=None, values=None):
+        self.refid = _cast(None, refid)
+        self.values = values
+    def factory(*args_, **kwargs_):
+        if simpleSequenceRef.subclass:
+            return simpleSequenceRef.subclass(*args_, **kwargs_)
+        else:
+            return simpleSequenceRef(*args_, **kwargs_)
+    factory = staticmethod(factory)
+    def get_values(self): return self.values
+    def set_values(self, values): self.values = values
+    valuesProp = property(get_values, set_values)
+    def get_refid(self): return self.refid
+    def set_refid(self, refid): self.refid = refid
+    refidProp = property(get_refid, set_refid)
+    def export(self, outfile, level, namespace_='', name_='simpleSequenceRef', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='simpleSequenceRef')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='simpleSequenceRef'):
+        if self.refid is not None and 'refid' not in already_processed:
+            already_processed.append('refid')
+            outfile.write(' refid=%s' % (self.gds_format_string(quote_attrib(self.refid).encode(ExternalEncoding), input_name='refid'), ))
+    def exportChildren(self, outfile, level, namespace_='', name_='simpleSequenceRef', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.values is not None:
+            self.values.export(outfile, level, namespace_, name_='values', pretty_print=pretty_print)
+    def hasContent_(self):
+        if (
+            self.values is not None
+            ):
+            return True
+        else:
+            return False
+    def exportLiteral(self, outfile, level, name_='simpleSequenceRef'):
+        level += 1
+        self.exportLiteralAttributes(outfile, level, [], name_)
+        if self.hasContent_():
+            self.exportLiteralChildren(outfile, level, name_)
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
+        if self.refid is not None and 'refid' not in already_processed:
+            already_processed.append('refid')
+            showIndent(outfile, level)
+            outfile.write('refid = "%s",\n' % (self.refid,))
+    def exportLiteralChildren(self, outfile, level, name_):
+        if self.values is not None:
+            showIndent(outfile, level)
+            outfile.write('values=model_.values(\n')
+            self.values.exportLiteral(outfile, level)
+            showIndent(outfile, level)
+            outfile.write('),\n')
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
+        value = find_attr_value_('refid', node)
+        if value is not None and 'refid' not in already_processed:
+            already_processed.append('refid')
+            self.refid = value
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'values':
+            obj_ = values.factory()
+            obj_.build(child_)
+            self.set_values(obj_)
+# end class simpleSequenceRef
+
+
 class simpleSequence(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, complex='false', type_=None, id_=None, name=None, mode='readwrite', description=None, values=None, units=None, range_=None, kind=None, action=None):
+    def __init__(self, name=None, optional='false', complex='false', mode='readwrite', type_=None, id_=None, description=None, values=None, units=None, range_=None, kind=None, action=None):
+        self.name = _cast(None, name)
+        self.optional = _cast(None, optional)
         self.complex = _cast(None, complex)
+        self.mode = _cast(None, mode)
         self.type_ = _cast(None, type_)
         self.id_ = _cast(None, id_)
-        self.name = _cast(None, name)
-        self.mode = _cast(None, mode)
         self.description = description
         self.values = values
         self.units = units
@@ -1677,11 +1784,26 @@ class simpleSequence(GeneratedsSuper):
     def get_action(self): return self.action
     def set_action(self, action): self.action = action
     actionProp = property(get_action, set_action)
+    def get_name(self): return self.name
+    def set_name(self, name): self.name = name
+    nameProp = property(get_name, set_name)
+    def get_optional(self): return self.optional
+    def set_optional(self, optional): self.optional = optional
+    optionalProp = property(get_optional, set_optional)
+    def validate_IsOptional(self, value):
+        # Validate type IsOptional, a restriction on xs:string.
+        pass
     def get_complex(self): return self.complex
     def set_complex(self, complex): self.complex = complex
     complexProp = property(get_complex, set_complex)
     def validate_IsComplex(self, value):
         # Validate type IsComplex, a restriction on xs:string.
+        pass
+    def get_mode(self): return self.mode
+    def set_mode(self, mode): self.mode = mode
+    modeProp = property(get_mode, set_mode)
+    def validate_AccessType(self, value):
+        # Validate type AccessType, a restriction on xs:string.
         pass
     def get_type(self): return self.type_
     def set_type(self, type_): self.type_ = type_
@@ -1690,17 +1812,8 @@ class simpleSequence(GeneratedsSuper):
         # Validate type PropertyValueType, a restriction on xs:string.
         pass
     def get_id(self): return self.id_
-    def set_id(self, id): self.id_ = id
+    def set_id(self, id_): self.id_ = id_
     idProp = property(get_id, set_id)
-    def get_name(self): return self.name
-    def set_name(self, name): self.name = name
-    nameProp = property(get_name, set_name)
-    def get_mode(self): return self.mode
-    def set_mode(self, mode): self.mode = mode
-    modeProp = property(get_mode, set_mode)
-    def validate_AccessType(self, value):
-        # Validate type AccessType, a restriction on xs:string.
-        pass
     def export(self, outfile, level, namespace_='', name_='simpleSequence', namespacedef_='', pretty_print=True):
         if pretty_print:
             eol_ = '\n'
@@ -1718,21 +1831,24 @@ class simpleSequence(GeneratedsSuper):
         else:
             outfile.write('/>%s' % (eol_, ))
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='simpleSequence'):
+        if self.name is not None and 'name' not in already_processed:
+            already_processed.append('name')
+            outfile.write(' name=%s' % (self.gds_format_string(quote_attrib(self.name).encode(ExternalEncoding), input_name='name'), ))
+        if self.optional is not None and 'optional' not in already_processed:
+            already_processed.append('optional')
+            outfile.write(' optional=%s' % (quote_attrib(self.optional), ))
         if self.complex is not None and 'complex' not in already_processed:
             already_processed.append('complex')
             outfile.write(' complex=%s' % (quote_attrib(self.complex), ))
+        if self.mode is not None and 'mode' not in already_processed:
+            already_processed.append('mode')
+            outfile.write(' mode=%s' % (quote_attrib(self.mode), ))
         if self.type_ is not None and 'type_' not in already_processed:
             already_processed.append('type_')
             outfile.write(' type=%s' % (quote_attrib(self.type_), ))
         if self.id_ is not None and 'id' not in already_processed:
             already_processed.append('id')
             outfile.write(' id=%s' % (self.gds_format_string(quote_attrib(self.id_).encode(ExternalEncoding), input_name='id'), ))
-        if self.name is not None and 'name' not in already_processed:
-            already_processed.append('name')
-            outfile.write(' name=%s' % (self.gds_format_string(quote_attrib(self.name).encode(ExternalEncoding), input_name='name'), ))
-        if self.mode is not None and 'mode' not in already_processed:
-            already_processed.append('mode')
-            outfile.write(' mode=%s' % (quote_attrib(self.mode), ))
     def exportChildren(self, outfile, level, namespace_='', name_='simpleSequence', fromsubclass_=False, pretty_print=True):
         if pretty_print:
             eol_ = '\n'
@@ -1770,10 +1886,22 @@ class simpleSequence(GeneratedsSuper):
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
+        if self.name is not None and 'name' not in already_processed:
+            already_processed.append('name')
+            showIndent(outfile, level)
+            outfile.write('name = "%s",\n' % (self.name,))
+        if self.optional is not None and 'optional' not in already_processed:
+            already_processed.append('optional')
+            showIndent(outfile, level)
+            outfile.write('optional = "%s",\n' % (self.optional,))
         if self.complex is not None and 'complex' not in already_processed:
             already_processed.append('complex')
             showIndent(outfile, level)
             outfile.write('complex = "%s",\n' % (self.complex,))
+        if self.mode is not None and 'mode' not in already_processed:
+            already_processed.append('mode')
+            showIndent(outfile, level)
+            outfile.write('mode = "%s",\n' % (self.mode,))
         if self.type_ is not None and 'type_' not in already_processed:
             already_processed.append('type_')
             showIndent(outfile, level)
@@ -1782,14 +1910,6 @@ class simpleSequence(GeneratedsSuper):
             already_processed.append('id')
             showIndent(outfile, level)
             outfile.write('id = "%s",\n' % (self.id_,))
-        if self.name is not None and 'name' not in already_processed:
-            already_processed.append('name')
-            showIndent(outfile, level)
-            outfile.write('name = "%s",\n' % (self.name,))
-        if self.mode is not None and 'mode' not in already_processed:
-            already_processed.append('mode')
-            showIndent(outfile, level)
-            outfile.write('mode = "%s",\n' % (self.mode,))
     def exportLiteralChildren(self, outfile, level, name_):
         if self.description is not None:
             showIndent(outfile, level)
@@ -1833,11 +1953,25 @@ class simpleSequence(GeneratedsSuper):
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
     def buildAttributes(self, node, attrs, already_processed):
+        value = find_attr_value_('name', node)
+        if value is not None and 'name' not in already_processed:
+            already_processed.append('name')
+            self.name = value
+        value = find_attr_value_('optional', node)
+        if value is not None and 'optional' not in already_processed:
+            already_processed.append('optional')
+            self.optional = value
+            self.validate_IsOptional(self.optional)    # validate type IsOptional
         value = find_attr_value_('complex', node)
         if value is not None and 'complex' not in already_processed:
             already_processed.append('complex')
             self.complex = value
             self.validate_IsComplex(self.complex)    # validate type IsComplex
+        value = find_attr_value_('mode', node)
+        if value is not None and 'mode' not in already_processed:
+            already_processed.append('mode')
+            self.mode = value
+            self.validate_AccessType(self.mode)    # validate type AccessType
         value = find_attr_value_('type', node)
         if value is not None and 'type' not in already_processed:
             already_processed.append('type')
@@ -1847,15 +1981,6 @@ class simpleSequence(GeneratedsSuper):
         if value is not None and 'id' not in already_processed:
             already_processed.append('id')
             self.id_ = value
-        value = find_attr_value_('name', node)
-        if value is not None and 'name' not in already_processed:
-            already_processed.append('name')
-            self.name = value
-        value = find_attr_value_('mode', node)
-        if value is not None and 'mode' not in already_processed:
-            already_processed.append('mode')
-            self.mode = value
-            self.validate_AccessType(self.mode)    # validate type AccessType
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         if nodeName_ == 'description':
             description_ = child_.text
@@ -1888,7 +2013,7 @@ class simpleSequence(GeneratedsSuper):
 class struct(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, id_=None, name=None, mode='readwrite', description=None, simple=None, configurationkind=None):
+    def __init__(self, id_=None, name=None, mode='readwrite', description=None, simple=None, simplesequence=None, configurationkind=None):
         self.id_ = _cast(None, id_)
         self.name = _cast(None, name)
         self.mode = _cast(None, mode)
@@ -1897,6 +2022,10 @@ class struct(GeneratedsSuper):
             self.simple = []
         else:
             self.simple = simple
+        if simplesequence is None:
+            self.simplesequence = []
+        else:
+            self.simplesequence = simplesequence
         if configurationkind is None:
             self.configurationkind = []
         else:
@@ -1915,13 +2044,18 @@ class struct(GeneratedsSuper):
     def add_simple(self, value): self.simple.append(value)
     def insert_simple(self, index, value): self.simple[index] = value
     simpleProp = property(get_simple, set_simple)
+    def get_simplesequence(self): return self.simplesequence
+    def set_simplesequence(self, simplesequence): self.simplesequence = simplesequence
+    def add_simplesequence(self, value): self.simplesequence.append(value)
+    def insert_simplesequence(self, index, value): self.simplesequence[index] = value
+    simplesequenceProp = property(get_simplesequence, set_simplesequence)
     def get_configurationkind(self): return self.configurationkind
     def set_configurationkind(self, configurationkind): self.configurationkind = configurationkind
     def add_configurationkind(self, value): self.configurationkind.append(value)
     def insert_configurationkind(self, index, value): self.configurationkind[index] = value
     configurationkindProp = property(get_configurationkind, set_configurationkind)
     def get_id(self): return self.id_
-    def set_id(self, id): self.id_ = id
+    def set_id(self, id_): self.id_ = id_
     idProp = property(get_id, set_id)
     def get_name(self): return self.name
     def set_name(self, name): self.name = name
@@ -1968,12 +2102,15 @@ class struct(GeneratedsSuper):
             outfile.write('<%sdescription>%s</%sdescription>%s' % (namespace_, self.gds_format_string(quote_xml(self.description).encode(ExternalEncoding), input_name='description'), namespace_, eol_))
         for simple_ in self.simple:
             simple_.export(outfile, level, namespace_, name_='simple', pretty_print=pretty_print)
+        for simplesequence_ in self.simplesequence:
+            simplesequence_.export(outfile, level, namespace_, name_='simplesequence', pretty_print=pretty_print)
         for configurationkind_ in self.configurationkind:
             configurationkind_.export(outfile, level, namespace_, name_='configurationkind', pretty_print=pretty_print)
     def hasContent_(self):
         if (
             self.description is not None or
             self.simple or
+            self.simplesequence or
             self.configurationkind
             ):
             return True
@@ -2008,6 +2145,18 @@ class struct(GeneratedsSuper):
             showIndent(outfile, level)
             outfile.write('model_.simple(\n')
             simple_.exportLiteral(outfile, level)
+            showIndent(outfile, level)
+            outfile.write('),\n')
+        level -= 1
+        showIndent(outfile, level)
+        outfile.write('],\n')
+        showIndent(outfile, level)
+        outfile.write('simplesequence=[\n')
+        level += 1
+        for simplesequence_ in self.simplesequence:
+            showIndent(outfile, level)
+            outfile.write('model_.simpleSequence(\n')
+            simplesequence_.exportLiteral(outfile, level, name_='simpleSequence')
             showIndent(outfile, level)
             outfile.write('),\n')
         level -= 1
@@ -2053,6 +2202,10 @@ class struct(GeneratedsSuper):
             obj_ = simple.factory()
             obj_.build(child_)
             self.simple.append(obj_)
+        elif nodeName_ == 'simplesequence':
+            obj_ = simpleSequence.factory()
+            obj_.build(child_)
+            self.simplesequence.append(obj_)
         elif nodeName_ == 'configurationkind':
             obj_ = configurationKind.factory()
             obj_.build(child_)
@@ -2100,7 +2253,7 @@ class structSequence(GeneratedsSuper):
     def insert_configurationkind(self, index, value): self.configurationkind[index] = value
     configurationkindProp = property(get_configurationkind, set_configurationkind)
     def get_id(self): return self.id_
-    def set_id(self, id): self.id_ = id
+    def set_id(self, id_): self.id_ = id_
     idProp = property(get_id, set_id)
     def get_name(self): return self.name
     def set_name(self, name): self.name = name
@@ -2255,11 +2408,15 @@ class structSequence(GeneratedsSuper):
 class structValue(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, simpleref=None):
+    def __init__(self, simpleref=None, simplesequenceref=None):
         if simpleref is None:
             self.simpleref = []
         else:
             self.simpleref = simpleref
+        if simplesequenceref is None:
+            self.simplesequenceref = []
+        else:
+            self.simplesequenceref = simplesequenceref
     def factory(*args_, **kwargs_):
         if structValue.subclass:
             return structValue.subclass(*args_, **kwargs_)
@@ -2271,6 +2428,11 @@ class structValue(GeneratedsSuper):
     def add_simpleref(self, value): self.simpleref.append(value)
     def insert_simpleref(self, index, value): self.simpleref[index] = value
     simplerefProp = property(get_simpleref, set_simpleref)
+    def get_simplesequenceref(self): return self.simplesequenceref
+    def set_simplesequenceref(self, simplesequenceref): self.simplesequenceref = simplesequenceref
+    def add_simplesequenceref(self, value): self.simplesequenceref.append(value)
+    def insert_simplesequenceref(self, index, value): self.simplesequenceref[index] = value
+    simplesequencerefProp = property(get_simplesequenceref, set_simplesequenceref)
     def export(self, outfile, level, namespace_='', name_='structValue', namespacedef_='', pretty_print=True):
         if pretty_print:
             eol_ = '\n'
@@ -2296,9 +2458,12 @@ class structValue(GeneratedsSuper):
             eol_ = ''
         for simpleref_ in self.simpleref:
             simpleref_.export(outfile, level, namespace_, name_='simpleref', pretty_print=pretty_print)
+        for simplesequenceref_ in self.simplesequenceref:
+            simplesequenceref_.export(outfile, level, namespace_, name_='simplesequenceref', pretty_print=pretty_print)
     def hasContent_(self):
         if (
-            self.simpleref
+            self.simpleref or
+            self.simplesequenceref
             ):
             return True
         else:
@@ -2323,6 +2488,18 @@ class structValue(GeneratedsSuper):
         level -= 1
         showIndent(outfile, level)
         outfile.write('],\n')
+        showIndent(outfile, level)
+        outfile.write('simplesequenceref=[\n')
+        level += 1
+        for simplesequenceref_ in self.simplesequenceref:
+            showIndent(outfile, level)
+            outfile.write('model_.simpleSequenceRef(\n')
+            simplesequenceref_.exportLiteral(outfile, level, name_='simpleSequenceRef')
+            showIndent(outfile, level)
+            outfile.write('),\n')
+        level -= 1
+        showIndent(outfile, level)
+        outfile.write('],\n')
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         for child in node:
@@ -2335,6 +2512,10 @@ class structValue(GeneratedsSuper):
             obj_ = simpleRef.factory()
             obj_.build(child_)
             self.simpleref.append(obj_)
+        elif nodeName_ == 'simplesequenceref':
+            obj_ = simpleSequenceRef.factory()
+            obj_.build(child_)
+            self.simplesequenceref.append(obj_)
 # end class structValue
 
 
@@ -2362,7 +2543,7 @@ class test(GeneratedsSuper):
     def set_resultvalue(self, resultvalue): self.resultvalue = resultvalue
     resultvalueProp = property(get_resultvalue, set_resultvalue)
     def get_id(self): return self.id_
-    def set_id(self, id): self.id_ = id
+    def set_id(self, id_): self.id_ = id_
     idProp = property(get_id, set_id)
     def export(self, outfile, level, namespace_='', name_='test', namespacedef_='', pretty_print=True):
         if pretty_print:
@@ -2537,8 +2718,6 @@ class values(GeneratedsSuper):
         if nodeName_ == 'value':
             value_ = child_.text
             value_ = self.gds_validate_string(value_, node, 'value')
-            if value_ == None:
-                value_ = ''
             self.value.append(value_)
 # end class values
 
@@ -2639,6 +2818,7 @@ __all__ = [
     "simple",
     "simpleRef",
     "simpleSequence",
+    "simpleSequenceRef",
     "struct",
     "structSequence",
     "structValue",

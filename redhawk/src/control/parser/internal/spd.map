@@ -47,10 +47,10 @@ os "ossie::SPD::NameVersionPair";
 processor "::std::string";
 runtime "ossie::SPD::NameVersionPair";
 usesdevice "::std::vector<ossie::SPD::UsesDevice>";
-simpleref "ossie::SimplePropertyRef*";
-simplesequenceref "ossie::SimpleSequencePropertyRef*";
-structref "ossie::StructPropertyRef*";
-structsequenceref "ossie::StructSequencePropertyRef*";
-structvalue "::std::map<std::string, std::string>";
+simpleref "const ossie::SimplePropertyRef &" "const ossie::SimplePropertyRef &";
+simplesequenceref "const ossie::SimpleSequencePropertyRef &" "const ossie::SimpleSequencePropertyRef &";
+structref "const ossie::StructPropertyRef &" "const ossie::StructPropertyRef &";
+structsequenceref "const ossie::StructSequencePropertyRef &" "const ossie::StructSequencePropertyRef &";
+structvalue "const ossie::ComponentPropertyMap &" "const ossie::ComponentPropertyMap &";
 values "::std::vector<std::string>";
 }

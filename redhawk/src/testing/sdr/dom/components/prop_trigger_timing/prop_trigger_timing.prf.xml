@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="prop_1" mode="readwrite" type="string">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="prop_2" mode="readwrite" type="string">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
+  <struct id="prop_3" mode="readwrite">
+    <simple id="prop_3_a" type="string"/>
+    <configurationkind kindtype="property"/>
+  </struct>
+  <structsequence id="prop_4" mode="readwrite">
+    <struct id="prop_4_a">
+      <simple id="prop_4_b" type="string"/>
+    </struct>
+    <configurationkind kindtype="property"/>
+  </structsequence>
+  <simple id="prop_1_trigger" mode="readonly" type="boolean">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="prop_2_trigger" mode="readonly" type="boolean">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="prop_3_trigger" mode="readonly" type="boolean">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="prop_4_trigger" mode="readonly" type="boolean">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+</properties>

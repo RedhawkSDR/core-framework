@@ -17,64 +17,47 @@
  * You should have received a copy of the GNU Lesser General Public License 
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  #*/
-/*{% macro frontendtunerstatusstructdef(prop) %}*/
+/*{% macro frontendstructdef(prop) %}*/
 /**
  * The structure for property ${prop.identifier}
  * 
  * @generated
  */
 /*{% import "base/properties.java" as properties with context %}*/
-public class ${prop.javatype} extends frontend.FrontendTunerStructProps.default_frontend_tuner_status_struct_struct {
+public class ${prop.javatype} extends ${prop.baseclass} {
 /*{% for field in prop.fields %}*/
+/*{%   if not field.inherited %}*/
     ${properties.simple(field)|indent(4)}
+//%    endif
 /*{% endfor %}*/
 
+/*{% for field in prop.fields if not field.inherited %}*/
+/*{%   if loop.first %}*/
     /**
- *      * @generated
- *           */
+     * @generated
+     */
     public ${prop.javatype}(
 /*{%- filter trim|lines|join(', ') %}*/
-/*{%   for field in prop.fields %}*/
+/*{%   for field in prop.fields if not field.inherited %}*/
 ${field.javatype} ${field.javaname}
 /*{%   endfor %}*/
 /*{% endfilter -%}*/
 ) {
         this();
-/*{% for field in prop.fields %}*/
+/*{% for field in prop.fields if not field.inherited %}*/
         this.${field.javaname}.setValue(${field.javaname});
 /*{% endfor %}*/
     }
+//%    endif
+/*{% endfor %}*/
 
     /**
- *      * @generated
- *           */
+     * @generated
+     */
     public ${prop.javatype}() {
-/*{% for field in prop.fields %}*/
+/*{% for field in prop.fields if not field.inherited %}*/
         addElement(this.${field.javaname});
 /*{% endfor %}*/
     }
 };
 /*{%- endmacro %}*/
-
-/*{% macro frontendstructsequence(prop) %}*/
-public final StructSequenceProperty<${prop.structdef.javatype}> ${prop.javaname} =
-    new StructSequenceProperty<${prop.structdef.javatype}> (
-        "${prop.identifier}", //id
-        ${java.stringLiteral(prop.name) if prop.name else java.NULL}, //name
-        ${prop.structdef.javatype}.class, //type
-/*{% if prop.javavalues %}*/
-        StructSequenceProperty.asList(
-/*{%   filter trim|lines|join(',\n')|indent(12, true) %}*/
-/*{%     for values in prop.javavalues %}*/
-            new ${prop.structdef.javatype}(${values|join(', ')})
-/*{%     endfor %}*/
-/*{%   endfilter %}*/
-
-            ), //defaultValue
-/*{% else %}*/
-        StructSequenceProperty.<${prop.structdef.javatype}>asList(), //defaultValue
-/*{% endif %}*/
-        Mode.${prop.mode|upper}, //mode
-        new Kind[] { ${prop.javakinds|join(',')} } //kind
-    );
-/*{% endmacro %}*/

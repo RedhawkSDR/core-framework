@@ -24,11 +24,14 @@ from _unitTestHelpers import scatest
 from ossie.cf import CF
 from omniORB import CORBA
 import struct
+from _unitTestHelpers import runtestHelpers
+
+java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 class TestAllTypes(scatest.CorbaTestCase):
     def setUp(self):
-        domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self._app = None
 
     def tearDown(self):
@@ -59,7 +62,9 @@ class TestAllTypes(scatest.CorbaTestCase):
                 pass
 
     def test_AllPropTypes(self):
-        languages = ['Cpp', 'Python', 'Java']
+        languages = ['Cpp', 'Python']
+        if java_support:
+            languages.append('Java')
         for lang in languages:
             self.launchApplication(lang)
             self.preconditions()

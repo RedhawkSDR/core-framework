@@ -39,6 +39,7 @@ from browsewindowbase import BrowseWindowBase
 import installdialog as installdialog
 from ossie.utils.redhawk.channels import IDMListener, ODMListener
 from ossie.utils import weakobj
+import ossie.parsers.sad
 import Queue
 
 def buildDevSeq(dasXML, fs):
@@ -113,8 +114,6 @@ class BrowseWindow(BrowseWindowBase):
         BrowseWindowBase.__init__(self,parent,name,fl, domainName)
         self._requests = Queue.Queue()
         self.worker = self.WorkThread(self._requests)
-        if not domainName:
-            return
         self.debug('Domain:', domainName)
         self.connect(self.worker, SIGNAL('refreshApplications()'), self.refreshApplications)
         self.connect(self.worker, SIGNAL('refreshDeviceManagers()'), self.refreshDeviceManagers)
@@ -130,6 +129,8 @@ class BrowseWindow(BrowseWindowBase):
         self.connect(self.worker, SIGNAL('shutdownDeviceManager(QString)'), self.shutdownDeviceManager)
         self.connect(self.worker, SIGNAL('refreshProperty(QString,QString,QString)'), self.refreshProperty)
         self.worker.start()
+        if not domainName:
+            return
         self.updateDomain(domainName)
 
     class WorkThread(QThread):
@@ -238,7 +239,10 @@ class BrowseWindow(BrowseWindowBase):
                 self.log.trace("unable to disconnect from ODM channel")
         
     def findDomains(self):
-        domainList = redhawk.scan()
+        try:
+            domainList = redhawk.scan()
+        except RuntimeError:
+            return
         if len(domainList) == 1:
             return domainList[0]
         stringlist = QStringList()
@@ -255,7 +259,6 @@ class BrowseWindow(BrowseWindowBase):
             self.disconnectFromODMChannel()
             self.domManager = redhawk.attach(domainName)
             self.connectToODMChannel()
-
             if self.domManager is None:
                 raise StandardError('Could not narrow Domain Manager')
 
@@ -289,14 +292,22 @@ class BrowseWindow(BrowseWindowBase):
         clearChildren(self.appsItem)
 
     def refreshView (self):
+        runsetup = False
         if self.currentDomain == "":
             domainName = self.findDomains()
             if not domainName:
                 return
+            runsetup = True
+        elif self.currentDomain not in redhawk.scan():
+            domainName = self.findDomains()
+            self.objectListView.clear()
+            runsetup = True
         else:
             domainName = self.currentDomain
 
         self.getDomain(domainName)
+        if runsetup:
+            self.setupDomain()
         self._requests.put('cleardomMgrItem')
         self._requests.put('cleardevMgrItem')
         self._requests.put('clearappsItem')
@@ -323,6 +334,16 @@ class BrowseWindow(BrowseWindowBase):
                 return app
         return None
 
+    def _getSADName (self, sadFile):
+        try:
+            f = self.fileMgr.open(sadFile, True)
+            try:
+                sad = ossie.parsers.sad.parseString(f.read(f.sizeOf()))
+                return sad.name
+            finally:
+                f.close()
+        except:
+            return '<unknown>'
 
     def createSelected (self):
         try:
@@ -335,8 +356,7 @@ class BrowseWindow(BrowseWindowBase):
                 QMessageBox.critical(self, 'Action failed', 'Unable to connect to the Domain.', QMessageBox.Ok)
                 return
 
-        # Present the app list in alphabetical order.
-        appList.sort()
+        appList = [(self._getSADName(sadFile), sadFile) for sadFile in appList]
         app = installdialog.getApplicationFile(appList, self)
         if app == None:
             return
@@ -405,6 +425,9 @@ class BrowseWindow(BrowseWindowBase):
     # Access them only from the QThread
     def setupDomain(self):
         self.domainLabel.setText(self.currentDomain + ' ' + self.domManager._get_identifier())
+        #check if a domain is running to clear status bar of errors
+        if len(redhawk.scan()) > 0:
+            self.textLabel2.setText("")
         self.objectListView.setContextMenuPolicy(Qt.CustomContextMenu)
         self.domMgrItem = self.addTreeWidgetItem(self.objectListView, 'Domain Manager')
         self.devMgrItem = self.addTreeWidgetItem(self.objectListView, 'Device Managers')

@@ -100,6 +100,44 @@ def baseReturnType(typeobj):
     else:
         return name
 
+def unaliasedType(typeobj):
+    kind = typeobj.kind()
+    if kind != CORBA.tk_alias:
+        return typeobj
+    else:
+        return unaliasedType(typeobj.aliasType())
+
+def temporaryType(typeobj):
+    kind = typeobj.kind()
+    if kind in _baseMap:
+        return _baseMap[kind]
+    elif kind == CORBA.tk_void:
+        return 'void'
+    elif kind == CORBA.tk_string:
+        return 'CORBA::String_var'
+    elif kind == CORBA.tk_any:
+        return 'CORBA::Any'
+    
+    name = '::'.join(typeobj.scopedName())
+    kind = unaliasedType(typeobj).kind()
+    if kind in (CORBA.tk_objref, CORBA.tk_sequence, CORBA.tk_struct):
+        return name + '_var'
+    else:
+        return name
+
+def temporaryValue(typeobj):
+    kind = unaliasedType(typeobj).kind()
+    if kind in _baseMap:
+        return '0'
+    elif kind == CORBA.tk_enum:
+        return '::'.join(typeobj.enumValues()[0].scopedName())
+    elif kind == CORBA.tk_string:
+        return 'CORBA::string_dup("")'
+    elif kind in (CORBA.tk_struct, CORBA.tk_sequence):
+        return 'new %s()' % '::'.join(typeobj.scopedName())
+    else:
+        return None
+
 def passByValue(argType,direction):
     if direction == 'in':
         if not passConst(argType,direction):
@@ -177,6 +215,8 @@ class GenericPortGenerator(CppPortGenerator):
             yield {'name': op.name,
                    'arglist': ', '.join('%s %s' % (argumentType(p.paramType,p.direction), p.name) for p in op.params),
                    'argnames': ', '.join(p.name for p in op.params),
+                   'temporary': temporaryType(op.returnType),
+                   'initializer': temporaryValue(op.returnType),
                    'returns': baseReturnType(op.returnType)}
         #
         # for attributes of an interface...provide manipulator methods
@@ -185,6 +225,8 @@ class GenericPortGenerator(CppPortGenerator):
             yield {'name': attr.name,
                    'arglist': '',
                    'argnames': '',
+                   'temporary': temporaryType(attr.attrType),
+                   'initializer': temporaryValue(attr.attrType),
                    'returns': baseReturnType(attr.attrType)}
             if not attr.readonly:
                 yield {'name': attr.name,

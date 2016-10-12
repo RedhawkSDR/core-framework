@@ -20,7 +20,9 @@
 
 #include <string>
 #include <cstdlib>
-#include "ossie/CorbaUtils.h"
+
+#include <ossie/CorbaUtils.h>
+#include <ossie/CorbaGC.h>
 
 using namespace ossie::corba;
 
@@ -99,8 +101,15 @@ CORBA::Boolean POACreator::unknown_adapter (PortableServer::POA_ptr parent, cons
         lifespan = parent->create_lifespan_policy(PortableServer::TRANSIENT);
         idassignment = parent->create_id_assignment_policy(PortableServer::SYSTEM_ID);
         thread = parent->create_thread_policy(PortableServer::ORB_CTRL_MODEL);
-    } else {
-        return 0;
+    } else if (child_name == "Iterators") {
+        try {
+            PortableServer::POA_var child = ossie::corba::createGCPOA(parent, child_name);
+        } catch (const PortableServer::POA::AdapterAlreadyExists &) {
+            return 0;
+        } catch (const PortableServer::POA::InvalidPolicy &) {
+            abort(); // design error
+        } 
+        return 1;
     }
 
     // Build a policy list from the individual policies.

@@ -21,11 +21,10 @@
 
 from omniORB import any, CORBA
 from ossie.cf import CF, CF__POA
+from ossie.cf import ExtendedCF, ExtendedCF__POA
 from ossie.device import ExecutableDevice, start_device
 from ossie.properties import simple_property
 from ossie.resource import usesport, providesport
-import commands, os, sys
-import logging
 
 
 class fromOther_i(CF__POA.Resource):
@@ -37,19 +36,28 @@ class fromOther_i(CF__POA.Resource):
         return self.parent._get_identifier() + '/' + self.name
 
 
-class testOut_i(CF__POA.Port):
-    def __init__(self, parent, name):
+class UsesPort(ExtendedCF__POA.QueryablePort):
+    def __init__(self, parent, name, porttype):
         self.parent = parent
         self.name = name
+        self.porttype = porttype
         self.outPorts = {}
-    
+
     def connectPort(self, connection, connectionId):
-        port = connection._narrow(CF__POA.Resource)
+        port = connection._narrow(self.porttype)
         self.outPorts[str(connectionId)] = port
     
     def disconnectPort(self, connectionId):
         if self.outPorts.has_key(str(connectionId)):
             self.outPorts.pop(str(connectionId), None)   
+
+    def _get_connections(self):
+        return [ExtendedCF.UsesConnection(k,v) for k, v in self.outPorts.iteritems()]
+
+
+class testOut_i(UsesPort):
+    def __init__(self, parent, name):
+        UsesPort.__init__(self, parent, name, CF.Resource)
 
     def getIdentifiers(self):
         props = []
@@ -64,20 +72,10 @@ class testOut_i(CF__POA.Port):
         return props
 
 
-class devicemanagerOut_i(CF__POA.Port):
+class devicemanagerOut_i(UsesPort):
     def __init__(self, parent, name):
-        self.parent = parent
-        self.name = name
-        self.outPorts = {}
+        UsesPort.__init__(self, parent, name, CF.DeviceManager)
     
-    def connectPort(self, connection, connectionId):
-        port = connection._narrow(CF__POA.DeviceManager)
-        self.outPorts[str(connectionId)] = port
-    
-    def disconnectPort(self, connectionId):
-        if self.outPorts.has_key(str(connectionId)):
-            self.outPorts.pop(str(connectionId), None)   
-
     def getIdentifiers(self):
         props = []
         for id in self.outPorts:

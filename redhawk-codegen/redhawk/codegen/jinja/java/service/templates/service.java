@@ -51,6 +51,7 @@ public class ${userclass} extends Service implements ${interface}Operations
 
     public ${userclass}(Map<String, String> execparams)
     {
+        setLogger( logger, ${userclass}.class.getName() );
     }
 
     public void terminateService()

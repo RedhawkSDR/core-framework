@@ -31,8 +31,8 @@ Prefix: %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           GPP
-Version:        1.10.1
-Release:        3%{?dist}
+Version:        2.0.3
+Release:        1%{?dist}
 Summary:        REDHAWK GPP
 
 Group:          Applications/Engineering
@@ -41,17 +41,19 @@ URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-BuildArch:      noarch
 BuildRoot:      %{_tmppath}/%{name}-root
 
-Requires:       redhawk >= 1.9
-BuildRequires:  redhawk-devel >= 1.9
+Requires:       redhawk >= 2.0
+BuildRequires:  redhawk-devel >= 2.0
+BuildRequires:  numactl-devel >= 2.0
+
 
 %package profile
 Summary:        Basic GPP profile
 Group:          Redhawk/Framework
-Prereq:         redhawk >= 1.9
-Prereq:         %{name} = %{version}-%{release}
+Requires(pre):  redhawk >= 2.0
+Requires(pre):  redhawk-sdrroot-dev-mgr >= 2.0
+Requires(pre):  %{name} = %{version}-%{release}
 
 %description
 A device representing a general purpose processor
@@ -68,10 +70,9 @@ Generates a GPP profile on the installation machine
 
 
 %build
-# Implementation DCE:35406744-52f8-4fed-aded-0bcd3aae362b
-pushd python
+pushd cpp
 ./reconf
-%define _bindir %{_prefix}/dev/devices/GPP/python
+%define _bindir %{_prefix}/dev/devices/GPP/cpp
 %configure
 make %{?_smp_mflags}
 popd
@@ -79,9 +80,8 @@ popd
 
 %install
 rm -rf $RPM_BUILD_ROOT
-# Implementation DCE:35406744-52f8-4fed-aded-0bcd3aae362b
-pushd python
-%define _bindir %{_prefix}/dev/devices/GPP/python
+pushd cpp
+%define _bindir %{_prefix}/dev/devices/GPP/cpp
 make install DESTDIR=$RPM_BUILD_ROOT
 popd
 
@@ -96,7 +96,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_prefix}/dev/devices/%{name}/GPP.spd.xml
 %{_prefix}/dev/devices/%{name}/GPP.prf.xml
 %{_prefix}/dev/devices/%{name}/GPP.scd.xml
-%{_prefix}/dev/devices/%{name}/python
+%{_prefix}/dev/devices/%{name}/cpp
 
 %files profile
 # GPP-profile doesn't install any files
@@ -106,18 +106,21 @@ rm -rf $RPM_BUILD_ROOT
 # Source profile script for architecture, if available
 [ -e /etc/profile.d/redhawk.sh ] && source /etc/profile.d/redhawk.sh
 
-# configure the gpp and the dcd
-echo "Configuring the Node..."
-%{_prefix}/dev/devices/%{name}/python/nodeconfig.py --silent \
+# nodeconfig was previously run as root; correct permissions on these directories
+find %{_prefix}/dev/nodes -type d -name 'DevMgr_*' -uid 0 -exec chown -R redhawk. {} \;
+/sbin/runuser redhawk -s /bin/bash -c '%{_prefix}/dev/devices/%{name}/cpp/create_node.py --silent \
     --clean \
     --gpppath=/devices/%{name} \
     --disableevents \
     --domainname=REDHAWK_DEV \
     --sdrroot=%{_prefix} \
-    --inplace
+    --inplace'
 
 
 %changelog
+* Fri Jan 9 2015 1.11.0-1
+- Update for cpp GPP
+
 * Fri May 24 2013 1.9.0-1
 - Remove obsoletes used to upgrade from 1.7.X to 1.8.X
 - Update dependencies

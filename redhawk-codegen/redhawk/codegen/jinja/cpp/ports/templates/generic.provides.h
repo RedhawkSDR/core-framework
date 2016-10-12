@@ -27,6 +27,7 @@ class ${classname} : public POA_${portgen.interfaceClass()}, public Port_Provide
 /*{% for op in portgen.operations() %}*/
         ${op.returns} ${op.name}(${op.arglist});
 /*{% endfor %}*/
+        std::string getRepid() const;
 
     protected:
         ${component.userclass.name} *parent;

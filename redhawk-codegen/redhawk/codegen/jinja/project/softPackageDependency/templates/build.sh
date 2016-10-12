@@ -17,14 +17,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #}
-#% set name = component['name']
-#% set dirname = name + generator.variant + '-' + component['version']
+#% set fullname = component['name']
+#% set dirname = fullname + generator.variant + '-' + component['version']
 #% set tarfile = dirname + '.tar.gz'
 #!/bin/bash
 
 if [ "$1" = "rpm" ]; then
     # A very simplistic RPM build scenario
-    if [ -e {{name}}.spec ]; then
+    if [ -e {{component.specfile}} ]; then
         mydir=`dirname $0`
         tmpdir=`mktemp -d`
         cp -r ${mydir} ${tmpdir}/{{dirname}}
@@ -50,6 +50,8 @@ else
             else
                 ./build.sh $*
             fi
+        elif [ -e Makefile ] && [ Makefile.am -ot Makefile ]; then
+            make $*
         elif [ -e reconf ]; then
             ./reconf && ./configure && make $*
         else

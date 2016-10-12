@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="p1" mode="readwrite" type="string">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="p2" mode="readwrite" type="double">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="p3" mode="readwrite" type="long">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <struct id="p4" mode="readwrite">
+    <simple id="p4sub1" mode="readwrite" type="string">
+      <kind kindtype="property"/>
+      <action type="external"/>
+    </simple>
+    <simple id="p4sub2" mode="readwrite" type="float">
+      <kind kindtype="property"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="property"/>
+  </struct>
+</properties>

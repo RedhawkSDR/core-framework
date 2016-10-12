@@ -19,9 +19,16 @@
 #
 
 from redhawk.codegen.jinja.generator import CodeGenerator
+from redhawk.codegen import versions
 
 class JavaCodeGenerator(CodeGenerator):
     def sourceFiles(self, component):
         for template in self.templates(component):
             if template.filename.endswith('.java'):
                 yield template.filename
+
+    def rpmRequires(self):
+        return super(JavaCodeGenerator,self).rpmRequires() + ['java >= '+versions.java]
+
+    def rpmBuildRequires(self):
+        return super(JavaCodeGenerator,self).rpmRequires() + ['java-devel >= '+versions.java]

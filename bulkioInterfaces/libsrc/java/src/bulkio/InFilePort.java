@@ -36,6 +36,8 @@ import BULKIO.PortStatistics;
 import BULKIO.PortUsageType;
 import org.apache.log4j.Logger;
 
+import org.ossie.component.PortBase;
+
 import bulkio.sriState;
 import bulkio.linkStatistics;
 import bulkio.DataTransfer;
@@ -46,7 +48,7 @@ import bulkio.Int8Size;
 /**
  * 
  */
-public class InFilePort extends BULKIO.jni.dataFilePOA {
+public class InFilePort extends BULKIO.jni.dataFilePOA implements PortBase {
 
     /**
      * A class to hold packet data.
@@ -359,7 +361,7 @@ public class InFilePort extends BULKIO.jni.dataFilePOA {
         }
 
         boolean portBlocking = false;
-        StreamSRI tmpH = new StreamSRI(1, 0.0, 1.0, (short)1, 0, 0.0, 0.0, (short)0, (short)0, streamID, false, new DataType[0]);
+        StreamSRI tmpH = null;
         boolean sriChanged = false;
         synchronized (this.sriUpdateLock) {
             if (this.currentHs.containsKey(streamID)) {
@@ -369,6 +371,16 @@ public class InFilePort extends BULKIO.jni.dataFilePOA {
 		    this.currentHs.get(streamID).setChanged(false);
 		}
                 portBlocking = blocking;
+            } else {
+                if (logger != null) {
+                    logger.warn("bulkio.InPort pushPacket received data from stream '" + streamID + "' with no SRI");
+                }
+                tmpH = new StreamSRI(1, 0.0, 1.0, (short)1, 0, 0.0, 0.0, (short)0, (short)0, streamID, false, new DataType[0]);
+                if (sriCallback != null) {
+                    sriCallback.newSRI(tmpH);
+                }
+                sriChanged = true;
+                currentHs.put(streamID, new sriState(tmpH, false));
             }
         }
 
@@ -396,14 +408,24 @@ public class InFilePort extends BULKIO.jni.dataFilePOA {
 			logger.debug( "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE"  + this.workQueue.size() + ")" );
 		    }
                     boolean sriChangedHappened = false;
+                    boolean flagEOS = false;
                     for (Iterator< Packet > itr = this.workQueue.iterator(); itr.hasNext();) {
-                        if (itr.next().sriChanged) {
-                            sriChangedHappened = true;
+                        if (sriChangedHappened && flagEOS) {
                             break;
+                        }
+                        Packet currentPacket = itr.next();
+                        if (currentPacket.sriChanged) {
+                            sriChangedHappened = true;
+                        }
+                        if (currentPacket.EOS) {
+                            flagEOS = true;
                         }
                     }
                     if (sriChangedHappened) {
                         sriChanged = true;
+                    }
+                    if (flagEOS) {
+                        eos = true;
                     }
                     this.workQueue.clear();
                     p = new Packet( data, time, eos, streamID, tmpH, sriChanged, true);
@@ -495,5 +517,12 @@ public class InFilePort extends BULKIO.jni.dataFilePOA {
         return p;
     }
 
+    public String getDirection() {
+        return "Provides";
+    }
+
+    public String getRepid() {
+        return BULKIO.dataFileHelper.id();
+    }
 }
 

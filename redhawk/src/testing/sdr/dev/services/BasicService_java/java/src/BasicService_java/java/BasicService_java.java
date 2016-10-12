@@ -57,6 +57,11 @@ public class BasicService_java extends Service implements PropertySetOperations
     {
     }
 
+
+    public void initializeProperties (CF.DataType[] configProperties) throws CF.PropertySetPackage.InvalidConfiguration, CF.PropertySetPackage.PartialConfiguration
+    {
+    }
+
     public void configure (CF.DataType[] configProperties) throws CF.PropertySetPackage.InvalidConfiguration, CF.PropertySetPackage.PartialConfiguration
     {
         // TODO
@@ -82,6 +87,23 @@ public class BasicService_java extends Service implements PropertySetOperations
             return;
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String registerPropertyListener(final org.omg.CORBA.Object listener, String[] prop_ids, float interval)
+        throws CF.UnknownProperties, CF.InvalidObjectReference
+    {
+        throw new CF.UnknownProperties();
+    }
+
+
+    public void unregisterPropertyListener(final String reg_id)
+        throws CF.InvalidIdentifier
+    {
+        throw new CF.InvalidIdentifier();
+    }
+
 
     protected Servant newServant(final POA poa)
     {

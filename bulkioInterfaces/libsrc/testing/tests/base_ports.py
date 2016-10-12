@@ -151,6 +151,17 @@ class BaseVectorPort(unittest.TestCase):
             self.seq = self.srcData
         else:
             self.seq = range(100)
+        self.launchedComps = []
+
+    def tearDown(self):
+        for comp in self.launchedComps:
+            comp.releaseObject()
+        self.launchedComps = []
+
+    def launch(self, *args, **kwargs):
+        comp = sb.launch(*args, **kwargs)
+        self.launchedComps.append(comp)
+        return comp
 
     def test_push_packet(self):
         in_sri = bulkio.sri.create()
@@ -161,7 +172,7 @@ class BaseVectorPort(unittest.TestCase):
         dsink=sb.DataSink()
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
         print "Test Component:" + c_spd_xml
-        test_comp=sb.launch( c_spd_xml, execparams=self.execparams)
+        test_comp=self.launch( c_spd_xml, execparams=self.execparams)
         data=self.seq
 
         dsource.connect(test_comp, providesPortName=self.c_inport )
@@ -197,7 +208,7 @@ class BaseVectorPort(unittest.TestCase):
         dsink=sb.DataSink()
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
         print "Test Component:" + c_spd_xml
-        test_comp=sb.launch( c_spd_xml, execparams=self.execparams)
+        test_comp=self.launch( c_spd_xml, execparams=self.execparams)
         data=self.seq
 
         dsource.connect(test_comp, providesPortName=self.c_inport )
@@ -227,7 +238,7 @@ class BaseVectorPort(unittest.TestCase):
     def test_inport_using_componet(self):
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
         print "Test Component:" + c_spd_xml
-        test_comp=sb.launch( c_spd_xml, execparams=self.execparams)
+        test_comp=self.launch( c_spd_xml, execparams=self.execparams)
 
         ##
         ## grab port from component... this is corba port
@@ -335,7 +346,7 @@ class BaseVectorPort(unittest.TestCase):
     def test_outport_using_component(self):
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
         print "Test Component:" + c_spd_xml
-        test_comp=sb.launch( c_spd_xml, execparams=self.execparams)
+        test_comp=self.launch( c_spd_xml, execparams=self.execparams)
 
         ##
         ## grab port from component... this is a corba port

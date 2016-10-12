@@ -20,15 +20,21 @@
 package frontend;
 
 import FRONTEND.RFInfoPkt;
+import FRONTEND.RFSourceHelper;
 import frontend.RFSourceDelegate;
+import org.ossie.component.PortBase;
 
-public class InRFSourcePort extends FRONTEND.RFSourcePOA {
+public class InRFSourcePort extends FRONTEND.RFSourcePOA implements PortBase {
 
     protected String name;
  
     protected Object portAccess = null;
 
     protected RFSourceDelegate delegate = null;    
+
+    public InRFSourcePort( String portName) {
+        this(portName, null);
+    }
 
     public InRFSourcePort( String portName,
                          RFSourceDelegate d) {
@@ -41,12 +47,15 @@ public class InRFSourcePort extends FRONTEND.RFSourcePOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null ){ 
-                    return delegate.fe_getAvailableRFInputs();
+                    return delegate.get_available_rf_inputs(this.name);
+                } else {
+                    throw new RuntimeException("InRFSourcePort get_available_rf_inputs() callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InRFSourcePort available_rf_inputs() exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
-            return null;
         }
     }
 
@@ -54,10 +63,14 @@ public class InRFSourcePort extends FRONTEND.RFSourcePOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null){ 
-                    delegate.fe_setAvailableRFInputs(data);
+                    delegate.set_available_rf_inputs(this.name, data);
+                } else {
+                    throw new RuntimeException("InRFSourcePort set_available_rf_inputs(RFInfoPkt[] data) callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InRFSourcePort available_rf_inputs(RFInfoPkt[] data) exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
         }
     }
@@ -66,12 +79,15 @@ public class InRFSourcePort extends FRONTEND.RFSourcePOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null){
-                    return (delegate.fe_getCurrentRFInput());
+                    return (delegate.get_current_rf_input(this.name));
+                } else {
+                    throw new RuntimeException("InRFSourcePort get_current_rf_input() callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InRFSourcePort current_rf_input() exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
-            return null;
         }
     }
 
@@ -79,15 +95,27 @@ public class InRFSourcePort extends FRONTEND.RFSourcePOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null) {
-                    delegate.fe_setCurrentRFInput(data);
+                    delegate.set_current_rf_input(this.name, data);
+                } else {
+                    throw new RuntimeException("InRFSourcePort set_current_rf_input(RFInfoPkt data) callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InRFSourcePort current_rf_input(RFInfoPkt data) exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
         }
     }
 
     public void setDelegate( RFSourceDelegate d ) {
         delegate = d;
+    }
+
+    public String getRepid() {
+        return RFSourceHelper.id();
+    }
+
+    public String getDirection() {
+        return "Provides";
     }
 }

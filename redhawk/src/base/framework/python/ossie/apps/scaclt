@@ -35,7 +35,7 @@ where <operation> is one of:
       (uninstall the waveform indicated by <application id>)
 
     create <domainname> <application factory id> <appname>
-      (create an instance of the application.  TODO initConfiguration and deviceAssignments) 
+      (create an instance of the application.)
 
     release <domainname> <application id>
       (release the application indicated by <application id>)
@@ -320,7 +320,6 @@ def configureOp(name, *kvpairs):
     props = [] 
     for kv in kvpairs:
         k, v = kv.split("=", 1)
-	# TODO parse the prf so we know the type to convert to
         v = eval(v)
         props.append(CF.DataType(k, any.to_any(v)))
      

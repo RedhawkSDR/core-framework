@@ -40,6 +40,11 @@ public class Complex@name@SequenceProperty extends AbstractSequenceProperty<comp
         super(id, name, "@scaname@", value, mode, action, kinds);
     }
 
+    public Complex@name@SequenceProperty(String id, String name, List<complex@name@> value, Mode mode,
+                                         Action action, Kind[] kinds, boolean optional) {
+        super(id, name, "@scaname@", value, mode, action, kinds, optional);
+    }
+
     public static List<complex@name@> asList(complex@name@... array) {
         return new ArrayList<complex@name@>(Arrays.asList(array));
     }

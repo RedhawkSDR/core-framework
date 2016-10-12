@@ -18,14 +18,16 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  #*/
 //% set classname = portgenerator.className()
+//% set poa = portgenerator.poaClass()
 package ${package};
 
 import ${component.package}.${component.baseclass.name};
+import org.ossie.component.PortBase;
 
 /**
  * @generated
  */
-public class ${classname} extends ${portgenerator.poaClass()} {
+public class ${classname} extends ${portgenerator.poaClass()} implements PortBase {
 
     /**
      * @generated
@@ -58,13 +60,26 @@ public class ${classname} extends ${portgenerator.poaClass()} {
         //begin-user-code
         // TODO you must provide an implementation for this port.
 /*{% if operation.returns != 'void' %}*/
-    /*{%   if operation.returns == 'org.omg.CORBA.Object' %}*/
-        return null;
-/*{%   else %}*/
-        return ${java.defaultValue(operation.returns)};
-/*{%   endif %}*/
+        ${operation.returns} retval${' = %s' % operation.defaultval if operation.defaultval};
+        return retval;
 /*{% endif %}*/
         //end-user-code
     }
 /*{% endfor %}*/
+
+    /**
+     * @generated
+     */
+    public String getRepid()
+    {
+        return ${portgenerator.helperClass()}.id();
+    }
+
+    /**
+     * @generated
+     */
+    public String getDirection()
+    {
+        return "Provides";
+    }
 }

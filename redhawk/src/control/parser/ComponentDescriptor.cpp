@@ -29,7 +29,7 @@
 using namespace scd;
 using namespace ossie;
 
-ComponentDescriptor::ComponentDescriptor(std::istream& input) throw (ossie::parser_error) : _scd(0) {
+ComponentDescriptor::ComponentDescriptor(std::istream& input) throw (ossie::parser_error)  {
     this->load(input);
 }
 
@@ -38,15 +38,19 @@ ComponentDescriptor::~ComponentDescriptor()
 
 }
 
-ComponentDescriptor& ComponentDescriptor::operator=(ComponentDescriptor other) {
-    // Transfer ownership
-    this->_scd = other._scd;
+ComponentDescriptor::ComponentDescriptor(const ComponentDescriptor &other) {
+    _scd = other._scd;
+}
+
+ComponentDescriptor& ComponentDescriptor::operator=(const ComponentDescriptor &other) {
+    _scd = other._scd;
     return *this;
 }
 
 void ComponentDescriptor::load(std::istream& input) throw(ossie::parser_error)
 {
-    _scd = ossie::internalparser::parseSCD(input);
+  std::auto_ptr<SCD> t = ossie::internalparser::parseSCD(input);
+  _scd.reset(t.release());
 }
 
 const char* ComponentDescriptor::getComponentType() const {
@@ -57,7 +61,9 @@ const char* ComponentDescriptor::getComponentType() const {
 bool ComponentDescriptor::isDevice() const 
 {
     assert(_scd.get() != 0);
-    if (_scd->componentType == "device")
+    if ( ( _scd->componentType == "device") ||
+         ( _scd->componentType == "loadabledevice") ||
+         (_scd->componentType == "executabledevice") )
     { return true; }
     else
     { return false; }
@@ -121,7 +127,8 @@ bool ComponentDescriptor::isConfigurable() const
     if ((_scd->componentType == "resource") ||
         (_scd->componentType == "application") ||
         (_scd->componentType == "devicemanager") ||
-        (ComponentDescriptor::isDevice ()) || (ComponentDescriptor::isDomainManager ())) {
+        (ComponentDescriptor::isDevice ()) || 
+        (ComponentDescriptor::isDomainManager ())) {
         return true;
     } else
     { return false; }

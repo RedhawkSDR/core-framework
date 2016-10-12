@@ -23,7 +23,7 @@ ACLOCAL_AMFLAGS = -I m4 -I ${OSSIEHOME}/share/aclocal/ossie -I acinclude
 burstio_top=../../..
 burstio_cpplib_top=$(burstio_top)/src/cpp
 Burstio_SOURCES = Burstio.cpp Burstio_InPort.cpp Burstio_OutPort.cpp  Burstio_PushTest.cpp Burstio_Utils_Test.cpp
-Burstio_INCLUDES = -I$(burstio_cpplib_top)/include -I$(burstio_cpplib_top)/include/burstio  -I$(burstio_cpplib_top)/redhawk
+Burstio_INCLUDES = -I$(burstio_cpplib_top)/include -I$(burstio_cpplib_top)/include/burstio  -I$(burstio_cpplib_top)/redhawk -I$(burstio_cpplib_top)/
 Burstio_CXXFLAGS = $(CPPUNIT_CFLAGS) $(Burstio_INCLUDES) $(BOOST_CPPFLAGS) $(BULKIO_CFLAGS) $(RH_DEPS_CFLAGS)
 Burstio_LDADD = -L$(burstio_cpplib_top)/.libs -lburstio -lburstioInterfaces $(BULKIO_LIBS) $(RH_DEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(CPPUNIT_LIBS) -llog4cxx -ldl
 

@@ -23,6 +23,8 @@ import threading
 import time
 import struct
 
+from omniORB.any import from_any
+
 def _deferred_imports():
     # Importing PyQt4 and matplotlib may take a long time--more than a second
     # worst case--but neither one is needed at import time (or possibly ever).
@@ -73,6 +75,7 @@ class PlotSink(bulkio_data_helpers.ArraySink):
         super(PlotSink,self).__init__(porttype)
         self._started = False
         self._forceComplex = False
+        self._sriChanged = False
 
     def start(self):
         self._started = True
@@ -87,6 +90,17 @@ class PlotSink(bulkio_data_helpers.ArraySink):
         if not self._started:
             return
         super(PlotSink,self).pushPacket(data, ts, EOS, stream_id)
+
+    def pushSRI(self, H):
+        # Turn the keywords into a dictionary for easy lookup
+        H.keywords = dict((dt.id, from_any(dt.value)) for dt in H.keywords)
+        super(PlotSink,self).pushSRI(H)
+        self._sriChanged = True
+
+    def sriChanged(self):
+        changed = self._sriChanged
+        self._sriChanged = False
+        return changed
 
     def retrieveData(self, length):
         data, times = super(PlotSink,self).retrieveData(length)
@@ -366,7 +380,7 @@ class LineBase(PlotBase):
         line.set_data(x_data, y_data)
 
         # Check for new xdelta and update canvas if necessary.
-        if sink.sri.xdelta != trace['xdelta']:
+        if sink.sriChanged():
             trace['xdelta'] = sink.sri.xdelta
             xmin, xmax = self._getXRange(sink.sri)
             self._plot.set_xlim(xmin, xmax)
@@ -505,8 +519,18 @@ class PSDBase(object):
     def __init__(self, nfft):
         self._nfft = nfft
 
+    def _getFreqOffset(self, sri):
+        offset = sri.keywords.get('CHAN_RF', None)
+        if offset is None:
+            offset = sri.keywords.get('COL_RF', 0.0)
+        return offset
+
     def _psd(self, data, sri):
-        return mlab.psd(data, NFFT=self._nfft, Fs=self._getSampleRate(sri))
+        offset = self._getFreqOffset(sri)
+        y_data, x_data = mlab.psd(data, NFFT=self._nfft, Fs=self._getSampleRate(sri))
+        if offset:
+            x_data += offset
+        return y_data, x_data
 
     def _getSampleRate(self, sri):
         if sri.xdelta > 0.0:
@@ -519,12 +543,17 @@ class PSDBase(object):
 
     def _getFreqRange(self, sri):
         nyquist = 0.5 * self._getSampleRate(sri)
+        upper = nyquist
         if sri.mode:
             # Negative and positive frequencies.
-            return -nyquist, nyquist
+            lower = -nyquist
         else:
             # Non-negative frequencies only.       
-            return 0, nyquist
+            lower = 0
+        offset = self._getFreqOffset(sri)
+        upper += offset
+        lower += offset
+        return lower, upper
         
 
 class LinePSD(LineBase, PSDBase):
@@ -622,7 +651,7 @@ class RasterBase(PlotBase):
         data = self._formatData(data, sri)
 
         # If xdelta changes, update the X and Y ranges.
-        if sri.xdelta != self._xdelta:
+        if self._sink.sriChanged():
             # Update the X and Y ranges
             x_min, x_max = self._getXRange(sri)
             y_min, y_max = self._getYRange(sri)

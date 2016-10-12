@@ -23,8 +23,12 @@ package org.ossie.logging;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.net.InetAddress;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.UnknownHostException;
+import java.net.MalformedURLException;
 import java.lang.management.*;  
 import java.lang.Exception;
 import java.util.Properties;
@@ -35,17 +39,20 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Appender;
+import org.apache.log4j.Category;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Layout;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.PropertyConfigurator;
-import org.apache.log4j.LogManager;
 import org.apache.log4j.PatternLayout;
-import org.apache.log4j.Layout;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Appender;
-import org.apache.log4j.Level;
+import org.apache.log4j.spi.LoggerRepository;
+import org.apache.log4j.spi.HierarchyEventListener;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.omg.CORBA.ORB;
 import CF.LogLevels;
@@ -61,6 +68,11 @@ public class logging {
     // to the boost::regex_replace method.
     //
     public static class MacroTable extends HashMap<String, String > {};
+
+    //
+    // Singleton that identifies RH_LogEventAppenders when they are used
+    //
+    protected static AppenderLibrary  _appenderLibrary=null;
   
     public enum LogConfigFormatType { JAVA_PROPS, XML_PROPS };
 
@@ -73,7 +85,6 @@ public class logging {
 	public ResourceCtx(  String name,
 			     String id,
 			     String dpath ) {
-
 	    if ( name != null ) this.name=name;
 	    if ( id != null ) this.instance_id=id;
 	    if ( dpath != null ) {
@@ -111,6 +122,7 @@ public class logging {
 			      String dpath )
         {
             super(name, id, dpath);
+
 	    if ( dpath != null ) {
 		String [] seg=_split_path(dpath);
 		int n=0;
@@ -252,7 +264,7 @@ public class logging {
         text = src;
         for( Map.Entry< String, String > entry: ctx.entrySet() ){
             text = text.replaceAll( entry.getKey(), entry.getValue() );
-        };
+        }
         return text;
     };
 
@@ -296,7 +308,7 @@ public class logging {
         tbl.put("@@@DOMAIN.NAME@@@", ctx.domain_name.replaceAll(":", "-" ) );
         tbl.put("@@@NAME@@@",  ctx.name.replaceAll(":", "-" ));
         tbl.put("@@@INSTANCE@@@", ctx.instance_id.replaceAll( ":", "-" ) );
-	      tbl.put("@@@PID@@@", GetPid() );
+        tbl.put("@@@PID@@@", GetPid() );
     };
 
     //
@@ -310,7 +322,8 @@ public class logging {
 	tbl.put("@@@WAVEFORM.ID@@@", ctx.waveform_id.replaceAll(":", "-" ) );
 	tbl.put("@@@COMPONENT.NAME@@@", ctx.name.replaceAll(":", "-" ) );
 	tbl.put("@@@COMPONENT.INSTANCE@@@", ctx.instance_id.replaceAll(":", "-" ) );
-	tbl.put("@@@COMPONENT.PID@@@", GetPid() );
+	tbl.put("@@@COMPONENT.PID@@@", GetPid());
+
     };
 
     //
@@ -386,6 +399,17 @@ public class logging {
 	if ( oldstyle_level == 4 ) return CF.LogLevels.DEBUG;
 	if ( oldstyle_level == 5)  return CF.LogLevels.ALL;
 	return CF.LogLevels.INFO;
+    };
+
+
+    public static Level ConvertLogLevelToLog4( int oldstyle_level ) {
+	if ( oldstyle_level == 0 ) return Level.FATAL;
+	if ( oldstyle_level == 1 ) return Level.ERROR;
+	if ( oldstyle_level == 2 ) return Level.WARN;
+	if ( oldstyle_level == 3 ) return Level.INFO;
+	if ( oldstyle_level == 4 ) return Level.DEBUG;
+	if ( oldstyle_level == 5)  return Level.ALL;
+	return Level.INFO;
     };
 
     public static void SetLevel( String  logid, int oldstyle_level ) {
@@ -529,6 +553,32 @@ public class logging {
         String fileContents = new String(data.value,"UTF-8");
         return fileContents;
     };
+    
+    private static String GetHTTPFileContents( String url ) throws Exception {
+    	try {
+            URL fileURL = new URL(url);
+            URLConnection urlConnection = fileURL.openConnection();
+            urlConnection.connect();
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+            		urlConnection.getInputStream()));
+            String line = null;
+            String fileContents = null;
+            while ((line = in.readLine()) != null) {
+            	fileContents += line + "\n";
+            }
+            in.close();
+            return fileContents;
+    	}
+    	catch (MalformedURLException e) {
+    		throw new Exception("new URL() failed");
+    	}
+    	catch (IOException e) {
+    		throw new Exception("openConnection() failed");
+    	}
+    	catch (Exception e) {
+    		throw new Exception("failed to read " + url);
+    	}
+    }
 
 
     private  static String readFile( String file ) throws IOException {
@@ -565,9 +615,8 @@ public class logging {
         };
 
         if ( url.startsWith( "http:")  ) { 
-            // RESOLVE .. need to grab contents of remote file via http
-            //fileContents = getLogConfig( uri+5 );
-            //validFile=true;
+             fileContents = GetHTTPFileContents( url );
+         
         };
 
         if ( url.startsWith( "log:") ) { 
@@ -648,11 +697,93 @@ public class logging {
     };
 
 
+    /**
+       AppenderLibrary
+
+       Hook into log4j when differnent appenders are processed.  We are looking for RH_LogEventAppender
+       to assist with requesting EventChannels from the domain. Domain resources are created after the 
+       log4j library is initialized, so we hold references here to assist when those Domain resource
+       objects are created.
+     */
+    
+    protected static class AppenderLibrary implements HierarchyEventListener {
+
+        public static ArrayList<RH_LogEventAppender> rh_evt_appenders=new ArrayList<RH_LogEventAppender>();
+
+        public static org.ossie.events.Manager ecm = null;
+
+        public static int appcnt=0;
+        
+        public AppenderLibrary() {};
+
+        // called by log4j library when an appender object is created from the log4j properties file
+        public void addAppenderEvent( Category cat, Appender appender ) {
+            if ( appender.getClass().getName().contains("RH_LogEventAppender") == true  ) {
+                RH_LogEventAppender rh_logEventAppender = (RH_LogEventAppender)appender;
+                rh_evt_appenders.add(rh_logEventAppender );
+                // if we know the event channel manager.. then assign it to the appender
+                if ( ecm != null ) {
+                    rh_logEventAppender.connect(ecm);
+                }
+            }
+        }
+
+        public void removeAppenderEvent( Category cat, Appender appender ) {
+            //System.out.println ("Appender REMOVE: " + appender.getName() );
+        }
+
+        public RH_LogEventAppender[]   getEventAppenders() {
+            return rh_evt_appenders.toArray( new RH_LogEventAppender[rh_evt_appenders.size() ] );
+        }
+
+        public static RH_LogEventAppender[]  GetEventAppenders() {
+            if ( _appenderLibrary != null ) {
+                return _appenderLibrary.getEventAppenders();
+            }
+            return null;
+        }
+
+        public int setEventChannelManager( org.ossie.events.Manager ECM ) {
+            ecm = ECM;
+            for ( RH_LogEventAppender rh_evt_app : rh_evt_appenders ) {
+                rh_evt_app.setEventChannelManager(ECM);
+            }
+            return 0;
+        }
+
+        public static int SetEventChannelManager( org.ossie.events.Manager ECM ) {
+            AppenderLibrary.ecm = ECM;
+            if ( _appenderLibrary != null ) {
+                _appenderLibrary.setEventChannelManager(ECM);
+            }
+            return 0;
+
+        }
+    }
+
+
+
+    public static int SetResource( org.ossie.component.Resource obj ) {
+        return AppenderLibrary.SetEventChannelManager( obj.getEventChannelManager() );
+    }
+
+
+    public static int SetEventChannelManager( org.ossie.events.Manager ECM ) {
+        return AppenderLibrary.SetEventChannelManager(ECM);
+    }
+
+
     //
     // Used by a resource to configure the logging provider 
     //
     //
     public static void Configure( String logcfgUri, int logLevel, ResourceCtx ctx) {
+
+        // add listener callback so we can inject the resource when evaluating EventChannelManager
+        if ( _appenderLibrary == null ) {
+            _appenderLibrary = new AppenderLibrary();
+            LogManager.getLoggerRepository().addHierarchyEventListener( _appenderLibrary );
+        }
 
         if ( logcfgUri == "" ||  logcfgUri.length() == 0 ){
             ConfigureDefault();

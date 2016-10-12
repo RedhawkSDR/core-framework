@@ -1,0 +1,28 @@
+#!/bin/sh
+
+rm -f config.cache
+
+# Setup the libtool stuff
+if [ -e /usr/local/share/aclocal/libtool.m4 ]; then
+    /bin/cp /usr/local/share/aclocal/libtool.m4 aclocal.d/acinclude.m4
+elif [ -e /usr/share/aclocal/libtool.m4 ]; then
+    /bin/cp /usr/share/aclocal/libtool.m4 acinclude.m4
+fi
+libtoolize --force --automake
+
+# Search in expected locations for the OSSIE acincludes
+if [ -n ${OSSIEHOME} ] && [ -d ${OSSIEHOME}/share/aclocal/ossie ]; then
+        OSSIE_AC_INCLUDE=${OSSIEHOME}/share/aclocal/ossie
+else
+    echo "Error: Cannot find the OSSIE aclocal files. This is not expected!"
+fi
+
+if [ -n ${OSSIE_AC_INCLUDE} ]; then
+        aclocal -I ${OSSIE_AC_INCLUDE}
+else
+        aclocal
+fi
+
+autoconf
+automake --foreign --add-missing
+

@@ -60,7 +60,7 @@ class ConsumerDevice_i(CosEventComm__POA.PushConsumer):
 
 class EventPortConnectionsTest(scatest.CorbaTestCase):
     def setUp(self):
-        self._domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self._domBooter, self._domMgr = self.launchDomainManager()
 
     def tearDown(self):
         try:
@@ -92,14 +92,16 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         self.localEvent = threading.Event()
         self.eventFlag = False
         
-        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_EventPortTestDevice_node/DeviceManager.dcd.xml", self._domMgr, debug=self.debuglevel)
+        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_EventPortTestDevice_node/DeviceManager.dcd.xml", self._domMgr)
         time.sleep(1)   # this sleep is here for the connections to be established to the event service
 
         domainName = scatest.getTestDomainName()
 
-        channelName = URI.stringToName("%s/%s" % (domainName, 'deviceEvent'))
+        req = CF.EventChannelManager.EventRegistration( 'deviceEvent', '')
         try:
-            devChannel = self._root.resolve(channelName)._narrow(CosEventChannelAdmin__POA.EventChannel)
+            ecm = self._domMgr._get_eventChannelMgr()
+            creg = ecm.registerResource( req ) 
+            devChannel = creg.channel
         except:
             self.assertEqual(False, True)
         else:
@@ -125,15 +127,19 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         self.localEvent = threading.Event()
         self.eventFlag = False
         
-        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_EventPortTestDevice_node/DeviceManager.dcd.xml", self._domMgr, debug=self.debuglevel)
+        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_EventPortTestDevice_node/DeviceManager.dcd.xml", self._domMgr)
         domainName = scatest.getTestDomainName()
         self._domMgr.installApplication("/waveforms/PortConnectFindByDomainFinderEvent/PortConnectFindByDomainFinderEvent.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         app = appFact.create(appFact._get_name(), [], [])
         app.start()
-        channelName = URI.stringToName("%s/%s" % (domainName, 'anotherChannel'))
+
+        # rh 1.11 and forward event channels belong to the Domain...
+        req = CF.EventChannelManager.EventRegistration( 'anotherChannel', '')
         try:
-            appChannel = self._root.resolve(channelName)._narrow(CosEventChannelAdmin__POA.EventChannel)
+            ecm = self._domMgr._get_eventChannelMgr()
+            creg = ecm.registerResource( req ) 
+            appChannel = creg.channel
         except:
             self.assertEqual(False, True)
         else:

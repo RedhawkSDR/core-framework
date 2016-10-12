@@ -34,10 +34,10 @@ import org.ossie.properties.*;
 import frontend.*;
 
 /*{% block struct %}*/
-/*{% from "frontend_properties.java" import frontendtunerstatusstructdef with context %}*/
+/*{% from "frontend_properties.java" import frontendstructdef with context %}*/
  /*{% for prop in component.properties %}*/
 /*{%     if prop.name == "frontend_tuner_status" %}*/ 
-${frontendtunerstatusstructdef(prop.structdef)}
+${frontendstructdef(prop.structdef)}
 /*{%     endif %}*/
 /*{% endfor %}*/
 /*{% endblock %}*/

@@ -18,52 +18,25 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#include <list>
-#include <cstdlib>
+#if HAVE_GCC_ABI_DEMANGLE
+#include <cxxabi.h>
+#include <stdlib.h>
+#endif
 
 #include <ossie/type_traits.h>
 
 const std::string ossie::internal::demangle (const std::string& name)
 {
-    if (name.empty()) {
-	return name;
+#if HAVE_GCC_ABI_DEMANGLE
+    int status = 0;
+    char* c_name = abi::__cxa_demangle(name.c_str(), 0, 0, &status);
+    std::string result;
+    if (c_name) {
+        result = c_name;
+        free(c_name);
     }
-
-    std::string::const_iterator pos = name.begin();
-    if (*pos == 'N') {
-	// Namespaced name, skip first character; technically, we should only
-	// read one name segment unless we see this, but in practice it doesn't
-	// matter
-	++pos;
-    }
-
-    // Read '<length>name' segments until the end of the name, or the 'E' that
-    // marks the end of a namespaced name
-    std::list<std::string> parts;
-    while ((pos != name.end()) && (*pos != 'E')) {
-	// Find the end of the length
-	std::string::const_iterator digit_end = pos;
-	while ((digit_end != name.end()) && isdigit(*digit_end)) {
-	    ++digit_end;
-	}
-
-	// Read the name length 
-	std::string length(pos, digit_end);
-	int name_length = std::atoi(length.c_str());
-
-	// Pull out the length-delimited name
-	std::string::const_iterator name_end = digit_end + name_length;
-	parts.push_back(std::string(digit_end, name_end));
-
-	// Advance past end of segment
-	pos = name_end;
-    }
-
-    // Build a proper namespaced name from the parts
-    std::string name_out = parts.front();
-    parts.erase(parts.begin());
-    for (std::list<std::string>::iterator ii = parts.begin(); ii != parts.end(); ++ii) {
-	name_out += "::" + *ii;
-    }
-    return name_out;
+    return result;
+#else
+    return name;
+#endif
 }

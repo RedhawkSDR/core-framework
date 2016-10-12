@@ -19,24 +19,13 @@
  #*/
 //% extends "pull/resource.cpp"
 
-/*{% block ctorBody %}*/
-    construct();
-/*{% endblock %}*/
-
 /*{% block updateUsageState %}*/
-/*{%   if component is device and baseClass == Device_impl %}*/
+/*{%   for sc in component.superclasses if sc.name == "Device_impl" %}*/
 ${super()}
-/*{%-  endif %}*/
+/*{%-  endfor %}*/
 /*{% endblock %}*/
 
 /*{% block extensions %}*/
-
-void ${className}::construct()
-{
-    /***********************************************************************************
-     this function is invoked in the constructor
-    ***********************************************************************************/
-}
 /*{% if 'FrontendTuner' in component.implements %}*/
 
 /*************************************************************
@@ -48,6 +37,7 @@ void ${className}::deviceEnable(frontend_tuner_status_struct_struct &fts, size_t
     Make sure to set the 'enabled' member of fts to indicate that tuner as enabled
     ************************************************************/
     #warning deviceEnable(): Enable the given tuner  *********
+    fts.enabled = true;
     return;
 }
 void ${className}::deviceDisable(frontend_tuner_status_struct_struct &fts, size_t tuner_id){
@@ -56,15 +46,22 @@ void ${className}::deviceDisable(frontend_tuner_status_struct_struct &fts, size_
     Make sure to reset the 'enabled' member of fts to indicate that tuner as disabled
     ************************************************************/
     #warning deviceDisable(): Disable the given tuner  *********
+    fts.enabled = false;
     return;
 }
 bool ${className}::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
     /************************************************************
     modify fts, which corresponds to this->frontend_tuner_status[tuner_id]
+      At a minimum, bandwidth, center frequency, and sample_rate have to be set
+      If the device is tuned to exactly what the request was, the code should be:
+        fts.bandwidth = request.bandwidth;
+        fts.center_frequency = request.center_frequency;
+        fts.sample_rate = request.sample_rate;
+
     return true if the tuning succeeded, and false if it failed
     ************************************************************/
     #warning deviceSetTuning(): Evaluate whether or not a tuner is added  *********
-    return BOOL_VALUE_HERE;
+    return true;
 }
 bool ${className}::deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, size_t tuner_id) {
     /************************************************************
@@ -72,7 +69,7 @@ bool ${className}::deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, 
     return true if the tune deletion succeeded, and false if it failed
     ************************************************************/
     #warning deviceDeleteTuning(): Deallocate an allocated tuner  *********
-    return BOOL_VALUE_HERE;
+    return true;
 }
 
 /*************************************************************

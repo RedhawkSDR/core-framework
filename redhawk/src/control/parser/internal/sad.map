@@ -25,10 +25,10 @@ namespace urn:mil:jpeojtrs:sca:sad {
     softwareassembly "::std::auto_ptr<ossie::SoftwareAssembly::SAD>";
     componentfiles "::std::vector<ossie::ComponentFile>";
     componentfile "::ossie::ComponentFile";
-    componentplacement "::ossie::ComponentPlacement";
+    componentplacement "const ::ossie::ComponentPlacement&" "const ::ossie::ComponentPlacement&";
     partitioning "ossie::SoftwareAssembly::Partitioning";
     hostcollocation "::ossie::SoftwareAssembly::HostCollocation";
-    componentinstantiation "::ossie::ComponentInstantiation";
+    componentinstantiation "const ::ossie::ComponentInstantiation &" "const ::ossie::ComponentInstantiation &";
     connections "::std::vector<ossie::Connection>";
     connectinterface "::ossie::Connection";
     usesport "::ossie::UsesPort";
@@ -39,12 +39,12 @@ namespace urn:mil:jpeojtrs:sca:sad {
     findby "::ossie::FindBy";
     namingservice "::std::string";
     domainfinder "::std::pair<std::string, std::string>";
-    componentproperties "::std::vector<ossie::ComponentProperty*>";
-    simpleref "ossie::SimplePropertyRef*";
-    simplesequenceref "ossie::SimpleSequencePropertyRef*";
-    structref "ossie::StructPropertyRef*";
-    structsequenceref "ossie::StructSequencePropertyRef*";
-    structvalue "::std::map<std::string, std::string>";
+    componentproperties "const ossie::ComponentPropertyList &" "const ossie::ComponentPropertyList &";
+    simpleref "const ossie::SimplePropertyRef &" "const ossie::SimplePropertyRef &";
+    simplesequenceref "const ossie::SimpleSequencePropertyRef &" "const ossie::SimpleSequencePropertyRef &";
+    structref "const ossie::StructPropertyRef &" "const ossie::StructPropertyRef &";
+    structsequenceref "const ossie::StructSequencePropertyRef &" "const ossie::StructSequencePropertyRef &";
+    structvalue "const ossie::ComponentPropertyMap &" "const ossie::ComponentPropertyMap &";
     componentfileref "::std::string";
     assemblycontroller "::std::string";
     componentinstantiationref "::std::string";
@@ -63,4 +63,7 @@ namespace urn:mil:jpeojtrs:sca:sad {
     usesdevicedependencies "::std::vector<ossie::SoftwareAssembly::UsesDevice>";
     usesdevice "ossie::SoftwareAssembly::UsesDevice";
     propertyref "ossie::SoftwareAssembly::PropertyRef";
+    affinity "const ossie::ComponentInstantiation::AffinityProperties&" "const ossie::ComponentInstantiation::AffinityProperties&";
+    loggingconfig  "const ossie::ComponentInstantiation::LoggingConfig&"  "const ossie::ComponentInstantiation::LoggingConfig&";
 }
+

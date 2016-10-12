@@ -53,7 +53,7 @@ namespace log4cxx
 
         namespace helpers {
 
-          /**
+          /*
            * InputStream implemented on top of a byte array.
            */
           class LOG4CXX_EXPORT StringInputStream : public InputStream
@@ -73,7 +73,7 @@ namespace log4cxx
                           LOG4CXX_CAST_ENTRY_CHAIN(InputStream)
                   END_LOG4CXX_CAST_MAP()
 
-                  /**
+                  /*
                    * Creates a StringInputStream.
                    *
                    * @param bytes array of bytes to copy into stream.
@@ -82,13 +82,13 @@ namespace log4cxx
 
                    virtual ~StringInputStream();
 
-                  /**
+                  /*
                    * Closes this file input stream and releases any system 
                    * resources associated with the stream.
                    */
                   virtual void close();
 
-                  /**
+                  /*
                    * Reads a sequence of bytes into the given buffer.
                    *
                    * @param buf The buffer into which bytes are to be transferred.

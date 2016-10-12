@@ -35,7 +35,7 @@ from ossie.utils.popen import Popen
 
 from devmgr import DeviceManagerStub
 from naming import NamingContextStub
-from debugger import GDB, PDB
+from debugger import GDB, PDB, Valgrind
 from terminal import XTerm
 
 __all__ = ('ResourceLauncher', 'DeviceLauncher', 'ServiceLauncher')
@@ -54,12 +54,34 @@ class LocalProcess(object):
                     (signal.SIGKILL, 0))
 
     def __init__(self, command, arguments, environment=None, stdout=None):
+        self.__terminateRequested = False
         self.__command = command
+        self.__arguments = arguments
         log.debug('%s %s', command, ' '.join(arguments))
         self.__process = Popen([command]+arguments, executable=command,
                                cwd=os.getcwd(), env=environment,
                                stdout=stdout, stderr=subprocess.STDOUT,
                                preexec_fn=os.setpgrp)
+        self.__tracker = threading.Thread(target=self.monitorChild)
+        self.__tracker.daemon = True
+        self.__tracker.start()
+    
+    def monitorChild(self):
+        pid = self.__process.pid
+        try:
+          self.__process.communicate()[0]
+          if self.__terminateRequested or self.__process.returncode == 0:
+              return
+          for idx in range(len(self.__arguments)):
+              if self.__arguments[idx] == 'NAME_BINDING':
+                  if len(self.__arguments)>=idx+1:
+                      print 'Component '+self.__arguments[idx+1]+' (pid='+str(pid)+') has died'
+                  else:
+                      print 'Component with process id '+str(pid)+'has died'
+        except:
+            if self.__terminateRequested or self.__process.returncode == 0:
+                return
+            print 'Component with process id '+str(pid)+'has died'
 
     def terminate(self):
         for sig, timeout in self.STOP_SIGNALS:
@@ -77,6 +99,9 @@ class LocalProcess(object):
                 break
         self.__process.wait()
         self.__process = None
+    
+    def requestTermination(self):
+        self.__terminateRequested = True
     
     def command(self):
         return self.__command
@@ -175,6 +200,8 @@ class LocalLauncher(object):
                     debugger = PDB()
                 elif debugger == 'gdb':
                     debugger = GDB()
+                elif debugger == 'valgrind':
+                    debugger = Valgrind()
                 else:
                     raise RuntimeError, 'not supported'
             except Exception, e:
@@ -263,14 +290,21 @@ class LocalLauncher(object):
         
     # this function checks if the base has a dependency not supported by impl for non-zero impls
     def _subsetDeps(self, base, impl):
+        foundMatch = True
         if len(impl[0]) != 0:
+            foundMatch = False
             for val in base[0]:
-                if not val in impl[0]:
-                    return False
+                if val in impl[0]:
+                    foundMatch = True
+        if not foundMatch:
+            return False
         if len(impl[1]) != 0:
+            foundMatch = False
             for val in base[1]:
-                if not val in impl[1]:
-                    return False
+                if val in impl[1]:
+                    foundMatch = True
+        if not foundMatch:
+            return False
         return True
 
     def _assembleOsProc(self, depimpl):

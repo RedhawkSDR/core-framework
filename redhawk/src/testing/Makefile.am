@@ -35,6 +35,11 @@ SUBDIRS = sdr/dev/devices/ExecutableDevice \
           sdr/dev/devices/issue_111_cpp/cpp \
           sdr/dev/devices/PersonaDevice/cpp \
           sdr/dev/devices/ProgrammableDevice/cpp \
+          sdr/dev/devices/cpp_dev/cpp \
+          sdr/dev/devices/GPP/cpp \
+          sdr/dev/devices/java_dev/java \
+          sdr/dom/deps/cpp_dep1/cpp \
+          sdr/dom/deps/cpp_dep2/cpp \
           sdr/dom/components/TestCppProps \
           sdr/dom/components/linkedLibraryTest \
           sdr/dom/components/TestCppsoftpkgDeps \
@@ -49,7 +54,20 @@ SUBDIRS = sdr/dev/devices/ExecutableDevice \
           sdr/dom/components/TestComplexProps/cpp \
           sdr/dom/components/TestAllPropTypes/cpp \
           sdr/dom/components/CppCallbacks/cpp \
-          sdr/dom/components/TestLoggingAPI/cpp
+          sdr/dom/components/prop_trigger_timing/cpp \
+          sdr/dom/components/cpp_comp/cpp \
+          sdr/dom/components/java_comp/java \
+          sdr/dom/components/TestLoggingAPI/cpp \
+          sdr/dom/components/ECM_CPP/cpp \
+          sdr/dom/components/C1/cpp \
+          sdr/dom/components/C2/cpp \
+          sdr/dom/components/PropertyChange_C1/cpp \
+          sdr/dom/components/Property_CPP/cpp \
+          sdr/dom/components/commandline_prop/cpp \
+          sdr/dom/components/nocommandline_prop/cpp \
+          sdr/dom/components/foo/bar/comp/cpp \
+          sdr/dom/components/TestCppOptionalProps/cpp \
+          sdr/dom/components/cpp_with_deps/cpp
 
 if HAVE_JAVASUPPORT
 SUBDIRS += sdr/dev/devices/BasicTestDevice_java/java \
@@ -60,6 +78,7 @@ SUBDIRS += sdr/dev/devices/BasicTestDevice_java/java \
            sdr/dom/components/EventSend/EventSend_java_impl1 \
            sdr/dom/components/EventReceive/EventReceive_java_impl1 \
            sdr/dom/components/javaDep/javaDep \
+           sdr/dom/components/java_comp/java \
            sdr/dom/components/HardLimit/HardLimit_java_impl1 \
            sdr/dom/components/PropertyChangeEventsJava/PropertyChangeEventsJava_java_impl1 \
            sdr/dom/components/TestJavaProps \
@@ -67,7 +86,12 @@ SUBDIRS += sdr/dev/devices/BasicTestDevice_java/java \
            sdr/dom/components/TestJavaPropsRange/java \
            sdr/dom/components/TestComplexProps/java \
            sdr/dom/components/TestAllPropTypes/java \
-           sdr/dom/components/TestLoggingAPI/java
+           sdr/dom/components/TestLoggingAPI/java \
+           sdr/dom/components/ECM_JAVA/java \
+           sdr/dom/components/PropertyChange_J1/java \
+           sdr/dom/components/Property_JAVA/java \
+           sdr/dom/components/foo/bar/jv/java \
+           sdr/dom/components/TestJavaOptionalProps/java
 endif
 
 all-local:

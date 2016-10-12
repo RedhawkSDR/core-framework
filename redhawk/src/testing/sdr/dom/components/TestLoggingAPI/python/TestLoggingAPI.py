@@ -28,8 +28,29 @@ import logging
 
 from TestLoggingAPI_base import *
 
+
 class TestLoggingAPI_i(TestLoggingAPI_base):
+
+    class MyLogListenerCB(object):
+        def __init__(self, Parent):
+            self.parent = Parent
+
+        def logLevelChanged( self, log_id, new_v):
+            self.parent.new_log_level = new_v
+
+        def logConfigChanged( self, new_config):
+            self.parent.new_log_cfg = new_config
+
     """<DESCRIPTION GOES HERE>"""
+    def __init__(self, identifier, execparams):
+        TestLoggingAPI_base.__init__(self, identifier, execparams )
+        if execparams.has_key('DISABLE_CB'):
+            if execparams['DISABLE_CB'].upper() != 'TRUE':
+                self.setLogListenerCallback( TestLoggingAPI_i.MyLogListenerCB(self) )
+        else:
+          self.setLogListenerCallback( TestLoggingAPI_i.MyLogListenerCB(self) )
+
+
     def initialize(self):
         """
         This is called by the framework immediately after your component registers with the NameService.

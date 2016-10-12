@@ -77,7 +77,9 @@ def javaType (itype):
 
 def holderType (itype):
     name = typeString(itype)
-    if isPrimitiveType(itype):
+    if isString(itype):
+        name = 'CORBA.' + name
+    elif isPrimitiveType(itype):
         name = 'CORBA.' + name[0].upper() + name[1:]
     return qualifiedName(name + 'Holder')
 

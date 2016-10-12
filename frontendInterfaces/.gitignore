@@ -1,5 +1,7 @@
 .deps/
 .libs/
+.jars/
+.idlj/
 *.jar
 *.lo
 *.o
@@ -25,4 +27,5 @@ missing
 /libsrc/java/bin/
 /libsrc/cpp/.dirstamp
 /libsrc/java/META-INF/MANIFEST.MF
-/libsrc/java/META-INF/MANIFEST.MF.src
+/libsrc/frontend.pc
+/libsrc/libfrontend-*.la

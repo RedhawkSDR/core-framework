@@ -18,13 +18,14 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #}
 #$ set name = component.name
+#$ set basename = component.basename
+#$ set dirname = component.name.replace('.','/')
 # By default, the RPM will install to the standard REDHAWK SDR root location (/var/redhawk/sdr)
-# You can override this at install time using --prefix /new/sdr/root when invoking rpm (preferred method, if you must)
-%{!?_sdrroot: %define _sdrroot /var/redhawk/sdr}
-%define _prefix %{_sdrroot}
-Prefix:         %{_prefix}
+%{!?_sdrroot: %global _sdrroot /var/redhawk/sdr}
+%define _prefix %{_sdrroot}/{{component.sdrpath}}/{{dirname}}
 
 # Point install paths to locations within our target SDR root
+%define _libdir        %{_prefix}/{{component.implementations[0].outputdir}}/lib
 %define _sysconfdir    %{_prefix}/etc
 %define _localstatedir %{_prefix}/var
 %define _mandir        %{_prefix}/man
@@ -35,20 +36,25 @@ Prefix:         %{_prefix}
 Name:           {{name}}{{generator.variant}}
 Version:        {{component.version}}
 Release:        1%{?dist}
-Summary:        {{component.type}} %{name}{{' '+component.title if component.title}}
+Summary:        Shared package %{name}{{' '+component.title if component.title}}
 
-Group:          REDHAWK/{{component.type}}s
+Group:          REDHAWK/Shared Packages
 License:        None
 Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  redhawk
+BuildRequires:  redhawk-devel >= 2.0
 BuildRequires:  autoconf automake libtool
-
-Requires:       redhawk >= 1.10
 
 #{$ block requireExtensions $}
 #{$ endblock $}
+
+#{$ for impl in component.implementations $}
+#{$ for softpkgdep in impl.softpkgdeps $}
+BuildRequires:  {{softpkgdep.name}}-devel
+Requires:       {{softpkgdep.name}}
+#{$ endfor $}
+#{$ endfor $}
 
 #{$ if component.interfaces $}
 # Interface requirements
@@ -64,9 +70,16 @@ BuildArch: noarch
 #{$ if component.description $}
 {{component.description}}
 #{$ else $}
-{{component.type}} %{name}
+Shared package %{name}
 #{$ endif $}
 
+%package devel
+Summary:        Shared package %{name}
+Group:          REDHAWK/Shared Packages
+Requires:       %{name} = %{version}-%{release}
+
+%description devel
+Libraries and header files for shared package %{name}
 
 %prep
 %setup -q
@@ -78,8 +91,7 @@ BuildArch: noarch
 # Implementation {{impl.id}}
 pushd {{impl.outputdir}}
 ./reconf
-%define _bindir %{_prefix}/{{component.sdrpath}}/{{name}}{{generator.variant}}/{{impl.outputdir}}
-%configure
+%configure --with-sdr=%{_sdrroot}
 make %{?_smp_mflags}
 popd
 #{$ endfor $}
@@ -92,7 +104,6 @@ rm -rf $RPM_BUILD_ROOT
 #{$ for impl in component.implementations $}
 # Implementation {{impl.id}}
 pushd {{impl.outputdir}}
-%define _bindir %{_prefix}/{{component.sdrpath}}/{{name}}{{generator.variant}}/{{impl.outputdir}}
 make install DESTDIR=$RPM_BUILD_ROOT
 popd
 #{$ endfor $}
@@ -106,11 +117,27 @@ rm -rf $RPM_BUILD_ROOT
 %files
 #{$ block files $}
 %defattr(-,redhawk,redhawk,-)
-%dir %{_prefix}/{{component.sdrpath}}/%{name}
+#{$ set subdirs = component.sdrpath $}
+#{$ for subdir in component.name.split('.') $}
+#{$ set subdirs = subdirs+'/'+subdir $}
+%dir %{_sdrroot}/{{subdirs}}
+#{$ endfor $}
 #{$ for xmlfile in component.profile.values() $}
-%{_prefix}/{{component.sdrpath}}/%{name}/{{xmlfile}}
+%{_prefix}/{{xmlfile}}
 #{$ endfor $}
 #{$ for impl in component.implementations $}
-%{_prefix}/{{component.sdrpath}}/%{name}/{{impl.outputdir}}
+%{_prefix}/{{impl.outputdir}}
 #{$ endfor $}
+%exclude %{_libdir}/lib{{basename}}.la
+%exclude %{_libdir}/lib{{basename}}.so
+%exclude %{_libdir}/pkgconfig
+#{$ endblock $}
+
+%files devel
+#{$ block filesdevel $}
+%defattr(-,redhawk,redhawk,-)
+%{_libdir}/lib{{basename}}.la
+%{_libdir}/lib{{basename}}.so
+%{_libdir}/pkgconfig
+%{_prefix}/include
 #{$ endblock $}

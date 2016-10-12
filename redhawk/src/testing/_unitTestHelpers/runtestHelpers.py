@@ -51,3 +51,24 @@ def getUnitTestFiles(rootpath, testFileGlob="test_*.py"):
     files.sort()
     return files
 
+def haveJavaSupport(filename):
+    fp=open(filename,'r')
+    makefile_lines = fp.readlines()
+    fp.close()
+    java_support = True
+    for line in makefile_lines:
+        if 'HAVE_JAVASUPPORT' in line:
+            if line.split('=')[1][:3] == ' no':
+                java_support = False
+    return java_support
+
+def haveLoggingSupport(filename):
+    fp=open(filename,'r')
+    makefile_lines = fp.readlines()
+    fp.close()
+    log4cxx_support = True
+    for line in makefile_lines:
+        if 'HAVE_LOG4CXX' in line:
+            if line.split('=')[1] == ' \n':
+                log4cxx_support = False
+    return log4cxx_support

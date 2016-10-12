@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="ASCII"?>
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="cpp">
+    <value outputDir="cpp" template="gov.redhawk.ide.codegen.jet.cplusplus.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.cplusplus.CplusplusGenerator" primary="true">
+      <generatedFileCRCs crc="1746641546" file="reconf"/>
+      <generatedFileCRCs crc="1433266519" file="basic_device.cpp"/>
+      <generatedFileCRCs crc="3546553415" file="port_impl.cpp"/>
+      <generatedFileCRCs crc="864280150" file="build.sh"/>
+      <generatedFileCRCs crc="2271425997" file="configure.ac"/>
+      <generatedFileCRCs crc="837979151" file="port_impl.h"/>
+      <generatedFileCRCs crc="4104362973" file="basic_device_base.h"/>
+      <generatedFileCRCs crc="2492247095" file="basic_device.h"/>
+      <generatedFileCRCs crc="3261457243" file="main.cpp"/>
+      <generatedFileCRCs crc="3605088493" file="basic_device_base.cpp"/>
+      <generatedFileCRCs crc="1942573142" file="struct_props.h"/>
+      <generatedFileCRCs crc="2201956141" file="../basic_device.spec"/>
+      <generatedFileCRCs crc="1050395529" file="Makefile.am"/>
+    </value>
+  </implSettings>
+  <implSettings key="java">
+    <value outputDir="java" template="gov.redhawk.ide.codegen.jet.java.JavaGenerator" generatorId="gov.redhawk.ide.codegen.jet.java.JavaGenerator">
+      <properties id="java_package" value="basic_device.java"/>
+      <properties id="use_jni" value="TRUE"/>
+      <generatedFileCRCs crc="2201956141" file="../basic_device.spec"/>
+      <generatedFileCRCs crc="1797176990" file="Makefile.am"/>
+      <generatedFileCRCs crc="163386427" file="configure.ac"/>
+      <generatedFileCRCs crc="1746641546" file="reconf"/>
+      <generatedFileCRCs crc="1668057584" file="startJava.sh"/>
+    </value>
+  </implSettings>
+  <implSettings key="python">
+    <value outputDir="python" template="gov.redhawk.ide.codegen.jet.python.pattern.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.python.PythonGenerator">
+      <generatedFileCRCs crc="2201956141" file="../basic_device.spec"/>
+      <generatedFileCRCs crc="1374294519" file="Makefile.am"/>
+      <generatedFileCRCs crc="2033860425" file="basic_device.py"/>
+      <generatedFileCRCs crc="3731964155" file="basic_device_base.py"/>
+      <generatedFileCRCs crc="4140790153" file="configure.ac"/>
+      <generatedFileCRCs crc="1746641546" file="reconf"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>

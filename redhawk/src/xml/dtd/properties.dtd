@@ -42,9 +42,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	id	ID							#REQUIRED
 	type	( boolean	| char	| double | float
 		| short	| long	| longlong | objref | octet
-		| string	| ulong	| ushort )		#REQUIRED
+		| string	| ulong | ulonglong	| ushort )		#REQUIRED
 	name	CDATA							#IMPLIED
 	complex ( false | true ) "false"
+	commandline ( false | true ) "false"
+	optional ( false | true ) "false"
 	mode	( readonly	| readwrite | writeonly)	"readwrite">
 
 <!ELEMENT description (#PCDATA)>
@@ -69,8 +71,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 
 <!ELEMENT kind EMPTY>
 <!ATTLIST kind
-	kindtype	(allocation | configure | test | execparam | factoryparam | event | message) 
-"configure">
+	kindtype	(allocation | property | configure | test | execparam | factoryparam | event | message) 
+"property">
 
 <!ELEMENT action EMPTY>
 <!ATTLIST action
@@ -87,10 +89,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 <!ATTLIST simplesequence
 	id	ID						#REQUIRED
 	type  ( boolean | char   | double | float
-	      | short  | long   | objref | octet
-	      | string | ulong  | ushort )		#REQUIRED
+	      | short  | long | longlong   | objref | octet
+	      | string | ulong | ulonglong | ushort )		#REQUIRED
 	name	CDATA						#IMPLIED
 	complex ( false | true ) "false"
+	optional ( false | true ) "false"
 	mode	(readonly | readwrite | writeonly)	"readwrite">
 
 <!ELEMENT values
@@ -115,7 +118,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 
 <!ELEMENT struct 
 	( description?
-	, simple+
+	, (simple | simplesequence)+
 	, configurationkind*
 	)>
 <!ATTLIST struct
@@ -125,8 +128,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 
 <!ELEMENT configurationkind EMPTY>
 <!ATTLIST configurationkind
-	kindtype	(allocation | configure | test | factoryparam | event | message)
-"configure">
+	kindtype	(allocation | property | configure | test | factoryparam | event | message  )
+"property">
 
 <!ELEMENT structsequence
 	( description?
@@ -140,10 +143,16 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	mode		(readonly | readwrite | writeonly)  "readwrite">
 		
 <!ELEMENT structvalue
-	(simpleref+	        
+	( (simpleref | simplesequenceref)+	        
 	)>
 		
 <!ELEMENT simpleref EMPTY>
 <!ATTLIST simpleref
 	refid 	CDATA	#REQUIRED
 	value 	CDATA	#REQUIRED>
+
+<!ELEMENT simplesequenceref
+        ( values
+        )>
+<!ATTLIST simplesequenceref
+        refid   CDATA   #REQUIRED>

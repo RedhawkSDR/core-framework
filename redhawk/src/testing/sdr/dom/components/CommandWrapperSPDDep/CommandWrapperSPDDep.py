@@ -29,6 +29,7 @@ import logging
 import signal
 
 import spdDepLibrary
+a = spdDepLibrary.bar()
 
 class CommandWrapperSPDDep_i(CF__POA.Resource, Resource):
     """This component simply ensures that all other components in the waveform get started and

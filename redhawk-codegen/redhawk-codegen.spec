@@ -23,8 +23,8 @@
 Prefix:         %{_prefix}
 
 Name:           redhawk-codegen
-Version:        1.10.2
-Release:        5%{?dist}
+Version:        2.0.2
+Release:        2%{?dist}
 Summary:        Redhawk Code Generators
 
 Group:          Applications/Engineering
@@ -38,9 +38,16 @@ BuildArch:      noarch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 Requires:       python
-Requires:       redhawk >= 1.10
+Requires:       redhawk >= 2.0
+%if 0%{?rhel} >= 7
+Requires:       python-jinja2
+BuildRequires:  python-jinja2
+%else
 Requires:       python-jinja2-26
+BuildRequires:  python-jinja2-26
+%endif
 
+BuildRequires:  python-setuptools
 BuildRequires:  python-devel >= 2.4
 
 # Turn off the brp-python-bytecompile script; our setup.py does byte compilation
@@ -76,7 +83,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/codegen_version
 %{_bindir}/createBinaryComponent
 %{_bindir}/createOctaveComponent
-%{_bindir}/createPackageDependency
+%{_bindir}/moveComponentNamespace
 %{_bindir}/update_project
 %{_bindir}/redhawk-codegen
 %{_prefix}/lib/python/redhawk/codegen
@@ -84,4 +91,8 @@ rm -rf $RPM_BUILD_ROOT
 %if 0%{?rhel} >= 6
 %{_prefix}/lib/python/redhawk_codegen-%{version}-py%{python_version}.egg-info
 %endif
+
+%changelog
+* Thu May 21 2015 - 2.0.0-2
+- Update python-jinja2 package for el7
 

@@ -30,6 +30,9 @@ class Bulkio_Helper_Fixture : public CppUnit::TestFixture
   CPPUNIT_TEST( test_time_now );
   CPPUNIT_TEST( test_time_create );
   CPPUNIT_TEST( test_time_compare );
+  CPPUNIT_TEST( test_time_normalize );
+  CPPUNIT_TEST( test_time_operators );
+  CPPUNIT_TEST( test_time_string );
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -42,6 +45,9 @@ public:
   void test_time_now();
   void test_time_create();
   void test_time_compare();
+  void test_time_normalize();
+  void test_time_operators();
+  void test_time_string();
 };
 
 #endif  // BULKIO_HELPER_FIXTURE_H

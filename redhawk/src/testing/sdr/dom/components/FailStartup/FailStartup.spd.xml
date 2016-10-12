@@ -31,11 +31,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <descriptor>
     <localfile name="FailStartup.scd.xml"/>
   </descriptor>
-  <implementation id="DCE:c43af4d8-2750-4cd9-87ec-ae507fc30b30">
+  <implementation id="python">
     <description>The implementation contains descriptive information about the template for a software component.</description>
     <code type="Executable">
-      <localfile name="FailStartup.py"/>
-      <entrypoint>FailStartup.py</entrypoint>
+      <localfile name="python"/>
+      <entrypoint>python/FailStartup.py</entrypoint>
     </code>
     <programminglanguage name="Python"/>
     <humanlanguage name="EN"/>

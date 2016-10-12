@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+    <simple name="device_kind" type="string" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d">
+        <description>This specifies the device kind</description>
+        <value>GPP</value>
+        <kind kindtype="configure"/>
+        <kind kindtype="allocation"/>
+        <action type="eq"/>
+    </simple>
+    <simple name="device_model" type="string" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb">
+        <description> This specifies the specific device</description>
+        <kind kindtype="configure"/>
+        <kind kindtype="allocation"/>
+        <action type="eq"/>
+    </simple>
+    <simple name="processor_name" type="string" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b">
+        <description>SCA required property describing the CPU type</description>
+        <value>x86_64</value>
+        <kind kindtype="configure"/>
+        <kind kindtype="allocation"/>
+        <action type="eq"/>
+    </simple>
+    <simple name="os_name" type="string" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:4a23ad60-0b25-4121-a630-68803a498f75">
+        <description>SCA required property describing the Operating System Name</description>
+        <value>Linux</value>
+        <kind kindtype="configure"/>
+        <kind kindtype="allocation"/>
+        <action type="eq"/>
+    </simple>
+    <simple name="os_version" type="string" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:0f3a9a37-a342-43d8-9b7f-78dc6da74192">
+        <description>SCA required property describing the Operating System Version</description>
+        <value>2.6.32-504.12.2.el6.x86_64</value>
+        <kind kindtype="configure"/>
+        <kind kindtype="allocation"/>
+        <action type="eq"/>
+    </simple>
+    <simple name="hostName" type="string" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:9190eb70-bd1e-4556-87ee-5a259dcfee39">
+        <description>Host name on which the device is deployed</description>
+        <kind kindtype="configure"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple name="useScreen" type="boolean" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:218e612c-71a7-4a73-92b6-bf70959aec45">
+        <description>If true, GNU screen will be used for the execution of components.</description>
+        <value>False</value>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple name="componentOutputLog" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:c80f6c5a-e3ea-4f57-b0aa-46b7efac3176">
+        <description>If provided, all component output will be redirected to this file.  The GPP will not delete or rotate these logs.  The provided value may contain environment variables or reference component exec-params with @EXEC_PARAM@.  For example, this would be a valid value $SDRROOT/logs/@COMPONENT_IDENTIFIER@.log</description>
+        <value></value>
+        <kind kindtype="property"/>
+        <action type="external"/>
+    </simple>
+    <simple name="mcastnicInterface" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:4e416acc-3144-47eb-9e38-97f1d24f7700">
+        <description>The Multicast NIC interface associated with this GPP (e.g. eth1).  If not provided no multicast allocations are permitted.</description>
+        <value></value>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple name="mcastnicIngressTotal" type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:5a41c2d3-5b68-4530-b0c4-ae98c26c77ec">
+        <description>Total NIC bandwidth for the interfaces defined in mcastnicInterface.  This must be specified in the PRF or DCD because ethtool requires super-user privs.</description>
+        <value>0</value>
+        <units>Mb/s</units>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple name="mcastnicEgressTotal" type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:442d5014-2284-4f46-86ae-ce17e0749da0">
+        <description>Total NIC bandwidth for the interfaces defined in mcastnicInterface.  This must be specified in the PRF or DCD because ethtool requires super-user privs.</description>
+        <value>0</value>
+        <units>Mb/s</units>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple name="mcastnicIngressCapacity" type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:506102d6-04a9-4532-9420-a323d818ddec">
+        <description>Amount of ingress multicast NIC capacity in the GPP not allocated to an application</description>
+        <units>Mb/s</units>
+        <kind kindtype="allocation"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple name="mcastnicEgressCapacity" type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:eb08e43f-11c7-45a0-8750-edff439c8b24">
+        <description>Amount of egress multicast NIC capacity in the GPP not allocated to an application</description>
+        <units>Mb/s</units>
+        <kind kindtype="allocation"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple name="mcastnicIngressFree" type="long" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:0b57a27a-8fa2-412b-b0ae-010618b8f40e">
+        <description>Free NIC bandwidth for the interfaces defined in mcastnicInterface.</description>
+        <value>0</value>
+        <units>Mb/s</units>
+        <kind kindtype="configure"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple name="mcastnicEgressFree" type="long" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:9b5bbdcb-1894-4b95-847c-787f121c05ae">
+        <description>Free NIC bandwidth for the interfaces defined in mcastnicInterface.</description>
+        <value>0</value>
+        <units>Mb/s</units>
+        <kind kindtype="configure"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple name="mcastnicThreshold" type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1">
+        <description>Percentage of total Multicast NIC this GPP can use for capacity management</description>
+        <value>80</value>
+        <units>%</units>
+        <kind kindtype="configure"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple name="threshold_cycle_time" type="ulong" commandline="false" complex="false" mode="readwrite" optional="false" id="threshold_cycle_time">
+        <description>cycle time between updates of metric capture, calculations and threshold evaluations.</description>
+        <value>500</value>
+        <units>milliseconds</units>
+        <kind kindtype="property"/>
+        <action type="external"/>
+    </simple>
+    <simple name="memFree" type="longlong" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:6565bffd-cb09-4927-9385-2ecac68035c7">
+        <description>Amount of RAM in the GPP not in use (measured)</description>
+        <units>MiB</units>
+        <kind kindtype="configure"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple name="memCapacity" type="longlong" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb">
+        <description>Amount of RAM in the GPP not allocated to an application</description>
+        <units>MiB</units>
+        <kind kindtype="allocation"/>
+        <action type="external"/>
+    </simple>
+    <simple name="loadTotal" type="double" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:28b23bc8-e4c0-421b-9c52-415a24715209">
+        <description>Equal to "processor_cores" x "loadCapacityPerCore".</description>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+    <simple name="loadCapacityPerCore" type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:3bf07b37-0c00-4e2a-8275-52bd4e391f07">
+        <description>The performance ratio of this machine, relative to the benchmark machine.</description>
+        <value>1.0</value>
+        <kind kindtype="execparam"/>
+        <kind kindtype="allocation"/>
+        <action type="gt"/>
+    </simple>
+    <simple name="loadThreshold" type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:22a60339-b66e-4309-91ae-e9bfed6f0490">
+        <description>deprecated</description>
+        <value>80</value>
+        <units>%</units>
+        <kind kindtype="configure"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple name="loadFree" type="double" commandline="false" complex="false" mode="readonly" optional="false" id="DCE:6c000787-6fea-4765-8686-2e051e6c24b0">
+        <description>Equal to loadCapacity</description>
+        <kind kindtype="configure"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple name="loadCapacity" type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056">
+        <description>The amount of load capacity remaining to be allocated.</description>
+        <kind kindtype="allocation"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple name="reserved_capacity_per_component" type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="reserved_capacity_per_component">
+        <value>0.1</value>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+    <simple type="short" commandline="false" complex="false" mode="readonly" optional="false" id="processor_cores">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+    <simple type="string" commandline="false" complex="false" mode="readonly" optional="false" id="processor_monitor_list">
+        <description>list of cpu ids that are being monitored for loadavg and idle utilization.</description>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+    <simplesequence name="mcastnicVLANs" optional="false" complex="false" mode="readwrite" type="long" id="DCE:65544aad-4c73-451f-93de-d4d76984025a">
+        <description>When queired, returns the list of vlans on this host.  When used as an allocation, defines the list of VLANS the component requires.</description>
+        <kind kindtype="allocation"/>
+        <action type="external"/>
+    </simplesequence>
+    <simplesequence optional="false" complex="false" mode="readwrite" type="string" id="nic_interfaces">
+        <values>
+            <value>e.*</value>
+        </values>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simplesequence>
+    <simplesequence optional="false" complex="false" mode="readonly" type="string" id="available_nic_interfaces">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simplesequence>
+    <struct id="nic_allocation" name="nic_allocation" mode="readwrite">
+        <description>DCE:e4e86070-a121-45d4-a144-00386f2188e3</description>
+        <simple name="identifier" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation::identifier">
+            <description>Uniquely identifies the allocation.  Used for updates and deallocations.
+
+Required
+
+</description>
+        </simple>
+        <simple name="data_rate" type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation::data_rate">
+            <description>Data rate being allocated.  See data_size for unit of measurement.
+
+Optional</description>
+            <value>0.0</value>
+            <units>unit per second</units>
+        </simple>
+        <simple name="data_size" type="short" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation::data_size">
+            <description>Defines how many bits are in the data rate. Ie - if the data rate is in MBps then the data size should be 8. If the data rate is in Mbps then the data size should be 1
+
+Optional</description>
+            <value>1</value>
+            <units>bits per unit</units>
+        </simple>
+        <simple name="multicast_support" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation::multicast_support">
+            <description>Is multicast support required?
+True - Requires multicast interface
+False - Requires non-multicast
+[blank] - No preference
+
+Optional</description>
+            <value>False</value>
+        </simple>
+        <simple name="ip_addressable" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation::ip_addressable">
+            <description>Requires the IP address to be addressable from the interface.
+
+Optional</description>
+        </simple>
+        <simple name="interface" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation::interface">
+            <description>Requires this specific interface.
+
+Optional</description>
+        </simple>
+        <configurationkind kindtype="allocation"/>
+    </struct>
+    <struct id="advanced" mode="readwrite">
+        <simple type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="maximum_throughput_percentage">
+            <value>80.0</value>
+            <units>percent</units>
+        </simple>
+        <configurationkind kindtype="configure"/>
+    </struct>
+    <struct id="threshold_event" mode="readonly">
+        <simple name="source_id" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="threshold_event::source_id">
+            <description>Identifier of component or device that generated this message</description>
+        </simple>
+        <simple name="resource_id" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="threshold_event::resource_id">
+            <description>The identifier of the resource being monitored (e.g. eth0)</description>
+        </simple>
+        <simple name="threshold_class" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="threshold_event::threshold_class">
+            <description>The class of threshold being monitored (CPU, memory, disk usage, etc.)</description>
+        </simple>
+        <simple name="type" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="threshold_event::type">
+            <description>The type of threshold event generated.  This message is only generated when the measured value crosses the threshold.
+
+THRESHOLD_EXCEEDED:  The measured value exceeds the configured threshold
+THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured threshold</description>
+            <enumerations>
+                <enumeration value="THRESHOLD_EXCEEDED" label="Threshold Exceeded"/>
+                <enumeration value="THRESHOLD_NOT_EXCEEDED" label="Threshold Not Exceeded"/>
+            </enumerations>
+        </simple>
+        <simple name="threshold_value" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="threshold_event::threshold_value">
+            <description>The threshold value that was crossed, converted to string</description>
+        </simple>
+        <simple name="measured_value" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="threshold_event::measured_value">
+            <description>The measured value that triggered the threshold event, converted to string</description>
+        </simple>
+        <simple name="message" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="threshold_event::message">
+            <description>Optional message describing the event</description>
+        </simple>
+        <simple name="timestamp" type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="threshold_event::timestamp">
+            <units>seconds (since epoch)</units>
+        </simple>
+        <configurationkind kindtype="message"/>
+    </struct>
+    <struct id="thresholds" mode="readwrite">
+        <description>The thresholds that cause a failure for allocations</description>
+        <simple type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="cpu_idle">
+            <value>10</value>
+            <units>%</units>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <simple type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="load_avg">
+            <value>80</value>
+            <units>%</units>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <simple type="longlong" commandline="false" complex="false" mode="readwrite" optional="false" id="mem_free">
+            <value>10</value>
+            <units>MB</units>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <simple type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_usage">
+            <value>900</value>
+            <units>MB/s</units>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <simple name="files_available" type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="files_available">
+            <description>The percentage of file handles remaining to the GPP that triggers a threshold condition</description>
+            <value>3</value>
+            <units>%</units>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <simple name="threads" type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="threads">
+            <description>The percentage of threads available to the GPP that triggers a threshold condition</description>
+            <value>3</value>
+            <units>%</units>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <configurationkind kindtype="property"/>
+    </struct>
+    <struct id="DCE:9da85ebc-6503-48e7-af36-b77c7ad0c2b4" name="loadAverage" mode="readonly">
+        <description>The current load average, as reported by /proc/loadavg.  Each core on a computer can have a load average between 0.0 and 1.0.  This differs greatly from CPU percentage (as reported by top).  Load averages differ in two significant ways: 1) they measure the trend of CPU utlization, and 2) they include all demand for the CPU not only how much was active at the time of measurement.  Load averages do not include any processes or threads waiting on I/O, networking, databases, or anything else not demanding the CPU.</description>
+        <simple name="onemin" type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="onemin">
+            <kind kindtype="configure"/>
+            <action type="external"/>
+        </simple>
+        <simple name="fivemin" type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="fivemin">
+            <kind kindtype="configure"/>
+            <action type="external"/>
+        </simple>
+        <simple name="fifteenmin" type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="fifteenmin">
+            <kind kindtype="configure"/>
+            <action type="external"/>
+        </simple>
+        <configurationkind kindtype="configure"/>
+        <configurationkind kindtype="event"/>
+    </struct>
+    <struct id="gpp_limits" mode="readonly">
+        <simple type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="current_threads">
+            <description>The current number of threads for the GPP</description>
+        </simple>
+        <simple type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="max_threads">
+            <description>The maximum number of threads allowed for the GPP</description>
+        </simple>
+        <simple type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="current_open_files">
+            <description>The current number of open file handles for the GPP</description>
+        </simple>
+        <simple type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="max_open_files">
+            <description>The maximum number of open file handles allowed for the GPP</description>
+        </simple>
+        <configurationkind kindtype="property"/>
+    </struct>
+    <struct id="sys_limits" mode="readonly">
+        <simple name="current_threads" type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="sys_limits::current_threads">
+            <description>The current number of threads running on the system</description>
+        </simple>
+        <simple name="max_threads" type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="sys_limits::max_threads">
+            <description>The maximum number of threads allowed to run on the system</description>
+        </simple>
+        <simple name="current_open_files" type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="sys_limits::current_open_files">
+            <description>The current number of open file on the system.</description>
+        </simple>
+        <simple name="max_open_files" type="long" commandline="false" complex="false" mode="readwrite" optional="false" id="sys_limits::max_open_files">
+            <description>The maximum number of open file handles allowed for the system</description>
+        </simple>
+        <configurationkind kindtype="property"/>
+    </struct>
+    <struct id="affinity" mode="readwrite">
+        <simple name="exec_directive_value" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="affinity::exec_directive_value">
+            <description>The context specification for the exec_directive_class.   See numa library manpage for socket(numa node) and cpu list specifications.  For cgroup/cpuset option then a pre-existing cgroup name is required.</description>
+            <value>0</value>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <simple name="exec_directive_class" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="affinity::exec_directive_class">
+            <description>The classification of the affinity policy to apply.</description>
+            <value>socket</value>
+            <enumerations>
+                <enumeration value="socket" label="socket"/>
+                <enumeration value="nic" label="nic"/>
+                <enumeration value="cpu" label="cpu"/>
+                <enumeration value="cgroup" label="cgroup"/>
+            </enumerations>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <simple name="force_override" type="boolean" commandline="false" complex="false" mode="readwrite" optional="false" id="affinity::force_override">
+            <description>determines if the specified affinity policy (exec_directive_value, exec_directive_class) is inherited by RH resources started from this GPP.</description>
+            <value>false</value>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <simple name="blacklist_cpus" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="affinity::blacklist_cpus">
+            <description>list of cpu ids to black list when making affinity requests. see numa library manpage for cpu list specifications. </description>
+            <value></value>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <simple name="deploy_per_socket" type="boolean" commandline="false" complex="false" mode="readwrite" optional="false" id="affinity::deploy_per_socket">
+            <description>If no affinity specification is provide during deployment, then enabling this will deploy resources on next available processor socket. (force_override will ignore this)</description>
+            <value>false</value>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <simple name="disabled" type="boolean" commandline="false" complex="false" mode="readwrite" optional="false" id="affinity::disabled">
+            <description>controls if affinity requests are processed by the GPP.</description>
+            <value>true</value>
+            <kind kindtype="property"/>
+            <action type="external"/>
+        </simple>
+        <configurationkind kindtype="property"/>
+    </struct>
+    <structsequence id="nic_allocation_status" mode="readonly">
+        <struct id="nic_allocation_status_struct" mode="readwrite">
+            <simple name="identifier" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation_status::identifier">
+                <description>Uniquely identifies the allocation. </description>
+            </simple>
+            <simple name="data_rate" type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation_status::data_rate">
+                <description>Data rate being allocated.  See data_size for unit of measurement.</description>
+            </simple>
+            <simple name="data_size" type="short" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation_status::data_size">
+                <description>Defines how many bits are in the data rate. Ie - if the data rate is in MBps then the data size should be 8. If the data rate is in Mbps then the data size should be 1
+</description>
+            </simple>
+            <simple name="multicast_support" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation_status::multicast_support">
+                <description>Is multicast support required?
+True - Requires multicast interface
+False - Requires non-multicast
+[blank] - No preference</description>
+            </simple>
+            <simple name="ip_addressable" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation_status::ip_addressable">
+                <description>Requires the IP address to be addressable from the interface.
+
+Optional</description>
+            </simple>
+            <simple name="interface" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_allocation_status::interface">
+                <description>The allocated interface</description>
+            </simple>
+        </struct>
+        <configurationkind kindtype="configure"/>
+    </structsequence>
+    <structsequence id="nic_metrics" mode="readonly">
+        <struct id="nic_metrics_struct" mode="readwrite">
+            <simple name="interface" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::interface"/>
+            <simple name="mac_address" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::mac_address"/>
+            <simple name="rate" type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::rate">
+                <value>0.0</value>
+                <units>Mbps</units>
+            </simple>
+            <simple name="ipv4_address" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::ipv4_address"/>
+            <simple name="ipv4_netmask" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::ipv4_netmask"/>
+            <simple name="ipv4_broadcast" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::ipv4_broadcast"/>
+            <simple name="ipv6_address" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::ipv6_address"/>
+            <simple name="ipv6_netmask" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::ipv6_netmask"/>
+            <simple name="ipv6_scope" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::ipv6_scope"/>
+            <simple name="flags" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::flags"/>
+            <simple name="module" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::module"/>
+            <simple name="mtu" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::mtu"/>
+            <simple name="state" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::state"/>
+            <simple name="rx_bytes" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::rx_bytes"/>
+            <simple name="rx_compressed" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::rx_compressed"/>
+            <simple name="rx_crc_errors" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::rx_crc_errors"/>
+            <simple name="rx_dropped" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::rx_dropped"/>
+            <simple name="rx_errors" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::rx_errors"/>
+            <simple name="rx_packets" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::rx_packets"/>
+            <simple name="tx_bytes" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::tx_bytes"/>
+            <simple name="tx_compressed" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::tx_compressed"/>
+            <simple name="tx_dropped" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::tx_dropped"/>
+            <simple name="tx_errors" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::tx_errors"/>
+            <simple name="tx_packets" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::tx_packets"/>
+            <simple name="tx_queue_len" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::tx_queue_len"/>
+            <simple name="vlans" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::vlans"/>
+            <simple name="multicast_support" type="boolean" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::multicast_support">
+                <value>False</value>
+            </simple>
+            <simple name="rate_allocated" type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::rate_allocated">
+                <value>0</value>
+                <units>Mbps</units>
+            </simple>
+            <simple name="time_string_utc" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::time_string_utc"/>
+            <simple name="time" type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::time">
+                <value>0</value>
+            </simple>
+            <simple name="current_throughput" type="double" commandline="false" complex="false" mode="readwrite" optional="false" id="nic_metrics::current_throughput">
+                <value>0</value>
+                <units>Mbps</units>
+            </simple>
+        </struct>
+        <configurationkind kindtype="configure"/>
+    </structsequence>
+    <structsequence id="networkMonitor" mode="readonly">
+        <struct id="interfaces" mode="readwrite">
+            <simple type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="interface"/>
+            <simple type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="throughput">
+                <units>MB/s</units>
+            </simple>
+            <simple type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="vlans"/>
+        </struct>
+        <configurationkind kindtype="configure"/>
+    </structsequence>
+    <structsequence id="utilization" mode="readonly">
+        <struct id="utilization_entry" mode="readwrite">
+            <simple type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="description"/>
+            <simple type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="component_load"/>
+            <simple type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="system_load"/>
+            <simple type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="subscribed"/>
+            <simple type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="maximum"/>
+        </struct>
+        <configurationkind kindtype="property"/>
+    </structsequence>
+    <structsequence id="component_monitor" mode="readonly">
+        <struct id="component_monitor::component_monitor" name="component_monitor" mode="readwrite">
+            <simple name="component_id" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="component_monitor::component_monitor::component_id"/>
+            <simple name="waveform_id" type="string" commandline="false" complex="false" mode="readwrite" optional="false" id="component_monitor::component_monitor::waveform_id"/>
+            <simple name="pid" type="ushort" commandline="false" complex="false" mode="readwrite" optional="false" id="component_monitor::component_monitor::pid"/>
+            <simple name="cores" type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="component_monitor::component_monitor::cores">
+                <units>%</units>
+            </simple>
+            <simple name="mem_rss" type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="component_monitor::component_monitor::mem_rss">
+                <units>MB</units>
+            </simple>
+            <simple name="mem_percent" type="float" commandline="false" complex="false" mode="readwrite" optional="false" id="component_monitor::component_monitor::mem_percent">
+                <units>%</units>
+            </simple>
+            <simple name="num_processes" type="ulong" commandline="false" complex="false" mode="readwrite" optional="false" id="component_monitor::component_monitor::num_processes"/>
+            <simple name="num_threads" type="ulong" commandline="false" complex="false" mode="readwrite" optional="false" id="component_monitor::component_monitor::num_threads"/>
+            <simple name="num_files" type="ulong" commandline="false" complex="false" mode="readwrite" optional="false" id="component_monitor::component_monitor::num_files"/>
+        </struct>
+        <configurationkind kindtype="property"/>
+    </structsequence>
+</properties>

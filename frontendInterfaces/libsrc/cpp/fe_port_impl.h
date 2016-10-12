@@ -292,6 +292,10 @@ namespace frontend {
             {
                 return outConnections;
             };
+        
+            std::string getRepid() const {
+                return PortType::_PD_repoId;
+            };
 
         protected:
             std::vector < std::pair<PortType_var, std::string> > outConnections;

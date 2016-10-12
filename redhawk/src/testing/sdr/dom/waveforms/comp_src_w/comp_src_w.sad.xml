@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:f695108a-f120-4c65-b241-950bb8d88887" name="comp_src_w">
+  <componentfiles>
+    <componentfile id="comp_src_ea7302fa-3c70-4aed-8d09-676098a278ca" type="SPD">
+      <localfile name="/components/comp_src/comp_src.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="comp_src_ea7302fa-3c70-4aed-8d09-676098a278ca"/>
+      <componentinstantiation id="comp_src_1" startorder="0">
+        <usagename>comp_src_1</usagename>
+        <findcomponent>
+          <namingservice name="comp_src_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="comp_src_1"/>
+  </assemblycontroller>
+</softwareassembly>

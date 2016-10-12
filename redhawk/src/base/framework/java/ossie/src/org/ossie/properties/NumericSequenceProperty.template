@@ -36,6 +36,11 @@ public class @name@SequenceProperty extends NumericSequenceProperty<@box@> {
         super(id, name, "@scaname@", value, mode, action, kinds);
     }
 
+    public @name@SequenceProperty(String id, String name, List<@box@> value, Mode mode,
+                                   Action action, Kind[] kinds, boolean optional) {
+        super(id, name, "@scaname@", value, mode, action, kinds, optional);
+    }
+
     public static List<@box@> asList(Number... array) {
         return PrimitiveArrayUtils.convertTo@method@List(array);
     }

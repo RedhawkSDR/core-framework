@@ -23,120 +23,23 @@
 
 #include <queue>
 #include <list>
-#include <set>
 #include <vector>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/ref.hpp>
 
+#include <ossie/CorbaUtils.h>
+
 #include "bulkio_base.h"
 #include "bulkio_traits.h"
-#include "ossie/CorbaUtils.h"
+#include "bulkio_callbacks.h"
+#include "bulkio_out_stream.h"
 
 namespace bulkio {
 
-    struct connection_descriptor_struct {
-        connection_descriptor_struct ()
-        {
-        };
-
-        static std::string getId() {
-            return std::string("connection_descriptor");
-        };
-
-        std::string connection_id;
-        std::string stream_id;
-        std::string port_name;
-    };
-
   //
-  // Callback interface used by BULKIO Ports when connect/disconnect event happens
-  //
-  typedef void   (*ConnectionEventCallbackFn)( const char *connectionId );
-
-  //
-  // Interface definition that will be notified when a connect/disconnect event happens
-  //
-  class ConnectionEventListener {
-
-    public:
-      virtual void operator() ( const char *connectionId ) = 0;
-      virtual ~ConnectionEventListener() {};
-
-  };
-
-    /**
-     * Allow for member functions to receive connect/disconnect notifications
-     */
-    template <class T>
-    class MemberConnectionEventListener : public ConnectionEventListener
-    {
-    public:
-      typedef boost::shared_ptr< MemberConnectionEventListener< T > > SPtr;
-      
-      typedef void (T::*MemberFn)( const char *connectionId );
-
-      static SPtr Create( T &target, MemberFn func ){
-	return SPtr( new MemberConnectionEventListener(target, func ) );
-      };
-
-      virtual void operator() ( const char *connectionId )
-      {
-	(target_.*func_)(connectionId);
-      }
-
-      // Only allow PropertySet_impl to instantiate this class.
-      MemberConnectionEventListener ( T& target,  MemberFn func) :
-      target_(target),
-	func_(func)
-        {
-        }
-    private:
-      T& target_;
-      MemberFn func_;
-    };
-
-  /**
-   * Wrap Callback functions as ConnectionEventListener objects
-   */
-  class StaticConnectionListener : public ConnectionEventListener
-  {
-    public:
-    virtual void operator() ( const char *connectionId )
-        {
-            (*func_)(connectionId);
-        }
-
-    StaticConnectionListener ( ConnectionEventCallbackFn func) :
-      func_(func)
-        {
-        }
-
-  private:
-
-    ConnectionEventCallbackFn func_;
-  };
-
-
-  struct SriMapStruct {
-      BULKIO::StreamSRI        sri;
-      std::set<std::string>    connections;
-
-    SriMapStruct( const BULKIO::StreamSRI &in_sri ) {
-      sri = in_sri;
-    };
-
-    SriMapStruct( const SriMapStruct &src ) {
-      sri = src.sri;
-      connections = src.connections;
-    };
-  };
-
-
-
-  //
-  //  OutPort
+  //  OutPortBase
   //
   //  Base template for data transfers between BULKIO ports.  This class is defined by 2 trait classes
   //    PortTraits - This template provides the context for the port's middleware transport classes and they base data types
@@ -144,11 +47,14 @@ namespace bulkio {
   //
   //
   template < typename PortTraits >
-    class OutPort : public Port_Uses_base_impl, public virtual POA_BULKIO::UsesPortStatisticsProvider
+  class OutPortBase : public Port_Uses_base_impl
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+  , public virtual POA_BULKIO::UsesPortStatisticsProvider
+#endif
   {
 
   public:
-
+ 
     typedef PortTraits                        Traits;
 
     //
@@ -161,7 +67,10 @@ namespace bulkio {
     //
     typedef typename Traits::PortType         PortType;
 
-    typedef typename Traits::PortTraits       UsesPortType;
+    //
+    // Port pointer type
+    //
+    typedef typename PortType::_ptr_type      PortPtrType;
 
     //
     // Sequence container used during actual pushPacket call
@@ -169,24 +78,15 @@ namespace bulkio {
     typedef typename Traits::SequenceType     PortSequenceType;
 
     //
-    // Data type contained in sequence container
+    // True type of argument to pushPacket, typically "const PortSequenceType&"
+    // except for dataXML and dataFile (which use "const char*")
     //
-    typedef typename Traits::TransportType    TransportType;
+    typedef typename Traits::PushType         PushArgumentType;
 
     //
     // Data type of items passed into the pushPacket method
     //
     typedef typename Traits::NativeType       NativeType;
-
-    // 
-    // Data type of the container for passing data into the pushPacket method
-    //
-    typedef std::vector< NativeType >         NativeSequenceType;
-
-    //
-    // Sequence of data returned from an input port and can be passed to the output port
-    //
-    typedef typename Traits::DataBufferType   DataBufferType;
 
     //
     // ConnectionList Definition
@@ -199,30 +99,27 @@ namespace bulkio {
     typedef std::map< std::string, SriMapStruct >                    OutPortSriMap;
 
 
-
-  public:
-
     //
-    // OutPort Creates a uses port object for publishing data to the framework
+    // OutPortBase Creates a uses port object for publishing data to the framework
     //
     // @param port_name name assigned to the port located in scd.xml file
     // @param connectionCB  callback that will be called when the connectPort method is called
     // @pararm disconnectDB callback that receives notification when a disconnectPort happens
     //
-    OutPort(std::string port_name, 
-	    ConnectionEventListener *connectCB=NULL,
-	    ConnectionEventListener *disconnectCB=NULL );
+    OutPortBase(std::string port_name, 
+                ConnectionEventListener *connectCB=NULL,
+                ConnectionEventListener *disconnectCB=NULL );
 
-    OutPort(std::string port_name, 
-	    LOGGER_PTR    logger,
-	    ConnectionEventListener *connectCB=NULL,
-	    ConnectionEventListener *disconnectCB=NULL );
+    OutPortBase(std::string port_name, 
+                LOGGER_PTR    logger,
+                ConnectionEventListener *connectCB=NULL,
+                ConnectionEventListener *disconnectCB=NULL );
 
     
     //
     // virtual destructor to clean up resources
     //
-    virtual ~OutPort();
+    virtual ~OutPortBase();
 
     //
     //  Interface used by framework to connect/disconnect ports together and introspection of connection states
@@ -259,33 +156,36 @@ namespace bulkio {
     
 
     template< typename T > inline
-      void setNewConnectListener(T &target, void (T::*func)( const char *connectionId )  ) {
+    void setNewConnectListener(T &target, void (T::*func)( const char *connectionId )  )
+    {
       _connectCB =  boost::make_shared< MemberConnectionEventListener< T > >( boost::ref(target), func );
-    };
+    }
 
     template< typename T > inline
-      void setNewConnectListener(T *target, void (T::*func)( const char *connectionId )  ) {
+    void setNewConnectListener(T *target, void (T::*func)( const char *connectionId )  )
+    {
       _connectCB =  boost::make_shared< MemberConnectionEventListener< T > >( boost::ref(*target), func );
-    };
+    }
 
     template< typename T > inline
-      void setNewDisconnectListener(T &target, void (T::*func)( const char *connectionId )  ) {
+    void setNewDisconnectListener(T &target, void (T::*func)( const char *connectionId )  )
+    {
       _disconnectCB =  boost::make_shared< MemberConnectionEventListener< T > >( boost::ref(target), func );
-    };
+    }
 
     template< typename T > inline
-      void setNewDisconnectListener(T *target, void (T::*func)( const char *connectionId )  ) {
+    void setNewDisconnectListener(T *target, void (T::*func)( const char *connectionId )  )
+    {
       _disconnectCB =  boost::make_shared< MemberConnectionEventListener< T > >( boost::ref(*target), func );
-    };
+    }
 
     //
     // Attach listener interfaces for connect and disconnect events
     //
-    virtual void   setNewConnectListener( ConnectionEventListener *newListener );
-    virtual void   setNewConnectListener( ConnectionEventCallbackFn  newListener );
-    virtual void   setNewDisconnectListener( ConnectionEventListener *newListener );
-    virtual void   setNewDisconnectListener( ConnectionEventCallbackFn  newListener );
-
+    void setNewConnectListener( ConnectionEventListener *newListener );
+    void setNewConnectListener( ConnectionEventCallbackFn  newListener );
+    void setNewDisconnectListener( ConnectionEventListener *newListener );
+    void setNewDisconnectListener( ConnectionEventCallbackFn  newListener );
 
     //
     // pushSRI - called by the source component when SRI data about the stream changes, the data flow policy is this activity
@@ -295,54 +195,6 @@ namespace bulkio {
     //
     virtual void pushSRI(const BULKIO::StreamSRI& H);
 
-    /*
-     * pushPacket
-     *     maps to data<Type> BULKIO method call for passing vectors of data
-     *
-     *  data: sequence structure containing the payload to send out
-     *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
-     *    tcmode: timecode mode
-     *    tcstatus: timecode status
-     *    toff: fractional sample offset
-     *    twsec: J1970 GMT
-     *    tfsec: fractional seconds: 0.0 to 1.0
-     *  EOS: end-of-stream flag
-     *  streamID: stream identifier
-     */
-    void pushPacket( NativeSequenceType & data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-    
-    /*
-     * pushPacket
-     *     maps to data<Type> BULKIO method call for passing vectors of data
-     *
-     *  data: pointer to a buffer of data
-     *  size: number of data points in the buffer
-     *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
-     *    tcmode: timecode mode
-     *    tcstatus: timecode status
-     *    toff: fractional sample offset
-     *    twsec: J1970 GMT
-     *    tfsec: fractional seconds: 0.0 to 1.0
-     *  EOS: end-of-stream flag
-     *  streamID: stream identifier
-     */
-    void pushPacket( TransportType* data, size_t size, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-
-    /*
-     * pushPacket
-     *     maps to data<Type> BULKIO method call for passing vectors of data
-     *
-     *  data: The sequence structure from an input port containing the payload to send out
-     *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
-     *    tcmode: timecode mode
-     *    tcstatus: timecode status
-     *    toff: fractional sample offset
-     *    twsec: J1970 GMT
-     *    tfsec: fractional seconds: 0.0 to 1.0
-     *  EOS: end-of-stream flag
-     *  streamID: stream identifier
-     */
-    void pushPacket( const DataBufferType & data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
     //
     // statisics - returns a PortStatistics object for this uses port
@@ -406,6 +258,9 @@ namespace bulkio {
       return outConnections;
     }
 
+    void setLogger( LOGGER_PTR newLogger );
+
+	std::string getRepid () const;
 
   protected:
 
@@ -452,45 +307,66 @@ namespace bulkio {
     boost::shared_ptr< ConnectionEventListener >    _connectCB;
     boost::shared_ptr< ConnectionEventListener >    _disconnectCB;
 
-  public:
-    virtual void   setLogger( LOGGER_PTR newLogger );
+    //
+    // Returns true if the given connection should receive SRI updates and data
+    // for the given stream
+    //
+    bool _isStreamRoutedToConnection(const std::string& connectionID, const std::string& streamID);
 
-  protected:
+    //
+    // Sends the given data and metadata as a single push, for subclasses that
+    // will never break a push into multiple packets (XML, File); acquires and
+    // releases the port lock
+    //
+    void _pushSinglePacket(
+            PushArgumentType                data,
+            const BULKIO::PrecisionUTCTime& T,
+            bool                            EOS,
+            const std::string&              streamID);
 
-    void _pushOversizedPacket(
-            const DataBufferType &      data,
-            BULKIO::PrecisionUTCTime&   T,
-            bool                        EOS,
-            const std::string&          streamID);
-    void _pushOversizedPacket(
-            const TransportType*        buffer,
-            size_t                      size,
-            BULKIO::PrecisionUTCTime&   T,
-            bool                        EOS,
-            const std::string&          streamID);
-    void _pushPacket(
-            const PortSequenceType &      data,
-            BULKIO::PrecisionUTCTime&   T,
-            bool                        EOS,
-            const std::string&          streamID);
+    //
+    // Sends the given data and metadata to all appropriate connections and
+    // updates the associated SRI if necessary (or creates one if it does not
+    // exist); must be called with the port lock held
+    //
+    void _pushPacketLocked(
+            PushArgumentType                data,
+            const BULKIO::PrecisionUTCTime& T,
+            bool                            EOS,
+            const std::string&              streamID);
 
+    //
+    // Sends an end-of-stream packet for the given stream to a particular port,
+    // for use when disconnecting; enables XML and File specialization for
+    // consistent end-of-stream behavior
+    //
+    void _sendEOS(PortPtrType        port,
+                  const std::string& streamID);
+
+    //
+    // Low-level push of data and metadata to the given port; enables XML and
+    // File specialization for consistent high-level pushPacket behavior
+    // 
+    void _pushPacketToPort(
+            PortPtrType                     port,
+            PushArgumentType                data,
+            const BULKIO::PrecisionUTCTime& T,
+            bool                            EOS,
+            const char*                     streamID);
+
+    //
+    // Returns the total number of elements of data in a pushPacket call, for
+    // statistical tracking; enables XML and File specialization, which have
+    // different notions of size
+    //
+    size_t _dataLength(PushArgumentType data);
   };
 
-
-  //
-  // Character Specialization..
-  //
-  // This class overrides the pushPacket method to use the Int8 parameter and also overriding the PortSequence constructor to
-  // use the CORBA::Char type.
-  //
-  // For some reason, you cannot specialize a method of a template and have the template be inherited which caused major
-  // issues during compilation.  Every member variable was being reported as unknown and the _Connections type was being
-  //  lost.
-  //
+  
   template < typename PortTraits >
-    class OutInt8Port: public OutPort<  PortTraits >  {
-
+  class OutPort : public OutPortBase< PortTraits > {
   public:
+
     typedef PortTraits                        Traits;
 
     //
@@ -502,8 +378,6 @@ namespace bulkio {
     // BULKIO Interface Type
     //
     typedef typename Traits::PortType         PortType;
-
-    typedef typename Traits::PortTraits       UsesPortType;
 
     //
     // Sequence container used during actual pushPacket call
@@ -525,102 +399,210 @@ namespace bulkio {
     //
     typedef std::vector< NativeType >         NativeSequenceType;
 
-    OutInt8Port(std::string port_name,
+    //
+    // Sequence of data returned from an input port and can be passed to the output port
+    //
+    typedef typename Traits::DataBufferType   DataBufferType;
+
+    //
+    // ConnectionList Definition
+    //
+    typedef typename  bulkio::Connections< PortVarType >::List        ConnectionsList;
+
+    //
+    // Mapping of Stream IDs to SRI Map/Refresh objects
+    //
+    typedef std::map< std::string, SriMapStruct >                    OutPortSriMap;
+
+    //
+    // OutputStream class
+    //
+    typedef OutputStream<PortTraits> StreamType;
+
+    //
+    // OutPort Creates a uses port object for publishing data to the framework
+    //
+    // @param port_name name assigned to the port located in scd.xml file
+    // @param connectionCB  callback that will be called when the connectPort method is called
+    // @pararm disconnectDB callback that receives notification when a disconnectPort happens
+    //
+    OutPort(std::string port_name, 
+            ConnectionEventListener *connectCB=NULL,
+            ConnectionEventListener *disconnectCB=NULL );
+
+    OutPort(std::string port_name, 
+            LOGGER_PTR    logger,
+            ConnectionEventListener *connectCB=NULL,
+            ConnectionEventListener *disconnectCB=NULL );
+
+    //
+    // virtual destructor to clean up resources
+    //
+    virtual ~OutPort();
+
+    /*
+     * pushPacket
+     *     maps to data<Type> BULKIO method call for passing vectors of data
+     *
+     *  data: sequence structure containing the payload to send out
+     *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
+     *    tcmode: timecode mode
+     *    tcstatus: timecode status
+     *    toff: fractional sample offset
+     *    twsec: J1970 GMT
+     *    tfsec: fractional seconds: 0.0 to 1.0
+     *  EOS: end-of-stream flag
+     *  streamID: stream identifier
+     */
+    void pushPacket( NativeSequenceType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+    
+    /*
+     * pushPacket
+     *     maps to data<Type> BULKIO method call for passing a limited amount of data from a source vector
+     *
+     *  data: pointer to a buffer of data
+     *  size: number of data points in the buffer
+     *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
+     *    tcmode: timecode mode
+     *    tcstatus: timecode status
+     *    toff: fractional sample offset
+     *    twsec: J1970 GMT
+     *    tfsec: fractional seconds: 0.0 to 1.0
+     *  EOS: end-of-stream flag
+     *  streamID: stream identifier
+     */
+    void pushPacket( const TransportType* data, size_t size, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+
+    /*
+     * pushPacket
+     *     maps to data<Type> BULKIO method call for passing an entire vector of data
+     *
+     *  data: The sequence structure from an input port containing the payload to send out
+     *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
+     *    tcmode: timecode mode
+     *    tcstatus: timecode status
+     *    toff: fractional sample offset
+     *    twsec: J1970 GMT
+     *    tfsec: fractional seconds: 0.0 to 1.0
+     *  EOS: end-of-stream flag
+     *  streamID: stream identifier
+     */
+    void pushPacket( const DataBufferType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+
+    // Create a new stream based on a stream ID
+    StreamType createStream(const std::string& streamID);
+    // Create a new stream based on an SRI instance
+    StreamType createStream(const BULKIO::StreamSRI& sri);
+    using OutPortBase<PortTraits>::currentSRIs;
+
+  protected:
+    using OutPortBase<PortTraits>::logger;
+
+    void _pushOversizedPacket(
+            const TransportType*            buffer,
+            size_t                          size,
+            const BULKIO::PrecisionUTCTime& T,
+            bool                            EOS,
+            const std::string&              streamID);
+  };
+
+  //
+  // Character Specialization..
+  //
+  // This class overrides the pushPacket method to support Int8 and char data types
+  //
+  // Output port for Int8 and char data types
+  class OutCharPort : public OutPort < CharPortTraits > {
+  public:
+    OutCharPort(std::string port_name,
 		ConnectionEventListener *connectCB=NULL,
 		ConnectionEventListener *disconnectCB=NULL );
 
-    OutInt8Port(std::string port_name, 
+    OutCharPort(std::string port_name, 
 		LOGGER_PTR logger,
 		ConnectionEventListener *connectCB=NULL,
 		ConnectionEventListener *disconnectCB=NULL );
 
 
-    virtual ~OutInt8Port() {};
+    virtual ~OutCharPort() {};
 
-    void pushPacket( std::vector< Int8 >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+    // Push a vector of Int8 data
+    void pushPacket(const std::vector< Int8 >& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
-    void pushPacket( std::vector< Char >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+    // Push a vector of Char data
+    void pushPacket(const std::vector< Char >& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
     
-    void pushPacket( Int8* buffer, size_t size, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+    // Push a subset of a vector of Int8 data
+    void pushPacket(const Int8* buffer, size_t size, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
-    void pushPacket( Char* buffer, size_t size, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-    
-  protected:
-    void _pushPacket( PortTypes::CharSequence& seq, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-
+    // Push a subset of a vector of Char data
+    void pushPacket(const Char* buffer, size_t size, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+   
   };
 
 
-
   //
-  // OutStringPort
+  // OutFilePort
   //
-  // This class defines the pushPacket interface for string of data. This template is use by 
-  // both the File and XML port classes for pushing data downstream.  
+  // This class defines the pushPacket interface for file URL data.
   //
   //
-  template < typename PortTraits >
-    class OutStringPort : public OutPort < PortTraits > {
+  class OutFilePort : public OutPortBase < FilePortTraits > {
 
   public:
 
-    typedef PortTraits                        Traits;
+    typedef FilePortTraits                    Traits;
 
     //
     // Port Variable Definition
     //
-    typedef typename Traits::PortVarType      PortVarType;
+    typedef Traits::PortVarType      PortVarType;
 
     //
     // BULKIO Interface Type
     //
-    typedef typename Traits::PortType         PortType;
-
-    typedef typename Traits::PortTraits       UsesPortType;
+    typedef Traits::PortType         PortType;
 
     //
     // Sequence container used during actual pushPacket call
     //
-    typedef typename Traits::SequenceType     PortSequenceType;
+    typedef Traits::SequenceType     PortSequenceType;
 
     //
     // Data type contained in sequence container
     //
-    typedef typename Traits::TransportType    TransportType;
+    typedef Traits::TransportType    TransportType;
 
     // 
     // Data type of the container for passing data into the pushPacket method
     //
-    typedef char*                             NativeSequenceType;
+    typedef char*                    NativeSequenceType;
 
     //
     // Data type of items passed into the pushPacket method
     //
-    typedef typename Traits::NativeType       NativeType;
+    typedef Traits::NativeType       NativeType;
 
 
-    OutStringPort( std::string pname, 
-		ConnectionEventListener *connectCB=NULL,
-		ConnectionEventListener *disconnectCB=NULL );
+    OutFilePort( std::string pname, 
+                 ConnectionEventListener *connectCB=NULL,
+                 ConnectionEventListener *disconnectCB=NULL );
 
 
-    OutStringPort(std::string port_name, 
-		  LOGGER_PTR logger, 
-		  ConnectionEventListener *connectCB=NULL,
-		  ConnectionEventListener *disconnectCB=NULL );
+    OutFilePort( std::string port_name, 
+                 LOGGER_PTR logger, 
+                 ConnectionEventListener *connectCB=NULL,
+                 ConnectionEventListener *disconnectCB=NULL );
 
 
 
-    virtual ~OutStringPort() {};
-
-
-    virtual void disconnectPort(const char* connectionId);
+    virtual ~OutFilePort() {};
 
     /*
      * pushPacket
-     *     maps to dataFile BULKIO method call for passing strings of data 
+     *     maps to dataFile BULKIO method call for passing the URL of a file
      *
-     *  data: sequence structure containing the payload to send out
+     *  data: char string containing the file URL to send out
      *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
      *    tcmode: timecode mode
      *    tcstatus: timecode status
@@ -630,13 +612,12 @@ namespace bulkio {
      *  EOS: end-of-stream flag
      *  streamID: stream identifier
      */
-    virtual void  pushPacket(const char *data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-
+    void pushPacket(const char *URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
     /*
      * pushPacket
-     *     maps to dataXML BULKIO method call for passing strings of data
+     *     maps to dataFile BULKIO method call for passing the URL of a file
      *
-     *  data: sequence structure containing the payload to send out
+     *  data: string containing the file URL to send out
      *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
      *    tcmode: timecode mode
      *    tcstatus: timecode status
@@ -646,36 +627,141 @@ namespace bulkio {
      *  EOS: end-of-stream flag
      *  streamID: stream identifier
      */
-    virtual void  pushPacket(const char *data, bool EOS, const std::string& streamID);
+    void pushPacket(const std::string& URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+
+    /*
+     * DEPRECATED: maps to dataXML BULKIO method call for passing strings of data
+     */
+    void pushPacket(const char *data, bool EOS, const std::string& streamID);
 
   };
 
 
-  /**
+  //
+  // OutXMLPort
+  //
+  // This class defines the pushPacket interface for XML data.
+  //
+  //
+  class OutXMLPort : public OutPortBase < XMLPortTraits > {
+
+  public:
+
+    typedef XMLPortTraits            Traits;
+
+    typedef OutPortBase<XMLPortTraits> Base;
+
+    //
+    // Port Variable Definition
+    //
+    typedef Traits::PortVarType      PortVarType;
+
+    //
+    // BULKIO Interface Type
+    //
+    typedef Traits::PortType         PortType;
+
+    //
+    // Sequence container used during actual pushPacket call
+    //
+    typedef Traits::SequenceType     PortSequenceType;
+
+    //
+    // Data type contained in sequence container
+    //
+    typedef Traits::TransportType    TransportType;
+
+    // 
+    // Data type of the container for passing data into the pushPacket method
+    //
+    typedef char*                    NativeSequenceType;
+
+    //
+    // Data type of items passed into the pushPacket method
+    //
+    typedef Traits::NativeType       NativeType;
+
+
+    OutXMLPort( std::string pname, 
+		ConnectionEventListener *connectCB=NULL,
+		ConnectionEventListener *disconnectCB=NULL );
+
+
+    OutXMLPort( std::string port_name, 
+                LOGGER_PTR logger, 
+                ConnectionEventListener *connectCB=NULL,
+                ConnectionEventListener *disconnectCB=NULL );
+
+
+
+    virtual ~OutXMLPort() {};
+
+    /*
+     * DEPRECATED: maps to dataFile BULKIO method call for passing strings of data 
+     */
+    void pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+
+    /*
+     * pushPacket
+     *     maps to dataXML BULKIO method call for passing an XML-formatted string
+     *
+     *  data: character string containing the XML data to send out
+     *  EOS: end-of-stream flag
+     *  streamID: stream identifier
+     */
+    void pushPacket(const char *data, bool EOS, const std::string& streamID);
+
+    /*
+     * pushPacket
+     *     maps to dataXML BULKIO method call for passing an XML-formatted string
+     *
+     *  data: string containing the XML data to send out
+     *  EOS: end-of-stream flag
+     *  streamID: stream identifier
+     */
+    void pushPacket(const std::string& data, bool EOS, const std::string& streamID);
+
+  };
+
+
+  /*
      Uses Port Definitions for All Bulk IO port definitions
      *
      */
-  typedef OutInt8Port<  CharPortTraits >     OutCharPort;
+  // Bulkio octet (UInt8) output
   typedef OutPort< OctetPortTraits >         OutOctetPort;
+  // Bulkio UInt8 output
   typedef OutOctetPort                       OutUInt8Port;
+  // Bulkio short output
   typedef OutPort<  ShortPortTraits >        OutShortPort;
+  // Bulkio unsigned short output
   typedef OutPort<  UShortPortTraits >       OutUShortPort;
+  // Bulkio Int16 output
   typedef OutShortPort                       OutInt16Port;
+  // Bulkio UInt16 output
   typedef OutUShortPort                      OutUInt16Port;
+  // Bulkio long output
   typedef OutPort<  LongPortTraits >         OutLongPort;
+  // Bulkio unsigned long output
   typedef OutPort< ULongPortTraits >         OutULongPort;
+  // Bulkio Int32 output
   typedef OutLongPort                        OutInt32Port;
+  // Bulkio UInt32 output
   typedef OutULongPort                       OutUInt32Port;
+  // Bulkio long long output
   typedef OutPort<  LongLongPortTraits >     OutLongLongPort;
+  // Bulkio unsigned long long output
   typedef OutPort<  ULongLongPortTraits >    OutULongLongPort;
+  // Bulkio Int64 output
   typedef OutLongLongPort                    OutInt64Port;
+  // Bulkio UInt64 output
   typedef OutULongLongPort                   OutUInt64Port;
+  // Bulkio float output
   typedef OutPort<  FloatPortTraits >        OutFloatPort;
+  // Bulkio double output
   typedef OutPort<  DoublePortTraits >       OutDoublePort;
-  typedef OutStringPort< URLPortTraits >     OutURLPort;
-  typedef OutStringPort< FilePortTraits >    OutFilePort;
-  typedef OutStringPort< XMLPortTraits >     OutXMLPort;
-
+  // Bulkio URL output
+  typedef OutFilePort                        OutURLPort;
 
 }  // end of bulkio namespace
 

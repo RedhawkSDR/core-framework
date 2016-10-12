@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:458872f6-a316-4082-b1eb-ce5704f5c49e" name="CommandWrapperSPDDep_collide">
+    <title/>
+    <author>
+        <name>REDHAWK test author</name>
+    </author>
+    <description>A python script that can wrap a non-sca command.  This is useful because
+    OSSIE doesn't support components with the non-sca-compliant type.
+    </description> 
+    <propertyfile type="PRF">
+        <localfile name="CommandWrapperSPDDep.prf.xml"/>
+    </propertyfile>
+    <descriptor>
+        <localfile name="CommandWrapperSPDDep.scd.xml"/>
+    </descriptor>
+    <implementation id="DCE:535a68a7-64e4-424b-9045-5ffc7659bf9d">
+        <description>The command wraper executable uses a property to determine
+        which command to launch when start is called.
+        </description> 
+        <code type="Executable">
+            <localfile name="CommandWrapperSPDDep.py"/>
+            <entrypoint>CommandWrapperSPDDep.py</entrypoint>
+            <stacksize>8192</stacksize>
+            <priority>15</priority>
+        </code>
+        <os name="Linux"/>
+        <processor name="x86"/>
+        <processor name="x86_64"/>
+        <dependency type="runtime_requirements">
+            <softpkgref>
+                <localfile name="/components/softpkgDep_collide/softpkgDep_collide.spd.xml"/>
+                <implref refid="firstImplementation"/>
+            </softpkgref>
+        </dependency>
+    </implementation>
+</softpkg>

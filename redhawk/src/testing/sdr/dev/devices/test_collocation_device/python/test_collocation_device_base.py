@@ -162,6 +162,14 @@ class test_collocation_device_base(CF__POA.ExecutableDevice, ExecutableDevice):
                                           action="external",
                                           kinds=("configure","allocation")
                                           )       
+        additional_supported_components = simple_property(id_="additional_supported_components",
+                                          name="additional_supported_components", 
+                                          type_="short",
+                                          defvalue=4,
+                                          mode="readwrite",
+                                          action="external",
+                                          kinds=("configure","allocation")
+                                          )       
         os_name = simple_property(id_="DCE:4a23ad60-0b25-4121-a630-68803a498f75",
                                           name="os_name", 
                                           type_="string",

@@ -67,6 +67,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	</xs:complexType>
 	<xs:complexType name="provides">
 		<xs:sequence>
+                        <xs:element minOccurs="0" name="description" type="xs:string"/>
 			<xs:element name="porttype" type="portType" minOccurs="0" maxOccurs="unbounded" ecore:name="portType"/>
 		</xs:sequence>
 		<xs:attribute name="repid" use="required" type="xs:string" ecore:name="repID"/>
@@ -74,6 +75,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	</xs:complexType>
 	<xs:complexType name="uses">
 		<xs:sequence>
+                        <xs:element minOccurs="0" name="description" type="xs:string"/>
 			<xs:element name="porttype" type="portType" minOccurs="0" maxOccurs="unbounded" ecore:name="portType"/>
 		</xs:sequence>
 		<xs:attribute name="repid" use="required" type="xs:string" ecore:name="repID"/>

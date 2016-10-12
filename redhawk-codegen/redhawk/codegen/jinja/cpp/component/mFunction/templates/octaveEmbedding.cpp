@@ -179,7 +179,6 @@ if (retVal != NORMAL) {
 }
 
 /*{% if component.mFunction.inputs%}*/
-propertySetAccess.lock();
 
 /*{% for functionInput in component.mFunction.inputs%}*/
 ${addInputArguments(component, functionInput, loop.index0)}
@@ -188,7 +187,6 @@ ${addInputArguments(component, functionInput, loop.index0)}
 ${addInputArguments(component, vararginName, component.mFunction.numInputs+loop.index0-1)}
 /*{% endfor %}*/
 
-propertySetAccess.unlock();
 /*{% endif %}*/
 
 setDiary();
@@ -203,13 +201,11 @@ try {
 flushDiary();
 
 /*{% if component.mFunction.outputs%}*/
-propertySetAccess.lock();
 
 /*{% for functionOutput in component.mFunction.outputs%}*/
 ${findOutputs(component, functionOutput, loop.index0)}
 /*{% endfor %}*/
 
-propertySetAccess.unlock();
 /*{% endif %}*/
 
 // Call to user-defined code.

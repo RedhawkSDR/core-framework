@@ -31,8 +31,7 @@ MessageReceiverCpp::MessageReceiverCpp (const char *uuid, const char *label) :
 {
     message_in = new MessageConsumerPort("message_in");
     message_in->registerMessage("test_message", this, &MessageReceiverCpp::messageReceived);
-    PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(message_in);
-    message_in->_remove_ref();
+    addPort("message_in", message_in);
     
     addProperty(received_messages,
                 received_messages, 
@@ -46,25 +45,7 @@ MessageReceiverCpp::MessageReceiverCpp (const char *uuid, const char *label) :
 
 MessageReceiverCpp::~MessageReceiverCpp (void)
 {
-
-}
-
-CORBA::Object_ptr MessageReceiverCpp::getPort (const char* name) throw (CF::PortSupplier::UnknownPort, CORBA::SystemException)
-{
-    if (strcmp(name, "message_in") != 0) {
-        throw CF::PortSupplier::UnknownPort();
-    }
-
-    return message_in->_this();
-}
-
-void MessageReceiverCpp::releaseObject (void) throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
-{
-    PortableServer::POA_ptr root_poa = ossie::corba::RootPOA();
-    PortableServer::ObjectId_var oid = root_poa->servant_to_id(message_in);
-    root_poa->deactivate_object(oid);
-
-    Resource_impl::releaseObject();
+    delete message_in;
 }
 
 void MessageReceiverCpp::messageReceived (const std::string& id, const test_message_struct& msg)

@@ -18,12 +18,9 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import os
-
 from redhawk.codegen import libraries
-from redhawk.codegen.lang.idl import IDLInterface
 from redhawk.codegen.model.softwarecomponent import ComponentTypes
-from redhawk.codegen.jinja.mapping import ComponentMapper
+from redhawk.codegen.jinja.mapping import ProjectMapper
 
 _projectTypes = {
     ComponentTypes.RESOURCE: 'Component',
@@ -34,25 +31,16 @@ _projectTypes = {
     ComponentTypes.SHAREDPACKAGE: 'SharedPackage'
 }
 
-class ProjectMapper(ComponentMapper):
-    def _mapImplementation(self, impl):
-        impldict = {}
-        impldict['language'] = impl.programminglanguage()
-        # NB: This makes the (reasonable, in practice) assumption that each
-        #     implementation is in the same subdirectory as the entry point.
-        impldict['outputdir'] = os.path.dirname(impl.entrypoint())
-        return impldict
-
+class ComponentProjectMapper(ProjectMapper):
     def _mapComponent(self, softpkg):
         component = {}
         component['type'] = _projectTypes[softpkg.type()]
         component['interfaces'] = [libraries.getRPMDependency(name) for name in self.getInterfaceNamespaces(softpkg)]
+        component['specfile'] = softpkg.name()+'.spec'
         return component
 
-    def mapProject(self, softpkg):
-        project = self.mapComponent(softpkg)        
-        impls = [self.mapImplementation(impl) for impl in softpkg.implementations()]
-        project['implementations'] = impls
-        project['languages'] = set(impl['language'] for impl in impls)
-        project['subdirs'] = [impl['outputdir'] for impl in impls]
-        return project
+    def _mapImplementation(self, impl, generator):
+        impldict = {}
+        impldict['requires'] = generator.rpmRequires()
+        impldict['buildrequires'] = generator.rpmBuildRequires()
+        return impldict

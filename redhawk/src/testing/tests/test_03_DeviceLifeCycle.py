@@ -23,8 +23,8 @@ from _unitTestHelpers import scatest
 
 class DeviceLifeCycleTest(scatest.CorbaTestCase):
     def setUp(self):
-        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, domMgr = self.launchDomainManager()
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
 
     def test_DeviceLifeCycle(self):
         q=os.walk('/proc')

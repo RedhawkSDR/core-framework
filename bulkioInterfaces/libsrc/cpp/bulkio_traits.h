@@ -21,12 +21,12 @@
 #ifndef __bulkio_traits_h
 #define __bulkio_traits_h
 
-#include <queue>
-#include <list>
 #include <vector>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/locks.hpp>
 
+#include <ossie/Port_impl.h> // for _seqVector
+#include <ossie/PropertyMap.h>
+
+#include "BULKIO_Interfaces.h"
 #include "bulkio_base.h"
 
 namespace bulkio {
@@ -49,9 +49,10 @@ template < typename TT, typename AT=_seqVector::seqVectorAllocator< TT > >
 // Traits template definition used to define input and output types used the port
 // classes
 //
-template < typename PST, typename TT, typename NDT=TT, class DBT=std::vector< NDT >  >
+template < typename PST, typename TT, typename NDT=TT, class DBT=std::vector< NDT >, class PAT=const PST& >
 struct DataTransferTraits {
   typedef PST   PortSequenceType;                           // Port Sequence type used by middleware
+  typedef PAT   PushArgumentType;                           // Type of data argument to pushPacket
   typedef TT    TransportType;                              // Transport Type contained in the Port Sequence container
   typedef NDT   NativeDataType;                             // Native c++ mapping of Transport Type
   typedef DBT   DataBufferType;                             // Container defintion to hold data from Input port
@@ -69,7 +70,7 @@ typedef DataTransferTraits< PortTypes::LongLongSequence, CORBA::LongLong >    Lo
 typedef DataTransferTraits< PortTypes::UlongLongSequence, CORBA::ULongLong >  ULongLongDataTransferTraits;
 typedef DataTransferTraits< PortTypes::FloatSequence, CORBA::Float >          FloatDataTransferTraits;
 typedef DataTransferTraits< PortTypes::DoubleSequence, CORBA::Double >        DoubleDataTransferTraits;
-typedef DataTransferTraits< Char *, Char, Char, std::string >                 StringDataTransferTraits;
+typedef DataTransferTraits< Char *, Char, Char, std::string, const char* >    StringDataTransferTraits;
 
 
 //
@@ -110,6 +111,15 @@ struct DataTransfer {
     bool sriChanged;
     bool inputQueueFlushed;
 
+    redhawk::PropertyMap& getKeywords()
+    {
+        return redhawk::PropertyMap::cast(SRI.keywords);
+    }
+
+    const redhawk::PropertyMap& getKeywords() const
+    {
+        return redhawk::PropertyMap::cast(SRI.keywords);
+    }
 };
 
 
@@ -183,6 +193,7 @@ struct PortTraits {
   typedef typename DTT::TransportType       TransportType;
   typedef typename DTT::NativeDataType      NativeType;
   typedef typename DTT::PortSequenceType    SequenceType;
+  typedef typename DTT::PushArgumentType    PushType;
   typedef typename DTT::DataBufferType      DataBufferType;
 };
 

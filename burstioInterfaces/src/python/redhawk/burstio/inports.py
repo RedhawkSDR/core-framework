@@ -159,6 +159,10 @@ class InPort(object):
         finally:
             self._queueLock.release()
 
+    # Provide standard interface for start/stop
+    startPort = start
+    stopPort = stop
+
     def pushBursts(self, bursts):
         begin = time.time()
 

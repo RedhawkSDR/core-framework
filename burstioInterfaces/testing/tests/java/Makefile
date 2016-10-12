@@ -7,10 +7,10 @@ burstio_libsrc_java_dir=$(burstio_libsrc_dir)/java
 OSSIE_HOME=$(shell echo $(OSSIEHOME))
 BURSTIO_JARS=$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(OSSIE_HOME)/lib/bulkio.jar:$(OSSIE_HOME)/lib/BULKIOInterfaces.jar:$(burstio_libsrc_java_dir)/burstio.jar:$(burstio_libsrc_java_dir)/BURSTIOInterfaces.jar 
 
-JAVA = /usr/java/latest/bin/java
-JDB = /usr/java/latest/bin/jdb
-JAVAC = /usr/java/latest/bin/javac
-JAVA_HOME = /usr/java/latest
+JAVA_HOME = $(shell echo $(JAVAHOME))
+JAVA = $(JAVA_HOME)/bin/java
+JDB = $(JAVA_HOME)/bin/jdb
+JAVAC = $(JAVA_HOME)/bin/javac
 JAVA_CP=$(CLASSPATH):.:/usr/share/java/junit4.jar:$(BURSTIO_JARS)
 
 .SUFFIXES:  .java .class

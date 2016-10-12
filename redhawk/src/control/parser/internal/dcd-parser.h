@@ -68,6 +68,9 @@ namespace ossie {
                 ::dcd::componentsupportedinterface_pimpl componentsupportedinterface_p;
                 ::dcd::filesystemnames_pimpl filesystemnames_p;
                 ::dcd::filesystemname_pimpl filesystemname_p;
+                ::dcd::affinity_pimpl affinity_p;
+                ::dcd::loggingconfig_pimpl loggingconfig_p;
+              
 
                 // Connect the parsers together.
                 //
@@ -109,8 +112,17 @@ namespace ossie {
                                     string_p);
 
                 componentinstantiation_p.parsers (string_p,
-                                            componentproperties_p,
-                                            string_p);
+                                                  componentproperties_p,
+                                                  affinity_p,
+                                                  loggingconfig_p,
+                                                  string_p);
+
+                affinity_p.parsers (simpleref_p,
+                                    simplesequenceref_p,
+                                    structref_p,
+                                    structsequenceref_p);
+
+                loggingconfig_p.parsers(string_p);
 
                 componentproperties_p.parsers (simpleref_p,
                                             simplesequenceref_p,
@@ -126,12 +138,14 @@ namespace ossie {
                 values_p.parsers (string_p);
 
                 structref_p.parsers (simpleref_p,
+                                     simplesequenceref_p,
                                     string_p);
 
                 structsequenceref_p.parsers (structvalue_p,
                                     string_p);
 
-                structvalue_p.parsers (simpleref_p);
+                structvalue_p.parsers (simpleref_p,
+                                       simplesequenceref_p);
 
                 domainmanager_p.parsers (namingservice_p,
                                         string_p);

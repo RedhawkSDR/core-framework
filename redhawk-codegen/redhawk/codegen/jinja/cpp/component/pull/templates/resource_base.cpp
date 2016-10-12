@@ -95,7 +95,11 @@ ${className}::${className}(const char *uuid, const char *label) :
 
 /*{%   endif %}*/
     ${port.cppname} = new ${port.constructor};
+/*{%   if port.hasDescription %}*/
+    addPort("${port.name}", "${port.description}", ${port.cppname});
+/*{%   else %}*/
     addPort("${port.name}", ${port.cppname});
+/*{%   endif %}*/
 /*{%   if port.name == 'propEvent' %}*/
 /*{%     for property in component.events %}*/
     ${port.cppname}->registerProperty(this->_identifier, this->naming_service_name, this->getPropertyFromId("${property.identifier}"));
@@ -105,7 +109,7 @@ ${className}::${className}(const char *uuid, const char *label) :
 /*{% endfor %}*/
 /*{% if component.hasmultioutport %}*/
 
-    this->addPropertyChangeListener("connectionTable", this, &${className}::connectionTableChanged);
+    this->addPropertyListener(connectionTable, this, &${className}::connectionTableChanged);
 /*{% endif %}*/
 /*{% endblock %}*/
 }
@@ -177,11 +181,11 @@ void ${className}::connectionTableChanged(const std::vector<connection_descripto
 
 /*{% endif %}*/
 /*{% block loadProperties %}*/
-/*{% from "properties/properties.cpp" import addproperty, initsequence %}*/
+/*{% from "properties/properties.cpp" import addproperty, initsequence, initializestructseq %}*/
 void ${className}::loadProperties()
 {
 /*{% for prop in component.properties %}*/
-//%    if prop.cppvalues
+//%    if prop.cppvalues and prop is not structsequence
     ${initsequence(prop)|indent(4)}
 //%    endif
 /*{%   if not prop.inherited %}*/
@@ -189,6 +193,9 @@ void ${className}::loadProperties()
 
 /*{%   elif prop.cppvalue %}*/
     ${prop.cppname} = ${prop.cppvalue};
+/*{%   endif %}*/
+//%    if prop.cppvalues and prop is structsequence
+${initializestructseq(prop)}
 /*{%   endif %}*/
 /*{% endfor %}*/
 }

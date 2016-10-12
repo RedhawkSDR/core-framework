@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d" mode="readonly" name="device_kind" type="string">
+    <description>This specifies the device kind</description>
+    <kind kindtype="configure"/>
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
+  </simple>
+  <simple id="DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb" mode="readonly" name="device_model" type="string">
+    <description> This specifies the specific device</description>
+    <kind kindtype="configure"/>
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
+  </simple>
+    <structsequence id="hw_load_statuses" mode="readwrite" name="hw_load_statuses">
+    <description>The representation of received and valid hw_load_requests.</description>
+    <struct id="hw_load_status" name="hw_load_status">
+      <description>A request to load a specific file to a specific piece of hardware</description>
+      <simple id="hw_load_status::request_id" name="request_id" type="string">
+        <description>A unique ID representing a new request that is used to differentiate hw_loads from one another</description>
+      </simple>
+      <simple id="hw_load_status::requester_id" name="requester_id" type="string">
+        <description>The ID (typically device identifier()) that is attempting to request a hw load.  This is required so the programmable device knows which device has requested and should be given full control of the hardware.</description>
+      </simple>
+      <simple id="hw_load_status::hardware_id" name="hardware_id" type="string">
+        <description>A unique ID that represents a specific piece of programmable hardware.  If there are multiple FPGAs on a single board, each unique FPGA may be referenced via this field.</description>
+      </simple>
+      <simple id="hw_load_status::load_filepath" name="load_filepath" type="string">
+        <description>The path to the corresponding load file.  This path SHOULD support 
+1.) An implicit path (at or around /dev/loads/&lt;my_load_file>.bit)
+     IE: &quot;MyLoadFile.bit&quot;
+2.) A relative path to SCA filesystems
+     IE: &quot;SCA://dev/path/to/load.bit&quot;
+3.) An absolute path 
+     IE: &quot;file://path/to/local/filesystem/load.bit&quot;</description>
+      </simple>
+      <simple id="hw_load_status::state" name="state" type="ushort">
+        <description>The status of the hw_load_request.
+  INACTIVE      - No request to show status of
+   ACTIVE       - File is loaded/running on hardware
+  PENDING   - File is currently loading file and/or waiting                                                                                                                                                                                       
+  ERRORED       - An issue came up during loading and/or running</description>                                                                                                                                                                    
+        <value>0</value>                                                                                                                                                                                                                          
+        <enumerations>                                                                                                                                                                                                                            
+          <enumeration label="INACTIVE" value="0"/>                                                                                                                                                                                               
+          <enumeration label="ACTIVE" value="1"/>                                                                                                                                                                                                 
+          <enumeration label="PENDING" value="2"/>                                                                                                                                                                                                
+          <enumeration label="ERRORED" value="3"/>                                                                                                                                                                                                
+        </enumerations>                                                                                                                                                                                                                           
+      </simple>                                                                                                                                                                                                                                   
+    </struct>                                                                                                                                                                                                                                     
+    <configurationkind kindtype="configure"/>                                                                                                                                                                                                     
+  </structsequence>
+    <structsequence id="hw_load_requests" mode="readwrite" name="hw_load_requests">                                                                                                                                                                 
+    <description>An API property used to receive multiple hw_load_requests.</description>                                                                                                                                                         
+    <struct id="hw_load_request" name="hw_load_request">                                                                                                                                                                                          
+      <description>An API property used to receive a single hw_load_requests.</description>                                                                                                                                                       
+      <simple id="hw_load_request::request_id" name="request_id" type="string">                                                                                                                                                                   
+        <description>A unique ID representing a new request that is used to differentiate hw_loads from one another</description>                                                                                                                 
+      </simple>                                                                                                                                                                                                                                   
+      <simple id="hw_load_request::requester_id" name="requester_id" type="string">                                                                                                                                                               
+        <description>The ID (typically device identifier()) that is attempting to request a hw load.  This is required so the programmable device knows which device has requested and should be given full control of the hardware.</description>
+      </simple>                                                                                                                                                                                                                                   
+      <simple id="hw_load_request::hardware_id" name="hardware_id" type="string">                                                                                                                                                                 
+        <description>A unique ID that represents a specific piece of programmable hardware.  If there are multiple FPGAs on a single board, each unique FPGA may be referenced via this field.</description>                                      
+      </simple>                                                                                                                                                                                                                                   
+      <simple id="hw_load_request::load_filepath" name="load_filepath" type="string">                                                                                                                                                             
+        <description>The path to the corresponding load file.  This path SHOULD support                                                                                                                                                           
+1.) An implicit path (at or around /dev/loads/&lt;my_load_file>.bit)                                                                                                                                                                              
+     IE: &quot;MyLoadFile.bit&quot;                                                                                                                                                                                                               
+2.) A relative path to SCA filesystems                                                                                                                                                                                                            
+     IE: &quot;SCA://dev/path/to/load.bit&quot;                                                                                                                                                                                                   
+3.) An absolute path                                                                                                                                                                                                                              
+     IE: &quot;file://path/to/local/filesystem/load.bit&quot;</description>                                                                                                                                                                       
+      </simple>                                                                                                                                                                                                                                   
+    </struct>                                                                                                                                                                                                                                     
+    <configurationkind kindtype="configure"/>                                                                                                                                                                                                     
+  </structsequence>                                                                                                                                                                                                                                                                                                                                                                                                                                               
+</properties>

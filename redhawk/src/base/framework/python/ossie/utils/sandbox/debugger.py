@@ -20,7 +20,6 @@
 
 import commands
 import os
-import logging
 import sys
 
 class Debugger(object):
@@ -37,17 +36,24 @@ class Debugger(object):
         return False
 
 class GDB(Debugger):
-    def __init__(self):
+    def __init__(self, attach=True):
         status, gdb = commands.getstatusoutput('which gdb')
         if status:
             raise RuntimeError, 'gdb cannot be found'
         super(GDB,self).__init__(gdb)
+        self._attach = attach
+
+    def modifiesCommand(self):
+        return not self._attach
 
     def canAttach(self):
-        return True
+        return self._attach
 
     def attach(self, process):
         return self.command, [process.command(), str(process.pid())]
+
+    def wrap(self, command, arguments):
+        return self.command, ['--args', command] + arguments
 
 class PDB(Debugger):
     def __init__(self):

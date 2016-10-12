@@ -28,7 +28,7 @@ import time
 
 class EventPortConnectionsTest(scatest.CorbaTestCase):
     def setUp(self):
-        self._domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self._domBooter, self._domMgr = self.launchDomainManager()
 
     def tearDown(self):
         try:
@@ -60,7 +60,7 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         self.localEvent = threading.Event()
         self.eventFlag = False
 
-        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr, debug=self.debuglevel)
+        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr)
         self.assertNotEqual(self._devBooter, None)
         self._domMgr.installApplication("/waveforms/MessageTestPy/MessageTestPy.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]

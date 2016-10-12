@@ -86,4 +86,10 @@ namespace omnijni {
     ARRAY_CONVERSIONS_DIRECT(jlong, Long, _CORBA_Sequence<CORBA::ULongLong>);
     ARRAY_CONVERSIONS_DIRECT(jfloat, Float, _CORBA_Sequence<CORBA::Float>);
     ARRAY_CONVERSIONS_DIRECT(jdouble, Double, _CORBA_Sequence<CORBA::Double>);
+
+    char* stringCopy (JNIEnv* env, jstring jstr)
+    {
+        StringWrapper out(jstr, env);
+        return CORBA::string_dup(out);
+    }
 }

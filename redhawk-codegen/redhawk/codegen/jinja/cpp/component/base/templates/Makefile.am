@@ -18,6 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #}
 #% set outputdir = generator.getOutputDir()
+#% set componentdir = component.name.replace('.','/')
 #% set executable = component.impl.entrypoint|relpath(outputdir)
 #% set target = automake.canonicalName(executable)
 #{% block license %}
@@ -25,23 +26,26 @@
 #{% endblock %}
 #{% block binInfo %}
 ossieName = {{component.name}}
-bindir = $(prefix)/{{component.sdrpath}}/{{component.name}}/{{outputdir}}/
+bindir = $(prefix)/{{component.sdrpath}}/{{componentdir}}/{{outputdir}}/
 bin_PROGRAMS = {{executable}}
 #{% endblock %}
 
 #{% block xmlInfo %}
-xmldir = $(prefix)/{{component.sdrpath}}/{{component.name}}/
+xmldir = $(prefix)/{{component.sdrpath}}/{{componentdir}}/
 dist_xml_DATA = {{component.profile.values()|relpath(outputdir)|join(' ')}}
 #{% endblock %}
-ACLOCAL_AMFLAGS = -I$(OSSIEHOME)/share/aclocal/ossie
+ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
+AUTOMAKE_OPTIONS = subdir-objects
+
 
 #{% if component.mFunction != None %}
-mdir = $(prefix)/{{component.sdrpath}}/{{component.name}}/{{outputdir}}/
+mdir = $(prefix)/{{component.sdrpath}}/{{componentdir}}/{{outputdir}}/
 dist_m_DATA = *.m
 #{% endif %}
 
 #{% block distClean %}
 distclean-local:
+	rm -rf m4
 	rm -f config.*
 	rm -rf autom4te.cache
 	rm -f acinclude.m4
@@ -65,12 +69,11 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 {{target}}_SOURCES = $(redhawk_SOURCES_auto)
-{{target}}_LDADD = $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
-#{% if component.mFunction != None %}
-{{target}}_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto) $(M_FUNCTION_INTERPRETER_INCLUDE)
-{{target}}_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) $(M_FUNCTION_INTERPRETER_LOAD)
-#{% else %}
-{{target}}_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
+{{target}}_LDADD = $(SOFTPKG_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
+{{target}}_CXXFLAGS = -Wall $(SOFTPKG_CFLAGS) $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
 {{target}}_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
+#{% if component.mFunction %}
+{{target}}_CXXFLAGS += $(M_FUNCTION_INTERPRETER_INCLUDE)
+{{target}}_LDFLAGS += $(M_FUNCTION_INTERPRETER_LOAD)
 #{% endif %}
 #{% endblock %}

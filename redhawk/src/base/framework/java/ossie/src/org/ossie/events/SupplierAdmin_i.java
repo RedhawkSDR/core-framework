@@ -30,6 +30,7 @@ import org.ossie.events.MessageConsumerPort;
 
 import org.ossie.component.*;
 
+@Deprecated
 public class SupplierAdmin_i extends org.omg.CosEventChannelAdmin.SupplierAdminPOA implements org.omg.CosEventChannelAdmin.SupplierAdminOperations {
 
     protected org.omg.CosEventChannelAdmin.SupplierAdmin supplier_admin;

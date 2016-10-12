@@ -41,7 +41,6 @@ class ${className}(${component.baseclass}):
     def __init__(self, name="${className}", execparams={}):
         self.name = name
         self._log = logging.getLogger(self.name)
-        logging.getLogger().setLevel(logging.DEBUG)
 
     def terminateService(self):
         pass

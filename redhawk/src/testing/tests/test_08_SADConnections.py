@@ -26,8 +26,8 @@ import CosNaming
 
 class SADConnectionsTest(scatest.CorbaTestCase):
     def setUp(self):
-        domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml")
         self._app = None
 
     def tearDown(self):
@@ -247,11 +247,30 @@ class SADConnectionsTest(scatest.CorbaTestCase):
             self.assertEqual(props[ii].id, testOut[ii].id)
             self.assertEqual(any.from_any(props[ii].value), any.from_any(testOut[ii].value))
 
+    def _test_NoService(self, connection):
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._devMgr, None)
+        sadpath = "/waveforms/PortConnectService" + connection + "/PortConnectService" + connection + ".sad.xml"
+        self._domMgr.installApplication(sadpath)
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
+        appFact = self._domMgr._get_applicationFactories()[0]
+
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, appFact.create, appFact._get_name(), [], [])
+        self.assertEqual(self._app, None)
+        self.assertEqual(len(self._domMgr._get_applications()),0)
+        self.assertEqual(self._domMgr._get_identifier(),'DCE:5f52f645-110f-4142-8cc9-4d9316ddd958')
+
     def test_ServiceName(self):
         self._test_Service('Name')
 
     def test_ServiceType(self):
         self._test_Service('Type')
+
+    def test_NoServiceType(self):
+        self._test_NoService('Type')
+
+    def test_NoServiceName(self):
+        self._test_NoService('Name')
 
     def test_UnregisterServiceName(self):
         svcBooter, svcMgr = self.launchDeviceManager("/nodes/test_BasicService_node/DeviceManager.dcd.xml")
@@ -291,5 +310,39 @@ class SADConnectionsTest(scatest.CorbaTestCase):
         self.assertEqual(len(actualId), 1)
         actualId = any.from_any(actualId[0].value)
         self.assertEqual(expectedId, actualId)
+
+
+    def test_ExternalPorts_getPortSet(self):
+        # CF-1285
+        self._createApp('ExternalPort')
+
+        #  grab list of external ports
+        plist = self._app.getPortSet()
+
+        nports = len(plist)
+        self.assertEqual(nports, 2 )
+
+        # check name and direction of each port
+        self.assertEqual(plist[0].name, 'resource_in')
+        self.assertEqual(plist[0].direction.upper(), 'PROVIDES')
+
+        # check name and direction of each port
+        self.assertEqual(plist[1].name, 'resource_out')
+        self.assertEqual(plist[1].direction.upper(), 'USES')
+
+        component = self._getComponents()['PortTest1']
+        plist = component.getPortSet()
+        nports = len(plist)
+        self.assertEqual(nports, 7 )
+        self.assertEqual(plist[0].name, 'resource_in')
+        self.assertEqual(plist[0].direction.upper(), 'PROVIDES')
+
+        component = self._getComponents()['PortTest2']
+        plist = component.getPortSet()
+        pinfo = filter(lambda x : x.name == 'resource_out', plist)
+        nports = len(plist)
+        self.assertEqual(nports, 7 )
+        self.assertEqual(pinfo[0].name, 'resource_out')
+        self.assertEqual(pinfo[0].direction.upper(), 'USES')
 
 

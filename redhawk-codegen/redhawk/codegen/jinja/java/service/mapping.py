@@ -37,16 +37,19 @@ class ServiceMapper(ComponentMapper):
         javacomp['attributes'] = self.attributes(idl)
         javacomp.update(self.getNamespace(idl))
        
-        javacomp['package'] = self.package
-        userclass = softpkg.name()
+        if self.package == '':
+            javacomp['package'] = softpkg.basename()+'.java'
+        else:
+            javacomp['package'] = self.package
+        userclass = softpkg.basename()
         baseclass = userclass + '_base'
         javacomp['baseclass'] = {'name': baseclass,
                                  'file': baseclass+'.java'}
         javacomp['userclass'] = {'name': userclass,
                                  'file': userclass+'.java'}
         javacomp['superclass'] = self.superclass(softpkg)
-        javacomp['mainclass'] = java.qualifiedName(userclass, self.package)
-        javacomp['jarfile'] = softpkg.name() + '.jar'
+        javacomp['mainclass'] = java.qualifiedName(userclass, javacomp['package'])
+        javacomp['jarfile'] = softpkg.basename() + '.jar'
         javacomp['interfacedeps'] = list(self.getInterfaceDependencies(softpkg))
         javacomp['interfacejars'] = self.getInterfaceJars(softpkg)
         return javacomp

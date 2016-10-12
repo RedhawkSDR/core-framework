@@ -11,5 +11,5 @@ Import-Package: BULKIO,
  org.ossie.component,
  org.ossie.properties
 Export-Package: bulkio,
- bulkio.sri
+ bulkio.sri,
  bulkio.time

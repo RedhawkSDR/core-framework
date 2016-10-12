@@ -28,6 +28,11 @@ public class StringProperty extends AbstractSimpleProperty<String> {
         super(id, name, "string", value, mode, action, kinds);
     }
 
+    public StringProperty(String id, String name, String value, Mode mode,
+                          Action action, Kind[] kinds, boolean optional) {
+        super(id, name, "string", value, mode, action, kinds, optional);
+    }
+
     protected String extract(Any any) {
         return String.valueOf(AnyUtils.convertAny(any));
     }

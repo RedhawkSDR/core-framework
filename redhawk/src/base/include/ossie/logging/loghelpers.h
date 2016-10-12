@@ -27,8 +27,9 @@
 #include <boost/shared_ptr.hpp>
 #include <ossie/CF/LogInterfaces.h>
 #include <ossie/logging/rh_logger.h>
+#include <ossie/logging/LogConfigUriResolver.h>
 
-/**
+/*
 The logging namespace contain common routines for configuration
 and manipulation of the logging interface.
 */
@@ -38,7 +39,26 @@ namespace ossie
 
   namespace logging {
 
-    /** 
+    std::string GetDeviceMgrPath( const std::string &dm,
+                                  const std::string &node );
+
+    std::string GetComponentPath( const std::string &dm,
+				  const std::string &wf,
+				  const std::string &cid );
+
+    std::string GetDevicePath( const std::string &dm,
+				  const std::string &node,
+			       const std::string &dev_id);
+
+    std::string GetServicePath( const std::string &dm,
+				  const std::string &node,
+				const std::string &sname);
+
+    // Returns object to assist with resolving LOGGING_CONFIG_URI value for all Domain resources
+    LogConfigUriResolverPtr   GetLogConfigUriResolver();
+    
+
+    /* 
       Default Logging Macro Table tokens available for substitution in a log4j properties or xml configuration file
 
       -- tokens that are resolved for all resource object types
@@ -92,18 +112,24 @@ namespace ossie
       
       virtual ~ResourceCtx() {};
       virtual void apply( MacroTable &tbl );
-
+      virtual std::string getLogCfgUri( const std::string &logcfg_uri ) { return logcfg_uri; };
+      virtual void configure( const std::string &logcfg_uri, int debugLevel );
       std::string  get_path( ) { return dom_path; };
 
     };
 
 
     struct DomainCtx : public ResourceCtx {
-      DomainCtx( const std::string &name,
-		    const std::string &id,
-		    const std::string &dpath );
+      std::string   rootPath;
+      DomainCtx( const std::string &appName,
+                 const std::string &domName,
+                 const std::string &domPath );
       ~DomainCtx() {};
       virtual void apply( MacroTable &tbl );
+      virtual std::string getLogCfgUri( const std::string &logcfg_uri );
+      void configure( const std::string &logcfg_uri,
+                      int debugLevel,
+                      std::string &validated_uri);
     };
 
     struct ComponentCtx : public ResourceCtx {
@@ -137,11 +163,16 @@ namespace ossie
     };
 
     struct DeviceMgrCtx : public ResourceCtx {
-      DeviceMgrCtx( const std::string &name,
-		    const std::string &id,
-		    const std::string &dpath );
+      std::string  rootPath;
+      DeviceMgrCtx( const std::string &nodeName,
+                    const std::string &domName,
+                    const std::string &devPath );
       ~DeviceMgrCtx() {};
       virtual void apply( MacroTable &tbl );
+      virtual std::string getLogCfgUri( const std::string &logcfg_uri );
+      void configure( const std::string &logcfg_uri,
+                      int debugLevel,
+                      std::string &validated_uri);
     };
 
 
@@ -220,6 +251,14 @@ namespace ossie
 
 
     //
+    // ConvertDebugToRHLevel
+    //
+    // Convert from command line argument debug level to CF::Logging
+    //
+    rh_logger::LevelPtr ConvertDebugToRHLevel( int oldstyle_level );
+
+
+    //
     // ConvertRHLevelToDebug
     //
     // Convert from rh logger level to command line debug level
@@ -234,6 +273,13 @@ namespace ossie
     //
     int ConvertRHLevelToCFLevel ( rh_logger::LevelPtr l4_level );
 
+
+    //
+    // ConvertCanonicalLevelToRHLevel
+    //
+    // Convert from string to rh logger Level
+    //
+    rh_logger::LevelPtr ConvertCanonicalLevelToRHLevel( const std::string &txt_level );
 
     //
     // ConvertCFLevelToRHLevel
@@ -321,6 +367,7 @@ namespace ossie
     // @param ctx execution context for the resource
     //
     void Configure(const std::string &logcfgUri, int logLevel, ResourceCtxPtr ctx);
+    void Configure(const std::string &logcfgUri, int logLevel, ResourceCtx *ctx);
 
 
     //

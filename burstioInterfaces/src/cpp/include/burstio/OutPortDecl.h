@@ -75,7 +75,7 @@ namespace burstio {
 
     public:
         typedef UsesPort<typename Traits::PortType, PortStatus> super;
-
+		typedef typename Traits::PortType PortType;
         typedef typename Traits::BurstType BurstType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
         typedef typename Traits::ElementType ElementType;
@@ -187,6 +187,8 @@ namespace burstio {
         // Support function for automatic component-managed stop.
         virtual void stopPort ();
 
+		std::string getRepid() const;
+
     protected:
         class Queue : public OutputPolicy
         {
@@ -249,6 +251,7 @@ namespace burstio {
         typedef std::map<std::string,std::set<std::string> > RouteTable;
 
         void sendBursts (const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID);
+        void partitionBursts (const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID, const Connection& connection);
 
         void scheduleCheck (boost::system_time when);
         void checkQueues ();

@@ -20,15 +20,17 @@
 //% set classname = portgenerator.className()
 //% set interface = portgenerator.interfaceClass()
 //% set helper = portgenerator.helperClass()
+//% set poa = portgenerator.poaClass()
 package ${package};
 
 import java.util.Map;
 import org.ossie.component.QueryableUsesPort;
+import org.ossie.component.PortBase;
 
 /**
  * @generated
  */
-public class ${classname} extends QueryableUsesPort<${interface}> implements ${interface} {
+public class ${classname} extends QueryableUsesPort<${interface}> implements ${interface}, PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -86,4 +88,20 @@ public class ${classname} extends QueryableUsesPort<${interface}> implements ${i
 /*{% endif %}*/
     }
  /*{% endfor %}*/
+
+    /**
+     * @generated
+     */
+    public String getRepid()
+    {
+        return ${helper}.id();
+    }
+
+    /**
+     * @generated
+     */
+    public String getDirection()
+    {
+        return "Uses";
+    }
 }

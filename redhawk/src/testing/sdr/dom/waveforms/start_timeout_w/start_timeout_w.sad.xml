@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:c2852a9c-3d2c-44d2-aca8-5e87727fca32" name="start_timeout_w">
+  <componentfiles>
+    <componentfile id="start_timeout_262dfea6-9dfd-4d11-aa56-048f30c5a40e" type="SPD">
+      <localfile name="/components/start_timeout/start_timeout.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="start_timeout_262dfea6-9dfd-4d11-aa56-048f30c5a40e"/>
+      <componentinstantiation id="start_timeout_1" startorder="0">
+        <usagename>start_timeout_1</usagename>
+        <findcomponent>
+          <namingservice name="start_timeout_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="start_timeout_1"/>
+  </assemblycontroller>
+</softwareassembly>

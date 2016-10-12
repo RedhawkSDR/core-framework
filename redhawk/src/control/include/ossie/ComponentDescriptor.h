@@ -21,9 +21,9 @@
 
 #ifndef SCDPARSER_H
 #define SCDPARSER_H
-
 #include <string>
 #include <istream>
+#include <boost/shared_ptr.hpp>
 
 #include "ossie/CF/cf.h"
 #include "ossie/debug.h"
@@ -41,13 +41,15 @@ namespace ossie {
         };
 
     public:
-        ComponentDescriptor() : _scd(0) {}
+        ComponentDescriptor() {}
 
         ComponentDescriptor(std::istream& input) throw (ossie::parser_error);
 
         ~ComponentDescriptor();
 
-        ComponentDescriptor& operator=(ComponentDescriptor other);
+        ComponentDescriptor( const ComponentDescriptor &src);
+
+        ComponentDescriptor& operator=(const ComponentDescriptor &other);
 
         void load(std::istream& istream) throw (ossie::parser_error);
 
@@ -68,8 +70,7 @@ namespace ossie {
         bool isConfigurable() const;
 
     protected:
-        ComponentDescriptor(ComponentDescriptor& c); // No copy
-        std::auto_ptr<SCD> _scd; // the parsed data
+        boost::shared_ptr<SCD> _scd; // the parsed data
     };
 }
 #endif

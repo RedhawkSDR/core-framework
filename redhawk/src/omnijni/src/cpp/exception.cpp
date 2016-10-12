@@ -31,6 +31,7 @@ jmethodID CORBA::jni::SystemException::get_name_ = 0;
 void CORBA::jni::SystemException::OnLoad (JNIEnv* env)
 {
   if (cls_) return;
+  CORBA::jni::CompletionStatus::OnLoad(env);
 
   cls_ = omnijni::loadClass(env, "org.omg.CORBA.SystemException");
   minor_ = env->GetFieldID(cls_, "minor", "I");
@@ -73,6 +74,8 @@ void CORBA::jni::SystemException::throwNative (JNIEnv* env, jobject obj)
 
 void CORBA::jni::SystemException::throwJava (const CORBA::SystemException& ex, JNIEnv* env)
 {
+    CORBA::jni::SystemException::OnLoad(env);
+
     // Look up the equivalent Java class for this exception.
     std::string name = std::string("org/omg/CORBA/") + ex._name();
     jclass clazz = env->FindClass(name.c_str());

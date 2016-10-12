@@ -27,10 +27,12 @@ import bulkio_helpers
 import time
 import logging
 from new import classobj
+from ossie.utils.redhawk.base import attach
 try:
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
 except:
     pass
+from ossie.utils import _uuid
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -226,6 +228,11 @@ class ArraySink(object):
     def _isActive(self):
         return not self.gotEOS and not self.breakBlock
 
+    def reset(self):
+        if not self._isActive():
+            self.gotEOS = False
+            self.breakBlock = False
+
     def start(self):
         self.gotEOS = False
         self.breakBlock = False
@@ -283,6 +290,16 @@ class ArraySink(object):
             if length is None:
                 # No length specified; get all of the data.
                 length = len(self.data)
+                
+            # have not received any data yet (and I need a minimum amount)
+            if self.sri == None and len(self.data) == 0 and length != 0:
+                self.port_cond.wait()
+            
+            if self.sri != None and self.sri.subsize != 0:
+                frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
+                if float(length)/frameLength != length/frameLength:
+                    print 'The requested length divided by the subsize ('+str(length)+'/'+str(self.sri.subsize)+') is not a whole number. Cannot return framed data'
+                    return (None,None)
 
             # Wait for there to be enough data.
             while len(self.data) < length and self._isActive():
@@ -303,13 +320,28 @@ class ArraySink(object):
                     rettime.append((l,t))
                 if length_to_erase != None:
                     del self.timestamps[:length_to_erase]
-                retval = self.data[:length]
+                if self.sri.subsize == 0:
+                    retval = self.data[:length]
+                else:
+                    retval = []
+                    frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
+                    for idx in range(length/frameLength):
+                        retval.append(self.data[idx*frameLength:(idx+1)*frameLength])
                 del self.data[:length]
                 return (retval, rettime)
 
             # No length was provided, or length is equal to the length of data.
             # Return all data and timestamps.
-            (retval, rettime) = (self.data, self.timestamps)
+            if self.sri == None:
+                (retval, rettime) = (self.data, self.timestamps)
+            elif self.sri.subsize == 0:
+                (retval, rettime) = (self.data, self.timestamps)
+            else:
+                retval = []
+                frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
+                for idx in range(length/frameLength):
+                    retval.append(self.data[idx*frameLength:(idx+1)*frameLength])
+                rettime = self.timestamps
             self.data = []
             self.timestamps = []
             return (retval, rettime)
@@ -589,6 +621,87 @@ class XmlArraySource(ArraySource):
 
             self.pushPacket(d, self.eos, self.stream_id)
 
+class SDDSSource(object):
+    "This sub-class exists to override pushPacket for dataXML ports."
+    def __init__(self):
+        self.outPorts = {}
+        self.port_lock = threading.Lock()
+
+    def attach(self, streamDef, user_id):
+        self.port_lock.acquire()
+        retval = None
+        try:
+            try:
+                for connId, port in self.outPorts.items():
+                    if port != None:
+                        retval_ = port.attach(streamDef, user_id)
+                        if retval == None:
+                            retval = retval_
+                        elif isinstance(retval,str):
+                            retval = [retval,retval_]
+                        else:
+                            retval.append(retval_)
+
+            except Exception, e:
+                msg = "The call to attach failed with %s " % e
+                msg += "connection %s instance %s" % (connId, port)
+                log.warn(msg)
+        finally:
+            self.port_lock.release()
+        return retval
+
+    def detach(self, attachId):
+        self.port_lock.acquire()
+        try:
+            try:
+                for connId, port in self.outPorts.items():
+                    if port != None:
+                        port.detach(attachId)
+
+            except Exception, e:
+                msg = "The call to detach failed with %s " % e
+                msg += "connection %s instance %s" % (connId, port)
+                log.warn(msg)
+        finally:
+            self.port_lock.release()
+
+    def connectPort(self, connection, connectionId):
+        self.port_lock.acquire()
+        try:
+            port = connection._narrow(BULKIO__POA.dataSDDS)
+            if port == None:
+                return None
+            self.outPorts[str(connectionId)] = port
+        except:
+            pass
+        self.port_lock.release()
+
+    def disconnectPort(self, connectionId):
+        self.port_lock.acquire()
+        try:
+            self.outPorts.pop(str(connectionId), None)
+        finally:
+            self.port_lock.release()
+
+    def getPort(self):
+        """
+        Returns a Port object of the type CF__POA.Port.
+        """
+        # The classobj generates a class using the following arguments:
+        #
+        #    name:        The name of the class to generate
+        #    bases:       A tuple containing all the base classes to use
+        #    dct:         A dictionary containing all the attributes such as
+        #                 functions, and class variables
+        PortClass = classobj('PortClass',
+                             (CF__POA.Port,),
+                             {'connectPort':self.connectPort,
+                              'disconnectPort':self.disconnectPort})
+
+        # Create a port using the generate Metaclass and return an instance
+        port = PortClass()
+        return port._this()
+
 class FileSource(object):
     """
     Simple class used to push data into a port from a given array of data.
@@ -858,6 +971,84 @@ class FileSource(object):
             self.file_d.close()
         else:
             pass
+
+class SDDSSink(object):
+    def __init__(self, parent):
+        self.attachments = {}
+        self.port_lock = threading.Lock()
+        self.parent = parent
+
+    def __del__(self):
+        if self.outFile != None:
+            self.outFile.close()
+
+    def attach(self, streamDef, userid):
+        """
+        Stores the SteramSRI object regardless that there is no need for it
+
+        Input:
+            <H>    The StreamSRI object containing the information required to
+                   generate the header file
+        """
+        self.port_lock.acquire()
+        attachid = _uuid.uuid1()
+        self.attachments[attachid] = (streamDef, userid)
+        self.port_lock.release()
+        self.parent.attach_cb(streamDef, userid)
+        return attachid
+
+    def _get_attachmentIds(self):
+        retval = []
+        for key in self.attachments:
+            retval.append(key)
+        return retval
+
+    def _get_attachedStreams(self):
+        retval = []
+        for key in self.attachments:
+            retval.append(self.attachments[key][0])
+        return retval
+
+    def _get_usageState(self):
+        if len(self.attachments) == 0:
+            return BULKIO.dataSDDS.IDLE
+        return BULKIO.dataSDDS.ACTIVE
+
+    def getUser(self, attachId):
+        if self.attachments.has_key(attachId):
+            return self.attachments[attachId][1]
+        return ''
+
+    def getStreamDefinition(self, attachId):
+        if self.attachments.has_key(attachId):
+            return self.attachments[attachId][0]
+        return None
+
+    def pushSRI(self, H, T):
+        pass
+
+    def detach(self, attachId):
+        self.port_lock.acquire()
+        if self.attachments.has_key(attachId):
+            self.attachments.pop(attachId)
+        self.port_lock.release()
+        self.parent.detach_cb(attachId)
+
+    def getPort(self):
+        PortClass = classobj('PortClass',
+                             (BULKIO__POA.dataSDDS,),
+                             {'_get_attachmentIds':self._get_attachmentIds,
+                              '_get_attachedStreams':self._get_attachedStreams,
+                              '_get_usageState':self._get_usageState,
+                              'getUser':self.getUser,
+                              'getStreamDefinition':self.getStreamDefinition,
+                              'pushSRI':self.pushSRI,
+                              'attach':self.attach,
+                              'detach':self.detach})
+
+        # Create a port using the generate Metaclass and return an instance
+        port = PortClass()
+        return port._this()
 
 class FileSink(object):
     """

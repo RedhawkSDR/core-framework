@@ -22,7 +22,11 @@
 #ifndef __CF_DEFINED
 #define __CF_DEFINED
 
+#include <COS/CosNaming.idl>
+#include <ossie/CF/DataType.idl>
+#include <ossie/CF/Port.idl>
 #include <ossie/CF/LogInterfaces.idl>
+#include <ossie/CF/EventChannelManager.idl>
 
 module CF {
     interface Device;
@@ -32,26 +36,29 @@ module CF {
     interface ApplicationFactory;
     interface DeviceManager;
     interface DomainManager;
-    /* This type is a CORBA IDL struct type which can be used to hold any CORBA basic type or static IDL type. */
-    struct DataType {
-        /* The id attribute indicates the kind of value and type. The id can be an UUID string, an integer string, or a name identifier. */
-        string id;
-        /* The value attribute can be any static IDL type or CORBA basic type. */
-        any value;
-    };
+    interface AllocationManager;
+    interface Port;
+
     /* This exception indicates an invalid component profile error. */
     exception InvalidProfile {
     };
-    /* The Properties is a CORBA IDL unbounded sequence of CF DataType(s), which can be used in defining a sequence of name and value pairs. */
-    typedef sequence <DataType> Properties;
     /* This exception indicates an invalid CORBA object reference error. */
     exception InvalidObjectReference {
         string msg;
     };
-    /* This type is a CORBA unbounded sequence of octets. */
-    typedef sequence <octet> OctetSequence;
-    /* This type defines a sequence of strings */
-    typedef sequence <string> StringSequence;
+    /* This exception indicates a name is being used that already exists. */
+    exception DuplicateName {
+        string msg;
+    };
+    exception InvalidIdentifier {
+    };
+  
+  /** 
+      Returned when access to a specified method or interface is restricted
+  */
+  exception UnallowedAccess {
+  };
+
     struct FailedCapacityType {
         /* The deviceId attribute indicates the id of the device that failed to allocate capacity. */
         string deviceId;
@@ -363,28 +370,6 @@ module CF {
         /* The getMounts operation returns the FileManager's mounted FileSystems. */
         CF::FileManager::MountSequence getMounts ();
     };
-    /* This interface provides operations for managing associations between ports. An application defines a specific Port type by specifying an interface that inherits the Port interface. */
-    interface Port {
-        /* This exception indicates one of the following errors has occurred in the specification of a Port association. */
-        exception InvalidPort {
-            unsigned short errorCode;
-            string msg;
-        };
-        /* This exception indicates the Port is unable to accept any additional connections. */
-        exception OccupiedPort {
-        };
-        /* The connectPort operation makes a connection to the component identified by the input parameters. The connectPort operation establishes only half of the association; therefore two calls are required to create a two-way association. A port may support several connections. */
-        void connectPort (
-            in Object connection,
-            in string connectionId
-            )
-            raises (CF::Port::InvalidPort,CF::Port::OccupiedPort);
-        /* The disconnectPort operation breaks the connection to the component identified by the input parameters. */
-        void disconnectPort (
-            in string connectionId
-            )
-            raises (CF::Port::InvalidPort);
-    };
     /* The LifeCycle interface defines the generic operations for initializing or releasing instantiated component-specific data and/or processing elements. */
     interface LifeCycle {
         /* This exception indicates an error occurred during component initialization. The messages provide additional information describing the reason why the error occurred. */
@@ -414,408 +399,595 @@ module CF {
             )
             raises (CF::TestableObject::UnknownTest,CF::UnknownProperties);
     };
-    /* The PropertySet interface defines configure and query operations to access component properties/attributes. */
-    interface PropertySet {
-        /* This exception indicates the configuration of a component has failed (no configuration at all was done). The message provides additional information describing the reason why the error occurred. The invalid properties returned indicates the properties that were invalid. */
-        exception InvalidConfiguration {
-            string msg;
-            CF::Properties invalidProperties;
-        };
-        /* The PartialConfiguration exception indicates the configuration of a Component was partially successful. The invalid properties returned indicates the properties that were invalid. */
-        exception PartialConfiguration {
-            CF::Properties invalidProperties;
-        };
-        /* The purpose of this operation is to allow id/value pair configuration properties to be assigned to components implementing this interface. */
-        void configure (
-            in CF::Properties configProperties
-            )
-            raises (CF::PropertySet::InvalidConfiguration,CF::PropertySet::PartialConfiguration);
-        /* The purpose of this operation is to allow a component to be queried to retrieve its properties. */
-        void query (
-            inout CF::Properties configProperties
-            )
-            raises (CF::UnknownProperties);
+
+
+  /**
+     PropertyChangeListener
+     
+     Interface that receives notifications from a Resource when an observed change occurs to the resource
+  **/
+  interface PropertyChangeListener {
+
+    struct PropertyChangeEvent {
+      string          evt_id;
+      string          reg_id;
+      string          resource_id;
+      CF::Properties  properties;
     };
+
+    void propertyChange( in PropertyChangeEvent prop_event );
+
+  };
+
+    /* The PropertySet interface defines configure and query operations to access component properties/attributes. */
+  interface PropertySet {
+    /* This exception indicates the configuration of a component has failed (no configuration at all was done). The message provides additional information describing the reason why the error occurred. The invalid properties returned indicates the properties that were invalid. */
+    exception InvalidConfiguration {
+      string msg;
+      CF::Properties invalidProperties;
+    };
+    /* The PartialConfiguration exception indicates the configuration of a Component was partially successful. The invalid properties returned indicates the properties that were invalid. */
+    exception PartialConfiguration {
+      CF::Properties invalidProperties;
+    };
+
+    /* The purpose of this operation is to allow id/value pair configuration properties to be assigned to components implementing this interface. */
+    void configure (in CF::Properties configProperties )
+      raises (CF::PropertySet::InvalidConfiguration,CF::PropertySet::PartialConfiguration);
+
+    /* The purpose of this operation is to allow a component to be queried to retrieve its properties. */
+    void query (inout CF::Properties configProperties)
+      raises (CF::UnknownProperties);
+
+  };
+
+    interface PropertyEmitter : PropertySet {
+
+    /* The AlreadyInitialized exception indicates that initializeProperties has already been called on this component. */
+    exception AlreadyInitialized {
+    };
+
+    /* The purpose of this operation is to set the initial id/value pair configuration properties for components implementing this interface. */
+    void initializeProperties(in CF::Properties initialProperties)
+      raises (CF::PropertyEmitter::AlreadyInitialized,CF::PropertySet::InvalidConfiguration,CF::PropertySet::PartialConfiguration);
+
+    string  registerPropertyListener( in Object obj, in StringSequence prop_ids, in float interval )
+      raises (CF::UnknownProperties, CF::InvalidObjectReference);
+
+    void    unregisterPropertyListener( in string id)
+      raises ( CF::InvalidIdentifier );
+    };
+
+    interface AllocationStatusIterator;
+    interface DeviceLocationIterator;
     
     /* The AllocationManager interface is for the consolidation and delegation of allocation requests. */
     interface AllocationManager {
 
-        /* This type defines an unbounded sequence of Device Pool names. */
-        typedef sequence<string> DevicePoolNames;
+      /* This type defines an unbounded sequence of Device Pool names. */
+      typedef sequence<string> DevicePoolNames;
 
-        /* The AllocationRequestType defines a type for describing an allocation. The allocation request is composed of a request ID, the properties that need to be allocated,
-           the device pools that the allocations need to be limited to, and the list of devices that need to satisfy this request. */
-        struct AllocationRequestType {
-            string requestID;
-            Properties allocationProperties;
-            DevicePoolNames devicePools;
-            DeviceSequence requestedDevices;
-        };
+      /* The AllocationRequestType defines a type for describing an allocation. The allocation request is composed of a request ID, the properties that need to be allocated,
+         the device pools that the allocations need to be limited to, the list of devices that need to satisfy this request, and the ID of the source of the request. */
+      struct AllocationRequestType {
+        string requestID;
+        Properties allocationProperties;
+        DevicePoolNames devicePools;
+        DeviceSequence requestedDevices;
+        string sourceID;
+      };
 
-        /* The AllocationResponseType defines a type for associating an allocation ID with its request ID. The response also contains the list of allocation responses from the device allocations
-           as well as the devices that satisfied the request. */
-        struct AllocationResponseType {
-            string requestID;
-            string allocationID;
-            Properties allocationProperties;
-            Device allocatedDevice;
-            DeviceManager allocationDeviceManager;
-        };
+      /* The AllocationResponseType defines a type for associating an allocation ID with its request ID. The response also contains the list of allocation responses from the device allocations
+         as well as the devices that satisfied the request. */
+      struct AllocationResponseType {
+        string requestID;
+        string allocationID;
+        Properties allocationProperties;
+        Device allocatedDevice;
+        DeviceManager allocationDeviceManager;
+      };
 
-        /* The AllocationStatusType defines a type for describing a successful allocation that has not been deallocated. */
-        struct AllocationStatusType {
-            string allocationID;
-            string requestingDomain;
-            Properties allocationProperties;
-            Device allocatedDevice;
-            DeviceManager allocationDeviceManager;
-        };
+      /* The AllocationStatusType defines a type for describing a successful allocation that has not been deallocated. */
+      struct AllocationStatusType {
+        string allocationID;
+        string requestingDomain;
+        Properties allocationProperties;
+        Device allocatedDevice;
+        DeviceManager allocationDeviceManager;
+        string sourceID;
+      };
 
-        /* The DeviceLocationType defines a type locating a particular device in a Domain/Device Manager/Device Pool. */
-        struct DeviceLocationType {
-            string domainName;
-            DevicePoolNames pools;
-            DeviceManager devMgr;
-            Device dev;
-        };
+      /* The DeviceLocationType defines a type locating a particular device in a Domain/Device Manager/Device Pool. */
+      struct DeviceLocationType {
+        string domainName;
+        DevicePoolNames pools;
+        DeviceManager devMgr;
+        Device dev;
+      };
 
-        /* This type defines an unbounded sequence of allocation requests. */
-        typedef sequence<AllocationRequestType> AllocationRequestSequence;
+      /* This type defines an unbounded sequence of allocation requests. */
+      typedef sequence<AllocationRequestType> AllocationRequestSequence;
 
-        /* This type defines an unbounded sequence of allocation responses. */
-        typedef sequence<AllocationResponseType> AllocationResponseSequence;
+      /* This type defines an unbounded sequence of allocation responses. */
+      typedef sequence<AllocationResponseType> AllocationResponseSequence;
 
-        /* This type defines an unbounded sequence of allocation status responses. */
-        typedef sequence<AllocationStatusType> AllocationStatusSequence;
+      /* This type defines an unbounded sequence of allocation status responses. */
+      typedef sequence<AllocationStatusType> AllocationStatusSequence;
         
-        /* This type defines an unbounded sequence of Device locations. */
-        typedef sequence<DeviceLocationType> DeviceLocationSequence;
+      /* This type defines an unbounded sequence of Device locations. */
+      typedef sequence<DeviceLocationType> DeviceLocationSequence;
         
-        /* This type defines an unbounded sequence of allocation IDs. */
-        typedef sequence<string> allocationIDSequence;
+      /* This type defines an unbounded sequence of allocation IDs. */
+      typedef sequence<string> allocationIDSequence;
 
-        exception AllocationError {
-            short errorCode;
-            string message;
-        };
+      exception AllocationError {
+        short errorCode;
+        string message;
+      };
 
-        exception InvalidAllocationId {
-            allocationIDSequence invalidAllocationIds;
-        };
+      exception InvalidAllocationId {
+        allocationIDSequence invalidAllocationIds;
+      };
 
-        /* The readonly AllocationManager attribute allDevices contains all devices in all Domains that can be seen by any Allocation Manager seen by the local Allocation Manager */
-        readonly attribute DeviceLocationSequence allDevices;
+      /* The readonly AllocationManager attribute allDevices contains all devices in all Domains that can be seen by any Allocation Manager seen by the local Allocation Manager */
+      readonly attribute DeviceLocationSequence allDevices;
 
-        /* The readonly AllocationManager attribute authorizedDevices contains all devices after policy is applied by any Allocation Manager seen by the local Allocation Manager */
-        readonly attribute DeviceLocationSequence authorizedDevices;
+      /* The readonly AllocationManager attribute authorizedDevices contains all devices after policy is applied by any Allocation Manager seen by the local Allocation Manager */
+      readonly attribute DeviceLocationSequence authorizedDevices;
 
-        /* The readonly AllocationManager attribute localDevices contains all devices that are located within the local Domain */
-        readonly attribute DeviceLocationSequence localDevices;
+      /* The readonly AllocationManager attribute localDevices contains all devices that are located within the local Domain */
+      readonly attribute DeviceLocationSequence localDevices;
 
-        /* The readonly AllocationManager attribute domainManager contains a link to the local Domain */
-        readonly attribute CF::DomainManager domainMgr;
+      /* The possible scopes for which to list devices: local Domain, all Domains, or only authorized devices */
+      enum DeviceScopeType {
+        LOCAL_DEVICES,
+        ALL_DEVICES,
+        AUTHORIZED_DEVICES
+      };
 
-        /* Allocates a set of depenedencies */
-        AllocationResponseSequence allocate(in AllocationRequestSequence requests) raises (AllocationError);
+      /* Lists up to 'count' devices within the given scope (local or all Domains). If there are more remaining, the out iterator can be used to fetch additional allocations. */
+      void listDevices(in DeviceScopeType deviceScope, in unsigned long count,
+                       out DeviceLocationSequence devices, out DeviceLocationIterator dl);
 
-        /* Allocates a set of dependencies only inside the local Domain */
-        AllocationResponseSequence allocateLocal(in AllocationRequestSequence requests, in string domainName) raises (AllocationError);
+      /* The readonly AllocationManager attribute domainManager contains a link to the local Domain */
+      readonly attribute CF::DomainManager domainMgr;
 
-        /* Deallocates a set of allocations */
-        void deallocate(in allocationIDSequence allocationIDs) raises (InvalidAllocationId);
+      /* Allocates a set of depenedencies */
+      AllocationResponseSequence allocate(in AllocationRequestSequence requests) raises (AllocationError);
 
-        /* Returns all current allocations on all Domains with an optional list of selected allocations to return */
-        AllocationStatusSequence allocations(in allocationIDSequence allocationIDs) raises (InvalidAllocationId);
+      /* Allocates a set of dependencies only inside the local Domain */
+      AllocationResponseSequence allocateLocal(in AllocationRequestSequence requests, in string domainName) raises (AllocationError);
 
-        /* Returns all current allocations that were made through the Allocation Manager that have not been deallocated with an optional list of selected allocations to return */
-        AllocationStatusSequence localAllocations(in allocationIDSequence allocationIDs) raises (InvalidAllocationId);
+      /* Deallocates a set of allocations */
+      void deallocate(in allocationIDSequence allocationIDs) raises (InvalidAllocationId);
+
+      /* Returns all current allocations on all Domains with an optional list of selected allocations to return */
+      AllocationStatusSequence allocations(in allocationIDSequence allocationIDs) raises (InvalidAllocationId);
+
+      /* Returns all current allocations that were made through the Allocation Manager that have not been deallocated with an optional list of selected allocations to return */
+      AllocationStatusSequence localAllocations(in allocationIDSequence allocationIDs) raises (InvalidAllocationId);
+
+      /* The possible scopes for which to list allocations: local Domain or all Domains */
+      enum AllocationScopeType {
+        LOCAL_ALLOCATIONS,
+        ALL_ALLOCATIONS
+      };
+
+      /* Lists up to 'count' current allocations within the given scope (local or all Domains). If there are more remaining, the out iterator can be used to fetch additional allocations. */
+      void listAllocations(in AllocationScopeType allocScope, in unsigned long how_many,
+                           out AllocationStatusSequence allocs, out AllocationStatusIterator ai);
 
     }; //End Interface
     
-    /* The DomainManager interface is for the control and configuration of the radio domain. */
-    interface DomainManager : PropertySet {
-        /* This exception is raised when an Application installation has not completed correctly. The message provides additional information describing the reason for the error. */
-        exception ApplicationInstallationError {
-            CF::ErrorNumberType errorNumber;
-            string msg;
-        };
-        exception ApplicationAlreadyInstalled {
-        };
-        /* This type defines an unbounded sequence of Applications. */
-        typedef sequence <Application> ApplicationSequence;
-        /* This type defines an unbounded sequence of ApplicationFactories. */
-        typedef sequence <ApplicationFactory> ApplicationFactorySequence;
-        /* This type defines an unbounded sequence of DeviceManagers. */
-        typedef sequence <DeviceManager> DeviceManagerSequence;
-        /* This type defines an unbounded sequence of DomainManagers. */
-        typedef sequence <DomainManager> DomainManagerSequence;
-        /* This exception indicates the application ID is invalid. */
-        exception InvalidIdentifier {
-        };
-        /* This exception indicates the registering Device's DeviceManager is not registered in the DomainManager. A Device's DeviceManager has to be registered prior to a Device registration to the DomainManager. */
-        exception DeviceManagerNotRegistered {
-        };
-        /* This exception is raised when an Application uninstallation has not completed correctly. The message provides additional information describing the reason for the error. */
-        exception ApplicationUninstallationError {
-            CF::ErrorNumberType errorNumber;
-            string msg;
-        };
-        /* This exception indicates that an internal error has occurred to prevent DomainManager registration operations from successful completion. The message provides additional information describing the reason for the error. */
-        exception RegisterError {
-            CF::ErrorNumberType errorNumber;
-            string msg;
-        };
-        /* This exception indicates that an internal error has occurred to prevent DomainManager unregister operations from successful completion. The message provides additional information describing the reason for the error. */
-        exception UnregisterError {
-            CF::ErrorNumberType errorNumber;
-            string msg;
-        };
-        /* This exception indicates that a registering consumer is already connected to the specified event channel. */
-        exception AlreadyConnected {
-        };
-        /* This exception indicates that a DomainManager was not able to locate the event channel. */
-        exception InvalidEventChannelName {
-        };
-        /* The NotConnected exception indicates that the unregistering consumer was not connected to the specified event channel. */
-        exception NotConnected {
-        };
-        /* The readonly domainManagerProfile attribute contains a profile element with a file reference to the DomainManager Configuration Descriptor (DMD) profile. */
-        readonly attribute string domainManagerProfile;
-        /* The deviceManagers attribute is read-only containing a sequence of registered DeviceManagers in the domain. */
-        readonly attribute CF::DomainManager::DeviceManagerSequence deviceManagers;
-        /* The applications attribute contains a list of Applications that have been instantiated in the domain. */
-        readonly attribute CF::DomainManager::ApplicationSequence applications;
-        /* The readonly applicationFactories attribute contains a list with one ApplicationFactory per application (SAD file and associated files) successfully installed. */
-        readonly attribute CF::DomainManager::ApplicationFactorySequence
-        applicationFactories;
-        /* The readonly fileMgr attribute contains the DomainManager's FileManager. */
-        readonly attribute CF::FileManager fileMgr;
-        /* The readonly fileMgr attribute contains the DomainManager's AllocationManager. */
-        readonly attribute CF::AllocationManager allocationMgr;
-        /* The readonly identifier attribute contains a unique identifier for a DomainManager instance. The identifier is identical to the domainmanagerconfiguration element id attribute of the DomainManager's Descriptor (DMD) file. */
-        readonly attribute string identifier;
-        /* The readonly name attribute contains the DomainManager name. */
-        readonly attribute string name;
-        /* The domainManagers attribute is read-only containing a sequence of registered remote DomainManagers. */
-        readonly attribute CF::DomainManager::DomainManagerSequence remoteDomainManagers;
-        /* The registerDevice operation is used to register a Device for a specific DeviceManager in the DomainManager's Domain Profile. */
-        void registerDevice (
-            in CF::Device registeringDevice,
-            in CF::DeviceManager registeredDeviceMgr
-            )
-            raises (CF::InvalidObjectReference,CF::InvalidProfile,
-                CF::DomainManager::DeviceManagerNotRegistered,
-                CF::DomainManager::RegisterError);
-        /* The registerDeviceManager operation is used to register a DeviceManager, its Device(s), and its Services. */
-        void registerDeviceManager (
-            in CF::DeviceManager deviceMgr
-            )
-            raises (CF::InvalidObjectReference,CF::InvalidProfile,
-                CF::DomainManager::RegisterError);
-        /* The unregisterDeviceManager operation is used to unregister a DeviceManager component from the DomainManager's Domain Profile. A DeviceManager may be unregistered during run-time for dynamic extraction or maintenance of the DeviceManager. */
-        void unregisterDeviceManager (
-            in CF::DeviceManager deviceMgr
-            )
-            raises (CF::InvalidObjectReference,
-                CF::DomainManager::UnregisterError);
-        /* The unregisterDevice operation is used to remove a device entry from the DomainManager for a specific DeviceManager. */
-        void unregisterDevice (
-            in CF::Device unregisteringDevice
-            )
-            raises (CF::InvalidObjectReference,
-                CF::DomainManager::UnregisterError);
-        /* The installApplication operation is used to register new application software in the DomainManager's Domain Profile. */
-        void installApplication (
-            in string profileFileName
-            )
-            raises (CF::InvalidProfile,CF::InvalidFileName,
-                CF::DomainManager::ApplicationInstallationError,
-                CF::DomainManager:: ApplicationAlreadyInstalled);
-        /* The uninstallApplication operation is used to uninstall an application and its associated ApplicationFactory from the DomainManager. */
-        void uninstallApplication (
-            in string applicationId
-            )
-            raises (CF::DomainManager::InvalidIdentifier,
-                CF::DomainManager::ApplicationUninstallationError);
-        /* The registerService operation is used to register a service for a specific DeviceManager with the DomainManager. */
-        void registerService (
-            in Object registeringService,
-            in CF::DeviceManager registeredDeviceMgr,
-            in string name
-            )
-            raises (CF::InvalidObjectReference,
-                CF::DomainManager::DeviceManagerNotRegistered,
-                CF::DomainManager::RegisterError);
-        /* The unregisterService operation is used to remove a service entry from the DomainManager for a specific DeviceManager. */
-        void unregisterService (
-            in Object unregisteringService,
-            in string name
-            )
-            raises (CF::InvalidObjectReference,
-                CF::DomainManager::UnregisterError);
-        /* The registerWithEventChannel operation is used to connect a consumer to a domain's event channel. */
-        void registerWithEventChannel (
-            in Object registeringObject,
-            in string registeringId,
-            in string eventChannelName
-            )
-            raises (CF::InvalidObjectReference,
-                CF::DomainManager::InvalidEventChannelName,
-                CF::DomainManager::AlreadyConnected);
-        /* The unregisterFromEventChannel operation is used to disconnect a consumer from a domain's event channel. */
-        void unregisterFromEventChannel (
-            in string unregisteringId,
-            in string eventChannelName
-            )
-            raises (CF::DomainManager::InvalidEventChannelName,
-                CF::DomainManager::NotConnected);
-        /* The registerRemoteDomainManager operation is used to register a remote DomainManager. */
-        void registerRemoteDomainManager (
-            in CF::DomainManager registeringDomainManager
-            )
-            raises (CF::InvalidObjectReference,
-                CF::DomainManager::RegisterError);
-        /* The unregisterRemoteDomainManager operation is used to unregister a remote DomainManager. */
-        void unregisterRemoteDomainManager (
-            in CF::DomainManager unregisteringDomainManager
-            )
-            raises (CF::InvalidObjectReference,
-                CF::DomainManager::UnregisterError);
+    interface AllocationStatusIterator {
+      boolean next_one(out AllocationManager::AllocationStatusType allocation);
+      boolean next_n(in unsigned long count, out AllocationManager::AllocationStatusSequence allocations);
+      void destroy();
     };
+
+    interface DeviceLocationIterator {
+      boolean next_one(out AllocationManager::DeviceLocationType deviceLocation);
+      boolean next_n(in unsigned long count, out AllocationManager::DeviceLocationSequence deviceLocations);
+      void destroy();
+    };
+
+    interface ConnectionStatusIterator;
+
+    interface ConnectionManager {
+
+      enum EndpointKind {
+        ENDPOINT_APPLICATION,
+        ENDPOINT_DEVICE,
+        ENDPOINT_SERVICE,
+        ENDPOINT_EVENTCHANNEL,
+        ENDPOINT_COMPONENT,
+        ENDPOINT_DOMAINMANAGER,
+        ENDPOINT_DEVICEMANAGER,
+        ENDPOINT_OBJECTREF
+      };
+
+      union EndpointResolutionType switch(EndpointKind) {
+      case ENDPOINT_APPLICATION:
+        string applicationId;
+      case ENDPOINT_DEVICE:
+        string deviceId;
+      case ENDPOINT_COMPONENT:
+        string componentId;
+      case ENDPOINT_SERVICE:
+        string serviceName;
+      case ENDPOINT_EVENTCHANNEL:
+        string channelName;
+      case ENDPOINT_OBJECTREF:
+        Object objectRef;
+      case ENDPOINT_DEVICEMANAGER:
+        string deviceMgrId;
+      };
+
+      struct EndpointRequest {
+        EndpointResolutionType endpoint;
+        string portName;
+      };
+
+      string connect(in EndpointRequest usesEndpoint, in EndpointRequest providesEndpoint, in string requesterId, in string connectionId)
+          raises (CF::Port::InvalidPort);
+      void disconnect(in string connectionRecordId)
+          raises (CF::Port::InvalidPort);
+
+      struct EndpointStatusType {
+        Object endpointObject;
+        string portName;
+        string repositoryId;
+        string entityId;
+      };
+
+      struct ConnectionStatusType {
+        EndpointStatusType providesEndpoint;
+        EndpointStatusType usesEndpoint;
+        string connectionId;
+        string requesterId;
+        string connectionRecordId;
+        boolean connected;
+      };
+
+      typedef sequence<ConnectionStatusType> ConnectionStatusSequence;
+
+      readonly attribute ConnectionStatusSequence connections;
+
+      void listConnections(in unsigned long how_many, out ConnectionStatusSequence connections, out ConnectionStatusIterator iter);
+    };
+
+    interface ConnectionStatusIterator {
+      boolean next_one(out ConnectionManager::ConnectionStatusType connection);
+      boolean next_n(in unsigned long count, out ConnectionManager::ConnectionStatusSequence connections);
+      void destroy();
+    };
+
     /* The ApplicationFactory interface class provides an interface to request the creation of a specific type of Application in the domain.The Software Profile determines the type of Application that is created by the ApplicationFactory. */
     interface ApplicationFactory {
-        /* This exception is raised when the parameter DeviceAssignmentSequence contains one or more invalid Application component-to-device assignment(s). */
-        exception CreateApplicationRequestError {
+      /* This exception is raised when the parameter DeviceAssignmentSequence contains one or more invalid Application component-to-device assignment(s). */
+      exception CreateApplicationRequestError {
         CF::DeviceAssignmentSequence invalidAssignments;
-        };
-        /* This exception is raised when a create request is valid but the Application is unsuccessfully instantiated due to internal processing errors. The message provides additional information describing the reason for the error. */
-        exception CreateApplicationError {
-            CF::ErrorNumberType errorNumber;
-            string msg;
-        };
-        /* This exception is raised when the input initConfiguration parameter is invalid. */
-        exception CreateApplicationInsufficientCapacityError {
-            CF::FailedCapacities devicesAttempted;
-            string msg;
-        };
-        /* This exception is raised when the input initConfiguration parameter is invalid. */
-        exception InvalidInitConfiguration {
-            CF::Properties invalidProperties;
-        };
-        /* The name attribute contains the name of the type of Application that can be instantiated by the ApplicationFactory. */
-        readonly attribute string name;
-        /* The readonly identifier attribute contains the unique identifier for an ApplicationFactory instance. The identifier is identical to the softwareassembly element id attribute of the ApplicationFactory's Software Assembly Descriptor file. */
-        readonly attribute string identifier;
-        /* This attribute contains the application software profile that the factory uses when creating an application. The string value contains a profile element with a file reference to the SAD */
-        readonly attribute string softwareProfile;
-        /* The create operation is used to create an Application within the system domain. */
-        CF::Application create (
-            in string name,
-            in CF::Properties initConfiguration,
-            in CF::DeviceAssignmentSequence deviceAssignments
-            )
-            raises (CF::ApplicationFactory::CreateApplicationError,
+      };
+      /* This exception is raised when a create request is valid but the Application is unsuccessfully instantiated due to internal processing errors. The message provides additional information describing the reason for the error. */
+      exception CreateApplicationError {
+        CF::ErrorNumberType errorNumber;
+        string msg;
+      };
+      /* This exception is raised when the input initConfiguration parameter is invalid. */
+      exception CreateApplicationInsufficientCapacityError {
+        CF::FailedCapacities devicesAttempted;
+        string msg;
+      };
+      /* This exception is raised when the input initConfiguration parameter is invalid. */
+      exception InvalidInitConfiguration {
+        CF::Properties invalidProperties;
+      };
+      /* The name attribute contains the name of the type of Application that can be instantiated by the ApplicationFactory. */
+      readonly attribute string name;
+      /* The readonly identifier attribute contains the unique identifier for an ApplicationFactory instance. The identifier is identical to the softwareassembly element id attribute of the ApplicationFactory's Software Assembly Descriptor file. */
+      readonly attribute string identifier;
+      /* This attribute contains the application software profile that the factory uses when creating an application. The string value contains a profile element with a file reference to the SAD */
+      readonly attribute string softwareProfile;
+      /* The create operation is used to create an Application within the system domain. */
+      CF::Application create (
+                              in string name,
+                              in CF::Properties initConfiguration,
+                              in CF::DeviceAssignmentSequence deviceAssignments
+                              )
+        raises (CF::ApplicationFactory::CreateApplicationError,
                 CF::ApplicationFactory::CreateApplicationRequestError,
                 CF::ApplicationFactory::CreateApplicationInsufficientCapacityError,
                 CF::ApplicationFactory::InvalidInitConfiguration);
     };
+
+    /* The DomainManager interface is for the control and configuration of the radio domain. */
+    interface DomainManager : PropertyEmitter {
+      /* This exception is raised when an Application installation has not completed correctly. The message provides additional information describing the reason for the error. */
+      exception ApplicationInstallationError {
+        CF::ErrorNumberType errorNumber;
+        string msg;
+      };
+      exception ApplicationAlreadyInstalled {
+      };
+      /* This type defines an unbounded sequence of Applications. */
+      typedef sequence <Application> ApplicationSequence;
+      /* This type defines an unbounded sequence of ApplicationFactories. */
+      typedef sequence <ApplicationFactory> ApplicationFactorySequence;
+      /* This type defines an unbounded sequence of DeviceManagers. */
+      typedef sequence <DeviceManager> DeviceManagerSequence;
+      /* This type defines an unbounded sequence of DomainManagers. */
+      typedef sequence <DomainManager> DomainManagerSequence;
+      /* This exception indicates the application ID is invalid. */
+      exception InvalidIdentifier {
+      };
+      /* This exception indicates the registering Device's DeviceManager is not registered in the DomainManager. A Device's DeviceManager has to be registered prior to a Device registration to the DomainManager. */
+      exception DeviceManagerNotRegistered {
+      };
+      /* This exception is raised when an Application uninstallation has not completed correctly. The message provides additional information describing the reason for the error. */
+      exception ApplicationUninstallationError {
+        CF::ErrorNumberType errorNumber;
+        string msg;
+      };
+      /* This exception indicates that an internal error has occurred to prevent DomainManager registration operations from successful completion. The message provides additional information describing the reason for the error. */
+      exception RegisterError {
+        CF::ErrorNumberType errorNumber;
+        string msg;
+      };
+      /* This exception indicates that an internal error has occurred to prevent DomainManager unregister operations from successful completion. The message provides additional information describing the reason for the error. */
+      exception UnregisterError {
+        CF::ErrorNumberType errorNumber;
+        string msg;
+      };
+      /* This exception indicates that a registering consumer is already connected to the specified event channel. */
+      exception AlreadyConnected {
+      };
+      /* This exception indicates that a DomainManager was not able to locate the event channel. */
+      exception InvalidEventChannelName {
+      };
+      /* The NotConnected exception indicates that the unregistering consumer was not connected to the specified event channel. */
+      exception NotConnected {
+      };
+      /* The readonly domainManagerProfile attribute contains a profile element with a file reference to the DomainManager Configuration Descriptor (DMD) profile. */
+      readonly attribute string domainManagerProfile;
+      /* The deviceManagers attribute is read-only containing a sequence of registered DeviceManagers in the domain. */
+      readonly attribute CF::DomainManager::DeviceManagerSequence deviceManagers;
+      /* The applications attribute contains a list of Applications that have been instantiated in the domain. */
+      readonly attribute CF::DomainManager::ApplicationSequence applications;
+      /* The readonly applicationFactories attribute contains a list with one ApplicationFactory per application (SAD file and associated files) successfully installed. */
+      readonly attribute CF::DomainManager::ApplicationFactorySequence
+      applicationFactories;
+      /* The readonly fileMgr attribute contains the DomainManager's FileManager. */
+      readonly attribute CF::FileManager            fileMgr;
+      /* The readonly fileMgr attribute contains the DomainManager's AllocationManager. */
+      readonly attribute CF::AllocationManager      allocationMgr;
+      /* The readonly connectionMgr attribute contains the DomainManager's ConnectionManager. */
+      readonly attribute CF::ConnectionManager connectionMgr;
+      /* The readonly attribute contains the DomainManager's EventChannelManager. */
+      readonly attribute CF::EventChannelManager    eventChannelMgr;
+
+      /* The readonly identifier attribute contains a unique identifier for a DomainManager instance. The identifier is identical to the domainmanagerconfiguration element id attribute of the DomainManager's Descriptor (DMD) file. */
+      readonly attribute string identifier;
+      /* The readonly name attribute contains the DomainManager name. */
+      readonly attribute string name;
+      /* The domainManagers attribute is read-only containing a sequence of registered remote DomainManagers. */
+      readonly attribute CF::DomainManager::DomainManagerSequence remoteDomainManagers;
+      /* The registerDevice operation is used to register a Device for a specific DeviceManager in the DomainManager's Domain Profile. */
+      void registerDevice (
+                           in CF::Device registeringDevice,
+                           in CF::DeviceManager registeredDeviceMgr
+                           )
+        raises (CF::InvalidObjectReference,CF::InvalidProfile,
+                CF::DomainManager::DeviceManagerNotRegistered,
+                CF::DomainManager::RegisterError);
+      /* The registerDeviceManager operation is used to register a DeviceManager, its Device(s), and its Services. */
+      void registerDeviceManager (
+                                  in CF::DeviceManager deviceMgr
+                                  )
+        raises (CF::InvalidObjectReference,CF::InvalidProfile,
+                CF::DomainManager::RegisterError);
+      /* The unregisterDeviceManager operation is used to unregister a DeviceManager component from the DomainManager's Domain Profile. A DeviceManager may be unregistered during run-time for dynamic extraction or maintenance of the DeviceManager. */
+      void unregisterDeviceManager (
+                                    in CF::DeviceManager deviceMgr
+                                    )
+        raises (CF::InvalidObjectReference,
+                CF::DomainManager::UnregisterError);
+      /* The unregisterDevice operation is used to remove a device entry from the DomainManager for a specific DeviceManager. */
+      void unregisterDevice (
+                             in CF::Device unregisteringDevice
+                             )
+        raises (CF::InvalidObjectReference,
+                CF::DomainManager::UnregisterError);
+      /* The createApplication operation is used to create an Application within the system domain. */
+      CF::Application createApplication (
+                                         in string profileFileName,
+                                         in string name,
+                                         in CF::Properties initConfiguration,
+                                         in CF::DeviceAssignmentSequence deviceAssignments
+                                         )
+        raises (CF::InvalidProfile,CF::InvalidFileName,
+                CF::ApplicationFactory::CreateApplicationError,
+                CF::ApplicationFactory::CreateApplicationRequestError,
+                CF::ApplicationFactory::CreateApplicationInsufficientCapacityError,
+                CF::ApplicationFactory::InvalidInitConfiguration);
+      /* The installApplication operation is used to register new application software in the DomainManager's Domain Profile. */
+      void installApplication (
+                               in string profileFileName
+                               )
+        raises (CF::InvalidProfile,CF::InvalidFileName,
+                CF::DomainManager::ApplicationInstallationError,
+                CF::DomainManager:: ApplicationAlreadyInstalled);
+      /* The uninstallApplication operation is used to uninstall an application and its associated ApplicationFactory from the DomainManager. */
+      void uninstallApplication (
+                                 in string applicationId
+                                 )
+        raises (CF::DomainManager::InvalidIdentifier,
+                CF::DomainManager::ApplicationUninstallationError);
+      /* The registerService operation is used to register a service for a specific DeviceManager with the DomainManager. */
+      void registerService (
+                            in Object registeringService,
+                            in CF::DeviceManager registeredDeviceMgr,
+                            in string name
+                            )
+        raises (CF::InvalidObjectReference,
+                CF::DomainManager::DeviceManagerNotRegistered,
+                CF::DomainManager::RegisterError);
+      /* The unregisterService operation is used to remove a service entry from the DomainManager for a specific DeviceManager. */
+      void unregisterService (
+                              in Object unregisteringService,
+                              in string name
+                              )
+        raises (CF::InvalidObjectReference,
+                CF::DomainManager::UnregisterError);
+      /* The registerWithEventChannel operation is used to connect a consumer to a domain's event channel. */
+      void registerWithEventChannel (
+                                     in Object registeringObject,
+                                     in string registeringId,
+                                     in string eventChannelName
+                                     )
+        raises (CF::InvalidObjectReference,
+                CF::DomainManager::InvalidEventChannelName,
+                CF::DomainManager::AlreadyConnected);
+      /* The unregisterFromEventChannel operation is used to disconnect a consumer from a domain's event channel. */
+      void unregisterFromEventChannel (
+                                       in string unregisteringId,
+                                       in string eventChannelName
+                                       )
+        raises (CF::DomainManager::InvalidEventChannelName,
+                CF::DomainManager::NotConnected);
+      /* The registerRemoteDomainManager operation is used to register a remote DomainManager. */
+      void registerRemoteDomainManager (
+                                        in CF::DomainManager registeringDomainManager
+                                        )
+        raises (CF::InvalidObjectReference,
+                CF::DomainManager::RegisterError);
+      /* The unregisterRemoteDomainManager operation is used to unregister a remote DomainManager. */
+      void unregisterRemoteDomainManager (
+                                          in CF::DomainManager unregisteringDomainManager
+                                          )
+        raises (CF::InvalidObjectReference,
+                CF::DomainManager::UnregisterError);
+    };
     /* The PortSupplier interface provides the getPort operation for those objects that provide ports. */
     interface PortSupplier {
-        /* This exception is raised if an undefined port is requested. */
-        exception UnknownPort {
-        };
-        /* The getPort operation provides a mechanism to obtain a specific consumer or producer Port. A PortSupplier may contain zero-to-many consumer and producer port components. */
-        Object getPort (
-            in string name
-            )
-            raises (CF::PortSupplier::UnknownPort);
+      /* This exception is raised if an undefined port is requested. */
+      exception UnknownPort {
+      };
+      /* The getPort operation provides a mechanism to obtain a specific consumer or producer Port. A PortSupplier may contain zero-to-many consumer and producer port components. */
+      Object getPort (
+                      in string name
+                      )
+        raises (CF::PortSupplier::UnknownPort);
+    };
+    /* The PortSet interface extends PortSupplier to add the ability to list the available ports. */
+    interface PortSet : PortSupplier {
+      /* The PortInfoType defines a type for returning information about a port in the getPortSet function. */
+      struct PortInfoType {
+        Object obj_ptr;
+        string name;
+        string repid;
+        string description;
+        string direction;
+      };
+      /* The PortInfoSequence type defines an unbounded sequence of ports' information for getPortSet function. */
+      typedef sequence <PortInfoType> PortInfoSequence;
+      /* The getPortSet operation provides a mechanism to obtain information about all ports in the resource. */
+      PortInfoSequence getPortSet ();
     };
     /* The Resource interface provides a common interface for the control and configuration of a software component. */
-  interface Resource : LifeCycle, TestableObject, PropertySet, PortSupplier, Logging {
-        /* This exception indicates that an error occurred during an attempt to start the Resource. The message provides additional information describing the reason for the error. */
-        exception StartError {
-            CF::ErrorNumberType errorNumber;
-            string msg;
-        };
-        /* The StopError exception indicates that an error occurred during an attempt to stop the Resource. The message provides additional information describing the reason for the error. */
-        exception StopError {
-            CF::ErrorNumberType errorNumber;
-            string msg;
-        };
-        /* The readonly identifier attribute shall contain the unique identifier for a resource instance. */
-        readonly attribute string identifier;
-        /* Backport from SCA Next; the readonly started attribute shall return the component's started value. */
-        readonly attribute boolean started;
-        /* The softwareProfile attribute is the XML description for this logical Device. The softwareProfile attribute contains a profile DTD element with a file reference to the SPD profile file. */
-        readonly attribute string softwareProfile;
-        /* The start operation is provided to command a Resource implementing this interface to start internal processing. 
-	The start operation shall set the started attribute to a value of true.
-	*/
-        void start ()
-            raises (CF::Resource::StartError);
-        /* The stop operation is provided to command a Resource implementing this interface to stop all internal processing. 
-	The stop operation shall set the started attribute to a value of false.
-	*/
-        void stop ()
-            raises (CF::Resource::StopError);
+  interface Resource : LifeCycle, TestableObject, PropertyEmitter, PortSet, Logging {
+      /* This exception indicates that an error occurred during an attempt to start the Resource. The message provides additional information describing the reason for the error. */
+      exception StartError {
+        CF::ErrorNumberType errorNumber;
+        string msg;
+      };
+      /* The StopError exception indicates that an error occurred during an attempt to stop the Resource. The message provides additional information describing the reason for the error. */
+      exception StopError {
+        CF::ErrorNumberType errorNumber;
+        string msg;
+      };
+      /* The readonly identifier attribute shall contain the unique identifier for a resource instance. */
+      readonly attribute string identifier;
+      /* Backport from SCA Next; the readonly started attribute shall return the component's started value. */
+      readonly attribute boolean started;
+      /* The softwareProfile attribute is the XML description for this logical Device. The softwareProfile attribute contains a profile DTD element with a file reference to the SPD profile file. */
+      readonly attribute string softwareProfile;
+      /* The start operation is provided to command a Resource implementing this interface to start internal processing. 
+         The start operation shall set the started attribute to a value of true.
+      */
+      void start ()
+        raises (CF::Resource::StartError);
+      /* The stop operation is provided to command a Resource implementing this interface to stop all internal processing. 
+         The stop operation shall set the started attribute to a value of false.
+      */
+      void stop ()
+        raises (CF::Resource::StopError);
     };
     /* The Device interface defines additional capabilities and attributes for any logical Device in the domain. */
     interface Device : Resource {
-        /* This exception indicates that the device is not capable of the behavior being attempted due to the state the Device is in. */
-        exception InvalidState {
-            string msg;
-        };
-        /* The InvalidCapacity exception returns the capacities that are not valid for this device. */
-        exception InvalidCapacity {
+      /* This exception indicates that the device is not capable of the behavior being attempted due to the state the Device is in. */
+      exception InvalidState {
+        string msg;
+      };
+      /* The InvalidCapacity exception returns the capacities that are not valid for this device. */
+      exception InvalidCapacity {
         /* The message indicates the reason for the invalid capacity. */
         string msg;
         /* The invalid capacities sent to the allocateCapacity operation.*/
         CF::Properties capacities;
-        };
-        /* The InsufficientCapacity exception returns a message describing why the capacity allocation failed. */
-        exception InsufficientCapacity {
-            /* The sequence of capacities that resulted in the failed allocation. */
-            CF::Properties insufficientCapacities;
-            /* The msg contains information regarding the nature of the capacity allocation failure. */
-            string msg;
-        };
-        /* This enumeration type defines a Device's administrative states. The administrative state indicates the permission to use or prohibition against using the Device. */
-        enum AdminType {
-            LOCKED,
-            SHUTTING_DOWN,
-            UNLOCKED
-        };
-        /* This enumeration type defines a Device's operational states. The operational state indicates whether or not the object is functioning. */
-        enum OperationalType {
-            ENABLED,
-            DISABLED
-        };
-        /* This enumeration type defines the Device's usage states. */
-        enum UsageType {
-            IDLE,
-            ACTIVE,
-            BUSY
-        };
-        /* The readonly usageState attribute contains the Device's usage state The usageState indicates whether or not a device is actively in use at a specific instant, and if so, whether or not it has spare capacity for allocation at that instant. */
-        readonly attribute CF::Device::UsageType usageState;
-        /* The administrative state indicates the permission to use or prohibition against using the device. The adminState attribute contains the device's admin state value. */
-        attribute CF::Device::AdminType adminState;
-        /* The operationalState attribute contains the device's operational state. The operational state indicates whether or not the device is functioning. */
-        readonly attribute CF::Device::OperationalType operationalState;
-        /* The label attribute is the meaningful name given to a Device. */
-        readonly attribute string label;
-        /* The compositeDevice attribute contains the object reference of the AggregateDevice with which this Device is associated or a nil CORBA object reference if no association exists. */
-        readonly attribute CF::AggregateDevice compositeDevice;
-        /* The allocateCapacity operation provides the mechanism to request and allocate capacity from the Device. */
-        boolean allocateCapacity (
-        in CF::Properties capacities
-            )
-            raises (CF::Device::InvalidCapacity, CF::Device::InvalidState, CF::Device::InsufficientCapacity);
-        /* The deallocateCapacity operation provides the mechanism to return capacities back to the Device, making them available to other users. */
-        void deallocateCapacity (
-            in CF::Properties capacities
-            )
-            raises (CF::Device::InvalidCapacity, CF::Device::InvalidState);
+      };
+      /* The InsufficientCapacity exception returns a message describing why the capacity allocation failed. */
+      exception InsufficientCapacity {
+        /* The sequence of capacities that resulted in the failed allocation. */
+        CF::Properties insufficientCapacities;
+        /* The msg contains information regarding the nature of the capacity allocation failure. */
+        string msg;
+      };
+      /* This enumeration type defines a Device's administrative states. The administrative state indicates the permission to use or prohibition against using the Device. */
+      enum AdminType {
+        LOCKED,
+        SHUTTING_DOWN,
+        UNLOCKED
+      };
+      /* This enumeration type defines a Device's operational states. The operational state indicates whether or not the object is functioning. */
+      enum OperationalType {
+        ENABLED,
+        DISABLED
+      };
+      /* This enumeration type defines the Device's usage states. */
+      enum UsageType {
+        IDLE,
+        ACTIVE,
+        BUSY
+      };
+      /* The readonly usageState attribute contains the Device's usage state The usageState indicates whether or not a device is actively in use at a specific instant, and if so, whether or not it has spare capacity for allocation at that instant. */
+      readonly attribute CF::Device::UsageType usageState;
+      /* The administrative state indicates the permission to use or prohibition against using the device. The adminState attribute contains the device's admin state value. */
+      attribute CF::Device::AdminType adminState;
+      /* The operationalState attribute contains the device's operational state. The operational state indicates whether or not the device is functioning. */
+      readonly attribute CF::Device::OperationalType operationalState;
+      /* The label attribute is the meaningful name given to a Device. */
+      readonly attribute string label;
+      /* The compositeDevice attribute contains the object reference of the AggregateDevice with which this Device is associated or a nil CORBA object reference if no association exists. */
+      readonly attribute CF::AggregateDevice compositeDevice;
+      /* The allocateCapacity operation provides the mechanism to request and allocate capacity from the Device. */
+      boolean allocateCapacity (
+                                in CF::Properties capacities
+                                )
+        raises (CF::Device::InvalidCapacity, CF::Device::InvalidState, CF::Device::InsufficientCapacity);
+      /* The deallocateCapacity operation provides the mechanism to return capacities back to the Device, making them available to other users. */
+      void deallocateCapacity (
+                               in CF::Properties capacities
+                               )
+        raises (CF::Device::InvalidCapacity, CF::Device::InvalidState);
+    };
+    /* The ApplicationRegistrar interface provides the registration structure into the Application. */
+    interface ApplicationRegistrar : CosNaming::NamingContext {
+      /* This attribute is the Application onto which the Component is registering. */
+      readonly attribute Application app;
+      /* This attribute is the Domain Manager onto which the Component is registering. */
+      readonly attribute DomainManager domMgr;
+      /* The registerComponent operation provides the mechanism to register a Component with an Application. */
+      void registerComponent(in string Name, in CF::Resource obj) raises (CF::InvalidObjectReference, CF::DuplicateName);
     };
     /* The Application interface provides for the control, configuration, and status of an instantiated application in the domain. */
     interface Application : Resource {
@@ -856,81 +1028,98 @@ module CF {
         readonly attribute string profile;
         /* This name attribute contains the name of the created Application. The ApplicationFactory interfaces's create operation name parameter provides the name content. */
         readonly attribute string name;
+        /* This appReg attribute contains the Application Registrar. */
+        /*readonly attribute ApplicationRegistrar appReg;*/
+        /* This boolean attribute contains the aware state of Application. This attribute shows whether the Components in the Application are given a pointer to the Application and Domain Manager. */
+        readonly attribute boolean aware;
     };
     /* This interface extends the Device interface by adding software loading and unloading behavior to a Device. */
     interface LoadableDevice : Device {
-        /* This LoadType defines the type of load to be performed. The load types are in accordance with the code element within the softpkg element's implementation element. */
-        enum LoadType {
-            KERNEL_MODULE,
-            DRIVER,
-            SHARED_LIBRARY,
-            EXECUTABLE
-        };
-        /* The InvalidLoadKind exception indicates that the Device is unable to load the type of file designated by the loadKind parameter. */
-        exception InvalidLoadKind {
-        };
-        /* The LoadFail exception indicates that an error occurred during an attempt to load the device. The message provides additional information describing the reason for the error. */
-        exception LoadFail {
-            CF::ErrorNumberType errorNumber;
-            string msg;
-        };
-        /* The load operation provides the mechanism for loading software on a specific device. The loaded software may be subsequently executed on the Device, if the Device is an ExecutableDevice. */
-        void load (
-            in CF::FileSystem fs,
-            in string fileName,
-            in CF::LoadableDevice::LoadType loadKind
-            )
-            raises (CF::Device::InvalidState,
+      /* This LoadType defines the type of load to be performed. The load types are in accordance with the code element within the softpkg element's implementation element. */
+      enum LoadType {
+        KERNEL_MODULE,
+        DRIVER,
+        SHARED_LIBRARY,
+        EXECUTABLE
+      };
+      /* The InvalidLoadKind exception indicates that the Device is unable to load the type of file designated by the loadKind parameter. */
+      exception InvalidLoadKind {
+      };
+      /* The LoadFail exception indicates that an error occurred during an attempt to load the device. The message provides additional information describing the reason for the error. */
+      exception LoadFail {
+        CF::ErrorNumberType errorNumber;
+        string msg;
+      };
+      /* The load operation provides the mechanism for loading software on a specific device. The loaded software may be subsequently executed on the Device, if the Device is an ExecutableDevice. */
+      void load (
+                 in CF::FileSystem fs,
+                 in string fileName,
+                 in CF::LoadableDevice::LoadType loadKind
+                 )
+        raises (CF::Device::InvalidState,
                 CF::LoadableDevice::InvalidLoadKind,
                 CF::InvalidFileName, CF::LoadableDevice::LoadFail);
-        /* The unload operation provides the mechanism to unload software that is currently loaded. */
-        void unload (
-            in string fileName
-            )
-            raises (CF::Device::InvalidState,CF::InvalidFileName);
+      /* The unload operation provides the mechanism to unload software that is currently loaded. */
+      void unload (
+                   in string fileName
+                   )
+        raises (CF::Device::InvalidState,CF::InvalidFileName);
     };
     /* This interface extends the LoadableDevice interface by adding execute and terminate behavior to a Device. */
     interface ExecutableDevice : LoadableDevice {
-        /* The InvalidProcess exception indicates that a process, as identified by the processID parameter, does not exist on this device. The message provides additional information describing the reason for the error. */
-        exception InvalidProcess {
-            CF::ErrorNumberType errorNumber;
-            string msg;
-        };
-        /* This exception indicates that a function, as identified by the input name parameter, hasn't been loaded on this device. */
-        exception InvalidFunction {
-        };
-        /* This type defines a process number within the system. The process number is unique to the Processor operating system that created the process. */
-        typedef long ProcessID_Type;
-        /* The InvalidParameters exception indicates that input parameters are invalid for the execute operation. Each parameter's ID and value must be a valid string type. The invalidParms is a list of invalid parameters specified in the execute operation. */
-        exception InvalidParameters {
-            CF::Properties invalidParms;
-        };
-        /* The InvalidOptions exception indicates the input options are invalid on the execute operation. The invalidOpts is a list of invalid options specified in the execute operation. */
-        exception InvalidOptions {
-            CF::Properties invalidOpts;
-        };
-        /* The STACK_SIZE_ID is the identifier for the ExecutableDevice's execute options parameter. */
-        const string STACK_SIZE_ID = "STACK_SIZE";
-        /* The PRIORITY_ID is the identifier for the ExecutableDevice's execute options parameters. */
-        const string PRIORITY_ID = "PRIORITY";
-        /* The ExecuteFail exception indicates that an attempt to invoke the execute operation on a device failed. The message provides additional information describing the reason for the error. */
-        exception ExecuteFail {
-            CF::ErrorNumberType errorNumber;
-            string msg;
-        };
-        /* The terminate operation provides the mechanism for terminating the execution of a process/thread on a specific device that was started up with the execute operation. */
-        void terminate (
-            in CF::ExecutableDevice::ProcessID_Type processId
-            )
-            raises (CF::ExecutableDevice::InvalidProcess,
+      /* The InvalidProcess exception indicates that a process, as identified by the processID parameter, does not exist on this device. The message provides additional information describing the reason for the error. */
+      exception InvalidProcess {
+        CF::ErrorNumberType errorNumber;
+        string msg;
+      };
+      /* This exception indicates that a function, as identified by the input name parameter, hasn't been loaded on this device. */
+      exception InvalidFunction {
+      };
+      /* This type defines a process number within the system. The process number is unique to the Processor operating system that created the process. */
+      typedef long ProcessID_Type;
+      /* The InvalidParameters exception indicates that input parameters are invalid for the execute operation. Each parameter's ID and value must be a valid string type. The invalidParms is a list of invalid parameters specified in the execute operation. */
+      exception InvalidParameters {
+        CF::Properties invalidParms;
+      };
+      /* The InvalidOptions exception indicates the input options are invalid on the execute operation. The invalidOpts is a list of invalid options specified in the execute operation. */
+      exception InvalidOptions {
+        CF::Properties invalidOpts;
+      };
+      /* The STACK_SIZE_ID is the identifier for the ExecutableDevice's execute options parameter. */
+      const string STACK_SIZE_ID = "STACK_SIZE";
+      /* The PRIORITY_ID is the identifier for the ExecutableDevice's execute options parameters. */
+      const string PRIORITY_ID = "PRIORITY";
+      /* The ExecuteFail exception indicates that an attempt to invoke the execute operation on a device failed. The message provides additional information describing the reason for the error. */
+      exception ExecuteFail {
+        CF::ErrorNumberType errorNumber;
+        string msg;
+      };
+      /* The terminate operation provides the mechanism for terminating the execution of a process/thread on a specific device that was started up with the execute operation. */
+      void terminate (
+                      in CF::ExecutableDevice::ProcessID_Type processId
+                      )
+        raises (CF::ExecutableDevice::InvalidProcess,
                 CF::Device::InvalidState);
-        /* The execute operation provides the mechanism for starting up and executing a software process/thread on a device. */
-        CF::ExecutableDevice::ProcessID_Type execute (
-            in string name,
-            in CF::Properties options,
-            in CF::Properties parameters
-            )
-            raises (CF::Device::InvalidState,
+      /* The execute operation provides the mechanism for starting up and executing a software process/thread on a device. */
+      CF::ExecutableDevice::ProcessID_Type execute (
+                                                    in string name,
+                                                    in CF::Properties options,
+                                                    in CF::Properties parameters
+                                                    )
+        raises (CF::Device::InvalidState,
+                CF::ExecutableDevice::InvalidFunction,
+                CF::ExecutableDevice::InvalidParameters,
+                CF::ExecutableDevice::InvalidOptions,
+                CF::InvalidFileName,
+                CF::ExecutableDevice::ExecuteFail);
+      /* The execute operation provides the mechanism for starting up and executing a software process/thread on a device with the associated dependencies. */
+      CF::ExecutableDevice::ProcessID_Type executeLinked (
+                                                          in string name,
+                                                          in CF::Properties options,
+                                                          in CF::Properties parameters,
+                                                          in CF::StringSequence deps
+                                                          )
+        raises (CF::Device::InvalidState,
                 CF::ExecutableDevice::InvalidFunction,
                 CF::ExecutableDevice::InvalidParameters,
                 CF::ExecutableDevice::InvalidOptions,
@@ -938,123 +1127,125 @@ module CF {
                 CF::ExecutableDevice::ExecuteFail);
     };
     /* The DeviceManager interface is used to manage a set of logical Devices and services. */
-    interface DeviceManager : PropertySet, PortSupplier {
-        /* This structure provides the object reference and name of services that have registered with the DeviceManager. */
-        struct ServiceType {
-            Object serviceObject;
-            string serviceName;
-        };
-        /* This type provides an unbounded sequence of ServiceType structures for services that have registered with the DeviceManager. */
-        typedef sequence <ServiceType> ServiceSequence;
-        /* The deviceConfigurationProfile attribute contains the DeviceManager's profile, a profile element with a file reference to the DeviceManager's Device Configuration Descriptor (DCD) profile. */
-        readonly attribute string deviceConfigurationProfile;
-        /* The fileSys attribute contains the FileSystem associated with this DeviceManager or a nil CORBA object reference if no FileSystem is associated with this DeviceManager. */
-        readonly attribute CF::FileSystem fileSys;
-        /* The identifier attribute contains the instance-unique identifier for a DeviceManager. The identifier is identical to the deviceconfiguration element id attribute of the DeviceManager's Device Configuration Descriptor (DCD) file. */
-        readonly attribute string identifier;
-        /* The label attribute contains the DeviceManager's label. The label attribute is the meaningful name given to a DeviceManager. */
-        readonly attribute string label;
-        /* The registeredDevices attribute contains a list of Devices that have registered with this DeviceManager or a sequence of length zero if no Devices have registered with the DeviceManager. */
-        readonly attribute CF::DeviceSequence registeredDevices;
-        /* The registeredServices attribute contains a list of Services that have registered with this DeviceManager or a sequence of length zero if no Services have registered with the DeviceManager. */
-        readonly attribute CF::DeviceManager::ServiceSequence registeredServices;
-        /* The registerDevice operation provides the mechanism to register a Device with a DeviceManager. */
-        void registerDevice (
-            in CF::Device registeringDevice
-            )
-            raises (CF::InvalidObjectReference);
-        /* This operation unregisters a Device from a DeviceManager. */
-        void unregisterDevice (
-            in CF::Device registeredDevice
-            )
-            raises (CF::InvalidObjectReference);
-        /* The shutdown operation provides the mechanism to terminate a DeviceManager, unregistering it from the DomainManager. */
-        void shutdown ();
-        /* The registerService operation provides mechanisms to register a Service with a DeviceManager and its DomainManager. */
-        void registerService (
-            in Object registeringService,
-            in string name
-            )
-            raises (CF::InvalidObjectReference);
-        /* This operation provides mechanisms to unregister a Service from a DeviceManager and its DomainManager. */
-        void unregisterService (
-            in Object unregisteringService,
-            in string name
-            )
-            raises (CF::InvalidObjectReference);
-        /* The getComponentImplementationId operation returns the SPD implementation ID that the DeviceManager interface used to create a component. */
-        string getComponentImplementationId (
-            in string componentInstantiationId
-            );
+    interface DeviceManager : PropertyEmitter, PortSet {
+      /* This structure provides the object reference and name of services that have registered with the DeviceManager. */
+      struct ServiceType {
+        Object serviceObject;
+        string serviceName;
+      };
+      /* This type provides an unbounded sequence of ServiceType structures for services that have registered with the DeviceManager. */
+      typedef sequence <ServiceType> ServiceSequence;
+      /* The deviceConfigurationProfile attribute contains the DeviceManager's profile, a profile element with a file reference to the DeviceManager's Device Configuration Descriptor (DCD) profile. */
+      readonly attribute string deviceConfigurationProfile;
+      /* The fileSys attribute contains the FileSystem associated with this DeviceManager or a nil CORBA object reference if no FileSystem is associated with this DeviceManager. */
+      readonly attribute CF::FileSystem fileSys;
+      /* The identifier attribute contains the instance-unique identifier for a DeviceManager. The identifier is identical to the deviceconfiguration element id attribute of the DeviceManager's Device Configuration Descriptor (DCD) file. */
+      readonly attribute string identifier;
+      /* The label attribute contains the DeviceManager's label. The label attribute is the meaningful name given to a DeviceManager. */
+      readonly attribute string label;
+      /* The domMgr attribute contains the DeviceManager's Domain Manager or a nil CORBA reference if the association with the Domain Manager has not happened yet. */
+      readonly attribute CF::DomainManager domMgr;
+      /* The registeredDevices attribute contains a list of Devices that have registered with this DeviceManager or a sequence of length zero if no Devices have registered with the DeviceManager. */
+      readonly attribute CF::DeviceSequence registeredDevices;
+      /* The registeredServices attribute contains a list of Services that have registered with this DeviceManager or a sequence of length zero if no Services have registered with the DeviceManager. */
+      readonly attribute CF::DeviceManager::ServiceSequence registeredServices;
+      /* The registerDevice operation provides the mechanism to register a Device with a DeviceManager. */
+      void registerDevice (
+                           in CF::Device registeringDevice
+                           )
+        raises (CF::InvalidObjectReference);
+      /* This operation unregisters a Device from a DeviceManager. */
+      void unregisterDevice (
+                             in CF::Device registeredDevice
+                             )
+        raises (CF::InvalidObjectReference);
+      /* The shutdown operation provides the mechanism to terminate a DeviceManager, unregistering it from the DomainManager. */
+      void shutdown ();
+      /* The registerService operation provides mechanisms to register a Service with a DeviceManager and its DomainManager. */
+      void registerService (
+                            in Object registeringService,
+                            in string name
+                            )
+        raises (CF::InvalidObjectReference);
+      /* This operation provides mechanisms to unregister a Service from a DeviceManager and its DomainManager. */
+      void unregisterService (
+                              in Object unregisteringService,
+                              in string name
+                              )
+        raises (CF::InvalidObjectReference);
+      /* The getComponentImplementationId operation returns the SPD implementation ID that the DeviceManager interface used to create a component. */
+      string getComponentImplementationId (
+                                           in string componentInstantiationId
+                                           );
     };
 
     struct complexDouble
     {
-        double real;
-        double imag;
+      double real;
+      double imag;
     };
     typedef sequence <complexDouble> complexDoubleSeq;
     struct complexFloat
     {
-        float real;
-        float imag;
+      float real;
+      float imag;
     };
     typedef sequence <complexFloat> complexFloatSeq;
     struct complexBoolean
     {
-        boolean real;
-        boolean imag;
+      boolean real;
+      boolean imag;
     };
     typedef sequence <complexBoolean> complexBooleanSeq;
     struct complexULong
     {
-        unsigned long real;
-        unsigned long imag;
+      unsigned long real;
+      unsigned long imag;
     };
     typedef sequence <complexULong> complexULongSeq;
     struct complexShort
     {
-        short real;
-        short imag;
+      short real;
+      short imag;
     };
     typedef sequence <complexShort> complexShortSeq;
     struct complexOctet
     {
-        octet real;
-        octet imag;
+      octet real;
+      octet imag;
     };
     typedef sequence <complexOctet> complexOctetSeq;
     struct complexChar
     {
-        char real;
-        char imag;
+      char real;
+      char imag;
     };
     typedef sequence <complexChar> complexCharSeq;
     struct complexUShort
     {
-        unsigned short real;
-        unsigned short imag;
+      unsigned short real;
+      unsigned short imag;
     };
     typedef sequence <complexUShort> complexUShortSeq;
     struct complexLong
     {
-        long real;
-        long imag;
+      long real;
+      long imag;
     };
     typedef sequence <complexLong> complexLongSeq;
     struct complexLongLong
     {
-        long long real;
-        long long imag;
+      long long real;
+      long long imag;
     };
     typedef sequence <complexLongLong> complexLongLongSeq;
     struct complexULongLong
     {
-        unsigned long long real;
-        unsigned long long imag;
+      unsigned long long real;
+      unsigned long long imag;
     };
     typedef sequence <complexULongLong> complexULongLongSeq;
 
-};
+  };
 
 #endif

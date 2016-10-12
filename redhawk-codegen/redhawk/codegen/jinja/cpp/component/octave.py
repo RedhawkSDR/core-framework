@@ -17,7 +17,22 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+
+import commands
+
 from redhawk.codegen.jinja.cpp.component.mFunction.generator import OctaveComponentGenerator, loader
 
 def factory(**opts):
     return OctaveComponentGenerator(**opts)
+
+def check():
+    # Attempt to determine if octave-devel v3.4 or greater is installed.
+    findCommand = 'find /usr -regextype posix-extended -regex ".*include\/octave\-[3-9]+\.[4-9]+\.[0-9]+$" -print -quit 2>/dev/null'
+    (status,output) = commands.getstatusoutput(findCommand)
+    if output == "":
+        # suitable octave header files were not found
+        print "Could not find suitable Octave installation.  Octave-devel v3.4 or greater is required."
+        return False
+    else:
+        # suitable octave header files were found
+        return True

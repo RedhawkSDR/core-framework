@@ -33,7 +33,7 @@ AC_CHECK_PYMODULE(ossie, [], [AC_MSG_ERROR([the python ossie module is required]
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.0.0])
 AC_CHECK_PYMODULE(omniORB, [], [AC_MSG_ERROR([the python omniORB module is required])])
 
-export PKG_CONFIG_PATH="../../../..:../../../../.."
+export PKG_CONFIG_PATH="../../../..:../../..":$PKG_CONFIG_PATH
 PKG_CHECK_MODULES([BIO], [bulkio >= 1.10])
 
 AC_CONFIG_FILES(Makefile)

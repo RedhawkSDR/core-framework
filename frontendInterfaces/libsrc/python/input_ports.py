@@ -18,835 +18,386 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-#from ossie.cf import CF, CF__POA
-#from ossie.utils import uuid
-
-#import copy, time
 import threading
-#from ossie.resource import usesport, providesport
-#import bulkio
 from redhawk.frontendInterfaces import FRONTEND__POA
 from redhawk.frontendInterfaces import FRONTEND
+from bulkio.bulkioInterfaces import BULKIO
+import copy
 
 
 '''provides port(s)'''
 
+class tuner_delegation(object):
+    def getTunerType(self, id):
+        raise FRONTEND.NotSupportedException("getTunerType not supported")
+    def getTunerDeviceControl(self, id):
+        raise FRONTEND.NotSupportedException("getTunerDeviceControl not supported")
+    def getTunerGroupId(self, id):
+        raise FRONTEND.NotSupportedException("getTunerGroupId not supported")
+    def getTunerRfFlowId(self, id):
+        raise FRONTEND.NotSupportedException("getTunerRfFlowId not supported")
+    def getTunerStatus(self, id):
+        raise FRONTEND.NotSupportedException("getTunerStatus not supported")
+
+class analog_tuner_delegation(tuner_delegation):
+    def setTunerCenterFrequency(self, id, freq):
+        raise FRONTEND.NotSupportedException("setTunerCenterFrequency not supported")
+    def getTunerCenterFrequency(self, id):
+        raise FRONTEND.NotSupportedException("getTunerCenterFrequency not supported")
+    def setTunerBandwidth(self, bw):
+        raise FRONTEND.NotSupportedException("setTunerBandwidth not supported")
+    def getTunerBandwidth(self, id):
+        raise FRONTEND.NotSupportedException("getTunerBandwidth not supported")
+    def setTunerAgcEnable(self, id, enable):
+        raise FRONTEND.NotSupportedException("setTunerAgcEnable not supported")
+    def getTunerAgcEnable(self, id):
+        raise FRONTEND.NotSupportedException("getTunerAgcEnable not supported")
+    def setTunerGain(self, id,gain):
+        raise FRONTEND.NotSupportedException("setTunerGain not supported")
+    def getTunerGain(self, id):
+        raise FRONTEND.NotSupportedException("getTunerGain not supported")
+    def setTunerReferenceSource(self, id, source):
+        raise FRONTEND.NotSupportedException("setTunerReferenceSource not supported")
+    def getTunerReferenceSource(self, id):
+        raise FRONTEND.NotSupportedException("getTunerReferenceSource not supported")
+    def setTunerEnable(self, id, enable):
+        raise FRONTEND.NotSupportedException("setTunerEnable not supported")
+    def getTunerEnable(self, id):
+        raise FRONTEND.NotSupportedException("getTunerEnable not supported")
+
+class digital_tuner_delegation(analog_tuner_delegation):
+    def setTunerOutputSampleRate(self, id, sr):
+        raise FRONTEND.NotSupportedException("setTunerOutputSampleRate not supported")
+    def getTunerOutputSampleRate(self, id):
+        raise FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported")
+
 class InFrontendTunerPort(FRONTEND__POA.FrontendTuner):
-    def __init__(self, name,
-                newTunerTypeGetterCB = None,
-                newTunerDeviceControlGetterCB = None,
-                newTunerGroupIdGetterCB = None,
-                newTunerRfFlowIdGetterCB = None,
-                newTunerStatusGetterCB = None):
+    def __init__(self, name, parent=tuner_delegation()):
         self.name = name
         self.port_lock = threading.Lock()
-        
-        self.getTunerTypeCB = newTunerTypeGetterCB
-        self.getTunerDeviceControlCB = newTunerDeviceControlGetterCB
-        self.getTunerGroupIdCB = newTunerGroupIdGetterCB
-        self.getTunerRfFlowIdCB = newTunerRfFlowIdGetterCB
-        self.getTunerStatusCB = newTunerStatusGetterCB
-
-    def setTunerTypeGetterCB(self, newTunerTypeGetterCB):
-        self.port_lock.acquire()
-        self.getTunerTypeCB = newTunerTypeGetterCB
-        self.port_lock.release()
-    def setTunerDeviceControlGetterCB(self, newTunerDeviceControlGetterCB):
-        self.port_lock.acquire()
-        self.getTunerDeviceControlCB = newTunerDeviceControlGetterCB
-        self.port_lock.release()
-    def setTunerGroupIdGetterCB(self, newTunerGroupIdGetterCB):
-        self.port_lock.acquire()
-        self.getTunerGroupIdCB = newTunerGroupIdGetterCB
-        self.port_lock.release()
-    def setTunerRfFlowIdGetterCB(self, newTunerRfFlowIdGetterCB):
-        self.port_lock.acquire()
-        self.getTunerRfFlowIdCB = newTunerRfFlowIdGetterCB
-        self.port_lock.release()
-    def setTunerStatusGetterCB(self, newTunerStatusGetterCB):
-        self.port_lock.acquire()
-        self.getTunerStatusCB = newTunerStatusGetterCB
-        self.port_lock.release()
-        
+        self.parent = parent
 
     def getTunerType(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerTypeCB ):
-            return self.getTunerTypeCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerType(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerType(id)
+        finally:
+            self.port_lock.release()
 
     def getTunerDeviceControl(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerDeviceControlCB ):
-            return self.getTunerDeviceControlCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerDeviceControl(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerDeviceControl(id)
+        finally:
+            self.port_lock.release()
 
     def getTunerGroupId(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerGroupIdCB ):
-            return self.getTunerGroupIdCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerGroupId(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerGroupId(id)
+        finally:
+            self.port_lock.release()
 
     def getTunerRfFlowId(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerRfFlowIdCB ):
-            return self.getTunerRfFlowIdCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerRfFlowId(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerRfFlowId(id)
+        finally:
+            self.port_lock.release()
 
     def getTunerStatus(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerStatusCB ):
-            return self.getTunerStatusCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerStatus(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerStatus(id)
+        finally:
+            self.port_lock.release()
 
-class InAnalogTunerPort(FRONTEND__POA.AnalogTuner):
-    def __init__(self, name,
-                newTunerTypeGetterCB = None,
-                newTunerDeviceControlGetterCB = None,
-                newTunerGroupIdGetterCB = None,
-                newTunerRfFlowIdGetterCB = None,
-                newTunerStatusGetterCB = None,
-                newTunerCenterFrequencyGetterCB = None,
-                newTunerCenterFrequencySetterCB = None,
-                newTunerBandwidthGetterCB = None,
-                newTunerBandwidthSetterCB = None,
-                newTunerAgcEnableGetterCB = None,
-                newTunerAgcEnableSetterCB = None,
-                newTunerGainGetterCB = None,
-                newTunerGainSetterCB = None,
-                newTunerReferenceSourceGetterCB = None,
-                newTunerReferenceSourceSetterCB = None,
-                newTunerEnableGetterCB = None,
-                newTunerEnableSetterCB = None):
+class InAnalogTunerPort(FRONTEND__POA.AnalogTuner, InFrontendTunerPort):
+    def __init__(self, name, parent=analog_tuner_delegation()):
         self.name = name
         self.port_lock = threading.Lock()
-        
-        self.getTunerTypeCB = newTunerTypeGetterCB
-        self.getTunerDeviceControlCB = newTunerDeviceControlGetterCB
-        self.getTunerGroupIdCB = newTunerGroupIdGetterCB
-        self.getTunerRfFlowIdCB = newTunerRfFlowIdGetterCB
-        self.getTunerStatusCB = newTunerStatusGetterCB
-        self.getTunerCenterFrequencyCB = newTunerCenterFrequencyGetterCB
-        self.setTunerCenterFrequencyCB = newTunerCenterFrequencySetterCB
-        self.getTunerBandwidthCB = newTunerBandwidthGetterCB
-        self.setTunerBandwidthCB = newTunerBandwidthSetterCB
-        self.getTunerAgcEnableCB = newTunerAgcEnableGetterCB
-        self.setTunerAgcEnableCB = newTunerAgcEnableSetterCB
-        self.getTunerGainCB = newTunerGainGetterCB
-        self.setTunerGainCB = newTunerGainSetterCB
-        self.getTunerReferenceSourceCB = newTunerReferenceSourceGetterCB
-        self.setTunerReferenceSourceCB = newTunerReferenceSourceSetterCB
-        self.getTunerEnableCB = newTunerEnableGetterCB
-        self.setTunerEnableCB = newTunerEnableSetterCB
-
-    def setTunerTypeGetterCB(self, newTunerTypeGetterCB):
-        self.port_lock.acquire()
-        self.getTunerTypeCB = newTunerTypeGetterCB
-        self.port_lock.release()
-    def setTunerDeviceControlGetterCB(self, newTunerDeviceControlGetterCB):
-        self.port_lock.acquire()
-        self.getTunerDeviceControlCB = newTunerDeviceControlGetterCB
-        self.port_lock.release()
-    def setTunerGroupIdGetterCB(self, newTunerGroupIdGetterCB):
-        self.port_lock.acquire()
-        self.getTunerGroupIdCB = newTunerGroupIdGetterCB
-        self.port_lock.release()
-    def setTunerRfFlowIdGetterCB(self, newTunerRfFlowIdGetterCB):
-        self.port_lock.acquire()
-        self.getTunerRfFlowIdCB = newTunerRfFlowIdGetterCB
-        self.port_lock.release()
-    def setTunerStatusGetterCB(self, newTunerStatusGetterCB):
-        self.port_lock.acquire()
-        self.getTunerStatusCB = newTunerStatusGetterCB
-        self.port_lock.release()
-    def setTunerCenterFrequencyGetterCB(self, newTunerCenterFrequencyGetterCB):
-        self.port_lock.acquire()
-        self.getTunerCenterFrequencyCB = newTunerCenterFrequencyGetterCB
-        self.port_lock.release()
-    def setTunerCenterFrequencySetterCB(self, newTunerCenterFrequencySetterCB):
-        self.port_lock.acquire()
-        self.setTunerCenterFrequencyCB = newTunerCenterFrequencySetterCB
-        self.port_lock.release()
-    def setTunerBandwidthGetterCB(self, newTunerBandwidthGetterCB):
-        self.port_lock.acquire()
-        self.getTunerBandwidthCB = newTunerBandwidthGetterCB
-        self.port_lock.release()
-    def setTunerBandwidthSetterCB(self, newTunerBandwidthSetterCB):
-        self.port_lock.acquire()
-        self.setTunerBandwidthCB = newTunerBandwidthSetterCB
-        self.port_lock.release()
-    def setTunerAgcEnableGetterCB(self, newTunerAgcEnableGetterCB):
-        self.port_lock.acquire()
-        self.getTunerAgcEnableCB = newTunerAgcEnableGetterCB
-        self.port_lock.release()
-    def setTunerAgcEnableSetterCB(self, newTunerAgcEnableSetterCB):
-        self.port_lock.acquire()
-        self.setTunerAgcEnableCB = newTunerAgcEnableSetterCB
-        self.port_lock.release()
-    def setTunerGainGetterCB(self, newTunerGainGetterCB):
-        self.port_lock.acquire()
-        self.getTunerGainCB = newTunerGainGetterCB
-        self.port_lock.release()
-    def setTunerGainSetterCB(self, newTunerGainSetterCB):
-        self.port_lock.acquire()
-        self.setTunerGainCB = newTunerGainSetterCB
-        self.port_lock.release()
-    def setTunerReferenceSourceGetterCB(self, newTunerReferenceSourceGetterCB):
-        self.port_lock.acquire()
-        self.getTunerReferenceSourceCB = newTunerReferenceSourceGetterCB
-        self.port_lock.release()
-    def setTunerReferenceSourceSetterCB(self, newTunerReferenceSourceSetterCB):
-        self.port_lock.acquire()
-        self.setTunerReferenceSourceCB = newTunerReferenceSourceSetterCB
-        self.port_lock.release()
-    def setTunerEnableGetterCB(self, newTunerEnableGetterCB):
-        self.port_lock.acquire()
-        self.getTunerEnableCB = newTunerEnableGetterCB
-        self.port_lock.release()
-    def setTunerEnableSetterCB(self, newTunerEnableSetterCB):
-        self.port_lock.acquire()
-        self.setTunerEnableCB = newTunerEnableSetterCB
-        self.port_lock.release()
-        
-    def getTunerType(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerTypeCB ):
-            return self.getTunerTypeCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerType(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerDeviceControl(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerDeviceControlCB ):
-            return self.getTunerDeviceControlCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerDeviceControl(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerGroupId(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerGroupIdCB ):
-            return self.getTunerGroupIdCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerGroupId(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerRfFlowId(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerRfFlowIdCB ):
-            return self.getTunerRfFlowIdCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerRfFlowId(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerStatus(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerStatusCB ):
-            return self.getTunerStatusCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerStatus(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        self.parent = parent
 
     def setTunerCenterFrequency(self, id, freq):
         self.port_lock.acquire()
-        if ( self.setTunerCenterFrequencyCB ):
-            return self.setTunerCenterFrequencyCB(id,freq)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerCenterFrequency(id,freq) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.setTunerCenterFrequency(id,freq)
+        finally:
+            self.port_lock.release()
 
     def getTunerCenterFrequency(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerCenterFrequencyCB ):
-            return self.getTunerCenterFrequencyCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerCenterFrequency(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerCenterFrequency(id)
+        finally:
+            self.port_lock.release()
 
     def setTunerBandwidth(self, id, bw):
         self.port_lock.acquire()
-        if ( self.setTunerBandwidthCB ):
-            return self.setTunerBandwidthCB(id,bw)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerBandwidth(id,bw) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.setTunerBandwidth(id,bw)
+        finally:
+            self.port_lock.release()
 
     def getTunerBandwidth(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerBandwidthCB ):
-            return self.getTunerBandwidthCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerBandwidth(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerBandwidth(id)
+        finally:
+            self.port_lock.release()
 
     def setTunerAgcEnable(self, id, enable):
         self.port_lock.acquire()
-        if ( self.setTunerAgcEnableCB ):
-            return self.setTunerAgcEnableCB(id,enable)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerAgcEnable(id,enable) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.setTunerAgcEnable(id,enable)
+        finally:
+            self.port_lock.release()
 
     def getTunerAgcEnable(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerAgcEnableCB ):
-            return self.getTunerAgcEnableCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerAgcEnable(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerAgcEnable(id)
+        finally:
+            self.port_lock.release()
 
     def setTunerGain(self, id, gain):
         self.port_lock.acquire()
-        if ( self.setTunerGainCB ):
-            return self.setTunerGainCB(id,gain)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerGain(id,gain) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.setTunerGain(id,gain)
+        finally:
+            self.port_lock.release()
 
     def getTunerGain(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerGainCB ):
-            return self.getTunerGainCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerGain(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerGain(id)
+        finally:
+            self.port_lock.release()
 
     def setTunerReferenceSource(self, id, source):
         self.port_lock.acquire()
-        if ( self.setTunerReferenceSourceCB ):
-            return self.setTunerReferenceSourceCB(id,source)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerReferenceSource(id,source) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.setTunerReferenceSource(id,source)
+        finally:
+            self.port_lock.release()
 
     def getTunerReferenceSource(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerReferenceSourceCB ):
-            return self.getTunerReferenceSourceCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerReferenceSource(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerReferenceSource(id)
+        finally:
+            self.port_lock.release()
 
     def setTunerEnable(self, id, enable):
         self.port_lock.acquire()
-        if ( self.setTunerEnableCB ):
-            return self.setTunerEnableCB(id,enable)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerEnable(id,enable) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.setTunerEnable(id,enable)
+        finally:
+            self.port_lock.release()
 
     def getTunerEnable(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerEnableCB ):
-            return self.getTunerEnableCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerEnable(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerEnable(id)
+        finally:
+            self.port_lock.release()
 
-class InDigitalTunerPort(FRONTEND__POA.DigitalTuner):
-    def __init__(self, name,
-                newTunerTypeGetterCB = None,
-                newTunerDeviceControlGetterCB = None,
-                newTunerGroupIdGetterCB = None,
-                newTunerRfFlowIdGetterCB = None,
-                newTunerStatusGetterCB = None,
-                newTunerCenterFrequencyGetterCB = None,
-                newTunerCenterFrequencySetterCB = None,
-                newTunerBandwidthGetterCB = None,
-                newTunerBandwidthSetterCB = None,
-                newTunerAgcEnableGetterCB = None,
-                newTunerAgcEnableSetterCB = None,
-                newTunerGainGetterCB = None,
-                newTunerGainSetterCB = None,
-                newTunerReferenceSourceGetterCB = None,
-                newTunerReferenceSourceSetterCB = None,
-                newTunerEnableGetterCB = None,
-                newTunerEnableSetterCB = None,
-                newTunerOutputSampleRateGetterCB = None,
-                newTunerOutputSampleRateSetterCB = None):
+class InDigitalTunerPort(FRONTEND__POA.DigitalTuner, InAnalogTunerPort):
+    def __init__(self, name, parent=digital_tuner_delegation()):
         self.name = name
         self.port_lock = threading.Lock()
+        self.parent = parent
         
-        self.getTunerTypeCB = newTunerTypeGetterCB
-        self.getTunerDeviceControlCB = newTunerDeviceControlGetterCB
-        self.getTunerGroupIdCB = newTunerGroupIdGetterCB
-        self.getTunerRfFlowIdCB = newTunerRfFlowIdGetterCB
-        self.getTunerStatusCB = newTunerStatusGetterCB
-        self.getTunerCenterFrequencyCB = newTunerCenterFrequencyGetterCB
-        self.setTunerCenterFrequencyCB = newTunerCenterFrequencySetterCB
-        self.getTunerBandwidthCB = newTunerBandwidthGetterCB
-        self.setTunerBandwidthCB = newTunerBandwidthSetterCB
-        self.getTunerAgcEnableCB = newTunerAgcEnableGetterCB
-        self.setTunerAgcEnableCB = newTunerAgcEnableSetterCB
-        self.getTunerGainCB = newTunerGainGetterCB
-        self.setTunerGainCB = newTunerGainSetterCB
-        self.getTunerReferenceSourceCB = newTunerReferenceSourceGetterCB
-        self.setTunerReferenceSourceCB = newTunerReferenceSourceSetterCB
-        self.getTunerEnableCB = newTunerEnableGetterCB
-        self.setTunerEnableCB = newTunerEnableSetterCB
-        self.getTunerOutputSampleRateCB = newTunerOutputSampleRateGetterCB
-        self.setTunerOutputSampleRateCB = newTunerOutputSampleRateSetterCB
-
-    def setTunerTypeGetterCB(self, newTunerTypeGetterCB):
-        self.port_lock.acquire()
-        self.getTunerTypeCB = newTunerTypeGetterCB
-        self.port_lock.release()
-    def setTunerDeviceControlGetterCB(self, newTunerDeviceControlGetterCB):
-        self.port_lock.acquire()
-        self.getTunerDeviceControlCB = newTunerDeviceControlGetterCB
-        self.port_lock.release()
-    def setTunerGroupIdGetterCB(self, newTunerGroupIdGetterCB):
-        self.port_lock.acquire()
-        self.getTunerGroupIdCB = newTunerGroupIdGetterCB
-        self.port_lock.release()
-    def setTunerRfFlowIdGetterCB(self, newTunerRfFlowIdGetterCB):
-        self.port_lock.acquire()
-        self.getTunerRfFlowIdCB = newTunerRfFlowIdGetterCB
-        self.port_lock.release()
-    def setTunerStatusGetterCB(self, newTunerStatusGetterCB):
-        self.port_lock.acquire()
-        self.getTunerStatusCB = newTunerStatusGetterCB
-        self.port_lock.release()
-    def setTunerCenterFrequencyGetterCB(self, newTunerCenterFrequencyGetterCB):
-        self.port_lock.acquire()
-        self.getTunerCenterFrequencyCB = newTunerCenterFrequencyGetterCB
-        self.port_lock.release()
-    def setTunerCenterFrequencySetterCB(self, newTunerCenterFrequencySetterCB):
-        self.port_lock.acquire()
-        self.setTunerCenterFrequencyCB = newTunerCenterFrequencySetterCB
-        self.port_lock.release()
-    def setTunerBandwidthGetterCB(self, newTunerBandwidthGetterCB):
-        self.port_lock.acquire()
-        self.getTunerBandwidthCB = newTunerBandwidthGetterCB
-        self.port_lock.release()
-    def setTunerBandwidthSetterCB(self, newTunerBandwidthSetterCB):
-        self.port_lock.acquire()
-        self.setTunerBandwidthCB = newTunerBandwidthSetterCB
-        self.port_lock.release()
-    def setTunerAgcEnableGetterCB(self, newTunerAgcEnableGetterCB):
-        self.port_lock.acquire()
-        self.getTunerAgcEnableCB = newTunerAgcEnableGetterCB
-        self.port_lock.release()
-    def setTunerAgcEnableSetterCB(self, newTunerAgcEnableSetterCB):
-        self.port_lock.acquire()
-        self.setTunerAgcEnableCB = newTunerAgcEnableSetterCB
-        self.port_lock.release()
-    def setTunerGainGetterCB(self, newTunerGainGetterCB):
-        self.port_lock.acquire()
-        self.getTunerGainCB = newTunerGainGetterCB
-        self.port_lock.release()
-    def setTunerGainSetterCB(self, newTunerGainSetterCB):
-        self.port_lock.acquire()
-        self.setTunerGainCB = newTunerGainSetterCB
-        self.port_lock.release()
-    def setTunerReferenceSourceGetterCB(self, newTunerReferenceSourceGetterCB):
-        self.port_lock.acquire()
-        self.getTunerReferenceSourceCB = newTunerReferenceSourceGetterCB
-        self.port_lock.release()
-    def setTunerReferenceSourceSetterCB(self, newTunerReferenceSourceSetterCB):
-        self.port_lock.acquire()
-        self.setTunerReferenceSourceCB = newTunerReferenceSourceSetterCB
-        self.port_lock.release()
-    def setTunerEnableGetterCB(self, newTunerEnableGetterCB):
-        self.port_lock.acquire()
-        self.getTunerEnableCB = newTunerEnableGetterCB
-        self.port_lock.release()
-    def setTunerEnableSetterCB(self, newTunerEnableSetterCB):
-        self.port_lock.acquire()
-        self.setTunerEnableCB = newTunerEnableSetterCB
-        self.port_lock.release()
-    def setTunerOutputSampleRateGetterCB(self, newTunerOutputSampleRateGetterCB):
-        self.port_lock.acquire()
-        self.getTunerOutputSampleRateCB = newTunerOutputSampleRateGetterCB
-        self.port_lock.release()
-    def setTunerOutputSampleRateSetterCB(self, newTunerOutputSampleRateSetterCB):
-        self.port_lock.acquire()
-        self.setTunerOutputSampleRateCB = newTunerOutputSampleRateSetterCB
-        self.port_lock.release()
-        
-    def getTunerType(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerTypeCB ):
-            return self.getTunerTypeCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerType(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerDeviceControl(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerDeviceControlCB ):
-            return self.getTunerDeviceControlCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerDeviceControl(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerGroupId(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerGroupIdCB ):
-            return self.getTunerGroupIdCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerGroupId(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerRfFlowId(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerRfFlowIdCB ):
-            return self.getTunerRfFlowIdCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerRfFlowId(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerStatus(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerStatusCB ):
-            return self.getTunerStatusCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerStatus(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def setTunerCenterFrequency(self, id, freq):
-        self.port_lock.acquire()
-        if ( self.setTunerCenterFrequencyCB ):
-            return self.setTunerCenterFrequencyCB(id,freq)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerCenterFrequency(id,freq) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerCenterFrequency(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerCenterFrequencyCB ):
-            return self.getTunerCenterFrequencyCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerCenterFrequency(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def setTunerBandwidth(self, id, bw):
-        self.port_lock.acquire()
-        if ( self.setTunerBandwidthCB ):
-            return self.setTunerBandwidthCB(id,bw)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerBandwidth(id,bw) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerBandwidth(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerBandwidthCB ):
-            return self.getTunerBandwidthCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerBandwidth(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def setTunerAgcEnable(self, id, enable):
-        self.port_lock.acquire()
-        if ( self.setTunerAgcEnableCB ):
-            return self.setTunerAgcEnableCB(id,enable)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerAgcEnable(id,enable) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerAgcEnable(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerAgcEnableCB ):
-            return self.getTunerAgcEnableCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerAgcEnable(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def setTunerGain(self, id, gain):
-        self.port_lock.acquire()
-        if ( self.setTunerGainCB ):
-            return self.setTunerGainCB(id,gain)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerGain(id,gain) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerGain(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerGainCB ):
-            return self.getTunerGainCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerGain(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def setTunerReferenceSource(self, id, source):
-        self.port_lock.acquire()
-        if ( self.setTunerReferenceSourceCB ):
-            return self.setTunerReferenceSourceCB(id,source)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerReferenceSource(id,source) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerReferenceSource(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerReferenceSourceCB ):
-            return self.getTunerReferenceSourceCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerReferenceSource(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def setTunerEnable(self, id, enable):
-        self.port_lock.acquire()
-        if ( self.setTunerEnableCB ):
-            return self.setTunerEnableCB(id,enable)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerEnable(id,enable) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
-    def getTunerEnable(self, id):
-        self.port_lock.acquire()
-        if ( self.getTunerEnableCB ):
-            return self.getTunerEnableCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerEnable(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
-
     def setTunerOutputSampleRate(self, id, sr):
         self.port_lock.acquire()
-        if ( self.setTunerOutputSampleRateCB ):
-            return self.setTunerOutputSampleRateCB(id,sr)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerOutputSampleRate(id,sr) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.setTunerOutputSampleRate(id,sr)
+        finally:
+            self.port_lock.release()
 
     def getTunerOutputSampleRate(self, id):
         self.port_lock.acquire()
-        if ( self.getTunerOutputSampleRateCB ):
-            return self.getTunerOutputSampleRateCB(id)
-        else:
-            raise FRONTEND.NotSupportedException("getTunerOutputSampleRate(id) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.getTunerOutputSampleRate(id)
+        finally:
+            self.port_lock.release()
+
+class gps_delegation(object):
+    def get_gps_info(self, port_name):
+        _gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0),[])
+        return _gpsinfo
+    def set_gps_info(self, port_name, gps_info):
+        pass
+    def get_gps_time_pos(self, port_name):
+        _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _gpstimepos = FRONTEND.GpsTimePos(_positioninfo,BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0))
+        return _gpstimepos
+    def set_gps_time_pos(self, port_name, gps_time_pos):
+        pass
 
 class InGPSPort(FRONTEND__POA.GPS):
-    def __init__(self, name,
-              newGPSInfoGetterCB = None,
-              newGpsTimePosGetterCB = None,
-              newGPSInfoSetterCB = None,
-              newGpsTimePosSetterCB = None):
+    def __init__(self, name, parent=gps_delegation()):
         self.name = name
         self.port_lock = threading.Lock()
+        self.parent = parent
         
-        self.getGPSInfoCB = newGPSInfoGetterCB
-        self.getGpsTimePosCB = newGpsTimePosGetterCB
-        self.setGPSInfoCB = newGPSInfoSetterCB
-        self.setGpsTimePosCB = newGpsTimePosSetterCB
-
-    def setGPSInfoGetterCB(self, newGPSInfoGetterCB):
-        self.port_lock.acquire()
-        self.getGPSInfoCB = newGPSInfoGetterCB
-        self.port_lock.release()
-    def setGpsTimePosGetterCB(self, newGpsTimePosGetterCB):
-        self.port_lock.acquire()
-        self.getGpsTimePosCB = newGpsTimePosGetterCB
-        self.port_lock.release()
-    def setGPSInfoSetterCB(self, newGPSInfoSetterCB):
-        self.port_lock.acquire()
-        self.setGPSInfoCB = newGPSInfoSetterCB
-        self.port_lock.release()
-    def setGpsTimePosSetterCB(self, newGpsTimePosSetterCB):
-        self.port_lock.acquire()
-        self.setGpsTimePosCB = newGpsTimePosSetterCB
-        self.port_lock.release()
-
     def _get_gps_info(self):
         self.port_lock.acquire()
-        if ( self.getGPSInfoCB ):
-            return self.getGPSInfoCB()
-        else:
-            raise FRONTEND.NotSupportedException("_get_gps_info() IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return copy.deepcopy(self.parent.get_gps_info(self.name))
+        finally:
+            self.port_lock.release()
 
     def _set_gps_info(self, data):
         self.port_lock.acquire()
-        if ( self.setGPSInfoCB ):
-            return self.setGPSInfoCB(data)
-        else:
-            raise FRONTEND.NotSupportedException("_set_gps_info(data) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.set_gps_info(self.name, copy.deepcopy(data))
+        finally:
+            self.port_lock.release()
 
     def _get_gps_time_pos(self):
         self.port_lock.acquire()
-        if ( self.getGpsTimePosCB ):
-            return self.getGpsTimePosCB()
-        else:
-            raise FRONTEND.NotSupportedException("_get_gps_time_pos() IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return copy.deepcopy(self.parent.get_gps_time_pos(self.name))
+        finally:
+            self.port_lock.release()
 
     def _set_gps_time_pos(self, data):
         self.port_lock.acquire()
-        if ( self.setGpsTimePosCB ):
-            return self.setGpsTimePosCB(data)
-        else:
-            raise FRONTEND.NotSupportedException("_set_gps_time_pos(data) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.set_gps_time_pos(self.name,copy.deepcopy(data))
+        finally:
+            self.port_lock.release()
+
+class rfinfo_delegation(object):
+    def get_rf_flow_id(self, port_name):
+        return ""
+    def set_rf_flow_id(self, port_name, id):
+        pass
+    def get_rfinfo_pkt(self, port_name):
+        _antennainfo=FRONTEND.AntennaInfo('','','','')
+        _freqrange=FRONTEND.FreqRange(0,0,[])
+        _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
+        _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        return _rfinfopkt
+    def set_rfinfo_pkt(self, port_name, pkt):
+        pass
 
 class InRFInfoPort(FRONTEND__POA.RFInfo):
-    def __init__(self, name,
-                 newRFFlowIdGetterCB = None,
-                 newRFInfoPktGetterCB = None,
-                 newRFFlowIdSetterCB = None,
-                 newRFInfoPktSetterCB = None):
+    def __init__(self, name, parent=rfinfo_delegation()):
         self.name = name
         self.port_lock = threading.Lock()
+        self.parent = parent
         
-        self.getRFFlowIdCB = newRFFlowIdGetterCB
-        self.getRFInfoPktCB = newRFInfoPktGetterCB
-        self.setRFFlowIdCB = newRFFlowIdSetterCB
-        self.setRFInfoPktCB = newRFInfoPktSetterCB
-
-    def setRFFlowIdGetterCB(self, newRFFlowIdGetterCB):
-        self.port_lock.acquire()
-        self.getRFFlowIdCB = newRFFlowIdGetterCB
-        self.port_lock.release()
-    def setRFInfoPktGetterCB(self, newRFInfoPktGetterCB):
-        self.port_lock.acquire()
-        self.getRFInfoPktCB = newRFInfoPktGetterCB
-        self.port_lock.release()
-    def setRFFlowIdSetterCB(self, newRFFlowIdSetterCB):
-        self.port_lock.acquire()
-        self.setRFFlowIdCB = newRFFlowIdSetterCB
-        self.port_lock.release()
-    def setRFInfoPktSetterCB(self, newRFInfoPktSetterCB):
-        self.port_lock.acquire()
-        self.setRFInfoPktCB = newRFInfoPktSetterCB
-        self.port_lock.release()
-
     def _get_rf_flow_id(self):
         self.port_lock.acquire()
-        if ( self.getRFFlowIdCB ):
-            return self.getRFFlowIdCB()
-        else:
-            raise FRONTEND.NotSupportedException("_get_rf_flow_id() IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.get_rf_flow_id(self.name)
+        finally:
+            self.port_lock.release()
 
     def _set_rf_flow_id(self, data):
         self.port_lock.acquire()
-        if ( self.setRFFlowIdCB ):
-            return self.setRFFlowIdCB(data)
-        else:
-            raise FRONTEND.NotSupportedException("_set_rf_flow_id(data) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.set_rf_flow_id(self.name,data)
+        finally:
+            self.port_lock.release()
 
     def _get_rfinfo_pkt(self):
         self.port_lock.acquire()
-        if ( self.getRFInfoPktCB ):
-            return self.getRFInfoPktCB()
-        else:
-            raise FRONTEND.NotSupportedException("_get_rfinfo_pkt() IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return copy.deepcopy(self.parent.get_rfinfo_pkt(self.name))
+        finally:
+            self.port_lock.release()
 
     def _set_rfinfo_pkt(self, data):
         self.port_lock.acquire()
-        if ( self.setRFInfoPktCB ):
-            return self.setRFInfoPktCB(data)
-        else:
-            raise FRONTEND.NotSupportedException("_set_rfinfo_pkt(data) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.set_rfinfo_pkt(self.name,copy.deepcopy(data))
+        finally:
+            self.port_lock.release()
+
+class rfsource_delegation(object):
+    def get_available_rf_inputs(self, port_name):
+        return []
+    def set_available_rf_inputs(self, port_name, inputs):
+        pass
+    def get_current_rf_input(self, port_name):
+        _antennainfo=FRONTEND.AntennaInfo('','','','')
+        _freqrange=FRONTEND.FreqRange(0,0,[])
+        _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
+        _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        return _rfinfopkt
+    def set_current_rf_input(self, port_name, input):
+        pass
 
 class InRFSourcePort(FRONTEND__POA.RFSource):
-    def __init__(self, name,
-               newAvailableRFInputsGetterCB = None,
-               newCurrentRFInputGetterCB = None,
-               newAvailableRFInputsSetterCB = None,
-               newCurrentRFInputSetterCB = None ):
+    def __init__(self, name, parent=rfsource_delegation()):
         self.name = name
         self.port_lock = threading.Lock()
-        
-        self.getAvailableRFInputsCB = newAvailableRFInputsGetterCB
-        self.getCurrentRFInputCB = newCurrentRFInputGetterCB
-        self.setAvailableRFInputsCB = newAvailableRFInputsSetterCB
-        self.setCurrentRFInputCB = newCurrentRFInputSetterCB
-
-    def setAvailableRFInputsGetterCB(self, newAvailableRFInputsGetterCB):
-        self.port_lock.acquire()
-        self.getAvailableRFInputsCB = newAvailableRFInputsGetterCB
-        self.port_lock.release()
-    def setCurrentRFInputGetterCB(self, newCurrentRFInputGetterCB):
-        self.port_lock.acquire()
-        self.getCurrentRFInputCB = newCurrentRFInputGetterCB
-        self.port_lock.release()
-    def setAvailableRFInputsSetterCB(self, newAvailableRFInputsSetterCB):
-        self.port_lock.acquire()
-        self.setAvailableRFInputsCB = newAvailableRFInputsSetterCB
-        self.port_lock.release()
-    def setCurrentRFInputSetterCB(self, newCurrentRFInputSetterCB):
-        self.port_lock.acquire()
-        self.setCurrentRFInputCB = newCurrentRFInputSetterCB
-        self.port_lock.release()
+        self.parent = parent
         
     def _get_available_rf_inputs(self):
         self.port_lock.acquire()
-        if ( self.getAvailableRFInputsCB ):
-            return self.getAvailableRFInputsCB()
-        else:
-            raise FRONTEND.NotSupportedException("_get_available_rf_inputs() IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return copy.deepcopy(self.parent.get_available_rf_inputs(self.name))
+        finally:
+            self.port_lock.release()
 
     def _set_available_rf_inputs(self, data):
         self.port_lock.acquire()
-        if ( self.setAvailableRFInputsCB ):
-            return self.setAvailableRFInputsCB(data)
-        else:
-            raise FRONTEND.NotSupportedException("_set_available_rf_inputs(data) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.set_available_rf_inputs(self.name,copy.deepcopy(data))
+        finally:
+            self.port_lock.release()
 
     def _get_current_rf_input(self):
         self.port_lock.acquire()
-        if ( self.getCurrentRFInputCB ):
-            return self.getCurrentRFInputCB()
-        else:
-            raise FRONTEND.NotSupportedException("_get_current_rf_input() IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return copy.deepcopy(self.parent.get_current_rf_input(self.name))
+        finally:
+            self.port_lock.release()
 
     def _set_current_rf_input(self, data):
         self.port_lock.acquire()
-        if ( self.setCurrentRFInputCB ):
-            return self.setCurrentRFInputCB(data)
-        else:
-            raise FRONTEND.NotSupportedException("_set_current_rf_input(data) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.set_current_rf_input(self.name,copy.deepcopy(data))
+        finally:
+            self.port_lock.release()
+
+class nav_delegation(object):
+    def get_nav_packet(self, port_name):
+        _time = BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0)
+        _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _cartesianpos=FRONTEND.CartesianPositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _velocityinfo=FRONTEND.VelocityInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
+        _accelerationinfo=FRONTEND.AccelerationInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
+        _attitudeinfo=FRONTEND.AttitudeInfo(False,0.0,0.0,0.0)
+        _navpacket=FRONTEND.NavigationPacket('','',_positioninfo,_cartesianpos,_velocityinfo,_accelerationinfo,_attitudeinfo,_time,[])
+        return _navpacket
+    def set_nav_packet(self, port_name, nav_info):
+        pass
 
 class InNavDataPort(FRONTEND__POA.NavData):
-    def __init__(self, name,
-              newNavPktGetterCB = None,
-              newNavPktSetterCB = None):
+    def __init__(self, name, parent=nav_delegation()):
         self.name = name
         self.port_lock = threading.Lock()
+        self.parent = parent
         
-        self.getNavPktCB = newNavPktGetterCB
-        self.setNavPktCB = newNavPktSetterCB
-
-    def setNavPktGetterCB(self, newNavPktGetterCB):
-        self.port_lock.acquire()
-        self.getNavPktCB = newNavPktGetterCB
-        self.port_lock.release()
-    def setNavPktSetterCB(self, newNavPktSetterCB):
-        self.port_lock.acquire()
-        self.setNavPktCB = newNavPktSetterCB
-        self.port_lock.release()
-
     def _get_nav_packet(self):
         self.port_lock.acquire()
-        if ( self.getNavPktCB ):
-            return self.getNavPktCB()
-        else:
-            raise FRONTEND.NotSupportedException("_get_nav_packet() IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return copy.deepcopy(self.parent.get_nav_packet(self.name))
+        finally:
+            self.port_lock.release()
 
     def _set_nav_packet(self, data):
         self.port_lock.acquire()
-        if ( self.setNavPktCB ):
-            return self.setNavPktCB(data)
-        else:
-            raise FRONTEND.NotSupportedException("_set_nav_packet(data) IS NOT CURRENTLY SUPPORTED");
-        self.port_lock.release()
+        try:
+            return self.parent.set_nav_packet(self.name,copy.deepcopy(data))
+        finally:
+            self.port_lock.release()

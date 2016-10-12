@@ -19,10 +19,10 @@
 #
 
 dnl Update this version number immedately after a release
-AC_INIT([ossie],[1.10.1])
+AC_INIT([ossie],[2.0.3])
 #AM_INIT_AUTOMAKE(nostdinc)
 # allows filenames over 99 characters long during dist
-AM_INIT_AUTOMAKE([1.9 tar-pax])
+AM_INIT_AUTOMAKE([1.9 tar-pax subdir-objects])
 dnl Update these verion numbers immedately before a release
 dnl
 dnl The version number is in the format "current:revision:age"
@@ -56,7 +56,6 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 PKG_PROG_PKG_CONFIG
 AC_HEADER_SYS_WAIT
-GR_LIB64
 
 AC_CORBA_ORB
 
@@ -110,7 +109,8 @@ fi
 # Get the XSD version
 AC_MSG_CHECKING([xsd version])
 xsd_version=`${XSD} version 2>&1 | head -n 1 | awk '{print $8}'`
-if test "x$xsd_version" != "x3.3.0"; then
+oldest_version=`echo -e "${xsd_version}\n3.3.0" | sort -t '.' -k 1,1 -k 2,2 -k 3,3 -k 4,4 -g | head -n 1`
+if test "x$oldest_version" != "x3.3.0"; then
     AC_MSG_FAILURE([XSD version 3.3.0 required])
 else
     AC_MSG_RESULT([$xsd_version])
@@ -118,6 +118,22 @@ fi
 AC_CHECK_HEADER([xsd/cxx/config.hxx], [], [AC_MSG_ERROR([missing XSD headers])])
 AC_CHECK_PROG([XMLCATALOG], [xmlcatalog], [xmlcatalog], [no])
 AM_CONDITIONAL(HAVE_XMLCATALOG, test $XMLCATALOG != "no")
+
+# add numa support to affinity module
+AC_ARG_ENABLE([affinity], AS_HELP_STRING([--enable-affinity], [Enable numa affinity processing]))
+   AC_MSG_CHECKING([Adding support for numa affinity processing])
+if test "x$enable_affinity" = "xyes"; then
+   dnl  determine if numa library support is available
+   AC_SUBST(OSSIE_AFFINITY, "yes")
+   AC_MSG_RESULT([yes])
+else
+  AC_MSG_RESULT([no])
+fi
+
+if test "x$enable_affinity" = "xyes"; then
+   AC_CHECK_LIB( numa, numa_available )
+fi
+
 
 # Find a Posix-compliant sed
 # We attempt to use AC_PROG_SED, but it's only available in autoconf >= 2.59b
@@ -190,15 +206,7 @@ fi
 AC_SUBST([HAVE_JAVASUPPORT], $HAVE_JAVASUPPORT)
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 
-AM_PATH_PYTHON([2.3])
-AC_MSG_CHECKING([if python backports are necessary])
-if test "$PYTHON_VERSION" = "2.3"; then
-  AC_MSG_RESULT("yes")
-  export PYTHONPATH=${PWD}/framework/python/backports:${PYTHONPATH}
-else
-  AC_MSG_RESULT("no")
-fi
-AM_CONDITIONAL(INSTALL_PYTHON_BACKPORTS, test "$PYTHON_VERSION" = "2.3")
+AM_PATH_PYTHON([2.4])
 
 AC_CHECK_PYMODULE(logging ,[], [AC_MSG_ERROR([the python logging module is required])])
 AC_CHECK_PYMODULE(subprocess, [], [AC_MSG_ERROR([the python subprocess module is required])])
@@ -212,6 +220,7 @@ AC_LANG_POP
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(time.h)
 AC_HEADER_DIRENT
+AX_CXX_GCC_ABI_DEMANGLE
 
 if test "x$cross_compiling" == "xyes"; then
 # Cross our fingers and hope
@@ -296,8 +305,11 @@ AC_CONFIG_FILES(Makefile \
                 base/include/ossie/Makefile \
                 base/include/Makefile \
                 base/parser/Makefile \
+                base/plugin/Makefile \
+                base/plugin/logcfg/Makefile \
                 idl/Makefile \
                 xml/Makefile \
+                tools/Makefile \
                 tools/LogEventAppender/Makefile \
                 testing/Makefile \
                 testing/_unitTestHelpers/buildconfig.py \
@@ -313,8 +325,16 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dev/devices/issue_111_java/java/Makefile \
                 testing/sdr/dev/devices/PersonaDevice/cpp/Makefile \
                 testing/sdr/dev/devices/ProgrammableDevice/cpp/Makefile \
+                testing/sdr/dev/devices/cpp_dev/cpp/Makefile \
+                testing/sdr/dev/devices/GPP/cpp/Makefile \
+                testing/sdr/dev/devices/java_dev/java/Makefile \
                 testing/sdr/dev/services/BasicService_java/java/Makefile \
+                testing/sdr/dom/deps/cpp_dep1/cpp/Makefile \
+                testing/sdr/dom/deps/cpp_dep1/cpp/cpp_dep1.pc \
+                testing/sdr/dom/deps/cpp_dep2/cpp/Makefile \
+                testing/sdr/dom/deps/cpp_dep2/cpp/cpp_dep2.pc \
                 testing/sdr/dom/components/CppCallbacks/cpp/Makefile \
+                testing/sdr/dom/components/prop_trigger_timing/cpp/Makefile \
                 testing/sdr/dom/components/TestCppProps/Makefile \
                 testing/sdr/dom/components/TestJavaProps/Makefile \
                 testing/sdr/dom/components/TestLegacyJavaProps/Makefile \
@@ -322,6 +342,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/linkedLibraryTest/Makefile \
                 testing/sdr/dom/components/TestCppsoftpkgDeps/Makefile \
                 testing/sdr/dom/components/javaDep/javaDep/Makefile \
+                testing/sdr/dom/components/java_comp/java/Makefile \
                 testing/sdr/dom/components/HardLimit/HardLimit_java_impl1/Makefile \
                 testing/sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1/Makefile \
                 testing/sdr/dom/components/BasicAC/basicac_java_impl1/Makefile \
@@ -339,7 +360,22 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/TestAllPropTypes/cpp/Makefile \
                 testing/sdr/dom/components/TestAllPropTypes/java/Makefile \
                 testing/sdr/dom/components/TestLoggingAPI/cpp/Makefile \
-                testing/sdr/dom/components/TestLoggingAPI/java/Makefile )
-
+                testing/sdr/dom/components/cpp_comp/cpp/Makefile \
+                testing/sdr/dom/components/cpp_with_deps/cpp/Makefile \
+                testing/sdr/dom/components/TestLoggingAPI/java/Makefile \
+                testing/sdr/dom/components/C1/cpp/Makefile \
+                testing/sdr/dom/components/C2/cpp/Makefile \
+                testing/sdr/dom/components/ECM_CPP/cpp/Makefile \
+                testing/sdr/dom/components/ECM_JAVA/java/Makefile \
+                testing/sdr/dom/components/PropertyChange_C1/cpp/Makefile \
+                testing/sdr/dom/components/PropertyChange_J1/java/Makefile \
+                testing/sdr/dom/components/Property_CPP/cpp/Makefile \
+                testing/sdr/dom/components/commandline_prop/cpp/Makefile \
+                testing/sdr/dom/components/nocommandline_prop/cpp/Makefile \
+                testing/sdr/dom/components/Property_JAVA/java/Makefile \
+                testing/sdr/dom/components/foo/bar/comp/cpp/Makefile \
+                testing/sdr/dom/components/foo/bar/jv/java/Makefile \
+                testing/sdr/dom/components/TestCppOptionalProps/cpp/Makefile \
+                testing/sdr/dom/components/TestJavaOptionalProps/java/Makefile )
 AC_OUTPUT
 

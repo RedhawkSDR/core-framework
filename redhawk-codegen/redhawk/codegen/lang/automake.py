@@ -35,3 +35,9 @@ def canonicalName(name):
         else:
             retval += '_'
     return retval
+
+def libtoolName(name):
+    """
+    Returns the file name of the Libtool library given a library name.
+    """
+    return 'lib'+name+'.la'

@@ -23,12 +23,13 @@ namespace urn:mil:jpeojtrs:sca:prf {
     include "map";
     include "utility";
     include "../../include/ossie/Properties.h";
+    include "../../include/ossie/componentProfile.h";
 
     properties "std::auto_ptr<ossie::PRF>";
-    simple "ossie::SimpleProperty*";
-    simpleSequence "ossie::SimpleSequenceProperty*";
-    struct "ossie::StructProperty*";
-    structSequence "ossie::StructSequenceProperty*";
+    simple "const ossie::SimpleProperty&" "const ossie::SimpleProperty&";
+    simpleSequence "const ossie::SimpleSequenceProperty&" "const ossie::SimpleSequenceProperty&";
+    struct "const ossie::StructProperty&" "const ossie::StructProperty&";
+    structSequence "const ossie::StructSequenceProperty&" "const ossie::StructSequenceProperty&";
 
     description "::std::string";
     value "::std::string";
@@ -42,12 +43,15 @@ namespace urn:mil:jpeojtrs:sca:prf {
     AccessType "::std::string";
     ActionType "::std::string";
     IsComplex "::std::string";
+    IsCommandLine "::std::string";
+    IsOptional "::std::string";
     Unit "::std::string";
     PropertyConfigurationType "::std::string";
     configurationKind "::std::string";
     range "::std::pair<std::string, std::string>";
     enumerations "::std::map<std::string, std::string>";
     enumeration "::std::map<std::string, std::string>::value_type";
-    structValue "::std::map<std::string, std::string>";
-    simpleRef "::std::map<std::string, std::string>::value_type";
+    structValue "const ossie::ComponentPropertyMap &" "const ossie::ComponentPropertyMap &";
+    simpleRef "const ossie::SimplePropertyRef &" "const ossie::SimplePropertyRef &";
+    simpleSequenceRef "const ossie::SimpleSequencePropertyRef &" "const ossie::SimpleSequencePropertyRef &";
 }

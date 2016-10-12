@@ -17,11 +17,42 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+#include <boost/scoped_ptr.hpp>
+
 #include "Bulkio_InPort_Fixture.h"
 #include "bulkio.h"
 
 // Registers the fixture into the 'registry'
 CPPUNIT_TEST_SUITE_REGISTRATION( Bulkio_InPort_Fixture );
+
+class SriListener {
+public:
+  SriListener() :
+    sri_(),
+    sriChanged_(false)
+  {
+  }
+
+  void updateSRI(BULKIO::StreamSRI& sri)
+  {
+    sri_ = sri;
+    sriChanged_ = true;
+  }
+
+  void reset()
+  {
+    sriChanged_ = false;
+  }
+
+  bool sriChanged()
+  {
+    return sriChanged_;
+  }
+
+private:
+  BULKIO::StreamSRI sri_;
+  bool sriChanged_;
+};
 
 
 class MyFloatPort : public bulkio::InFloatPort {
@@ -144,7 +175,7 @@ void  Bulkio_InPort_Fixture::test_port_api( T *port  ) {
 
   port->unblock();
 
-
+  test_sri_change(port);
 }
 
 template<>
@@ -198,7 +229,7 @@ void  Bulkio_InPort_Fixture::test_port_api( bulkio::InFilePort *port  ) {
 
   port->unblock();
 
-
+  test_sri_change(port);
 }
 
 
@@ -253,7 +284,33 @@ void  Bulkio_InPort_Fixture::test_port_api( bulkio::InXMLPort *port  ) {
 
   port->unblock();
 
+  test_sri_change(port);
+}
 
+template< typename T>
+void  Bulkio_InPort_Fixture::test_sri_change( T *port  ) {
+  typename T::PortSequenceType v;
+  BULKIO::PrecisionUTCTime TS;
+
+  // Push data without an SRI to check that the sriChanged flag is still set
+  // and the SRI callback gets called
+  boost::scoped_ptr<typename T::dataTransfer> packet;
+  SriListener listener;
+  port->setNewStreamListener(&listener, &SriListener::updateSRI);
+  port->pushPacket(v, TS, false, "invalid_stream");
+  packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+  CPPUNIT_ASSERT(packet);
+  CPPUNIT_ASSERT(packet->sriChanged == true);
+  CPPUNIT_ASSERT(listener.sriChanged() == true);
+
+  // Push again to the same stream ID; sriChanged should now be false and the
+  // SRI callback should not get called
+  listener.reset();
+  port->pushPacket(v, TS, false, "invalid_stream");
+  packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+  CPPUNIT_ASSERT(packet);
+  CPPUNIT_ASSERT(packet->sriChanged == false);
+  CPPUNIT_ASSERT(listener.sriChanged() == false);
 }
 
 

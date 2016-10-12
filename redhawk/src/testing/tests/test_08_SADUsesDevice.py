@@ -26,8 +26,8 @@ from ossie import properties
 
 class SADUsesDeviceTest(scatest.CorbaTestCase):
     def setUp(self):
-        domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_SADUsesDevice/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_SADUsesDevice/DeviceManager.dcd.xml")
         self._app = None
 
     def tearDown(self):
@@ -112,6 +112,8 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
                 allocRes = dev.query([prop])
         self.assertEquals(allocRes[0].value.value()[0].value.value(), 90)
         self.assertAlmostEquals(allocRes[0].value.value()[1].value.value(), 0.9)
+        self.assertEquals(allocRes[0].value.value()[2].value.value()[0], 45)
+	self.assertEquals(allocRes[0].value.value()[2].value.value()[1], 450)
 
         # Make sure values are deallocated on release
         self._app.releaseObject()
@@ -122,6 +124,8 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
                 allocRes = dev.query([prop])
         self.assertEquals(allocRes[0].value.value()[0].value.value(), 100)
         self.assertAlmostEquals(allocRes[0].value.value()[1].value.value(), 1.0)
+	self.assertEquals(allocRes[0].value.value()[2].value.value()[0], 50)
+	self.assertEquals(allocRes[0].value.value()[2].value.value()[1], 500)
 
     def test_connections(self):
         appFact = self.createAppFact("ConnectionDevProvides")
@@ -144,6 +148,8 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
                 allocRes2 = dev.query([prop2])
         self.assertEquals(allocRes[0].value.value()[0].value.value(), 100)
         self.assertAlmostEquals(allocRes[0].value.value()[1].value.value(), 1.0)
+	self.assertEquals(allocRes[0].value.value()[2].value.value()[0], 50)
+	self.assertEquals(allocRes[0].value.value()[2].value.value()[1], 500)
         self.assertEquals(allocRes2[0].value.value(), 10)
 
 
@@ -229,3 +235,4 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
         post_value = properties.props_to_dict(devices['BasicTestDevice1'].query([prop])[0].value._v)
         self.assertEqual(pre_value['long_capacity'], post_value['long_capacity'])
         self.assertAlmostEqual(pre_value['float_capacity'], post_value['float_capacity'])
+        self.assertEqual(pre_value['struct_simple_seq'], post_value['struct_simple_seq'])

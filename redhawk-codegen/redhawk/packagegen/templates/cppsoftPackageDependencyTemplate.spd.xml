@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg type="sca_compliant" id="mySoftDepPkg" name="mySoftDepPkg" >
+  <title></title>
+  <author>
+    <name></name>
+  </author>
+  <implementation id="default_impl_noarch">
+    <description></description>
+    <code type="SharedLibrary">
+      <localfile name="share"/>
+    </code>
+    <compiler name="/usr/bin/gcc" version="4.1.2"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
+  </implementation>
+</softpkg>

@@ -24,6 +24,7 @@ import logging
 from ossie.cf import CF, CF__POA
 from ossie.resource import Resource, start_component
 from ossie.properties import simple_property, simpleseq_property, struct_property, structseq_property
+from omniORB.any import from_any
 
 
 class TestPythonProps (CF__POA.Resource, Resource):
@@ -89,6 +90,17 @@ class TestPythonProps (CF__POA.Resource, Resource):
 
     def __init__(self, identifier, execparams):
         Resource.__init__(self, identifier, execparams)
+
+    def runTest(self, test, props):
+        if test == 0:
+            # Inject values directly into property storage to allow testing of
+            # bad conditions (invalid values)
+            for dt in props:
+                try:
+                    self._props[dt.id] = from_any(dt.value)
+                except KeyError:
+                    pass
+        return []
 
 
 if __name__ == '__main__':

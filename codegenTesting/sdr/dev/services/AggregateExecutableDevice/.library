@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="ASCII"?>
+<library:IdlLibrary xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:library="http:///gov/redhawk/eclipsecorba/library" name="IDL Library">
+  <paths xsi:type="library:PreferenceNodePathSet" qualifier="gov.redhawk.ide" key="IdlIncludePath" delimiter=":" fileUri="true" replaceEnv="true"/>
+</library:IdlLibrary>

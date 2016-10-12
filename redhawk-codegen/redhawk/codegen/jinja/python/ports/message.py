@@ -39,7 +39,7 @@ class MessageConsumerPortGenerator(BuiltinPythonPort):
         BuiltinPythonPort.__init__(self, 'ossie.events.MessageConsumerPort', port)
 
     def _ctorArgs(self, name):
-        return ('thread_sleep=0.1',)
+        return ('thread_sleep=0.1','parent = self')
 
 class MessageSupplierPortGenerator(BuiltinPythonPort):
     def __init__(self, port):

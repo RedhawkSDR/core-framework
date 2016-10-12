@@ -25,13 +25,9 @@ import org.ossie.component.QueryableUsesPort;
 import FRONTEND.RFInfoOperations;
 import FRONTEND.RFInfoHelper;
 import FRONTEND.RFInfoPkt;
+import org.ossie.component.PortBase;
 
-
-public class OutRFInfoPort extends QueryableUsesPort<RFInfoOperations> implements RFInfoOperations {
-
-    protected String name;
- 
-    protected Object updatingPortsLock;
+public class OutRFInfoPort extends QueryableUsesPort<RFInfoOperations> implements RFInfoOperations, PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -40,7 +36,6 @@ public class OutRFInfoPort extends QueryableUsesPort<RFInfoOperations> implement
 
     public OutRFInfoPort( String portName) {
         super(portName);
-        this.name = portName;
         this.outConnections = new HashMap<String, RFInfoOperations>();
     }
 
@@ -77,7 +72,13 @@ public class OutRFInfoPort extends QueryableUsesPort<RFInfoOperations> implement
         synchronized(updatingPortsLock){
             if (this.active) {
                 for (RFInfoOperations p : this.outConnections.values()) {
-                    retval = p.rf_flow_id();
+                    try {
+                        retval = p.rf_flow_id();
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
@@ -88,7 +89,13 @@ public class OutRFInfoPort extends QueryableUsesPort<RFInfoOperations> implement
         synchronized(updatingPortsLock){
             if (this.active) {
                 for (RFInfoOperations p : this.outConnections.values()) {
-                    p.rf_flow_id(data);
+                    try {
+                        p.rf_flow_id(data);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
@@ -100,7 +107,13 @@ public class OutRFInfoPort extends QueryableUsesPort<RFInfoOperations> implement
         synchronized(updatingPortsLock){
             if (this.active) {
                 for (RFInfoOperations p : this.outConnections.values()) {
-                    retval = p.rfinfo_pkt();
+                    try {
+                        retval = p.rfinfo_pkt();
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
@@ -111,10 +124,24 @@ public class OutRFInfoPort extends QueryableUsesPort<RFInfoOperations> implement
         synchronized(updatingPortsLock){
             if (this.active) {
                 for (RFInfoOperations p : this.outConnections.values()) {
-                    p.rfinfo_pkt(data);
+                    try {
+                        p.rfinfo_pkt(data);
+                    } catch(org.omg.CORBA.SystemException e) {
+                        throw e;
+                    } catch(Throwable e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
+    }
+
+    public String getRepid() {
+        return RFInfoHelper.id();
+    }
+
+    public String getDirection() {
+        return "Uses";
     }
 }
 

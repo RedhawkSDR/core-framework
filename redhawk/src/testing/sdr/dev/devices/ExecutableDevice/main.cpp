@@ -18,18 +18,14 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-
-#include <iostream>
 #include <string>
 #include <cstdlib>
-#include "ossie/debug.h"
-#include "ossie/ossieSupport.h"
+#include <signal.h>
+#include <sys/wait.h>
 
-#include "ossie/CF/AggregateDevices.h"
-#include "ossie/ExecutableDevice_impl.h"
-#include "ossie/debug.h"
+#include <ossie/ExecutableDevice_impl.h>
 
-class TestDevice : public virtual CF::AggregateExecutableDevice, public virtual ExecutableDevice_impl {
+class TestDevice : public virtual ExecutableDevice_impl {
     public:
     TestDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl) :
           ExecutableDevice_impl (devMgr_ior, id, lbl, sftwrPrfl)
@@ -43,37 +39,9 @@ class TestDevice : public virtual CF::AggregateExecutableDevice, public virtual 
         loadProperties();
     }
 
-    TestDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities) :
-          ExecutableDevice_impl (devMgr_ior, id, lbl, sftwrPrfl, capacities)
-    {
-        loadProperties();
-    }
-
-    TestDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev) :
-          ExecutableDevice_impl (devMgr_ior, id, lbl, sftwrPrfl, capacities)
-    {
-        loadProperties();
-    }
-
     ~TestDevice()
     {
     };
-
-    void addDevice(CF::Device_ptr associatedDevice) {
-    }
-
-    void removeDevice(CF::Device_ptr associatedDevice) {
-    }
-
-    virtual void query(CF::Properties& configProperties) throw (CF::UnknownProperties, CORBA::SystemException)
-    {
-        resync();
-        ExecutableDevice_impl::query(configProperties);
-    }
-
-    CF::DeviceSequence* devices() {
-        return 0;
-    }
 
 private:
     void loadProperties() {
@@ -108,6 +76,11 @@ private:
                     "",
                     "external",
                     "configure");
+
+        setPropertyQueryImpl(LD_LIBRARY_PATH, this, &TestDevice::get_LD_LIBRARY_PATH);
+        setPropertyQueryImpl(PYTHONPATH, this, &TestDevice::get_PYTHONPATH);
+        setPropertyQueryImpl(CLASSPATH, this, &TestDevice::get_CLASSPATH);
+        setPropertyQueryImpl(OCTAVE_PATH, this, &TestDevice::get_OCTAVE_PATH);
     }
 
     std::string getEnvVar(const char* name) {
@@ -119,11 +92,24 @@ private:
         return result;
     }
 
-    void resync() {
-        LD_LIBRARY_PATH = getEnvVar("LD_LIBRARY_PATH");
-        PYTHONPATH = getEnvVar("PYTHONPATH");
-        CLASSPATH = getEnvVar("CLASSPATH");
-        OCTAVE_PATH = getEnvVar("OCTAVE_PATH");
+    std::string get_LD_LIBRARY_PATH()
+    {
+        return getEnvVar("LD_LIBRARY_PATH");
+    }
+
+    std::string get_PYTHONPATH()
+    {
+        return getEnvVar("PYTHONPATH");
+    }
+
+    std::string get_CLASSPATH()
+    {
+        return getEnvVar("CLASSPATH");
+    }
+
+    std::string get_OCTAVE_PATH()
+    {
+        return getEnvVar("OCTAVE_PATH");
     }
 
     std::string LD_LIBRARY_PATH;
@@ -135,6 +121,14 @@ private:
 CREATE_LOGGER(ExecutableTestDevice)
 
 TestDevice *testDevice;
+
+void sigchld_catcher( int sig ) {
+    int status;
+    pid_t child_pid;
+
+    while( (child_pid = waitpid(-1, &status, WNOHANG)) > 0 ) {
+    }
+}
 
 void signal_catcher( int sig )
 {
@@ -152,8 +146,15 @@ void signal_catcher( int sig )
 int main(int argc, char *argv[])
 {
     struct sigaction sa;
-    sa.sa_handler = signal_catcher;
+    sa.sa_handler = sigchld_catcher;
     sa.sa_flags = 0;
 
+    // We need to catch sigchld 
+    if( sigaction( SIGCHLD, &sa, NULL ) == -1 ) {
+        exit(EXIT_FAILURE);
+    }
+
+    sa.sa_handler = signal_catcher;
+    sa.sa_flags = 0;
     Device_impl::start_device(&testDevice, sa, argc, argv);
 }

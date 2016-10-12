@@ -69,9 +69,9 @@ class HardFailTest(scatest.CorbaTestCase):
         #   - test that when a device fails hard (ex: seg fault or kill -9)
         #     that things still behave as expected
 
-        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
-        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, domMgr = self.launchDomainManager()
+        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml")
+        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml")
 
         devInfo = []
         devInfo.append({"booter":devBooterA, "mgr":devMgrA})
@@ -142,9 +142,9 @@ class HardFailTest(scatest.CorbaTestCase):
         #   - test that when a component fails hard (ex: seg fault or kill -9)
         #     that things still behave as expected
 
-        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
-        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, domMgr = self.launchDomainManager()
+        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml")
+        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml")
 
         devInfo = []
         devInfo.append({"booter":devBooterA, "mgr":devMgrA})
@@ -217,9 +217,9 @@ class HardFailTest(scatest.CorbaTestCase):
         #   - test that when a Device Manager fails hard (ex: seg fault or kill -9)
         #     that things still behave as expected
 
-        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
-        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, domMgr = self.launchDomainManager()
+        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml")
+        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml")
 
         devInfo = []
         devInfo.append({"booter":devBooterA, "mgr":devMgrA})
@@ -295,9 +295,9 @@ class HardFailTest(scatest.CorbaTestCase):
         #   - test that when a Device Manager fails hard (ex: seg fault or kill -9)
         #     and then it is restarted that things still behave as expected
 
-        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
-        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, domMgr = self.launchDomainManager()
+        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml")
+        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml")
 
         devInfo = []
         devInfo.append({"booter":devBooterA, "mgr":devMgrA})
@@ -346,11 +346,11 @@ class HardFailTest(scatest.CorbaTestCase):
 
         # relaunch device manager
         if devMgrToKill == 0:
-            devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
+            devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml")
             devInfo[0]['booter'] = devBooterA
             devInfo[0]['mgr'] = devMgrA
         else:
-            devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
+            devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml")
             devInfo[1]['booter'] = devBooterB
             devInfo[1]['mgr'] = devMgrB
 
@@ -362,9 +362,9 @@ class HardFailTest(scatest.CorbaTestCase):
         #   - test that when a DeviceManager and its devices and apps fail hard (ex: power failure)
         #     that things still behave as expected
 
-        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
-        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, domMgr = self.launchDomainManager()
+        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml")
+        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml")
 
         devInfo = []
         devInfo.append({"booter":devBooterA, "mgr":devMgrA})

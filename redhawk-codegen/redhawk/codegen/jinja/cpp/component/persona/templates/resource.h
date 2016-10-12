@@ -22,7 +22,7 @@
 /*{% endblock %}*/
 //% set className = component.userclass.name 
 //% set baseClass = component.reprogclass.name if component is device else component.baseclass.name
-//% set includeGuard = component.name.upper() + '_IMPL_H'
+//% set includeGuard = className.upper() + '_IMPL_H'
 #ifndef ${includeGuard}
 #define ${includeGuard}
 

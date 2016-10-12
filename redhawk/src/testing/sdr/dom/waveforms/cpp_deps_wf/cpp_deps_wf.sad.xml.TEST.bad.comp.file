@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:d17e0e1c-0d3b-465c-b0d3-862be070472b" name="cpp_deps_wf">
+  <componentfiles>
+    <componentfile id="cpp_with_deps_064d4af9-d912-493f-a264-81c787f58c23-OUCH" type="SPD">
+      <localfile name="/components/cpp_with_deps/cpp_with_deps.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="cpp_with_deps_064d4af9-d912-493f-a264-81c787f58c23"/>
+      <componentinstantiation id="cpp_with_deps_1" startorder="0">
+        <usagename>cpp_with_deps_1</usagename>
+        <findcomponent>
+          <namingservice name="cpp_with_deps_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="cpp_with_deps_064d4af9-d912-493f-a264-81c787f58c23"/>
+      <componentinstantiation id="cpp_with_deps_2" startorder="1">
+        <usagename>cpp_with_deps_2</usagename>
+        <findcomponent>
+          <namingservice name="cpp_with_deps_2"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="cpp_with_deps_064d4af9-d912-493f-a264-81c787f58c23"/>
+      <componentinstantiation id="cpp_with_deps_3" startorder="2">
+        <usagename>cpp_with_deps_3</usagename>
+        <findcomponent>
+          <namingservice name="cpp_with_deps_3"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="cpp_with_deps_1"/>
+  </assemblycontroller>
+</softwareassembly>

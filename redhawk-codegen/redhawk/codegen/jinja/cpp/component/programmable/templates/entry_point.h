@@ -20,7 +20,7 @@
 /*{% block license %}*/
 /*# Allow child templates to include license #*/
 /*{% endblock %}*/
-//% set includeGuard = component.name.upper() + '_ENTRY_POINTS_H'
+//% set includeGuard = component.name.upper().replace('.','') + '_ENTRY_POINTS_H'
 //% set executeClass = "Resource_impl" if component.executesHWComponents else "Device_impl"
 #ifndef ${includeGuard}
 #define ${includeGuard}

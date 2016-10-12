@@ -23,7 +23,7 @@ from code import SourceFile
 
 class CppFactory(code.Factory):
     def __init__ (self):
-        classes = (Code, Scope, If, Try, Class, Function, Namespace)
+        classes = (Code, Scope, If, Try, Class, Function, Switch, Namespace)
         super(CppFactory, self).__init__(*classes)
 
 Code = code.factoryclass(code.Code, CppFactory)
@@ -31,6 +31,7 @@ Scope = code.factoryclass(code.Scope, CppFactory)
 If = code.factoryclass(code.If, CppFactory)
 Try = code.factoryclass(code.Try, CppFactory)
 Function = code.factoryclass(code.Function, CppFactory)
+Switch = code.factoryclass(code.Switch, CppFactory)
 
 class Class(Scope):
     def __init__ (self, name, inherits=[]):

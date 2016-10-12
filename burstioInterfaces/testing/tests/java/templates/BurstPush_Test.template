@@ -526,8 +526,7 @@ public class Burst@name@Push_Test {
         };
 
 
-/*** 
-     REMOVED -- push burst seq not working for multiout
+ 
 	public void test_multiout( ) {
 
 	logger.debug("BURSTIO MULTIOUT  BEGIN: @name@");
@@ -622,7 +621,6 @@ public class Burst@name@Push_Test {
 		
 	logger.debug("BURSTIO MULTIOUT END: @name@");
     };
-***/
 
 
     @Test

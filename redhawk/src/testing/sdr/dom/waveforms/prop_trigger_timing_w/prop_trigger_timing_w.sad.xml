@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:0a104b1d-067b-42a1-9baf-df30b3769055" name="prop_trigger_timing_w">
+  <componentfiles>
+    <componentfile id="prop_trigger_timing_9e710b7e-52d4-4705-993e-c53f2cc953b3" type="SPD">
+      <localfile name="/components/prop_trigger_timing/prop_trigger_timing.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="prop_trigger_timing_9e710b7e-52d4-4705-993e-c53f2cc953b3"/>
+      <componentinstantiation id="prop_trigger_timing_1" startorder="0">
+        <usagename>prop_trigger_timing_1</usagename>
+        <componentproperties>
+          <structsequenceref refid="prop_4">
+            <structvalue>
+              <simpleref refid="prop_4_b" value="hello"/>
+            </structvalue>
+          </structsequenceref>
+          <simpleref refid="prop_1" value="hello"/>
+          <structref refid="prop_3">
+            <simpleref refid="prop_3_a" value="hello"/>
+          </structref>
+          <simplesequenceref refid="prop_2">
+            <values>
+              <value>hello</value>
+            </values>
+          </simplesequenceref>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="prop_trigger_timing_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="prop_trigger_timing_1"/>
+  </assemblycontroller>
+</softwareassembly>

@@ -32,6 +32,6 @@ class PersonaComponentMapper(PullComponentMapper):
 
     @staticmethod
     def personaClass(softpkg):
-        personaclass = softpkg.name() + '_persona_base'
+        personaclass = softpkg.basename() + '_persona_base'
         return {'name'  : personaclass,
                 'file'  : personaclass+'.py'}

@@ -1,0 +1,227 @@
+
+#ifndef CF_EVT_CH_MGR_IDL
+#define CF_EVT_CH_MGR_IDL
+
+
+/**  
+     The EventChannelManager shall support the following 
+
+         //
+         // Create and Release Event Channel object
+         //
+         EventChannel create( in string channel_name )
+          Create an named Event Channel in the Domain for use by others. These 
+          channels will exists until release is call against the channel or the 
+          Domain Manager process terminates.
+
+         EventChannel createForRegistrations( in string channel_name )
+          Create an Event Channel in the Domain.  The Event  Channel
+          will automatically cleanup when all registrants have unregistered.
+
+         markForRegistrations( in string channel_name )
+          Mark an Event Channel for registrations, thus it will
+          automatically cleanup when all registrants have unregistered.
+
+         release( in string channel_name )
+          Release the Event Channel for use, invalidate future registrations
+          and remove the channel when all registrants have been unregistered
+
+         //         
+         // Register and Unregister from an Event Channel 
+         //
+
+         EventChannelReg register( in EventRegistration request ) 
+          Request a registration for an Event Channel.  Registrants can provide a 
+          registration id or have on generated for them. If a registration id 
+          is provided, then this id must be unique for all registrations against
+          a specific channel.
+                  
+         unregister ( in EventRegistration request )
+          Unregister from a channel using the registration record returned from 
+          the register method
+
+
+         //
+         // Introspection of Event Channels
+         //
+
+         listChannels( in int how_many, 
+                       out EventChannelInfoList elist )
+                       out EventChannelInfoIterator eiter )
+          Provide users the ability to iterator over the Event Channels being 
+          managed by this Domain
+                  
+
+         listRegistrants( in string channel_name,
+                        in int how_many, 
+                       out EventRegistrantList rlist )
+                       out EventRegistrantIterator riter )
+            Return a list of registrants for a specified Event Channel
+
+
+*/
+#include <COS/CosEventComm.idl>
+#include <COS/CosEventChannelAdmin.idl>
+
+
+
+module CF {
+
+  interface EventChannelInfoIterator;
+  interface EventRegistrantIterator;
+
+  /**
+
+
+   */
+  typedef CosEventChannelAdmin::EventChannel        EventChannel;
+  typedef CosEventChannelAdmin::ProxyPushConsumer   EventPublisher;
+  typedef CosEventChannelAdmin::ProxyPushSupplier   EventSubscriber;
+
+  /**
+     EventChannelManager Interface
+  */
+  interface EventChannelManager {
+
+    struct EventChannelInfo {
+      string          channel_name;
+      long            reg_count;
+    };
+  
+    typedef sequence< EventChannelInfo >          EventChannelInfoList;
+
+    struct EventRegistrant {
+      string              channel_name;
+      string              reg_id;
+    };
+
+    typedef sequence< EventRegistrant >           EventRegistrantList;
+
+
+    struct EventRegistration {
+      string                                   channel_name;
+      string                                   reg_id;
+    };    
+
+    struct EventChannelReg {
+      EventRegistration                        reg;
+      CosEventChannelAdmin::EventChannel       channel;
+    };    
+
+
+    /**
+       Exceptions for EventChannelManager Interface
+    */
+    exception  ChannelAlreadyExists {};
+    exception  ChannelDoesNotExist {};
+    exception  InvalidChannelName {};
+    exception  OperationFailed {};
+    exception  OperationNotAllowed {};
+    exception  ServiceUnavailable {};
+    exception  RegistrationsExists {};
+    exception  RegistrationAlreadyExists {};
+    exception  RegistrationDoesNotExist {};
+
+    /**
+       create
+       
+       Creates an Event Channel construct with the contents of the parameter channel_name 
+       in the Domain associate with this Manager.  Event channel names must be unique across the entire domain.
+       Event Channels created with this manager's interface will remain available for use during the entire duration the Domain
+       Manager's execution.  Event channels can be removed with the release method.
+       
+       @param  channel_name   name of channel to create
+       @return EventChannel   returns an EventChannel
+    */
+    EventChannel  create( in string channel_name  )  
+      raises ( ChannelAlreadyExists, 
+               OperationNotAllowed, 
+               OperationFailed,
+               ServiceUnavailable );
+
+    /**
+       Create an Event Channel in the Domain assocaited with the Manager. Event Channel names must be unique across the
+       Domain.  If this channels is used by registrations when all registrants have unregistered the channel resources
+       will be released.
+    */
+    EventChannel  createForRegistrations( in string channel_name  )  
+      raises ( ChannelAlreadyExists, 
+               OperationNotAllowed, 
+               OperationFailed,
+               ServiceUnavailable );
+
+    /**
+       Mark a channel for deletion when all registrants have unregistered
+     */
+    void       markForRegistrations( in string channel_name  )  
+      raises ( ChannelDoesNotExist, 
+               OperationNotAllowed, 
+               OperationFailed,
+               ServiceUnavailable );
+
+    /**
+       Release the event channel from the domain. Mark the event channel for removal and disallow any future registrations
+       against the channel. When all existing registrants are unregistered then remove the channel.
+    */
+    void release( in string  channel_name  ) 
+      raises ( ChannelDoesNotExist, 
+               RegistrationsExists, 
+               OperationNotAllowed, 
+               OperationFailed,
+               ServiceUnavailable );
+
+
+    /**
+       Register an association  with an Event Channel.  
+  
+       Look up the registration against the current list for a match, if one exists then 
+       throw RegistrationAlreadyExists
+  
+       Look for an existing Event Channel object being managed. If the Event Channel
+       is not found then add a new Event Channel object 
+  
+    */
+    EventChannelReg registerResource( in EventRegistration req)  
+          raises ( InvalidChannelName, 
+                   RegistrationAlreadyExists,
+               OperationFailed,
+               OperationNotAllowed,
+               ServiceUnavailable );         
+
+    /**
+       Unregister a from an event channel and invalidates the context
+    */
+    void unregister( in EventRegistration reg ) 
+      raises ( ChannelDoesNotExist,
+               RegistrationDoesNotExist,
+               ServiceUnavailable
+               );
+
+    void listChannels( in unsigned long how_many, 
+                       out EventChannelInfoList elist,
+                       out EventChannelInfoIterator eiter );
+
+    void listRegistrants( in string channel_name,
+                          in unsigned long   how_many, 
+                          out EventRegistrantList rlist,
+                          out EventRegistrantIterator riter );
+  };
+
+  interface EventChannelInfoIterator {
+    boolean next_one ( out EventChannelManager::EventChannelInfo eci );
+    boolean next_n (  in unsigned long how_many, 
+                      out EventChannelManager::EventChannelInfoList ecil );
+    void destroy();
+  };
+
+  interface EventRegistrantIterator {
+    boolean next_one ( out EventChannelManager::EventRegistrant er );
+    boolean next_n ( in unsigned long how_many, 
+                     out EventChannelManager::EventRegistrantList erl);
+    void destroy();
+  };
+  
+};    // end of Module CF 
+
+
+#endif

@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Lesser General Public License 
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  #*/
-//% set includeGuard = component.name.upper() + '_IMPL_BASE_H'
 //% set className = component.baseclass.name
+//% set includeGuard = className.upper() + '_IMPL_BASE_H'
 /*{% block license %}*/
 /*# Allow child templates to include license #*/
 /*{% endblock %}*/
@@ -99,6 +99,12 @@ class ${className} : public ${component.superclasses|join(', public ', attribute
 /*{%   if loop.first %}*/
         // Member variables exposed as properties
 /*{%   endif %}*/
+/*{% if prop.kinds|join('') == "message" %}*/
+        /// Message structure definition for ${prop.cppname}
+/*{% endif %}*/
+/*{% if prop.kinds|join('') != "message" %}*/
+        /// Property: ${prop.cppname}
+/*{% endif %}*/
         ${prop.cpptype} ${prop.cppname};
 /*{% endfor %}*/
 /*{% for port in component.ports %}*/
@@ -106,6 +112,7 @@ class ${className} : public ${component.superclasses|join(', public ', attribute
 
         // Ports
 /*{%   endif %}*/
+        /// Port: ${port.cppname}
         ${port.cpptype} *${port.cppname};
 /*{% endfor %}*/
 /*{% endblock %}*/

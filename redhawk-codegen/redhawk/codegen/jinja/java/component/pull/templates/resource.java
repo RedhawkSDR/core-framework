@@ -26,6 +26,9 @@
 package ${component.package};
 
 import java.util.Properties;
+/*{% block mainadditionalimports %}*/
+/*# Allow for child class imports #*/
+/*{% endblock %}*/
 
 /**
  * This is the ${artifactType} code. This file contains the derived class where custom
@@ -37,9 +40,10 @@ import java.util.Properties;
  */
 public class ${classname} extends ${baseclass} {
     /**
-     * This is the ${artifactType} constructor. In this method, you may add additional
-     * functionality to properties, such as listening for changes and handling
-     * allocation, and set up internal state for your ${artifactType}.
+     * This is the ${artifactType} constructor. In this method, you may add
+     * additional functionality to properties such as listening for changes
+     * or handling allocation, register message handlers and set up internal
+     * state for your ${artifactType}.
      *
      * A ${artifactType} may listen for external changes to properties (i.e., by a
      * call to configure) using the PropertyListener interface. Listeners are
@@ -100,10 +104,129 @@ public class ${classname} extends ${baseclass} {
      * to contain only glue code to dispatch the call to private methods on the
      * device class.
 //% endif
+//% if component is device
+     * Accessing the Device Manager and Domain Manager:
+     * 
+     *  Both the Device Manager hosting this Device and the Domain Manager hosting
+     *  the Device Manager are available to the Device.
+     *  
+     *  To access the Domain Manager:
+     *      CF.DomainManager dommgr = this.getDomainManager().getRef();
+     *  To access the Device Manager:
+     *      CF.DeviceManager devmgr = this.getDeviceManager().getRef();
+//% else
+     * Accessing the Application and Domain Manager:
+     * 
+     *  Both the Application hosting this Component and the Domain Manager hosting
+     *  the Application are available to the Component.
+     *  
+     *  To access the Domain Manager:
+     *      CF.DomainManager dommgr = this.getDomainManager().getRef();
+     *  To access the Application:
+     *      CF.Application app = this.getApplication().getRef();
+//% endif
+     *
+     * Messages:
+     *
+     *   To send or receive messages, you must have at least one message
+     *   prototype described as a struct property of kind "message."
+     *
+     *   Receiving:
+     *
+     *   To receive a message, you must have an input port of type MessageEvent
+     *   (marked as "bi-dir" in the Ports editor). For each message type the
+     *   component supports, you must register a message handler callback with
+     *   the message input port. Message handlers implement the MessageListener
+     *   interface.
+     *
+     *   A callback is registered by calling registerMessage() on the message
+     *   input port with the message ID, the message struct's Class object and
+     *   an object that implements the MessageListener interface for that
+     *   message struct (e.g., "MessageListener<my_message_struct>" for a
+     *   message named "my_message").
+     *
+     *     Example:
+     *       // Assume the component has a message type called "my_message" and
+     *       // an input MessageEvent port called "message_in".
+     *       // Add the following to the top of the file:
+     *       import org.ossie.events.MessageListener;
+     *
+     *       // Register the callback in the class constructor:
+     *       this.message_in.registerMessage("my_message", my_message_struct.class, new MessageListener<my_message_struct>() {
+     *           public void messageReceived(String messageId, my_message_struct messageData) {
+     *               my_message_received(messageData);
+     *           }
+     *       });
+     *
+     *       // Implement the message handler method:
+     *       private void my_message_received(my_message_struct messageData) {
+     *           // Respond to the message
+     *       }
+     *
+     *   The recommended practice is for the implementation of messageReceived()
+     *   to contain only glue code to dispatch the call to a private method on
+     *   the component class.
+     *
+     *   Sending:
+     *
+     *   To send a message, you must have an output port of type MessageEvent.
+     *   Create an instance of the message struct type and call sendMessage()
+     *   to send a single message.
+     *
+     *     Example:
+     *       // Assume the component has a message type called "my_message" and
+     *       // an output MessageEvent port called "message_out".
+     *       my_message_struct message = new my_message_struct();
+     *       this.message_out.sendMessage(message);
+     *
+     *    You may also send a batch of messages at once with the sendMessages()
+     *    method.
      */
-    public ${classname}() {
+
+    public ${classname}()
+    {
         super();
     }
+
+    public void constructor()
+    {
+/*{% if 'FrontendTuner' in component.implements %}*/
+    /**************************************************************************
+    
+     For a tuner device, the structure frontend_tuner_status needs to match the number
+     of tuners that this device controls and what kind of device it is.
+     The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
+     
+     For example, if this device has 5 physical
+     tuners, each an RX_DIGITIZER, then the code in the construct function should look like this:
+
+     this.setNumChannels(5, "RX_DIGITIZER");
+     
+     The incoming request for tuning contains a string describing the requested tuner
+     type. The string for the request must match the string in the tuner status.
+     
+    **************************************************************************/
+    this.setNumChannels(1, "RX_DIGITIZER");
+/*{% endif %}*/
+    }
+
+/*{% if component is device %}*/
+/*{%   block updateUsageState %}*/
+    /**************************************************************************
+
+         This is called automatically after allocateCapacity or deallocateCapacity are called.
+         Your implementation should determine the current state of the device:
+
+            setUsageState(CF.DevicePackage.UsageType.IDLE);   // not in use
+            setUsageState(CF.DevicePackage.UsageType.ACTIVE); // in use, with capacity remaining for allocation
+            setUsageState(CF.DevicePackage.UsageType.BUSY);   // in use, with no capacity remaining for allocation
+
+     ***************************************************************************/
+    protected void updateUsageState()
+    {
+    }
+/*{%   endblock %}*/
+/*{% endif %}*/
 
     /**
      *
@@ -229,4 +352,8 @@ public class ${classname} extends ${baseclass} {
      */
     public static void configureOrb(final Properties orbProps) {
     }
+
+/*{% block extensions %}*/
+/*# Allow for child class extensions #*/
+/*{% endblock %}*/
 }

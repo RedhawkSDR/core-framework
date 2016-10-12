@@ -41,7 +41,7 @@ import CosNaming
 import re
 import tempfile
 import buildconfig
-
+import runtestHelpers
 import commands
 
 _DCEUUID_RE = re.compile("DCE:[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
@@ -64,6 +64,8 @@ def getSdrCache():
 def getDatPath():
    return os.path.join(os.getcwd(), "dat")
 
+def hasJavaSupport():
+    return runtestHelpers.haveJavaSupport('../Makefile')
 
 def persistenceEnabled():
     for backend in ( "BDB", "GDBM", "SQLITE" ):
@@ -85,6 +87,13 @@ def getDomainMgrURI():
     domainName = getTestDomainName()
     return URI.stringToName("%s/%s" % (domainName, domainName))
 
+def getExecDeviceNode():
+    return "/nodes/test_GPP_node/DeviceManager.dcd.xml"
+
+def getExecDevice():
+    return "GPP_node"
+
+
 def getLogConfig():
     return os.environ['OSSIEUNITTESTSLOGCONFIG']
 
@@ -104,6 +113,7 @@ def updateLink(source, target):
     if not os.path.exists(target):
         # Do not replace existing files.
         os.symlink(source, target)
+
 
 def setupDeviceAndDomainMgrPackage():
     # Point to the SDR source directory for the DomainManager and
@@ -145,6 +155,16 @@ def createTestDomain():
     dmd.close()
 
     setupDeviceAndDomainMgrPackage()
+
+def which(command):
+    """
+    Searches the path for the executable specified in 'command'.
+    """
+    for path in os.environ['PATH'].split(os.pathsep):
+        execpath = os.path.join(path, command)
+        if os.path.isfile(execpath) and os.access(execpath, os.X_OK):
+            return execpath
+    return None
 
 
 DEBUG_NODEBOOTER=False
@@ -307,7 +327,7 @@ class CorbaTestCase(OssieTestCase):
     def __init__(self, methodName='runTest', orbArgs=[]):
         unittest.TestCase.__init__(self, methodName)
         args = sys.argv
-        self.debuglevel = 9
+        self.debuglevel = 3
         for arg in args:
             if '--debuglevel' in arg:
                 self.debuglevel = arg.split('=')[-1]
@@ -409,6 +429,9 @@ class CorbaTestCase(OssieTestCase):
         if self._domainBooter and self._domainBooter.poll() == None:
             return (self._domainBooter, self._domainManager)
 
+        # If debug level is not given, default to configured level
+        kwargs.setdefault('debug', self.debuglevel)
+
         # Launch the nodebooter.
         self._domainBooter = spawnNodeBooter(dmdFile=dmdFile, execparams=self._execparams, *args, **kwargs)
         while self._domainBooter.poll() == None:
@@ -428,6 +451,9 @@ class CorbaTestCase(OssieTestCase):
         except IOError:
             print "ERROR: Invalid DCD path provided to launchDeviceManager", dcdFile
             return (None, None)
+
+        # If debug level is not given, default to configured level
+        kwargs.setdefault('debug', self.debuglevel)
 
         # Launch the nodebooter.
         if domainManager == None:
@@ -495,15 +521,22 @@ class CorbaTestCase(OssieTestCase):
 
     def terminateChild(self, child, signals=(signal.SIGINT, signal.SIGTERM)):
         if child.poll() != None:
-            return
+           return
         try:
+            #self.waitTermination(child)
+            
             for sig in signals:
+                #print "sending signal " + str(sig) + " to pid:" + str(child.pid)
                 os.kill(child.pid, sig)
                 if self.waitTermination(child):
                     break
             child.wait()
-        except OSError:
+        except OSError, e:
+            #print "terminateChild: pid:" + str(child.pid) + " OS ERROR:" + str(e)
             pass
+        finally:
+            pass
+
 
     def terminateChildrenPidOnly(self, pid, signals=(signal.SIGINT, signal.SIGTERM)):
         ls = commands.getoutput('ls /proc')

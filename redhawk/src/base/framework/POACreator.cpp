@@ -24,7 +24,7 @@
 
 using namespace ossie::corba;
 
-PREPARE_LOGGING(POACreator);
+PREPARE_CF_LOGGING(POACreator);
 
 CORBA::Boolean POACreator::unknown_adapter (PortableServer::POA_ptr parent, const char* name)
     throw (CORBA::SystemException)

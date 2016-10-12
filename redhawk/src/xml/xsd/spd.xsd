@@ -166,7 +166,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 			<xs:element name="structsequenceref" type="structsequenceref" ecore:name="structSequenceRef"/>
 		</xs:choice>
 		<xs:attribute ecore:id="true" name="id" use="required" type="xs:string"/>
-		<xs:attribute name="type" use="required" type="xs:string"/>
+		<xs:attribute name="type" use="optional" type="xs:string"/>
 	</xs:complexType>
         <!-- REDHAWK extension: support any property type dependency -->
 	<xs:complexType name="simpleref">
@@ -181,7 +181,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	</xs:complexType>
 	<xs:complexType name="structref">
 		<xs:sequence>
-			<xs:element name="simpleref" type="simpleref" maxOccurs="unbounded" ecore:name="simpleRef"/>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="simpleref" type="simpleref" ecore:name="simpleRef"/>
+				<xs:element name="simplesequenceref" type="simplesequenceref" ecore:name="simpleSequenceRef"/>
+			</xs:choice>
 		</xs:sequence>
 		<xs:attribute name="refid" use="required" type="xs:string" ecore:name="refId"/>
 	</xs:complexType>
@@ -193,7 +196,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	</xs:complexType>
 	<xs:complexType name="structvalue">
 		<xs:sequence>
-			<xs:element name="simpleref" type="simpleref" maxOccurs="unbounded" ecore:name="simpleRef"/>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="simpleref" type="simpleref" ecore:name="simpleRef"/>
+				<xs:element name="simplesequenceref" type="simplesequenceref" ecore:name="simpleSequenceRef"/>
+			</xs:choice>
 		</xs:sequence>
 	</xs:complexType>
 	<xs:complexType name="values">

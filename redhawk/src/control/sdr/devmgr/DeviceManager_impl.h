@@ -27,34 +27,32 @@
 
 #include <boost/thread/recursive_mutex.hpp>
 
-#include <COS/CosEventChannelAdmin.hh>
+//#include <COS/CosEventChannelAdmin.hh>
 
 #include <ossie/ComponentDescriptor.h>
 #include <ossie/ossieSupport.h>
 #include <ossie/DeviceManagerConfiguration.h>
 #include <ossie/PropertySet_impl.h>
-#include <ossie/PortSupplier_impl.h>
+#include <ossie/PortSet_impl.h>
 #include <ossie/FileManager_impl.h>
 #include <ossie/Properties.h>
 #include <ossie/SoftPkg.h>
+#include <ossie/Events.h>
+#include <ossie/affinity.h>
 
 #include <dirent.h>
 
 class DeviceManager_impl: 
     public virtual POA_CF::DeviceManager,
     public PropertySet_impl,
-    public PortSupplier_impl
+    public PortSet_impl
 {
     ENABLE_LOGGING
 
 public:
-    DeviceManager_impl (const char*, const char*, const char*, const char*, struct utsname uname, bool *);
+  DeviceManager_impl (const char*, const char*, const char*, const char*, struct utsname uname, bool, const char *, bool *);
 
-    // Run this after the constructor and the caller has created the object reference
-    void post_constructor(CF::DeviceManager_var, const char*) throw (CORBA::SystemException, std::runtime_error);
-
-    ~
-    DeviceManager_impl ();
+    ~DeviceManager_impl ();
     char* deviceConfigurationProfile ()
         throw (CORBA::SystemException);
 
@@ -67,11 +65,17 @@ public:
     char* label ()
         throw (CORBA::SystemException);
 
+    CF::DomainManager_ptr domMgr ()
+        throw (CORBA::SystemException);
+
     CF::DeviceSequence * registeredDevices ()
         throw (CORBA::SystemException);
 
     CF::DeviceManager::ServiceSequence * registeredServices ()
         throw (CORBA::SystemException);
+
+    // Run this after the constructor
+    void postConstructor( const char*) throw (CORBA::SystemException, std::runtime_error);
 
     void registerDevice (CF::Device_ptr registeringDevice)
         throw (CF::InvalidObjectReference, CORBA::SystemException);
@@ -95,9 +99,13 @@ public:
     char* _local_getComponentImplementationId (const char* componentInstantiationId)
         throw (CORBA::SystemException);
 
+    bool getUseLogConfigResolver() { return _useLogConfigUriResolver; };
+
     void childExited (pid_t pid, int status);
 
     bool allChildrenExited ();
+
+    bool isShutdown() { return  _adminState == DEVMGR_SHUTDOWN; };
 
 private:
     DeviceManager_impl ();   // No default constructor
@@ -136,6 +144,7 @@ private:
     StringProperty* logging_config_prop;
     std::string     HOSTNAME;
     std::string logging_uri;
+    float       DEVICE_FORCE_QUIT_TIME;
     
 // read only attributes
     struct utsname _uname;
@@ -144,6 +153,7 @@ private:
     std::string _deviceConfigurationProfile;
     std::string _fsroot;
     std::string _cacheroot;
+    redhawk::affinity::CpuList cpu_blacklist;
 
     std::string _domainName;
     std::string _domainManagerName;
@@ -224,8 +234,10 @@ private:
     
     void getOverloadprops(
         std::map<std::string, std::string>&           overloadprops, 
-        const std::vector<ossie::ComponentProperty*>& instanceprops,
+        const ossie::ComponentPropertyList&           instanceprops,
         const ossie::Properties&                      deviceProperties);
+
+    CF::Properties getResourceOptions( const ossie::ComponentInstantiation& instantiation);
 
     bool loadScdToParser(
         ossie::ComponentDescriptor& scdParser, 
@@ -243,7 +255,7 @@ private:
         const ossie::ComponentInstantiation& instantiation);
 
     void createDeviceExecStatement(
-        const char*                                   new_argv[], 
+        std::vector< std::string >&                   new_argv,
         const ossie::ComponentPlacement&              componentPlacement,
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
@@ -253,7 +265,7 @@ private:
         const std::string&                            usageName,
         const std::vector<ossie::ComponentPlacement>& componentPlacements,
         const std::string&                            compositeDeviceIOR,
-        const std::vector<ossie::ComponentProperty*>& instanceprops) ;
+        const ossie::ComponentPropertyList&           instanceprops) ;
 
     void createDeviceThreadAndHandleExceptions(
         const ossie::ComponentPlacement&              componentPlacement,
@@ -265,7 +277,7 @@ private:
         const ossie::ComponentInstantiation&          instantiation,
         const std::vector<ossie::ComponentPlacement>& componentPlacements,
         const std::string&                            compositeDeviceIOR,
-        const std::vector<ossie::ComponentProperty*>& instanceprops);
+        const ossie::ComponentPropertyList&           instanceprops);
 
     void createDeviceThread(
         const ossie::ComponentPlacement&              componentPlacement,
@@ -279,7 +291,7 @@ private:
         const std::string&                            usageName,
         const std::vector<ossie::ComponentPlacement>& componentPlacements,
         const std::string&                            compositeDeviceIOR,
-        const std::vector<ossie::ComponentProperty*>& instanceprops);
+        const ossie::ComponentPropertyList&           instanceprops);
 
     typedef std::list<std::pair<std::string,std::string> > ExecparamList;
 
@@ -292,7 +304,7 @@ private:
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            usageName,
         const std::string&                            compositeDeviceIOR,
-        const std::vector<ossie::ComponentProperty*>& instanceprops);
+        const ossie::ComponentPropertyList&           instanceprops);
 
     bool loadSPD(
         ossie::SoftPkg&                    SPDParser,
@@ -337,7 +349,7 @@ private:
     std::string deviceMgrIOR;
     std::string fileSysIOR;
     bool *_internalShutdown;
-
+    bool _useLogConfigUriResolver;   
     bool skip_fork;
 
     // this mutex is used for synchronizing _registeredDevices, labelTable, and identifierTable
@@ -345,8 +357,9 @@ private:
 
     std::map<std::string, std::string> _componentImplMap;
 
-    CosEventChannelAdmin::EventChannel_var IDM_channel;
-    std::string IDM_IOR;
+    // Registration record for Domain's IDM_Channel 
+    ossie::events::EventChannelReg_var   idm_registration;
+    std::string                          IDM_IOR;
 
 };
 

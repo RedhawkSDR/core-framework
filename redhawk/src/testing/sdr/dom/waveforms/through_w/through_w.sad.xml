@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:4e123b8d-c30d-4fa7-9cb6-567fb3e0377d" name="through_w">
+  <componentfiles>
+    <componentfile id="through_fb486297-9f04-4f2d-9c49-1850687ea63e" type="SPD">
+      <localfile name="/components/through/through.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <hostcollocation name="foo">
+      <componentplacement>
+        <componentfileref refid="through_fb486297-9f04-4f2d-9c49-1850687ea63e"/>
+        <componentinstantiation id="through_1" startorder="0">
+          <usagename>through_1</usagename>
+          <findcomponent>
+            <namingservice name="through_1"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+    </hostcollocation>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="through_1"/>
+  </assemblycontroller>
+  <externalports>
+    <port>
+      <providesidentifier>input</providesidentifier>
+      <componentinstantiationref refid="through_1"/>
+    </port>
+    <port>
+      <usesidentifier>output</usesidentifier>
+      <componentinstantiationref refid="through_1"/>
+    </port>
+  </externalports>
+</softwareassembly>

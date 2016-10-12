@@ -18,8 +18,10 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from redhawk.codegen.jinja.project.component.mapping import ProjectMapper
-import os
+from redhawk.codegen.jinja.mapping import ProjectMapper
 
 class DependencyProjectMapper(ProjectMapper):
-    pass
+    def _mapComponent(self, spd):
+        component = {}
+        component['specfile'] = spd.name()+'.spec'
+        return component

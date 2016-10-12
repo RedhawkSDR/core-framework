@@ -22,6 +22,7 @@
 #define _SANDBOX_IDL_
 
 #pragma prefix "redhawk.gov"
+#include "ossie/CF/DataType.idl"
 #include "ossie/CF/cf.idl"
 #include <COS/CosNaming.idl>
 

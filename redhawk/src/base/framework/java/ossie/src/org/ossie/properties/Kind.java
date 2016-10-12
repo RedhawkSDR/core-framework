@@ -22,6 +22,7 @@ package org.ossie.properties;
 
 public enum Kind {
     ALLOCATION("allocation"),
+    PROPERTY("property"),
     CONFIGURE("configure"),
     TEST("test"),
     EXECPARAM("execparam"),

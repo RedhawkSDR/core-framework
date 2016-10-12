@@ -30,7 +30,7 @@
 #include <ossie/prop_helpers.h>
 #include <ossie/BULKIO/bio_runtimeStats.h>
 
-#include "bulkio.h"
+#include "bulkio_base.h"
 #define CORBA_MAX_TRANSFER_BYTES omniORB::giopMaxMsgSize()
 
 #ifdef LOGGING

@@ -29,20 +29,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.HashSet;
-import org.omg.CORBA.TCKind;
-import org.ossie.properties.AnyUtils;
 import org.ossie.component.QueryableUsesPort;
 import org.apache.log4j.Logger;
 import CF.DataType;
 import CF.PropertiesHelper;
-import java.util.ArrayDeque;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
-import BULKIO.UsesPortStatistics;
-import ExtendedCF.UsesConnection;
-import BULKIO.PortUsageType;
 import BULKIO.dataVITA49Package.AttachError;
 import BULKIO.dataVITA49Package.DetachError;
 import BULKIO.dataVITA49Package.InputUsageState;
@@ -62,62 +54,17 @@ import bulkio.vita49.VITA49StreamAttachment;
 /**
  * @generated
  */
-public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
-
-    /**
-     * @generated
-     */
-    protected String name;
-
-    /**
-     * @generated
-     */
-    protected Object updatingPortsLock;
-
-    /**
-     * @generated
-     */
-    protected boolean active;
+public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
 
     /**
      * @generated
      */
     protected String userId;
 
-
-    /**
-     * Map of connection Ids to port objects
-     * @generated
-     */
-    protected Map<String, dataVITA49Operations> outConnections = null;
-
-    /**
-     * Map of connection ID to statistics
-     * @generated
-     */
-    protected Map<String, linkStatistics > stats;
-
-    /**
-     * Map of stream IDs to SriMapStruct 
-     * @generated
-     */
-    protected Map<String, SriMapStruct > currentSRIs;
-
     /**
      * @generated
      */
     protected VITA49StreamContainer streamContainer;
-
-    /**
-     *
-     */
-    protected Logger   logger = null;
-
-
-    /**
-     *
-     */
-    protected ConnectionEventListener callback = null;
 
     protected List<connection_descriptor_struct> filterTable = null;
 
@@ -136,15 +83,8 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
     public OutVITA49Port(String portName,
 		       Logger logger,
 		       ConnectionEventListener  eventCB ) {
-        this.name = portName;
-        this.updatingPortsLock = new Object();
-        this.active = false;
-        this.outConnections = new HashMap<String, BULKIO.dataVITA49Operations>();
-        this.stats = new HashMap<String, linkStatistics>();
-        this.currentSRIs = new HashMap<String, SriMapStruct>();
-	this.logger = logger;
+        super(portName, logger, eventCB);
         this.filterTable = null;
-	this.callback = eventCB;
         this.streamContainer = new VITA49StreamContainer();
         this.userId = new String("defaultUserId");
 	if ( this.logger != null ) {
@@ -153,6 +93,7 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
 	}
     }
 
+    @Override
     public void setLogger( Logger newlogger ){
         synchronized (this.updatingPortsLock) {
 	    logger = newlogger;
@@ -160,92 +101,6 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
 	}
     }
 
-    public void setConnectionEventListener( ConnectionEventListener newListener ){
-        synchronized (this.updatingPortsLock) {
-	    callback = newListener;
-	}
-    }
-
-    /**
-     * @generated
-     */
-    public PortUsageType state() {
-        PortUsageType state = PortUsageType.IDLE;
-
-        if (this.outConnections.size() > 0) {
-            state = PortUsageType.ACTIVE;
-        }
-
-        return state;
-    }
-
-    /**
-     * @generated
-     */
-    public void enableStats(final boolean enable)
-    {
-        for (String connId : outConnections.keySet()) {
-            stats.get(connId).setEnabled(enable);
-        }
-    };
-
-    /**
-     * @generated
-     */
-    public UsesPortStatistics[] statistics() {
-        UsesPortStatistics[] portStats = new UsesPortStatistics[this.outConnections.size()];
-        int i = 0;
-        
-        synchronized (this.updatingPortsLock) {
-            for (String connId : this.outConnections.keySet()) {
-                portStats[i++] = new UsesPortStatistics(connId, this.stats.get(connId).retrieve());
-            }
-        }
-        
-        return portStats;
-    }
-
-    /**
-     * @generated
-     */
-    public StreamSRI[] activeSRIs() 
-    {
-        ArrayList<StreamSRI> sriList = new ArrayList<StreamSRI>();
-        for(Map.Entry<String, SriMapStruct > entry: this.currentSRIs.entrySet()) {
-            SriMapStruct srimap = entry.getValue();
-            sriList.add(srimap.sri);
-        }
-        return sriList.toArray(new StreamSRI[0]);
-    }
-
-    /**
-     * @generated
-     */
-    public boolean isActive() {
-        return this.active;
-    }
-
-    /**
-     * @generated
-     */
-    public void setActive(final boolean active) {
-        this.active = active;
-    }
-
-    /**
-     * @generated
-     */
-    public String getName() {
-        return this.name;
-    }
-
-    /**
-     * @generated
-     */
-    public HashMap<String, BULKIO.dataVITA49Operations> getPorts() {
-        return new HashMap<String, dataVITA49Operations>();
-    }
- 
     /**
      * pushSRI
      *     description: send out SRI describing the data payload
@@ -658,20 +513,6 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
     /**
      * @generated
      */
-    public UsesConnection[] connections() {
-        final UsesConnection[] connList = new UsesConnection[this.outConnections.size()];
-        int i = 0;
-        synchronized (this.updatingPortsLock) {
-            for (Entry<String, dataVITA49Operations> ent : this.outConnections.entrySet()) {
-                connList[i++] = new UsesConnection(ent.getKey(), (org.omg.CORBA.Object) ent.getValue());
-            }
-        }
-        return connList;
-    }
-
-    /**
-     * @generated
-     */
     public BULKIO.VITA49StreamDefinition[] getStreamDefinition(final String attachId)
     {
         ArrayList<VITA49Stream> streamList  = new ArrayList<VITA49Stream>(Arrays.asList(this.streamContainer.findByAttachId(attachId)));
@@ -904,4 +745,7 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
         }
     }
 
+	public String getRepid() {
+		return BULKIO.dataVITA49Helper.id();
+	}
 }

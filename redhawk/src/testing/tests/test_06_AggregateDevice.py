@@ -28,13 +28,13 @@ from test_09_HardFail import getChildren
 
 class DeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):
-        self._nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self._nodebooter, self._domMgr = self.launchDomainManager()
 
     def tearDown(self):
         scatest.CorbaTestCase.tearDown(self)
 
     def _setupDevices(self, nodeName):
-        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_%s_node/DeviceManager.dcd.xml" % (nodeName,), debug=self.debuglevel)
+        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_%s_node/DeviceManager.dcd.xml" % (nodeName,))
         self.assertNotEqual(self._devMgr, None)
 
         self._parentDevice = None

@@ -21,9 +21,11 @@
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/base/include
 
 noinst_LTLIBRARIES = libossiedomain.la
-libossiedomain_la_SOURCES = File_impl.cpp \
+libossiedomain_la_SOURCES = CorbaGC.cpp \
+                            File_impl.cpp \
                             FileManager_impl.cpp \
                             FileSystem_impl.cpp \
+                            GCThread.cpp \
                             helperFunctions.cpp \
                             POACreator.cpp \
                             prop_utils.cpp
@@ -35,7 +37,7 @@ libossiedomain_la_LDFLAGS = -Wall
 bin_PROGRAMS = nodeBooter
 nodeBooter_SOURCES = nodebooter.cpp
 nodeBooter_CXXFLAGS = $(BOOST_CPPFLAGS) 
-nodeBooter_LDADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) ../parser/libossieparser.la ./libossiedomain.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la
+nodeBooter_LDADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) ../parser/libossieparser.la ./libossiedomain.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la  $(OMNICOS_LIBS) $(OMNIORB_LIBS)
 nodeBooter_LDFLAGS = -static
 bin_SCRIPTS = nodeCleanup.py
 

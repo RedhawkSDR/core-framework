@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="stringSimple" mode="readwrite" name="stringSimple" type="string">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="boolSimple" mode="readwrite" name="boolSimple" type="boolean">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="ulongSimple" mode="readwrite" name="ulongSimple" type="ulong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="shortSimple" mode="readwrite" name="shortSimple" type="short">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="floatSimple" mode="readwrite" name="floatSimple" type="float">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="octetSimple" mode="readwrite" name="octetSimple" type="octet">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="charSimple" mode="readwrite" name="charSimple" type="char">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="ushortSimple" mode="readwrite" name="ushortSimple" type="ushort">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="doubleSimple" mode="readwrite" name="doubleSimple" type="double">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="longSimple" mode="readwrite" name="longSimple" type="long">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="longlongSimple" mode="readwrite" name="longlongSimple" type="longlong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="ulonglongSimple" mode="readwrite" name="ulonglongSimple" type="ulonglong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="stringSeq" mode="readwrite" name="stringSeq" type="string">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="boolSeq" mode="readwrite" name="boolSeq" type="boolean">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="ulongSeq" mode="readwrite" name="ulongSeq" type="ulong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="shortSeq" mode="readwrite" name="shortSeq" type="short">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="floatSeq" mode="readwrite" name="floatSeq" type="float">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="octetSeq" mode="readwrite" name="octetSeq" type="octet">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="charSeq" mode="readwrite" name="charSeq" type="char">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="ushortSeq" mode="readwrite" name="ushortSeq" type="ushort">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="doubleSeq" mode="readwrite" name="doubleSeq" type="double">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="longSeq" mode="readwrite" name="longSeq" type="long">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="longlongSeq" mode="readwrite" name="longlongSeq" type="longlong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="ulonglongSeq" mode="readwrite" name="ulonglongSeq" type="ulonglong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <struct id="structProp" mode="readwrite" name="structProp">
+    <simple id="structStringSimple" mode="readwrite" name="structStringSimple" type="string">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structBoolSimple" mode="readwrite" name="structBoolSimple" type="boolean">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structUlongSimple" mode="readwrite" name="structUlongSimple" type="ulong">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structShortSimple" mode="readwrite" name="structShortSimple" type="short">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structFloatSimple" mode="readwrite" name="structFloatSimple" type="float">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structOctetSimple" mode="readwrite" name="structOctetSimple" type="octet">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structUshortSimple" mode="readwrite" name="structUshortSimple" type="ushort">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structDoubleSimple" mode="readwrite" name="structDoubleSimple" type="double">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structLongSimple" mode="readwrite" name="structLongSimple" type="long">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structLonglongSimple" mode="readwrite" name="structLonglongSimple" type="longlong">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structUlonglongSimple" mode="readwrite" name="structUlonglongSimple" type="ulonglong">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="structCharSimple" mode="readwrite" name="structCharSimple" type="char">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="configure"/>
+  </struct>
+  <structsequence id="structSeqProp" mode="readwrite" name="structSeqProp">
+    <struct id="structSeqStruct" mode="readwrite" name="structSeqStruct">
+      <simple id="structSeqStringSimple" mode="readwrite" name="structSeqStringSimple" type="string">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="structSeqBoolSimple" mode="readwrite" name="structSeqBoolSimple" type="boolean">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="structSeqShortSimple" mode="readwrite" name="structSeqShortSimple" type="short">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="structSeqFloatSimple" mode="readwrite" name="structSeqFloatSimple" type="float">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <configurationkind kindtype="configure"/>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+  <simple id="simpleRange" mode="readwrite" name="simpleRange" type="short">
+    <range max="50" min="-50"/>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simpleEnum" mode="readwrite" name="simpleEnum" type="string">
+    <enumerations>
+      <enumeration label="good" value="Good"/>
+      <enumeration label="fair" value="Fair"/>
+      <enumeration label="bad" value="Bad"/>
+    </enumerations>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simpleROnly" mode="readonly" name="simpleROnly" type="short">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simpleWOnly" mode="writeonly" name="simpleWOnly" type="short">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simpleConfNExec" mode="readwrite" name="simpleConfNExec" type="short">
+    <kind kindtype="configure"/>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simpleExec" mode="readwrite" name="simpleExec" type="short">
+    <value>10</value>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simpleKitchenSink" mode="readwrite" name="simpleKitchenSink" type="string">
+    <kind kindtype="configure"/>
+    <kind kindtype="execparam"/>
+    <kind kindtype="factoryparam"/>
+    <kind kindtype="test"/>
+    <action type="external"/>
+  </simple>
+  <structsequence id="structSeqPropDefValue" mode="readwrite" name="structSeqPropName">
+    <struct id="structSeqStructDefValue" mode="readwrite" name="structSeqStructName">
+      <simple id="structSeqStringSimpleDefValue" mode="readwrite" name="structSeqStringSimple" type="string">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="structSeqBoolSimpleDefValue" mode="readwrite" name="structSeqBoolSimple" type="boolean">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="structSeqShortSimpleDefValue" mode="readwrite" name="structSeqShortSimple" type="short">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="structSeqFloatSimpleDefValue" mode="readwrite" name="structSeqFloatSimple" type="float">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="structSeqOctetSimpleDefValue" mode="readwrite" name="structSeqOctetSimple" type="octet">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="structSeqCharSimpleDefValue" mode="readwrite" name="structSeqCharSimple" type="char">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <configurationkind kindtype="configure"/>
+    </struct>
+    <structvalue>
+      <simpleref refid="structSeqStringSimpleDefValue" value=""/>
+      <simpleref refid="structSeqBoolSimpleDefValue" value="false"/>
+      <simpleref refid="structSeqShortSimpleDefValue" value="0"/>
+      <simpleref refid="structSeqFloatSimpleDefValue" value="0.0"/>
+      <simpleref refid="structSeqCharSimpleDefValue" value="A"/>
+      <simpleref refid="structSeqOctetSimpleDefValue" value="1"/>
+    </structvalue>
+    <structvalue>
+      <simpleref refid="structSeqStringSimpleDefValue" value=""/>
+      <simpleref refid="structSeqBoolSimpleDefValue" value="false"/>
+      <simpleref refid="structSeqShortSimpleDefValue" value="0"/>
+      <simpleref refid="structSeqFloatSimpleDefValue" value="0.0"/>
+      <simpleref refid="structSeqCharSimpleDefValue" value="B"/>
+      <simpleref refid="structSeqOctetSimpleDefValue" value="1"/>
+    </structvalue>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+</properties>

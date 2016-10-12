@@ -32,6 +32,7 @@ import java.util.HashMap;
 
 import CF.DataType;
 
+@Deprecated
 public class Consumer_i extends org.omg.CosEventChannelAdmin.ProxyPushConsumerPOA implements org.omg.CosEventChannelAdmin.ProxyPushConsumerOperations {
 
     protected org.omg.CosEventChannelAdmin.ProxyPushConsumer push_consumer;

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="simple_bad_desc" mode="readwrite" type="string">
+    <description>]</description>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="seq_bad_desc" mode="readwrite" type="float">
+    <description>}
+</description>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
+  <struct id="struct_bad_desc" mode="readwrite">
+    <description>)</description>
+    <simple id="struct_bad_desc::field" name="field" type="string">
+      <description>}}}</description>
+    </simple>
+    <configurationkind kindtype="property"/>
+  </struct>
+  <structsequence id="structseq_bad_desc" mode="readwrite">
+    <description>]})</description>
+    <struct id="structseq_bad_desc::structdef" name="structseq_bad_desc">
+      <simple id="structseq_bad_desc::field" name="field" type="string">
+        <description>]]]</description>
+      </simple>
+    </struct>
+    <configurationkind kindtype="property"/>
+  </structsequence>
+</properties>

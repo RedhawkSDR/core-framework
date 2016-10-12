@@ -75,7 +75,6 @@ class PatternLayout(logging.Formatter,object):
               i += 1
             i += 1
             datefmt = "".join(datefmt)
-            # TODO : don't ingore the datefmt
 
           fmt.append(_FORMATTER_TRANS[char][0])
           fmt.append(modifier)

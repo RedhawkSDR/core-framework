@@ -18,13 +18,14 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-
 try:
     from bulkio.bulkioInterfaces import BULKIO as _BULKIO
     from bulkio.bulkioInterfaces import BULKIO__POA as _BULKIO__POA
+    SDDS_SB = _BULKIO.SDDS_SB
 except:
     # Handle case where bulkioInterface may not be installed
-    pass
+    SDDS_SB = 1
+
 import domainless as _domainless
 import threading as _threading
 import ossie.utils.bulkio.bulkio_helpers as _bulkio_helpers
@@ -42,8 +43,10 @@ import subprocess as _subprocess
 import Queue as _Queue
 import struct as _struct
 import logging as _logging
+import socket as _socket
 from omniORB import any as _any
 from omniORB import CORBA as _CORBA
+import warnings as _warnings
 
 from ossie.utils.model import PortSupplier, OutputBase
 from ossie.utils.model.connect import ConnectionManager
@@ -56,7 +59,8 @@ log = _logging.getLogger(__name__)
 
 __all__ = ('DataSink', 'DataSource', 'FileSink', 'FileSource', 'MessageSink',
            'MessageSource','Plot', 'SRIKeyword', 'compareSRI', 'helperBase',
-           'probeBULKIO')
+           'probeBULKIO','createSDDSStreamDefinition', 'DataSourceSDDS',
+           'DataSinkSDDS')
 
 def compareSRI(a, b):
     '''
@@ -113,11 +117,11 @@ class helperBase(object):
     def releaseObject(self):
         # Break any connections involving this component.
         manager = ConnectionManager.instance()
-        for identifier, (uses, provides) in manager.getConnections().items():
+        for _identifier, (identifier, uses, provides) in manager.getConnections().items():
             if uses.hasComponent(self) or provides.hasComponent(self):
                 usesRef = uses.getReference()
                 usesRef.disconnectPort(identifier)
-                manager.unregisterConnection(identifier)
+                manager.unregisterConnection(identifier, uses)
         self._sandbox._unregisterComponent(self)
 
     def reset(self):
@@ -127,6 +131,7 @@ class MessageSink(helperBase, PortSupplier):
     def __init__(self, messageId = None, messageFormat = None, messageCallback = None):
         helperBase.__init__(self)
         PortSupplier.__init__(self)
+        self._flowOn = False
         self._messagePort = None
         self._messageId = messageId
         self._messageFormat = messageFormat
@@ -137,6 +142,11 @@ class MessageSink(helperBase, PortSupplier):
             'Port Name': 'msgIn'
             }
 
+    def __del__(self):
+        if self._messagePort:
+            self._messagePort.terminate()
+            self._messagePort = None
+
     def messageCallback(self, msgId, msgData):
         print msgId, msgData
 
@@ -144,9 +154,10 @@ class MessageSink(helperBase, PortSupplier):
         try:
             if self._messageCallback == None:
                 self._messageCallback = self.messageCallback
-            self._messagePort = _events.MessageConsumerPort(thread_sleep=0.1)
-            self._messagePort.registerMessage(self._messageId,
-                                         self._messageFormat, self._messageCallback)
+            if  self._messagePort == None:
+                self._messagePort = _events.MessageConsumerPort(thread_sleep=0.1)
+                self._messagePort.registerMessage(self._messageId,
+                                             self._messageFormat, self._messageCallback)
             return self._messagePort._this()
         except Exception, e:
             log.error("MessageSink:getPort(): failed " + str(e))
@@ -157,10 +168,21 @@ class MessageSink(helperBase, PortSupplier):
         PortSupplier.api(self)
 
     def start(self):
-        pass
+        if self._messagePort :  self._messagePort.startPort()
+        self._flowOn = True
 
     def stop(self):
-        pass
+        if self._messagePort:  self._messagePort.stopPort()
+        self._flowOn = False
+
+    def releaseObject(self):
+        self.terminate()
+        helperBase.releaseObject(self)
+
+    def terminate(self):
+        if self._messagePort:  
+             self._messagePort.terminate()
+             self._messagePort = None
 
     def eos(self):
         return False
@@ -172,6 +194,7 @@ class MessageSource(helperBase, PortSupplier):
     def __init__(self, messageId = None, messageFormat = None):
         helperBase.__init__(self)
         PortSupplier.__init__(self)
+        self._flowOn = False
         self._messagePort = None
         self._messageId = messageId
         self._messageFormat = messageFormat
@@ -181,40 +204,49 @@ class MessageSource(helperBase, PortSupplier):
             'Port Name': 'msgOut'
             }
 
+    def _packMessageData(self, data):
+        if isinstance(data, dict):
+            props = _properties.props_from_dict(data)
+        elif isinstance(data, _CORBA.Any):
+            props = [_CF.DataType('sb', data)]
+        else:
+            # Assume it's something that can be mapped to an any
+            props = [_CF.DataType('sb', _any.to_any(data))]
+        return _properties.props_to_any(props)
+
     def sendMessage(self, msg):
-        outmsg = None
-        if hasattr(msg, 'getId'): # this is a struct
-            outgoing = [_CF.DataType(id=msg.getId(),value=_properties.struct_to_any(msg))]
-            outmsg = _properties.props_to_any(outgoing)
-        elif type(msg) == dict: # this is a dictionary
-            payload = []
-            for entry in msg:
-                payload.append(_CF.DataType(id=str(entry),value=_any.to_any(msg[entry])))
-            outgoing = [_CF.DataType(id="sb_struct",value=_properties.props_to_any(payload))]
-            outmsg = _properties.props_to_any(outgoing)
-        elif isinstance(msg,_CORBA.Any): # this is an Any
-            payload = [_CF.DataType(id="sb",value=msg)]
-            outgoing = [_CF.DataType(id="sb_struct",value=_properties.props_to_any(payload))]
-            outmsg = _properties.props_to_any(outgoing)
-        else: # assume it's something that can be mapped to an any
-            payload = [_CF.DataType(id="sb",value=_any.to_any(msg))]
-            outgoing = [_CF.DataType(id="sb_struct",value=_properties.props_to_any(payload))]
-            outmsg = _properties.props_to_any(outgoing)
+        if not self._flowOn: return
+        if hasattr(msg, 'getId'):
+            # This is a struct
+            messageId = msg.getId()
+            payload = _properties.struct_to_any(msg)
+        else:
+            if self._messageId:
+                messageId = self._messageId
+            else:
+                messageId = 'sb_struct'
+            payload = self._packMessageData(msg)
+
+        outgoing = [_CF.DataType(messageId, payload)]
+        outmsg = _properties.props_to_any(outgoing)
         self._messagePort.sendMessage(outmsg)
 
     def getPort(self, portName):
         try:
-            self._messagePort = _events.MessageSupplierPort()
+            if self._messagePort == None:
+                 self._messagePort = _events.MessageSupplierPort()
             return self._messagePort._this()
         except Exception, e:
             log.error("MessageSource:getPort(): failed " + str(e))
         return None
 
     def connectPort(self, connection, connectionId):
-        self._messagePort.connectPort(connection, connectionId)
+        if self._messagePort:
+            self._messagePort.connectPort(connection, connectionId)
 
     def disconnectPort(self, connectionId):
-        self._messagePort.disconnectPort(connectionId)
+        if self._messagePort:
+            self._messagePort.disconnectPort(connectionId)
 
     def getUsesPort(self):
         try:
@@ -231,10 +263,10 @@ class MessageSource(helperBase, PortSupplier):
         PortSupplier.api(self)
 
     def start(self):
-        pass
+        self._flowOn = True
 
     def stop(self):
-        pass
+        self._flowOn = False
 
     def eos(self):
         return False
@@ -340,6 +372,12 @@ class _DataPortBase(helperBase, PortSupplier):
                             "portType" : "_BULKIO__POA.dataFile",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataFile:1.0",
                                           "Port Name"      : "file"}},
+             "sdds"      : {"bytesPerSample" : 1,
+                            "pktSize"        : -1,
+                            "format"         : 's',
+                            "portType" : "_BULKIO__POA.dataSDDS",
+                            "portDict" : {"Port Interface" : "IDL:BULKIO/dataSDDS:1.0",
+                                          "Port Name"      : "sdds"}},
              "xml"       : {"bytesPerSample" : 1,
                             "pktSize"        : -1,
                             "format"         : 's',
@@ -391,13 +429,15 @@ class _DataPortBase(helperBase, PortSupplier):
 
 class _SourceBase(_DataPortBase):
 
-    def __init__(self, bytesPerPush, dataFormat, data = None, formats=None):
+    def __init__(self, bytesPerPush, dataFormat, data = None, formats=None, subsize=0):
         """
         Forward parameters to parent constructor.
 
         Set self._dataFormat to dataFormat it it is in the list
         of supported ports, otherwise attempt to guess the format
         based on the data or set the format to self._defaultDataFormat.
+        
+        Note: the 'data' argument is not used
 
         Calls _buildAPI()
 
@@ -405,9 +445,6 @@ class _SourceBase(_DataPortBase):
         _DataPortBase.__init__(self, portNameAppendix = "Out", formats=formats)
 
         self.bytesPerPush = int(bytesPerPush)
-
-        if data != None:
-            log.warn("Predicting data source format type by data argument is deprecated.  This will be removed in the next version")
 
         if dataFormat != None:
             # add support for format byte (which is the same as char)
@@ -419,6 +456,8 @@ class _SourceBase(_DataPortBase):
                 self._dataFormat = None
         else:
             self._dataFormat = None
+            
+        self._subsize     = subsize
 
         self._connections = {}
         self._buildAPI()
@@ -543,6 +582,11 @@ class _SinkBase(_DataPortBase):
 
         self.breakBlock = True
 
+    def reset(self):
+        if self._sink:
+            if callable(self._sink.reset):
+                self._sink.reset()
+
     def eos(self):
         """
         Returns the end of sequence (EOS) state of self._sink, or false if no
@@ -577,7 +621,8 @@ class FileSource(_SourceBase):
                  bytesPerPush = 512000,
                  startTime    = 0.0,
                  streamID     = None,
-                 blocking     = True):
+                 blocking     = True,
+                 subsize      = 0):
 
         self._filename = filename
         self._midasFile = midasFile
@@ -678,7 +723,7 @@ class FileSource(_SourceBase):
                 elif 'f' in dataFormat:
                     dataFormat = 'double'
  
-        _SourceBase.__init__(self, bytesPerPush = bytesPerPush, dataFormat = dataFormat) 
+        _SourceBase.__init__(self, bytesPerPush = bytesPerPush, dataFormat = dataFormat, subsize=subsize) 
         if self.supportedPorts.has_key(dataFormat):
             self._srcPortType = self.supportedPorts[dataFormat]["portType"]
         else:
@@ -717,7 +762,7 @@ class FileSource(_SourceBase):
                 if self._streamID == None:
                     self._streamID = self._filename.split('/')[-1]
 
-                self._sri = _BULKIO.StreamSRI(1, 0.0, 1, 0, 0, 0.0, 0, 0, 0,
+                self._sri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
                                             self._streamID, True, keywords)
 
                 if self._sampleRate > 0.0:
@@ -830,6 +875,95 @@ class FileSink(_SinkBase):
             # not yet exist.
             log.warn("No file writer present, therefore not waiting for EOS.  Is the " + self.className + " module connected?")
 
+class DataSinkSDDS(_SinkBase):
+    """
+    DataSinkSDDS accepts SDDS metadata
+
+    It is the responsibility of the user to consume the SDDS data
+
+    DataSinkSDDS manages attachment Ids under the port (self._snk) dictionary attachments
+
+    register an attach callback by passing a function to registerAttachCallback
+    register an detach callback by passing a function to registerDetachCallback
+    """
+    def __init__(self):
+        _SinkBase.__init__(self, formats=['sdds'])
+        self._snk = _bulkio_data_helpers.SDDSSink(self)
+        self.attach_cb = self.__attach_cb
+        self.detach_cb = self.__detach_cb
+
+    def getPort(self, portName):
+        return self._snk.getPort()
+
+    def __attach_cb(self, streamDef, user_id):
+        print 'attach received: ',streamDef, user_id
+
+    def __detach_cb(self, attachId):
+        print 'detach received: ',attachId
+
+    def registerAttachCallback(self, attach_cb_fn):
+        """
+        The attach function takes two arguments: stream definition, user id
+        """
+        self.attach_cb = attach_cb_fn
+
+    def registerDetachCallback(self, detach_cb_fn):
+        """
+        The detach function takes one arguments: attachment id
+        """
+        self.detach_cb = detach_cb_fn
+
+def createSDDSStreamDefinition(id=None, dataFormat=SDDS_SB, multicastAddress='0.0.0.0',vlan=0,port=1,sampleRate=2,timeTagValid=False,privateInfo=''):
+    if id == None:
+        id = _socket.gethostname()
+    return _BULKIO.SDDSStreamDefinition(id=id, dataFormat=dataFormat, multicastAddress=multicastAddress,vlan=vlan,port=port,sampleRate=sampleRate,timeTagValid=timeTagValid,privateInfo=privateInfo)
+
+class DataSourceSDDS(_SourceBase):
+    """
+    DataSourceSDDS generates the SDDS metadata and sends it to whichever destination it is connected to.
+
+    It is the responsibility of the user to generate the SDDS data
+    """
+    def __init__(self):
+        """
+        Helper to handle the generation of SDDS metadata forwarding
+        """
+        _SourceBase.__init__(self, bytesPerPush = 0, dataFormat='sdds', formats=['sdds'])
+        self._src = _bulkio_data_helpers.SDDSSource()
+    def attach(self, streamData=None, name=None):
+        """
+        streamData: type BULKIO.SDDSStreamDefinition
+        name: user id (string)
+
+        The return value is the attachment id (use this to detach)
+
+        If there exists more than one connection, then the return value is a list
+        of all attachment id's generated
+
+        """
+        if streamData == None:
+            streamData = createSDDSStreamDefinition()
+        if name == None:
+            name = _socket.gethostname()+'_user'
+        if not isinstance(streamData, _BULKIO.SDDSStreamDefinition):
+            raise Exception("streamData must be of type BULKIO.SDDSStreamDefinition")
+        if not isinstance(name, str):
+            raise Exception("name must be of <type 'str'>")
+        retval = self._src.attach(streamData, name)
+        return retval
+
+    def detach(self, attachId=''):
+        """
+        streamData: type BULKIO.SDDSStreamDefinition
+        name: user id (string)
+        """
+        if not isinstance(attachId, str):
+            raise Exception("attachId must be of <type 'str'>")
+        self._src.detach(attachId)
+
+    def _createArraySrcInst(self, srcPortType):
+        return self._src
+
 class DataSource(_SourceBase):
     def __init__(self,
                  data         = None,
@@ -837,14 +971,16 @@ class DataSource(_SourceBase):
                  loop         = False,
                  bytesPerPush = 512000,
                  startTime    = 0.0,
-                 blocking     = True):
+                 blocking     = True,
+                 subsize      = 0):
 
         self.threadExited = None
 
         _SourceBase.__init__(self,
                              bytesPerPush = bytesPerPush,
                              dataFormat   = dataFormat,
-                             data         = data)
+                             data         = data,
+                             subsize      = subsize)
 
         self._sampleRate  = None
         self._complexData = None
@@ -891,6 +1027,11 @@ class DataSource(_SourceBase):
              complexData = False,
              SRIKeywords = [],
              loop        = None):
+        """
+        Push an arbitrary data vector
+      
+        note: sampleRate = 1/xdelta on the SRI
+        """
 
         # Detect whether or not any of the data is of type complex
         _complexData = _checkComplex(data)
@@ -981,7 +1122,7 @@ class DataSource(_SourceBase):
                     keywords = []
                     for key in self._SRIKeywords:
                         keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
-                    candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, 0, 0.0, 0, 0, 0,
+                    candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
                                                      streamID, self._blocking, keywords)
 
                     if sampleRate > 0.0:
@@ -995,7 +1136,7 @@ class DataSource(_SourceBase):
                     if self._startTime >= 0.0:
                         candidateSri.xstart = self._startTime
                 else:
-                    candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, 0, 0.0, 0, 0, 0,
+                    candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
                                                      "defaultStreamID", self._blocking, [])
 
                 if self._sri==None or not compareSRI(candidateSri, self._sri):
@@ -1066,23 +1207,24 @@ class DataSource(_SourceBase):
                      pktSize):
 
         # If necessary, break data into chunks of pktSize for each pushPacket
-        if str(type(data)) == "<type 'list'>":
-            while len(data) > 0:
-                _EOS = EOS
-                if len(data) >= pktSize and EOS == True:
-                    _EOS = False
+        if isinstance(data, list):
+            # Pre-calculate the time offset per packet
+            sampleTimePerPush = pktSize / self._sampleRate
+            if self._sri and self._sri.mode == 1:
+                sampleTimePerPush /= 2.0
+
+            # Stride through the data by packet size
+            for startIdx in xrange(0, len(data), pktSize):
+                # Only send an EOS with the packet if EOS was given and this is
+                # the last packet
+                packetEOS = EOS and (startIdx + pktSize) >= len(data)
                 self._pushPacket(arraySrcInst,
-                                 data[:pktSize],
+                                 data[startIdx:startIdx+pktSize],
                                  currentSampleTime,
-                                 _EOS,
+                                 packetEOS,
                                  streamID,
                                  srcPortType)
-                dataSize = len(data[:pktSize])
-                if self._sri != None:
-                    if self._sri.mode == 1:
-                        dataSize = dataSize / 2
-                currentSampleTime = currentSampleTime + dataSize/self._sampleRate
-                data = data[pktSize:]
+                currentSampleTime += sampleTimePerPush
         else:
             self._pushPacket(arraySrcInst,
                              data,

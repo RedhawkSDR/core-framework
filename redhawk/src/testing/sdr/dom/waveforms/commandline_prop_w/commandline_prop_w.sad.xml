@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:61057ef0-c1b1-4220-a301-d9bd8e2b4b2d" name="commandline_prop_w">
+  <componentfiles>
+    <componentfile id="commandline_prop_90b7d70d-cfc3-44e8-b49d-aafa5994e832" type="SPD">
+      <localfile name="/components/commandline_prop/commandline_prop.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="commandline_prop_90b7d70d-cfc3-44e8-b49d-aafa5994e832"/>
+      <componentinstantiation id="commandline_prop_1" startorder="0">
+        <usagename>commandline_prop_1</usagename>
+        <findcomponent>
+          <namingservice name="commandline_prop_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="commandline_prop_1"/>
+  </assemblycontroller>
+</softwareassembly>

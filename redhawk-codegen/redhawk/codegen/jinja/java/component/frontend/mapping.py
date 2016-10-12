@@ -23,64 +23,18 @@ from redhawk.codegen.model.softwarecomponent import ComponentTypes
 from redhawk.codegen.lang.idl import IDLInterface
 
 from redhawk.codegen.jinja.java.component.pull.mapping import PullComponentMapper
+from redhawk.codegen.jinja.java.properties import JavaPropertyMapper
 
 class FrontendComponentMapper(PullComponentMapper):
     def _mapComponent(self, softpkg):
-        javacomp = {}
-        javacomp['package'] = self.package
-        userclass = softpkg.name()
-        baseclass = userclass + '_base'
-        javacomp['baseclass'] = {'name': baseclass,
-                                 'file': baseclass+'.java'}
-        javacomp['userclass'] = {'name': userclass,
-                                 'file': userclass+'.java'}
-        javacomp['superclass'] = self.superclass(softpkg)
-        javacomp['mainclass'] = java.qualifiedName(userclass, self.package)
-        javacomp['jarfile'] = softpkg.name() + '.jar'
-        javacomp['interfacedeps'] = list(self.getInterfaceDependencies(softpkg))
-        javacomp['interfacejars'] = self.getInterfaceJars(softpkg)
-        javacomp['hasbulkio'] = self.hasBulkioPorts(softpkg)
-        javacomp['hasfrontend'] = self.hasFrontendPorts(softpkg)
+        # Defer most mapping to base class
+        javacomp = super(FrontendComponentMapper,self)._mapComponent(softpkg)
+
+        # Determine which FRONTEND interfaces this device implements (provides)
+        javacomp['implements'] = self.getImplementedInterfaces(softpkg)
         javacomp['hasfrontendprovides'] = self.hasFrontendProvidesPorts(softpkg)
-        javacomp['isafrontendtuner'] = self.isAFrontendTuner(softpkg)
-        javacomp['hasfrontendtunerprovides'] = self.hasFrontendTunerProvidesPorts(softpkg)
-        javacomp['hasdigitaltunerprovides'] = self.hasDigitalTunerProvidesPorts(softpkg)
-        javacomp['hasanalogtunerprovides'] = self.hasAnalogTunerProvidesPorts(softpkg)
-        javacomp['softpkgcp'] = self.softPkgDeps(softpkg, format='cp')
+
         return javacomp
-
-    def superclass(self, softpkg):
-        if softpkg.type() == ComponentTypes.RESOURCE:
-            name = 'Resource'
-        elif softpkg.type() == ComponentTypes.DEVICE:
-            name = 'Device'
-            # If device contains FrontendInterfaces 
-            #  FrontendTuner, DigitalTuner or AnalogTuner, have
-            #  device inherit from FrontendTunerDevice
-            #  instead of Device_impl
-            name = 'Device'
-            for port in softpkg.providesPorts():
-                idl = IDLInterface(port.repid())
-                if idl.namespace() == 'FRONTEND':
-                    if idl.interface().find('DigitalTuner') != -1 or \
-                       idl.interface().find('AnalogTuner') != -1 or \
-                       idl.interface().find('FrontendTuner') != -1:
-                        name = 'frontend.FrontendTunerDevice<frontend_tuner_status_struct_struct>'
-        elif softpkg.type() == ComponentTypes.LOADABLEDEVICE:
-            # NOTE: If java gets support for Loadable Devices, this needs to change
-            name = 'Device'
-        elif softpkg.type() == ComponentTypes.EXECUTABLEDEVICE:
-            # NOTE: If java gets support for Executable Devices, this needs to change
-            name = 'Device'
-        else:
-            raise ValueError, 'Unsupported software component type', softpkg.type()
-        return {'name': name}
-
-    def hasFrontendPorts(self, softpkg):
-        for port in softpkg.ports():
-            if 'FRONTEND' in port.repid():
-                return True
-        return False
 
     def hasFrontendProvidesPorts(self, softpkg):
         for port in softpkg.providesPorts():
@@ -88,31 +42,71 @@ class FrontendComponentMapper(PullComponentMapper):
                 return True
         return False
 
-    def isAFrontendTuner(self,softpkg):
-        return self.hasFrontendTunerProvidesPorts(softpkg) or \
-               self.hasAnalogTunerProvidesPorts(softpkg) or \
-               self.hasDigitalTunerProvidesPorts(softpkg)
+    @staticmethod
+    def getImplementedInterfaces(softpkg):
+        deviceinfo = set()
 
-    def hasFrontendTunerProvidesPorts(self, softpkg):
+        # Ensure that parent interfaces also gets added (so, e.g., a device
+        # with a DigitalTuner should also report that it's an AnalogTuner
+        # and FrontendTuner)
+        inherits = { 'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
+                     'AnalogTuner': ('FrontendTuner',) }
+
         for port in softpkg.providesPorts():
             idl = IDLInterface(port.repid())
-            if idl.namespace() == 'FRONTEND':
-                if idl.interface().find('FrontendTuner') != -1:
-                    return True
-        return False
+            # Ignore non-FRONTEND intefaces
+            if idl.namespace() != 'FRONTEND':
+                continue
+            interface = idl.interface()
+            deviceinfo.add(interface)
+            for parent in inherits.get(interface, []):
+                deviceinfo.add(parent)
+        
+        return deviceinfo
 
-    def hasDigitalTunerProvidesPorts(self, softpkg):
-        for port in softpkg.providesPorts():
-            idl = IDLInterface(port.repid())
-            if idl.namespace() == 'FRONTEND':
-                if idl.interface().find('DigitalTuner') != -1:
-                    return True
-        return False
+    def superclass(self,softpkg):
+        # Start with the superclass from the pull mapping, overriding only
+        # what's different for FRONTEND devices
+        sc = PullComponentMapper.superclass(self,softpkg)
 
-    def hasAnalogTunerProvidesPorts(self, softpkg):
-        for port in softpkg.providesPorts():
-            idl = IDLInterface(port.repid())
-            if idl.namespace() == 'FRONTEND':
-                if idl.interface().find('AnalogTuner') != -1:
-                    return True
-        return False
+        # Only plain devices are supported for FRONTEND
+        if softpkg.type() == ComponentTypes.DEVICE:
+            deviceinfo = FrontendComponentMapper.getImplementedInterfaces(softpkg)
+            # If this device is any type of tuner, replace the Device_impl base
+            # class with the FRONTEND-specific tuner device class
+            if 'FrontendTuner' in deviceinfo:
+                if sc['name'] == 'ThreadedDevice':
+                    sc['name'] = 'frontend.FrontendTunerDevice<frontend_tuner_status_struct_struct>'
+                    sc['header'] = ''
+
+        return sc
+
+class FrontendPropertyMapper(JavaPropertyMapper):
+    TUNER_STATUS_BASE_FIELDS = (
+        'tuner_type',
+        'allocation_id_csv',
+        'center_frequency',
+        'bandwidth',
+        'sample_rate',
+        'enabled',
+        'group_id',
+        'rf_flow_id'
+    )
+
+    FRONTEND_BUILTINS = (
+        'FRONTEND::tuner_allocation',
+        'FRONTEND::listener_allocation'
+    )
+
+    def mapStructProperty(self, prop, fields):
+        javaprop = super(FrontendPropertyMapper,self).mapStructProperty(prop, fields)
+        if prop.identifier() == 'FRONTEND::tuner_status_struct':
+            javaprop['baseclass'] = 'frontend.FETypes.default_frontend_tuner_status_struct_struct'
+            for field in fields:
+                if field['javaname'] in self.TUNER_STATUS_BASE_FIELDS:
+                    field['inherited'] = True
+        elif prop.identifier() in self.FRONTEND_BUILTINS:
+            javaprop['javatype'] = "frontend.FETypes." + javaprop['javaname'] + "_struct"
+            javaprop['javavalue'] = "new " + javaprop['javatype'] + "()"
+            javaprop['builtin'] = True
+        return javaprop

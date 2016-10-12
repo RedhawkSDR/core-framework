@@ -20,8 +20,8 @@
 
 import os
 import logging
-import copy
 import warnings as _warnings
+import time
 
 from ossie import parsers
 from ossie.cf import CF
@@ -60,24 +60,48 @@ class SdrRoot(object):
 
         return spd, scd, prf
 
+    def _getObjectType(self, scd):
+        if scd is not None:
+            componentType = scd.get_componenttype()
+            if componentType in ('device', 'loadabledevice', 'executabledevice'):
+                return 'devices'
+            elif componentType == 'resource':
+                return 'components'
+            elif componentType == 'service':
+                return 'services'
+
+        return None
+
+    def _getSearchPaths(self, objTypes):
+        raise NotImplementedError('Sandbox._getSearchPaths')
+
+    def _getAvailableProfiles(self, searchPath):
+        raise NotImplementedError('Sandbox._getAvailableProfiles')
+
+    def _getObjectTypes(self, objType):
+        ALL_TYPES = ('components', 'devices', 'services')
+        if objType in ALL_TYPES:
+            return set((objType,))
+        elif objType in (None, 'all'):
+            return set(ALL_TYPES)
+        else:
+            raise ValueError, "'%s' is not a valid object type" % objType
+
     def findProfile(self, descriptor, objType=None):
-        objMatches = []
-        if self._fileExists(descriptor):
+        # Try the descriptor as a path to an SPD first
+        sdrPath = self._sdrPath(descriptor)
+        if self._fileExists(sdrPath):
             try:
-                spd = parsers.spd.parseString(self._readFile(descriptor))
+                spd = parsers.spd.parseString(self._readFile(sdrPath))
                 log.trace("Descriptor '%s' is file name", descriptor)
-                return self._sdrPath(descriptor)
+                return sdrPath
             except:
                 pass
-        for profile in self.getProfiles(objType):
-            try:
-                spd = parsers.spd.parseString(self._readFile(profile))
-                if spd.get_name() == descriptor:
-                    log.trace("Softpkg name '%s' found in '%s'", descriptor, profile)
-                    objMatches.append(profile)
-            except:
-                log.warning('Could not parse %s', profile)
-                continue
+
+        objMatches = []
+        for profile in self.readProfiles(objType):
+            if descriptor == profile['name']:
+                objMatches.append(profile['profile'])
         if len(objMatches) == 1:
             return objMatches[0]
         elif len(objMatches) > 1:
@@ -89,10 +113,42 @@ class SdrRoot(object):
             return None
         raise ValueError, "'%s' is not a valid softpkg name or SPD file" % descriptor
 
+    def readProfiles(self, objType=None, searchPath=None):
+        # Remap the object type string to a set of object type names
+        objTypes = self._getObjectTypes(objType)
+
+        if searchPath is None:
+            paths = self._getSearchPaths(objTypes)
+        else:
+            paths = [searchPath]
+
+        profiles = []
+        for path in paths:
+            for filename in self._getAvailableProfiles(path):
+                # Read and parse the complete profile
+                try:
+                    spd, scd, prf = self.readProfile(filename)
+                except:
+                    # Invalid profile, ignore it
+                    continue
+
+                # Filter based on the object type in the SCD
+                profileType = self._getObjectType(scd)
+                if profileType not in objTypes:
+                    continue
+
+                profile = { 'name': str(spd.get_name()), 'profile': filename }
+                profiles.append(profile)
+                    
+        return profiles
+
+    def getProfiles(self, objType=None, searchPath=None):
+        # Use readProfiles() to handle all of the search and parsing
+        return [p['profile'] for p in self.readProfiles(objType, searchPath)]
+
 
 class Sandbox(object):
-    def __init__(self, autoInit=True):
-        self._autoInit = autoInit
+    def __init__(self):
         self._eventChannels = {}
 
     def createEventChannel(self, name, exclusive=False):
@@ -160,8 +216,8 @@ class Sandbox(object):
                debugger=None, window=None, execparams={}, configure={},
                initialize=True, timeout=None, objType=None):
         sdrRoot = self.getSdrRoot()
+
         # Parse the component XML profile.
-        
         profile = sdrRoot.findProfile(descriptor, objType)
         if not profile:
             return None
@@ -175,46 +231,114 @@ class Sandbox(object):
         if comptype not in self.__comptypes__:
             raise NotImplementedError, "No support for component type '%s'" % comptype
 
+        # Generate/check instance name.
         if not instanceName:
             instanceName = self._createInstanceName(name, comptype)
         elif not self._checkInstanceName(instanceName, comptype):
             raise ValueError, "User-specified instance name '%s' already in use" % (instanceName,)
 
+        # Generate/check identifier.
         if not refid:
             refid = str(uuid4())
         elif not self._checkInstanceId(refid, comptype):
             raise ValueError, "User-specified identifier '%s' already in use" % (refid,)
 
-        # Determine the class for the component type and create a new instance.
-        clazz = self.__comptypes__[comptype]
-        comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, execparams, debugger, window, timeout)
-        # Services don't get initialized or configured
-        if comptype == 'service':
-            return comp
+        # If possible, determine the correct placement of properties
+        execparams, initProps, configure = self._sortOverrides(prf, execparams, configure)
 
-        # Initialize the component unless asked not to (if the subclass has not
-        # disabled automatic initialization).
-        if initialize and self._autoInit:
-            comp.initialize()
-        
-        # Configure component with default values unless requested not to (e.g.,
-        # when launched from a SAD file).
-        if configure is not None:
-            # Make a copy of the default properties, and update with the passed-in
-            # properties
-            initvals = copy.deepcopy(comp._configRef)
-            initvals.update(configure)
-            try:
-                comp.configure(initvals)
-            except:
-                log.exception('Failure in component configuration')
-        return comp
+        # Determine the class for the component type and create a new instance.
+        return self._launch(profile, spd, scd, prf, instanceName, refid, impl, execparams,
+                            initProps, initialize, configure, debugger, window, timeout)
 
     def shutdown(self):
         # Clean up any event channels created by this sandbox instance.
         for channel in self._eventChannels.values():
             channel.destroy()
         self._eventChannels = {}
+
+    def catalog(self, searchPath=None, objType="components"):
+        files = {}
+        for profile in self.getSdrRoot().readProfiles(objType, searchPath):
+            files[profile['name']] = profile['profile']
+        return files
+
+    def _sortOverrides(self, prf, execparams, configure):
+        if not prf:
+            # No PRF file, assume the properties are correct as-is
+            return execparams, {}, configure
+
+        # Classify the PRF properties by which stage of initialization they get
+        # set: 'commandline', 'initialize', 'configure' or None (not settable).
+        stages = {}
+        for prop, stage in self._getInitializationStages(prf):
+            stages[str(prop.get_id())] = stage
+            if prop.get_name():
+                name = str(prop.get_name())
+                # Only add name if there isn't already something by the same key
+                if not name in stages:
+                    stages[name] = stage
+
+        # Check properties that do not belong in execparams
+        arguments = {}
+        for key, value in execparams.iteritems():
+            if key in stages and stages[key] != 'commandline':
+                raise ValueError("Non-command line property '%s' given in execparams" % key)
+            arguments[key] = value
+
+        # Sort configure properties into the appropriate stage of initialization
+        initProps = {}
+        if configure is not None:
+            configProps = {}
+            for key, value in configure.iteritems():
+                if not key in stages:
+                    log.warning("Unknown property '%s'" , key)
+                    continue
+                stage = stages[key]
+                if stage == 'commandline':
+                    arguments[key] = value
+                elif stage == 'initialize':
+                    initProps[key] = value
+                elif stage == 'configure':
+                    configProps[key] = value
+                else:
+                    log.warning("Property '%s' cannot be set at launch", key)
+        else:
+            configProps = None
+
+        return arguments, initProps, configProps
+
+    def _getInitializationStage(self, prop, kinds, commandline=False):
+        # Helper method to classify the initialization stage for a particular
+        # property. The caller provides the type-specific information (kinds,
+        # commandline).
+        if kinds:
+            kinds = set(k.get_kindtype() for k in kinds)
+        else:
+            kinds = set(('configure',))
+        if 'execparam' in kinds:
+            return 'commandline'
+        elif 'property' in kinds:
+            if commandline:
+                return 'commandline'
+            else:
+                return 'initialize'
+        elif 'configure' in kinds and prop.get_mode() != 'readonly':
+            return 'configure'
+        else:
+            return None
+
+    def _getInitializationStages(self, prf):
+        # Helper method to turn all of the PRF properties into an iterable sequence
+        # of (property, stage) pairs.
+        for prop in prf.get_simple():
+            isCommandline = prop.get_commandline() == 'true'
+            yield prop, self._getInitializationStage(prop, prop.get_kind(), isCommandline)
+        for prop in prf.get_simplesequence():
+            yield prop, self._getInitializationStage(prop, prop.get_kind())
+        for prop in prf.get_struct():
+            yield prop, self._getInitializationStage(prop, prop.get_configurationkind())
+        for prop in prf.get_structsequence():
+            yield prop, self._getInitializationStage(prop, prop.get_configurationkind())
 
 
 class SandboxComponent(ComponentBase):
@@ -223,11 +347,16 @@ class SandboxComponent(ComponentBase):
         self._sandbox = sandbox
         self._profile = profile
         self._componentName = spd.get_name()
+        self._propRef = {}
         self._configRef = {}
         for prop in self._getPropertySet(kinds=('configure',), modes=('readwrite', 'writeonly'), includeNil=False):
             if prop.defValue is None:
                 continue
             self._configRef[str(prop.id)] = prop.defValue
+        for prop in self._getPropertySet(kinds=('property',), includeNil=False, commandline=False):
+            if prop.defValue is None:
+                continue
+            self._propRef[str(prop.id)] = prop.defValue
 
         self.__ports = None
         
@@ -264,10 +393,10 @@ class SandboxComponent(ComponentBase):
     def releaseObject(self):
         # Break any connections involving this component.
         manager = ConnectionManager.instance()
-        for identifier, (uses, provides) in manager.getConnections().items():
+        for _identifier, (identifier, uses, provides) in manager.getConnections().items():
             if uses.hasComponent(self) or provides.hasComponent(self):
-                manager.breakConnection(identifier)
-                manager.unregisterConnection(identifier)
+                manager.breakConnection(identifier, uses)
+                manager.unregisterConnection(identifier, uses)
         self._sandbox._unregisterComponent(self)
         super(SandboxComponent,self).releaseObject()
 
@@ -290,9 +419,9 @@ class SandboxEventChannel(EventChannel, CorbaObject):
     def destroy(self):
         # Break any connections involving this event channel.
         manager = ConnectionManager.instance()
-        for identifier, (uses, provides) in manager.getConnections().items():
+        for _identifier, (identifier, uses, provides) in manager.getConnections().items():
             if provides.hasComponent(self):
-                manager.breakConnection(identifier)
-                manager.unregisterConnection(identifier)
+                manager.breakConnection(identifier, uses)
+                manager.unregisterConnection(identifier, uses)
         self._sandbox._removeEventChannel(self._instanceName)
         EventChannel.destroy(self)

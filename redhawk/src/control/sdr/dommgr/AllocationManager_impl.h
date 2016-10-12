@@ -54,7 +54,13 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
         
         /* Returns all current allocations that were made through the Allocation Manager that have not been deallocated */
         CF::AllocationManager::AllocationStatusSequence* localAllocations(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId);
+
+        /* Lists up to 'count' devices within the given scope (local or all Domains). If there are more remaining, the out iterator can be used to fetch additional allocations. */
+        void listDevices(CF::AllocationManager::DeviceScopeType deviceScope, CORBA::ULong count, CF::AllocationManager::DeviceLocationSequence_out deviceLocations, CF::DeviceLocationIterator_out iterator);
         
+        /* Lists up to 'count' current allocations within the given scope (local or all Domains). If there are more remaining, the out iterator can be used to fetch additional allocations. */
+        void listAllocations(CF::AllocationManager::AllocationScopeType allocScope, CORBA::ULong count, CF::AllocationManager::AllocationStatusSequence_out allocs, CF::AllocationStatusIterator_out ai);
+
         /* Returns all devices in all Domains that can be seen by any Allocation Manager seen by the local Allocation Manager */
         CF::AllocationManager::DeviceLocationSequence* allDevices();
         
@@ -68,7 +74,7 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
         CF::DomainManager_ptr domainMgr();
 
         /* Allocates a set of dependencies for deployment; not part of the CORBA API */
-        ossie::AllocationResult allocateDeployment(const std::string& requestID, const CF::Properties& allocationProperties, ossie::DeviceList& devices, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps);
+        ossie::AllocationResult allocateDeployment(const std::string& requestID, const CF::Properties& allocationProperties, ossie::DeviceList& devices, const std::string& sourceID, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps);
 
         /* Deallocates a set of allocations */
         template <class Iterator>
@@ -92,6 +98,8 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
                 throw CF::AllocationManager::InvalidAllocationId(invalidAllocations);
             }
         }
+        
+        bool hasListenerAllocation(const CF::Properties& requestedProperties);
 
         // Local interface for persistance support
         void restoreLocalAllocations(const ossie::AllocationTable& localAllocations);
@@ -102,7 +110,7 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
     private:
         CF::AllocationManager::AllocationResponseSequence* allocateDevices(const CF::AllocationManager::AllocationRequestSequence &requests, ossie::DeviceList& devices, const std::string& domainName);
 
-        std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> allocateRequest(const std::string& requestID, const CF::Properties& allocationProperties, ossie::DeviceList& devices, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps, const std::string& domainName);
+        std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> allocateRequest(const std::string& requestID, const CF::Properties& allocationProperties, ossie::DeviceList& devices, const std::string& sourceID, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps, const std::string& domainName);
 
         bool checkDeviceMatching(ossie::Properties& _prf, CF::Properties& externalProps, const CF::Properties& dependencyPropertiesFromComponent, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps);
 

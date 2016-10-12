@@ -22,6 +22,8 @@ import os
 import logging
 import fnmatch
 import time
+import copy
+import warnings
 
 from ossie import parsers
 from ossie.utils.model import Service, Resource, Device
@@ -29,6 +31,7 @@ from ossie.utils.model.connect import ConnectionManager
 
 from base import SdrRoot, Sandbox, SandboxComponent
 import launcher
+import pydoc
 
 log = logging.getLogger(__name__)
 
@@ -37,45 +40,47 @@ class LocalSdrRoot(SdrRoot):
         self.__sdrroot = sdrroot
 
     def _sdrPath(self, filename):
+        # Give precedence to filenames that are valid as-is
+        if os.path.isfile(filename):
+            return filename
+        # Assume the filename points to somewhere in SDRROOT
         return os.path.join(self.__sdrroot, filename)
 
     def _fileExists(self, filename):
-        path = os.path.isfile(self._sdrPath(filename))
-        # Try relative path if sdrPath fails
-        if not path:
-            path = os.path.isfile(filename)
-        
-        return path
+        return os.path.isfile(filename)
 
     def _readFile(self, filename):
-        try:
-            path = open(self._sdrPath(filename), 'r')
-        except:
-            # Try relative path if sdrPath fails
-            path = open(filename, 'r')
+        path = open(self._sdrPath(filename), 'r')
         return path.read()
 
+    def _getSearchPaths(self, objTypes):
+        paths = []
+        if 'components' in objTypes:
+            paths.append('dom/components')
+        if 'devices' in objTypes:
+            paths.append('dev/devices')
+        if 'services' in objTypes:
+            paths.append('dev/services')
+        return [self._sdrPath(p) for p in paths]
 
-    def getProfiles(self, objType=None):
+    def _getAvailableProfiles(self, path):
         files = []
-        searchPath = []
-        if objType == "component":
-            searchPath.append(os.path.join(self.__sdrroot, 'dom', 'components'))
-        elif objType == "device":
-            searchPath.append(os.path.join(self.__sdrroot, 'dev', 'devices'))
-        elif objType == "service":
-            searchPath.append(os.path.join(self.__sdrroot, 'dev', 'services'))
-        elif objType == None:
-            searchPath.append(os.path.join(self.__sdrroot, 'dom', 'components'))
-            searchPath.append(os.path.join(self.__sdrroot, 'dev', 'devices'))
-            searchPath.append(os.path.join(self.__sdrroot, 'dev', 'services'))
-        else:
-            raise ValueError, "'%s' is not a valid object Type" % objType
-        for path in searchPath:
-            for root, dirs, fnames in os.walk(path):
-                for filename in fnmatch.filter(fnames, '*.spd.xml'):
-                    files.append(os.path.join(root, filename))
+        for root, dirs, fnames in os.walk(path):
+            for filename in fnmatch.filter(fnames, '*.spd.xml'):
+                files.append(os.path.join(root, filename))
         return files
+
+    def _getObjectTypes(self, objType):
+        if objType == 'component':
+            warnings.warn("objType='component' is deprecated; use 'components'", DeprecationWarning)
+            objType = 'components'
+        elif objType == 'device':
+            warnings.warn("objType='device' is deprecated; use 'devices'", DeprecationWarning)
+            objType = 'devices'
+        elif objType == 'service':
+            warnings.warn("objType='service' is deprecated; use 'services'", DeprecationWarning)
+            objType = 'services'
+        return super(LocalSdrRoot,self)._getObjectTypes(objType)
 
     def getLocation(self):
         return self.__sdrroot
@@ -83,15 +88,9 @@ class LocalSdrRoot(SdrRoot):
     def findProfile(self, descriptor, objType=None):
         if not descriptor:
             raise RuntimeError, 'No component descriptor given'
-        # Override base class behavior if descriptor points to a file regardless
-        # of SDRROOT setting.
-        if os.path.isfile(descriptor):
-            try:
-                spd = parsers.spd.parseString(self._readFile(descriptor))
-                log.trace("Descriptor '%s' is file name", descriptor)
-                return os.path.abspath(descriptor)
-            except:
-                pass
+        # Handle user home directory paths
+        if descriptor.startswith('~'):
+            descriptor = os.path.expanduser(descriptor)
         return super(LocalSdrRoot,self).findProfile(descriptor, objType=objType)
 
 
@@ -109,7 +108,11 @@ class LocalMixin(object):
         execparams.update(self._execparams)
         proc, ref = launchFactory.execute(self._spd, self._impl, execparams, self._debugger, self._window, self._timeout)
         self._process = proc
+        self._pid = self._process.pid()
         return ref
+    
+    def _requestTermination(self):
+        self._process.requestTermination()
 
     def _getExecparams(self):
         return {}
@@ -131,17 +134,21 @@ class LocalSandboxComponent(SandboxComponent, LocalMixin):
                  execparams, debugger, window, timeout):
         SandboxComponent.__init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl)
         LocalMixin.__init__(self, execparams, debugger, window, timeout)
-        
+
         self._kick()
 
         self._parseComponentXMLFiles()
         self._buildAPI()
 
     def _getExecparams(self):
-        return dict((str(ep.id), ep.defValue) for ep in self._getPropertySet(kinds=('execparam',), includeNil=False))
+        execparams = dict((str(ep.id), ep.defValue) for ep in self._getPropertySet(kinds=('execparam',), includeNil=False))
+        commandline_property = dict((str(ep.id), ep.defValue) for ep in self._getPropertySet(kinds=('property',), includeNil=False,commandline=True))
+        execparams.update(commandline_property)
+        return execparams
 
     def releaseObject(self):
         try:
+            self._requestTermination()
             super(LocalSandboxComponent,self).releaseObject()
         except:
             # Tolerate exceptions (e.g., the object has already been released)
@@ -206,9 +213,12 @@ class LocalService(Service, LocalMixin):
         for prop in self._prf.get_simple():
             # Skip non-execparam properties
             kinds = set(k.get_kindtype() for k in prop.get_kind())
-            if 'execparam' not in kinds:
+            if ('execparam' not in kinds) and ('property' not in kinds):
                 continue
-            # Only include execparam properties with values
+            if 'property' in kinds:
+                if prop.get_commandline() == 'false':
+                    continue
+            # Only include properties with values
             value = prop.get_value()
             if value is not None:
                 execparams[prop.get_id()] = value
@@ -228,7 +238,7 @@ class LocalSandbox(Sandbox):
         }
     
     def __init__(self, sdrroot):
-        super(LocalSandbox, self).__init__(autoInit=True)
+        super(LocalSandbox, self).__init__()
         self.__components = {}
         self.__services = {}
         self._sdrroot = LocalSdrRoot(sdrroot)
@@ -262,6 +272,58 @@ class LocalSandbox(Sandbox):
                 return False
         return True
 
+    def _launch(self, profile, spd, scd, prf, instanceName, refid, impl, execparams,
+                initProps, initialize, configProps, debugger, window, timeout):
+        # Determine the class for the component type and create a new instance.
+        comptype = scd.get_componenttype()
+        clazz = self.__comptypes__[comptype]
+        comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, execparams, debugger, window, timeout)
+
+        try:
+            # Occasionally, when a lot of components are launched from the
+            # sandbox, omniORB may have a cached connection where the other end
+            # has terminated (this is particularly a problem with Java, because
+            # the Sun ORB never closes connections on shutdown). If the new
+            # component just happens to have the same TCP/IP address and port,
+            # the first time we try to reach the component, it will get a
+            # CORBA.COMM_FAILURE exception even though the reference is valid.
+            # In this case, a call to _non_existent() should cause omniORB to
+            # clean up the stale socket, and subsequent calls behave normally.
+            comp.ref._non_existent()
+        except:
+            pass
+
+        # Services don't get initialized or configured
+        if comptype == 'service':
+            return comp
+
+        # Initialize the component unless asked not to.
+        if initialize:
+            # Set initial property values for 'property' kind properties
+            initvals = copy.deepcopy(comp._propRef)
+            initvals.update(initProps)
+            try:
+                comp.initializeProperties(initvals)
+            except:
+                log.exception('Failure in component property initialization')
+
+            # Actually initialize the component
+            comp.initialize()
+
+        # Configure component with default values unless requested not to (e.g.,
+        # when launched from a SAD file).
+        if configProps is not None:
+            # Make a copy of the default properties, and update with any passed-in
+            # properties that were not already passed to initializeProperties()
+            initvals = copy.deepcopy(comp._configRef)
+            initvals.update(configProps)
+            try:
+                comp.configure(initvals)
+            except:
+                log.exception('Failure in component configuration')
+
+        return comp
+
     def getComponents(self):
         return self.__components.values()
 
@@ -281,6 +343,9 @@ class LocalSandbox(Sandbox):
         self.__services[service._instanceName] = service
         
     def getComponent(self, name):
+        return self.__components.get(name, None)
+
+    def retrieve(self, name):
         return self.__components.get(name, None)
 
     def getComponentByRefid(self, refid):
@@ -324,24 +389,93 @@ class LocalSandbox(Sandbox):
         self.__services = {}
         super(LocalSandbox,self).shutdown()
 
-    def catalog(self, searchPath=None, objType="components"):
-        files = {}
+    def browse(self, searchPath=None, objType=None,withDescription=False):
         if not searchPath:
-            if objType == "components":
-                searchPath = os.path.join(self.getSdrRoot().getLocation(), 'dom', 'components')
+            if objType == None or objType == "all":
+                pathsToSearch = [os.path.join(self.getSdrRoot().getLocation(), 'dom', 'components'), \
+                               os.path.join(self.getSdrRoot().getLocation(), 'dev', 'devices'), \
+                               os.path.join(self.getSdrRoot().getLocation(), 'dev', 'services')]
+            elif objType == "components":
+                pathsToSearch = [os.path.join(self.getSdrRoot().getLocation(), 'dom', 'components')]
             elif objType == "devices":
-                searchPath = os.path.join(self.getSdrRoot().getLocation(), 'dev', 'devices')
+                pathsToSearch = [os.path.join(self.getSdrRoot().getLocation(), 'dev', 'devices')]
             elif objType == "services":
-                searchPath = os.path.join(self.getSdrRoot().getLocation(), 'dev', 'services')
+                pathsToSearch = [os.path.join(self.getSdrRoot().getLocation(), 'dev', 'services')]
             else:
                 raise ValueError, "'%s' is not a valid object type" % objType
-        for root, dirs, fnames in os.walk(searchPath):
-            for filename in fnmatch.filter(fnames, "*spd.xml"):
-                filename = os.path.join(root, filename)
-                try:
-                    spd = parsers.spd.parse(filename)
-                    files[str(spd.get_name())] = filename
-                except:
-                    log.exception('Could not parse %s', filename)
+        else:
+            pathsToSearch = [searchPath]
 
-        return files
+        output_text = ""
+        for path in pathsToSearch:
+            rsrcDict = {}
+            path.rstrip("/")
+            objType = path.split("/")[-1]
+            if objType == "components":
+                pathPrefix = "$SDRROOT/dom/components"
+            elif objType == "devices":
+                pathPrefix = "$SDRROOT/dev/devices"
+            elif objType == "services":
+                pathPrefix = "$SDRROOT/dev/services"
+            else:
+                pathPrefix = path
+
+            for root, dirs, fnames in os.walk(path):
+                for filename in fnmatch.filter(fnames, "*spd.xml"):
+                    filename = os.path.join(root, filename)
+                    try:
+                        spd = parsers.spd.parse(filename)
+                        full_namespace = root[root.find(path)+len(path)+1:]
+                        namespace = full_namespace[:full_namespace.find(spd.get_name())]
+                        if namespace == '':
+                            namespace = pathPrefix
+                        if rsrcDict.has_key(namespace) == False:
+                            rsrcDict[namespace] = []
+                        if withDescription == True:
+                            new_item = {}
+                            new_item['name'] = spd.get_name()
+                            if spd.description == None:
+                                if spd.get_implementation()[0].description == None or \
+                                   spd.get_implementation()[0].description == "The implementation contains descriptive information about the template for a software component.":
+                                    new_item['description'] = None
+                                else:
+                                    new_item['description'] = spd.get_implementation()[0].description.encode("utf-8")
+                            else:
+                                new_item['description'] = spd.description
+                            rsrcDict[namespace].append(new_item)
+                        else:
+                            rsrcDict[namespace].append(spd.get_name())
+                    except Exception, e:
+                        print str(e)
+                        print 'Could not parse %s', filename
+
+            for key in sorted(rsrcDict.iterkeys()):
+                if key == pathPrefix:
+                    output_text += "************************ " + str(key) + " ***************************\n"
+                else:
+                    output_text += "************************ " + str(pathPrefix + "/" + key) + " ***************************\n"
+
+                value = rsrcDict[key]
+                value.sort()
+                if withDescription == True:
+                    for item in value:
+                        if item['description']:
+                            output_text += str(item['name']) + " - " + str(item['description']) + "\n"
+                        else:
+                            output_text += str(item['name']) + "\n"
+                        output_text += "--------------------------------------\n"
+                else:
+                    l = value
+                    while len(l) % 4 != 0:
+                        l.append(" ")
+
+                    split = len(l)/4
+
+                    l1 = l[0:split]
+                    l2 = l[split:2*split]
+                    l3 = l[2*split:3*split]
+                    l4 = l[3*split:4*split]
+                    for v1,v2,v3,v4 in zip(l1,l2,l3,l4):
+                        output_text += '%-30s%-30s%-30s%-30s\n' % (v1,v2,v3,v4)
+                    output_text += "\n"
+        pydoc.pager(output_text)

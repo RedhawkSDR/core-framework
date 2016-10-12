@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="ASCII"?>
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="java">
+    <value outputDir="java" template="redhawk.codegen.jinja.java.component.pull" generatorId="gov.redhawk.ide.codegen.jinja.java.JavaGenerator">
+      <properties id="java_package" value="foo.bar.jv.java"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>

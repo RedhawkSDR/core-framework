@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:484ab790-1397-4c0a-a87f-9b0a5dfbbdcc" name="py_comp_w">
+  <componentfiles>
+    <componentfile id="py_comp_75422552-9122-4c37-aa76-ed474efcc466" type="SPD">
+      <localfile name="/components/py_comp/py_comp.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="py_comp_75422552-9122-4c37-aa76-ed474efcc466"/>
+      <componentinstantiation id="py_comp_1" startorder="0">
+        <usagename>py_comp_1</usagename>
+        <findcomponent>
+          <namingservice name="py_comp_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="py_comp_1"/>
+  </assemblycontroller>
+</softwareassembly>

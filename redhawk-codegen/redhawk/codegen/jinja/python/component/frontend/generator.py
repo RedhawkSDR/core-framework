@@ -22,12 +22,10 @@ from redhawk.codegen import utils
 from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate
 from redhawk.codegen.jinja.python import PythonTemplate
-from redhawk.codegen.jinja.python.properties import PythonPropertyMapper
-from redhawk.codegen.jinja.python.ports import PythonPortMapper
 from redhawk.codegen.jinja.python.component.frontend.portfactory import FEIPortFactory
 from redhawk.codegen.jinja.python.component.pull import PullComponentGenerator
 
-from mapping import FrontendComponentMapper
+from mapping import FrontendComponentMapper, FrontendPropertyMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility
@@ -39,9 +37,19 @@ loader = CodegenLoader(__package__,
                         'base':   'redhawk.codegen.jinja.python.component.base'})
 
 class FrontendComponentGenerator(PullComponentGenerator):
-    # Need to keep auto_start and queued_ports to handle legacy options
-    def parseopts (self, auto_start=True, queued_ports=False, legacy_structs=True):
-        self.legacy_structs = utils.parseBoolean(legacy_structs)
+    def map(self, softpkg):
+        component = super(FrontendComponentGenerator,self).map(softpkg)
+        if 'FrontendTuner' in component['implements']:
+            # For FEI tuner devices, disable member variable generation for
+            # properties that are inherited from frontend::FrontendTunerDevice
+            # base class
+            for prop in component['properties']:
+                if prop['pyname'] in ('device_kind', 'device_model',
+                                       'frontend_tuner_allocation',
+                                       'frontend_listener_allocation',
+                                       'frontend_tuner_status'):
+                    prop['inherited'] = True
+        return component
 
     def loader(self, component):
         return loader
@@ -50,10 +58,7 @@ class FrontendComponentGenerator(PullComponentGenerator):
         return FrontendComponentMapper()
 
     def propertyMapper(self):
-        return PythonPropertyMapper(legacy_structs=self.legacy_structs)
-
-    def portMapper(self):
-        return PythonPortMapper()
+        return FrontendPropertyMapper(legacy_structs=False)
 
     def portFactory(self):
         return FEIPortFactory()

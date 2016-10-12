@@ -160,6 +160,9 @@ namespace scd {
       pre ();
 
       virtual void
+      description (const ::std::string&);
+
+      virtual void
       porttype ();
 
       virtual void
@@ -177,6 +180,9 @@ namespace scd {
       public:
       virtual void
       pre ();
+
+      virtual void
+      description (const ::std::string&);
 
       virtual void
       porttype ();

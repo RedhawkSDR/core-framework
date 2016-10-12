@@ -145,16 +145,22 @@ public final class AnyUtils {
             return ComplexUtils.parseComplexDouble(stringValue);
         } else if (type.equals("complexBoolean")) {
             return ComplexUtils.parseComplexBoolean(stringValue);
-        // TODO: complexChar
-        /*
         } else if (type.equals("complexChar")) {
             String[] realAndImag = new String[2];
             realAndImag = ComplexUtils.getRealImagStringsFromComplex(stringValue);
-            CF.complexChar returnVal = new CF.complexChar(
-                (String)AnyUtils.convertString(realAndImag[0], "char"),
-                (String)AnyUtils.convertString(realAndImag[1], "char"));
+            char _real, _imag;
+            if (realAndImag[0].length() == 1) {
+                _real = realAndImag[0].charAt(0);
+            } else {
+                throw new IllegalArgumentException(realAndImag[0] + " is not a valid char value");
+            }
+            if (realAndImag[1].length() == 1) {
+                _imag = realAndImag[1].charAt(0);
+            } else {
+                throw new IllegalArgumentException(realAndImag[1] + " is not a valid char value");
+            }
+            CF.complexChar returnVal = new CF.complexChar( _real, _imag);
             return returnVal;
-        */
         } else if (type.equals("complexOctet")) {
             return ComplexUtils.parseComplexOctet(stringValue);
         } else if (type.equals("complexShort")) {
@@ -1115,7 +1121,8 @@ public final class AnyUtils {
                             }
                         }
                         if ("eq".equals(action)) {
-                        } 
+                            return true;
+                        }
                         return false;
                     }
                     

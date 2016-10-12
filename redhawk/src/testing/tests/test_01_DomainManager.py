@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest, os, signal, commands
+import unittest, os, signal, commands, shutil
 from _unitTestHelpers import scatest
 from xml.dom import minidom
 from ossie.cf import CF
@@ -80,7 +80,7 @@ class Consumer_i(CosEventComm__POA.PushConsumer):
 
 class DomainManagerTest(scatest.CorbaTestCase):
     def setUp(self):
-        nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, self._domMgr = self.launchDomainManager()
     def tearDown(self):
         scatest.CorbaTestCase.tearDown(self)
         killChildProcesses(os.getpid())
@@ -88,16 +88,34 @@ class DomainManagerTest(scatest.CorbaTestCase):
     def eventReceived(self, data):
             self.gotData = True
 
+    def test_NSCleanup(self):
+        domain_name = self._domMgr._get_name()
+        ns_domMgr = URI.stringToName("%s/%s" % (domain_name, domain_name))
+        ns_domMgrCtx = URI.stringToName("%s" % (domain_name))
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        domCtx_ref = self._root.resolve(ns_domMgrCtx)
+        domMgr_ref = self._root.resolve(ns_domMgr)
+        ODM_ref = self._root.resolve(ns_ODM)
+        IDM_ref = self._root.resolve(ns_IDM)
+        self.assertNotEqual(domCtx_ref, None)
+        self.assertNotEqual(domMgr_ref, None)
+        self.assertNotEqual(ODM_ref, None)
+        self.assertNotEqual(IDM_ref, None)
+        os.kill(self._domainBooter.pid, signal.SIGINT)
+        self.waitTermination(self._domainBooter)
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_domMgrCtx)
+
     def test_DeviceFailure(self):
         self.assertNotEqual(self._domMgr, None)
         self.assertEqual(len(self._domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(self._domMgr._get_applications()), 0)
 
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_PythonNodeNoUpdateUsageState_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_PythonNodeNoUpdateUsageState_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 0)
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
@@ -180,7 +198,7 @@ class DomainManagerTest(scatest.CorbaTestCase):
         self.assertIsDceUUID(expectedId, msg="Violation of SCA D.8.1")
 
     def test_DomainManagerBadSadFile(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
@@ -213,7 +231,7 @@ class DomainManagerTest(scatest.CorbaTestCase):
 
     def test_registerWithEventChannel_creation(self):
         # launch DomainManager
-        nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, self._domMgr = self.launchDomainManager()
         self.assertNotEqual(self._domMgr, None)
         self.gotData = False
         # set up consumer
@@ -234,3 +252,444 @@ class DomainManagerTest(scatest.CorbaTestCase):
         self.assertEqual(self.gotData, True)
         self._domMgr.unregisterFromEventChannel('some_id', channelName)
 
+
+class DomainManager_ApplicationInstall(scatest.CorbaTestCase):
+    def setUp(self):
+        self.nodebooter, self._domMgr = self.launchDomainManager()
+        self.devmgr_nb, self.devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self.devMgr, None)
+        self.wf_name="cpp_deps_wf"
+        self.sadfile="/waveforms/"+self.wf_name+"/"+self.wf_name+".sad.xml"
+        self.comp_name="cpp_with_deps"
+
+    def tearDown(self):
+        scatest.CorbaTestCase.tearDown(self)
+        killChildProcesses(os.getpid())
+
+    def test_installApplicationFailures_sad_invalid(self):
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, "/waveforms/cpp_deps_wf.OUCH/cpp_deps_wf.sad.xml")
+
+    def test_installApplicationFailures_sad_compref_test1(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+        
+        ## copy bad compref test 1 to sad file
+        wf_sad=scatest.getSdrPath()+"/dom"+sadfile
+        shutil.copy( wf_sad+".TEST.bad.compref", wf_sad)
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset sad file
+        shutil.copy( wf_sad+".ORIG", wf_sad)
+
+    def test_installApplicationFailures_sad_compref_test2(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+        
+        ## copy bad compref test 1 to sad file
+        wf_sad=scatest.getSdrPath()+"/dom"+sadfile
+        shutil.copy( wf_sad+".TEST.bad.comp.file", wf_sad)
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset sad file
+        shutil.copy( wf_sad+".ORIG", wf_sad)
+
+
+    def test_installApplicationFailures_comp_missing(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        ## remove component spd file
+        comp_spd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.spd.xml"
+        try:
+            os.remove(comp_spd)
+        except:
+            pass
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset spd file
+        shutil.copy(comp_spd+".ORIG", comp_spd)
+
+
+    def test_installApplicationFailures_comp_missing2(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        ## remove component spd file
+        comp_scd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.scd.xml"
+        try:
+            os.remove(comp_scd)
+        except:
+            pass
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.copy(comp_scd+".ORIG", comp_scd)
+
+    def test_installApplicationFailures_comp_missing3(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        ## remove component spd file
+        comp_prf=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.prf.xml"
+        try:
+            os.remove(comp_prf)
+        except:
+            pass
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.copy(comp_prf+".ORIG", comp_prf)
+
+    def test_installApplicationFailures_comp_bad_prf_file(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        comp_spd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.spd.xml"
+        shutil.copy(comp_spd+".TEST.bad.prf", comp_spd)
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.copy(comp_spd+".ORIG", comp_spd)
+
+    def test_installApplicationFailures_comp_bad_scd_file(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        comp_spd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.spd.xml"
+        shutil.copy(comp_spd+".TEST.bad.scd", comp_spd)
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.copy(comp_spd+".ORIG", comp_spd)
+
+    def test_installApplicationFailures_comp_bad_dep_ref(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        comp_spd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.spd.xml"
+        shutil.copy(comp_spd+".TEST.bad.dep", comp_spd)
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.copy(comp_spd+".ORIG", comp_spd)
+
+    def test_installApplicationFailures_dep_missing(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_dir=scatest.getSdrPath()+"/dom/deps/cpp_dep1"
+        shutil.move(dep_dir, dep_dir+".XXX")
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.move(dep_dir+".XXX", dep_dir)
+
+    def test_installApplicationFailures_dep_missing_dep_dir(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_dir=scatest.getSdrPath()+"/dom/deps/cpp_dep1/cpp"
+        shutil.move(dep_dir, dep_dir+".XXX")
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.move( dep_dir+".XXX", dep_dir)
+
+
+    def test_installApplicationFailures_dep_bad_rec_dep_file(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep1/cpp_dep1.spd.xml"
+        shutil.copy(dep_spd+".TEST.bad.rec.dep.file", dep_spd)
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.copy(dep_spd+".ORIG", dep_spd)
+
+
+    def test_installApplicationFailures_recdep_missing_dir(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2"
+        shutil.move(dep_spd, dep_spd+".XXX")
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.move(dep_spd+".XXX", dep_spd)
+
+    def test_installApplicationFailures_recdep_missing_file(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
+        shutil.move(dep_spd, dep_spd+".XXX")
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.move(dep_spd+".XXX", dep_spd)
+
+
+    def test_installApplicationFailures_recdep_bad_dir(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
+        shutil.copy( dep_spd+".TEST.bad.dir", dep_spd)
+        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+
+        ## reset file
+        shutil.copy(dep_spd+".ORIG", dep_spd)
+
+    def test_installApplication_recdep_typeiscompliant(self):
+        wf_name="cpp_deps_wf2"
+        sadfile="/waveforms/"+wf_name+"/"+wf_name+".sad.xml"
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
+        shutil.copy( dep_spd+".ORIG", dep_spd)
+        self._domMgr.installApplication( sadfile )
+        appFact = self._domMgr._get_applicationFactories()[0]
+        self.assertNotEqual( appFact, None )
+        self._domMgr.uninstallApplication(appFact._get_identifier())
+
+        ## reset file
+        shutil.copy(dep_spd+".ORIG", dep_spd)
+
+
+    def test_installApplication_recdep_typeisnoncompliant(self):
+        wf_name="cpp_deps_wf2"
+        sadfile="/waveforms/"+wf_name+"/"+wf_name+".sad.xml"
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
+        shutil.copy( dep_spd+".NON_COMP", dep_spd)
+        self._domMgr.installApplication( sadfile )
+        appFact = self._domMgr._get_applicationFactories()[0]
+        self.assertNotEqual( appFact, None )
+        self._domMgr.uninstallApplication(appFact._get_identifier())
+
+        ## reset file
+        shutil.copy(dep_spd+".ORIG", dep_spd)
+
+
+
+class DomainManager_CreateApplication(scatest.CorbaTestCase):
+    def setUp(self):
+        self.nodebooter, self._domMgr = self.launchDomainManager()
+        self.devmgr_nb, self.devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self.devMgr, None)
+        self.wf_name="cpp_deps_wf"
+        self.sadfile="/waveforms/"+self.wf_name+"/"+self.wf_name+".sad.xml"
+        self.comp_name="cpp_with_deps"
+
+    def tearDown(self):
+        scatest.CorbaTestCase.tearDown(self)
+        killChildProcesses(os.getpid())
+
+    def test_createApplicationFailures_sad_invalid(self):
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, "/waveforms/cpp_deps_wf.OUCH/cpp_deps_wf.sad.xml","",[],[])
+
+    def test_createApplicationFailures_sad_compref_refid(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+        
+        ## copy bad compref test 1 to sad filex
+        wf_sad=scatest.getSdrPath()+"/dom"+sadfile
+        shutil.copy( wf_sad+".TEST.bad.compref", wf_sad)
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset sad file
+        shutil.copy( wf_sad+".ORIG", wf_sad)
+
+    def test_createApplicationFailures_sad_compref_file(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+        
+        ## copy bad compref test 1 to sad file
+        wf_sad=scatest.getSdrPath()+"/dom"+sadfile
+        shutil.copy( wf_sad+".TEST.bad.comp.file", wf_sad)
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset sad file
+        shutil.copy( wf_sad+".ORIG", wf_sad)
+
+
+    def test_createApplicationFailures_comp_missing(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        ## remove component spd file
+        comp_spd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.spd.xml"
+        try:
+            os.remove(comp_spd)
+        except:
+            pass
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset spd file
+        shutil.copy(comp_spd+".ORIG", comp_spd)
+
+
+    def test_createApplicationFailures_comp_missing2(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        ## remove component spd file
+        comp_scd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.scd.xml"
+        try:
+            os.remove(comp_scd)
+        except:
+            pass
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.copy(comp_scd+".ORIG", comp_scd)
+
+    def test_createApplicationFailures_comp_missing3(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        ## remove component spd file
+        comp_prf=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.prf.xml"
+        try:
+            os.remove(comp_prf)
+        except:
+            pass
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.copy(comp_prf+".ORIG", comp_prf)
+
+    def test_createApplicationFailures_comp_bad_prf_file(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        comp_spd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.spd.xml"
+        shutil.copy(comp_spd+".TEST.bad.prf", comp_spd)
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.copy(comp_spd+".ORIG", comp_spd)
+
+    def test_createApplicationFailures_comp_bad_scd_file(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        comp_spd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.spd.xml"
+        shutil.copy(comp_spd+".TEST.bad.scd", comp_spd)
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.copy(comp_spd+".ORIG", comp_spd)
+
+    def test_createApplicationFailures_comp_bad_dep_ref(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        comp_spd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.spd.xml"
+        shutil.copy(comp_spd+".TEST.bad.dep", comp_spd)
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.copy(comp_spd+".ORIG", comp_spd)
+
+    def test_createApplicationFailures_dep_missing(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_dir=scatest.getSdrPath()+"/dom/deps/cpp_dep1"
+        shutil.move(dep_dir, dep_dir+".XXX")
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.move(dep_dir+".XXX", dep_dir)
+
+    def test_createApplicationFailures_dep_missing_dep_dir(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_dir=scatest.getSdrPath()+"/dom/deps/cpp_dep1/cpp"
+        shutil.move(dep_dir, dep_dir+".XXX")
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.move( dep_dir+".XXX", dep_dir)
+
+
+    def test_createApplicationFailures_dep_bad_rec_dep_file(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep1/cpp_dep1.spd.xml"
+        shutil.copy(dep_spd+".TEST.bad.rec.dep.file", dep_spd)
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.copy(dep_spd+".ORIG", dep_spd)
+
+
+    def test_createApplicationFailures_recdep_missing_dir(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2"
+        shutil.move(dep_spd, dep_spd+".XXX")
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.move(dep_spd+".XXX", dep_spd)
+
+    def test_createApplicationFailures_recdep_missing_file(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
+        shutil.move(dep_spd, dep_spd+".XXX")
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.move(dep_spd+".XXX", dep_spd)
+
+
+    def test_createApplicationFailures_recdep_bad_dir(self):
+        wf_name=self.wf_name
+        sadfile=self.sadfile
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
+        shutil.copy( dep_spd+".TEST.bad.dir", dep_spd)
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+
+        ## reset file
+        shutil.copy(dep_spd+".ORIG", dep_spd)
+
+
+    def test_createApplication_recdep_typeiscompliant(self):
+        wf_name="cpp_deps_wf2"
+        sadfile="/waveforms/"+wf_name+"/"+wf_name+".sad.xml"
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
+        shutil.copy( dep_spd+".ORIG", dep_spd)
+        app = self._domMgr.createApplication( sadfile, "some_app", [], [])
+        self.assertNotEqual( app, None )
+        app.releaseObject()
+
+        ## reset file
+        shutil.copy(dep_spd+".ORIG", dep_spd)
+
+
+    def test_createApplication_recdep_typeisnoncompliant(self):
+        wf_name="cpp_deps_wf2"
+        sadfile="/waveforms/"+wf_name+"/"+wf_name+".sad.xml"
+
+        dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
+        shutil.copy( dep_spd+".NON_COMP", dep_spd)
+        app = self._domMgr.createApplication( sadfile, "some_app", [], [])
+        self.assertNotEqual( app, None )
+        app.releaseObject()
+
+        ## reset file
+        shutil.copy(dep_spd+".ORIG", dep_spd)

@@ -26,7 +26,6 @@ from ossie.cf import CF, CF__POA
 from ossie.properties import *
 from ossie.events import *
 from omniORB import any, CORBA
-import sets
 import logging
 import time
 import CosEventChannelAdmin
@@ -787,12 +786,12 @@ class TestPythonFramework(scatest.OssieTestCase):
         # Test the sequence property backed by a dictionary
         self.assertEqual(tr.dictprop, {"val1": 1, "val2": 2, "val3": 3})
         seqvalue = tr.query([CF.DataType(id="dictprop[]", value=any.to_any(None))])
-        s1 = sets.Set(seqvalue[0].value._v)
-        s2 = sets.Set([1, 2, 3])
+        s1 = set(seqvalue[0].value._v)
+        s2 = set([1, 2, 3])
         self.assertEqual(s1, s2)
 
         seqvalue = tr.query([CF.DataType(id="dictprop[*]", value=any.to_any(None))])
-        s1 = sets.Set(seqvalue[0].value._v)
+        s1 = set(seqvalue[0].value._v)
         self.assertEqual(s1, s2)
 
         seqvalue = tr.query([CF.DataType(id="dictprop[val1]", value=any.to_any(None))])
@@ -1318,3 +1317,25 @@ class TestPythonFramework(scatest.OssieTestCase):
         for e in v:
             self.assertEqual(type(e), str)
 
+    def test_PythonToAnyConversion(self):
+        # Basic conversion 
+        result = ossie.properties.to_tc_value(1.0, 'double')
+        self.assertTrue(result.typecode().equal(CORBA.TC_double))
+        self.assertEqual(any.from_any(result), 1.0)
+
+        # Ensure that pre-formatted Any values are unchanged (1.8.8 regression)
+        value = CORBA.Any(CORBA.TC_double, 1.0)
+        result = ossie.properties.to_tc_value(value, 'double')
+        self.assertTrue(result.typecode().equal(CORBA.TC_double))
+        self.assertEqual(any.from_any(result), 1.0)
+
+        # Type change
+        result = ossie.properties.to_tc_value(1.25, 'long')
+        self.assertTrue(result.typecode().equal(CORBA.TC_long))
+        self.assertEqual(any.from_any(result), 1)
+
+        # Type change from Any (1.8.8 regression)
+        value = CORBA.Any(CORBA.TC_double, 1.25)
+        result = ossie.properties.to_tc_value(value, 'long')
+        self.assertTrue(result.typecode().equal(CORBA.TC_long))
+        self.assertEqual(any.from_any(result), 1)

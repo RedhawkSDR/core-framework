@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:cd3ca87e-0a7f-4bcb-9705-7dd07b0abc12" name="test_affinity_node_unlocked">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="JavaTestDevice_50da4918-82fa-4085-a225-a6ca91cf7bc6" type="SPD">
+      <localfile name="/devices/JavaTestDevice/JavaTestDevice.spd.xml"/>
+    </componentfile>
+    <componentfile id="GPP_7d34f027-5742-400d-b966-7dae5e0e7cae" type="SPD">
+      <localfile name="/devices/GPP/GPP.spd.xml"/>
+    </componentfile>
+    <componentfile id="S1_f849a468-2ecf-47b0-8877-c54b38b9bfd0" type="SPD">
+      <localfile name="/services/S1/S1.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="JavaTestDevice_50da4918-82fa-4085-a225-a6ca91cf7bc6"/>
+      <componentinstantiation id="test_affinity_node:JavaTest_Device_1">
+        <usagename>JavaTestDevice_1</usagename>
+      <affinity>
+        <simpleref refid="affinity::exec_directive_class" value="cpu"/>
+        <simpleref refid="affinity::exec_directive_value" value="8,9,10"/>
+      </affinity>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="GPP_7d34f027-5742-400d-b966-7dae5e0e7cae"/>
+      <componentinstantiation id="test_affinity_node:GPP_1">
+        <usagename>GPP_1</usagename>
+        <componentproperties>
+          <structref refid="thresholds">
+            <simpleref refid="cpu_idle" value="2"/>
+            <simpleref refid="mem_free" value="100"/>
+            <simpleref refid="nic_usage" value="900"/>
+          </structref>
+          <structref refid="affinity">
+            <simpleref refid="affinity::blacklist_cpus" value="0"/>
+            <simpleref refid="affinity::force_override" value="false"/>
+            <simpleref refid="affinity::exec_directive_class" value="socket"/>
+            <simpleref refid="affinity::exec_directive_value" value="0"/>
+            <simpleref refid="affinity::deploy_per_socket" value="false"/>
+            <simpleref refid="affinity::disabled" value="false"/>
+          </structref>
+        </componentproperties>
+      <affinity>
+        <simpleref refid="affinity::exec_directive_class" value="socket"/>
+        <simpleref refid="affinity::exec_directive_value" value="0"/>
+      </affinity>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="S1_f849a468-2ecf-47b0-8877-c54b38b9bfd0"/>
+      <componentinstantiation id="test_affinity_node:S1_1">
+        <usagename>S1_1</usagename>
+      <affinity>
+        <simpleref refid="affinity::exec_directive_class" value="socket"/>
+        <simpleref refid="affinity::exec_directive_value" value="0"/>
+      </affinity>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

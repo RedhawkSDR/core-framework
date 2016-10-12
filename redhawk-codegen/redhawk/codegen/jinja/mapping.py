@@ -18,9 +18,12 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+import os
+
 from redhawk.codegen.model.properties import Kinds
 from redhawk.codegen.model.softwarecomponent import ComponentTypes
 from redhawk.codegen.lang.idl import IDLInterface
+import redhawk.codegen.model.properties
 
 class PropertyMapper(object):
     def _mapProperty(self, prop, propclass):
@@ -57,7 +60,8 @@ class PropertyMapper(object):
 
     def _mapStruct(self, prop):
         propdict = self._mapProperty(prop, 'struct')
-        fields = [self._mapSimple(s) for s in prop.fields()]
+        fields = [self._mapSimple(s) for s in prop.fields() if isinstance(s, redhawk.codegen.model.properties.SimpleProperty)]
+	fields += [self._mapSimpleSequence(s) for s in prop.fields() if isinstance(s, redhawk.codegen.model.properties.SimpleSequenceProperty)]
         propdict['fields'] = fields
         propdict.update(self.mapStructProperty(prop, fields))
         return propdict
@@ -115,6 +119,11 @@ class PortMapper(object):
         portdict['name'] = port.name()
         portdict['repid'] = port.repid()
         portdict['types'] = port.types()
+        portdict['hasDescription'] = port.hasDescription()
+        port_description = port.description()
+        if port_description != None:
+            port_description = port_description.replace('\n','\\n')
+        portdict['description'] = port_description
         if port.isProvides():
             direction = "provides"
         else:
@@ -140,37 +149,18 @@ class PortMapper(object):
                 'portgenerators': generators}
 
 
-class ComponentMapper(object):
-    def __init__(self):
-        self._impl=None
+class SoftpkgMapper(object):
+    def setImplementation(self, impl=None):
+        pass
 
-    def setImplementation(self, impl=None ):
-        self._impl=impl
-
-    def mapImplementation(self, impl):
-        impldict = {}
-        impldict['id'] = impl.identifier()
-        impldict['entrypoint'] = impl.entrypoint()
-        if impl.prfFile():
-            impldict['prf'] = impl.prfFile()
-        impldict.update(self._mapImplementation(impl))
-        return impldict
-
-    def _mapImplementation(self, implementation):
-        return {}
-
-    def mapComponent(self, softpkg):
+    def mapSoftpkg(self, softpkg):
         component = {}
-        component['license'] = None
-        component['mFunction'] = None
-        component['artifacttype'] = self.artifactType(softpkg)
         component['name'] = softpkg.name()
+        component['basename'] = softpkg.basename()
         component['version'] = softpkg.version()
         component['type'] = softpkg.type()
-        if softpkg.descriptor():
-            if softpkg.descriptor().supports('IDL:CF/AggregateDevice:1.0'):
-                component['aggregate'] = True
         component['sdrpath'] = softpkg.getSdrPath()
+        component['artifacttype'] = self.artifactType(softpkg)
 
         # XML profile
         component['profile'] = { 'spd': softpkg.spdFile() }
@@ -179,23 +169,40 @@ class ComponentMapper(object):
         if softpkg.prfFile():
             component['profile']['prf'] = softpkg.prfFile()
 
+        return component
+
+    def mapComponent(self, softpkg):
+        component = self.mapSoftpkg(softpkg)
         component.update(self._mapComponent(softpkg))
         return component
 
     def _mapComponent(self, softpkg):
         return {}
 
-    def artifactType(self, softpkg):
-        if softpkg.type() == ComponentTypes.RESOURCE:
-            return 'component'
-        elif softpkg.type() in (ComponentTypes.DEVICE, ComponentTypes.LOADABLEDEVICE, ComponentTypes.EXECUTABLEDEVICE):
-            return 'device'
-        elif softpkg.type() == ComponentTypes.SERVICE:
-            return 'service'
-        elif softpkg.type() == ComponentTypes.SHAREDPACKAGE:
-            return 'sharedpackage'
-        else:
-            raise ValueError, 'Unsupported software component type', softpkg.type()
+    def mapImplementation(self, impl):
+        impldict = {}
+        impldict['id'] = impl.identifier()
+        impldict['entrypoint'] = impl.entrypoint()
+        impldict['softpkgdeps'] = [self._mapSoftpkgDependency(dep) for dep in impl.softpkgdeps()]
+        impldict.update(self._mapImplementation(impl))
+        return impldict
+
+    def _mapImplementation(self, implementation):
+        return {}
+
+    def _mapSoftpkgDependency(self, dependency):
+        depdict = {}
+        depdict['spd'] = dependency.spdfile
+        basename = os.path.basename(dependency.spdfile)
+        dirname = dependency.spdfile[:dependency.spdfile.find(basename)]
+        depdict['name'] = basename.replace('.spd.xml','')
+        if dirname[:6]=='/deps/':
+            ns_name=dirname[6:]
+            if ns_name != '/':
+                depdict['name'] = ns_name.replace('/','.')[:-1]
+        if dependency.impl:
+            depdict['impl'] = dependency.impl
+        return depdict
 
     def getInterfaceNamespaces(self, softpkg):
         if not softpkg.descriptor():
@@ -213,6 +220,67 @@ class ComponentMapper(object):
                 if 'BULKIO' not in seen:
                     seen.add('BULKIO')
                     yield 'BULKIO'
+
+    def artifactType(self, softpkg):
+        if softpkg.type() == ComponentTypes.RESOURCE:
+            return 'component'
+        elif softpkg.type() in (ComponentTypes.DEVICE,
+                                ComponentTypes.LOADABLEDEVICE,
+                                ComponentTypes.EXECUTABLEDEVICE):
+            return 'device'
+        elif softpkg.type() == ComponentTypes.SERVICE:
+            return 'service'
+        elif softpkg.type() == ComponentTypes.SHAREDPACKAGE:
+            return 'sharedpackage'
+        else:
+            raise ValueError, 'Unsupported software component type', softpkg.type()
+
+
+class ProjectMapper(SoftpkgMapper):
+    def mapImplementation(self, impl, generator):
+        impldict = {}
+        impldict['id'] = impl.identifier()
+        impldict['entrypoint'] = impl.entrypoint()
+        impldict['localfile'] = impl.localfile()
+        impldict['language'] = impl.programminglanguage()
+        impldict['generator'] = generator
+        impldict['softpkgdeps'] = [self._mapSoftpkgDependency(dep) for dep in impl.softpkgdeps()]
+        if generator is not None:
+            outputdir = generator.getOutputDir()
+        else:
+            # NB: Fall back to inferring the output directory from the entry
+            #     point
+            outputdir = os.path.dirname(impl.entrypoint())
+        impldict['outputdir'] = outputdir
+        impldict.update(self._mapImplementation(impl, generator))
+        return impldict
+
+    def _mapImplementation(self, impl, generator):
+        return {}
+
+    def mapProject(self, softpkg, generators):
+        project = self.mapComponent(softpkg)
+        impls = [self.mapImplementation(impl, generators.get(impl.identifier(), None)) for impl in softpkg.implementations()]
+        project['implementations'] = impls
+        project['languages'] = set(impl['language'] for impl in impls)
+        project['subdirs'] = [impl['outputdir'] for impl in impls]
+        return project
+
+
+class ComponentMapper(SoftpkgMapper):
+    def mapComponent(self, softpkg):
+        component = self.mapSoftpkg(softpkg)
+        component['license'] = None
+        component['mFunction'] = None
+        if softpkg.descriptor():
+            if softpkg.descriptor().supports('IDL:CF/AggregateDevice:1.0'):
+                component['aggregate'] = True
+
+        component.update(self._mapComponent(softpkg))
+        return component
+
+    def _mapComponent(self, softpkg):
+        return {}
 
     def hasMultioutPort(self, softpkg):
         for prop in softpkg.getStructSequenceProperties():

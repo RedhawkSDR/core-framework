@@ -45,7 +45,12 @@ class ProcessThread(threading.Thread):
 
     def run(self):
         while not self.stop_signal.isSet():
-            state = self.target()
+            try:
+                state = self.target()
+            except Exception, e:
+                if hasattr(self.target.__self__,'_log'):
+                    self.target.__self__._log.error("Exception detected in process function: "+str(e))
+                raise
             if state == FINISH:
                 return
             elif state == NOOP:
@@ -123,7 +128,7 @@ class ThreadedComponent(object):
         try:
             self._defaultDelay = delay
             if self.process_thread:
-                self.process_thread.updateDelay(delay)
+                self.process_thread.updatePause(delay)
         finally:
             self.threadControlLock.release()
 
@@ -133,3 +138,6 @@ class ThreadedComponent(object):
         # ThreadedComponent API to work with the old pattern.
         if hasattr(self, 'PAUSE'):
             self.PAUSE = delay
+
+    def isRunning(self):
+        return self.process_thread != None

@@ -51,19 +51,13 @@ dnl Check that OSSIE is installed so we can compile against it
 AC_DEFUN([OSSIE_CHECK_OSSIE],
 [
 AC_REQUIRE([OSSIE_OSSIEHOME])
-AC_REQUIRE([GR_LIB64])
 AC_MSG_CHECKING([to see ossie is installed])
-if test -e $ossie_cv_ossie_home/lib${gr_libdir_suffix}/pkgconfig/ossie.pc; then
-  PKG_CONFIG_PATH="${ossie_cv_ossie_home}/lib${gr_libdir_suffix}/pkgconfig:${PKG_CONFIG_PATH}"
-  export PKG_CONFIG_PATH
-  AC_MSG_RESULT($ossie_cv_ossie_home)
-elif test -e $ossie_cv_ossie_home/lib64${gr_libdir_suffix}/pkgconfig/ossie.pc; then
-  PKG_CONFIG_PATH="${ossie_cv_ossie_home}/lib64${gr_libdir_suffix}/pkgconfig:${PKG_CONFIG_PATH}"
-  export PKG_CONFIG_PATH
-  AC_MSG_RESULT($ossie_cv_ossie_home)
+if test -e $ossie_cv_ossie_home/lib64; then
+  PKG_CONFIG_PATH="${ossie_cv_ossie_home}/lib${gr_libdir_suffix}/pkgconfig:${ossie_cv_ossie_home}/lib64${gr_libdir_suffix}/pkgconfig:${PKG_CONFIG_PATH}"
 else
-  AC_MSG_ERROR(You must specify a valid ossie root directory.  Try using --with-ossie)
+  PKG_CONFIG_PATH="${ossie_cv_ossie_home}/lib${gr_libdir_suffix}/pkgconfig:${PKG_CONFIG_PATH}"
 fi
+export PKG_CONFIG_PATH
 ])
 
 dnl use OSSIEHOME as the default prefix unless --prefix is provided

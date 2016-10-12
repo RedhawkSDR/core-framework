@@ -46,12 +46,18 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <structref refid="DCE:001fad60-b4b3-4ed2-94cb-40e1d956bf4f"> 
             <simpleref refid="long_capacity" value="__MATH__(1,long_capacity,=)"/>
             <simpleref refid="float_capacity" value="__MATH__(1,float_capacity,=)"/>
+            <simplesequenceref refid="struct_simple_seq">
+              <values><value>0</value><value>0</value></values>
+            </simplesequenceref>
         </structref>
     </dependency>
     <usesdevice id="DCE:1c860fb2-85d9-4f60-beb5-eaa851f012f8" type="">
         <structref refid="DCE:001fad60-b4b3-4ed2-94cb-40e1d956bf4f"> 
             <simpleref refid="long_capacity" value="__MATH__(1,long_capacity,=)"/>
             <simpleref refid="float_capacity" value="__MATH__(1,float_capacity,=)"/>
+	    <simplesequenceref refid="struct_simple_seq">
+              <values><value>0</value><value>0</value></values>
+            </simplesequenceref>
         </structref>
         <structref refid="DCE:a5a6ab83-d2a8-4350-ac4d-05b40ee93838">
             <simpleref refid="password" value="__MATH__(1,magicword,=)"/>

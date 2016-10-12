@@ -26,10 +26,6 @@
 #include "ossie/Port_impl.h"
 #include <queue>
 
-#define NOOP 0
-#define FINISH -1
-#define NORMAL 1
-
 class SimpleComponent_cpp_impl1_base;
 class SimpleComponent_cpp_impl1_i;
 

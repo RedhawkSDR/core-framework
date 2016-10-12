@@ -17,402 +17,226 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #}
-#% set className = component.userclass.name
-#% set baseClass = component.baseclass.name
-#% set artifactType = component.artifacttype
-#!/usr/bin/env python
-#
-# AUTO-GENERATED
-#
-# Source: ${component.profile.spd}
-#{% if component is device %}
-from ossie.device import start_device
-#{% else %}
-from ossie.resource import Resource, start_component
-#{% endif %}
-import logging
+#% extends "pull/resource.py"
 
-from ${baseClass} import *
+#{% block updateUsageState %}
+#{%   for sc in component.superclasses if sc.name == "Device" %}
+    ${super()}
+#{%  endfor %}
+#{% endblock %}
 
-class ${className}(${baseClass}):
-#{% if component.description %}
-    """${component.description()}"""
-#{% else %}
-    """<DESCRIPTION GOES HERE>"""
-#{% endif %}
-    def initialize(self):
-        """
-        This is called by the framework immediately after your ${artifactType} registers with the NameService.
+#{% block extensions %}
+#{% if 'FrontendTuner' in component.implements %}
+    '''
+    *************************************************************
+    Functions supporting tuning allocation
+    *************************************************************'''
+    def deviceEnable(self, fts, tuner_id):
+        '''
+        ************************************************************
+        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
+        Make sure to set the 'enabled' member of fts to indicate that tuner as enabled
+        ************************************************************'''
+        print "deviceEnable(): Enable the given tuner  *********"
+        fts.enabled = True
+        return
+
+    def deviceDisable(self,fts, tuner_id):
+        '''
+        ************************************************************
+        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
+        Make sure to reset the 'enabled' member of fts to indicate that tuner as disabled
+        ************************************************************'''
+        print "deviceDisable(): Disable the given tuner  *********"
+        fts.enabled = False
+        return
+
+    def deviceSetTuning(self,request, fts, tuner_id):
+        '''
+        ************************************************************
+        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         
-        In general, you should add customization here and not in the __init__ constructor.  If you have 
-        a custom port implementation you can override the specific implementation here with a statement
-        similar to the following:
-          self.some_port = MyPortImplementation()
-        """
-        ${baseClass}.initialize(self)
-        # TODO add customization here.
+        The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
+        to needs to populate fts (to make sure that it meets the tolerance requirement. For example,
+        if the tuned values match the requested values, the code would look like this:
         
-#{% if component is device %}
-    def updateUsageState(self):
-        """
-        This is called automatically after allocateCapacity or deallocateCapacity are called.
-        Your implementation should determine the current state of the device:
-           self._usageState = CF.Device.IDLE   # not in use
-           self._usageState = CF.Device.ACTIVE # in use, with capacity remaining for allocation
-           self._usageState = CF.Device.BUSY   # in use, with no capacity remaining for allocation
-        """
-        return NOOP
+        fts.bandwidth = request.bandwidth
+        fts.center_frequency = request.center_frequency
+        fts.sample_rate = request.sample_rate
+        
+        return True if the tuning succeeded, and False if it failed
+        ************************************************************'''
+        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        return True
+
+    def deviceDeleteTuning(self, fts, tuner_id):
+        '''
+        ************************************************************
+        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
+        return True if the tune deletion succeeded, and False if it failed
+        ************************************************************'''
+        print "deviceDeleteTuning(): Deallocate an allocated tuner  *********"
+        return True
+
+    '''
+    *************************************************************
+    Functions servicing the tuner control port
+    *************************************************************'''
+    def getTunerType(self,allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        return self.frontend_tuner_status[idx].tuner_type
+
+    def getTunerDeviceControl(self,allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        if self.getControlAllocationId(idx) == allocation_id:
+            return True
+        return False
+
+    def getTunerGroupId(self,allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        return self.frontend_tuner_status[idx].group_id
+
+    def getTunerRfFlowId(self,allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        return self.frontend_tuner_status[idx].rf_flow_id
 
 #{% endif %}
+#{% if 'AnalogTuner' in component.implements %}
 
-    def process(self):
-        """
-        Basic functionality:
-        
-            The process method should process a single "chunk" of data and then return. This method
-            will be called from the processing thread again, and again, and again until it returns
-            FINISH or stop() is called on the ${artifactType}.  If no work is performed, then return NOOP.
-            
-        StreamSRI:
-            To create a StreamSRI object, use the following code (this generates a normalized SRI that does not flush the queue when full):
-                self.sri = bulkio.sri.create(self.stream_id)
+    def setTunerCenterFrequency(self,allocation_id, freq):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        if allocation_id != self.getControlAllocationId(idx):
+            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
+        if freq<0: raise FRONTEND.BadParameterException()
+        # set hardware to new value. Raise an exception if it's not possible
+        self.frontend_tuner_status[idx].center_frequency = freq
 
-        PrecisionUTCTime:
-            To create a PrecisionUTCTime object, use the following code:
-                tstamp = bulkio.timestamp.now() 
-  
-        Ports:
+    def getTunerCenterFrequency(self,allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        return self.frontend_tuner_status[idx].center_frequency
 
-            Each port instance is accessed through members of the following form: self.port_<PORT NAME>
-            
-            Data is obtained in the process function through the getPacket call (BULKIO only) on a
-            provides port member instance. The getPacket function call is non-blocking - if no data
-            is available, it will return immediately with all values == None.
-            
-            To send data, call the appropriate function in the port directly. In the case of BULKIO,
-            convenience functions have been added in the port classes that aid in output.
-            
-            Interactions with non-BULKIO ports are left up to the ${artifactType} developer's discretion.
-            
-        Properties:
-        
-            Properties are accessed directly as member variables. If the property name is baudRate,
-            then accessing it (for reading or writing) is achieved in the following way: self.baudRate.
-            
-        Example:
-        
-            # This example assumes that the ${artifactType} has two ports:
-            #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
-            #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
-            # The mapping between the port and the class if found in the ${artifactType}
-            # base class.
-            # This example also makes use of the following Properties:
-            #   - A float value called amplitude
-            #   - A boolean called increaseAmplitude
-            
-            data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.port_dataShort_in.getPacket()
-            
-            if data == None:
-                return NOOP
-                
-            outData = range(len(data))
-            for i in range(len(data)):
-                if self.increaseAmplitude:
-                    outData[i] = float(data[i]) * self.amplitude
-                else:
-                    outData[i] = float(data[i])
-                
-            # NOTE: You must make at least one valid pushSRI call
-            if sriChanged:
-                self.port_dataFloat_out.pushSRI(sri);
+    def setTunerBandwidth(self,allocation_id, bw):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        if allocation_id != self.getControlAllocationId(idx):
+            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
+        if bw<0: raise FRONTEND.BadParameterException()
+        # set hardware to new value. Raise an exception if it's not possible
+        self.frontend_tuner_status[idx].bandwidth = bw
 
-            self.port_dataFloat_out.pushPacket(outData, T, EOS, streamID)
-            return NORMAL
-            
-        """
+    def getTunerBandwidth(self,allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        return self.frontend_tuner_status[idx].bandwidth
 
-        # TODO fill in your code here
-        self._log.debug("process() example log message")
-        return NOOP
+    def setTunerAgcEnable(self,allocation_id, enable):
+        raise FRONTEND.NotSupportedException("setTunerAgcEnable not supported")
 
-#{% if component.isafrontendtuner %}
-######################################################
-##### tuner configuration functions ## -- overrides base class implementations
-######################################################
+    def getTunerAgcEnable(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerAgcEnable not supported")
 
-    def removeTuner(self, tuner_id):
-removeTuner(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE
+    def setTunerGain(self,allocation_id, gain):
+        raise FRONTEND.NotSupportedException("setTunerGain not supported")
 
-######################################################
-##### Required device specific functions ## -- implemented by device developer
-######################################################
+    def getTunerGain(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerGain not supported")
 
-    def push_EOS_on_listener(self,listener_allocation_id):
-push_EOS_on_listener(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
+    def setTunerReferenceSource(self,allocation_id, source):
+        raise FRONTEND.NotSupportedException("setTunerReferenceSource not supported")
 
-    def _valid_tuner_type(self,tuner_type):
-_valid_tuner_type(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
+    def getTunerReferenceSource(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerReferenceSource not supported")
 
-    def _valid_center_frequency(self,req_freq, tuner_id):
-_valid_center_frequency(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
+    def setTunerEnable(self,allocation_id, enable):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        if allocation_id != self.getControlAllocationId(idx):
+            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
+        # set hardware to new value. Raise an exception if it's not possible
+        self.frontend_tuner_status[idx].enabled = enable
 
-    def _valid_bandwidth(self,req_bw, tuner_id):
-_valid_bandwidth(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
+    def getTunerEnable(self,allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        return self.frontend_tuner_status[idx].enabled
 
-    def _valid_sample_rate(self, req_sr, tuner_id):
-_valid_sample_rate(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
-
-    def _dev_enable(self, tuner_id):
-_dev_enable(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
-
-    def _dev_disable(self, tuner_id):
-_dev_disable(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
-
-    def _dev_set_all(self, req_freq, req_bw, req_sr, tuner_id):
-_dev_set_all(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
-
-    def _dev_set_center_frequency(self, req_freq, tuner_id):
-_dev_set_center_frequency(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
-
-    def _dev_set_bandwidth(self, req_bw, tuner_id):
-_dev_set_bandwidth(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
-
-    def _dev_set_sample_rate(self, req_sr, tuner_id):
-_dev_set_sample_rate(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
-
-    def _dev_get_all(self, freq, bw, sr, tuner_id):
-_dev_get_all(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return BOOL_VALUE_HERE;
-
-    def _dev_get_center_frequency(self, tuner_id):
-_dev_get_center_frequency(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return DOUBLE_VALUE_HERE;
-
-    def _dev_get_bandwidth(self, tuner_id):
-_dev_get_bandwidth(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return DOUBLE_VALUE_HERE;
-
-    def _dev_get_sample_rate(self, tuner_id):
-_dev_get_sample_rate(): DEVELOPER MUST IMPLEMENT THIS METHOD  *********
-        return DOUBLE_VALUE_HERE;
 #{% endif %}
+#{% if 'DigitalTuner' in component.implements %}
 
-#{% set foundInFrontendInterface = False %}
-#{% set foundInAnalogInterface = False %}
-#{% set foundInDigitalInterface = False %}
-#{% set foundInGPSPort = False %}
-#{% set foundInNavDataPort = False %}
-#{% set foundInRFInfoPort = False %}
-#{% set foundInRFSourcePort = False %}
-#{% for port in component.ports if port is provides %}
-#{%     if port.cpptype == "frontend.InDigitalTunerPort" or
-            port.cpptype == "frontend.InAnalogTunerPort" or
-            port.cpptype == "frontend.InFrontendTunerPort" %}
-    #{#- add FEI FrontendTuner callback functions #}
-#{%         if foundInFrontendInterface == False %}
-#        def fe_getTunerType(self, id):
-#            "fe_getTunerType(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
+    def setTunerOutputSampleRate(self,allocation_id, sr):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        if allocation_id != self.getControlAllocationId(idx):
+            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
+        if sr<0: raise FRONTEND.BadParameterException()
+        # set hardware to new value. Raise an exception if it's not possible
+        self.frontend_tuner_status[idx].sample_rate = sr
 
-#        def fe_getTunerDeviceControl(self, id):
-#            "fe_getTunerDeviceControl(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
+    def getTunerOutputSampleRate(self,allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        return self.frontend_tuner_status[idx].sample_rate
 
-#        def fe_getTunerGroupId(self, id):
-#            "fe_getTunerGroupId(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getTunerRfFlowId(self, id):
-#            "fe_getTunerRfFlowId(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getTunerStatus(self, id):
-#            "fe_getTunerStatus(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-#{%             set foundInFrontendInterface = True %}
-#{%         endif %}
-#{%     endif %}
-#{%     if port.cpptype == "frontend.InDigitalTunerPort" or
-            port.cpptype == "frontend.InAnalogTunerPort" %}
-    #{#- add FEI AnalogTuner callback functions #}
-#{%         if foundInAnalogInterface == False %}
-#        def fe_getTunerCenterFrequency(self, id):
-#            "fe_getTunerCenterFrequency(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setTunerCenterFrequency(self, id, freq):
-#            "fe_setTunerCenterFrequency(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getTunerBandwidth(self, id){
-#            "fe_getTunerBandwidth(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setTunerBandwidth(self, id, bw){
-#            "fe_setTunerBandwidth(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getTunerAgcEnable(self, id){
-#            "fe_getTunerAgcEnable(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setTunerAgcEnable(self, id, enable){
-#            "fe_setTunerAgcEnable(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getTunerGain(self, id){
-#            "fe_getTunerGain(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setTunerGain(self, id, gain){
-#            "fe_setTunerGain(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getTunerReferenceSource(self, id){
-#            "fe_getTunerReferenceSource(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getTunerAgcEnable(self, id){
-#            "fe_getTunerAgcEnable(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setTunerAgcEnable(self, id, enable){
-#            "fe_setTunerAgcEnable(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getTunerGain(self, id){
-#            "fe_getTunerGain(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setTunerGain(self, id, gain){
-#            "fe_setTunerGain(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getTunerReferenceSource(self, id){
-#            "fe_getTunerReferenceSource(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setTunerReferenceSource(self, id, source){
-#            "fe_setTunerReferenceSource(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getTunerEnable(self, id){
-#            "fe_getTunerEnable(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setTunerEnable(self, id, enable){
-#            "fe_setTunerEnable(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-#{%             set foundInAnalogInterface = True %}
-#{%         endif %}
 #{% endif %}
-#{%     if port.cpptype == "frontend.InDigitalTunerPort" %}
-    #{#- add FEI DigitalTuner callback functions #}
-#{%         if foundInDigitalInterface == False %}
-#        def fe_getTunerOutputSampleRate(self, id){
-#            "fe_getTunerOutputSampleRate(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
+#{% if 'GPS' in component.implements %}
 
-#        def fe_setTunerOutputSampleRate(self, id, sr){
-#            "fe_setTunerOutputSampleRate(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-#{%             set foundInDigitalInterface = True %}
-#{%         endif %}
-#{%     endif %}
-#{%     if port.cpptype == "frontend.InGPSPort" %}
-#{%         if foundInGPSPort == False %}
-#        def fe_getGPSInfo(self){
-#            "fe_getGPSInfo(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
+    def get_gps_info(self,port_name):
+        return frontend.GPSInfo()
 
-#        def fe_setGPSInfo(self,data){
-#            "fe_setGPSInfo(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
+    def set_gps_info(self,port_name, gps_info):
+        pass
 
-#        def fe_getGpsTimePos(self){
-#            "fe_getGpsTimePos(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
+    def get_gps_time_pos(self,port_name):
+        return frontend.GpsTimePos()
 
-#        def fe_setGpsTimePos(self,data){
-#            "fe_setGpsTimePos(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-#{%             set foundInGPSPort = True %}
-#{%         endif %}
-#{%     endif %}
-#{%     if port.cpptype == "frontend.InNavDataPort" %}
-#{%         if foundInNavDataPort == False %}
-#        def fe_getNavPkt(self){
-#            "fe_getNavPkt(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setNavPkt(self,data){
-#            "fe_setNavPkt(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-#{%             set foundInNavDataPort = True %}
-#{%         endif %}
-#{%     endif %}
-#{%     if port.cpptype == "frontend.InRFInfoPort" %}
-#{%         if foundInRFInfoPort == False %}
-#        def fe_getRFFlowId(self){
-#            "fe_getRFFlowId(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setRFFlowId(self,data){
-#            "fe_setRFFlowId(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getRFInfoPkt(self){
-#            "fe_getRFInfoPkt(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setRFInfoPkt(self, data){
-#            "fe_setRFInfoPkt(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-#{%             set foundInRFInfoPort = True %}
-#{%         endif %}
-#{%     endif %}
-#{%     if port.cpptype == "frontend.InRFSourcePort" %}
-#{%         if foundInRFSourcePort == False %}
-#        def fe_getAvailableRFInputs(self){
-#            "fe_getAvailableRFInputs(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setAvailableRFInputs(self,data){
-#            "fe_setAvailableRFInputs(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_getCurrentRFInput(self){
-#            "fe_getCurrentRFInput(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-
-#        def fe_setCurrentRFInput(self, data){
-#            "fe_setCurrentRFInput(): DEVELOPER CAN IMPLEMENT TO OVERRIDE BASE METHOD"
-#        }
-#{%             set foundInRFSourcePort = True %}
-#{%         endif %}
-#{%     endif %}
-#{% endfor %}
-
-        
-  
-if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.INFO)
-#{% if component is device %}
-    logging.debug("Starting Device")
-    start_device(${className})
-#{% else %}
-    logging.debug("Starting Component")
-    start_component(${className})
+    def set_gps_time_pos(self,port_name, gps_time_pos):
+        pass
 #{% endif %}
+#{% if 'NavData' in component.implements %}
+
+    def get_nav_packet(self,port_name):
+        return frontend.NavigationPacket()
+
+    def set_nav_packet(self,port_name, nav_info):
+        pass
+
+#{% endif %}
+#{% if 'RFInfo' in component.implements %}
+    '''
+    *************************************************************
+    Functions servicing the RFInfo port(s)
+    - port_name is the port over which the call was received
+    *************************************************************'''
+    def get_rf_flow_id(self,port_name):
+        return "none"
+
+    def set_rf_flow_id(self,port_name, id):
+        pass
+
+    def get_rfinfo_pkt(self,port_name):
+        return frontend.RFInfoPkt()
+
+    def set_rfinfo_pkt(self,port_name, pkt):
+        pass
+#{% endif %}
+#{% if 'RFSource' in component.implements %}
+
+    def get_available_rf_inputs(self,port_name):
+        return []
+
+    def set_available_rf_inputs(self,port_name, inputs):
+        pass
+
+    def get_current_rf_input(self,port_name):
+        return frontend.RFInfoPkt()
+
+    def set_current_rf_input(self, port_name, pkt):
+        pass
+#{% endif %}
+#{% endblock %}

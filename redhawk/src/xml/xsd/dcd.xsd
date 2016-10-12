@@ -175,27 +175,52 @@ device definition.</xs:documentation></xs:annotation>
         	<xs:documentation>The componentinstantiation element (see Figure D-35) is intended to describe a particular
 instantiation of a component relative to a componentplacement element</xs:documentation></xs:annotation>
         <xs:sequence>
-			<xs:element ref="usagename" minOccurs="0" ecore:name="usageName">
-				<xs:annotation>
-					<xs:documentation>The componentinstantiation contains
+	  <xs:element ref="usagename" minOccurs="0" ecore:name="usageName">
+	    <xs:annotation>
+	      <xs:documentation>The componentinstantiation contains
 a usagename element that is intended for an applicable name for the component.
 
 For a component service type (e.g,, Log), the
 usagename element needs to be unique for each service type.</xs:documentation>
-				</xs:annotation></xs:element>
-			<xs:element ref="componentproperties" minOccurs="0" ecore:name="componentProperties">
-				<xs:annotation>
-					<xs:documentation>The optional componentproperties element (see Figure D-36) is a list of property values that are used in
-configuring the component.</xs:documentation>
-				</xs:annotation></xs:element>
-		</xs:sequence>
-		<xs:attribute name="id" use="required" type="xs:string">
-			<xs:annotation>
-				<xs:documentation>The componentinstantiation‘s id attribute is a DCE UUID that uniquely identifier the component.</xs:documentation>
-			</xs:annotation></xs:attribute>
+	    </xs:annotation>
+          </xs:element>
+	  <xs:element ref="componentproperties" minOccurs="0" ecore:name="componentProperties">
+	    <xs:annotation>
+	      <xs:documentation>The optional componentproperties element (see Figure D-36) is a list of property values that are used in
+                configuring the component.</xs:documentation>
+	    </xs:annotation>
+          </xs:element>
+	  <xs:element name="affinity" minOccurs="0" maxOccurs="1" type="affinity"/>
+	  <xs:element name="loggingconfig" minOccurs="0" maxOccurs="1" type="loggingconfig"/>
+	</xs:sequence>
+	<xs:attribute name="id" use="required" type="xs:string">
+	  <xs:annotation>
+	    <xs:documentation>The componentinstantiation‘s id attribute is a DCE UUID that uniquely identifier the component.</xs:documentation>
+	</xs:annotation>
+        </xs:attribute>
 	</xs:complexType>
+
 	<xs:element name="componentinstantiation" type="componentinstantiation"/>
 	<xs:element name="usagename" type="xs:string"/>
+
+
+	<xs:complexType name="loggingconfig" >
+          <xs:simpleContent>
+	    <xs:extension base="xs:string">
+	    <xs:attribute name="level" use="optional" type="xs:string"/>
+	    </xs:extension>
+          </xs:simpleContent>
+	</xs:complexType>
+
+	<xs:complexType name="affinity">
+	  <xs:choice maxOccurs="unbounded">
+	    <xs:element ref="simpleref" ecore:name="simpleRef"/>
+	    <xs:element ref="simplesequenceref" ecore:name="simpleSequenceRef"/>
+	    <xs:element ref="structref" ecore:name="structRef"/>
+	    <xs:element ref="structsequenceref" ecore:name="structSequenceRef"/>
+	  </xs:choice>
+	</xs:complexType>
+
 	<xs:complexType name="componentproperties" ecore:name="ComponentProperties">
 		<xs:choice maxOccurs="unbounded">
 			<xs:element ref="simpleref" ecore:name="simpleRef"/>
@@ -204,6 +229,7 @@ configuring the component.</xs:documentation>
 			<xs:element ref="structsequenceref" ecore:name="structSequenceRef"/>
 		</xs:choice>
 	</xs:complexType>
+
 	<xs:element name="componentproperties" type="componentproperties" />
 	<xs:complexType name="devicethatloadedthiscomponentref" ecore:name="DeviceThatLoadedThisComponentRef">
 		<xs:attribute name="refid" use="required" type="xs:string"/>
@@ -228,7 +254,10 @@ configuring the component.</xs:documentation>
 	<xs:element name="simplesequenceref" type="simplesequenceref"/>
 	<xs:complexType name="structref" ecore:name="StructRef">
 		<xs:sequence>
-			<xs:element ref="simpleref" maxOccurs="unbounded" ecore:name="simpleRef"/>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element ref="simpleref" ecore:name="simpleRef"/>
+				<xs:element ref="simplesequenceref" ecore:name="simpleSequenceRef"/>
+			</xs:choice>
 		</xs:sequence>
 		<xs:attribute name="refid" use="required" type="xs:string" ecore:name="refID"/>
 	</xs:complexType>
@@ -242,7 +271,10 @@ configuring the component.</xs:documentation>
 	<xs:element name="structsequenceref" type="structsequenceref"/>
 	<xs:complexType name="structvalue" ecore:name="StructValue">
 		<xs:sequence>
-			<xs:element ref="simpleref" maxOccurs="unbounded" ecore:name="simpleRef"/>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element ref="simpleref" ecore:name="simpleRef"/>
+				<xs:element ref="simplesequenceref" ecore:name="simpleSequenceRef"/>
+			</xs:choice>
 		</xs:sequence>
 	</xs:complexType>
 	<xs:element name="structvalue" type="structvalue"/>

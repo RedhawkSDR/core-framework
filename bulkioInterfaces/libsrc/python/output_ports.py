@@ -93,11 +93,11 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         self.noData = noData
 
         # Determine maximum transfer size in advance
-        byteSize = 1
+        self.byteSize = 1
         if self.PortTransferType:
-            byteSize = struct.calcsize(PortTransferType)
+            self.byteSize = struct.calcsize(PortTransferType)
         # Multiply by some number < 1 to leave some margin for the CORBA header
-        self.maxSamplesPerPush = int(MAX_TRANSFER_BYTES*.9)/byteSize
+        self.maxSamplesPerPush = int(MAX_TRANSFER_BYTES*.9)/self.byteSize
         # Make sure maxSamplesPerPush is even so that complex data case is handled properly
         if self.maxSamplesPerPush%2 != 0:
             self.maxSamplesPerPush = self.maxSamplesPerPush - 1
@@ -158,6 +158,7 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                     self.outConnections[connId].pushPacket(self.noData, empty_timestamp, True, sid)
 
             self.outConnections.pop(connId, None)
+            self.stats.remove(connectionId)
             for key in self.sriDict.keys():
                 # if connID exist in set, remove it, otherwise do nothing (that is what discard does)
                 self.sriDict[key].connections.discard(connId)
@@ -265,6 +266,18 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
     def _pushOversizedPacket(self, data, T, EOS, streamID):
         # If there is no need to break data into smaller packets, skip straight
         # to the pushPacket call and return.
+        subsize = 0
+        if self.sriDict.has_key(streamID):
+            subsize = self.sriDict[streamID].sri.subsize
+        if subsize != 0:
+            if self.maxSamplesPerPush%subsize != 0:
+                self.maxSamplesPerPush = int(MAX_TRANSFER_BYTES*.9)/self.byteSize
+                while (self.maxSamplesPerPush%subsize != 0):
+                    self.maxSamplesPerPush -= self.maxSamplesPerPush%subsize
+                    # Make sure maxSamplesPerPush is even so that complex data case is handled properly
+                    if self.maxSamplesPerPush%2 != 0:
+                        self.maxSamplesPerPush -= 1
+        
         if len(data) <= self.maxSamplesPerPush:
             self._pushPacket(data, T, EOS, streamID);
             return
@@ -295,7 +308,11 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
             if self.logger:
                 self.logger.trace("_pushOversizedPacket() calling pushPacket with pushSize " + str(len(data[start:end])) + " and packetTime twsec: " + str(packetTime.twsec) + " tfsec: " + str(packetTime.tfsec))
             self._pushPacket(data[start:end], packetTime, packetEOS, streamID);
-            packetTime = timestamp.addSampleOffset(packetTime, len(data[start:end]), xdelta)
+            data_xfer_len = len(data[start:end])
+            if self.sriDict.has_key(streamID):
+                if self.sriDict[streamID].sri.mode == 1:
+                    data_xfer_len = data_xfer_len / 2
+            packetTime = timestamp.addSampleOffset(packetTime, data_xfer_len, xdelta)
 
     def _pushPacket(self, data, T, EOS, streamID):
         

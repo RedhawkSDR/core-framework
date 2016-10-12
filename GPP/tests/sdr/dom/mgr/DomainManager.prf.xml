@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+    <description>These are the properties to configure the domain manager</description>
+
+    <simple id="LOGGING_CONFIG_URI" mode="readonly" name="LOGGING_CONFIG_URI" type="string">
+        <description>
+	A URI on the SCA FileManager that points to a log4j configuration file used
+	for the domain manager and the entire domain. 
+	</description>
+        <kind kindtype="execparam"/>
+        <kind kindtype="configure"/>
+    </simple>
+    <simple id="DMD_FILE" mode="readwrite" name="DMD_FILE" type="string">
+        <description>
+        Path to the Domain Manager Descriptor (DMD) XML file..
+        </description>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple id="DOMAIN_NAME" mode="readwrite" name="DOMAIN_NAME" type="string">
+        <description>
+        The name of the domain to which this domain manager will be bound.
+        </description>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple id="PERSISTENCE" mode="readwrite" name="PERSISTENCE" type="boolean">
+        <description>
+        Enable CORBA persistence for the domain manager.
+        </description>
+        <value>true</value>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple id="DB_URL" mode="readwrite" name="DB_URL" type="string">
+        <description>
+        The URL to a database for domain persistence information.
+        </description>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple id="FORCE_REBIND" mode="readwrite" name="FORCE_REBIND" type="boolean">
+        <description>
+        Replace any existing name binding for the domain manager.
+        </description>
+        <value>false</value>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple id="COMPONENT_BINDING_TIMEOUT" mode="readwrite" name="component_binding_timeout" type="ulong">
+        <description>
+        The amount of time, in seconds, to wait for a component to bind to the name service after being launched.
+        </description>
+        <value>60</value>
+        <units>seconds</units>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+    <simple id="REDHAWK_VERSION" mode="readonly" name="REDHAWK_VERSION" type="string">
+        <description>
+            Current version of REDHAWK that this Domain Manager is running
+        </description>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+</properties>

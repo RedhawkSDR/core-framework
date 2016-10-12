@@ -27,6 +27,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 
@@ -52,6 +53,7 @@ CREATE_LOGGER(DomainManager);
 void signal_catcher( int sig )
 {
     static int shuttingDown = 0;
+
     // IMPORTANT Don't call exit(...) in this function
     // issue all CORBA calls that you need for cleanup here before calling ORB shutdown
     if ((( sig == SIGINT ) || (sig == SIGQUIT) || (sig == SIGTERM)) && (shuttingDown == 0)) {
@@ -59,6 +61,15 @@ void signal_catcher( int sig )
         shuttingDown = 1;
         if (DomainManager_servant) {
             DomainManager_servant->halt();
+        }
+    }
+}
+
+void usr_signal_catcher( int sig )
+{
+    if (sig == SIGUSR1) {
+        if (DomainManager_servant) {
+            DomainManager_servant->closeAllOpenFileHandles();
         }
     }
 }
@@ -81,7 +92,8 @@ static void raise_limit(int resource, const char* name, const rlim_t DEFAULT_MAX
     }
 }
 
-int main(int argc, char* argv[])
+
+int old_main(int argc, char* argv[])
 {
     // parse command line options
     string dmdFile("");
@@ -92,12 +104,15 @@ int main(int argc, char* argv[])
     int debugLevel = 3;
     std::string dpath("");
     std::string name_binding("DomainManager");
+    bool  useLogCfgResolver = false;
+    bool  bindToDomain=false;
 
     // If "--nopersist" is asserted, turn off persistent IORs.
     bool enablePersistence = false;
 #if ENABLE_BDB_PERSISTENCE || ENABLE_GDBM_PERSISTENCE || ENABLE_SQLITE_PERSISTENCE
     enablePersistence = true;
 #endif
+    bool endPoint = false;
     
     raise_limit(RLIMIT_NPROC, "process");
     raise_limit(RLIMIT_NOFILE, "file descriptor");
@@ -110,9 +125,18 @@ int main(int argc, char* argv[])
 
     for (int ii = 1; ii < argc; ++ii) {
         std::string param = argv[ii];
+        std::string pupper = boost::algorithm::to_upper_copy(param);
+        if (pupper == "USELOGCFG") {
+          useLogCfgResolver=true;
+          continue;
+        }
+        if (pupper == "BINDAPPS") {
+          bindToDomain=true;
+          continue;
+        }
         if (++ii >= argc) {
             std::cerr << "ERROR: No value given for " << param << std::endl;
-            exit(EXIT_FAILURE);
+            return(EXIT_FAILURE);
         }
 
         if (param == "DMD_FILE") {
@@ -142,6 +166,7 @@ int main(int argc, char* argv[])
             std::transform(value.begin(), value.begin(), value.end(), ::tolower);
             forceRebind = (value == "true");
         } else if (param == "-ORBendPoint") {
+            endPoint = true;
         } else if ( ii > 0 ) { // any other argument besides the first one is part of the execparams
             execparams[param] = argv[ii];
         }
@@ -149,7 +174,7 @@ int main(int argc, char* argv[])
 
     if (dmdFile.empty() || domainName.empty()) {
         std::cerr << "ERROR: DMD_FILE and DOMAIN_NAME must be provided" << std::endl;
-        exit(EXIT_FAILURE);
+        return(EXIT_FAILURE);
     }
 
     // We have to have a real SDRROOT
@@ -166,13 +191,13 @@ int main(int argc, char* argv[])
     // Verify the path exists
     if (!fs::is_directory(sdrRootPath)) {
         std::cerr << "ERROR: Invalid SDRROOT " << sdrRootPath << std::endl;
-        exit(EXIT_FAILURE);
+        return(EXIT_FAILURE);
     }
 
     fs::path domRootPath = sdrRootPath / "dom";
     if (!fs::is_directory(domRootPath)) {
         std::cerr << "ERROR: Invalid Domain Manager File System Root " << domRootPath << std::endl;
-        exit(EXIT_FAILURE);
+        return(EXIT_FAILURE);
     }
 
     std::ostringstream os;
@@ -213,15 +238,15 @@ int main(int argc, char* argv[])
                 colonIdx += 2;
             }
             path = logfile_uri.substr(colonIdx, logfile_uri.length() - colonIdx);
-	}
+        }
 
         if (scheme == "file") {
-	  std::string fpath((char*)path.string().c_str());
-	  logcfg_uri = "file://" + fpath;	  
-	}
-	if (scheme == "sca") {
-	  std::string fpath((char*)fs::path(domRootPath / path).string().c_str());
-	  logcfg_uri = "file://" + fpath;
+          std::string fpath((char*)path.string().c_str());
+          logcfg_uri = "file://" + fpath;         
+        }
+        if (scheme == "sca") {
+          std::string fpath((char*)fs::path(domRootPath / path).string().c_str());
+          logcfg_uri = "file://" + fpath;
         }
     }
 
@@ -256,27 +281,50 @@ int main(int argc, char* argv[])
     sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
 
+    struct sigaction fp_sa;
+    fp_sa.sa_handler = usr_signal_catcher;
+    fp_sa.sa_flags = 0;
+    sigemptyset(&fp_sa.sa_mask);
+
+    // Associate SIGUSR1 to signal_catcher interrupt handler
+    if (sigaction(SIGUSR1, &fp_sa, NULL) == -1) {
+        LOG_ERROR(DomainManager, "sigaction(SIGUSR1): " << strerror(errno));
+        return(EXIT_FAILURE);
+    }
+
     // Associate SIGINT to signal_catcher interrupt handler
     if (sigaction(SIGINT, &sa, NULL) == -1) {
         LOG_ERROR(DomainManager, "sigaction(SIGINT): " << strerror(errno));
-        exit(EXIT_FAILURE);
+        return(EXIT_FAILURE);
     }
 
     // Associate SIGQUIT to signal_catcher interrupt handler
     if (sigaction(SIGQUIT, &sa, NULL) == -1) {
         LOG_ERROR(DomainManager, "sigaction(SIGQUIT): " << strerror(errno));
-        exit(EXIT_FAILURE);
+        return(EXIT_FAILURE);
     }
 
     // Associate SIGTERM to signal_catcher interrupt handler
     if (sigaction(SIGTERM, &sa, NULL) == -1) {
         LOG_ERROR(DomainManager, "sigaction(SIGTERM): " << strerror(errno));
-        exit(EXIT_FAILURE);
+        return(EXIT_FAILURE);
     }
 
     // Start CORBA. Only ask for persistence if "--nopersist" was not asserted, which implies
     // using the same port.
-    CORBA::ORB_ptr orb = ossie::corba::OrbInit(argc, argv, enablePersistence);
+    ossie::corba::ORBProperties orbProperties;
+    // If a user-specified ORB endpoint is present, do not override it. This
+    // allows multiple persistent endpoints on the same machine.
+    if (enablePersistence && !endPoint) {
+        orbProperties.push_back(std::make_pair("endPoint", "giop:tcp::5678"));
+    }
+    // Limit the lifetime of idle client connections to 10 seconds, to avoid
+    // leaving large numbers of file descriptors open. The DomainManager calls
+    // initialize() and configure() on each component in an application, then
+    // never talks to them again; in heavy utilization, this can cause hard-to-
+    // diagnose failures.
+    orbProperties.push_back(std::make_pair("outConScanPeriod", "10"));
+    CORBA::ORB_ptr orb = ossie::corba::OrbInit(argc, argv, orbProperties, enablePersistence);
 
     PortableServer::POA_ptr root_poa = PortableServer::POA::_nil();
     try {
@@ -284,11 +332,12 @@ int main(int argc, char* argv[])
         root_poa = ossie::corba::RootPOA();
     } catch ( CORBA::INITIALIZE& ex ) {
         LOG_FATAL(DomainManager, "Failed to initialize the POA. Is there a Domain Manager already running?");
-        exit(EXIT_FAILURE);
+        return(EXIT_FAILURE);
     }
-    ossie::corba::POACreator activator_servant;
-    PortableServer::AdapterActivator_var activator = activator_servant._this();
+    ossie::corba::POACreator *activator_servant = new ossie::corba::POACreator();
+    PortableServer::AdapterActivator_var activator = activator_servant->_this();
     root_poa->the_activator(activator);
+    activator->_remove_ref();
 
     // Activate the root POA manager.
     PortableServer::POAManager_var mgr = root_poa->the_POAManager();
@@ -299,7 +348,7 @@ int main(int argc, char* argv[])
     struct utsname un;
     if (uname(&un) != 0) {
         LOG_FATAL(DomainManager, "Unable to determine system information: " << strerror(errno));
-        exit(EXIT_FAILURE);
+        return(EXIT_FAILURE);
     }
     if (strcmp("i686", un.machine) == 0) {
         strcpy(un.machine, "x86");
@@ -315,50 +364,70 @@ int main(int argc, char* argv[])
         LOG_DEBUG(DomainManager, "File descriptor limit " << limit.rlim_cur);
     }
 
-    try {
-        // Create Domain Manager servant and object
-        LOG_INFO(DomainManager, "Starting Domain Manager");
-        LOG_DEBUG(DomainManager, "Root of DomainManager FileSystem set to " << domRootPath);
-        LOG_DEBUG(DomainManager, "DMD path set to " << dmdFile);
-        LOG_DEBUG(DomainManager, "Domain Name set to " << domainName);
-        try {
-            DomainManager_servant = new DomainManager_impl(dmdFile.c_str(),
-                                                           domRootPath.string().c_str(),
-                                                           domainName.c_str(),
-                                                           (logfile_uri.empty()) ? NULL : logfile_uri.c_str(),
-                                                           (db_uri.empty()) ? NULL : db_uri.c_str()
-                                                           );
-            DomainManager_servant->setExecparamProperties(execparams);
+    // Create Domain Manager servant and object
+    LOG_INFO(DomainManager, "Starting Domain Manager");
+    LOG_DEBUG(DomainManager, "Root of DomainManager FileSystem set to " << domRootPath);
+    LOG_DEBUG(DomainManager, "DMD path set to " << dmdFile);
+    LOG_DEBUG(DomainManager, "Domain Name set to " << domainName);
+    if ( bindToDomain ) { LOG_INFO(DomainManager, "Binding applications to the domain." ); }
 
-        } catch (const CORBA::Exception& ex) {
-            LOG_ERROR(DomainManager, "Terminated with CORBA::" << ex._name() << " exception");
-            exit(-1);
-        } catch (const std::exception& ex) {
-            LOG_ERROR(DomainManager, "Terminated with exception: " << ex.what());
-            exit(-1);
-        } catch( ... ) {
-            LOG_ERROR(DomainManager, "Terminated with unknown exception");
-            exit(EXIT_FAILURE);
+    try {
+        DomainManager_servant = new DomainManager_impl(dmdFile.c_str(),
+                                                       domRootPath.string().c_str(),
+                                                       domainName.c_str(),
+                                                       (db_uri.empty()) ? NULL : db_uri.c_str(),
+                                                       (logfile_uri.empty()) ? NULL : logfile_uri.c_str(),
+                                                       useLogCfgResolver,
+                                                       bindToDomain
+                                                       );
+
+        // set logging level for the DomainManager's logger
+        if ( DomainManager_servant ) {
+          DomainManager_servant->getLogger()->setLevel( ossie::logging::ConvertDebugToRHLevel(debugLevel) );
         }
 
+    } catch (const CORBA::Exception& ex) {
+        LOG_ERROR(DomainManager, "Terminated with CORBA::" << ex._name() << " exception");
+        return(-1);
+    } catch (const std::exception& ex) {
+        LOG_ERROR(DomainManager, "Terminated with exception: " << ex.what());
+        return(-1);
+    } catch (...) {
+        LOG_ERROR(DomainManager, "Terminated with unknown exception");
+        return(EXIT_FAILURE);
+    }
+
+    // Pass any execparams on to the DomainManager
+    DomainManager_servant->setExecparamProperties(execparams);
+
+    // If a database URI was given, attempt to restore the state. Most common errors should
+    // be handled gracefully, so any exception that escapes to this level probably indicates
+    // a severe problem.
+    // NB: This step must occur before activating the servant. Because this is almost
+    //     exclusively used with persistent IORs, a client might already hold (or be able
+    //     to get) a reference to the DomainManager, but calls may fail due to the
+    //     unpredictable state.
+    if (!db_uri.empty()) {
+        try {
+            DomainManager_servant->restoreState(db_uri);
+        } catch (const CORBA::Exception& ex) {
+            LOG_FATAL(DomainManager, "Unable to restore state: CORBA::" << ex._name());
+            return(EXIT_FAILURE);
+        } catch (const std::exception& ex) {
+            LOG_FATAL(DomainManager, "Unable to restore state: " << ex.what());
+            return(EXIT_FAILURE);
+        } catch (...) {
+            LOG_FATAL(DomainManager, "Unrecoverable error restoring state");
+            return(EXIT_FAILURE);
+        }
+    }
+
+    try {
         // Activate the DomainManager servant into its own POA, giving the POA responsibility
         // for its deletion.
         LOG_DEBUG(DomainManager, "Activating DomainManager into POA");
         PortableServer::POA_var dommgr_poa = root_poa->find_POA("DomainManager", 1);
         PortableServer::ObjectId_var oid = ossie::corba::activatePersistentObject(dommgr_poa, DomainManager_servant, DomainManager_servant->getFullDomainManagerName());
-
-        // If a database URI was given, attempt to restore the state. Most common errors should
-        // be handled gracefully, so any exception that escapes to this level probably indicates
-        // a severe problem.
-        // TODO: Determine whether this step can occur before activating the servant. Because this
-        // is almost exclusively used with persistent IORs, a client might already hold (or be able
-        // to get) a reference to the DomainManager, but calls may fail due to the unpredictable
-        // state.
-        if (!db_uri.empty()) {
-            try {
-                DomainManager_servant->restoreState(db_uri);
-            } CATCH_RETHROW_LOG_ERROR(DomainManager, "Unrecoverable error restoring state");
-        }
 
         // Bind the DomainManager object to its full name (e.g. "DomainName/DomainName") in the NameService.
         LOG_DEBUG(DomainManager, "Binding DomainManager to NamingService name " << DomainManager_servant->getFullDomainManagerName());
@@ -375,7 +444,7 @@ int main(int argc, char* argv[])
                 ossie::corba::InitialNamingContext()->rebind(name, DomainManager_obj);
             } else {
                 LOG_FATAL(DomainManager, "A DomainManager is already running as " << DomainManager_servant->getFullDomainManagerName());
-                exit(-1);
+                return(-1);
             }
         }
 
@@ -392,17 +461,28 @@ int main(int argc, char* argv[])
 
         LOG_INFO(DomainManager, "Requesting ORB shutdown");
         ossie::corba::OrbShutdown(true);
-
-        LOG_INFO(DomainManager, "Goodbye!");
+        LOG_INFO(DomainManager, "Farewell!");
+        ossie::logging::Terminate();            //no more logging....
     } catch (const CORBA::Exception& ex) {
         LOG_FATAL(DomainManager, "Terminated with CORBA::" << ex._name() << " exception");
-        exit(-1);
+        return(-1);
     } catch (const std::exception& ex) {
         LOG_FATAL(DomainManager, "Terminated with exception: " << ex.what());
-        exit(-1);
+        return(-1);
     } catch (...) {
         LOG_FATAL(DomainManager, "Terminated with unknown exception");
-        exit(-1);
+        DomainManager_servant->shutdown(-1);
+        
+        LOG_INFO(DomainManager, "ORB shutdown.... short startup..");
+        ossie::corba::OrbShutdown(true);
+        return(-1);
     }
-    LOG_DEBUG(DomainManager, "Farewell!")
+
+    return 0;
+}
+
+int main(int argc, char* argv[]) {
+  int status = old_main(argc, argv);
+  if ( status < 0 ) ossie::logging::Terminate(); 
+  exit(status);
 }

@@ -39,7 +39,7 @@ AX_BOOST_SYSTEM
 AX_BOOST_THREAD
 AX_BOOST_REGEX
 
-export PKG_CONFIG_PATH="../../../..:../../../../.."
+export PKG_CONFIG_PATH="../../../..:../../..":$PKG_CONFIG_PATH
 PKG_CHECK_MODULES([BIO], [bulkio >= 1.10])
 
 AC_CONFIG_FILES([Makefile])

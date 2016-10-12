@@ -28,7 +28,7 @@ Prefix:         %{_prefix}
 %bcond_without java
 
 Name:           bulkioInterfaces
-Version:        1.10.2
+Version:        2.0.2
 Release:        1%{?dist}
 Summary:        The bulkio library for REDHAWK
 
@@ -38,10 +38,10 @@ URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
+BuildRoot: 	    %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
-Requires: 	redhawk >= 1.9
-BuildRequires: 	redhawk-devel >= 1.9
+Requires: 	    redhawk >= 2.0
+BuildRequires: 	redhawk-devel >= 2.0
 
 %description
 Libraries and interface definitions for bulkio interfaces.

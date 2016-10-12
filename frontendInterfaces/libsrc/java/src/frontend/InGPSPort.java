@@ -21,14 +21,21 @@ package frontend;
 
 import FRONTEND.GpsTimePos;
 import FRONTEND.GPSInfo;
+import FRONTEND.GPSHelper;
 import frontend.GPSDelegate;
-public class InGPSPort extends FRONTEND.GPSPOA {
+import org.ossie.component.PortBase;
+
+public class InGPSPort extends FRONTEND.GPSPOA implements PortBase {
 
     protected String name;
  
     protected Object portAccess = null;
 
     protected GPSDelegate delegate = null;    
+
+    public InGPSPort( String portName) {
+        this(portName, null);
+    }
 
     public InGPSPort( String portName,
                          GPSDelegate d) {
@@ -41,12 +48,15 @@ public class InGPSPort extends FRONTEND.GPSPOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null ) {
-                    return delegate.fe_getGPSInfo();
+                    return delegate.get_gps_info(this.name);
+                } else {
+                    throw new RuntimeException("InGPSPort get_gps_info() callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InGPSPort gps_info() exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
-            return null;
         }
     }
 
@@ -54,10 +64,14 @@ public class InGPSPort extends FRONTEND.GPSPOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null) {
-                    delegate.fe_setGPSInfo(data);
+                    delegate.set_gps_info(this.name, data);
+                } else {
+                    throw new RuntimeException("InGPSPort set_gps_info(GPSInfo data) callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InGPSPort gps_info(GPSInfo data) exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
         }
     }
@@ -66,12 +80,15 @@ public class InGPSPort extends FRONTEND.GPSPOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null) {
-                    return (delegate.fe_getGpsTimePos());
+                    return (delegate.get_gps_time_pos(this.name));
+                } else {
+                    throw new RuntimeException("InGPSPort get_gps_time_pos() callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InGPSPort gps_time_pos() exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
-            return null;
         }
     }
 
@@ -79,15 +96,27 @@ public class InGPSPort extends FRONTEND.GPSPOA {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null) {
-                    delegate.fe_setGpsTimePos(data);
+                    delegate.set_gps_time_pos(this.name, data);
+                } else {
+                    throw new RuntimeException("InGPSPort set_gps_time_pos(GpsTimePos data) callback delegate not defined");
                 }
-            }catch(Exception e){
-                System.out.println("InGPSPort gps_time_pos(GpsTimePos data) exception " + e.getMessage());
+            } catch(org.omg.CORBA.SystemException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
             }
         }
     }
 
     public void setDelegate( GPSDelegate d ) {
         delegate = d;
+    }
+
+    public String getRepid() {
+        return GPSHelper.id();
+    }
+
+    public String getDirection() {
+        return "Provides";
     }
 }

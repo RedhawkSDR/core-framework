@@ -19,19 +19,10 @@
 #
 
 
+import numpy
 from numpy import *
-try:
-    import Numeric 
-except ImportError:
-    import numpy.oldnumeric as Numeric
 import platform
-try:
-    # Prefer the system version
-    import bluefile  
-except ImportError:
-    # But use the ossie version, if necessary.
-    # This may fail if Numeric isn't available
-    from ossie.backports import bluefile
+import bluefile  
 
 from ossie.cf import CF
 import ossie.properties
@@ -485,40 +476,22 @@ class BlueFileWriter(object):
         else:
             self.gotEOS = False
         try:
-            # If complex data, need to convert data back from array of scalar values 
+            if self.header and self.header['format'][1] == 'B':
+                # convert back from string to array of 8-bit integers
+                data = numpy.fromstring(data, numpy.int8)
+
+            # If complex data, need to convert data back from array of scalar values
             # to some form of complex values
-            if self.header != None and self.header['format'][0] == 'C':
-                # float and double are handled by numpy 
+            if self.header and self.header['format'][0] == 'C':
+                # float and double are handled by numpy
                 # each array element is a single complex value
-                if self.header['format'][1] == 'F' or self.header['format'][1] == 'D':
-                    real = data[0:len(data):2]
-                    imag = data[1:len(data):2]
-                    tmp = multiply(imag,1.0j).tolist()
-                    data = add(real,tmp).tolist()
-                # other data types are not handled by numpy 
+                if self.header['format'][1] in ('F', 'D'):
+                    data = bulkio_helpers.bulkioComplexToPythonComplexList(data)
+                # other data types are not handled by numpy
                 # each element is two value array representing real and imaginary values
-                elif self.header['format'][1] == 'I' or self.header['format'][1] == 'L':
-                    if arch == "x86_64":
-                        # Need to rehape the data into complex value pairs
-                        # numpy reshape is used to avoid 64-bit error
-                        data= reshape(data,(-1,2))
-                        # Need to convert numpy array to Numeric array which bluefile.write() is expecting
-                        data = Numeric.array(data)
-                    else:
-                        data= Numeric.reshape(data,(-1,2))
-                elif self.header['format'][1] == 'B':
-                    # convert back from string to array of 8-bit integers 
-                    data = Numeric.fromstring(data,Numeric.Int8)
-                    if arch == "x86_64":
-                        # Need to rehape the data into complex value pairs
-                        # numpy reshape is used to avoid 64-bit error
-                        data= reshape(data,(-1,2))
-                        # Need to convert numpy array to Numeric array which bluefile.write() is expecting
-                        data = Numeric.array(data)
-                    else:
-                        data= Numeric.reshape(data,(-1,2))
-            elif self.header != None and self.header['format'] == "SB":
-                data = Numeric.fromstring(data,Numeric.Int8)
+                else:
+                    # Need to rehape the data into complex value pairs
+                    data = numpy.reshape(data,(-1,2))
 
             bluefile.write(self.outFile, hdr=None, data=data, 
                        append=1)     

@@ -125,6 +125,12 @@ class CommandWrapper_i(CF__POA.Resource, Resource):
         mode="readonly",
         fget=get_commandAlive)
 
+    prop3 = simple_property(\
+        id_='prop3',
+        type_="string",
+        name="prop3",
+        kinds=("property"))
+
     someprop = simple_property(\
         id_='DCE:fa8c5924-845c-484a-81df-7941f2c5baa9',
         type_="long",
@@ -137,10 +143,17 @@ class CommandWrapper_i(CF__POA.Resource, Resource):
         name="someprop2",
         defvalue=50.0)
 
+    configure_prop_notset = simple_property(\
+        id_='configure_prop_notset',
+        type_="double",
+        name="configure_prop_notset",
+        kinds=("property"))
+
     someprop3 = simple_property(\
         id_='DCE:6ad84383-49cf-4017-b7ca-0ec4c4917952',
         type_="double",
-        name="someprop3")
+        name="someprop3",
+        kinds=("configure"))
 
     execparams = simpleseq_property(\
         id_='DCE:85d133fd-1658-4e4d-b3ff-1443cd44c0e2',

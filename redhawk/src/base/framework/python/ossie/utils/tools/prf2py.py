@@ -79,11 +79,11 @@ def readPRF(filename):
             mode = "readwrite"
 
         for k in property.get_kind():
-            if not k.get_kindtype() in ("allocation", "configure", "test", "execparam", "factoryparam"):
+            if not k.get_kindtype() in ("allocation", "property", "configure", "test", "execparam", "factoryparam"):
                 raise StandardError("Invalid action %s for %s" % (action, property.get_id()))
         kinds = [ k.get_kindtype() for k in property.get_kind()]
         if len(kinds) == 0:
-            kinds = ["configure"]
+            kinds = ["property", "configure"]
     
         p = (property.get_id(),
              property.get_name(),
@@ -111,7 +111,7 @@ def readPRF(filename):
                 raise StandardError("Invalid action %s for %s" % (action, property.get_id()))
         kinds = [ k.get_kindtype() for k in property.get_kind()]
         if len(kinds) == 0:
-            kinds = ["configure"]
+            kinds = ["property", "configure"]
         
         values = None
         if property.get_values() != None:

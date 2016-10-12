@@ -28,8 +28,8 @@ Prefix:         %{_prefix}
 %bcond_without java
 
 Name:           burstioInterfaces
-Version:        1.10.1
-Release:        3%{?dist}
+Version:        2.0.2
+Release:        1%{?dist}
 Summary:        BURSTIO interfaces for REDHAWK
 
 Group:          Applications/Engineering
@@ -40,11 +40,11 @@ Vendor:         REDHAWK
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
-Requires:       redhawk >= 1.8
-BuildRequires:  redhawk-devel >= 1.8
+Requires:       redhawk >= 2.0
+BuildRequires:  redhawk-devel >= 2.0
 
-Requires:       bulkioInterfaces >= 1.8
-BuildRequires:  bulkioInterfaces >= 1.8
+Requires:       bulkioInterfaces >= 2.0
+BuildRequires:  bulkioInterfaces >= 2.0
 
 %description
 BURSTIO interfaces for REDHAWK

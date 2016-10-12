@@ -39,6 +39,12 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <kind kindtype="allocation"/>
     <action type="external"/>
   </simple>
+  <simple id="additional_supported_components" mode="readwrite" name="additional_supported_components" type="short">
+    <value>4</value>
+    <kind kindtype="configure"/>
+    <kind kindtype="allocation"/>
+    <action type="external"/>
+  </simple>
   <simple id="DCE:4a23ad60-0b25-4121-a630-68803a498f75" mode="readwrite" name="os_name" type="string">
     <value>Linux</value>
     <kind kindtype="configure"/>

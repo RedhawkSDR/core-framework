@@ -45,6 +45,18 @@ values used by a CF Resource component’s configure(), query(), and runTest() o
       <xs:enumeration value="true"/>
     </xs:restriction>
   </xs:simpleType>
+  <xs:simpleType name="IsCommandLine">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="false"/>
+      <xs:enumeration value="true"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="IsOptional">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="false"/>
+      <xs:enumeration value="true"/>
+    </xs:restriction>
+  </xs:simpleType>
   <xs:simpleType name="AccessType">
     <xs:restriction base="xs:string">
       <xs:enumeration value="writeonly"/>
@@ -67,7 +79,7 @@ values used by a CF Resource component’s configure(), query(), and runTest() o
     </xs:restriction>
   </xs:simpleType>
   <xs:complexType name="configurationKind">
-    <xs:attribute ecore:name="type" default="configure" name="kindtype" type="StructPropertyConfigurationType"/>
+    <xs:attribute ecore:name="type" default="property" name="kindtype" type="StructPropertyConfigurationType"/>
   </xs:complexType>
   <xs:complexType name="enumeration">
     <xs:attribute name="label" type="xs:string" use="required"/>
@@ -84,7 +96,7 @@ values used by a CF Resource component’s configure(), query(), and runTest() o
     </xs:sequence>
   </xs:complexType>
   <xs:complexType ecore:name="Kind" name="kind">
-    <xs:attribute default="configure" ecore:name="type" name="kindtype" type="PropertyConfigurationType"/>
+    <xs:attribute default="property" ecore:name="type" name="kindtype" type="PropertyConfigurationType"/>
   </xs:complexType>
   <xs:simpleType name="PropertyConfigurationType">
     <xs:restriction base="xs:string">
@@ -95,6 +107,7 @@ values used by a CF Resource component’s configure(), query(), and runTest() o
       <xs:enumeration value="test"/>
       <xs:enumeration value="event"/>
       <xs:enumeration value="message"/>
+      <xs:enumeration value="property"/>
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="StructPropertyConfigurationType">
@@ -105,6 +118,7 @@ values used by a CF Resource component’s configure(), query(), and runTest() o
       <xs:enumeration value="test"/>
       <xs:enumeration value="event"/>
       <xs:enumeration value="message"/>
+      <xs:enumeration value="property"/>
     </xs:restriction>
   </xs:simpleType>
   <xs:complexType name="properties">
@@ -185,11 +199,19 @@ defined.</xs:documentation></xs:annotation></xs:element>
     <xs:attribute default="readwrite" name="mode" type="AccessType"/>
     <xs:attribute name="name" type="xs:string"/>
     <xs:attribute default="false" name="complex" type="IsComplex"/>
+    <xs:attribute default="false" name="commandline" type="IsCommandLine"/>
+    <xs:attribute default="false" name="optional" type="IsOptional"/>
     <xs:attribute name="type" type="PropertyValueType" use="required"/>
   </xs:complexType>
   <xs:complexType name="simpleRef">
     <xs:attribute name="refid" type="xs:string" use="required"/>
     <xs:attribute name="value" type="xs:string" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="simpleSequenceRef" >
+    <xs:sequence>
+      <xs:element name="values" type="values"/>
+    </xs:sequence>
+    <xs:attribute name="refid" use="required" type="xs:string"/>
   </xs:complexType>
   <xs:complexType name="simpleSequence">
     <xs:sequence>
@@ -205,11 +227,15 @@ defined.</xs:documentation></xs:annotation></xs:element>
     <xs:attribute name="name" type="xs:string"/>
     <xs:attribute name="type" type="PropertyValueType" use="required"/>
     <xs:attribute default="false" name="complex" type="IsComplex"/>
+    <xs:attribute default="false" name="optional" type="IsOptional"/>
   </xs:complexType>
   <xs:complexType name="struct">
     <xs:sequence>
-     <xs:element minOccurs="0" type="xs:string" name="description"/>
-      <xs:element maxOccurs="unbounded" type="simple" name="simple"/>
+      <xs:element minOccurs="0" type="xs:string" name="description"/>
+	  <xs:choice maxOccurs="unbounded">
+        <xs:element type="simple" name="simple"/>
+        <xs:element type="simpleSequence" name="simplesequence" ecore:name="simpleSequence"/>
+	  </xs:choice>
       <xs:element minOccurs="0" maxOccurs="unbounded" type="configurationKind" name="configurationkind" ecore:name="configurationKind"/>
     </xs:sequence>
     <xs:attribute ecore:id="true" name="id" type="xs:string" use="required"/>
@@ -229,7 +255,10 @@ defined.</xs:documentation></xs:annotation></xs:element>
   </xs:complexType>
   <xs:complexType name="structValue">
     <xs:sequence>
-      <xs:element maxOccurs="unbounded" type="simpleRef" name="simpleref"/>
+      <xs:choice maxOccurs="unbounded">
+		<xs:element type="simpleRef" name="simpleref" ecore:name="simpleRef"/>
+		<xs:element type="simpleSequenceRef" name="simplesequenceref" ecore:name="simpleSequenceRef"/>
+	  </xs:choice>
     </xs:sequence>
   </xs:complexType>
   <xs:complexType name="test">

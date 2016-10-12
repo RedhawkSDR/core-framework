@@ -49,7 +49,7 @@ class ProgrammableComponentMapper(PullComponentMapper):
 
     @staticmethod
     def reprogClass(softpkg):
-        reprogclass = softpkg.name() + '_prog_base'
+        reprogclass = softpkg.basename() + '_prog_base'
         return {'name'  : reprogclass,
                 'header': reprogclass+'.h',
                 'file'  : reprogclass+'.cpp'}

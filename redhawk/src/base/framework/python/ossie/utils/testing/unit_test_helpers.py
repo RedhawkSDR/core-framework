@@ -48,6 +48,8 @@ from ossie.properties import mapComplexType
 from ossie.utils.prop_helpers import parseComplexString
 from omniORB import any, CORBA, tcInternal
 
+import rhunittest
+
 # These global methods are here to allow other modules to modify the global variables IMPL_ID and SOFT_PKG
 # TestCase setUp() method doesn't allow passing in arguments to the test case so global values are needed
 def setImplId(impl_id):
@@ -68,7 +70,7 @@ def getSoftPkg():
 #IDE_REF_ENV = os.getenv('IDE_REF')
 IDE_REF_ENV = None
 if IDE_REF_ENV != None:
-    sb.setIDE_REF(CORBA.ORB_init().string_to_object(IDE_REF_ENV)._narrow(ExtendedCF.Sandbox))
+    sb.setIDE_REF(sb.orb.string_to_object(IDE_REF_ENV)._narrow(ExtendedCF.Sandbox))
 
 def stringToComplex(value, type):
     real, imag = parseComplexString(value, type)
@@ -146,12 +148,11 @@ class ScaComponentTestCase(unittest.TestCase):
                 self.comp.releaseObject()
             except CORBA.Exception:
                 pass
-        else:
-            # TODO: Services
+        else: # this is where Services would be handled
             pass
         self.comp_obj = None
             
-    def launch(self, execparams={}, ossiehome=None, configure={}, initialize=True, objType=None):
+    def launch(self, execparams={}, ossiehome=None, configure={}, initialize=True, objType=None, debugger=None):
         """
         Launch the component. The component will be executed as a child process,
         then (optionally) initialized and configured.
@@ -173,14 +174,14 @@ class ScaComponentTestCase(unittest.TestCase):
                 model._idllib = IDLLibrary()
                 model._idllib.addSearchPath(str(ossiehome)+'/idl')
             component = sb.launch(self.spd_file, impl=self.impl, execparams=execparams,
-                                  configure=configure, initialize=initialize, objType=objType)
+                                  configure=configure, initialize=initialize, objType=objType, debugger=debugger)
         else:
             # spd file path passed in to unit test is relative to current component tests directory (i.e. "..")
-            # IDE unit test requires spd file path relative to sca file system
+            # IDE unit test requires spd file path relative to redhawk file system
             componentName = str(self.spd.get_name())
-            sca_file_system_spd_file = "components/" + componentName + "/" + self.spd_file[3:]
-            component = sb.launch(sca_file_system_spd_file, impl=self.impl, execparams=execparams,
-                                  configure=configure, initialize=initialize, objType=objType)
+            rh_file_system_spd_file = "components/" + componentName + "/" + self.spd_file[3:]
+            component = sb.launch(rh_file_system_spd_file, impl=self.impl, execparams=execparams,
+                                  configure=configure, initialize=initialize, objType=objType, debugger=debugger)
         self.comp_obj = component.ref
         self.comp = component
             
@@ -200,7 +201,7 @@ class ScaComponentTestCase(unittest.TestCase):
 
             matchKind = False
             if prop.get_kind() == None:
-                k = ["configure"]
+                k = ["configure", "property"]
             else:
                 k = prop.get_kind()
             for kind in k:
@@ -212,7 +213,7 @@ class ScaComponentTestCase(unittest.TestCase):
 
             matchKind = False
             if prop.get_configurationkind() == None:
-                k = ["configure"]
+                k = ["configure", "property"]
             else:
                 k = prop.get_configurationkind()
             for kind in k:
@@ -225,10 +226,11 @@ class ScaComponentTestCase(unittest.TestCase):
 
         return matchMode and matchKind and matchAction
        
-    def getPropertySet(self, kinds=("configure",), \
+    def getPropertySet(self, kinds=("configure","property",), \
                              modes=("readwrite", "writeonly", "readonly"), \
                              action="external", \
-                             includeNil=True):
+                             includeNil=True,
+                             commandline=False):
         """
         A useful utility function that extracts specified property types from
         the PRF file and turns them into a CF.PropertySet
@@ -236,7 +238,8 @@ class ScaComponentTestCase(unittest.TestCase):
         propertySet = []
 
         # Simples
-        for prop in self.prf.get_simple():
+        if self.prf != None:
+          for prop in self.prf.get_simple():
             if self.isMatch(prop, modes, kinds, (action,)): 
                 if prop.get_value() is not None:    
                     if prop.complex.lower() == "true":
@@ -253,8 +256,8 @@ class ScaComponentTestCase(unittest.TestCase):
                 p = CF.DataType(id=str(prop.get_id()), value=dt)
                 propertySet.append(p)
 
-        # Simple Sequences
-        for prop in self.prf.get_simplesequence():
+          # Simple Sequences
+          for prop in self.prf.get_simplesequence():
             if self.isMatch(prop, modes, kinds, (action,)): 
                 if prop.get_values() is not None:
                     seq = []
@@ -281,17 +284,24 @@ class ScaComponentTestCase(unittest.TestCase):
                 p = CF.DataType(id=str(prop.get_id()), value=dt)
                 propertySet.append(p)
 
-        # Structures
-        for prop in self.prf.get_struct():
+          # Structures
+          for prop in self.prf.get_struct():
             if self.isMatch(prop, modes, kinds, (action,)): 
-                if prop.get_simple() is not None:
+                if (prop.get_simple() is not None) or (prop.get_simplesequence() is not None):
                     fields = []
                     hasValue = False
-                    for s in prop.get_simple():
-                        if s.get_value() is not None:
-                            hasValue = True
-                        dt = properties.to_tc_value(s.get_value(), s.get_type())
-                        fields.append(CF.DataType(id=str(s.get_id()), value=dt))
+                    if prop.get_simple() is not None:
+                        for p in prop.get_simple():
+                            if p.get_value() is not None:
+                                hasValue = True
+                            dt = properties.to_tc_value(p.get_value(), p.get_type())
+                            fields.append(CF.DataType(id=str(p.get_id()), value=dt))
+                    if prop.get_simplesequence() is not None:
+                        for p in prop.get_simplesequence():
+                            if p.get_values() is not None:
+                                hasValue = True
+                            dt = properties.to_tc_value(p.get_values(), p.get_type())
+                            fields.append(CF.DataType(id=str(p.get_id()), value=dt))
                     if not hasValue and not includeNil:
                         continue
                     dt = any.to_any(fields)
@@ -299,14 +309,16 @@ class ScaComponentTestCase(unittest.TestCase):
                     dt = any.to_any(None)
                 p = CF.DataType(id=str(prop.get_id()), value=dt)
                 propertySet.append(p)
-        # Structures
-
-        for prop in self.prf.get_structsequence():
+                
+          # Struct Sequence
+          for prop in self.prf.get_structsequence():
             if self.isMatch(prop, modes, kinds, (action,)):
               baseProp = []
               if prop.get_struct() != None:
                 fields = []
                 for internal_prop in prop.get_struct().get_simple():
+                    fields.append(CF.DataType(id=str(internal_prop.get_id()), value=any.to_any(None)))
+                for internal_prop in prop.get_struct().get_simplesequence():
                     fields.append(CF.DataType(id=str(internal_prop.get_id()), value=any.to_any(None)))
               for val in prop.get_structvalue():
                 baseProp.append(copy.deepcopy(fields))
@@ -317,13 +329,20 @@ class ScaComponentTestCase(unittest.TestCase):
                           val_type = internal_prop.get_type()
                   for subfield in baseProp[-1]:
                       if subfield.id == entry.refid:
-                        subfield.value = properties.to_tc_value(entry.get_value(), val_type)
+                          subfield.value = properties.to_tc_value(entry.get_value(), val_type)
+                for entry in val.get_simplesequenceref():
+                  val_type = None
+                  for internal_prop in prop.get_struct().get_simplesequence():
+                      if str(internal_prop.get_id()) == entry.refid:
+                          val_type = internal_prop.get_type()
+                  for subfield in baseProp[-1]:
+                      if subfield.id == entry.refid:
+                          subfield.value = properties.to_tc_value(entry.get_values(), val_type)
               anybp = []
               for bp in baseProp:
                   anybp.append(properties.props_to_any(bp))
               p = CF.DataType(id=str(prop.get_id()), value=any.to_any(anybp))
               propertySet.append(p)
-        # Struct Sequence
 
         return propertySet
     
@@ -386,6 +405,9 @@ class ScaComponentTestCase(unittest.TestCase):
                     # Got an expected error, so we should continue
                     continue
 
+class RHComponentTestCase(ScaComponentTestCase):
+    pass
+
 class ScaComponentTestProgram(unittest.TestProgram):
     USAGE = """\
 Usage: %(progName)s [options] [test] [...]
@@ -404,10 +426,12 @@ Examples:
                                                in MyTestCase
 """
     def __init__(self, spd_file, module='__main__', defaultTest=None,
-                argv=None, testRunner=None, testLoader=unittest.defaultTestLoader, impl=None):
+                argv=None, testRunner=None, testLoader=None, impl=None):
         self.spd_file = spd_file
         self.impl = impl
         self.results = []
+        if testLoader is None:
+            testLoader = rhunittest.RHTestLoader(impl)
         unittest.TestProgram.__init__(self, module, defaultTest, argv, testRunner, testLoader)
 
     def parseArgs(self, argv):
@@ -454,5 +478,10 @@ Examples:
                 result = self.testRunner.run(self.test)
                 self.results.append(result)
         #sys.exit(not result.wasSuccessful())
-               
-main = ScaComponentTestProgram
+
+def main(spd_file=None, module='__main__', defaultTest=None, argv=None, testRunner=None,
+         testLoader=unittest.defaultTestLoader, impl=None):
+    if spd_file is None:
+        return rhunittest.RHTestProgram(module, defaultTest, argv, testRunner, impl)
+    else:
+        return ScaComponentTestProgram(spd_file, module, defaultTest, argv, testRunner, testLoader, impl)

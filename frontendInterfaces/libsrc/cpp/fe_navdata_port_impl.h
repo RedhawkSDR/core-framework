@@ -59,6 +59,9 @@ namespace frontend {
                 this->parent->set_nav_packet(this->name, input);
                 return;
             };
+            std::string getRepid() const {
+                return "IDL:FRONTEND/NavData:1.0";
+            };
             
         protected:
             nav_delegation *parent;
@@ -82,11 +85,8 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            const FRONTEND::NavigationPacket_var tmp = ((*i).first)->nav_packet();
-                            retval = frontend::returnNavigationPacket(tmp);
-                        } catch(...) {
-                        }
+                        const FRONTEND::NavigationPacket_var tmp = ((*i).first)->nav_packet();
+                        retval = frontend::returnNavigationPacket(tmp);
                     }
                 }
                 return retval;
@@ -96,11 +96,8 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            const FRONTEND::NavigationPacket tmp = frontend::returnNavigationPacket(nav);
-                            ((*i).first)->nav_packet(tmp);
-                        } catch(...) {
-                        }
+                        const FRONTEND::NavigationPacket_var tmp = frontend::returnNavigationPacket(nav);
+                        ((*i).first)->nav_packet(tmp);
                     }
                 }
                 return;

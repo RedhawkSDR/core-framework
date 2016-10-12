@@ -47,7 +47,7 @@ namespace ossie {
         ///////////////////////////
         // Constructors/Destructors
         public:
-            /**
+            /*
              * The default constructor can be used to create a DomainManagerConfiguration
              * but you cannot call any 'gettors' before first calling 'load'.  Since this
              * is a programming error the class uses assert statements (rather than exceptions)

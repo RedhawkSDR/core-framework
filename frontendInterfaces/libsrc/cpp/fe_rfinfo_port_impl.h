@@ -74,6 +74,9 @@ namespace frontend {
                 this->parent->set_rfinfo_pkt(this->name, input);
                 return;
             };
+            std::string getRepid() const {
+                return "IDL:FRONTEND/RFInfo:1.0";
+            };
             
         protected:
             rfinfo_delegation *parent;
@@ -97,10 +100,7 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            retval = ((*i).first)->rf_flow_id();
-                        } catch(...) {
-                        }
+                        retval = ((*i).first)->rf_flow_id();
                     }
                 }
                 std::string str_retval = ossie::corba::returnString(retval);
@@ -111,10 +111,7 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            ((*i).first)->rf_flow_id(data.c_str());
-                        } catch(...) {
-                        }
+                        ((*i).first)->rf_flow_id(data.c_str());
                     }
                 }
                 return;
@@ -125,11 +122,8 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            const FRONTEND::RFInfoPkt_var tmp = ((*i).first)->rfinfo_pkt();
-                            retval = frontend::returnRFInfoPkt(tmp);
-                        } catch(...) {
-                        }
+                        const FRONTEND::RFInfoPkt_var tmp = ((*i).first)->rfinfo_pkt();
+                        retval = frontend::returnRFInfoPkt(tmp);
                     }
                 }
                 return retval;
@@ -139,11 +133,8 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                        try {
-                            const FRONTEND::RFInfoPkt_var tmp = frontend::returnRFInfoPkt(data);
-                            ((*i).first)->rfinfo_pkt(tmp);
-                        } catch(...) {
-                        }
+                        const FRONTEND::RFInfoPkt_var tmp = frontend::returnRFInfoPkt(data);
+                        ((*i).first)->rfinfo_pkt(tmp);
                     }
                 }
                 return;

@@ -24,12 +24,10 @@ from redhawk.codegen import utils
 
 from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate
-from redhawk.codegen.jinja.java import JavaCodeGenerator, JavaTemplate
-from redhawk.codegen.jinja.java.properties import JavaPropertyMapper
-from redhawk.codegen.jinja.java.ports import JavaPortMapper
+from redhawk.codegen.jinja.java import JavaTemplate
 from redhawk.codegen.jinja.java.component.frontend.portfactory import FEIPortFactory
 from redhawk.codegen.jinja.java.component.pull import PullComponentGenerator
-from mapping import FrontendComponentMapper
+from mapping import FrontendComponentMapper, FrontendPropertyMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility
@@ -41,6 +39,20 @@ loader = CodegenLoader(__package__,
                         'common': 'redhawk.codegen.jinja.common'})
 
 class FrontendComponentGenerator(PullComponentGenerator):
+    def map(self, softpkg):
+        component = super(FrontendComponentGenerator,self).map(softpkg)
+        if 'FrontendTuner' in component['implements']:
+            # For FEI tuner devices, disable member variable generation for
+            # properties that are inherited from frontend::FrontendTunerDevice
+            # base class
+            for prop in component['properties']:
+                if prop['javaname'] in ('device_kind', 'device_model',
+                                       'frontend_tuner_allocation',
+                                       'frontend_listener_allocation',
+                                       'frontend_tuner_status'):
+                    prop['inherited'] = True
+        return component
+
     def loader(self, component):
         return loader
 
@@ -48,10 +60,7 @@ class FrontendComponentGenerator(PullComponentGenerator):
         return FrontendComponentMapper(self.package)
 
     def propertyMapper(self):
-        return JavaPropertyMapper()
-
-    def portMapper(self):
-        return JavaPortMapper()
+        return FrontendPropertyMapper()
 
     def portFactory(self):
         return FEIPortFactory()
@@ -70,7 +79,7 @@ class FrontendComponentGenerator(PullComponentGenerator):
             ShellTemplate('base/startJava.sh'),
             ShellTemplate('common/reconf')
         ]
-        if component['isafrontendtuner'] == True:
+        if 'FrontendTuner' in component['implements']:
             templates.append(JavaTemplate('frontend_tuner_status_struct_struct.java', os.path.join(pkgpath,'frontend_tuner_status_struct_struct.java')))
 
         portpkg = component['package'] + '.' + 'ports'

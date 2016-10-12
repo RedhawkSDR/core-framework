@@ -21,8 +21,7 @@
 #ifndef _BULKIODATATYPES_IDL_
 #define _BULKIODATATYPES_IDL_
 
-#include "ossie/CF/PortTypes.idl"
-#include "ossie/CF/cf.idl"
+#include "ossie/CF/DataType.idl"
 
 module BULKIO {
 

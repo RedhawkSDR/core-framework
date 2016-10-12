@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:1c7f5882-2260-4680-9a5c-c044ff9d1a66" name="PropertyChangeListenerNoJava">
+  <componentfiles>
+    <componentfile id="PropertyChange_P1_0226b9f2-16b7-4a8f-8708-b7c8b8f5fc88" type="SPD">
+      <localfile name="/components/PropertyChange_P1/PropertyChange_P1.spd.xml"/>
+    </componentfile>
+    <componentfile id="PropertyChange_C1_0a81c859-1d94-4b38-9251-4251257abf05" type="SPD">
+      <localfile name="/components/PropertyChange_C1/PropertyChange_C1.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="PropertyChange_P1_0226b9f2-16b7-4a8f-8708-b7c8b8f5fc88"/>
+      <componentinstantiation id="PropertyChange_P1_1" startorder="0">
+        <usagename>PropertyChange_P1_1</usagename>
+        <findcomponent>
+          <namingservice name="PropertyChange_P1_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="PropertyChange_C1_0a81c859-1d94-4b38-9251-4251257abf05"/>
+      <componentinstantiation id="PropertyChange_C1_1" startorder="1">
+        <usagename>PropertyChange_C1_1</usagename>
+        <findcomponent>
+          <namingservice name="PropertyChange_C1_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="PropertyChange_P1_1"/>
+  </assemblycontroller>
+</softwareassembly>

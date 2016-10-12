@@ -36,6 +36,10 @@ install-data-hook :
 
 BUILT_SOURCES =	cfSK.cpp \
 		cfDynSK.cpp \
+                DataTypeSK.cpp \
+		DataTypeDynSK.cpp \
+                PortSK.cpp \
+		PortDynSK.cpp \
                 PortTypesSK.cpp \
 		PortTypesDynSK.cpp \
 		StandardEventSK.cpp \
@@ -51,17 +55,19 @@ BUILT_SOURCES =	cfSK.cpp \
 		sandboxSK.cpp \
 		sandboxDynSK.cpp \
 		LogInterfacesSK.cpp \
-		LogInterfacesDynSK.cpp
+		LogInterfacesDynSK.cpp \
+		EventChannelManagerSK.cpp \
+		EventChannelManagerDynSK.cpp
 
 CLEANFILES = $(BUILT_SOURCES)
 
 
 cfheaderdir = $(pkgincludedir)/CF
-dist_cfheader_HEADERS = LogInterfaces.h cf.h PortTypes.h StandardEvent.h AggregateDevices.h ExtendedEvent.h QueryablePort.h WellKnownProperties.h sandbox.h
+dist_cfheader_HEADERS = LogInterfaces.h EventChannelManager.h cf.h DataType.h Port.h PortTypes.h StandardEvent.h AggregateDevices.h ExtendedEvent.h QueryablePort.h WellKnownProperties.h sandbox.h
 #nodist_pkginclude_HEADERS = cf.h PortTypes.h StandardEvent.h
 
 lib_LTLIBRARIES = libossieidl.la
 nodist_libossieidl_la_SOURCES = $(BUILT_SOURCES)
-libossieidl_la_CXXFLAGS = -Wall $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS) -I../../include
+libossieidl_la_CXXFLAGS = -Wall $(OMNIORB_CFLAGS) $(OMNICOS_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS) -I../../include
 libossieidl_la_LIBADD = $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS)
 libossieidl_la_LDFLAGS = -Wall -version-info $(LIBOSSIECF_VERSION_INFO)

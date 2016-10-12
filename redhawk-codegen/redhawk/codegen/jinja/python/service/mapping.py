@@ -39,6 +39,6 @@ class ServiceMapper(ComponentMapper):
 
     @staticmethod
     def userClass(softpkg):
-        return {'name'  : softpkg.name(),
-                'file'  : softpkg.name()+'.py'}
+        return {'name'  : softpkg.basename(),
+                'file'  : softpkg.basename()+'.py'}
         

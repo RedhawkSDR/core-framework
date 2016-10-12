@@ -32,6 +32,7 @@ import org.omg.PortableServer.POAPackage.WrongPolicy;
 import CF.InvalidObjectReference;
 
 import org.ossie.component.*;
+import org.ossie.properties.*;
 
 /**
  * This is the component code. This file contains all the access points
@@ -42,11 +43,59 @@ import org.ossie.component.*;
  *
  * @generated
  */
-public abstract class TestLoggingAPI_base extends ThreadedResource {
+public abstract class TestLoggingAPI_base extends Component {
     /**
      * @generated
      */
     public final static Logger logger = Logger.getLogger(TestLoggingAPI_base.class.getName());
+
+    /**
+     * The property new_log_level
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final LongProperty new_log_level =
+        new LongProperty(
+            "new_log_level", //id
+            "new_log_level", //name
+            null, //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
+    
+    /**
+     * The property new_log_cfg
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final StringProperty new_log_cfg =
+        new StringProperty(
+            "new_log_cfg", //id
+            "new_log_cfg", //name
+            null, //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
+
+    /**
+     * The property DISABLE_CB
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final BooleanProperty disable_cb =
+        new BooleanProperty(
+            "DISABLE_CB", //id
+            "disable_cb", //name
+            false, //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
 
     /**
      * @generated
@@ -54,6 +103,9 @@ public abstract class TestLoggingAPI_base extends ThreadedResource {
     public TestLoggingAPI_base()
     {
         super();
+
+        setLogger( logger, TestLoggingAPI_base.class.getName() );
+
     }
 
     public void start() throws CF.ResourcePackage.StartError

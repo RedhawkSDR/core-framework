@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:02529b96-fb02-49df-9536-1919d257d929" name="comp_prop_special_char_w">
+  <componentfiles>
+    <componentfile id="comp_prop_special_char_724f50cb-819d-4671-b924-66fc3a912dba" type="SPD">
+      <localfile name="/components/comp_prop_special_char/comp_prop_special_char.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="comp_prop_special_char_724f50cb-819d-4671-b924-66fc3a912dba"/>
+      <componentinstantiation id="comp_prop_special_char_1" startorder="0">
+        <usagename>comp_prop_special_char_1</usagename>
+        <componentproperties>
+          <structsequenceref refid="my:seq">
+            <structvalue>
+              <simpleref refid="my_seq:my_str:my_prop" value="rty"/>
+            </structvalue>
+          </structsequenceref>
+          <structref refid="my:base">
+            <simpleref refid="my:element" value="abc"/>
+            <simpleref refid="my.stuff" value="def"/>
+          </structref>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="comp_prop_special_char_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="comp_prop_special_char_1"/>
+  </assemblycontroller>
+</softwareassembly>

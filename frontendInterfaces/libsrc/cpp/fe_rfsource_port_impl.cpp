@@ -36,21 +36,18 @@ namespace frontend {
 
     FRONTEND::RFInfoPktSequence* OutRFSourcePort::available_rf_inputs()
     {
-        FRONTEND::RFInfoPktSequence* retval;
+        FRONTEND::RFInfoPktSequence_var retval = new FRONTEND::RFInfoPktSequence();
         std::vector < std::pair < FRONTEND::RFSource_var, std::string > >::iterator i;
 
         boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
 
         if (active) {
             for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-                try {
-                    retval = ((*i).first)->available_rf_inputs();
-                } catch(...) {
-                }
+                retval = ((*i).first)->available_rf_inputs();
             }
         }
 
-        return retval;
+        return retval._retn();
     }
 
     void OutRFSourcePort::available_rf_inputs(const FRONTEND::RFInfoPktSequence& data)
@@ -61,10 +58,7 @@ namespace frontend {
 
         if (active) {
             for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-                try {
-                    ((*i).first)->available_rf_inputs(data);
-                } catch(...) {
-                }
+                ((*i).first)->available_rf_inputs(data);
             }
         }
 
@@ -73,21 +67,18 @@ namespace frontend {
 
     FRONTEND::RFInfoPkt* OutRFSourcePort::current_rf_input()
     {
-        FRONTEND::RFInfoPkt* retval;
+        FRONTEND::RFInfoPkt_var retval = new FRONTEND::RFInfoPkt();
         std::vector < std::pair < FRONTEND::RFSource_var, std::string > >::iterator i;
 
         boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
 
         if (active) {
             for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-                try {
-                    retval = ((*i).first)->current_rf_input();
-                } catch(...) {
-                }
+                retval = ((*i).first)->current_rf_input();
             }
         }
 
-        return retval;
+        return retval._retn();
     }
 
     void OutRFSourcePort::current_rf_input(const FRONTEND::RFInfoPkt& data)
@@ -98,13 +89,11 @@ namespace frontend {
 
         if (active) {
             for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-                try {
-                    ((*i).first)->current_rf_input(data);
-                } catch(...) {
-                }
+                ((*i).first)->current_rf_input(data);
             }
         }
 
         return;
     }
+
 } // end of frontend namespace

@@ -21,6 +21,8 @@
 #include "ossie/MessageInterface.h"
 #include <iostream>
 
+PREPARE_CF_LOGGING(MessageConsumerPort)
+
 Consumer_i::Consumer_i(MessageConsumerPort *_parent) {
     parent = _parent;
 }
@@ -67,7 +69,6 @@ CosEventChannelAdmin::ProxyPullConsumer_ptr SupplierAdmin_i::obtain_pull_consume
     return CosEventChannelAdmin::ProxyPullConsumer::_nil();
 };
     
-
 MessageConsumerPort::MessageConsumerPort(std::string port_name) : Port_Provides_base_impl(port_name) {
     supplier_admin = new SupplierAdmin_i(this);
 }
@@ -146,15 +147,37 @@ void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any&
     CallbackTable::iterator callback = callbacks_.find(id);
     if (callback != callbacks_.end()) {
         (*callback->second)(id, data);
+    } else {
+        if (generic_callbacks_.empty()) {
+            std::string warning = "no callbacks registered for messages with id: "+id+".";
+        
+            if (callbacks_.size() == 0) {
+                warning += " No callbacks are registered";
+            } else if (callbacks_.size() == 1) {
+                warning += " The only registered callback is for message with id: "+callbacks_.begin()->first;
+            } else { 
+                warning += " The available message callbacks are for messages with any of the following id: ";
+                for (callback = callbacks_.begin();callback != callbacks_.end(); callback++) {
+                    warning += callback->first+" ";
+                }
+            }
+            LOG_WARN(MessageConsumerPort,warning);
+        }
     }
 
     // Invoke the callback for those messages that are generic
-    GenericCallbackTable::iterator gcallback = generic_callbacks_.begin();
-    while (gcallback != generic_callbacks_.end()) {
-        (**gcallback)(id, data);
-        gcallback++;
-    }
+    generic_callbacks_(id, data);
 };
+
+std::string MessageConsumerPort::getRepid() const 
+{
+	return "IDL:ExtendedEvent/MessageEvent:1.0";
+}
+
+std::string MessageConsumerPort::getDirection() const 
+{
+	return "Bidir";
+}
 
 MessageSupplierPort::MessageSupplierPort (std::string port_name) :
     Port_Uses_base_impl(port_name)
@@ -219,4 +242,9 @@ CosEventChannelAdmin::ProxyPushConsumer_ptr MessageSupplierPort::removeConsumer(
 void MessageSupplierPort::extendConsumers(std::string consumer_id, CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer)
 {
     consumers[std::string(consumer_id)] = proxy_consumer;
+}
+
+std::string MessageSupplierPort::getRepid() const 
+{
+	return "IDL:ExtendedEvent/MessageEvent:1.0";
 }

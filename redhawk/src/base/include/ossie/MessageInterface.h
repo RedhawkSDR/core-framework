@@ -30,6 +30,7 @@
 #include "CF/cf.h"
 #include "CorbaUtils.h"
 #include "Port_impl.h"
+#include "callback.h"
 
 #include <COS/CosEventChannelAdmin.hh>
 
@@ -41,6 +42,10 @@
 
 class MessageConsumerPort;
 
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+    /**
+     * \cond INTERNAL
+     */
 class Consumer_i : public virtual POA_CosEventChannelAdmin::ProxyPushConsumer {
     public:
         Consumer_i(MessageConsumerPort *_parent);
@@ -70,23 +75,38 @@ class SupplierAdmin_i : public virtual POA_CosEventChannelAdmin::SupplierAdmin {
         unsigned int instance_counter;
     
 };
+    /**
+     * \endcond
+     */
+#endif
 
-class MessageConsumerPort : public Port_Provides_base_impl, public virtual POA_ExtendedEvent::MessageEvent {
+class MessageConsumerPort : public Port_Provides_base_impl
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+, public virtual POA_ExtendedEvent::MessageEvent
+#endif
+{
+    ENABLE_LOGGING
 
 public:
     MessageConsumerPort (std::string port_name);
     virtual ~MessageConsumerPort (void) { };
 
+    /*
+     * Register a callback function
+     * @param id The message id that this callback is intended to support
+     * @param target A pointer to the object that owns the callback function
+     * @param func The function that implements the callback
+     */
     template <class Class, class MessageStruct>
     void registerMessage (const std::string& id, Class* target, void (Class::*func)(const std::string&, const MessageStruct&))
     {
         callbacks_[id] = new MemberCallback<Class, MessageStruct>(*target, func);
     }
 
-    template <class Class>
-    void registerMessage (Class* target, void (Class::*func)(const std::string&, const CORBA::Any&))
+    template <class Target, class Func>
+    void registerMessage (Target target, Func func)
     {
-        generic_callbacks_.push_back(new GenericMemberCallback<Class>(*target, func));
+        generic_callbacks_.add(target, func);
     }
 
     // CF::Port methods
@@ -105,6 +125,10 @@ public:
     Consumer_i* removeConsumer(std::string consumer_id);
     
     void fireCallback (const std::string& id, const CORBA::Any& data);
+
+	std::string getRepid() const;
+
+	std::string getDirection() const;
     
 
 protected:
@@ -118,7 +142,7 @@ protected:
     
     SupplierAdmin_i *supplier_admin;
     
-    /**
+    /*
      * Abstract interface for message callbacks.
      */
     class MessageCallback
@@ -132,7 +156,7 @@ protected:
     };
 
 
-    /**
+    /*
      * Concrete class for member function property change callbacks.
      */
     template <class Class, class M>
@@ -162,36 +186,11 @@ protected:
         Class& target_;
         MemberFn func_;
     };
-    
-    template <class Class>
-    class GenericMemberCallback : public MessageCallback
-    {
-    public:
-        typedef void (Class::*MemberFn)(const std::string&, const CORBA::Any&);
-
-        virtual void operator() (const std::string& value, const CORBA::Any& data)
-        {
-            (target_.*func_)(value, data);
-        }
-
-    protected:
-        // Only allow MessageConsumerPort to instantiate this class.
-        GenericMemberCallback (Class& target, MemberFn func) :
-            target_(target),
-            func_(func)
-        {
-        }
-
-        friend class MessageConsumerPort;
-
-        Class& target_;
-        MemberFn func_;
-    };
 
     typedef std::map<std::string, MessageCallback*> CallbackTable;
-    typedef std::vector<MessageCallback*> GenericCallbackTable;
     CallbackTable callbacks_;
-    GenericCallbackTable generic_callbacks_;
+
+    ossie::notification<void (const std::string&, const CORBA::Any&)> generic_callbacks_;
 
     typedef std::map<std::string, CosEventComm::PushSupplier_var> SupplierTable;
     SupplierTable suppliers_;
@@ -202,7 +201,11 @@ protected:
   Message producer
 ************************************************************************************/
 
-class MessageSupplierPort : public Port_Uses_base_impl, public virtual POA_CF::Port {
+class MessageSupplierPort : public Port_Uses_base_impl
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+, public virtual POA_CF::Port
+#endif
+{
 
 public:
     MessageSupplierPort (std::string port_name);
@@ -217,6 +220,7 @@ public:
     CosEventChannelAdmin::ProxyPushConsumer_ptr removeConsumer(std::string consumer_id);
     void extendConsumers(std::string consumer_id, CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer);
 
+    // Send a single message
     template <typename Message>
     void sendMessage(const Message& message) {
         const Message* begin(&message);
@@ -224,11 +228,13 @@ public:
         sendMessages(begin, end);
     }
 
+    // Send a sequence of messages
     template <class Sequence>
     void sendMessages(const Sequence& messages) {
         sendMessages(messages.begin(), messages.end());
     }
     
+    // Send a set of messages from an iterable set
     template <typename Iterator>
     void sendMessages(Iterator first, Iterator last)
     {
@@ -248,6 +254,8 @@ public:
         data <<= properties;
         push(data);
     }
+
+	std::string getRepid() const;
 
 protected:
     boost::mutex portInterfaceAccess;

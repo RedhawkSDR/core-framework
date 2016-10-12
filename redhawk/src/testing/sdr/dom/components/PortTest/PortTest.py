@@ -22,17 +22,14 @@
 #
 from omniORB import any
 from ossie.cf import CF, CF__POA
+from ossie.cf import ExtendedCF, ExtendedCF__POA
 from ossie.resource import Resource, usesport, providesport, start_component
 from ossie.events import GenericEventConsumer
-try:
-    import CosEventChannelAdmin
-    from ossie.cf import StandardEvent
-    hasEvents = True
-except:
-    hasEvents = False
+import CosEventChannelAdmin
+from ossie.cf import StandardEvent
 
 
-class UsesPort(CF__POA.Port):
+class UsesPort(ExtendedCF__POA.QueryablePort):
     def __init__(self, repid):
         self._connections = {}
         self.__repid = repid
@@ -56,6 +53,9 @@ class UsesPort(CF__POA.Port):
             del self._connections[str(connectionId)]
         except KeyError:
             raise CF.Port.InvalidPort(CF.CF_EINVAL, "No such connection '%s'" % (connectionId,))            
+
+    def _get_connections(self):
+        return [ExtendedCF.UsesConnection(k,v) for k, v in self._connections.iteritems()]
 
     def _connectPort(self, port, connectionId):
         return port

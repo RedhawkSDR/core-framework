@@ -96,6 +96,12 @@ class _Simple(object):
         else:
             return False
 
+    def isOptional(self):
+        if self.xml.optional.lower() == "true":
+            return True
+        else:
+            return False
+
     def action(self):
         if not self.xml.action or not self.xml.action.type_:
             return Actions.EXTERNAL
@@ -159,14 +165,18 @@ class SimpleSequenceProperty(Property, _Simple, _Sequence):
         return self.xml.values is not None
 
     def value(self):
-        return self.xml.values.value
+        if self.hasValue():
+            return self.xml.values.value
+        return None
 
 class StructProperty(Property, _Struct, _Single):
     def type(self):
         return 'struct'
 
     def fields(self):
-        return [SimpleProperty(s) for s in self.xml.simple]
+        f = [SimpleProperty(s) for s in self.xml.simple]
+        f += [SimpleSequenceProperty(s) for s in self.xml.simplesequence]
+        return f
 
     def hasValue(self):
         for field in self.fields():
@@ -196,6 +206,7 @@ class StructSequenceProperty(Property, _Struct, _Sequence):
     def mapvalue_(self, base, mapping, structval):
         value = base.copy()
         value.update((v.refid, v.value) for v in structval.simpleref)
+        value.update((v.refid, v.values.value) for v in structval.simplesequenceref)
         return value
 
 def parse(prfFile):

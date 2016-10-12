@@ -32,6 +32,11 @@ abstract class NumericSequenceProperty<T extends Number> extends AbstractSequenc
         super(id, name, type, value, mode, action, kinds);
     }
 
+    public NumericSequenceProperty(String id, String name, String type, List<T> value, Mode mode,
+                                   Action action, Kind[] kinds, boolean optional) {
+        super(id, name, type, value, mode, action, kinds, optional);
+    }
+
     protected List<T> extract(Any any) {
         try {
             return fromNumberArray((Number[])AnyUtils.convertAny(any));

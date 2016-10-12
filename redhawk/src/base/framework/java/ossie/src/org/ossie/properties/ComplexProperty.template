@@ -35,6 +35,10 @@ public class Complex@name@Property extends AbstractSimpleProperty<complex@name@>
         super(id, name, "@scaname@", value, mode, action, kinds);
     }
 
+    public Complex@name@Property(String id, String name, complex@name@ value, Mode mode, Action action, Kind[] kinds, boolean optional) {
+        super(id, name, "@scaname@", value, mode, action, kinds, optional);
+    }
+
     protected complex@name@ extract(Any any) {
         try {
             return (complex@name@)AnyUtils.convertAny(any);

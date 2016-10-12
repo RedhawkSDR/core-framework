@@ -23,6 +23,9 @@ from _unitTestHelpers import scatest
 from ossie.cf import CF
 from omniORB import CORBA
 import numpy
+from _unitTestHelpers import runtestHelpers
+
+java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 class _DataTypeTest:
     def __init__(self, id, default, override, typecode):
@@ -118,8 +121,8 @@ class SetupCommon:
         self.assertEquals(val1.real, val2.real)
         self.assertEquals(val1.imag, val2.imag)
     def setUp_(self, sadpath):
-        domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self._app = None
         if self._domMgr:
             try:
@@ -242,8 +245,9 @@ class SandboxTest(scatest.CorbaTestCase, _TestVector, SetupCommon):
 
         # Create an instance of the test component in all 3 languages
         components = {"cpp"   : sb.launch("TestComplexProps", impl="cpp"),
-                      "python": sb.launch("TestComplexProps", impl="python"),
-                      "java"  : sb.launch("TestComplexProps", impl="java")}
+                      "python": sb.launch("TestComplexProps", impl="python")}
+        if java_support:
+            components["java"] = sb.launch("TestComplexProps", impl="java")
 
         sb.start()
 

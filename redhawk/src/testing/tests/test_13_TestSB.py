@@ -27,11 +27,18 @@ import os
 import Queue
 from ossie.utils import sb
 from ossie.utils import type_helpers
+from ossie import properties as _properties
+import threading
 globalsdrRoot = os.environ['SDRROOT']
 import sys
+import commands
+import cStringIO
 import time
 import copy
 import ossie.utils.bulkio.bulkio_helpers as _bulkio_helpers
+from _unitTestHelpers import runtestHelpers
+
+java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 def _initSourceAndSink(dataFormat):
 
@@ -53,7 +60,7 @@ def _initSourceAndSink(dataFormat):
 
 class SBTestTest(scatest.CorbaTestCase):
     def setUp(self):
-        sb.setDEBUG(True)
+        sb.setDEBUG(False)
         self.test_comp = "Sandbox"
         # Flagrant violation of sandbox API: if the sandbox singleton exists,
         # clean up previous state and dispose of it.
@@ -85,6 +92,12 @@ class SBTestTest(scatest.CorbaTestCase):
         sb.setSDRROOT(sdrRoot)
         self.assertNotEquals(len(sb.catalog()), 0)
 
+        # test objType options
+        self.assertNotEquals(len(sb.catalog(objType="components")), 0)
+        self.assertNotEquals(len(sb.catalog(objType="devices")), 0)
+        self.assertNotEquals(len(sb.catalog(objType="services")), 0)
+        self.assertNotEquals(len(sb.catalog(objType="all")), 0)
+
         # Bad search path
         self.assertEquals(len(sb.catalog("my_path")), 0)
 
@@ -105,6 +118,28 @@ class SBTestTest(scatest.CorbaTestCase):
     def test_softpkgDepDouble(self):
         c = sb.launch('ticket_490_double')
         self.assertNotEquals(c, None)
+
+    def test_pid(self):
+        a = sb.launch('comp_src')
+        status,output = commands.getstatusoutput('ps -ww -f | grep comp_src')
+        lines = output.split('\n')
+        for line in lines:
+          if 'IOR' in line:
+            break
+        _pid = line.split()[1]
+        self.assertEquals(int(_pid), a._pid)
+
+    def test_doubleNamedConnection(self):
+        a = sb.launch('comp_src')
+        b = sb.launch('comp_snk')
+        c = sb.launch('comp_src')
+        d = sb.launch('comp_snk')
+        a.connect(b,connectionId='some_id')
+        c.connect(d,connectionId='some_id')
+        import ossie.utils.model
+        connection_mgr=ossie.utils.model.ConnectionManager.instance()
+        connection_ids = connection_mgr.getConnections().keys()
+        self.assertEquals(len(connection_ids), 2)
 
     def test_setSDRROOT(self):
         # None type
@@ -145,6 +180,67 @@ class SBTestTest(scatest.CorbaTestCase):
     def test_relativePath(self):
         comp = sb.launch('sdr/dom/components/Sandbox/Sandbox.spd.xml')
         self.assertComponentCount(1)
+
+    def test_LogServiceFunctionException(self):
+        file_loc = os.getcwd()
+        comp = sb.launch('sdr/dom/components/svc_fn_error/svc_fn_error.spd.xml', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
+        comp.start()
+        time.sleep(0.5)
+        fp = None
+        try:
+            fp = open('foo/bar/test.log','r')
+        except:
+            pass
+        if fp != None:
+            log_contents = fp.read()
+            fp.close()
+        
+        try:
+            os.remove('foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('foo')
+        except:
+            pass
+            
+        self.assertTrue('ERROR:svc_fn_error' in log_contents)
+
+    def test_propertyInitialization(self):
+        """
+        Tests for the correct initialization of 'property' kind properties
+        based on whether command line is set, and overrides via launch().
+        """
+        # First, test with defaults
+        comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml')
+        self.assertFalse('initial' in comp.cmdline_args)
+        self.assertFalse('cmdline' in comp.initialize_props)
+        comp.releaseObject()
+
+        # Test with (correct) overrides
+        comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml',
+                         execparams={'cmdline':'override'}, configure={'initial':'override'})
+        self.assertFalse('initial' in comp.cmdline_args)
+        self.assertFalse('cmdline' in comp.initialize_props)
+        self.assertEquals('override', comp.cmdline)
+        self.assertEquals('override', comp.initial)
+        comp.releaseObject()
+
+        # Test with misplaced command line property
+        comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml',
+                         configure={'cmdline':'override'})
+        self.assertFalse('initial' in comp.cmdline_args)
+        self.assertFalse('cmdline' in comp.initialize_props)
+        self.assertEquals('override', comp.cmdline)
+        comp.releaseObject()
+
+        # A non-command line property in the wrong override should throw an exception
+        self.assertRaises(ValueError, sb.launch, 'sdr/dom/components/property_init/property_init.spd.xml',
+                          execparams={'initial':'override'})
 
     def test_nestedSoftPkgDeps(self):
         cwd = os.getcwd()
@@ -402,6 +498,10 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.over_simple, "override")
         self.assertEquals(comp.over_struct_seq, [{'a_word': 'something', 'a_number': 1}])
 
+    def test_loadSADFileSpecialChar(self):
+        retval = sb.loadSADFile('sdr/dom/waveforms/comp_prop_special_char_w/comp_prop_special_char_w.sad.xml')
+        self.assertEquals(retval, True)
+
     def test_loadSADFileUses_p(self):
         retval = sb.loadSADFile('sdr/dom/waveforms/SADUsesDeviceWave/SADUsesDeviceWaveConnectionDevProvides.sad.xml')
         self.assertEquals(retval, True)
@@ -410,22 +510,63 @@ class SBTestTest(scatest.CorbaTestCase):
         retval = sb.loadSADFile('sdr/dom/waveforms/SADUsesDeviceWave/SADUsesDeviceWaveConnectionDevUses.sad.xml')
         self.assertEquals(retval, True)
 
-    def test_loadSADFilePartialOverloadStruct(self):
-        # This tests partially overloading a struct or struct seq property in sad
+    def test_loadSADFilePartialOverrideStruct(self):
+        # This tests partially overriding a struct or struct seq property in sad
         retval = sb.loadSADFile('sdr/dom/waveforms/more_ticket_462/more_ticket_462.sad.xml')
         comp = sb.getComponent('another_ticket_462_1')
         self.assertNotEquals(comp, None)
         self.assertEquals(comp.simple_prop, "This is a string")
         self.assertEquals(comp.seq_prop, [9,8,7])
-        self.assertEquals(comp.struct_prop.prop_two, 'string overload')
+        self.assertEquals(comp.struct_prop.prop_two, 'string override')
         self.assertEquals(comp.struct_seq_prop[0].prop_five, 1)
         self.assertEquals(comp.struct_seq_prop[0].prop_six, 123.0)
         self.assertEquals(comp.struct_seq_prop[1].prop_four, "anotherString")
         self.assertEquals(comp.struct_seq_prop[1].prop_six, 345.0)
-        self.assertEquals(comp.struct_seq_prop[2].prop_four, "string_overload")
+        self.assertEquals(comp.struct_seq_prop[2].prop_four, "string_override")
         self.assertEquals(comp.struct_seq_prop[2].prop_five, 3)
         self.assertEquals(comp.struct_seq_prop[2].prop_six, 678.0)
         self.assertEquals(comp.struct_seq_prop[3].prop_six, 987.0)
+
+    def test_loadSADFileACPropertyWithDefaultValueOverride(self):
+        # Tests overriding a property in the sad file for an assembly controller property that has a default value
+        retval = sb.loadSADFile('sdr/dom/waveforms/ticket_cf_1066_wf/ticket_cf_1066_wf.sad.xml')
+        comp = sb.getComponent('ticket_cf_1066_comp_1')
+        self.assertNotEquals(comp, None)
+        self.assertEquals(comp.simple_prop, "This is a string")
+        self.assertEquals(comp.seq_prop, [9,8,7])
+        self.assertEquals(comp.struct_prop.prop_two, 'string override')
+        self.assertEquals(comp.struct_seq_prop[0].prop_five, 1)
+        self.assertEquals(comp.struct_seq_prop[0].prop_six, 123.0)
+        self.assertEquals(comp.struct_seq_prop[1].prop_four, "anotherString")
+        self.assertEquals(comp.struct_seq_prop[1].prop_six, 345.0)
+        self.assertEquals(comp.struct_seq_prop[2].prop_four, "string_override")
+        self.assertEquals(comp.struct_seq_prop[2].prop_five, 3)
+        self.assertEquals(comp.struct_seq_prop[2].prop_six, 678.0)
+        self.assertEquals(comp.struct_seq_prop[3].prop_six, 987.0)
+
+    def test_loadSADFileOverrideWithExecparam(self):
+        # Tests overriding a property in the sad file for a component that also has an execparam property
+        retval = sb.loadSADFile('sdr/dom/waveforms/ticket_cf_1067_wf/ticket_cf_1067_wf.sad.xml')
+        self.assertEquals(retval, True)
+        comp = sb.getComponent('ticket_cf_1067_comp_1')
+        self.assertNotEquals(comp, None)
+        self.assertEquals(comp.simple_exec_param, "default_value")
+
+    def test_loadSADFilePassingInOverrideOfExecparamWithOverrideInSadFile(self):
+        # Tests passing in an execparam property value for a property that is overridden in the sad file
+        retval = sb.loadSADFile('sdr/dom/waveforms/override_execparam_wf/override_execparam_wf.sad.xml',props={'simple_exec_param':'another_override_value'})
+        self.assertEquals(retval, True)
+        comp = sb.getComponent('ticket_cf_1067_comp_1')
+        self.assertNotEquals(comp, None)
+        self.assertEquals(comp.simple_exec_param, "another_override_value")
+
+    def test_loadSADFileMorePassingInOverrideOfExecparamWithDefaultValue(self):
+        # Tests overriding an execparam property for an assembly controller by passing value in, and the execparam is not overridden in the sad file 
+        retval = sb.loadSADFile('sdr/dom/waveforms/ticket_cf_1067_wf/ticket_cf_1067_wf.sad.xml',props={'simple_exec_param':'another_override_value'})
+        self.assertEquals(retval, True)
+        comp = sb.getComponent('ticket_cf_1067_comp_1')
+        self.assertNotEquals(comp, None)
+        self.assertEquals(comp.simple_exec_param, "another_override_value")
 
     def test_loadSADFileNoOverriddenProperties(self):
         retval = sb.loadSADFile('sdr/dom/waveforms/ticket_841_and_854/ticket_841_and_854.sad.xml')
@@ -515,6 +656,13 @@ class SBTestTest(scatest.CorbaTestCase):
         comp.my_struct_name.struct_ulong_name = 4294967295
         comp.my_struct_name.struct_longlong_name = 9223372036854775807
         comp.my_struct_name.struct_ulonglong_name = 18446744073709551615
+        comp.my_struct_name.struct_seq_octet_name[1] = 255
+        comp.my_struct_name.struct_seq_short_name[1] = 32767
+        comp.my_struct_name.struct_seq_ushort_name[1] = 65535
+        comp.my_struct_name.struct_seq_long_name[1] = 2147483647
+        comp.my_struct_name.struct_seq_ulong_name[1] = 4294967295
+        comp.my_struct_name.struct_seq_longlong_name[1] = 9223372036854775807
+        #comp.my_struct_name.struct_seq_ulonglong_name[1] = 18446744073709551615
         self.assertEquals(comp.my_struct_name.struct_octet_name, 255)
         self.assertEquals(comp.my_struct_name.struct_short_name, 32767)
         self.assertEquals(comp.my_struct_name.struct_ushort_name, 65535)
@@ -522,6 +670,13 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.my_struct_name.struct_ulong_name, 4294967295)
         self.assertEquals(comp.my_struct_name.struct_longlong_name, 9223372036854775807)
         self.assertEquals(comp.my_struct_name.struct_ulonglong_name, 18446744073709551615)
+        self.assertEquals(comp.my_struct_name.struct_seq_octet_name[1], 255)
+        self.assertEquals(comp.my_struct_name.struct_seq_short_name[1], 32767)
+        self.assertEquals(comp.my_struct_name.struct_seq_ushort_name[1], 65535)
+        self.assertEquals(comp.my_struct_name.struct_seq_long_name[1], 2147483647)
+        self.assertEquals(comp.my_struct_name.struct_seq_ulong_name[1], 4294967295)
+        self.assertEquals(comp.my_struct_name.struct_seq_longlong_name[1], 9223372036854775807)
+        #self.assertEquals(comp.my_struct_name.struct_seq_ulonglong_name[1], 18446744073709551615)
 
         # Test lower range
         comp.my_struct_name.struct_octet_name = 0
@@ -531,6 +686,13 @@ class SBTestTest(scatest.CorbaTestCase):
         comp.my_struct_name.struct_ulong_name = 0
         comp.my_struct_name.struct_longlong_name = -9223372036854775808
         comp.my_struct_name.struct_ulonglong_name = 0
+        comp.my_struct_name.struct_seq_octet_name[0] = 0
+        comp.my_struct_name.struct_seq_short_name[0] = -32768
+        comp.my_struct_name.struct_seq_ushort_name[0] = 0
+        comp.my_struct_name.struct_seq_long_name[0] = -2147483648
+        comp.my_struct_name.struct_seq_ulong_name[0] = 0
+        comp.my_struct_name.struct_seq_longlong_name[0] = -9223372036854775808
+        comp.my_struct_name.struct_seq_ulonglong_name[0] = 0
         self.assertEquals(comp.my_struct_name.struct_octet_name, 0)
         self.assertEquals(comp.my_struct_name.struct_short_name, -32768)
         self.assertEquals(comp.my_struct_name.struct_ushort_name, 0)
@@ -538,6 +700,13 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.my_struct_name.struct_ulong_name, 0)
         self.assertEquals(comp.my_struct_name.struct_longlong_name, -9223372036854775808)
         self.assertEquals(comp.my_struct_name.struct_ulonglong_name, 0)
+        self.assertEquals(comp.my_struct_name.struct_seq_octet_name[0], 0)
+        self.assertEquals(comp.my_struct_name.struct_seq_short_name[0], -32768)
+        self.assertEquals(comp.my_struct_name.struct_seq_ushort_name[0], 0)
+        self.assertEquals(comp.my_struct_name.struct_seq_long_name[0], -2147483648)
+        self.assertEquals(comp.my_struct_name.struct_seq_ulong_name[0], 0)
+        self.assertEquals(comp.my_struct_name.struct_seq_longlong_name[0], -9223372036854775808)
+        self.assertEquals(comp.my_struct_name.struct_seq_ulonglong_name[0], 0)
 
         # Test one beyond upper bound
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_octet_name.configureValue, 256)
@@ -547,6 +716,13 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_ulong_name.configureValue, 4294967296)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_longlong_name.configureValue, 9223372036854775808)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_ulonglong_name.configureValue, 18446744073709551616)
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_octet_name.configureValue, [0, 256])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_short_name.configureValue, [0, 32768])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ushort_name.configureValue, [0, 65536])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_long_name.configureValue, [0, 2147483648])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulong_name.configureValue, [0, 4294967296])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_longlong_name.configureValue, [0, 9223372036854775808])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulonglong_name.configureValue, [0, 18446744073709551616])
 
         # Test one beyond lower bound
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_octet_name.configureValue, -1)
@@ -556,11 +732,20 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_ulong_name.configureValue, -1)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_longlong_name.configureValue, -9223372036854775809)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_ulonglong_name.configureValue, -1)
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_octet_name.configureValue, [-1, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_short_name.configureValue, [-32769, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ushort_name.configureValue, [-1, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_long_name.configureValue, [-2147483649, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulong_name.configureValue, [-1, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_longlong_name.configureValue, [-9223372036854775809, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulonglong_name.configureValue, [-1, 0])
 
         # Makes sure the struct can be set without error
         # NB: This test used to use names instead of ids, which silently failed in 1.8.
         new_value = {'struct_octet': 100, 'struct_short': 101, 'struct_ushort': 102, 'struct_long': 103,
-                     'struct_ulong': 104, 'struct_longlong': 105, 'struct_ulonglong': 106}
+                     'struct_ulong': 104, 'struct_longlong': 105, 'struct_ulonglong': 106, 'struct_seq_octet': [100, 101],
+                     'struct_seq_short': [102, 103], 'struct_seq_ushort': [104, 105], 'struct_seq_long': [106L, 107L],
+                     'struct_seq_ulong': [108L, 109L], 'struct_seq_longlong': [110L, 111L], 'struct_seq_ulonglong': [112L, 113L]}
         comp.my_struct_name = new_value
         self.assertEquals(comp.my_struct_name, new_value)
 
@@ -596,7 +781,7 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.seq_longlong_name[0], -9223372036854775808)
         self.assertEquals(comp.seq_longlong_name[1], 9223372036854775807)
         self.assertEquals(comp.seq_ulonglong_name[0], 0)
-        #self.assertEauals(comp.seq_ulonglong_name[1], 18446744073709551615)
+        #self.assertEquals(comp.seq_ulonglong_name[1], 18446744073709551615)
 
         # Test one beyond upper bound
         self.assertRaises(type_helpers.OutOfRangeException, comp.seq_octet.configureValue, [0, 256])
@@ -644,8 +829,22 @@ class SBTestTest(scatest.CorbaTestCase):
         comp.my_structseq_name[1].ss_ulong_name = 0
         comp.my_structseq_name[0].ss_longlong_name = 9223372036854775807
         comp.my_structseq_name[1].ss_longlong_name = -9223372036854775808
-        comp.my_structseq_name[0].ss_ulonglong_name = 18446744073709551615
+        #comp.my_structseq_name[0].ss_ulonglong_name = 18446744073709551615
         comp.my_structseq_name[1].ss_ulonglong_name = 0
+        comp.my_structseq_name[0].ss_seq_octet_name[1] = 255
+        comp.my_structseq_name[1].ss_seq_octet_name[0] = 0
+        comp.my_structseq_name[0].ss_seq_short_name[1] = 32767
+        comp.my_structseq_name[1].ss_seq_short_name[0] = -32768
+        comp.my_structseq_name[0].ss_seq_ushort_name[1] = 65535
+        comp.my_structseq_name[1].ss_seq_ushort_name[0] = 0
+        comp.my_structseq_name[0].ss_seq_long_name[1] = 2147483647
+        comp.my_structseq_name[1].ss_seq_long_name[0] = -2147483648
+        comp.my_structseq_name[0].ss_seq_ulong_name[1] = 4294967295
+        comp.my_structseq_name[1].ss_seq_ulong_name[0] = 0
+        comp.my_structseq_name[0].ss_seq_longlong_name[1] = 9223372036854775807
+        comp.my_structseq_name[1].ss_seq_longlong_name[0] = -9223372036854775808
+        #comp.my_structseq_name[0].ss_seq_ulonglong_name[1] = 18446744073709551615
+        comp.my_structseq_name[1].ss_seq_ulonglong_name[0] = 0
         self.assertEquals(comp.my_structseq_name[0].ss_octet_name, 255)
         self.assertEquals(comp.my_structseq_name[1].ss_octet_name, 0)
         self.assertEquals(comp.my_structseq_name[0].ss_short_name, 32767)
@@ -658,8 +857,22 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.my_structseq_name[1].ss_ulong_name, 0)
         self.assertEquals(comp.my_structseq_name[0].ss_longlong_name, 9223372036854775807)
         self.assertEquals(comp.my_structseq_name[1].ss_longlong_name, -9223372036854775808)
-        self.assertEquals(comp.my_structseq_name[0].ss_ulonglong_name, 18446744073709551615)
+        #self.assertEquals(comp.my_structseq_name[0].ss_ulonglong_name, 18446744073709551615)
         self.assertEquals(comp.my_structseq_name[1].ss_ulonglong_name, 0)
+        self.assertEquals(comp.my_structseq_name[0].ss_seq_octet_name[1], 255)
+        self.assertEquals(comp.my_structseq_name[1].ss_seq_octet_name[0], 0)
+        self.assertEquals(comp.my_structseq_name[0].ss_seq_short_name[1], 32767)
+        self.assertEquals(comp.my_structseq_name[1].ss_seq_short_name[0], -32768)
+        self.assertEquals(comp.my_structseq_name[0].ss_seq_ushort_name[1], 65535)
+        self.assertEquals(comp.my_structseq_name[1].ss_seq_ushort_name[0], 0)
+        self.assertEquals(comp.my_structseq_name[0].ss_seq_long_name[1], 2147483647)
+        self.assertEquals(comp.my_structseq_name[1].ss_seq_long_name[0], -2147483648)
+        self.assertEquals(comp.my_structseq_name[0].ss_seq_ulong_name[1], 4294967295)
+        self.assertEquals(comp.my_structseq_name[1].ss_seq_ulong_name[0], 0)
+        self.assertEquals(comp.my_structseq_name[0].ss_seq_longlong_name[1], 9223372036854775807)
+        self.assertEquals(comp.my_structseq_name[1].ss_seq_longlong_name[0], -9223372036854775808)
+        #self.assertEquals(comp.my_structseq_name[0].ss_seq_ulonglong_name[1], 18446744073709551615)
+        self.assertEquals(comp.my_structseq_name[1].ss_seq_ulonglong_name[0], 0)
 
         # Test one beyond upper bound
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_octet_name.configureValue, 256)
@@ -669,6 +882,13 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_ulong_name.configureValue, 4294967296)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_longlong_name.configureValue, 9223372036854775808)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_ulonglong_name.configureValue, 18446744073709551616)
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_octet_name.configureValue, [0, 256])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_short_name.configureValue, [0, 32768])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_ushort_name.configureValue, [0, 65536])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_long_name.configureValue, [0, 2147483648])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_ulong_name.configureValue, [0, 4294967296])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_longlong_name.configureValue, [0, 9223372036854775808])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_ulonglong_name.configureValue, [0, 18446744073709551616])
 
         # Test one beyond lower bound
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_octet_name.configureValue, -1)
@@ -678,12 +898,23 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_ulong_name.configureValue, -1)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_longlong_name.configureValue, -9223372036854775809)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_ulonglong_name.configureValue, -1)
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_octet_name.configureValue, [-1, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_short_name.configureValue, [-32769, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_ushort_name.configureValue, [-1, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_long_name.configureValue, [-2147483649, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_ulong_name.configureValue, [-1, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_longlong_name.configureValue, [-9223372036854775809, 0])
+	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_ulonglong_name.configureValue, [-1, 0])
 
         # Make sure entire struct seq can be set without error
         new_value = [{'ss_octet': 100, 'ss_short': 101, 'ss_ushort': 102, 'ss_long': 103,
-                      'ss_ulong': 104, 'ss_longlong': 105, 'ss_ulonglong': 106},
+                      'ss_ulong': 104, 'ss_longlong': 105, 'ss_ulonglong': 106, 'ss_seq_octet': [100, 101],
+                      'ss_seq_short': [102, 103], 'ss_seq_ushort': [104, 105], 'ss_seq_long': [106L, 107L],
+                      'ss_seq_ulong': [108L, 109L], 'ss_seq_longlong': [110L, 111L], 'ss_seq_ulonglong': [112L, 113L]},
                      {'ss_octet': 107, 'ss_short': 108, 'ss_ushort': 109, 'ss_long': 110,
-                      'ss_ulong': 111, 'ss_longlong': 112, 'ss_ulonglong': 113}]
+                      'ss_ulong': 111, 'ss_longlong': 112, 'ss_ulonglong': 113, 'ss_seq_octet': [114, 115],
+                      'ss_seq_short': [116, 117], 'ss_seq_ushort': [118, 119], 'ss_seq_long': [120L, 121L],
+                      'ss_seq_ulong': [122L, 123L], 'ss_seq_longlong': [124L, 125L], 'ss_seq_ulonglong': [126L, 127L]}]
         comp.my_structseq_name = new_value
         self.assertEqual(comp.my_structseq_name, new_value)
 
@@ -691,7 +922,11 @@ class SBTestTest(scatest.CorbaTestCase):
         # NB: This test used to use names instead of ids, which silently failed in 1.8.
         for item in new_value:
             for name in item.iterkeys():
-                item[name] = item[name] + 100
+                if isinstance(item[name], list):
+		    for i in item[name]:
+			i += 100
+                else:
+                    item[name] = item[name] + 100
         comp.my_structseq_name[0] = new_value[0]
         comp.my_structseq_name[1] = new_value[1]
         self.assertEqual(comp.my_structseq_name, new_value)
@@ -831,6 +1066,8 @@ class SBTestTest(scatest.CorbaTestCase):
         comp.endpoints = [{}]
 
     def test_Services(self):
+        if not java_support:
+            return
         service = sb.launch(sb.getSDRROOT() + '/dev/services/BasicService_java/BasicService_java.spd.xml')
         comp = sb.launch('ServiceComponent')
         comp.connect(service)
@@ -1056,9 +1293,38 @@ class SBTestTest(scatest.CorbaTestCase):
         try:
             sb.api("TestCppProps")
             sb.api("SimpleDevice")
-            sb.api("BasicService_java")
+            if java_support:
+                sb.api("BasicService_java")
         except:
             self.fail("sb.api(<objectName>) failure")
+
+    def test_SISuffix(self):
+        test=sb.launch("Sandbox")
+        test.my_long=100
+        self.assertEqual(test.my_long,100)
+        test.my_long="1K"
+        self.assertEqual(test.my_long,1000)
+        test.my_long="2KB"
+        self.assertEqual(test.my_long,2048)
+
+    def test_MessageSource(self):
+        source = sb.MessageSource(messageId='test_message')
+        comp = sb.launch('MessageReceiverPy')
+        source.connect(comp)
+        sb.start()
+
+        # As a pre-condition, there should have been no messages yet
+        self.assertEqual(comp.received_messages, [])
+
+        source.sendMessage({'item_float':0.0, 'item_string':'first'})
+
+        # Wait until the component has time to process the message
+        timeout = time.time() + 1.0
+        while len(comp.received_messages) == 0 and time.time() < timeout:
+            time.sleep(0.1)
+
+        self.assertEqual(len(comp.received_messages), 1)
+        self.assertEqual(comp.received_messages[0], "test_message,0.0,'first'")
 
 
 class BulkioTest(unittest.TestCase):
@@ -1184,7 +1450,10 @@ class BulkioTest(unittest.TestCase):
                 # TODO: add test for char
                 continue
             elif format == "octet":
-                # TODO: add test for char
+                # TODO: add test for octet
+                continue
+            elif format == "sdds":
+                # TODO: add test for sdds
                 continue
             else:
                 # test scalar data
@@ -1264,12 +1533,59 @@ class BulkioTest(unittest.TestCase):
         data = self.readFile(self.TEMPFILE)
         self.assertEqual(xmldata, data)
 
+    def test_DataSourceEOS(self):
+        """
+        Verify that DataSource sends EOS properly for pushes that exceed
+        bytesPerPush.
+        """
+        source = sb.DataSource(dataFormat='float', bytesPerPush=1024)
+        sink = sb.DataSink()
+        source.connect(sink)
+        sb.start()
+        # Use an integer multiple of bytesPerPush (in this case 4X) to check
+        # that exact boundaries don't break EOS
+        source.push([float(x) for x in xrange(1024)], EOS=True)
+
+        # Wait up to 2 seconds for EOS to be received
+        start = time.time()
+        while not sink.eos() and (time.time() - start) < 2.0:
+            time.sleep(0.1)
+        self.assertTrue(sink.eos())
 
         #TODO if BULKIO ever gets folded into core framework these tests can be used
         # to add them proper components must be created
         # 1 with multiple good connections
         # 1 with no good connections
         # 1 with a good connection
+     
+    def test_DataSinkSubsize(self):
+        src=sb.DataSource(dataFormat='short',subsize=5)
+        snk=sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5,6,7,8,9,10], EOS=True)
+        start = time.time()
+        while not snk.eos() and (time.time() - start) < 2.0:
+            time.sleep(0.1)
+        data=snk.getData()
+        self.assertTrue(snk.eos())
+        self.assertEquals(len(data),2)
+        self.assertEquals(len(data[0]),5)
+        self.assertEquals(len(data[1]),5)
+
+    def test_SubsizeComplex(self):
+        # Test interleaved-to-complex
+        _subsize = 10
+        _frames = 4
+        inData = range(_subsize * _frames)
+        src=sb.DataSource(dataFormat='short',subsize=_subsize)
+        snk=sb.DataSink()
+        sb.start()
+        src.connect(snk)
+        src.push(inData,EOS=True,complexData=True)
+        recData = snk.getData(eos_block=True)
+        self.assertEqual(len(recData),_frames/2)
+        self.assertEqual(len(recData[0]),_subsize*2)
 
 #    def test_connections(self):
 #        a = sb.launch(self.test_comp)
@@ -1327,4 +1643,92 @@ class BulkioTest(unittest.TestCase):
 #            self.assertEquals(temp._componentName in names, True)
 
 
+class MessagePortTest(scatest.CorbaTestCase):
+    def setUp(self):
+        sb.setDEBUG(True)
+        self.test_comp = "Sandbox"
+        # Flagrant violation of sandbox API: if the sandbox singleton exists,
+        # clean up previous state and dispose of it.
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
 
+    def tearDown(self):
+        sb.domainless._getSandbox().shutdown()
+        sb.setDEBUG(False)
+        os.environ['SDRROOT'] = globalsdrRoot
+
+    def test_MessageSink(self):
+        
+        class MCB:
+           def __init__(self, cond):
+               self.cond = cond
+               self.msg=None
+               self.count=0
+
+           def msgCallback(self, id, msg):
+               self.msg = _properties.prop_to_dict(msg)
+               self.count = self.count + 1
+               self.cond.acquire()
+               self.cond.notify()
+               self.cond.release()
+
+           def reset(self):
+               self.msg=None
+               self.count=0
+
+        def wait_for_msg(cond, timeout=2.0):       
+            cond.acquire()
+            cond.wait(timeout)
+            cond.release()
+                        
+        msrc = sb.MessageSource()
+        cond = threading.Condition()
+        mcb = MCB(cond)
+        msink = sb.MessageSink( messageCallback=mcb.msgCallback )
+        msrc.connect(msink)
+        # Simple messages come across properties list which translates into the following
+        # {'sb_struct': {'sb': 'testing 1'}}
+ 
+
+        msrc.sendMessage("testing 1")
+        wait_for_msg(cond)
+        self.assertEquals( mcb.msg, None )
+        sb.start()
+        msrc.sendMessage("testing 2")
+        wait_for_msg(cond)
+        msg = mcb.msg['sb_struct']['sb']
+        self.assertEquals( msg, "testing 2")
+        sb.stop()
+
+        # terminate this sink object
+        msink.releaseObject()
+
+        # create new sink and connect to source 
+        msink = sb.MessageSink( messageCallback=mcb.msgCallback )
+        msrc.connect(msink)
+
+        # try and send message....wait should expire and msg == none
+        mcb.reset()
+        msrc.sendMessage("testing 3")
+        wait_for_msg(cond)
+        self.assertEquals( mcb.msg, None)
+
+        sb.start()
+        msrc.sendMessage("testing 4")
+        wait_for_msg(cond)
+        msg = mcb.msg['sb_struct']['sb']
+        self.assertEquals( msg, "testing 4")
+        mcb.reset()
+        msrc.sendMessage("testing 5")
+        wait_for_msg(cond)
+        msg = mcb.msg['sb_struct']['sb']
+        self.assertEquals( msg, "testing 5")
+        sb.stop()
+
+        #  reset receiver and cycle sandbox state
+        mcb.reset()
+        sb.start()
+        sb.stop()
+        self.assertEquals( mcb.msg, None)
+        msink.releaseObject()

@@ -32,6 +32,11 @@ public class CharSequenceProperty extends AbstractSequenceProperty<Character> {
         super(id, name, "char", value, mode, action, kinds);
     }
 
+    public CharSequenceProperty(String id, String name, List<Character> value,
+                                Mode mode, Action action, Kind[] kinds, boolean optional) {
+        super(id, name, "char", value, mode, action, kinds, optional);
+    }
+
     public static List<Character> asList(char... array) {
         return PrimitiveArrayUtils.convertToCharList(array);
     }

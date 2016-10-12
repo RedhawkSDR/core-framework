@@ -33,6 +33,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 lib_LTLIBRARIES = libfrontend-@FRONTEND_API_VERSION@.la
 libfrontend_@FRONTEND_API_VERSION@_la_LDFLAGS = -version-info $(FRONTEND_SO_VERSION)
+libfrontend_@FRONTEND_API_VERSION@_la_LIBADD = $(BULKIO_LIBS) $(OSSIE_LIBS)
 
 libfrontend_@FRONTEND_API_VERSION@_la_SOURCES = \
     cpp/fe_rfsource_port_impl.cpp \
@@ -88,12 +89,11 @@ clean-python:
 
 if HAVE_JAVASUPPORT
 
+@rh_jarfile_rules@
+
 JAVA_DIR := java
 JAVA_SRCDIR := $(JAVA_DIR)/src
 JAVA_BINDIR := $(JAVA_DIR)/bin
-CLASSPATH := $(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/ossie.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/BULKIOInterfaces.jar:$(top_builddir)/FRONTENDInterfaces.jar:
-BINARY_JAR := $(JAVA_DIR)/frontend.jar
-SOURCE_JAR := $(JAVA_DIR)/frontend.src.jar
 
 JAVA_SRCS := \
 InAnalogTunerPort.java \
@@ -117,31 +117,18 @@ RFInfoDelegate.java \
 InRFSourcePort.java \
 OutRFSourcePort.java \
 RFSourceDelegate.java \
-FrontendTunerStructProps.java \
+FETypes.java \
 FrontendTunerDevice.java
-JAVA_SRCS_ABS := $(addprefix $(JAVA_SRCDIR)/frontend/, $(JAVA_SRCS))
 
-javalibdir = $(prefix)/lib
-javalib_DATA = $(BINARY_JAR) $(SOURCE_JAR)
+java_JARFILES = frontend.jar
 
-# An intermediate file (used to get from *.java to a .jar). Intermediate
-# indicates it's not important in and of itself - only necessary to get to the
-# .jar
-.INTERMEDIATE: $(JAVA_DIR)/java.files
-$(JAVA_DIR)/java.files: $(JAVA_SRCS_ABS)
-	echo $(JAVA_SRCS_ABS) > $@
+frontend_jar_SOURCE := $(addprefix $(JAVA_SRCDIR)/frontend/, $(JAVA_SRCS))
+frontend_jar_CLASSPATH := $(OSSIE_CLASSPATH):$(BULKIO_CLASSPATH):$(top_builddir)/FRONTENDInterfaces.jar
+frontend_jar_MANIFEST := $(JAVA_DIR)/META-INF/MANIFEST.MF
+frontend_jar_JARADD := -C $(JAVA_SRCDIR) frontend
+frontend_jar_JAVACFLAGS := -g -Xlint
 
-# The jar depends on the file list, which depends on the .java files
-$(BINARY_JAR): $(JAVA_DIR)/java.files $(JAVA_DIR)/META-INF/MANIFEST.MF $(top_builddir)/FRONTENDInterfaces.jar
-	mkdir -p $(JAVA_BINDIR)
-	$(JAVAC) -cp $(CLASSPATH) -target 1.6 -source 1.6 -d $(JAVA_BINDIR) @$(JAVA_DIR)/java.files
-	$(JAR) cmf $(JAVA_DIR)/META-INF/MANIFEST.MF $(BINARY_JAR) -C $(JAVA_BINDIR) .
-
-$(SOURCE_JAR): $(JAVA_DIR)/java.files $(JAVA_DIR)/META-INF/MANIFEST.MF.src
-	$(JAR) cmf $(JAVA_DIR)/META-INF/MANIFEST.MF.src $(SOURCE_JAR) -C $(JAVA_SRCDIR) .
-
-clean-java:
-	rm -rf $(JAVA_BINDIR) $(BINARY_JAR) $(SOURCE_JAR)
+frontend.jar: $(top_builddir)/FRONTENDInterfaces.jar
 
 else
 
@@ -154,13 +141,13 @@ endif
 # General
 #
 
-.PHONY: all-local all-python build-python install-python clean-python all-java install-java clean-java reallyclean reallyclean-java
+.PHONY: all-local all-python build-python install-python clean-python reallyclean
 
 all-local: all-python
 
 install-exec-hook: install-python
 
-clean-local: clean-python clean-java
+clean-local: clean-python
 
 reallyclean: distclean
 	rm -f Makefile.in

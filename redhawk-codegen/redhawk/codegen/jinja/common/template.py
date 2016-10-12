@@ -67,3 +67,13 @@ class SpecfileTemplate(TemplateFile):
             'block_end_string':      '$}',
             'comment_start_string':  '#{#'
         }
+
+class PkgconfigTemplate(TemplateFile):
+    def options(self):
+        return {
+            'trim_blocks':           True,
+            'line_statement_prefix': '#$',
+            'block_start_string':    '#{$',
+            'block_end_string':      '$}',
+            'comment_start_string':  '#{#'
+        }

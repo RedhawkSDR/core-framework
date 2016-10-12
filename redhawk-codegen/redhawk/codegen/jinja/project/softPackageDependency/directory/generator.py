@@ -18,16 +18,10 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import jinja2
-
-from redhawk.codegen.jinja.common import ShellTemplate, SpecfileTemplate
-from redhawk.codegen.jinja.project.component.generator import ComponentProjectGenerator
-from redhawk.codegen.jinja.loader import CodegenLoader
-
-from redhawk.codegen.jinja.cpp import CppCodeGenerator
-from mapping import DependencyDirectoryProjectMapper
-
 from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate
+from redhawk.codegen.jinja.loader import CodegenLoader
+from redhawk.codegen.jinja.mapping import ComponentMapper
+from redhawk.codegen.jinja.generator import CodeGenerator
 
 if not '__package__' in locals():
     # Python 2.4 compatibility
@@ -37,7 +31,7 @@ loader = CodegenLoader(__package__,
                        {'common'     : 'redhawk.codegen.jinja.common',
                         'base'       : 'redhawk.codegen.jinja.cpp.component.base'})
 
-class DependencyDirectoryProjectGenerator(CppCodeGenerator):
+class DependencyDirectoryProjectGenerator(CodeGenerator):
 
     def loader(self, project):
         return loader
@@ -51,7 +45,7 @@ class DependencyDirectoryProjectGenerator(CppCodeGenerator):
             ]
 
     def componentMapper(self):
-        return DependencyDirectoryProjectMapper()
+        return ComponentMapper()
 
     def propertyMapper(self):
         return None

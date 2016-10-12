@@ -44,7 +44,7 @@ redhawkLibs = {
         'rpmname':    'frontendInterfaces',
         'version':    versions.frontend,
         'pymodule':   'frontend',
-        'jarfiles':   ('FRONTENDInterfaces.jar',)
+        'jarfiles':   ('frontend.jar', 'FRONTENDInterfaces.jar',)
     }
 }
 

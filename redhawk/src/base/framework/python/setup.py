@@ -60,6 +60,7 @@ ossiepy = ['ossie',
            'ossie/cf/ExtendedCF__POA',
            'ossie/cf/ExtendedCF/WKP',
            'ossie/cf/ExtendedCF__POA/WKP',
+           'ossie/events',
            'ossie/logger',
            'ossie/parsers',
            'ossie/utils',
@@ -75,11 +76,11 @@ ossiepy = ['ossie',
            'ossie/utils/tools',
            'redhawk']
 
-version='1.10.1'
+exec(open('ossie/version.py').read())
 
 setup(
         name='ossiepy',
-        version=version,
+        version=__version__,
         description='OSSIE Python',
         packages=ossiepy,
         package_data={'ossie/apps/rhlauncher':['ui/*.ui',

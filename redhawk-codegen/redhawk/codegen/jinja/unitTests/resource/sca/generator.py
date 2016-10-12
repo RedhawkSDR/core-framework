@@ -18,12 +18,12 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import jinja2
 
 from redhawk.codegen.jinja.generator import TopLevelGenerator
 from redhawk.codegen.jinja.python import PythonTemplate
+from redhawk.codegen.jinja.mapping import ProjectMapper
 
-from mapping import ProjectMapper
+import jinja2
 
 if not '__package__' in locals():
     # Python 2.4 compatibility
@@ -40,5 +40,5 @@ class TestGenerator(TopLevelGenerator):
 
     def templates(self, project):
         return [
-            PythonTemplate('test.py', 'test_' + project['name'] + '.py')
+            PythonTemplate('test.py', 'test_' + project['basename'] + '.py')
             ]

@@ -262,6 +262,12 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <simple id="float_capacity" type="float">
             <value>1.0</value>
         </simple>
+        <simplesequence id="struct_simple_seq" type="short">
+            <values>
+                <value>50</value>
+                <value>500</value>
+            </values>
+        </simplesequence>
         <configurationkind kindtype="configure"/>
         <configurationkind kindtype="allocation"/>
     </struct>

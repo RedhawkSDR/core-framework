@@ -27,7 +27,7 @@ import os
 
 class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
     def setUp(self):
-        nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, self._domMgr = self.launchDomainManager()
 
     def tearDown(self):
         scatest.CorbaTestCase.tearDown(self)
@@ -44,7 +44,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         # Start the executable devices first. This will ensure that matching properties
         # work because CommandWrapper specifies matching properties that only work
         # with BasicTestDevice
-        nb1, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nb1, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
@@ -83,7 +83,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         # Start the executable devices first. This will ensure that matching properties
         # work because CommandWrapper specifies matching properties that only work
         # with BasicTestDevice
-        nb1, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nb1, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
@@ -117,7 +117,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         # Start the executable devices first. This will ensure that matching properties
         # work because CommandWrapper specifies matching properties that only work
         # with BasicTestDevice
-        nb1, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nb1, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
@@ -152,13 +152,13 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         # Start the executable devices first. This will ensure that matching properties
         # work because CommandWrapper specifies matching properties that only work
         # with BasicTestDevice
-        nb1, execDevNode1 = self.launchDeviceManager("/nodes/test_MultipleExecutableDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nb1, execDevNode1 = self.launchDeviceManager("/nodes/test_MultipleExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(execDevNode1, None)
 
-        nb2, basicDevNode1 = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nb2, basicDevNode1 = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(basicDevNode1, None)
 
-        nb3, basicDevNode2 = self.launchDeviceManager("/nodes/test_BasicTestDevice3_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nb3, basicDevNode2 = self.launchDeviceManager("/nodes/test_BasicTestDevice3_node/DeviceManager.dcd.xml")
         self.assertNotEqual(basicDevNode2, None)
 
         # Ensure the expected devices are available
@@ -232,7 +232,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         self._domMgr.installApplication("/waveforms/CapacityUsage/CapacityUsage.sad.xml")
 
         # Start the first DeviceManager
-        nb1, node1 = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nb1, node1 = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
 
         # Ensure the expected device is available
         self.assertNotEqual(node1, None)
@@ -260,7 +260,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         # TODO: Check that no naming context was left behind from the failed creation (ticket #352).
 
         # Start the second DeviceManager
-        nb2, node2 = self.launchDeviceManager("/nodes/test_BasicTestDevice3_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nb2, node2 = self.launchDeviceManager("/nodes/test_BasicTestDevice3_node/DeviceManager.dcd.xml")
 
         # Ensure the expected device is available
         self.assertNotEqual(node2, None)
@@ -314,7 +314,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         self._domMgr.installApplication("/waveforms/CapacityUsage/CapacityUsage.sad.xml")
 
         # Start the first DeviceManager
-        nb1, node1 = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nb1, node1 = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
 
         # Ensure the expected device is available
         self.assertNotEqual(node1, None)

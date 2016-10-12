@@ -23,6 +23,7 @@ import numpy
 import struct
 
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
+from omniORB import CORBA
 
 from ossie.utils.log4py import logging
 
@@ -226,6 +227,10 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
 
         self.flush()
     
+    # Provide standard interface for start/stop
+    startPort = start
+    stopPort = stop
+
     def getMaxBursts(self):
         return self.getDefaultPolicy().getMaxBursts()
 
@@ -351,6 +356,13 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
                     connection.port.pushBursts(bursts)
                     connection.alive = True
                     connection.stats.record(len(bursts), total_elements, queueDepth, delay)
+                except CORBA.MARSHAL, e:
+                    if len(bursts) == 1:
+                        if connection.alive:
+                            self._log.error('pushBursts to %s failed because the burst size is too long')
+                        connection.alive = False
+                    else:
+                        self._partitionBursts(bursts, startTime, queueDepth, connection)
                 except Exception, e:
                     if connection.alive:
                         self._log.error('pushBursts to %s failed: %s', connectionId, e)
@@ -362,6 +374,25 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
         finally:
             self._connectionMutex.release()  
 
+    def _partitionBursts(self, bursts, startTime, queueDepth, connection):
+        first_burst = bursts[:len(bursts)/2]
+        second_burst = bursts[len(first_burst):]
+        delay = time.time() - startTime
+        first_total_elements = sum(len(burst.data) for burst in first_burst)
+        second_total_elements = sum(len(burst.data) for burst in second_burst)
+        try:
+            connection.port.pushBursts(first_burst)
+            connection.alive = True
+            connection.stats.record(len(first_burst), first_total_elements, queueDepth, delay)
+        except CORBA.MARSHAL, e:
+            self._partitionBursts(first_burst, startTime, queueDepth, connection)
+        try:
+            connection.port.pushBursts(second_burst)
+            connection.alive = True
+            connection.stats.record(len(second_burst), second_total_elements, queueDepth, delay)
+        except CORBA.MARSHAL, e:
+            self._partitionBursts(second_burst, startTime, queueDepth, connection)
+        
     def _get_statistics(self):
         self._connectionMutex.acquire()
         try:

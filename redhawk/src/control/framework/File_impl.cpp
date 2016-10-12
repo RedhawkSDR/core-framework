@@ -42,9 +42,11 @@ File_impl* File_impl::Open (const char* fileName, FileSystem_impl *ptrFs, bool r
 }
 
 File_impl::File_impl (const char* fileName, FileSystem_impl *_ptrFs, bool readOnly, bool create):
-    fName(fileName),
-    fullFileName(_ptrFs->getLocalPath(fileName)),
-    ptrFs(_ptrFs)
+  fName(fileName),
+  fullFileName(_ptrFs->getLocalPath(fileName)),
+  fd(-1),
+  ptrFs(_ptrFs),
+  fileIOR("")
 {
     TRACE_ENTER(File_impl)
 
@@ -76,10 +78,17 @@ File_impl::File_impl (const char* fileName, FileSystem_impl *_ptrFs, bool readOn
 
 File_impl::~File_impl ()
 {
-    TRACE_ENTER(File_impl)
-    TRACE_EXIT(File_impl)
+  TRACE_ENTER(File_impl);
+  LOG_TRACE(File_impl, "Closing file..... " << fullFileName );
+  if ( fd > 0 ) ::close(fd);
+  TRACE_EXIT(File_impl);
 }
 
+void File_impl::setIOR( const std::string &ior)
+{
+  boost::mutex::scoped_lock lock(interfaceAccess);
+  fileIOR=ior;
+}
 
 char* File_impl::fileName ()
     throw (CORBA::SystemException)
@@ -165,9 +174,21 @@ void File_impl::close ()
     TRACE_ENTER(File_impl)
     boost::mutex::scoped_lock lock(interfaceAccess);
 
-    CF::File_var fileObj = _this();
-    std::string fileIOR = ossie::corba::objectToString(fileObj);
-    ptrFs->decrementFileIORCount(fullFileName, fileIOR);
+    try {
+      if ( ptrFs) {
+        std::string ior;
+        if ( fileIOR != "" ) {
+          ior = fileIOR;
+        }
+        else {
+          CF::File_var fileObj = _this();
+          ior = ossie::corba::objectToString(fileObj);
+        }
+        ptrFs->decrementFileIORCount(fullFileName, ior);
+      }
+    } catch ( ... ) {
+
+    }
 
     // clean up reference and clean up memory
     try {
@@ -181,10 +202,12 @@ void File_impl::close ()
     int status;
     do {
         status = ::close(fd);
+        fd = -1;
     } while (status && (errno == EINTR));
+    fd = -1;
 
     if (status) {
-        throw CF::File::IOException(CF::CF_EIO, "Error closing file");
+        throw CF::FileException(CF::CF_EIO, "Error closing file");
     }
 
     TRACE_EXIT(File_impl)
@@ -213,7 +236,7 @@ void File_impl::setFilePointer (CORBA::ULong _filePointer)
         throw CF::File::InvalidFilePointer();
     }
 
-    if (lseek(fd, _filePointer, SEEK_SET)) {
+    if (lseek(fd, _filePointer, SEEK_SET) == -1 ) {
         throw CF::FileException(CF::CF_EIO, "Error setting file pointer for file");
     }
 

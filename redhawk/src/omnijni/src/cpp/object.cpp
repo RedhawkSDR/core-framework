@@ -58,7 +58,7 @@ namespace omnijni {
 jclass CORBA::jni::Object::cls_ = NULL;
 jmethodID CORBA::jni::Object::ctor_ = 0;
 
-void CORBA::jni::Object::fromJObject (CORBA::Object_var& out, JNIEnv* env, jobject obj)
+void CORBA::jni::Object::fromJObject (CORBA::Object_out out, JNIEnv* env, jobject obj)
 {
     OnLoad(env);
     if (obj == NULL) {

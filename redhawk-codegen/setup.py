@@ -19,7 +19,7 @@
 #
 
 import os
-from distutils.core import setup
+from setuptools import setup
 from distutils.command.install_lib import install_lib
 
 from redhawk.codegen import versions
@@ -43,12 +43,16 @@ if 'build' in sys.argv:
 for arg in sys.argv:
     if '--home' in arg:
         homeSys = True
+        
 if not homeSys and ossiehome != None and not buildArg:
     sys.argv.append('--home='+ossiehome)
+if not ('--old-and-unmanageable' in sys.argv) and not buildArg:
+    sys.argv.append('--old-and-unmanageable')
 
 setup(name='redhawk-codegen',
       version=versions.codegen,
-      scripts=['redhawk-codegen','codegen_version','update_project','createPackageDependency','createOctaveComponent','createBinaryComponent'],
+      install_requires = ['jinja2'],
+      scripts=['redhawk-codegen','codegen_version','update_project','createOctaveComponent','createBinaryComponent','moveComponentNamespace'],
       cmdclass={'install_lib':filtered_install_lib},
       packages=['redhawk',
                 'redhawk.codegen',
@@ -58,7 +62,6 @@ setup(name='redhawk-codegen',
                 'redhawk.codegen.jinja.common',
                 'redhawk.codegen.jinja.project',
                 'redhawk.codegen.jinja.project.component',
-                'redhawk.codegen.jinja.project.octaveComponent',
                 'redhawk.codegen.jinja.project.softPackageDependency',
                 'redhawk.codegen.jinja.project.softPackageDependency.directory',
                 'redhawk.codegen.jinja.unitTests',
@@ -85,6 +88,7 @@ setup(name='redhawk-codegen',
                 'redhawk.codegen.jinja.cpp.component.pull',
                 'redhawk.codegen.jinja.cpp.component.mFunction',
                 'redhawk.codegen.jinja.cpp.component.frontend',
+                'redhawk.codegen.jinja.cpp.library',
                 'redhawk.codegen.jinja.cpp.ports',
                 'redhawk.codegen.jinja.cpp.service',
                 'redhawk.codegen.jinja.cpp.properties',
@@ -94,7 +98,6 @@ setup(name='redhawk-codegen',
                 'redhawk.packagegen.templates'],
       package_data={'redhawk.codegen.jinja.common':['templates/*'],
                     'redhawk.codegen.jinja.project.component':['templates/*'],
-                    'redhawk.codegen.jinja.project.octaveComponent':['templates/*'],
                     'redhawk.codegen.jinja.project.softPackageDependency':['templates/*'],
                     'redhawk.codegen.jinja.project.softPackageDependency.directory':['templates/*'],
                     'redhawk.codegen.jinja.unitTests.resource.sca':['templates/*'],
@@ -105,6 +108,7 @@ setup(name='redhawk-codegen',
                     'redhawk.codegen.jinja.java.service':['templates/*'],
                     'redhawk.codegen.jinja.python.component.base':['templates/*'],
                     'redhawk.codegen.jinja.python.component.pull':['templates/*'],
+                    'redhawk.codegen.jinja.python.component.frontend':['templates/*'],
                     'redhawk.codegen.jinja.python.component.binary':['templates/*'],
                     'redhawk.codegen.jinja.python.ports':['templates/*.py'],
                     'redhawk.codegen.jinja.python.service':['templates/*'],
@@ -112,6 +116,7 @@ setup(name='redhawk-codegen',
                     'redhawk.codegen.jinja.cpp.component.pull':['templates/*'],
                     'redhawk.codegen.jinja.cpp.component.mFunction':['templates/*'],
                     'redhawk.codegen.jinja.cpp.component.frontend':['templates/*'],
+                    'redhawk.codegen.jinja.cpp.library':['templates/*'],
                     'redhawk.codegen.jinja.cpp.ports':['templates/*.cpp', 'templates/*.h'],
                     'redhawk.codegen.jinja.cpp.service':['templates/*'],
                     'redhawk.codegen.jinja.cpp.component.persona':['templates/*'],

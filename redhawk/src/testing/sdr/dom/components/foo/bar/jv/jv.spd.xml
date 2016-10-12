@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:a9f17f70-fbb8-47d1-b1f7-489625b8313b" name="foo.bar.jv" type="sca_compliant">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="jv.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="jv.scd.xml"/>
+  </descriptor>
+  <implementation id="java">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="java"/>
+      <entrypoint>java/startJava.sh</entrypoint>
+    </code>
+    <compiler name="/usr/bin/javac" version="1.7"/>
+    <programminglanguage name="Java"/>
+    <humanlanguage name="EN"/>
+    <runtime name="/usr/bin/java" version="1.7"/>
+    <os name="Linux"/>
+  </implementation>
+</softpkg>

@@ -377,10 +377,6 @@ def checkSoftPkg(fPath):
             if len(code.getElementsByTagName("entrypoint")) != 1:
                 check_error("implementation %s has Executable code without entrypoint" % implId, location=fPath)
             # We don't need to check localfile because the DTD check ensures it's existence
-            # TODO - check the existence of entrypoint since with directory based loads the entry-point
-            # and the localfile may not be one and the same
-
-    # TODO Check that usesdevice and dependency propertyrefs match an allocation property found in the domain
 
 def checkProperties(fPath):
     d = xml.dom.minidom.parse(fPath)
@@ -406,7 +402,7 @@ def checkComponentProperties(fPath, readonlyIds):
     d = xml.dom.minidom.parse(fPath)
     for compprops in d.getElementsByTagName("componentproperties"):
         for propref in compprops.childNodes:
-            # TODO validate that the property ref exists in the component
+            # Validate that the property ref exists in the component
             # by looking up the component via componentfileref
             # validate that the property is not readonly
             pass

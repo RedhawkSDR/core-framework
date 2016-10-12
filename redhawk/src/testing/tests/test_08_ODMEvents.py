@@ -135,15 +135,24 @@ class ODMEventsTest(scatest.CorbaTestCase):
         # Test DeviceManager related events
 
         # launch DomainManager
-        nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        nodebooter, self._domMgr = self.launchDomainManager()
 
         # connect to the channel
         domainName = scatest.getTestDomainName()
-        channelManager = ChannelManager(self._orb)
-        odmChannel = channelManager.getEventChannel('ODM_Channel', domainName)
+        odmChannel=None
+        req = CF.EventChannelManager.EventRegistration( 'ODM_Channel', '')
+        try:
+            ecm = self._domMgr._get_eventChannelMgr()
+            creg = ecm.registerResource( req ) 
+            odmChannel = creg.channel
+        except:
+            pass
+
         if odmChannel == None:
             self.fail("Could not connect to the ODM_Channel")
 
+        #channelManager = ChannelManager(self._orb)
+        #odmChannel = channelManager.getEventChannel('ODM_Channel', domainName)
 
         # set up consumer
         consumer_admin = odmChannel.for_consumers()
@@ -152,7 +161,7 @@ class ODMEventsTest(scatest.CorbaTestCase):
         _proxy_supplier.connect_push_consumer(_consumer._this())
 
         # start the device manager
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         timeout = 0.0
@@ -171,7 +180,7 @@ class ODMEventsTest(scatest.CorbaTestCase):
             time.sleep(0.2)
 
         # start the second device manager
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicService_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicService_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         timeout = 0.0

@@ -1,0 +1,10 @@
+3479d08cfbcca219c150f88426c7ff9b  main.cpp
+8bfcd22353c3a57fee561ad86ee2a56b  reconf
+5d1b89758032d57acc44a8e5ca51d9fb  cpp_with_deps.h
+d0a584f856a795b1c669443944e1275a  cpp_with_deps.cpp
+025d7aac8bf684e164ebfa14881c9ee1  configure.ac
+32fdcb15a030a22dc5850e69808234c8  Makefile.am
+c9dae29a2acbb2644af84562621c1f2a  Makefile.am.ide
+c073f3b1d7ac91503bbea69274d5983a  cpp_with_deps_base.h
+b87651ea3565402473fb088004430fbf  build.sh
+b357851b7a986ffcda156970a8ac7918  cpp_with_deps_base.cpp

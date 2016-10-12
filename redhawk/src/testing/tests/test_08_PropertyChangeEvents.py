@@ -30,6 +30,9 @@ import CosEventComm,CosEventComm__POA
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
 from ossie.cf import StandardEvent
 from ossie.events import ChannelManager
+from _unitTestHelpers import runtestHelpers
+
+java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 # create a class for consuming events
 class Consumer_i(CosEventComm__POA.PushConsumer):
@@ -95,8 +98,8 @@ class PropertyChangeEventsTest(scatest.CorbaTestCase):
         # Test DeviceManager related events
 
         # launch DomainManager
-        nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, self._domMgr = self.launchDomainManager()
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         self._domMgr.installApplication("/waveforms/PropertyChangeEvents/PropertyChangeEvents.sad.xml")
@@ -149,8 +152,8 @@ class PropertyChangeEventsTest(scatest.CorbaTestCase):
         # Test DeviceManager related events
 
         # launch DomainManager
-        nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, self._domMgr = self.launchDomainManager()
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         self._domMgr.installApplication("/waveforms/PropertyChangeEventsCpp/PropertyChangeEventsCpp.sad.xml")
@@ -183,6 +186,8 @@ class PropertyChangeEventsTest(scatest.CorbaTestCase):
         self._domMgr.unregisterFromEventChannel('some_id', 'propertyChanges')
 
     def test_PropertyChangeEvents_Java(self):
+        if not java_support:
+            return
         self.received_myprop = False
         self.received_anotherprop = False
         self.received_seqprop = False
@@ -194,8 +199,8 @@ class PropertyChangeEventsTest(scatest.CorbaTestCase):
         # Test DeviceManager related events
 
         # launch DomainManager
-        nodebooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
+        nodebooter, self._domMgr = self.launchDomainManager()
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
         self._domMgr.installApplication("/waveforms/PropertyChangeEventsJava/PropertyChangeEventsJava.sad.xml")

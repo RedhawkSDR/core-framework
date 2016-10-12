@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:CF/Resource:1.0"/>
+  <componenttype>resource</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:CF/Resource:1.0" supportsname="Resource"/>
+    <supportsinterface repid="IDL:CF/LifeCycle:1.0" supportsname="LifeCycle"/>
+    <supportsinterface repid="IDL:CF/PortSupplier:1.0" supportsname="PortSupplier"/>
+    <supportsinterface repid="IDL:CF/PropertySet:1.0" supportsname="PropertySet"/>
+    <supportsinterface repid="IDL:CF/TestableObject:1.0" supportsname="TestableObject"/>
+    <ports>
+      <provides repid="IDL:CF/AggregateDevice:1.0" providesname="AggregateDevice_in"/>
+      <uses repid="IDL:CF/AggregateDevice:1.0" usesname="AggregateDevice_out"/>
+      <provides repid="IDL:CF/AggregateExecutableDevice:1.0" providesname="AggregateExecutableDevice_in"/>
+      <uses repid="IDL:CF/AggregateExecutableDevice:1.0" usesname="AggregateExecutableDevice_out"/>
+      <provides repid="IDL:CF/AggregateLoadableDevice:1.0" providesname="AggregateLoadableDevice_in"/>
+      <uses repid="IDL:CF/AggregateLoadableDevice:1.0" usesname="AggregateLoadableDevice_out"/>
+      <provides repid="IDL:CF/AggregatePlainDevice:1.0" providesname="AggregatePlainDevice_in"/>
+      <uses repid="IDL:CF/AggregatePlainDevice:1.0" usesname="AggregatePlainDevice_out"/>
+      <provides repid="IDL:CF/AllocationManager:1.0" providesname="AllocationManager_in"/>
+      <uses repid="IDL:CF/AllocationManager:1.0" usesname="AllocationManager_out"/>
+      <provides repid="IDL:CF/Application:1.0" providesname="Application_in"/>
+      <uses repid="IDL:CF/Application:1.0" usesname="Application_out"/>
+      <provides repid="IDL:CF/ApplicationFactory:1.0" providesname="ApplicationFactory_in"/>
+      <uses repid="IDL:CF/ApplicationFactory:1.0" usesname="ApplicationFactory_out"/>
+      <provides repid="IDL:CF/Device:1.0" providesname="Device_in"/>
+      <uses repid="IDL:CF/Device:1.0" usesname="Device_out"/>
+      <provides repid="IDL:CF/DeviceManager:1.0" providesname="DeviceManager_in"/>
+      <uses repid="IDL:CF/DeviceManager:1.0" usesname="DeviceManager_out"/>
+      <provides repid="IDL:CF/DomainManager:1.0" providesname="DomainManager_in"/>
+      <uses repid="IDL:CF/DomainManager:1.0" usesname="DomainManager_out"/>
+      <provides repid="IDL:CF/ExecutableDevice:1.0" providesname="ExecutableDevice_in"/>
+      <uses repid="IDL:CF/ExecutableDevice:1.0" usesname="ExecutableDevice_out"/>
+      <provides repid="IDL:CF/File:1.0" providesname="File_in"/>
+      <uses repid="IDL:CF/File:1.0" usesname="File_out"/>
+      <provides repid="IDL:CF/FileManager:1.0" providesname="FileManager_in"/>
+      <uses repid="IDL:CF/FileManager:1.0" usesname="FileManager_out"/>
+      <provides repid="IDL:CF/FileSystem:1.0" providesname="FileSystem_in"/>
+      <uses repid="IDL:CF/FileSystem:1.0" usesname="FileSystem_out"/>
+      <provides repid="IDL:CF/LifeCycle:1.0" providesname="LifeCycle_in"/>
+      <uses repid="IDL:CF/LifeCycle:1.0" usesname="LifeCycle_out"/>
+      <provides repid="IDL:CF/LoadableDevice:1.0" providesname="LoadableDevice_in"/>
+      <uses repid="IDL:CF/LoadableDevice:1.0" usesname="LoadableDevice_out"/>
+      <provides repid="IDL:CF/LogConfiguration:1.0" providesname="LogConfiguration_in"/>
+      <uses repid="IDL:CF/LogConfiguration:1.0" usesname="LogConfiguration_out"/>
+      <provides repid="IDL:CF/LogConfigurator:1.0" providesname="LogConfigurator_in"/>
+      <uses repid="IDL:CF/LogConfigurator:1.0" usesname="LogConfigurator_out"/>
+      <provides repid="IDL:CF/LogEventConsumer:1.0" providesname="LogEventConsumer_in"/>
+      <uses repid="IDL:CF/LogEventConsumer:1.0" usesname="LogEventConsumer_out"/>
+      <provides repid="IDL:CF/Logging:1.0" providesname="Logging_in"/>
+      <uses repid="IDL:CF/Logging:1.0" usesname="Logging_out"/>
+      <provides repid="IDL:CF/LogLevels:1.0" providesname="LogLevels_in"/>
+      <uses repid="IDL:CF/LogLevels:1.0" usesname="LogLevels_out"/>
+      <!-- provides repid="IDL:CF/Port:1.0" providesname="Port_in"/-->
+      <!-- uses repid="IDL:CF/Port:1.0" usesname="Port_out"/-->
+      <provides repid="IDL:CF/PortSupplier:1.0" providesname="PortSupplier_in"/>
+      <uses repid="IDL:CF/PortSupplier:1.0" usesname="PortSupplier_out"/>
+      <provides repid="IDL:CF/PropertySet:1.0" providesname="PropertySet_in"/>
+      <uses repid="IDL:CF/PropertySet:1.0" usesname="PropertySet_out"/>
+      <provides repid="IDL:CF/Resource:1.0" providesname="Resource_in"/>
+      <uses repid="IDL:CF/Resource:1.0" usesname="Resource_out"/>
+      <provides repid="IDL:CF/ResourceFactory:1.0" providesname="ResourceFactory_in"/>
+      <uses repid="IDL:CF/ResourceFactory:1.0" usesname="ResourceFactory_out"/>
+      <provides repid="IDL:CF/TestableObject:1.0" providesname="TestableObject_in"/>
+      <uses repid="IDL:CF/TestableObject:1.0" usesname="TestableObject_out"/>
+    </ports>
+  </componentfeatures>
+  <interfaces>
+    <interface name="Resource" repid="IDL:CF/Resource:1.0">
+      <inheritsinterface repid="IDL:CF/LifeCycle:1.0"/>
+      <inheritsinterface repid="IDL:CF/PortSupplier:1.0"/>
+      <inheritsinterface repid="IDL:CF/PropertySet:1.0"/>
+      <inheritsinterface repid="IDL:CF/TestableObject:1.0"/>
+    </interface>
+    <interface name="LifeCycle" repid="IDL:CF/LifeCycle:1.0"/>
+    <interface name="PortSupplier" repid="IDL:CF/PortSupplier:1.0"/>
+    <interface name="PropertySet" repid="IDL:CF/PropertySet:1.0"/>
+    <interface name="TestableObject" repid="IDL:CF/TestableObject:1.0"/>
+    <interface name="File" repid="IDL:CF/File:1.0"/>
+    <interface name="AggregateDevice" repid="IDL:CF/AggregateDevice:1.0"/>
+    <interface name="Device" repid="IDL:CF/Device:1.0">
+      <inheritsinterface repid="IDL:CF/Resource:1.0"/>
+    </interface>
+    <interface name="LoadableDevice" repid="IDL:CF/LoadableDevice:1.0">
+      <inheritsinterface repid="IDL:CF/Device:1.0"/>
+    </interface>
+    <interface name="ExecutableDevice" repid="IDL:CF/ExecutableDevice:1.0">
+      <inheritsinterface repid="IDL:CF/LoadableDevice:1.0"/>
+    </interface>
+    <interface name="AggregateExecutableDevice" repid="IDL:CF/AggregateExecutableDevice:1.0">
+      <inheritsinterface repid="IDL:CF/ExecutableDevice:1.0"/>
+      <inheritsinterface repid="IDL:CF/AggregateDevice:1.0"/>
+    </interface>
+    <interface name="AllocationManager" repid="IDL:CF/AllocationManager:1.0"/>
+    <interface name="Application" repid="IDL:CF/Application:1.0">
+      <inheritsinterface repid="IDL:CF/Resource:1.0"/>
+    </interface>
+    <interface name="ApplicationFactory" repid="IDL:CF/ApplicationFactory:1.0"/>
+    <interface name="FileSystem" repid="IDL:CF/FileSystem:1.0"/>
+    <interface name="FileManager" repid="IDL:CF/FileManager:1.0">
+      <inheritsinterface repid="IDL:CF/FileSystem:1.0"/>
+    </interface>
+    <interface name="LogEventConsumer" repid="IDL:CF/LogEventConsumer:1.0"/>
+    <interface name="LogConfiguration" repid="IDL:CF/LogConfiguration:1.0"/>
+    <interface name="LogConfigurator" repid="IDL:CF/LogConfigurator:1.0"/>
+    <interface name="Logging" repid="IDL:CF/Logging:1.0">
+      <inheritsinterface repid="IDL:CF/LogEventConsumer:1.0"/>
+      <inheritsinterface repid="IDL:CF/LogConfiguration:1.0"/>
+    </interface>
+    <interface name="ResourceFactory" repid="IDL:CF/ResourceFactory:1.0"/>
+  </interfaces>
+</softwarecomponent>

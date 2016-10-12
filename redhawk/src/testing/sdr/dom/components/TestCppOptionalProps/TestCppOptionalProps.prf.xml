@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <struct id="my_struct" mode="readwrite" name="my_struct_name">
+    <simple id="struct_octet" name="struct_octet_name" type="octet" optional="true"/>
+    <simple id="struct_short" name="struct_short_name" type="short" optional="true"/>
+    <simple id="struct_ushort" name="struct_ushort_name" type="ushort" optional="true"/>
+    <simple id="struct_long" name="struct_long_name" type="long" optional="true"/>
+    <simple id="struct_ulong" name="struct_ulong_name" type="ulong" optional="true"/>
+    <simple id="struct_longlong" name="struct_longlong_name" type="longlong" optional="true"/>
+    <simple id="struct_ulonglong" name="struct_ulonglong_name" type="ulonglong" optional="true"/>
+    <simple id="struct_string" name="struct_string_name" type="string" optional="true"/>
+    <simplesequence id="struct_seq_octet" mode="readwrite" name="struct_seq_octet_name" type="octet" optional="true"/>
+    <simplesequence id="struct_seq_short" mode="readwrite" name="struct_seq_short_name" type="short" optional="true"/>
+    <simplesequence id="struct_seq_ushort" mode="readwrite" name="struct_seq_ushort_name" type="ushort" optional="true"/>
+    <simplesequence id="struct_seq_long" mode="readwrite" name="struct_seq_long_name" type="long" optional="true"/>
+    <simplesequence id="struct_seq_ulong" mode="readwrite" name="struct_seq_ulong_name" type="ulong" optional="true"/>
+    <simplesequence id="struct_seq_longlong" mode="readwrite" name="struct_seq_longlong_name" type="longlong" optional="true"/>
+    <simplesequence id="struct_seq_ulonglong" mode="readwrite" name="struct_seq_ulonglong_name" type="ulonglong" optional="true"/>
+    <configurationkind kindtype="configure"/>
+  </struct>
+</properties>

@@ -75,6 +75,14 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <description>The value with no default used to test dynamic allocate capacity.</description> 
         <kind kindtype="configure"/>
     </simple>
+    <simple id="prop3" mode="readwrite" name="prop3" type="string">
+        <description>The value with no default used to test dynamic allocate capacity.</description> 
+        <kind kindtype="property"/>
+    </simple>
+    <simple id="configure_prop_notset" mode="readwrite" type="double">
+        <description>The value with no default used to test dynamic allocate capacity.</description> 
+        <kind kindtype="property"/>
+    </simple>
     <simplesequence id="DCE:85d133fd-1658-4e4d-b3ff-1443cd44c0e2" mode="readonly" name="execparams" type="string">
         <description>The execparms passed to the component.</description> 
         <kind kindtype="configure"/>

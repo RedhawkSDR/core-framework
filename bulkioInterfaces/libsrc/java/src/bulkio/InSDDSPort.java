@@ -46,11 +46,12 @@ import bulkio.linkStatistics;
 import bulkio.DataTransfer;
 import bulkio.Int16Size;
 
+import org.ossie.component.PortBase;
 
 /**
  * @generated
  */
-public class InSDDSPort extends BULKIO.jni.dataSDDSPOA {
+public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements org.ossie.component.PortBase {
 
     public interface Callback  {
 
@@ -443,6 +444,16 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA {
      */
     public boolean hasSriChanged() {
         return this.sriChanged;
-    }
+    }	
+
+	public String getRepid()
+	{
+		return BULKIO.dataSDDSHelper.id();
+	}
+
+	public String getDirection()
+	{
+		return "Provides";
+	}
 
 }

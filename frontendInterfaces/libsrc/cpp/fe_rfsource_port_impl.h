@@ -84,6 +84,10 @@ namespace frontend {
                 frontend::RFInfoPkt input = frontend::returnRFInfoPkt(data);
                 this->parent->set_current_rf_input(this->name, input);
             };
+            std::string getRepid() const
+            {
+                return "IDL:FRONTEND/RFSource:1.0";
+            };
             
         protected:
             rfsource_delegation *parent;
@@ -101,7 +105,7 @@ namespace frontend {
             FRONTEND::RFInfoPktSequence* available_rf_inputs();
             void available_rf_inputs(const FRONTEND::RFInfoPktSequence& data);
             FRONTEND::RFInfoPkt* current_rf_input();
-            void current_rf_input(const FRONTEND::RFInfoPkt& data);
+            void current_rf_input(const FRONTEND::RFInfoPkt& data);;
     };
 
 } // end of frontend namespace

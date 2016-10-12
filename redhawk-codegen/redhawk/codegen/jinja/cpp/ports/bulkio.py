@@ -28,7 +28,10 @@ class BulkioPortFactory(PortFactory):
     NAMESPACE = 'BULKIO'
 
     def match(self, port):
-        return IDLInterface(port.repid()).namespace() == self.NAMESPACE
+        interface = IDLInterface(port.repid())
+        if interface.namespace() != self.NAMESPACE:
+            return False
+        return interface.interface().startswith('data')
 
     def generator(self, port):
         return BulkioPortGenerator(port)

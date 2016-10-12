@@ -22,7 +22,7 @@
 /*{% endblock %}*/
 //% set className = component.userclass.name
 //% set baseClass = component.baseclass.name
-//% set includeGuard = component.name.upper() + '_IMPL_H'
+//% set includeGuard = className.upper() + '_IMPL_H'
 #ifndef ${includeGuard}
 #define ${includeGuard}
 
@@ -41,6 +41,9 @@ class ${className} : public ${baseClass}
         ${className}(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
 //% endif
         ~${className}();
+
+        void constructor();
+
         int serviceFunction();
 /*{% if component is device %}*/
 /*{% block updateUsageState %}*/

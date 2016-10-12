@@ -23,7 +23,7 @@ import threading
 import atexit
 
 from omniORB import CORBA
-from ossie.cf import CF__POA
+from ossie.cf import CF__POA, CF
 from ossie.utils import log4py
 
 # Prepare the ORB
@@ -103,6 +103,12 @@ class DeviceManagerStub(CF__POA.DeviceManager):
             self._registerDevice(identifier, registeringDevice)
         finally:
             self.__lock.release()
+    
+    def _get_domMgr(self):
+        return CF.DomainManager._nil
+    
+    def _get_identifier(self):
+        return ""
 
     def unregisterDevice(self, unregisteringDevice):
         self.__lock.acquire()

@@ -27,14 +27,21 @@
 #include "Logging_impl.h"
 #include "Port_impl.h"
 #include "LifeCycle_impl.h"
-#include "PortSupplier_impl.h"
+#include "PortSet_impl.h"
 #include "PropertySet_impl.h"
 #include "TestableObject_impl.h"
 #include "ossie/logging/loghelpers.h"
 #include "ossie/ossieSupport.h"
 #include "ossie/prop_helpers.h"
+#include "ossie/Containers.h"
+#include "ossie/PropertyMap.h"
+#include "ossie/Autocomplete.h"
 
-class Resource_impl: public virtual POA_CF::Resource, public PropertySet_impl, public PortSupplier_impl, public LifeCycle_impl, public TestableObject_impl, public Logging_impl
+class Resource_impl: 
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+    public virtual POA_CF::Resource, 
+#endif
+    public PropertySet_impl, public PortSet_impl, public LifeCycle_impl, public TestableObject_impl, public Logging_impl
 {
     ENABLE_LOGGING
 
@@ -52,15 +59,21 @@ public:
         start_component(boost::bind(&Resource_impl::make_component<T>,boost::ref(component),_1,_2), argc, argv);
     }
 
+    virtual ~Resource_impl ();
     Resource_impl (const char* _uuid);
     Resource_impl (const char* _uuid, const char *label);
 
+    /*
+     * REDHAWK constructor. All properties are initialized before this constructor is called
+     */
+    virtual void constructor ();
 
     void setParentId( const std::string &parentid ) { _parent_id = parentid; };
 
 
     void start () throw (CF::Resource::StartError, CORBA::SystemException);
     void stop () throw (CF::Resource::StopError, CORBA::SystemException);
+    void initialize () throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
     void releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError);
     char* identifier () throw (CORBA::SystemException);
     CORBA::Boolean started() throw (CORBA::SystemException);
@@ -72,14 +85,33 @@ public:
     virtual void setCurrentWorkingDirectory(std::string& cwd);
     virtual std::string& getCurrentWorkingDirectory();
     
-    void setAdditionalParameters(std::string softwareProfile);
+    virtual void setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, std::string &nic);
+    /*
+     * Return a pointer to the Domain Manager that the Resource is deployed on
+     */
+    redhawk::DomainManagerContainer* getDomainManager() {
+        return this->_domMgr;
+    }
 
+    /*
+     * Globally unique identifier for this Resource
+     */
     std::string _identifier;
+    /*
+     * Name used to bind this Resource to the Naming Service
+     */
     std::string naming_service_name;
     std::string _parent_id;
 
 protected:
+
+    /*
+     * Boolean describing whether or not this Resource is started
+     */
     bool _started;
+    /*
+     * Filename for the Resource's SPD file
+     */
     std::string _softwareProfile;
     
     omni_mutex component_running_mutex;
@@ -102,7 +134,8 @@ private:
     // a component constructor (via make_component).
     typedef boost::function<Resource_impl* (const std::string&, const std::string&)> ctor_type;
     static void start_component(ctor_type ctor, int argc, char* argv[]);
-
     std::string currentWorkingDirectory;
+    redhawk::DomainManagerContainer *_domMgr;
+    bool _initialized;
 };
 #endif

@@ -19,3 +19,7 @@
 #
 
 print "hello world"
+
+class bar:
+  def __init__(self):
+    pass

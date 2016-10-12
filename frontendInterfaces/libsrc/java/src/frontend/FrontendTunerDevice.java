@@ -20,13 +20,21 @@
 package frontend;
 
 import BULKIO.StreamSRI;
+import BULKIO.UNITS_TIME;
+import BULKIO.UNITS_NONE;
 import CF.AggregateDevice;
 import CF.DataType;
 import CF.DeviceManager;
+import CF.DevicePackage.UsageType.*;
 import CF.DevicePackage.InvalidCapacity;
-import CF.DevicePackage.UsageType;
-import CF.InvalidObjectReference;
+import CF.DevicePackage.InvalidCapacityHelper;
 import CF.DevicePackage.InvalidState;
+import CF.DevicePackage.UsageType;
+import CF.PortSetPackage.PortInfoType;
+import CF.InvalidObjectReference;
+import ExtendedCF.UsesConnection;
+import FRONTEND.RFInfoPkt;
+import FRONTEND.BadParameterException;
 import java.lang.Math.*;
 import java.lang.reflect.*;
 import java.text.*;
@@ -39,12 +47,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID.*;
+import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
-import org.ossie.component.Device;
-import org.omg.CORBA.Any;
+import org.ossie.component.ThreadedDevice;
 import org.ossie.properties.Action;
 import org.ossie.properties.Allocator;
 import org.ossie.properties.AnyUtils;
@@ -54,42 +62,777 @@ import org.ossie.properties.StringProperty;
 import org.ossie.properties.StructProperty;
 import org.ossie.properties.StructSequenceProperty;
 
-public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend.FrontendTunerStructProps.default_frontend_tuner_status_struct_struct> extends Device {
+public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend.FETypes.default_frontend_tuner_status_struct_struct> extends ThreadedDevice {
 
-    public enum timeTypes{
-        J1970,
-        JCY
-    }
-
-    public class indivTuner<T extends frontend.FrontendTunerStructProps.default_frontend_tuner_status_struct_struct> {
-
-        public indivTuner(){
-            complex = true;
-            frontend_status = null;
-            lock = null;
-        }
-
-        public void reset(){
-            sri = new BULKIO.StreamSRI(1,0.0,1.0,(short)1,1,0.0,1.0,(short)1,(short)0,"",false,new CF.DataType[0]);        
-            control_allocation_id = "";
-            if (frontend_status != null){
-                frontend_status.allocation_id_csv.setValue("");
-                frontend_status.center_frequency.setValue(0.0);
-                frontend_status.bandwidth.setValue(0.0);
-                frontend_status.sample_rate.setValue(0.0);
-                frontend_status.enabled.setValue(false);
+    /* validateRequestVsSRI is a helper function to check that the input data stream can support
+     * the allocation request. The output mode (true if complex output) is used when determining
+     * the necessary sample rate required to satisfy the request. The entire frequency band of the
+     * request must be available for True to be returned, not just the center frequency.
+     * True is returned upon success, otherwise FRONTEND.BadParameterException is thrown.
+     * If the CHAN_RF and FRONTEND.BANDWIDTH keywords are not found in the sri,
+     * FRONTEND.BadParameterException is thrown.
+     */
+    public boolean validateRequestVsSRI(final frontend.FETypes.frontend_tuner_allocation_struct request, final BULKIO.StreamSRI upstream_sri, boolean output_mode) throws FRONTEND.BadParameterException {
+        // get center frequency and bandwidth from SRI keywords
+        double upstream_cf = 0.0;
+        double upstream_bw = 0.0;
+        boolean found_cf = false;
+        boolean found_bw = false;
+        int key_size = upstream_sri.keywords.length;
+        for (int i = 0; i < key_size; i++) {
+            if (!upstream_sri.keywords[i].id.equals("CHAN_RF")) {
+                Double val = (Double) AnyUtils.convertAny(upstream_sri.keywords[i].value);
+                if (val != null){ 
+                    found_cf = true;
+                    upstream_cf = val.doubleValue();
+                }
+            } else if (!upstream_sri.keywords[i].id.equals("FRONTEND::BANDWIDTH")) {
+                Double val = (Double) AnyUtils.convertAny(upstream_sri.keywords[i].value);
+                if (val != null){ 
+                    found_bw = true;
+                    upstream_bw = val.doubleValue();
+                }
             }
         }
+        if(!found_cf || !found_bw){
+            throw new FRONTEND.BadParameterException("CANNOT VERIFY REQUEST -- SRI missing required keywords");
+        }
 
-        public BULKIO.StreamSRI sri;
-        public boolean complex;
-        public Object lock;
-        public String control_allocation_id;
-        public T frontend_status;
+        // check bandwidth
+        double min_upstream_freq = upstream_cf-(upstream_bw/2);
+        double max_upstream_freq = upstream_cf+(upstream_bw/2);
+        double min_requested_freq = request.center_frequency.getValue()-(request.bandwidth.getValue()/2);
+        double max_requested_freq = request.center_frequency.getValue()+(request.bandwidth.getValue()/2);
+
+        if( !validateRequest(min_upstream_freq,max_upstream_freq,min_requested_freq,max_requested_freq) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- input data stream cannot support freq/bw request");
+        }
+
+        // check sample rate
+        double upstream_sr = 1/upstream_sri.xdelta;
+        int input_scaling_factor = (upstream_sri.mode == 1) ? 2 : 4; // adjust for complex data
+        min_upstream_freq = upstream_cf-(upstream_sr/input_scaling_factor);
+        max_upstream_freq = upstream_cf+(upstream_sr/input_scaling_factor);
+        int output_scaling_factor = (output_mode) ? 2 : 4; // adjust for complex data
+        min_requested_freq = request.center_frequency.getValue()-(request.sample_rate.getValue()/output_scaling_factor);
+        max_requested_freq = request.center_frequency.getValue()+(request.sample_rate.getValue()/output_scaling_factor);
+
+        if ( !validateRequest(min_upstream_freq,max_upstream_freq,min_requested_freq,max_requested_freq) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- input data stream cannot support freq/sr request");
+        }
+        return true;
     }
 
+    /* validateRequestVsDevice is a helper function to check that the input data stream and the
+     * device can support an allocation request. The output mode (true if complex output) is used
+     * when determining the necessary sample rate required to satisfy the request. The entire
+     * frequency band of the request must be available for True to be returned, not just the center
+     * frequency.
+     * True is returned upon success, otherwise FRONTEND.BadParameterException is thrown.
+     * If the CHAN_RF and FRONTEND::BANDWIDTH keywords are not found in the sri,
+     * FRONTEND.BadParameterException is thrown.
+     */
+    public boolean validateRequestVsDevice(final frontend.FETypes.frontend_tuner_allocation_struct request, final BULKIO.StreamSRI upstream_sri,
+            boolean output_mode, double min_device_center_freq, double max_device_center_freq, double max_device_bandwidth, double max_device_sample_rate) throws FRONTEND.BadParameterException {
+        // check if request can be satisfied using the available upstream data
+        if( !validateRequestVsSRI(request,upstream_sri, output_mode) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- falls outside of input data stream");
+        }
 
-    public final StringProperty device_kind =
+        // check device constraints
+
+        // check vs. device center frequency capability (ensure 0 <= request <= max device capability)
+        if ( !validateRequest(min_device_center_freq,max_device_center_freq,request.center_frequency.getValue()) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq request");
+        }
+
+        // check vs. device bandwidth capability (ensure 0 <= request <= max device capability)
+        if ( !validateRequest(0,max_device_bandwidth,request.bandwidth.getValue()) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support bw request");
+        }
+
+        // check vs. device sample rate capability (ensure 0 <= request <= max device capability)
+        if ( !validateRequest(0,max_device_sample_rate,request.sample_rate.getValue()) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support sr request");
+        }
+
+        // calculate overall frequency range of the device (not just CF range)
+        final int output_scaling_factor = (output_mode) ? 2 : 4; // adjust for complex data
+        final double min_device_freq = min_device_center_freq-(max_device_sample_rate/output_scaling_factor);
+        final double max_device_freq = max_device_center_freq+(max_device_sample_rate/output_scaling_factor);
+
+        // check based on bandwidth
+        // this duplicates part of check above if device freq range = input freq range
+        double min_requested_freq = request.center_frequency.getValue()-(request.bandwidth.getValue()/2);
+        double max_requested_freq = request.center_frequency.getValue()+(request.bandwidth.getValue()/2);
+        if ( !validateRequest(min_device_freq,max_device_freq,min_requested_freq,max_requested_freq) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq/bw request");
+        }
+
+        // check based on sample rate
+        // this duplicates part of check above if device freq range = input freq range
+        min_requested_freq = request.center_frequency.getValue()-(request.sample_rate.getValue()/output_scaling_factor);
+        max_requested_freq = request.center_frequency.getValue()+(request.sample_rate.getValue()/output_scaling_factor);
+        if ( !validateRequest(min_device_freq,max_device_freq,min_requested_freq,max_requested_freq) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq/sr request");
+        }
+
+        return true;
+    }
+
+    /* validateRequestVsRFInfo is a helper function to check that the analog capabilities can support
+     * the allocation request. The mode (true if complex) is used when determining the necessary
+     * sample rate required to satisfy the request. The entire frequency band of the request must be
+     * available for True to be returned, not just the center frequency.
+     * True is returned upon success, otherwise FRONTEND.BadParameterException is thrown.
+     */
+    public boolean validateRequestVsRFInfo(final frontend.FETypes.frontend_tuner_allocation_struct request, final FRONTEND.RFInfoPkt rfinfo, boolean mode) throws FRONTEND.BadParameterException {
+
+        double min_analog_freq = rfinfo.rf_center_freq-(rfinfo.rf_bandwidth/2);
+        double max_analog_freq = rfinfo.rf_center_freq+(rfinfo.rf_bandwidth/2);
+
+        // check bandwidth
+        double min_requested_freq = request.center_frequency.getValue()-(request.bandwidth.getValue()/2);
+        double max_requested_freq = request.center_frequency.getValue()+(request.bandwidth.getValue()/2);
+
+        if ( !validateRequest(min_analog_freq,max_analog_freq,min_requested_freq,max_requested_freq) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- analog freq range (RFinfo) cannot support freq/bw request");
+        }
+
+        // check sample rate
+        int scaling_factor = (mode) ? 2 : 4; // adjust for complex data
+        min_requested_freq = request.center_frequency.getValue()-(request.sample_rate.getValue()/scaling_factor);
+        max_requested_freq = request.center_frequency.getValue()+(request.sample_rate.getValue()/scaling_factor);
+
+        if ( !validateRequest(min_analog_freq,max_analog_freq,min_requested_freq,max_requested_freq) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- analog freq range (RFinfo) cannot support freq/sr request");
+        }
+        return true;
+    }
+
+    /* validateRequestVsDevice is a helper function to check that the analog capabilities and the
+     * device can support the allocation request. The mode (true if complex) is used when
+     * determining the necessary sample rate required to satisfy the request. The entire frequency
+     * band of the request must be available for True to be returned, not just the center frequency.
+     * True is returned upon success, otherwise FRONTEND.BadParameterException is thrown.
+     */
+    public boolean validateRequestVsDevice(final frontend.FETypes.frontend_tuner_allocation_struct request, final FRONTEND.RFInfoPkt rfinfo,
+            boolean mode, double min_device_center_freq, double max_device_center_freq, double max_device_bandwidth, double max_device_sample_rate) throws FRONTEND.BadParameterException {
+
+        // check if request can be satisfied using the available upstream data
+        if(!request.tuner_type.getValue().equals("TX") && !validateRequestVsRFInfo(request,rfinfo, mode) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- analog freq range (RFinfo) cannot support request");
+        }
+
+        // check device constraints
+        // see if IF center frequency is set in rfinfo packet
+        double request_if_center_freq = request.center_frequency.getValue();
+        if(!request.tuner_type.getValue().equals("TX") && floatingPointCompare(rfinfo.if_center_freq,0) > 0 && floatingPointCompare(rfinfo.rf_center_freq,rfinfo.if_center_freq) > 0)
+            request_if_center_freq = request.center_frequency.getValue() - (rfinfo.rf_center_freq-rfinfo.if_center_freq);
+
+        // check vs. device center freq capability (ensure 0 <= request <= max device capability)
+        if ( !validateRequest(min_device_center_freq,max_device_center_freq,request_if_center_freq) ) {
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq request");
+        }
+
+        // check vs. device bandwidth capability (ensure 0 <= request <= max device capability)
+        if ( !validateRequest(0,max_device_bandwidth,request.bandwidth.getValue()) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support bw request");
+        }
+
+        // check vs. device sample rate capability (ensure 0 <= request <= max device capability)
+        if ( !validateRequest(0,max_device_sample_rate,request.sample_rate.getValue()) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support sr request");
+        }
+
+        // calculate overall frequency range of the device (not just CF range)
+        final int scaling_factor = (mode) ? 2 : 4; // adjust for complex data
+        final double min_device_freq = min_device_center_freq-(max_device_sample_rate/scaling_factor);
+        final double max_device_freq = max_device_center_freq+(max_device_sample_rate/scaling_factor);
+
+        // check based on bandwidth
+        double min_requested_freq = request_if_center_freq-(request.bandwidth.getValue()/2);
+        double max_requested_freq = request_if_center_freq+(request.bandwidth.getValue()/2);
+
+        if ( !validateRequest(min_device_freq,max_device_freq,min_requested_freq,max_requested_freq) ) {
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq/bw request");
+        }
+
+        // check based on sample rate
+        min_requested_freq = request_if_center_freq-(request.sample_rate.getValue()/scaling_factor);
+        max_requested_freq = request_if_center_freq+(request.sample_rate.getValue()/scaling_factor);
+
+        if ( !validateRequest(min_device_freq,max_device_freq,min_requested_freq,max_requested_freq) ){
+            throw new FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq/sr request");
+        }
+
+        return true;
+    }
+
+    public FrontendTunerDevice() {
+        super();
+        construct();
+    }
+ 
+    private void construct() {
+        loadProperties();
+        allocation_id_to_tuner_id = new HashMap<String,Integer>();
+        frontend_tuner_allocation.setAllocator(new Allocator<frontend.FETypes.frontend_tuner_allocation_struct>() {
+            public boolean allocate(frontend.FETypes.frontend_tuner_allocation_struct capacity){
+                boolean status = false;
+                try{
+                    status = allocateTuner(capacity);
+                }catch(CF.DevicePackage.InvalidCapacity e){
+
+                }catch(Exception e){
+
+                }
+                return status;
+            }
+            public void deallocate(frontend.FETypes.frontend_tuner_allocation_struct capacity){
+                deallocateTuner(capacity);
+            }
+        });
+        frontend_listener_allocation.setAllocator(new Allocator<frontend.FETypes.frontend_listener_allocation_struct>() {
+            public boolean allocate(frontend.FETypes.frontend_listener_allocation_struct capacity) {
+                boolean status = false;
+                try{
+                    status = allocateListener(capacity);
+                }catch(CF.DevicePackage.InvalidCapacity e){
+
+                }catch(Exception e){
+
+                }
+                return status;
+            }
+            public void deallocate(frontend.FETypes.frontend_listener_allocation_struct capacity){
+                deallocateListener(capacity);
+            }
+        });
+    }
+    
+    // this is implemented in the generated base class once all properties are known
+    public void loadProperties(){
+        addProperty(device_kind);
+        addProperty(device_model);
+        addProperty(frontend_tuner_allocation);
+        addProperty(frontend_listener_allocation);
+        addProperty(frontend_tuner_status);
+    }
+
+    protected String createAllocationIdCsv(int tuner_id){
+        StringBuilder alloc_id_csv = new StringBuilder();
+        // ensure control allocation_id is first in list
+        if (tuner_allocation_ids.get(tuner_id).control_allocation_id != null && !tuner_allocation_ids.get(tuner_id).control_allocation_id.isEmpty())
+            alloc_id_csv.append(tuner_allocation_ids.get(tuner_id).control_allocation_id + ",");
+        // now add the rest
+        Iterator<String> iter = tuner_allocation_ids.get(tuner_id).listener_allocation_ids.iterator();
+        while (iter.hasNext()) {
+            alloc_id_csv.append(iter.next() + ",");
+        }
+        // and get rid of the trailing comma
+        if(alloc_id_csv.length() > 0){
+            alloc_id_csv.setLength(alloc_id_csv.length()-1);
+        }
+        return alloc_id_csv.toString();
+    }
+
+    protected String getControlAllocationId(int tuner_id){
+        return tuner_allocation_ids.get(tuner_id).control_allocation_id;
+    }
+
+    protected List<String> getListenerAllocationIds(int tuner_id){
+        return tuner_allocation_ids.get(tuner_id).listener_allocation_ids;
+    }
+
+    /*****************************************************************/
+    /* Allocation/Deallocation of Capacity                           */
+    /*****************************************************************/
+    // updateUsageState is not defined to return UsageType in Device base class
+    public void updateUsageState() {
+        getUsageState();
+    }
+
+    public CF.DevicePackage.UsageType getUsageState() {
+        int tunerAllocated = 0;
+        for (int tuner_id = 0; tuner_id < tuner_allocation_ids.size(); tuner_id++) {
+            if (!tuner_allocation_ids.get(tuner_id).control_allocation_id.isEmpty())
+                tunerAllocated++;
+        }
+        // If no tuners are allocated, device is idle
+        if (tunerAllocated == 0)
+            return CF.DevicePackage.UsageType.IDLE;
+        // If all tuners are allocated, device is busy
+        if (tunerAllocated == tuner_allocation_ids.size())
+            return CF.DevicePackage.UsageType.BUSY;
+        // Else, device is active
+        return CF.DevicePackage.UsageType.ACTIVE;
+    }
+
+    public boolean allocateTuner(frontend.FETypes.frontend_tuner_allocation_struct frontend_tuner_allocation) throws CF.DevicePackage.InvalidCapacity, Exception {
+        try{
+            // Check allocation_id
+            if (frontend_tuner_allocation.allocation_id != null &&
+                frontend_tuner_allocation.allocation_id.getValue().isEmpty()) {
+                logger.info("allocateTuner: MISSING ALLOCATION_ID");
+                throw new CF.DevicePackage.InvalidCapacity("MISSING ALLOCATION ID", new CF.DataType[]{new DataType("frontend_tuner_allocation", frontend_tuner_allocation.toAny())});
+            }
+            // Check if allocation ID has already been used
+            if(this.getTunerMapping(frontend_tuner_allocation.allocation_id.getValue()) >= 0){
+                logger.info("allocateTuner: ALLOCATION_ID ALREADY IN USE: [" + frontend_tuner_allocation.allocation_id.getValue() + "]");
+                throw new InvalidCapacity("ALLOCATION_ID ALREADY IN USE", new CF.DataType[]{new DataType("frontend_tuner_allocation", frontend_tuner_allocation.toAny())});
+            }
+            // Check if available tuner
+            //synchronized(allocation_id_mapping_lock){
+                // Next, try to allocate a new tuner
+                for (int tuner_id = 0; tuner_id < this.tuner_allocation_ids.size(); tuner_id++) {
+                    if(!frontend_tuner_status.getValue().get(tuner_id).tuner_type.getValue().equals(frontend_tuner_allocation.tuner_type.getValue())) {
+                        logger.debug("allocateTuner: Requested tuner type '"+frontend_tuner_allocation.tuner_type.getValue() +"' does not match tuner[" + tuner_id + "].tuner_type (" + frontend_tuner_status.getValue().get(tuner_id).tuner_type.getValue()+")");
+                        continue;
+                    }
+
+                    if(frontend_tuner_allocation.group_id != null &&
+                       !frontend_tuner_allocation.group_id.getValue().isEmpty() && 
+                       !frontend_tuner_allocation.group_id.getValue().equals(frontend_tuner_status.getValue().get(tuner_id).group_id.getValue()) ){
+                        logger.debug("allocateTuner: Requested group_id '" + frontend_tuner_allocation.group_id.getValue() + "' does not match tuner[" + tuner_id + "].group_id (" + this.frontend_tuner_status.getValue().get(tuner_id).group_id.getValue() +")");
+                        continue;
+                    }
+
+                    // special case because allocation is specifying the input stream, which determines the rf_flow_id, etc.
+                   if( frontend_tuner_allocation.rf_flow_id != null &&
+                        !frontend_tuner_allocation.rf_flow_id.getValue().isEmpty() &&
+                        !frontend_tuner_allocation.rf_flow_id.getValue().equals(frontend_tuner_status.getValue().get(tuner_id).rf_flow_id.getValue()) &&
+                        !frontend_tuner_allocation.tuner_type.equals("CHANNELIZER")){
+                        logger.debug("allocateTuner: Requested rf_flow_id '" + frontend_tuner_allocation.rf_flow_id.getValue() +"' does not match tuner[" + tuner_id + "].rf_flow_id (" + this.frontend_tuner_status.getValue().get(tuner_id).rf_flow_id.getValue() + ")");
+                        continue;
+                    }
+ 
+                    if(frontend_tuner_allocation.device_control.getValue()){
+                        // device control
+                        double orig_bw = frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue();
+                        double orig_cf = frontend_tuner_status.getValue().get(tuner_id).center_frequency.getValue();
+                        double orig_sr = frontend_tuner_status.getValue().get(tuner_id).sample_rate.getValue();
+                        frontend_tuner_status.getValue().get(tuner_id).bandwidth.setValue(frontend_tuner_allocation.bandwidth.getValue());
+                        frontend_tuner_status.getValue().get(tuner_id).center_frequency.setValue(frontend_tuner_allocation.center_frequency.getValue());
+                        frontend_tuner_status.getValue().get(tuner_id).sample_rate.setValue(frontend_tuner_allocation.sample_rate.getValue());
+                        if(tuner_allocation_ids.get(tuner_id).control_allocation_id != null &&
+                           (!tuner_allocation_ids.get(tuner_id).control_allocation_id.isEmpty() || 
+                            !deviceSetTuning(frontend_tuner_allocation, frontend_tuner_status.getValue().get(tuner_id), tuner_id))){
+                            // either not available or didn't succeed setting tuning, try next tuner
+                            if (frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue().equals(frontend_tuner_allocation.bandwidth.getValue()))
+                                frontend_tuner_status.getValue().get(tuner_id).bandwidth.setValue(orig_bw);
+                            if (frontend_tuner_status.getValue().get(tuner_id).center_frequency.getValue().equals(frontend_tuner_allocation.center_frequency.getValue()))
+                                frontend_tuner_status.getValue().get(tuner_id).center_frequency.setValue(orig_cf);
+                            if (frontend_tuner_status.getValue().get(tuner_id).sample_rate.getValue().equals(frontend_tuner_allocation.sample_rate.getValue()))
+                                frontend_tuner_status.getValue().get(tuner_id).sample_rate.setValue(orig_sr);
+                            logger.debug("allocateTuner: Tuner["+tuner_id+"] is either not available or didn't succeed while setting tuning ");
+                            continue;
+                        }
+                        tuner_allocation_ids.get(tuner_id).control_allocation_id = frontend_tuner_allocation.allocation_id.getValue();
+                        allocation_id_to_tuner_id.put(frontend_tuner_allocation.allocation_id.getValue(), tuner_id);
+                        frontend_tuner_status.getValue().get(tuner_id).allocation_id_csv.setValue(createAllocationIdCsv(tuner_id));
+                    } else {
+                        // channelizer allocations must specify device control = true
+                        if(frontend_tuner_allocation.tuner_type.getValue().equals("CHANNELIZER") || frontend_tuner_allocation.tuner_type.getValue().equals("TX")){
+                            String eout;
+                            eout = frontend_tuner_allocation.tuner_type.getValue() + " allocation with device_control=false is invalid.";
+                            logger.debug(eout);
+                            throw new CF.DevicePackage.InvalidCapacity(eout, new CF.DataType[]{new DataType("frontend_tuner_allocation", frontend_tuner_allocation.toAny())});
+                        }
+                        // listener
+                        if(tuner_allocation_ids.get(tuner_id).control_allocation_id.isEmpty() || !listenerRequestValidation(frontend_tuner_allocation, tuner_id)){
+                            // either not allocated or can't support listener request
+                            logger.debug("allocateTuner: Tuner["+tuner_id+"] is either not available or can not support listener request ");
+                            continue;
+                        }
+                        tuner_allocation_ids.get(tuner_id).listener_allocation_ids.add(frontend_tuner_allocation.allocation_id.getValue());
+                        allocation_id_to_tuner_id.put(frontend_tuner_allocation.allocation_id.getValue(), tuner_id);
+                        frontend_tuner_status.getValue().get(tuner_id).allocation_id_csv.setValue(createAllocationIdCsv(tuner_id));
+                        this.assignListener(frontend_tuner_allocation.allocation_id.getValue(),tuner_allocation_ids.get(tuner_id).control_allocation_id);
+                    }
+                    // if we've reached here, we found an eligible tuner with correct frequency
+
+                    // check tolerances
+                    // only check when sample_rate was not set to don't care)
+                    logger.debug(" allocateTuner - SR requested: " + frontend_tuner_allocation.sample_rate.getValue() + "  SR got: " + frontend_tuner_status.getValue().get(tuner_id).sample_rate.getValue());
+                    if( (floatingPointCompare(frontend_tuner_allocation.sample_rate.getValue(),0)!=0) &&
+                        (floatingPointCompare(frontend_tuner_status.getValue().get(tuner_id).sample_rate.getValue(),frontend_tuner_allocation.sample_rate.getValue())<0 ||
+                        floatingPointCompare(frontend_tuner_status.getValue().get(tuner_id).sample_rate.getValue(),frontend_tuner_allocation.sample_rate.getValue()+frontend_tuner_allocation.sample_rate.getValue() * frontend_tuner_allocation.sample_rate_tolerance.getValue()/100.0)>0 )){
+                        String eout = "allocateTuner(" + tuner_id + "): returned sr " + frontend_tuner_status.getValue().get(tuner_id).sample_rate.getValue()+" does not meet tolerance criteria of " + frontend_tuner_allocation.sample_rate_tolerance.getValue()+" percent";
+                        logger.info(eout);
+                        throw new RuntimeException(eout);
+                    }
+                    logger.debug(" allocateTuner - BW requested: " + frontend_tuner_allocation.bandwidth.getValue() + "  BW got: " + frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue());
+                    // Only check when bandwidth was not set to don't care
+                    if( (floatingPointCompare(frontend_tuner_allocation.bandwidth.getValue(),0)!=0) &&
+                       (floatingPointCompare(frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue(),frontend_tuner_allocation.bandwidth.getValue())<0 ||
+                        floatingPointCompare(frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue(),frontend_tuner_allocation.bandwidth.getValue()+frontend_tuner_allocation.bandwidth.getValue() * frontend_tuner_allocation.bandwidth_tolerance.getValue()/100.0)>0 )){
+                        String eout = "allocateTuner(" + tuner_id + "): returned bw " + frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue()  + " does not meet tolerance criteria of " + frontend_tuner_allocation.bandwidth_tolerance.getValue() + " percent";
+                        logger.info(eout);
+                        throw new RuntimeException(eout);
+                    }
+
+                    if(frontend_tuner_allocation.device_control.getValue()){
+                        // enable tuner after successful allocation
+                        try {
+                            enableTuner(tuner_id,true);
+                        } catch(Exception e){
+                            String eout = "allocateTuner: Failed to enable tuner after allocation";
+                            logger.info(eout);
+                            throw new RuntimeException(eout);
+                        }
+                    }
+                    usageState = getUsageState();
+                    return true;
+                }
+                // if we made it here, we failed to find an available tuner
+                String eout = "allocateTuner: NO AVAILABLE TUNER. Make sure that the device has an initialized frontend_tuner_status";
+                logger.info(eout);
+                throw new RuntimeException(eout);
+            //}
+        } catch(RuntimeException e) {
+            //deallocateTuner(frontend_tuner_allocation);
+            return false;
+        } catch(CF.DevicePackage.InvalidCapacity e) {
+            // without the following check, a valid allocation could be deallocated due to an attempt to alloc w/ an existing alloc id
+            String exceptionMessage = e.getMessage();
+            if (exceptionMessage != null && 
+               exceptionMessage.indexOf("ALLOCATION_ID ALREADY IN USE") == -1){
+               //deallocateTuner(frontend_tuner_allocation);
+            }
+            throw e;
+        } catch(Exception e){
+            //deallocateTuner(frontend_tuner_allocation);
+            throw e; 
+        }
+    }
+
+    public void deallocateTuner(frontend.FETypes.frontend_tuner_allocation_struct frontend_tuner_deallocation){
+        try{
+            //logger.debug("deallocateTuner()");
+            // Try to remove control of the device
+            int tuner_id = this.getTunerMapping(frontend_tuner_deallocation.allocation_id.getValue());
+            if (tuner_id < 0){
+                logger.debug("ALLOCATION_ID NOT FOUND: [" + frontend_tuner_deallocation.allocation_id.getValue() +"]");
+                throw new CF.DevicePackage.InvalidCapacity("ALLOCATION_ID NOT FOUND", new CF.DataType[]{new DataType("frontend_tuner_deallocation", frontend_tuner_deallocation.toAny())});
+            }
+            //logger.debug("deallocateTuner() tuner_id = " + tuner_id);
+            if(tuner_allocation_ids.get(tuner_id).control_allocation_id.equals(frontend_tuner_deallocation.allocation_id.getValue())){
+                //logger.debug("deallocateTuner() deallocating control for tuner_id = " + tuner_id);
+                enableTuner(tuner_id, false);
+                frontend_tuner_status.getValue().get(tuner_id).allocation_id_csv.setValue("");
+                removeTunerMapping(tuner_id);
+                tuner_allocation_ids.get(tuner_id).control_allocation_id = "";
+            }else{
+                // send EOS to listener connection only
+                removeTunerMapping(tuner_id,frontend_tuner_deallocation.allocation_id.getValue());
+                frontend_tuner_status.getValue().get(tuner_id).allocation_id_csv.setValue(createAllocationIdCsv(tuner_id));
+            }
+        } catch (Exception e){
+            System.out.println("deallocateTuner: ERROR WHEN DEALLOCATING.  SKIPPING...");
+        }
+        usageState = getUsageState();
+    }
+
+    public boolean allocateListener(frontend.FETypes.frontend_listener_allocation_struct frontend_listener_allocation) throws CF.DevicePackage.InvalidCapacity, Exception {
+        try{
+            // Check validity of allocation_id's
+            if (frontend_listener_allocation.existing_allocation_id == null || 
+                frontend_listener_allocation.existing_allocation_id.getValue().isEmpty()){
+                logger.info("allocateListener: MISSING EXISTING ALLOCATION ID");
+                throw new CF.DevicePackage.InvalidCapacity("MISSING EXISTING ALLOCATION ID", new CF.DataType[]{new DataType("frontend_listener_allocation", frontend_listener_allocation.toAny())});
+            }
+            if (frontend_listener_allocation.listener_allocation_id == null ||
+                frontend_listener_allocation.listener_allocation_id.getValue().isEmpty()){
+                logger.info("allocateListener: MISSING LISTENER ALLOCATION ID");
+                throw new CF.DevicePackage.InvalidCapacity("MISSING LISTENER ALLOCATION ID", new CF.DataType[]{new DataType("frontend_listener_allocation", frontend_listener_allocation.toAny())});
+            }
+
+            //synchronized(allocation_id_mapping_lock){
+                // Check if listener allocation ID has already been used
+                if(getTunerMapping(frontend_listener_allocation.listener_allocation_id.getValue()) >= 0){
+                    logger.error("allocateListener: LISTENER ALLOCATION_ID ALREADY IN USE");
+                    throw new InvalidCapacity("LISTENER ALLOCATION_ID ALREADY IN USE", new CF.DataType[]{new DataType("frontend_listener_allocation", frontend_listener_allocation.toAny())});
+                }
+
+                // Do not allocate if existing allocation ID does not exist
+                int tuner_id = getTunerMapping(frontend_listener_allocation.existing_allocation_id.getValue());
+                if (tuner_id < 0){
+                    logger.info("allocateListener: UNKNOWN CONTROL ALLOCATION ID: ["+ frontend_listener_allocation.existing_allocation_id.getValue() +"]");
+                    throw new FRONTEND.BadParameterException("UNKNOWN CONTROL ALLOCATION ID");
+                }
+
+                // listener allocations are not permitted for channelizers or TX
+                if(frontend_tuner_status.getValue().get(tuner_id).tuner_type.getValue().equals("CHANNELIZER") || frontend_tuner_status.getValue().get(tuner_id).tuner_type.getValue().equals("TX")){
+                    String eout = "allocateListener: listener allocations are not permitted for " + frontend_tuner_status.getValue().get(tuner_id).tuner_type.getValue() + " tuner type";
+                    logger.debug(eout);
+                    throw new CF.DevicePackage.InvalidCapacity(eout, new CF.DataType[]{new DataType("frontend_listener_allocation", frontend_listener_allocation.toAny())});
+                }
+
+                tuner_allocation_ids.get(tuner_id).listener_allocation_ids.add(frontend_listener_allocation.listener_allocation_id.getValue());
+                allocation_id_to_tuner_id.put(frontend_listener_allocation.listener_allocation_id.getValue(), tuner_id);
+                frontend_tuner_status.getValue().get(tuner_id).allocation_id_csv.setValue(createAllocationIdCsv(tuner_id));
+                this.assignListener(frontend_listener_allocation.listener_allocation_id.getValue(),frontend_listener_allocation.existing_allocation_id.getValue());
+                return true;
+            //}
+        }catch(CF.DevicePackage.InvalidCapacity e){
+            String exceptionMessage = e.getMessage();
+            // without the following check, a valid allocation could be deallocated due to an attempt to alloc w/ an existing alloc id
+            if (exceptionMessage != null && 
+               exceptionMessage.indexOf("ALLOCATION_ID ALREADY IN USE") == -1){
+            }
+            throw e;
+        } catch (FRONTEND.BadParameterException e){
+            return false;
+        } catch (Exception e){
+            throw e;
+        }
+    }
+
+    public void deallocateListener(frontend.FETypes.frontend_listener_allocation_struct frontend_listener_allocation){
+        try{
+            int tuner_id = getTunerMapping(frontend_listener_allocation.listener_allocation_id.getValue());
+            if (tuner_id < 0){
+                logger.debug("ALLOCATION_ID NOT FOUND: [" + frontend_listener_allocation.listener_allocation_id.getValue() + "]");
+                throw new CF.DevicePackage.InvalidCapacity("ALLOCATION_ID NOT FOUND", new CF.DataType[]{new DataType("frontend_listener_allocation", frontend_listener_allocation.toAny())});
+            }
+            // send EOS to listener connection only
+            removeTunerMapping(tuner_id, frontend_listener_allocation.listener_allocation_id.getValue());
+            frontend_tuner_status.getValue().get(tuner_id).allocation_id_csv.setValue(removeListenerId(tuner_id, frontend_listener_allocation.listener_allocation_id.getValue()));
+        } catch (Exception e){
+            logger.debug("deallocateListener: ERROR WHEN DEALLOCATING.  SKIPPING...");
+        }
+    }
+    
+    public String removeListenerId(final int tuner_id, final String allocation_id) {
+        String[] split_id = frontend_tuner_status.getValue().get(tuner_id).allocation_id_csv.getValue().split(",");
+        int idx;
+        for (idx=0; idx<split_id.length; idx++) {
+            if (split_id[idx].equals(allocation_id)) {
+                break;
+            }
+        }
+        String cleanedString = "";
+        for (int idx_i=0; idx_i<split_id.length; idx_i++) {
+            if (idx == idx_i) {
+                continue;
+            }
+            cleanedString += split_id[idx_i] + ",";
+        }
+        cleanedString = cleanedString.replaceAll(",$","");
+        return cleanedString;
+    }
+
+    /*****************************************************************/
+    /* Tuner Configurations                                          */
+    /*****************************************************************/
+    // assumes collector RF and channel RF are the same if not true, override function 
+    protected boolean enableTuner(int tuner_id, boolean enable){
+        boolean prev_enabled = frontend_tuner_status.getValue().get(tuner_id).enabled.getValue();
+        // If going from disabled to enabled
+        if (!prev_enabled && enable) {
+            deviceEnable(frontend_tuner_status.getValue().get(tuner_id), tuner_id);
+        }
+
+        // If going from enabled to disabled
+        if (prev_enabled && !enable) {
+
+            deviceDisable(frontend_tuner_status.getValue().get(tuner_id), tuner_id);
+        }
+
+        return true;
+    }
+
+    protected boolean listenerRequestValidation(frontend.FETypes.frontend_tuner_allocation_struct request, int tuner_id){
+        logger.trace("listenerRequestValidation() tuner_id " + tuner_id);
+        // ensure requested values are non-negative
+        if(floatingPointCompare(request.center_frequency.getValue(),0)<0 || floatingPointCompare(request.bandwidth.getValue(),0)<0 || floatingPointCompare(request.sample_rate.getValue(),0)<0 || floatingPointCompare(request.bandwidth_tolerance.getValue(),0)<0 || floatingPointCompare(request.sample_rate_tolerance.getValue(),0)<0)
+            return false;
+
+        // ensure lower end of requested band fits
+        if( floatingPointCompare((request.center_frequency.getValue()-(request.bandwidth.getValue()*0.5)),(frontend_tuner_status.getValue().get(tuner_id).center_frequency.getValue()-(frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue()*0.5))) < 0 ){
+            logger.trace("listenerRequestValidation() FAILED LOWER END TEST");
+            return false;
+        }
+
+        // ensure upper end of requested band fits
+        if( floatingPointCompare((request.center_frequency.getValue() + (request.bandwidth.getValue()*0.5)),(frontend_tuner_status.getValue().get(tuner_id).center_frequency.getValue() + (frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue()*0.5))) > 0 ){
+            logger.trace("listenerRequestValidation() FAILED UPPER END TEST");
+            return false;
+        }
+
+        // ensure tuner bandwidth meets requested tolerance
+        if( floatingPointCompare(request.bandwidth.getValue(),frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue()) > 0 )
+            return false;
+
+        if( floatingPointCompare(request.bandwidth.getValue(),0)!=0 && floatingPointCompare((request.bandwidth.getValue()+(request.bandwidth.getValue()*request.bandwidth_tolerance.getValue()/100)),frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue()) < 0 )
+            return false;
+
+        // ensure tuner sample rate meets requested tolerance
+        if( floatingPointCompare(request.sample_rate.getValue(),frontend_tuner_status.getValue().get(tuner_id).sample_rate.getValue()) > 0 )
+            return false;
+
+        if(floatingPointCompare(request.sample_rate.getValue(),0)!=0 && floatingPointCompare((request.sample_rate.getValue()+(request.sample_rate.getValue()*request.sample_rate_tolerance.getValue()/100)),frontend_tuner_status.getValue().get(tuner_id).sample_rate.getValue()) < 0 )
+            return false;
+
+        return true;
+    }
+
+    ////////////////////////////
+    //        MAPPING         //
+    ////////////////////////////
+
+    protected int getTunerMapping(String allocation_id){
+        //logger.trace("getTunerMapping() allocation_id " + allocation_id);
+        int NO_VALID_TUNER = -1;
+
+        if (allocation_id_to_tuner_id.containsKey(allocation_id)){
+            return allocation_id_to_tuner_id.get(allocation_id);
+        } 
+        return NO_VALID_TUNER;
+    }
+
+    protected void sendEOS(String allocation_id) {
+        CF.PortSetPackage.PortInfoType ports[] = this.getPortSet();
+        for (int port_idx=0; port_idx<ports.length; port_idx++) {
+            String repid = ports[port_idx].repid;
+            if (repid.indexOf("BULKIO") != -1) {
+                ExtendedCF.QueryablePort prt = ExtendedCF.QueryablePortHelper.narrow(ports[port_idx].obj_ptr);
+                try {
+                    prt.disconnectPort(allocation_id);
+                } catch (final Throwable t) {
+                    continue;
+                }
+                ExtendedCF.UsesConnection _connections[] = prt.connections();
+                for (int connection_idx=0; connection_idx<_connections.length; connection_idx++) {
+                    if (_connections[connection_idx].connectionId == allocation_id) {
+                        try {
+                            prt.connectPort(_connections[connection_idx].port, allocation_id);
+                        } catch (final Throwable t) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    protected boolean removeTunerMapping(int tuner_id, String allocation_id){
+        logger.trace("removeTunerMapping() tuner_id " + tuner_id + ", allocation_id " + allocation_id);
+        removeListener(allocation_id);
+        this.sendEOS(allocation_id);
+        Iterator<String> iter = tuner_allocation_ids.get(tuner_id).listener_allocation_ids.iterator();
+        while(iter.hasNext()){
+            String nextString = iter.next();
+            if (nextString.equals(allocation_id)){
+                iter.remove();
+            }
+        }
+        //synchronized(allocation_id_mapping_lock){
+            if (allocation_id_to_tuner_id.containsKey(allocation_id)){
+                allocation_id_to_tuner_id.remove(allocation_id);
+                return true;
+            }
+            return false;
+        //}
+    }
+
+    protected boolean removeTunerMapping(int tuner_id){
+        logger.trace("removeTunerMapping() tuner_id " + tuner_id);
+        deviceDeleteTuning(frontend_tuner_status.getValue().get(tuner_id),tuner_id);
+        removeAllocationIdRouting(tuner_id);
+
+        int cnt = 0;
+        //synchronized(allocation_id_mapping_lock){
+            if (allocation_id_to_tuner_id.containsValue(tuner_id)){
+                Iterator<Map.Entry<String,Integer>> iter = allocation_id_to_tuner_id.entrySet().iterator();
+                while (iter.hasNext()) {
+                    Map.Entry<String,Integer> entry = iter.next();
+                    if(tuner_id == entry.getValue()){
+                        this.removeListener(entry.getKey());
+                        this.sendEOS(entry.getKey());
+                        iter.remove();
+                        cnt++;
+                    }
+                }
+            }
+            tuner_allocation_ids.get(tuner_id).reset();
+            return cnt > 0;
+        //}
+    }
+
+    protected void assignListener(final String listen_alloc_id, final String alloc_id){
+    }
+
+    protected void removeListener(final String listen_alloc_id){
+    }
+   
+
+    /* floatingPointCompare is a helper function to handle floating point comparison
+     * Return values:
+     *   if lhs == rhs: 0.0
+     *   if lhs >  rhs: 1.0 or greater
+     *   if lhs <  rhs: -1.0 or less
+     * Recommended usage is to convert a comparison such as: (lhs OP rhs)
+     * to (floatingPointCompare(lhs,rhs) OP 0), where OP is a comparison operator
+     * (==, <, >, <=, >=, !=).
+     * "places" is used to specify precision. The default is 1, which
+     * uses a single decimal place of precision.
+     */
+    public double floatingPointCompare(double lhs, double rhs){
+        return floatingPointCompare(lhs, rhs, 1);
+    }
+
+    public double floatingPointCompare(double lhs, double rhs, int places){
+        return java.lang.Math.rint((lhs-rhs)*java.lang.Math.pow(10.0,(double)places));
+    }
+
+    /* validateRequest is a helper function to verify a value is within a range, returning
+     * true if the value requested_val falls within the range [available_min:available_max]
+     * False is returned if min > max
+     */
+    public boolean validateRequest(double available_min, double available_max, double requested_val){
+        if(floatingPointCompare(requested_val,available_min) < 0) return false;
+        if(floatingPointCompare(requested_val,available_max) > 0) return false;
+        if(floatingPointCompare(available_min,available_max) > 0) return false;
+        return true;
+    }
+
+    /* validateRequest is a helper function to compare two ranges, returning true if the range
+     * [requested_min:requested_max] falls within the range [available_min:available_max]
+     * False is returned if min > max for either available for requested values
+     */
+    public boolean validateRequest(double available_min, double available_max, double requested_min, double requested_max){
+        if(floatingPointCompare(requested_min,available_min) < 0) return false;
+        if(floatingPointCompare(requested_max,available_max) > 0) return false;
+        if(floatingPointCompare(available_min,available_max) > 0) return false;
+        if(floatingPointCompare(requested_min,requested_max) > 0) return false;
+        return true;
+    }
+
+    /* Tuner Allocation IDs struct. This structure contains allocation tracking data.
+     *
+     */
+
+    public class tunerAllocationIdsStruct{
+        public String control_allocation_id;
+        public List<String> listener_allocation_ids;
+        public tunerAllocationIdsStruct(){
+            control_allocation_id = new String();
+            listener_allocation_ids = new ArrayList<String>();
+            reset();
+        }
+        public void reset(){
+            control_allocation_id = "";
+            listener_allocation_ids.clear();
+        }
+    }
+
+    // tuner_allocation_ids is exclusively paired with property frontend_tuner_status.
+    // tuner_allocation_ids tracks allocation ids while frontend_tuner_status provides tuner information.
+    protected List<tunerAllocationIdsStruct> tuner_allocation_ids;
+
+    protected StringProperty device_kind =
         new StringProperty(
             "DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d", //id
             "device_kind", //name
@@ -99,526 +842,112 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
             new Kind[] {Kind.ALLOCATION,Kind.CONFIGURE} //kind
             );
 
-    public final StringProperty device_model =
+    protected StringProperty device_model =
         new StringProperty(
             "DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb", //id
             "device_model", //name
-            "USRP", //default value
+            "", //default value
             Mode.READONLY, //mode
             Action.EQ, //action
             new Kind[] {Kind.ALLOCATION,Kind.CONFIGURE} //kind
             );
 
-    public final StructProperty<frontend.FrontendTunerStructProps.frontend_tuner_allocation_struct> frontend_tuner_allocation =
-        new StructProperty<frontend.FrontendTunerStructProps.frontend_tuner_allocation_struct>(
+    protected StructProperty<frontend.FETypes.frontend_tuner_allocation_struct> frontend_tuner_allocation =
+        new StructProperty<frontend.FETypes.frontend_tuner_allocation_struct>(
             "FRONTEND::tuner_allocation", //id
             "frontend_tuner_allocation", //name
-            frontend.FrontendTunerStructProps.frontend_tuner_allocation_struct.class, //type
-            new frontend.FrontendTunerStructProps.frontend_tuner_allocation_struct(), //default value
+            frontend.FETypes.frontend_tuner_allocation_struct.class, //type
+            new frontend.FETypes.frontend_tuner_allocation_struct(), //default value
             Mode.READWRITE, //mode
             new Kind[] {Kind.ALLOCATION} //kind
             );
 
-    public final StructProperty<frontend.FrontendTunerStructProps.frontend_listener_allocation_struct> frontend_listener_allocation =
-        new StructProperty<frontend.FrontendTunerStructProps.frontend_listener_allocation_struct>(
+    protected StructProperty<frontend.FETypes.frontend_listener_allocation_struct> frontend_listener_allocation =
+        new StructProperty<frontend.FETypes.frontend_listener_allocation_struct>(
             "FRONTEND::listener_allocation", //id
             "frontend_listener_allocation", //name
-            frontend.FrontendTunerStructProps.frontend_listener_allocation_struct.class, //type
-            new frontend.FrontendTunerStructProps.frontend_listener_allocation_struct(), //default value
+            frontend.FETypes.frontend_listener_allocation_struct.class, //type
+            new frontend.FETypes.frontend_listener_allocation_struct(), //default value
             Mode.READWRITE, //mode
             new Kind[] {Kind.ALLOCATION} //kind
             );
 
     private Class<TunerStatusStructType> frontend_tuner_status_class_type;
 
-    public final StructSequenceProperty<TunerStatusStructType> frontend_tuner_status =
+    protected StructSequenceProperty<TunerStatusStructType> frontend_tuner_status =
         new StructSequenceProperty<TunerStatusStructType> (
             "FRONTEND::tuner_status", //id
             "frontend_tuner_status", //name
             frontend_tuner_status_class_type, //type
-            (List)new ArrayList<TunerStatusStructType>(),
+            new ArrayList<TunerStatusStructType>(),
             Mode.READONLY, //mode
             new Kind[] { Kind.CONFIGURE } //kind
         );
 
-    protected Map<String, Integer> allocationID_to_tunerID;
+    protected Map<String, Integer> allocation_id_to_tuner_id;
 
-    protected Map<String, Integer> streamID_to_tunerID;
+    protected Object allocation_id_mapping_lock;
 
-    protected Object allocationID_MappingLock;
+    ///////////////////////////////
+    // Device specific functions // -- to be implemented by device developer
+    ///////////////////////////////
+    protected abstract void deviceEnable(TunerStatusStructType fts, int tuner_id);
+    protected abstract void deviceDisable(TunerStatusStructType fts, int tuner_id);
+    protected abstract boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, TunerStatusStructType fts, int tuner_id);
+    protected abstract boolean deviceDeleteTuning(TunerStatusStructType fts, int tuner_id);
 
-    protected List<indivTuner<TunerStatusStructType>> tunerChannels; 
-
-    public FrontendTunerDevice(DeviceManager devMgr, String compId, String label, String softwareProfile, ORB orb, POA poa) throws InvalidObjectReference, ServantNotActive, WrongPolicy, CF.DevicePackage.InvalidCapacity {
-        super(devMgr,compId,label,softwareProfile,orb,poa);
-        construct();
-    }
- 
-    public FrontendTunerDevice(DeviceManager devMgr, AggregateDevice compositeDevice, String compId, String label, String softwareProfile, ORB orb, POA poa) throws InvalidObjectReference, ServantNotActive, WrongPolicy, CF.DevicePackage.InvalidCapacity {
-        super(devMgr,compositeDevice,compId,label,softwareProfile,orb,poa);
-        construct();
-    }
-
-    // this is implemented in the generated base class once all properties are known
-    public void loadProperties(){
-        addProperty(device_kind);
-        addProperty(device_model);
-        addProperty(frontend_tuner_allocation);
-        addProperty(frontend_listener_allocation);
-        //addProperty(frontend_tuner_status);
-    }
-
-    String create_allocation_id_csv(int tuner_id){
-        StringBuilder alloc_id_csv = new StringBuilder();
-        // ensure control allocation_id is first in list
-        if (tunerChannels.get(tuner_id).control_allocation_id != null && !tunerChannels.get(tuner_id).control_allocation_id.isEmpty())
-                alloc_id_csv.append(tunerChannels.get(tuner_id).control_allocation_id + ",");
-        // now add the rest
-        Iterator<Map.Entry<String,Integer>> iter = allocationID_to_tunerID.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<String,Integer> entry = iter.next();
-            if((tuner_id == entry.getValue()) && (entry.getKey() != tunerChannels.get(tuner_id).control_allocation_id)){
-                alloc_id_csv.append(entry.getKey() + ",");
-            }
-        }
-        // and get rid of the trailing comma
-        if(alloc_id_csv.length() > 0){
-            alloc_id_csv.setLength(alloc_id_csv.length()-1);
-        }
-        return alloc_id_csv.toString();
-    }
-
-    public boolean allocateTuner(frontend.FrontendTunerStructProps.frontend_tuner_allocation_struct capacity) throws CF.DevicePackage.InvalidCapacity, Exception {
-        try{
-            if(!_valid_tuner_type(frontend_tuner_allocation.getValue().tuner_type.getValue())){
-                System.out.println("allocateTuner: UNKNOWN FRONTEND TUNER TYPE");
-                throw new CF.DevicePackage.InvalidCapacity("UNKNOWN FRONTEND TUNER TYPE", new CF.DataType[]{new DataType("frontend_tuner_allocation", capacity.toAny())});
-            }
-
-            // Check allocation_id
-            if (frontend_tuner_allocation.getValue().allocation_id != null &&
-                frontend_tuner_allocation.getValue().allocation_id.getValue().isEmpty()) {
-                System.out.println("allocateTuner: MISSING ALLOCATION_ID");
-                throw new CF.DevicePackage.InvalidCapacity("MISSING ALLOCATION ID", new CF.DataType[]{new DataType("frontend_tuner_allocation", capacity.toAny())});
-            }
-            // Check if allocation ID has already been used
-            if(getTunerMapping(frontend_tuner_allocation.getValue().allocation_id.getValue()) >= 0){
-                System.out.println("allocateTuner: ALLOCATION_ID ALREADY IN USE");
-                throw new CF.DevicePackage.InvalidCapacity("ALLOCATION_ID ALREADY IN USE", new CF.DataType[]{new DataType("frontend_tuner_allocation", capacity.toAny())});
-            }
-            // Check if available tuner (if not requesting device control, this is all that's needed to add listener)
-            int tuner_id = addTunerMapping(frontend_tuner_allocation.getValue());
-            if (tuner_id < 0) {
-                String msg;
-                msg = "NO AVAILABLE TUNER";
-                System.out.println("allocateTuner: NO AVAILABLE TUNER");
-                throw new RuntimeException(msg);
-            }
-
-            // Initialize the tuner (only if requesting device control)
-            if (frontend_tuner_allocation.getValue().device_control.getValue()){
-                {
-                    synchronized(tunerChannels.get(tuner_id).lock){
-                        if(frontend_tuner_allocation.getValue().group_id != null &&
-                           !frontend_tuner_allocation.getValue().group_id.getValue().isEmpty() && 
-                           frontend_tuner_allocation.getValue().group_id.getValue() != tunerChannels.get(tuner_id).frontend_status.group_id.getValue() ){
-                            System.out.println("allocateTuner: CANNOT ALLOCATE A TUNER WITH THAT GROUP ID");
-                            throw new FRONTEND.BadParameterException("CAN NOT ALLOCATE A TUNER WITH THAT GROUP ID!");
-                        }
-
-                        if(frontend_tuner_allocation.getValue().rf_flow_id != null &&
-                           !frontend_tuner_allocation.getValue().rf_flow_id.getValue().isEmpty() && 
-                           frontend_tuner_allocation.getValue().rf_flow_id.getValue() != tunerChannels.get(tuner_id).frontend_status.rf_flow_id.getValue() ){
-                            System.out.println("allocateTuner: CANNOT ALLOCATE A TUNER WITH THAT RF FLOW ID");
-                            throw new FRONTEND.BadParameterException("CAN NOT ALLOCATE A TUNER WITH RF FLOW ID = " + frontend_tuner_allocation.getValue().rf_flow_id.getValue() + " !");
-                        }
-                        //Check Validity
-                        if (!_valid_center_frequency(frontend_tuner_allocation.getValue().center_frequency.getValue(),tuner_id)){
-                            System.out.println("allocateTuner: INVALID FREQUENCY");
-                            throw new FRONTEND.BadParameterException("allocateTuner(): INVALID FREQUENCY");
-                        }
-                        if (!_valid_bandwidth(frontend_tuner_allocation.getValue().bandwidth.getValue(),tuner_id)){
-                            System.out.println("allocateTuner: INVALID BANDWIDTH");
-                            throw new FRONTEND.BadParameterException("allocateTuner(): INVALID BANDWIDTH");
-                        }
-                        if (!_valid_sample_rate(frontend_tuner_allocation.getValue().sample_rate.getValue(),tuner_id)){
-                            System.out.println("allocateTuner: INVALID RATE");
-                            throw new FRONTEND.BadParameterException("allocateTuner(): INVALID RATE");
-                        }
-
-                        try {
-                            _dev_set_all(frontend_tuner_allocation.getValue().center_frequency.getValue(),
-                                         frontend_tuner_allocation.getValue().bandwidth.getValue(),
-                                         frontend_tuner_allocation.getValue().sample_rate.getValue(),
-                                         tuner_id);
-                        } catch(Exception e){
-                            String msg;
-                            msg="allocateTuner(" + tuner_id + ") failed when configuring device hardware";
-                            System.out.println("allocateTuner: failed when querying device hardware");
-                            throw new RuntimeException(msg);
-                        };
-
-                        // Only check non-TX when bandwidth was not set to don't care
-                        if( (tunerChannels.get(tuner_id).frontend_status.tuner_type.getValue() != "TX" && 
-                             frontend_tuner_allocation.getValue().bandwidth.getValue() != 0.0) &&
-                            (tunerChannels.get(tuner_id).frontend_status.bandwidth.getValue() < frontend_tuner_allocation.getValue().bandwidth.getValue() ||
-                             tunerChannels.get(tuner_id).frontend_status.bandwidth.getValue() > (frontend_tuner_allocation.getValue().bandwidth.getValue()+frontend_tuner_allocation.getValue().bandwidth.getValue() * frontend_tuner_allocation.getValue().bandwidth_tolerance.getValue()/100.0 ))){
-                            String msg;
-                            msg = "allocateTuner(" + tuner_id + "): returned bw \"" + tunerChannels.get(tuner_id).frontend_status.bandwidth.getValue() + "\" does not meet tolerance criteria of \"" + frontend_tuner_allocation.getValue().bandwidth.getValue() + "+" + frontend_tuner_allocation.getValue().bandwidth_tolerance.getValue() + "  percent\". ";
-                            System.out.println("allocateTuner: did not meet BW tolerance");
-                            throw new RuntimeException(msg);
-                        }
-                        // always check TX, but only check non-TX when sample_rate was not set to don't care)
-                        if( (tunerChannels.get(tuner_id).frontend_status.tuner_type.getValue() == "TX" || frontend_tuner_allocation.getValue().sample_rate.getValue() != 0.0) &&
-                            (tunerChannels.get(tuner_id).frontend_status.sample_rate.getValue() < frontend_tuner_allocation.getValue().sample_rate.getValue() ||
-                              tunerChannels.get(tuner_id).frontend_status.sample_rate.getValue() > frontend_tuner_allocation.getValue().sample_rate.getValue() +frontend_tuner_allocation.getValue().sample_rate.getValue() * frontend_tuner_allocation.getValue().sample_rate_tolerance.getValue()/100.0 )){
-                            String msg;
-                            msg = "allocateTuner(" + tuner_id + "): returned sample rate \"" + tunerChannels.get(tuner_id).frontend_status.sample_rate.getValue() + "\" does not meet tolerance criteria of " + frontend_tuner_allocation.getValue().sample_rate.getValue() + "+" + frontend_tuner_allocation.getValue().sample_rate_tolerance.getValue() + " percent\". ";
-                            System.out.println("allocateTuner: did not meet sample rate tolerance");
-                            throw new RuntimeException(msg);
-                        }
-                    } // synchronized
-                } // release tuner lock
-
-                // enable tuner after successful allocation
-                try {
-                    enableTuner(tuner_id,true);
-                } catch(Exception e){
-                    String msg;
-                    msg = "FAILED TO ENABLE TUNER AFTER ALLOCATION";
-                    System.out.println("allocateTuner: FAILED TO ENABLE TUNER AFTER ALLOCATION");
-                    throw new RuntimeException(msg);
-                }
-            }
-        } catch(RuntimeException e) {
-            deallocateTuner(capacity);
-            return false;
-        } catch(CF.DevicePackage.InvalidCapacity e) {
-            // without the following check, a valid allocation could be deallocated due to an attempt to alloc w/ an existing alloc id
-            String exceptionMessage = e.getMessage();
-            if (exceptionMessage != null && 
-               exceptionMessage.indexOf("ALLOCATION_ID ALREADY IN USE") == -1){
-                deallocateTuner(capacity);
-            }
-            throw e;
-        } catch(FRONTEND.BadParameterException e) {
-            deallocateTuner(capacity);
-            return false;
-        } catch(Exception e){
-            deallocateTuner(capacity);
-            throw e;
-        };
-        return true;
-    }
-
-    public void deallocateTuner(frontend.FrontendTunerStructProps.frontend_tuner_allocation_struct capacity){
-        try{
-            // Try to remove control of the device
-            int tuner_id = getTunerMapping(frontend_tuner_allocation.getValue().allocation_id.getValue());
-            if (tuner_id < 0){
-                throw new CF.DevicePackage.InvalidState();
-            }
-            if(tunerChannels.get(tuner_id).control_allocation_id == frontend_tuner_allocation.getValue().allocation_id.getValue()){
-                removeTuner(tuner_id);
-                removeTunerMapping(tuner_id);
-            } else {
-                // send EOS to listener connection only
-                push_EOS_on_listener(frontend_tuner_allocation.getValue().allocation_id.getValue());
-                removeTunerMapping(frontend_tuner_allocation.getValue().allocation_id.getValue());
-            }
-            tunerChannels.get(tuner_id).frontend_status.allocation_id_csv.setValue(create_allocation_id_csv(tuner_id));
-
-        } catch (Exception e){
-            System.out.println("deallocateTuner: ERROR WHEN DEALLOCATING");
-        }
-    }
-
-    public boolean allocateListener(frontend.FrontendTunerStructProps.frontend_listener_allocation_struct capacity) throws CF.DevicePackage.InvalidCapacity, Exception {
-        try{
-            // Check validity of allocation_id's
-            if (frontend_listener_allocation.getValue().existing_allocation_id == null || 
-                frontend_listener_allocation.getValue().existing_allocation_id.getValue().isEmpty()){
-                System.out.println("allocateListener: MISSING EXISTING ALLOCATION ID");
-                throw new CF.DevicePackage.InvalidCapacity("MISSING EXISTING ALLOCATION ID", new CF.DataType[]{new DataType("frontend_listener_allocation", capacity.toAny())});
-            }
-            if (frontend_listener_allocation.getValue().listener_allocation_id.getValue().isEmpty()){
-                System.out.println("allocateListener: MISSING LISTENER ALLOCATION ID");
-                throw new CF.DevicePackage.InvalidCapacity("MISSING LISTENER ALLOCATION ID", new CF.DataType[]{new DataType("frontend_listener_allocation", capacity.toAny())});
-            }
-            // Check if listener allocation ID has already been used
-            if(getTunerMapping(frontend_listener_allocation.getValue().listener_allocation_id.getValue()) >= 0){
-                System.out.println("allocateListener: LISTENER ALLOCATION ID ALREADY IN USE");
-                throw new CF.DevicePackage.InvalidCapacity("LISTENER ALLOCATION ID ALREADY IN USE", new CF.DataType[]{new DataType("frontend_listener_allocation", capacity.toAny())});
-            }
-
-            if(addListenerMapping(capacity) < 0){
-                System.out.println("allocateListener: UNKNOWN CONTROL ALLOCATION ID");
-                throw new FRONTEND.BadParameterException("UNKNOWN CONTROL ALLOCATION ID");
-            }
-        }catch(CF.DevicePackage.InvalidCapacity e){
-            String exceptionMessage = e.getMessage();
-            if (exceptionMessage != null && 
-               exceptionMessage.indexOf("ALLOCATION_ID ALREADY IN USE") == -1){
-                deallocateListener(capacity);
-            }
-            throw e;
-        } catch (FRONTEND.BadParameterException e){
-            deallocateListener(capacity);
-            return false;
-        } catch (Exception e){
-            deallocateListener(capacity);
-            throw e;
-        }
-        return true;
-    }
-
-
-    public void deallocateListener(frontend.FrontendTunerStructProps.frontend_listener_allocation_struct capacity){
-        try{
-            int tuner_id = getTunerMapping(frontend_listener_allocation.getValue().listener_allocation_id.getValue());
-            if (tuner_id < 0){
-                throw new CF.DevicePackage.InvalidState();
-            }
-            // send EOS to listener connection only
-            push_EOS_on_listener(frontend_listener_allocation.getValue().listener_allocation_id.getValue());
-            removeTunerMapping(frontend_listener_allocation.getValue().listener_allocation_id.getValue());
-            tunerChannels.get(tuner_id).frontend_status.allocation_id_csv.setValue(create_allocation_id_csv(tuner_id));
-        } catch (Exception e){
-            System.out.println("deallocateTuner: ERROR WHEN DEALLOCATING");
-        }
-    }
-
-    /*****************************************************************/
-    /* Tuner Configurations                                          */
-    /*****************************************************************/
-    // Configure tuner - gets called during allocation
-    public boolean removeTuner(int tuner_id){
-        enableTuner(tuner_id, false);
-        tunerChannels.get(tuner_id).reset();
-        return true;
-    }
-
-    // assumes collector RF and channel RF are the same if not true, override function 
-    public boolean enableTuner(int tuner_id, boolean enable){
-        // Lock the tuner
-        synchronized(tunerChannels.get(tuner_id).lock){
-
-            boolean prev_enabled = tunerChannels.get(tuner_id).frontend_status.enabled.getValue();
-            tunerChannels.get(tuner_id).frontend_status.enabled.setValue(enable);
-            // If going from disabled to enabled
-            if (!prev_enabled && enable) {
-                int mode = tunerChannels.get(tuner_id).complex?1:0;
-                configureTunerSRI(  tunerChannels.get(tuner_id).sri,
-                                    tunerChannels.get(tuner_id).frontend_status.center_frequency.getValue(),
-                                    tunerChannels.get(tuner_id).frontend_status.bandwidth.getValue(),
-                                    tunerChannels.get(tuner_id).frontend_status.sample_rate.getValue(),
-                                    mode, 
-                                    tunerChannels.get(tuner_id).frontend_status.rf_flow_id.getValue());
-                streamID_to_tunerID.put(tunerChannels.get(tuner_id).sri.streamID, tuner_id);
-                _dev_enable(tuner_id);
-            }
-
-            // If going from enabled to disabled
-            if (prev_enabled && !enable && tunerChannels.get(tuner_id).sri.streamID != null && !tunerChannels.get(tuner_id).sri.streamID.isEmpty()) {
-                _dev_disable(tuner_id);
-                String streamID = new String(tunerChannels.get(tuner_id).sri.streamID);
-                streamID_to_tunerID.remove(streamID);
-                tunerChannels.get(tuner_id).sri = new BULKIO.StreamSRI(1,0.0,1.0,(short)1,1,0.0,1.0,(short)1,(short)0,"",false,new CF.DataType[0]);        
-            }
-            return true;
-        }
-    }
-
-    ////////////////////////////
-    //        MAPPING         //
-    ////////////////////////////
+    ///////////////////////////////
     // Mapping and translation helpers. External string identifiers to internal numerical identifiers
-    public int addTunerMapping(frontend.FrontendTunerStructProps.frontend_tuner_allocation_struct frontend_alloc){
-        int NO_VALID_TUNER = -1;
-        // Do not allocate if allocation ID has already been used
-        if(getTunerMapping(frontend_alloc.allocation_id.getValue()) >= 0)
-            return NO_VALID_TUNER;
-                
-        synchronized(allocationID_MappingLock){
-            // Next, try to allocate a new tuner
-            int numChannels = tunerChannels.size();
-            for (int tuner_id = 0; tuner_id < numChannels; tuner_id++) {
-                if(tunerChannels.get(tuner_id).frontend_status.tuner_type.getValue() != frontend_alloc.tuner_type.getValue())
-                    continue;
-                //listen
-                if (!frontend_alloc.device_control.getValue() && 
-                     tunerChannels.get(tuner_id).control_allocation_id != null && 
-                     !tunerChannels.get(tuner_id).control_allocation_id.isEmpty()){
-                    boolean freq_valid = is_freq_valid(
-                                                        frontend_alloc.center_frequency.getValue(),
-                                                        frontend_alloc.bandwidth.getValue(),
-                                                        frontend_alloc.sample_rate.getValue(),
-                                                        tunerChannels.get(tuner_id).frontend_status.center_frequency.getValue(),
-                                                        tunerChannels.get(tuner_id).frontend_status.bandwidth.getValue(),
-                                                        tunerChannels.get(tuner_id).frontend_status.sample_rate.getValue());
-                    if (freq_valid){
-                        allocationID_to_tunerID.put(frontend_alloc.allocation_id.getValue(), tuner_id);
-                        tunerChannels.get(tuner_id).frontend_status.allocation_id_csv.setValue(create_allocation_id_csv(tuner_id));
-                        return tuner_id;
-                    }
-                //control
-                } else if (frontend_alloc.device_control.getValue() && 
-                           tunerChannels.get(tuner_id).control_allocation_id != null &&
-                           !tunerChannels.get(tuner_id).control_allocation_id.isEmpty()){
-                    tunerChannels.get(tuner_id).control_allocation_id = frontend_alloc.allocation_id.getValue();
-                    allocationID_to_tunerID.put(frontend_alloc.allocation_id.getValue(), tuner_id);
-                    tunerChannels.get(tuner_id).frontend_status.allocation_id_csv.setValue(create_allocation_id_csv(tuner_id));
-                    return tuner_id;
-                }
-            }
-            return NO_VALID_TUNER;
-        }
-    }
+    ///////////////////////////////
+    protected abstract void removeAllocationIdRouting(final int tuner_id);
 
-    public int addListenerMapping(frontend.FrontendTunerStructProps.frontend_listener_allocation_struct frontend_listener_alloc){
-        int NO_VALID_TUNER = -1;
-        // Do not allocate if allocation ID has already been used
-        if (getTunerMapping(frontend_listener_alloc.listener_allocation_id.getValue()) >= 0)
-            return NO_VALID_TUNER;
-
-        synchronized(allocationID_MappingLock){
-            int tuner_id = NO_VALID_TUNER;
-            // Do not allocate if existing allocation ID does not exist
-            if ((tuner_id = getTunerMapping(frontend_listener_alloc.existing_allocation_id.getValue())) < 0)
-                return NO_VALID_TUNER;
-
-            allocationID_to_tunerID.put(frontend_listener_alloc.listener_allocation_id.getValue(), tuner_id);
-            tunerChannels.get(tuner_id).frontend_status.allocation_id_csv.setValue(create_allocation_id_csv(tuner_id));
-            return tuner_id;
-        }
-    }
-
-    public int getTunerMapping(String allocation_id){
-        int NO_VALID_TUNER = -1;
-
-        synchronized(allocationID_MappingLock){
-            if (allocationID_to_tunerID.containsKey(allocation_id)){
-                return allocationID_to_tunerID.get(allocation_id);
-            } 
-            return NO_VALID_TUNER;
-        }
-
-    }
-
-    public boolean removeTunerMapping(String allocation_id){
-        synchronized(allocationID_MappingLock){
-            if (allocationID_to_tunerID.containsKey(allocation_id)){
-                allocationID_to_tunerID.remove(allocation_id);
-                return true;
-            }
-            return false;
-
-        }
-    }
-
-    public boolean removeTunerMapping(int tuner_id){
-        synchronized(allocationID_MappingLock){
-            int cnt = 0;
-            if (allocationID_to_tunerID.containsValue(tuner_id)){
-                Iterator<Map.Entry<String,Integer>> iter = allocationID_to_tunerID.entrySet().iterator();
-                while (iter.hasNext()) {
-                    Map.Entry<String,Integer> entry = iter.next();
-                    if(tuner_id == entry.getValue()){
-                        iter.remove();
-                        cnt++;
-                    }
-                }
-            }
-            return cnt > 0;
-        }
-    }
-    public boolean is_connectionID_valid_for_tunerID(final int tuner_id, final String connectionID){
-        if (!allocationID_to_tunerID.containsKey(connectionID)){
-            return false;
-        }else{
-            int tunerID = allocationID_to_tunerID.get(connectionID);
-            if(tunerID != tuner_id){
-                return false;
-            }
-            return true;
-        }
-    }
-    public boolean is_connectionID_valid_for_streamID(final String streamID, final String connectionID){
-        if (!streamID_to_tunerID.containsKey(streamID)){
-            return false;
-        }else{
-            int tunerID = streamID_to_tunerID.get(streamID);
-            return is_connectionID_valid_for_tunerID(tunerID, connectionID);
-        }
-    }
-    public boolean is_connectionID_controller_for_streamID(final String streamID, final String connectionID){
-        if (!streamID_to_tunerID.containsKey(streamID)){
-            return false;
-        }else{
-            int tunerID = streamID_to_tunerID.get(streamID);
-            if (!is_connectionID_valid_for_tunerID(tunerID, connectionID)){
-                return false;
-            }
-            if (tunerChannels.get(tunerID).control_allocation_id == connectionID)
-                return false;
-        }
-        return true;
-    }
-    public boolean is_connectionID_listener_for_streamID(final String streamID, final String connectionID){
-        if (!streamID_to_tunerID.containsKey(streamID)){
-            return false;
-        }else{
-            int tunerID = streamID_to_tunerID.get(streamID);
-            if (!is_connectionID_valid_for_tunerID(tunerID, connectionID)){
-                return false;
-            }
-            if (tunerChannels.get(tunerID).control_allocation_id == connectionID)
-                return false;
-        }
-        return true;
-    }
-    public boolean is_freq_valid(double req_cf, double req_bw, double req_sr, double cf, double bw, double sr){
-        double req_min_bw_sr = Math.min(req_bw,req_sr);
-        double min_bw_sr = Math.min(bw,sr);
-        if( (req_cf + req_min_bw_sr/2 <= cf + min_bw_sr/2) && (req_cf - req_min_bw_sr/2 >= cf - min_bw_sr/2) ){
-            return true;
-        }
-        return false;
-    }
-
-
-    protected abstract boolean push_EOS_on_listener(String listener_allocation_id);
-    protected abstract boolean _valid_tuner_type(String tuner_type);
-    protected abstract boolean _valid_center_frequency(double req_freq, int tuner_id);
-    protected abstract boolean _valid_bandwidth(double req_bw, int tuner_id);
-    protected abstract boolean _valid_sample_rate(double req_sr, int tuner_id);
-    protected abstract boolean _dev_enable(int tuner_id);
-    protected abstract boolean _dev_disable(int tuner_id);
-    protected abstract boolean _dev_set_all(double req_freq, double req_bw, double req_sr, int tuner_id);
-    protected abstract boolean _dev_set_center_frequency(double req_freq, int tuner_id);
-    protected abstract boolean _dev_set_bandwidth(double req_bw, int tuner_id);
-    protected abstract boolean _dev_set_sample_rate(double req_sr, int tuner_id);
-    protected abstract boolean _dev_get_all(double freq, double bw, double sr, int tuner_id);
-    protected abstract double _dev_get_center_frequency(int tuner_id);
-    protected abstract double _dev_get_bandwidth(int tuner_id);
-    protected abstract double _dev_get_sample_rate(int tuner_id);
-   
     ////////////////////////////
     // Other helper functions //
     ////////////////////////////
-    protected double optimize_rate(final double req_rate, final double max_rate, final double min_rate){
-        if (req_rate < min_rate)
-            return min_rate;
-        return req_rate;
+    protected BULKIO.StreamSRI create(String stream_id, TunerStatusStructType frontend_status) {
+        return create(stream_id, frontend_status, -1.0);
     }
 
-    boolean addModifyKeyword(BULKIO.StreamSRI sri, String id, Any value) {
-        this.addModifyKeyword(sri, id, value, false);
-        return true;
+    protected BULKIO.StreamSRI create(String stream_id, TunerStatusStructType frontend_status, double collector_frequency) {
+        BULKIO.StreamSRI sri = new BULKIO.StreamSRI();
+        sri.hversion = 1;
+        sri.xstart = 0.0;
+        if ( frontend_status.sample_rate.getValue() <= 0.0 )
+            sri.xdelta =  1.0;
+        else
+            sri.xdelta = 1/frontend_status.sample_rate.getValue();
+        sri.xunits = BULKIO.UNITS_TIME.value;
+        sri.subsize = 0;
+        sri.ystart = 0.0;
+        sri.ydelta = 0.0;
+        sri.yunits = BULKIO.UNITS_NONE.value;
+        sri.mode = 0;
+        sri.blocking=false;
+        sri.streamID = stream_id;
+        double colFreq;
+        if (collector_frequency < 0)
+            colFreq = frontend_status.center_frequency.getValue();
+        else
+            colFreq = collector_frequency;
+        Any colFreqAny = AnyUtils.toAny(colFreq,"double");
+        addModifyKeyword(sri, "COL_RF", colFreqAny);
+        Any chanFreqAny = AnyUtils.toAny(frontend_status.center_frequency.getValue(),"double");
+        addModifyKeyword(sri, "CHAN_RF", chanFreqAny);
+        Any rfFlowIdAny = AnyUtils.toAny(frontend_status.rf_flow_id.getValue(),"string");
+        addModifyKeyword(sri,"FRONTEND::RF_FLOW_ID",rfFlowIdAny);
+        Any bandwidthAny = AnyUtils.toAny(frontend_status.bandwidth.getValue(),"double");
+        addModifyKeyword(sri,"FRONTEND::BANDWIDTH", bandwidthAny);
+        Any identifierAny = AnyUtils.toAny(this.identifier(), "string");
+        addModifyKeyword(sri,"FRONTEND::DEVICE_ID",identifierAny);
+        return sri;
     }
 
-    boolean addModifyKeyword(BULKIO.StreamSRI sri, String id, Any value, boolean addOnly) {
-        if (!addOnly) {
+    protected boolean addModifyKeyword(BULKIO.StreamSRI sri, String id, Any value) {
+        return addModifyKeyword(sri, id, value, false);
+    }
+
+    protected boolean addModifyKeyword(BULKIO.StreamSRI sri, String id, Any value, boolean addOnly) {
+        if (!addOnly && sri.keywords != null) {
             // find and replace
             for(int ii=0; ii<sri.keywords.length; ii++){
                 if (sri.keywords[ii].id == id){
@@ -627,65 +956,25 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
                 }
             }
         }
-        CF.DataType[] updatedKeywords = new CF.DataType[sri.keywords.length+1];
-        for (int ii=0; ii<sri.keywords.length; ii++){
-            updatedKeywords[ii] = sri.keywords[ii];
+        CF.DataType[] updatedKeywords;
+        if (sri.keywords != null){
+            updatedKeywords = new CF.DataType[sri.keywords.length+1];
+            for (int ii=0; ii<sri.keywords.length; ii++){
+                updatedKeywords[ii] = sri.keywords[ii];
+            }
+            updatedKeywords[sri.keywords.length] = new DataType(id,value);
+        }else{
+            updatedKeywords = new CF.DataType[]{new DataType(id,value)};
         }
-        updatedKeywords[sri.keywords.length].id = id;
-        updatedKeywords[sri.keywords.length].value = value;
         sri.keywords = updatedKeywords;
         return true;
     }
-    public void configureTunerSRI(BULKIO.StreamSRI sri, Double channel_frequency, Double bandwidth, Double sample_rate, int mode, String rf_flow_id) {
-        configureTunerSRI(sri, channel_frequency, bandwidth, sample_rate, mode, rf_flow_id, -1.0);
-    }
 
-    public void configureTunerSRI(BULKIO.StreamSRI sri, Double channel_frequency, Double bandwidth, Double sample_rate, int mode, String rf_flow_id, Double collector_frequency) {
-        if (sri == null)
-            return;
-
-        //Convert CenterFreq into string
-        long chanFreq = channel_frequency.longValue();
-
-        //Create new streamID
-        String streamID = "tuner_freq_" + Long.toString(chanFreq).substring(0,15) + "_Hz_" + java.util.UUID.randomUUID().toString();
-
-        sri.mode = (short)mode;
-        sri.hversion = 0;
-        sri.xstart = 0;
-        sri.xdelta = (1.0 / (sample_rate));
-        sri.subsize = 0;// 1-dimensional data
-        sri.xunits = 1;
-        sri.ystart = 0;
-        sri.ydelta = 0.001;
-        sri.yunits = 1;
-        sri.streamID = streamID;
-        sri.blocking = false;
-
-        // for some devices, colFreq is the same as chanFreq
-        long colFreq;
-        if (collector_frequency < 0)
-            colFreq = chanFreq;
-        else
-            colFreq = collector_frequency.longValue();
-
-        Any colFreqAny = AnyUtils.toAny(colFreq,"double"); 
-        addModifyKeyword(sri, "COL_RF", colFreqAny);
-        Any chanFreqAny = AnyUtils.toAny(chanFreq,"double"); 
-        addModifyKeyword(sri, "CHAN_RF", chanFreqAny);
-        Any rfFlowIdAny = AnyUtils.toAny(rf_flow_id,"string"); 
-        addModifyKeyword(sri,"FRONTEND::RF_FLOW_ID",rfFlowIdAny);
-        Any bandwidthAny = AnyUtils.toAny(bandwidth,"double"); 
-        addModifyKeyword(sri,"FRONTEND::BANDWIDTH", bandwidthAny);
-        Any identifierAny = AnyUtils.toAny(this.identifier(), "string"); 
-        addModifyKeyword(sri,"FRONTEND::DEVICE_ID",identifierAny);
-    }
-
-    public void printSRI(BULKIO.StreamSRI sri){
+    protected void printSRI(BULKIO.StreamSRI sri){
         this.printSRI(sri, "DEBUG SRI");
     }
 
-    public void printSRI(BULKIO.StreamSRI sri, String strHeader){
+    protected void printSRI(BULKIO.StreamSRI sri, String strHeader){
         System.out.println(strHeader);
         System.out.println("\thversion: " + sri.hversion);
         System.out.println("\txstart: " + sri.xstart);
@@ -700,42 +989,5 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
         for (int ii=0; ii<sri.keywords.length; ii++){
             System.out.println("\tKEYWORD KEY:VAL : " + sri.keywords[ii].id + ":" + String.valueOf(AnyUtils.convertAny(sri.keywords[ii].value)));
         }
-
-    }
-
-    private void construct() {
-        loadProperties();
-        frontend_tuner_allocation.setAllocator(new Allocator<frontend.FrontendTunerStructProps.frontend_tuner_allocation_struct>() {
-            public boolean allocate(frontend.FrontendTunerStructProps.frontend_tuner_allocation_struct capacity){
-                boolean status = false;
-                try{
-                    status = allocateTuner(capacity);
-                }catch(CF.DevicePackage.InvalidCapacity e){
-
-                }catch(Exception e){
-
-                }
-                return status;
-            }
-            public void deallocate(frontend.FrontendTunerStructProps.frontend_tuner_allocation_struct capacity){
-                deallocateTuner(capacity);
-            }
-        });
-        frontend_listener_allocation.setAllocator(new Allocator<frontend.FrontendTunerStructProps.frontend_listener_allocation_struct>() {
-            public boolean allocate(frontend.FrontendTunerStructProps.frontend_listener_allocation_struct capacity) {
-                boolean status = false;
-                try{
-                    status = allocateListener(capacity);
-                }catch(CF.DevicePackage.InvalidCapacity e){
-
-                }catch(Exception e){
-
-                }
-                return status;
-            }
-            public void deallocate(frontend.FrontendTunerStructProps.frontend_listener_allocation_struct capacity){
-                deallocateListener(capacity);
-            }
-        });
     }
 }

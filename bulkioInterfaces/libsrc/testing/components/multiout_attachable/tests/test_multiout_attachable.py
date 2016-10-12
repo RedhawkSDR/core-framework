@@ -146,11 +146,16 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         sri.xstart = xstart
         ts = time.time()
         T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(ts), ts - int(ts))
+        expected_packets = self.source.packets_ingested + 1
         inFloatPort = self.source.getPort("dataFloat_in")
         inFloatPort.pushSRI(sri)
         inFloatPort.pushPacket(range(1,100),T,False,streamId)
-        # add sleep to make sure SRI is received by all connections
-        #time.sleep(1)
+
+        # Wait until we know that the packet and SRI have been processed by the
+        # source; this prevents some tests from reporting spurious failures due
+        # to the appearance of an SRI change versus a new SRI, especially when
+        # running the Python implemenation.
+        self.waitForPacketIngestion(self.source, expected_packets, delay=0.1)
     
     def assertNumNewSRICallbacks(self, num):
         self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, num)

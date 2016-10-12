@@ -1,0 +1,6 @@
+7dfb6a15674b8714513e87ba6bfa6bc7  startJava.sh
+d8846b7c20981dd5f1c64042a13aa358  src/TestJavaOptionalProps/java/TestJavaOptionalProps_base.java
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+15c1b1bd90bf45ca78b415e3ed04cf1b  configure.ac
+b628508c1c5defae6060af0f085ad6a2  Makefile.am
+5ed402ad4813b44c006d806c3b7cb26c  src/TestJavaOptionalProps/java/TestJavaOptionalProps.java

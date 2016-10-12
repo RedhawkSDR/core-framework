@@ -48,13 +48,17 @@ import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
+import org.ossie.redhawk.DomainManagerContainer;
+import org.ossie.redhawk.DeviceManagerContainer;
 import org.ossie.logging.logging;
+import org.ossie.events.Manager;
 
 import CF.DeviceManager;
+import CF.DomainManager;
 import CF.DeviceManagerHelper;
 import CF.InvalidObjectReference;
 
-public abstract class Service
+public abstract class Service  extends Logging
 {
     public final static Logger logger = Logger.getLogger(Service.class.getName());
     
@@ -62,13 +66,48 @@ public abstract class Service
     protected org.omg.CORBA.Object serviceObj = null;
     /** The Device Manager the service is registered with */
     protected DeviceManager devMgr = null;
+    protected DeviceManagerContainer _devMgr = null;
+    protected DomainManagerContainer _domMgr = null;
+    protected org.ossie.events.Manager _ecm = null;
+
     /** The service name */
     protected String serviceName;
 
     public Service()
     {
+        super(logger,Service.class.getName());
         this.serviceName = "";
     }
+
+    public String getName() {
+        return this.serviceName;
+    }
+
+
+   public void saveLoggingContext( String logcfg_url, 
+                                    int oldstyle_loglevel, 
+                                   logging.ResourceCtx ctx ) {
+
+        try {
+            this._ecm = org.ossie.events.Manager.GetManager(this);
+        }
+        catch( org.ossie.events.Manager.OperationFailed e ) {
+        }
+       super.saveLoggingContext( logcfg_url, oldstyle_loglevel, ctx, this.getEventChannelManager () );
+   }
+
+    public DomainManagerContainer getDomainManager() {
+        return this._domMgr;
+    }
+    
+    public DeviceManagerContainer getDeviceManager() {
+        return this._devMgr;
+    }
+
+    public org.ossie.events.Manager   getEventChannelManager () {
+        return this._ecm;
+    }
+
     
     /**
      * Parse the set of SCA execparam arguments into a Map
@@ -135,6 +174,7 @@ public abstract class Service
             return localPath;
         }
     }
+
     
     abstract protected Servant newServant(final POA p);
     abstract public void terminateService(); 
@@ -156,22 +196,13 @@ public abstract class Service
         start_service(clazz, args, props);
     }
     
+
     public static void start_service(final Class<? extends Service> clazz, final String[] args, final Properties props) 
     throws InstantiationException, IllegalAccessException, InvalidObjectReference, IllegalArgumentException, SecurityException, InvocationTargetException, NoSuchMethodException
     {
-        final org.omg.CORBA.ORB orb = ORB.init((String[]) null, props);
+        final org.omg.CORBA.ORB orb = org.ossie.corba.utils.Init( args, props );
 
-        // get reference to RootPOA & activate the POAManager
-        POA rootpoa = null;
-        try {
-            final org.omg.CORBA.Object poa = orb.resolve_initial_references("RootPOA");
-            rootpoa = POAHelper.narrow(poa);
-            rootpoa.the_POAManager().activate();
-        } catch (final AdapterInactive e) {
-            // PASS
-        } catch (final InvalidName e) {
-            // PASS
-        }
+        final POA rootpoa  = org.ossie.corba.utils.RootPOA();
 
         Map<String, String> execparams = parseArgs(args);
 
@@ -220,7 +251,14 @@ public abstract class Service
         final Service service_i = clazz.getConstructor(Map.class).newInstance(execparams);
         Servant tie = service_i.newServant(rootpoa);
         tie._this_object(orb);
+
+        // resolve domain awareness ...
         service_i.devMgr = deviceMgr;
+        service_i._devMgr = new DeviceManagerContainer(deviceMgr);
+        service_i._domMgr = new DomainManagerContainer(deviceMgr.domMgr());
+
+
+        service_i.saveLoggingContext( logcfg_uri, debugLevel, ctx );
 
         if (service_i.devMgr != null) {
             logger.debug("Registering service with device manager");

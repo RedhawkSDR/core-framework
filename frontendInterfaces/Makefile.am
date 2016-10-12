@@ -51,28 +51,16 @@ IDL_EXTERNS := CF BULKIO
 
 # In some cases, you may need to define python externs 
 #     f:p   Assume Python stub file for file f is in package p.
-PYTHON_EXTERNS := PortTypes:ossie.cf cf:ossie.cf bulkioDataTypes:bulkio.bulkioInterfaces LogInterfaces:ossie.cf CosNaming:omniORB.COS
-
-# Relative path to the location of the IDL files
-IDL_SOURCE_PATH := .
+PYTHON_EXTERNS := bulkioDataTypes:bulkio.bulkioInterfaces DataType:ossie.cf
 
 # A Qualifier to append to the version, by default this is a timestamp of the build
 BUNDLE_QUALIFIER := v$(shell date +%Y%m%d%H%M%S)
 
-# A user understandable name for the bundle
-BUNDLE_NAME := $(IDL_MODULE) IDL Interface
-
-# The Vendor that produced the bundle / idl
-BUNDLE_VENDOR = REDHAWK
-
 # Version of java the source files support
-JAVA_SOURCE_VERSION = 1.5
+JAVA_SOURCE_VERSION = 1.6
 
 # Version of java to compile to
 JAVA_TARGET_VERSION = $(JAVA_SOURCE_VERSION)
-
-# The required execution envirornment, this should be a JRE version or OSGI environment specification
-BUNDLE_REQUIRED_EXECUTION_ENVIRONMENT := J2SE-$(JAVA_TARGET_VERSION)
 
 # You have to manually set the _SOURCES, automake/libtool does not support
 # makefile variable substituion here...so unfortunately each IDL file
@@ -82,28 +70,25 @@ BUNDLE_REQUIRED_EXECUTION_ENVIRONMENT := J2SE-$(JAVA_TARGET_VERSION)
 #            src/cpp/some_fileSK.cpp src/cpp/some_fileDynSK.cpp src/cpp/some_file.h
 lib_LTLIBRARIES = libfrontendInterfaces.la
 libfrontendInterfaces_la_SOURCES = $(redhawk_IDL_SOURCES_auto)
+libfrontendInterfaces_la_LIBADD = $(BULKIO_LIBS) $(OSSIE_LIBS)
 libfrontendInterfaces_la_LDFLAGS = -version-info 1:0:1
 
 ###############################################################################
 # DO NOT MODIFY ANY LINES BELOW HERE
 ###############################################################################
 .PHONY: all-local all-python install-python clean-python all-java install-java clean-java compile-java zip-src
-.INTERMEDIATE: build/java.files build/java.export setup.py 
+.INTERMEDIATE: build/java.files setup.py
 LOWER_CASE_IDL_MODULE :=$(shell echo $(IDL_MODULE) | tr A-Z a-z)
 
 idldir = $(datadir)/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
-dist_idl_DATA =  $(addprefix build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES))
+dist_idl_DATA =  $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES))
 
 all-local: all-python all-java
 
-install-exec-hook: install-python install-java install-java-src
+install-exec-hook: install-python install-java
 
 clean-local: clean-python clean-java clean-cpp
 	rm -rf build
-
-build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl: $(IDL_SOURCE_PATH)/%.idl
-	mkdir -p build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
-	cp $< $@
 
 # Always build the current directory first (this is hack-ish, but the
 # # alternative is to combine the Makefile.am's)
@@ -114,34 +99,20 @@ SUBDIRS += libsrc
 ###############################################################################
 # C++ (via automake and libtool)
 pkgconfigdir = $(libdir)/pkgconfig
-dist_pkgconfig_DATA = $(PACKAGE_NAME).pc
+dist_pkgconfig_DATA = frontendInterfaces.pc
 
 pkgincludedir = $(includedir)/$(LIBRARY_NAME)/$(IDL_MODULE)
 pkginclude_HEADERS = $(filter %.h, $(lib$(LOWER_CASE_IDL_MODULE)Interfaces_la_SOURCES))
 
 AM_CXXFLAGS = -Wall -I src/cpp -g $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
-AM_LIBS = $(OSSIE_LIBS)
+AM_LIBS = $(OSSIE_LIBS) $(BULKIO_LIBS)
 
-src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%DynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%SK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%.h: build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl
+src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%DynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%SK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%.h: idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl
 	@mkdir -p "src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)"
-	$(IDL) -I build/idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
+	$(IDL) -I idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -C src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
 
 clean-cpp:
 	rm -rf src/cpp
-	rm -f $(PACKAGE_NAME).pc
-
-$(PACKAGE_NAME).pc: Makefile.am
-	@echo "prefix=$(prefix)" > $@
-	@echo "exec_prefix=$(exec_prefix)" >> $@
-	@echo "libdir=$(libdir)" >> $@
-	@echo "includedir=$(includedir)" >> $@
-	@echo "" >> $@
-	@echo "Name: $(PACKAGE_NAME)" >> $@
-	@echo "Description: $(PACKAGE_NAME) for REDHAWK" >> $@
-	@echo "Requires:" >> $@
-	@echo "Version: $(PACKAGE_VERSION)" >> $@
-	@echo "Libs: -L\$${libdir} -l${LOWER_CASE_IDL_MODULE}Interfaces" >> $@
-	@echo "Cflags: -I\$${includedir}/$(LIBRARY_NAME)" >> $@
 
 ###############################################################################
 # Python
@@ -153,16 +124,16 @@ PYTHON_MODULE_NAME := $(LOWER_CASE_IDL_MODULE)Interfaces
 PYTHON_PACKAGE := $(LIBRARY_NAME).$(PYTHON_MODULE_NAME)
 PYTHON_BASE := $(subst .,/,$(PYTHON_PACKAGE))
 PY_SRC_OUT_DIR := $(addprefix src/python/, $(subst .,/, $(PYTHON_PACKAGE)))
-PY_SRCS := $(addprefix $(PY_SRC_OUT_DIR)/, $(subst .idl,_idl.py, $(IDL_FILES)))
+PY_IDL_SRCS := $(PY_SRC_OUT_DIR)/__init__.py $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES))
 PY_BUILD_OUT_DIR := $(addprefix build/lib/, $(subst .,/, $(PYTHON_PACKAGE)))
 PY_BUILT_SRCS := $(addprefix $(PY_BUILD_OUT_DIR)/, $(subst .idl,_idl.py, $(IDL_FILES)))
 PY_IDL_EXTERNS := $(addprefix -Wbextern=, $(subst ,, $(PYTHON_EXTERNS)))
 
-PY_IDL_INCLUDES := -I build/idl
+PY_IDL_INCLUDES := -I idl
 
-$(PY_SRC_OUT_DIR)/%_idl.py: build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl
-	mkdir -p $(PY_SRC_OUT_DIR)
-	$(IDL) $(PY_IDL_INCLUDES) $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C src/python -bpython -Wbpackage=$(PYTHON_PACKAGE) $(PY_IDL_EXTERNS) $<
+$(PY_SRC_OUT_DIR)/__init__.py: $(PY_IDL_SRCS)
+	$(AM_v_at)mkdir -p $(PY_SRC_OUT_DIR)
+	$(AM_v_gen)$(IDL) $(PY_IDL_INCLUDES) $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -C src/python -bpython -Wbpackage=$(PYTHON_PACKAGE) $(PY_IDL_EXTERNS) $^
 
 setup.py: Makefile.am
 # Build up a setup.py line-by-line
@@ -192,7 +163,7 @@ setup.py: Makefile.am
 	@echo "      packages=_packages" >> $@
 	@echo ")" >> $@
 
-$(PY_BUILD_OUT_DIR): $(PY_SRCS) setup.py
+$(PY_BUILD_OUT_DIR): $(PY_SRC_OUT_DIR)/__init__.py setup.py
 	python setup.py build --build-lib build/lib
 	touch $(PY_BUILD_OUT_DIR)
 
@@ -210,119 +181,37 @@ clean-python: setup.py
 # Java
 if HAVE_JAVASUPPORT
 
-# BUNDLE_PREFIX - Prefix at the start of the bundle symbolic name
-BUNDLE_PREFIX = idl
-
-# BUNDLE_SYMBOLIC_NAME - Used by OSGI, this is the identifer of the bundle
-BUNDLE_SYMBOLIC_NAME := $(BUNDLE_PREFIX).$(LOWER_CASE_IDL_MODULE)
-
-# JAVA_OUTPUT_JAR - The name of the jar file to export the idl bundle into
-JAVA_OUTPUT_JAR := $(IDL_MODULE)Interfaces.jar
-#JAVA_OUTPUT_JAR := $(BUNDLE_SYMBOLIC_NAME).jar
-
-# JAVA_SRC_JAR - The jar that contains the src code that was generated by IDLJ
-JAVA_SRC_JAR := $(IDL_MODULE)Interfaces.src.jar
-#JAVA_SRC_JAR := $(BUNDLE_SYMBOLIC_NAME).src.jar
+@rh_idlj_rules@
+@rh_jarfile_rules@
 
 # BUNDLE_VERSION - Version of the OSGI Java Bundle produced, should be related to the version of the IDL,
 BUNDLE_VERSION := $(PACKAGE_VERSION)
 
-# IDLJ_INCLUDES - The IDL include path used by IDLJ
-IDLJ_INCLUDES := -i build/idl -i ${OSSIE_HOME}/share/idl -i /usr/share/idl -i /usr/share/idl/omniORB
-
 # IDLJ_SRC_DEST - Destination for files generated by IDLJ
 IDLJ_SRC_DEST := src/java
 
-# IDL_TO_JAVA_TARGETS - Markers for IDL conversions
-IDL_TO_JAVA_TARGETS := \
-	$(addprefix src/java/, \
-		$(subst .idl,.idlj, $(IDL_FILES)) \
- 	)
+manifest_edit = $(SED) \
+  -e 's|@bundle_version[@]|$(BUNDLE_VERSION)|g' \
+  -e 's|@bundle_qualifier[@]|$(BUNDLE_QUALIFIER)|g'
 
-# JAVA_SRCS - Temp file for holding source file lists
-JAVA_SRCS = build/java.files
+java_JARFILES = FRONTENDInterfaces.jar
+IDLJFLAGS = -i idl -i $(OSSIE_IDLDIR)
+IDLJ_BUILDDIR = $(IDLJ_SRC_DEST)
 
-# JAVA_CP - Setup the classpath used in java compilation
-JAVA_CP := \
-	$(if $(IDL_EXTERNS), \
-		-cp $(subst : ,:, \
-			$(addprefix $(OSSIE_HOME)/lib/, \
-				$(addsuffix Interfaces.jar:, $(IDL_EXTERNS))\
- 			)\
- 		),\
-	)
+# For IDLJ rules, set VPATH for .idl files so that pattern rules can find them.
+vpath %.idl idl/redhawk/FRONTEND
+idlj_IDLSRC = $(IDL_FILES)
 
-# IDL_EXTERNS_LOWER - Translates the external required IDJLs to lower case
-IDL_EXTERNS_LOWER := $(shell echo $(IDL_EXTERNS) | tr A-Z a-z) 
+FRONTENDInterfaces_jar_SOURCE = $(idlj_SOURCE)
+FRONTENDInterfaces_jar_CLASSPATH = $(OSSIE_CLASSPATH):$(BULKIO_CLASSPATH)
+FRONTENDInterfaces_jar_MANIFEST = build/java/META-INF/MANIFEST.MF
+FRONTENDInterfaces_jar_JARADD = -C $(IDLJ_SRC_DEST) .
 
-REQUIRE_BUNDLES := $(shell echo $(IDL_EXTERNS_LOWER) | sed 's/^/$(BUNDLE_PREFIX)./' | sed 's/\//./g' | sed 's/$$/;visibility:=reexport/' | sed -e '$$ ! s/$$/,/')
-
-$(IDL_TO_JAVA_TARGETS): src/java/%.idlj: build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl
-	@mkdir -p src/java
-	$(IDLJ) -fall -td $(IDLJ_SRC_DEST) $(IDLJ_INCLUDES) $<
-	$(IDLJ) -fallTie -td $(IDLJ_SRC_DEST) $(IDLJ_INCLUDES) $<
-	touch $@
-
-all-java: $(JAVA_OUTPUT_JAR) $(JAVA_SRC_JAR)
-
-clean-java:
-	rm -rf src/java
-	rm -f $(JAVA_OUTPUT_JAR)
-	rm -f $(JAVA_SRC_JAR)
-
-build/java.files: $(IDL_TO_JAVA_TARGETS)
-	@mkdir -p build/java
-	find src/java -name '*.java' > $@
-	$(JAVAC) $(JAVA_CP) -target $(JAVA_TARGET_VERSION) -source $(JAVA_SOURCE_VERSION) -d build/java @$@
-
-build/java.export: build/java.files 
-	@mkdir -p build/java
-	@echo -n "Export-Package:" > $@
-	find src/java -mindepth 1 -type d | sed 's/src\/java\///' | sed 's/\//./g' | sed 's/^/ /' | sed -e '$$ ! s/$$/,/' >> $@
-
-build/java/META-INF/MANIFEST.MF: Makefile.am build/java.export
+build/java/META-INF/MANIFEST.MF: MANIFEST.MF.in Makefile
 	@mkdir -p build/java/META-INF
-	@rm -f $@
-	@echo "Manifest-Version: 1.0" >> $@
-	@echo "Bundle-ManifestVersion: 2" >> $@
-	@echo "Bundle-Name: $(BUNDLE_NAME)" >> $@
-	@echo "Bundle-SymbolicName: $(BUNDLE_SYMBOLIC_NAME)" >> $@
-	@echo "Bundle-Version: $(BUNDLE_VERSION).$(BUNDLE_QUALIFIER)" >> $@
-	@echo "Bundle-RequiredExecutionEnvironment: $(BUNDLE_REQUIRED_EXECUTION_ENVIRONMENT)" >> $@
-	@echo "Bundle-Vendor: $(BUNDLE_VENDOR)" >> $@
-	@echo "Require-Bundle: $(REQUIRE_BUNDLES)" >> $@
-	@cat build/java.export >> $@
- 
-$(JAVA_OUTPUT_JAR): build/java.files build/java/META-INF/MANIFEST.MF
-	@mkdir -p build/java
-	${JAR} cMf $@ -C build/java META-INF/MANIFEST.MF -C build/java $(IDL_MODULE)
+	$(AM_V_GEN)$(manifest_edit) MANIFEST.MF.in > $@
 
-src/java/META-INF/MANIFEST.MF: Makefile.am
-	@mkdir -p src/java/META-INF
-	@rm -f $@
-	@echo "Manifest-Version: 1.0" >> $@
-	@echo "Bundle-ManifestVersion: 2" >> $@
-	@echo "Bundle-Name: $(BUNDLE_NAME) Source" >> $@
-	@echo "Bundle-SymbolicName: $(BUNDLE_SYMBOLIC_NAME).src" >> $@
-	@echo "Bundle-Version: $(BUNDLE_VERSION).$(BUNDLE_QUALIFIER)" >> $@
-	@echo "Bundle-Vendor: $(BUNDLE_VENDOR)" >> $@
-	@echo "Eclipse-SourceBundle: $(BUNDLE_SYMBOLIC_NAME);version=$(BUNDLE_VERSION).$(BUNDLE_QUALIFIER)" >> $@
-
-$(JAVA_SRC_JAR): build/java.files src/java/META-INF/MANIFEST.MF
-	${JAR} cMf $@ -C $(IDLJ_SRC_DEST) .
-
-install-java: $(JAVA_OUTPUT_JAR)
-	cp $< $(DESTDIR)$(prefix)/lib
-
-install-java-src: $(JAVA_SRC_JAR)
-	cp $< $(DESTDIR)$(prefix)/lib
-
-###############################################################################
-# No Java - stubs
-else
-
-all-java install-java install-java-src clean-java:
-	@echo "Java support is disabled"
+CLEANFILES = build/java/META-INF/MANIFEST.MF
 
 endif
 

@@ -1,0 +1,6 @@
+8bcd0a4941a56290d54be820ae394600  startJava.sh
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+ba8feb42ce132247a5053b57a8a74d2f  configure.ac
+8169ba90ae5a49dd3d60b737f37b66ec  src/foo/bar/jv/java/jv.java
+a4c78478aa13681aa07035e74f8418f9  src/foo/bar/jv/java/jv_base.java
+891fa3e39dfd124d4b0d3659c03d3d29  Makefile.am

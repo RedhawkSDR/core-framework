@@ -39,6 +39,7 @@ class PythonPropertyMapper(PropertyMapper):
     def mapSimpleProperty(self, simple):
         pyprop = self.mapProperty(simple)
         pyprop['isComplex'] = simple.isComplex()
+	pyprop['isOptional'] = simple.isOptional()
         if simple.hasValue():
             pyprop['pyvalue'] = python.literal(simple.value(), 
                                                simple.type(), 
@@ -49,6 +50,7 @@ class PythonPropertyMapper(PropertyMapper):
     def mapSimpleSequenceProperty(self, simplesequence):
         pyprop = self.mapProperty(simplesequence)
         pyprop['isComplex'] = simplesequence.isComplex()
+	pyprop['isOptional'] = simplesequence.isOptional()
         if simplesequence.hasValue():
             pyprop['pyvalue'] = python.sequenceValue(simplesequence.value(), 
                                                      simplesequence.type(), 
@@ -73,15 +75,14 @@ class PythonPropertyMapper(PropertyMapper):
         return pyprop
 
     def _mapStructValue(self, value, structdef):
-        args= []
-        for f in structdef['fields']:
-            if f['type'] == 'string' or f['type'] == 'char':
-                args.append('\''+value[f['identifier']]+'\'')
-            elif f['type'] == 'boolean':
-                args.append(value[f['identifier']].capitalize())
-            else:
-                args.append(value[f['identifier']])
-        return '%s(%s)' % (structdef['pyclass'], ','.join(args))
+        arguments = []
+        for field in structdef['fields']:
+            field_id = field['identifier']
+            if not field_id in value:
+                continue
+            field_value = python.literal(value[field_id], field['type'], field['isComplex'])
+            arguments.append((field['pyname'], field_value))
+        return '%s(%s)' % (structdef['pyclass'], ','.join('%s=%s' % arg for arg in arguments))
 
     def _structName(self, name):
         if self.legacy_structs:

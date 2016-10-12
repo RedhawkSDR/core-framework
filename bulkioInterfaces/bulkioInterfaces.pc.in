@@ -8,7 +8,7 @@ classpath=${javadir}/BULKIOInterfaces.jar
 
 Name: bulkioInterfaces
 Description: bulkioInterfaces for REDHAWK
-Requires:
+Requires: ossie >= @PACKAGE_VERSION@
 Version: @PACKAGE_VERSION@
 Libs: -L${libdir} -lbulkioInterfaces
 Cflags: -I${includedir}/ossie

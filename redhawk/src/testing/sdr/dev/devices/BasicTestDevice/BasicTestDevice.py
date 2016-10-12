@@ -153,18 +153,25 @@ class BasicTestDevice(CF__POA.AggregateExecutableDevice, ExecutableDevice, Aggre
     float_capacity = simple_property(id_="float_capacity",
                                      type_="float",
                                      defvalue=1.0)
+    struct_simple_seq = simpleseq_property(id_="struct_simple_seq",
+                                           type_="short",
+                                           defvalue=[50,500])
     
     def __gt__(self, other):
-      return self.long_capacity > other.long_capacity or self.float_capacity > other.float_capacity
+      return (self.long_capacity > other.long_capacity or self.float_capacity > other.float_capacity)
 
     def __iadd__(self, other):
       self.long_capacity += other.long_capacity
       self.float_capacity += other.float_capacity
+      self.struct_simple_seq[0] += other.struct_simple_seq[0]
+      self.struct_simple_seq[1] += other.struct_simple_seq[1]
       return self
 
     def __isub__(self, other):
       self.long_capacity -= other.long_capacity
       self.float_capacity -= other.float_capacity
+      self.struct_simple_seq[0] -= other.struct_simple_seq[0]
+      self.struct_simple_seq[1] -= other.struct_simple_seq[1]
       return self
 
   allocStruct = struct_property(id_="DCE:001fad60-b4b3-4ed2-94cb-40e1d956bf4f",

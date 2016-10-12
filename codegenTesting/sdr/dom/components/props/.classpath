@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="var" path="OSSIEHOME/lib/ossie.jar"/>
+	<classpathentry kind="var" path="OSSIEHOME/lib/log4j.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="var" path="OSSIEHOME/lib/CFInterfaces.jar"/>
+	<classpathentry kind="con" path="gov.redhawk.ide.codegen.java.ossieLib"/>
+	<classpathentry kind="src" output="props_java_impl1/bin" path="props_java_impl1/src"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:15e202f4-ec8f-4efc-816a-a9537363d0c9" name="test_spd_dep" type="sca_compliant">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="test_spd_dep.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="test_spd_dep.scd.xml"/>
+  </descriptor>
+  <implementation id="i686">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="cpp/test_spd_dep"/>
+      <entrypoint>cpp/test_spd_dep</entrypoint>
+    </code>
+    <compiler name="/usr/bin/gcc" version="4.1.2"/>
+    <programminglanguage name="C++"/>
+    <humanlanguage name="EN"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <dependency type="runtime_requirements">
+        <softpkgref>
+            <localfile name="/deps/test_softpkg/test_softpkg.spd.xml"/>
+            <implref refid="i686"/>
+        </softpkgref>
+    </dependency>
+  </implementation>
+  <implementation id="x86_64">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="cpp/test_spd_dep"/>
+      <entrypoint>cpp/test_spd_dep</entrypoint>
+    </code>
+    <compiler name="/usr/bin/gcc" version="4.1.2"/>
+    <programminglanguage name="C++"/>
+    <humanlanguage name="EN"/>
+    <os name="Linux"/>
+    <processor name="x86_64"/>
+    <dependency type="runtime_requirements">
+        <softpkgref>
+            <localfile name="/deps/test_softpkg/test_softpkg.spd.xml"/>
+            <implref refid="x86_64"/>
+        </softpkgref>
+    </dependency>
+  </implementation>
+</softpkg>

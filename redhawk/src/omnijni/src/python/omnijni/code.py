@@ -119,6 +119,16 @@ class Function(Scope):
         f.write(self.__decl, *self.__args)
         super(Function, self).write(f)
 
+class Switch(Scope):
+    def __init__(self, disc):
+        super(Switch,self).__init__('switch ('+disc+') {')
+
+    def Case(self, label):
+        return self._append('Scope', 'case '+label+':', '')
+
+    def Default(self):
+        return self._append('Scope', 'default:', '')
+
 class SourceFile:
     def __init__ (self, f, indent='  '):
         self.__file = f

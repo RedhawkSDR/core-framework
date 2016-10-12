@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:7a93bc07-b30d-4d5c-9540-db9fed24f3c2" name="execcheck_w">
+  <componentfiles>
+    <componentfile id="execcheck_9a991921-d42e-48c0-bbb7-423ff42339f4" type="SPD">
+      <localfile name="/components/execcheck/execcheck.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="execcheck_9a991921-d42e-48c0-bbb7-423ff42339f4"/>
+      <componentinstantiation id="execcheck_1" startorder="0">
+        <usagename>execcheck_1</usagename>
+        <findcomponent>
+          <namingservice name="execcheck_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="execcheck_1"/>
+  </assemblycontroller>
+</softwareassembly>

@@ -1,3 +1,6 @@
 build
+dist
+redhawk_codegen.egg-info/
 *.pyc
 *.swp
+*~

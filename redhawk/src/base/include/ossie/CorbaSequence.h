@@ -147,7 +147,23 @@ namespace ossie {
             typename detail::sequence_ptr<Sequence>::type p_seq = detail::as_ptr(sequence);
             CORBA::ULong index = p_seq->length();
             p_seq->length(index+1);
-            sequence[index] = element;
+            p_seq->operator[](index) = element;
+        }
+
+        // Remove an indexed value from a CORBA sequence; the sequence may be
+        // passed by reference or pointer, or as a var type.
+        template <typename Sequence, typename Element>
+        inline void erase (Sequence& sequence, const unsigned int &idx)
+        {
+            // NB: The sequence is converted to a pointer to allow a single
+            //     implementation for references, pointers and vars; the
+            //     compiler will eliminate this temporary, so there is no
+            //     additional overhead created.
+            typename detail::sequence_ptr<Sequence>::type p_seq = detail::as_ptr(sequence);
+            for (unsigned int i=idx; i<p_seq->length()-1; i++) {
+                p_seq->operator[](i) = p_seq->operator[](i+1);
+            }
+            p_seq->length(p_seq->length()-1);
         }
 
         // Returns a new sequence containing the range [first, last) from 

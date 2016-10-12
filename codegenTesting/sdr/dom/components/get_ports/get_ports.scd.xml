@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:CF/Resource:1.0"/>
+  <componenttype>resource</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:CF/Resource:1.0" supportsname="Resource"/>
+    <supportsinterface repid="IDL:CF/LifeCycle:1.0" supportsname="LifeCycle"/>
+    <supportsinterface repid="IDL:CF/PortSupplier:1.0" supportsname="PortSupplier"/>
+    <supportsinterface repid="IDL:CF/PropertySet:1.0" supportsname="PropertySet"/>
+    <supportsinterface repid="IDL:CF/TestableObject:1.0" supportsname="TestableObject"/>
+    <ports>
+      <provides repid="IDL:BULKIO/dataChar:1.0" providesname="dataCharIn">
+        <porttype type="data"/>
+        <description>dataCharIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataDouble:1.0" providesname="dataDoubleIn">
+        <porttype type="data"/>
+        <description>dataDoubleIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataFloat:1.0" providesname="dataFloatIn">
+        <porttype type="data"/>
+        <description>dataFloatIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataLong:1.0" providesname="dataLongIn">
+        <porttype type="data"/>
+        <description>dataLongIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataLongLong:1.0" providesname="dataLongLongIn">
+        <porttype type="data"/>
+        <description>dataLongLongIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataOctet:1.0" providesname="dataOctetIn">
+        <porttype type="data"/>
+        <description>dataOctetIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataShort:1.0" providesname="dataShortIn">
+        <porttype type="data"/>
+        <description>dataShortIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataUlong:1.0" providesname="dataUlongIn">
+        <porttype type="data"/>
+        <description>dataUlongIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataUlongLong:1.0" providesname="dataUlongLongIn">
+        <porttype type="data"/>
+        <description>dataUlongLongIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataUshort:1.0" providesname="dataUshortIn">
+        <porttype type="data"/>
+        <description>dataUshortIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataFile:1.0" providesname="dataFileIn">
+        <porttype type="data"/>
+        <description>dataFileIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataSDDS:1.0" providesname="dataSDDSIn">
+        <porttype type="data"/>
+        <description>dataSDDSIn description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataVITA49:1.0" providesname="dataVITA49In">
+        <porttype type="data"/>
+        <description>dataVITA49In description</description>
+      </provides>
+      <provides repid="IDL:BULKIO/dataXML:1.0" providesname="dataXMLIn">
+        <porttype type="data"/>
+        <description>dataXMLIn description</description>
+      </provides>
+      <uses repid="IDL:BULKIO/dataChar:1.0" usesname="dataCharOut">
+        <porttype type="data"/>
+        <description>dataCharOut description</description>
+      </uses>
+      <uses repid="IDL:BULKIO/dataDouble:1.0" usesname="dataDoubleOut">
+        <porttype type="data"/>
+        <description>dataDoubleOut description</description>
+      </uses>
+      <uses repid="IDL:BULKIO/dataFloat:1.0" usesname="dataFloatOut">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:BULKIO/dataLong:1.0" usesname="dataLongOut">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:BULKIO/dataLongLong:1.0" usesname="dataLongLongOut">
+        <porttype type="data"/>
+        <description>dataLongLongOut description</description>
+      </uses>
+      <uses repid="IDL:BULKIO/dataOctet:1.0" usesname="dataOctetOut">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:BULKIO/dataShort:1.0" usesname="dataShortOut">
+        <porttype type="data"/>
+        <description>dataShortOut description</description>
+      </uses>
+      <uses repid="IDL:BULKIO/dataUlong:1.0" usesname="dataUlongOut">
+        <porttype type="data"/>
+        <description>dataUlongOut description</description>
+      </uses>
+      <uses repid="IDL:BULKIO/dataUlongLong:1.0" usesname="dataUlongLongOut">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:BULKIO/dataUshort:1.0" usesname="dataUshortOut">
+        <porttype type="data"/>
+        <description>dataUshortOut description</description>
+      </uses>
+      <uses repid="IDL:BULKIO/dataFile:1.0" usesname="dataFileOut">
+        <porttype type="data"/>
+        <description>dataFileOut description</description>
+      </uses>
+      <uses repid="IDL:BULKIO/dataSDDS:1.0" usesname="dataSDDSOut">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:BULKIO/dataVITA49:1.0" usesname="dataVITA49Out">
+        <porttype type="data"/>
+        <description>dataVITA49Out description</description>
+      </uses>
+      <uses repid="IDL:BULKIO/dataXML:1.0" usesname="dataXMLOut">
+        <porttype type="data"/>
+      </uses>
+      <provides repid="IDL:BURSTIO/burstByte:1.0" providesname="burstByteIn">
+        <porttype type="data"/>
+        <description>burstByteIn description</description>
+      </provides>
+      <provides repid="IDL:BURSTIO/burstDouble:1.0" providesname="burstDoubleIn">
+        <porttype type="data"/>
+        <description>burstDoubleIn description</description>
+      </provides>
+      <provides repid="IDL:BURSTIO/burstFloat:1.0" providesname="burstFloatIn">
+        <porttype type="data"/>
+        <description>burstFloatIn description</description>
+      </provides>
+      <provides repid="IDL:BURSTIO/burstLong:1.0" providesname="burstLongIn">
+        <porttype type="data"/>
+        <description>burstLongIn description</description>
+      </provides>
+      <provides repid="IDL:BURSTIO/burstLongLong:1.0" providesname="burstLongLongIn">
+        <porttype type="data"/>
+      </provides>
+      <provides repid="IDL:BURSTIO/burstShort:1.0" providesname="burstShortIn">
+        <porttype type="data"/>
+        <description>burstShortIn description</description>
+      </provides>
+      <provides repid="IDL:BURSTIO/burstUbyte:1.0" providesname="burstUbyteIn">
+        <porttype type="data"/>
+      </provides>
+      <provides repid="IDL:BURSTIO/burstUlong:1.0" providesname="burstUlongIn">
+        <porttype type="data"/>
+      </provides>
+      <provides repid="IDL:BURSTIO/burstUlongLong:1.0" providesname="burstUlongLongIn">
+        <porttype type="data"/>
+        <description>burstUlongLongIn description</description>
+      </provides>
+      <provides repid="IDL:BURSTIO/burstUshort:1.0" providesname="burstUshortIn">
+        <porttype type="data"/>
+      </provides>
+      <uses repid="IDL:BURSTIO/burstByte:1.0" usesname="burstByteOut">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:BURSTIO/burstDouble:1.0" usesname="burstDoubleOut">
+        <porttype type="data"/>
+        <description>burstDoubleOut description</description>
+      </uses>
+      <uses repid="IDL:BURSTIO/burstFloat:1.0" usesname="burstFloatOut">
+        <porttype type="data"/>
+        <description>burstFloatOut description</description>
+      </uses>
+      <uses repid="IDL:BURSTIO/burstLong:1.0" usesname="burstLongOut">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:BURSTIO/burstLongLong:1.0" usesname="burstLongLongOut">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:BURSTIO/burstShort:1.0" usesname="burstShortOut">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:BURSTIO/burstUbyte:1.0" usesname="burstUbyteOut">
+        <porttype type="data"/>
+        <description>burstUbyteOut description</description>
+      </uses>
+      <uses repid="IDL:BURSTIO/burstUlong:1.0" usesname="burstUlongOut">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:BURSTIO/burstUlongLong:1.0" usesname="burstUlongLongOut">
+        <porttype type="data"/>
+        <description>burstUlongLongOut description</description>
+      </uses>
+      <uses repid="IDL:BURSTIO/burstUshort:1.0" usesname="burstUshortOut">
+        <porttype type="data"/>
+        <description>burstUshortOut description</description>
+      </uses>
+      <provides repid="IDL:ExtendedEvent/MessageEvent:1.0" providesname="MessageEventIn">
+        <description>MessageEventIn description</description>
+        <porttype type="data"/>
+      </provides>
+      <uses repid="IDL:ExtendedEvent/MessageEvent:1.0" usesname="MessageEventIn">
+        <porttype type="data"/>
+      </uses>
+      <uses repid="IDL:ExtendedEvent/MessageEvent:1.0" usesname="MessageEventOut">
+        <porttype type="data"/>
+      </uses>
+      <provides repid="IDL:FRONTEND/AnalogTuner:1.0" providesname="AnalogTunerIn">
+        <porttype type="data"/>
+      </provides>
+      <uses repid="IDL:FRONTEND/AnalogTuner:1.0" usesname="AnalogTunerOut">
+        <description>AnalogTunerOut description</description>
+        <porttype type="data"/>
+      </uses>
+      <provides repid="IDL:FRONTEND/DigitalTuner:1.0" providesname="DigitalTunerIn">
+        <description>DigitalTunerIn description</description>
+        <porttype type="data"/>
+      </provides>
+      <uses repid="IDL:FRONTEND/DigitalTuner:1.0" usesname="DigitalTunerOut">
+        <porttype type="data"/>
+      </uses>
+      <provides repid="IDL:FRONTEND/FrontendTuner:1.0" providesname="FrontendTunerIn">
+        <description>FrontendTunerIn description</description>
+        <porttype type="data"/>
+      </provides>
+      <uses repid="IDL:FRONTEND/FrontendTuner:1.0" usesname="FrontendTunerOut">
+        <porttype type="data"/>
+      </uses>
+      <provides repid="IDL:FRONTEND/NavData:1.0" providesname="NavDataIn">
+        <porttype type="data"/>
+      </provides>
+      <uses repid="IDL:FRONTEND/NavData:1.0" usesname="NavDataOut">
+        <porttype type="data"/>
+      </uses>
+      <provides repid="IDL:FRONTEND/GPS:1.0" providesname="GPSIn">
+        <porttype type="data"/>
+      </provides>
+      <uses repid="IDL:FRONTEND/GPS:1.0" usesname="GPSOut">
+        <description>GPSOut description</description>
+        <porttype type="data"/>
+      </uses>
+      <provides repid="IDL:FRONTEND/RFSource:1.0" providesname="RFSourceIn">
+        <porttype type="data"/>
+      </provides>
+      <uses repid="IDL:FRONTEND/RFSource:1.0" usesname="RFSourceOut">
+        <porttype type="data"/>
+      </uses>
+      <provides repid="IDL:FRONTEND/RFInfo:1.0" providesname="RFInfoIn">
+        <description>RFInfoIn description</description>
+        <porttype type="data"/>
+      </provides>
+      <uses repid="IDL:FRONTEND/RFInfo:1.0" usesname="RFInfoOut">
+        <description>RFInfoOut description</description>
+        <porttype type="data"/>
+      </uses>
+      <provides repid="IDL:CF/Resource:1.0" providesname="ResourceIn">
+        <description>ResourceIn description</description>
+        <porttype type="control"/>
+      </provides>
+      <uses repid="IDL:CF/Resource:1.0" usesname="ResourceOut">
+        <description>ResourceOut description</description>
+        <porttype type="control"/>
+      </uses>
+    </ports>
+  </componentfeatures>
+  <interfaces>
+    <interface name="Resource" repid="IDL:CF/Resource:1.0">
+      <inheritsinterface repid="IDL:CF/LifeCycle:1.0"/>
+      <inheritsinterface repid="IDL:CF/PortSupplier:1.0"/>
+      <inheritsinterface repid="IDL:CF/PropertySet:1.0"/>
+      <inheritsinterface repid="IDL:CF/TestableObject:1.0"/>
+    </interface>
+    <interface name="LifeCycle" repid="IDL:CF/LifeCycle:1.0"/>
+    <interface name="PortSupplier" repid="IDL:CF/PortSupplier:1.0"/>
+    <interface name="PropertySet" repid="IDL:CF/PropertySet:1.0"/>
+    <interface name="TestableObject" repid="IDL:CF/TestableObject:1.0"/>
+    <interface name="ProvidesPortStatisticsProvider" repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    <interface name="burstByte" repid="IDL:BURSTIO/burstByte:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="burstDouble" repid="IDL:BURSTIO/burstDouble:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="burstFloat" repid="IDL:BURSTIO/burstFloat:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="burstLong" repid="IDL:BURSTIO/burstLong:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="burstLongLong" repid="IDL:BURSTIO/burstLongLong:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="burstShort" repid="IDL:BURSTIO/burstShort:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="burstUbyte" repid="IDL:BURSTIO/burstUbyte:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="burstUlong" repid="IDL:BURSTIO/burstUlong:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="burstUlongLong" repid="IDL:BURSTIO/burstUlongLong:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="burstUshort" repid="IDL:BURSTIO/burstUshort:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="EventChannel" repid="IDL:omg.org/CosEventChannelAdmin/EventChannel:1.0"/>
+    <interface name="Port" repid="IDL:CF/Port:1.0"/>
+    <interface name="MessageEvent" repid="IDL:ExtendedEvent/MessageEvent:1.0">
+      <inheritsinterface repid="IDL:omg.org/CosEventChannelAdmin/EventChannel:1.0"/>
+      <inheritsinterface repid="IDL:CF/Port:1.0"/>
+    </interface>
+    <interface name="FrontendTuner" repid="IDL:FRONTEND/FrontendTuner:1.0"/>
+    <interface name="AnalogTuner" repid="IDL:FRONTEND/AnalogTuner:1.0">
+      <inheritsinterface repid="IDL:FRONTEND/FrontendTuner:1.0"/>
+    </interface>
+    <interface name="DigitalTuner" repid="IDL:FRONTEND/DigitalTuner:1.0">
+      <inheritsinterface repid="IDL:FRONTEND/AnalogTuner:1.0"/>
+    </interface>
+    <interface name="RFSource" repid="IDL:FRONTEND/RFSource:1.0"/>
+    <interface name="NavData" repid="IDL:FRONTEND/NavData:1.0"/>
+    <interface name="GPS" repid="IDL:FRONTEND/GPS:1.0"/>
+  </interfaces>
+</softwarecomponent>
+

@@ -19,6 +19,8 @@
  */
 package burstio;
 
+import org.ossie.component.PortBase;
+
 public interface InPort<E>
 {
 
@@ -124,4 +126,5 @@ public interface InPort<E>
      * @return        an array containing all queued bursts
      */
     public E[] getBursts (float timeout);
+
 }

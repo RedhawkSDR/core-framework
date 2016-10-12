@@ -20,6 +20,7 @@
 import commands
 import os
 import glob
+import threading
 
 from ossie.utils.log4py import logging
 from ossie.utils.sca import importIDL
@@ -61,6 +62,7 @@ class IDLLibrary(object):
         self._interfaces = {}
         self._searchPaths = []
         self._includePaths = []
+        self._lock = threading.Lock()
 
         # Track parsed files to avoid repeatedly parsing the same files
         self._parsed = set()
@@ -198,11 +200,15 @@ class IDLLibrary(object):
         return None
 
     def getInterface(self, repoid):
-        if not repoid in self._interfaces:
-            self._findInterface(repoid)
+        self._lock.acquire()
+        try:
+            if not repoid in self._interfaces:
+                self._findInterface(repoid)
 
-        interface = self._interfaces.get(repoid, None)
-        if interface is None:
-            raise UnknownInterfaceError(repoid)
-        else:
-            return interface
+            interface = self._interfaces.get(repoid, None)
+            if interface is None:
+                raise UnknownInterfaceError(repoid)
+            else:
+                return interface
+        finally:
+            self._lock.release()

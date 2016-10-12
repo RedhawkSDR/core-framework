@@ -77,7 +77,12 @@ def isInterface (itype):
     return False
 
 def isDeclared (itype):
-    return isinstance(itype.unalias(), idltype.Declared)
+    if isinstance(itype, idlast.Typedef):
+        itype = itype.aliasType()
+    if isinstance(itype, idltype.Type):
+        return isinstance(itype.unalias(), idltype.Declared)
+    else:
+        return isinstance(itype, idlast.DeclRepoId)
 
 def isAny (itype):
     if not isinstance(itype, idltype.Type):
@@ -91,6 +96,14 @@ def isBuiltIn (itype):
     elif not isDeclared(itype):
         return False
     return itype.unalias().decl().builtIn()
+
+def removeAlias (itype):
+    if isinstance(itype, idlast.Typedef):
+        itype = itype.aliasType()
+    if isinstance(itype, idltype.Type):
+        return itype.unalias()
+    else:
+        return itype
 
 class Method:
 
@@ -136,13 +149,18 @@ class Setter (Method):
 
 class MethodVisitor:
 
-    def getMethods (self, node):
+    def getMethods (self, node, inherited=True):
+        self.__inherited = inherited
         self.__methods = []
         node.accept(self)
         return self.__methods
     
     def visitInterface (self, node):
-        for call in node.all_callables():
+        if self.__inherited:
+            callables = node.all_callables()
+        else:
+            callables = node.callables()
+        for call in callables:
             call.accept(self)
 
     def visitAttribute (self, node):

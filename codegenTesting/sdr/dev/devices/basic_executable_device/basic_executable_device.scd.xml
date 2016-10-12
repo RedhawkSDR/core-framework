@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<!-- Created with REDHAWK IDE-->
+<!-- Powered by Eclipse -->
+<softwarecomponent>
+    <corbaversion>2.2</corbaversion>
+    <componentrepid repid="IDL:CF/ExecutableDevice:1.0"/>
+    <componenttype>executabledevice</componenttype>
+    <componentfeatures> 
+		<supportsinterface repid="IDL:CF/ExecutableDevice:1.0" supportsname="ExecutableDevice"/>
+        <supportsinterface repid="IDL:CF/LoadableDevice:1.0" supportsname="LoadableDevice"/>
+        <supportsinterface repid="IDL:CF/Device:1.0" supportsname="Device"/>
+        <supportsinterface repid="IDL:CF/Resource:1.0" supportsname="Resource"/>
+        <supportsinterface repid="IDL:CF/LifeCycle:1.0" supportsname="LifeCycle"/>
+        <supportsinterface repid="IDL:CF/PortSupplier:1.0" supportsname="PortSupplier"/>
+        <supportsinterface repid="IDL:CF/PropertySet:1.0" supportsname="PropertySet"/>
+        <supportsinterface repid="IDL:CF/TestableObject:1.0" supportsname="TestableObject"/>
+        <ports>
+        </ports>
+    </componentfeatures>
+    <interfaces>
+        <interface repid="IDL:CF/ExecutableDevice:1.0"  name="ExecutableDevice">
+            <!--[Inherited interface IDL:CF/LoadableDevice:1.0]-->
+            <inheritsinterface repid="IDL:CF/LoadableDevice:1.0"/>
+        </interface>
+        <interface repid="IDL:CF/LoadableDevice:1.0"  name="LoadableDevice"> 
+ 			<!--[Inherited interface IDL:CF/Device:1.0]-->
+            <inheritsinterface repid="IDL:CF/Device:1.0"/>
+        </interface>   
+		<interface repid="IDL:CF/Device:1.0"  name="Device">
+            <!--[Inherited interface IDL:CF/Resource:1.0]-->
+            <inheritsinterface repid="IDL:CF/Resource:1.0" />
+        </interface>
+        <interface name="Resource" repid="IDL:CF/Resource:1.0">
+            <!--[Inherited interface IDL:CF/PropertySet:1.0]-->
+            <inheritsinterface repid="IDL:CF/PropertySet:1.0" />
+            <!--[Inherited interface IDL:CF/LifeCycle:1.0]-->
+            <inheritsinterface repid="IDL:CF/LifeCycle:1.0" />
+			<!--[Inherited interface IDL:CF/PortSupplier:1.0]-->
+            <inheritsinterface repid="IDL:CF/PortSupplier:1.0" />
+            <!--[Inherited interface IDL:CF/TestableObject:1.0]-->
+            <inheritsinterface repid="IDL:CF/TestableObject:1.0" />
+        </interface>
+        <interface name="LifeCycle" repid="IDL:CF/LifeCycle:1.0"/>
+        <interface name="PortSupplier" repid="IDL:CF/PortSupplier:1.0"/>
+        <interface name="PropertySet" repid="IDL:CF/PropertySet:1.0"/>
+        <interface name="TestableObject" repid="IDL:CF/TestableObject:1.0"/>
+    </interfaces>
+</softwarecomponent>
