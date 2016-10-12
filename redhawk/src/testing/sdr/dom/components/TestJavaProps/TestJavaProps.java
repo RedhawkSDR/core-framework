@@ -124,6 +124,22 @@ public class TestJavaProps extends Resource implements Runnable {
            Action.EXTERNAL, // action
            new Kind[] {Kind.CONFIGURE,} // kind
            );
+
+    /**
+     * The property readOnly
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final StringProperty readOnly =
+        new StringProperty(
+            "readOnly", //id
+            "readOnly", //name
+            "empty", //default value
+            Mode.READONLY, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY,Kind.CONFIGURE,}
+            );
     
     /**
      * The structure for property DCE:23a6d333-55fb-4425-a102-185e6e998782.
@@ -225,6 +241,7 @@ public class TestJavaProps extends Resource implements Runnable {
         addProperty(long_seq);
         addProperty(struct_prop);
         addProperty(structseq_prop);
+        addProperty(readOnly);
 
         // Project/input
 

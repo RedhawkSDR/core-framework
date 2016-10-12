@@ -717,12 +717,19 @@ void ResourceInfo::overrideSimpleProperty(const char* id, const std::string valu
 void ResourceInfo::overrideProperty(const char* id, const CORBA::Any& value)
 {
     const Property* prop = prf.getProperty(id);
+
     if (prop != NULL) {
         if (prop->isReadOnly()) {
-          LOG_WARN(ResourceInfo, "Ignoring attempt to override readonly property " << id);
+            if ( !prop->isProperty()) {
+                LOG_WARN(ResourceInfo, "Ignoring attempt to override readonly property " << id);
+            }
+            else {
+                process_overrides(&ctorProperties, id, value);
+            }
             return;
         }
     }
+
     process_overrides(&ctorProperties, id, value);
     process_overrides(&configureProperties, id, value);
     process_overrides(&options, id, value);

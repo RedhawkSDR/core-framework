@@ -22,7 +22,7 @@ from omniORB import any
 import unittest
 from _unitTestHelpers import scatest
 from ossie.cf import CF
-from omniORB import CORBA
+from omniORB import CORBA, URI, any
 import struct
 import time
 from ossie.utils import sb
@@ -63,6 +63,8 @@ class CppPropertiesTest(scatest.CorbaTestCase):
         # use the TestableObject interface via the Application object to run
         # the property callback tests for member functions...
         props = self._app.query([])
+        # filter out readonly props
+        props = [ p for p in props if p.id != 'readOnly' ]
         for result in self._app.runTest(0, props):
             self.assert_(result.value._v)
 
@@ -891,3 +893,39 @@ class CPPPropertyTest(scatest.CorbaTestCase):
 
         app.releaseObject()
 
+
+class CppPropertiesReadOnly(scatest.CorbaTestCase):
+
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self._domain=redhawk.attach(scatest.getTestDomainName())
+        self._app = None
+        if self._domMgr:
+            try:
+                self._app = self._domain.createApplication('/waveforms/TestCppProps/TestCppReadOnly.sad.xml')
+            except:
+                pass
+
+    def tearDown(self):
+        if self._app:
+            self._app.stop()
+            self._app.releaseObject()
+
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+
+
+    def test_readonly_sad(self):
+        self.assertNotEqual(self._domain, None, "DomainManager not available")
+        self.assertNotEqual(self._app, None, "Failed to launch app")
+
+        props = self._app.query([CF.DataType("readOnly", any.to_any(None))])
+        self.assertEqual(props[0].value._v, "set_once")
+
+        # try and configure the component
+        comp=filter( lambda c : c.name == 'TestCppProps', self._app.comps )[0]
+        self.assertNotEqual(comp,None)
+        readonly_prop=CF.DataType("readOnly", any.to_any("try_again"))
+        self.assertRaises(CF.PropertySet.InvalidConfiguration, comp.configure, [ readonly_prop ] )

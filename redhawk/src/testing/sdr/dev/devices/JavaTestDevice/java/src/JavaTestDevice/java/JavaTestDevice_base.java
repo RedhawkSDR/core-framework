@@ -153,6 +153,24 @@ public abstract class JavaTestDevice_base extends Device implements Runnable {
             new Kind[] {Kind.CONFIGURE} //kind
             );
 
+
+    /**
+     * The property readOnly
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final StringProperty readOnly =
+        new StringProperty(
+            "readOnly", //id
+            "readOnly", //name
+            "empty", //default value
+            Mode.READONLY, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY,Kind.CONFIGURE,}
+            );
+
+
     /**
      * The structure for property memory_allocation
      * 
@@ -223,6 +241,7 @@ public abstract class JavaTestDevice_base extends Device implements Runnable {
             addElement(this.contiguous);
             addElement(this.memory_type);
         }
+
     };
     
     /**
@@ -260,6 +279,7 @@ public abstract class JavaTestDevice_base extends Device implements Runnable {
         addProperty(memory_capacity);
         addProperty(shared_memory);
         addProperty(memory_allocation);
+        addProperty(readOnly);
 
         // Provides/input
 
