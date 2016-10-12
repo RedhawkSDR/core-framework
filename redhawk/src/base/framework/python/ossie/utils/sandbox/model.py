@@ -54,7 +54,7 @@ class SandboxResource(ComponentBase, SandboxMixin):
         self._componentName = spd.get_name()
 
         self.__ports = None
-
+        self._msgSupplierHelper = None
         self._parseComponentXMLFiles()
         self._buildAPI()
 
@@ -128,6 +128,23 @@ class SandboxResource(ComponentBase, SandboxMixin):
         PortSupplier.api(self)
         PropertySet.api(self)
 
+    def sendMessage(self, msg, msgId=None, msgPort=None, restrict=True ):
+        """
+        send a message out a component's message event port
+        
+        msg : dictionary of information to send or an any object
+        msgId : select a specific message structure property from the component, if None will 
+                choose first available message property structure for the component
+        msgPort : select a specified message event port to use, if None will try to autoselect
+        restrict : if True, will restrict msgId to only those message ids defined by the component
+                   if False, will allow for ad-hoc message to be sent
+        """
+        if self._msgSupplierHelper == None:
+            import ossie.utils
+            self._msgSupplierHelper = ossie.utils.sb.io_helpers.MsgSupplierHelper(self)
+        if self.ref and self.ref._get_started() == True and self._msgSupplierHelper: 
+            return self._msgSupplierHelper.sendMessage( msg, msgId, msgPort, restrict )
+        return False
 
 class SandboxComponent(SandboxResource, Resource):
     def __init__(self, *args, **kwargs):

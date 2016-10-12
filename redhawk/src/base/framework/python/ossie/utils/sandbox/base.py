@@ -273,6 +273,12 @@ class Sandbox(object):
             channel.destroy()
         self._eventChannels = {}
 
+    def catalog(self, searchPath=None, objType="components"):
+        files = {}
+        for profile in self.getSdrRoot().readProfiles(objType, searchPath):
+            files[profile['name']] = profile['profile']
+        return files
+
     def _sortOverrides(self, prf, properties):
         if not prf:
             # No PRF file, assume all properties are execparams.
@@ -349,7 +355,7 @@ class Sandbox(object):
     def _breakConnections(self, target):
         # Break any connections involving this object.
         manager = ConnectionManager.instance()
-        for identifier, (uses, provides) in manager.getConnections().items():
+        for _identifier, (identifier, uses, provides) in manager.getConnections().items():
             if uses.hasComponent(target) or provides.hasComponent(target):
                 manager.breakConnection(identifier, uses)
                 manager.unregisterConnection(identifier, uses)

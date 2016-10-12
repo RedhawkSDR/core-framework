@@ -722,8 +722,7 @@ def loadSADFile(filename, props={}):
                         simple_exec_vals[container.id] = container.value
                 try:
                     # NB: Explicitly request no configure call is made on the component
-                    newComponent = launch(componentName, instanceName, instanceID, configure=False,
-                                          properties=simple_exec_vals, objType="component")
+                    newComponent = launch(componentName, instanceName, instanceID, configure=False, properties=simple_exec_vals, objType="components")
                     launchedComponents.append(newComponent)
                 except Exception as e:
                     msg = "Failed to launch component '%s', REASON: %s" %  (instanceName, str(e))

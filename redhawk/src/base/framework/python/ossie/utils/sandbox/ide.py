@@ -82,14 +82,24 @@ class IDESdrRoot(SdrRoot):
 
 
 class IDELauncher(SandboxLauncher):
-    def __init__(self, execparams):
+    def __init__(self, execparams, initProps, configProps):
         self._execparams = execparams
+        self._initProps = initProps
+        self._configProps = configProps
 
     def launch(self, comp):
-        execparams = comp._getExecparams()
-        execparams.update(self._execparams)
+        # Pack the execparams into an array of string-valued properties
+        properties = [CF.DataType(k, to_any(str(v))) for k, v in self._execparams.iteritems()]
+        # Pack the remaining props by having the component do the conversion
+        properties.extend(comp._itemToDataType(k,v) for k,v in self._initProps.iteritems())
+        properties.extend(comp._itemToDataType(k,v) for k,v in self._configProps.iteritems())
 
-        ref = comp._sandbox._createResource(comp._profile, comp._instanceName, execparams, comp._impl)
+        # Tell the IDE to launch a specific implementation, if given
+        if comp._impl is not None:
+            properties.append(CF.DataType('__implementationID', to_any(comp._impl)))
+
+        ref = comp._sandbox._createResource(comp._profile, comp._instanceName, properties)
+
         # The IDE sandbox API only allows us to specify the instance name, not
         # the identifier, so update by querying the component itself
         comp._refid = ref._get_identifier()
@@ -141,10 +151,10 @@ class IDESandbox(Sandbox):
 
     def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger, window, timeout):
         if comptype in ('resource', 'device', 'loadabledevice', 'executabledevice'):
-            return IDELauncher(execparams)
+            return IDELauncher(execparams, initProps, configProps)
         return None
 
-    def _createResource(self, profile, name, execparams={}, impl=None):
+    def _createResource(self, profile, name, qualifiers=[]):
         log.debug("Creating resource '%s' with profile '%s'", name, profile)
 
         rescFactory = self.__ide.getResourceFactoryByProfile(profile)

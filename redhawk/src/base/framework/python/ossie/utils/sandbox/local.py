@@ -24,6 +24,7 @@ import fnmatch
 import time
 import copy
 import pydoc
+import warnings
 
 from omniORB import CORBA
 
@@ -62,22 +63,21 @@ class LocalSdrRoot(SdrRoot):
         path = open(self._sdrPath(filename), 'r')
         return path.read()
 
-    def getProfiles(self, objType=None):
+    def _getSearchPaths(self, objTypes):
+        paths = []
+        if 'components' in objTypes:
+            paths.append('dom/components')
+        if 'devices' in objTypes:
+            paths.append('dev/devices')
+        if 'services' in objTypes:
+            paths.append('dev/services')
+        return [self._sdrPath(p) for p in paths]
+
+    def _getAvailableProfiles(self, path):
         files = []
-        searchPath = []
-        if objType == "component" or objType is None:
-            searchPath.append('dom/components')
-        if objType == "device" or objType is None:
-            searchPath.append('dev/devices')
-        if objType == "service" or objType is None:
-            searchPath.append('dev/services')
-        if not searchPath:
-            raise ValueError, "'%s' is not a valid object Type" % objType
-        for path in searchPath:
-            path = self._sdrPath(path)
-            for root, dirs, fnames in os.walk(path):
-                for filename in fnmatch.filter(fnames, '*.spd.xml'):
-                    files.append(os.path.join(root, filename))
+        for root, dirs, fnames in os.walk(path):
+            for filename in fnmatch.filter(fnames, '*.spd.xml'):
+                files.append(os.path.join(root, filename))
         return files
 
     def _getObjectTypes(self, objType):
@@ -204,7 +204,21 @@ class LocalLauncher(SandboxLauncher):
         comp._pid = process.pid()
 
         # Return the now-resolved CORBA reference.
-        return self.getReference(comp)
+        ref = self.getReference(comp)
+        try:
+            # Occasionally, when a lot of components are launched from the
+            # sandbox, omniORB may have a cached connection where the other end
+            # has terminated (this is particularly a problem with Java, because
+            # the Sun ORB never closes connections on shutdown). If the new
+            # component just happens to have the same TCP/IP address and port,
+            # the first time we try to reach the component, it will get a
+            # CORBA.COMM_FAILURE exception even though the reference is valid.
+            # In this case, a call to _non_existent() should cause omniORB to
+            # clean up the stale socket, and subsequent calls behave normally.
+            comp.ref._non_existent()
+        except:
+            pass
+        return ref
 
     def setup(self, comp):
         # Initialize the component unless asked not to.
