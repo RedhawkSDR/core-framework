@@ -1,5 +1,5 @@
 variables:
-  REDHAWK_VERSION: '2.0.4'
+  REDHAWK_VERSION: '2.1.0'
   FRONTEND_VERSION: '2.3.4'
 
 stages:
