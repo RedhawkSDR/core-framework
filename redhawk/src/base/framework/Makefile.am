@@ -56,7 +56,8 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
 			Value.cpp \
 			PropertyType.cpp \
 			PropertyMap.cpp \
-			Versions.cpp
+			Versions.cpp \
+			ExecutorService.cpp
 
 libossiecf_la_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
 # Include the omniORB internal directory, otherwise CorbaUtils will not build

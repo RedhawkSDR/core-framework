@@ -128,7 +128,7 @@ bool ConnectionManager::exceptionsEnabled()
     return _enableExceptions;
 }
 
-PREPARE_LOGGING(AppConnectionManager);
+PREPARE_CF_LOGGING(AppConnectionManager);
 
 AppConnectionManager::AppConnectionManager(DomainLookup* domainLookup,
                                            ComponentLookup* componentLookup,

@@ -87,7 +87,7 @@ public:
 
     const std::string & getID () { return _identifier; }
     const std::string & getName () { return _name; }
-    
+
     // allow createHelper to have access to ApplicationFactory_impl
     friend class createHelper;
     friend class ScopedAllocations;

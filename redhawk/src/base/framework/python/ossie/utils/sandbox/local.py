@@ -271,8 +271,10 @@ class LocalLauncher(SandboxLauncher):
         # Store the process on the component proxy.
         if impl.get_code().get_type() == 'SharedLibrary' and self._shared:
             comp._process = None
+            comp._pid = None
         else:
             comp._process = process
+            comp._pid = process.pid()
 
         # Return the now-resolved CORBA reference.
         ref = self.getReference(comp)

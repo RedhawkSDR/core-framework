@@ -436,10 +436,10 @@ void ResourceInfo::load(CF::FileSystem_ptr fileSys)
             _scd.close();
         } catch (ossie::parser_error& e) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-            LOG_ERROR(ResourceInfo, "Building component info problem; error parsing SCD: " << newComponent.spd.getSCDFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
+            LOG_ERROR(ResourceInfo, "Building component info problem; error parsing SCD: " << spd.getSCDFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
             throw 0;
         } catch( ... ) {
-            LOG_ERROR(ResourceInfo, "Building component info problem; unknown error parsing SCD: " << newComponent.spd.getSCDFile() );
+            LOG_ERROR(ResourceInfo, "Building component info problem; unknown error parsing SCD: " << spd.getSCDFile() );
             throw 0;
         }
     }
@@ -454,10 +454,10 @@ void ResourceInfo::load(CF::FileSystem_ptr fileSys)
             _prf.close();
         } catch (ossie::parser_error& e) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-            LOG_ERROR(ResourceInfo, "Building component info problem; error parsing PRF: " << newComponent.spd.getPRFFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
+            LOG_ERROR(ResourceInfo, "Building component info problem; error parsing PRF: " << spd.getPRFFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
             throw  0;
         } catch( ... ) {
-            LOG_ERROR(ResourceInfo, "Building component info problem; unknown error parsing PRF: " << newComponent.spd.getPRFFile() );
+            LOG_ERROR(ResourceInfo, "Building component info problem; unknown error parsing PRF: " << spd.getPRFFile() );
             throw 0;
         }
     }

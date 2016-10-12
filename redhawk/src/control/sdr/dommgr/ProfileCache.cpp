@@ -22,13 +22,25 @@
 
 #include <ossie/FileStream.h>
 #include <ossie/SoftPkg.h>
+#include <ossie/Versions.h>
 
 #include "ProfileCache.h"
 
 using namespace redhawk;
 using namespace ossie;
 
-PREPARE_LOGGING(ProfileCache);
+PREPARE_CF_LOGGING(ProfileCache);
+
+namespace {
+    static std::string getVersionMismatchMessage(const std::string& version)
+    {
+        if (redhawk::compareVersions(VERSION, version) > 0) {
+            return " (attempting to load a profile from version " + version + " on REDHAWK version " VERSION ")";
+        } else {
+            return std::string();
+        }
+    }
+}
 
 ProfileCache::ProfileCache(CF::FileSystem_ptr fileSystem) :
     fileSystem(CF::FileSystem::_duplicate(fileSystem))
@@ -51,6 +63,7 @@ const SoftPkg* ProfileCache::loadProfile(const std::string& spdFilename)
             softpkg->loadProperties(prf_stream);
         } catch (const std::exception& exc) {
             std::string message = spdFilename + " has invalid PRF file " + prf_file + ": " + exc.what();
+            message += ::getVersionMismatchMessage(softpkg->getSoftPkgType());
             throw invalid_profile(spdFilename, message);
         }
     }
@@ -65,6 +78,7 @@ const SoftPkg* ProfileCache::loadProfile(const std::string& spdFilename)
             softpkg->loadDescriptor(scd_stream);
         } catch (const std::exception& exc) {
             std::string message = spdFilename + " has invalid SCD file " + scd_file + ": " + exc.what();
+            message += ::getVersionMismatchMessage(softpkg->getSoftPkgType());
             throw invalid_profile(spdFilename, message);
         }
     }
@@ -83,13 +97,46 @@ const SoftPkg* ProfileCache::loadSoftPkg(const std::string& filename)
     }
 
     LOG_TRACE(ProfileCache, "Loading SPD file " << filename);
+    SoftPkg* softpkg = 0;
     try {
         File_stream spd_stream(fileSystem, filename.c_str());
-        SoftPkg* softpkg = new SoftPkg(spd_stream, filename);
-        profiles.push_back(softpkg);
-        return softpkg;
+        softpkg = new SoftPkg(spd_stream, filename);
     } catch (const std::exception& exc) {
         std::string message = filename + " is invalid: " + exc.what();
+        std::string softpkg_version = _extractVersion(filename);
+        if (!softpkg_version.empty()) {
+            message += ::getVersionMismatchMessage(softpkg_version);
+        }
         throw invalid_profile(filename, message);
     }
+
+    profiles.push_back(softpkg);
+    return softpkg;
+}
+
+std::string ProfileCache::_extractVersion(const std::string& filename)
+{
+    // When the SPD itself cannot be parsed, try to recover the type attribute
+    // from the <softpkg> element manually. If the SPD is from a newer version
+    // of REDHAWK that has extended the XSD, this allows for a more helpful
+    // error message.
+    try {
+        File_stream stream(fileSystem, filename.c_str());
+        std::string line;
+        while (std::getline(stream, line)) {
+            std::string::size_type type_idx = line.find("type");
+            if (type_idx != std::string::npos) {
+                std::string::size_type first_quote = line.find('"', type_idx);
+                if (first_quote != std::string::npos) {
+                    size_t second_quote = line.find('"', first_quote + 1);
+                    if (second_quote != std::string::npos) {
+                        return line.substr(first_quote + 1, second_quote-(first_quote+1));
+                    }
+                }
+            }
+        }
+    } catch (...) {
+        // Ignore all errors
+    }
+    return std::string();
 }

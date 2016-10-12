@@ -40,7 +40,7 @@ public:
     }
 };
 
-PREPARE_LOGGING(ApplicationValidator);
+PREPARE_CF_LOGGING(ApplicationValidator);
 
 ApplicationValidator::ApplicationValidator(CF::FileSystem_ptr fileSystem) :
     fileSystem(CF::FileSystem::_duplicate(fileSystem)),

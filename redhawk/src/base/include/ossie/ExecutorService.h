@@ -80,7 +80,7 @@ namespace redhawk {
         template <class F>
         void execute (F func)
         {
-            insert_sorted(func);
+            _insertSorted(func);
         }
 
         /**
@@ -101,7 +101,7 @@ namespace redhawk {
         template <class F, class A1>
         void execute (F func, A1 arg1)
         {
-            insert_sorted(boost::bind(func, arg1));
+            _insertSorted(boost::bind(func, arg1));
         }
 
         /**
@@ -123,7 +123,7 @@ namespace redhawk {
         template <class F, class A1, class A2>
         void execute (F func, A1 arg1, A2 arg2)
         {
-            insert_sorted(boost::bind(func, arg1, arg2));
+            _insertSorted(boost::bind(func, arg1, arg2));
         }
 
         /**
@@ -142,7 +142,7 @@ namespace redhawk {
         template <class F>
         void schedule (boost::system_time when, F func)
         {
-            insert_sorted(func, when);
+            _insertSorted(func, when);
         }
 
         /**
@@ -166,7 +166,7 @@ namespace redhawk {
         template <class F, class A1>
         void schedule (boost::system_time when, F func, A1 arg1)
         {
-            insert_sorted(boost::bind(func, arg1), when);
+            _insertSorted(boost::bind(func, arg1), when);
         }
 
         /**
@@ -191,7 +191,7 @@ namespace redhawk {
         template <class F, class A1, class A2>
         void schedule (boost::system_time when, F func, A1 arg1, A2 arg2)
         {
-            insert_sorted(boost::bind(func, arg1, arg2), when);
+            _insertSorted(boost::bind(func, arg1, arg2), when);
         }
 
         /**

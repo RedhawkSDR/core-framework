@@ -112,6 +112,8 @@ namespace redhawk {
     protected:
         ossie::SoftPkg* findSoftPkg(const std::string& filename);
 
+        std::string _extractVersion(const std::string& filename);
+
         CF::FileSystem_var fileSystem;
         boost::ptr_vector<ossie::SoftPkg> profiles;
     };

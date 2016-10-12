@@ -205,8 +205,11 @@ fi
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/deps
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/domain
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/mgr
+%attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/mgr/rh
 %attr(775,redhawk,redhawk) %{_sdrroot}/dom/mgr/DomainManager
+%attr(775,redhawk,redhawk) %{_sdrroot}/dom/mgr/rh/ComponentHost
 %{_sdrroot}/dom/mgr/*.xml
+%{_sdrroot}/dom/mgr/rh/ComponentHost/*
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/waveforms
 %attr(644,root,root) %{_sysconfdir}/profile.d/redhawk-sdrroot.csh
 %attr(644,root,root) %{_sysconfdir}/profile.d/redhawk-sdrroot.sh

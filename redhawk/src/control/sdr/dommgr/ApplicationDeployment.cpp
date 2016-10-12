@@ -31,7 +31,7 @@
 using namespace redhawk;
 using namespace ossie;
 
-PREPARE_LOGGING(ApplicationDeployment);
+PREPARE_CF_LOGGING(ApplicationDeployment);
 
 ContainerDeployment::ContainerDeployment(const ossie::SoftPkg* softpkg,
                                          ossie::ComponentInstantiation* instantiation,

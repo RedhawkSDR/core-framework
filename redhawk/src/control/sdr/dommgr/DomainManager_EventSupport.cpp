@@ -186,7 +186,7 @@ void DomainManager_impl::idmTerminationMessages(const redhawk::events::Component
     if (application) {
         application->componentTerminated(termMsg.component_id, termMsg.device_id);
     } else {
-        LOG_WARN(DomainManager_impl, "Abormal Component Termination, Reporting Device: " << termMsg.device_id
+        LOG_WARN(DomainManager_impl, "Abnormal Component Termination, Reporting Device: " << termMsg.device_id
                  << " Application/Component " << termMsg.application_id << "/" << termMsg.component_id);
     }
 }

@@ -35,6 +35,7 @@
 #include <ossie/CF/WellKnownProperties.h>
 #include <ossie/FileStream.h>
 #include <ossie/prop_helpers.h>
+#include <ossie/Versions.h>
 #include <ossie/prop_utils.h>
 
 #include "Application_impl.h"
@@ -126,9 +127,19 @@ namespace {
             return !first.empty();
         }
     }
+
+    static std::string getVersionMismatchMessage(const SoftPkg* softpkg)
+    {
+        const std::string& softpkg_version = softpkg->getSoftPkgType();
+        if (redhawk::compareVersions(VERSION, softpkg_version) > 0) {
+            return " (attempting to run a component from version " + softpkg_version + " on REDHAWK version " VERSION ")";
+        } else {
+            return std::string();
+        }
+    }
 }
 
-PREPARE_LOGGING(ApplicationFactory_impl);
+PREPARE_CF_LOGGING(ApplicationFactory_impl);
 
 ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwareProfile,
                                                   const std::string& domainName, 
@@ -1499,10 +1510,9 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             throw std::logic_error(message.str());
         }
 
-        LOG_TRACE(ApplicationFactory_impl, "Component - " << softpkg->getName()
-                  << "   Assigned device - " << device->identifier);
-        LOG_INFO(ApplicationFactory_impl, "APPLICATION: " << _waveformContextName << " COMPONENT ID: " 
-                 << component->getIdentifier()  << " ASSIGNED TO DEVICE ID/LABEL: " << device->identifier << "/" << device->label);
+        LOG_INFO(ApplicationFactory_impl, "Application '" << _waveformContextName << "' component '"
+                 << deployment->getIdentifier() << "' assigned to device '" << device->label
+                 << "' (" << device->identifier << ")");
 
         // Let the application know to expect the given component
         _application->addComponent(deployment->getIdentifier(), softpkg->getSPDFile());
@@ -1839,7 +1849,9 @@ void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& 
             // create() exception handler will turn it into a CF exception
             throw;
         }
-        throw redhawk::ExecuteError(deployment, "component terminated before registering with application");
+        std::string message = "component terminated before registering with application";
+        message += ::getVersionMismatchMessage(deployment->getSoftPkg());
+        throw redhawk::ExecuteError(deployment, message);
     }
 
     // For reference, determine much time has really elapsed.
@@ -1852,12 +1864,15 @@ void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& 
 
     // Fetch the objects, finding any components that did not register
     BOOST_FOREACH(redhawk::ComponentDeployment* deployment, deployments) {
-        if (deployment->getSoftPkg()->isScaCompliant()) {
+        const SoftPkg* softpkg = deployment->getSoftPkg();
+        if (softpkg->isScaCompliant()) {
             // Find the component on the Application
             const std::string componentId = deployment->getIdentifier();
             CORBA::Object_var objref = _application->getComponentObject(componentId);
             if (CORBA::is_nil(objref)) {
-                throw redhawk::ExecuteError(deployment, "component did not register with application");
+                std::string message = "component did not register with application";
+                message += ::getVersionMismatchMessage(softpkg);
+                throw redhawk::ExecuteError(deployment, message);
             }
 
             // Occasionally, omniORB may have a cached connection where the
