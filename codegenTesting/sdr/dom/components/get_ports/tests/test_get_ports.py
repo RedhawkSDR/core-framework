@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
 import ossie.utils.testing
-from ossie.cf import CF
-import os
-from omniORB import any
+from ossie.utils import sb
 
 class ComponentTests(ossie.utils.testing.RHTestCase):
     # Path to the SPD file, relative to this file. This must be set in order to
