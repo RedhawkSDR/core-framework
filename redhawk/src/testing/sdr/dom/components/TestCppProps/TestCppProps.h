@@ -64,6 +64,9 @@ protected:
     std::vector<prop_foo_struct> seq_foo;
 
     std::set<std::string> testCallbackResults;
+
+    /// Property: readOnly
+    std::string readOnly;
 };
 
 #endif

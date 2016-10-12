@@ -131,6 +131,8 @@ class CppTestDevice_base : public Device_impl
         CORBA::Long shared_memory;
         memory_allocation_struct memory_allocation;
 
+        /// Property: readOnly
+        std::string readOnly;
     private:
         void construct();
 

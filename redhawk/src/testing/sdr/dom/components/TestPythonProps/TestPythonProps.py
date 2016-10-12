@@ -56,6 +56,14 @@ class TestPythonProps (CF__POA.Resource, Resource):
                             kinds=("configure",),
                             defvalue=1.234)
 
+    readOnly = simple_property(id_="readOnly",
+                               name="readOnly",
+                               type_="string",
+                               defvalue="empty",
+                               mode="readonly",
+                               action="external",
+                               kinds=("property",))
+
     class SomeStruct(object):
         field1 = simple_property(id_="item1",
                 type_="string",

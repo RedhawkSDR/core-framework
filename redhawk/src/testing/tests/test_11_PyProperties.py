@@ -1119,3 +1119,40 @@ class PythonPropertyTest(scatest.CorbaTestCase):
 
 
         app.releaseObject()
+
+
+class PyPropertiesReadOnly(scatest.CorbaTestCase):
+
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self._domain=redhawk.attach(scatest.getTestDomainName())
+        self._app = None
+        if self._domMgr:
+            try:
+                self._app = self._domain.createApplication('/waveforms/TestPythonProps/TestPythonReadOnly.sad.xml')
+            except:
+                pass
+
+    def tearDown(self):
+        if self._app:
+            self._app.stop()
+            self._app.releaseObject()
+
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+
+
+    def test_readonly_sad(self):
+        self.assertNotEqual(self._domain, None, "DomainManager not available")
+        self.assertNotEqual(self._app, None, "Failed to launch app")
+
+        props = self._app.query([CF.DataType("readOnly", any.to_any(None))])
+        self.assertEqual(props[0].value._v, "set_once")
+
+        # try and configure the component
+        comp=filter( lambda c : c.name == 'TestPythonProps', self._app.comps )[0]
+        self.assertNotEqual(comp,None)
+        readonly_prop=CF.DataType("readOnly", any.to_any("try_again"))
+        self.assertRaises(CF.PropertySet.InvalidConfiguration, comp.configure, [ readonly_prop ] )

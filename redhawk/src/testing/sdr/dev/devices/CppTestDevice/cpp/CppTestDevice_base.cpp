@@ -185,6 +185,16 @@ void CppTestDevice_base::loadProperties()
                 "external",
                 "allocation");
 
+    addProperty(readOnly,
+                "empty",
+                "readOnly",
+                "readOnly",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+
 }
 
 

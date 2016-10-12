@@ -755,12 +755,20 @@ void ComponentInfo::overrideProperty(const ossie::ComponentProperty* propref) {
 void ComponentInfo::overrideProperty(const char* id, const CORBA::Any& value)
 {
     const Property* prop = prf.getProperty(id);
+
+
     if (prop != NULL) {
         if (prop->isReadOnly()) {
-            LOG_WARN(ComponentInfo, "ignoring attempt to override readonly property " << id);
+            if ( !prop->isProperty()) {
+                LOG_WARN(ComponentInfo, "Ignoring attempt to override readonly property " << id);
+            }
+            else {
+                process_overrides(&ctorProperties, id, value);
+            }
             return;
         }
     }
+
     process_overrides(&ctorProperties, id, value);
     process_overrides(&configureProperties, id, value);
     process_overrides(&options, id, value);

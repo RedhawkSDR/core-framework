@@ -73,6 +73,15 @@ TestCppProps::TestCppProps(const char *uuid, const char *label) :
     seq_foo[0].item_string = "First";
     seq_foo[1].item_bool = true;
     seq_foo[1].item_string = "Second";
+
+    addProperty(readOnly,
+                "empty",
+                "readOnly",
+                "readOnly",
+                "readonly",
+                "",
+                "external",
+                "property");
 }
 
 TestCppProps::~TestCppProps (void)
