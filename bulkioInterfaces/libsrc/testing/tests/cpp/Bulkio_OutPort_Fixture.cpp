@@ -569,3 +569,15 @@ Bulkio_OutPort_Fixture::test_sdds()
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
+
+
+void
+Bulkio_OutPort_Fixture::test_sdds_sri()
+{
+  bulkio::OutSDDSPort *port = new bulkio::OutSDDSPort("test_sdds_sri", logger );
+  CPPUNIT_ASSERT( port != NULL );
+
+  test_port_sri< bulkio::OutSDDSPort, bulkio::InSDDSPort > ( port );
+
+  CPPUNIT_ASSERT_NO_THROW( port );
+}

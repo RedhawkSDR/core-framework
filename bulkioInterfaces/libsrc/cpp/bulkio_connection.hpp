@@ -136,13 +136,8 @@ namespace bulkio {
       RemoteConnection<PortTraits>(name, port)      
     {
       // Multiply by some number < 1 to leave some margin for the CORBA header
-      const size_t maxPayloadSize    = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
+      const size_t maxPayloadSize = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
       maxSamplesPerPush = maxPayloadSize/sizeof(TransportType);
-      // Make sure maxSamplesPerPush is even so that complex data case is
-      // handled properly
-      if (maxSamplesPerPush%2 != 0){
-          maxSamplesPerPush--;
-      }
     }
 
     /*
@@ -158,6 +153,13 @@ namespace bulkio {
     {
       double xdelta = sri.xdelta;
       size_t itemSize = sri.mode?2:1;
+      size_t frameSize = itemSize;
+      if (sri.subsize > 0) {
+          frameSize *= sri.subsize;
+      }
+      // Quantize the push size (in terms of scalars) to the nearest frame,
+      // which takes both the complex mode and subsize into account
+      const size_t maxPushSize = (maxSamplesPerPush/frameSize) * frameSize;
 
       // Always do at least one push (may be empty), ensuring that all samples
       // are pushed
@@ -169,7 +171,7 @@ namespace bulkio {
       
       do {
         // Don't send more samples than are remaining
-        const size_t pushSize = std::min(samplesRemaining, maxSamplesPerPush);
+        const size_t pushSize = std::min(samplesRemaining, maxPushSize);
         samplesRemaining -= pushSize;
 
         // Send end-of-stream as false for all sub-packets except for the
