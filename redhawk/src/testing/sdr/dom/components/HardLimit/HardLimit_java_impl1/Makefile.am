@@ -21,14 +21,11 @@
 # vim: noet: softtabstop=0
 if HAVE_JAVASUPPORT
 
-JAVA_LIBDIR = $(top_srcdir)/base/framework/java
-
 HardLimit_java_impl1.jar:
 	mkdir -p bin
 	find ./src -name "*.java" > fileList.txt
-	$(JAVAC) -cp $(JAVA_LIBDIR)/CFInterfaces.jar:$(JAVA_LIBDIR)/log4j-1.2.15.jar:$(JAVA_LIBDIR)/ossie.jar:../../javaDep/javaDep/javaDep.jar -d bin @fileList.txt
+	$(JAVAC) -cp $(OSSIE_CLASSPATH):../../javaDep/javaDep/javaDep.jar -d bin @fileList.txt
 	$(JAR) cf ./HardLimit_java_impl1.jar -C bin .
-	rm fileList.txt
 
 clean-local:
 	rm -rf bin 

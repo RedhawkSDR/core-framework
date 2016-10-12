@@ -26,7 +26,7 @@ import signal
 from omniORB import CORBA
 from ossie.resource import load_logging_config_uri
 from ossie.cf import CF
-import ossie.resource as resource
+import ossie.logger
 
 def __exit_handler(signum, frame):
     # Raise SystemExit - but only the first time we get a signal
@@ -81,15 +81,6 @@ def start_service(serviceclass, thread_policy=None):
         try:
             orb = CORBA.ORB_init()
 
-            if execparams.has_key('LOGGING_CONFIG_URI'):
-                load_logging_config_uri(orb, execparams["LOGGING_CONFIG_URI"])
-            else:
-                try:
-                    resource.configureLogging(execparams, None, orb)
-                except:
-                    logging.basicConfig()
-                    logging.getLogger().setLevel(logging.DEBUG)
-
             # get the POA
             obj_poa = orb.resolve_initial_references("RootPOA")
             poaManager = obj_poa._get_the_POAManager()
@@ -111,10 +102,24 @@ def start_service(serviceclass, thread_policy=None):
                 logging.warning("No 'SERVICE_NAME' argument provided")
                 execparams["SERVICE_NAME"] = ""
 
+
+            # Configure logging context for the service
+            name = execparams.get("SERVICE_NAME", "")
+            log_config_uri = execparams.get("LOGGING_CONFIG_URI", None)
+            debug_level = execparams.get("DEBUG_LEVEL", None)
+            if debug_level != None: debug_level = int(debug_level)
+            dpath=execparams.get("DOM_PATH", "")
+            ctx = ossie.logger.ServiceCtx( name, dpath )
+            ossie.logger.Configure( log_config_uri, debug_level, ctx )
+
             # Create the component
             component_Obj = serviceclass(execparams["SERVICE_NAME"], execparams)
             servicePOA.activate_object(component_Obj)
             component_Var = component_Obj._this()
+
+            ## RESOLVE  - service does not follow Resource class hierarchy
+            ## set logging context for resource to support CF::Logging
+            ##component_Obj.setLoggingContext( log_config_uri, debug_level, ctx )
 
             if devMgr != None:
                 logging.debug("Registering service with device manager")
@@ -137,6 +142,13 @@ def start_service(serviceclass, thread_policy=None):
         except:
             logging.exception("Error while unregistering service")
             
+        if component_Obj != None and callable(getattr(component_Obj, "terminateService", None)):
+            try:
+                component_Obj.terminateService()
+            except:
+                logging.exception("Error releasing service object")
+                
+        # Call to a deprecated exit function.
         if component_Obj != None and callable(getattr(component_Obj, "releaseObject", None)):
             try:
                 component_Obj.releaseObject()

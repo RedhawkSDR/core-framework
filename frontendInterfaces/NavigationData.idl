@@ -1,0 +1,82 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _FRONTEND_NAVIGATIONDATA_IDL_
+#define _FRONTEND_NAVIGATIONDATA_IDL_ 
+
+#include "redhawk/FRONTEND/Frontend.idl"
+#include "ossie/BULKIO/bulkioDataTypes.idl"
+
+
+module FRONTEND
+{
+	/**
+		Concept of Operation:
+		---------------------
+		
+		This interface provides basic navigational information such as position, velocity, etc. While multiple positional structures are
+		defined in the NavigationPacket, they include a "valid" flag which gives the hardware the ability to say whether or not it 
+		provides that data (ie - not all navigation sources may provide attitude). The NavigationPacket also includes a generic property 
+		structure named "additional_info" to allow for expansion such as customized key/value pairs. 
+		
+	*/
+
+    /***********************/
+    /**     CONSTANTS      */
+    /***********************/
+    
+    /** Device Kind */
+    const string FE_NAV_DEVICE_KIND = "FRONTEND::NAVIGATION";
+    
+
+    /************************/
+    /**     STRUCTURES      */
+    /************************/
+    struct NavigationPacket {
+        string source_id;  /** NAV source identifier */
+		string rf_flow_id; /** identifier of rf_flow (ie - antenna) feeding into this NAV hardware */
+                
+    	/** positional data */
+        PositionInfo  position;
+        CartesianPositionInfo cposition;
+        VelocityInfo  velocity;
+        AccelerationInfo  acceleration;
+        AttitudeInfo  attitude;
+        
+        /** timestamp */
+        BULKIO::PrecisionUTCTime timestamp;
+        
+        /** Allows for keyword expansion*/
+        CF::Properties additional_info;
+    };
+
+    /************************/
+    /**      INTERFACE      */
+    /************************/
+    interface NavData {
+    	attribute NavigationPacket nav_packet;
+    };
+
+
+
+
+};
+
+#endif

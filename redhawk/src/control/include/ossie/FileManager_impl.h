@@ -22,63 +22,84 @@
 #ifndef __FILEMANAGER__IMPL
 #define __FILEMANAGER__IMPL
 
-#include "ossie/CF/cf.h"
-#include "ossie/debug.h"
+#include <string>
+#include <list>
+
+#include <boost/thread/shared_mutex.hpp>
+
+#include <ossie/CF/cf.h>
+#include <ossie/debug.h>
 
 #include "FileSystem_impl.h"
+
 class FileManager_impl: public virtual POA_CF::FileManager,  public FileSystem_impl
 {
     ENABLE_LOGGING
 
 public:
     FileManager_impl (const char* _fsroot);
-
     ~FileManager_impl ();
 
-    void
-    mount (const char* mountPoint, CF::FileSystem_ptr _fileSystem)
-    throw (CORBA::SystemException, CF::InvalidFileName,
-           CF::FileManager::InvalidFileSystem,
-           CF::FileManager::MountPointAlreadyExists);
+    void mount (const char* mountPoint, CF::FileSystem_ptr _fileSystem)
+        throw (CORBA::SystemException, CF::InvalidFileName, CF::FileManager::InvalidFileSystem, CF::FileManager::MountPointAlreadyExists);
 
-    void
-    unmount (const char* mountPoint)
-    throw (CF::FileManager::NonExistentMount, CORBA::SystemException);
-    void
-    mkdir (const char* directoryName)
-    throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
-    void
-    rmdir (const char* directoryName)
-    throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
-    void
-    query (CF::Properties& fileSysProperties)
-    throw (CF::FileSystem::UnknownFileSystemProperties, CORBA::SystemException);
+    void unmount (const char* mountPoint)
+        throw (CF::FileManager::NonExistentMount, CORBA::SystemException);
 
-    void
-    remove (const char* fileName)
-    throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
-    void
-    copy (const char* sourceFileName, const char* destinationFileName)
-    throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+    void mkdir (const char* directoryName)
+        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+
+    void rmdir (const char* directoryName)
+        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+
+    void query (CF::Properties& fileSysProperties)
+        throw (CF::FileSystem::UnknownFileSystemProperties, CORBA::SystemException);
+
+    void remove (const char* fileName)
+        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+
+    void copy (const char* sourceFileName, const char* destinationFileName)
+        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+
+    void move (const char* sourceFileName, const char* destinationFileName)
+        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+
     CORBA::Boolean exists (const char* fileName)
-    throw (CF::InvalidFileName, CORBA::SystemException);
+        throw (CF::InvalidFileName, CORBA::SystemException);
+
     CF::File_ptr create (const char* fileName)
-    throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+
     CF::File_ptr open (const char* fileName, CORBA::Boolean read_Only)
-    throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+
     CF::FileSystem::FileInformationSequence* list (const char* pattern)
-    throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
-    CF::FileManager::MountSequence* getMounts ()throw (CORBA::SystemException);
+        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+
+    CF::FileManager::MountSequence* getMounts () throw (CORBA::SystemException);
 
 private:
-    bool getFSandFSPath(const char* path, long& mountTableIndex, std::string& FSPath);
-    unsigned int pathMatches(const char* path, const char* mPoint, std::string& FSPath);
-    void regularExpressionMountSearch(std::string new_pattern, CF::FileSystem::FileInformationSequence_var& fis);
-    void regularExpressionMountDelete(std::string new_pattern);
-    
-    CF::FileManager::MountSequence_var mount_table;
+    struct MountPoint {
+        std::string path;
+        CF::FileSystem_var fs;
+        
+        MountPoint (const std::string& path, CF::FileSystem_ptr fs):
+            path(path),
+            fs(CF::FileSystem::_duplicate(fs))
+        {
+        }
 
-    unsigned int numMounts;
+        bool contains (const std::string& filepath) const;
+        std::string getRelativePath (const std::string& filepath) const;
+    };
+
+    typedef std::list<MountPoint> MountList;
+    MountList mountedFileSystems;
+    boost::shared_mutex mountsLock;
+
+    MountList::iterator getMountForPath (const std::string& path);
+
+    CORBA::ULongLong getCombinedProperty (const char* propId);
 
 };                  /* END CLASS DEFINITION FileManager */
 #endif              /* __FILEMANAGER__ */

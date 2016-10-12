@@ -53,42 +53,37 @@ void BasicTestDevice_cpp_impl1_i::releaseObject() throw (CORBA::SystemException,
 
 void BasicTestDevice_cpp_impl1_i::loadProperties()
 {
-    propSet["memCapacity"].id = "DCE:7aeaace8-350e-48da-8d77-f97c2e722e06";
-    propSet["memCapacity"].name = "memCapacity";
-    propSet["memCapacity"].type = 3;
-    propSet["memCapacity"].mode = "readwrite";
-    propSet["memCapacity"].units = "bytes";
-    propSet["memCapacity"].action = "external";
-    propSet["memCapacity"].baseProperty.id = "DCE:7aeaace8-350e-48da-8d77-f97c2e722e06";
-    propSet["memCapacity"].kinds.resize(1);
-    propSet["memCapacity"].kinds[0] = "allocation";
-    propSet["BogoMipsCapacity"].id = "DCE:bbdf708f-ce05-469f-8aed-f5c93e353e14";
-    propSet["BogoMipsCapacity"].name = "BogoMipsCapacity";
-    propSet["BogoMipsCapacity"].type = 3;
-    propSet["BogoMipsCapacity"].mode = "readwrite";
-    propSet["BogoMipsCapacity"].units = "bytes";
-    propSet["BogoMipsCapacity"].action = "external";
-    propSet["BogoMipsCapacity"].baseProperty.id = "DCE:bbdf708f-ce05-469f-8aed-f5c93e353e14";
-    propSet["BogoMipsCapacity"].kinds.resize(1);
-    propSet["BogoMipsCapacity"].kinds[0] = "allocation";    
-    
-    propSet["propOne"].id = "DCE:9607a8db-2ce1-4e71-9dee-9bb18377127c";
-    propSet["propOne"].name = "propOne";
-    propSet["propOne"].type = 3;
-    propSet["propOne"].mode = "readwrite";
-    propSet["propOne"].action = "external";
-    propSet["propOne"].baseProperty.id = "DCE:9607a8db-2ce1-4e71-9dee-9bb18377127c";
-    propSet["propOne"].kinds.resize(2);
-    propSet["propOne"].kinds[0] = "configure";    
-    propSet["propOne"].kinds[1] = "execparam";    
 
-    propSet["propTwo"].id = "DCE:5bf37e47-afa5-4865-9653-9d427ffa55d2";
-    propSet["propTwo"].name = "propTwo";
-    propSet["propTwo"].type = 3;
-    propSet["propTwo"].mode = "readwrite";
-    propSet["propTwo"].action = "external";
-    propSet["propTwo"].baseProperty.id = "DCE:5bf37e47-afa5-4865-9653-9d427ffa55d2";
-    propSet["propTwo"].kinds.resize(1);
-    propSet["propTwo"].kinds[0] = "execparam";    
+	addProperty(memCapacity,
+			"DCE:7aeaace8-350e-48da-8d77-f97c2e722e06",
+			"memCapacity",
+			"readwrite",
+			"bytes",
+			"external",
+			"allocation");
+
+	addProperty(BogoMipsCapacity,
+			"DCE:bbdf708f-ce05-469f-8aed-f5c93e353e14",
+			"BogoMipsCapacity",
+			"readwrite",
+			"bytes",
+			"external",
+			"allocation");
+
+	addProperty(propOne,
+			"DCE:9607a8db-2ce1-4e71-9dee-9bb18377127c",
+			"propOne",
+			"readwrite",
+			"",
+			"external",
+			"configure,execparam");
+
+	addProperty(propTwo,
+			"DCE:5bf37e47-afa5-4865-9653-9d427ffa55d2",
+			"propTwo",
+			"readwrite",
+			"",
+			"external",
+			"execparam");
     
 }

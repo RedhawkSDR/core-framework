@@ -19,7 +19,7 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 
-<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
 <softpkg id="DCE:40f11894-527d-4a9c-92c0-9c71828b7e8c" name="TestPythonProps" type="sca_compliant" version="1.0">
   <title></title>
   <author>

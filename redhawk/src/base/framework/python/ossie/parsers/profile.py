@@ -1,34 +1,84 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*- 
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-
 #
-# Generated Thu Nov  4 15:01:55 2010 by generateDS.py version 1.17d.REDHAWK.
+# Generated Thu Sep 12 14:49:30 2013 by generateDS.py version 2.7c.
 #
 
 import sys
 import getopt
-from string import lower as str_lower
-from xml.dom import minidom
-from xml.dom import Node
+import re as re_
+
+etree_ = None
+Verbose_import_ = False
+(   XMLParser_import_none, XMLParser_import_lxml,
+    XMLParser_import_elementtree
+    ) = range(3)
+XMLParser_import_library = None
+try:
+    # lxml
+    from lxml import etree as etree_
+    XMLParser_import_library = XMLParser_import_lxml
+    if Verbose_import_:
+        print("running with lxml.etree")
+except ImportError:
+    try:
+        # cElementTree from Python 2.5+
+        import xml.etree.cElementTree as etree_
+        XMLParser_import_library = XMLParser_import_elementtree
+        if Verbose_import_:
+            print("running with cElementTree on Python 2.5+")
+    except ImportError:
+        try:
+            # ElementTree from Python 2.5+
+            import xml.etree.ElementTree as etree_
+            XMLParser_import_library = XMLParser_import_elementtree
+            if Verbose_import_:
+                print("running with ElementTree on Python 2.5+")
+        except ImportError:
+            try:
+                # normal cElementTree install
+                import cElementTree as etree_
+                XMLParser_import_library = XMLParser_import_elementtree
+                if Verbose_import_:
+                    print("running with cElementTree")
+            except ImportError:
+                try:
+                    # normal ElementTree install
+                    import elementtree.ElementTree as etree_
+                    XMLParser_import_library = XMLParser_import_elementtree
+                    if Verbose_import_:
+                        print("running with ElementTree")
+                except ImportError:
+                    raise ImportError("Failed to import ElementTree from any known place")
+
+def parsexml_(*args, **kwargs):
+    if (XMLParser_import_library == XMLParser_import_lxml and
+        'parser' not in kwargs):
+        # Use the lxml ElementTree compatible parser so that, e.g.,
+        #   we ignore comments.
+        kwargs['parser'] = etree_.ETCompatXMLParser()
+    doc = etree_.parse(*args, **kwargs)
+    return doc
 
 #
 # User methods
@@ -41,17 +91,95 @@ try:
     from generatedssuper import GeneratedsSuper
 except ImportError, exp:
 
-    class GeneratedsSuper:
-        def format_string(self, input_data, input_name=''):
+    class GeneratedsSuper(object):
+        def gds_format_string(self, input_data, input_name=''):
             return input_data
-        def format_integer(self, input_data, input_name=''):
+        def gds_validate_string(self, input_data, node, input_name=''):
+            return input_data
+        def gds_format_integer(self, input_data, input_name=''):
             return '%d' % input_data
-        def format_float(self, input_data, input_name=''):
-            return '%f' % input_data
-        def format_double(self, input_data, input_name=''):
-            return '%e' % input_data
-        def format_boolean(self, input_data, input_name=''):
+        def gds_validate_integer(self, input_data, node, input_name=''):
+            return input_data
+        def gds_format_integer_list(self, input_data, input_name=''):
             return '%s' % input_data
+        def gds_validate_integer_list(self, input_data, node, input_name=''):
+            values = input_data.split()
+            for value in values:
+                try:
+                    fvalue = float(value)
+                except (TypeError, ValueError), exp:
+                    raise_parse_error(node, 'Requires sequence of integers')
+            return input_data
+        def gds_format_float(self, input_data, input_name=''):
+            return '%f' % input_data
+        def gds_validate_float(self, input_data, node, input_name=''):
+            return input_data
+        def gds_format_float_list(self, input_data, input_name=''):
+            return '%s' % input_data
+        def gds_validate_float_list(self, input_data, node, input_name=''):
+            values = input_data.split()
+            for value in values:
+                try:
+                    fvalue = float(value)
+                except (TypeError, ValueError), exp:
+                    raise_parse_error(node, 'Requires sequence of floats')
+            return input_data
+        def gds_format_double(self, input_data, input_name=''):
+            return '%e' % input_data
+        def gds_validate_double(self, input_data, node, input_name=''):
+            return input_data
+        def gds_format_double_list(self, input_data, input_name=''):
+            return '%s' % input_data
+        def gds_validate_double_list(self, input_data, node, input_name=''):
+            values = input_data.split()
+            for value in values:
+                try:
+                    fvalue = float(value)
+                except (TypeError, ValueError), exp:
+                    raise_parse_error(node, 'Requires sequence of doubles')
+            return input_data
+        def gds_format_boolean(self, input_data, input_name=''):
+            return '%s' % input_data
+        def gds_validate_boolean(self, input_data, node, input_name=''):
+            return input_data
+        def gds_format_boolean_list(self, input_data, input_name=''):
+            return '%s' % input_data
+        def gds_validate_boolean_list(self, input_data, node, input_name=''):
+            values = input_data.split()
+            for value in values:
+                if value not in ('true', '1', 'false', '0', ):
+                    raise_parse_error(node, 'Requires sequence of booleans ("true", "1", "false", "0")')
+            return input_data
+        def gds_str_lower(self, instring):
+            return instring.lower()
+        def get_path_(self, node):
+            path_list = []
+            self.get_path_list_(node, path_list)
+            path_list.reverse()
+            path = '/'.join(path_list)
+            return path
+        Tag_strip_pattern_ = re_.compile(r'\{.*\}')
+        def get_path_list_(self, node, path_list):
+            if node is None:
+                return
+            tag = GeneratedsSuper.Tag_strip_pattern_.sub('', node.tag)
+            if tag:
+                path_list.append(tag)
+            self.get_path_list_(node.getparent(), path_list)
+        def get_class_obj_(self, node, default_class=None):
+            class_obj1 = default_class
+            if 'xsi' in node.nsmap:
+                classname = node.get('{%s}type' % node.nsmap['xsi'])
+                if classname is not None:
+                    names = classname.split(':')
+                    if len(names) == 2:
+                        classname = names[1]
+                    class_obj2 = globals().get(classname)
+                    if class_obj2 is not None:
+                        class_obj1 = class_obj2
+            return class_obj1
+        def gds_build_any(self, node, type_name=None):
+            return None
 
 
 #
@@ -74,16 +202,22 @@ except ImportError, exp:
 #
 
 ExternalEncoding = 'ascii'
+Tag_pattern_ = re_.compile(r'({.*})?(.*)')
+String_cleanup_pat_ = re_.compile(r"[\n\r\s]+")
+Namespace_extract_pat_ = re_.compile(r'{(.*)}(.*)')
 
 #
 # Support/utility functions.
 #
 
-def showIndent(outfile, level):
-    for idx in range(level):
-        outfile.write('    ')
+def showIndent(outfile, level, pretty_print=True):
+    if pretty_print:
+        for idx in range(level):
+            outfile.write('    ')
 
 def quote_xml(inStr):
+    if not inStr:
+        return ''
     s1 = (isinstance(inStr, basestring) and inStr or
           '%s' % inStr)
     s1 = s1.replace('&', '&amp;')
@@ -121,6 +255,40 @@ def quote_python(inStr):
         else:
             return '"""%s"""' % s1
 
+def get_all_text_(node):
+    if node.text is not None:
+        text = node.text
+    else:
+        text = ''
+    for child in node:
+        if child.tail is not None:
+            text += child.tail
+    return text
+
+def find_attr_value_(attr_name, node):
+    attrs = node.attrib
+    attr_parts = attr_name.split(':')
+    value = None
+    if len(attr_parts) == 1:
+        value = attrs.get(attr_name)
+    elif len(attr_parts) == 2:
+        prefix, name = attr_parts
+        namespace = node.nsmap.get(prefix)
+        if namespace is not None:
+            value = attrs.get('{%s}%s' % (namespace, name, ))
+    return value
+
+
+class GDSParseError(Exception):
+    pass
+
+def raise_parse_error(node, msg):
+    if XMLParser_import_library == XMLParser_import_lxml:
+        msg = '%s (element %s/line %d)' % (msg, node.tag, node.sourceline, )
+    else:
+        msg = '%s (element %s)' % (msg, node.tag, )
+    raise GDSParseError(msg)
+
 
 class MixedContainer:
     # Constants for category:
@@ -150,13 +318,15 @@ class MixedContainer:
         return self.value
     def getName(self):
         return self.name
-    def export(self, outfile, level, name, namespace):
+    def export(self, outfile, level, name, namespace, pretty_print=True):
         if self.category == MixedContainer.CategoryText:
-            outfile.write(self.value)
+            # Prevent exporting empty content as empty lines.
+            if self.value.strip(): 
+                outfile.write(self.value)
         elif self.category == MixedContainer.CategorySimple:
             self.exportSimple(outfile, level, name)
         else:    # category == MixedContainer.CategoryComplex
-            self.value.export(outfile, level, namespace,name)
+            self.value.export(outfile, level, namespace, name, pretty_print)
     def exportSimple(self, outfile, level, name):
         if self.content_type == MixedContainer.TypeString:
             outfile.write('<%s>%s</%s>' % (self.name, self.value, self.name))
@@ -171,22 +341,22 @@ class MixedContainer:
     def exportLiteral(self, outfile, level, name):
         if self.category == MixedContainer.CategoryText:
             showIndent(outfile, level)
-            outfile.write('MixedContainer(%d, %d, "%s", "%s"),\n' % \
+            outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' % \
                 (self.category, self.content_type, self.name, self.value))
         elif self.category == MixedContainer.CategorySimple:
             showIndent(outfile, level)
-            outfile.write('MixedContainer(%d, %d, "%s", "%s"),\n' % \
+            outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' % \
                 (self.category, self.content_type, self.name, self.value))
         else:    # category == MixedContainer.CategoryComplex
             showIndent(outfile, level)
-            outfile.write('MixedContainer(%d, %d, "%s",\n' % \
+            outfile.write('model_.MixedContainer(%d, %d, "%s",\n' % \
                 (self.category, self.content_type, self.name,))
             self.value.exportLiteral(outfile, level + 1)
             showIndent(outfile, level)
             outfile.write(')\n')
 
 
-class _MemberSpec(object):
+class MemberSpec_(object):
     def __init__(self, name='', data_type='', container=0):
         self.name = name
         self.data_type = data_type
@@ -194,22 +364,41 @@ class _MemberSpec(object):
     def set_name(self, name): self.name = name
     def get_name(self): return self.name
     def set_data_type(self, data_type): self.data_type = data_type
-    def get_data_type(self): return self.data_type
+    def get_data_type_chain(self): return self.data_type
+    def get_data_type(self):
+        if isinstance(self.data_type, list):
+            if len(self.data_type) > 0:
+                return self.data_type[-1]
+            else:
+                return 'xs:string'
+        else:
+            return self.data_type
     def set_container(self, container): self.container = container
     def get_container(self): return self.container
 
+def _cast(typ, value):
+    if typ is None or value is None:
+        return value
+    return typ(value)
 
 #
 # Data representation classes.
 #
 
 class profile(GeneratedsSuper):
+    """The profile element can be used to specify the absolute profile file
+    pathname relative to a mounted CF FileSystem.The filename
+    attribute is the absolute pathname relative to a mounted
+    FileSystem. This filename can also be used to access any other
+    local file elements in the profile.The type attribute indicates
+    the type of profile being referenced. The valid type attribute
+    values are “SAD”, “SPD”, “DCD”, and “DMD”."""
     subclass = None
     superclass = None
-    def __init__(self, type_=None, filename=None, valueOf_=''):
-        self.type_ = type_
-        self.filename = filename
-        self.valueOf_ = valueOf_
+    def __init__(self, type_=None, filename=None):
+        self.type_ = _cast(None, type_)
+        self.filename = _cast(None, filename)
+        pass
     def factory(*args_, **kwargs_):
         if profile.subclass:
             return profile.subclass(*args_, **kwargs_)
@@ -218,78 +407,78 @@ class profile(GeneratedsSuper):
     factory = staticmethod(factory)
     def get_type(self): return self.type_
     def set_type(self, type_): self.type_ = type_
-    type_Prop = property(get_type, set_type)
+    typeProp = property(get_type, set_type)
     def get_filename(self): return self.filename
     def set_filename(self, filename): self.filename = filename
     filenameProp = property(get_filename, set_filename)
-    def getValueOf_(self): return self.valueOf_
-    def setValueOf_(self, valueOf_): self.valueOf_ = valueOf_
-    def export(self, outfile, level, namespace_='', name_='profile', namespacedef_=''):
-        showIndent(outfile, level)
-        outfile.write('<%s%s' % (namespace_, name_, ))
-        if len(namespacedef_) > 0: outfile.write('%s' % (namespacedef_, ))
-        self.exportAttributes(outfile, level, namespace_, name_='profile')
-        outfile.write('>')
-        self.exportChildren(outfile, level + 1, namespace_, name_)
-        outfile.write('</%s%s>\n' % (namespace_, name_))
-    def exportAttributes(self, outfile, level, namespace_='', name_='profile'):
-        if self.type_ is not None:
-            outfile.write(' type=%s' % (self.format_string(quote_attrib(self.type_).encode(ExternalEncoding), input_name='type'), ))
-        outfile.write(' filename=%s' % (self.format_string(quote_attrib(self.filename).encode(ExternalEncoding), input_name='filename'), ))
-    def exportChildren(self, outfile, level, namespace_='', name_='profile'):
-        if self.valueOf_.find('![CDATA')>-1:
-            value=quote_xml('%s' % self.valueOf_)
-            value=value.replace('![CDATA','<![CDATA')
-            value=value.replace(']]',']]>')
-            outfile.write(value)
+    def export(self, outfile, level, namespace_='', name_='profile', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
         else:
-            outfile.write(quote_xml('%s' % self.valueOf_))
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='profile')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='profile'):
+        if self.type_ is not None and 'type_' not in already_processed:
+            already_processed.append('type_')
+            outfile.write(' type=%s' % (self.gds_format_string(quote_attrib(self.type_).encode(ExternalEncoding), input_name='type'), ))
+        if self.filename is not None and 'filename' not in already_processed:
+            already_processed.append('filename')
+            outfile.write(' filename=%s' % (self.gds_format_string(quote_attrib(self.filename).encode(ExternalEncoding), input_name='filename'), ))
+    def exportChildren(self, outfile, level, namespace_='', name_='profile', fromsubclass_=False, pretty_print=True):
+        pass
     def hasContent_(self):
         if (
-            self.valueOf_ is not None
+
             ):
             return True
         else:
             return False
     def exportLiteral(self, outfile, level, name_='profile'):
         level += 1
-        self.exportLiteralAttributes(outfile, level, name_)
+        self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, name_):
-        if self.type_ is not None:
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
+        if self.type_ is not None and 'type_' not in already_processed:
+            already_processed.append('type_')
             showIndent(outfile, level)
-            outfile.write('type_ = %s,\n' % (self.type_,))
-        if self.filename is not None:
+            outfile.write('type_ = "%s",\n' % (self.type_,))
+        if self.filename is not None and 'filename' not in already_processed:
+            already_processed.append('filename')
             showIndent(outfile, level)
-            outfile.write('filename = %s,\n' % (self.filename,))
+            outfile.write('filename = "%s",\n' % (self.filename,))
     def exportLiteralChildren(self, outfile, level, name_):
-        showIndent(outfile, level)
-        outfile.write('valueOf_ = "%s",\n' % (self.valueOf_,))
-    def build(self, node_):
-        attrs = node_.attributes
-        self.buildAttributes(attrs)
-        self.valueOf_ = ''
-        for child_ in node_.childNodes:
-            nodeName_ = child_.nodeName.split(':')[-1]
-            self.buildChildren(child_, nodeName_)
-    def buildAttributes(self, attrs):
-        if attrs.get('type'):
-            self.type_ = attrs.get('type').value
-        if attrs.get('filename'):
-            self.filename = attrs.get('filename').value
-    def buildChildren(self, child_, nodeName_):
-        if child_.nodeType == Node.TEXT_NODE:
-            self.valueOf_ += child_.nodeValue
-        elif child_.nodeType == Node.CDATA_SECTION_NODE:
-            self.valueOf_ += '![CDATA['+child_.nodeValue+']]'
+        pass
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
+        value = find_attr_value_('type', node)
+        if value is not None and 'type' not in already_processed:
+            already_processed.append('type')
+            self.type_ = value
+        value = find_attr_value_('filename', node)
+        if value is not None and 'filename' not in already_processed:
+            already_processed.append('filename')
+            self.filename = value
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        pass
 # end class profile
 
 
 USAGE_TEXT = """
 Usage: python <Parser>.py [ -s ] <in_xml_file>
-Options:
-    -s        Use the SAX parser, not the minidom parser.
 """
 
 def usage():
@@ -297,26 +486,40 @@ def usage():
     sys.exit(1)
 
 
+def get_root_tag(node):
+    tag = Tag_pattern_.match(node.tag).groups()[-1]
+    rootClass = globals().get(tag)
+    return tag, rootClass
+
+
 def parse(inFileName):
-    doc = minidom.parse(inFileName)
-    rootNode = doc.documentElement
-    rootObj = profile.factory()
+    doc = parsexml_(inFileName)
+    rootNode = doc.getroot()
+    rootTag, rootClass = get_root_tag(rootNode)
+    if rootClass is None:
+        rootTag = 'profile'
+        rootClass = profile
+    rootObj = rootClass.factory()
     rootObj.build(rootNode)
-    doc.unlink()
     # Enable Python to collect the space used by the DOM.
     doc = None
 ##     sys.stdout.write('<?xml version="1.0" ?>\n')
-##     rootObj.export(sys.stdout, 0, name_="profile", 
-##         namespacedef_='')
+##     rootObj.export(sys.stdout, 0, name_=rootTag,
+##         namespacedef_='',
+##         pretty_print=True)
     return rootObj
 
 
 def parseString(inString):
-    doc = minidom.parseString(inString)
-    rootNode = doc.documentElement
-    rootObj = profile.factory()
+    from StringIO import StringIO
+    doc = parsexml_(StringIO(inString))
+    rootNode = doc.getroot()
+    rootTag, rootClass = get_root_tag(rootNode)
+    if rootClass is None:
+        rootTag = 'profile'
+        rootClass = profile
+    rootObj = rootClass.factory()
     rootObj.build(rootNode)
-    doc.unlink()
     # Enable Python to collect the space used by the DOM.
     doc = None
 ##     sys.stdout.write('<?xml version="1.0" ?>\n')
@@ -326,16 +529,20 @@ def parseString(inString):
 
 
 def parseLiteral(inFileName):
-    doc = minidom.parse(inFileName)
-    rootNode = doc.documentElement
-    rootObj = profile.factory()
+    doc = parsexml_(inFileName)
+    rootNode = doc.getroot()
+    rootTag, rootClass = get_root_tag(rootNode)
+    if rootClass is None:
+        rootTag = 'profile'
+        rootClass = profile
+    rootObj = rootClass.factory()
     rootObj.build(rootNode)
-    doc.unlink()
     # Enable Python to collect the space used by the DOM.
     doc = None
-##     sys.stdout.write('from profile import *\n\n')
-##     sys.stdout.write('rootObj = profile(\n')
-##     rootObj.exportLiteral(sys.stdout, 0, name_="profile")
+##     sys.stdout.write('#from profile import *\n\n')
+##     sys.stdout.write('import profile as model_\n\n')
+##     sys.stdout.write('rootObj = model_.rootTag(\n')
+##     rootObj.exportLiteral(sys.stdout, 0, name_=rootTag)
 ##     sys.stdout.write(')\n')
     return rootObj
 
@@ -349,7 +556,10 @@ def main():
 
 
 if __name__ == '__main__':
+    #import pdb; pdb.set_trace()
     main()
-    #import pdb
-    #pdb.run('main()')
 
+
+__all__ = [
+    "profile"
+    ]

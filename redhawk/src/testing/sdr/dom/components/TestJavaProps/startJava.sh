@@ -22,13 +22,7 @@
 #Sun ORB start line
 # Important, the $@ must be quoted "$@" for arguments to be passed correctly
 myDir=`dirname $0`
-JAVA_LIBDIR=../../../../../base/framework/java
+JAVA_LIBDIR=${myDir}/../../../../../base/framework/java
 JAVA_CLASSPATH="${JAVA_LIBDIR}/apache-commons-lang-2.4.jar:${JAVA_LIBDIR}/log4j-1.2.15.jar:${JAVA_LIBDIR}/CFInterfaces.jar:${JAVA_LIBDIR}/ossie.jar:${myDir}/TestJavaProps.jar:${myDir}:${CLASSPATH}"
-echo "myDir = ${myDir}"
 
-COMMAND="${JAVA_HOME}/bin/java -cp ${JAVA_CLASSPATH} TestJavaProps $@"
-echo "Running [${COMMAND}]"
-${COMMAND}
-
-#JacORB start lines
-#$JAVA_HOME/bin/java -cp $JAVA_LIBDIR/log4j-1.2.15.jar:$JAVA_LIBDIR/CFInterfaces.jar:$JAVA_LIBDIR/ossie.jar:$myDir/jacorb.jar:$myDir/antlr.jar:$myDir/avalon-framework.jar:$myDir/backport-util-concurrent.jar:$myDir/logkit.jar:$myDir/TestJavaProps.jar:$CLASSPATH TestJavaProps "$@"
+exec ${JAVA_HOME}/bin/java -cp ${JAVA_CLASSPATH} TestJavaProps "$@"

@@ -1,31 +1,32 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
 import unittest, os
-import scatest
+import shutil
+from _unitTestHelpers import scatest
 from ossie.cf import CF
 
 class FileManagerTest(scatest.CorbaTestCase):
     def setUp(self):
-        domBooter, self._domMgr = self.launchDomainManager(debug=9)
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml", debug=9)
+        domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
 
     def test_BasicOperation(self):
         self.assertNotEqual(self._domMgr, None)
@@ -40,10 +41,10 @@ class FileManagerTest(scatest.CorbaTestCase):
         devlocalnewfile = "dev/nodes/testdev.txt"
         domnewfile = "/waveforms/testdom.txt"
         domlocalnewfile = "dom/waveforms/testdom.txt"
-        
+
         str_to_write_dev = "testing 1,2,3 dev"
         str_to_write_dom = "testing 1,2,3 dom"
-        
+
 
 
         #################
@@ -53,17 +54,17 @@ class FileManagerTest(scatest.CorbaTestCase):
             fileMgr.exists(devfile)
         except:
             self.fail("Something bad happened in fileMgr.exists(devfile) for mountPoint lookup")
-        
+
         try:
             fileMgr.exists(domfile)
         except:
             self.fail("Something bad happened in fileMgr.exists(domfile) for domain (local fs) lookup")
-        
+
         try:
             fileMgr.exists(devfile + addon)
         except:
             self.fail("Something bad happened in fileMgr.exists(devfile + addon) for mountPoint lookup")
-        
+
         try:
             fileMgr.exists(domfile + addon)
         except:
@@ -71,7 +72,7 @@ class FileManagerTest(scatest.CorbaTestCase):
 
         self.assertEqual(fileMgr.exists(devfile), True)
         self.assertEqual(fileMgr.exists(domfile), True)
-        
+
         self.assertEqual(fileMgr.exists(devfile+addon), False)
         self.assertEqual(fileMgr.exists(domfile+addon), False)
 
@@ -90,7 +91,7 @@ class FileManagerTest(scatest.CorbaTestCase):
             myfile.close()
         except:
             self.fail("Something bad happened in fileMgr.close(devfile, True) for mountPoint lookup")
-        
+
         try:
             myfile = fileMgr.open(domfile, True)
         except:
@@ -98,7 +99,7 @@ class FileManagerTest(scatest.CorbaTestCase):
 
         expectedSize = os.stat(os.path.join(scatest.getSdrPath(), domlocalfile))[6]
         self.assertEqual(myfile.sizeOf(), expectedSize)
-        
+
         try:
             myfile.close()
         except:
@@ -108,12 +109,12 @@ class FileManagerTest(scatest.CorbaTestCase):
             myfile = fileMgr.open(devfile+addon, True)
             self.fail("fileMgr.open(devfile+addon, True) should have thrown and exception and it didn't")
         except: pass
-        
+
         try:
             myfile = fileMgr.open(domfile+addon, True)
             self.fail("fileMgr.open(domfile+addon, True) should have thrown and exception and it didn't")
         except: pass
-        
+
         #################
         # test create
         #################
@@ -127,7 +128,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         except:
             self.fail("Something bad happened in fileMgr.create(devnewfile) for mountPoint lookup")
         self.assertEqual(fileMgr.exists(devnewfile), True)
-        
+
         if os.path.exists(os.path.join(scatest.getSdrPath(), domlocalnewfile)):
             os.remove(os.path.join(scatest.getSdrPath(), domlocalnewfile))
 
@@ -138,7 +139,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         except:
             self.fail("Something bad happened in fileMgr.create(domnewfile) for domain (local fs) lookup")
         self.assertEqual(fileMgr.exists(domnewfile), True)
-        
+
         #################
         # test remove
         #################
@@ -147,20 +148,20 @@ class FileManagerTest(scatest.CorbaTestCase):
         except:
             self.fail("Something bad happened in fileMgr.remove(devnewfile) for mountPoint lookup")
         self.assertEqual(fileMgr.exists(devnewfile), False)
-        
+
         try:
             fileMgr.remove(domnewfile)
         except:
             self.fail("Something bad happened in fileMgr.remove(domnewfile) for domain (local fs) lookup")
         self.assertEqual(fileMgr.exists(domnewfile), False)
-        
+
     def test_Copy(self):
         #################
         # test copy
         #################
         self.assertNotEqual(self._domMgr, None)
         fileMgr = self._domMgr._get_fileMgr()
-        
+
         devfile = "/ExecutableDevice_node/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml"
         domfile = "/waveforms/CommandWrapper/CommandWrapper_DAS.xml"
         devcopyfiledst = "/ExecutableDevice_node/nodes/testcopy_dev_DeviceManager.dcd.xml"
@@ -169,7 +170,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         devdomcopyfiledst = "/waveforms/testcopy_devdom_DeviceManager.dcd.xml"
         devbigfile = "/ExecutableDevice_node/nodes/bigfile_test.large"
         dombigfile = "/waveforms/bigfile_test.large"
-        
+
         # test mounted fs to same mounted fs
         try:
             fileMgr.copy(devfile, devcopyfiledst)
@@ -177,7 +178,7 @@ class FileManagerTest(scatest.CorbaTestCase):
             self.fail("Something bad happened in fileMgr.copy(devfile, devcopyfiledst) for mountPoint copy")
         self.assertEqual(fileMgr.exists(devcopyfiledst), True)
         self.assertEqual(self.filesEqual(devfile, devcopyfiledst, fileMgr), True)
-        
+
         # test local fs to local fs
         try:
             fileMgr.copy(domfile, domcopyfiledst)
@@ -185,7 +186,7 @@ class FileManagerTest(scatest.CorbaTestCase):
             self.fail("Something bad happened in fileMgr.copy(domfile, domcopyfiledst) for local copy")
         self.assertEqual(fileMgr.exists(domcopyfiledst), True)
         self.assertEqual(self.filesEqual(domfile, domcopyfiledst, fileMgr), True)
-        
+
         # test local fs to mounted fs
         try:
             fileMgr.copy(domfile, domdevcopyfiledst)
@@ -193,7 +194,7 @@ class FileManagerTest(scatest.CorbaTestCase):
             self.fail("Something bad happened in fileMgr.copy(domfile, domdevcopyfiledst) for local->mounted copy")
         self.assertEqual(fileMgr.exists(domdevcopyfiledst), True)
         self.assertEqual(self.filesEqual(domfile, domdevcopyfiledst, fileMgr), True)
-        
+
         # test mounted fs to local fs
         try:
             fileMgr.copy(devfile, devdomcopyfiledst)
@@ -201,7 +202,7 @@ class FileManagerTest(scatest.CorbaTestCase):
             self.fail("Something bad happened in fileMgr.copy(devfile, devdomcopyfiledst) for mounted->local copy")
         self.assertEqual(fileMgr.exists(devdomcopyfiledst), True)
         self.assertEqual(self.filesEqual(devfile, devdomcopyfiledst, fileMgr), True)
-        
+
         # test overwrite of file within same fs
         self.assertEqual(self.filesEqual(domfile, devdomcopyfiledst, fileMgr), False) # make sure files are different
         try:
@@ -209,7 +210,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         except:
             self.fail("Something bad happened in fileMgr.copy(domfile, devdomcopyfiledst) for mounted->local copy (overwrite case)")
         self.assertEqual(self.filesEqual(domfile, devdomcopyfiledst, fileMgr), True) # make sure files are the same
-        
+
         # test overwrite of file between two filesystems
         self.assertEqual(self.filesEqual(devdomcopyfiledst, devcopyfiledst, fileMgr), False) # make sure files are different
         try:
@@ -233,7 +234,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         except:
             self.fail("Something bad happened in fileMgr.copy(devbigfile, dombigfile) for big file case")
         self.assertEqual(self.filesEqual(devdomcopyfiledst, devcopyfiledst, fileMgr), True) # make sure
-        
+
         # Clean up
         fileMgr.remove(devcopyfiledst)
         fileMgr.remove(domcopyfiledst)
@@ -241,7 +242,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         fileMgr.remove(devdomcopyfiledst)
         fileMgr.remove(devbigfile)
         fileMgr.remove(dombigfile)
-       
+
     def filesEqual(self, file1, file2, fileMgr):
         # read file1
         myfile1 = fileMgr.open(file1, True)
@@ -252,16 +253,16 @@ class FileManagerTest(scatest.CorbaTestCase):
         # close files
         myfile1.close()
         myfile2.close()
-        
+
         return file_data1 == file_data2
-       
+
     def test_fileIORCountDomain(self):
         # read file1
         domfile = "/waveforms/CommandWrapper/CommandWrapper_DAS.xml"
         fileMgr = self._domMgr._get_fileMgr()
         myfile1_1 = fileMgr.open(domfile, True)
         myfile1_2 = fileMgr.open(domfile, True)
-        
+
         fileList = fileMgr.list(domfile)
         IORs = []
         for file in fileList:
@@ -269,10 +270,10 @@ class FileManagerTest(scatest.CorbaTestCase):
                 if prop.id == 'IOR_AVAILABLE':
                     IORs = prop.value._v
         self.assertEqual(len(IORs), 2)
-        
+
         # close files
         myfile1_1.close()
-        
+
         fileList = fileMgr.list(domfile)
         IORs = []
         for file in fileList:
@@ -280,9 +281,9 @@ class FileManagerTest(scatest.CorbaTestCase):
                 if prop.id == 'IOR_AVAILABLE':
                     IORs = prop.value._v
         self.assertEqual(len(IORs), 1)
-        
+
         myfile1_2.close()
-        
+
         fileList = fileMgr.list(domfile)
         IORs = []
         for file in fileList:
@@ -290,7 +291,7 @@ class FileManagerTest(scatest.CorbaTestCase):
                 if prop.id == 'IOR_AVAILABLE':
                     IORs = prop.value._v
         self.assertEqual(len(IORs), 0)
-       
+
     def test_fileIORCountDevMgr(self):
         # read file1
         devfileFromDomain = "/ExecutableDevice_node/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml"
@@ -299,7 +300,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         fileSys = self._devMgr._get_fileSys()
         myfile1_1 = fileSys.open(devfile, True)
         myfile1_2 = fileMgr.open(devfileFromDomain, True)
-        
+
         fileList = fileSys.list(devfile)
         IORs = []
         for file in fileList:
@@ -307,9 +308,9 @@ class FileManagerTest(scatest.CorbaTestCase):
                 if prop.id == 'IOR_AVAILABLE':
                     IORs = prop.value._v
         self.assertEqual(len(IORs), 2)
-        
+
         myfile1_1.close()
-        
+
         fileList = fileSys.list(devfile)
         IORs = []
         for file in fileList:
@@ -317,9 +318,9 @@ class FileManagerTest(scatest.CorbaTestCase):
                 if prop.id == 'IOR_AVAILABLE':
                     IORs = prop.value._v
         self.assertEqual(len(IORs), 1)
-        
+
         myfile1_2.close()
-        
+
         fileList = fileSys.list(devfile)
         IORs = []
         for file in fileList:
@@ -327,15 +328,15 @@ class FileManagerTest(scatest.CorbaTestCase):
                 if prop.id == 'IOR_AVAILABLE':
                     IORs = prop.value._v
         self.assertEqual(len(IORs), 0)
-        
+
     def test_List(self):
         #################
         # test list
         #################
-        
+
         self.assertNotEqual(self._domMgr, None)
         fileMgr = self._domMgr._get_fileMgr()
-        
+
         devlistdir = "/ExecutableDevice_node/nodes/test_ExecutableDevice_node"
         domlistdir = "/waveforms/CommandWrapper"
 
@@ -350,7 +351,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         #################
         # Test list
         #################
-      
+
         # Test that lists of "" produce only a single entry to '/'
         rootFiles = self._devMgr._get_fileSys().list("")
         self.assertEqual(len(rootFiles), 1)
@@ -389,7 +390,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         # Check that the DeviceManager mount point is listed
         self.assert_(files.has_key("ExecutableDevice_node"))
         self.assertEqual(files["ExecutableDevice_node"].kind, CF.FileSystem.FILE_SYSTEM)
-        
+
         os.system("chmod 444 "+devlistdir.replace('/ExecutableDevice_node','sdr/dev')+'/'+dir_file_list_xml[0])
 
         searchpattern = devlistdir + "/*.xml"
@@ -410,11 +411,11 @@ class FileManagerTest(scatest.CorbaTestCase):
                         self.assertEqual(prop.value._v, True)
                         foundMatch = True
                         break
-                        
+
         self.assertEqual(foundMatch, True)
-                        
+
         os.system("chmod 664 "+devlistdir.replace('/ExecutableDevice_node','sdr/dev')+'/'+dir_file_list_xml[0])
-        
+
         searchpattern = devlistdir + "/"
         try:
             filelist = fileMgr.list(searchpattern)
@@ -425,7 +426,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         new_file_list.sort()
         dir_file_list.sort()
         self.assertEqual(dir_file_list, new_file_list)
-        
+
         searchpattern = devlistdir
         try:
             filelist = fileMgr.list(searchpattern)
@@ -433,7 +434,7 @@ class FileManagerTest(scatest.CorbaTestCase):
             self.fail("Something bad happened in fileMgr.list(searchpattern) for 'directory name' case")
         self.assertEqual(len(filelist), 1)
         self.assertEqual(os.path.basename(searchpattern), filelist[0].name)
-        
+
         searchpattern = devlistdir + "/.hidden_test"
         try:
             filelist = fileMgr.list(searchpattern)
@@ -441,7 +442,7 @@ class FileManagerTest(scatest.CorbaTestCase):
             self.fail("Something bad happened in fileMgr.list(searchpattern) for '/.hidden_test directory name' case")
         self.assertEqual(len(filelist), 1)
         self.assertEqual(os.path.basename(searchpattern), filelist[0].name)
-        
+
         searchpattern = devlistdir + "/.hidden_test/"
         try:
             filelist = fileMgr.list(searchpattern)
@@ -451,7 +452,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         new_file_list = [x.name for x in filelist]
         new_file_list.sort()
         self.assertEqual(dir_file_list_hidden, new_file_list)
-        
+
     def test_DirectoryOperation(self):
         #################
         # test mkdir
@@ -459,7 +460,7 @@ class FileManagerTest(scatest.CorbaTestCase):
 
         self.assertNotEqual(self._domMgr, None)
         fileMgr = self._domMgr._get_fileMgr()
-        
+
         domdir = '/mkdir_test_directory_tmp_local'
         localdomdir = 'dom/mkdir_test_directory_tmp_local'
         devdir = "/DeviceManager/mkdir_test_directory_tmp_mounted"
@@ -470,7 +471,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         localdevdir_nestedbase = 'dev/mkdir_test_directory_tmp_nested1'
         tmpdevfile = '/DeviceManager/mkdir_test_directory_tmp_nested1/foo.txt'
         tmpdevfilenested = '/DeviceManager/mkdir_test_directory_tmp_nested1/nested2/foo.txt'
-        
+
         # test local mkdir
         if os.path.exists(os.path.join(scatest.getSdrPath(), localdomdir)):
             os.rmdir(os.path.join(scatest.getSdrPath(), localdomdir))
@@ -479,7 +480,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         except:
             self.fail("Something bad happened in fileMgr.mkdir(newdir_local)")
         self.assertEqual(fileMgr.exists(domdir), True)
-            
+
         # test mounted mkdir
         if os.path.exists(os.path.join(scatest.getSdrPath(), localdevdir)):
             os.rmdir(os.path.join(scatest.getSdrPath(), localdevdir))
@@ -488,7 +489,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         except:
             self.fail("Something bad happened in fileMgr.mkdir(newdir_mounted)")
         self.assertEqual(fileMgr.exists(devdir), True)
-        
+
         # test nested mkdir local
         if os.path.exists(os.path.join(scatest.getSdrPath(), localdomdir_nestedbase + '/nested2')):
             os.rmdir(os.path.join(scatest.getSdrPath(), localdomdir_nestedbase + '/nested2'))
@@ -570,8 +571,60 @@ class FileManagerTest(scatest.CorbaTestCase):
         except:
             self.assertEqual(fileMgr.exists(domdir), False)
 
+    def test_Move(self):
+        #################
+        # test move
+        #################
+        self.assertNotEqual(self._domMgr, None)
+        fileMgr = self._domMgr._get_fileMgr()
+
+        # Test move on the same file system
+        original = os.path.join(scatest.getSdrPath(), "dom/mgr/DomainManager.spd.xml")
+        domoldfile = "/components/old.txt"
+        domnewfile = "/waveforms/new.txt"
+        devfile = "/ExecutableDevice_node/nodes/dev.txt"
+        domlocaloldfile = os.path.join(scatest.getSdrPath(), 'dom' + domoldfile)
+        domlocalnewfile = os.path.join(scatest.getSdrPath(), 'dom' + domnewfile)
+        devlocalfile = os.path.join(scatest.getSdrPath(), "dev/nodes/dev.txt")
+
+        shutil.copyfile(original, domlocaloldfile)
+        if os.path.exists(domlocalnewfile):
+            os.remove(domlocalnewfile)
+
+        try:
+            fileMgr.move(domoldfile, domnewfile)
+        except:
+            self.fail("Exception in local move")
+        self.assertEqual(fileMgr.exists(domoldfile), False)
+        self.assertEqual(fileMgr.exists(domnewfile), True)
+
+        self.assertEqual(file(original).read(), file(domlocalnewfile).read())
+
+        # Test move across file systems
+        if os.path.exists(devlocalfile):
+            os.remove(devlocalfile)
+        try:
+            fileMgr.move(domnewfile, devfile)
+        except:
+            self.fail("Exception in local->remote move")
+        self.assertEqual(fileMgr.exists(domnewfile), False)
+        self.assertEqual(fileMgr.exists(devfile), True)
+
+        self.assertEqual(file(original).read(), file(devlocalfile).read())
+
+        os.remove(devlocalfile)
+
+    def test_EmptyFilename(self):
+        #################
+        # test move
+        #################
+        self.assertNotEqual(self._domMgr, None)
+        fileMgr = self._domMgr._get_fileMgr()
+        
+        self.assertRaises(CF.InvalidFileName, fileMgr.open, '', True)
+
     def test_readException(self):
         # Makes sure that File_impl::read() throws correct exception and doesn't kill domain
         # Issue #533
-        self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, '/waveforms')      
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, '/waveforms')
 

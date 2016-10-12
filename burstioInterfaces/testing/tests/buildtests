@@ -1,0 +1,35 @@
+#
+# Build supporting components for burstio test framework
+#
+
+burstio_top=../../../
+burstio_libsrc_top=$burstio_top/libsrc
+export LD_LIBRARY_PATH=$burstio_libsrc_top/.libs:$burstio_top/.libs:${LD_LIBRARY_PATH}
+export PYTHONPATH=$burstio_libsrc_top/build/lib:${PYTHONPATH}
+
+pushd cpp
+./reconf; ./configure; make
+popd
+
+#
+# Build supporting components for burstio test framework
+#
+
+#
+# build java tests from template classes
+#
+sedir=../../../src/java/sed
+cd java
+for bt in Byte  Double Float LongLong Long Short  Ubyte  UlongLong  Ulong  Ushort; do
+    sed -f $sedir/$bt.sed ./templates/InBurstPort_Test.template > InBurst${bt}Port_Test.java
+    sed -f $sedir/$bt.sed ./templates/OutBurstPort_Test.template > OutBurst${bt}Port_Test.java
+    sed -f $sedir/$bt.sed ./templates/BurstPush_Test.template > Burst${bt}Push_Test.java
+done
+sed -f $sedir/$bt.sed ./templates/Burstio_Utils_Test.template > Burstio_Utils_Test.java
+
+if command -v ant 2>/dev/null
+then
+    ant compile
+else
+    make build-all
+fi

@@ -1,0 +1,59 @@
+
+
+RPM Build of bulkio library:
+
+Pre-req:  
+  redhawk-core framework and deps
+  BULKIO Interfaces  package installed
+
+# create temporary build environment... can't use /tmp because of pam issue
+mkdir -p /data/tmp/mybuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+# create tarfile from bulkioInterfaces directory
+tar jcvf bulkio.tar.bz2  bulkio-1.0.0/* 
+
+# copy tarbal to build area
+cp bulkio.tar.bz2 /data/tmp/mybuild/SOURCES/
+
+# From libsrc direcotry
+rpmbuild -bb --define "_topdir /data/tmp/mybuild" bulkio.spec
+
+Build Library : C++, Python, Java implementations
+
+./reconf
+./configure
+
+# makes local build using libsrc directory and parent BULKIO Interfaces project
+make
+
+# cleans all the implementation directories
+make clean
+
+# cleans all the autotools build files and implementation directories
+make reallyclean 
+
+
+Tests:
+
+# current test setup requires manual build and execution
+
+
+#
+# Components with port definitions for each type of bulkio port for each supported language
+# implementation
+#
+tests/
+     components/CPP_Ports 
+     components/Java_Ports 
+     components/Python_Ports 
+
+tests/cpp  -- C++ unit testing for exercising each of the bulkio library ports for C++ implementation
+   ./runtests
+
+tests/python
+     # tests bulkio interface library using the component language implementations in the sandbox
+     # runs test_script.py test_cpp_vector.py,test_java_vector.py, test_python_vector.py
+   ./runtests <test_script>.py   
+
+
+   

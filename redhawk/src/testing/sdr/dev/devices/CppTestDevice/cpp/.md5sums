@@ -1,0 +1,11 @@
+7395fc9c1efe1c24e764d95bf5721a51  main.cpp
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+95d7bc43e9b15f5113a49f7dc27eeae4  CppTestDevice.cpp
+6873a4153cab5c5450d0e115b47de7c7  CppTestDevice_base.cpp
+551cb4bd8ee383d7ddcb024976644e73  configure.ac
+b047b5a816ce10a0f6c58418cbaeecee  Makefile.am
+8154aeef9432ec029cf8b7d4aa4376bc  struct_props.h
+56d0b627f63e43190dd6e354800efbaa  CppTestDevice_base.h
+2edeb4570ba55b42155b992f38587fb6  build.sh
+94ac207450ccba3bc94378581dfedcc0  CppTestDevice.h
+44b2efc27a289214d911d793ac9cd593  Makefile.am.ide

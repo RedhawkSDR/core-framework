@@ -162,7 +162,7 @@ class test_collocation_device_base(CF__POA.ExecutableDevice, ExecutableDevice):
                                           action="external",
                                           kinds=("configure","allocation")
                                           )       
-        os_name = simple_property(id_="os_name",
+        os_name = simple_property(id_="DCE:4a23ad60-0b25-4121-a630-68803a498f75",
                                           name="os_name", 
                                           type_="string",
                                           defvalue="Linux",

@@ -20,7 +20,6 @@
 
  
 #include <iostream>
-#include "ossie/ossieSupport.h"
 
 #include "BasicDevWithExecParam_cpp_impl1.h"
 

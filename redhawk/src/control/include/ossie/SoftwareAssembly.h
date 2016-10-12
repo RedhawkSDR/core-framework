@@ -65,7 +65,55 @@ namespace ossie {
 
                 std::string componentrefid;
                 std::string identifier;
+                std::string externalname;
                 port_type type;
+        };
+
+        class Property {
+        public:
+            std::string comprefid;
+            std::string propid;
+            std::string externalpropid;
+        };
+
+        class PropertyRef {
+        public:
+            PropertyRef (ComponentProperty* prop) :
+                property (prop)
+            {
+            }
+
+            PropertyRef (const PropertyRef& copy) :
+                property (copy.property->clone())
+            {
+            }
+
+            std::string refId;
+            ComponentProperty* property;
+
+            ~PropertyRef ()
+            {
+                delete property;
+            }
+        };
+
+        class UsesDevice {
+        public:
+            std::string id;
+            std::string type;
+            std::vector<PropertyRef> dependencies;
+
+            const char* getId() const {
+                return id.c_str();
+            }
+
+            const char* getType() const {
+                return type.c_str();
+            }
+
+            const std::vector<PropertyRef>& getDependencies() const {
+                return dependencies;
+            }
         };
 
         class SAD {
@@ -77,6 +125,8 @@ namespace ossie {
                 std::vector<Connection> connections;
                 std::vector<ComponentFile> componentfiles;
                 std::vector<SoftwareAssembly::Port> externalports;
+                std::vector<SoftwareAssembly::Property> externalproperties;
+                std::vector<SoftwareAssembly::UsesDevice> usesdevice;
         };
        
         SoftwareAssembly() : _sad(0) {}
@@ -101,7 +151,11 @@ namespace ossie {
 
         const char* getAssemblyControllerRefId() const;
 
-            const std::vector<SoftwareAssembly::Port>& getExternalPorts() const;
+        const std::vector<SoftwareAssembly::Port>& getExternalPorts() const;
+
+        const std::vector<SoftwareAssembly::Property>& getExternalProperties() const;
+
+        const std::vector<SoftwareAssembly::UsesDevice>& getUsesDevices() const;
 
     protected:
         std::auto_ptr<SAD> _sad;

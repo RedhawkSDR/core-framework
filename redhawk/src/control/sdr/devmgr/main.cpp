@@ -27,6 +27,8 @@
 #include <sys/utsname.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/resource.h>
+#include <sys/time.h>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -35,6 +37,7 @@
 #include <ossie/CorbaUtils.h>
 #include <ossie/ossieSupport.h>
 #include <ossie/debug.h>
+#include <ossie/logging/loghelpers.h>
 
 #include "DeviceManager_impl.h"
 
@@ -117,6 +120,8 @@ int main(int argc, char* argv[])
     std::string logfile_uri;
     std::string domainName;
     int debugLevel = 3;
+    std::string dpath("");
+    std::string name_binding("DEVICE_MANAGER");
 
     std::map<std::string, char*>execparams;
 
@@ -142,6 +147,10 @@ int main(int argc, char* argv[])
             logfile_uri = argv[ii];
         } else if (param == "DEBUG_LEVEL") {
             debugLevel = atoi(argv[ii]);
+            if (debugLevel > 5) {
+                std::cout<<"Logging level "<<debugLevel<<" invalid. Lowering to 5"<<std::endl;
+                debugLevel = 5;
+            }
         } else if (ii > 0 ) {
             execparams[param] = argv[ii];
         }
@@ -175,10 +184,16 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
-    // Take care of the logfile URI
-    if (logfile_uri.empty()) {
-        LoggingConfigurator::configure(debugLevel);
-    } else {
+    pid_t pid = getpid();
+    std::ostringstream os;
+    os << domainName << "/" << name_binding << "_" << pid;;
+    dpath= os.str();
+
+    // setup logging context for a component resource
+    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::DeviceMgrCtx(name_binding, domainName, dpath ) );
+
+    std::string logcfg_uri=logfile_uri;
+    if ( !logfile_uri.empty() ) {
         // Determine the scheme, if any.  This isn't a full fledged URI parser so we can
         // get tripped up on complex URIs.  We should probably incorporate a URI parser
         // library for this sooner rather than later
@@ -208,16 +223,19 @@ int main(int argc, char* argv[])
                 colonIdx += 2;
             }
             path = logfile_uri.substr(colonIdx, logfile_uri.length() - colonIdx);
-        }
+	}
 
         if (scheme == "file") {
-            LoggingConfigurator::configure((char*)path.string().c_str());
-        } else if (scheme == "sca") {
-            LoggingConfigurator::configure((char*)fs::path(devRootPath / path).string().c_str());
+	  std::string fpath((char*)path.string().c_str());
+	  logcfg_uri = "file://" + fpath;	  
+	}
+	if (scheme == "sca") {
+	  std::string fpath((char*)fs::path(devRootPath / path).string().c_str());
+	  logcfg_uri = "file://" + fpath;
         }
-        // This log statement is exempt from the "NO LOG STATEMENTS" warning below
-        LOG_INFO(DeviceManager, "Loading log configuration from " << logfile_uri);
     }
+
+    ossie::logging::Configure(logcfg_uri, debugLevel, ctx);
 
     ///////////////////////////////////////////////////////////////////////////
     // NO LOG_ STATEMENTS ABOVE THIS POINT

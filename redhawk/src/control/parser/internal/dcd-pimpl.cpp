@@ -964,30 +964,25 @@ namespace dcd
   void usesport_pimpl::
   componentinstantiationref (const ::std::string& componentinstantiationref)
   {
-      usesPort->componentRefId = componentinstantiationref;
-      usesPort->type = ::ossie::Port::COMPONENTINSTANTIATIONREF;
+      usesPort->setComponentInstantiationRef(componentinstantiationref);
   }
 
   void usesport_pimpl::
   devicethatloadedthiscomponentref (const std::string& devicethatloadedthiscomponentref)
   {
-      usesPort->componentRefId = devicethatloadedthiscomponentref;
-      usesPort->type = ::ossie::Port::DEVICETHATLOADEDTHISCOMPONENTREF;
+      usesPort->setDeviceThatLoadedThisComponentRef(devicethatloadedthiscomponentref);
   }
 
   void usesport_pimpl::
   deviceusedbythiscomponentref (const ::std::pair<std::string, std::string>& ref)
   {
-      usesPort->componentRefId = ref.first;
-      usesPort->usesRefId = ref.second;
-      usesPort->type = ::ossie::Port::DEVICEUSEDBYTHISCOMPONENTREF;
+      usesPort->setDeviceUsedByThisComponentRef(ref.first, ref.second);
   }
 
   void usesport_pimpl::
   findby (const ::ossie::FindBy& findby)
   {
-      usesPort->findBy = findby;
-      usesPort->type = ::ossie::Port::FINDBY;
+      usesPort->setFindBy(findby);
   }
 
   ::ossie::UsesPort usesport_pimpl::
@@ -1014,30 +1009,25 @@ namespace dcd
   void providesport_pimpl::
   componentinstantiationref (const ::std::string& componentinstantiationref)
   {
-      provPort->componentRefId = componentinstantiationref;
-      provPort->type = ::ossie::Port::COMPONENTINSTANTIATIONREF;
+      provPort->setComponentInstantiationRef(componentinstantiationref);
   }
 
   void providesport_pimpl::
   devicethatloadedthiscomponentref (const std::string& devicethatloadedthiscomponentref)
   {
-      provPort->componentRefId = devicethatloadedthiscomponentref;
-      provPort->type = ::ossie::Port::DEVICETHATLOADEDTHISCOMPONENTREF;
+      provPort->setDeviceThatLoadedThisComponentRef(devicethatloadedthiscomponentref);
   }
 
   void providesport_pimpl::
   deviceusedbythiscomponentref (const ::std::pair<std::string, std::string>& ref)
   {
-      provPort->componentRefId = ref.first;
-      provPort->usesRefId = ref.second;
-      provPort->type = ::ossie::Port::DEVICEUSEDBYTHISCOMPONENTREF;
+      provPort->setDeviceUsedByThisComponentRef(ref.first, ref.second);
   }
 
   void providesport_pimpl::
   findby (const ::ossie::FindBy& findby)
   {
-      provPort->findBy = findby;
-      provPort->type = ::ossie::Port::FINDBY;
+      provPort->setFindBy(findby);
   }
 
   ::ossie::ProvidesPort providesport_pimpl::
@@ -1064,13 +1054,13 @@ namespace dcd
   void componentsupportedinterface_pimpl::
   componentinstantiationref (const ::std::string& componentinstantiationref)
   {
-      ciface->componentInstantiationRefId = componentinstantiationref;
+      ciface->setComponentInstantiationRef(componentinstantiationref);
   }
 
   void componentsupportedinterface_pimpl::
   findby (const ::ossie::FindBy& findby)
   {
-      ciface->theFindBy = findby;
+      ciface->setFindBy(findby);
   }
 
   ::ossie::ComponentSupportedInterface componentsupportedinterface_pimpl::

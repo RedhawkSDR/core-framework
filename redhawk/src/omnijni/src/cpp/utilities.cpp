@@ -23,6 +23,7 @@
 #include <stdexcept>
 
 #include <omnijni/class.h>
+#include <omnijni/servant.h>
 
 jclass omnijni::loadClass (JNIEnv* env, const std::string& name)
 {
@@ -39,4 +40,3 @@ jclass omnijni::loadClass (JNIEnv* env, const std::string& name)
     }
     return ref;
 }
-

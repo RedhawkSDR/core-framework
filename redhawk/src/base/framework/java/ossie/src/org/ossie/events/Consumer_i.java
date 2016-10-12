@@ -32,20 +32,20 @@ import java.util.HashMap;
 
 import CF.DataType;
 
-public class Consumer_i extends CosEventChannelAdmin.ProxyPushConsumerPOA implements CosEventChannelAdmin.ProxyPushConsumerOperations {
+public class Consumer_i extends org.omg.CosEventChannelAdmin.ProxyPushConsumerPOA implements org.omg.CosEventChannelAdmin.ProxyPushConsumerOperations {
 
-    protected CosEventChannelAdmin.ProxyPushConsumer push_consumer;
+    protected org.omg.CosEventChannelAdmin.ProxyPushConsumer push_consumer;
     protected HashMap<String, EventCallback> callbacks;
 
     public Consumer_i() {
         callbacks = new HashMap<String, EventCallback>();
     }
 
-    public CosEventChannelAdmin.ProxyPushConsumer setup(final ORB orb, final POA poa) {
-        CosEventChannelAdmin.ProxyPushConsumerPOATie tie = new CosEventChannelAdmin.ProxyPushConsumerPOATie(this, poa);
+    public org.omg.CosEventChannelAdmin.ProxyPushConsumer setup(final ORB orb, final POA poa) {
+        org.omg.CosEventChannelAdmin.ProxyPushConsumerPOATie tie = new org.omg.CosEventChannelAdmin.ProxyPushConsumerPOATie(this, poa);
         tie._this(orb);
         try {
-            push_consumer = CosEventChannelAdmin.ProxyPushConsumerHelper.narrow(poa.servant_to_reference((Servant)tie));
+            push_consumer = org.omg.CosEventChannelAdmin.ProxyPushConsumerHelper.narrow(poa.servant_to_reference((Servant)tie));
         } catch (ServantNotActive e) {
             return null;
         } catch (WrongPolicy e) {
@@ -68,7 +68,7 @@ public class Consumer_i extends CosEventChannelAdmin.ProxyPushConsumerPOA implem
         this.callbacks.put(message_id, _callback);
     }
     
-    public void connect_push_supplier(final COS.CosEventComm.PushSupplier push_supplier) {
+    public void connect_push_supplier(final org.omg.CosEventComm.PushSupplier push_supplier) {
         
     }
 

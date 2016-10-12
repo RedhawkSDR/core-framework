@@ -24,6 +24,8 @@
 #include <signal.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
+#include <sys/resource.h>
+#include <sys/time.h>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -32,6 +34,7 @@
 #include <ossie/CorbaUtils.h>
 #include <ossie/ossieSupport.h>
 #include <ossie/debug.h>
+#include <ossie/logging/loghelpers.h>
 
 #include "DomainManager_impl.h"
 
@@ -40,7 +43,6 @@ using namespace std;
 
 static DomainManager_impl* DomainManager_servant = 0;
 static int received_signal = 0;
-
 
 CREATE_LOGGER(DomainManager);
 
@@ -82,12 +84,14 @@ static void raise_limit(int resource, const char* name, const rlim_t DEFAULT_MAX
 int main(int argc, char* argv[])
 {
     // parse command line options
-    string dmdFile;
-    string sdrRoot;
-    string logfile_uri;
-    string db_uri;
-    string domainName;
+    string dmdFile("");
+    string sdrRoot("");
+    string logfile_uri("");
+    string db_uri("");
+    string domainName("");
     int debugLevel = 3;
+    std::string dpath("");
+    std::string name_binding("DomainManager");
 
     // If "--nopersist" is asserted, turn off persistent IORs.
     bool enablePersistence = false;
@@ -123,6 +127,10 @@ int main(int argc, char* argv[])
             db_uri = argv[ii];
         } else if (param == "DEBUG_LEVEL") {
             debugLevel = atoi(argv[ii]);
+            if (debugLevel > 5) {
+                std::cout<<"Logging level "<<debugLevel<<" invalid. Lowering to 5"<<std::endl;
+                debugLevel = 5;
+            }
         } else if (param == "PERSISTENCE") {
             string value = argv[ii];
             std::transform(value.begin(), value.begin(), value.end(), ::tolower);
@@ -167,10 +175,15 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
-    // Take care of the logfile URI
-    if (logfile_uri.empty()) {
-        LoggingConfigurator::configure(debugLevel);
-    } else {
+    std::ostringstream os;
+    os << domainName << "/" << domainName;
+    dpath= os.str();
+
+    // setup logging context for a component resource
+    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::DomainCtx(name_binding, domainName, dpath ) );
+
+    std::string logcfg_uri = logfile_uri;
+    if ( !logfile_uri.empty() ) {
         // Determine the scheme, if any.  This isn't a full fledged URI parser so we can
         // get tripped up on complex URIs.  We should probably incorporate a URI parser
         // library for this sooner rather than later
@@ -200,16 +213,38 @@ int main(int argc, char* argv[])
                 colonIdx += 2;
             }
             path = logfile_uri.substr(colonIdx, logfile_uri.length() - colonIdx);
-        }
+	}
 
         if (scheme == "file") {
-            LoggingConfigurator::configure((char*)path.string().c_str());
-        } else if (scheme == "sca") {
-            LoggingConfigurator::configure((char*)fs::path(domRootPath / path).string().c_str());
+	  std::string fpath((char*)path.string().c_str());
+	  logcfg_uri = "file://" + fpath;	  
+	}
+	if (scheme == "sca") {
+	  std::string fpath((char*)fs::path(domRootPath / path).string().c_str());
+	  logcfg_uri = "file://" + fpath;
         }
-        // This log statement is exempt from the "NO LOG STATEMENTS" warning below
-        LOG_INFO(DomainManager, "Loading log configuration from " << logfile_uri);
     }
+
+    // configure the  logging library
+    ossie::logging::Configure(logcfg_uri, debugLevel, ctx);
+    // This log statement is exempt from the "NO LOG STATEMENTS" warning below
+    if ( logfile_uri == "") {
+      LOG_INFO(DomainManager, "Loading DEFAULT logging configuration. " );
+    }
+    else {
+      LOG_INFO(DomainManager, "Loading log configuration from uri:" << logfile_uri);
+    }
+
+#if 0 
+    // test logger configuration....
+    LOG_FATAL(DomainManager, "FATAL MESSAGE " );
+    LOG_ERROR(DomainManager, "ERROR MESSAGE " );
+    LOG_WARN(DomainManager, "WARN MESSAGE " );
+    LOG_INFO(DomainManager, "INFO MESSAGE " );
+    LOG_DEBUG(DomainManager, "DEBUG MESSAGE " );
+    LOG_TRACE(DomainManager, "TRACE MESSAGE " );
+    std::cout << " END OF TEST LOGGER MESSAGES " << std::endl;
+#endif
 
     ///////////////////////////////////////////////////////////////////////////
     // NO LOG_ STATEMENTS ABOVE THIS POINT
@@ -290,7 +325,8 @@ int main(int argc, char* argv[])
             DomainManager_servant = new DomainManager_impl(dmdFile.c_str(),
                                                            domRootPath.string().c_str(),
                                                            domainName.c_str(),
-                                                           (logfile_uri.empty()) ? NULL : logfile_uri.c_str()
+                                                           (logfile_uri.empty()) ? NULL : logfile_uri.c_str(),
+                                                           (db_uri.empty()) ? NULL : db_uri.c_str()
                                                            );
             DomainManager_servant->setExecparamProperties(execparams);
 

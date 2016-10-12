@@ -22,7 +22,6 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 <!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
 <properties>
     <!-- Provide a processor_name and os_name matching property -->
-    <!-- See section D2.1.6.8 and Attachment 2 to Appendix D -->
     <simple id="DCE:c10fa291-0d82-49ec-a5e9-fcb5b9b21d17"
             name="os_name"
             mode="readonly"

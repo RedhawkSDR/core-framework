@@ -732,22 +732,6 @@ post_usesDevice ()
     return *_uses;
 }
 
-// scaComplianceType_pimpl
-//
-
-void scaComplianceType_pimpl::
-pre ()
-{
-}
-
-::std::string scaComplianceType_pimpl::
-post_scaComplianceType ()
-{
-  const ::std::string& v (post_nmtoken ());
-  // TODO enforce value restrictions
-  return v;
-}
-
 // aepcompliance_pimpl
 //
 

@@ -36,6 +36,11 @@ class orphaned_child(CF__POA.Resource, Resource):
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         signal.signal(signal.SIGQUIT, signal.SIG_IGN)
 
+    def releaseObject(self):
+        # Overriden to prevent the normal automatic process exit that occurs
+        # after releaseObject() in 1.9+
+        pass
+
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.WARN)
     logging.debug("Starting Component")

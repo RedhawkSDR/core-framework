@@ -27,6 +27,22 @@
 
 PREPARE_LOGGING(PropertySet_impl);
 
+PropertySet_impl::PropertySet_impl ():
+    propertyChangePort(0)
+{
+}
+
+PropertySet_impl::~PropertySet_impl ()
+{
+    // Clean up all property wrappers created by descendents.
+    for (std::vector<PropertyInterface*>::iterator ii = ownedWrappers.begin(); ii != ownedWrappers.end(); ++ii) {
+        delete *ii;
+    }
+
+    // Clean up all property callback functors.
+    propCallbacks.clear();
+}
+
 void PropertySet_impl::setExecparamProperties(std::map<std::string, char*>& execparams)
 {
     LOG_TRACE(PropertySet_impl, "Setting " << execparams.size() << " exec parameters");
@@ -41,28 +57,13 @@ void PropertySet_impl::setExecparamProperties(std::map<std::string, char*>& exec
         // Manager.  If the property is not found, then it might be a resource
         // property passed through the nodeBooter to the DeviceManager
         if (property) {
-            CORBA::Any val = ossie::string_to_any(iter->second,
-                    static_cast<CORBA::TCKind> (property->type));
+            CORBA::Any val = ossie::string_to_any(iter->second, property->type);
             property->setValue(val);
         } else {
-            LOG_WARN(PropertySet_impl, "propery: " << id << " is not defined, ignoring it!!");
+            LOG_WARN(PropertySet_impl, "Property: " << id << " is not defined, ignoring it!!");
         }
     }
     LOG_TRACE(PropertySet_impl, "Done setting exec parameters");
-}
-
-
-PropertySet_impl::~PropertySet_impl ()
-{
-    // Clean up all property wrappers created by descendents.
-    for (std::vector<PropertyInterface*>::iterator ii = ownedWrappers.begin(); ii != ownedWrappers.end(); ++ii) {
-        delete *ii;
-    }
-
-    // Clean up all property callback functors.
-    for (PropertyCallbackMap::iterator ii = propCallbacks.begin(); ii != propCallbacks.end(); ++ii) {
-        delete ii->second;
-    }
 }
 
 void
@@ -153,11 +154,6 @@ throw (CORBA::SystemException, CF::UnknownProperties)
     if (configProperties.length () == 0) {
         LOG_TRACE(PropertySet_impl, "Query all properties");
 
-        // Handle deprecated old-style properties.
-        remapProperties();
-
-        configProperties.length(0);
-
         PropertyMap::iterator jj = propTable.begin();
         for (CORBA::ULong ii = 0; ii < propTable.size(); ++ii) {
             if (jj->second->isQueryable()) {
@@ -212,26 +208,8 @@ throw (CORBA::SystemException, CF::UnknownProperties)
     TRACE_EXIT(PropertySet_impl);
 }
 
-propertyContainer* PropertySet_impl::getPropFromId(std::string& id)
-{
-    TRACE_ENTER(PropertySet_impl);
-    std::map<std::string, propertyContainer>::iterator j;
-    for (j = propSet.begin(); j != propSet.end(); j++) {
-        if ((*j).second.id == id) {
-            TRACE_EXIT(PropertySet_impl);
-            return &(*j).second;
-        }
-    }
-    TRACE_EXIT(PropertySet_impl);
-    return NULL;
-}
-
-
 PropertyInterface* PropertySet_impl::getPropertyFromId (const std::string& id)
 {
-    // Handle deprecated old-style properties.
-    remapProperties();
-
     PropertyMap::iterator property = propTable.find(id);
     if (property != propTable.end()) {
         return property->second;
@@ -241,9 +219,6 @@ PropertyInterface* PropertySet_impl::getPropertyFromId (const std::string& id)
 
 PropertyInterface* PropertySet_impl::getPropertyFromName (const std::string& name)
 {
-    // Handle deprecated old-style properties.
-    remapProperties();
-
     for (PropertyMap::iterator property = propTable.begin(); property != propTable.end(); ++property) {
         if (name == property->second->name) {
             return property->second;
@@ -292,7 +267,9 @@ CF::DataType PropertySet_impl::getProperty (CORBA::String_var _id)
 
 void PropertySet_impl::setPropertyChangeListener (const std::string& id, PropertyCallbackFn func)
 {
-    setPropertyCallback(id, new StaticCallback(func));
+    PropertyCallback cb;
+    cb = func;
+    setPropertyCallback(id, cb);
 }
 
 void PropertySet_impl::executePropertyCallback (const std::string& id)
@@ -301,10 +278,10 @@ void PropertySet_impl::executePropertyCallback (const std::string& id)
     if (propCallbacks.end() == func) {
         return;
     }
-    (*func->second)(id);
+    (func->second)(id);
 }
 
-void PropertySet_impl::setPropertyCallback (const std::string& id, PropertyCallback* callback)
+void PropertySet_impl::setPropertyCallback (const std::string& id, PropertyCallback callback)
 {
     std::string propId;
 
@@ -314,23 +291,12 @@ void PropertySet_impl::setPropertyCallback (const std::string& id, PropertyCallb
     if (property) {
         propId = property->id;
     } else {
+        // Check if property exists
+        if (!getPropertyFromId(id)){
+            LOG_WARN(PropertySet_impl, "Setting listener for property " << id << " that does not exist");
+        }
         propId = id;
     }
 
-    if (propCallbacks.count(propId)) {
-        delete propCallbacks[propId];
-    }
     propCallbacks[propId] = callback;
-}
-
-void PropertySet_impl::remapProperties (void)
-{
-    if ((propSet.size() > 0) && (propSet.size() != propTable.size())) {
-        LOG_TRACE(PropertySet_impl, "Remapping properties");
-        propTable.clear();
-        for (propSet_iterator ii = propSet.begin(); ii != propSet.end(); ++ii) {
-            LOG_TRACE(PropertySet_impl, "Adding property " << ii->first);
-            propTable[ii->second.id] = &(ii->second);
-        }
-    }
 }

@@ -459,17 +459,6 @@ namespace spd
     std::auto_ptr<ossie::SPD::UsesDevice> _uses;
   };
 
-  class scaComplianceType_pimpl: public virtual scaComplianceType_pskel,
-    public ::xml_schema::nmtoken_pimpl
-  {
-    public:
-    virtual void
-    pre ();
-
-    virtual ::std::string
-    post_scaComplianceType ();
-  };
-
   class aepcompliance_pimpl: public virtual aepcompliance_pskel,
     public ::xml_schema::nmtoken_pimpl
   {

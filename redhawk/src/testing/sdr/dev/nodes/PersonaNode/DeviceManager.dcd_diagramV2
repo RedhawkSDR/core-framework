@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns="http://sca.jpeojtrs.mil/dcd" xmlns:diagram="http://sca.jpeojtrs.mil/diagram" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmi:id="_WwQ3YYnREeOP-KWeDoYdZQ" type="Dcd" name="DeviceManager.dcd_diagramV2" measurementUnit="Pixel">
+  <children xmi:type="notation:Shape" xmi:id="_x9QNIInREeOP-KWeDoYdZQ" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_x9YwAInREeOP-KWeDoYdZQ" type="5005"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_x9YwAYnREeOP-KWeDoYdZQ" type="7002"/>
+    <element xmi:type="DcdComponentPlacement" href="DeviceManager.dcd.xml#//@partitioning/@componentPlacement.1"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_x9QNIYnREeOP-KWeDoYdZQ" x="657" y="291"/>
+  </children>
+  <children xmi:type="notation:Shape" xmi:id="_yamQcInREeOP-KWeDoYdZQ" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_yamQconREeOP-KWeDoYdZQ" type="5005"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_yam3gInREeOP-KWeDoYdZQ" type="7002"/>
+    <element xmi:type="DcdComponentPlacement" href="DeviceManager.dcd.xml#//@partitioning/@componentPlacement.0"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_yamQcYnREeOP-KWeDoYdZQ" x="192" y="192"/>
+  </children>
+  <children xmi:type="notation:Shape" xmi:id="_z-plcIz4EeOZGIoduwn0sA" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_z-plcoz4EeOZGIoduwn0sA" type="5005"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_z-plc4z4EeOZGIoduwn0sA" type="7002"/>
+    <element xmi:type="DcdComponentPlacement" href="DeviceManager.dcd.xml#//@partitioning/@componentPlacement.2"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_z-plcYz4EeOZGIoduwn0sA" x="876" y="72"/>
+  </children>
+  <children xmi:type="notation:Shape" xmi:id="_0OZ4sIz4EeOZGIoduwn0sA" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_0OafwIz4EeOZGIoduwn0sA" type="5005"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_0OafwYz4EeOZGIoduwn0sA" type="7002"/>
+    <element xmi:type="DcdComponentPlacement" href="DeviceManager.dcd.xml#//@partitioning/@componentPlacement.3"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_0OZ4sYz4EeOZGIoduwn0sA" x="992" y="477"/>
+  </children>
+  <styles xmi:type="notation:DiagramStyle" xmi:id="_WwQ3YonREeOP-KWeDoYdZQ"/>
+  <styles xmi:type="diagram:EObjectContainerStyle" xmi:id="_WwQ3Y4nREeOP-KWeDoYdZQ" name="FindByStubContainer"/>
+  <element xmi:type="DeviceConfiguration" href="DeviceManager.dcd.xml#DCE:4580fc3e-de08-4993-a936-04cb698cdb78"/>
+</notation:Diagram>

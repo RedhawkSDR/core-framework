@@ -18,10 +18,11 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AM_LDFLAGS =  -no-install $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(BOOST_SYSTEM_LIB)
-INCLUDES = -I../../../../../base/include -I../../../../../base/parser -I../linkedLibraryTest
+CFDIR = ../../../../../base
+AM_CPPFLAGS = -I$(CFDIR)/include -I../linkedLibraryTest
 
 noinst_PROGRAMS = TestCppsoftpkgDeps
 
 TestCppsoftpkgDeps_SOURCES = TestCppsoftpkgDeps.cpp main.cpp
-TestCppsoftpkgDeps_LDADD = ../../../../../base/framework/libossiecf.la ../../../../../base/parser/libossieparser.la ../../../../../base/framework/idl/libossieidl.la ../linkedLibraryTest/.libs/liblinkedLibraryTest.so
+TestCppsoftpkgDeps_CXXFLAGS = $(BOOST_CPPFLAGS)
+TestCppsoftpkgDeps_LDADD = $(BOOST_SYSTEM_LIB) $(CFDIR)/framework/libossiecf.la $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/idl/libossieidl.la ../linkedLibraryTest/.libs/liblinkedLibraryTest.so

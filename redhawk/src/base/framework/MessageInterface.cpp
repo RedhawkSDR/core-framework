@@ -18,9 +18,6 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-
-#if ENABLE_EVENTS
-
 #include "ossie/MessageInterface.h"
 #include <iostream>
 
@@ -159,5 +156,67 @@ void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any&
     }
 };
 
-#endif // ENABLE_EVENTS
+MessageSupplierPort::MessageSupplierPort (std::string port_name) :
+    Port_Uses_base_impl(port_name)
+{
+}
 
+MessageSupplierPort::~MessageSupplierPort (void)
+{
+}
+
+void MessageSupplierPort::connectPort(CORBA::Object_ptr connection, const char* connectionId)
+{
+    boost::mutex::scoped_lock lock(portInterfaceAccess);
+    this->active = true;
+    CosEventChannelAdmin::EventChannel_var channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(connection);
+    if (CORBA::is_nil(channel)) {
+        throw CF::Port::InvalidPort(0, "The object provided did not narrow to a CosEventChannelAdmin::EventChannel type");
+    }
+    CosEventChannelAdmin::SupplierAdmin_var supplier_admin = channel->for_suppliers();
+    CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer = supplier_admin->obtain_push_consumer();
+    proxy_consumer->connect_push_supplier(CosEventComm::PushSupplier::_nil());
+    extendConsumers(connectionId, proxy_consumer);
+}
+
+void MessageSupplierPort::disconnectPort(const char* connectionId)
+{
+    boost::mutex::scoped_lock lock(portInterfaceAccess);
+    CosEventChannelAdmin::ProxyPushConsumer_var consumer = removeConsumer(connectionId);
+    if (CORBA::is_nil(consumer)) {
+        return;
+    }
+    consumer->disconnect_push_consumer();
+    if (this->consumers.empty()) {
+        this->active = false;
+    }
+}
+
+void MessageSupplierPort::push(const CORBA::Any& data)
+{
+    boost::mutex::scoped_lock lock(portInterfaceAccess);
+    std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var>::iterator connection = consumers.begin();
+    while (connection != consumers.end()) {
+        try {
+            (connection->second)->push(data);
+        } catch ( ... ) {
+        }
+        connection++;
+    }
+}
+
+CosEventChannelAdmin::ProxyPushConsumer_ptr MessageSupplierPort::removeConsumer(std::string consumer_id)
+{
+    std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var>::iterator connection = consumers.find(consumer_id);
+    if (connection == consumers.end()) {
+        return CosEventChannelAdmin::ProxyPushConsumer::_nil();
+    }
+    CosEventChannelAdmin::ProxyPushConsumer_var consumer = connection->second;
+    consumers.erase(connection);
+    return consumer._retn();
+}
+
+void MessageSupplierPort::extendConsumers(std::string consumer_id, CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer)
+{
+    consumers[std::string(consumer_id)] = proxy_consumer;
+}

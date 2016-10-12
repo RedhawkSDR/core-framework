@@ -26,7 +26,7 @@ import org.omg.CORBA.ORB;
 import java.util.HashMap;
 import java.util.Hashtable;
 
-import CosEventChannelAdmin.*;
+import org.omg.CosEventChannelAdmin.*;
 import org.ossie.events.MessageSupplierPort;
 import org.ossie.events.Consumer_i;
 import org.ossie.component.*;

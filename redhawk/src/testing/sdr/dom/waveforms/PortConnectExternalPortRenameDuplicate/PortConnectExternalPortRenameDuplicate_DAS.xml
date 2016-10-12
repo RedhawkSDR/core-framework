@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<deploymentenforcement>
+    <application id="DCE:647f37d0-8366-4c11-ac65-ce241d15b5cd" name="REDHAWK::PortConnectProvidesPort"/>
+    <deviceassignmentsequence>
+        <deviceassignmenttype>
+            <componentid>DCE:5faf296f-3193-49cc-8751-f8a64b315fdf</componentid> 
+            <assigndeviceid>DCE:322fb9b2-de57-42a2-ad03-217bcb244262</assigndeviceid>
+        </deviceassignmenttype>
+        <deviceassignmenttype>
+            <componentid>DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74</componentid> 
+            <assigndeviceid>DCE:47dc45d8-19b5-4b7e-bcd4-b165babe5b84</assigndeviceid>
+        </deviceassignmenttype>
+    </deviceassignmentsequence>
+</deploymentenforcement>

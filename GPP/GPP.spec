@@ -31,38 +31,27 @@ Prefix: %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           GPP
-Version:        1.8.8
-Release:        1%{?dist}
-Summary:        Redhawk GPP
+Version:        1.10.1
+Release:        3%{?dist}
+Summary:        REDHAWK GPP
 
 Group:          Applications/Engineering
 License:        LGPLv3+
 URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
+Vendor:         REDHAWK
 
 BuildArch:      noarch
 BuildRoot:      %{_tmppath}/%{name}-root
 
-Requires:       redhawk >= 1.8.5
-BuildRequires:  redhawk >= 1.8.5
-BuildRequires:  autoconf automake libtool
-
-# Python requirements
-Requires:       python omniORBpy
-BuildRequires:  libomniORBpy3-devel
-BuildRequires:  python-devel >= 2.3
-
-# Temporary to aide with upgrading from 1.7.X
-Obsoletes:      redhawk-GPP
+Requires:       redhawk >= 1.9
+BuildRequires:  redhawk-devel >= 1.9
 
 %package profile
 Summary:        Basic GPP profile
 Group:          Redhawk/Framework
-Prereq:         redhawk >= 1.8.5
+Prereq:         redhawk >= 1.9
 Prereq:         %{name} = %{version}-%{release}
-
-# Temporary to aide with upgrading from 1.7.X
-Obsoletes:      redhawk-GPP-profile
 
 %description
 A device representing a general purpose processor
@@ -119,7 +108,7 @@ rm -rf $RPM_BUILD_ROOT
 
 # configure the gpp and the dcd
 echo "Configuring the Node..."
-%{_prefix}/dev/devices/%{name}/python/nodeconfig.py -v \
+%{_prefix}/dev/devices/%{name}/python/nodeconfig.py --silent \
     --clean \
     --gpppath=/devices/%{name} \
     --disableevents \
@@ -129,8 +118,9 @@ echo "Configuring the Node..."
 
 
 %changelog
-* Fri Dec 20 2013 1.8.6-1.1
-- Requires RH 1.8.5 or newer
+* Fri May 24 2013 1.9.0-1
+- Remove obsoletes used to upgrade from 1.7.X to 1.8.X
+- Update dependencies
 
 * Fri Mar 29 2012 1.8.4-1
 - Remove unnecessary defines

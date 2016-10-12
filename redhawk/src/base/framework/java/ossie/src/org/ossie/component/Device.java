@@ -21,8 +21,10 @@
 package org.ossie.component;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -48,6 +50,7 @@ import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
 import org.ossie.properties.AnyUtils;
 import org.ossie.properties.IProperty;
+import org.ossie.logging.logging;
 
 import CF.AggregateDevice;
 import CF.AggregateDeviceHelper;
@@ -66,12 +69,12 @@ import CF.DevicePackage.UsageType;
 import CF.LifeCyclePackage.ReleaseError;
 import CF.PropertySetPackage.InvalidConfiguration;
 import CF.PropertySetPackage.PartialConfiguration;
-import COS.CosEventComm.Disconnected;
-import COS.CosEventComm.PushSupplierHolder;
-import CosEventChannelAdmin.AlreadyConnected;
-import CosEventChannelAdmin.EventChannel;
-import CosEventChannelAdmin.ProxyPushConsumer;
-import CosEventChannelAdmin.SupplierAdmin;
+import org.omg.CosEventComm.Disconnected;
+import org.omg.CosEventComm.PushSupplierHolder;
+import org.omg.CosEventChannelAdmin.AlreadyConnected;
+import org.omg.CosEventChannelAdmin.EventChannel;
+import org.omg.CosEventChannelAdmin.ProxyPushConsumer;
+import org.omg.CosEventChannelAdmin.SupplierAdmin;
 import StandardEvent.StateChangeCategoryType;
 import StandardEvent.StateChangeEventType;
 import StandardEvent.StateChangeType;
@@ -82,16 +85,39 @@ public abstract class Device extends Resource implements DeviceOperations {
     protected AggregateDevice compositeDevice;
     protected CF.Device device;
 
-    protected String softwareProfile;
     protected String label;
     protected AdminType adminState = AdminType.UNLOCKED;
     protected UsageType usageState = UsageType.IDLE;
     protected OperationalType operationState  = OperationalType.ENABLED;
-    protected HashMap <String, AllocCapacity> callbacks;
-    private DataType propSetOrig[];
     private boolean firstTime = true;
     private ProxyPushConsumer proxy_consumer;
     private PushSupplierHolder supplier;
+
+    /**
+     * Deprecated old-style allocation callbacks. Use the Allocator interface and
+     * setAllocator() on the desired property to implement custom allocation
+     * behavior.
+     *
+     * NB: To be removed when backwards compatibility with pre-1.9 devices is no 
+     *     longer required.
+     *
+     * @deprecated
+     */
+    protected HashMap <String, AllocCapacity> callbacks = new HashMap<String,AllocCapacity>();
+
+    /**
+     * Track legacy allocation properties so that backwards-compatible allocation
+     * behavior can be maintained as much as possible. If it is null, no legacy
+     * allocation properties have been registered and no emulation of legacy
+     * behavior is required.
+     *
+     * NB: To be removed when backwards compatibility with pre-1.9 devices is no
+     *     longer required.
+     *
+     * @deprecated
+     */
+    private List<IProperty> legacyAllocProps = null;
+    private boolean warnedLegacyAllocProps = false;
 
     public final static Logger logger = Logger.getLogger(Device.class.getName());
 
@@ -120,10 +146,6 @@ public abstract class Device extends Resource implements DeviceOperations {
     public Device(final DeviceManager devMgr, final AggregateDevice compositeDevice, final String compId, final String label, final String softwareProfile, final ORB orb, final POA poa) throws InvalidObjectReference, ServantNotActive, WrongPolicy {
         this();
         setup(devMgr, compositeDevice, compId, label, softwareProfile, orb, poa);
-    }
-
-    public String softwareProfile() {
-        return softwareProfile;
     }
 
     public String label() {
@@ -205,12 +227,11 @@ public abstract class Device extends Resource implements DeviceOperations {
             final AggregateDevice compositeDevice, 
             final String compId, 
             final String label, 
-            final String softwareProfile, 
+            final String softwareProfile,
             final ORB orb, 
             final POA poa) throws InvalidObjectReference, ServantNotActive, WrongPolicy {
-        super.setup(compId, label, orb, poa);
+        super.setup(compId, label, softwareProfile, orb, poa);
         this.label = label;
-        this.softwareProfile = softwareProfile;
 
         DevicePOATie tie = new DevicePOATie(this, poa);
         tie._this(orb);
@@ -246,7 +267,7 @@ public abstract class Device extends Resource implements DeviceOperations {
      * @throws IllegalAccessException
      * @throws InvalidObjectReference 
      */
-    public static void start_device(final Class clazz, final String[] args, final boolean builtInORB, final int fragSize, final int bufSize) 
+    public static void start_device(final Class<? extends Device> clazz, final String[] args, final boolean builtInORB, final int fragSize, final int bufSize) 
     throws InstantiationException, IllegalAccessException, InvalidObjectReference, ServantNotActive, WrongPolicy 
     {
         final Properties props = new Properties();
@@ -277,7 +298,7 @@ public abstract class Device extends Resource implements DeviceOperations {
      * @throws WrongPolicy 
      * @throws ServantNotActive 
      */
-    public static void start_device(final Class clazz,  final String[] args, final Properties props) 
+    public static void start_device(final Class<? extends Device> clazz,  final String[] args, final Properties props) 
     throws InstantiationException, IllegalAccessException, InvalidObjectReference, ServantNotActive, WrongPolicy 
     {
         final org.omg.CORBA.ORB orb = ORB.init((String[]) null, props);
@@ -296,13 +317,20 @@ public abstract class Device extends Resource implements DeviceOperations {
 
         Map<String, String> execparams = parseArgs(args);
 
+        // Configure log4j from the execparams (or use default settings).
+        //Resource.configureLogging(execparams, orb);
+
         DeviceManager devMgr = null;
+	String devMgr_ior=null;
         if (execparams.containsKey("DEVICE_MGR_IOR")) {
+	    devMgr_ior=execparams.get("DEVICE_MGR_IOR");
             devMgr = DeviceManagerHelper.narrow(orb.string_to_object(execparams.get("DEVICE_MGR_IOR")));
         }
 
         AggregateDevice compositeDevice = null;
+	String composite_ior=null;
         if (execparams.containsKey("COMPOSITE_DEVICE_IOR")) {
+	    composite_ior=execparams.get("COMPOSITE_DEVICE_IOR");
             compositeDevice = AggregateDeviceHelper.narrow(orb.string_to_object(execparams.get("COMPOSITE_DEVICE_IOR")));
         }
 
@@ -321,7 +349,39 @@ public abstract class Device extends Resource implements DeviceOperations {
             profile = execparams.get("PROFILE_NAME");
         }
 
-        final Device device_i = (Device)clazz.newInstance();
+        String dom_path = "";
+        if (execparams.containsKey("DOM_PATH")) {
+            dom_path = execparams.get("DOM_PATH");
+        }
+
+        String logcfg_uri = "";
+        if (execparams.containsKey("LOGGING_CONFIG_URI")) {
+            logcfg_uri = execparams.get("LOGGING_CONFIG_URI");
+        }
+
+	int debugLevel = -1;   // use logging config URI if specified
+	if (execparams.containsKey("DEBUG_LEVEL")) {
+	    debugLevel = Integer.parseInt(execparams.get("DEBUG_LEVEL"));
+	}
+
+	if ( debugLevel > 3 ) {
+	    System.out.println("Device Args: " );
+	    System.out.println("                DEVICE_LABEL:"+ label );
+	    System.out.println("                DEVICE_ID:"+ identifier );
+	    System.out.println("                PROFILE_NAME:"+ profile );
+	    System.out.println("                COMPONENT_IDENTIFIER:"+ identifier );
+	    System.out.println("                COMPOSITE_IOR:"+ composite_ior );
+	    System.out.println("                DEVICE_MGR_IOR:"+ devMgr_ior );
+	    System.out.println("                DOM_PATH:"+ dom_path );
+	    System.out.println("                LOG_CONFIG_URI:"+ logcfg_uri );
+	    System.out.println("                DEBUG_LEVEL:"+ debugLevel );
+	}
+
+
+        logging.DeviceCtx ctx = new logging.DeviceCtx( label, identifier, dom_path );
+	logging.Configure( logcfg_uri, debugLevel, ctx );
+
+        final Device device_i = clazz.newInstance();
         device_i.initializeProperties(execparams);
         final CF.Device device = device_i.setup(devMgr, compositeDevice, identifier, label, profile, orb, rootpoa);
 
@@ -329,66 +389,18 @@ public abstract class Device extends Resource implements DeviceOperations {
         if (execparams.containsKey("IDM_CHANNEL_IOR")){
             try {
                 Object idm_channel_obj = orb.string_to_object(execparams.get("IDM_CHANNEL_IOR"));
-                EventChannel idm_channel = CosEventChannelAdmin.EventChannelHelper.narrow(idm_channel_obj);
+                EventChannel idm_channel = org.omg.CosEventChannelAdmin.EventChannelHelper.narrow(idm_channel_obj);
                 device_i.connectEventChannel(idm_channel);
             } catch (Exception e){
                 logger.warn("Error connecting to IDM channel.");
             }
         }
 
-        // Sets up the logging
-        String loggingConfigURI = null;
-        if (execparams.containsKey("LOGGING_CONFIG_URI")) {
-            loggingConfigURI = execparams.get("LOGGING_CONFIG_URI");
-            if (loggingConfigURI.indexOf("file://") != -1){
-                int startIndex = loggingConfigURI.indexOf("file://") + 7;
-                PropertyConfigurator.configure(loggingConfigURI.substring(startIndex));
-            }else if (loggingConfigURI.indexOf("sca:") != -1){
-                int startIndex = loggingConfigURI.indexOf("sca:") + 4;
-                String localFile = device_i.getLogConfig(loggingConfigURI.substring(startIndex));
-                File testLocalFile = new File(localFile);
-                if (localFile.length() > 0 && testLocalFile.exists()){
-                    PropertyConfigurator.configure(localFile);
-                }
-            }
-        } else {
-            // If no logging config file, then set up logging using DEBUG_LEVEL exec param
-            int debugLevel = 3; // Default level is INFO
-            if (execparams.containsKey("DEBUG_LEVEL")) {
-                debugLevel = Integer.parseInt(execparams.get("DEBUG_LEVEL"));
-            }
-            LogManager.getLoggerRepository().resetConfiguration();
-            Logger root = Logger.getRootLogger();
-            Layout layout = new PatternLayout("%p:%c - %m%n");
-            Appender appender = new ConsoleAppender(layout);
-            root.addAppender(appender);
-            if (debugLevel == 0) {
-                root.setLevel(Level.FATAL);
-            } else if (debugLevel == 1) {
-                root.setLevel(Level.ERROR);
-            } else if (debugLevel == 2) {
-                root.setLevel(Level.WARN);
-            } else if (debugLevel == 3) {
-                root.setLevel(Level.INFO);
-            } else if (debugLevel == 4) {
-                root.setLevel(Level.DEBUG);
-            } else if (debugLevel >= 5) {
-                root.setLevel(Level.ALL);
-            }
-        }
-
         // Create a thread that watches for the device to be deactivated
         Thread shutdownWatcher = new Thread(new Runnable() {
-
             public void run() {
-                while (device_i.adminState() != AdminType.LOCKED) {
-                    try {
-                        Thread.currentThread().sleep(500);
-                    } catch (InterruptedException e) {
-                        // PASS
-                    }
-                }
-                orb.shutdown(true);
+                device_i.waitDisposed();
+                shutdownORB(orb);
             }
         });
 
@@ -396,11 +408,38 @@ public abstract class Device extends Resource implements DeviceOperations {
 
         orb.run();
 
+        // Destroy the ORB, otherwise the JVM shutdown will take an unusually
+        // long time (~300ms).
+        orb.destroy();
+
         try {
             shutdownWatcher.join();
         } catch (InterruptedException e) {
             // PASS
         }
+
+        // Shut down native ORB, if it's running
+        omnijni.ORB.shutdown();
+    }
+
+
+    /**
+     * Checks that all of the properties given are valid and allocatable.
+     *
+     * @throws InvalidCapacity
+     */
+    private void validateAllocProps(final DataType[] capacities) throws InvalidCapacity {
+        for (final DataType capacity : capacities) {
+            if (AnyUtils.isNull(capacity.value)) {
+                throw new InvalidCapacity("Invalid null value", new DataType[]{capacity});
+            }
+            final IProperty property = this.propSet.get(capacity.id);
+            if (property == null) {
+                throw new InvalidCapacity("Unknown property", new DataType[]{capacity});
+            } else if (!property.isAllocatable()) {
+                throw new InvalidCapacity("Property is not allocatable", new DataType[]{capacity});
+            }
+        }
     }
 
 
@@ -411,335 +450,154 @@ public abstract class Device extends Resource implements DeviceOperations {
      * @throws InvalidCapacity
      * @throws InvalidState
      */
-    public boolean allocateCapacity(DataType[] capacities)
-    throws InvalidCapacity, InvalidState {
+    public boolean allocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
         logger.debug("allocateCapacity : " + capacities.toString());
-
-        // If first time store a snapshot of orig propeties
-        if (firstTime){
-            this.propSetOrig = getProps(this.propSet);
-            firstTime = false;
-        }
-
-        boolean extraCap = false;    // Flag to check remaining extra capacity to allocate
-        boolean foundProperty;
 
         // Checks for empty
         if (capacities.length == 0){
-            logger.trace("no capacities to configure.");
+            logger.trace("No capacities to allocate.");
             return true;
         }
 
         // Verify that the device is in a valid state
-        if (adminState == AdminType.LOCKED || operationState == OperationalType.DISABLED){
-            logger.warn("Cannot allocate capacity: System is either LOCKED, SHUTTING DOWN, or DISABLED.");
-            throw new InvalidState("Cannot allocate capacity. System is either LOCKED, SHUTTING DOWN or DISABLED.");
+        if (!isUnlocked() || isDisabled()) {
+            String invalidState;
+            if (isLocked()) {
+                invalidState = "LOCKED";
+            } else if (isDisabled()) {
+                invalidState = "DISABLED";
+            } else {
+                invalidState = "SHUTTING_DOWN";
+            }
+            logger.debug("Cannot allocate capacity: System is " + invalidState);
+            throw new InvalidState(invalidState);
         }
 
-        if (usageState != UsageType.BUSY){    
-            // Gets a current copy of the device capacities
-            DataType currentCapacities[] = getProps(this.propSet);
-
-            // Loops through all requested capacities
-            for (DataType cap : capacities){
-                foundProperty = false;
-
-                // Checks to see if the device has a call back function registered
-                if (callbacks.containsKey(cap.id) && callbacks.get(cap.id).allocate(cap)){
-                    // If it does, use it
-                    foundProperty = true;
-                    logger.trace("Capacity allocated by user-defined function.");
-                } else {
-                    // Otherwise try to use default function
-                    for (DataType currentCap : currentCapacities){
-                        logger.trace("Comparing IDs: " + currentCap.id + ", " + cap.id);
-                        if (cap.id.equals(currentCap.id)){
-                            // Verify that both values have the same type
-                            if (!cap.value.getClass().equals(currentCap.value.getClass())){
-                                logger.error("Cannot allocate capacity: Incorrect data type.");
-                                throw new InvalidCapacity("Cannot allocate capacity. Incorrect Data Type.", capacities);
-                            } else {
-                                // Checks to make sure the prop is allocatable
-                                if (!propSet.get(cap.id).isAllocatable()){
-                                    logger.warn("Cannot allocate capacity, not allocatable: " + cap.id);
-                                    //throw new InvalidCapacity("Cannot allocate capacity: not allocatable " + cap.id, capacities);
-                                    return false;
-                                }
-
-                                // Check for sufficient capacity and allocate it
-                                if (!allocate(currentCap.value, cap.value)){
-                                    logger.error("Cannot allocate capacity: Insufficient capacity.");
-                                    return false;
-                                }
-                                logger.trace("Device Capacity ID: " + currentCap.id + ", New Capacity: " +  AnyUtils.convertAny(currentCap.value));
-                            }
-
-                            // Report the requested property was found
-                            foundProperty = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!foundProperty){
-                    logger.error("Cannot allocate capacity: Invalid property ID: " + cap.id);
-                    throw new InvalidCapacity("Cannot allocate capacity. Invalid property ID", capacities);
-                }
-            }
-
-            // Check for remaining capacity
-            for (DataType currentCap : currentCapacities){
-                if (compareAnyToZero(currentCap.value) == AnyComparisonType.POSITIVE && propSet.get(currentCap.id).isAllocatable()){
-                    extraCap = true;
-
-                    // No need to keep going. if after allocation there is any capacity available, the device is ACTIVE.
-                    break;
-                }
-            }
-
-            // Store new capacities, here is when the allocation takes place
-            try {
-                configure (currentCapacities);
-            } catch (InvalidConfiguration e) {
-                logger.warn("Error configuring device.");
-            } catch (PartialConfiguration e) {
-                logger.warn("Partial configuration in device.");
-            }
-
-            // Update usage state 
-            if (!extraCap){
-                setUsageState(UsageType.BUSY);
-            } else {
-                setUsageState(UsageType.ACTIVE);  /* Assumes it allocated something. Not considering zero allocations */
-            }
-
-        } else {
+        if (usageState == UsageType.BUSY) {
             logger.warn("Cannot allocate capacity: System is BUSY");
-
             return false;
         }
 
+        // Check for obviously invalid properties up front.
+        validateAllocProps(capacities);
+
+        // Track successful allocations in case they need to be undone.
+        List<DataType> allocations = new ArrayList<DataType>();
+
+        // Loops through all requested capacities
+        try {
+            for (DataType cap : capacities){
+                // Checks to see if the device has a call back function registered
+                if (callbacks.containsKey(cap.id) && callbacks.get(cap.id).allocate(cap)){
+                    // If it does, use it
+                    logger.trace("Capacity allocated by user-defined function.");
+                    allocations.add(cap);
+                } else {
+                    // Otherwise defer to the property's allocator.
+                    final IProperty property = this.propSet.get(cap.id);
+                    try {
+                        if (property.allocate(cap.value)) {
+                            allocations.add(cap);
+                        } else {
+                            logger.debug("Cannot allocate capacity. Insufficient capacity for property '" + cap.id + "'");
+                            return false;
+                        }
+                    } catch (final RuntimeException ex) {
+                        throw new InvalidCapacity(ex.getMessage(), new DataType[]{cap});
+                    }
+                }
+            }
+        } finally {
+            // If not all allocations were successful, deallocate any that were.
+            // The usage state is implicitly updated by deallocateCapacity.
+            if (allocations.size() < capacities.length) {
+                deallocateCapacity(allocations.toArray(new DataType[allocations.size()]));
+            }
+        }
+
+        updateUsageState();
         return true;
     }
 
-
     /**
-     * Attempts to allocate a list of capacities on a device
+     * Attempts to deallocate a list of capacities on a device
      * 
      * @param capacities
      * @throws InvalidCapacity
      * @throws InvalidState
      */
-    public void deallocateCapacity(DataType[] capacities)
-    throws InvalidCapacity, InvalidState {
-        boolean totalCap = true;            /* Flag to check remaining extra capacity to allocate */
-        boolean foundProperty = false;      /* Flag to indicate if the requested property was found */
-        AnyComparisonType compResult;
-
+    public void deallocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
         /* Verify that the device is in a valid state */
         if (adminState == AdminType.LOCKED || operationState == OperationalType.DISABLED){
             logger.warn("Cannot deallocate capacity. System is either LOCKED or DISABLED.");
             throw new InvalidState("Cannot deallocate capacity. System is either LOCKED or DISABLED.");
         }
 
-        /* Now verify that there is capacity currently being used */
-        if (usageState != UsageType.IDLE){
-            // Gets a current copy of the device capacities
-            DataType currentCapacities[] = getProps(this.propSet);
+        // Check for obviously invalid properties to avoid partial deallocation.
+        validateAllocProps(capacities);
 
-            for (DataType cap : capacities){
-                foundProperty = false;
-
-                // Checks to see if the device has a call back function registered
-                if (callbacks.containsKey(cap.id) && callbacks.get(cap.id).deallocate(cap)){
-                    // If it does, use it
-                    foundProperty = true;
-                    logger.trace("Capacity allocated by user-defined function.");
-                } else {
-                    // Otherwise try to use default function
-                    for (DataType currentCap : currentCapacities){
-                        logger.trace("Comparing IDs: " + currentCap.id + ", " + cap.id);
-                        // Checks for the same ID
-                        if (cap.id.equals(currentCap.id)){
-                            // Verify that both values have the same type
-                            if (!cap.value.getClass().equals(currentCap.value.getClass())){
-                                logger.warn("Cannot deallocate capacity. Incorrect Data Type.");
-                                throw new InvalidCapacity("Cannot deallocate capacity. Incorrect Data Type.", capacities);
-                            } else {
-                                // Checks to make sure the prop is allocatable
-                                if (!propSet.get(cap.id).isAllocatable()){
-                                    logger.warn("Cannot allocate capacity: not allocatable.");
-                                    throw new InvalidCapacity("Cannot allocate capacity: not allocatable " + cap.id, capacities);
-                                } else {
-                                    deallocate (currentCap.value, cap.value);
-                                }
-                            }
-
-                            foundProperty = true;     /* Report that the requested property was found */
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (!foundProperty){
-                logger.warn("Cannot deallocate capacity. Invalid property ID");
-                throw new InvalidCapacity("Cannot deallocate capacity. Invalid property ID", capacities);
-            }
-
-            // Check for exceeding dealLocations and back-to-total capacity
-            for (DataType currentCap : currentCapacities){
-                for (DataType origCap : this.propSetOrig){
-                    if (currentCap.id.equals(origCap.id)){
-                        compResult = compareAnys(currentCap.value, origCap.value);
-
-                        if (compResult == AnyComparisonType.FIRST_BIGGER){
-                            logger.warn("Cannot deallocate capacity. New capacity would exceed original bound.");
-                            throw new InvalidCapacity("Cannot deallocate capacity. New capacity would exceed original bound.", capacities);
-                        } else if (compResult == AnyComparisonType.SECOND_BIGGER){
-                            totalCap = false;
-                            break;
-                        }
-                    }
-                }
-            }       
-
-            /* Write new capacities */
-            try {
-                configure (currentCapacities);
-            } catch (InvalidConfiguration e) {
-                logger.warn("Error configuring device.");
-            } catch (PartialConfiguration e) {
-                logger.warn("Partial configuration in device.");
-            }
-
-            /* Update usage state */
-            if (!totalCap) {
-                setUsageState(UsageType.ACTIVE);
+        for (DataType cap : capacities){
+            // Checks to see if the device has a call back function registered
+            if (callbacks.containsKey(cap.id) && callbacks.get(cap.id).deallocate(cap)){
+                // If it does, use it
+                logger.trace("Capacity allocated by user-defined function.");
             } else {
-                setUsageState(UsageType.IDLE);  /* Assumes it allocated something. Not considering zero allocations */
+                // Otherwise defer to the property's deallocator.
+                final IProperty property = this.propSet.get(cap.id);
+                try {
+                    property.deallocate(cap.value);
+                } catch (final RuntimeException ex) {
+                    throw new InvalidCapacity(ex.getMessage(), new DataType[]{cap});
+                }
             }
+        }
 
+        updateUsageState();
+    }
+
+    /**
+     * Determine the current usage state of the device.
+     *
+     * Override if your device has a more sophisticated way of determining the
+     * usage state.
+     */
+    protected void updateUsageState() {
+        // Do nothing, unless the device contains legacy allocation properties.
+        if (this.legacyAllocProps != null) {
+            updateUsageStateLegacy();
+        }
+    }
+
+    /**
+     * Internal method for updating the device's usage state based on the current
+     * values of the legacy allocation properties.
+     *
+     * NB: To be removed when backwards compatibility with pre-1.9 devices is no
+     *     longer required.
+     *
+     * @deprecated
+     */
+    @SuppressWarnings("deprecation")
+    private void updateUsageStateLegacy() {
+        boolean active = false;
+        boolean busy = true;
+        for (IProperty property : this.legacyAllocProps) {
+            org.ossie.properties.SimpleProperty simple = (org.ossie.properties.SimpleProperty)property;
+            if (compareAnyToZero(property.toAny()) == AnyComparisonType.POSITIVE) {
+                busy = false;
+            }
+            if (!simple.isFull()) {
+                active = true;
+            }
+        }
+
+        if (busy) {
+            setUsageState(UsageType.BUSY);
+        } else if (active) {
+            setUsageState(UsageType.ACTIVE);
         } else {
-            logger.warn("Cannot deallocate capacity. System is IDLE.");
-            throw  new InvalidCapacity ("Cannot deallocate capacity. System is IDLE.", capacities);
+            setUsageState(UsageType.IDLE);
         }
-
-    }
-
-
-    /**
-     * Helper function to determine if device is able to allocate the 
-     * specific CORBA Any object 
-     * 
-     * @param deviceCapacity
-     * @param resourceRequest
-     * @return
-     */
-    private boolean allocate(Any deviceCapacity, Any resourceRequest){
-        TypeCode tc1 = deviceCapacity.type();
-
-        switch (tc1.kind().value()){
-        case TCKind._tk_ulong: {
-            Number devCapac, rscReq;    
-            devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
-            rscReq = (Number) AnyUtils.convertAny(resourceRequest);
-
-            if (rscReq.intValue() <= devCapac.intValue()){
-                AnyUtils.insertInto(deviceCapacity, devCapac.intValue() - rscReq.intValue(), tc1.kind());
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        case TCKind._tk_long: {
-            Number devCapac, rscReq;
-            devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
-            rscReq = (Number) AnyUtils.convertAny(resourceRequest);
-
-            if (rscReq.intValue() <= devCapac.intValue()){
-                AnyUtils.insertInto(deviceCapacity, devCapac.intValue() - rscReq.intValue(), tc1.kind());
-                return true;
-            } else {
-                return false;
-            }
-
-        }
-
-        case TCKind._tk_short: {
-            Number devCapac, rscReq;
-            devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
-            rscReq = (Number) AnyUtils.convertAny(resourceRequest);
-
-            if (rscReq.shortValue() <= devCapac.shortValue()){
-                AnyUtils.insertInto(deviceCapacity, devCapac.shortValue() - rscReq.shortValue(), tc1.kind());
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        default:
-            return false;
-        }
-    }
-
-    /**
-     * Helper function to determine if device is able to deallocate the
-     * specific CORBA Any object
-     * 
-     * @param deviceCapacity
-     * @param resourceRequest
-     */
-    private void deallocate(Any deviceCapacity, Any resourceRequest) {
-        TypeCode tc1 = deviceCapacity.type();
-
-        switch(tc1.kind().value()){
-        case TCKind._tk_ulong: {
-            Number devCapac, rscReq;
-            devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
-            rscReq = (Number) AnyUtils.convertAny(resourceRequest);
-            AnyUtils.insertInto(deviceCapacity, devCapac.intValue() + rscReq.intValue(), tc1.kind());
-            break;
-        }
-
-        case TCKind._tk_long: {
-            Number devCapac, rscReq;
-            devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
-            rscReq = (Number) AnyUtils.convertAny(resourceRequest);
-            AnyUtils.insertInto(deviceCapacity, devCapac.intValue() + rscReq.intValue(), tc1.kind());
-            break;
-        }
-
-        case TCKind._tk_short: {
-            Number devCapac, rscReq;
-            devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
-            rscReq = (Number) AnyUtils.convertAny(resourceRequest);
-            AnyUtils.insertInto(deviceCapacity, devCapac.shortValue() + rscReq.shortValue(), tc1.kind());
-            break;
-        }
-
-        default:
-            break;
-        }
-    }
-
-
-    /** 
-     * Helper function to get a DataType array containing property 
-     * information from the propSet Hashtable
-     * 
-     * @param propsIn
-     * @return
-     */
-    private DataType[] getProps(Hashtable <String, IProperty> propsIn){
-        DataType props[] = new DataType[propsIn.size()];
-        int i = 0;
-        for (final IProperty prop : propsIn.values()) {
-            props[i++] = new DataType(prop.getId(), prop.toAny());
-        }
-        return props;
     }
 
     // compareAnyToZero function compares the any type input to zero
@@ -897,6 +755,59 @@ public abstract class Device extends Resource implements DeviceOperations {
         }
     }
 
+    /*
+     * NB: This method is overridden to support tracking of legacy (pre-1.9)
+     *     allocation properties. When backwards-compatibility is no longer
+     *     required, this method should be removed, deferring entirely to
+     *     the superclass method.
+     */
+    @SuppressWarnings("deprecation")
+    public void addProperty(IProperty prop) {
+
+        // Perform normal bookkeeping.
+        super.addProperty(prop);
+
+        // Ignore non-allocation properties.
+        if (!prop.isAllocatable()) {
+            return;
+        }
+
+        // If true, for a mix of legacy and new-style allocation properties.
+        boolean isMixed = false;
+
+        if (prop instanceof org.ossie.properties.SimpleProperty) {
+            if (this.legacyAllocProps == null) {
+                // First instance of a legacy property; create the list. This
+                // allows the allocation/deallocation methods to determine whether
+                // to try to maintain legacy behavior.
+                this.legacyAllocProps = new ArrayList<IProperty>();
+            }
+            this.legacyAllocProps.add(prop);
+
+            // If no warning has been issued, check whether the number of legacy
+            // allocation properties is the same as the total number of allocation
+            // properties.
+            if (!this.warnedLegacyAllocProps) {
+                int allocPropCount = 0;
+                for (IProperty ip : this.propSet.values()) {
+                    if (ip.isAllocatable()) {
+                        allocPropCount++;
+                    }
+                }
+                isMixed = (this.legacyAllocProps.size() != allocPropCount);
+            }
+        } else if (this.legacyAllocProps != null) {
+            // This is a new-style property, and legacy properties are registered.
+            // Issue a warning if needed.
+            isMixed = true;
+        }
+
+        // Warn about mixed legacy and new-style properties, if we have not already.
+        if (isMixed && !this.warnedLegacyAllocProps) {
+            this.warnedLegacyAllocProps = true;
+            logger.warn("Device uses mix of deprecated and new-style allocation properties. Allocation behavior may be inconsistent.");
+        }
+    }
 
     /**
      * Sets a new admin state and sends an event if it has changed
@@ -994,5 +905,31 @@ public abstract class Device extends Resource implements DeviceOperations {
         }
     }
 
+    /**
+     * Returns whether this device's administrative state is UNLOCKED
+     *
+     * @returns true if admin state is UNLOCKED, false otherwise
+     */
+    public boolean isUnlocked() {
+        return adminState.equals(AdminType.UNLOCKED);
+    }
+
+    /**
+     * Returns whether this device's administrative state is LOCKED
+     *
+     * @returns true if admin state is LOCKED, false otherwise
+     */
+    public boolean isLocked() {
+        return adminState.equals(AdminType.LOCKED);
+    }
+
+    /**
+     * Returns whether this device's operational state is DISABLED
+     *
+     * @returns true if operational state is DISABLED, false otherwise
+     */
+    public boolean isDisabled() {
+        return operationState.equals(OperationalType.DISABLED);
+    }
 }
 

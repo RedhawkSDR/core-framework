@@ -53,6 +53,17 @@ namespace prf
       post_AccessType ();
     };
 
+    class IsComplex_pimpl: public virtual IsComplex_pskel,
+      public ::xml_schema::string_pimpl
+    {
+      public:
+      virtual void
+      pre ();
+
+      virtual ::std::string
+      post_IsComplex ();
+    };
+
     class action_pimpl: public virtual action_pskel
     {
       public:
@@ -288,6 +299,9 @@ namespace prf
       virtual void
       type (const ::std::string&);
 
+      virtual void
+      complex (const ::std::string&);
+
       virtual ossie::SimpleProperty*
       post_simple ();
 
@@ -295,6 +309,7 @@ namespace prf
       std::string _id;
       std::string _name;
       std::string _type;
+      std::string _complex;
       std::string _mode;
       std::string _action;
       std::vector<std::string> _kinds;
@@ -357,6 +372,9 @@ namespace prf
       virtual void
       type (const ::std::string&);
 
+      virtual void
+      complex (const ::std::string&);
+
       virtual ossie::SimpleSequenceProperty*
       post_simpleSequence ();
 
@@ -364,6 +382,7 @@ namespace prf
       std::string _id;
       std::string _name;
       std::string _type;
+      std::string _complex;
       std::string _mode;
       std::string _action;
       std::vector<std::string> _kinds;

@@ -20,31 +20,109 @@
 
 from ossie.utils.idl import omniidl
 from omniidl import idlast, idlvisitor, idlutil, main, idltype
-from ossie.utils.idl import omniidl_be
-from omniidl_be.cxx import types
 from ossie.utils.idl import _omniidl
 import os
-import threading
-try:
-    from omniORB import URI, any, CORBA
-except:
-    import CORBA
+from omniORB import CORBA
 
 #import base
 
-_lock = threading.Lock()
-
-keyList = range(34)
-valList = ['null','void','short','long','ushort','ulong','float','double','boolean', \
-           'char','octet','any','TypeCode','Principal','objref','struct','union','enum', \
-           'string','sequence','array','alias','except','longlong','ulonglong', \
-           'longdouble','wchar','wstring','fixed','value','value_box','native', \
-           'abstract_interface','local_interface']
-baseTypes = dict(zip(keyList,valList))
+valList = ('null','void','short','long','ushort','ulong','float','double','boolean',
+           'char','octet','any','TypeCode','Principal','objref','struct','union','enum',
+           'string','sequence','array','alias','except','longlong','ulonglong',
+           'longdouble','wchar','wstring','fixed','value','value_box','native',
+           'abstract_interface','local_interface')
+baseTypes = dict(enumerate(valList))
 
 # Non-standard kinds for forward-declared structs and unions
 baseTypes[100] = 'ot_structforward'
 baseTypes[101] = 'ot_unionforward'
+
+# Mapping of CORBA typecode numeric values to TCKind objects; this construction
+# of the table is dependent on omniORB, but supporting another ORB should be
+# trivial.
+_kindMap = dict((tk._v, tk) for tk in CORBA.TCKind._items)
+_baseKinds = (
+    CORBA.tk_void,
+    CORBA.tk_short,
+    CORBA.tk_long,
+    CORBA.tk_ushort,
+    CORBA.tk_ulong,
+    CORBA.tk_float,
+    CORBA.tk_double,
+    CORBA.tk_boolean,
+    CORBA.tk_char,
+    CORBA.tk_octet,
+    CORBA.tk_any,
+    CORBA.tk_string,
+    CORBA.tk_longlong,
+    CORBA.tk_ulonglong,
+)
+
+# Generic representation of IDL types that does not strictly depend on omniORB or omniidl.
+class IDLType(object):
+    def __init__(self, kind):
+        self._kind = kind
+
+    def __str__(self):
+        return baseTypes[self.kind()._v]
+
+    def kind(self):
+        return self._kind
+
+    @classmethod
+    def instance(cls, type):
+        kind = _kindMap[type.kind()]
+        if kind in _baseKinds:
+            return BaseType(kind)
+        elif kind == CORBA.tk_sequence:
+            sequenceType = IDLType.instance(type.seqType())
+            return SequenceType(sequenceType)
+        elif kind == CORBA.tk_alias:
+            aliasType = IDLType.instance(type.decl().alias().aliasType())
+            return AliasType(aliasType, type.scopedName())
+        elif kind == CORBA.tk_TypeCode:
+                return NamedType(kind, ['CORBA', 'TypeCode'])
+        else:
+            return NamedType(kind, type.scopedName())
+
+class BaseType(IDLType):
+    pass
+
+class SequenceType(IDLType):
+    def __init__(self, sequenceType):
+        super(SequenceType,self).__init__(CORBA.tk_sequence)
+        self._sequenceType = sequenceType
+
+    def sequenceType(self):
+        return self._sequenceType
+
+class NamedType(IDLType):
+    def __init__(self, kind, scopedName):
+        super(NamedType,self).__init__(kind)
+        self._scopedName = scopedName
+
+    def __str__(self):
+        return '::'.join(self.scopedName())
+
+    def scopedName(self):
+        return self._scopedName
+
+class AliasType(NamedType):
+    def __init__(self, aliasType, scopedName):
+        super(AliasType,self).__init__(CORBA.tk_alias, scopedName)
+        self._aliasType = aliasType
+    
+    def __str__(self):
+        return str(self.aliasType())
+
+    def aliasType(self):
+        return self._aliasType
+
+def ExceptionType(type):
+    return NamedType(CORBA.tk_except, type.scopedName())
+
+# Internal cache of parsed IDL interfaces
+_interfaces = {}
 
 class Interface:
     def __init__(self,name,nameSpace="",operations=[],filename="",fullpath="",repoId=""):
@@ -56,6 +134,7 @@ class Interface:
         self.fullpath = fullpath
         self.inherited_names = []
         self.inherited = []
+        self.inherits = set()
         self.repoId = repoId
 
     def __eq__(self,other):
@@ -76,14 +155,8 @@ class Interface:
         retstr += "'nameSpace':'" + self.nameSpace + "',"
         retstr += "'filename':'" + self.filename + "',"
         retstr += "'fullpath':'" + self.fullpath + "',"
-        retstr += "'attributes':["
-        for attr in self.attributes:
-            retstr += str(attr) + ','
-        retstr += "],"
-        retstr += "'operations':["
-        for op in self.operations:
-            retstr += str(op) + ','
-        retstr += "]}"
+        retstr += "'attributes':[" + ','.join(str(attr) for attr in self.attributes) + "],"
+        retstr += "'operations':[" + ','.join(str(op) for op in self.operations) + "]}"
 
         return retstr
 
@@ -92,50 +165,35 @@ class Operation:
     def __init__(self,name,returnType,params=[]):
         self.name = name
         self.returnType = returnType
-        self.cxxReturnType = ''
         self.params = []
         self.raises = []
 
     def __repr__(self):
         retstr = '{'
         retstr += "'name':'" + self.name + "',"
-        retstr += "'returnType':'" + self.returnType + "',"
-        retstr += "'cxxReturnType':'" + self.cxxReturnType + "',"
-        retstr += "'params':["
-        for p in self.params:
-            retstr += str(p) + ','
-#        retstr += ']}'
-        retstr += '],'
-        retstr += "'raises':["
-        for r in self.raises:
-            retstr += str(r) + ','
-        retstr += ']}'
+        retstr += "'returnType':'" + str(self.returnType) + "',"
+        retstr += "'params':[" + ','.join(str(p) for p in self.params) + '],'
+        retstr += "'raises':[" + ','.join("'%s'" % r for r in self.raises) + ']}'
 
         return retstr
 
 class Attribute:
-    def __init__(self,name,readonly,dataType,returnType):
+    def __init__(self,name,readonly,attrType):
         self.name = name
         self.readonly = readonly
-        self.dataType = dataType
-        self.returnType = returnType
-        self.cxxReturnType = ''
-        self.cxxType = ''
+        self.attrType = attrType
 
     def __repr__(self):
         retstr = '{'
         retstr += "'name':'" + self.name + "',"
         retstr += "'readonly':'" + str(self.readonly) + "',"
-        retstr += "'dataType':'" + self.dataType + "',"
-        retstr += "'returnType':'" + self.returnType + "',"
-        retstr += "'cxxReturnType':'" + self.cxxReturnType + "',"
-        retstr += "'cxxType':'" + self.cxxType + "'"
+        retstr += "'attrType':'" + str(self.attrType) + "'"
         retstr += '}'
 
         return retstr
 
 class Param:
-    def __init__(self,name,dataType='',direction=''):
+    def __init__(self,name,paramType='',direction=''):
         """
         Exampleinterface complexShort {
             void pushPacket(in PortTypes::ShortSequence I, in PortTypes::ShortSequence Q);
@@ -143,28 +201,68 @@ class Param:
         """
 
         self.name = name            # The actual argument name: 'I'
-        self.dataType = dataType    # The type of the argument: 'PortTypes::ShortSequence'
-        self.cxxType = ""
+        self.paramType = paramType    # The type of the argument: 'PortTypes::ShortSequence'
         self.direction = direction  # Flow of data: 'in'
 
     def __repr__(self):
         retstr = '{'
         retstr += "'name':'" + self.name + "',"
-        retstr += "'dataType':'" + self.dataType + "',"
-        retstr += "'cxxType':'" + self.cxxType + "',"
+        retstr += "'paramType':'" + str(self.paramType) + "',"
         retstr += "'direction':'" + self.direction + "'}"
 
         return retstr
 
-class Raises:
-    def __init__(self, name):
-        self.name = name
+class InterfaceVisitor(idlvisitor.AstVisitor):
+    def _getInheritedRepoIDs(self, node):
+        ifset = set()
+        for parent in node.inherits():
+            ifset.update(self._getInheritedRepoIDs(parent))
+            ifset.add(parent.repoId())
+        return ifset
 
-    def __repr__(self):
-        retstr = '{'
-        retstr += "'name':'" + self.name + "'}"
+    def visitInterface(self, node):
+        self.interface = Interface(node.identifier(),node.scopedName()[0],repoId=node.fullDecl().repoId())
+        self.interface.fullpath = node.file()
+        for call in node.all_callables():
+            call.accept(self)
 
-        return retstr
+        # find and store any inheritances
+        self.interface.inherited_names = [(i.scopedName()[0],i.identifier()) for i in node.inherits()]
+        self.interface.inherits = self._getInheritedRepoIDs(node)
+
+    def visitAttribute(self, node):
+        # create the Attribute object
+        decl = node.declarators()[0]
+        kind = node.attrType().kind()
+        if (kind==idltype.tk_alias): # resolve the 'alias'
+            kind = node.attrType().decl().alias().aliasType().kind()
+        if hasattr(node.attrType(),'scopedName'):
+            dataType = idlutil.ccolonName(node.attrType().scopedName())
+        else:
+            dataType = baseTypes[kind]
+        new_attr = Attribute(decl.identifier(),node.readonly(),IDLType.instance(node.attrType()))
+
+        self.interface.attributes.append(new_attr)
+
+    def visitOperation(self, node):
+        # create the Operation object
+        new_op = Operation(node.identifier(),IDLType.instance(node.returnType()))
+
+        # find and process the parameters of the operation
+        for p in node.parameters():
+            new_param = Param(p.identifier(), IDLType.instance(p.paramType()))
+            if p.is_in() and p.is_out():
+                new_param.direction = 'inout'
+            elif p.is_out():
+                new_param.direction = 'out'
+            else:
+                new_param.direction = 'in'
+            new_op.params.append(new_param)
+
+        new_op.raises = [ExceptionType(r) for r in node.raises()]
+
+        self.interface.operations.append(new_op)
+
 
 class ExampleVisitor (idlvisitor.AstVisitor):
     def __init__(self,*args):
@@ -181,105 +279,27 @@ class ExampleVisitor (idlvisitor.AstVisitor):
             n.accept(self)
 
     def visitInterface(self, node):
-        if not node.mainFile():
-            return
-
-        #new_int = base.Interface(node.identifier(),node.scopedName()[0])
-        #print "Node Identifier: " + node.identifier() + " , Scoped Node Name: " + node.scopedName()[0]
-        new_int = Interface(node.identifier(),node.scopedName()[0],repoId=node.fullDecl().repoId())
-
-        ops_list = []
-        attrs_list = []
-        self.addOps(node,ops_list,attrs_list)
-        new_int.operations.extend(ops_list)
-        new_int.attributes.extend(attrs_list)
-        #print node.identifier() + " has " + str(len(new_int.operations)) + " operations"
-        #print node.identifier() + " has " + str(len(new_int.attributes)) + " attributes"
-
-        # find and store any inheritances
-        for i in node.inherits():
-            if (i.scopedName()[0],i.identifier()) not in new_int.inherited:
-                new_int.inherited_names.append((i.scopedName()[0],i.identifier()))
-
-        self.myInterfaces.append(new_int)
-
-    def addOps(self,node,ops,attrs):
-
-        # add inherited operations
-        for i in node.inherits():
-            self.addOps(i,ops,attrs)
-
-        for d in node.contents():
-            if isinstance(d, idlast.Operation):
-                # create the Operation object
-                #new_op = base.Operation(d.identifier(),baseTypes[d.returnType().kind()])
-                kind = d.returnType().kind()
-                if (kind==idltype.tk_alias): # resolve the 'alias'
-                    kind = d.returnType().decl().alias().aliasType().kind()
-                new_op = Operation(d.identifier(),baseTypes[kind])
-
-                # Get the c++ mapping of the return type
-                cxxRT = types.Type(d.returnType())
-                new_op.cxxReturnType = cxxRT.base()
-
-                #print new_op.name + "::" + d.identifier() + "()"
-                #tmpstr = node.identifier() + "::" + d.identifier() + "("
-                #tmpstr2 = "  " + node.identifier() + "::" + d.identifier() + "("
-
-                # find and process the parameters of the operation
-                if hasattr(d,'parameters'):
-                    for p in d.parameters():
-                        #new_param = base.Param(p.identifier())
-                        new_param = Param(p.identifier())
-                        t =  p.paramType()
-                        # Get the c++ mapping of the type
-                        cxxT = types.Type(t)
-                        new_param.cxxType = cxxT.op(types.direction(p))
-
-                        if hasattr(t,'scopedName'):
-                            new_param.dataType = idlutil.ccolonName(t.scopedName())
-                        else:
-                            if isinstance(t,idltype.Type):
-                                new_param.dataType = baseTypes[t.kind()]
-
-                        if p.is_in() and p.is_out():
-                            new_param.direction = 'inout'
-                        elif p.is_out():
-                            new_param.direction = 'out'
-                        else:
-                            new_param.direction = 'in'
-                        new_op.params.append(new_param)
-
-                if hasattr(d, 'raises'):
-                    for r in d.raises():
-                        #print r.identifier()
-                        new_raises = Raises(r.identifier())
-                        new_op.raises.append(new_raises)
-
-                ops.append(new_op)
-            if isinstance(d, idlast.Attribute):
-                # create the Attribute object
-                decl = d.declarators()[0]
-                kind = d.attrType().kind()
-                if (kind==idltype.tk_alias): # resolve the 'alias'
-                    kind = d.attrType().decl().alias().aliasType().kind()
-                if hasattr(d.attrType(),'scopedName'):
-                    dataType = idlutil.ccolonName(d.attrType().scopedName())
-                else:
-                    dataType = baseTypes[kind]
-                new_attr = Attribute(decl.identifier(),d.readonly(),dataType,baseTypes[kind])
-
-                # Get the c++ mapping of the return type
-                cxxRT = types.Type(d.attrType())
-                new_attr.cxxReturnType = cxxRT.base()
-                new_attr.cxxType = cxxRT.op(0)
-
-                attrs.append(new_attr)
+        # Use cached post-processed interface if available
+        global _interfaces
+        interface = _interfaces.get(node.repoId(), None)
+        if not interface:
+            visitor = InterfaceVisitor()
+            node.accept(visitor)
+            interface = visitor.interface
+            _interfaces[node.repoId()] = interface
+        self.myInterfaces.append(interface)
 
 def run(tree, args):
     visitor = ExampleVisitor()
     tree.accept(visitor)
     return visitor.myInterfaces
+
+def _locateIncludedFile(filename, includepath):
+    for ipath in includepath:
+        fullpath = os.path.join(ipath, filename)
+        if os.path.exists(fullpath):
+            return fullpath
+    return filename
 
 def getInterfacesFromFile(filename, includepath=None):
     popen_cmd = main.preprocessor_cmd
@@ -288,35 +308,28 @@ def getInterfacesFromFile(filename, includepath=None):
             popen_cmd += ' -I "' + newpath + '"'
     popen_cmd += ' "' + filename + '"'
     f = os.popen(popen_cmd, 'r')
-
-    _lock.acquire()
     try:
-        try:
-            tree = _omniidl.compile(f)
-        except TypeError:
-            tree = _omniidl.compile(f, filename)
+        tree = _omniidl.compile(f)
+    except TypeError:
+        tree = _omniidl.compile(f, filename)
 
-        try:
-            ints = run(tree,'')
-        except:
-            #print popen_cmd
-            #print filename
-            pass
-        f.close()
-        del tree
-        idlast.clear()
-        idltype.clear()
-        _omniidl.clear()
-    finally:
-        _lock.release()
+    if tree == None:
+        return []
 
+    try:
+        ints = run(tree,'')
+    except:
+        pass
+    f.close()
+    del tree
+    idlast.clear()
+    idltype.clear()
+    _omniidl.clear()
     #store file name and location information for each interface
     for x in ints:
-        x.fullpath = filename
-        i = filename.rfind("/")
-        if i >= 0:
-            x.filename = filename[i+1:]
-
+        if not x.fullpath.startswith('/'):
+            x.fullpath = _locateIncludedFile(x.fullpath, includepath)
+        x.filename = os.path.basename(x.fullpath)
         x.filename = x.filename[:-4] #remove the .idl suffix
 
     return ints
@@ -397,11 +410,16 @@ def importStandardIdl(std_idl_path='/usr/local/share/idl/ossie', std_idl_include
         print tmpstr
         return
 
-#    # Add the CF interfaces first - in case another file includes them, we
-#    # don't want them asscociated with anything other than cf.idl
+    # Add the CF interfaces first - in case another file includes them, we
+    # don't want them asscociated with anything other than cf.idl
     Available_Ints = []
 
+    parsed = set()
     for idl_file in idlList:
+        # Don't reparse files
+        if idl_file in parsed:
+            continue
+
         basename_idl_file = os.path.basename(idl_file)
         # standardIdl files are not included because they are aggregates of the other interfaces
         if 'standardIdl' in basename_idl_file:
@@ -412,7 +430,12 @@ def importStandardIdl(std_idl_path='/usr/local/share/idl/ossie', std_idl_include
             continue
 
         tempInts = getInterfacesFromFile(idl_file, includePaths)
+        parsed.add(idl_file)
         for t in tempInts:
+            # Mark the source file as parsed
+            # NB: This can allow further optimizations to build interfaces from all .idl files
+            #     seen during the parsing of a file, though it is order-dependent.
+            parsed.add(t.fullpath)
             if t not in Available_Ints:
                 Available_Ints.append(t)
 

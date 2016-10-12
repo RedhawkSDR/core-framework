@@ -18,14 +18,13 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
- 
-AM_CXXFLAGS = -Wall $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS)
-AM_LDFLAGS = -Wall $(OMNIORB_LIBS) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS)
-INCLUDES = -I../../../../../../base/include -I../../../../../../base/parser -I../../../../../../base/include/ossie
+CFDIR = ../../../../../../base
+AM_CPPFLAGS = -I$(CFDIR)/include
 
 ossieName = BasicTestDevice_cpp_impl1
 noinst_PROGRAMS = BasicTestDevice_cpp_impl1
 
 BasicTestDevice_cpp_impl1_SOURCES = BasicTestDevice_cpp_impl1.cpp BasicTestDevice_cpp_impl1_support.cpp BasicTestDevice_cpp_impl1.h main.cpp port_impl.cpp port_impl.h
-
-BasicTestDevice_cpp_impl1_LDADD = ../../../../../../base/framework/libossiecf.la ../../../../../../base/parser/libossieparser.la ../../../../../../base/framework/idl/libossieidl.la
+BasicTestDevice_cpp_impl1_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS)
+BasicTestDevice_cpp_impl1_LDADD = $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_REGEX_LIB) $(OMNICOS_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+BasicTestDevice_cpp_impl1_LDFLAGS = -Wall

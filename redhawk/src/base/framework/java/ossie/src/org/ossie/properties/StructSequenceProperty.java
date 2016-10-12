@@ -20,10 +20,8 @@
 
 package org.ossie.properties;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,87 +29,31 @@ import org.omg.CORBA.Any;
 import org.omg.CORBA.AnySeqHelper;
 import org.omg.CORBA.ORB;
 
-import CF.DataType;
-import CF.PropertiesHelper;
+public class StructSequenceProperty<T extends StructDef> extends AbstractSequenceProperty<T> {
 
-public class StructSequenceProperty< T extends StructDef > extends Property<List<T>> {
+    protected Class<T> structClass;
 
-    protected final List<T> defaultValue;
-    protected List<T> value;
-    protected Class< ? > structClass;
-    protected Constructor< ? > structCtor = null;
-    protected Object[] ctorArgs = null;
-
-    protected StructSequenceProperty(String id, String name, List<T> value, String mode, String[] kinds) {
-        super(id, name, mode, null, kinds);
-        this.defaultValue = Collections.unmodifiableList(value);
-        this.value = value;
-    }
-
-    public StructSequenceProperty(String id, String name, Class<T> structClass, List<T> value, String mode, String[] kinds) {
-        this(id, name, value, mode, kinds);
+    public StructSequenceProperty(String id, String name, Class<T> structClass, List<T> value, Mode mode, Kind[] kinds) {
+        super(id, name, "struct", value, mode, null, kinds);
         this.structClass = structClass;
     }
 
-    /**
-     * @deprecated
-     */
-    public StructSequenceProperty(String id, String name, T structDef, List<T> value, String mode, String[] kinds) {
-        this(id, name, value, mode, kinds);
-        this.structClass = structDef.getClass();
-
-        Constructor< ? > ctor = null;
-        Object[] args = null;
-        try {
-            // Look for a no-argument constructor for the struct class.
-            ctor = this.structClass.getConstructor();
-            args = null;
-        } catch (NoSuchMethodException nsm) {
-            try {
-                // If the struct is an inner class, it probably has a one-argument
-                // constructor that takes the parent class. Try to find the parent
-                // pointer from the structDef instance so that it can be reused to
-                // construct other struct values.
-                final Field parentField = this.structClass.getDeclaredField("this$0");
-                parentField.setAccessible(true);
-                final Object parent = parentField.get(structDef);
-                ctor = this.structClass.getConstructors()[0];
-                args = new Object[] { parent };
-            } catch (Exception ex) {
-                // We have no way of creating struct values.
-                throw new IllegalArgumentException("Cannot construct struct values of this type: " + this.structClass.getName());
-            }
-        }
-        this.structCtor = ctor;
-        this.ctorArgs = args;
+    @Deprecated
+    public StructSequenceProperty(String id, String name, Class<T> structClass, List<T> value, String mode, String[] kinds) {
+        this(id, name, structClass, value, Mode.get(mode), Kind.get(kinds));
     }
 
-    @Override
-    public List<T> getValue() {
-        return this.value;
+    public static <E extends StructDef> List<E> asList(E... array) {
+        return new ArrayList<E>(Arrays.asList(array));
     }
 
-    @Override
-    public void setValue(List<T> value) {
-        this.value = value;
-    }
-
-    public Any toAny() {
-        final Any retVal = ORB.init().create_any();
-
-        final List<Any> structVals = new ArrayList<Any>();
-        for (T item : this.value) {
-            final List<DataType> props = new ArrayList<DataType>();
-            for (IProperty prop : item.getElements()) {
-                props.add(new DataType(prop.getId(), prop.toAny()));
-            }
-            Any itemAny = ORB.init().create_any();
-            PropertiesHelper.insert(itemAny, props.toArray(new DataType[props.size()]));
-            structVals.add(itemAny);
+    protected void insert(Any any, List<T> values) {
+        final Any[] array = new Any[values.size()];
+        for (int ii = 0; ii < values.size(); ++ii) {
+            array[ii] = values.get(ii).toAny();
         }
 
-        AnySeqHelper.insert(retVal, structVals.toArray(new Any[structVals.size()]));
-        return retVal;
+        AnySeqHelper.insert(any, array);
     }
 
     @Override
@@ -119,47 +61,20 @@ public class StructSequenceProperty< T extends StructDef > extends Property<List
         return this.id + "/" + this.name;
     }
 
-    public void fromAny(Any any) {
-        try {
-            List<T> structVals = new ArrayList<T>();
+    protected List<T> extract(Any any) {
+        List<T> structVals = new ArrayList<T>();
 
-            for (final Any item : AnySeqHelper.extract(any)) {
-                T itemValue = this.newStructInstance();
-                DataType[] struct = PropertiesHelper.extract(item);
-                if (struct != null) {
-                    for (final DataType prop : struct) {
-                        IProperty structProp = itemValue.getElement(prop.id);
-                        if (structProp != null) {
-                            structProp.fromAny(prop.value);
-                        }
-                    }
-                }
-                structVals.add(itemValue);
+        for (final Any item : AnySeqHelper.extract(any)) {
+            T itemValue;
+            try {
+                itemValue = this.structClass.newInstance();
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("Unable to construct new struct value: " + ex.getMessage(), ex);
             }
-            this.setValue(structVals);
-        } catch (ClassCastException ex) {
-            ex.printStackTrace();
-            throw new IllegalArgumentException("Incorrect any type recevied");
+
+            itemValue.fromAny(item);
+            structVals.add(itemValue);
         }
-    }
-
-    public void fromString(String str) {
-        throw new IllegalArgumentException("Only simple properties can be initialized with strings");
-    }
-
-    private T newStructInstance() {
-        try {
-            if (this.structCtor == null) {
-                return (T) this.structClass.getConstructor().newInstance();
-            } else {
-                return (T) this.structCtor.newInstance(ctorArgs);
-            }
-        } catch (Exception ex) {
-            throw new IllegalArgumentException("Unable to construct new struct value: " + ex.getMessage(), ex);
-        }
-    }
-
-    private T[] newStructArray(int size) {
-        return (T[]) Array.newInstance(this.structClass, size);
+        return structVals;
     }
 }

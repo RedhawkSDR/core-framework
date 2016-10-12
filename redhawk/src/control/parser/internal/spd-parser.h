@@ -59,7 +59,6 @@ namespace ossie {
                 ::spd::propertyRef_pimpl propertyRef_p;
                 ::spd::usesDevice_pimpl usesDevice_p;
                 ::spd::aepcompliance_pimpl aepcompliance_p;
-                ::spd::scaComplianceType_pimpl scaComplianceType_p;
                 ::spd::simpleref_pimpl simpleref_p;
                 ::spd::simplesequenceref_pimpl simplesequenceref_p;
                 ::spd::structref_pimpl structref_p;
@@ -78,7 +77,7 @@ namespace ossie {
                                 usesDevice_p,
                                 string_p,
                                 string_p,
-                                scaComplianceType_p,
+                                string_p,
                                 string_p);
 
                 author_p.parsers (string_p,

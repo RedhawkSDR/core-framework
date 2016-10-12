@@ -56,6 +56,12 @@ namespace sad
     externalports (const ::std::vector<ossie::SoftwareAssembly::Port>&);
 
     virtual void
+    externalproperties (const ::std::vector<ossie::SoftwareAssembly::Property>&);
+
+    virtual void
+    usesdevicedependencies (const ::std::vector<ossie::SoftwareAssembly::UsesDevice>&);
+
+    virtual void
     id (const ::std::string&);
 
     virtual void
@@ -299,6 +305,23 @@ namespace sad
 
     private:
     std::pair<std::string, std::string> info;
+  };
+
+  class deviceusedbyapplication_pimpl: public virtual deviceusedbyapplication_pskel
+  {
+  public:
+      virtual void
+      pre ();
+
+      virtual void
+      usesrefid (const ::std::string&);
+
+      virtual ::std::string
+      post_deviceusedbyapplication ();
+
+  private:
+      ::std::string usesRefId;
+
   };
 
   class resourcefactoryproperties_pimpl: public virtual resourcefactoryproperties_pskel
@@ -605,6 +628,9 @@ namespace sad
     deviceusedbythiscomponentref (const ::std::pair<std::string, std::string>&);
 
     virtual void
+    deviceusedbyapplication (const ::std::string&);
+
+    virtual void
     findby (const ::ossie::FindBy&);
 
     virtual ::ossie::UsesPort
@@ -633,6 +659,9 @@ namespace sad
     deviceusedbythiscomponentref (const ::std::pair<std::string, std::string>&);
 
     virtual void
+    deviceusedbyapplication (const ::std::string&);
+
+    virtual void
     findby (const ::ossie::FindBy&);
 
     virtual ::ossie::ProvidesPort
@@ -653,6 +682,15 @@ namespace sad
 
     virtual void
     componentinstantiationref (const ::std::string&);
+
+    virtual void
+    devicethatloadedthiscomponentref (const ::std::string&);
+
+    virtual void
+    deviceusedbythiscomponentref (const ::std::pair<std::string, std::string>&);
+
+    virtual void
+    deviceusedbyapplication (const ::std::string&);
 
     virtual void
     findby (const ::ossie::FindBy&);
@@ -687,6 +725,9 @@ namespace sad
     pre ();
 
     virtual void
+    externalname (const ::std::string&);
+
+    virtual void
     description (const ::std::string&);
 
     virtual void
@@ -706,6 +747,114 @@ namespace sad
 
     private:
     std::auto_ptr<ossie::SoftwareAssembly::Port> port;
+  };
+
+  class externalproperties_pimpl: public virtual externalproperties_pskel
+  {
+  public:
+      virtual void
+      pre ();
+
+      virtual void
+      property (const ossie::SoftwareAssembly::Property&);
+
+      virtual ::std::vector<ossie::SoftwareAssembly::Property>
+      post_externalproperties ();
+
+  private:
+      std::vector<ossie::SoftwareAssembly::Property> extProps;
+  };
+
+  class property_pimpl: public virtual property_pskel
+  {
+  public:
+      virtual void
+      pre ();
+
+      virtual void
+      comprefid (const ::std::string&);
+
+      virtual void
+      propid (const ::std::string&);
+
+      virtual void
+      externalpropid (const ::std::string&);
+
+      virtual ::ossie::SoftwareAssembly::Property
+      post_property ();
+
+  private:
+      std::auto_ptr<ossie::SoftwareAssembly::Property> property;
+  };
+
+  class usesdevicedependencies_pimpl: public virtual usesdevicedependencies_pskel
+  {
+  public:
+      virtual void
+      pre ();
+
+      virtual void
+      usesdevice (const ossie::SoftwareAssembly::UsesDevice&);
+
+      virtual ::std::vector<ossie::SoftwareAssembly::UsesDevice>
+      post_usesdevicedependencies ();
+
+  private:
+      std::vector<ossie::SoftwareAssembly::UsesDevice> usesDevices;
+  };
+
+  class usesdevice_pimpl: public virtual usesdevice_pskel
+  {
+  public:
+      virtual void
+      pre ();
+
+      virtual void
+      propertyref (const ossie::SoftwareAssembly::PropertyRef&);
+
+      virtual void
+      simpleref (ossie::SimplePropertyRef*);
+
+      virtual void
+      simplesequenceref (ossie::SimpleSequencePropertyRef*);
+
+      virtual void
+      structref (ossie::StructPropertyRef*);
+
+      virtual void
+      structsequenceref (ossie::StructSequencePropertyRef*);
+
+      virtual void
+      id (const ::std::string&);
+
+      virtual void
+      type (const ::std::string&);
+
+      virtual ossie::SoftwareAssembly::UsesDevice
+      post_usesdevice ();
+
+  private:
+      std::auto_ptr<ossie::SoftwareAssembly::UsesDevice> uses;
+      //std::vector<ossie::SoftwareAssembly::PropertyRef> dependencies;
+  };
+
+  class propertyref_pimpl: public virtual propertyref_pskel
+  {
+  public:
+      virtual void
+      pre ();
+
+      virtual void
+      refid (const ::std::string&);
+
+      virtual void
+      value (const ::std::string&);
+
+      virtual ::ossie::SoftwareAssembly::PropertyRef
+      post_propertyref ();
+
+  private:
+      std::auto_ptr<ossie::SimplePropertyRef> propRef;
   };
 }
 

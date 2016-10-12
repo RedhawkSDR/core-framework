@@ -30,6 +30,7 @@
 #include <ossie/CF/cf.h>
 #include <ossie/CF/StandardEvent.h>
 #include <ossie/SoftPkg.h>
+#include <ossie/SoftwareAssembly.h>
 #include <ossie/ComponentDescriptor.h>
 #include <ossie/Properties.h>
 #include <ossie/exceptions.h>
@@ -84,19 +85,23 @@ namespace ossie
         typedef std::vector< UsesDeviceInfo * >    List;
 
         UsesDeviceInfo(const std::string& id, const std::string& type, const std::vector<SPD::PropertyRef>& _properties);
+        UsesDeviceInfo(const std::string& id, const std::string& type, const std::vector<SoftwareAssembly::PropertyRef>& _sadDeps);
         ~UsesDeviceInfo();
 
         const std::string& getId() const;
         const std::string& getType() const;
         const std::vector<SPD::PropertyRef>& getProperties() const;
+        const std::vector<SoftwareAssembly::PropertyRef>& getSadDeps() const;
         const std::string& getAssignedDeviceId() const;
 
         void setAssignedDeviceId(const std::string& deviceId);
+        void clearAssignedDeviceId();
 
     private:
         std::string id;
         std::string type;
         std::vector<SPD::PropertyRef> properties;
+        std::vector<SoftwareAssembly::PropertyRef> sadDeps;
         std::string assignedDeviceId;
     };
 
@@ -313,9 +318,40 @@ namespace ossie
         CF::Device_var  device;
     };
 
+    /** Base class to contain data for applications
+     *  - Used to store information about about:
+     *       -> ExternalPorts
+     *       -> External Properties
+     *       -> UsesDevice relationships
+     */
+    class ApplicationInfo
+    {
+        ENABLE_LOGGING;
 
-    typedef std::pair< CF::Device_ptr, std::string >   SoftPkgLoad;
-    typedef std::vector< SoftPkgLoad >                 SoftPkgList;
+    public:
+        ApplicationInfo();
+        ~ApplicationInfo();
 
+        const std::vector<SoftwareAssembly::Port>& getExternalPorts() const;
+        const std::vector<SoftwareAssembly::Property>& getExternalProperties() const;
+        void setACProperties(const CF::Properties& props);
+        const CF::Properties getACProperties() const;
+        void populateApplicationInfo(const SoftwareAssembly& sad);
+        void populateExternalProperties(CF::Properties& props);
+        const std::vector<UsesDeviceInfo*>& getUsesDevices() const;
+        const UsesDeviceInfo* getUsesDeviceById(const std::string& id) const;
+        void addComponent(ComponentInfo* comp);
+        ComponentInfo* findComponentByInstantiationId(const std::string id);
+        bool checkUsesDevice(const std::vector<ossie::SoftwareAssembly::PropertyRef>& usesProps,
+                                  const std::vector<const Property*>& devProps,
+                                  CF::Properties& allocProps);
+
+    protected:
+        std::vector<SoftwareAssembly::Port> externalPorts;
+        std::vector<SoftwareAssembly::Property> externalProperties;
+        CF::Properties acProps;
+        std::vector<ComponentInfo*> components;
+        UsesDeviceInfo::List usesDevices;
+    };
 }
 #endif

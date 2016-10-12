@@ -22,8 +22,6 @@
 #ifndef LIFECYCLE_IMPL_H
 #define LIFECYCLE_IMPL_H
 
-#include "ossiecf.h"
-
 #include "CF/cf.h"
 
 
@@ -33,8 +31,7 @@ initialization and and releasing instantiated objects.
 
  */
 
-class OSSIECF_API LifeCycle_impl: public virtual
-    POA_CF::LifeCycle
+class LifeCycle_impl: public virtual POA_CF::LifeCycle
 {
 public:
     LifeCycle_impl () {

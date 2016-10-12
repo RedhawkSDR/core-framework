@@ -21,6 +21,9 @@
 # Update etc scripts with appropriate paths
 # This setup for scripts taken from http://www.gnu.org/software/autoconf/manual/autoconf.html, section 4.8.2 (Installation Directory Variables)
 
+bashcompletionddir = $(sysconfdir)/bash_completion.d
+bashcompletiond_DATA = bash_completion.d/nodeBooter
+
 ldsoconfddir = $(sysconfdir)/ld.so.conf.d
 ldsoconfd_DATA = ld.so.conf.d/redhawk.conf
 
@@ -28,9 +31,7 @@ profileddir = $(sysconfdir)/profile.d
 profiled_DATA = profile.d/redhawk.sh \
   profile.d/redhawk.csh \
   profile.d/redhawk-sdrroot.sh \
-  profile.d/redhawk-sdrroot.csh \
-  profile.d/local_pkg_config.sh \
-  profile.d/local_pkg_config.csh
+  profile.d/redhawk-sdrroot.csh
 
 lib = lib${gr_libdir_suffix}
 edit = $(SED) \
@@ -41,15 +42,13 @@ edit = $(SED) \
   -e 's|@lib[@]|$(lib)|g'
 
 $(ldsoconfd_DATA) $(profiled_DATA): Makefile
-	$(edit) $@.in > $@
+	$(AM_V_GEN)$(edit) $@.in > $@
 
 ld.so.conf.d/redhawk.conf: ld.so.conf.d/redhawk.conf.in
 profile.d/redhawk.sh: profile.d/redhawk.sh.in
 profile.d/redhawk.csh: profile.d/redhawk.csh.in
 profile.d/redhawk-sdrroot.sh: profile.d/redhawk-sdrroot.sh.in
 profile.d/redhawk-sdrroot.csh: profile.d/redhawk-sdrroot.csh.in
-profile.d/local_pkg_config.sh: profile.d/local_pkg_config.sh.in
-profile.d/local_pkg_config.csh: profile.d/local_pkg_config.csh.in
 
 DISTCLEANFILES = $(ldsoconfd_DATA) $(profiled_DATA)
 

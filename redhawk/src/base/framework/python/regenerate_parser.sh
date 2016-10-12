@@ -27,18 +27,18 @@ fi
 
 GENERATE_DS_FLAGS="-f --no-process-includes --silence -m"
 echo "Generating DCD parser"
-${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/dcd.py     ../../xml/xsd/dcd.xsd
+${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/dcd.py     ../../../xml/xsd/dcd.xsd
 echo "Generating DMD parser"
-${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/dmd.py     ../../xml/xsd/dmd.xsd
+${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/dmd.py     ../../../xml/xsd/dmd.xsd
 echo "Generating DPD parser"
-${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/dpd.py     ../../xml/xsd/dpd.xsd
+${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/dpd.py     ../../../xml/xsd/dpd.xsd
 echo "Generating PRF parser"
-${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/prf.py     ../../xml/xsd/prf.xsd
+${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/prf.py     ../../../xml/xsd/prf.xsd
 echo "Generating PROFILE parser"
-${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/profile.py ../../xml/xsd/profile.xsd
+${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/profile.py ../../../xml/xsd/profile.xsd
 echo "Generating SAD parser"
-${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/sad.py     ../../xml/xsd/sad.xsd
+${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/sad.py     ../../../xml/xsd/sad.xsd
 echo "Generating SCD parser"
-${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/scd.py     ../../xml/xsd/scd.xsd
+${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/scd.py     ../../../xml/xsd/scd.xsd
 echo "Generating SPD parser"
-${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/spd.py     ../../xml/xsd/spd.xsd
+${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/spd.py     ../../../xml/xsd/spd.xsd

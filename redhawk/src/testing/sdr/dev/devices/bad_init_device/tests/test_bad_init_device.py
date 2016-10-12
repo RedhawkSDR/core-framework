@@ -37,9 +37,9 @@ class DeviceTests(ossie.utils.testing.ScaComponentTestCase):
         # Verify the basic state of the device
         self.assertNotEqual(self.comp, None)
         self.assertEqual(self.comp.ref._non_existent(), False)
-	
+
         self.assertEqual(self.comp.ref._is_a("IDL:CF/Device:1.0"), True)
-	
+
         
         #######################################################################
         # Validate that query returns all expected parameters

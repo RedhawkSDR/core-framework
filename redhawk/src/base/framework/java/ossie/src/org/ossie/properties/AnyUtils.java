@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
+            import org.apache.log4j.Logger;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.omg.CORBA.Any;
@@ -55,6 +56,30 @@ import org.omg.CORBA.TypeCodePackage.BadKind;
 
 import CF.DataTypeHelper;
 import CF.PropertiesHelper;
+import CF.complexFloatHelper;
+import CF.complexDoubleHelper;
+import CF.complexShortHelper;
+import CF.complexUShortHelper;
+import CF.complexBooleanHelper;
+import CF.complexCharHelper;
+import CF.complexOctetHelper;
+import CF.complexLongHelper;
+import CF.complexULongHelper;
+import CF.complexLongLongHelper;
+import CF.complexULongLongHelper;
+
+import CF.complexFloatSeqHelper;
+import CF.complexDoubleSeqHelper;
+import CF.complexShortSeqHelper;
+import CF.complexUShortSeqHelper;
+import CF.complexBooleanSeqHelper;
+import CF.complexCharSeqHelper;
+import CF.complexOctetSeqHelper;
+import CF.complexLongSeqHelper;
+import CF.complexULongSeqHelper;
+import CF.complexLongLongSeqHelper;
+import CF.complexULongLongSeqHelper;
+
 
 public final class AnyUtils {
 
@@ -99,26 +124,11 @@ public final class AnyUtils {
         } else if (type.equals("longlong")) {
             return Long.decode(stringValue);
         } else if (type.equals("ulong")) {
-            final long MAX_UINT = 2L * Integer.MAX_VALUE + 1L;
-            final Long retVal = Long.decode(stringValue);
-            if (retVal < 0 || retVal > MAX_UINT) {
-                throw new IllegalArgumentException("ulong value must be greater than '0' and less than " + MAX_UINT);
-            }
-            return retVal;
+            return UnsignedUtils.parseULong(stringValue);
         } else if (type.equals("ushort")) {
-            final int MAX_USHORT = 2 * Short.MAX_VALUE + 1;
-            final Integer retVal = Integer.decode(stringValue);
-            if (retVal < 0 || retVal > MAX_USHORT) {
-                throw new IllegalArgumentException("ushort value must be greater than '0' and less than " + MAX_USHORT);
-            }
-            return retVal;
+            return UnsignedUtils.parseUShort(stringValue);
         } else if (type.equals("ulonglong")) {
-            final BigInteger MAX_ULONG_LONG = BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.valueOf(2)).add(BigInteger.ONE);
-            final BigInteger retVal = bigIntegerDecode(stringValue);
-            if (retVal.compareTo(BigInteger.ZERO) < 0 || retVal.compareTo(MAX_ULONG_LONG) > 0) {
-                throw new IllegalArgumentException("ulonglong value must be greater than '0' and less than " + MAX_ULONG_LONG.toString());
-            }
-            return retVal;
+            return UnsignedUtils.parseULongLong(stringValue);
         } else if (type.equals("objref")) {
             List<String> objrefPrefix = Arrays.asList("IOR:", "corbaname:", "corbaloc:");
             for (String prefix : objrefPrefix) {
@@ -128,13 +138,37 @@ public final class AnyUtils {
             }
             throw new IllegalArgumentException(stringValue + " is not a valid objref value");
         } else if (type.equals("octet")) {
-            final short MIN_OCTET = 0;
-            final short MAX_OCTET = 0xFF;
-            short val = Short.valueOf(stringValue);
-            if (val <= MAX_OCTET && val >= MIN_OCTET) {
-                return Short.valueOf(val).byteValue();
-            }
-            throw new IllegalArgumentException(stringValue + " is not a valid octet value");
+            return UnsignedUtils.parseOctet(stringValue);
+        } else if (type.equals("complexFloat")) {
+            return ComplexUtils.parseComplexFloat(stringValue);
+        } else if (type.equals("complexDouble")) {
+            return ComplexUtils.parseComplexDouble(stringValue);
+        } else if (type.equals("complexBoolean")) {
+            return ComplexUtils.parseComplexBoolean(stringValue);
+        // TODO: complexChar
+        /*
+        } else if (type.equals("complexChar")) {
+            String[] realAndImag = new String[2];
+            realAndImag = ComplexUtils.getRealImagStringsFromComplex(stringValue);
+            CF.complexChar returnVal = new CF.complexChar(
+                (String)AnyUtils.convertString(realAndImag[0], "char"),
+                (String)AnyUtils.convertString(realAndImag[1], "char"));
+            return returnVal;
+        */
+        } else if (type.equals("complexOctet")) {
+            return ComplexUtils.parseComplexOctet(stringValue);
+        } else if (type.equals("complexShort")) {
+            return ComplexUtils.parseComplexShort(stringValue);
+        } else if (type.equals("complexUShort")) {
+            return ComplexUtils.parseComplexUShort(stringValue);
+        } else if (type.equals("complexLong")) {
+            return ComplexUtils.parseComplexLong(stringValue);
+        } else if (type.equals("complexULong")) {
+            return ComplexUtils.parseComplexULong(stringValue);
+        } else if (type.equals("complexLongLong")) {
+            return ComplexUtils.parseComplexLongLong(stringValue);
+        } else if (type.equals("complexULongLong")) {
+            return ComplexUtils.parseComplexULongLong(stringValue);
         } else {
             throw new IllegalArgumentException("Unknown CORBA Type: " + type);
         }
@@ -208,9 +242,11 @@ public final class AnyUtils {
         if (theAny == null) {
             return null;
         }
+        
+        final TCKind kind = typeCode.kind();
+
         // Do this check because extract doesn't throw correctly
         try {
-            final TCKind kind = typeCode.kind();
             switch (kind.value()) {
             case TCKind._tk_any:
                 return theAny.extract_any();
@@ -270,6 +306,29 @@ public final class AnyUtils {
                     return theAny.extract_Object();
                 }
             case TCKind._tk_struct:
+                if (typeCode.name().equals("complexFloat")) {
+                    return complexFloatHelper.extract(theAny);
+                } else if (typeCode.name().equals("complexDouble")) {
+                    return complexDoubleHelper.extract(theAny);
+                } else if (typeCode.name().equals("complexShort")) {
+                    return complexShortHelper.extract(theAny);
+                } else if (typeCode.name().equals("complexUShort")) {
+                    return complexUShortHelper.extract(theAny);
+                } else if (typeCode.name().equals("complexBoolean")) {
+                    return complexBooleanHelper.extract(theAny);
+                } else if (typeCode.name().equals("complexOctet")) {
+                    return complexOctetHelper.extract(theAny);
+                } else if (typeCode.name().equals("complexChar")) {
+                    return complexCharHelper.extract(theAny);
+                } else if (typeCode.name().equals("complexLong")) {
+                    return complexLongHelper.extract(theAny);
+                } else if (typeCode.name().equals("complexULong")) {
+                    return complexULongHelper.extract(theAny);
+                } else if (typeCode.name().equals("complexLongLong")) {
+                    return complexLongLongHelper.extract(theAny);
+                } else if (typeCode.name().equals("complexULongLong")) {
+                    return complexULongLongHelper.extract(theAny);
+                }
             case TCKind._tk_longdouble:
             case TCKind._tk_array:
             case TCKind._tk_abstract_interface:
@@ -281,7 +340,7 @@ public final class AnyUtils {
             case TCKind._tk_value_box:
             case TCKind._tk_void:
             default:
-                throw new IllegalArgumentException("Only primitive types supported, unknown conversion: " + typeCode);
+                throw new IllegalArgumentException("Only primitive types supported, unknown conversion: " + typeCode.name());//typeCode);
             }
         } catch (final BAD_OPERATION ex) {
             return null;
@@ -297,9 +356,12 @@ public final class AnyUtils {
      * @param contentType the TypeCode of the desired value
      * @return an array of Java objects from theAny that corresponds to the typeCode
      */
-    private static Object[] extractSequence(final Any theAny, final TypeCode contentType) {
+    private static Object[] extractSequence(final Any theAny, 
+                                            final TypeCode contentType) {
+        final TCKind kind = contentType.kind();
+
+        // Do this check because extract doesn't throw correctly
         try {
-            final TCKind kind = contentType.kind();
             switch (kind.value()) {
             case TCKind._tk_any:
                 return AnySeqHelper.extract(theAny);
@@ -349,6 +411,28 @@ public final class AnyUtils {
             case TCKind._tk_struct:
                 if (DataTypeHelper.type().equivalent(contentType)) {
                     return PropertiesHelper.extract(theAny);
+                } else if (complexFloatHelper.type().equivalent(contentType)) {
+                    return complexFloatSeqHelper.extract(theAny);
+                } else if (complexDoubleHelper.type().equivalent(contentType)) {
+                    return complexDoubleSeqHelper.extract(theAny);
+                } else if (complexBooleanHelper.type().equivalent(contentType)) {
+                    return complexBooleanSeqHelper.extract(theAny);
+                } else if (complexCharHelper.type().equivalent(contentType)) {
+                    return complexCharSeqHelper.extract(theAny);
+                } else if (complexOctetHelper.type().equivalent(contentType)) {
+                    return complexOctetSeqHelper.extract(theAny);
+                } else if (complexShortHelper.type().equivalent(contentType)) {
+                    return complexShortSeqHelper.extract(theAny);
+                } else if (complexUShortHelper.type().equivalent(contentType)) {
+                    return complexShortSeqHelper.extract(theAny);
+                } else if (complexLongHelper.type().equivalent(contentType)) {
+                    return complexLongSeqHelper.extract(theAny);
+                } else if (complexULongHelper.type().equivalent(contentType)) {
+                    return complexULongSeqHelper.extract(theAny);
+                } else if (complexLongLongHelper.type().equivalent(contentType)) {
+                    return complexLongSeqHelper.extract(theAny);
+                } else if (complexULongLongHelper.type().equivalent(contentType)) {
+                    return complexULongLongSeqHelper.extract(theAny);
                 } else {
                     throw new IllegalArgumentException("Unsupported struct content type: " + contentType);
                 }
@@ -366,7 +450,103 @@ public final class AnyUtils {
         if (type == null) {
             throw new NullPointerException();
         }
-        return ORB.init().get_primitive_tc(type).name();
+        return getPrimitiveTypeCode(type).name();
+    }
+
+    public static TypeCode getPrimitiveTypeCode(TCKind kind) {
+        return ORB.init().get_primitive_tc( kind );
+    }
+
+    /*
+     * Call ORB.get_primative_tc with the appropriate TCKind
+     * corresponding to kindStr.  Return the TypeCode if supported; 
+     * otherwise, return null.
+     */
+    public static TypeCode getPrimitiveTypeCode(final String kindStr) {
+        if (kindStr == null || "".equals(kindStr)) {
+            return getPrimitiveTypeCode( TCKind.tk_null );
+        } else if (kindStr.equals("any")) {
+            return getPrimitiveTypeCode( TCKind.tk_any );
+        } else if (kindStr.equals("boolean")) {
+            return getPrimitiveTypeCode( TCKind.tk_boolean );
+        } else if (kindStr.equals("char")) {
+            return getPrimitiveTypeCode( TCKind.tk_char );
+        } else if (kindStr.equals("double")) {
+            return getPrimitiveTypeCode( TCKind.tk_double );
+        } else if (kindStr.equals("fixed")) {
+            return getPrimitiveTypeCode( TCKind.tk_fixed );
+        } else if (kindStr.equals("float")) {
+            return getPrimitiveTypeCode( TCKind.tk_float );
+        } else if (kindStr.equals("long")) {
+            return getPrimitiveTypeCode( TCKind.tk_long );
+        } else if (kindStr.equals("longlong")) {
+            return getPrimitiveTypeCode( TCKind.tk_longlong );
+        } else if (kindStr.equals("objref")) {
+            return getPrimitiveTypeCode( TCKind.tk_objref );
+        } else if (kindStr.equals("octet")) {
+            return getPrimitiveTypeCode( TCKind.tk_octet );
+        } else if (kindStr.equals("short")) {
+            return getPrimitiveTypeCode( TCKind.tk_short );
+        } else if (kindStr.equals("string")) {
+            return getPrimitiveTypeCode( TCKind.tk_string );
+        } else if (kindStr.equals("ulong")) {
+            return getPrimitiveTypeCode( TCKind.tk_ulong );
+        } else if (kindStr.equals("ulonglong")) {
+            return getPrimitiveTypeCode( TCKind.tk_ulonglong );
+        } else if (kindStr.equals("ushort")) {
+            return getPrimitiveTypeCode( TCKind.tk_ushort );
+        } else if (kindStr.equals("value")) {
+            return getPrimitiveTypeCode( TCKind.tk_value );
+        } else if (kindStr.equals("wchar")) {
+            return getPrimitiveTypeCode( TCKind.tk_wchar );
+        } else if (kindStr.equals("wstring")) {
+            return getPrimitiveTypeCode( TCKind.tk_wstring );
+        } else {
+            return null;
+        }
+    }
+        
+    /*
+     * Call type() on the appropriate complex helper.
+     * Return the TypeCode if supported; otherwise, return null.
+     */
+    public static TypeCode getComplexTypeCode(final String kindStr) {
+        if ("complexShort".equals(kindStr)) {
+            return complexShortHelper.type();
+        } else if (kindStr.equals("complexUShort")) {
+            return complexUShortHelper.type();
+        } else if (kindStr.equals("complexBoolean")) {
+            return complexBooleanHelper.type();
+        } else if (kindStr.equals("complexDouble")) {
+            return complexDoubleHelper.type();
+        } else if (kindStr.equals("complexFloat")) {
+            return complexFloatHelper.type();
+        } else if (kindStr.equals("complexChar")) {
+            return complexCharHelper.type();
+        } else if (kindStr.equals("complexOctet")) {
+            return complexOctetHelper.type();
+        } else if (kindStr.equals("complexLong")) {
+            return complexLongHelper.type();
+        } else if (kindStr.equals("complexLongLong")) {
+            return complexLongLongHelper.type();
+        } else if (kindStr.equals("complexULong")) {
+            return complexULongHelper.type();
+        } else if (kindStr.equals("complexULongLong")) {
+            return complexULongLongHelper.type();
+        } else {
+            return null;
+        }
+    }
+
+    public static TypeCode convertToTypeCode(final String typeStr) {
+        TypeCode type = getPrimitiveTypeCode(typeStr);
+        if (type == null) {
+            type = getComplexTypeCode(typeStr);
+        }
+        if (type == null) {
+            throw new IllegalArgumentException("Unknown type: " + typeStr);
+        }
+        return type;
     }
 
     public static TCKind convertToTCKind(final String type) {
@@ -413,20 +593,47 @@ public final class AnyUtils {
         }
     }
 
-    public static Any toAny(final Object value, final TCKind type) {
+    public static Any toAny(final String value) {
+        Any any = ORB.init().create_any();
+        if (value != null) {
+            any.insert_string(value);
+        }
+        return any;
+    }
+
+    public static Any toAny(final Object value, final TypeCode type) {
         final Any retVal = ORB.init().create_any();
         AnyUtils.insertInto(retVal, value, type);
+        return retVal;
+    }
+
+    /*
+     * This only works for primitive types.  For structs, such as 
+     * complex values, use toAny(final Object value, final TypeCode type) 
+     * instead.
+     */ 
+    public static Any toAny(final Object value, final TCKind kind) {
+        return toAny(value, getPrimitiveTypeCode(kind));
+    }
+
+    public static Any insertInto(final Any retVal, 
+                                 final Object value, 
+                                 final TCKind kind) {
+        insertInto(retVal, value, getPrimitiveTypeCode(kind));
         return retVal;
     }
 
     /**
      * @since 3.0
      */
-    public static Any insertInto(final Any retVal, final Object value, final TCKind type) {
+    public static Any insertInto(final Any retVal, 
+                                 final Object value, 
+                                 final TypeCode type) {
         if (value == null) {
             return retVal;
         }
-        switch (type.value()) {
+
+        switch (type.kind().value()) {
         case TCKind._tk_any:
             retVal.insert_any((Any) value);
             break;
@@ -486,6 +693,35 @@ public final class AnyUtils {
         case TCKind._tk_wstring:
             retVal.insert_wstring(value.toString());
             break;
+            
+        case TCKind._tk_struct:
+            if (type.equals(complexFloatHelper.type())) {
+                complexFloatHelper.insert(retVal, (CF.complexFloat) value);
+            } else if (type.equals(complexDoubleHelper.type())) {
+                complexDoubleHelper.insert(retVal, (CF.complexDouble) value);
+            } else if (type.equals(complexShortHelper.type())) {
+                complexShortHelper.insert(retVal, (CF.complexShort) value);
+            } else if (type.equals(complexUShortHelper.type())) {
+                complexUShortHelper.insert(retVal, (CF.complexUShort) value);
+            } else if (type.equals(complexBooleanHelper.type())) {
+                complexBooleanHelper.insert(retVal, (CF.complexBoolean) value);
+            } else if (type.equals(complexOctetHelper.type())) {
+                complexOctetHelper.insert(retVal, (CF.complexOctet) value);
+            } else if (type.equals(complexCharHelper.type())) {
+                complexCharHelper.insert(retVal, (CF.complexChar) value);
+            } else if (type.equals(complexLongHelper.type())) {
+                complexLongHelper.insert(retVal, (CF.complexLong) value);
+            } else if (type.equals(complexULongHelper.type())) {
+                complexULongHelper.insert(retVal, (CF.complexULong) value);
+            } else if (type.equals(complexLongLongHelper.type())) {
+                complexLongLongHelper.insert(retVal, 
+                                             (CF.complexLongLong) value);
+            } else if (type.equals(complexULongLongHelper.type())) {
+                complexULongLongHelper.insert(retVal, 
+                                              (CF.complexULongLong) value);
+            }
+            break;
+            
         default:
             throw new IllegalArgumentException("Unknown target type: " + type);
         }
@@ -496,19 +732,21 @@ public final class AnyUtils {
      */
     public static Any toAny(final Object value, final String type) {
         final TCKind kind = AnyUtils.convertToTCKind(type);
+        final TypeCode typeCode = AnyUtils.convertToTypeCode(type);
 
         if ((value instanceof String) && (kind != TCKind.tk_string)) {
             return AnyUtils.stringToAny((String) value, type);
         }
 
-        return AnyUtils.toAny(value, kind);
+        return AnyUtils.toAny(value, typeCode);
     }
 
     public static Any toAny(final Object[] value, final String type) {
         final TCKind kind = AnyUtils.convertToTCKind(type);
+        final TypeCode typeCode = AnyUtils.convertToTypeCode(type);
         final Object[] convArray = AnyUtils.convertStringArray(value, type);
 
-        return AnyUtils.toAny(convArray, kind);
+        return AnyUtils.toAny(value, typeCode);
     }
 
     private static Object[] convertStringArray(final Object[] value, final String type) {
@@ -524,113 +762,119 @@ public final class AnyUtils {
         return retVal;
     }
 
+    /*
+     * This only works for primitive types.  For structs, such as 
+     * complex values, use toAny(final Object[] value, final TypeCode type) 
+     * instead.
+     */ 
+    public static Any toAny(final Object[] value, final TCKind kind) {
+        return AnyUtils.toAnySequence(value, getPrimitiveTypeCode(kind));
+    }
+
+    public static Any toAnySequence(final Object value, final TCKind kind) {
+        return AnyUtils.toAnySequence(value, getPrimitiveTypeCode(kind));
+    }
+
     /**
      * @since 3.0
      */
     public static Any toAnySequence(final Object value, TypeCode type) {
-        if (type.kind().value() != TCKind._tk_sequence) {
-            throw new IllegalArgumentException("Type is not a sequence");
-        }
-        
-        try {
-            return toAnySequence(value, type.content_type().kind());
-        } catch (final BadKind e) {
-            throw new IllegalArgumentException("Bad Kind for type: " + type);
+        if (type.kind().value() == TCKind._tk_sequence) {
+            // for sequences, use the typecode kind of the sequence items
+            TypeCode contentType;
+            try {
+                contentType = type.content_type();
+            } catch (final BadKind e) {
+                throw new IllegalArgumentException("Unable to resolve sequence type");
+            }
+            return toAnySequence_(value, contentType);
+        } else {
+            return toAnySequence_(value, type);
         }
     }
 
-    public static Any toAny(final Object[] value, final TCKind type) {
-        return AnyUtils.toAnySequence(value, type);
-    }
-
-    /**
-     * @since 3.0
-     */
-    public static Any toAnySequence(final Object value, TCKind type) {
+    static Any toAnySequence_(final Object value, TypeCode type) {
         final Any retVal = ORB.init().create_any();
-        if (type == null) {
-            type = AnyUtils.deriveArrayType(value);
-        }
+        final TCKind kind = type.kind();
 
-        if (value == null || type == null) {
-            return retVal;
-        }
-
-        switch (type.value()) {
-        case TCKind._tk_any:
+        if (kind == TCKind.tk_any ) {
             org.omg.DynamicAny.AnySeqHelper.insert(retVal, (Any[]) value);
-            break;
-        case TCKind._tk_boolean:
+        } else if (kind == TCKind.tk_boolean ){
             AnyUtils.handleBoolean(retVal, value);
-            break;
-        case TCKind._tk_char:
+        } else if (kind == TCKind.tk_char ){
             AnyUtils.handleChar(retVal, value);
-            break;
-        case TCKind._tk_double:
+        } else if (kind == TCKind.tk_double ){
             AnyUtils.handleDouble(retVal, value);
-            break;
-        case TCKind._tk_float:
+        } else if (kind == TCKind.tk_float ){
             AnyUtils.handleFloat(retVal, value);
-            break;
-        case TCKind._tk_long:
+        } else if (kind == TCKind.tk_long ){
             AnyUtils.handleLong(retVal, value);
-            break;
-        case TCKind._tk_longlong:
+        } else if (kind == TCKind.tk_longlong ){
             AnyUtils.handleLongLong(retVal, value);
-            break;
-        case TCKind._tk_octet:
+        } else if (kind == TCKind.tk_octet ){
             AnyUtils.handleOctet(retVal, value);
-            break;
-        case TCKind._tk_short:
+        } else if (kind == TCKind.tk_short ){
             AnyUtils.handleShort(retVal, value);
-            break;
-        case TCKind._tk_string:
-            StringSeqHelper.insert(retVal, AnyUtils.convertStringArray(value));
-            break;
-        case TCKind._tk_ulong:
+        } else if (kind == TCKind.tk_ulong ){
             AnyUtils.handleULong(retVal, value);
-            break;
-        case TCKind._tk_ulonglong:
+        } else if (kind == TCKind.tk_ulonglong ){
             AnyUtils.handleULongLong(retVal, value);
-            break;
-        case TCKind._tk_ushort:
+        } else if (kind == TCKind.tk_ushort ){
             AnyUtils.handleUShort(retVal, value);
-            break;
-        case TCKind._tk_wchar:
+        } else if (kind == TCKind.tk_wchar ){
             AnyUtils.handleWChar(retVal, value);
-            break;
-        case TCKind._tk_wstring:
+        } else if (kind == TCKind.tk_string ){
+            StringSeqHelper.insert(retVal, AnyUtils.convertStringArray(value));
+        } else if (kind == TCKind.tk_wstring ){
             WStringSeqHelper.insert(retVal, AnyUtils.convertStringArray(value));
-            break;
-        default:
-            throw new IllegalArgumentException("Unknown target type: " + type);
+        } else if (type.equals(complexFloatHelper.type())) {
+            complexFloatSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexFloatArray(value));
+        } else if (type.equals(complexDoubleHelper.type())) {
+            complexDoubleSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexDoubleArray(value));
+        } else if (type.equals(complexBooleanHelper.type())) {
+            complexBooleanSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexBooleanArray(value));
+        } else if (type.equals(complexCharHelper.type())) {
+            complexCharSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexCharArray(value));
+        } else if (type.equals(complexOctetHelper.type())) {
+            complexOctetSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexOctetArray(value));
+        } else if (type.equals(complexShortHelper.type())) {
+            complexShortSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexShortArray(value));
+        } else if (type.equals(complexUShortHelper.type())) {
+            complexUShortSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexUShortArray(value));
+        } else if (type.equals(complexLongHelper.type())) {
+            complexLongSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexLongArray(value));
+        } else if (type.equals(complexULongHelper.type())) {
+            complexULongSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexULongArray(value));
+        } else if (type.equals(complexLongLongHelper.type())) {
+            complexLongLongSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexLongLongArray(value));
+        } else if (type.equals(complexULongLongHelper.type())) {
+            complexULongLongSeqHelper.insert(
+                retVal, 
+                ComplexArrayUtils.convertToComplexULongLongArray(value));
+        } else {
+            throw new IllegalArgumentException("Unknown target type: " + kind);
         }
         return retVal;
-    }
-
-    private static TCKind deriveArrayType(final Object array) {
-        if (array instanceof Any[]) {
-            return TCKind.tk_any;
-        } else if (array instanceof Boolean[] || array instanceof boolean[]) {
-            return TCKind.tk_boolean;
-        } else if (array instanceof Character[] || array instanceof char[]) {
-            return TCKind.tk_char;
-        } else if (array instanceof Double[] || array instanceof double[]) {
-            return TCKind.tk_double;
-        } else if (array instanceof Float[] || array instanceof float[]) {
-            return TCKind.tk_float;
-        } else if (array instanceof Integer[] || array instanceof int[]) {
-            return TCKind.tk_long;
-        } else if (array instanceof Long[] || array instanceof long[]) {
-            return TCKind.tk_longlong;
-        } else if (array instanceof Byte[] || array instanceof byte[]) {
-            return TCKind.tk_octet;
-        } else if (array instanceof Short[] || array instanceof short[]) {
-            return TCKind.tk_short;
-        } else if (array instanceof String[]) {
-            return TCKind.tk_string;
-        }
-        return null;
     }
 
     private static String[] convertStringArray(final Object value) {
@@ -770,53 +1014,53 @@ public final class AnyUtils {
             }
             return false;
         }
-        
+
         boolean result = false;
         switch (kindA) {
         case TCKind._tk_boolean:
-            result = AnyUtils.performAction(a.extract_boolean(), b.extract_boolean(), action, kindA);
+            result = AnyUtils.performAction(a.extract_boolean(), b.extract_boolean(), action, a.type());
             break;
         case TCKind._tk_char:
-            result = AnyUtils.performAction(a.extract_char(), b.extract_char(), action, kindA);
+            result = AnyUtils.performAction(a.extract_char(), b.extract_char(), action, a.type());
             break;
         case TCKind._tk_wchar:
-            result = AnyUtils.performAction(a.extract_wchar(), b.extract_wchar(), action, kindA);
+            result = AnyUtils.performAction(a.extract_wchar(), b.extract_wchar(), action, a.type());
             break;
         case TCKind._tk_octet:
-            result = AnyUtils.performAction(a.extract_octet(), b.extract_octet(), action, kindA);
+            result = AnyUtils.performAction(a.extract_octet(), b.extract_octet(), action, a.type());
             break;
         case TCKind._tk_ushort:
-            result = AnyUtils.performAction(a.extract_ushort(), b.extract_ushort(), action, kindA);
+            result = AnyUtils.performAction(a.extract_ushort(), b.extract_ushort(), action, a.type());
             break;
         case TCKind._tk_short:
-            result = AnyUtils.performAction(a.extract_short(), b.extract_short(), action, kindA);
+            result = AnyUtils.performAction(a.extract_short(), b.extract_short(), action, a.type());
             break;
         case TCKind._tk_float:
-            result = AnyUtils.performAction(a.extract_float(), b.extract_float(), action, kindA);
+            result = AnyUtils.performAction(a.extract_float(), b.extract_float(), action, a.type());
             break;
         case TCKind._tk_double:
-            result = AnyUtils.performAction(a.extract_double(), b.extract_double(), action, kindA);
+            result = AnyUtils.performAction(a.extract_double(), b.extract_double(), action, a.type());
             break;
         case TCKind._tk_ulong:
-            result = AnyUtils.performAction(a.extract_ulong(), b.extract_ulong(), action, kindA);
+            result = AnyUtils.performAction(a.extract_ulong(), b.extract_ulong(), action, a.type());
             break;
         case TCKind._tk_long:
-            result = AnyUtils.performAction(a.extract_long(), b.extract_long(), action, kindA);
+            result = AnyUtils.performAction(a.extract_long(), b.extract_long(), action, a.type());
             break;
         case TCKind._tk_ulonglong:
-            result = AnyUtils.performAction(a.extract_ulonglong(), b.extract_ulonglong(), action, kindA);
+            result = AnyUtils.performAction(a.extract_ulonglong(), b.extract_ulonglong(), action, a.type());
             break;
         case TCKind._tk_longlong:
-            result = AnyUtils.performAction(a.extract_longlong(), b.extract_longlong(), action, kindA);
+            result = AnyUtils.performAction(a.extract_longlong(), b.extract_longlong(), action, a.type());
             break;
         case TCKind._tk_string:
-            result = AnyUtils.performAction(a.extract_string(), b.extract_string(), action, kindA);
+            result = AnyUtils.performAction(a.extract_string(), b.extract_string(), action, a.type());
             break;
         case TCKind._tk_wstring:
-            result = AnyUtils.performAction(a.extract_wstring(), b.extract_wstring(), action, kindA);
+            result = AnyUtils.performAction(a.extract_wstring(), b.extract_wstring(), action, a.type());
             break;
         case TCKind._tk_fixed:
-            result = AnyUtils.performAction(a.extract_fixed(), b.extract_fixed(), action, kindA);
+            result = AnyUtils.performAction(a.extract_fixed(), b.extract_fixed(), action, a.type());
             break;
         case TCKind._tk_objref:
             result = false;
@@ -856,8 +1100,8 @@ public final class AnyUtils {
                         // try to compare each member of the struct using the compareAnys recursively
                         for (int i = 0; i < dtsA.length; i++) {
                             for (int j = 0; j < dtsB.length; j++) {
-                                if (dtsA[i].id.equals(dtsB[i].id)) {
-                                    if (compareAnys(dtsA[i].value, dtsB[i].value, action)) {
+                                if (dtsA[i].id.equals(dtsB[j].id)) {
+                                    if (compareAnys(dtsA[i].value, dtsB[j].value, action)) {
                                         if ("ne".equals(action)) {
                                             return true;
                                         }
@@ -871,7 +1115,6 @@ public final class AnyUtils {
                             }
                         }
                         if ("eq".equals(action)) {
-                            return true;
                         } 
                         return false;
                     }
@@ -934,16 +1177,98 @@ public final class AnyUtils {
             } catch (final BadKind e) {
                 return false;
             }
-
             
         default:
+
+        // Note that performAction may not support gt, lt, ge, le for
+        // complex numbers.  We are relying on perfromAction to check
+        // the validity of the requested action and throw an exception
+        // if appropriate.
+
+        if (a.type().equivalent(complexFloatHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexFloatHelper.extract(a), 
+                CF.complexFloatHelper.extract(b), 
+                action, 
+                a.type());
+        } else if (a.type().equivalent(complexDoubleHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexDoubleHelper.extract(a), 
+                CF.complexDoubleHelper.extract(b), 
+                action, 
+                a.type());
+        } else if (a.type().equivalent(complexBooleanHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexBooleanHelper.extract(a), 
+                CF.complexBooleanHelper.extract(b), 
+                action, 
+                a.type());
+        } else if (a.type().equivalent(complexOctetHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexOctetHelper.extract(a), 
+                CF.complexOctetHelper.extract(b), 
+                action, 
+                a.type());
+        } else if (a.type().equivalent(complexCharHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexCharHelper.extract(a), 
+                CF.complexCharHelper.extract(b), 
+                action, 
+                a.type());
+        } else if (a.type().equivalent(complexShortHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexShortHelper.extract(a), 
+                CF.complexShortHelper.extract(b), 
+                action, 
+                a.type());
+        } else if (a.type().equivalent(complexUShortHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexUShortHelper.extract(a), 
+                CF.complexUShortHelper.extract(b), 
+                action, 
+                a.type());
+        } else if (a.type().equivalent(complexLongHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexLongHelper.extract(a), 
+                CF.complexLongHelper.extract(b), 
+                action, 
+                a.type());
+        } else if (a.type().equivalent(complexULongHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexULongHelper.extract(a), 
+                CF.complexULongHelper.extract(b), 
+                action, 
+                a.type());
+        } else if (a.type().equivalent(complexLongLongHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexLongLongHelper.extract(a), 
+                CF.complexLongLongHelper.extract(b), 
+                action, 
+                a.type());
+        } else if (a.type().equivalent(complexULongLongHelper.type())) {
+            result = AnyUtils.performAction(
+                CF.complexULongLongHelper.extract(a), 
+                CF.complexULongLongHelper.extract(b), 
+                action, 
+                a.type());
+        } else {
             result = false;
+        }
         }
         return result;
     }
 
-    private static boolean performAction(final Object val1, final Object val2, final String action, final int kindValue) {
-        // TODO need to account for null val1 or val2
+    private static boolean performAction(final Object val1, 
+                                         final Object val2, 
+                                         final String action, 
+                                         final TypeCode typeCode) {
+        if ( val1 == null && val2 != null) {
+            return false;
+        }
+        if ( val1 != null && val2 == null) {
+            return false;
+        }
+                
         final boolean eq = val1.equals(val2);
 
         if ("eq".equals(action)) {
@@ -955,7 +1280,9 @@ public final class AnyUtils {
         boolean gt = false;
         boolean lt = false;
         int comp = 0;
-        switch (kindValue) {
+
+        final int typeKind = typeCode.kind().value();
+        switch (typeKind) {
         case TCKind._tk_boolean:
             gt = (Boolean) val1 && !(Boolean) val2;
             lt = !(Boolean) val1 && (Boolean) val2;
@@ -1005,6 +1332,29 @@ public final class AnyUtils {
             lt = compare == -1;
             break;
         default:
+            if ("gt".equals(action) || "lt".equals(action) || "ge".equals(action) || "le".equals(action)) {
+                // If the user is attempting to do gt, lt, ge, or le on 
+                // a complex number, throw an exception.
+                //
+                // We could implement greater-than/less-than for complex 
+                // numbers as a comparison between magnitudes, but the 
+                // "or-equal-to" results would be misleading.
+                if (typeCode.equivalent(complexFloatHelper.type()) ||
+                    typeCode.equivalent(complexDoubleHelper.type()) ||
+                    typeCode.equivalent(complexBooleanHelper.type()) ||
+                    typeCode.equivalent(complexCharHelper.type()) ||
+                    typeCode.equivalent(complexOctetHelper.type()) ||
+                    typeCode.equivalent(complexShortHelper.type()) ||
+                    typeCode.equivalent(complexUShortHelper.type()) ||
+                    typeCode.equivalent(complexLongHelper.type()) ||
+                    typeCode.equivalent(complexLongLongHelper.type()) ||
+                    typeCode.equivalent(complexULongHelper.type()) ||
+                    typeCode.equivalent(complexULongLongHelper.type())
+                ) {
+                    throw new IllegalArgumentException("Greater-than/less-than not supported for complex types.");
+                }
+            }
+
             break;
         }
 
@@ -1020,4 +1370,7 @@ public final class AnyUtils {
         return false;
     }
 
+    public static boolean isNull(Any any) {
+        return any.type().kind().value() == TCKind._tk_null;
+    }
 }

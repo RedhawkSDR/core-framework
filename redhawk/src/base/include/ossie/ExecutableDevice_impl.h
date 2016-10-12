@@ -21,18 +21,13 @@
 #ifndef EXECUTABLE_DEVICE_IMPL_H
 #define EXECUTABLE_DEVICE_IMPL_H
 
-#include <vector>
-
 #include <sys/types.h>
 
-#include "Resource_impl.h"
-#include "Device_impl.h"
 #include "LoadableDevice_impl.h"
 #include "CF/cf.h"
-using namespace std;
 
 
-class OSSIECF_API ExecutableDevice_impl: public virtual
+class ExecutableDevice_impl: public virtual
     POA_CF::ExecutableDevice,
     public
     LoadableDevice_impl

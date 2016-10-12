@@ -43,7 +43,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
       <uses repid="IDL:omg.org/CosEventChannelAdmin/EventChannel:1.0" usesname="event_supplier">
           <porttype type="test"/>
       </uses>
-      <uses repid="IDL:omg.org/CosEventChannelAdmin/EventChannel:1.0" usesname="event_producer">
+      <uses repid="IDL:omg.org/CosEventChannelAdmin/EventChannel:1.0" usesname="event_consumer">
           <porttype type="test"/>
       </uses> 
       <uses repid="IDL:CF/DomainManager:1.0" usesname="domain_manager">

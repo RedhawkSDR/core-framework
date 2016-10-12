@@ -21,48 +21,168 @@
 package org.ossie.properties;
 
 import org.omg.CORBA.Any;
+import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.TCKind;
 
-public class SimpleProperty<T extends Object> extends Property<T> {
-    protected T value;
-    
+@Deprecated
+public class SimpleProperty<T extends Object> extends LegacyProperty<T> {
     final private T defaultValue;
     final private String type;
-    final private TCKind corbaKind;
-    
-    public SimpleProperty(String id, String name, String type, T value, String mode,
-            String action, String[] kinds) {
-        super(id, name, mode, action, kinds);
+    final private TypeCode corbaType;
+    private Any origCap = null;
+
+    public SimpleProperty(String   id,
+                          String   name,
+                          String   type,
+                          T        value,
+                          String   mode,
+                          String   action, 
+                          String[] kinds) {
+        super(id, name, value, mode, action, kinds);
         this.defaultValue = value;
-        this.value = value;
         this.type = type;
-        corbaKind = convertToTCKind(type);
+        this.corbaType = AnyUtils.convertToTypeCode(type);
     }
-    
-    @Override
-    public T getValue() {
-        // TODO Auto-generated method stub
-        return value;
-    }
-    @Override
-    public void setValue(T value) {
-        this.value = value;
-    }
-    
-    
+
     public Any toAny() {
-        return AnyUtils.toAny(value, corbaKind);
+        return AnyUtils.toAny(value, corbaType);
+    }
+
+    private Any getOrigCap() {
+        // If this is the first time, store original value.
+        if (this.origCap == null) {
+            this.origCap = this.toAny();
+        }
+        return this.origCap;
     }
     
-    
-    public void fromAny(Any any) {
+    protected T fromAny_(Any any) {
         try {
-            this.setValue((T)AnyUtils.convertAny(any));
+            // Suppress unchecked cast warning; due to type erasure we do not
+            // know the actual type of T, so this is an unsafe operation, which
+            // is one of the reasons for deprecating this class.
+            @SuppressWarnings("unchecked") T val = (T)AnyUtils.convertAny(any);
+            return val;
         } catch (ClassCastException ex) {
             throw new IllegalArgumentException("Incorrect any type recevied");
         }
     }
-    
+
+    /**
+     * Backwards-compatible allocation for legacy properties, taken from Device.
+     */
+    public boolean allocate(Any resourceRequest){
+        // If this is the first time, store original value.
+        getOrigCap();
+
+        Any deviceCapacity = this.toAny();
+        TypeCode tc1 = deviceCapacity.type();
+
+        try {
+            switch (tc1.kind().value()){
+            case TCKind._tk_ulong: {
+                Number devCapac, rscReq;    
+                devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
+                rscReq = (Number) AnyUtils.convertAny(resourceRequest);
+
+                if (rscReq.intValue() <= devCapac.intValue()){
+                    AnyUtils.insertInto(deviceCapacity, devCapac.intValue() - rscReq.intValue(), tc1.kind());
+                    this.configure(deviceCapacity);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+            case TCKind._tk_long: {
+                Number devCapac, rscReq;
+                devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
+                rscReq = (Number) AnyUtils.convertAny(resourceRequest);
+
+                if (rscReq.intValue() <= devCapac.intValue()){
+                    AnyUtils.insertInto(deviceCapacity, devCapac.intValue() - rscReq.intValue(), tc1.kind());
+                    this.configure(deviceCapacity);
+                    return true;
+                } else {
+                    return false;
+                }
+
+            }
+
+            case TCKind._tk_short: {
+                Number devCapac, rscReq;
+                devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
+                rscReq = (Number) AnyUtils.convertAny(resourceRequest);
+
+                if (rscReq.shortValue() <= devCapac.shortValue()){
+                    AnyUtils.insertInto(deviceCapacity, devCapac.shortValue() - rscReq.shortValue(), tc1.kind());
+                    this.configure(deviceCapacity);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+            default:
+                return false;
+            }
+        } catch (final ClassCastException ex) {
+            throw new IllegalArgumentException("Non-numeric value type");
+        }
+    }
+
+    /**
+     * Backwards-compatible deallocation for legacy properties, take from Device.
+     */
+    public void deallocate(Any resourceRequest) {
+        final Any deviceCapacity = this.toAny();
+        TypeCode tc1 = deviceCapacity.type();
+
+        try {
+            switch(tc1.kind().value()){
+            case TCKind._tk_ulong: {
+                Number devCapac, rscReq;
+                devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
+                rscReq = (Number) AnyUtils.convertAny(resourceRequest);
+                int newCap = devCapac.intValue() + rscReq.intValue();
+                AnyUtils.insertInto(deviceCapacity, devCapac.intValue() + rscReq.intValue(), tc1.kind());
+                break;
+            }
+
+            case TCKind._tk_long: {
+                Number devCapac, rscReq;
+                devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
+                rscReq = (Number) AnyUtils.convertAny(resourceRequest);
+                AnyUtils.insertInto(deviceCapacity, devCapac.intValue() + rscReq.intValue(), tc1.kind());
+                break;
+            }
+
+            case TCKind._tk_short: {
+                Number devCapac, rscReq;
+                devCapac = (Number) AnyUtils.convertAny(deviceCapacity);
+                rscReq = (Number) AnyUtils.convertAny(resourceRequest);
+                AnyUtils.insertInto(deviceCapacity, devCapac.shortValue() + rscReq.shortValue(), tc1.kind());
+                break;
+            }
+
+            default:
+                break;
+            }
+        } catch (final ClassCastException ex) {
+            throw new IllegalArgumentException("Non-numeric value type");
+        }
+        
+        if (AnyUtils.compareAnys(deviceCapacity, this.getOrigCap(), "gt")) {
+            throw new ArithmeticException("New capacity would exceed original bound");
+        }
+
+        this.configure(deviceCapacity);
+    }
+
+    public boolean isFull() {
+        return AnyUtils.compareAnys(this.toAny(), this.getOrigCap(), "ge");
+    }
+
     @Override
     public String toString() {
         return this.id + "/" + this.name + " = " + this.value;
@@ -70,11 +190,14 @@ public class SimpleProperty<T extends Object> extends Property<T> {
     
     
     public void fromString(String str) {
-        value = (T)convertString(str, type);
+        // Suppress unchecked cast warning; due to type erasure we do not
+        // know the actual type of T, so this is an unsafe operation, which
+        // is one of the reasons for deprecating this class.
+        @SuppressWarnings("unchecked") T val = (T)convertString(str, type);
+        this.setValue(val);
     }
 
     public String getType() {
         return this.type;
     }
-
 }

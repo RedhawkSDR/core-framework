@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:d36cb31b-0459-4c85-9c0a-adbf91378249" name="hang_release">
+  <componentfiles>
+    <componentfile id="hanging_stop_and_release_4eeeb443-7b3b-451f-baeb-f3df0b023d11" type="SPD">
+      <localfile name="/components/hanging_stop_and_release/hanging_stop_and_release.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="hanging_stop_and_release_4eeeb443-7b3b-451f-baeb-f3df0b023d11"/>
+      <componentinstantiation id="hanging_stop_and_release_1" startorder="0">
+        <usagename>hanging_stop_and_release_1</usagename>
+        <findcomponent>
+          <namingservice name="hanging_stop_and_release_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="hanging_stop_and_release_1"/>
+  </assemblycontroller>
+</softwareassembly>

@@ -18,10 +18,11 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AM_LDFLAGS =  -no-install $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS)
-INCLUDES = -I../../../../../base/include -I../../../../../base/parser
+CFDIR = ../../../../../base
+AM_CPPFLAGS = -I$(CFDIR)/include
 
 noinst_PROGRAMS = TestCppProps
 
 TestCppProps_SOURCES = TestCppProps.cpp main.cpp
-TestCppProps_LDADD = ../../../../../base/framework/libossiecf.la ../../../../../base/parser/libossieparser.la ../../../../../base/framework/idl/libossieidl.la
+TestCppProps_CXXFLAGS = $(BOOST_CPPFLAGS)
+TestCppProps_LDADD = $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la

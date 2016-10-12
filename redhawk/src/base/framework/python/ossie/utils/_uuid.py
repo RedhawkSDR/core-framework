@@ -30,11 +30,19 @@ def uuid1(node=None, clock_seq=None):
     """
     Generate a UUID from a host ID, sequence number, and the cuurent time.
     The 'node' and 'clock_seq' arguments are ignored.
+       Attempt to use 'uuidgen'
+       Attempt to use 'uuid' (for debian)
     """
-    return _commands.getoutput('uuidgen -t')
+    (result, output) = _commands.getstatusoutput('uuidgen -t')
+    if (result == 0): return output
+    return _commands.getoutput('uuid -t')
 
 def uuid4():
     """
     Generate a random UUID.
+       Attempt to use 'uuidgen'
+       Attempt to use 'uuid' (for debian)
     """
-    return _commands.getoutput('uuidgen -r')
+    (result, output) = _commands.getstatusoutput('uuidgen -r')
+    if (result == 0): return output
+    return _commands.getoutput('uuid -r')

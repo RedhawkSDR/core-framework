@@ -20,13 +20,12 @@
 #
 
 
-aclocal -I acinclude
 libtoolize --force --automake
-#Rerun aclocal to recognize additional .m4 that libtoolize installed
 aclocal -I acinclude
 rm -f config.cache
 autoconf -f
 automake --foreign --add-missing
+
 # Due to strange autotools bootstrap issues, 
 # if ltmain.sh doesn't exists we have to run both again
 if [ ! -f ltmain.sh ]; then

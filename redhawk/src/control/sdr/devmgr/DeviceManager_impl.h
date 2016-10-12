@@ -27,9 +27,7 @@
 
 #include <boost/thread/recursive_mutex.hpp>
 
-#if ENABLE_EVENTS
 #include <COS/CosEventChannelAdmin.hh>
-#endif
 
 #include <ossie/ComponentDescriptor.h>
 #include <ossie/ossieSupport.h>
@@ -114,11 +112,11 @@ private:
     };
 
     struct ServiceNode{
-    	std::string identifier;
-    	std::string label;
-    	std::string IOR;
-    	CORBA::Object_ptr service;
-    	pid_t pid;
+        std::string identifier;
+        std::string label;
+        std::string IOR;
+        CORBA::Object_ptr service;
+        pid_t pid;
     };
 
     typedef std::vector<DeviceNode*> DeviceList;
@@ -166,8 +164,7 @@ private:
     DevMgrAdmnType        _adminState;
     CF::DomainManager_var _dmnMgr;
 
-    void killPendingDevices();
-    void sigkillPendingDevices();
+    void killPendingDevices(int signal, int timeout);
     void abort();
 
     void getDevManImpl(
@@ -234,7 +231,7 @@ private:
         ossie::ComponentDescriptor& scdParser, 
         const ossie::SoftPkg&       _SPDParser);
     
-    void getDeviceNode(DeviceNode** pDeviceNode, const pid_t pid);
+    DeviceNode* getDeviceNode(const pid_t pid);
 
     bool getDeviceOrService(
         std::string& type, 
@@ -263,6 +260,7 @@ private:
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
+        const ossie::SoftPkg&                         SPDParser,
         ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::vector<ossie::ComponentPlacement>& componentPlacements,
@@ -274,11 +272,25 @@ private:
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
+        const ossie::SoftPkg&                         SPDParser,
         ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            devcache,
         const std::string&                            usageName,
         const std::vector<ossie::ComponentPlacement>& componentPlacements,
+        const std::string&                            compositeDeviceIOR,
+        const std::vector<ossie::ComponentProperty*>& instanceprops);
+
+    typedef std::list<std::pair<std::string,std::string> > ExecparamList;
+
+    ExecparamList createDeviceExecparams(
+        const ossie::ComponentPlacement&              componentPlacement,
+        const std::string&                            componentType,
+        std::map<std::string, std::string>*           pOverloadprops,
+        const std::string&                            codeFilePath,
+        ossie::DeviceManagerConfiguration&            DCDParser,
+        const ossie::ComponentInstantiation&          instantiation,
+        const std::string&                            usageName,
         const std::string&                            compositeDeviceIOR,
         const std::vector<ossie::ComponentProperty*>& instanceprops);
 
@@ -297,6 +309,7 @@ private:
 
     // this mutex is used for synchronizing _registeredDevices, _pendingDevices, and _registeredServices
     boost::recursive_mutex registeredDevicesmutex;  
+    boost::condition_variable_any pendingDevicesEmpty;
     void increment_registeredDevices(CF::Device_ptr registeringDevice);
     void increment_registeredServices(CORBA::Object_ptr registeringService, 
                                       const char* name);
@@ -306,6 +319,9 @@ private:
     void clean_registeredDevices();
     void clean_registeredServices();
     void clean_externalServices();
+
+    void local_unregisterService(CORBA::Object_ptr service, const std::string& name);
+    void local_unregisterDevice(CF::Device_ptr device, const std::string& name);
 
     const ossie::SPD::Implementation* locateMatchingDeviceImpl(
         const ossie::SoftPkg&             devSpd, 
@@ -322,15 +338,15 @@ private:
     std::string fileSysIOR;
     bool *_internalShutdown;
 
+    bool skip_fork;
+
     // this mutex is used for synchronizing _registeredDevices, labelTable, and identifierTable
     boost::mutex componentImplMapmutex;  
 
     std::map<std::string, std::string> _componentImplMap;
 
-#if ENABLE_EVENTS
     CosEventChannelAdmin::EventChannel_var IDM_channel;
     std::string IDM_IOR;
-#endif
 
 };
 

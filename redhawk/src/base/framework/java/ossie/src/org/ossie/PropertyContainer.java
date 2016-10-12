@@ -32,6 +32,10 @@ import org.omg.CORBA.TCKind;
 
 import CF.DataType;
 
+@Deprecated
+/**
+ * This class has been deprecated, suggest class Property instead
+ */
 public class PropertyContainer {
     private String id;
     private String name;

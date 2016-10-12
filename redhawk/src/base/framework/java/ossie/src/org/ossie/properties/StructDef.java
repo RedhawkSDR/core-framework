@@ -27,6 +27,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.omg.CORBA.Any;
+import org.omg.CORBA.ORB;
+
+import CF.DataType;
+import CF.PropertiesHelper;
 
 public abstract class StructDef {
     private Map<String, IProperty> elements;
@@ -100,6 +104,32 @@ public abstract class StructDef {
         return getElementsMap().get(id);
     }
 
+    public Any toAny() {
+        Any retVal = ORB.init().create_any();
+
+        DataType[] props = new DataType[this.getElementsMap().size()];
+        int ii = 0;
+        for (IProperty prop : this.getElementsMap().values()) {
+            props[ii++] = new DataType(prop.getId(), prop.toAny());
+        }
+        
+        PropertiesHelper.insert(retVal, props);
+        return retVal;
+    }
+
+    public void fromAny(Any any) {
+        if (!any.type().equivalent(PropertiesHelper.type())) {
+            throw new IllegalArgumentException("Invalid Any type for struct");
+        }
+        for (final DataType prop : PropertiesHelper.extract(any)) {
+            IProperty field = this.getElement(prop.id);
+            // Ignore unknown fields
+            if (field != null) {
+                field.fromAny(prop.value);
+            }
+        }
+    }
+
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer();
@@ -107,5 +137,12 @@ public abstract class StructDef {
         sb.append(super.toString());
         sb.append(this.getElementsMap());
         return sb.toString();
+    }
+
+    public String getId() {
+        // Ideally, this would be an abstract method; however, since there are
+        // existing Java components whose structs do not override this method,
+        // return an empty string to avoid breaking source compatibility.
+        return "";
     }
 };

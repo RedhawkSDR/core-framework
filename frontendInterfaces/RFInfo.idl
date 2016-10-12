@@ -1,0 +1,105 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _FRONTEND_RFInfo_IDL_
+#define _FRONTEND_RFInfo_IDL_
+
+
+#include "redhawk/FRONTEND/Frontend.idl"
+
+module FRONTEND
+{
+
+	/**
+		Concept of Operation:
+		---------------------
+		
+		This RFInfo interface describes the RF source (ie - antenna/feed) for a channel. It is comprised of a "rf_flow_id" which
+		is a string that uniquely describes the RF source which in most instances will equate to a RFInfoPkt structure (or
+		a structure extended from the RFInfoPkt). The "rf_flow_id" will flow with the data via BULKIO SRI keyword so that the data 
+		can be correlated to a specific frontend. The "rf_flow_id" is also included in such structures as the tuner allocation structure
+		so a user can specify exactly which antenna/feed it needs to allocate against.  If a device provides an RFInfo output port it 
+		it is also a RFSource which has two attributes describing the selection of RFInfoPkts.  If an RFSource could feed multiple flows 
+		(RF Distrubution) it will have an attribute for all the possible rf_inputs and one for the currently selected rf_input.       
+		
+	*/
+
+
+    /***********************/
+    /**     CONSTANTS      */
+    /***********************/
+    
+    /** Device Kind */
+    const string FE_RFINFO_DEVICE_KIND = "FRONTEND::RFINFO";
+   
+    /************************/
+    /**     STRUCTURES      */
+    /************************/
+
+	/** Basic Structure */
+    struct RFInfoPkt {
+    
+    	/** unique id that describes this RF flow */
+        string rf_flow_id;  
+        
+        /** current settings */
+        double rf_center_freq;       
+        double rf_bandwidth;
+        double if_center_freq; 
+        boolean spectrum_inverted;
+        
+        /** Gives information regarding sensor*/
+        SensorInfo sensor;
+        PathDelays ext_path_delays;
+        RFCapabilities capabilities;
+        
+        /** Allows for expansion*/
+        CF::Properties additional_info;
+    };
+
+	typedef sequence <RFInfoPkt> RFInfoPktSequence;
+
+
+    /*******************************/
+    /**      RFInfo INTERFACE      */
+    /*******************************/
+    interface RFInfo {
+    	/** unique string that flows with data to describe its RF source*/
+    	attribute string rf_flow_id;  
+    	
+    	/** generic container to describe RF frontend */
+    	attribute RFInfoPkt rfinfo_pkt;
+    };
+    
+    /*********************************/
+    /**      RFSource INTERFACE      */
+    /*********************************/
+    interface RFSource {
+    	/** A list of all possible rf inputs that this source could switch to **/
+    	attribute RFInfoPktSequence available_rf_inputs;
+    	
+    	/** The current select source that is being output **/
+    	attribute RFInfoPkt current_rf_input;
+    	
+    };
+    
+};
+
+#endif

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>LauncherWindow</class>
+ <widget class="QMainWindow" name="LauncherWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>REDHAWK Launcher</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>icons/RedHawk_Logo250x.gif</normaloff>icons/RedHawk_Logo250x.gif</iconset>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QTabWidget" name="nodeTabs">
+      <property name="currentIndex">
+       <number>-1</number>
+      </property>
+      <property name="tabsClosable">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="launchDomainButton">
+        <property name="text">
+         <string>Launch Domain</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="launchDeviceButton">
+        <property name="text">
+         <string>Launch Node</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>25</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>launchDomainButton</sender>
+   <signal>clicked()</signal>
+   <receiver>LauncherWindow</receiver>
+   <slot>launchDomain()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>69</x>
+     <y>554</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>nodeTabs</sender>
+   <signal>tabCloseRequested(int)</signal>
+   <receiver>LauncherWindow</receiver>
+   <slot>closeTab(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>60</x>
+     <y>72</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>312</x>
+     <y>558</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>launchDeviceButton</sender>
+   <signal>clicked()</signal>
+   <receiver>LauncherWindow</receiver>
+   <slot>launchDevice()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>212</x>
+     <y>546</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>459</x>
+     <y>547</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>launchDomain()</slot>
+  <slot>closeTab(int)</slot>
+  <slot>launchDevice()</slot>
+ </slots>
+</ui>

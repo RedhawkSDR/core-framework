@@ -69,15 +69,14 @@ public class PropertyChangeEventsJava_java_impl1 extends Resource implements Run
      * <!-- end-user-doc -->
      * @generated
      */
-    public final SimpleProperty<Integer> myprop =
-       new SimpleProperty<Integer>(
+    public final LongProperty myprop =
+       new LongProperty(
            "myprop", // id
            "myprop", // name
-           "long", // type
            null, // default value
-           "readwrite", // mode
-           "external", // action
-           new String[] {"configure","event"} // kind
+           Mode.READWRITE, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.CONFIGURE,Kind.EVENT} // kind
            );
             
     /**
@@ -88,15 +87,14 @@ public class PropertyChangeEventsJava_java_impl1 extends Resource implements Run
      * <!-- end-user-doc -->
      * @generated
      */
-    public final SimpleProperty<Integer> anotherprop =
-       new SimpleProperty<Integer>(
+    public final LongProperty anotherprop =
+       new LongProperty(
            "anotherprop", // id
            "anotherprop", // name
-           "long", // type
            null, // default value
-           "readwrite", // mode
-           "external", // action
-           new String[] {"configure","event"} // kind
+           Mode.READWRITE, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.CONFIGURE,Kind.EVENT} // kind
            );
             
     /**
@@ -107,15 +105,14 @@ public class PropertyChangeEventsJava_java_impl1 extends Resource implements Run
      * <!-- end-user-doc -->
      * @generated
      */
-    public final SimpleSequenceProperty<Float> seqprop =
-       new SimpleSequenceProperty<Float>(
+    public final FloatSequenceProperty seqprop =
+       new FloatSequenceProperty(
            "seqprop", // id
            "seqprop", // name
-           "float", // type
            null, // default value
-           "readwrite", // mode
-           "external", // action
-           new String[] {"configure","event"} // kind
+           Mode.READWRITE, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.CONFIGURE,Kind.EVENT} // kind
            );
            
     /**
@@ -134,15 +131,14 @@ public class PropertyChangeEventsJava_java_impl1 extends Resource implements Run
          * <!-- end-user-doc -->
          * @generated
          */
-        public final SimpleProperty<Double> some_number =
-           new SimpleProperty<Double>(
+        public final DoubleProperty some_number =
+           new DoubleProperty(
                "some_number", // id
                "some_number", // name
-               "double", // type
                null, // default value
-               "readwrite", // mode
-               "external", // action
-               new String[] {"configure",} // kind
+               Mode.READWRITE, // mode
+               Action.EXTERNAL, // action
+               new Kind[] {Kind.CONFIGURE,} // kind
               ); 
         /**
          * The struct field some_string.
@@ -152,15 +148,14 @@ public class PropertyChangeEventsJava_java_impl1 extends Resource implements Run
          * <!-- end-user-doc -->
          * @generated
          */
-        public final SimpleProperty<String> some_string =
-           new SimpleProperty<String>(
+        public final StringProperty some_string =
+           new StringProperty(
                "some_string", // id
                "some_string", // name
-               "string", // type
                null, // default value
-               "readwrite", // mode
-               "external", // action
-               new String[] {"configure",} // kind
+               Mode.READWRITE, // mode
+               Action.EXTERNAL, // action
+               new Kind[] {Kind.CONFIGURE,} // kind
               );
         
         /**
@@ -186,10 +181,10 @@ public class PropertyChangeEventsJava_java_impl1 extends Resource implements Run
        new StructProperty<some_struct_struct>(
            "some_struct", // id
            "some_struct", // name
-           new some_struct_struct(), // type
+           some_struct_struct.class, // type
            new some_struct_struct(), // type_tmp
-           "readwrite", // mode
-           new String[] { "configure","event" } // kind
+           Mode.READWRITE, // mode
+           new Kind[] { Kind.CONFIGURE,Kind.EVENT } // kind
            );
 
     public final StructSequenceProperty<some_struct_struct> structseq_prop =
@@ -197,9 +192,9 @@ public class PropertyChangeEventsJava_java_impl1 extends Resource implements Run
            "structseq_prop", // id
            "structseq_prop", // name
            some_struct_struct.class, // type
-           new ArrayList<some_struct_struct>(Arrays.asList(new some_struct_struct(), new some_struct_struct())), // default
-           "readwrite", // mode
-           new String[] { "configure","event" } // kind
+           StructSequenceProperty.asList(new some_struct_struct(), new some_struct_struct()), // default
+           Mode.READWRITE, // mode
+           new Kind[] { Kind.CONFIGURE,Kind.EVENT } // kind
            );
 
     /**

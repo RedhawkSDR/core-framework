@@ -20,6 +20,10 @@
 
 package org.ossie;
 
+@Deprecated
+/**
+ * This class has been deprecated, suggest class OctetProperty instead
+ */
 public class OctetSimplePropertyContainer extends SimplePropertyContainer<Byte> {
 
     @Override

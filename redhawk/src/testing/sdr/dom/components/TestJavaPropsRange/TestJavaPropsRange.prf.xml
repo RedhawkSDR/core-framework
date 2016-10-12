@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="my_octet" mode="readwrite" name="my_octet_name" type="octet">
+    <value>1</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="my_short" mode="readwrite" name="my_short_name" type="short">
+    <value>2</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="my_ushort" mode="readwrite" name="my_ushort_name" type="ushort">
+    <value>3</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="my_long" mode="readwrite" name="my_long_name" type="long">
+    <value>4</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="my_ulong" mode="readwrite" name="my_ulong_name" type="ulong">
+    <value>5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="my_longlong" mode="readwrite" name="my_longlong_name" type="longlong">
+    <value>6</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <struct id="my_struct" mode="readwrite" name="my_struct_name">
+    <simple id="struct_octet" name="struct_octet_name" type="octet">
+      <value>1</value>
+    </simple>
+    <simple id="struct_short" mode="readwrite" name="struct_short_name" type="short">
+      <value>2</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_ushort" mode="readwrite" name="struct_ushort_name" type="ushort">
+      <value>3</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_long" mode="readwrite" name="struct_long_name" type="long">
+      <value>4</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_ulong" mode="readwrite" name="struct_ulong_name" type="ulong">
+      <value>5</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_longlong" mode="readwrite" name="struct_longlong_name" type="longlong">
+      <value>6</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="configure"/>
+  </struct>
+  <simplesequence id="seq_octet" mode="readwrite" name="seq_octet_name" type="octet">
+    <values>
+      <value>1</value>
+      <value>2</value>
+    </values>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="seq_short" mode="readwrite" name="seq_short_name" type="short">
+    <values>
+      <value>1</value>
+      <value>2</value>
+    </values>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="seq_ushort" mode="readwrite" name="seq_ushort_name" type="ushort">
+    <values>
+      <value>1</value>
+      <value>2</value>
+    </values>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="seq_long" mode="readwrite" name="seq_long_name" type="long">
+    <values>
+      <value>1</value>
+      <value>2</value>
+    </values>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="seq_ulong" mode="readwrite" name="seq_ulong_name" type="ulong">
+    <values>
+      <value>1</value>
+      <value>2</value>
+    </values>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="seq_longlong" mode="readwrite" name="seq_longlong_name" type="longlong">
+    <values>
+      <value>1</value>
+      <value>2</value>
+    </values>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="seq_char" mode="readwrite" name="seq_char_name" type="char">
+    <values>
+      <value>a</value>
+      <value>b</value>
+    </values>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <structsequence id="my_structseq" mode="readwrite" name="my_structseq_name">
+    <struct id="ss_struct" name="ss_struct_name">
+      <simple id="ss_octet" name="ss_octet_name" type="octet"/>
+      <simple id="ss_short" mode="readwrite" name="ss_short_name" type="short">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="ss_ushort" mode="readwrite" name="ss_ushort_name" type="ushort">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="ss_long" mode="readwrite" name="ss_long_name" type="long">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="ss_ulong" mode="readwrite" name="ss_ulong_name" type="ulong">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="ss_longlong" mode="readwrite" name="ss_longlong_name" type="longlong">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+    </struct>
+    <structvalue>
+      <simpleref refid="ss_octet" value="0"/>
+      <simpleref refid="ss_short" value="1"/>
+      <simpleref refid="ss_ushort" value="2"/>
+      <simpleref refid="ss_long" value="3"/>
+      <simpleref refid="ss_ulong" value="4"/>
+      <simpleref refid="ss_longlong" value="5"/>
+    </structvalue>
+    <structvalue>
+      <simpleref refid="ss_octet" value="7"/>
+      <simpleref refid="ss_short" value="8"/>
+      <simpleref refid="ss_ushort" value="9"/>
+      <simpleref refid="ss_long" value="10"/>
+      <simpleref refid="ss_ulong" value="11"/>
+      <simpleref refid="ss_longlong" value="12"/>
+    </structvalue>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+</properties>

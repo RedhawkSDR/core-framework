@@ -1,0 +1,46 @@
+#
+# Runs relative to burstio project
+#
+
+burstio_top=../../../
+burstio_libsrc_top=$burstio_top/libsrc
+export LD_LIBRARY_PATH=$burstio_libsrc_top/.libs:$burstio_top/.libs:${LD_LIBRARY_PATH}
+export PYTHONPATH=$burstio_libsrc_top/build/lib:${PYTHONPATH}
+
+#
+#  Run Python based testing..
+#
+if [ $# -gt 0 ]
+then
+    # run an associated test script
+    pushd python
+    python  $*
+    popd
+else
+    pushd python
+    for pt in test_*.py ; do
+       python $pt
+    done
+    popd
+fi
+
+
+
+#
+#  Run Java based testing
+#
+if command -v ant 2>/dev/null
+then
+    ant -f java/build.xml test
+else
+    make -C java check
+fi
+
+#
+#  Run C++ based testing
+#
+pushd cpp
+./runtests
+popd
+
+

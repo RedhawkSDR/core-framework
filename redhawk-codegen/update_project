@@ -1,0 +1,316 @@
+#!/usr/bin/python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
+# distributed with this source distribution.
+#
+# This file is part of REDHAWK core.
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+import os
+import sys
+from xml.dom import minidom
+import re
+import tempfile
+import shutil
+from redhawk.codegen.settings import _templateMapping
+from getopt import getopt
+
+_generatorIdMapping = {
+    'gov.redhawk.ide.codegen.jet.cplusplus.CplusplusGenerator': 'gov.redhawk.ide.codegen.jinja.cplusplus.CplusplusGenerator',
+    'gov.redhawk.ide.codegen.jet.python.PythonGenerator': 'gov.redhawk.ide.codegen.jinja.python.PythonGenerator',
+    'gov.redhawk.ide.codegen.jet.java.JavaGenerator': 'gov.redhawk.ide.codegen.jinja.java.JavaGenerator',
+}
+
+usage = """%s <wavedev file>
+
+Arguments:
+    <wavedev file>          Path to component .wavedev
+
+Options:
+    -d                      Display original and modified versions of files 
+
+""" % os.path.basename(sys.argv[0])
+
+_bulkio_re = re.compile('BULKIO_data[A-Za-z]+_In_i')
+
+if not hasattr(__builtins__, 'next'):
+    # Python 2.4 does not have a free-standing next() function
+    def next(iterator, default):
+        """
+        Backwards compatibility next() equivalent for Python 2.4.
+        """
+        try:
+            return iterator.next()
+        except StopIteration:
+            return default
+
+def strip_comments(source):
+    """
+    Returns the lines of 'source' with C++-style comments filtered out.
+    """
+    inComment = False
+    for line in source:
+        # Scan through the characters in each line for comment tokens. If we
+        # are not in a comment, the characters pass through to the output line,
+        # otherwise they are dropped. In order to handle lookahead (e.g., the
+        # current character is a '/', is the next one a '*' or '/'?), we wrap
+        # the line with an iterator.
+        current = ''
+        chars = iter(line)
+        for ch in chars:
+            if inComment:
+                # Look for end comment token; if the end of the line is reached
+                # ch will be an empty string
+                while ch == '*':
+                    ch = next(chars, '')
+                    if ch == '/':
+                        inComment = False
+                        break
+                continue
+            if ch == '/':
+                # Read the next character to see if it matches a comment token
+                # (if it does not, both characters will be added to the output)
+                ch += next(chars, '')
+                if ch == '/*':
+                    # Comment, start discarding
+                    inComment = True
+                    continue
+                elif ch == '//':
+                    # Line comment, discard remainder
+                    break
+            # Not in a comment, add to line
+            current += ch
+        yield current
+
+def check_bulkio_input(filename):
+    """
+    Returns True if filename exists and contains references to legacy BULKIO
+    code generator classes.
+    """
+    if not os.path.exists(filename):
+        return False
+    for line in strip_comments(open(filename, 'r')):
+        if _bulkio_re.search(line):
+            return True
+    return False
+
+def check_bulkio_ports(filename):
+    if not os.path.exists(filename):
+        return False
+    for line in open(filename, 'r'):
+        if line.find('BULKIO') >= 0:
+            return True
+    return False
+
+def modify_file(filename, predicate, text):
+    if not os.path.exists(filename):
+        return
+    infile = open(filename, 'r')
+    fd, tempname = tempfile.mkstemp()
+    outfile = os.fdopen(fd, 'w')
+
+    for line in infile:
+        if predicate(line):
+            outfile.write(text)
+            outfile.write(line)
+            break
+        outfile.write(line)
+
+    # Copy the remainder of the file
+    outfile.writelines(infile)
+    infile.close()
+    outfile.close()
+
+    # Move the original out of the way and move the new one in
+    os.rename(filename, filename+'.orig')
+    shutil.move(tempname, filename)
+
+    perm = os.stat(filename+'.orig')
+    os.chmod(filename,perm.st_mode)
+    
+def add_bulkio_compat_header(filename):
+    """
+    Inserts include of BULKIO compatibility header into the given source
+    file.
+    """
+    def is_include(line):
+        return line.startswith('#include')
+
+    text = """// Inserted by update_project
+#include <bulkio/bulkio_compat.h>
+// End of update_project insertions
+
+"""
+    modify_file(filename, is_include, text)
+
+def add_python_compat_imports(filename):
+    """
+    Inserts imports that are no longer part of the base class into the given
+    source file.
+    """
+    def is_import(line):
+        return line.startswith('import') or line.startswith('from ')
+    text = """
+# Inserted by update_project
+from ossie.cf import ExtendedCF
+from omniORB import CORBA
+import struct #@UnresolvedImport
+from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA #@UnusedImport
+from bulkio.bulkio_compat import *
+# End of update_project insertions
+
+"""
+    modify_file(filename, is_import, text)
+
+if __name__ == '__main__':
+    DEBUG = False
+    opts, args = getopt(sys.argv[1:], 'd', [])
+    for key, value in opts:
+        if key == '-d':
+            DEBUG = True
+    try:
+        wavedevFile = args[0]
+    except:
+        raise SystemExit(usage)
+
+    # Update existing WaveDev settings file
+    if os.path.exists(wavedevFile):
+        # Determine component name by removing leading '.' and trailing
+        # '.wavedev'
+        compName = os.path.basename(wavedevFile)[1:-8]
+        dirname = os.path.dirname(wavedevFile)
+
+        # If project has already been updated to 1.9 then do nothing 
+        version = os.popen("codegen_version " + os.path.join(dirname,compName) + ".spd.xml").read()
+        if version.find("1.9 jinja") != -1:
+            sys.exit() 
+
+        dom = minidom.parse(wavedevFile)
+        if DEBUG:
+            print "ORIGINAL wavedev file================================================"
+            os.system("cat " + str(wavedevFile)) 
+            print "============================================================"
+        # Back up project before modifying
+        backupFilename = compName + "_1.8.tar.gz"
+        if not dirname or dirname == ".":
+            fullPathBackupFilename = backupFilename
+        else:
+            fullPathBackupFilename = os.path.join(dirname,backupFilename)
+        if os.path.exists(fullPathBackupFilename):
+            os.rename(fullPathBackupFilename ,fullPathBackupFilename + ".orig") 
+
+        if not dirname or dirname == ".":
+            cmd = "cd ..;tar czf " + os.path.join(compName,fullPathBackupFilename) + " " + compName + " --exclude=" + os.path.join(compName,fullPathBackupFilename)
+        else:
+            cmd = "cd " + dirname + "/..;tar czf " + fullPathBackupFilename + " " + compName + " --exclude=" + os.path.join(compName,backupFilename) 
+        os.system(cmd)
+        settings = {}
+        for node in dom.getElementsByTagName('implSettings'):
+            valueNode = node.getElementsByTagName('value')[0]
+            # update template and generatorId attributes for value tags 
+            isCpp = False
+            isPython = False
+            implId = node.attributes.get('key').value
+            outputDir = implId
+            for name, value in valueNode.attributes.items():
+                if name == "template":
+                    if value in _templateMapping:
+                        valueNode.setAttribute(name,_templateMapping[value])
+                    if value == 'gov.redhawk.ide.codegen.jet.cplusplus.PullPortDataTemplate':
+                        isCpp = True
+                    elif value == 'gov.redhawk.ide.codegen.jet.python.pattern.PullPortDataTemplate':
+                        isPython = True
+                elif name == "generatorId":
+                    if value in _generatorIdMapping:
+                        valueNode.setAttribute(name,_generatorIdMapping[value])
+                elif name == 'outputDir':
+                    outputDir = value
+            if isCpp:
+                compCpp = os.path.join(dirname, outputDir, compName+'.cpp')
+                compH = os.path.join(dirname, outputDir, compName+'.h')
+                if not dirname or dirname == ".":
+                    cmd = "cd " + outputDir + ";rm depcomp ltmain.sh install-sh config.sub missing config.guess;./reconf;./configure;make distclean"
+                else:
+                    cmd = "cd " + dirname + "/" + outputDir + ";rm depcomp ltmain.sh install-sh config.sub missing config.guess;./reconf;./configure;make distclean"
+                os.system(cmd)
+                if check_bulkio_input(compCpp):
+                    add_bulkio_compat_header(compH)
+            elif isPython:
+                # Check the SCD for BULKIO ports
+                scdFile = os.path.join(dirname, compName+'.scd.xml')
+                if check_bulkio_ports(scdFile):
+                    compPy = os.path.join(dirname, outputDir, compName+'.py')
+                    add_python_compat_imports(compPy)
+
+        # Strip out blank lines created by removeChild
+        sp = dom.toxml(encoding="ASCII").split('\n')
+        f = open(wavedevFile, 'w')
+        for val in sp:
+            if len(val.strip()) > 0:
+                f.write(val)
+                f.write('\n')
+        f.close() 
+        if DEBUG:
+            print "MODIFIED wavedev file ================================================"
+            os.system("cat " + str(wavedevFile)) 
+            print "============================================================"
+
+        # Update .project file
+        projectFile = os.path.join(dirname, ".project")
+
+        empty = re.compile('^$')
+        if os.path.exists(projectFile):
+            dom = minidom.parse(projectFile)
+            if DEBUG:
+                print "ORIGINAL .project file================================================"
+                os.system("cat " + str(projectFile))
+                print "============================================================"
+
+            # Preserve open and closing tag for empty nodes 
+            # minidom converts them automatically to a self-closing tag
+            # keep <comment></comment> instead of <comment/>
+            for node in dom.childNodes:
+                if node.hasChildNodes:
+                    for subnode in node.childNodes:
+                        if subnode.nodeType == node.ELEMENT_NODE:
+                            if not subnode.hasChildNodes():
+                                subnode.appendChild(dom.createTextNode(''))
+
+            # Remove builder for the top-level build.sh generator
+            for node in dom.getElementsByTagName('buildSpec'):
+                for child in node.childNodes:
+                    if child.nodeType == node.ELEMENT_NODE and child.tagName == "buildCommand":
+                        if child.toxml().find("gov.redhawk.ide.codegen.builders.TopLevelBuildScript") != -1:
+                            node.removeChild(child)
+
+
+            # Strip out blank lines created by removeChild
+            sp = dom.toxml(encoding="UTF-8").split('\n')
+            f = open(projectFile, 'w')
+            for val in sp:
+                if len(val.strip()) > 0:
+                    f.write(val)
+                    f.write('\n')
+            f.close() 
+            if DEBUG:
+                print "MODIFIED project file ================================================"
+                os.system("cat " + str(projectFile))
+                print "============================================================"
+
+        else:
+            raise SystemExit, '.project file does not exist'
+    else:
+        raise SystemExit, 'wavedev file ' + str(wavedevFile) + ' does not exist'

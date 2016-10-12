@@ -30,17 +30,18 @@ except:
 
 import ossie.resource as resource
 import ossie.utils
+import ossie.logger
 import sys
 import logging
 import signal
 import os
 import stat
 import commands
-import subprocess
 import threading
 import exceptions
 from Queue import Queue
 import time
+import traceback
 import zipfile
 
 
@@ -113,8 +114,6 @@ class Device(resource.Resource):
         self._compositeDevice = compositeDevice
         self._capacityLock = threading.Lock()
         self._proxy_consumer = None
-        self._cmdLock = threading.Lock()
-        self._devnull = open(os.devnull)
 
         self.__initialize()
 
@@ -222,7 +221,7 @@ class Device(resource.Resource):
                         if success:
                             successfulAllocations[key] = val
                         else:
-                            self._log.error("property %s, could not be set to %s" % 
+                            self._log.debug("property %s, could not be set to %s" % 
                                             (key, val))
                             break
                     # If we couldn't allocate enough capacity, add it back
@@ -250,7 +249,13 @@ class Device(resource.Resource):
     def _allocateCapacity(self, propname, value):
         """Override this if you want if you don't want magic dispatch"""
         self._log.debug("_allocateCapacity(%s, %s)", propname, value)
-        allocate = _getCallback(self, "allocate_%s" % propname.replace(" ", "_"))
+        modified_propname = ''
+        for ch in propname:
+            if ch.isalnum():
+                modified_propname += ch
+            else:
+                modified_propname += '_'
+        allocate = _getCallback(self, "allocate_%s" % modified_propname)
         if allocate:
             self._log.debug("using callback for _allocateCapacity()", )
             return allocate(value)
@@ -333,7 +338,7 @@ class Device(resource.Resource):
         else:
             self._log.error("deallocate capacity failed due to InvalidState")
             self._log.debug("%s %s %s", self._adminState, self._operationalState, self._usageState)
-            raise CF.Device.InvalidState("System is not DISABLED and UNLOCKED")
+            raise CF.Device.InvalidState("Cannot deallocate capacity. System is not DISABLED and UNLOCKED")
 
     def _deallocateCapacity(self, propname, value):
         """Override this if you want if you don't want magic dispatch"""
@@ -378,6 +383,18 @@ class Device(resource.Resource):
 
     def _get_adminState(self):
         return self._adminState
+
+    # Legal state transitions for _set_adminState
+    _adminStateTransitions = (
+        (CF.Device.LOCKED, CF.Device.UNLOCKED),
+        (CF.Device.UNLOCKED, CF.Device.LOCKED)
+    )
+
+    def _set_adminState(self, state):
+        if (self._adminState, state) not in Device._adminStateTransitions:
+            self._log.debug("Ignoring invalid admin state transition %s->%s", self._adminState, state)
+            return
+        self._adminState = state
 
     def _get_operationalState(self):
         return self._operationalState
@@ -480,7 +497,7 @@ class Device(resource.Resource):
             return
 
         try:
-            event = StandardEvent.StateChangeEventType(self._label, self._label, eventType, stateMap[fromState], stateMap[toState])
+            event = StandardEvent.StateChangeEventType(self._id, self._id, eventType, stateMap[fromState], stateMap[toState])
         except:
             self._log.warn("Error creating StateChangeEvent")
 
@@ -542,10 +559,6 @@ class LoadableDevice(Device):
         self.__cacheLock = threading.Lock()
 
     def releaseObject(self):
-        try:
-            self._cmdLock.release()
-        except:
-            pass
         self._unloadAll()
         Device.releaseObject(self)
 
@@ -553,140 +566,120 @@ class LoadableDevice(Device):
     # CF::LoadableDevice
     def load(self, fileSystem, fileName, loadType):
         loadedPaths = []
-        self._cmdLock.acquire()
-        self.__cacheLock.acquire()
-        
-        self._log.debug("LOAD (START) FILE:" + str(fileName )+ " CWD:" + os.getcwd() )
-                
         try:
-            try:
-                self._log.debug("load (%s, %s)", fileName, loadType)
-                if not fileName.startswith("/"):
-                    raise CF.InvalidFileName(CF.CF_EINVAL, "Filename must be absolute, given '%s'"%fileName)
+            self._log.debug("load(%s, %s)", fileName, loadType)
+            if not fileName.startswith("/"):
+                raise CF.InvalidFileName(CF.CF_EINVAL, "Filename must be absolute, given '%s'"%fileName)
 
-                # SR:429
-                if self.isLocked():   raise CF.Device.InvalidState("System is locked down, can not load '%s'"%fileName)
-                if self.isDisabled(): raise CF.Device.InvalidState("System is disabled, can not load '%s'"%fileName)
+            # SR:429
+            if self.isLocked():   raise CF.Device.InvalidState("System is locked down, can not load '%s'"%fileName)
+            if self.isDisabled(): raise CF.Device.InvalidState("System is disabled, can not load '%s'"%fileName)
 
 
-                # SR:430
-                if loadType == CF.LoadableDevice.EXECUTABLE or loadType == CF.LoadableDevice.SHARED_LIBRARY:
-                    localpath = os.path.join(os.getcwd(), fileName)
+            # SR:430
+            if loadType == CF.LoadableDevice.EXECUTABLE or loadType == CF.LoadableDevice.SHARED_LIBRARY:
+                localpath = os.path.join(os.getcwd(), fileName)
 
-                    loadPoint = ""
-                    head, tail = os.path.split(os.path.normpath(fileName))
-                    dirs = head[1:].split("/")
+                loadPoint = ""
+                head, tail = os.path.split(os.path.normpath(fileName))
+                dirs = head[1:].split("/")
 
-                    self._log.debug("LOAD (2) LOCAL PATH: " + str(localpath) + " CWD:" + os.getcwd())
+                self.__cacheLock.acquire()
+                try:
+                    for dir in dirs:
+                        if dir != "":
+                            self._log.debug("Creating dir %s", dir)
+                            loadPoint = os.path.join(loadPoint, dir)
+                            if not os.path.exists(loadPoint):
+                                os.mkdir(loadPoint)
                     try:
-                        for dir in dirs:
-                            if dir != "":
-                                self._log.debug("Creating dir %s", dir)
-                                loadPoint = os.path.join(loadPoint, dir)
-                                if not os.path.exists(loadPoint):
-                                    os.mkdir(loadPoint)
-                        try:
-                            refCnt, loadedFiles = self._loadedFiles[fileName]
-                        except KeyError:
-                            refCnt = 0
-                            loadedFiles = []
+                        refCnt, loadedFiles = self._loadedFiles[fileName]
+                    except KeyError:
+                        refCnt = 0
+                        loadedFiles = []
 
-                        localFilePath = os.path.join(loadPoint, os.path.basename(fileName))
-                        exist = os.path.exists(localFilePath)
-                        self._log.debug("File %s has reference count %s and local file existence is %s", fileName, refCnt, exist)
-                        self._log.debug("LOAD (3) FILE: " + str(fileName) + " LOCAL FILE PATH: " + str(localFilePath) + " CWD:" + os.getcwd())
+                    localFilePath = os.path.join(loadPoint, os.path.basename(fileName))
+                    exist = os.path.exists(localFilePath)
+                    self._log.debug("File %s has reference count %s and local file existence is %s", fileName, refCnt, exist)
 
-                        # Check if the remote file is newer than the local file, and if so, update the file
-                        # in the cache. No consideration is given to clock sync differences between systems.
-                        if exist and self._modTime(fileSystem, fileName) > os.path.getmtime(localFilePath):
-                            self._log.debug("Remote file is newer than local file")
-                            exist = False
-                        if refCnt == 0 or not exist:                            
-                            loadedFiles = self._loadTree(fileSystem, os.path.normpath(fileName), loadPoint)
-                            self._log.debug("LOAD (4) FILE : " + str(fileName) + " CWD:" + os.getcwd())
+                    # Check if the remote file is newer than the local file, and if so, update the file
+                    # in the cache. No consideration is given to clock sync differences between systems.
+                    if exist and self._modTime(fileSystem, fileName) > os.path.getmtime(localFilePath):
+                        self._log.debug("Remote file is newer than local file")
+                        exist = False
+                    if refCnt == 0 or not exist:
+                        loadedFiles = self._loadTree(fileSystem, os.path.normpath(fileName), loadPoint)
 
-                        # SR:428
-                        self._loadedFiles[fileName] = (refCnt + 1, loadedFiles)
-                    finally:
-                        pass
+                    # SR:428
+                    self._loadedFiles[fileName] = (refCnt + 1, loadedFiles)
+                finally:
+                    self.__cacheLock.release()
+            else:
+                raise CF.LoadableDevice.InvalidLoadKind()
 
-                else:
-                    raise CF.LoadableDevice.InvalidLoadKind()
+            # If we're loading a shared library, try to set up any language-specific environment vars.
+            if loadType == CF.LoadableDevice.SHARED_LIBRARY:
+                self._setEnvVars(localFilePath)
 
-                # If we're loading a shared library, try to set up any language-specific environment vars.
-                if loadType == CF.LoadableDevice.SHARED_LIBRARY:
-                    try:
-                        try:
-                            self._loadSharedLibrary(localFilePath)
-                            self._log.debug("LOAD (5) FILE: " + str(fileName) + " LOCAL FILE PATH: " + str(localFilePath) + " CWD:" + os.getcwd())
-                        except:
-                            raise
-                    finally:
-                        pass
+        except Exception, e:
+            self._log.exception(e)
+            raise CF.LoadableDevice.LoadFail(CF.CF_EINVAL, "Unknown Error loading '%s'"%fileName)
 
-            except Exception, e:
-                self._log.exception(e)
-                raise CF.LoadableDevice.LoadFail(CF.CF_EINVAL, "Unknown Error loading '%s'"%fileName)
-        finally:
-            self._log.debug("LOAD (END) FILE:" + str(fileName )+ " CWD:" + os.getcwd() )            
-            self.__cacheLock.release()
-            self._cmdLock.release()
+    def _getEnvVarAsList(self, var):
+        # Split the path up
+        if os.environ.has_key(var):
+            path = os.environ[var].split(os.path.pathsep)
+        else:
+            path = []
+        return path
 
-
-    def _loadSharedLibrary(self, localFilePath):
-
-        self._log.debug("LOAD -SHARED (START)  FILE:" + str(localFilePath )+ " CWD:" + os.getcwd() )
-        matchesPattern = False
-        # check to see if it's a C shared library
-        #status, output = commands.getstatusoutput('nm '+localFilePath)
-        pipe = subprocess.Popen(['readelf', '-h', localFilePath], stdout=self._devnull, stderr=self._devnull, close_fds=True )
-        pipe.wait()
-        status = pipe.returncode
-        self._log.debug("LOAD -SHARED (SI-1)  status:" + str(status) + " FILE:" + str(localFilePath )+ " CWD:" + os.getcwd() )
-        if status == 0:
-            # This is a C library
-            currentdir=os.getcwd()
-            subdirs = localFilePath.split('/')
-            currentIdx = 0
-            if len(subdirs) != 1:
-                aggregateChange = ''
-                while currentIdx != len(subdirs)-1:
-                    aggregateChange += subdirs[currentIdx]+'/'
-                    currentIdx += 1
-            foundRoot = False
-            for entry in sys.path:
-                if entry == '.':
-                    foundRoot = True
-                    break
-            if not foundRoot:
-                sys.path.append('.')
-            importFile = subdirs[-1]
+    def _prependToEnvVar(self, newVal, envVar):
+        path = self._getEnvVarAsList(envVar)
+        foundValue = False
+        for entry in path:
+            # Search to determine if the new value is already in the path
             try:
-                path = os.environ['LD_LIBRARY_PATH'].split(':')
-            except KeyError:
-                path = ""
-            candidatePath = currentdir+'/'+aggregateChange
-            foundValue = False
-            for entry in path:
-                if entry == candidatePath:
+                if os.path.samefile(entry, newVal):
+                    # The value is already in the path
                     foundValue = True
                     break
-            if not foundValue:
-                try:
-                    self._log.debug("LOAD -SHARED (SI-1)  ADDING PATH:" + str(candidatePath ) )
-                    os.environ['LD_LIBRARY_PATH'] = os.environ['LD_LIBRARY_PATH']+':'+candidatePath+':'
-                    self._log.debug("LOAD -SHARED (SI-1)  NEW LD_LIBRARY_PATH:" + str(os.environ['LD_LIBRARY_PATH']) )
-                except KeyError:
-                    os.environ['LD_LIBRARY_PATH'] = candidatePath+':'
+            except OSError:
+                # If we can't find concrete files to compare, fall back to string compare
+                if entry == newVal:
+                    # The value is already in the path
+                    foundValue = True
+                    break
+
+        if not foundValue:
+            # The value does not already exist
+            if os.environ.has_key(envVar):
+                os.environ[envVar] = newVal+os.path.pathsep + os.environ[envVar]+os.path.pathsep
+            else:
+                os.environ[envVar] = newVal+os.path.pathsep
+
+    def _setEnvVars(self, localFilePath):
+        matchesPattern = False
+        # check to see if it's a C shared library
+        status, output = commands.getstatusoutput('nm '+localFilePath)
+        if status == 0:
+            # Assume this is a C library
+
+            subdirs = os.path.abspath(localFilePath).split('/')
+
+            # strip off .so filename
+            subdirs = subdirs[:-1]
+
+            # reconstruct the string from the list
+            pathToAdd = ""
+            for substring in subdirs:
+                pathToAdd += substring + '/'
+
+            self._prependToEnvVar(pathToAdd, 'LD_LIBRARY_PATH')
+
             matchesPattern = True
-        else:
-            # This is not a C library
-            pass
-        self._log.debug("LOAD -SHARED (SI-2)  FILE:" + str(localFilePath )+ " CWD:" + os.getcwd() )            
 
         # check to see if it's a python module
         try:
-            self._log.debug("LOAD -SHARED ( PY-1)  FILE:" + str(localFilePath )+ " CWD:" + os.getcwd() )                        
             currentdir=os.getcwd()
             subdirs = localFilePath.split('/')
             currentIdx = 0
@@ -704,7 +697,8 @@ class LoadableDevice(Device):
             if not foundRoot:
                 sys.path.append('.')
             importFile = subdirs[-1]
-            path = os.environ['PYTHONPATH'].split(':')
+
+            path = self._getEnvVarAsList('PYTHONPATH')
             newFileValue = ''
             if importFile[-3:] == '.py':
                 exec('import '+importFile[:-3])
@@ -715,78 +709,37 @@ class LoadableDevice(Device):
             else:
                 exec('import '+importFile)
                 newFileValue = importFile
-            foundValue = False
-            for entry in path:
-                if entry == newFileValue:
-                    foundValue = True
-                    break
-            if not foundValue:
-                os.environ['PYTHONPATH'] = os.environ['PYTHONPATH']+':'+currentdir+'/'+aggregateChange+':'
+            candidatePath = currentdir+'/'+aggregateChange
+            self._prependToEnvVar(candidatePath, 'PYTHONPATH')
+
             matchesPattern = True
         except:
             # This is not a python module
             pass
-        self._log.debug("LOAD -SHARED (PY-2)  FILE:" + str(localFilePath )+ " CWD:" + os.getcwd() )            
 
-        self._log.debug("LOAD -SHARED (JAVA-1)  FILE:" + str(localFilePath )+ " CWD:" + os.getcwd() )                    
         os.chdir(currentdir)
         # check to see if it's a java package
         if localFilePath[-4:] == '.jar' and zipfile.is_zipfile(localFilePath):
             currentdir=os.getcwd()
             subdirs = localFilePath.split('/')
-            path = ''
-            if os.environ.has_key('CLASSPATH'):
-                path = os.environ['CLASSPATH'].split(':')
             candidatePath = currentdir+'/'+localFilePath
-            foundValue = False
-            for entry in path:
-                if entry == candidatePath:
-                    foundValue = True
-                    break
-            if not foundValue:
-                if os.environ.has_key('CLASSPATH'):
-                    os.environ['CLASSPATH'] = os.environ['CLASSPATH']+':'+candidatePath+':'
-                else:
-                    os.environ['CLASSPATH'] = candidatePath+':'
+            self._prependToEnvVar(candidatePath, 'CLASSPATH')
             matchesPattern = True
-        else:
-            # This is not a Java package
-            pass
-        self._log.debug("LOAD -SHARED (JAVA-2)  FILE:" + str(localFilePath )+ " CWD:" + os.getcwd() )
 
         # it matches no patterns. Assume that it's a set of libraries
         if not matchesPattern:
-            self._log.debug("LOAD -SHARED (LIBRARY DIRECTORY)  FILE:" + str(localFilePath )+ " CWD:" + os.getcwd() )
-            # Split the path up
-            try:
-                path = [ x for x in os.environ['LD_LIBRARY_PATH'].split(os.path.pathsep) if x != "" ]
-            except KeyError:
-                path = []
 
-            # Get an absolute path for localFilePath; look for a duplicate of this path before appending
+            path = self._getEnvVarAsList('LD_LIBRARY_PATH')
+
+            # Get an absolute path for localFilePath; look for a duplicate of
+            # this path before appending
             candidatePath = os.path.abspath(localFilePath)
-            foundPath = False
-            for pathEntry in path:
-                try:
-                    if os.path.samefile(pathEntry, localFilePath):
-                        foundPath = True
-                        break
-                except OSError:
-                    # If we can't find concrete files to compare, fall back to string compare
-                    if pathEntry == candidatePath:
-                        foundPath = True
-                        break
-            if not foundPath:
-                path.append(candidatePath)
 
-            # Write the new LD_LIBRARY_PATH
-            os.environ['LD_LIBRARY_PATH'] = os.path.pathsep.join(path)
-
-        self._log.debug("LOAD -SHARED (END)  FILE:" + str(localFilePath )+ " CWD:" + os.getcwd() )
+            self._prependToEnvVar(candidatePath, 'LD_LIBRARY_PATH')
+            self._prependToEnvVar(candidatePath, 'OCTAVE_PATH')
 
     def _modTime(self, fileSystem, remotePath):
         try:
-            self._log.debug("_modTime: remotePath" + str(remotePath))
             fileInfo = fileSystem.list(remotePath)[0]
             for prop in fileInfo.fileProperties:
                 if prop.id == 'MODIFIED_TIME':
@@ -919,17 +872,12 @@ class LoadableDevice(Device):
             self.__cacheLock.release()
 
     def unload(self, fileName):
-        #self._cmdLock.acquire()
-        try:
-            self._log.debug("unload(%s)", fileName)
-            # SR:435
-            if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
-            if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
+        self._log.debug("unload(%s)", fileName)
+        # SR:435
+        if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
+        if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
 
-            self._unload(fileName)
-        finally:
-            pass
-            #self._cmdLock.release()
+        self._unload(fileName)
 
 class ExecutableDevice(LoadableDevice):
 
@@ -949,10 +897,6 @@ class ExecutableDevice(LoadableDevice):
         self._devnull = open('/dev/null')
 
     def releaseObject(self):
-        try:
-            self._cmdLock.release()
-        except:
-            pass
         for pid in self._applications.keys():
             self.terminate(pid)
         LoadableDevice.releaseObject(self)
@@ -960,68 +904,52 @@ class ExecutableDevice(LoadableDevice):
     ###########################################
     # CF::ExecutableDevice
     def execute(self, name, options, parameters):
-        
-        self._log.debug("EXCUTE  (START)  NAME:" + str(name)+ " CWD:" + os.getcwd() )
-        
-        self._cmdLock.acquire()
-        try:
-            self._log.debug("execute(%s, %s, %s)", name, options, parameters)
-            if not name.startswith("/"):
-                raise CF.InvalidFileName(CF.CF_EINVAL, "Filename must be absolute")
+        self._log.debug("execute(%s, %s, %s)", name, options, parameters)
+        if not name.startswith("/"):
+            raise CF.InvalidFileName(CF.CF_EINVAL, "Filename must be absolute")
 
-            if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
-            if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
+        if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
+        if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
 
-            # TODO SR:448
-            priority = 0
-            stack_size = 4096
-            invalidOptions = []
-            for option in options:
-                val = option.value.value()
-                if option.id == CF.ExecutableDevice.PRIORITY_ID:
-                    if ((not isinstance(val, int)) and (not isinstance(val, long))):
-                        invalidOptions.append(option)
-                    else:
-                        priority = val
-                elif option.id == CF.ExecutableDevice.STACK_SIZE_ID:
-                    if ((not isinstance(val, int)) and (not isinstance(val, long))):
-                        invalidOptions.append(option)
-                    else:
-                        stack_size = val
-            if len(invalidOptions) > 0:
-                self._log.error("execute() received invalid options %s", invalidOptions)
-                raise CF.ExecutableDevice.InvalidOptions(invalidOptions)
+        # TODO SR:448
+        priority = 0
+        stack_size = 4096
+        invalidOptions = []
+        for option in options:
+            val = option.value.value()
+            if option.id == CF.ExecutableDevice.PRIORITY_ID:
+                if ((not isinstance(val, int)) and (not isinstance(val, long))):
+                    invalidOptions.append(option)
+                else:
+                    priority = val
+            elif option.id == CF.ExecutableDevice.STACK_SIZE_ID:
+                if ((not isinstance(val, int)) and (not isinstance(val, long))):
+                    invalidOptions.append(option)
+                else:
+                    stack_size = val
+        if len(invalidOptions) > 0:
+            self._log.error("execute() received invalid options %s", invalidOptions)
+            raise CF.ExecutableDevice.InvalidOptions(invalidOptions)
 
-            command = name[1:] # This is relative to our CWD
-            self._log.debug("Running %s %s", command, os.getcwd())
+        command = name[1:] # This is relative to our CWD
+        self._log.debug("Running %s %s", command, os.getcwd())
 
-            # SR:452
-            # TODO should we also check the load file reference count?
-            # Workaround
-            if not os.path.isfile(command):
-                raise CF.InvalidFileName(CF.CF_EINVAL, "File could not be found %s" % command)
-            os.chmod(command, os.stat(command)[0] | stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
-            
-            
-            #return self._execute(command, options, parameters)
-            ret =  self._execute(command, options, parameters)
-            return ret
-        finally:
-            self._log.debug("EXCUTE (END)  NAME:" + str(name)+ " CWD:" + os.getcwd() )            
-            self._cmdLock.release()
+        # SR:452
+        # TODO should we also check the load file reference count?
+        # Workaround
+        if not os.path.isfile(command):
+            raise CF.InvalidFileName(CF.CF_EINVAL, "File could not be found %s" % command)
+        os.chmod(command, os.stat(command)[0] | stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
+
+        return self._execute(command, options, parameters)
 
     def terminate(self, pid):
-        #self._cmdLock.acquire()
-        try:
-            self._log.debug("terminate(%s)", pid)
+        self._log.debug("terminate(%s)", pid)
         # SR:457
-            if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
-            if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
+        if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
+        if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
 
-            self._terminate(pid)
-        finally:
-            pass
-            #self._cmdLock.release()
+        self._terminate(pid)
 
     def _execute(self, command, options, parameters):
         """
@@ -1045,12 +973,7 @@ class ExecutableDevice(LoadableDevice):
                     args.append(str(param.value.value()))
                 except:
                     raise CF.ExecutableDevice.InvalidParameters([param])
-        #self._log.debug("Popen %s %s", command, args)
-        self._log.debug("Popen CMD " + str(command))
-        cnt=0
-        for x in args:
-            self._log.debug("ARG: " + str(cnt) + "=" + str(x))
-            cnt +=1
+        self._log.debug("Popen %s %s", command, args)
 
         # SR:445
         try:
@@ -1084,6 +1007,8 @@ class ExecutableDevice(LoadableDevice):
         # SR:456
         sp = self._applications[pid]
         for sig, timeout in self.STOP_SIGNALS:
+            if not _checkpg(pid):
+                break
             self._log.debug('Sending signal %d to process group %d', sig, pid)
             try:
                 # the group id is used to handle child processes (if they exist) of the component being cleaned up
@@ -1091,11 +1016,8 @@ class ExecutableDevice(LoadableDevice):
             except OSError:
                 pass
             giveup_time = time.time() + timeout
-            while _checkpg(pid):
-                if time.time() > giveup_time: break
+            while _checkpg(pid) and time.time() < giveup_time:
                 time.sleep(0.1)
-            if not _checkpg(pid): break
-        sp.wait()
         try:
             del self._applications[pid]
         except:
@@ -1175,7 +1097,7 @@ def _getParentAggregateDevice(execparams, orb):
     return parentdev_ref
 
 
-def start_device(deviceclass, interactive_callback=None, thread_policy=None,loggerName=None):
+def start_device(deviceclass, interactive_callback=None, thread_policy=None,loggerName=None, skip_run=False):
     """Typically your device will use this to start the device in __main__.  It
     is recommended to use this function because it will ensure compliance with
     SCA argument parsing and execparams.
@@ -1185,16 +1107,18 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
     start_device(MyDeviceImpl)
     """
     execparams, interactive = resource.parseCommandLineArgs(deviceclass)
-
-    resource.setupSignalHandlers()
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    if not skip_run:
+        resource.setupSignalHandlers()
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     _checkForRequiredParameters(execparams)
 
     try:
         try:
             orb = resource.createOrb()
+            resource.__orb__ = orb
 
+            ## sets up backwards compat logging 
             resource.configureLogging(execparams, loggerName, orb)
 
             devicePOA = resource.getPOA(orb, thread_policy, "devicePOA")
@@ -1202,6 +1126,16 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
             devMgr = _getDevMgr(execparams, orb)
 
             parentdev_ref = _getParentAggregateDevice(execparams, orb)
+
+            # Configure logging (defaulting to INFO level).
+            label = execparams.get("DEVICE_LABEL", "")
+            id = execparams.get("DEVICE_ID", "")
+            log_config_uri = execparams.get("LOGGING_CONFIG_URI", None)
+            debug_level = execparams.get("DEBUG_LEVEL", None)
+            if debug_level != None: debug_level = int(debug_level)
+            dpath=execparams.get("DOM_PATH", "")
+            ctx = ossie.logger.DeviceCtx( label, id, dpath )
+            ossie.logger.Configure( log_config_uri, debug_level, ctx )
 
             # instantiate the provided device
             logging.debug("Instantiating Device")
@@ -1212,6 +1146,9 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
                                         parentdev_ref,
                                         execparams)
             devicePOA.activate_object(component_Obj)
+
+            # set logging context for resource to supoprt CF::Logging
+            component_Obj.saveLoggingContext( log_config_uri, debug_level, ctx )
 
             # Get DomainManager incoming event channel and connect the device to it,
             # where applicable.
@@ -1225,11 +1162,12 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
 
             component_Var = component_Obj._this()
             component_Obj.registerDevice()
-
             if not interactive:
                 logging.debug("Starting ORB event loop")
                 objectActivated = True
                 obj = devicePOA.servant_to_id(component_Obj)
+                if skip_run:
+                    return component_Obj
                 while objectActivated:
                     try:
                         obj = devicePOA.reference_to_servant(component_Var)
@@ -1256,7 +1194,9 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
         except KeyboardInterrupt:
             pass
         except:
-            logging.exception("Unexpected Error")
+            traceback.print_exc()
+            #logging.exception("Unexpected Error")
+
     finally:
-        if orb:
+        if orb and not skip_run:
             orb.destroy()

@@ -43,9 +43,16 @@ dist_ac_DATA = \
     AC_PROG_CXX_LINK_SO_LIB.m4 \
     AC_PROG_OMNIIDL.m4 \
     ACX_PTHREAD.m4 \
-    boost.m4 \
-    boost_thread.m4 \
+    ax_boost_base.m4 \
+    ax_boost_regex.m4 \
+    ax_boost_thread.m4 \
+    ax_boost_filesystem.m4 \
+    ax_boost_serialization.m4 \
+    ax_boost_system.m4 \
     ETR_SOCKET_NSL.m4 \
     grlab.m4 \
+    java.m4 \
     ossie.m4 \
-    pkg.m4
+    pkg.m4 \
+    AC_M_FUNCTION_INTEGRATION.m4 \
+    rhpkg.m4

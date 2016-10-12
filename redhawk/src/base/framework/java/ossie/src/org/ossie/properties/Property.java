@@ -20,8 +20,17 @@
 
 package org.ossie.properties;
 
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
+
+import CF.DevicePackage.InvalidCapacity;
+import CF.DevicePackage.InvalidState;
 
 /**
  * Internal class
@@ -32,44 +41,144 @@ abstract class Property<T extends Object> implements IProperty {
 
     protected String id;
     protected String name;
-    protected String mode;
-    protected String action;
-    protected String[] kinds;
+    protected Mode mode;
+    protected Action action;
+    protected Set<Kind> kinds;
+
+    protected T value;
+
+    protected List<PropertyListener<T>> changeListeners = new LinkedList<PropertyListener<T>>();
+    protected Allocator<T> allocator = null;
     
-    public Property(String id, String name, String mode, String action, String[] kinds) {
+    protected Property(String id, String name, T value, Mode mode, Action action, Kind[] kinds) {
         super();
         this.id = id;
         this.name = name;
+        this.value = value;
             
         if (action == null) {
-            this.action = "external";
+            this.action = Action.EXTERNAL;
         } else {
             this.action = action;
         }
               
         if (mode == null) {
-            this.mode = mode;
+            this.mode = Mode.READWRITE;
         } else {
             this.mode = mode;
         }
-        
+
+        this.kinds = new HashSet<Kind>();
         if (kinds == null) {
-            this.kinds = new String[] {"configure"};
+            this.kinds.add(Kind.CONFIGURE);
         } else {
-            this.kinds = kinds;
+            for (Kind kind : kinds) {
+                this.kinds.add(kind);
+            }
         }
     }
 
     /**
-     * Get's the current value of the property.
+     * Updates the value of the property, triggering any change listeners.
      */
-    public abstract T getValue();
+    public void configure(Any any) {
+        T oldValue = this.value;
+        fromAny(any);
+        for (PropertyListener<T> listener : changeListeners) {
+            listener.valueChanged(oldValue, this.value);
+        }
+    }
+
+    /**
+     * Gets the current value of the property.
+     */
+    public T getValue() {
+        return this.value;
+    }
     
     /**
-     * Set's the current value of the property.
+     * Sets the current value of the property.
      */
-    public abstract void setValue(T value);
+    public void setValue(T value) {
+        this.value = value;
+    }
+
+    /**
+     * Registers a listener for changes to this property's value.
+     */
+    public void addChangeListener(PropertyListener<T> listener) {
+        changeListeners.add(listener);
+    }
     
+    /**
+     * Unregisters a listener for changes to this property's value.
+     */
+    public void removeChangeListener(PropertyListener<T> listener) {
+        changeListeners.remove(listener);
+    }
+
+    /**
+     * Attempts to allocate capacity from this property. If an allocator is
+     * set, the operation is delgated to the allocator.
+     */
+    public boolean allocate(Any any) throws InvalidCapacity, InvalidState {
+        if (!isAllocatable()) {
+            throw new UnsupportedOperationException("Property " + this.id + " is not allocatable");
+        }
+        T capacity = fromAny_(any);
+        if (this.allocator != null) {
+            return this.allocator.allocate(capacity);
+        } else {
+            return allocate(capacity);
+        }
+    }
+
+    /**
+     * Default implementation of capacity allocation; always returns false (no
+     * allocation occurred). Subclasses that can handle allocation without a
+     * delegate (such as simple numeric properties) may override this method.
+     */
+    protected boolean allocate(T capacity) {
+        return false;
+    }
+
+    /**
+     * Attempts to deallocate capacity from this property. If an allocator is
+     * set, the operation is delgated to the allocator.
+     */
+    public void deallocate(Any any) throws InvalidCapacity, InvalidState {
+        if (!isAllocatable()) {
+            throw new UnsupportedOperationException("Property " + this.id + " is not allocatable");
+        }
+        T capacity = fromAny_(any);
+        if (this.allocator != null) {
+            this.allocator.deallocate(capacity);
+        } else {
+            deallocate(capacity);
+        }
+    }
+
+    /**
+     * Default implementation of capacity deallocation; does nothing.
+     * Subclasses that can handle deallocation without a delegate (such as
+     * simple numeric properties) may override this method.
+     */
+    protected void deallocate(T capacity) {
+
+    }
+
+    public void fromAny(Any any) {
+        this.value = fromAny_(any);
+    }
+    protected abstract T fromAny_(Any any);
+
+    /**
+     * Set the delegate responsible for handling allocation and deallocation
+     * of this property.
+     */
+    public void setAllocator(Allocator<T> listener) {
+        allocator = listener;
+    }
     
     public String getId() {
         return id;
@@ -82,154 +191,47 @@ abstract class Property<T extends Object> implements IProperty {
 
     
     public String getMode() {
-        return mode;
+        return mode.toString();
     }
 
     
     public String getAction() {
-        return action;
+        return action.toString();
     }
 
     
     public String[] getKinds() {
-        return kinds;
+        String[] ret = new String[this.kinds.size()];
+        int ii = 0;
+        for (Kind kind : this.kinds) {
+            ret[ii++] = kind.toString();
+        }
+        return ret;
     }
 
 
     public boolean isQueryable() {
-        for (String kind : this.kinds) {
-            if ((kind.compareTo("configure")==0)|(kind.compareTo("execparam")==0)) {
-                if (mode.compareTo("writeonly")!=0) {
-                    return true;
-                }
-            }
+        if (this.kinds.contains(Kind.CONFIGURE) || this.kinds.contains(Kind.EXECPARAM)) {
+            return (mode != Mode.WRITEONLY);
         }
         return false;
     }
     
     public boolean isConfigurable() {
-        for (String kind : this.kinds) {
-            if ((kind.compareTo("configure")==0)) {
-                if (mode.compareTo("readonly")!=0) {
-                    return true;
-                }
-            }
+        if (this.kinds.contains(Kind.CONFIGURE)) {
+            return (mode != Mode.READONLY);
         }
         return false;
     }
     
     public boolean isAllocatable() {
-        for (String kind : this.kinds) {
-            if ((kind.compareTo("allocation")==0)) {
-                if (action.compareTo("external")==0) {
-                    if (this instanceof SimpleProperty){
-                        return true;
-                    }
-                }
-            }
+        if (this.kinds.contains(Kind.ALLOCATION)) {
+            return (action == Action.EXTERNAL);
         }
         return false;
     }
 
     public boolean isEventable() {
-        for (String kind : this.kinds) {
-            if ((kind.compareTo("event")==0)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
-    
-    /**
-     * For execparams we need to convert the string representation to the 
-     * equivalent java type.
-     * 
-     * @param theString
-     * @param type
-     * @return
-     */
-    public Object convertString(final String theString, final String type) {
-        if (theString == null) {
-            return "";
-        }
-        if (type.equals("string")) {
-            return theString;
-        } else if (type.equals("wstring")) {
-            return theString;
-        } else if (type.equals("boolean")) {
-            return Boolean.parseBoolean(theString);
-        } else if (type.equals("char")) {
-            return theString.charAt(0);
-        } else if (type.equals("wchar")) {
-            return theString.charAt(0);
-        } else if (type.equals("double")) {
-            return Double.parseDouble(theString);
-        } else if (type.equals("float")) {
-            return Float.parseFloat(theString);
-        } else if (type.equals("short")) {
-            return Short.parseShort(theString);
-        } else if (type.equals("long")) {
-            return Integer.parseInt(theString);
-        } else if (type.equals("long long")) {
-            return Long.parseLong(theString);
-        } else if (type.equals("ulong")) {
-            return Long.parseLong(theString);
-        } else if (type.equals("ushort")) {
-            return Short.parseShort(theString);
-        } else if (type.equals("objref")) {
-            final ORB orb = ORB.init();
-            return orb.string_to_object(theString);
-        } else if (type.equals("octet")) {
-            return theString.getBytes()[0];
-        } else {
-            throw new IllegalArgumentException("Unknown CORBA Type: " + type);
-        }
-    }
-    
-    public TCKind convertToTCKind(final String type) {
-        if (type == null || type.equals("")) {
-            return TCKind.tk_null;
-        } else if (type.equals("boolean")) {
-            return TCKind.tk_boolean;
-        } else if (type.equals("char")) {
-            return TCKind.tk_char;
-        } else if (type.equals("double")) {
-            return TCKind.tk_double;
-        } else if (type.equals("fixed")) {
-            return TCKind.tk_fixed;
-        } else if (type.equals("float")) {
-            return TCKind.tk_float;
-        } else if (type.equals("long")) {
-            return TCKind.tk_long;
-        } else if (type.equals("longlong")) {
-            return TCKind.tk_longlong;
-        } else if (type.equals("objref")) {
-            return TCKind.tk_objref;
-        } else if (type.equals("octet")) {
-            return TCKind.tk_octet;
-        } else if (type.equals("short")) {
-            return TCKind.tk_short;
-        } else if (type.equals("string")) {
-            return TCKind.tk_string;
-        } else if (type.equals("typecode")) {
-            return TCKind.tk_TypeCode;
-        } else if (type.equals("ulong")) {
-            return TCKind.tk_ulong;
-        } else if (type.equals("ulonglong")) {
-            return TCKind.tk_ulonglong;
-        } else if (type.equals("ushort")) {
-            return TCKind.tk_ushort;
-        } else if (type.equals("value")) {
-            return TCKind.tk_value;
-        } else if (type.equals("wchar")) {
-            return TCKind.tk_wchar;
-        } else if (type.equals("wstring")) {
-            return TCKind.tk_wstring;
-        } else {
-            throw new IllegalArgumentException("Unknown type: " + type);
-        }
-    }
-
+        return this.kinds.contains(Kind.EVENT);
+    }        
 }

@@ -17,9 +17,3 @@
  * You should have received a copy of the GNU Lesser General Public License 
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-
-#include "ossie/debug.h"
-#if HAVE_LOG4CXX
-#else
-unsigned int LoggingConfigurator::ossieDebugLevel = 0;
-#endif

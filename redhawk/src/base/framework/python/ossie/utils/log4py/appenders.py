@@ -32,6 +32,21 @@ def handleError(self, record):
     print traceback.print_stack()
 logging.Handler.handleError = handleError
 
+# The NullHandler, for library use, is only available in Python 2.7 and up.
+# If it is not available, create an equivalent class.
+try:
+    from logging import NullHandler
+except:
+    class NullHandler(logging.Handler):
+        def emit(self, record):
+            pass
+
+        def handle(self, record):
+            pass
+
+        def createLock(self):
+            pass
+
 ##############################################################################
 # Map standard log4j appenders to logging handlers
 ##############################################################################

@@ -18,10 +18,11 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AM_LDFLAGS =  -no-install $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS)
-INCLUDES = -I../../../../../base/include -I../../../../../base/parser
+CFDIR = ../../../../../base
+AM_CPPFLAGS = -I$(CFDIR)/include
 
 noinst_PROGRAMS = PropertyChangeSenderCpp
 
 PropertyChangeSenderCpp_SOURCES = PropertyChangeSenderCpp.cpp main.cpp 
-PropertyChangeSenderCpp_LDADD = ../../../../../base/framework/libossiecf.la ../../../../../base/parser/libossieparser.la ../../../../../base/framework/idl/libossieidl.la
+PropertyChangeSenderCpp_CXXFLAGS = $(BOOST_CPPFLAGS)
+PropertyChangeSenderCpp_LDADD = $(BOOST_SYSTEM_LIB) $(CFDIR)/framework/libossiecf.la $(OMNICOS_LIBS) $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/idl/libossieidl.la

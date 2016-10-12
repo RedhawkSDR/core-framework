@@ -25,7 +25,6 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 <properties>
   <description>SCA required properties describing the Operating System</description>
   <!-- Provide a processor_name and os_name matching property -->
-  <!-- See section D2.1.6.8 and Attachment 2 to Appendix D -->
   <simple mode="readonly" id="os_name" name="os_name" type="string">
     <value>Linux</value>
     <kind kindtype="allocation"/>

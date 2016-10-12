@@ -1,0 +1,19 @@
+package burstio;
+
+public class @name@Packet extends BurstPacket<@type@[]>
+{
+    public int getSize () {
+        return this.data_.length;
+    }
+
+    public @type@[] getData() {
+        return this.data_;
+    }
+
+    protected @name@Packet (BURSTIO.@name@Burst burst, boolean blockOccurred) {
+        super(burst.EOS, burst.SRI, burst.T, blockOccurred);
+        this.data_ = burst.data;
+    }
+
+    private @type@[] data_;
+}

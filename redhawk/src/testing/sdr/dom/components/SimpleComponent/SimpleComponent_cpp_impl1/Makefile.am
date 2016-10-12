@@ -19,12 +19,11 @@
 #
 
  
-#AM_CXXFLAGS = -Wall $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS)
-#AM_LDFLAGS = -Wall $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS)
-AM_LDFLAGS =  -no-install $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS)
-INCLUDES = -I../../../../../../base/include -I../../../../../../base/parser
+CFDIR = ../../../../../../base
+AM_CPPFLAGS = -I$(CFDIR)/include
 
 noinst_PROGRAMS = SimpleComponent_cpp_impl1
 
 SimpleComponent_cpp_impl1_SOURCES = SimpleComponent_cpp_impl1.cpp SimpleComponent_cpp_impl1_base.cpp SimpleComponent_cpp_impl1_base.h SimpleComponent_cpp_impl1.h main.cpp port_impl.cpp port_impl.h
-SimpleComponent_cpp_impl1_LDADD = ../../../../../../base/framework/libossiecf.la ../../../../../../base/parser/libossieparser.la ../../../../../../base/framework/idl/libossieidl.la
+SimpleComponent_cpp_impl1_CXXFLAGS = $(BOOST_CPPFLAGS)
+SimpleComponent_cpp_impl1_LDADD = $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la

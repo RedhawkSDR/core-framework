@@ -1,0 +1,6 @@
+components/CPP_Ports/cpp/CPP_Ports
+components/Java_Ports/java/bin/
+components/TestLargePush/cpp/TestLargePush
+components/TestLargePush/java/bin/
+components/multiout_attachable/cpp/multiout_attachable
+tests/cpp/Bulkio

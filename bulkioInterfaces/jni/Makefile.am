@@ -20,16 +20,15 @@
 
 lib_LTLIBRARIES = libbulkiojni.la
 
-BULKIO_IDLDIR = $(top_builddir)/build/idl
+BULKIO_IDLDIR = $(top_srcdir)/idl
 BULKIO_CFLAGS = -I$(top_builddir)/src/cpp -I$(top_builddir)/src/cpp/ossie
 BULKIO_LIBS = $(top_builddir)/libbulkioInterfaces.la
-OSSIE_IDLDIR = $(OSSIEHOME)/share/idl
 
 ossie/BULKIO :
-	mkdir -p $@
+	@mkdir -p $@
 
 ossie/BULKIO/jni_%.cpp ossie/BULKIO/jni_%.h: $(BULKIO_IDLDIR)/ossie/BULKIO/%.idl | ossie/BULKIO
-	$(IDL) -bossie.omnijni.idljni -I $(BULKIO_IDLDIR) -I $(OSSIE_IDLDIR) -Wbincprefix=BULKIO -C ossie/BULKIO $<
+	$(AM_V_GEN)$(IDLJNICXX) -I $(BULKIO_IDLDIR) -I $(OSSIE_IDLDIR) -Wbincprefix=BULKIO -C ossie/BULKIO $<
 
 libbulkiojni_la_CPPFLAGS = -Iossie/BULKIO -I. $(BULKIO_CFLAGS) $(JNI_CPPFLAGS) $(OSSIE_CFLAGS)
 libbulkiojni_la_CXXFLAGS = -Wall

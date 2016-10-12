@@ -18,6 +18,22 @@ dnl You should have received a copy of the GNU Lesser General Public License
 dnl along with this program.  If not, see http://www.gnu.org/licenses/.
 dnl
 
+dnl _RH_SILENT_COMMAND
+AC_DEFUN([_RH_SILENT_COMMAND],
+[
+  dnl Older versions of Automake that don't have AM_SILENT_RULES will complain
+  dnl about AM_DEFAULT_VERBOSITY being undefined, so skip the entire process if
+  dnl that's the case
+  m4_ifdef([AM_SILENT_RULES], [
+    dnl If AM_SILENT_RULES has been run, AM_DEFAULT_VERBOSITY will be set
+    if test -n "$AM_DEFAULT_VERBOSITY"; then
+      AC_SUBST([RH_V_][$1], '$(rh__v_'$1'_$(V))')
+      AC_SUBST([rh__v_][$1][_], '$(rh__v_'$1'_$(AM_DEFAULT_VERBOSITY))')
+      AC_SUBST([rh__v_][$1][_0], [$2])
+    fi
+  ])
+])
+
 dnl AC_JAVA_HOME
 AC_DEFUN([RH_JAVA_HOME],
 [
@@ -48,6 +64,7 @@ dnl targetVersion is optional
 AC_DEFUN([RH_PROG_JAVAC],
 [
   AC_REQUIRE([RH_JAVA_HOME])
+  AC_ARG_VAR([JAVACFLAGS], [Java compiler flags])
   java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
   AC_PATH_PROG([JAVAC], [javac], [no], [$java_test_paths])
   if test -n "$1" -a "$JAVAC" != "no"; then
@@ -62,6 +79,7 @@ EOF
 
     if AC_TRY_COMMAND([$JAVAC -source $1 -target $1 Test.java]); then
       AC_MSG_RESULT([yes])
+      _RH_SILENT_COMMAND([JAVAC], '@echo "  JAVAC " $[@];')
     else
       AC_MSG_RESULT([no])
       AC_SUBST([JAVAC], [no])
@@ -76,6 +94,7 @@ AC_DEFUN([RH_PROG_JAR],
   AC_REQUIRE([RH_JAVA_HOME])
   java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
   AC_PATH_PROG([JAR], [jar], [no], [$java_test_paths])
+  _RH_SILENT_COMMAND([JAR], '@echo "  JAR   " $[@];')
 ])
 
 dnl RH_PROG_IDLJ
@@ -84,6 +103,7 @@ AC_DEFUN([RH_PROG_IDLJ],
   AC_REQUIRE([RH_JAVA_HOME])
   java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
   AC_PATH_PROG([IDLJ], [idlj], [no], [$java_test_paths])
+  _RH_SILENT_COMMAND([IDLJ], '@echo "  IDLJ  " $<;')
 ])
 
 dnl Check the value of a java property
@@ -113,7 +133,7 @@ EOF
 ])
 
 dnl RH_JAVA_JNI_H
-AC_DEFUN([RH_HAVA_JNI_H],
+AC_DEFUN([RH_JAVA_JNI_H],
 [
   AC_REQUIRE([RH_JAVA_HOME])
 
@@ -144,3 +164,66 @@ AC_DEFUN([RH_JAVA_VENDOR],
   fi
 ])
 
+dnl Automake targets. Referencing via variables rather lets Automake generate its
+dnl normal output; otherwise, literal references to certain targets overrule the
+dnl Automake versions entirely.
+AC_DEFUN([_RH_AUTOMAKE_TARGETS],
+[
+  AC_SUBST([RH_TARGET_MAKEFILE], [Makefile])
+  AC_SUBST([RH_TARGET_ALL_AM], [all-am])
+  AC_SUBST([RH_TARGET_CLEAN_AM], [clean-am])
+  AC_SUBST([RH_TARGET_DISTCLEAN_AM], [distclean-am])
+  AC_SUBST([RH_TARGET_INSTALL_DATA_AM], [install-data-am])
+  AC_SUBST([RH_TARGET_UNINSTALL_AM], [uninstall-am])
+])
+
+dnl For autoconf pre-2.60 versions, get MKDIR_P from automake
+m4_ifdef([AC_PROG_MKDIR_P], [], [
+  AC_DEFUN([AC_PROG_MKDIR_P], [
+    AC_REQUIRE([AM_PROG_MKDIR_P])
+    MKDIR_P='$(mkdir_p)'
+    AC_SUBST([MKDIR_P])
+  ])
+])
+
+dnl RH_JARFILE_RULES
+dnl Sets up requirements for building Java jarfiles using the distributed
+dnl makefile fragment
+AC_DEFUN([RH_JARFILE_RULES],
+[
+  AC_REQUIRE([RH_PROG_JAVAC])
+  AC_REQUIRE([RH_PROG_JAR])
+  AC_REQUIRE([AC_PROG_MKDIR_P])dnl required for install
+  AC_REQUIRE([_RH_AUTOMAKE_TARGETS])
+
+  dnl Set a variable to point to the makefile fragment, which can then be used
+  dnl in place of the actual path
+  AC_SUBST([rh_jarfile_rules], 'include $(OSSIE_HOME)/share/aminclude/redhawk/jarfile.am')
+])
+
+dnl _RH_PROG_IDLJNI (for internal use only)
+AC_DEFUN([_RH_PROG_IDLJNI],
+[
+  AC_SUBST([IDLJNI], '$(IDL) -p $(OSSIE_HOME)/lib/python -b ossie.omnijni.idljava')
+  _RH_SILENT_COMMAND([IDLJNI], '@echo "  IDLJNI" $<;')
+])
+
+dnl _RH_PROG_IDLJNICXX (for internal use only)
+AC_DEFUN([_RH_PROG_IDLJNICXX],
+[
+  AC_SUBST([IDLJNICXX], '$(IDL) -p $(OSSIE_HOME)/lib/python -b ossie.omnijni.idljni')
+])
+
+dnl RH_IDLJ_RULES
+dnl Sets up requirements for generating Java source from IDL using the distributed
+dnl makefile fragment
+AC_DEFUN([RH_IDLJ_RULES],
+[
+  AC_REQUIRE([RH_PROG_IDLJ])
+  AC_REQUIRE([_RH_PROG_IDLJNI])
+  AC_REQUIRE([_RH_AUTOMAKE_TARGETS])
+
+  dnl Set a variable to point to the makefile fragment, which can then be used
+  dnl in place of the actual path
+  AC_SUBST([rh_idlj_rules], 'include $(OSSIE_HOME)/share/aminclude/redhawk/idlj.am')
+])

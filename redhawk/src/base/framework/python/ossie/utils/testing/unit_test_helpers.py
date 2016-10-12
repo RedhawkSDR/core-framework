@@ -39,13 +39,14 @@ from ossie.cf import CF, CF__POA
 from ossie.cf import ExtendedCF
 import copy
 from ossie import properties
+from ossie.utils import model
 from ossie.utils import prop_helpers
 from ossie.utils import sb
+from ossie.utils.idllib import IDLLibrary
 import getopt
-from ossie.utils.sca import importIDL
-
-NamingContextStub = sb.domainless._NamingContextStub
-DeviceManagerStub = sb.domainless._DeviceManagerStub
+from ossie.properties import mapComplexType
+from ossie.utils.prop_helpers import parseComplexString
+from omniORB import any, CORBA, tcInternal
 
 # These global methods are here to allow other modules to modify the global variables IMPL_ID and SOFT_PKG
 # TestCase setUp() method doesn't allow passing in arguments to the test case so global values are needed
@@ -69,6 +70,13 @@ IDE_REF_ENV = None
 if IDE_REF_ENV != None:
     sb.setIDE_REF(CORBA.ORB_init().string_to_object(IDE_REF_ENV)._narrow(ExtendedCF.Sandbox))
 
+def stringToComplex(value, type):
+    real, imag = parseComplexString(value, type)
+    if isinstance(real, basestring):
+        real = int(real)
+        imag = int(imag)
+    return complex(real, imag)
+    
 class ScaComponentTestCase(unittest.TestCase):
     """
     Class used to test independent implementations of a component. It starts an
@@ -105,16 +113,19 @@ class ScaComponentTestCase(unittest.TestCase):
         global IMPL_ID
         self.comp_obj = None
         self.comp = None
-        self._processes = {}
         # Use the globals by default
         self.impl = IMPL_ID
         self.spd_file = SOFT_PKG
         self.spd = SPDParser.parse(SOFT_PKG)
         
-        self.prf_file = self.spd.get_propertyfile().get_localfile().get_name()
-        if (self.prf_file[0] != '/'):
-            self.prf_file = os.path.join(os.path.dirname(self.spd_file), self.prf_file)
-        self.prf = PRFParser.parse(self.prf_file)
+        try:
+            self.prf_file = self.spd.get_propertyfile().get_localfile().get_name()
+            if (self.prf_file[0] != '/'):
+                self.prf_file = os.path.join(os.path.dirname(self.spd_file), self.prf_file)
+            self.prf = PRFParser.parse(self.prf_file)
+        except:
+            self.prf_file = None
+            self.prf = None
         
         self.scd_file = self.spd.get_descriptor().get_localfile().get_name()
         if (self.scd_file[0] != '/'):
@@ -122,7 +133,8 @@ class ScaComponentTestCase(unittest.TestCase):
         self.scd = SCDParser.parse(self.scd_file)
 
         # create a map between prop ids and names
-        self._props = prop_helpers.getPropNameDict(self.prf)
+        if self.prf:
+            self._props = prop_helpers.getPropNameDict(self.prf)
 
     def tearDown(self):
         """
@@ -131,68 +143,46 @@ class ScaComponentTestCase(unittest.TestCase):
         if self.comp_obj != None and self.scd.get_componenttype() in \
             ("resource", "device", "loadabledevice", "executabledevice"):
             try:
-                self.comp_obj.stop()
+                self.comp.releaseObject()
             except CORBA.Exception:
                 pass
-            
-            try:
-                self.comp_obj.releaseObject()
-            except CORBA.Exception:
-                pass
-            
-        for pid in self._processes.keys():
-            logging.debug("Killing Process: %d" % pid)
-            self._terminate(pid)
-            
+        else:
+            # TODO: Services
+            pass
         self.comp_obj = None
-        #NamingContextStub.component = None
-    
-    def _terminate(self, pid):
-        sp = self._processes[pid]
-        for sig, timeout in self.STOP_SIGNALS:
-            try:
-                # the group id is used to handle child processes (if they 
-                # exist) of the component being cleaned up
-                os.killpg(pid, sig)
-            except OSError:
-                pass
-            if timeout != None:
-                giveup_time = time.time() + timeout
-            while sp.poll() == None:
-                if time.time() > giveup_time: break
-                time.sleep(0.1)
-            if sp.poll() != None: break
-        sp.wait()
-        del self._processes[pid]
-        
-    
-    def _launchResource(self, execparams={}, ossiehome=None):
+            
+    def launch(self, execparams={}, ossiehome=None, configure={}, initialize=True, objType=None):
+        """
+        Launch the component. The component will be executed as a child process,
+        then (optionally) initialized and configured.
+
+        Arguments:
+          execparams - Execparams to override on component execution.
+          ossiehome  - Base location of REDHAWK installation for finding IDL files.
+                       Default location is determined from $OSSIEHOME environment
+                       variable.
+          configure  - If a dictionary, a set of key/value pairs to override the
+                       initial configuration values of the component.
+                       If None, skip initial configuration.
+          initialize - If true, call initialize() after launching the component.
+                       If false, skip initialization.
+          objType    - Object type to be launched. Could be a component, device or service.
+       """
         if IDE_REF_ENV == None:
             if ossiehome:
-                sb.domainless._ossiehome = str(ossiehome)
-                sb.domainless._interface_list = importIDL.importStandardIdl(std_idl_path=str(ossiehome)+'/idl', std_idl_include_path=str(ossiehome)+'/idl')
-                sb.domainless._loadedInterfaceList = True
-            component = sb.Component(self.spd_file, impl=self.impl, execparams=execparams)
+                model._idllib = IDLLibrary()
+                model._idllib.addSearchPath(str(ossiehome)+'/idl')
+            component = sb.launch(self.spd_file, impl=self.impl, execparams=execparams,
+                                  configure=configure, initialize=initialize, objType=objType)
         else:
             # spd file path passed in to unit test is relative to current component tests directory (i.e. "..")
             # IDE unit test requires spd file path relative to sca file system
             componentName = str(self.spd.get_name())
             sca_file_system_spd_file = "components/" + componentName + "/" + self.spd_file[3:]
-            component = sb.Component(sca_file_system_spd_file, impl=self.impl, execparams=execparams)
+            component = sb.launch(sca_file_system_spd_file, impl=self.impl, execparams=execparams,
+                                  configure=configure, initialize=initialize, objType=objType)
         self.comp_obj = component.ref
         self.comp = component
-        if IDE_REF_ENV == None:
-            if component._sub_process != None:
-                pid = component._sub_process.pid
-                self._processes[pid] = component._sub_process
-        
-                logging.debug("Component is running (%d)...", pid)
-            else:
-                raise AssertionError, "Component instance has _sub_process equal to None"
-
-        
-    def launch(self, execparams={}, ossiehome=None):
-        return self._launchResource(execparams, ossiehome)
             
     def isMatch(self, prop, modes, kinds, actions):
         if prop.get_mode() == None:
@@ -248,10 +238,16 @@ class ScaComponentTestCase(unittest.TestCase):
         # Simples
         for prop in self.prf.get_simple():
             if self.isMatch(prop, modes, kinds, (action,)): 
-                if prop.get_value() == None and includeNil == False:
+                if prop.get_value() is not None:    
+                    if prop.complex.lower() == "true":
+                        type = mapComplexType(prop.get_type())
+                        value = stringToComplex(prop.get_value(), type)
+                    else:
+                        type = prop.get_type()
+                        value = prop.get_value()
+                    dt = properties.to_tc_value(value, type)
+                elif not includeNil:
                     continue
-                if prop.get_value() != None:
-                    dt = properties.to_tc_value(prop.get_value(), prop.get_type())
                 else:
                     dt = any.to_any(None)
                 p = CF.DataType(id=str(prop.get_id()), value=dt)
@@ -260,11 +256,26 @@ class ScaComponentTestCase(unittest.TestCase):
         # Simple Sequences
         for prop in self.prf.get_simplesequence():
             if self.isMatch(prop, modes, kinds, (action,)): 
-                if prop.get_values() != None:
+                if prop.get_values() is not None:
                     seq = []
-                    for v in prop.get_values().get_value():
-                        seq.append(properties.to_pyvalue(v, prop.get_type()))
-                    dt = any.to_any(seq)
+                    if prop.complex.lower() == "true":
+                        type = mapComplexType(prop.get_type())
+                        for v in prop.get_values().get_value():
+                            seq.append(stringToComplex(v, type))
+                        expectedType = properties.getTypeCode(type)
+                        expectedTypeCode = tcInternal.createTypeCode(
+                            (tcInternal.tv_sequence, expectedType._d, 0))
+                        dt = CORBA.Any(expectedTypeCode, 
+                                       [properties._convertComplexToCFComplex(item, type) 
+                                            for item in seq])
+                    else:
+                        type = prop.get_type()
+                        for v in prop.get_values().get_value():
+                            value = v
+                            seq.append(properties.to_pyvalue(value, type))
+                        dt = any.to_any(seq)
+                elif not includeNil:
+                    continue
                 else:
                     dt = any.to_any(None)
                 p = CF.DataType(id=str(prop.get_id()), value=dt)
@@ -273,11 +284,16 @@ class ScaComponentTestCase(unittest.TestCase):
         # Structures
         for prop in self.prf.get_struct():
             if self.isMatch(prop, modes, kinds, (action,)): 
-                if prop.get_simple() != None:
+                if prop.get_simple() is not None:
                     fields = []
+                    hasValue = False
                     for s in prop.get_simple():
+                        if s.get_value() is not None:
+                            hasValue = True
                         dt = properties.to_tc_value(s.get_value(), s.get_type())
                         fields.append(CF.DataType(id=str(s.get_id()), value=dt))
+                    if not hasValue and not includeNil:
+                        continue
                     dt = any.to_any(fields)
                 else:
                     dt = any.to_any(None)

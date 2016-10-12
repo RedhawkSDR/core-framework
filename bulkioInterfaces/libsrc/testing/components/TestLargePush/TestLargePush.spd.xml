@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK bulkioInterfaces.
+
+REDHAWK bulkioInterfaces is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK bulkioInterfaces is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:7ec47065-b7a6-4c7c-8f6f-61f17c3818e9" name="TestLargePush" type="sca_compliant">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="TestLargePush.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="TestLargePush.scd.xml"/>
+  </descriptor>
+  <implementation id="cpp">
+    <description>Push a single data vector whose size exceeds the CORBA max transfer size (default 2 MB).</description>
+    <code type="Executable">
+      <localfile name="cpp/TestLargePush"/>
+      <entrypoint>cpp/TestLargePush</entrypoint>
+    </code>
+    <compiler name="/usr/bin/gcc" version="4.1.2"/>
+    <programminglanguage name="C++"/>
+    <humanlanguage name="EN"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
+  </implementation>
+  <implementation id="java">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="java"/>
+      <entrypoint>java/startJava.sh</entrypoint>
+    </code>
+    <compiler name="/usr/bin/javac" version="1.5"/>
+    <programminglanguage name="Java"/>
+    <humanlanguage name="EN"/>
+    <runtime name="/usr/bin/java" version="1.5"/>
+    <os name="Linux"/>
+  </implementation>
+  <implementation id="python">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="python"/>
+      <entrypoint>python/TestLargePush.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <runtime name="python" version="2.4.4"/>
+    <os name="Linux"/>
+  </implementation>
+</softpkg>

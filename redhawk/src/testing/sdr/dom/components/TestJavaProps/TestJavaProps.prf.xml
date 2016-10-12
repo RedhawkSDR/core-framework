@@ -21,7 +21,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 
 <!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
 <properties>
-    <simple id="DCE:dd8d450f-d377-4c2c-8c3c-207e42dae017" mode="readwrite" name="ulong_prop" type="ulong">
+    <simple id="ulong_prop" mode="readwrite" name="ulong_prop" type="ulong">
         <kind kindtype="configure"/>
         <action type="external"/>
     </simple>
@@ -37,11 +37,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <kind kindtype="execparam"/>
         <action type="external"/>
     </simple>
-  <simplesequence id="DCE:3303ee57-70bb-4325-84ad-fb7fd333c44a" mode="readwrite" name="long_seq" type="long">
+  <simplesequence id="long_seq" mode="readwrite" name="long_seq" type="long">
     <kind kindtype="configure"/>
     <action type="external"/>
   </simplesequence>
-  <struct id="DCE:23a6d333-55fb-4425-a102-185e6e998782" mode="readwrite" name="struct_prop">
+  <struct id="struct_prop" mode="readwrite" name="struct_prop">
     <simple id="item_long" mode="readwrite" type="long">
       <value>0</value>
       <kind kindtype="configure"/>
@@ -54,7 +54,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
-  <structsequence id="DCE:d933f8ba-9e79-4d2c-a1b5-9fb9da0ea740" mode="readwrite" name="structseq_prop">
+  <structsequence id="structseq_prop" mode="readwrite" name="structseq_prop">
     <struct id="">
       <simple id="item_long" type="long"/>
       <simple id="item_string" type="string"/>

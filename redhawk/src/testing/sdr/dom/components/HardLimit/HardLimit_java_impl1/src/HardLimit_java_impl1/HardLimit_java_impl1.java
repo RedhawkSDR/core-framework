@@ -67,15 +67,14 @@ public class HardLimit_java_impl1 extends Resource implements Runnable {
      * <!-- end-user-doc -->
      * @generated
      */
-    public final SimpleProperty<Double> upper_limit =
-       new SimpleProperty<Double>(
+    public final DoubleProperty upper_limit =
+       new DoubleProperty(
            "DCE:06281569-8b63-4034-961e-665b36b33cf1", // id
            "upper_limit", // name
-           "double", // type
            0.5, // default value
-           "readwrite", // mode
-           "external", // action
-           new String[] {"configure",} // kind
+           Mode.READWRITE, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.CONFIGURE,} // kind
            );
             
     /**
@@ -86,15 +85,14 @@ public class HardLimit_java_impl1 extends Resource implements Runnable {
      * <!-- end-user-doc -->
      * @generated
      */
-    public final SimpleProperty<Double> lower_limit =
-       new SimpleProperty<Double>(
+    public final DoubleProperty lower_limit =
+       new DoubleProperty(
            "DCE:18a49108-e4c0-40b7-a193-aac98eb52a1d", // id
            "lower_limit", // name
-           "double", // type
            -0.5, // default value
-           "readwrite", // mode
-           "external", // action
-           new String[] {"configure",} // kind
+           Mode.READWRITE, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.CONFIGURE,} // kind
            );
             
     /**
@@ -105,15 +103,14 @@ public class HardLimit_java_impl1 extends Resource implements Runnable {
      * <!-- end-user-doc -->
      * @generated
      */
-    public final SimpleProperty<Double> upper_val =
-       new SimpleProperty<Double>(
+    public final DoubleProperty upper_val =
+       new DoubleProperty(
            "DCE:a49d55c0-ad66-4605-aa42-08728f2a2aa3", // id
            "upper_val", // name
-           "double", // type
            1.0, // default value
-           "readwrite", // mode
-           "external", // action
-           new String[] {"configure",} // kind
+           Mode.READWRITE, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.CONFIGURE,} // kind
            );
             
     /**
@@ -124,15 +121,14 @@ public class HardLimit_java_impl1 extends Resource implements Runnable {
      * <!-- end-user-doc -->
      * @generated
      */
-    public final SimpleProperty<Double> lower_val =
-       new SimpleProperty<Double>(
+    public final DoubleProperty lower_val =
+       new DoubleProperty(
            "DCE:565a1d4f-ee69-48ae-89d7-403ccf399b2b", // id
            "lower_val", // name
-           "double", // type
            -1.0, // default value
-           "readwrite", // mode
-           "external", // action
-           new String[] {"configure",} // kind
+           Mode.READWRITE, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.CONFIGURE,} // kind
            );
            
 

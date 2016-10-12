@@ -22,9 +22,9 @@
 #define OSSIE_CORBAUTILS_H
 
 #include <string>
-
+#include <vector>
 #include <omniORB4/CORBA.h>
-
+#include "CorbaSequence.h"
 #include "ossie/debug.h"
 
 namespace ossie {
@@ -61,12 +61,18 @@ namespace ossie {
         PortableServer::ObjectId* activatePersistentObject (PortableServer::POA_ptr poa, PortableServer::Servant servant, const std::string& identifier);
 
         // CosNaming utilities
+	CosNaming::Name str2name(const char* namestr);
         CosNaming::Name* stringToName (const std::string& name);
         CORBA::Object_ptr objectFromName (const std::string& name);
 
         // String (IOR) to/from object utilities
         std::string objectToString (const CORBA::Object_ptr obj);
         CORBA::Object_ptr stringToObject (const std::string& ior);
+
+	// list NamingContext contents as vector of strings...
+	std::vector<std::string> listRootContext( );
+	std::vector<std::string> listContext(const CosNaming::NamingContext_ptr ctx, const std::string &dname );
+
 
         // narrow utility
         template <class T> typename T::_ptr_type _narrowSafe(const CORBA::Object_ptr obj) {
@@ -82,7 +88,54 @@ namespace ossie {
             }
         };
 
-        // Bind an object to a a name in the specified NamingContext.
+	// naming service actions
+	enum  NS_ACTION { NS_NOBIND=0, NS_BIND=1, NS_REBIND=2, NS_UNBIND=3 };
+
+	//
+	// Create a naming context from the root directory
+	//
+	int  CreateNamingContext( const std::string &namingContext );
+	
+	//
+	// Create the naming context and all the members in its path
+	//
+	CosNaming::NamingContext_ptr CreateNamingContextPath(const std::string &namingContext);
+
+	//
+	// Return a naming context for a specified naming context path
+	//
+	CosNaming::NamingContext_ptr ResolveNamingContextPath( const std::string &namingContext );
+
+	//
+	// Delete a naming context
+	//
+	int  DeleteNamingContext( const std::string &namingContext );
+
+	//
+	// Delete a naming context path components
+	//
+	int  DeleteNamingContextPath( const std::string &namingContext );
+
+	//
+	// Unbind a name from the specified naming context object
+	//
+	int  Unbind( const std::string &name , CosNaming::NamingContext_ptr namingContext );
+
+	//
+	// Unbind a name from the stringified naming context paths
+	//
+	int  Unbind( const std::string &name, const std::string &namingContext="" );
+
+	//
+	// Bind to naming context    id = name, kind=""
+	//
+	int  Bind( const std::string &name,  CORBA::Object_ptr obj,  CosNaming::NamingContext_ptr namingContext  );
+
+	//
+	// Bind an object to a a name in the specified NamingContext.
+	//
+	int  Bind( const std::string &name,  CORBA::Object_ptr obj, const std::string &dir="", const bool create_nc=false );
+
         void bindObjectToContext (const CORBA::Object_ptr obj, const CosNaming::NamingContext_ptr context, const std::string& name);
 
         // Bind an object to a name in the root naming context.
@@ -114,70 +167,81 @@ namespace ossie {
 
         // Mapping of C++ types to type codes.
         template <typename T>
-        static CORBA::TCKind TypeCode (void)
+        static CORBA::TypeCode_ptr TypeCode (void)
         {
-            return CORBA::tk_null;
+            return CORBA::_tc_null;
         }
 
         template<>
-        inline CORBA::TCKind TypeCode<char> (void)
+        inline CORBA::TypeCode_ptr TypeCode<char> (void)
         {
-            return CORBA::tk_char;
+            return CORBA::_tc_char;
         }
         
         template<>
-        inline CORBA::TCKind TypeCode<bool> (void)
+        inline CORBA::TypeCode_ptr TypeCode<bool> (void)
         {
-            return CORBA::tk_boolean;
+            return CORBA::_tc_boolean;
         }
         
         template<>
-        inline CORBA::TCKind TypeCode<CORBA::Octet> (void)
+        inline CORBA::TypeCode_ptr TypeCode<CORBA::Octet> (void)
         {
-            return CORBA::tk_octet;
+            return CORBA::_tc_octet;
         }
         
         template<>
-        inline CORBA::TCKind TypeCode<CORBA::Short> (void)
+        inline CORBA::TypeCode_ptr TypeCode<CORBA::Short> (void)
         {
-            return CORBA::tk_short;
+            return CORBA::_tc_short;
         }
         
         template<>
-        inline CORBA::TCKind TypeCode<CORBA::Long> (void)
+        inline CORBA::TypeCode_ptr TypeCode<CORBA::Long> (void)
         {
-            return CORBA::tk_long;
+            return CORBA::_tc_long;
         }
 
-        
         template<>
-        inline CORBA::TCKind TypeCode<CORBA::UShort> (void)
+        inline CORBA::TypeCode_ptr TypeCode<CORBA::UShort> (void)
         {
-            return CORBA::tk_ushort;
+            return CORBA::_tc_ushort;
+        }
+
+        template<>
+        inline CORBA::TypeCode_ptr TypeCode<CORBA::ULong> (void)
+        {
+            return CORBA::_tc_ulong;
         }
         
         template<>
-        inline CORBA::TCKind TypeCode<CORBA::ULong> (void)
+        inline CORBA::TypeCode_ptr TypeCode<CORBA::Float> (void)
         {
-            return CORBA::tk_ulong;
+            return CORBA::_tc_float;
         }
         
         template<>
-        inline CORBA::TCKind TypeCode<CORBA::Float> (void)
+        inline CORBA::TypeCode_ptr TypeCode<CORBA::Double> (void)
         {
-            return CORBA::tk_float;
+            return CORBA::_tc_double;
         }
         
         template<>
-        inline CORBA::TCKind TypeCode<CORBA::Double> (void)
+        inline CORBA::TypeCode_ptr TypeCode<CORBA::LongLong> (void)
         {
-            return CORBA::tk_double;
+            return CORBA::_tc_longlong;
         }
         
         template<>
-        inline CORBA::TCKind TypeCode<std::string> (void)
+        inline CORBA::TypeCode_ptr TypeCode<CORBA::ULongLong> (void)
         {
-            return CORBA::tk_string;
+            return CORBA::_tc_ulonglong;
+        }
+        
+        template<>
+        inline CORBA::TypeCode_ptr TypeCode<std::string> (void)
+        {
+            return CORBA::_tc_string;
         }
 
         // Instantiates POAs on demand
@@ -195,6 +259,76 @@ namespace ossie {
             POACreator(const POACreator&);
             void operator=(const POACreator&);
         }; // class POACreator
+
+        // Vector insertion/extraction operator helpers
+        template <class T, class SeqT>
+        inline bool vector_extract (const CORBA::Any& _a, std::vector<T>& _s)
+        {
+            SeqT* seq;
+            if (_a >>= seq) {
+                size_t length = seq->length();
+                if (length == 0) {
+                    _s.clear();
+                } else {
+                    T* begin = (T*)&(*seq)[0];
+                    _s.assign(begin, begin+length);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        template <class T, class SeqT, class ElemT>
+        inline void vector_insert (CORBA::Any& _a, const std::vector<T>& _s)
+        {
+            SeqT seq(_s.size(), _s.size(), (ElemT*)&_s[0], 0);
+            _a <<= seq;
+        }
+
+        inline bool element_convert(bool in) {
+            return in;
+        }
+
+        inline char element_convert(CORBA::Char in) {
+            return in;
+        }
+
+        inline CORBA::Char element_convert(char in) {
+            return in;
+        }
+
+        inline std::string element_convert(_CORBA_String_element in) {
+            return static_cast<const char*>(in);
+        }
+        
+        inline const char* element_convert(const std::string& in) {
+            return in.c_str();
+        }
+        
+        template <class T, class SeqT>
+        inline bool vector_extract_convert (const CORBA::Any& _a, std::vector<T>& _s)
+        {
+            SeqT* seq;
+            if (_a >>= seq) {
+                _s.resize(seq->length());
+                for (size_t ii = 0; ii < _s.size(); ++ii) {
+                    _s[ii] = element_convert((*seq)[ii]);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        template <class T, class SeqT>
+        inline void vector_insert_convert (CORBA::Any& _a, const std::vector<T>& _s)
+        {
+            SeqT seq;
+            seq.length(_s.size());
+            for (size_t ii = 0; ii < _s.size(); ++ii) {
+                seq[ii] = element_convert(_s[ii]);
+            }
+            _a <<= seq;
+        }
 
     }; // namespace corba
 
@@ -230,5 +364,43 @@ inline void operator <<= (CORBA::Any& _a, const bool _b)
 {
     _a <<= CORBA::Any::from_boolean(_b);
 }
+
+// Vector insertion/exctraction operators
+#define ANY_VECTOR_OPERATORS(T,SEQ)                                 \
+inline bool operator >>= (const CORBA::Any& _a, std::vector<T>& _s) \
+{                                                                   \
+    return ossie::corba::vector_extract<T,SEQ>(_a, _s);             \
+}                                                                   \
+inline void operator <<= (CORBA::Any& _a, const std::vector<T>& _s) \
+{                                                                   \
+    ossie::corba::vector_insert<T,SEQ,T>(_a, _s);                   \
+}                                                                   \
+
+ANY_VECTOR_OPERATORS(CORBA::Octet, CORBA::OctetSeq);
+ANY_VECTOR_OPERATORS(CORBA::Short, CORBA::ShortSeq);
+ANY_VECTOR_OPERATORS(CORBA::UShort, CORBA::UShortSeq);
+ANY_VECTOR_OPERATORS(CORBA::Long, CORBA::LongSeq);
+ANY_VECTOR_OPERATORS(CORBA::ULong, CORBA::ULongSeq);
+ANY_VECTOR_OPERATORS(CORBA::LongLong, CORBA::LongLongSeq);
+ANY_VECTOR_OPERATORS(CORBA::ULongLong, CORBA::ULongLongSeq);
+ANY_VECTOR_OPERATORS(CORBA::Float, CORBA::FloatSeq);
+ANY_VECTOR_OPERATORS(CORBA::Double, CORBA::DoubleSeq);
+#undef ANY_VECTOR_OPERATORS
+
+#define ANY_VECTOR_CONVERT_OPERATORS(T,SEQ)                         \
+inline bool operator >>= (const CORBA::Any& _a, std::vector<T>& _s) \
+{                                                                   \
+    return ossie::corba::vector_extract_convert<T,SEQ>(_a, _s);     \
+}                                                                   \
+inline void operator <<= (CORBA::Any& _a, const std::vector<T>& _s) \
+{                                                                   \
+    ossie::corba::vector_insert_convert<T,SEQ>(_a, _s);             \
+}
+
+ANY_VECTOR_CONVERT_OPERATORS(bool, CORBA::BooleanSeq);
+ANY_VECTOR_CONVERT_OPERATORS(char, CORBA::CharSeq);
+ANY_VECTOR_CONVERT_OPERATORS(std::string, CORBA::StringSeq);
+
+#undef ANY_VECTOR_CONVERT_OPERATORS
 
 #endif // OSSIE_CORBAUTILS_H

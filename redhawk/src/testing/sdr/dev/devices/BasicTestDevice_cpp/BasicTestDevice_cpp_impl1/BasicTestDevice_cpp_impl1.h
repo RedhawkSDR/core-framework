@@ -27,8 +27,8 @@
 #include <map>
 #include <list>
 
-#include "CF/cf.h"
-#include "CF/AggregateDevices.h"
+#include "ossie/CF/cf.h"
+#include "ossie/CF/AggregateDevices.h"
 
 #include "ossie/AggregateDevice_impl.h"
 #include "ossie/ExecutableDevice_impl.h"
@@ -62,6 +62,11 @@ class BasicTestDevice_cpp_impl1_i :
         // main omni_thread function
         void loadProperties();
 
+    protected:
+        CORBA::Long memCapacity;
+        CORBA::Long BogoMipsCapacity;
+        CORBA::Long propOne;
+        CORBA::Long propTwo;
 
     private:
         // For component shutdown

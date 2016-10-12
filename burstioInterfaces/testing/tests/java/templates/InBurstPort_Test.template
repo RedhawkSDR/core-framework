@@ -1,0 +1,299 @@
+
+import static org.junit.Assert.*;
+
+import org.junit.BeforeClass;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.Ignore;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.PropertyConfigurator;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.Layout;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Appender;
+import org.apache.log4j.Level;
+import org.apache.log4j.xml.DOMConfigurator;
+import BULKIO.PrecisionUTCTime;
+import BULKIO.PortStatistics;
+import BULKIO.PortUsageType;
+
+
+/**
+ * Tests for {@link Foo}.
+ *
+ * @author 
+ */
+@RunWith(JUnit4.class)
+public class InBurst@name@Port_Test {
+
+    public static BURSTIO.BurstSRI make_sri_test( String sid, String id) {
+        BURSTIO.BurstSRI sri = new BURSTIO.BurstSRI();
+        sri.streamID = sid;
+        sri.id = id;
+        sri.xdelta = 1.0;
+        sri.mode = 0;       /* 0-Scalar, 1-Complex */
+        sri.flags = 0;
+        sri.tau = 1.1;
+        sri.theta = 1.2f;
+        sri.gain = 1.3f;
+        sri.uwlength = 128;
+        sri.bursttype = 2;
+        sri.burstLength = 1024;
+        sri.CHAN_RF = 1e6;
+        sri.baudestimate = 2.0f;
+        sri.carrieroffset = 2.1;
+        sri.SNR = 2.3;
+        sri.modulation = "mod";
+        sri.baudrate = 56000.0;
+        sri.fec = "vit";       /* fec type */
+        sri.fecrate = "7/8";   /* not a number for TPC rates like (64,57)x(64,57) */
+        sri.randomizer="R20";
+        sri.overhead="unknown";
+        sri.expectedStartOfBurstTime=burstio.Utils.now();
+        return sri;
+    }
+
+    public static BURSTIO.BurstSRI make_sri_pkt1() {
+        BURSTIO.BurstSRI sri = make_sri_test( "packet 1", "id-1" );
+        sri.expectedStartOfBurstTime=burstio.Utils.now();
+        return sri;
+    }
+
+    public static BURSTIO.BurstSRI make_sri_pkt2() {
+        BURSTIO.BurstSRI sri = make_sri_test( "packet 2", "id-2" );
+        sri.mode = 1; 
+        sri.expectedStartOfBurstTime=burstio.Utils.now();
+        return sri;
+    }
+
+    Logger logger =  Logger.getRootLogger();
+
+    @BeforeClass
+	public static void oneTimeSetUp() {
+	BasicConfigurator.configure();
+    }
+
+    @AfterClass
+        public static void oneTimeTearDown() {
+        LogManager.shutdown();
+    }
+
+    @Before
+	public void setUp() {
+
+    }
+
+    @After
+	public void tearDown() {
+	
+    }
+
+    @Test
+	public void test_port_api( ) {
+
+	logger.debug("BURSTIO IN-PORT API: @name@");
+		
+	burstio.Burst@name@In port = new burstio.Burst@name@In("test_inport_api");
+
+
+        String exp="test_inport_api";
+        String res = port.getName();
+	assertTrue("Get Port Name Failed",  exp.equals(res) );
+
+	// port statistics test
+	logger.debug("------  Get initial port statistics ------- ");
+	BULKIO.PortStatistics stats = port.statistics();
+	assertTrue("Port Statistics Failed",  stats != null );
+
+	logger.debug("------  Get port state ------- ");
+	BULKIO.PortUsageType rt = port.state();
+	assertTrue("Port Usage Type Failed",  rt == BULKIO.PortUsageType.IDLE );
+
+	int tmp = port.getQueueThreshold();
+	assertTrue("MaxQueueDepth - default",  tmp == 100 );
+
+	tmp = port.getQueueDepth();
+	assertTrue("CurrentQueueDepth - new",  tmp == 0 );
+
+	port.setQueueThreshold(22);
+	tmp = port.getQueueThreshold();
+	assertTrue("SetMaxQueueDepth - set value",  tmp == 22 );
+
+        // enable data flow into port
+        port.start();
+
+	// check that port queue is empty
+	logger.debug("------  Get Packet  ------- ");
+	burstio.@name@Packet pkt  = port.getBurst( bulkio.Const.NON_BLOCKING );
+	assertTrue("GetPacket - no data",  pkt == null );
+
+        // check other 
+	logger.debug("------  Get Bursts  ------- ");
+        BURSTIO.@name@Burst[] seq_pkt  = port.getBursts(bulkio.Const.NON_BLOCKING );
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts returned bad sequence", seq_pkt != null );
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts Sequence length invalid", seq_pkt.length == 0 );
+ 
+        BULKIO.PrecisionUTCTime TS = burstio.Utils.now();
+        String sid = "test_port_api";
+        String id = "id-1";
+        BURSTIO.BurstSRI sri = make_sri_test(sid, id);
+        BURSTIO.@name@Burst[] bursts = new BURSTIO.@name@Burst[1];
+        BURSTIO.@name@Burst burst = new BURSTIO.@name@Burst();
+        burst.SRI = sri;
+        burst.EOS = false;
+        burst.T = burstio.Utils.now();
+        burst.data = new @type@[50];
+        bursts[0] = burst;
+
+        port.pushBursts( bursts );
+
+        // set to default queue threshold
+        tmp = port.getQueueDepth();
+        assertTrue( "BURSTIO_IN_PORT_TEST getQueueDepth should be 1", tmp == 1);
+
+        //
+        // Grab off first entry..   check that pieces are not corrupt
+        //
+        pkt  = port.getBurst(bulkio.Const.NON_BLOCKING );
+
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts PKT != null ", null != pkt );
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts EOS mismatch ", false == pkt.getEOS() );
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts Data Length mismatch ", 50 == pkt.getSize() );
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts Mode ", false == pkt.isComplex() );
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts SRI mismatch ", sid.equals(pkt.getStreamID()) );
+        BURSTIO.BurstSRI asri = pkt.getSRI();
+        String t = asri.modulation;
+        String expected= "mod";
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts SRI.modulation", expected.equals(t) );
+        t = asri.fec;  
+        expected = "vit";
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts SRI.fec", expected.equals(t) );
+        t = asri.fecrate;  
+        expected = "7/8";
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts SRI.fec", expected.equals(t) );
+        t = asri.randomizer;  
+        expected = "R20";
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts SRI.fec", expected.equals(t) );
+        t = asri.overhead;  
+        expected = "unknown";
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts SRI.overhead", expected.equals(t) );
+
+        // disable data flow into port
+        port.stop();
+
+        port.pushBursts( bursts );
+
+        // set to default queue threshold
+        tmp = port.getQueueDepth();
+        assertTrue( "BURSTIO_IN_PORT_TEST getQueueDepth should be 0", tmp == 0);
+
+        //
+        // Try and grab a packet, should be empty
+        //
+        pkt  = port.getBurst(bulkio.Const.NON_BLOCKING );
+        assertTrue( "BURSTIO_IN_PORT_TEST getBursts PKT == null ", null == pkt );
+
+        logger.debug( "BURSTIO IN-PORT API: @name@" );
+
+    }
+
+
+    @Test
+            public void test_push_flush_sequence( ) {
+            
+            logger.debug("BURSTIO PUSH/FLUSH BEGIN: @name@ ");
+		
+            burstio.Burst@name@In port = new burstio.Burst@name@In("test_inport_api");
+
+            int totalBursts=55;
+            port.setQueueThreshold( totalBursts );
+
+            // enable flow
+            port.start();
+
+            int i,j, tmp;
+            totalBursts=0;
+            BURSTIO.@name@Burst[] bursts;
+            BURSTIO.@name@Burst burst;
+            burstio.@name@Packet pkt;
+            BURSTIO.BurstSRI sri;
+            for ( i=0; i<10 && totalBursts < 55 ;i++ ) {
+                // test out flush works and no issue occurrs
+                bursts = new BURSTIO.@name@Burst[i*2];
+                logger.debug( "BURSTIO-PUSH/FLUSH Make'um if you can ...." +  port.getName() );
+
+                for ( j=0; j<i*2 && totalBursts < 55 ;j+=2 ) {
+                    burst = new BURSTIO.@name@Burst();
+                    burst.SRI = make_sri_pkt1();
+                    burst.EOS = false;
+                    burst.T = burstio.Utils.now();
+                    burst.data = new @type@[50];
+                    bursts[j] = burst;
+                    totalBursts++;
+
+                    burst = new BURSTIO.@name@Burst();
+                    sri = make_sri_pkt2();
+                    sri.expectedStartOfBurstTime=burstio.Utils.now();
+                    burst.SRI = sri;
+                    burst.EOS = true;
+                    burst.T = burstio.Utils.now();
+                    burst.data = new @type@[100];
+                    bursts[j+1] = burst;
+                    totalBursts++;
+                }
+                logger.debug( "BURSTIO-PUSH/FLUSH Push'um if you got'em ...." +  port.getName() );
+                port.pushBursts( bursts );
+            }
+
+            logger.debug( "BURSTIO-PUSH/FLUSH Grab Burst Packet ...." +  port.getName() );
+
+            // set to default queue threshold
+            tmp = port.getQueueDepth();
+            assertTrue( "BURSTIO-PUSH/FLUSH getQueueDepth for total busrts", tmp == totalBursts);
+
+            //
+            // Grab off first entry..   check that pieces are not corrupt
+            //
+            pkt  = port.getBurst(bulkio.Const.NON_BLOCKING );
+            assertTrue( "BURSTIO-PUSH/FLUSH  (MultiPacket) getBursts PKT != ull ", null != pkt );
+            assertTrue( "BURSTIO-PUSH/FLUSH  (MultiPacket) getBursts EOS mismatch ", false == pkt.getEOS() );
+            assertTrue( "BURSTIO-PUSH/FLUSH  (MultiPacket) getBursts Complex mismatch ", false == pkt.isComplex() );
+            assertTrue( "BURSTIO-PUSH/FLUSH  (MultiPacket) getBursts Data Length mismatch ", 50 == pkt.getSize() );
+            assertTrue( "BURSTIO-PUSH/FLUSH  (MultiPacket) getBursts SRI mismatch ", "packet 1" == pkt.getStreamID() );
+
+            //
+            // Grab off second entry..   check that pieces are not corrupt
+            //
+            pkt  = port.getBurst(bulkio.Const.NON_BLOCKING );
+            assertTrue( "BURSTIO-PUSH/FLUSH  (MultiPacket-2) getBursts PKT != null ", null != pkt );
+            assertTrue( "BURSTIO-PUSH/FLUSH  (MultiPacket-2) getBursts EOS mismatch ", true == pkt.getEOS() );
+            assertTrue( "BURSTIO-PUSH/FLUSH  (MultiPacket-2) getBursts Complex mismatch ", true == pkt.isComplex() );
+            assertTrue( "BURSTIO-PUSH/FLUSH  (MultiPacket-2) getBursts Data Length mismatch ", 100 == pkt.getSize() );
+            assertTrue( "BURSTIO-PUSH/FLUSH  (MultiPacket-2) getBursts SRI mismatch ", "packet 2" == pkt.getStreamID() );
+
+            port.flush();
+  
+            // set to default queue threshold
+            tmp = port.getQueueDepth();
+            assertTrue( "BURSTIO PUSH/FLUSH  getQueueDepth, should be empty", tmp == 0 );            
+
+            //
+            // Try and grab a packet, should be empty
+            //
+            pkt  = port.getBurst(bulkio.Const.NON_BLOCKING );
+            assertTrue( "BURSTIO-PUSH/FLUSH getBursts PKT != NULL ", null == pkt );
+
+            logger.debug( "BURSTIO-PUSH/FLUSH END: @name@" );
+
+
+        }
+
+
+}
+

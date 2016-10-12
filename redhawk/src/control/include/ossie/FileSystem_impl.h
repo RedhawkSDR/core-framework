@@ -24,27 +24,24 @@
 #define __FILESYSTEM_IMPL__
 
 #include <vector>
+#include <map>
 #include <string>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include "ossie/File_impl.h"
-#include "ossie/ossieSupport.h"
-#include <ossie/prop_helpers.h>
+#include <ossie/CF/cf.h>
+#include <ossie/debug.h>
 
 class FileSystem_impl: public virtual POA_CF::FileSystem
 {
     ENABLE_LOGGING
 
 public:
-    FileSystem_impl ();
     FileSystem_impl (const char* _root);
-    ~ FileSystem_impl ();
+    ~FileSystem_impl ();
 
     void remove (const char* fileName)
-        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
-    void _local_remove (const char* fileName)
         throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
 
     void copy (const char* sourceFileName, const char* destinationFileName)
@@ -64,8 +61,6 @@ public:
 
     CORBA::Boolean exists (const char* fileName)
         throw (CF::InvalidFileName, CORBA::SystemException);
-    CORBA::Boolean _local_exists (const char* fileName)
-        throw (CF::InvalidFileName, CORBA::SystemException);
 
     CF::File_ptr create (const char* fileName)
         throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
@@ -78,20 +73,28 @@ public:
 
     std::string getLocalPath(const char* fileName);
 
-    void incrementFileIORCount(std::string &fileName, std::string &fileIOR);
-
-    void decrementFileIORCount(std::string &fileName, std::string &fileIOR);
-
-    std::vector< std::string > getFileIOR(std::string &fileName);
+protected:
+    CORBA::ULongLong getSize () const;
+    CORBA::ULongLong getAvailableSpace () const;
 
 private:
     FileSystem_impl (const FileSystem_impl& _fsi);
     FileSystem_impl operator= (FileSystem_impl _fsi);
 
-    void init ();
+    friend class File_impl;
+
+    typedef std::vector<std::string> IORList;
+    typedef std::map<std::string, IORList> IORTable;
+
+    bool _local_exists (const char* fileName);
+
     void removeDirectory(const boost::filesystem::path& dirPath, bool doRemove);
 
-    std::map< std::string, std::vector<std::string> > fileOpenIOR;
+    void incrementFileIORCount(std::string &fileName, std::string &fileIOR);
+    void decrementFileIORCount(std::string &fileName, std::string &fileIOR);
+    IORList getFileIOR(std::string &fileName);
+
+    IORTable fileOpenIOR;
 
     boost::filesystem::path root;
     boost::mutex interfaceAccess;

@@ -28,32 +28,28 @@
 # WARNING! All changes made in this file will be lost!
 
 
-from qt import *
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
 
 
 class InstallDialogBase(QDialog):
     def __init__(self,parent = None,name = None,modal = 0,fl = 0):
-        QDialog.__init__(self,parent,name,modal,fl)
+        QDialog.__init__(self,parent)
 
-        if not name:
-            self.setName("InstallDialogBase")
+        InstallDialogBaseLayout = QHBoxLayout(self)
 
-
-        InstallDialogBaseLayout = QHBoxLayout(self,11,6,"InstallDialogBaseLayout")
-
-        self.appListBox = QListBox(self,"appListBox")
+        self.appListBox = QListWidget(self)
         InstallDialogBaseLayout.addWidget(self.appListBox)
 
-        layout6 = QVBoxLayout(None,0,6,"layout6")
+        layout6 = QVBoxLayout(None)
 
-        layout5 = QGridLayout(None,1,1,0,6,"layout5")
+        layout5 = QGridLayout(None)
 
-        self.cancelButton = QPushButton(self,"cancelButton")
+        self.cancelButton = QPushButton(self)
 
         layout5.addWidget(self.cancelButton,1,0)
 
-        self.installButton = QPushButton(self,"installButton")
-        self.installButton.setDefault(1)
+        self.installButton = QPushButton(self)
 
         layout5.addWidget(self.installButton,0,0)
         layout6.addLayout(layout5)
@@ -63,19 +59,17 @@ class InstallDialogBase(QDialog):
 
         self.languageChange()
 
-        self.resize(QSize(576,256).expandedTo(self.minimumSizeHint()))
-        self.clearWState(Qt.WState_Polished)
-
         self.connect(self.cancelButton,SIGNAL("clicked()"),self.reject)
         self.connect(self.installButton,SIGNAL("clicked()"),self.accept)
+        self.appListBox.itemDoubleClicked.connect(self.onItemDoubleClicked)
 
-
+    def onItemDoubleClicked(self, item):
+        self.accept()
+        
     def languageChange(self):
-        self.setCaption(self.__tr("Install Application"))
+        self.setWindowTitle(self.__tr("Install Application"))
         self.cancelButton.setText(self.__tr("&Cancel"))
-        self.cancelButton.setAccel(self.__tr("Alt+C"))
-        self.installButton.setText(self.__tr("&Install"))
-        self.installButton.setAccel(self.__tr("Alt+I"))
+        self.installButton.setText(self.__tr("&Create"))
 
 
     def __tr(self,s,c = None):

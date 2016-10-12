@@ -98,3 +98,13 @@ const std::vector<SoftwareAssembly::Port>& SoftwareAssembly::getExternalPorts() 
     assert(_sad.get() != 0);
     return _sad->externalports;
 }
+
+const std::vector<SoftwareAssembly::Property>& SoftwareAssembly::getExternalProperties() const {
+    assert(_sad.get() != 0);
+    return _sad->externalproperties;
+}
+
+const std::vector<SoftwareAssembly::UsesDevice>& SoftwareAssembly::getUsesDevices() const {
+    assert(_sad.get() != 0);
+    return _sad->usesdevice;
+}

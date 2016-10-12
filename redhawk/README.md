@@ -10,7 +10,7 @@ REDHAWK Website: [www.redhawksdr.org](http://www.redhawksdr.org)
 
 ## Copyrights
 
-This work is protected by Copyright. Please refer to the [Copyright File](COPYRIGHT) for updated copyright information.
+This work is protected by Copyright. Please refer to the [Copyright File](src/COPYRIGHT) for updated copyright information.
 
 ## License
 

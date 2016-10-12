@@ -67,48 +67,44 @@ public class TestJavaProps extends Resource implements Runnable {
      * <!-- end-user-doc -->
      * @generated
      */
-    public final SimpleProperty<Long> ulong_prop =
-       new SimpleProperty<Long>(
-           "DCE:dd8d450f-d377-4c2c-8c3c-207e42dae017", // id
+    public final ULongProperty ulong_prop =
+       new ULongProperty(
+           "ulong_prop", // id
            "ulong_prop", // name
-           "ulong", // type
            null, // default value
-           "readwrite", // mode
-           "external", // action
-           new String[] {"configure",} // kind
+           Mode.READWRITE, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.CONFIGURE} // kind
            );
     
-    public final SimpleProperty<Long> non_queryable =
-       new SimpleProperty<Long>(
+    public final ULongProperty non_queryable =
+       new ULongProperty(
            "non_queryable", // id
            "non_queryable", // name
-           "ulong", // type
            null, // default value
-           "writeonly", // mode
-           "external", // action
-           new String[] {"configure",} // kind
+           Mode.WRITEONLY, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.CONFIGURE} // kind
            );
     
-    public final SimpleProperty<Long> exec_param =
-       new SimpleProperty<Long>(
+    public final ULongProperty exec_param =
+       new ULongProperty(
            "exec_param", // id
            "exec_param", // name
-           "ulong", // type
            null, // default value
-           "readwrite", // mode
-           "external", // action
-           new String[] {"execparam",} // kind
+           Mode.READWRITE, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.EXECPARAM} // kind
            );
     
-    public final SimpleProperty<Long> non_query_exec_param =
-       new SimpleProperty<Long>(
+    public final ULongProperty non_query_exec_param =
+       new ULongProperty(
            "non_query_exec_param", // id
            "non_query_exec_param", // name
-           "ulong", // type
            null, // default value
-           "writeonly", // mode
-           "external", // action
-           new String[] {"execparam",} // kind
+           Mode.WRITEONLY, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.EXECPARAM} // kind
            );
            
     /**
@@ -119,15 +115,14 @@ public class TestJavaProps extends Resource implements Runnable {
      * <!-- end-user-doc -->
      * @generated
      */
-    public final SimpleSequenceProperty< Integer > long_seq =
-       new SimpleSequenceProperty< Integer >(
-           "DCE:3303ee57-70bb-4325-84ad-fb7fd333c44a", // id
+    public final LongSequenceProperty long_seq =
+       new LongSequenceProperty(
+           "long_seq", // id
            "long_seq", // name
-           "long", // type
            new ArrayList<Integer> (), // default value
-           "readwrite", // mode
-           "external", // action
-           new String[] {"configure",} // kind
+           Mode.READWRITE, // mode
+           Action.EXTERNAL, // action
+           new Kind[] {Kind.CONFIGURE,} // kind
            );
     
     /**
@@ -146,15 +141,14 @@ public class TestJavaProps extends Resource implements Runnable {
          * <!-- end-user-doc -->
          * @generated
          */
-        public final SimpleProperty<Integer> field =
-           new SimpleProperty<Integer>(
+        public final LongProperty field =
+           new LongProperty(
                "item_long", // id
                null, // name
-               "long", // type
                0, // default value
-               "readwrite", // mode
-               "external", // action
-               new String[] {"configure",} // kind
+               Mode.READWRITE, // mode
+               Action.EXTERNAL, // action
+               new Kind[] {Kind.CONFIGURE,} // kind
               ); 
         /**
          * The struct field item_string.
@@ -164,15 +158,14 @@ public class TestJavaProps extends Resource implements Runnable {
          * <!-- end-user-doc -->
          * @generated
          */
-        public final SimpleProperty<String> field_2 =
-           new SimpleProperty<String>(
+        public final StringProperty field_2 =
+           new StringProperty(
                "item_string", // id
                null, // name
-               "string", // type
                "default", // default value
-               "readwrite", // mode
-               "external", // action
-               new String[] {"configure",} // kind
+               Mode.READWRITE, // mode
+               Action.EXTERNAL, // action
+               new Kind[] {Kind.CONFIGURE,} // kind
               );
         
         /**
@@ -196,23 +189,23 @@ public class TestJavaProps extends Resource implements Runnable {
      */
     public final StructProperty<struct_prop_struct> struct_prop =
        new StructProperty<struct_prop_struct>(
-           "DCE:23a6d333-55fb-4425-a102-185e6e998782", // id
+           "struct_prop", // id
            "struct_prop", // name
+           struct_prop_struct.class, // type
            new struct_prop_struct(), // type
-           new struct_prop_struct(), // type
-           "readwrite", // mode
-           new String[] { "configure" }// kind
+           Mode.READWRITE, // mode
+           new Kind[] { Kind.CONFIGURE }// kind
            );
     
 
     public final StructSequenceProperty<struct_prop_struct> structseq_prop =
        new StructSequenceProperty<struct_prop_struct>(
-           "DCE:d933f8ba-9e79-4d2c-a1b5-9fb9da0ea740", // id
+           "structseq_prop", // id
            "structseq_prop", // name
            struct_prop_struct.class, // type
            new ArrayList<struct_prop_struct>(Arrays.asList(new struct_prop_struct(), new struct_prop_struct())), // default
-           "readwrite", // mode
-           new String[] { "configure" }// kind
+           Mode.READWRITE, // mode
+           new Kind[] { Kind.CONFIGURE }// kind
            );
 
     // Project/input)
@@ -319,7 +312,6 @@ public class TestJavaProps extends Resource implements Runnable {
             //begin-user-code
             // Process data here
             try {
-                long_seq.getValue().clear();
                 Thread.sleep(1000);
         
             } catch (InterruptedException e) {

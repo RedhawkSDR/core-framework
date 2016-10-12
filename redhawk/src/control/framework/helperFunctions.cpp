@@ -44,12 +44,15 @@ bool ossie::isValidFileName(const char* fileName)
 {
     int fsOpSuccessAttempts = 0;
     bool fsOpSuccess = false;
+    if (fileName[0] == 0) {
+        return fsOpSuccess;
+    }
     while (!fsOpSuccess) {
         try {
-#if BOOST_FILESYSTEM_VERSION == 2
-            fs::path testPath(fileName, fs::portable_posix_name);
+#if BOOST_FILESYSTEM_VERSION < 3            
+	    fs::path testPath(fileName, fs::portable_posix_name);
 #else
-            fs::path testPath(fileName);
+	    fs::path testPath(fileName);
 #endif
             fsOpSuccess = true;
         } catch ( ... ) {
@@ -85,72 +88,3 @@ std::string ossie::generateUUID()
     return std::string("DCE:") + strbuf;
 }
 
-
-static std::string getLogConfig(std::string uri)
-{
-    std::string localPath;
-
-    std::string::size_type fsPos = uri.find("?fs=");
-    if (std::string::npos == fsPos) {
-        return localPath;
-    }
-
-    std::string IOR = uri.substr(fsPos + 4);
-    CORBA::Object_var obj = ossie::corba::stringToObject(IOR);
-    if (CORBA::is_nil(obj)) {
-        return localPath;
-    }
-
-    CF::FileSystem_var fileSystem = CF::FileSystem::_narrow(obj);
-    if (CORBA::is_nil(fileSystem)) {
-        return localPath;
-    }
-
-    std::string remotePath = uri.substr(0, fsPos);
-    CF::OctetSequence_var data;
-    try {
-        CF::File_var remoteFile = fileSystem->open(remotePath.c_str(), true);
-        CORBA::ULong size = remoteFile->sizeOf();
-        remoteFile->read(data, size);
-    } catch (...) {
-        return localPath;
-    }
-
-    std::string tempPath = remotePath;
-    std::string::size_type slashPos = remotePath.find_last_of('/');
-    if (std::string::npos != slashPos) {
-        tempPath.erase(0, slashPos + 1);
-    }
-    std::fstream localFile(tempPath.c_str(), std::ios::out|std::ios::trunc);
-    if (!localFile) {
-        return localPath;
-    }
-
-    if (localFile.write((const char*)data->get_buffer(), data->length())) {
-        localPath = tempPath;
-    }
-    localFile.close();
-
-    return localPath;
-}
-
-
-void ossie::configureLogging(const char* logcfgUri, int defaultLevel)
-{
-    if (logcfgUri) {
-        if (strncmp("file://", logcfgUri, 7) == 0) {
-            // File URI, just remove the scheme.
-            LoggingConfigurator::configure(logcfgUri + 7);
-            return;
-        } else if (strncmp("sca:", logcfgUri, 4) == 0) {
-            // SCA URI; "?fs=" must have been given, or the file will not be located.
-            std::string localFile = getLogConfig(std::string(logcfgUri + 4));
-            if (!localFile.empty()) {
-                LoggingConfigurator::configure(localFile.c_str());
-                return;
-            }
-        }
-    }
-
-    LoggingConfigurator::configure(defaultLevel);
-}

@@ -1,25 +1,25 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
 import unittest, os
-import scatest
+from _unitTestHelpers import scatest
 from omniORB import URI, any
 from ossie.cf import CF
 
@@ -31,24 +31,24 @@ class LoggingConfigTest(scatest.CorbaTestCase):
             domLoggingConfigArg = ""
         domNB, domMgr = self.launchDomainManager(loggingURI=domLoggingConfigArg)
         self.assertNotEqual(domMgr, None)
-        
+
         prop = CF.DataType(id="LOGGING_CONFIG_URI", value=any.to_any(None))
         result = domMgr.query([prop])
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].id, "LOGGING_CONFIG_URI")
-        domLoggingConfigURI = result[0].value._v 
+        domLoggingConfigURI = result[0].value._v
 
         # Launch a device manager
         if not devLoggingConfigArg:
             devLoggingConfigArg = ""
         devNB, devMgr = self.launchDeviceManager("/nodes/test_EmptyNode/DeviceManager.dcd.xml", loggingURI=devLoggingConfigArg)
         self.assertNotEqual(devMgr, None)
-        
+
         prop = CF.DataType(id="LOGGING_CONFIG_URI", value=any.to_any(None))
         result = devMgr.query([prop])
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].id, "LOGGING_CONFIG_URI")
-        devLoggingConfigURI = result[0].value._v 
+        devLoggingConfigURI = result[0].value._v
 
         return domLoggingConfigURI, devLoggingConfigURI
 
@@ -85,7 +85,7 @@ class LoggingConfigTest(scatest.CorbaTestCase):
         self.assertEqual(devLoggingConfigUri, expectedDevLoggingConfigUri)
 
     def test_ScaURI(self):
-        domLoggingConfigArg = "sca:///mgr/logging.properties" 
+        domLoggingConfigArg = "sca:///mgr/logging.properties"
         devLoggingConfigArg = "sca:///mgr/logging.properties"
 
         domLoggingConfigUri, devLoggingConfigUri = self._testLoggingConfigURI(domLoggingConfigArg, devLoggingConfigArg)
@@ -96,11 +96,11 @@ class LoggingConfigTest(scatest.CorbaTestCase):
     def test_ApplicationFactoryURIPassDown(self):
         domNB, domMgr = self.launchDomainManager(loggingURI="sca:///mgr/logging.properties")
         self.assertNotEqual(domMgr, None)
-        
+
         # Launch a device manager
         devNB, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", loggingURI="dev/mgr/logging.properties")
         self.assertNotEqual(domMgr, None)
-       
+
         # Double check the DomainManager LOGGING_CONFIG_URI
         prop = CF.DataType(id="LOGGING_CONFIG_URI", value=any.to_any(None))
         result = domMgr.query([prop])
@@ -151,11 +151,11 @@ class LoggingConfigTest(scatest.CorbaTestCase):
     def test_ApplicationFactoryCreateURIOverride(self):
         domNB, domMgr = self.launchDomainManager(loggingURI="dom/mgr/logging.properties")
         self.assertNotEqual(domMgr, None)
-        
+
         # Launch a device manager
         devNB, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", loggingURI="dev/mgr/logging.properties")
         self.assertNotEqual(domMgr, None)
-       
+
         # Double check the DomainManager LOGGING_CONFIG_URI
         prop = CF.DataType(id="LOGGING_CONFIG_URI", value=any.to_any(None))
         result = domMgr.query([prop])
@@ -212,11 +212,11 @@ class LoggingConfigTest(scatest.CorbaTestCase):
 
         domNB, domMgr = self.launchDomainManager(loggingURI="dom/mgr/logging_2.properties")
         self.assertNotEqual(domMgr, None)
-        
+
         # Launch a device manager
         devNB, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", loggingURI="dev/mgr/logging.properties")
         self.assertNotEqual(domMgr, None)
-       
+
         # Double check the DomainManager LOGGING_CONFIG_URI
         prop = CF.DataType(id="LOGGING_CONFIG_URI", value=any.to_any(None))
         result = domMgr.query([prop])
@@ -249,12 +249,12 @@ class LoggingConfigTest(scatest.CorbaTestCase):
             name = a[0]
             value = a[1]
             execparams[name] = value
-        
+
         app.start()
         app.stop()
-        
+
         app.releaseObject()
-        
+
         fp=open(logfile,'r')
         log_contents=fp.read()
         fp.close()
@@ -275,11 +275,11 @@ class LoggingConfigTest(scatest.CorbaTestCase):
         # Test that the device manager passes the LOGGING_CONFIG_URI to the devices
         domNB, domMgr = self.launchDomainManager(loggingURI="")
         self.assertNotEqual(domMgr, None)
-        
+
         # Launch a device manager
         devNB, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", loggingURI="sca:///mgr/logging.properties")
         self.assertNotEqual(devMgr, None)
-       
+
         # Double check the DeviceManager LOGGING_CONFIG_URI
         prop = CF.DataType(id="LOGGING_CONFIG_URI", value=any.to_any(None))
         result = devMgr.query([prop])
@@ -309,11 +309,11 @@ class LoggingConfigTest(scatest.CorbaTestCase):
         # Test that the device manager DCD can override the log4cxx URI
         domNB, domMgr = self.launchDomainManager(loggingURI="")
         self.assertNotEqual(domMgr, None)
-        
+
         # Launch a device manager
         devNB, devMgr = self.launchDeviceManager("/nodes/test_LoggingBasicTestDevice_node/DeviceManager.dcd.xml", loggingURI="dev/mgr/logging.properties")
         self.assertNotEqual(devMgr, None)
-        
+
         # Double check the DeviceManager LOGGING_CONFIG_URI
         prop = CF.DataType(id="LOGGING_CONFIG_URI", value=any.to_any(None))
         result = devMgr.query([prop])

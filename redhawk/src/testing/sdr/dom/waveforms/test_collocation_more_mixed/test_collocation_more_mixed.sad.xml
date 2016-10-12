@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:0d80a28d-796d-4a6c-9f0f-1da4d4120346" name="test_collocation_more_mixed">
+  <componentfiles>
+    <componentfile id="noop_mix_one_spd" type="SPD">
+      <localfile name="/components/noop_mix_one/noop_mix_one.spd.xml"/>
+    </componentfile>
+    <componentfile id="noop_mix_two_spd" type="SPD">
+      <localfile name="/components/noop_mix_two/noop_mix_two.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <hostcollocation id="ID_TEST_SET1" name="COLLOC_SET1">
+      <componentplacement>
+        <componentfileref refid="noop_mix_one_spd"/>
+        <componentinstantiation id="noop_mix_one_1" startorder="1">
+          <usagename>noop_mix_one_1</usagename>
+          <findcomponent>
+            <namingservice name="noop_mix_one_1"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+      <componentplacement>
+        <componentfileref refid="noop_mix_two_spd"/>
+        <componentinstantiation id="noop_mix_two_1" startorder="2">
+          <usagename>noop_mix_two_1</usagename>
+          <findcomponent>
+            <namingservice name="noop_mix_two_1"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+    </hostcollocation>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="noop_mix_two_1"/>
+  </assemblycontroller>
+</softwareassembly>

@@ -1,56 +1,56 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
 import unittest, os
-import scatest
+from _unitTestHelpers import scatest
 import time
 from omniORB import CORBA, URI, any
 from ossie.cf import CF, CF__POA
 import commands, signal
 
-def getChildren(parentPid): 
-    process_listing = commands.getoutput('ls /proc').split('\n') 
-    children = [] 
-    for entry in process_listing: 
-        try: 
-            filename = '/proc/'+entry+'/status' 
-            fp = open(filename,'r') 
-            stuff=fp.read() 
-            fp.close() 
-            rows = stuff.split('\n') 
-            for row in rows: 
-                if row[:4]=='PPid': 
+def getChildren(parentPid):
+    process_listing = commands.getoutput('ls /proc').split('\n')
+    children = []
+    for entry in process_listing:
+        try:
+            filename = '/proc/'+entry+'/status'
+            fp = open(filename,'r')
+            stuff=fp.read()
+            fp.close()
+            rows = stuff.split('\n')
+            for row in rows:
+                if row[:4]=='PPid':
                     PPid = int(row.split(':')[1][1:])
-                    if PPid == parentPid: 
-                        children.append(int(entry)) 
-                        break 
-        except: 
-            continue 
+                    if PPid == parentPid:
+                        children.append(int(entry))
+                        break
+        except:
+            continue
     return children
 
 def killProcesses(parentPid):
     # kills processes from the top down (children),
     # starting with parentPid
-    
+
     childPids = getChildren(parentPid)
-    
+
     try:
         os.kill(parentPid, signal.SIGKILL)
         os.waitpid(parentPid, 0)
@@ -69,9 +69,9 @@ class HardFailTest(scatest.CorbaTestCase):
         #   - test that when a device fails hard (ex: seg fault or kill -9)
         #     that things still behave as expected
 
-        domBooter, domMgr = self.launchDomainManager(debug=9)
-        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=9)
-        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=9)
+        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
 
         devInfo = []
         devInfo.append({"booter":devBooterA, "mgr":devMgrA})
@@ -97,14 +97,14 @@ class HardFailTest(scatest.CorbaTestCase):
         app1 = appFact.create(appFact._get_name(), [], [])
         processIds = app1._get_componentProcessIds()
         componentProcessId = processIds[0].processId
-        
+
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
         self.assertEqual(len(domMgr._get_applications()), 1)
 
         # find which device manager it got installed on
         devMgrToKill = None
         devMgrToRelaunchOn = None
-        
+
         if devInfo[0]['dev'].query(prop)[0].value.value() != devInfo[0]['dev_BogoMipsCapacity']:
             devMgrToKill = 0
             devMgrToRelaunchOn = 1
@@ -117,7 +117,7 @@ class HardFailTest(scatest.CorbaTestCase):
         # kill the device on which the waveform was launched
         devs = getChildren(devInfo[devMgrToKill]['booter'].pid)
         self.assertEqual(len(devs), 1)
-        
+
         try:
             os.kill(devs[0], signal.SIGKILL)
             os.waitpid(devs[0], 0)
@@ -130,18 +130,21 @@ class HardFailTest(scatest.CorbaTestCase):
                 time.sleep(0.5)
 
         self.assertEqual(len(domMgr._get_applications()), 0)
-        
-        # kill off remaining component process
-        os.kill(componentProcessId, signal.SIGKILL)
+
+        # kill off remaining component process if it is still around
+        try:
+            os.kill(componentProcessId, signal.SIGKILL)
+        except:
+            pass
 
     def test_HardFailComponent(self):
         # test HardFail of the component(s) in and application
         #   - test that when a component fails hard (ex: seg fault or kill -9)
         #     that things still behave as expected
 
-        domBooter, domMgr = self.launchDomainManager(debug=9)
-        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=9)
-        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=9)
+        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
 
         devInfo = []
         devInfo.append({"booter":devBooterA, "mgr":devMgrA})
@@ -165,14 +168,14 @@ class HardFailTest(scatest.CorbaTestCase):
         self.assertEqual(len(domMgr._get_applications()), 0)
         appFact = domMgr._get_applicationFactories()[0]
         app1 = appFact.create(appFact._get_name(), [], [])
-        
+
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
         self.assertEqual(len(domMgr._get_applications()), 1)
 
         # find which device manager it got installed on
         devMgrToKill = None
         devMgrToRelaunchOn = None
-        
+
         if devInfo[0]['dev'].query(prop)[0].value.value() != devInfo[0]['dev_BogoMipsCapacity']:
             devMgrToKill = 0
             devMgrToRelaunchOn = 1
@@ -201,9 +204,9 @@ class HardFailTest(scatest.CorbaTestCase):
             app1.releaseObject()
         except:
             self.fail("application->releaseObject should work here")
-        
+
         self.assertEqual(len(domMgr._get_applications()), 0)
-      
+
 
         # make sure capacity was deallocated
         self.assertEqual(devInfo[devMgrToKill]['dev'].query(prop)[0].value.value(), devInfo[devMgrToKill]['dev_BogoMipsCapacity'])
@@ -214,9 +217,9 @@ class HardFailTest(scatest.CorbaTestCase):
         #   - test that when a Device Manager fails hard (ex: seg fault or kill -9)
         #     that things still behave as expected
 
-        domBooter, domMgr = self.launchDomainManager(debug=9)
-        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=9)
-        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=9)
+        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
 
         devInfo = []
         devInfo.append({"booter":devBooterA, "mgr":devMgrA})
@@ -240,14 +243,14 @@ class HardFailTest(scatest.CorbaTestCase):
         self.assertEqual(len(domMgr._get_applications()), 0)
         appFact = domMgr._get_applicationFactories()[0]
         app1 = appFact.create(appFact._get_name(), [], [])
-        
+
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
         self.assertEqual(len(domMgr._get_applications()), 1)
 
         # find which device manager it got installed on
         devMgrToKill = None
         devMgrToRelaunchOn = None
-        
+
         if devInfo[0]['dev'].query(prop)[0].value.value() != devInfo[0]['dev_BogoMipsCapacity']:
             devMgrToKill = 0
             devMgrToRelaunchOn = 1
@@ -256,7 +259,7 @@ class HardFailTest(scatest.CorbaTestCase):
             devMgrToRelaunchOn = 0
         else:
             self.fail("Application didn't launch on either device manager")
-        
+
         # get the DeviceManager's children, so we can clean up
         devMgr_children = getChildren(devInfo[devMgrToKill]['booter'].pid)
 
@@ -277,7 +280,7 @@ class HardFailTest(scatest.CorbaTestCase):
             app1.releaseObject()
         except:
             self.fail("application->releaseObject should work here")
-        
+
         self.assertEqual(len(domMgr._get_applications()), 0)
 
         # make sure capacity was deallocated
@@ -292,9 +295,9 @@ class HardFailTest(scatest.CorbaTestCase):
         #   - test that when a Device Manager fails hard (ex: seg fault or kill -9)
         #     and then it is restarted that things still behave as expected
 
-        domBooter, domMgr = self.launchDomainManager(debug=9)
-        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=9)
-        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=9)
+        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
 
         devInfo = []
         devInfo.append({"booter":devBooterA, "mgr":devMgrA})
@@ -318,14 +321,14 @@ class HardFailTest(scatest.CorbaTestCase):
         self.assertEqual(len(domMgr._get_applications()), 0)
         appFact = domMgr._get_applicationFactories()[0]
         app1 = appFact.create(appFact._get_name(), [], [])
-        
+
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
         self.assertEqual(len(domMgr._get_applications()), 1)
 
         # find which device manager it got installed on
         devMgrToKill = None
         devMgrToRelaunchOn = None
-        
+
         if devInfo[0]['dev'].query(prop)[0].value.value() != devInfo[0]['dev_BogoMipsCapacity']:
             devMgrToKill = 0
             devMgrToRelaunchOn = 1
@@ -340,28 +343,28 @@ class HardFailTest(scatest.CorbaTestCase):
 
         # at this point, the domain manager still thinks things are in good shape
         self.assertEqual(len(domMgr._get_applications()), 1)
-     
+
         # relaunch device manager
         if devMgrToKill == 0:
-            devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=9)
+            devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
             devInfo[0]['booter'] = devBooterA
             devInfo[0]['mgr'] = devMgrA
         else:
-            devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=9)
+            devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
             devInfo[1]['booter'] = devBooterB
             devInfo[1]['mgr'] = devMgrB
-        
+
         # stale app should have been cleaned up
         self.assertEqual(len(domMgr._get_applications()), 0)
-       
+
     def test_HardFailAll(self):
         # test HardFail of a node
         #   - test that when a DeviceManager and its devices and apps fail hard (ex: power failure)
         #     that things still behave as expected
 
-        domBooter, domMgr = self.launchDomainManager(debug=9)
-        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=9)
-        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=9)
+        domBooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        devBooterA, devMgrA = self.launchDeviceManager("/nodes/test_HardFail_nodeA/DeviceManager.dcd.xml", debug=self.debuglevel)
+        devBooterB, devMgrB = self.launchDeviceManager("/nodes/test_HardFail_nodeB/DeviceManager.dcd.xml", debug=self.debuglevel)
 
         devInfo = []
         devInfo.append({"booter":devBooterA, "mgr":devMgrA})
@@ -385,14 +388,14 @@ class HardFailTest(scatest.CorbaTestCase):
         self.assertEqual(len(domMgr._get_applications()), 0)
         appFact = domMgr._get_applicationFactories()[0]
         app1 = appFact.create(appFact._get_name(), [], [])
-        
+
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
         self.assertEqual(len(domMgr._get_applications()), 1)
 
         # find which device manager it got installed on
         devMgrToKill = None
         devMgrToRelaunchOn = None
-        
+
         if devInfo[0]['dev'].query(prop)[0].value.value() != devInfo[0]['dev_BogoMipsCapacity']:
             devMgrToKill = 0
             devMgrToRelaunchOn = 1
@@ -406,19 +409,20 @@ class HardFailTest(scatest.CorbaTestCase):
         killProcesses(devInfo[devMgrToKill]['booter'].pid)
 
         # try to stop and release the application (even though everything associated with it is dead)
-           
+
         self.assertRaises(CF.Resource.StopError, app1.stop)
-            
+
         try:
             app1.releaseObject()
         except:
             self.fail("releaseObject should have completed successfully here")
-        
+
         # launch a waveform again on the second device manager
         appFact = domMgr._get_applicationFactories()[0]
         app2 = appFact.create(appFact._get_name(), [], [])
-        
+
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
         self.assertEqual(len(domMgr._get_applications()), 1)
         self.assertNotEqual(devInfo[devMgrToRelaunchOn]['dev'].query(prop)[0].value.value(),devInfo[devMgrToRelaunchOn]['dev_BogoMipsCapacity'])
+
 

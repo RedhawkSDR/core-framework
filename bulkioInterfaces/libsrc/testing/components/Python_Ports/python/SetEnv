@@ -1,0 +1,6 @@
+#
+#
+bulkio_top=../../../../../
+bulkio_libsrc_top=$bulkio_top/libsrc
+export LD_LIBRARY_PATH=$bulkio_libsrc_top/.libs:$bulkio_top/.libs:${LD_LIBRARY_PATH}
+export PYTHONPATH=$bulkio_top/build/lib:$bulkio_libsrc_top/build/lib:${PYTHONPATH}

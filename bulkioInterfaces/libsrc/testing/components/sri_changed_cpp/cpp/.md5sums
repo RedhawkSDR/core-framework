@@ -1,0 +1,10 @@
+d112ce1ae1112e99cdac2abbdf52bbd0  sri_changed_cpp.cpp
+19e302e15bb57ab4359937d71cefab2f  main.cpp
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+ae264440c7ce05f34ca3e62f86a41bee  sri_changed_cpp_base.h
+be32db27e87a9c3e8d69629e4369789b  sri_changed_cpp_base.cpp
+c3d08a91dc24cfede3ddf8b9035e1af9  configure.ac
+0524e1037a2e8935e4923dfd9d588e8e  Makefile.am
+e1748f0f729341e18286dea4e4065da3  Makefile.am.ide
+8ef82849c233a496d7bd4ae800a2195c  sri_changed_cpp.h
+0d1975802982b41325f73129696f8a63  build.sh

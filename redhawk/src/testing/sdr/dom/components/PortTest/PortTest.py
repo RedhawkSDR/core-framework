@@ -196,8 +196,8 @@ class PortTest(CF__POA.Resource, Resource):
         return []
 
     def _onPush(self, data, typecode):
-        if data == "hello":
-            self.eventSupplier.sendEvent(any.to_any("bye"))
+        if data == "message":
+            self.eventSupplier.sendEvent(any.to_any("response"))
 
 
 if __name__ == '__main__':

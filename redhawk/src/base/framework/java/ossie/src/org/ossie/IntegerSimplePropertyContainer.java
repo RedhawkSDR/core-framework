@@ -20,6 +20,10 @@
 
 package org.ossie;
 
+@Deprecated
+/**
+ * This class has been deprecated, suggest class Property instead
+ */
 public class IntegerSimplePropertyContainer extends SimplePropertyContainer<Integer> {
 
     @Override

@@ -1,20 +1,20 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
@@ -36,8 +36,8 @@ class NoDataException(Exception): pass
 #A BULKIO.StreamSRI that you can use for the pushPacket
 #call if you don't wish to define your own
 if haveBulkio:
-    defaultSRI = BULKIO.StreamSRI(hversion=1, xstart=0.0, xdelta=1.0, 
-                              xunits=1, subsize=0, ystart=0.0, ydelta=0.0, 
+    defaultSRI = BULKIO.StreamSRI(hversion=1, xstart=0.0, xdelta=1.0,
+                              xunits=1, subsize=0, ystart=0.0, ydelta=0.0,
                               yunits=0, mode=0, streamID='defStream', blocking=False, keywords=[])
 else:
     defaultSRI = None
@@ -60,40 +60,33 @@ def bulkioComplexToPythonComplexList(bulkioList):
     '''
 
     # The list comprehension below provides efficient behavior, but is
-    # somewhat difficult to read; therefore; it necessitates some 
+    # somewhat difficult to read; therefore; it necessitates some
     # explaintation.
     #
-    # Example input bulkioList = [1,2,3,4,5,6]
-    #
-    # bulkioList[0::2] = [1,3,5]
-    # bulkioList[1::2] = [2,4,6]
-    #
-    # zip(bulkioList[0::2], bulkioList[1::2]) = [(1,2), (3,4), (5,6)]
-    #
-    # list comprehension therefore computes:
-    #   result = []
-    #   for x in [(1,2), (3,4), (5,6)]:
-    #       real = x[0]
-    #       imag = x[1]
-    #       result.append(complex(real, imag))
-    if (len(bulkioList)%2):            
+    # The generator _group() chunks the input list into a series of 2-item
+    # lists using indexing; each 2-item list is then unpacked into a real
+    # and imaginary value, then used to create a complex value.
+    if (len(bulkioList)%2):
         raise BadParamException('BulkIO complex data list must have an even number of entries.')
-    return [complex(x[0], x[1]) for x in zip(bulkioList[0::2], 
-                                             bulkioList[1::2])]
+    def _group(data):
+        for ii in xrange(0, len(data), 2):
+            yield data[ii:ii+2]
+    return [complex(real,imag) for real,imag in _group(bulkioList)]
 
-def pythonComplexListToBulkioComplex(pythonComplexListInput):
-    '''
-    Convert a list of Python complex data to a BulkIO list of complex  
-    data.  For example, the Python list:
+def pythonComplexListToBulkioComplex(pythonComplexListInput, itemType=float):
+    """
+    Convert a list of Python complex data to a BulkIO list of complex
+    data, with the real and imaginary components interleaved.  For example,
+    the Python list:
 
         [(1+2j), (3+4j), (5+6j)]
 
     is converted as:
 
-        [(1+2j).real, 
-         (1+2j).imag, 
-         (3+4j).real, 
-         (3+4j).imag, 
+        [(1+2j).real,
+         (1+2j).imag,
+         (3+4j).real,
+         (3+4j).imag,
          (5+6j).real,
          (5+6j).imag]
 
@@ -101,68 +94,37 @@ def pythonComplexListToBulkioComplex(pythonComplexListInput):
 
         [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
 
-    Note that the resultant list items are always floats since the real and 
-    imag members of a Python complex are always returned as floats.  To convert
-    to another format, "int" for example, using a list comprehension is 
-    recommended:
+    By default, the real and imag members of a Python complex value are of
+    type float; however, another type object (e.g., 'int') can be given with
+    the 'itemType' argument to convert the output items:
 
-        floatList = pythonComplexListToBulkioComplex(complexList)
-        intList   = [int(iter) for iter in floatList]
+        pythonComplexListToBulkioComplex([(1+2j),(3+4j)], int)
 
-    '''
+    returns:
 
-    # define helper function 
-    def mergeComplexIntoList(listBase, complexVal):
-        '''
-        Take some list, listBase, and extend it by the real an imaginary 
-        components of complexVal.
-
-        For example:
-
-            mergeComplexIntoList([1,2], (3+4j))
-
-        will return [1,2,3,4]
-
-        '''
-
-        # define helper function 
-        def complexToList(val):
-            '''
-            For a given complex input, (R+Ij), return [R,I].
-
-            For example:
-
-                complexToList((3+4j))
-
-            will return [3,4]
-
-            '''
-
-            return [val.real, val.imag]
-
-       
-        listBase.extend(complexToList(complexVal))
-        return listBase
-
-    # The mergeComplexIntoList expects the first argument to be a list.  We 
-    # must therefore force the first argument of pythonComplexListInput to 
-    # be a list.
-    pythonComplexListInput.insert(0,[])
-
-    # Continually apply mergeComplexIntoList on pythonComplexListInput
-    # until the result is a list of real numbers.
-    #
-    # For example, [[], (1+2j), (3+4j), (5+6j)] will convert via:
-    #
-    #       [], (1+2j), (3+4j), (5+6j)
-    #       [1, 2], (3+4j), (5+6j)
-    #       [1, 2, 3, 4], (5+6j)
-    #       [1, 2, 3, 4, 5, 6]
-    return reduce(mergeComplexIntoList, pythonComplexListInput)
+        [1, 2, 3, 4]
+    """
+    def _collapse(values):
+        for val in values:
+            try:
+                yield val.real
+                yield val.imag
+            except:
+                # Python 2.4 does not support .real or .imag for simple types,
+                # which may occur in the list if mixed input is given. As a
+                # workaround, return the value and 0 converted to the same type
+                # as val.
+                yield val
+                yield type(val)(0)
+    gen = (x for x in _collapse(pythonComplexListInput))
+    if itemType == float:
+        return list(gen)
+    else:
+        return [itemType(x) for x in gen]
 
 def createCPUTimestamp():
     """
-    Generates a BULKIO.PrecisionUTCTime object using the current 
+    Generates a BULKIO.PrecisionUTCTime object using the current
     CPU time that you can use in the pushPacket call
     """
     ts = time.time()
@@ -189,16 +151,16 @@ def compareSRI(sriA, sriB):
            (sriA.streamID == sriB.streamID) and \
            (sriA.blocking == sriB.blocking) and \
            (sriA.keywords == sriB.keywords)
-    
+
 def formatData(dataSet, portRef=None, BULKIOtype=None):
     """
     Takes in a data set as a list, and either, a reference to a BULKIO
     input port, or a BULKIO data type (i.e. BULKIO.dataFloat) and returns
     a properly formatted dataSet that is able to be sent into that
     port via the pushPacket call.  For character data you can send
-    in a a list of 8 bit signed numbers, a list of strings all of 
-    which are single characters, or a single string.  For octet 
-    data you can send in a list of 8 bit unsigned numbers, a list of 
+    in a a list of 8 bit signed numbers, a list of strings all of
+    which are single characters, or a single string.  For octet
+    data you can send in a list of 8 bit unsigned numbers, a list of
     strings all of which are single characters, or a single string.
     """
     if portRef and not BULKIOtype:
@@ -212,9 +174,9 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
         portIDL = BULKIOtype._NP_RepositoryId
     else:
         raise BadParamException("Must specify either a portRef or a dataType, but not both")
-    
+
     dataType = portIDL.split('/')[1].split(':')[0]
-    
+
     dataSetType = type(dataSet)
     validSetTypes = [str, list, tuple]
     if dataSetType not in validSetTypes:
@@ -224,11 +186,11 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
         raise BadParamException(msg)
     if len(dataSet) == 0:
             raise BadParamException('dataSet parameter has length 0')
-    
+
     if dataSetType == str and not (dataType == 'dataChar' or dataType == 'dataOctet'
                                            or dataType == 'dataFile' or dataType == 'dataXML'):
                 raise BadParamException('dataSet parameter was of type string but the port is not of type character, octet, file, or xml')
-    
+
     if dataType == 'dataChar':
         if dataSetType == str:
             return dataSet
@@ -335,13 +297,13 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
         if type(dataSet) not in validDataTypes:
             raise BadParamException('dataSet contains invalid data types for port type xml:', validDataTypes[0], ' -- ', type(validDataTypes[0]))
         return dataSet
-        
+
 def restoreData(dataSet, dataType):
     """
     Function for reformatting data received over an octet or
     character port which is not in the desired format. Supported
     dataTypes are '8bit'(signed 8 bit), 'u8bit'(unsigned 8 bit)
-    or 'char'.  This function will attempt to return a list of numbers 
+    or 'char'.  This function will attempt to return a list of numbers
     or a list of characters depending on the dataType that you choose
     """
     valid_types = ['char', '8bit', 'u8bit']
@@ -350,7 +312,7 @@ def restoreData(dataSet, dataType):
         for x in valid_types:
                 msg = msg + str(x) + ', '
         raise BadParamException(msg)
-    
+
     fmt = str(len(dataSet))
     if dataType == 'char':
         fmt = fmt + 'c'
@@ -358,7 +320,7 @@ def restoreData(dataSet, dataType):
         fmt = fmt + 'b'
     elif dataType == 'u8bit':
         fmt = fmt + 'B'
-    
+
     try:
         return [x for x in struct.unpack(fmt, dataSet)]
     except:
@@ -369,7 +331,7 @@ def genRandomDataSet(sampleSize, signed=True, numSamples=1000):
     Generates a random data set of the dataType
     that is specified.  Supported sampleSizes are:
        8, 16, 32, 64
-       
+
     The number of samples in the dataset is specified
     by numSamples, and the signed flag defaults to True
     for signed data
@@ -406,25 +368,25 @@ def genRandomDataSet(sampleSize, signed=True, numSamples=1000):
             max = 2**64
     else:
         raise BadParamException('sampleSize: ' + str(sampleSize) + ' not supported')
-        
+
     #Build random data set
     dataSet = []
     random.seed()
     for x in range(numSamples):
         dataSet.append(random.randrange(min, max))
     return dataSet
-        
+
 
 def createBULKIOInputPort(portType):
     """
-    Function used to create as a BULKIOInput Port. The single argument 
+    Function used to create as a BULKIOInput Port. The single argument
     you must pass is the port type that it is supposed to be from the
-    bulkio.bulkioInterfaces BULKIO__POA module i.e. (BULKIO__POA.dataShort). 
-    You can then make the connectPort call on the output port using this port 
-    as the argument for the input port side. It will be able to receive data 
-    from that port and provide access to the data through the normal BULKIO Port API. 
+    bulkio.bulkioInterfaces BULKIO__POA module i.e. (BULKIO__POA.dataShort).
+    You can then make the connectPort call on the output port using this port
+    as the argument for the input port side. It will be able to receive data
+    from that port and provide access to the data through the normal BULKIO Port API.
     """
-    
+
     def pushSRI(self, H):
         """
         This function is called whenever the pushSRI call is
@@ -485,7 +447,7 @@ def createBULKIOInputPort(portType):
         else:
             T = None
             EOS = args[1]
-            streamID = args[2] 
+            streamID = args[2]
 
         self.port_lock.acquire()
         packet = None
@@ -515,20 +477,20 @@ def createBULKIOInputPort(portType):
                 self.queue.put(packet)
         finally:
             self.port_lock.release()
-            
-    
+
+
     def attach(self, stream, userid):
         """
         stub to be filled in for SDDS port functionality
         """
         pass
-    
+
     def detach(self, id=None):
         """
         stub to be filled in for SDDS port functionality
         """
         pass
-    
+
     def getCurrentQueueDepth(self):
         self.port_lock.acquire()
         depth = self.queue.qsize()
@@ -540,7 +502,7 @@ def createBULKIOInputPort(portType):
         depth = self.queue.maxsize
         self.port_lock.release()
         return depth
-        
+
     #set to -1 for infinite queue
     def setMaxQueueDepth(self, newDepth):
         self.port_lock.acquire()
@@ -561,9 +523,9 @@ def createBULKIOInputPort(portType):
             if timetowait == -1:
                 data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.queue.get(block=True)
             else:
-                data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.queue.get(timeout=timetowait)    
-            
-            if EOS: 
+                data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.queue.get(timeout=timetowait)
+
+            if EOS:
                 if self.sriDict.has_key(streamID):
                     sri, sriChanged = self.sriDict.pop(streamID)
                     if sri.blocking:
@@ -577,9 +539,9 @@ def createBULKIOInputPort(portType):
             return (data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed)
         except Queue.Empty:
             return None, None, None, None, None, None, None
-        
+
     #######################################
-    # These are used if your port attempts 
+    # These are used if your port attempts
     # to mimic an SDDS input port
     if portType == BULKIO__POA.dataSDDS:
         PortClass = classobj('Port',
@@ -594,7 +556,7 @@ def createBULKIOInputPort(portType):
         retval.attach = tmp.attach
         retval.detach = tmp.detach
         return retval
-    else:            
+    else:
         PortClass = classobj('PortClass',
                              (object,portType),
                              {'pushPacket':pushPacket,

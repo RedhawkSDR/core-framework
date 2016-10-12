@@ -18,4 +18,4 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-SUBDIRS = framework/idl parser framework include idl xml sdr
+SUBDIRS = parser framework sdr

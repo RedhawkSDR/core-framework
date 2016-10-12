@@ -113,6 +113,11 @@ class PropertyEventSupplier(CF__POA.Port):
 
     def disconnectPort (self, connectionId):
         if self._outPorts.has_key(str(connectionId)):
+            try:
+                consumer = self._outPorts[connectionId]['proxy_consumer']
+                consumer.disconnect_push_consumer()
+            except:
+                pass
             del self._outPorts[connectionId]
     
     def _connectSupplierToEventChannel(self, channel):

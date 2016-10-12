@@ -41,6 +41,7 @@ namespace urn:mil:jpeojtrs:sca:prf {
     PropertyValueType "::std::string";
     AccessType "::std::string";
     ActionType "::std::string";
+    IsComplex "::std::string";
     Unit "::std::string";
     PropertyConfigurationType "::std::string";
     configurationKind "::std::string";

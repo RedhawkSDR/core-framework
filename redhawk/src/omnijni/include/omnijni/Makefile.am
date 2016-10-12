@@ -23,9 +23,11 @@ subpkgincludedir = $(pkgincludedir)/omnijni
 subpkginclude_HEADERS = any.h \
 			class.h \
 			exception.h \
+			loader.h \
 			object.h \
 			omnijni.h \
 			orb.h \
 			sequence.h \
 			servant.h \
-			struct.h
+			struct.h \
+			threading.h

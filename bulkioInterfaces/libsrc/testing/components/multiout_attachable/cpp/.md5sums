@@ -1,0 +1,9 @@
+3e90cd586ef55340f720fa01c394f810  main.cpp
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+93debcdba56b6826a722d6572c43802a  configure.ac
+310ea7ad0ede382044a0cc94aa9aa24a  Makefile.am
+ccfa2e64e7cf8f57a2bc5056e90f0297  struct_props.h
+1f8c0483ef3c90c0c9cd0f1402679791  Makefile.am.ide
+bcb90affbdcff3322084421ffb5edb92  multiout_attachable_base.cpp
+2edeb4570ba55b42155b992f38587fb6  build.sh
+2c6c7f629d8b959b4256387ca3a1dd92  multiout_attachable_base.h

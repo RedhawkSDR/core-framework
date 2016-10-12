@@ -1,0 +1,19 @@
+
+doxywizard to create initial configuration file
+
+
+run from project's top directory:
+  doxygen docs/Doxyfile -- generates documentation
+
+
+view docs - use your favorite browser
+   konqueror  docs/bulkio-docs/html/index.html
+
+run from docs directory:
+   -- edit Doxyfile look for "DOC_BUILDS" in file and uncomment lines 
+   doxygen Doxyfile
+   
+   
+          
+
+

@@ -20,6 +20,10 @@
 
 package org.ossie;
 
+@Deprecated
+/**
+ * This class has been deprecated, suggest class BooleanProperty instead
+ */
 public class BooleanSimplePropertyContainer extends SimplePropertyContainer<Boolean> {
 
     @Override

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="complexBooleanProp" mode="readwrite" type="boolean" complex="true">
+    <value>0+j1</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="complexULongProp" mode="readwrite" type="ulong" complex="true">
+    <value>4+j5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="complexShortProp" mode="readwrite" type="short" complex="true">
+    <value>4+j5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="complexFloatProp" mode="readwrite" type="float" complex="true">
+    <value>4+j5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="complexOctetProp" mode="readwrite" type="octet" complex="true">
+    <value>4+j5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="complexCharProp" mode="readwrite" type="char" complex="true">
+    <value>4+j5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="complexUShort" mode="readwrite" type="ushort" complex="true">
+    <value>4+j5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="complexDouble" mode="readwrite" type="double" complex="true">
+    <value>4+j5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="complexLong" mode="readwrite" type="long" complex="true">
+    <value>4+j5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="complexLongLong" mode="readwrite" type="longlong" complex="true">
+    <value>4+j5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="complexULongLong" mode="readwrite" type="ulonglong" complex="true">
+    <value>4+j5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+
+  <simplesequence id="complexFloatSequence" mode="readwrite" type="float" complex="true">
+    <values>
+      <value>6+j7</value>
+      <value>4+j5</value>
+      <value>4+j5</value>
+    </values>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <struct id="FloatStruct" mode="readwrite">
+    <simple id="FloatStructMember" mode="readwrite" type="float">
+      <value>6</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="configure"/>
+  </struct>
+ 
+  <struct id="complexFloatStruct" mode="readwrite">
+    <simple id="complexFloatStructMember" mode="readwrite" type="float" complex="true">
+      <value>6+j7</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="configure"/>
+  </struct>
+  <structsequence id="FloatStructSequence" mode="readwrite">
+    <struct id="FloatStructSequenceMember">
+      <simple id="FloatStructSequenceMemberMemember" type="float">
+        <value>6</value>
+      </simple>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+  <structsequence id="complexFloatStructSequence" mode="readwrite">
+    <struct id="complexFloatStructSequenceMember">
+      <simple id="complexFloatStructSequenceMemberMemember" type="float" complex="true">
+        <value>6+j5</value>
+      </simple>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+</properties>

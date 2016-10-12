@@ -18,10 +18,12 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AM_LDFLAGS =  -no-install $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(BOOST_SYSTEM_LIB)
-INCLUDES = -I../../../../../base/include -I../../../../../base/parser
+AM_LDFLAGS =  -no-install
+CFDIR = ../../../../../base
+AM_CPPFLAGS = -I$(CFDIR)/include
 
 noinst_PROGRAMS = MessageSenderCpp
 
-MessageSenderCpp_SOURCES = MessageSenderCpp.cpp main.cpp 
-MessageSenderCpp_LDADD = ../../../../../base/framework/libossiecf.la ../../../../../base/parser/libossieparser.la ../../../../../base/framework/idl/libossieidl.la
+MessageSenderCpp_SOURCES = MessageSenderCpp.cpp main.cpp
+MessageSenderCpp_CXXFLAGS = $(BOOST_CPPFLAGS)
+MessageSenderCpp_LDADD = $(BOOST_SYSTEM_LIB) $(CFDIR)/framework/libossiecf.la $(OMNICOS_LIBS) $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/idl/libossieidl.la

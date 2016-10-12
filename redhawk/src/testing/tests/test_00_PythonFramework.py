@@ -1,27 +1,27 @@
 #!/usr/bin/env python
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
 from ossie.resource import Resource, usesport, providesport
 import os.path
-import scatest
+from _unitTestHelpers import scatest
 from ossie.cf import CF, CF__POA
 from ossie.properties import *
 from ossie.events import *
@@ -36,8 +36,8 @@ import CosLifeCycle
 logging.basicConfig()
 logging.getLogger().setLevel(logging.ERROR)
 
-###############################################################################   
-# Here is an example of a component that uses a combination of both the 
+###############################################################################
+# Here is an example of a component that uses a combination of both the
 # old-style 'tuple-based' and the new-style 'property-based' methods
 # for populating the PropertyStore
 PROPERTIES = (
@@ -205,8 +205,8 @@ class TestResource(Resource):
             def get_port_input(self):
                 return self._input
 
-            port_input = providesport(name="input", 
-                                      repid="IDL:CF/LifeCycle:1.0", 
+            port_input = providesport(name="input",
+                                      repid="IDL:CF/LifeCycle:1.0",
                                       type_="control",
                                       fget=get_port_input)
 
@@ -217,8 +217,8 @@ class TestResource(Resource):
             def get_port_output(self):
                 return self._output
 
-            port_output = usesport(name="output", 
-                                   repid="IDL:CF/LifeCycle:1.0", 
+            port_output = usesport(name="output",
+                                   repid="IDL:CF/LifeCycle:1.0",
                                    type_="control",
                                    fget=get_port_output)
 
@@ -229,10 +229,10 @@ class TestResource(Resource):
                 def nonCorbaCall(self):
                     return True
 
-            port_input2 = providesport(name="input2", 
-                                      repid="IDL:CF/LifeCycle:1.0", 
+            port_input2 = providesport(name="input2",
+                                      repid="IDL:CF/LifeCycle:1.0",
                                       type_="control")
-           
+
 
             def set_someprop(self, value):
                 self._someprop = value
@@ -246,7 +246,7 @@ class TestResource(Resource):
                 self.someprop = 12345
                 self._props["DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea"] = "Hello"
                 self._props["someprop2"] = 5432.1
-                
+
                 unittest.assertEqual(self._props["default_prop"], "Hello")
                 unittest.assertEqual(self.someprop, 12345)
                 unittest.assertEqual(self._props["someprop"], 12345)
@@ -276,10 +276,8 @@ class TestResource(Resource):
                 unittest.assertEqual(self.port_input.nonCorbaCall(), True)
                 unittest.assertEqual(self.port_input2.nonCorbaCall(), True)
                 unittest.assertEqual(self.port_output.nonCorbaCall(), True)
-               
-                unittest.assertEqual(type(self.invalidprop), str) 
-                self.invalidprop = 50 # Change the type of invalidprop from string to int
-                unittest.assertEqual(type(self.invalidprop), int) 
+
+                unittest.assertEqual(type(self.invalidprop), str)
 
             # An example that uses custom setters/getters
             someprop = simple_property(\
@@ -311,7 +309,7 @@ class TestResource(Resource):
                 type_="short",
                 name="invalidprop2",
                 defvalue=10)
-            
+
             # An exec-parameter
             execparam3 = simple_property(\
                 id_='EXEC_PARAM_3',
@@ -336,21 +334,21 @@ class TestResource(Resource):
                 type_="long",
                 name="noopseqprop",
                 defvalue=(0, 1, 2, 3))
-        
+
             # A sequence property backed by a list
             seqprop = simpleseq_property(\
                 id_='seqprop[]',
                 type_="float",
                 name="seqprop",
                 defvalue=(0.0, 1.0, 2.0, 3.0))
-            
+
             # A sequence property backed by a list
             emptyseqprop = simpleseq_property(\
                 id_='emptyseqprop[]',
                 type_="float",
                 name="emptyseqprop",
                 defvalue=None)
-            
+
             # A sequence property backed by a dictionary
             dictprop = simpleseq_property(\
                 id_='dictprop[]',
@@ -372,12 +370,12 @@ class TestResource(Resource):
                                          type_="string",
                                          defvalue="some value")
 
-            struct = struct_property(id_="astruct", 
-                                     name="Demonstration of a Struct", 
+            struct = struct_property(id_="astruct",
+                                     name="Demonstration of a Struct",
                                      structdef=SomeStruct)
 
 
-###############################################################################   
+###############################################################################
 # In the case of auto-generated code, TestResource is the base-class;
 # therefore users need to be able to change the fset/fget behavior
 # in their defined class so they can avoid modifying the generated code
@@ -387,7 +385,7 @@ class TestResource(Resource):
 class TestResource2(TestResource):
     def __init__(self, execparams={}):
         TestResource.__init__(self, execparams)
-        
+
     # Test that implicit callbacks still work on old-style and new-style
     # properties
 
@@ -395,14 +393,14 @@ class TestResource2(TestResource):
     def onconfigure_prop_no_default_prop(self, oldvalue, value):
         if value:
             self._props["no_default_prop"] = "__" + value + "__"
-                            
+
     def query_prop_no_default_prop(self):
         return self._props["no_default_prop"]
 
     # New-style
     def onconfigure_prop_someprop2(self, oldvalue, value):
         self.someprop2 = value + 1
-    
+
     def query_prop_someprop2(self):
         return self.someprop2
 
@@ -414,28 +412,28 @@ class TestResource2(TestResource):
         return self._someprop
 
     someprop = rebind(TestResource.someprop, fset=set_someprop, fget=get_someprop)
-    
+
     def runIntenalTests(self, unittest):
         """Run some tests to see if the properties behave as expected when
         accessed from inside the object."""
         self.someprop = 12345
         self._props["DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea"] = "Hello"
         self._props["someprop2"] = 5432.1
-        
+
         unittest.assertEqual(self._props["default_prop"], "Hello")
         unittest.assertEqual(self.someprop, 12345)
         unittest.assertEqual(self._props["someprop"], 12345)
         unittest.assertEqual(self.someprop2, 5432.1)
         unittest.assertEqual(self._props["someprop2"], 5432.1)
-        
+
     # You should also be able to define additional properties in your derived class
     someprop3 = simple_property(\
         id_='someprop3',
         type_="long",
         name="someprop3",
         defvalue=1)
-            
-###############################################################################            
+
+###############################################################################
 ## THE UNIT TESTS THEMSELVES
 class TestPythonFramework(scatest.OssieTestCase):
 
@@ -479,12 +477,12 @@ class TestPythonFramework(scatest.OssieTestCase):
 
 
     def test_PropertyType(self):
-        
+
         EXECPARAMS = {"DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648": "myfile",
                       "DCE:716ea1c4-059a-4b18-8b66-74804bd8d435": "100"}
         tr = TestResource(EXECPARAMS)
         tr.initialize()  # Initialize *must* be called, normally this is done by the coreframework
-         
+
         self.assertEqual(tr._props["DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648"], "myfile")
         self.assertEqual(tr._props["DCE:716ea1c4-059a-4b18-8b66-74804bd8d435"], 100)
 
@@ -497,18 +495,18 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertEqual(newvalue.id, newvalue2[0].id)
         self.assertEqual(newvalue.value, newvalue2[0].value)
 
-        # Testing query 
+        # Testing query
         props = tr.query([])
         props = dict([(p.id, p.value._v) for p in props])
         self.assertEqual(props.has_key("EXEC_PARAM_3"), True)
- 
+
     def test_NewStyle(self):
          # Test the new behaviors
         EXECPARAMS = {"DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648": "myfile",
                       "DCE:716ea1c4-059a-4b18-8b66-74804bd8d435": "100"}
         tr = TestResource(EXECPARAMS)
         tr.initialize()  # Initialize *must* be called, normally this is done by the coreframework
-        
+
         self.assertEqual(tr._props["DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648"], "myfile")
         self.assertEqual(tr._props["DCE:716ea1c4-059a-4b18-8b66-74804bd8d435"], 100)
 
@@ -522,7 +520,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertEqual(newvalue.value, newvalue2[0].value)
         self.assertEqual(tr._props["DCE:6b298d70-6735-43f2-944d-06f754cd4eb9"], "SomeString")
         self.assertEqual(tr._props["no_default_prop"], "SomeString")
-        
+
         # Test that we cannot configure readonly
         newvalue = CF.DataType(id="DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648", value="SomeString")
         self.assertRaises(CF.PropertySet.InvalidConfiguration, tr.configure, [newvalue])
@@ -554,9 +552,9 @@ class TestPythonFramework(scatest.OssieTestCase):
         # Extract the CF.DataType to a dict using from_any
         d = dict([(d["id"], d["value"]) for d in struct_propseq])
         self.assertEqual(d, {"f1": 123.4, "f2": 88, "f3": "some value"})
-       
-        # Query invalid prop to ensure it is still a string 
-        queryResults = tr.query([CF.DataType(id="DCE:19a51bb2-1fd2-4c53-9215-a29bc10638e3", 
+
+        # Query invalid prop to ensure it is still a string
+        queryResults = tr.query([CF.DataType(id="DCE:19a51bb2-1fd2-4c53-9215-a29bc10638e3",
                                  value=any.to_any(None))])
         self.assertEqual(len(queryResults), 1)
         prop = queryResults[0]
@@ -565,7 +563,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertEqual(type(prop_val), str)
 
         # Query invalid prop2 to ensure it is still a short
-        queryResults = tr.query([CF.DataType(id="DCE:3107571b-bde0-41c6-a840-c473b1a41b25", 
+        queryResults = tr.query([CF.DataType(id="DCE:3107571b-bde0-41c6-a840-c473b1a41b25",
                                  value=any.to_any(None))])
         self.assertEqual(len(queryResults), 1)
         prop = queryResults[0]
@@ -588,7 +586,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertEqual(d, {"f1": 987.6, "f2": 55, "f3": "nothing"})
 
         # Check that we can configure a struct property
-        newvalue = [CF.DataType(id="f1", value=any.to_any(555.5)), 
+        newvalue = [CF.DataType(id="f1", value=any.to_any(555.5)),
                     CF.DataType(id="f2", value=any.to_any(33)),
                     CF.DataType(id="f3", value=any.to_any("another value"))]
         tr.configure([CF.DataType(id="astruct", value=any.to_any(newvalue))])
@@ -600,7 +598,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         struct_propseq = any.from_any(newvalue2[0].value)
         d = dict([(d["id"], d["value"]) for d in struct_propseq])
         self.assertEqual(d, {"f1": 555.5, "f2": 33, "f3": "another value"})
-        
+
         # Check that we can query a "readwrite" execparam
         props = tr.query([CF.DataType(id="EXEC_PARAM_3", value=any.to_any(None))])
         self.assertEqual(props[0].value._v, 3.125)
@@ -613,18 +611,18 @@ class TestPythonFramework(scatest.OssieTestCase):
 
         # Check that we cannot query a "writeonly" execparam
         self.assertRaises(CF.UnknownProperties, tr.query, [CF.DataType(id="EXEC_PARAM_4", value=any.to_any(None))])
-       
+
         # Check that we can't configure execparams
         self.assertRaises(CF.PropertySet.InvalidConfiguration, tr.configure, [CF.DataType(id="EXEC_PARAM_3", value=any.to_any(None))])
 
         # Check that we can't query invalid property id's
         self.assertRaises(CF.UnknownProperties, tr.query, [CF.DataType(id="INVALID_PARAM_4", value=any.to_any(None))])
-       
+
         # Check that we can't query by property name
         self.assertRaises(CF.UnknownProperties, tr.query, [CF.DataType(id="SomeConfigFileLocation", value=any.to_any(None))])
 
-        # Query invalid prop to ensure it is still a string 
-        queryResults = tr.query([CF.DataType(id="DCE:19a51bb2-1fd2-4c53-9215-a29bc10638e3", 
+        # Query invalid prop to ensure it is still a string
+        queryResults = tr.query([CF.DataType(id="DCE:19a51bb2-1fd2-4c53-9215-a29bc10638e3",
                                  value=any.to_any(None))])
         self.assertEqual(len(queryResults), 1)
         prop = queryResults[0]
@@ -641,7 +639,7 @@ class TestPythonFramework(scatest.OssieTestCase):
                 'defvalue':10}
         # Expects a ValueError Exception, fails if not raised
         self.failUnlessRaises(ValueError, simple_property, **kwds)
-        
+
 
         # Check that a valid type does not raise an exception valid type
         simple_property(\
@@ -657,15 +655,15 @@ class TestPythonFramework(scatest.OssieTestCase):
                 name="valid_property",
                 defvalue=10)
 
-                
-                
+
+
     def test_DerivedClass(self):
          # Test the new behaviors
         EXECPARAMS = {"DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648": "myfile",
                       "DCE:716ea1c4-059a-4b18-8b66-74804bd8d435": "100"}
         tr = TestResource2(EXECPARAMS)
         tr.initialize()  # Initialize *must* be called, normally this is done by the coreframework
-        
+
         self.assertEqual(tr._props["DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648"], "myfile")
         self.assertEqual(tr._props["DCE:716ea1c4-059a-4b18-8b66-74804bd8d435"], 100)
 
@@ -677,12 +675,12 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertEqual(len(newvalue2), 1)
         self.assertEqual(newvalue.id, newvalue2[0].id)
         self.assertEqual(newvalue.value, newvalue2[0].value)
-       
+
         # If the user uses the old-style onconfigure/query callbacks then they
         # won't update the dictionary unless the user explicitly does it
         self.assertEqual(tr._props["DCE:6b298d70-6735-43f2-944d-06f754cd4eb9"], "__SomeString__")
         self.assertEqual(tr._props["no_default_prop"], "__SomeString__")
-        
+
         # Test that we cannot configure readonly
         newvalue = CF.DataType(id="DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648", value="SomeString")
         self.assertRaises(CF.PropertySet.InvalidConfiguration, tr.configure, [newvalue])
@@ -708,7 +706,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         tr.someprop2 = 11.0
         self.assertEqual(tr.someprop2, 11.0)
         self.assertEqual(tr._props["someprop2"], 11.0)
-        
+
         self.assertEqual(tr.someprop3, 1)
         self.assertEqual(tr._props["someprop3"], 1)
         tr.someprop3 = 2
@@ -717,19 +715,19 @@ class TestPythonFramework(scatest.OssieTestCase):
 
 
         tr.runIntenalTests(self)
-       
-        
+
+
     def test_SequenceOperators(self):
         tr = TestResource()
         tr.initialize() # Initialize *must* be called, normally this is done by the coreframework
-        
-        # Test that operators don't work unless explictly declared 
+
+        # Test that operators don't work unless explictly declared
         self.assertEqual(tr.noopseqprop, (0, 1, 2, 3))
 
         self.assertRaises(CF.UnknownProperties, tr.query, [CF.DataType(id="noopseqprop[]", value=any.to_any(None))])
         self.assertRaises(CF.UnknownProperties, tr.query, [CF.DataType(id="noopseqprop[*]", value=any.to_any(None))])
         self.assertRaises(CF.UnknownProperties, tr.query, [CF.DataType(id="noopseqprop[@]", value=any.to_any(None))])
-        newvalue = [CF.DataType(id="1", value=any.to_any(1)), 
+        newvalue = [CF.DataType(id="1", value=any.to_any(1)),
                     CF.DataType(id="3", value=any.to_any(3))]
         self.assertRaises(CF.PropertySet.InvalidConfiguration, tr.configure, [CF.DataType(id="noopseqprop[]", value=any.to_any(newvalue))])
 
@@ -737,30 +735,30 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertEqual(tr.seqprop, (0.0, 1.0, 2.0, 3.0))
         seqvalue = tr.query([CF.DataType(id="seqprop[]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [0.0, 1.0, 2.0, 3.0])
-        
+
         seqvalue = tr.query([CF.DataType(id="seqprop[*]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [0.0, 1.0, 2.0, 3.0])
-        
+
         seqvalue = tr.query([CF.DataType(id="seqprop[0]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [0.0])
-        
+
         seqvalue = tr.query([CF.DataType(id="seqprop[3]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [3.0])
-        
+
         seqvalue = tr.query([CF.DataType(id="seqprop[1:3]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [1.0, 2.0])
-        
+
         seqvalue = tr.query([CF.DataType(id="seqprop[1:]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [1.0, 2.0, 3.0])
-        
+
         seqvalue = tr.query([CF.DataType(id="seqprop[:2]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [0.0, 1.0])
-        
+
         seqvalue = tr.query([CF.DataType(id="seqprop[?]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [0,1,2,3])
-        
+
         seqvalue = tr.query([CF.DataType(id="seqprop[@]", value=any.to_any(None))])
-        
+
         # Extract the CF.DataType to a dict
         # Note that the even though the property is an array, the id is still a
         # string. This conversion was not done in the past, which worked when
@@ -768,7 +766,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         # exception when called via CORBA.
         d = dict([(d.id, d.value._v) for d in seqvalue[0].value._v])
         self.assertEqual(d, {'0': 0.0, '1': 1.0, '2': 2.0, '3': 3.0})
-        
+
         seqvalue = tr.query([CF.DataType(id="emptyseqprop[*]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, None)
 
@@ -778,37 +776,37 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertEqual(seqlen, 4)
 
         # Test that we can configure using the '@' operator
-        newvalue = [CF.DataType(id="1", value=any.to_any(10.0)), 
+        newvalue = [CF.DataType(id="1", value=any.to_any(10.0)),
                     CF.DataType(id="3", value=any.to_any(30.0))]
         tr.configure([CF.DataType(id="seqprop[@]", value=any.to_any(newvalue))])
 
         self.assertEqual(tr.seqprop, (0.0, 10.0, 2.0, 30.0))
         seqvalue = tr.query([CF.DataType(id="seqprop[]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [0.0, 10.0, 2.0, 30.0])
-        
+
         # Test the sequence property backed by a dictionary
         self.assertEqual(tr.dictprop, {"val1": 1, "val2": 2, "val3": 3})
         seqvalue = tr.query([CF.DataType(id="dictprop[]", value=any.to_any(None))])
         s1 = sets.Set(seqvalue[0].value._v)
         s2 = sets.Set([1, 2, 3])
         self.assertEqual(s1, s2)
-        
+
         seqvalue = tr.query([CF.DataType(id="dictprop[*]", value=any.to_any(None))])
         s1 = sets.Set(seqvalue[0].value._v)
         self.assertEqual(s1, s2)
-        
+
         seqvalue = tr.query([CF.DataType(id="dictprop[val1]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [1])
-        
+
         seqvalue = tr.query([CF.DataType(id="dictprop[val3]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [3])
-        
+
         seqvalue = tr.query([CF.DataType(id="dictprop[val1, val2]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [1, 2])
-        
+
         seqvalue = tr.query([CF.DataType(id="dictprop[val1, val3]", value=any.to_any(None))])
         self.assertEqual(seqvalue[0].value._v, [1, 3])
-                
+
         seqvalue = tr.query([CF.DataType(id="dictprop[@]", value=any.to_any(None))])
         # Extract the CF.DataType to a dict using _v
         d = dict([(d.id, d.value._v) for d in seqvalue[0].value._v])
@@ -817,7 +815,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         d = dict([(d["id"], d["value"]) for d in any.from_any(seqvalue[0].value)])
         self.assertEqual(d, {"val1": 1, "val2": 2, "val3": 3})
 
-        newvalue = [CF.DataType(id="val2", value=any.to_any(20)), 
+        newvalue = [CF.DataType(id="val2", value=any.to_any(20)),
                     CF.DataType(id="val3", value=any.to_any(30))]
         tr.configure([CF.DataType(id="dictprop[@]", value=any.to_any(newvalue))])
 
@@ -826,14 +824,14 @@ class TestPythonFramework(scatest.OssieTestCase):
         # Extract the CF.DataType to a dict using _v
         d = dict([(d.id, d.value._v) for d in seqvalue[0].value._v])
         self.assertEqual(d, {"val1": 1, "val2": 20, "val3": 30})
-        
+
         seqvalue = tr.query([CF.DataType(id="dictprop[#]", value=any.to_any(None))])
         self.assertEqual(len(seqvalue), 1)
         seqlen = any.from_any(seqvalue[0].value)
         self.assertEqual(seqlen, 3)
 
         # Verify that we cannot add keys via configure()
-        newvalue = [CF.DataType(id="val4", value=any.to_any(4)), 
+        newvalue = [CF.DataType(id="val4", value=any.to_any(4)),
                     CF.DataType(id="val5", value=any.to_any(5))]
         self.assertRaises(CF.PropertySet.InvalidConfiguration, tr.configure, [CF.DataType(id="dictprop[@]", value=any.to_any(newvalue))])
         self.assertEqual(tr.dictprop, {"val1": 1, "val2": 20, "val3": 30})
@@ -851,8 +849,8 @@ class TestPythonFramework(scatest.OssieTestCase):
                                              type_="double",
                                              defvalue=123.4)
 
-                struct = struct_property(id_="astruct", 
-                                         name="Demonstration of a Struct", 
+                struct = struct_property(id_="astruct",
+                                         name="Demonstration of a Struct",
                                          structdef=SomeStruct)
         except ValueError:
             pass
@@ -862,115 +860,115 @@ class TestPythonFramework(scatest.OssieTestCase):
     def test_ValidStructDef(self):
         """
         Tests the rebind function added to the struct_property object
-        """        
+        """
 
-        class StructPropStruct(object): 
+        class StructPropStruct(object):
             field_one = simple_property(id_="DCE:7f1e487a-5b24-4493-9f78-8493be12cc95",
-                                          name="field_one", 
-                                          type_="string", 
-                                          defvalue="The first field", 
+                                          name="field_one",
+                                          type_="string",
+                                          defvalue="The first field",
                                           )
- 
+
             field_two = simple_property(id_="DCE:25e3aaf2-063d-4140-b4e3-1b24f4fcea9a",
-                                          name="field_two", 
-                                          type_="double", 
-                                          defvalue=2.0, 
+                                          name="field_two",
+                                          type_="double",
+                                          defvalue=2.0,
                                           )
- 
+
             field_three = simple_property(id_="DCE:262a5cb3-f3ac-4eeb-a16f-b77490d97d33",
-                                          name="field_three", 
-                                          type_="long", 
-                                          defvalue=333, 
+                                          name="field_three",
+                                          type_="long",
+                                          defvalue=333,
                                           )
 
         struct_prop = struct_property(id_="DCE:70f920b8-51df-4231-97c7-9a89fd45d20c",
-                                          name="struct_prop", 
+                                          name="struct_prop",
                                           structdef=StructPropStruct)
-                
-        def getter(id_):            
+
+        def getter(id_):
             for fld_id, fld_val in struct_prop.fields.iteritems():
                 if fld_id == id_:
                     return fld_val[1]
-                
+
         def setter(id_, prop):
             for fld_id, fld_val in struct_prop.fields.iteritems():
                 if fld_id == id_:
                     struct_prop.fields[prop.id_] = (prop.name, prop)
                     del struct_prop.fields[fld_id]
-                                
-        def validator(id_, value):            
+
+        def validator(id_, value):
             for fld_id, fld_val in struct_prop.fields.iteritems():
                 if fld_id == id_:
                     fld_val[1].defvalue = value
 
-        
+
         # making sure the object was generated properly
         self.assertNotEqual(struct_prop, None)
         # making sure fget, fset, and fval are None
         self.assertEqual(struct_prop.fget, None)
         self.assertEqual(struct_prop.fset, None)
         self.assertEqual(struct_prop.fval, None)
-        
+
         struct_prop = struct_prop.rebind(getter, setter, validator)
         # making sure fget, fset, and fval are NOT None
         self.assertNotEqual(struct_prop.fget, None)
         self.assertNotEqual(struct_prop.fset, None)
         self.assertNotEqual(struct_prop.fval, None)
-        
+
         # getting the first property
         prop = struct_prop.fget("DCE:7f1e487a-5b24-4493-9f78-8493be12cc95")
         self.assertEqual(prop.name, 'field_one')
-        
+
         prop = simple_property(id_="DCE:7f1e487a-5b24-4493-9f78-8493be12cc97",
-                               name="field_one_replacement", 
-                               type_="string", 
-                               defvalue="The first field replaced", 
+                               name="field_one_replacement",
+                               type_="string",
+                               defvalue="The first field replaced",
                               )
-        
+
         # setting the property and removing field_one
         struct_prop.fset('DCE:7f1e487a-5b24-4493-9f78-8493be12cc95', prop)
         cmp_prop = struct_prop.fget('DCE:7f1e487a-5b24-4493-9f78-8493be12cc97')
         self.assertEqual("field_one_replacement", cmp_prop.name)
-        
+
         # making sure I still have only three fields
         self.assertEqual(3, len(struct_prop.fields))
-        
+
         # replacing the value from property field_three
         struct_prop.fval('DCE:262a5cb3-f3ac-4eeb-a16f-b77490d97d33', 444)
         cmp_prop = struct_prop.fget('DCE:262a5cb3-f3ac-4eeb-a16f-b77490d97d33')
         self.assertEqual(444, cmp_prop.defvalue)
-        
 
-        
+
+
     def test_MagicCalls(self):
         """
-        Tests the onconfigure, onquery, and onvalue magic calls in all different 
+        Tests the onconfigure, onquery, and onvalue magic calls in all different
         properties
         """
         import pprint
-        
-        class StructPropStruct(object): 
+
+        class StructPropStruct(object):
             field_one = simple_property(id_="DCE:7f1e487a-5b24-4493-9f78-8493be12cc95",
-                                          name="Field One", 
-                                          type_="string", 
-                                          defvalue="The first field", 
-                                          )
- 
-            field_two = simple_property(id_="DCE:25e3aaf2-063d-4140-b4e3-1b24f4fcea9a",
-                                          name="Field Two", 
-                                          type_="double", 
-                                          defvalue=2.0, 
-                                          )
- 
-            field_three = simple_property(id_="DCE:262a5cb3-f3ac-4eeb-a16f-b77490d97d33",
-                                          name="Field Three", 
-                                          type_="long", 
-                                          defvalue=333, 
+                                          name="Field One",
+                                          type_="string",
+                                          defvalue="The first field",
                                           )
 
- 
- 
- 
+            field_two = simple_property(id_="DCE:25e3aaf2-063d-4140-b4e3-1b24f4fcea9a",
+                                          name="Field Two",
+                                          type_="double",
+                                          defvalue=2.0,
+                                          )
+
+            field_three = simple_property(id_="DCE:262a5cb3-f3ac-4eeb-a16f-b77490d97d33",
+                                          name="Field Three",
+                                          type_="long",
+                                          defvalue=333,
+                                          )
+
+
+
+
         class MagicCallsResource(Resource):
 
             # You can define a port using an fget.  This let's you
@@ -993,7 +991,7 @@ class TestPythonFramework(scatest.OssieTestCase):
                 self._input = TestResource.InputPort()
                 self._output = TestResource.OutputPort()
 
-                                                                                  
+
             def get_port_input(self):
                 return self._input
 
@@ -1018,7 +1016,7 @@ class TestPythonFramework(scatest.OssieTestCase):
             def onconfigure_prop_prop_one(self, oldvalue, value):
                 if value:
                     self.prop_one = value
-                            
+
 
 
             ######################################################
@@ -1036,12 +1034,12 @@ class TestPythonFramework(scatest.OssieTestCase):
             def onconfigure_prop_seq_prop(self, oldvalue, value):
                 if value:
                     self.seq_prop = value
-                            
+
 
 
             ######################################################
             ##         STRUCT PROPERTY MAGIC CALLBACKS          ##
-            ######################################################     
+            ######################################################
             def query_prop_test_struct(self):
                 result = []
                 for name, attr in self.struct_prop.__dict__.items():
@@ -1063,14 +1061,14 @@ class TestPythonFramework(scatest.OssieTestCase):
 
 
 
-            port_input = providesport(name="input", 
-                                      repid="IDL:CF/LifeCycle:1.0", 
+            port_input = providesport(name="input",
+                                      repid="IDL:CF/LifeCycle:1.0",
                                       type_="control",
                                       fget=get_port_input)
 
 
-            port_output = usesport(name="output", 
-                                   repid="IDL:CF/LifeCycle:1.0", 
+            port_output = usesport(name="output",
+                                   repid="IDL:CF/LifeCycle:1.0",
                                    type_="control",
                                    fget=get_port_output)
 
@@ -1078,22 +1076,22 @@ class TestPythonFramework(scatest.OssieTestCase):
 
 
             struct_prop = struct_property(id_="DCE:70f920b8-51df-4231-97c7-9a89fd45d20c",
-                                          name="test_struct", 
+                                          name="test_struct",
                                           structdef=StructPropStruct)
-                                              
+
             seq_prop = simpleseq_property(id_="DCE:1d4b16f0-97e0-4ff7-b14e-9e83511e9ee9",
-                                          name="seq_prop",   
-                                          type_="long", 
+                                          name="seq_prop",
+                                          type_="long",
                                           defvalue=(1, 2, 3, 4, 5, 6, 7, ),
-                                          mode="readwrite",  
-                                          action="external",                 
+                                          mode="readwrite",
+                                          action="external",
                                           kinds=("configure", )
                                           )
 
             prop_one = simple_property(id_="DCE:25e3aaf2-063d-4140-b4e3-1b24f4fcea9a",
-                                       name="prop_one", 
-                                       type_="double", 
-                                       defvalue=2.0, 
+                                       name="prop_one",
+                                       type_="double",
+                                       defvalue=2.0,
                                        )
 
 
@@ -1101,10 +1099,10 @@ class TestPythonFramework(scatest.OssieTestCase):
 
         tr = MagicCallsResource()
         # Initialize *must* be called, normally this is done by the coreframework
-        tr.initialize()     
-        
+        tr.initialize()
+
         sim_id = "DCE:25e3aaf2-063d-4140-b4e3-1b24f4fcea9a"
-        
+
         seq_id = "DCE:1d4b16f0-97e0-4ff7-b14e-9e83511e9ee9"
 
         str_id = "DCE:70f920b8-51df-4231-97c7-9a89fd45d20c"
@@ -1113,11 +1111,11 @@ class TestPythonFramework(scatest.OssieTestCase):
         ##                                Testing Query
         #######################################################################
         # Checking that I can run query in a simple property
-        props = tr.query([CF.DataType(id=sim_id, value=any.to_any(None))])        
+        props = tr.query([CF.DataType(id=sim_id, value=any.to_any(None))])
         self.assertEqual(len(props), 1)
         self.assertEqual(props[0].id, 'DCE:25e3aaf2-063d-4140-b4e3-1b24f4fcea9a')
         self.assertEqual(props[0].value.value(), 2.0)
-        
+
         # Checking that I can run query in a sequence property
         props = tr.query([CF.DataType(id=seq_id, value=any.to_any(None))])
         self.assertEqual(len(props), 1)
@@ -1130,32 +1128,32 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertEqual(props[0].id, 'DCE:70f920b8-51df-4231-97c7-9a89fd45d20c')
         # I should have 3 fields inside the struct
         self.assertEqual(len(props[0].value.value()), 3)
-        
+
         # checking item by item inside the struct
         for item in props[0].value.value():
             val = any.from_any(item.value)
-            
+
             if item.id == 'DCE:7f1e487a-5b24-4493-9f78-8493be12cc95':
                 self.assertEqual('The first field', val)
             elif item.id == 'DCE:25e3aaf2-063d-4140-b4e3-1b24f4fcea9a':
                 self.assertEqual(2.0, val)
-            
+
             elif item.id == 'DCE:262a5cb3-f3ac-4eeb-a16f-b77490d97d33':
                 self.assertEqual(333, val)
-        
-        
+
+
         #######################################################################
         ##            Testing Validation and Configuration
         #######################################################################
 
-            
+
         newvalue = CF.DataType(id=sim_id, value=any.to_any(5.0))
         tr.configure([newvalue])
-        props = tr.query([CF.DataType(id=sim_id, value=any.to_any(None))])        
+        props = tr.query([CF.DataType(id=sim_id, value=any.to_any(None))])
         self.assertEqual(len(props), 1)
         self.assertEqual(props[0].id, 'DCE:25e3aaf2-063d-4140-b4e3-1b24f4fcea9a')
         self.assertEqual(props[0].value.value(), 5.0)
-                            
+
         newvalue = CF.DataType(id=seq_id, value=any.to_any((11,22,33,44,55,66,77,88,)))
         tr.configure([newvalue])
 
@@ -1178,19 +1176,19 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertEqual(props[0].id, 'DCE:70f920b8-51df-4231-97c7-9a89fd45d20c')
         # I should have 3 fields inside the struct
         self.assertEqual(len(props[0].value.value()), 3)
-        
+
         # checking item by item inside the struct
         for item in props[0].value.value():
             val = any.from_any(item.value)
-            
+
             if item.id == 'DCE:7f1e487a-5b24-4493-9f78-8493be12cc95':
                 self.assertEqual('replaced_string', val)
             elif item.id == 'DCE:25e3aaf2-063d-4140-b4e3-1b24f4fcea9a':
-                self.assertEqual(77.88, val)            
+                self.assertEqual(77.88, val)
             elif item.id == 'DCE:262a5cb3-f3ac-4eeb-a16f-b77490d97d33':
                 self.assertEqual(99, val)
- 
- 
+
+
 
 
     def test_PortHandling(self):
@@ -1217,48 +1215,46 @@ class TestPythonFramework(scatest.OssieTestCase):
 
         self.assertRaises(CF.PortSupplier.UnknownPort, tr.getPort, "nonexistant")
 
-    # Only define event-related tests if events are enabled.
-    if scatest.getBuildDefineValue("ENABLE_EVENTS") == "1":
-        def test_eventChannelManager(self):
-            orb = CORBA.ORB_init()
+    def test_eventChannelManager(self):
+        orb = CORBA.ORB_init()
 
-            chanMgr = ChannelManager(orb)
-            factory = chanMgr.getEventChannelFactory()
-            self.assertNotEqual(factory, None)
-            self.assertNotEqual(factory._narrow(CosLifeCycle.GenericFactory), None)
-            
-            # Force creation
-            channel1 = chanMgr.createEventChannel("TestChan", force=True)
-            self.assertNotEqual(channel1, None)
-            self.assertNotEqual(channel1._narrow(CosEventChannelAdmin.EventChannel), None)
+        chanMgr = ChannelManager(orb)
+        factory = chanMgr.getEventChannelFactory()
+        self.assertNotEqual(factory, None)
+        self.assertNotEqual(factory._narrow(CosLifeCycle.GenericFactory), None)
 
-            # Without force, we should get the previously created one
-            channel2 = chanMgr.createEventChannel("TestChan", force=False)
-            self.assertNotEqual(channel2, None)
-            self.assertNotEqual(channel2._narrow(CosEventChannelAdmin.EventChannel), None)
-            self.assert_(channel1._is_equivalent(channel2))
+        # Force creation
+        channel1 = chanMgr.createEventChannel("TestChan", force=True)
+        self.assertNotEqual(channel1, None)
+        self.assertNotEqual(channel1._narrow(CosEventChannelAdmin.EventChannel), None)
 
-            # Get should return the right one
-            channel3 = chanMgr.getEventChannel("TestChan")
-            self.assertNotEqual(channel3, None)
-            self.assertNotEqual(channel3._narrow(CosEventChannelAdmin.EventChannel), None)
-            self.assert_(channel1._is_equivalent(channel3))
+        # Without force, we should get the previously created one
+        channel2 = chanMgr.createEventChannel("TestChan", force=False)
+        self.assertNotEqual(channel2, None)
+        self.assertNotEqual(channel2._narrow(CosEventChannelAdmin.EventChannel), None)
+        self.assert_(channel1._is_equivalent(channel2))
 
-            # This should create a new channel 
-            channel4 = chanMgr.createEventChannel("TestChan", force=True)
-            self.assertNotEqual(channel4, None)
-            self.assertNotEqual(channel4._narrow(CosEventChannelAdmin.EventChannel), None)
+        # Get should return the right one
+        channel3 = chanMgr.getEventChannel("TestChan")
+        self.assertNotEqual(channel3, None)
+        self.assertNotEqual(channel3._narrow(CosEventChannelAdmin.EventChannel), None)
+        self.assert_(channel1._is_equivalent(channel3))
 
-            chanMgr.destroyEventChannel("TestChan")
+        # This should create a new channel
+        channel4 = chanMgr.createEventChannel("TestChan", force=True)
+        self.assertNotEqual(channel4, None)
+        self.assertNotEqual(channel4._narrow(CosEventChannelAdmin.EventChannel), None)
 
-            channel5 = chanMgr.getEventChannel("TestChan")
-            self.assertEqual(channel5, None)
-            
-            channel6 = chanMgr.createEventChannel("TestChan", force=True)
-            self.assertNotEqual(channel6, None)
-            self.assertNotEqual(channel6._narrow(CosEventChannelAdmin.EventChannel), None)
-            
-            chanMgr.destroyEventChannel("TestChan")
+        chanMgr.destroyEventChannel("TestChan")
+
+        channel5 = chanMgr.getEventChannel("TestChan")
+        self.assertEqual(channel5, None)
+
+        channel6 = chanMgr.createEventChannel("TestChan", force=True)
+        self.assertNotEqual(channel6, None)
+        self.assertNotEqual(channel6._narrow(CosEventChannelAdmin.EventChannel), None)
+
+        chanMgr.destroyEventChannel("TestChan")
 
     def test_SimpleSequenceTypeChecking(self):
         # Test case for ticket #2426
@@ -1271,7 +1267,7 @@ class TestPythonFramework(scatest.OssieTestCase):
             int_seq = simpleseq_property(id_="int_seq", type_="long")
             char_seq = simpleseq_property(id_="char_seq", type_="char")
             octet_seq = simpleseq_property(id_="octet_seq", type_="octet")
-        
+
         t = TestClass()
         t.string_seq = [["1", "2", "3"], ["4", "5", "6"]]
         # Although the value isn't a sequence of strings, it will
@@ -1281,7 +1277,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         v = any.from_any(p)
         for e in v:
             self.assertEqual(type(e), str)
-            
+
         # This can also be coerced at query time into the correct type
         t.int_seq = ["4", "5", "6"]
         p = TestClass.int_seq.query(t)
@@ -1289,7 +1285,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         v = any.from_any(p)
         for e in v:
             self.assertEqual(type(e), int)
-            
+
         # This cannot be coerced into a double, so query will
         # throw a type error
         t.double_seq = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
@@ -1307,14 +1303,14 @@ class TestPythonFramework(scatest.OssieTestCase):
         v = any.from_any(p)
         for e in v:
             self.assertEqual(type(e), float)
-            
+
         t.char_seq = "ABCDE"
         p = TestClass.char_seq.query(t)
         self.assertEqual(p._t._t, CORBA.TypeCode(CORBA.CharSeq)._t)
         v = any.from_any(p)
         for e in v:
             self.assertEqual(type(e), str)
-            
+
         t.octet_seq = "FGHI"
         p = TestClass.octet_seq.query(t)
         self.assertEqual(p._t._t, CORBA.TypeCode(CORBA.OctetSeq)._t)
@@ -1322,25 +1318,3 @@ class TestPythonFramework(scatest.OssieTestCase):
         for e in v:
             self.assertEqual(type(e), str)
 
-    def test_PythonToAnyConversion(self):
-        # Basic conversion 
-        result = ossie.properties.to_tc_value(1.0, 'double')
-        self.assertTrue(result.typecode().equal(CORBA.TC_double))
-        self.assertEqual(any.from_any(result), 1.0)
-
-        # Ensure that pre-formatted Any values are unchanged (1.8.8 regression)
-        value = CORBA.Any(CORBA.TC_double, 1.0)
-        result = ossie.properties.to_tc_value(value, 'double')
-        self.assertTrue(result.typecode().equal(CORBA.TC_double))
-        self.assertEqual(any.from_any(result), 1.0)
-
-        # Type change
-        result = ossie.properties.to_tc_value(1.25, 'long')
-        self.assertTrue(result.typecode().equal(CORBA.TC_long))
-        self.assertEqual(any.from_any(result), 1)
-
-        # Type change from Any (1.8.8 regression)
-        value = CORBA.Any(CORBA.TC_double, 1.25)
-        result = ossie.properties.to_tc_value(value, 'long')
-        self.assertTrue(result.typecode().equal(CORBA.TC_long))
-        self.assertEqual(any.from_any(result), 1)

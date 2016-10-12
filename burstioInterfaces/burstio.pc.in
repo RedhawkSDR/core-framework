@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+javadir=@javadir@
+classpath=${javadir}/burstio.jar:${javadir}/burstioInterfaces.jar
+
+Name: burstio
+Description: BURSTIO implementation library
+Requires: burstioInterfaces >= @PACKAGE_VERSION@
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lburstio
+Cflags: -I${includedir}/redhawk

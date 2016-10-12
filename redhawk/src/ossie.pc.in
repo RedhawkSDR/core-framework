@@ -4,10 +4,12 @@ libdir=@libdir@
 includedir=${prefix}/include
 extraincludedir=${prefix}/include/ossie
 idldir=${prefix}/share/idl
+javadir=@javadir@
+classpath=${javadir}/ossie.jar:${javadir}/CFInterfaces.jar:${javadir}/log4j-1.2.15.jar:${javadir}/apache-commons-lang-2.4.jar
 
 Name: ossie
 Description: OSSIE Core Framework
 Requires:
 Version: @VERSION@
-Libs: -L${libdir} -lossiecf -lossieidl -lossieparser @OMNICOS_LIBS@ @OMNIORB_LIBS@ @OMNIDYNAMIC_LIBS@ @LOG4CXX_LIBS@
-Cflags: -I${includedir} -I${extraincludedir} -I${idldir} @OMNICOS_CFLAGS@ @OMNIORB_CFLAGS@ @OMNIDYNAMIC_CFLAGS@ @LOG4CXX_CFLAGS@ @HAVE_LOG4CXX@ @ENABLE_EVENTS_FLAGS@
+Libs: -L${libdir} -lossiecf -lossieidl @OMNICOS_LIBS@ @OMNIORB_LIBS@ @OMNIDYNAMIC_LIBS@ 
+Cflags: -I${includedir} -I${extraincludedir} -I${idldir} @OMNICOS_CFLAGS@ @OMNIORB_CFLAGS@ @OMNIDYNAMIC_CFLAGS@ @LOG4CXX_CFLAGS@ @ENABLE_EVENTS_FLAGS@

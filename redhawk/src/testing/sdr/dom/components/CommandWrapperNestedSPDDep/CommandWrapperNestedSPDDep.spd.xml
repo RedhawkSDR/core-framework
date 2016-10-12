@@ -52,5 +52,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
                 <implref refid="firstImplementation"/>
             </softpkgref>
         </dependency>
+        <dependency type="runtime_requirements">
+            <softpkgref>
+                <localfile name="/components/softpkgNested2Dep/softpkgNested2Dep.spd.xml"/>
+                <implref refid="firstImplementation"/>
+            </softpkgref>
+        </dependency>
     </implementation>
 </softpkg>

@@ -19,9 +19,8 @@
 #
 
 
-AM_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
-AM_LDFLAGS = $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(OMNIORB_LIBS) $(OMNICOS_LIBS) $(LOG4CXX_LIBS)
-INCLUDES = -I../../../../../base/include -I../../../../../base/parser
+CFDIR = ../../../../../base
+AM_CPPFLAGS = -I$(CFDIR)/include
 
 ossieName = ExecutableDevice
 esseName = ExecutableDevice
@@ -29,5 +28,5 @@ esseName = ExecutableDevice
 noinst_PROGRAMS = ExecutableDevice
 
 ExecutableDevice_SOURCES = main.cpp
-ExecutableDevice_LDADD = ../../../../../base/framework/libossiecf.la ../../../../../base/parser/libossieparser.la ../../../../../base/framework/idl/libossieidl.la
-
+ExecutableDevice_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(LOG4CXX_FLAGS) $(OMNIORB_CFLAGS)
+ExecutableDevice_LDADD = $(OMNICOS_LIBS) $(BOOST_SYSTEM_LIB) $(BOOST_REGEX_LIB) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la 

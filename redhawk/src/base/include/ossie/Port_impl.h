@@ -29,8 +29,6 @@
 
 #include <boost/thread/mutex.hpp>
 
-#include "ossiecf.h"
-
 #include "CF/cf.h"
 
 namespace _seqVector {
@@ -124,7 +122,7 @@ public:
 };
 
 template <class PortType, class ComponentType>
-class OSSIECF_API Port_Uses_impl
+class Port_Uses_impl
 {
 public:
     Port_Uses_impl(ComponentType* _parent, std::string port_name);
@@ -218,7 +216,7 @@ std::string Port_Uses_impl<PortType, ComponentType>::getName()
 
 
 template <class PortType, class ComponentType>
-class OSSIECF_API Port_Provides_impl
+class Port_Provides_impl
 {
 public:
     Port_Provides_impl(ComponentType* _parent, std::string port_name);
@@ -249,64 +247,87 @@ std::string Port_Provides_impl<PortType, ComponentType>::getName()
 };
 
 
-class OSSIECF_API Port_Uses_base_impl
+class PortBase : public virtual PortableServer::ServantBase
 {
 public:
-    Port_Uses_base_impl(std::string port_name)
+    PortBase (const std::string& name) :
+        name(name)
+    {
+    }
+
+    virtual ~PortBase ()
+    {
+    }
+
+    virtual std::string getName ()
+    {
+        return name;
+    }
+
+    virtual void startPort ()
+    {
+    }
+
+    virtual void stopPort ()
+    {
+    }
+
+    virtual void releasePort()
+    {
+    }
+
+protected:
+    std::string name;
+};
+
+class Port_Uses_base_impl : public PortBase
+{
+public:
+    Port_Uses_base_impl(std::string port_name) :
+        PortBase(port_name)
     {
         active = false;
-        name = port_name;
-    };
-    virtual ~Port_Uses_base_impl() {};
+    }
+
+    virtual ~Port_Uses_base_impl()
+    {
+    }
+
     virtual void connectPort(CORBA::Object_ptr connection, const char* connectionId)
     {
-    };
+    }
 
     virtual void disconnectPort(const char* connectionId)
     {
-    };
+    }
 
     virtual bool isActive()
     {
         return active;
-    };
+    }
 
     virtual void setActiveStatus(bool active_flag)
     {
         active = active_flag;
-    };
-
-    virtual void releasePort()
-    {
-    };
-
-    virtual std::string getName()
-    {
-        return name;
-    };
+    }
 
 protected:
     bool active;
-    std::string name;
     boost::mutex updatingPortsLock;
     bool refreshSRI;
 };
 
-
-class OSSIECF_API Port_Provides_base_impl
+class Port_Provides_base_impl : public PortBase
 {
 public:
-    Port_Provides_base_impl(std::string port_name) {
-        name = port_name;
-    };
-    virtual ~Port_Provides_base_impl() {};
-    virtual std::string getName()
+    Port_Provides_base_impl(std::string port_name) :
+        PortBase(port_name)
     {
-        return name;
-    };
+    }
 
-protected:
-    std::string name;
+    virtual ~Port_Provides_base_impl()
+    {
+    }
 };
 
 

@@ -67,6 +67,11 @@ void CORBA::jni::Any::fromJObject (CORBA::Any& any, JNIEnv* env, jobject obj)
     }
 
     jbyteArray data = AnyUtils::to_bytes(env, obj);
+    if (!data) {
+        // Unable to get Java Any as raw byte data
+        env->ExceptionDescribe();
+        return;
+    }
     jint size = env->GetArrayLength(data);
     jbyte* buffer = env->GetByteArrayElements(data, NULL);
     

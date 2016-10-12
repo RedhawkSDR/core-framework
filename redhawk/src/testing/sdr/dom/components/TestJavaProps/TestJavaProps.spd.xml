@@ -20,7 +20,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 
 <!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
-<softpkg id="DCE:75abce57-bb5f-4c2d-a727-43b420b2550b" name="TestJavaProps" type="sca_compliant">
+<softpkg id="DCE:a4d4d89a-033a-4439-ad3a-a5fa54691da3" name="TestJavaProps" type="sca_compliant">
   <title></title>
   <author>
     <name></name>
@@ -31,7 +31,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <descriptor>
     <localfile name="TestJavaProps.scd.xml"/>
   </descriptor>
-  <implementation id="DCE:946cde21-aa20-4581-bf26-ef8d4841b61b">
+  <implementation id="java">
     <description>The implementation contains descriptive information about the template for a software component.</description>
     <code type="Executable">
       <localfile name="./"/>

@@ -1,6 +1,6 @@
 # Set root logger default levels and appender
 # By default all loggers will only log INFO level and higher
-log4j.rootLogger=DEBUG, CONSOLE, FILE
+log4j.rootLogger=ERROR, CONSOLE, FILE
 log4j.debug=false
 
 # Appender
@@ -16,6 +16,8 @@ log4j.appender.FILE.threshold=TRACE
 
 # If you want to debug a specific class, uncomment or add
 # the appropriate line(s) below
+#log4j.logger.prop_utils=TRACE
+#log4j.logger.AllocationManager_impl=TRACE
 #log4j.logger.nodebooter=TRACE
 #log4j.logger.DomainManager_impl=TRACE
 #log4j.logger.ApplicationFactory_impl=TRACE

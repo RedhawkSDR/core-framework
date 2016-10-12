@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<!-- Created with REDHAWK IDE-->
+<!-- Powered by Eclipse -->
+<softwareassembly name="TestJavaPropsRange" id="DCE:5384b451-62a1-45a7-95ea-61826fd7ee67">
+    <componentfiles>
+		<componentfile type="SPD" id="TestJavaPropsRange_43083db5-152e-4842-ad79-a8a87cc9443a">
+			<localfile name="/components/TestJavaPropsRange/TestJavaPropsRange.spd.xml">
+			</localfile>
+		</componentfile>
+    </componentfiles>
+    <partitioning>
+	<componentplacement>
+		<componentfileref refid="TestJavaPropsRange_43083db5-152e-4842-ad79-a8a87cc9443a">
+		</componentfileref>
+		<componentinstantiation id="DCE:d4d90c9c-3a4b-4349-bb33-1c0723792d76">
+			<usagename>TestJavaPropsRange_1</usagename>
+			<findcomponent>
+				<namingservice name="TestJavaPropsRange_1"/>
+			</findcomponent>
+		</componentinstantiation>
+	</componentplacement>
+    </partitioning>
+    <assemblycontroller>
+		<componentinstantiationref refid="DCE:d4d90c9c-3a4b-4349-bb33-1c0723792d76"/>
+    </assemblycontroller>
+</softwareassembly>

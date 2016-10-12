@@ -27,7 +27,7 @@
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/export.hpp>
 #include <boost/serialization/extended_type_info.hpp>
-#include "PersistanceStore.h"
+#include "PersistenceStore.h"
 #endif
 
 #include <ossie/CF/cf.h>
@@ -181,6 +181,15 @@ CF::Device_ptr AppConnectionManager::resolveDeviceUsedByThisComponentRef(const s
     return device;
 }
 
+CF::Device_ptr AppConnectionManager::resolveDeviceUsedByApplication(const std::string& usesrefid)
+{
+    CF::Device_ptr device = _deviceLookup->lookupDeviceUsedByApplication(usesrefid);
+    if (CORBA::is_nil(device)) {
+        LOG_ERROR(AppConnectionManager, "deviceusedbyapplication not found");
+    }
+    return device;
+}
+
 const std::vector<ConnectionNode>& AppConnectionManager::getConnections() {
     return _connections;
 }
@@ -215,6 +224,12 @@ CF::Device_ptr DomainConnectionManager::resolveDeviceThatLoadedThisComponentRef(
 CF::Device_ptr DomainConnectionManager::resolveDeviceUsedByThisComponentRef(const std::string&, const std::string&)
 {
     LOG_ERROR(DomainConnectionManager, "Not supported in this context: Port is deviceusedbythiscomponentref ");
+    return CF::Device::_nil();
+}
+
+CF::Device_ptr DomainConnectionManager::resolveDeviceUsedByApplication(const std::string&)
+{
+    LOG_ERROR(DomainConnectionManager, "Not supported in this context: Port is deviceusedbyapplication");
     return CF::Device::_nil();
 }
 
@@ -522,6 +537,54 @@ namespace ossie {
         std::string usesIdentifier_;
     };
 
+    class ApplicationUsesDeviceEndpoint : public Endpoint {
+    public:
+        ApplicationUsesDeviceEndpoint() { }
+
+        ApplicationUsesDeviceEndpoint(const std::string usesIdentifier) :
+            usesIdentifier_(usesIdentifier)
+        {
+        }
+
+        ApplicationUsesDeviceEndpoint(const ApplicationUsesDeviceEndpoint& other) :
+            Endpoint(other),
+            usesIdentifier_(other.usesIdentifier_)
+        {
+        }
+
+        virtual bool allowDeferral(void) { return false; }
+
+        virtual bool checkDependency(DependencyType type, const std::string& identifier) const
+        {
+            // NOTE: Presently, this endpoint type will only appear in an
+            // application context, where we do not need to determine whether
+            // it depends on a given object.
+            return false;
+        }
+
+        virtual ApplicationUsesDeviceEndpoint* clone() const
+        {
+            return new ApplicationUsesDeviceEndpoint(*this);
+        }
+
+    private:
+        virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
+        {
+            return manager.resolveDeviceUsedByApplication(usesIdentifier_);
+        }
+
+#if HAVE_BOOST_SERIALIZATION
+        friend class boost::serialization::access;
+        template <class Archive>
+        void serialize(Archive& ar, unsigned int version)
+        {
+            ar & boost::serialization::base_object<Endpoint>(*this);
+            ar & usesIdentifier_;
+        }
+#endif
+
+        std::string usesIdentifier_;
+    };
 
     class FindByNamingServiceEndpoint : public Endpoint {
     public:
@@ -732,6 +795,7 @@ namespace ossie {
 EXPORT_CLASS_SERIALIZATION(ComponentEndpoint);
 EXPORT_CLASS_SERIALIZATION(DeviceLoadedEndpoint);
 EXPORT_CLASS_SERIALIZATION(DeviceUsedEndpoint);
+EXPORT_CLASS_SERIALIZATION(ApplicationUsesDeviceEndpoint);
 EXPORT_CLASS_SERIALIZATION(FindByDomainFinderEndpoint);
 EXPORT_CLASS_SERIALIZATION(FindByNamingServiceEndpoint);
 EXPORT_CLASS_SERIALIZATION(PortEndpoint);
@@ -756,6 +820,10 @@ Endpoint* Endpoint::ParsePortSupplier(const Port* port)
         std::string usesrefid = port->getDeviceUsedByThisComponentRefUsesRefID();
         LOG_TRACE(Endpoint, "DeviceUsedEndpoint refid=" << refid << " usesrefid=" << usesrefid);
         return new DeviceUsedEndpoint(refid, usesrefid);
+    } else if (port->isDeviceUsedByApplication()) {
+        std::string usesrefid = port->getDeviceUsedByApplicationUsesRefID();
+        LOG_TRACE(Endpoint, "ApplicationDeviceUsedEndpoint usesrefid=" << usesrefid);
+        return new ApplicationUsesDeviceEndpoint(usesrefid);
     } else {
         LOG_ERROR(Endpoint, "Unknown port location type");
     }
@@ -772,14 +840,7 @@ Endpoint* Endpoint::ParseProvidesEndpoint(const Connection& connection)
         assert(connection.getFindBy() != 0);
         return Endpoint::ParseFindBy(connection.getFindBy());
     } else if (connection.isComponentSupportedInterface()) {
-        const ComponentSupportedInterface* interface = connection.getComponentSupportedInterface();
-        if (interface->isComponentInstantiationRef()) {
-            return new ComponentEndpoint(interface->getComponentInstantiationRefId());
-        } else if (interface->isFindBy()) {
-            return Endpoint::ParseFindBy(interface->getFindBy());
-        } else {
-            LOG_ERROR(Endpoint, "Component supported interface is neither findby or componentinstantiationref")
-        }
+        return Endpoint::ParsePortSupplier(connection.getComponentSupportedInterface());
     } else {
         LOG_ERROR(Endpoint, "Cannot find port information for provides port");
     }
@@ -971,7 +1032,6 @@ void ConnectionNode::disconnect(DomainLookup* domainLookup)
         usesPort->disconnectPort(identifier.c_str());
     } CATCH_LOG_WARN(ConnectionNode, "Unable to disconnect port for connection " << identifier);
 
-#if ENABLE_EVENTS
     FindByDomainFinderEndpoint* endpoint = dynamic_cast<FindByDomainFinderEndpoint*>(provides.get());
     if (endpoint && endpoint->type() == "eventchannel") {
         std::string channelName = endpoint->name();
@@ -980,7 +1040,6 @@ void ConnectionNode::disconnect(DomainLookup* domainLookup)
         }
         domainLookup->decrementEventChannelConnections(channelName);
     }
-#endif
 }
 
 bool ConnectionNode::allowDeferral()

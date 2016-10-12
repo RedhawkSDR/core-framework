@@ -31,6 +31,7 @@ import org.omg.PortableServer.POAPackage.WrongPolicy;
 import org.omg.CosNaming.NamingContextPackage.CannotProceed;
 import org.omg.CosNaming.NamingContextPackage.InvalidName;
 import org.omg.CosNaming.NamingContextPackage.NotFound;
+import org.omg.CosEventChannelAdmin.ProxyPushConsumerOperations;
 import CF.PropertiesHelper;
 import CF.PropertiesHolder;
 import CF.ResourceHelper;
@@ -43,7 +44,6 @@ import CF.PropertySetPackage.PartialConfiguration;
 import CF.ResourcePackage.StartError;
 import CF.ResourcePackage.StopError;
 import CF.DataType;
-import CosEventChannelAdmin.ProxyPushConsumerOperations;
 
 import org.omg.CORBA.UserException;
 import org.omg.CosNaming.NameComponent;

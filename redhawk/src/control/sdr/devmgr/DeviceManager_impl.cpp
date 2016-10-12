@@ -24,16 +24,17 @@
 #include <sys/stat.h>
 #include <sys/utsname.h>
 
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 
 #include <ossie/debug.h>
 #include <ossie/ossieSupport.h>
-#include <ossie/prop_helpers.h>
 #include <ossie/DeviceManagerConfiguration.h>
 #include <ossie/CorbaUtils.h>
 #include <ossie/EventChannelSupport.h>
 #include <ossie/ComponentDescriptor.h>
 #include <ossie/FileStream.h>
+#include <ossie/prop_utils.h>
+#include <ossie/logging/loghelpers.h>
 
 #include "DeviceManager_impl.h"
 
@@ -47,39 +48,23 @@ DeviceManager_impl::~DeviceManager_impl ()
 {
 }
 
-void DeviceManager_impl::killPendingDevices() {
+void DeviceManager_impl::killPendingDevices (int signal, int timeout) {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
-    for (DeviceList::iterator deviceIter = _pendingDevices.begin(); 
-         deviceIter != _pendingDevices.end(); 
-         ++deviceIter) {
-
-        pid_t devicePid = (*deviceIter)->pid;
-
-        // Try an orderly shutdown.
-        // NOTE: If the DeviceManager was terminated with a ^C, sending this signal may cause the
-        //       original SIGINT to be forwarded to all other children (which is harmless, but be aware).
-        kill(devicePid, SIGTERM);
+    for (DeviceList::iterator device = _pendingDevices.begin(); device != _pendingDevices.end(); ++device) {
+        pid_t devicePid = (*device)->pid;
+        LOG_TRACE(DeviceManager_impl, "Sending signal " << signal << " to device process " << devicePid);
+        kill(devicePid, signal);
     }
 
-    // Release the lock and allow time for the devices to exit.
-    // Need to release the lock to allow the device to be removed from
-    // the pending devices list if it dies.
-    lock.unlock();
-    usleep(500000);
-
-    sigkillPendingDevices();
-}
-
-void DeviceManager_impl::sigkillPendingDevices() {
-    // Send a SIGKILL to any remaining devices.
-    boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
-    for (DeviceList::iterator deviceIter = _pendingDevices.begin(); 
-         deviceIter != _pendingDevices.end(); 
-         ++deviceIter) {
-
-        pid_t devicePid = (*deviceIter)->pid;
-        kill(devicePid, SIGKILL);
+    // Wait for the remaining devices to exit
+    if (timeout > 0) {
+        boost::system_time end = boost::get_system_time() + boost::posix_time::microseconds(timeout);
+        while (!_pendingDevices.empty()) {
+            if (!pendingDevicesEmpty.timed_wait(lock, end)) {
+                break;
+            }
+        }
     }
 }
 
@@ -208,86 +193,6 @@ void DeviceManager_impl::resolveNamingContext(){
     LOG_TRACE(DeviceManager_impl, "Resolved DomainManager naming context");
 }
 
-/** 
- * Store location of the common device PRF by calling deviceProperties.load.
- *
- * Handle exceptions: if an exception occurs, log an error and return false, 
- * which indicates a failure.  Otherwise, return true.
- */
-bool DeviceManager_impl::storeCommonDevicePrfLocation(
-        SoftPkg& SPDParser, 
-        ossie::Properties& deviceProperties) {
-
-    bool returnVal = true;
-
-    LOG_TRACE(DeviceManager_impl, "Loading device PRF file, if any")
-    if ( SPDParser.getPRFFile() ) {
-        try {
-            LOG_TRACE(DeviceManager_impl, "Loading device PRF file " << SPDParser.getPRFFile());
-            File_stream prfStream(_fileSys, SPDParser.getPRFFile());
-            deviceProperties.load(prfStream);
-            LOG_TRACE(DeviceManager_impl, "Loaded device PRF file " << SPDParser.getPRFFile());
-            prfStream.close();
-        } catch (ossie::parser_error& ex) {
-            LOG_ERROR(DeviceManager_impl, 
-                "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; "
-                << "error parsing file " << SPDParser.getPRFFile() << "; " << ex.what())
-            returnVal = false;
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<". Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; " << "error parsing file " << SPDParser.getPRFFile();
-            LOG_ERROR(DeviceManager_impl, eout.str())
-            returnVal = false;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<". Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; " << "error parsing file " << SPDParser.getPRFFile();
-            LOG_ERROR(DeviceManager_impl, eout.str())
-            returnVal = false;
-        }
-    } else {
-        LOG_TRACE(DeviceManager_impl, "Device does not provide softpkg PRF file");
-    }
-
-    return returnVal;
-}
-
-bool DeviceManager_impl::storeImplementationSpecificDevicePrfLocation(
-        SoftPkg&                    SPDParser, 
-        ossie::Properties&          deviceProperties,
-        const SPD::Implementation*& matchedDeviceImpl) {
-
-    bool returnVal = true;    
-    // store location of implementation specific PRF file
-    if ( matchedDeviceImpl->getPRFFile()) {
-        LOG_TRACE(DeviceManager_impl, "Joining implementation PRF file" << matchedDeviceImpl->getPRFFile());
-        try {
-            LOG_TRACE(DeviceManager_impl, "Joining implementation PRF file" << matchedDeviceImpl->getPRFFile());
-            File_stream prfStream(_fileSys, matchedDeviceImpl->getPRFFile());
-            deviceProperties.join(prfStream);
-            prfStream.close();
-        } catch (ossie::parser_error& ex) {
-            LOG_ERROR(DeviceManager_impl, 
-                "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; "
-                << "error parsing file " << SPDParser.getPRFFile() << "; " << ex.what())
-            returnVal = false;
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<". Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; " << "error parsing file " << SPDParser.getPRFFile();
-            LOG_ERROR(DeviceManager_impl, eout.str())
-            returnVal = false;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<". Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; " << "error parsing file " << SPDParser.getPRFFile();
-            LOG_ERROR(DeviceManager_impl, eout.str())
-            returnVal = false;
-        }
-    } else {
-        LOG_TRACE(DeviceManager_impl, "Device does not provide implementation specific PRF file");
-    }
-
-    return returnVal;
-}
-
 bool DeviceManager_impl::loadSPD(
         SoftPkg&                    SPDParser,
         DeviceManagerConfiguration& DCDParser,
@@ -320,26 +225,6 @@ bool DeviceManager_impl::loadSPD(
     } catch ( ... ) {
         LOG_FATAL(DeviceManager_impl, "stopping device manager; unknown error parsing SPD")
         throw std::runtime_error("unexpected error");
-    }
-
-    return true;
-}
-
-/**
- * Join properties from common PRF and implementation PRFs.
- */
-bool DeviceManager_impl::joinDevicePropertiesFromPRFs(
-        SoftPkg&                    SPDParser,
-        Properties&                 deviceProperties,
-        const SPD::Implementation*& matchedDeviceImpl) {
-
-    if (!storeCommonDevicePrfLocation(SPDParser, deviceProperties )) {
-        return false;
-    }
-
-    if (!storeImplementationSpecificDevicePrfLocation(
-            SPDParser, deviceProperties, matchedDeviceImpl)) {
-        return false;
     }
 
     return true;
@@ -385,7 +270,6 @@ bool DeviceManager_impl::getCodeFilePath(
         LOG_ERROR(DeviceManager_impl, "not instantiating device; no entry point provided");
         return false;
     }
-
     codeFilePath = fs_servant->getLocalPath(entryPoint.string().c_str());
 
     if (codeFilePath.length() == 0) {
@@ -784,14 +668,12 @@ void DeviceManager_impl::createDeviceExecStatement(
             new_argv[new_argc] = (char*)compositeDeviceIOR.c_str();
             new_argc++;
         }
-#if ENABLE_EVENTS
         if (!CORBA::is_nil(IDM_channel)) {
             new_argv[new_argc] = "IDM_CHANNEL_IOR";
             new_argc++;
             new_argv[new_argc] = (char*)IDM_IOR.c_str();
             new_argc++;
         }
-#endif
     } else if (componentType == "service") {
         new_argv[new_argc] = "SERVICE_NAME";
         new_argc++;
@@ -826,17 +708,21 @@ void DeviceManager_impl::createDeviceExecStatement(
         new_argc++;
     } else {
         // Pass along the current debug level setting.
-#if HAVE_LOG4CXX
-        int level = LoggingConfigurator::getLevel();
-#else
-        int level = 3;
-#endif
+        int level = ossie::logging::ConvertRHLevelToDebug(rh_logger::Logger::getRootLogger()->getLevel());
+
         // Convert the numeric level directly into its ASCII equivalent.
         debug_level.push_back(char(0x30 + level));
         new_argv[new_argc++] = "DEBUG_LEVEL";
         new_argv[new_argc++] = const_cast<char*>(debug_level.c_str());
     }
 
+    std::string dpath;
+    dpath = _domainName + "/" + _label;
+    new_argv[new_argc] = "DOM_PATH";
+    new_argc++;
+    new_argv[new_argc] = (char*)dpath.c_str();
+    new_argc++;
+    
     std::map<std::string, std::string>::iterator prop_iter;
     for (prop_iter = pOverloadprops->begin(); prop_iter != pOverloadprops->end(); prop_iter++) {
         new_argv[new_argc] = (char*)prop_iter->first.c_str();
@@ -849,11 +735,86 @@ void DeviceManager_impl::createDeviceExecStatement(
     new_argv[new_argc] = NULL;
 }                    
 
+DeviceManager_impl::ExecparamList DeviceManager_impl::createDeviceExecparams(
+        const ossie::ComponentPlacement&              componentPlacement,
+        const std::string&                            componentType,
+        std::map<std::string, std::string>*           pOverloadprops,
+        const std::string&                            codeFilePath,
+        ossie::DeviceManagerConfiguration&            DCDParser,
+        const ossie::ComponentInstantiation&          instantiation,
+        const std::string&                            usageName,
+        const std::string&                            compositeDeviceIOR,
+        const std::vector<ossie::ComponentProperty*>& instanceprops)
+{
+    // DO not put any LOG calls in this method, as it is called beteen
+    // fork() and execv().
+    ExecparamList execparams;
+
+    execparams.push_back(std::make_pair("DEVICE_MGR_IOR", deviceMgrIOR));
+    if (componentType == "device") {
+        execparams.push_back(std::make_pair("PROFILE_NAME", DCDParser.getFileNameFromRefId(componentPlacement.getFileRefId())));
+        execparams.push_back(std::make_pair("DEVICE_ID", instantiation.getID()));
+        execparams.push_back(std::make_pair("DEVICE_LABEL", usageName));
+        if (componentPlacement.isCompositePartOf()) {
+            execparams.push_back(std::make_pair("COMPOSITE_DEVICE_IOR", compositeDeviceIOR));
+        }
+        if (!CORBA::is_nil(IDM_channel)) {
+            execparams.push_back(std::make_pair("IDM_CHANNEL_IOR", IDM_IOR));
+        }
+    } else if (componentType == "service") {
+        execparams.push_back(std::make_pair("SERVICE_NAME", usageName));
+    }
+
+    std::vector<ComponentProperty*>::const_iterator iprops_iter;
+    logging_uri = "";
+    for (iprops_iter = instanceprops.begin(); iprops_iter != instanceprops.end(); iprops_iter++) {
+        if ((strcmp((*iprops_iter)->getID(), "LOGGING_CONFIG_URI") == 0)
+                && (dynamic_cast<const SimplePropertyRef*>(*iprops_iter) != NULL)) {
+            const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(*iprops_iter);
+            logging_uri = simpleref->getValue();
+            break;
+        }
+    }
+
+    if (logging_uri.empty()) {
+        if (!logging_config_prop->isNil()) {
+            logging_uri = logging_config_uri;
+        }
+    }
+
+    std::string debug_level;
+    if (!logging_uri.empty()) {
+        if (logging_uri.substr(0, 4) == "sca:") {
+            logging_uri += ("?fs=" + fileSysIOR);
+        }
+        execparams.push_back(std::make_pair("LOGGING_CONFIG_URI", logging_uri));
+    } else {
+        // Pass along the current debug level setting.
+        int level = ossie::logging::ConvertRHLevelToDebug(rh_logger::Logger::getRootLogger()->getLevel());
+        // Pass along the current debug level setting.
+        // Convert the numeric level directly into its ASCII equivalent.
+        debug_level.push_back(char(0x30 + level));
+        execparams.push_back(std::make_pair("DEBUG_LEVEL", debug_level));
+    }
+
+    std::string dpath;
+    dpath = _domainName + "/" + _label;
+    execparams.push_back(std::make_pair("DOM_PATH", dpath));
+    
+    std::map<std::string, std::string>::iterator prop_iter;
+    for (prop_iter = pOverloadprops->begin(); prop_iter != pOverloadprops->end(); prop_iter++) {
+        execparams.push_back(*prop_iter);
+    }
+
+    return execparams;
+}
+
 void DeviceManager_impl::createDeviceThreadAndHandleExceptions(
         const ossie::ComponentPlacement&              componentPlacement,
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
+        const ossie::SoftPkg&                         SPDParser,
         ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::vector<ossie::ComponentPlacement>& componentPlacements,
@@ -868,6 +829,7 @@ void DeviceManager_impl::createDeviceThreadAndHandleExceptions(
                            componentType,
                            pOverloadprops,
                            codeFilePath,
+                           SPDParser,
                            DCDParser,
                            instantiation,
                            devcache,
@@ -899,6 +861,7 @@ void DeviceManager_impl::createDeviceThread(
         const std::string&                            componentType,
         std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
+        const ossie::SoftPkg&                         SPDParser,
         ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            devcache,
@@ -907,81 +870,145 @@ void DeviceManager_impl::createDeviceThread(
         const std::string&                            compositeDeviceIOR,
         const std::vector<ComponentProperty*>&        instanceprops) {
  
-    int pid;
-
     LOG_TRACE(DeviceManager_impl, "Launching " << componentType << " file " 
                                   << codeFilePath << " Usage name " 
                                   << instantiation.getUsageName());
-
-    if ((pid = fork()) > 0) {
-        // parent process: pid is the process ID of the child
-        LOG_TRACE(DeviceManager_impl, "Resulting PID: " << pid);
-
-        // Add the new device/service to the pending list. When it registers, the remaining
-        // fields will be filled out and it will be moved to the registered list.
-        if (componentType == "service") {
-            ServiceNode* serviceNode = new ServiceNode;
-            serviceNode->identifier = instantiation.getID();
-            serviceNode->label = usageName;
-            serviceNode->pid = pid;
-            boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
-            _pendingServices.push_back(serviceNode);
-        } else {
-            DeviceNode* deviceNode = new DeviceNode;
-            deviceNode->identifier = instantiation.getID();
-            deviceNode->label      = usageName;
-            deviceNode->pid        = pid;
-            boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
-            _pendingDevices.push_back(deviceNode);
+    
+    //get code type of persona
+    SoftPkg devmgrspdparser;
+    parseSpd(DCDParser,devmgrspdparser);
+    const SPD::Implementation* devManImpl = 0;
+    getDevManImpl(devManImpl, devmgrspdparser);
+    const SPD::Implementation* matchedDeviceImpl = locateMatchingDeviceImpl(SPDParser,devManImpl);
+    if (!matchedDeviceImpl) {
+        throw std::runtime_error("unable to find matching device implementation");
+    }
+    bool isSharedLibrary = (std::string(matchedDeviceImpl->getCodeType()) == "SharedLibrary");
+    // Logic for persona devices
+    // check is parent exists and if the code type is "SharedLibrary"
+    if (componentPlacement.isCompositePartOf() && isSharedLibrary) {
+   
+        // Locate the parent device via the IOR
+        CORBA::Object_var _aggDev_obj = ossie::corba::Orb()->string_to_object(compositeDeviceIOR.c_str());
+        if (CORBA::is_nil(_aggDev_obj)) {
+            LOG_ERROR(DeviceManager_impl, "Failed to deploy '" << usageName << 
+                      "': Invalid composite device IOR: " << compositeDeviceIOR);
+            return;
         }
-    }
-    else if (pid == 0) {
-        // Child process
 
-        //////////////////////////////////////////////////////////////
-        // DO not put any LOG calls between the fork and the execv
-        //////////////////////////////////////////////////////////////
+        // Attempt to narrow the parent device to an Executable Device
+        CF::ExecutableDevice_var execDevice = ossie::corba::_narrowSafe<CF::ExecutableDevice>(_aggDev_obj);
+        if (CORBA::is_nil(execDevice)) {
+            LOG_ERROR(DeviceManager_impl, "Failed to deploy '" << usageName <<
+                      "': DeployOnDevice must be an Executable Device:  Unable to narrow to Executable Device")
+                return;
+        }
+        //all conditions are met for a persona    
+        // Load shared library into device using load mechanism
+        LOG_DEBUG(DeviceManager_impl, "Loading '" << codeFilePath << "' to parent device: " << execDevice->identifier());
+        execDevice->load(_dmnMgr->fileMgr(), codeFilePath.c_str(), CF::LoadableDevice::SHARED_LIBRARY);
+        LOG_DEBUG(DeviceManager_impl, "Load complete");
+       
+        const std::string realCompType = "device";
 
-        // switch to working directory
-        chdir(devcache.c_str());
+        ExecparamList execparams = createDeviceExecparams(componentPlacement,
+                                                          realCompType,
+                                                          pOverloadprops,
+                                                          codeFilePath,
+                                                          DCDParser,
+                                                          instantiation,
+                                                          usageName,
+                                                          compositeDeviceIOR,
+                                                          instanceprops);
+                
+        // Pack execparams into CF::Properties to send to the parent
+        CF::Properties personaProps;
+        for (ExecparamList::iterator arg = execparams.begin(); arg != execparams.end(); ++arg) {
+            LOG_DEBUG(DeviceManager_impl, arg->first << "=\"" << arg->second << "\"");
+            CF::DataType argument;
+            argument.id = arg->first.c_str();
+            argument.value <<= arg->second;
+            ossie::corba::push_back(personaProps, argument);
+        }
+        CF::Properties options;
+        options.length(0);
 
-        const char* new_argv[pOverloadprops->size() + 30];
+        // Tell parent device to execute shared library using execute mechanism
+        LOG_DEBUG(DeviceManager_impl, "Execute '" << codeFilePath << "' on parent device: " << execDevice->identifier());
+        execDevice->execute(codeFilePath.c_str(), options, personaProps);
+        LOG_DEBUG(DeviceManager_impl, "Execute complete");
+    } else {
+        int pid = fork();
+        if (pid > 0) {
+            // parent process: pid is the process ID of the child
+            LOG_TRACE(DeviceManager_impl, "Resulting PID: " << pid);
 
-        createDeviceExecStatement(new_argv, 
-                                  componentPlacement,
-                                  componentType,
-                                  pOverloadprops,
-                                  codeFilePath,
-                                  DCDParser,
-                                  instantiation,
-                                  usageName,
-                                  componentPlacements,
-                                  compositeDeviceIOR,
-                                  instanceprops) ;
+            // Add the new device/service to the pending list. When it registers, the remaining
+            // fields will be filled out and it will be moved to the registered list.
+            if (componentType == "service") {
+                ServiceNode* serviceNode = new ServiceNode;
+                serviceNode->identifier = instantiation.getID();
+                serviceNode->label = usageName;
+                serviceNode->pid = pid;
+                boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
+                _pendingServices.push_back(serviceNode);
+            } else {
+                DeviceNode* deviceNode = new DeviceNode;
+                deviceNode->identifier = instantiation.getID();
+                deviceNode->label      = usageName;
+                deviceNode->pid        = pid;
+                boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
+                _pendingDevices.push_back(deviceNode);
+            }
+        }
+        else if (pid == 0) {
+            // Child process
 
-        // now exec - we should not return from this
-        execv(new_argv[0], (char * const*) new_argv);
+            //////////////////////////////////////////////////////////////
+            // DO not put any LOG calls between the fork and the execv
+            //////////////////////////////////////////////////////////////
 
-        LOG_ERROR(DeviceManager_impl, new_argv[0] << " did not execute : " << strerror(errno));
-        exit(-1);
-    }
-    else {
-        // The system cannot support deployment of the device
-        // The most likely cause is the operating system running out of 
-        // threads, in which case the system is in bad shape.  Exit
-        // with an error to allow the system to recover.
-        LOG_ERROR(DeviceManager_impl, "[DeviceManager::execute] Cannot create device thread: " << strerror(errno)); 
+            // switch to working directory
+            chdir(devcache.c_str());
 
-        // If we could not get a thread to create the device, previously created 
-        // devices will likely have trouble with registration.
-        abort();
+            const char* new_argv[pOverloadprops->size() + 30];
 
-        throw;
+            createDeviceExecStatement(new_argv, 
+                                      componentPlacement,
+                                      componentType,
+                                      pOverloadprops,
+                                      codeFilePath,
+                                      DCDParser,
+                                      instantiation,
+                                      usageName,
+                                      componentPlacements,
+                                      compositeDeviceIOR,
+                                      instanceprops) ;
+
+            // now exec - we should not return from this
+            execv(new_argv[0], (char * const*) new_argv);
+
+            LOG_ERROR(DeviceManager_impl, new_argv[0] << " did not execute : " << strerror(errno));
+            exit(-1);
+        }
+        else {
+            // The system cannot support deployment of the device
+            // The most likely cause is the operating system running out of 
+            // threads, in which case the system is in bad shape.  Exit
+            // with an error to allow the system to recover.
+            LOG_ERROR(DeviceManager_impl, "[DeviceManager::execute] Cannot create device thread: " << strerror(errno)); 
+
+            // If we could not get a thread to create the device, previously created 
+            // devices will likely have trouble with registration.
+            abort();
+
+            throw;
+        }
     }
 }
 
 void DeviceManager_impl::abort() {
-    sigkillPendingDevices();
+    killPendingDevices(SIGKILL, 0);
     shutdown();
 }
 
@@ -1079,14 +1106,12 @@ void DeviceManager_impl::post_constructor (
     // valid reference but a stale connection.
     ossie::corba::setObjectCommFailureRetries(_dmnMgr, 1);
 
-#if ENABLE_EVENTS
     IDM_channel = ossie::event::connectToEventChannel(rootContext, "IDM_Channel");
     if (CORBA::is_nil(IDM_channel)) {
         LOG_INFO(DeviceManager_impl, "IDM channel not found. Continuing without using the IDM channel");
     } else {
         IDM_IOR = ossie::corba::objectToString(IDM_channel);
     }
-#endif
 
     _adminState = DEVMGR_REGISTERED;
 
@@ -1105,9 +1130,48 @@ void DeviceManager_impl::post_constructor (
     const std::vector<ossie::ComponentPlacement>& componentPlacements = DCDParser.getComponentPlacements();
     LOG_TRACE(DeviceManager_impl, "ComponentPlacement size is " << componentPlacements.size())
 
-    std::vector<ossie::ComponentPlacement>::const_iterator compPlaceIter;
-    for (compPlaceIter =  componentPlacements.begin(); 
-         compPlaceIter != componentPlacements.end();  
+    // Organize componentPlacements by standalone/deployOnDevice
+    std::vector<ossie::ComponentPlacement>::const_iterator constCompPlaceIter;
+    std::vector<ossie::ComponentPlacement>::iterator compPlaceIter;
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Split component placements by compositePartOf tag
+    //      The following logic exists below:
+    //      - Split non-deployOnDevice from deployOnDevice compPlacements
+    //      - Iterate and launch all non-deployOnDevice compPlacements
+    //      - Iterate and launch all deployOnDevice compPlacements
+    std::vector<ossie::ComponentPlacement> standaloneComponentPlacements;
+    std::vector<ossie::ComponentPlacement> compositePartDeviceComponentPlacements;
+    for (constCompPlaceIter =  componentPlacements.begin();
+         constCompPlaceIter != componentPlacements.end();
+         constCompPlaceIter++) {
+        
+         SoftPkg SPDParser;
+
+         if (!loadSPD(SPDParser, DCDParser, *constCompPlaceIter)) {
+             continue;
+         }
+         const SPD::Implementation* matchedDeviceImpl = locateMatchingDeviceImpl(SPDParser, devManImpl);
+         if (matchedDeviceImpl == NULL) {
+            LOG_ERROR(DeviceManager_impl, 
+                  "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; "
+                  << "no available device implementations match device manager properties for deployOnDevice")
+            continue;
+        }
+        bool isSharedLibrary = (std::string(matchedDeviceImpl->getCodeType()) == "SharedLibrary");
+        bool isCompositePartOf = constCompPlaceIter->isCompositePartOf();
+
+        if (isCompositePartOf && isSharedLibrary) {
+            compositePartDeviceComponentPlacements.push_back(*constCompPlaceIter);
+        } else {
+            standaloneComponentPlacements.push_back(*constCompPlaceIter);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Iterate and launch all non-deployOnDevice compPlacements
+    for (compPlaceIter =  standaloneComponentPlacements.begin();
+         compPlaceIter != standaloneComponentPlacements.end();
          compPlaceIter++) {
 
         SoftPkg SPDParser;
@@ -1127,24 +1191,7 @@ void DeviceManager_impl::post_constructor (
         // it also assumes that there is a single device manager implementation)
 
         // get Device Manager implementation
-        const SPD::Implementation* matchedDeviceImpl = NULL;
-
-        // If there is no deployon element, deploy the implementation that
-        // matches the device manager implementation.  Otherwise, access
-        // the deployon device and match implementation properties
-        if (!compPlaceIter->isDeployOn()) {
-            matchedDeviceImpl = locateMatchingDeviceImpl(SPDParser, devManImpl);
-        } else {
-            // Before we can implement this, we need to determine the following:
-            //  1. Does the refid reference only devices in the DCD or in the entire domain
-            //  2. The DeviceManager needs to spawn any deployondependencies first
-            //     so it can issue the ExecutableDevice->execute() function on those devices
-            //  3. How are matching properties to be used in this context?
-            LOG_ERROR(DeviceManager_impl, 
-                "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; "
-                << "The <deployondevice> element is currently not supported");
-            continue;
-        }
+        const SPD::Implementation* matchedDeviceImpl = locateMatchingDeviceImpl(SPDParser, devManImpl);
 
         if (matchedDeviceImpl == NULL) {
             LOG_ERROR(DeviceManager_impl, 
@@ -1209,6 +1256,113 @@ void DeviceManager_impl::post_constructor (
                 componentType,
                 &overloadprops,
                 codeFilePath,
+                SPDParser,
+                DCDParser,
+                instantiation,
+                componentPlacements,
+                compositeDeviceIOR,
+                instanceprops);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Iterate and launch all deployOnDevice compPlacements
+    for (compPlaceIter =  compositePartDeviceComponentPlacements.begin();
+         compPlaceIter != compositePartDeviceComponentPlacements.end();
+         compPlaceIter++) {
+
+        SoftPkg SPDParser;
+        SoftPkg compositePartSPDParser;
+
+        if (!loadSPD(SPDParser, DCDParser, *compPlaceIter)) {
+            continue;
+        }
+
+        // get Device Manager implementation
+        const char* compositePartDeviceID = compPlaceIter->getCompositePartOfDeviceID();
+        const SPD::Implementation* matchedDeviceImpl = NULL;
+
+        bool foundCompositePart = false;
+        std::vector<ComponentPlacement>::iterator compositePartIter;
+        for (compositePartIter =  standaloneComponentPlacements.begin();
+             compositePartIter != standaloneComponentPlacements.end();
+             compositePartIter++) {
+
+            std::vector<ComponentInstantiation> compositePartInstantiations = (*compositePartIter).getInstantiations();
+            std::vector<ComponentInstantiation>::iterator compInstIter;
+            for (compInstIter = compositePartInstantiations.begin();
+                 compInstIter != compositePartInstantiations.end();
+                 compInstIter++) {
+
+                if (compInstIter->getID() == std::string(compositePartDeviceID)) {
+
+                    if (!loadSPD(compositePartSPDParser, DCDParser, *compositePartIter)) {
+                        continue;
+                    }
+
+                    matchedDeviceImpl = locateMatchingDeviceImpl(compositePartSPDParser, devManImpl);
+                    foundCompositePart = true;
+                    break;
+                }
+            }
+        }
+
+        if (foundCompositePart == false) {
+            LOG_ERROR(DeviceManager_impl,
+                     "Unable to locate deployOnDevice '" << compositePartDeviceID << "'... Skipping instantiation of '" << SPDParser.getSoftPkgID() << "'")
+            continue;
+        }
+
+        if (matchedDeviceImpl == NULL) {
+            LOG_ERROR(DeviceManager_impl,
+                  "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "' - '" << SPDParser.getSoftPkgID() << "; "
+                  << "no available device implementations match device manager properties")
+            continue;
+        }
+
+        // store the matchedDeviceImpl's implementation ID in a map for use with "getComponentImplementationId"
+        ossie::Properties deviceProperties;
+        if (!loadDeviceProperties(SPDParser, *matchedDeviceImpl, deviceProperties)) {
+            LOG_INFO(DeviceManager_impl, "Skipping instantiation of device '" << SPDParser.getSoftPkgName() << "'");
+            continue;
+        }
+
+        std::string compositeDeviceIOR;
+        getCompositeDeviceIOR(compositeDeviceIOR,
+                              componentPlacements,
+                              *compPlaceIter);
+
+        std::vector<ComponentInstantiation>::iterator cpInstIter;
+
+        for (cpInstIter =  (*compPlaceIter).instantiations.begin();
+             cpInstIter != (*compPlaceIter).instantiations.end();
+             cpInstIter++) {
+
+            const ComponentInstantiation instantiation = *cpInstIter;
+
+            recordComponentInstantiationId(instantiation, matchedDeviceImpl);
+
+            // get overloaded properties for exec params
+            const std::vector<ComponentProperty*>& instanceprops = instantiation.getProperties();
+            std::map<std::string, std::string> overloadprops;
+
+            getOverloadprops(overloadprops, instanceprops, deviceProperties);
+
+            // Set Code file path
+            ossie::SPD::Implementation impl = SPDParser.getImplementations()[0];
+            fs::path entryPointPath = fs::path(impl.getEntryPoint());
+            entryPointPath = (fs::path(SPDParser.getSPDPath()) / entryPointPath).normalize();
+            std::string codeFilePath = entryPointPath.string();
+
+            // Set ComponentType
+            std::string componentType = "SharedLibrary"; 
+            // Attempt to create the requested device or service
+            createDeviceThreadAndHandleExceptions(
+                *compPlaceIter,
+                componentType,
+                &overloadprops,
+                codeFilePath,
+                SPDParser,
                 DCDParser,
                 instantiation,
                 componentPlacements,
@@ -1469,10 +1623,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
         throw (CF::InvalidObjectReference("[DeviceManager::registerDevice] Cannot register Device. registeringDevice is a nil reference."));
     }
 
-    if (*_internalShutdown) // do not service a registration request if the Device Manager is shutting down
-        return;
-    
-    LOG_INFO(DeviceManager_impl, "Registering device " << ossie::corba::returnString(registeringDevice->label()) << " on Device Manager " << _label)
+    LOG_INFO(DeviceManager_impl, "Registering device " << (CORBA::String_var)registeringDevice->label() << " on Device Manager " << _label)
 
     CORBA::String_var deviceLabel = registeringDevice->label();
 
@@ -1634,14 +1785,18 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
                 for (unsigned int j = 0; j < overrideProps.size (); j++) {
                     std::string propid = static_cast<char*>(prop.id);
                     std::string refid(overrideProps[j]->getID());
-            
+
                     LOG_TRACE(DeviceManager_impl, "Comparing DCD component instantiation ID " << propid << " to " << refid);
                     if (refid == propid) {
                         // only store property if it has a mode of ['readwrite' or 'writeonly']
                         if (std::string(prfSimpleProp[i]->getMode()) == "readonly") {
-                            LOG_WARN(DeviceManager_impl, "Ignoring DCD override of property '" << prfSimpleProp[i]->getName() << "' - '" << prfSimpleProp[i]->getID() << "' " 
-                                 << "in file '" << _deviceConfigurationProfile << "'; "
-                                 << "device property is readonly")
+                            LOG_WARN(DeviceManager_impl, 
+                                     "Ignoring DCD override of property '" 
+                                        << prfSimpleProp[i]->getName() << "' - '" 
+                                        << prfSimpleProp[i]->getID() << "' " 
+                                        << "in file '" 
+                                        << _deviceConfigurationProfile << "'; "
+                                        << "device property is readonly")
                         } else {
                             LOG_TRACE(DeviceManager_impl, "override value with " << *overrideProps[j]);
                             prop = overridePropertyValue(prfSimpleProp[i], overrideProps[j]);
@@ -1765,22 +1920,27 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
 
 void DeviceManager_impl::deleteFileSystems()
 {
+    LOG_TRACE(DeviceManager_impl, "Deleting file systems");
     PortableServer::POA_var poa = ossie::corba::RootPOA()->find_POA("DeviceManager", 0);
     PortableServer::ObjectId_var oid = poa->reference_to_id(_fileSys);
     poa->deactivate_object(oid);
     _fileSys = CF::FileSystem::_nil();
+    LOG_TRACE(DeviceManager_impl, "Deleted file systems");
 }
 
 void
 DeviceManager_impl::shutdown ()
 throw (CORBA::SystemException)
 {
+    TRACE_ENTER(DeviceManager_impl)
     *_internalShutdown = true;
 
     if ((_adminState == DEVMGR_SHUTTING_DOWN) || (_adminState == DEVMGR_SHUTDOWN)) {
+        LOG_INFO(DeviceManager_impl, "ignoring shutdown request.")
         return;
     }
 
+    LOG_INFO(DeviceManager_impl, "shutting down DeviceManager")
     _adminState = DEVMGR_SHUTTING_DOWN;
 
     // SR:501
@@ -1788,9 +1948,19 @@ throw (CORBA::SystemException)
     // Although unclear, a failure here should NOT prevent us from trying to clean up
     // everything per SR::503
     try {
+        LOG_TRACE(DeviceManager_impl, "unregistering DeviceManager");
         CF::DeviceManager_var self = _this();
         _dmnMgr->unregisterDeviceManager(self);
+    } catch( CF::InvalidObjectReference& ior ) {
+        LOG_ERROR(DeviceManager_impl, "\"dmnMgr->unregisterDeviceManager\" failed with CF::InvalidObjectReference\n")
+    } catch( CORBA::SystemException& se ) {
+        LOG_ERROR(DeviceManager_impl, "\"dmnMgr->unregisterDeviceManager\" failed with CORBA::" << se._name());
+    } catch ( std::exception& ex ) {
+        LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what()<<" while \"dmnMgr->unregisterDeviceManager\"")
+    } catch ( const CORBA::Exception& ex ) {
+        LOG_ERROR(DeviceManager_impl, "The following CORBA exception occurred: "<<ex._name()<<" while \"dmnMgr->unregisterDeviceManager\"")
     } catch( ... ) {
+        LOG_ERROR(DeviceManager_impl, "\"dmnMgr->unregisterDeviceManager\" failed with Unknown Exception\n")
     }
 
     // SR:502
@@ -1802,6 +1972,7 @@ throw (CORBA::SystemException)
     clean_externalServices();
     clean_registeredDevices();
 
+    LOG_TRACE(DeviceManager_impl, "Unbinding device manager context")
     try {
         CosNaming::Name devMgrContextName;
         devMgrContextName.length(1);
@@ -1809,23 +1980,46 @@ throw (CORBA::SystemException)
         if (!CORBA::is_nil(rootContext)) {
             rootContext->unbind(devMgrContextName);
         }
+    } catch ( std::exception& ex ) {
+        LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what()<<" unregistering the file system")
+    } catch ( const CORBA::Exception& ex ) {
+        LOG_ERROR(DeviceManager_impl, "The following CORBA exception occurred: "<<ex._name()<<" unregistering the file system")
     } catch ( ... ) {
+        LOG_ERROR(DeviceManager_impl, "Failed to unbind the device manager context")
     }
 
+    LOG_TRACE(DeviceManager_impl, "Unregistering file systems")
     try {
         deleteFileSystems();
+    } catch ( std::exception& ex ) {
+        LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what()<<" while deleting the file system")
+    } catch ( const CORBA::Exception& ex ) {
+        LOG_ERROR(DeviceManager_impl, "The following CORBA exception occurred: "<<ex._name()<<" while deleting the file system")
     } catch ( ... ) {
+        LOG_ERROR(DeviceManager_impl, "Failed to delete the file system")
     }
 
     try {
+        LOG_INFO(DeviceManager_impl, "done shutting down DeviceManager")
         _adminState = DEVMGR_SHUTDOWN;
+    } catch ( std::exception& ex ) {
+        LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what()<<" while changing the state of the Device Manager")
+    } catch ( const CORBA::Exception& ex ) {
+        LOG_ERROR(DeviceManager_impl, "The following CORBA exception occurred: "<<ex._name()<<" while changing the state of the Device Manager")
     } catch ( ... ) {
+        LOG_ERROR(DeviceManager_impl, "Failed to change the state of the Device Manager")
     }
 
     // Only attempt to shut down the ORB if it is not shared with a DomainManager.
+    LOG_TRACE(DeviceManager_impl, "shutting down ORB")
     try {
         ossie::corba::OrbShutdown(false);
+    } catch ( std::exception& ex ) {
+        LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what()<<" while shutting down the ORB")
+    } catch ( const CORBA::Exception& ex ) {
+        LOG_ERROR(DeviceManager_impl, "The following CORBA exception occurred: "<<ex._name()<<" while shutting down the ORB")
     } catch ( ... ) {
+        LOG_ERROR(DeviceManager_impl, "Failed to shutdown the ORB")
     }
 }
 
@@ -1900,7 +2094,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
         throw (CF::InvalidObjectReference("Cannot unregister Service. registeringService is a nil reference."));
     }
 
-    //Look for registeredService in _registeredServices
+    //Look for registeredDevice in _registeredDevices
     bool serviceFound = decrement_registeredServices(registeredService, name);
     if (serviceFound)
         return;
@@ -2082,28 +2276,20 @@ bool DeviceManager_impl::decrement_registeredServices(CORBA::Object_ptr register
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
     for (ServiceList::iterator serviceIter = _registeredServices.begin(); serviceIter != _registeredServices.end(); ++serviceIter){
+        LOG_TRACE(DeviceManager_impl, "Comparing tmpServiceName to serviceName " << (*serviceIter)->label << " " << name);
         ServiceNode* serviceNode = *serviceIter;
         if (strcmp((*serviceIter)->label.c_str(), name) == 0){
+            LOG_TRACE(DeviceManager_impl, "Matched service name");
             serviceFound = true;
 
-            // Unbind service from the naming service
-            std::string temp_name((*serviceIter)->label);
-            // Per the specification, service usagenames are not optional and *MUST* be
-            // unique per each service type.  Therefore, a domain cannot have two
-            // services of the same usagename.
-            CosNaming::Name_var tmpServiceName = ossie::corba::stringToName(temp_name);
-            try {
-                rootContext->unbind(tmpServiceName);
-            } catch ( ... ){
+            local_unregisterService(registeredService, name);
+
+            if (!registeredService->_is_equivalent((*serviceIter)->service)) {
+                LOG_WARN(DeviceManager_impl, "Cowardly refusing to unregister service because"
+                                             << " the unregistering object does not match the"
+                                             << " registered object")
             }
 
-            // Ddon't unregisterService from the domain manager if we are SHUTTING_DOWN
-            if (_adminState == DEVMGR_REGISTERED){
-                try {
-                    _dmnMgr->unregisterService(registeredService, name);
-                } catch ( ... ) {}
-            }
-            
             // Remove the service from the list of registered services
             _registeredServices.erase(serviceIter);
 
@@ -2121,8 +2307,37 @@ bool DeviceManager_impl::decrement_registeredServices(CORBA::Object_ptr register
     return serviceFound;
 }
 
+void DeviceManager_impl::local_unregisterService(CORBA::Object_ptr service, const std::string& name)
+{
+    // Unbind service from the naming service
+    LOG_INFO(DeviceManager_impl, "Unbinding service name " << name);
+
+    // Per the specification, service usagenames are not optional and *MUST* be
+    // unique per each service type.  Therefore, a domain cannot have two
+    // services of the same usagename.
+    CosNaming::Name_var tmpServiceName = ossie::corba::stringToName(name);
+    try {
+        rootContext->unbind(tmpServiceName);
+    } catch ( ... ){
+        LOG_INFO(DeviceManager_impl, "Service " << name << " was not able to unbind");
+    }
+
+    // Ddon't unregisterService from the domain manager if we are SHUTTING_DOWN
+    if (_adminState == DEVMGR_REGISTERED){
+        try {
+            LOG_INFO(DeviceManager_impl, "Unregistering service " << name << " from domain manager");
+            _dmnMgr->unregisterService(service, name.c_str());
+            LOG_TRACE(DeviceManager_impl, "Done unregistering service " << name << " from domain manager");
+        } CATCH_LOG_ERROR(DeviceManager_impl, "Failure unregistering service from domain manager");
+    } else {
+        LOG_TRACE(DeviceManager_impl, "Not unregistering service " << name << " from domain manager because we are shutting down");
+    }
+}
+
 bool DeviceManager_impl::decrement_registeredDevices(CF::Device_ptr registeredDevice)
 {
+    TRACE_ENTER(DeviceManager_impl);
+
     bool deviceFound = false;
     const std::string deviceIOR = ossie::corba::objectToString(registeredDevice);
 
@@ -2132,7 +2347,9 @@ bool DeviceManager_impl::decrement_registeredDevices(CF::Device_ptr registeredDe
          deviceIter != _registeredDevices.end(); 
          ++deviceIter) {
         DeviceNode* deviceNode = *deviceIter;
+        LOG_TRACE(DeviceManager_impl, "Comparing tmpDeviceIOR to deviceIOR " << deviceNode->IOR << " " << deviceIOR);
         if (deviceNode->IOR == deviceIOR) {
+            LOG_TRACE(DeviceManager_impl, "Matched device IOR");
             deviceFound = true;
             
             // Remove device from the list of registered devices.
@@ -2148,24 +2365,42 @@ bool DeviceManager_impl::decrement_registeredDevices(CF::Device_ptr registeredDe
             // the device from the DomainManager, it will call 'registeredDevices()', which requires the mutex.
             lock.unlock();
 
-
-            // Unbind device from the naming service
-            CosNaming::Name_var tmpDeviceName = ossie::corba::stringToName(label);
-            devMgrContext->unbind(tmpDeviceName);
-
-            // Per SR:490, don't unregisterDevice from the domain manager if we are SHUTTING_DOWN
-            if (_adminState == DEVMGR_REGISTERED) {
-                try {
-                    _dmnMgr->unregisterDevice(registeredDevice);
-                } catch( ... ) {
-                }
-            }
-
+            local_unregisterDevice(registeredDevice, label);
+            
             break;
         }
     }
     
+    TRACE_EXIT(DeviceManager_impl);
     return deviceFound;
+}
+
+void DeviceManager_impl::local_unregisterDevice(CF::Device_ptr device, const std::string& label)
+{
+    // Unbind device from the naming service
+    CosNaming::Name_var tmpDeviceName = ossie::corba::stringToName(label);
+    devMgrContext->unbind(tmpDeviceName);
+
+    // Per SR:490, don't unregisterDevice from the domain manager if we are SHUTTING_DOWN
+    if (_adminState == DEVMGR_REGISTERED) {
+        LOG_INFO(DeviceManager_impl, "Unregistering device " << label << " from domain manager");
+        try {
+            _dmnMgr->unregisterDevice(device);
+            LOG_TRACE(DeviceManager_impl, "Done unregistering device " << label << " from domain manager");
+        } catch( CORBA::SystemException& se ) {
+            LOG_ERROR(DeviceManager_impl, "[DeviceManager::unregisterDevice] \"dmnMgr->unregisterDevice\" failed with CORBA::SystemException\n");
+        } catch( CF::InvalidObjectReference ) {
+            LOG_ERROR(DeviceManager_impl, "[DeviceManager::unregisterDevice] \"dmnMgr->unregisterDevice\" failed with InvalidObjectReference\n");
+        } catch ( std::exception& ex ) {
+            LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what()<<"while unregistering device " << label << " from domain manager");
+        } catch ( const CORBA::Exception& ex ) {
+            LOG_ERROR(DeviceManager_impl, "The following CORBA exception occurred: "<<ex._name()<<"while unregistering device " << label << " from domain manager");
+        } catch( ... ) {
+            LOG_ERROR(DeviceManager_impl, "[DeviceManager::unregisterDevice] \"dmnMgr->unregisterDevice\" failed with Unknown Exception\n");
+        }
+    } else {
+        LOG_TRACE(DeviceManager_impl, "Not unregistering device " << label << " from domain manager because we are shutting down");
+    }
 }
 
 /*
@@ -2307,7 +2542,7 @@ void DeviceManager_impl::clean_externalServices(){
     }
 
     if (serviceNode){
-        decrement_registeredServices(serviceNode->service, serviceNode->label.c_str());
+        local_unregisterService(serviceNode->service, serviceNode->label);
     }
 }
 
@@ -2330,6 +2565,7 @@ void DeviceManager_impl::clean_registeredServices(){
         // Try an orderly shutdown.
         // NOTE: If the DeviceManager was terminated with a ^C, sending this signal may cause the
         //       original SIGINT to be forwarded to all other children (which is harmless, but be aware).
+        LOG_TRACE(DeviceManager_impl, "Sending SIGTERM to service process " << servicePid);
         kill(servicePid, SIGTERM);
     }
 
@@ -2338,6 +2574,7 @@ void DeviceManager_impl::clean_registeredServices(){
         pid_t servicePid = (*serviceIter)->pid;
         // Only kill services that were launched by this device manager
         if (servicePid != 0){
+            LOG_TRACE(DeviceManager_impl, "Sending SIGTERM to a registered service process " << servicePid);
             kill(servicePid, SIGTERM);
         }
     }
@@ -2377,6 +2614,7 @@ void DeviceManager_impl::clean_registeredServices(){
     // Send a SIGKILL to any remaining services.
     for (ServiceList::iterator serviceIter = _pendingServices.begin(); serviceIter != _pendingServices.end(); ++serviceIter) {
         pid_t servicePid = (*serviceIter)->pid;
+        LOG_TRACE(DeviceManager_impl, "Sending SIGKILL to service process " << servicePid);
         kill(servicePid, SIGKILL);
     }
 
@@ -2385,6 +2623,7 @@ void DeviceManager_impl::clean_registeredServices(){
         pid_t servicePid = (*serviceIter)->pid;
         // Only kill services that were launched by this device manager
         if (servicePid != 0){
+            LOG_TRACE(DeviceManager_impl, "Sending SIGKILL to a registered service process " << servicePid);
             kill(servicePid, SIGKILL);
         }
     }
@@ -2395,93 +2634,52 @@ void DeviceManager_impl::clean_registeredDevices()
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
     while (!_registeredDevices.empty()) {
         DeviceNode* deviceNode = _registeredDevices[0];
-        std::string label = deviceNode->label;
+        const std::string label = deviceNode->label;
+        CF::Device_var deviceRef = CF::Device::_duplicate(deviceNode->device);
 
+        // Temporarily release the mutex while calling releaseObject, which
+        // should update the registered devices list; it is possible that the
+        // device node will be deleted before the lock is re-acquired, so local
+        // copies of any objects must be used
+        LOG_TRACE(DeviceManager_impl, "Releasing device " << label);
+        lock.unlock();
         try {
-            lock.unlock();
             unsigned long timeout = 3; // seconds
-            omniORB::setClientCallTimeout(deviceNode->device, timeout * 1000);
-            deviceNode->device->releaseObject();
-            lock.lock();
-        } catch (const CORBA::Exception& ex) {
-            lock.lock();
-            if (_registeredDevices[0] == deviceNode) {
-                if (_registeredDevices.size() != 0) { // this check is here just in case the error happens after the base class releaseObject finishes
-                    _registeredDevices.erase(_registeredDevices.begin());
-                }
-                // this is here in the unlikely event that the releaseObject succeeded only partially
-                //  and the device managed to unregister itself from the DeviceManager
-                bool foundPid = false;
-                for (unsigned int i=0; i<_pendingDevices.size();i++) {
-                    if (_pendingDevices[i]->pid == deviceNode->pid)
-                        foundPid = true;
-                }
-                if (not foundPid)
-                    _pendingDevices.push_back(deviceNode);
-            }
-        } catch ( std::exception& ex ) {
-            lock.lock();
-            if (_registeredDevices[0] == deviceNode) {
-                if (_registeredDevices.size() != 0) { // this check is here just in case the error happens after the base class releaseObject finishes
-                    _registeredDevices.erase(_registeredDevices.begin());
-                }
-                // this is here in the unlikely event that the releaseObject succeeded only partially
-                //  and the device managed to unregister itself from the DeviceManager
-                bool foundPid = false;
-                for (unsigned int i=0; i<_pendingDevices.size();i++) {
-                    if (_pendingDevices[i]->pid == deviceNode->pid)
-                        foundPid = true;
-                }
-                if (not foundPid)
-                    _pendingDevices.push_back(deviceNode);
+            omniORB::setClientCallTimeout(deviceRef, timeout * 1000);
+            deviceRef->releaseObject();
+        } CATCH_LOG_ERROR(DeviceManager_impl, "Exception calling releaseObject on " << label);
+        lock.lock();
+
+        // If the device is still at the front of the list, releaseObject must
+        // have failed
+        if (!_registeredDevices.empty() && (_registeredDevices[0] == deviceNode)) {
+            // Remove the device from the registered list, moving it to the
+            // pending list if it has a PID associated with it
+            _registeredDevices.erase(_registeredDevices.begin());
+            if (deviceNode->pid != 0) {
+                LOG_TRACE(DeviceManager_impl, "Moving unreachable device to pending list");
+                _pendingDevices.push_back(deviceNode);
+            } else {
+                delete deviceNode;
             }
         }
     }
 
-    // Clean up device processes.
-    for (DeviceList::iterator deviceIter = _pendingDevices.begin(); deviceIter != _pendingDevices.end(); ++deviceIter) {
-        pid_t devicePid = (*deviceIter)->pid;
-
-        // Try an orderly shutdown.
-        // NOTE: If the DeviceManager was terminated with a ^C, sending this signal may cause the
-        //       original SIGINT to be forwarded to all other children (which is harmless, but be aware).
-        kill(devicePid, SIGTERM);
-    }
-
-    lock.unlock();
-
-    // Release the lock and allow time for the devices to exit.
-    bool registered_pending_list_empty = _pendingDevices.empty() and
-            _registeredDevices.empty();
-    if (not registered_pending_list_empty) {
-        struct timeval tmp_time;
-        struct timezone tmp_tz;
-        gettimeofday(&tmp_time, &tmp_tz);
-        double wsec_begin = tmp_time.tv_sec;
-        double fsec_begin = tmp_time.tv_usec / 1e6;
-        double wsec_end = wsec_begin;
-        double fsec_end = fsec_begin;
-        double time_diff = (wsec_end + fsec_end)-(wsec_begin + fsec_begin);
-        while ((time_diff < 0.5) and (not registered_pending_list_empty)) {
-            registered_pending_list_empty = _pendingDevices.empty() and
-                    _registeredDevices.empty();
-            gettimeofday(&tmp_time, &tmp_tz);
-            wsec_end = tmp_time.tv_sec;
-            fsec_end = tmp_time.tv_usec / 1e6;
-            time_diff = (wsec_end + fsec_end)-(wsec_begin + fsec_begin);
-            usleep(1000);
-        }
-    }
-
-    lock.lock();
-    killPendingDevices();
+    // Clean up device processes, starting with an orderly shutdown and
+    // escalating as needed
+    // NOTE: If the DeviceManager was terminated with a ^C, sending SIGINT may
+    //       cause the original SIGINT to be forwarded to all other children
+    //       (which is harmless, but be aware).
+    killPendingDevices(SIGINT, 500000);
+    killPendingDevices(SIGTERM, 500000);
+    killPendingDevices(SIGKILL, 0);
 }
 
 /**
- * Set pDeviceNode if the pid was found in either the _pendingDevices or
+ * Return a device node if the pid was found in either the _pendingDevices or
  * in the _registeredDevices.
  */
-void DeviceManager_impl::getDeviceNode(DeviceNode** pDeviceNode, const pid_t pid) {
+DeviceManager_impl::DeviceNode* DeviceManager_impl::getDeviceNode(const pid_t pid) {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
     // Try to find a device that has already unregistered or has not yet registered.
@@ -2489,31 +2687,33 @@ void DeviceManager_impl::getDeviceNode(DeviceNode** pDeviceNode, const pid_t pid
          deviceIter != _pendingDevices.end(); 
          ++deviceIter) {
         if ((*deviceIter)->pid == pid) {
-            *pDeviceNode = (*deviceIter);
+            DeviceNode* deviceNode = *deviceIter;
             _pendingDevices.erase(deviceIter);
-            break;
+            if (_pendingDevices.empty()) {
+                pendingDevicesEmpty.notify_all();
+            }
+            return deviceNode;
         }
     }
 
     // If there was not an unregistered device, check if a registered device terminated early.
-    if (!*pDeviceNode) {
-        for (DeviceList::iterator deviceIter = _registeredDevices.begin(); 
-             deviceIter != _registeredDevices.end(); 
-             ++deviceIter) {
-            if ((*deviceIter)->pid == pid) {
-                *pDeviceNode = (*deviceIter);
-                (*pDeviceNode)->pid = 0;
-                decrement_registeredDevices((*pDeviceNode)->device);
-                break;
-            }
+    for (DeviceList::iterator deviceIter = _registeredDevices.begin(); 
+         deviceIter != _registeredDevices.end(); 
+         ++deviceIter) {
+        if ((*deviceIter)->pid == pid) {
+            DeviceNode* deviceNode = *deviceIter;
+            _registeredDevices.erase(deviceIter);
+            local_unregisterDevice(deviceNode->device, deviceNode->label);
+            return deviceNode;
         }
     }
+
+    return 0;
 }
 
 void DeviceManager_impl::childExited (pid_t pid, int status)
 {
-    DeviceNode* deviceNode = 0;
-    getDeviceNode(&deviceNode, pid);
+    DeviceNode* deviceNode = getDeviceNode(pid);
 
     ServiceNode* serviceNode = 0;
     {
@@ -2533,8 +2733,9 @@ void DeviceManager_impl::childExited (pid_t pid, int status)
             for (ServiceList::iterator serviceIter = _registeredServices.begin(); serviceIter != _registeredServices.end(); ++serviceIter) {
                 if ((*serviceIter)->pid == pid) {
                     serviceNode = (*serviceIter);
-                    // Flag the pid as 0 so that it can be unregistered below.
-                    serviceNode->pid = 0;
+                    _registeredServices.erase(serviceIter);
+                    // If a service terminated unexpectedly, unregister it.
+                    local_unregisterService(serviceNode->service, serviceNode->label);
                     break;
                 }
             }
@@ -2543,6 +2744,7 @@ void DeviceManager_impl::childExited (pid_t pid, int status)
 
     // The pid should always be found; if it is not, it must be a logic error.
     if (!deviceNode && !serviceNode) {
+        LOG_ERROR(DeviceManager_impl, "Process " << pid << " is not associated with a registered device");
         return;
     }
 
@@ -2553,11 +2755,14 @@ void DeviceManager_impl::childExited (pid_t pid, int status)
         label = serviceNode->label;
     }
 
-    // If the device terminated unexpectedly, unregister it.
-    if (deviceNode && deviceNode->pid == 0) {
-        decrement_registeredDevices(deviceNode->device);
-    } else if (serviceNode && serviceNode->pid == 0){
-        decrement_registeredServices(serviceNode->service, serviceNode->label.c_str());
+    if (WIFSIGNALED(status)) {
+        if (deviceNode) {
+            LOG_WARN(DeviceManager_impl, "Child process " << label << " (pid " << pid << ") has terminated with signal " << WTERMSIG(status));
+        } else { // it's a service, so no termination through signal is the correct behavior
+            LOG_INFO(DeviceManager_impl, "Child process " << label << " (pid " << pid << ") has terminated with signal " << WTERMSIG(status));
+        }
+    } else {
+        LOG_INFO(DeviceManager_impl, "Child process " << label << " (pid " << pid << ") has exited with status " << WEXITSTATUS(status));
     }
 
     if (deviceNode) {

@@ -28,11 +28,20 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </componentfiles>
     <partitioning>
         <componentplacement>
-            <componentfileref refid="CommandWrapper_spd"/>
+            <componentfileref refid="bad_CommandWrapper_spd"/>
             <componentinstantiation id="CommandWrapper1">
                 <usagename>CommandWrapper1</usagename>
                 <findcomponent>
                     <namingservice name="CommandWrapper1"/>
+                </findcomponent>
+            </componentinstantiation>
+        </componentplacement>
+        <componentplacement>
+            <componentfileref refid="CommandWrapper_spd"/>
+            <componentinstantiation id="CommandWrapper2">
+                <usagename>CommandWrapper2</usagename>
+                <findcomponent>
+                    <namingservice name="CommandWrapper2"/>
                 </findcomponent>
             </componentinstantiation>
         </componentplacement>

@@ -1,8 +1,7 @@
-*.idlj
-*.omnijni
-CFInterfaces.jar
+.idlj/
+.idljni/
+.jars/
 cf/
-ossie.jar
-ossie/bin/
-ossie/src/fileList.txt
-
+CFInterfaces.jar
+ossie/ossie.jar
+ossie/ossie-legacy.jar

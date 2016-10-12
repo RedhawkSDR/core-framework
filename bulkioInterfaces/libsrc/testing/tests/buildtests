@@ -1,0 +1,49 @@
+#
+# Build supporting components for bulkio test framework
+#
+
+bulkio_top=../../../
+bulkio_libsrc_top=$bulkio_top/libsrc
+export LD_LIBRARY_PATH=$bulkio_libsrc_top/.libs:$bulkio_top/.libs:${LD_LIBRARY_PATH}
+export PYTHONPATH=$bulkio_libsrc_top/build/lib:${PYTHONPATH}
+
+pushd ../components/CPP_Ports/cpp
+./reconf; ./configure; make -j
+popd
+
+pushd ../components/sri_changed_cpp/cpp
+./reconf; ./configure; make -j
+popd
+
+pushd ../components/Java_Ports/java
+./reconf; ./configure; make
+popd
+
+pushd ../components/Python_Ports/python
+./reconf; ./configure; make
+popd
+
+
+pushd ../components/TestLargePush/cpp
+./reconf; ./configure; make -j
+popd
+
+pushd ../components/TestLargePush/java
+./reconf; ./configure; make
+popd
+
+pushd ../components/TestLargePush/python
+./reconf; ./configure; make
+popd
+
+pushd ../components/multiout_attachable/cpp
+./reconf; ./configure; make -j
+popd
+
+pushd ../components/multiout_attachable/java
+./reconf; ./configure; make
+popd
+
+pushd cpp 
+./reconf; ./configure;
+popd

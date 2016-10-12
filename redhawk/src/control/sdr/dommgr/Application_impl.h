@@ -28,13 +28,15 @@
 
 #include <ossie/CF/cf.h>
 #include <ossie/debug.h>
+#include <ossie/Logging_impl.h>
 
 #include "applicationSupport.h"
 #include "connectionSupport.h"
 
+
 class DomainManager_impl;
 
-class Application_impl : public virtual POA_CF::Application
+class Application_impl : public virtual POA_CF::Application, public Logging_impl
 {
     ENABLE_LOGGING
     friend class DomainManager_impl;
@@ -59,8 +61,7 @@ public:
                               CF::Application::ComponentProcessIdSequence* _procIdSequence,
                               std::vector<ossie::ConnectionNode>& connections,
                               std::map<std::string, std::string>& fileTable,
-                              ossie::SoftPkgList& softpkgList,
-                              std::map<std::string, std::vector< ossie::AllocPropsInfo > >& allocPropsTable);
+                              std::vector<std::string> allocationIDs);
 
     ~Application_impl ();
 
@@ -95,6 +96,8 @@ public:
     
     char* profile () throw (CORBA::SystemException);
     
+    char* softwareProfile () throw (CORBA::SystemException);
+    
     char* name () throw (CORBA::SystemException);
     
     CF::DeviceAssignmentSequence * componentDevices ()
@@ -116,6 +119,7 @@ public:
     const ossie::AppConnectionManager& getConnectionManager();
 
     void addExternalPort (const std::string&, CORBA::Object_ptr);
+    void addExternalProperty (const std::string&, const std::string&, CF::Resource_ptr);
 
     /** Implements the ConnectionManager functions
      *  - Makes this class compatible with the ConnectionManager
@@ -127,9 +131,7 @@ public:
     CF::Device_ptr lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId);
     CF::Device_ptr lookupDeviceUsedByComponentInstantiationId(const std::string& componentId, const std::string& usesId);
 
-#if ENABLE_EVENTS
     CosEventChannelAdmin::ProxyPushConsumer_var proxy_consumer;
-#endif
 
     // Event Channel objects
     void createEventChannels (void);
@@ -153,9 +155,10 @@ private:
     std::vector<ossie::ConnectionNode> _connections;
     std::vector<CF::Resource_ptr> _appStartSeq;
     std::map<std::string, std::string> _fileTable;
-    ossie::SoftPkgList                  _softpkgList;
     std::map<std::string, unsigned long> _pidTable;
-    std::map<std::string, std::vector<ossie::AllocPropsInfo> >_allocPropsTable;
+    std::vector<std::string> _allocationIDs;
+    /*std::map<std::string, std::vector<ossie::AllocPropsInfo> >_allocPropsTable;
+    std::vector<ossie::AllocPropsInfo> _usesDeviceCapacities;*/
     std::auto_ptr<ossie::AppConnectionManager> connectionManager;
     DomainManager_impl* _domainManager;
     std::string _waveformContextName;
@@ -164,11 +167,16 @@ private:
     CF::Components _registeredComponents;
 
     std::map<std::string, CORBA::Object_var> _ports;
+    std::map<std::string, std::pair<std::string, CF::Resource_ptr> > _properties;
 
     bool release_already_called;
     boost::mutex releaseObjectLock;
 
     PortableServer::POA_var app_poa;
+
+    // Returns externalpropid if one exists based off of compId and
+    // internal propId, returns empty string if no external prop exists
+    std::string getExternalPropertyId(std::string compId, std::string propId);
 
 };
 #endif

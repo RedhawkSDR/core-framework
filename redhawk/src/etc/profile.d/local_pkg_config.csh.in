@@ -1,5 +1,0 @@
-if ($?PKG_CONFIG_PATH) then
-    setenv PKG_CONFIG_PATH /usr/local/@lib@/pkgconfig:${PKG_CONFIG_PATH}
-else
-    setenv PKG_CONFIG_PATH /usr/local/@lib@/pkgconfig
-endif

@@ -1,0 +1,6 @@
+908734c7e78d9257353424a0066534e2  src/TestLoggingAPI/java/TestLoggingAPI_base.java
+dc51eea04be88cc8eb5ee806f9c7f088  startJava.sh
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+03950a7944469ed7b328c2b620893981  src/TestLoggingAPI/java/TestLoggingAPI.java
+20db97be2ea01742acb65a98967c0822  configure.ac
+2e440cc5d7d9c96c44ced503b1df84c8  Makefile.am

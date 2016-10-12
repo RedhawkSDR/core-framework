@@ -1,0 +1,8 @@
+@EXPORT_LIST@
+Bundle-Name: Core Framework IDL
+Bundle-Vendor: REDHAWK
+Bundle-Version: @PACKAGE_VERSION@.@DATE_TIME_STAMP@
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: idl.cf
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+

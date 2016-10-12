@@ -18,14 +18,13 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AM_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
-AM_LDFLAGS = $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(OMNIORB_LIBS) $(LOG4CXX_LIBS)
-INCLUDES = -I../../include -I../../parser
+devmgrdir = $(SDR_ROOT)/dev/mgr
+dist_devmgr_DATA = DeviceManager.spd.xml DeviceManager.scd.xml DeviceManager.prf.xml DeviceManager.Linux.x86.prf.xml DeviceManager.Linux.x86_64.prf.xml DeviceManager.Linux.armv7l.prf.xml
+devmgr_PROGRAMS = DeviceManager
 
 DeviceManager_SOURCES = main.cpp DeviceManager_impl.cpp
-DeviceManager_LDADD = ../../framework/libossiecf.la ../../parser/libossieparser.la ../../framework/idl/libossieidl.la
+DeviceManager_CPPFLAGS = -I../../include -I../../parser -I$(top_srcdir)/base/include $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
+DeviceManager_CXXFLAGS = -Wall
+DeviceManager_LDADD = ../../framework/libossiedomain.la ../../parser/libossieparser.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la $(OMNIORB_LIBS) $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) $(LOG4CXX_LIBS)
 DeviceManager_LDFLAGS = -static
 
-devmgrdir = $(SDR_ROOT)/dev/mgr
-dist_devmgr_DATA = DeviceManager.spd.xml DeviceManager.scd.xml DeviceManager.prf.xml DeviceManager.Linux.x86.prf.xml DeviceManager.Linux.x86_64.prf.xml
-devmgr_PROGRAMS = DeviceManager

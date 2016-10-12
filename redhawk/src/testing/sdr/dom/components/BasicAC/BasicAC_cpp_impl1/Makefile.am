@@ -18,12 +18,11 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AM_LDFLAGS =  -no-install $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(BOOST_SYSTEM_LIB)
-INCLUDES = -I../../../../../../base/include -I../../../../../../base/parser 
+CFDIR = ../../../../../../base
+AM_CPPFLAGS = -I$(CFDIR)/include
 
 noinst_PROGRAMS = BasicAC_cpp_impl1
 
 BasicAC_cpp_impl1_SOURCES = BasicAC_cpp_impl1.cpp BasicAC_cpp_impl1_base.cpp  BasicAC_cpp_impl1_base.h  BasicAC_cpp_impl1.h  main.cpp  port_impl.cpp  port_impl.h  struct_props.h
-BasicAC_cpp_impl1_LDADD = ../../../../../../base/framework/libossiecf.la ../../../../../../base/parser/libossieparser.la ../../../../../../base/framework/idl/libossieidl.la
-
-
+BasicAC_cpp_impl1_CXXFLAGS = $(BOOST_CPPFLAGS)
+BasicAC_cpp_impl1_LDADD = $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIORB_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la

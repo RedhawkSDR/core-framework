@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration name="test_MatchingDCDOverride_node" id="DCE:0e7a2b47-8617-4278-bcc3-dc350da48fa1">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml">
+    </localfile>
+  </devicemanagersoftpkg>
+  <componentfiles> 
+    <componentfile type="SPD" id="MatchingDevice_7512bbfe-46e1-465b-a422-1ed5d829c485">
+      <localfile name="/devices/MatchingDevice/MatchingDevice.spd.xml">
+      </localfile>
+    </componentfile>
+  </componentfiles>    
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="MatchingDevice_7512bbfe-46e1-465b-a422-1ed5d829c485">
+      </componentfileref>
+      <componentinstantiation id="DCE:5b0ba69f-5126-470e-8bf2-e62296e1903b">
+	<usagename>MatchingDevice_1</usagename>
+	<componentproperties>
+          <simpleref refid="DCE:4a23ad60-0b25-4121-a630-68803a498f75" value="Linux"/>
+          <simpleref refid="test_eq" value="override"/>
+          <simpleref refid="test_ge" value="1"/>
+          <simpleref refid="test_gt" value="1"/>
+          <simpleref refid="test_le" value="1"/>
+          <simpleref refid="test_lt" value="1"/>
+          <simpleref refid="test_ne" value="1"/>
+        </componentproperties>
+	</componentinstantiation>
+      </componentplacement>
+    </partitioning>
+    <domainmanager>
+      <namingservice name="REDHAWK/REDHAWK">
+      </namingservice>
+    </domainmanager>
+  </deviceconfiguration>

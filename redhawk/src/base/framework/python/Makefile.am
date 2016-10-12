@@ -23,8 +23,14 @@
 # Because omniidl is definitely not capable
 .NOTPARALLEL:
 
+# Mimic automake silent rules
+OSSIE_V_pysetup = $(ossie__v_pysetup_$(V))
+ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
+ossie__v_pysetup_0 = --quiet
+ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
+
 all-local:
-	python setup.py build
+	python setup.py $(OSSIE_V_pysetup) build
 if INSTALL_PYTHON_BACKPORTS
 	cd backports; python setup-backports.py build
 endif
@@ -33,8 +39,8 @@ clean-local:
 	python setup.py clean
 	rm -rf build
 
-ossie/cf/%_idl.py : ../../idl/ossie/CF/%.idl
-	$(IDL) -bpython -Wbpackage=ossie.cf -Wbextern=CosNaming -Wbextern=CosEventComm -Wbextern=CosEventChannelAdmin -I $(IDLDIR) -I $(OMNICOS_IDLDIR) -I ../../idl $<
+ossie/cf/%_idl.py : $(top_srcdir)/idl/ossie/CF/%.idl
+	$(AM_V_GEN)$(IDL) -bpython -Wbpackage=ossie.cf -Wbextern=CosNaming -Wbextern=CosEventComm -Wbextern=CosEventChannelAdmin -I $(IDLDIR) -I $(OMNICOS_IDLDIR) -I $(top_srcdir)/idl $<
 
 EXTRA_DIST = setup.py
 
@@ -46,12 +52,18 @@ BUILT_SOURCES = \
  ossie/cf/AggregateDevices_idl.py \
  ossie/cf/QueryablePort_idl.py \
  ossie/cf/WellKnownProperties_idl.py \
- ossie/cf/sandbox_idl.py
+ ossie/cf/sandbox_idl.py \
+ ossie/cf/LogInterfaces_idl.py
 
 CLEANFILES = $(BUILT_SOURCES)
 
+PYTHON_INSTALL_FILES=".pythonInstallFiles"
+
 install-exec-hook:
-	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
+	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix) --record $(PYTHON_INSTALL_FILES)
 if INSTALL_PYTHON_BACKPORTS
 	cd backports; python setup-backports.py install --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
 endif
+
+uninstall:
+	rm `cat $(PYTHON_INSTALL_FILES)`

@@ -19,14 +19,14 @@
 #
 
 # vim: noet: softtabstop=0
-%SK.cpp %.h %DynSK.cpp : ../../idl/ossie/CF/%.idl
-	$(IDL) -I $(IDLDIR) -I $(IDLDIR)/COS -I ../../idl -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
+%SK.cpp %.h %DynSK.cpp : $(top_srcdir)/idl/ossie/CF/%.idl
+	$(AM_V_GEN)$(IDL) -I $(IDLDIR) -I $(IDLDIR)/COS -I $(top_srcdir)/idl -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
 # omniORB uses the a ".hh" suffix for its COS header files, but omniidl doesn't
 # know the difference, so we must modify generated headers to account for that.
-	$(SED) 's|<COS/\(.*\)\.h>|<COS/\1.hh>|' $*.h > $*.h.tmp
-	mv $*.h.tmp $*.h
-	mkdir -p ../../include/ossie/CF
-	cp $*.h ../../include/ossie/CF
+	$(AM_V_at)$(SED) 's|<COS/\(.*\)\.h>|<COS/\1.hh>|' $*.h > $*.h.tmp
+	$(AM_V_at)mv $*.h.tmp $*.h
+	$(AM_V_at)mkdir -p ../../include/ossie/CF
+	$(AM_V_at)cp $*.h ../../include/ossie/CF
 
 clean-local:
 	rm -f ../../include/ossie/CF/*.h
@@ -34,7 +34,7 @@ clean-local:
 install-data-hook :
 	touch $(DESTDIR)$(pkgincludedir)/CF/*.h
 
-BUILT_SOURCES = cfSK.cpp \
+BUILT_SOURCES =	cfSK.cpp \
 		cfDynSK.cpp \
                 PortTypesSK.cpp \
 		PortTypesDynSK.cpp \
@@ -49,12 +49,15 @@ BUILT_SOURCES = cfSK.cpp \
 		WellKnownPropertiesSK.cpp \
 		WellKnownPropertiesDynSK.cpp \
 		sandboxSK.cpp \
-		sandboxDynSK.cpp
+		sandboxDynSK.cpp \
+		LogInterfacesSK.cpp \
+		LogInterfacesDynSK.cpp
+
 CLEANFILES = $(BUILT_SOURCES)
 
 
 cfheaderdir = $(pkgincludedir)/CF
-dist_cfheader_HEADERS = cf.h PortTypes.h StandardEvent.h AggregateDevices.h ExtendedEvent.h QueryablePort.h WellKnownProperties.h sandbox.h
+dist_cfheader_HEADERS = LogInterfaces.h cf.h PortTypes.h StandardEvent.h AggregateDevices.h ExtendedEvent.h QueryablePort.h WellKnownProperties.h sandbox.h
 #nodist_pkginclude_HEADERS = cf.h PortTypes.h StandardEvent.h
 
 lib_LTLIBRARIES = libossieidl.la

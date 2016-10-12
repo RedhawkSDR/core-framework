@@ -18,33 +18,24 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-INCLUDES = -I../include
+AM_CPPFLAGS = -I../include -I$(top_srcdir)/base/include
 
-noinst_LTLIBRARIES = libossiecf.la
-libossiecf_la_SOURCES = File_impl.cpp \
-                        FileManager_impl.cpp \
-                        PortSupplier_impl.cpp \
-                        FileSystem_impl.cpp \
-                        PropertySet_impl.cpp \
-                        helperFunctions.cpp \
-                        Port_impl.cpp \
-                        FileStream.cpp \
-                        POACreator.cpp \
-                        CorbaUtils.cpp \
-                        prop_helpers.cpp
+noinst_LTLIBRARIES = libossiedomain.la
+libossiedomain_la_SOURCES = File_impl.cpp \
+                            FileManager_impl.cpp \
+                            FileSystem_impl.cpp \
+                            helperFunctions.cpp \
+                            POACreator.cpp \
+                            prop_utils.cpp
 
-if ENABLE_EVENTS
-libossiecf_la_SOURCES += EventChannelSupport.cpp
-endif
-
-libossiecf_la_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS) $(PERSISTENCE_CFLAGS)
-libossiecf_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_REGEX_LIB) $(BOOST_LIBS) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) $(PERSISTENCE_LIBS)
-libossiecf_la_LDFLAGS = -Wall
+libossiedomain_la_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS) $(PERSISTENCE_CFLAGS)
+libossiedomain_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) $(PERSISTENCE_LIBS)
+libossiedomain_la_LDFLAGS = -Wall
 
 bin_PROGRAMS = nodeBooter
-nodeBooter_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS) $(PERSISTENCE_CFLAGS)
 nodeBooter_SOURCES = nodebooter.cpp
-nodeBooter_LDADD = $(BOOST_SYSTEM_LIB) $(BOOST_FILESYSTEM_LIB) ../parser/libossieparser.la ./libossiecf.la idl/libossieidl.la
+nodeBooter_CXXFLAGS = $(BOOST_CPPFLAGS) 
+nodeBooter_LDADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) ../parser/libossieparser.la ./libossiedomain.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la
 nodeBooter_LDFLAGS = -static
 bin_SCRIPTS = nodeCleanup.py
 

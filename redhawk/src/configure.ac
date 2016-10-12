@@ -19,7 +19,7 @@
 #
 
 dnl Update this version number immedately after a release
-AC_INIT([ossie],[1.8.9])
+AC_INIT([ossie],[1.10.1])
 #AM_INIT_AUTOMAKE(nostdinc)
 # allows filenames over 99 characters long during dist
 AM_INIT_AUTOMAKE([1.9 tar-pax])
@@ -36,14 +36,19 @@ dnl    then increment current and set revision to 0
 dnl 3. If any interfaces have been addded then increment age
 dnl 4. If any interfaces have been removed or changed, then set
 dnl    age to 0
-AC_SUBST([LIBOSSIECF_VERSION_INFO], [3:0:0])
-AC_SUBST([LIBOSSIEPARSER_VERSION_INFO], [2:0:0])
+AC_SUBST([LIBOSSIECF_VERSION_INFO], [4:0:0])
+AC_SUBST([LIBOSSIEPARSER_VERSION_INFO], [3:0:0])
+AC_SUBST([LIBOMNIJNI_VERSION_INFO], [1:0:1])
+AC_SUBST([LIBOSSIECFJNI_VERSION_INFO], [1:0:0])
+AC_SUBST([LIBREDHAWK_LOGGING_VERSION_INFO], [1:0:0])
+
 
 dnl AC_CONFIG_MACRO_DIR([m4])
 dnl LT_INIT
 
+AC_PREFIX_DEFAULT([/usr/local/redhawk/core])
 OSSIE_OSSIEHOME_AS_PREFIX
-OSSIE_SDRROOT
+OSSIE_SDRROOT_IGNORE_PREFIX
 
 AC_PROG_CXX
 AC_PROG_INSTALL
@@ -60,8 +65,10 @@ AC_LANG_PUSH([C++])
 AX_BOOST_BASE([1.35])
 AX_BOOST_SYSTEM
 AX_BOOST_FILESYSTEM
-AX_BOOST_THREAD
+AX_BOOST_SERIALIZATION
 AX_BOOST_REGEX
+AX_BOOST_THREAD
+AX_BOOST_DATE_TIME
 
 AX_LIB_EXPAT([1.95.8])
 if test x"$HAVE_EXPAT" = xno ; then
@@ -86,6 +93,10 @@ AC_SUBST(ENABLE_EVENTS_FLAGS, [-DENABLE_EVENTS=1])
 AM_CONDITIONAL(ENABLE_EVENTS, [true])
 
 AC_CHECK_PROG([IDL], [omniidl], [omniidl], [no])
+if test "$IDL" = no; then
+  AC_MSG_ERROR([cannot find omniidl program])
+fi
+
 AC_MSG_CHECKING([for default IDL path])
 idldir=`pkg-config --variable=idldir omniORB4`
 AC_MSG_RESULT([$idldir])
@@ -120,10 +131,6 @@ OSSIE_ENABLE_PERSISTENCE
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-if test "$IDL" = no; then
-  AC_MSG_ERROR([cannot find omniidl program])
-fi
-
 AC_ARG_ENABLE([xml_validation], AS_HELP_STRING([--disable-xml-validation], [Disable xml validation in the parsers]))
 AC_MSG_CHECKING([if xml parsers should perform validation])
 if test "x$enable_xml_validation" != "xno"; then
@@ -144,16 +151,25 @@ if test "x$enable_java" != "xno"; then
   # Ensure JAVA_HOME is set
   RH_JAVA_HOME
 
+  # Minimum Java version
+  java_source_version=1.6
+
   # Locate tools we need based on JAVA_HOME
-  RH_PROG_JAVAC([1.6])
+  RH_PROG_JAVAC([$java_source_version])
   RH_PROG_JAR
   RH_PROG_IDLJ
+
+  # Enable Java Automake-like build rules
+  RH_JARFILE_RULES
+
+  # Enable IDL-to-Java build rules
+  RH_IDLJ_RULES
 
   # Check vendor
   RH_JAVA_VENDOR
 
   # Locate headers we need
-  RH_HAVA_JNI_H
+  RH_JAVA_JNI_H
 
   if test "$JAVA_HOME" != "no" -a \
           "$JAVAC" != "no" -a \
@@ -163,6 +179,9 @@ if test "x$enable_java" != "xno"; then
           "$HAVE_JNI_H" == "yes"; then
     HAVE_JAVASUPPORT="yes"
     AC_SUBST(javadir, '${prefix}/lib')
+
+    # Set the -source flag to the minimum Java version
+    AC_SUBST(AM_JAVACFLAGS, "-source $java_source_version")
   else
     AC_MSG_WARN([Java support was enabled, but Java requirements were not met])
   fi
@@ -210,10 +229,12 @@ AC_CHECK_LIB([uuid], [uuid_generate], [], [AC_MSG_ERROR([libuuid is required])])
 
 # Set flags for building against the main C++ library.
 AC_SUBST(OSSIE_CFLAGS, '-I$(top_srcdir)/base/include')
-AC_SUBST(OSSIE_IDLDIR, '$(top_srcdir)/base/idl')
+AC_SUBST(OSSIE_IDLDIR, '$(top_srcdir)/idl')
 AC_SUBST(OSSIEIDL_LIBS, '$(top_builddir)/base/framework/idl/libossieidl.la')
 
 if test "$HAVE_JAVASUPPORT" = yes; then
+  AC_SUBST(OSSIE_CLASSPATH, '$(top_srcdir)/base/framework/java/CFInterfaces.jar:$(top_srcdir)/base/framework/java/log4j-1.2.15.jar:$(top_srcdir)/base/framework/java/ossie/ossie.jar')
+
   # Set up omnijni-required variables
   # Enable other parts of the framework to locate omnijni
   AC_SUBST(omnijni_srcdir, '$(top_srcdir)/omnijni')
@@ -229,8 +250,16 @@ if test "$HAVE_JAVASUPPORT" = yes; then
   AC_SUBST(OMNIJNI_CPPFLAGS, '$(JNI_CPPFLAGS) -I$(omnijni_srcdir)/include -I$(omnijni_builddir)/src/cpp/CORBA')
   AC_SUBST(OMNIJNI_LIBS, '$(omnijni_builddir)/src/cpp/libomnijni.la')
   AC_SUBST(OMNIJNI_PYTHONDIR, '$(omnijni_srcdir)/src/python')
-  AC_SUBST(OMNIJNI_IDLJNI, '$(IDL) -p $(OMNIJNI_PYTHONDIR) -b omnijni.idljni')
-  AC_SUBST(OMNIJNI_IDLJAVA, '$(IDL) -p $(OMNIJNI_PYTHONDIR) -b omnijni.idljava')
+
+  # Point IDLJNI to the source tree location, so the same makefile fragments
+  # can support installed and internal builds.
+  _RH_PROG_IDLJNI
+  IDLJNI='$(IDL) -p $(OMNIJNI_PYTHONDIR) -b omnijni.idljava'
+
+  # Likewise, point IDLJNICXX to the source tree location, though it is not
+  # referenced outside of the JNI Makefile.am files
+  _RH_PROG_IDLJNICXX
+  IDLJNICXX='$(IDL) -p $(OMNIJNI_PYTHONDIR) -b omnijni.idljni'
 fi
 
 # Undefine the PACKAGE_ variables to avoid warnings when omniORB is installed outside of
@@ -251,13 +280,8 @@ AC_CONFIG_FILES(Makefile \
                 omnijni/src/java/Makefile \
                 omnijni/src/python/omnijni/Makefile \
                 control/Makefile \
-                control/idl/Makefile \
-                control/framework/idl/Makefile \
                 control/parser/Makefile \
                 control/framework/Makefile \
-                control/include/Makefile \
-                control/include/ossie/Makefile \
-                control/xml/Makefile \
                 control/sdr/Makefile \
                 control/sdr/dommgr/Makefile \
                 control/sdr/devmgr/Makefile \
@@ -266,25 +290,35 @@ AC_CONFIG_FILES(Makefile \
                 base/framework/java/Makefile \
                 base/framework/java/jni/Makefile \
                 base/framework/java/jni/COS/Makefile \
+                base/framework/java/ossie/Makefile \
                 base/framework/idl/Makefile \
                 base/framework/Makefile \
-                base/idl/Makefile \
                 base/include/ossie/Makefile \
                 base/include/Makefile \
                 base/parser/Makefile \
-                base/xml/Makefile \
+                idl/Makefile \
+                xml/Makefile \
+                tools/LogEventAppender/Makefile \
                 testing/Makefile \
-                testing/helpers/buildconfig.py \
+                testing/_unitTestHelpers/buildconfig.py \
                 testing/sdr/dev/devices/ExecutableDevice/Makefile \
                 testing/sdr/dev/devices/BasicTestDevice_cpp/BasicTestDevice_cpp_impl1/Makefile \
                 testing/sdr/dev/devices/BasicTestDevice_java/java/Makefile \
+                testing/sdr/dev/devices/CppTestDevice/cpp/Makefile \
                 testing/sdr/dev/devices/BasicDevWithExecParam_cpp/BasicDevWithExecParam_cpp_impl1/Makefile \
+                testing/sdr/dev/devices/JavaTestDevice/java/Makefile \
                 testing/sdr/dev/devices/SimpleDevice/SimpleDevice_cpp_impl1/Makefile \
                 testing/sdr/dev/devices/props_test_device/props_test_device_cpp_impl1/Makefile \
                 testing/sdr/dev/devices/issue_111_cpp/cpp/Makefile \
                 testing/sdr/dev/devices/issue_111_java/java/Makefile \
+                testing/sdr/dev/devices/PersonaDevice/cpp/Makefile \
+                testing/sdr/dev/devices/ProgrammableDevice/cpp/Makefile \
+                testing/sdr/dev/services/BasicService_java/java/Makefile \
+                testing/sdr/dom/components/CppCallbacks/cpp/Makefile \
                 testing/sdr/dom/components/TestCppProps/Makefile \
                 testing/sdr/dom/components/TestJavaProps/Makefile \
+                testing/sdr/dom/components/TestLegacyJavaProps/Makefile \
+                testing/sdr/dom/components/TestJavaPropsRange/java/Makefile \
                 testing/sdr/dom/components/linkedLibraryTest/Makefile \
                 testing/sdr/dom/components/TestCppsoftpkgDeps/Makefile \
                 testing/sdr/dom/components/javaDep/javaDep/Makefile \
@@ -299,8 +333,13 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/PropertyChangeEventsCpp/Makefile \
                 testing/sdr/dom/components/PropertyChangeEventsJava/PropertyChangeEventsJava_java_impl1/Makefile \
                 testing/sdr/dom/components/ticket2093/cpp/Makefile \
+                testing/sdr/dom/components/TestComplexProps/cpp/Makefile \
+                testing/sdr/dom/components/TestComplexProps/java/Makefile \
+                testing/sdr/dom/components/TestCppPropsRange/cpp/Makefile \
                 testing/sdr/dom/components/TestAllPropTypes/cpp/Makefile \
-                testing/sdr/dom/components/TestAllPropTypes/java/Makefile)
+                testing/sdr/dom/components/TestAllPropTypes/java/Makefile \
+                testing/sdr/dom/components/TestLoggingAPI/cpp/Makefile \
+                testing/sdr/dom/components/TestLoggingAPI/java/Makefile )
 
 AC_OUTPUT
 

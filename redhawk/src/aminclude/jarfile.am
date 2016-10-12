@@ -1,0 +1,163 @@
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
+# distributed with this source distribution.
+#
+# This file is part of REDHAWK core.
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+# Function to convert a target name to the Automake-equivalent canonical name
+rh__canonical = $(subst -,_,$(subst .,_,$(1)))
+
+# Functions and variables to create a single colon-separated "-cp" argument to
+# JAVAC from a set of classpaths.
+rh__empty:=
+rh__space:=$(rh__empty) $(rh__empty)
+rh__join = $(subst $(rh__space),$(1),$(2))
+rh__classpath_flag = $(if $(1),-cp $(call rh__join,:,$(1),))
+rh__classpath = $(call rh__classpath_flag,$(strip $(1)))
+
+# Functions and variables to make comparions easier
+rh__false:=$(rh_empty)
+rh__true:="true"
+rh__eqs = $(if $(subst $(1),,$(2)),$(rh__false),$(rh__true))
+
+# Takes the tail of a list
+#  $(1) = starting index
+#  $(2) = list of words
+rh__sublist = $(if $(2),$(wordlist $(1),$(words $(2)),$(2)))
+
+# Function to manage JARADD arguments. This supports two features: one, if
+# there are multiple -C arguments given to jar, it will error out if there are
+# any repeated directories; grouping the -C arguments allows the jar command to
+# be run in a for loop. Second, if other jar files defined in a _JARFILES
+# variable are listed in JARADD, the build directory will be used, rather than
+# adding the .jar to the archive.
+rh__jaradd_args = $(if $(1),$(call rh__jaradd_args_,$(1)))
+rh__jaradd_args_ = $(if $(call rh__eqs,-C,$(firstword $(1))),$(call rh__jaradd_args_C,$(1)),$(call rh__jaradd_args_default,$(1)))
+
+# Handle -C arguments: group the first 3 words together, then recursively
+# consider the rest of the list.
+rh__jaradd_args_C = "$(wordlist 1,3,$(1))" $(call rh__jaradd_args,$(call rh__sublist,4,$(1)))
+
+# Default arguments: check for jarfiles, the recursively consider the rest of
+# the list.
+rh__jaradd_args_default = $(call rh__jaradd_arg,$(firstword $(1))) $(call rh__jaradd_args,$(call rh__sublist,2,$(1)))
+
+# Handle a potential jarfile argument to JARADD. If the argument is a .jar file
+# that is defined in a _JARFILES variable, its build directory will be
+# substituted with "-C <dir> .", so that the classfiles get added to the target
+# jarfile. This is mostly useful for convenience libraries.
+rh__jaradd_arg = $(or $(call rh__jaradd_jarfile,$(1)),$(1))
+rh__jaradd_jarfile = $(call rh__jaradd_builddir,$(call rh__canonical,$(1)))
+rh__jaradd_builddir = $(if $($(1)_BUILDDIR),"-C $($(1)_BUILDDIR) .")
+
+# Java compile/install commands
+JAVACOMPILE = $(JAVAC) $(AM_JAVACFLAGS) $(JAVACFLAGS)
+INSTALL_JARFILE = $(INSTALL_DATA)
+
+# Temporary directory where classfiles compiled into a jarfile are placed
+JARTMP = .jars
+
+# Template to define a filelist target for a jarfile.
+#  $(1) = target name
+#  $(2) = jarfile canonical name
+define FILELIST_template
+# Generate a Java source file list from the explicitly listed source.
+.INTERMEDIATE : $(1)
+$(1): $$($(2)_SOURCE) $$(nodist_$(2)_SOURCE)
+	@echo > $$@
+	$$(AM_V_GEN)for target in $$^; do echo $$$$target >> $$@ ; done
+endef
+
+# Template to define a jarfile target; this should not be called directly, but
+# instead by rh__jarfile_target, which derives the filelist name and canonical
+# name from the jarfile name.
+#  $(1) = jarfile target name
+#  $(2) = filelist name
+#  $(3) = jarfile canonical name
+define JARFILE_template
+# Set default target build directory
+$(eval $(3)_BUILDDIR ?= $$(JARTMP)/$(3))
+
+# Target jar file is initially built in a temporary directory, and then moved
+# to its final location only after all steps have succeeded. This prevents a
+# partially successful build (e.g., the manifest step failed) from leaving an
+# apparently complete jar.
+$(1): $(2) $$($(3)_MANIFEST)
+	$$(AM_V_at)rm -rf $$($(3)_BUILDDIR) ; mkdir -p $$($(3)_BUILDDIR)
+	$$(RH_V_JAVAC)$$(JAVACOMPILE) $$($(3)_JAVACFLAGS) $$(call rh__classpath,$$($(3)_CLASSPATH) $$(CLASSPATH) $$(AM_CLASSPATH)) -d $$($(3)_BUILDDIR) @$$<
+	$$(RH_V_JAR)$$(JAR) cf $$(JARTMP)/$$@ -C $$($(3)_BUILDDIR) .
+	$$(AM_V_at)for arg in $$(call rh__jaradd_args,$$($(3)_JARADD)); do $$(JAR) uf $$(JARTMP)/$$@ $$$$arg || exit 1; done
+	$$(AM_V_at)[ -z "$$($(3)_MANIFEST)" ] || $$(JAR) umf $$($(3)_MANIFEST) $$(JARTMP)/$$@
+	$$(AM_V_at)mv $$(JARTMP)/$$@ $$@
+
+$(eval $(call FILELIST_template,$(2),$(3)))
+endef
+
+# Function to create a target for a jarfile; derives the filelist filename and
+# canonical name from the jarfile name.
+#  $(1) = jarfile name
+rh__jarfile_target = $(call JARFILE_template,$(1),$(1:%.jar=%.filelist),$(call rh__canonical,$(1)))
+
+# Generate targets for all defined jarfiles; currently only supports the java_
+# prefix, unlike built-in Automake types which work with any prefix.
+$(foreach jarfile,$(java_JARFILES),$(eval $(call rh__jarfile_target,$(jarfile))))
+$(foreach jarfile,$(noinst_java_JARFILES),$(eval $(call rh__jarfile_target,$(jarfile))))
+
+# Chain jarfile targets off standard automake targets
+define JARFILE_TARGETS
+$(RH_TARGET_ALL_AM) : $(java_JARFILES)
+$(RH_TARGET_CLEAN_AM) : clean-jarfiles
+$(RH_TARGET_INSTALL_DATA_AM) : install-jarfiles
+$(RH_TARGET_UNINSTALL_AM) : uninstall-jarfiles
+
+# Add jarfile source to DISTFILES without disrupting Automake
+$(eval DISTFILES += $$(DIST_JARFILES))
+
+.PHONY: install-jarfiles uninstall-jarfiles clean-jarfiles distclean-jarfiles
+
+install-jarfiles: $(java_JARFILES)
+	@$$(NORMAL_INSTALL)
+	test -z "$$(javadir)" || $$(MKDIR_P) "$$(DESTDIR)$$(javadir)"
+	@list='$$(java_JARFILES)'; test -n "$$(javadir)" || list=; \
+	list2=; for p in $$$$list; do \
+	  if test -f $$$$p; then \
+	    list2="$$$$list2 $$$$p"; \
+	  else :; fi; \
+	done; \
+	test -z "$$$$list2" || { \
+	  echo " $$(INSTALL_JARFILE) $$$$list2 '$$(DESTDIR)$$(javadir)'"; \
+	  $$(INSTALL_JARFILE) $$$$list2 "$$(DESTDIR)$$(javadir)"; \
+	}
+
+uninstall-jarfiles:
+	@$$(NORMAL_UNINSTALL)
+	@list='$$(java_JARFILES)'; test -n "$$(javadir)" || list=; \
+	files=`for p in $$$$list; do echo $$$$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$$$files" || exit 0; \
+	echo " ( cd '$$(DESTDIR)$$(javadir)' && rm -f" $$$$files ")"; \
+	cd "$$(DESTDIR)$$(javadir)" && rm -f $$$$files
+
+clean-jarfiles:
+	rm -f $$(java_JARFILES) $$(noinst_java_JARFILES)
+	rm -rf $(JARTMP)
+endef
+
+# If there are any JARFILES entries, add the targets 
+$(if $(java_JARFILES)$(noinst_java_JARFILES),$(eval $(JARFILE_TARGETS)))
+
+# Define DIST_JARFILES so that Java source can be included in "make dist"; if
+# no jarfiles are defined, this is harmless.
+$(eval DIST_JARFILES = $(foreach jarfile,$(java_JARFILES)$(noinst_java_JARFILES),$$($(call rh__canonical,$(jarfile))_SOURCE)))

@@ -74,9 +74,3 @@ SOLUTION: The installation script is attempting to install to a directory for wh
 ERROR: "/usr/bin/install: cannot remove `/usr/local/share/aclocal/ossie/*"
 
 SOLUTION: The installation script may be attempting to install over an existing copy of the Core Framework that was installed with root permissions.  Either update the OSSIEHOME/SDRROOT environment variables in order to install to a different location, or perform "make install" with root permissions.
-
------------------
-
-ERROR: "No such file or directory /bin/java" (encountered when running test scripts)
-
-SOLUTION: Point the JAVA_HOME environment variable to the appropriate version of java (e.g., "export JAVA_HOME=/usr/java/latest").

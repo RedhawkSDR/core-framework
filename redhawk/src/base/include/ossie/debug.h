@@ -22,265 +22,88 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-
-/*
- * README
- *
- * The goal of this file is to ensure a consistent logging approach
- * throughout OSSIE.  The use of the LOG_ statements is preferred over
- * the old DEBUG() macro.  For tracing entry and exiting of functions,
- * use TRACE_ENTRY and TRACE_EXIT.
- */
-#if HAVE_LOG4CXX
-#include<log4cxx/logger.h>
-#include<log4cxx/propertyconfigurator.h>
-#include <log4cxx/logstring.h>
-#include <log4cxx/patternlayout.h>
-#include <log4cxx/consoleappender.h>
-#include <log4cxx/logmanager.h>
-#include <fstream>
-
-/*
- * Place the ENABLE_LOGGING macro in a class to enable the log statements for the class.
- */
-#define ENABLE_LOGGING \
-    private: \
-      static log4cxx::LoggerPtr __logger;
-
-/*
- * Place PREPARE_LOGGING at the top of a class .cpp file to setup the logger for
- * classname.
- */
-#define PREPARE_LOGGING(classname) \
-    log4cxx::LoggerPtr classname::__logger(log4cxx::Logger::getLogger(#classname));
-
-/*
- * Use PREPARE_ALT_LOGGING at the top of a class .cpp file to have classname 
- * use logger loggername.
- * This is useful allowing port_impl logging messages to use the main component
- * logger 
- */
-#define PREPARE_ALT_LOGGING(classname, loggername) \
-    log4cxx::LoggerPtr classname::__logger(log4cxx::Logger::getLogger(#loggername));
-
-#define CREATE_LOGGER(classname) \
-    class classname \
-    { \
-        public: \
-          static log4cxx::LoggerPtr __logger; \
-    }; \
-    log4cxx::LoggerPtr classname::__logger(log4cxx::Logger::getLogger(#classname));
-
-class LoggingConfigurator
-{
-public:
-    static void configure() {
-        configure(3);
-    }
-
-    static void configure(int debugLevel) {
-        // Don't use BasicConfigurator::configure() here because it produces ugly logs (IMHO)
-        // that regular users won't like...power users can always set more advanced patterns
-        // by using the -log4cxx option
-        log4cxx::LogManager::getLoggerRepository()->setConfigured(true);
-        log4cxx::LoggerPtr root = log4cxx::Logger::getRootLogger();
-#ifdef ENABLE_TRACE
-        // Put file/line numbers in each log output
-        log4cxx::LayoutPtr layout(new log4cxx::PatternLayout("%p:%c - %m [%F:%L]%n"));
-#else
-        log4cxx::LayoutPtr layout(new log4cxx::PatternLayout("%p:%c - %m%n"));
-#endif
-        log4cxx::AppenderPtr appender(new log4cxx::ConsoleAppender(layout));
-        root->addAppender(appender);
-
-        if (debugLevel == 0) {
-            root->setLevel(log4cxx::Level::getFatal());
-        } else if (debugLevel == 1) {
-            root->setLevel(log4cxx::Level::getError());
-        } else if (debugLevel == 2) {
-            root->setLevel(log4cxx::Level::getWarn());
-        } else if (debugLevel == 3) {
-            root->setLevel(log4cxx::Level::getInfo());
-        } else if (debugLevel == 4) {
-            root->setLevel(log4cxx::Level::getDebug());
-        } else if (debugLevel >= 5) {
-            root->setLevel(log4cxx::Level::getAll());
-        }
-    }
-
-    static void configure(const char* filename) {
-        log4cxx::PropertyConfigurator::configure(filename);
-    }
-
-    static void configure(const char* filename, const char* nameoverride) {
-        // this function overrides the pattern __NAME__ with nameoverride in the input config file
-        std::ifstream in_configfile(filename);
-        std::string in_str, out_str;
-        std::string name_pat = "__NAME__";
-        std::string::size_type idx = 0;
-
-        // do the override
-        while( getline(in_configfile, in_str) ) {
-            idx = in_str.find(name_pat);
-            while (idx != std::string::npos) {
-                in_str = in_str.substr(0, idx) + nameoverride + "." + in_str.substr(idx + name_pat.length(), in_str.length());
-                idx = in_str.find(name_pat);
-            }
-            out_str += in_str + "\n";
-        }
-        in_configfile.close();
-
-        // overwrite the old file
-        std::fstream out_configfile(filename, std::ios::out | std::ios::trunc);
-        out_configfile.write(out_str.c_str(), out_str.length());
-        out_configfile.close();
-
-        // now configure
-        log4cxx::PropertyConfigurator::configure(filename);
-    }
-
-    static int getLevel() {
-        log4cxx::LoggerPtr root = log4cxx::Logger::getRootLogger();
-        log4cxx::LevelPtr level = root->getLevel();
-        if (log4cxx::Level::getFatal()->equals(level)) {
-            return 0;
-        } else if (log4cxx::Level::getError()->equals(level)) {
-            return 1;
-        } else if (log4cxx::Level::getWarn()->equals(level)) {
-            return 2;
-        } else if (log4cxx::Level::getInfo()->equals(level)) {
-            return 3;
-        } else if (log4cxx::Level::getDebug()->equals(level)) {
-            return 4;
-        } else if (log4cxx::Level::getAll()->equals(level)) {
-            return 5;
-        }
-        return 3;
-    }
-};
-
-#define LOG_TRACE(classname, expression) LOG4CXX_TRACE(classname::__logger, expression)
-#define LOG_DEBUG(classname, expression) LOG4CXX_DEBUG(classname::__logger, expression)
-#define LOG_INFO(classname, expression)  LOG4CXX_INFO(classname::__logger, expression)
-#define LOG_WARN(classname, expression)  LOG4CXX_WARN(classname::__logger, expression)
-#define LOG_ERROR(classname, expression) LOG4CXX_ERROR(classname::__logger, expression)
-#define LOG_FATAL(classname, expression) LOG4CXX_FATAL(classname::__logger, expression)
-
-#else
 #include<iostream>
 #include<fstream>
 #include<string>
 #include<cstring>
 
-/*
- * Although technically you could implement this
- * with blank #defines, doing this ensures that
- * any future use of logging will remain
- * compatible with LOG4CXX.  If we didn't
- * do this, logging statements could be
- * created that won't work with LOG4CXX down
- * the road.
- */
+//
+//  Disable Redhawk Logger class
+//
+#ifdef  NO_RH_LOGGER
+
+//
+// include prior generation macros if Redhawk Logging is disabled
+//
+
+#include <ossie/debug_old.h>
+
+#else    //  NO_RH_LOGGER NOT SET   (default)
+
+//
+//  Begin Macros to use RedHawk Logging Abstraction
+//
+#include <sstream>
+#include "ossie/logging/rh_logger.h"
+
+
 #define ENABLE_LOGGING \
     private: \
-      static std::string __logger;
+    static rh_logger::LoggerPtr __logger;
 
 #define PREPARE_LOGGING(classname) \
-    std::string classname::__logger(#classname);
+    rh_logger::LoggerPtr classname::__logger(rh_logger::Logger::getLogger(#classname));
 
-/*
- * Use PREPARE_ALT_LOGGING at the top of a class .cpp file to have classname 
- * use logger loggername.
- * This is useful allowing port_impl logging messages to use the main component
- * logger 
- */
+
 #define PREPARE_ALT_LOGGING(classname, loggername) \
-    log4cxx::LoggerPtr classname::__logger(log4cxx::Logger::getLogger(#loggername));
+    rh_logger::LoggerPtr classname::__logger(rh_logger::Logger::getLogger(#loggername));
 
 #define CREATE_LOGGER(classname) \
     class classname \
     { \
         public: \
-          static std::string __logger; \
+	static rh_logger::LoggerPtr __logger; \
     }; \
-   std::string classname::__logger(#classname);
+    rh_logger::LoggerPtr classname::__logger(rh_logger::Logger::getLogger(#classname));
 
-class LoggingConfigurator
-{
-public:
-    static unsigned int ossieDebugLevel;
+#define _RH_LOG( level, logger, msg)	\
+  if ( logger && logger->is##level##Enabled() ) {			\
+    std::ostringstream _msg;						\
+    _msg <<  msg;				          		\
+    logger->handleLogEvent( rh_logger::Level::get##level(), _msg.str(), rh_logger::spi::LocationInfo(__FILE__,__PRETTY_FUNCTION__,__LINE__) ); \
+  }
 
-    static void configure() {
-        configure(3);
-    }
 
-    static void configure(int debugLevel) {
-        ossieDebugLevel = debugLevel;
-    }
+#define LOG_TRACE(classname, expression)  _RH_LOG( Trace,  classname::__logger, expression)
+#define LOG_DEBUG(classname, expression)  _RH_LOG( Debug,  classname::__logger, expression)
+#define LOG_INFO(classname, expression)   _RH_LOG( Info,   classname::__logger, expression)
+#define LOG_WARN(classname, expression)   _RH_LOG( Warn,   classname::__logger, expression)
+#define LOG_ERROR(classname, expression)  _RH_LOG( Error,   classname::__logger, expression)
+#define LOG_FATAL(classname, expression)  _RH_LOG( Fatal,   classname::__logger, expression)
 
-    static void configure(const char* filename) {
-        configure(filename, "");
-    }
+#define RH_TRACE( logger, expression )  _RH_LOG( Trace,  logger, expression)
+#define RH_DEBUG( logger, expression )  _RH_LOG( Debug,  logger, expression)
+#define RH_INFO( logger, expression )   _RH_LOG( Info,   logger, expression)
+#define RH_WARN( logger, expression )   _RH_LOG( Warn,   logger, expression)
+#define RH_ERROR( logger, expression )  _RH_LOG( Error,  logger, expression)
+#define RH_FATAL( logger, expression )  _RH_LOG( Fatal,  logger, expression)
 
-    static void configure(const char* filename, const char* nameoverride) {
-        // read in the file (which is in log4cxx format) and
-        // parse out the line that contains log4j.rootLogger= level, [loggers]
-        // ignore loggers and only read the level
-        std::ifstream in(filename);
-        if (! in) {
-            std::perror(filename);
-            return;
-        }
 
-        // A very rudimentary parser that isn't very forgiving
-        char linebuffer[1024];
-        std::string line;
-        while (! in.eof() ) {
-            in.getline(linebuffer, 1024);
-            line.assign(linebuffer);
-            if (line.find("log4j.rootLogger=") == 0) {
-                std::string value = line.substr(strlen("log4j.rootLogger="), line.size());
-                std::string::size_type first_non_ws = value.find_first_not_of(" ");
-                // we can use line.size() because substr uses the smaller of n and size() - pos
-                if (value.find("FATAL", first_non_ws) == 0) {
-                    ossieDebugLevel = 0;
-                } else if (value.find("ERROR", first_non_ws) == 0) {
-                    ossieDebugLevel = 1;
-                } else if (value.find("WARN", first_non_ws) == 0) {
-                    ossieDebugLevel = 2;
-                } else if (value.find("INFO", first_non_ws) == 0) {
-                    ossieDebugLevel = 3;
-                } else if (value.find("DEBUG", first_non_ws) == 0) {
-                    ossieDebugLevel = 4;
-                } else if (value.find("ALL", first_non_ws) == 0) {
-                    ossieDebugLevel = 5;
-                }
-                break;
-            }
-        }
-        in.close();
-    }
-};
-
-#ifdef ENABLE_TRACE
-#define _LOG(level, levelname, logger, msg) \
-      if (LoggingConfigurator::ossieDebugLevel >= level) \
-        std::cout << #levelname << ":" << logger << " - " << msg << " [" << __FILE__ << ":" << __LINE__ << "]"<< std::endl;
+#ifdef HAVE_LOG4CXX
+#if  defined(LOG4CXX_TRACE) || defined(LOG4CXX_DEBUG)  || defined(LOG4CXX_INFO)  || defined(LOG4CXX_WARN)  || defined(LOG4CXX_ERROR)  || defined(LOG4CXX_FATAL) 
+#warning  "For non-ENABLE_LOGGING logger objects, use rh_logger::Logger::getLogger method and RH_XXXX log macros"
+#endif 
 #else
-#define _LOG(level, levelname, logger, msg) \
-      if (LoggingConfigurator::ossieDebugLevel >= level) \
-        std::cout << #levelname << ":" << logger << " - " << msg << std::endl;
+#define LOG4CXX_TRACE( logger, expression )  _RH_LOG( Trace,  logger, expression)
+#define LOG4CXX_DEBUG( logger, expression )  _RH_LOG( Debug,  logger, expression)
+#define LOG4CXX_INFO( logger, expression )   _RH_LOG( Info,   logger, expression)
+#define LOG4CXX_WARN( logger, expression )   _RH_LOG( Warn,   logger, expression)
+#define LOG4CXX_ERROR( logger, expression )  _RH_LOG( Error,  logger, expression)
+#define LOG4CXX_FATAL( logger, expression )  _RH_LOG( Fatal,  logger, expression)
 #endif
 
 
-#define LOG_TRACE(classname, expression)  _LOG(5, TRACE, classname::__logger, expression)
-#define LOG_DEBUG(classname, expression)  _LOG(4, DEBUG, classname::__logger, expression)
-#define LOG_INFO(classname, expression)   _LOG(3, INFO,  classname::__logger, expression)
-#define LOG_WARN(classname, expression)   _LOG(2, WARN,  classname::__logger, expression)
-#define LOG_ERROR(classname, expression)  _LOG(1, ERROR, classname::__logger, expression)
-#define LOG_FATAL(classname, expression)  _LOG(0, FATAL, classname::__logger, expression)
-
-#endif
+#endif    //  NO_RH_LOGGER NOT SET   (default)
 
 /*
 * Provide a standardized mechanism for  TRACING into and out of functions so
@@ -375,5 +198,6 @@ public:
  * THIS MACRO SHOULD BE AVOIDED FOR ALL NEW DEVELOPMENT
  */
 #define DEBUG(level, classname, expression) LOG_DEBUG(classname, expression)
+
 
 #endif

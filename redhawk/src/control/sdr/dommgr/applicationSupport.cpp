@@ -26,11 +26,11 @@
 
 #include <ossie/debug.h>
 #include <ossie/SoftPkg.h>
-#include <ossie/prop_helpers.h>
 #include <ossie/Properties.h>
 #include <ossie/FileStream.h>
 #include <ossie/ComponentDescriptor.h>
 #include <ossie/DeviceManagerConfiguration.h>
+#include <ossie/prop_utils.h>
 #include <ossie/CorbaUtils.h>
 
 #include "applicationSupport.h"
@@ -65,6 +65,14 @@ UsesDeviceInfo::UsesDeviceInfo(const std::string& _id, const std::string& _type,
 
 }
 
+UsesDeviceInfo::UsesDeviceInfo(const std::string& _id, const std::string& _type, const std::vector<ossie::SoftwareAssembly::PropertyRef>& _sadDeps) :
+        id(_id),
+        type(_type),
+        sadDeps(_sadDeps)
+{
+
+}
+
 UsesDeviceInfo::~UsesDeviceInfo()
 {
 }
@@ -84,6 +92,11 @@ const std::vector<ossie::SPD::PropertyRef>& UsesDeviceInfo::getProperties() cons
     return properties;
 }
 
+const std::vector<ossie::SoftwareAssembly::PropertyRef>& UsesDeviceInfo::getSadDeps() const
+{
+    return sadDeps;
+}
+
 const std::string& UsesDeviceInfo::getAssignedDeviceId() const
 {
     return assignedDeviceId;
@@ -92,6 +105,11 @@ const std::string& UsesDeviceInfo::getAssignedDeviceId() const
 void UsesDeviceInfo::setAssignedDeviceId(const std::string& deviceId)
 {
     assignedDeviceId = deviceId;
+}
+
+void UsesDeviceInfo::clearAssignedDeviceId()
+{
+    assignedDeviceId.clear();
 }
 
 ////////////////////////////////////////////////////
@@ -165,7 +183,7 @@ bool ComponentImplementationInfo::checkUsesDevices(ossie::Properties& _prf, CF::
                     const char* propvalue = simpleDependency->getValue();
                     depProp.id = CORBA::string_dup(dependencyProp->getID());
                     LOG_TRACE(ComponentImplementationInfo, " Matched! " << depProp.id << " value " << propvalue)
-                    CORBA::Any capacityDep = ossie::string_to_any(propvalue, getTypeKind(simpleMatchingProp->getType()));
+                    CORBA::Any capacityDep = ossie::string_to_any(propvalue, getTypeCode(simpleMatchingProp->getType()));
 
                     if (strncmp(propvalue, "__MATH__", 8) != 0) {
                         depProp.value = capacityDep;
@@ -196,7 +214,7 @@ bool ComponentImplementationInfo::checkUsesDevices(ossie::Properties& _prf, CF::
     
                             double operand;
                             operand = strtod(args[0].c_str(), NULL);
-    
+
                             // See if there is a property in the component
                             LOG_TRACE(ComponentImplementationInfo, "Attempting to find matching property for " << args[1])
                             const CF::DataType* matchingCompProp = 0;
@@ -523,7 +541,7 @@ bool ImplementationInfo::checkMatchingDependencies(const Properties& _prf, const
                 const char* propvalue = dependency->getValue();
                 const char* matchingpropvalue;
                 if (deviceManagerProfile == "") {
-		    deviceManagerProfile = ossie::corba::returnString(_devMgr->deviceConfigurationProfile());
+                    deviceManagerProfile = ossie::corba::returnString(_devMgr->deviceConfigurationProfile());
                     File_stream _dcd(_devMgr->fileSys(), deviceManagerProfile.c_str());
                     dcdParser.load(_dcd);
                     _dcd.close();
@@ -565,8 +583,8 @@ bool ImplementationInfo::checkMatchingDependencies(const Properties& _prf, const
                 }
 
                 LOG_TRACE(ImplementationInfo, "Match operation " << matchingpropvalue << " " << action << " " << propvalue);
-                CORBA::Any allocProp = ossie::string_to_any(matchingpropvalue, getTypeKind(matchingProp->getType()));
-                CORBA::Any depProp = ossie::string_to_any(propvalue, getTypeKind(matchingProp->getType()));
+                CORBA::Any allocProp = ossie::string_to_any(matchingpropvalue, getTypeCode(matchingProp->getType()));
+                CORBA::Any depProp = ossie::string_to_any(propvalue, getTypeCode(matchingProp->getType()));
                 LOG_TRACE(ImplementationInfo, "Result prior to comparison " << result);
                 // Per section D.4.1.1.7 the allocation property is on the left side of the action
                 // and the dependency value is on the right side of the action
@@ -643,7 +661,7 @@ CF::Properties ImplementationInfo::getAllocationProperties(const Properties& _pr
                 LOG_TRACE(ImplementationInfo, " Matched! " << depProp.id << " value " << propvalue)
 
 
-                CORBA::Any capacityDep = ossie::string_to_any(propvalue, getTypeKind(simpleMatchingProp->getType()));
+                CORBA::Any capacityDep = ossie::string_to_any(propvalue, getTypeCode(simpleMatchingProp->getType()));
                 if (strncmp(propvalue, "__MATH__", 8) != 0) {
                     depProp.value = capacityDep;
                 } else {
@@ -776,7 +794,11 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileManager_ptr 
     }
 
     newComponent->setName(newComponent->spd.getSoftPkgName());
-    newComponent->setIsScaCompliant(newComponent->spd.isScaCompliant());
+    if (newComponent->spd.isScaNonCompliant()) {
+        newComponent->setIsScaCompliant(false);
+    } else {
+        newComponent->setIsScaCompliant(true);
+    }
 
     // Extract implementation data from SPD file
     const std::vector <SPD::Implementation>& spd_i = newComponent->spd.getImplementations();
@@ -982,8 +1004,8 @@ void ComponentInfo::overrideSimpleProperty(const char* id, const std::string val
 
     if (dynamic_cast<const SimpleProperty*>(prop) != NULL) {
         const SimpleProperty* simple = dynamic_cast<const SimpleProperty*>(prop);
-        CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(simple->getType()));
-        CORBA::Any val = ossie::string_to_any(value, kind);
+        CORBA::TypeCode_ptr type = ossie::getTypeCode(static_cast<std::string>(simple->getType()));
+        CORBA::Any val = ossie::string_to_any(value, type);
         overrideProperty(id, val);
     } else {
         LOG_WARN(ComponentInfo, "attempt to override non-simple property with string value");
@@ -1144,3 +1166,283 @@ CF::Resource_ptr ComponentInfo::getResourcePtr()
     return CF::Resource::_duplicate(rsc);
 }
 
+
+////////////////////////////////////////////////////
+/**
+ * ApplicationInfo member function definitions
+ */
+PREPARE_LOGGING(ApplicationInfo);
+
+ApplicationInfo::ApplicationInfo()
+{
+}
+
+ApplicationInfo::~ApplicationInfo()
+{
+    for (unsigned int ii = 0; ii < usesDevices.size(); ++ii) {
+        delete usesDevices[ii];
+    }
+    usesDevices.clear();
+}
+
+const std::vector<SoftwareAssembly::Port>& ApplicationInfo::getExternalPorts() const
+{
+    return externalPorts;
+}
+
+const std::vector<SoftwareAssembly::Property>& ApplicationInfo::getExternalProperties() const
+{
+    return externalProperties;
+}
+
+const CF::Properties ApplicationInfo::getACProperties() const
+{
+    return acProps;
+}
+
+void ApplicationInfo::setACProperties(const CF::Properties& props)
+{
+    acProps = props;
+}
+
+void ApplicationInfo::populateApplicationInfo(const SoftwareAssembly& sad)
+{
+    // Gets external ports
+    const std::vector<SoftwareAssembly::Port>& ports = sad.getExternalPorts();
+    for (std::vector<SoftwareAssembly::Port>::const_iterator port = ports.begin(); port != ports.end(); ++port) {
+        externalPorts.push_back(*port);
+    }
+
+    // Gets external properties
+    const std::vector<SoftwareAssembly::Property>& props = sad.getExternalProperties();
+    for (std::vector<SoftwareAssembly::Property>::const_iterator prop = props.begin(); prop != props.end(); ++prop) {
+        externalProperties.push_back(*prop);
+    }
+
+    // Gets uses device relationships
+    const std::vector<SoftwareAssembly::UsesDevice>& usesDevice = sad.getUsesDevices();
+    for (std::vector<SoftwareAssembly::UsesDevice>::const_iterator use = usesDevice.begin(); use != usesDevice.end(); ++use) {
+        UsesDeviceInfo* useDev = new UsesDeviceInfo(use->getId(), use->getType(), use->getDependencies());
+        usesDevices.push_back(useDev);
+    }
+}
+
+void ApplicationInfo::populateExternalProperties(CF::Properties& vals)
+{
+    for (std::vector<SoftwareAssembly::Property>::iterator prop = externalProperties.begin();
+            prop != externalProperties.end();
+            ++prop) {
+        // Gets the property information
+        std::string compId = prop->comprefid;
+        std::string propId = prop->propid;
+        std::string extId = "";
+        if (prop->externalpropid != "") {
+            extId = prop->externalpropid;
+        } else {
+            extId = prop->propid;
+        }
+
+        ComponentInfo *comp = findComponentByInstantiationId(prop->comprefid);
+        if (comp == 0) {
+            LOG_WARN(ApplicationInfo, "Unable to find component: " << prop->comprefid <<
+                    " for external property: " << prop->externalpropid);
+            continue;
+        }
+
+        CF::Properties compProps = comp->getConfigureProperties();
+        for (unsigned int i = 0; i < compProps.length(); ++i) {
+            if (strcmp(compProps[i].id, propId.c_str()) == 0) {
+                int length = vals.length();
+                vals.length(length + 1);
+                vals[length].id = CORBA::string_dup(extId.c_str());
+                vals[length].value = compProps[i].value;
+            }
+        }
+    }
+}
+
+const std::vector<UsesDeviceInfo*>& ApplicationInfo::getUsesDevices() const
+{
+    return usesDevices;
+}
+
+const UsesDeviceInfo* ApplicationInfo::getUsesDeviceById(const std::string& id) const
+{
+    for (unsigned int ii = 0; ii < usesDevices.size(); ++ii) {
+        if (usesDevices[ii]->getId() == id) {
+            return usesDevices[ii];
+        }
+    }
+
+    return 0;
+}
+
+void ApplicationInfo::addComponent(ComponentInfo* comp)
+{
+    components.push_back(comp);
+}
+
+ComponentInfo* ApplicationInfo::findComponentByInstantiationId(const std::string id)
+{
+    for (unsigned int i = 0; i < components.size(); ++i) {
+        if (components[i]->getInstantiationIdentifier() == id) {
+                return components[i];
+        }
+    }
+    return 0;
+}
+
+/** Checks devices property set to make sure that it includes all of the
+ *  requested types of properties for the specified usesdevice dependency
+ */
+bool ApplicationInfo::checkUsesDevice(const std::vector<ossie::SoftwareAssembly::PropertyRef>& usesProps,
+                                          const std::vector<const Property*>& devProps,
+                                          CF::Properties& allocProps)
+{
+    // Gets the applications properties
+    CF::Properties appProps;
+    this->populateExternalProperties(appProps);
+    for (unsigned int i = 0; i < acProps.length(); ++i) {
+        int length = appProps.length();
+        appProps.length(length + 1);
+        appProps[length].id = CORBA::string_dup(acProps[i].id);
+        appProps[length].value = acProps[i].value;
+    }
+
+    LOG_DEBUG(ApplicationInfo, "Attempting to match allocation properties");
+
+    bool result = true;
+    for (unsigned int i = 0; i < usesProps.size(); ++i) {
+        ComponentProperty* dependencyProp = usesProps[i].property;
+        std::string dependencyPropId = dependencyProp->getID();
+
+        LOG_DEBUG(ApplicationInfo, "Trying to match for property id " << dependencyPropId);
+        // Checks device for required property
+        const Property* matchingProp = 0;
+        for (unsigned int j = 0; j < devProps.size(); ++j) {
+            if (strcmp(devProps[j]->getID(), dependencyPropId.c_str()) == 0) {
+                matchingProp = devProps[j];
+            }
+        }
+
+        if (matchingProp) {
+            LOG_DEBUG(ApplicationInfo, " It's a matching prop");
+            CF::DataType depProp = ossie::overridePropertyValue(matchingProp, dependencyProp);
+
+            if (matchingProp->isExternal()) {
+                const SimpleProperty* simpleMatchingProp = dynamic_cast<const SimpleProperty*>(matchingProp);
+                if (simpleMatchingProp == NULL) {
+                    CF::DataType depProp;
+                    const StructPropertyRef* structref = dynamic_cast<const StructPropertyRef*>(dependencyProp);
+                    if (structref) {
+                        // this is necessary to support the __MATH__ function in structs in dependencies
+                        depProp = ossie::overridePropertyValue(matchingProp, dependencyProp, appProps);
+                    } else {
+                        depProp = ossie::overridePropertyValue(matchingProp, dependencyProp);
+                    }
+                    addProperty(depProp, allocProps);
+                } else {
+                    // The depProp is the  property that is defined in the devices SPD
+                    const SimplePropertyRef* simpleDependency = dynamic_cast<const SimplePropertyRef*>(dependencyProp);
+                    if (!simpleDependency) {
+                        std::ostringstream eout;
+                        eout << " Property reference " << dependencyProp->getID() << " does not match type of device property";
+                        throw ossie::PropertyMatchingError(eout.str());
+                    }
+                    CF::DataType depProp;
+                    const char* propvalue = simpleDependency->getValue();
+                    depProp.id = CORBA::string_dup(dependencyProp->getID());
+                    LOG_TRACE(ApplicationInfo, " Matched! " << depProp.id << " value " << propvalue);
+                    CORBA::Any capacityDep = ossie::string_to_any(propvalue, getTypeCode(simpleMatchingProp->getType()));
+
+                    if (strncmp(propvalue, "__MATH__", 8) != 0) {
+                        depProp.value = capacityDep;
+                    } else {
+                        LOG_TRACE(ApplicationInfo, "Invoking custom OSSIE dynamic allocation property support");
+                        // Turn propvalue into a string for easy parsing
+                        std::string mathStatement = std::string(propvalue).substr(8);
+                        if ((*mathStatement.begin() == '(') && (*mathStatement.rbegin() == ')')) {
+                            mathStatement.erase(mathStatement.begin(), mathStatement.begin() + 1);
+                            mathStatement.erase(mathStatement.end() - 1, mathStatement.end());
+                            std::vector<std::string> args;
+                            while ((mathStatement.length() > 0) && (mathStatement.find(',') != std::string::npos)) {
+                                args.push_back(mathStatement.substr(0, mathStatement.find(',')));
+                                LOG_TRACE(ApplicationInfo, "ARG " << args.back());
+                                mathStatement.erase(0, mathStatement.find(',') + 1);
+                            }
+                            args.push_back(mathStatement);
+                            LOG_TRACE(ApplicationInfo, "ARG " << args.back());
+
+                            if (args.size() != 3) {
+                                std::ostringstream eout;
+                                eout << " invalid __MATH__ statement; '" << mathStatement << "'";
+                                throw ossie::PropertyMatchingError(eout.str());
+                            }
+
+                            LOG_TRACE(ApplicationInfo, "__MATH__ " << args[0] << " " << args[1] << " " << args[2]);
+
+                            double operand;
+                            operand = strtod(args[0].c_str(), NULL);
+
+                            // See if there is a property in the application
+                            LOG_TRACE(ApplicationInfo, "Attempting to find matching property for " << args[1]);
+                            const CF::DataType* matchingAppProp = 0;
+                            for (unsigned int j = 0; j < appProps.length(); ++j) {
+                                if (strcmp(appProps[j].id, args[1].c_str()) == 0) {
+                                    LOG_TRACE(ApplicationInfo, "Matched property for " << args[1]);
+                                    matchingAppProp = &appProps[j];
+                                }
+                            }
+
+                            if (matchingAppProp == 0) {
+                                std::ostringstream eout;
+                                eout << " failed to match application property in __MATH__ statement; property id = "
+                                        << args[1] << " does not exist in application as a configure property";
+                                throw ossie::PropertyMatchingError(eout.str());
+                            }
+
+                            std::string math = args[2];
+                            CORBA::Any appValue = matchingAppProp->value;
+                            LOG_TRACE(ApplicationInfo, "Application configuration value " << ossie::any_to_string(appValue))
+                            depProp.value = ossie::calculateDynamicProp(operand, appValue, math, getTypeKind(simpleMatchingProp->getType()));
+                        } else {
+                            std::ostringstream eout;
+                            eout << " invalid __MATH__ statement; '" << mathStatement << "'";
+                            throw ossie::PropertyMatchingError(eout.str());
+                        }
+                    }
+                    LOG_TRACE(ApplicationInfo, "Adding dependency " << depProp.id << " to be " << ossie::any_to_string(depProp.value));
+                    addProperty(depProp, allocProps);
+                }
+            } else {
+                const SimpleProperty* simpleProp = dynamic_cast<const SimpleProperty*>(matchingProp);
+                if (!simpleProp) {
+                    LOG_ERROR(ApplicationInfo, "Invalid action '" << matchingProp->getAction()
+                            << "' for non-simple property " << dependencyPropId);
+                    allocProps.length(0);
+                    return false;
+                }
+                std::string action = simpleProp->getAction();
+
+                LOG_TRACE(ApplicationInfo, dependencyPropId << "=" << simpleProp->getID() << " value "
+                        << simpleProp->getValue() << " " << action << " "
+                        << ossie::any_to_string(depProp.value));
+                CF::DataType allocProp = ossie::convertPropertyToDataType(simpleProp);
+                LOG_TRACE(ApplicationInfo, "Result prior to comparison " << result);
+                // Per section D.4.1.1.7 the allocation property is on the left side of the action
+                // and the dependency value is on the right side of the action
+                result &= ossie::compare_anys(allocProp.value, depProp.value, action);
+            }
+        } else {
+            LOG_TRACE(ApplicationInfo, " It's not a matching prop");
+            allocProps.length(0);
+            return false;
+        }
+
+        if (!result) {
+            break;
+        }
+    }
+
+    return result;
+}

@@ -100,6 +100,14 @@ private:
                     "",
                     "external",
                     "configure");
+
+        addProperty(OCTAVE_PATH,
+                    "OCTAVE_PATH",
+                    "",
+                    "readonly",
+                    "",
+                    "external",
+                    "configure");
     }
 
     std::string getEnvVar(const char* name) {
@@ -115,11 +123,13 @@ private:
         LD_LIBRARY_PATH = getEnvVar("LD_LIBRARY_PATH");
         PYTHONPATH = getEnvVar("PYTHONPATH");
         CLASSPATH = getEnvVar("CLASSPATH");
+        OCTAVE_PATH = getEnvVar("OCTAVE_PATH");
     }
 
     std::string LD_LIBRARY_PATH;
     std::string PYTHONPATH;
     std::string CLASSPATH;
+    std::string OCTAVE_PATH;
 };
 
 CREATE_LOGGER(ExecutableTestDevice)

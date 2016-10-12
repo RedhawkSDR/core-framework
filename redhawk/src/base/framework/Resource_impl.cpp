@@ -18,37 +18,47 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#include <signal.h>
 
 #include "ossie/Resource_impl.h"
-#include <ossie/prop_helpers.h>
 
 PREPARE_LOGGING(Resource_impl)
 
 Resource_impl::Resource_impl (const char* _uuid) :
+    _identifier(_uuid),
+    _started(false),
     component_running_mutex(),
     component_running(&component_running_mutex)
 {
-    _identifier = _uuid;
 }
 
 
 Resource_impl::Resource_impl (const char* _uuid, const char *label) :
+    _identifier(_uuid),
+    naming_service_name(label),
+    _started(false),
     component_running_mutex(),
     component_running(&component_running_mutex)
 {
-    _identifier = _uuid;
-    naming_service_name = label;
+}
+
+
+void Resource_impl::setAdditionalParameters(std::string softwareProfile)
+{
+    _softwareProfile = softwareProfile;
 }
 
 
 void Resource_impl::start () throw (CORBA::SystemException, CF::Resource::StartError)
 {
+    startPorts();
     _started = true;
 }
 
 
 void Resource_impl::stop () throw (CORBA::SystemException, CF::Resource::StopError)
 {
+    stopPorts();
     _started = false;
 }
 
@@ -57,13 +67,21 @@ char* Resource_impl::identifier () throw (CORBA::SystemException)
     return CORBA::string_dup(_identifier.c_str());
 }
 
+char* Resource_impl::softwareProfile ()
+throw (CORBA::SystemException)
+{
+    return CORBA::string_dup(_softwareProfile.c_str());
+}
+
 CORBA::Boolean Resource_impl::started () throw (CORBA::SystemException)
 {
     return _started;
 }
 
-void Resource_impl::releaseObject()
-throw (CORBA::SystemException, CF::LifeCycle::ReleaseError) {
+void Resource_impl::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+{
+    releasePorts();
+    
     PortableServer::POA_ptr root_poa = ossie::corba::RootPOA();
     PortableServer::ObjectId_var oid = root_poa->servant_to_id(this);
     root_poa->deactivate_object(oid);
@@ -86,90 +104,161 @@ void Resource_impl::halt() {
     LOG_TRACE(Resource_impl, "Done sending device running signal");
 }
 
-void Resource_impl::registerInPort(Port_Provides_base_impl *port) {
-    std::string portName(port->getName());
-    std::map<std::string, Port_Provides_base_impl *>::iterator p;
-    if (( p = inPorts.find(portName)) != inPorts.end()) {
-        // port is already registered. Assume that the new one must replace the old one
-        PortableServer::ServantBase* ptr = dynamic_cast<PortableServer::ServantBase*>(p->second);
-        if (ptr) {
-            PortableServer::ObjectId_var oid;
-            PortableServer::POA_ptr poa = ossie::corba::RootPOA();
-            oid = poa->servant_to_id(ptr);
-            poa->deactivate_object(oid);
-        }
-        delete p->second;
-        inPorts.erase(p);
-    }
-    inPorts.insert(std::pair<std::string, Port_Provides_base_impl *>(portName, port));
+void Resource_impl::setCurrentWorkingDirectory(std::string& cwd) {
+    this->currentWorkingDirectory = cwd;
 }
 
-void Resource_impl::registerOutPort(Port_Uses_base_impl *port, CF::Port_ptr ref) {
-    std::string portName(port->getName());
-    std::map<std::string, Port_Uses_base_impl *>::iterator p;
-    if (( p = outPorts.find(portName)) != outPorts.end()) {
-        // port is already registered. Assume that the new one must replace the old one
-        PortableServer::ServantBase* ptr = dynamic_cast<PortableServer::ServantBase*>(p->second);
-        if (ptr) {
-            PortableServer::ObjectId_var oid;
-            PortableServer::POA_ptr poa = ossie::corba::RootPOA();
-            oid = poa->servant_to_id(ptr);
-            poa->deactivate_object(oid);
-        }
-        delete p->second;
-        outPorts.erase(p);
-    }
-    outPorts.insert(std::pair<std::string, Port_Uses_base_impl *>(portName, port));
-    outPorts_var.erase(portName);
-    outPorts_var.insert(std::pair<std::string, CF::Port_var>(portName, ref));
+std::string& Resource_impl::getCurrentWorkingDirectory() {
+    return this->currentWorkingDirectory;
 }
 
-void Resource_impl::releaseInPorts() {
-    deactivateInPorts();
-    std::map<std::string, Port_Provides_base_impl *>::iterator p;
-    while (inPorts.size() != 0) {
-        p = inPorts.begin();
-        inPorts.erase(p);
-    }
+static Resource_impl* main_component = 0;
+static void sigint_handler(int signum)
+{
+    main_component->halt();
 }
 
-void Resource_impl::releaseOutPorts() {
-    deactivateOutPorts();
-    std::map<std::string, Port_Uses_base_impl *>::iterator p;
-    std::map<std::string, CF::Port_var>::iterator p_var;
-    while (outPorts_var.size() != 0) {
-        p_var = outPorts_var.begin();
-        outPorts_var.erase(p_var);
-    }
-    while (! outPorts.empty() ) {
-        p = outPorts.begin();
-        (p->second)->releasePort();
-        outPorts.erase(p);
-    }
-}
+void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, char* argv[])
+{
+    std::string naming_context_ior;
+    std::string component_identifier;
+    std::string name_binding;
+    std::string profile = "";
+    const char* logging_config_uri = 0;
+    int debug_level = -1; // use log config uri as log level context
+    bool standAlone = false;
+    std::map<std::string, char*> execparams;
+    std::string logcfg_uri("");
+    std::string dpath("");
+    bool skip_run = false;
 
-void Resource_impl::deactivateOutPorts() {
-    PortableServer::ObjectId_var oid;
-    PortableServer::POA_ptr poa = ossie::corba::RootPOA();
-    std::map<std::string, Port_Uses_base_impl *>::iterator p;
-    for (p = outPorts.begin(); p != outPorts.end(); p++) {
-        PortableServer::ServantBase* ptr = dynamic_cast<PortableServer::ServantBase*>(p->second);
-        if (ptr) {
-            oid = poa->servant_to_id(ptr);
-            poa->deactivate_object(oid);
+    // Parse execparams.
+    for (int i=0; i < argc; i++) {
+        if (strcmp("NAMING_CONTEXT_IOR", argv[i]) == 0) {
+            naming_context_ior = argv[++i];
+        } else if (strcmp("PROFILE_NAME", argv[i]) == 0) {
+            profile = argv[++i];
+        } else if (strcmp("COMPONENT_IDENTIFIER", argv[i]) == 0) {
+            component_identifier = argv[++i];
+        } else if (strcmp("NAME_BINDING", argv[i]) == 0) {
+            name_binding = argv[++i];
+        } else if (strcmp("LOGGING_CONFIG_URI", argv[i]) == 0) {
+            logging_config_uri = argv[++i];
+        } else if (strcmp("DEBUG_LEVEL", argv[i]) == 0) {
+            debug_level = atoi(argv[++i]);
+        } else if (strcmp("DOM_PATH", argv[i]) == 0) {
+            dpath = argv[++i];
+        } else if (strcmp("-i", argv[i]) == 0) {
+            standAlone = true;
+        } else if (strcmp("SKIP_RUN", argv[i]) == 0) {
+            skip_run = true;
+        } else if (i > 0) {  // any other argument besides the first one is part of the execparams
+            std::string paramName = argv[i];
+            execparams[paramName] = argv[++i];
         }
     }
-}
 
-void Resource_impl::deactivateInPorts() {
-    PortableServer::ObjectId_var oid;
-    PortableServer::POA_ptr poa = ossie::corba::RootPOA();
-    std::map<std::string, Port_Provides_base_impl *>::iterator p;
-    for (p = inPorts.begin(); p != inPorts.end(); p++) {
-        PortableServer::ServantBase* ptr = dynamic_cast<PortableServer::ServantBase*>(p->second);
-        if (ptr) {
-            oid = poa->servant_to_id(ptr);
-            poa->deactivate_object(oid);
+    if (standAlone) {
+        if (component_identifier.empty()) {
+            component_identifier = ossie::generateUUID();
         }
+        if (name_binding.empty()) {
+            name_binding = "";
+        }
+    } else {
+        if (naming_context_ior.empty()) {
+            std::cout<<std::endl<<"usage: "<<argv[0]<<" [options] [execparams]"<<std::endl<<std::endl;
+            std::cout<<"The set of execparams is defined in the .prf for the component"<<std::endl;
+            std::cout<<"They are provided as arguments pairs ID VALUE, for example:"<<std::endl;
+            std::cout<<"     "<<argv[0]<<" INT_PARAM 5 STR_PARAM ABCDED"<<std::endl<<std::endl;
+            std::cout<<"Options:"<<std::endl;
+            std::cout<<"     -i,--interactive           Run the component in interactive test mode"<<std::endl<<std::endl;
+            exit(-1);
+        }
+    }
+
+    // The ORB must be initialized before configuring logging, which may use
+    // CORBA to get its configuration file.
+    CORBA::ORB_ptr orb = ossie::corba::CorbaInit(argc, argv);
+
+    // check if logging config URL was specified...
+    if ( logging_config_uri ) logcfg_uri=logging_config_uri;
+
+    // setup logging context for a component resource
+    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::ComponentCtx(name_binding, component_identifier, dpath ) );
+
+    if (!skip_run) {
+        // configure the  logging library
+        //std::cout << "Resource::Main debug_level:" << debug_level << std::endl;
+        ossie::logging::Configure(logcfg_uri, debug_level, ctx);
+        //std::cout << "Resource debug_level:" << debug_level << std::endl;
+    }
+
+
+    // Create the servant.
+    LOG_TRACE(Resource_impl, "Creating component with identifier '" << component_identifier << "'");
+    Resource_impl* resource = ctor(component_identifier, name_binding);
+        
+    resource->setAdditionalParameters(profile);
+
+    if ( !skip_run ) {
+        //std::cout << "Resource::Main Save Logging Context to Resource:"<< name_binding << "  LEVEL:" << debug_level << std::endl;
+        // assign the logging context to the resource to support logging interface
+        resource->saveLoggingContext( logcfg_uri, debug_level, ctx );
+    }
+
+    // setting all the execparams passed as argument, this method resides in the Resource_impl class
+    resource->setExecparamProperties(execparams);
+
+    std::string pathAndFile = argv[0];
+    unsigned lastSlash      = pathAndFile.find_last_of("/");
+    std::string cwd         = pathAndFile.substr(0, lastSlash);
+    resource->setCurrentWorkingDirectory(cwd);
+
+    // Activate the component servant.
+    LOG_TRACE(Resource_impl, "Activating component object");
+    PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(resource);
+    CF::Resource_var resource_obj = resource->_this();
+
+    // Get the application naming context and bind the component into it.
+    if (!naming_context_ior.empty()) {
+        LOG_TRACE(Resource_impl, "Binding component to application context with name '" << name_binding << "'");
+        CORBA::Object_var applicationObject = orb->string_to_object(naming_context_ior.c_str());
+        CosNaming::NamingContext_ptr applicationContext = CosNaming::NamingContext::_narrow(applicationObject);
+        ossie::corba::bindObjectToContext(resource_obj, applicationContext, name_binding);
+    } else {
+        if (standAlone) {
+            std::cout<<orb->object_to_string(resource_obj)<<std::endl;
+        }
+    }
+
+    if (!skip_run){
+        // Store away a reference to the main component and establish a handler for
+        // SIGINT that will break out of run()
+        main_component = resource;
+        struct sigaction sa;
+        sa.sa_handler = &sigint_handler;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+        sigaction(SIGINT, &sa, NULL);
+
+        LOG_TRACE(Resource_impl, "Entering component run loop");
+        resource->run();
+        LOG_TRACE(Resource_impl, "Component run loop terminated");
+
+        // Ignore SIGINT from here on out to ensure that the ORB gets shut down
+        // properly
+        sa.sa_handler = SIG_IGN;
+        sigemptyset(&sa.sa_mask);
+        sigaction(SIGINT, &sa, NULL);
+        main_component = 0;
+
+        LOG_TRACE(Resource_impl, "Deleting component");
+        resource->_remove_ref();
+        LOG_TRACE(Resource_impl, "Shutting down ORB");
+
+        ossie::logging::Terminate();
+
+        ossie::corba::OrbShutdown(true);
     }
 }

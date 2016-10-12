@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK bulkioInterfaces.
+
+REDHAWK bulkioInterfaces is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK bulkioInterfaces is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:CF/Resource:1.0"/>
+  <componenttype>resource</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:CF/Resource:1.0" supportsname="Resource"/>
+    <supportsinterface repid="IDL:CF/LifeCycle:1.0" supportsname="LifeCycle"/>
+    <supportsinterface repid="IDL:CF/PortSupplier:1.0" supportsname="PortSupplier"/>
+    <supportsinterface repid="IDL:CF/PropertySet:1.0" supportsname="PropertySet"/>
+    <supportsinterface repid="IDL:CF/TestableObject:1.0" supportsname="TestableObject"/>
+    <ports>
+      <uses repid="IDL:BULKIO/dataChar:1.0" usesname="dataChar"/>
+      <uses repid="IDL:BULKIO/dataFile:1.0" usesname="dataFile"/>
+      <uses repid="IDL:BULKIO/dataShort:1.0" usesname="dataShort"/>
+      <uses repid="IDL:BULKIO/dataUlong:1.0" usesname="dataUlong"/>
+      <uses repid="IDL:BULKIO/dataUlongLong:1.0" usesname="dataUlongLong"/>
+      <uses repid="IDL:BULKIO/dataUshort:1.0" usesname="dataUshort"/>
+      <uses repid="IDL:BULKIO/dataXML:1.0" usesname="dataXML"/>
+      <uses repid="IDL:BULKIO/dataLong:1.0" usesname="dataLong"/>
+      <uses repid="IDL:BULKIO/dataLongLong:1.0" usesname="dataLongLong"/>
+      <uses repid="IDL:BULKIO/dataOctet:1.0" usesname="dataOctet"/>
+      <uses repid="IDL:BULKIO/dataFloat:1.0" usesname="dataFloat"/>
+      <uses repid="IDL:BULKIO/dataSDDS:1.0" usesname="dataSDDS"/>
+      <uses repid="IDL:BULKIO/dataDouble:1.0" usesname="dataDouble"/>
+    </ports>
+  </componentfeatures>
+  <interfaces>
+    <interface name="Resource" repid="IDL:CF/Resource:1.0">
+      <inheritsinterface repid="IDL:CF/LifeCycle:1.0"/>
+      <inheritsinterface repid="IDL:CF/PortSupplier:1.0"/>
+      <inheritsinterface repid="IDL:CF/PropertySet:1.0"/>
+      <inheritsinterface repid="IDL:CF/TestableObject:1.0"/>
+    </interface>
+    <interface name="LifeCycle" repid="IDL:CF/LifeCycle:1.0"/>
+    <interface name="PortSupplier" repid="IDL:CF/PortSupplier:1.0"/>
+    <interface name="PropertySet" repid="IDL:CF/PropertySet:1.0"/>
+    <interface name="TestableObject" repid="IDL:CF/TestableObject:1.0"/>
+    <interface name="ProvidesPortStatisticsProvider" repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    <interface name="updateSRI" repid="IDL:BULKIO/updateSRI:1.0"/>
+    <interface name="dataChar" repid="IDL:BULKIO/dataChar:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataDouble" repid="IDL:BULKIO/dataDouble:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataFile" repid="IDL:BULKIO/dataFile:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataFloat" repid="IDL:BULKIO/dataFloat:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataLong" repid="IDL:BULKIO/dataLong:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataLongLong" repid="IDL:BULKIO/dataLongLong:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataOctet" repid="IDL:BULKIO/dataOctet:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataSDDS" repid="IDL:BULKIO/dataSDDS:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    </interface>
+    <interface name="dataShort" repid="IDL:BULKIO/dataShort:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataUlong" repid="IDL:BULKIO/dataUlong:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataUlongLong" repid="IDL:BULKIO/dataUlongLong:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataUshort" repid="IDL:BULKIO/dataUshort:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+    <interface name="dataXML" repid="IDL:BULKIO/dataXML:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+  </interfaces>
+</softwarecomponent>

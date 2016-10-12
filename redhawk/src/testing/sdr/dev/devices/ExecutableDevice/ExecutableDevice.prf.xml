@@ -22,7 +22,6 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 <!DOCTYPE properties PUBLIC '-//JTRS//DTD SCA V2.2.2 PRF//EN' 'properties.dtd'>
 <properties>
     <!-- Provide a processor_name and os_name matching property -->
-    <!-- See section D2.1.6.8 and Attachment 2 to Appendix D -->
     <simple id="DCE:4a23ad60-0b25-4121-a630-68803a498f75"
             name="os_name"
             mode="readonly"
@@ -54,6 +53,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <action type="external"/>
     </simple>
     <simple id="CLASSPATH" mode="readonly" type="string">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+    <simple id="OCTAVE_PATH" mode="readonly" type="string">
         <kind kindtype="configure"/>
         <action type="external"/>
     </simple>

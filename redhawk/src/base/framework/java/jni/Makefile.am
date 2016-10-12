@@ -24,17 +24,21 @@ IDLFLAGS = -I$(OSSIE_IDLDIR) -I$(IDLDIR) -I$(OMNICOS_IDLDIR)
 
 lib_LTLIBRARIES = libossiecfjni.la
 
-nodist_libossiecfjni_la_SOURCES = ossie/CF/jni_cf.cpp \
+nodist_libossiecfjni_la_SOURCES = ossie/CF/jni_LogInterfaces.cpp \
+				  ossie/CF/jni_cf.cpp \
 				  ossie/CF/jni_AggregateDevices.cpp \
 				  ossie/CF/jni_QueryablePort.cpp \
 				  ossie/CF/jni_StandardEvent.cpp \
 				  ossie/CF/jni_WellKnownProperties.cpp \
 				  ossie/CF/jni_PortTypes.cpp \
 				  ossie/CF/jni_ExtendedEvent.cpp \
-				  ossie/CF/jni_sandbox.cpp
-libossiecfjni_la_CPPFLAGS = $(OMNIJNI_CPPFLAGS) $(OSSIE_CFLAGS)
+				  ossie/CF/jni_sandbox.cpp 
 
-nobase_nodist_include_HEADERS = ossie/CF/jni_cf.h \
+libossiecfjni_la_CPPFLAGS = $(OMNIJNI_CPPFLAGS) $(OSSIE_CFLAGS)
+libossiecfjni_la_LDFLAGS = -version-info $(LIBOSSIECFJNI_VERSION_INFO)
+
+nobase_nodist_include_HEADERS = ossie/CF/jni_LogInterfaces.h \
+				ossie/CF/jni_cf.h \
 				ossie/CF/jni_AggregateDevices.h \
 				ossie/CF/jni_QueryablePort.h \
 				ossie/CF/jni_StandardEvent.h \
@@ -42,6 +46,10 @@ nobase_nodist_include_HEADERS = ossie/CF/jni_cf.h \
 				ossie/CF/jni_PortTypes.h \
 				ossie/CF/jni_ExtendedEvent.h \
 				ossie/CF/jni_sandbox.h
+
+# Ensure that the headers get built first to avoid potential race conditions,
+# as many of the .cpp files depend on one or more other headers
+BUILT_SOURCES = $(nobase_nodist_include_HEADERS)
 
 libossiecfjni_la_LIBADD = COS/libcosjni.la $(OMNICOS_LIBS) $(OSSIEIDL_LIBS) $(OMNIJNI_LIBS)
 
@@ -51,5 +59,10 @@ clean-local:
 ossie/CF:
 	mkdir -p $@
 
+# The COS modules are mapped to the org.omg package.
+COSPKGS = CosEventComm CosNaming CosEventChannelAdmin
+COSPREFIX = org.omg
+IDLJNIFLAGS = $(COSPKGS:%=-Wbpkgprefix=%:$(COSPREFIX))
+
 ossie/CF/jni_%.cpp ossie/CF/jni_%.h : $(OSSIE_IDLDIR)/ossie/CF/%.idl | ossie/CF
-	$(OMNIJNI_IDLJNI) -Wbincprefix=ossie/CF -Wbpkgprefix=CosNaming:COS -Wbpkgprefix=CosEventComm:COS -C ossie/CF $(IDLFLAGS) $<
+	$(AM_V_GEN)$(IDLJNICXX) -Wbincprefix=ossie/CF $(IDLJNIFLAGS) -C ossie/CF $(IDLFLAGS) $<

@@ -26,16 +26,20 @@ import os
 import urlparse
 urlparse.uses_netloc.append("sca")
 urlparse.uses_query.append("sca")
-import logging
 import time
 import threading
+import logging
+
 from ossie.properties import PropertyStorage
+import ossie.logger
+
 
 import sys
 import CosNaming
 import signal
 import getopt
 from Queue import Queue
+
 
 
 def _getCallback(obj, methodName):
@@ -135,10 +139,24 @@ class Resource(object):
         self.propertySetAccess = threading.Lock()
         self._id = identifier
         self._started = False
+
+        ##
+        ## logging context for the resource
+        ##
+        self.logLevel = logging.INFO
+        self.logConfig = ""
+        self.loggingMacros = ossie.logger.GetDefaultMacros()
+        ossie.logger.ResolveHostInfo( self.loggingMacros )
+        self.loggingCtx = None
+        self.loggingURL=None
         if loggerName == None:
+            self._logid = self._id
             self._log = logging.getLogger(self._id)
         else:
+            self._logid = loggerName
             self._log = logging.getLogger(loggerName)
+        self.logListenerCallback=None
+
         self._name = execparams.get("NAME_BINDING", "")
         # The base resource class manages properties ...
         self._props = PropertyStorage(self, propertydefs, execparams)
@@ -148,6 +166,8 @@ class Resource(object):
 
         logging.trace("Initial property storage %s", self._props)
 
+    def setAdditionalParameters(self, softwareProfile):
+        self._softwareProfile = softwareProfile
 
     #########################################
     # CF::Resource
@@ -165,6 +185,9 @@ class Resource(object):
     def _get_started(self):
         return self._started
 
+    def _get_softwareProfile(self):
+        return self._softwareProfile
+
     #########################################
     # CF::LifeCycle
     def initialize(self):
@@ -174,6 +197,7 @@ class Resource(object):
         self._log.trace("releaseObject()")
         objid = self._default_POA().servant_to_id(self)
         self._default_POA().deactivate_object(objid)
+        __orb__.shutdown(False)
 
     #########################################
     # CF::PortSupplier
@@ -204,6 +228,174 @@ class Resource(object):
             attr = getattr(type(self), name)
             if isinstance(attr, _port):
                 self.__ports[attr.name] = attr
+
+    #########################################
+    #  Common resource logging API
+
+    # return logger assigned to resource
+    def getLogger(self):
+        return self._log
+
+    # return a named logger
+    def getLogger(self, logid, assignToResource=False):
+        newLogger=logging.getLogger(logid)
+        if assignToResource:
+            self._logid = logid
+            self._log = newLogger
+        return newLogger
+
+    # Apply a resource context to the set of logging Macros
+    def setLoggingMacros(self, newTbl, applyCtx=False ):
+        self.loggingMacros = newTbl
+        if applyCtx and self.loggingCtx:
+            self.loggingCtx.apply(self.loggingMacros )
+
+    # Apply a resource context to the set of logging Macros
+    def setResourceContext(self, rscCtx ):
+        if rscCtx:
+            rscCtx.apply(self.loggingMacros )
+            self.loggingCtx = rscCtx
+
+    def setLoggingContext(self, rscCtx ):
+        # apply resource context to macro definitions
+        if rscCtx:
+            rscCtx.apply(self.loggingMacros )
+            self.loggingCtx = rscCtx
+
+        elif self.loggingCtx :
+            self.loggingCtx.apply(self.loggingMacros )
+
+        # load logging configuration url to resource
+        self.setLogConfigURL( self.loggingURL )
+
+        # apply logging level 
+        self.setLogLevel( self._logid, self.loglevel )
+
+    #
+    # set the logging context for the resouce. Use the contents of 
+    # of the url as the logging configuration data. If the 
+    # the file contains any predefined macros then then 
+    # apply the resource context object to the macro defintions.
+    # After the configuration is established then set the
+    # the appropriate level.  The contents of the level correspond
+    # to the command line options when a program starts.
+    #
+    #
+    def setLoggingContext(self, logcfg_url, oldstyle_loglevel, rscCtx ):
+
+        # test we have a logging URI
+        if logcfg_url==None or logcfg_url=="" :
+            ossie.logger.ConfigureDefault()
+        else:
+            # apply resource context to macro definitions
+            if rscCtx:
+                rscCtx.apply(self.loggingMacros )
+                self.loggingCtx = rscCtx
+
+            # load logging configuration url to resource
+            self.setLogConfigURL( logcfg_url )
+
+        # apply logging level if explicitly stated
+        if oldstyle_loglevel != None and oldstyle_loglevel > -1 :
+            self.setLogLevel( self._logid, ossie.logger.ConvertLogLevel(oldstyle_loglevel) )
+        else:
+            _logLevel = ossie.logger.ConvertLog4ToCFLevel( logging.getLogger(None).getEffectiveLevel() )
+
+
+    def saveLoggingContext(self, logcfg_url, oldstyle_loglevel, rscCtx ):
+
+        # apply resource context to macro definitions
+        if rscCtx:
+            rscCtx.apply(self.loggingMacros )
+            self.loggingCtx = rscCtx
+
+        # test we have a logging URLx
+        self.loggingURL = logcfg_url
+        if logcfg_url==None or logcfg_url=="" :
+            self.logConfig = ossie.logger.GetDefaultConfig()
+        else:
+            # try to process URL and grab contents
+            try:
+                cfg_data=ossie.logger.GetConfigFileContents( logcfg_url )
+                if cfg_data and len(cfg_data) > 0 :
+                    self.logConfig = ossie.logger.ExpandMacros( cfg_data, self.loggingMacros )
+            except:
+                pass
+
+        # apply logging level if explicitly stated
+        if oldstyle_loglevel != None and oldstyle_loglevel > -1 :
+            _logLevel = ossie.logger.ConvertLogLevel(oldstyle_loglevel)
+        else:
+            _logLevel = ossie.logger.ConvertLog4ToCFLevel( logging.getLogger(None).getEffectiveLevel() )
+
+
+    def setLogListenerCallback(self, loglistenerCB ):
+        self.logListenerCallback=logListenerCB
+        
+    def addPropertyChangeListener(self, id, callback):
+        self._props.addChangeListener(callback, id)
+
+    #########################################
+    # CF::LogConfiguration
+    def _get_log_level(self):
+        return self.logLevel
+
+    def _set_log_level(self, newLogLevel ):
+        self.log_level( newLogLevel )
+
+    def log_level(self, newLogLevel=None ):
+        if newLogLevel == None:
+            return self.logLevel
+        if self.logListenerCallback and callable(self.logListenerCallback.logLevelChanged):
+            self.logLevel = newLogLevel;
+            self.logListenerCallback.logLevelChanged(self._logid, newLogLevel)
+        else:
+            ossie.logger.SetLogLevel( self._logid, newLogLevel )
+            self.logLevel = newLogLevel
+
+    def setLogLevel(self, logid, newLogLevel ):
+        if self.logListenerCallback and callable(self.logListenerCallback.logLevelChanged):
+            self.logLevel = newLogLevel;
+            self.logListenerCallback.logLevelChanged(logid, newLogLevel)
+        else:
+            ossie.logger.SetLogLevel( logid, newLogLevel )
+
+    def getLogConfig(self):
+        return self.logConfig
+
+    def setLogConfig(self, new_log_config):
+        if self.logListenerCallback and callable(self.logListenerCallback.logConfigChanged):
+            self.logConfig = new_log_config;
+            self.logListenerCallback.logConfigChanged(new_log_config)
+        elif new_log_config:
+            tcfg= ossie.logger.ConfigureWithContext( new_log_config, self.loggingMacros  )
+            if tcfg:
+                self.logConfig = tcfg
+        else:
+            pass
+
+    def setLogConfigURL(self, log_config_url):
+        if log_config_url:
+            fc=ossie.logger.GetConfigFileContents( log_config_url )
+            self.loggingURL = log_config_url
+            if fc and len(fc) > 0 :
+                self.setLogConfig( fc )
+
+    #########################################
+    # CF::LogEventConsumer
+    def retrieve_records(self, howMany, startingRecord ):
+        howMany=0
+        return None
+
+    def retrieve_records_by_date(self, howMany, to_timetStamp ):
+        howMany=0
+        return None
+
+    def retrieve_records_from_date(self, howMany, from_timetStamp ):
+        howMany=0
+        return None
+
+
 
     #########################################
     # CF::TestableObject
@@ -271,8 +463,8 @@ class Resource(object):
                 if self._props.has_id(prop.id) and self._props.isConfigurable(prop.id):
                     try:
                         self._props.configure(prop.id, prop.value)
-                    except ValueError:
-                        self._log.warning("Invalid value provided to configure for property %s", prop.id)
+                    except ValueError, e:
+                        self._log.warning("Invalid value provided to configure for property %s %s", prop.id, e)
                         notSet.append(prop)
                 else:
                     self._log.warning("Tried to configure non-existent, readonly, or property with action not equal to external %s", prop.id)
@@ -296,29 +488,13 @@ class Resource(object):
 def __exit_handler(signum, frame):
     raise SystemExit
 
+
 def configure_logging(orb, uri, debugLevel=3, binding=None):
     if uri:
         load_logging_config_uri(orb, uri, binding)
     else:
-        # Force the debug level to be an integer.
-        try:
-            debugLevel = int(debugLevel)
-        except:
-            debugLevel = 3
+        ossie.logger.ConfigureDefault()
 
-        DEBUG_LEVELS = [ logging.FATAL, logging.ERROR, logging.WARNING,
-                         logging.INFO, logging.DEBUG, logging.NOTSET ]
-
-        # Bound the debug level to the be within the lookup table.
-        debugLevel = min(len(DEBUG_LEVELS)-1, max(0, debugLevel))
-        level = DEBUG_LEVELS[debugLevel]
-
-        try:
-            logging.basicConfig(stream=sys.stdout, level=level)
-        except:
-            # The logging module in Python 2.3 does not allow arguments to basicConfig.
-            logging.basicConfig()
-            logging.getLogger().setLevel(level)
 
 def load_logging_config_uri(orb, uri, binding=None):
     scheme, netloc, path, params, query, fragment = urlparse.urlparse(uri)
@@ -367,6 +543,7 @@ def configureLogging(execparams, loggerName, orb):
     # Configure logging (defaulting to INFO level).
     log_config_uri = execparams.get("LOGGING_CONFIG_URI", None)
     debug_level = execparams.get("DEBUG_LEVEL", 3)
+    dom_path=execparams.get("DOM_PATH", "")
     if not loggerName:
         loggerName = execparams.get("NAME_BINDING", None)
         if loggerName:
@@ -518,8 +695,12 @@ def start_component(componentclass, interactive_callback=None, thread_policy=Non
     try:
         try:
             orb = createOrb()
-
-            configureLogging(execparams, loggerName, orb)
+            globals()['__orb__'] = orb
+            name_binding=""
+            component_identifier=""
+            
+            # set up backwards-compatable logging
+            #configureLogging(execparams, loggerName, orb)
 
             componentPOA = getPOA(orb, thread_policy, "componentPOA")
           
@@ -532,11 +713,38 @@ def start_component(componentclass, interactive_callback=None, thread_policy=Non
                 if not interactive:
                     logging.warning("No 'NAME_BINDING' argument provided")
                 execparams["NAME_BINDING"] = ""
+            
+            if not execparams.has_key("PROFILE_NAME"):
+                if not interactive:
+                    logging.warning("No 'PROFILE_NAME' argument provided")
+                execparams["PROFILE_NAME"] = ""
+
+            # Configure logging (defaulting to INFO level).
+            log_config_uri = execparams.get("LOGGING_CONFIG_URI", None)
+            debug_level = execparams.get("DEBUG_LEVEL", None)
+            if debug_level != None: debug_level = int(debug_level)
+            dpath=execparams.get("DOM_PATH", "")
+            component_identifier=execparams.get("COMPONENT_IDENTIFIER", "")
+            name_binding=execparams.get("NAME_BINDING", "")
+
+            ## sets up logging during component startup
+            ctx = ossie.logger.ComponentCtx(
+                name = name_binding,
+                id = component_identifier,
+                dpath = dpath )
+            ossie.logger.Configure(
+                logcfgUri = log_config_uri,
+                logLevel = debug_level,
+                ctx = ctx)
 
             # Create the component
             component_Obj = componentclass(execparams["COMPONENT_IDENTIFIER"], execparams)
+            component_Obj.setAdditionalParameters(execparams["PROFILE_NAME"])
             componentPOA.activate_object(component_Obj)
             component_Var = component_Obj._this()
+
+            ## sets up logging context for resource to support CF::Logging
+            component_Obj.saveLoggingContext( log_config_uri, debug_level, ctx )
 
             # get the naming context and bind to it
             if execparams.has_key("NAMING_CONTEXT_IOR"):
@@ -563,8 +771,9 @@ def start_component(componentclass, interactive_callback=None, thread_policy=Non
                 else:
                     print orb.object_to_string(component_Obj._this())
                     orb.run()
+
             try:
-                orb.shutdown(true)
+               orb.shutdown(true)
             except:
                 pass
             signal.signal(signal.SIGINT, signal.SIG_IGN)

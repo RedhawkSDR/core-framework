@@ -62,12 +62,18 @@ namespace ossie {
                 ::sad::usesport_pimpl usesport_p;
                 ::sad::devicethatloadedthiscomponentref_pimpl devicethatloadedthiscomponentref_p;
                 ::sad::deviceusedbythiscomponentref_pimpl deviceusedbythiscomponentref_p;
+                ::sad::deviceusedbyapplication_pimpl deviceusedbyapplication_p;
                 ::sad::findby_pimpl findby_p;
                 ::sad::domainfinder_pimpl domainfinder_p;
                 ::sad::providesport_pimpl providesport_p;
                 ::sad::componentsupportedinterface_pimpl componentsupportedinterface_p;
                 ::sad::externalports_pimpl externalports_p;
                 ::sad::port_pimpl port_p;
+                ::sad::externalproperties_pimpl externalproperties_p;
+                ::sad::property_pimpl property_p;
+                ::sad::usesdevicedependencies_pimpl usesdevicedependencies_p;
+                ::sad::usesdevice_pimpl usesdevice_p;
+                ::sad::propertyref_pimpl propertyref_p;
 
                 // Connect the parsers together.
                 //
@@ -77,6 +83,8 @@ namespace ossie {
                     assemblycontroller_p,
                     connections_p,
                     externalports_p,
+                    externalproperties_p,
+                    usesdevicedependencies_p,
                     string_p,
                     string_p,
                     string_p);
@@ -157,12 +165,15 @@ namespace ossie {
                                     componentinstantiationref_p,
                                     devicethatloadedthiscomponentref_p,
                                     deviceusedbythiscomponentref_p,
+                                    deviceusedbyapplication_p,
                                     findby_p);
 
                 devicethatloadedthiscomponentref_p.parsers (string_p);
 
                 deviceusedbythiscomponentref_p.parsers (string_p,
                                                     string_p);
+
+                deviceusedbyapplication_p.parsers(string_p);
 
                 findby_p.parsers (namingservice_p,
                                 string_p,
@@ -175,10 +186,14 @@ namespace ossie {
                                         componentinstantiationref_p,
                                         devicethatloadedthiscomponentref_p,
                                         deviceusedbythiscomponentref_p,
+                                        deviceusedbyapplication_p,
                                         findby_p);
 
                 componentsupportedinterface_p.parsers (string_p,
                                                     componentinstantiationref_p,
+                                                    devicethatloadedthiscomponentref_p,
+                                                    deviceusedbythiscomponentref_p,
+                                                    deviceusedbyapplication_p,
                                                     findby_p);
 
                 externalports_p.parsers (port_p);
@@ -187,7 +202,27 @@ namespace ossie {
                                 string_p,
                                 string_p,
                                 string_p,
-                                componentinstantiationref_p);
+                                componentinstantiationref_p,
+                                string_p);
+
+                externalproperties_p.parsers (property_p);
+
+                property_p.parsers (string_p,
+                                    string_p,
+                                    string_p);
+
+                usesdevicedependencies_p.parsers (usesdevice_p);
+
+                usesdevice_p.parsers (propertyref_p,
+                                      simpleref_p,
+                                      simplesequenceref_p,
+                                      structref_p,
+                                      structsequenceref_p,
+                                      string_p,
+                                      string_p);
+
+                propertyref_p.parsers (string_p,
+                                       string_p);
 
                 // Parse the XML document.
                 //

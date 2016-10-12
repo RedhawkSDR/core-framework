@@ -18,10 +18,10 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
- 
-TestAllPropTypes.jar: $(TestAllPropTypes_jar_SOURCES)
+
+TestAllPropTypes.jar$(EXEEXT): $(TestAllPropTypes_jar_SOURCES)
 	mkdir -p bin
-	$(JAVAC) -cp ../../../../../../base/framework/java/CFInterfaces.jar:../../../../../../base/framework/java/log4j-1.2.15.jar:../../../../../../base/framework/java/ossie.jar -d bin $(TestAllPropTypes_jar_SOURCES)
+	$(JAVAC) -cp $(OSSIE_CLASSPATH) -d bin $(TestAllPropTypes_jar_SOURCES)
 	$(JAR) cf ./TestAllPropTypes.jar -C bin .
 
 clean-local:

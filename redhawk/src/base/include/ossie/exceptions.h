@@ -18,28 +18,22 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef __OSSIE_EXCEPTIONS_H__
-#define __OSSIE_EXCEPTIONS_H__
+#ifndef OSSIE_EXCEPTIONS_H
+#define OSSIE_EXCEPTIONS_H
+
 #include <stdexcept>
 
 namespace ossie {
 
-    class parser_error : public std::runtime_error {
-        public:
-            parser_error(const std::string& what_arg) : std::runtime_error(what_arg)
-        {}
+    // Exception type for unimplemented user functions
+    class not_implemented_error : public std::logic_error {
+    public:
+        not_implemented_error (const std::string& msg) :
+            std::logic_error(msg)
+        {
+        }
     };
 
-    class PropertyMatchingError : public std::runtime_error {
-        public:
-            PropertyMatchingError(const std::string& what_arg) : std::runtime_error(what_arg)
-        {}
-    };
-
-    class PersistenceException : public std::runtime_error {
-        public:
-            PersistenceException(const std::string& what_arg) : std::runtime_error(what_arg)
-        {}
-    };
 }
-#endif
+
+#endif // OSSIE_EXCEPTIONS_H

@@ -22,8 +22,32 @@ package org.ossie.properties;
 
 import org.omg.CORBA.Any;
 
+import CF.DevicePackage.InvalidCapacity;
+import CF.DevicePackage.InvalidState;
+
 public interface IProperty {
     
+    /**
+     * Update the value of this property from an Any.
+     *
+     * @return
+     */
+    public void configure(Any value);
+
+    /**
+     * Attempt to allocate capacity from the property.
+     *
+     * @return true if allocation was successful, false otherwise
+     */
+    public boolean allocate(Any value) throws InvalidCapacity, InvalidState;
+
+    /**
+     * Deallocate capacity from the property.
+     *
+     * @return
+     */
+    public void deallocate(Any value) throws InvalidCapacity, InvalidState;
+
     /**
      * Convert's this property to an Any.
      * 

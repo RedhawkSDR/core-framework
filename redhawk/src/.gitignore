@@ -11,4 +11,5 @@ libtool
 ltmain.sh
 missing
 ossie.pc
+*.class
 py-compile

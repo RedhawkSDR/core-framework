@@ -29,3 +29,9 @@ from base import *
 import core
 from core import *
 
+# Create a log for library messages, defaulting to the null handler.
+import logging
+from ossie.utils.log4py.appenders import NullHandler
+logging.getLogger('ossie.utils.redhawk').addHandler(NullHandler())
+del logging
+del NullHandler

@@ -1,39 +1,37 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
 import unittest, os, signal, time, sys
 from subprocess import Popen
-import scatest
+from _unitTestHelpers import scatest
 from xml.dom import minidom
 import omniORB
 from omniORB import URI, any, CORBA
-from ossie.cf import CF
+from ossie.cf import CF, CF__POA
 import tempfile
 import threading
-try:
-    import CosEventComm,CosEventComm__POA
-    import CosEventChannelAdmin
-    from ossie.cf import StandardEvent
-    hasEvents = True
-except:
-    hasEvents = False
+import CosEventComm,CosEventComm__POA
+import CosEventChannelAdmin
+from ossie import properties
+from ossie.cf import StandardEvent
+from ossie.utils import uuid
 
 
 class Supplier_i(CosEventComm__POA.PushSupplier):
@@ -45,24 +43,35 @@ class Consumer_i(CosEventComm__POA.PushConsumer):
         self.parent = parent
         self.returnCount = 0
         self.receivelock = threading.Lock()
-    
+
     def push(self, data):
         self.receivelock.acquire()
-        if data._v == "bye":
+        if data._v == "response":
             self.returnCount += 1
             if self.returnCount == 2 or self.returnCount == 3:
                 self.parent.eventFlag = True
                 self.parent.localEvent.set()
         self.receivelock.release()
-    
+
     def disconnect_push_consumer (self):
         pass
 
-# if SIGKILL is used (simulating a nodeBooter unexpected abort) 
+class TestDomainManager(CF__POA.DomainManager):
+    def __init__(self, name):
+        self._name = name
+        self._identifier = 'DCE:%s' % (uuid.uuid4(),)
+
+    def _get_name(self):
+        return self._name
+
+    def _get_identifier(self):
+        return self._identifier
+
+# if SIGKILL is used (simulating a nodeBooter unexpected abort)
 # the next attempt to communicate with the domain manager will
 # throw a COMM_FAILURE because the connection died unexpectedly
 
-# Clients that hold references to the DomainManager should 
+# Clients that hold references to the DomainManager should
 # include code similar to that below
 def comm_failure_retry(cookie, n_retries, exception):
     # For the purposes of the unit test, only allow 1 retry
@@ -86,7 +95,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
     def test_BasicOperation(self):
         self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
         self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml")
-        
+
         self._fileMgr = self._domMgr._get_fileMgr()
         self._files = self._fileMgr.list("/")
 
@@ -96,7 +105,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self._domMgr.installApplication("/waveforms/PortConnectProvidesPort/PortConnectProvidesPort.sad.xml")
         self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
         self.assertEqual(len(self._domMgr._get_applications()), 0)
-        
+
         # Load on the  device ID
         das = minidom.parse(os.path.join(scatest.getSdrPath(), "dom/waveforms/PortConnectProvidesPort/PortConnectProvidesPort_DAS.xml"))
         ds = []
@@ -142,7 +151,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.assertEqual(len(app._get_componentProcessIds()), 2)
         self.assertEqual(len(app._get_componentDevices()), 4)
         self.assertEqual(len(app._get_componentImplementations()), 2)
-        
+
         origNamingContexts = app._get_componentNamingContexts()
         origProcessIds = app._get_componentProcessIds()
         origDevices = app._get_componentDevices()
@@ -163,14 +172,14 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         # Kill the domainMgr
         os.kill(self._nb_domMgr.pid, signal.SIGTERM)
 
-        # TODO if SIGKILL is used (simulating a nodeBooter unexpected abort, 
+        # TODO if SIGKILL is used (simulating a nodeBooter unexpected abort,
         # the IOR and the newly spawned domain manager do not work
         if not self.waitTermination(self._nb_domMgr):
             self.fail("Domain Manager Failed to Die")
-      
+
         # Start the domainMgr again
         self._nb_domMgr, newDomMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
-        
+
         # Verify our client reference still is valid
         newDomMgr._get_identifier()
         self.assertEqual(False, newDomMgr._non_existent())
@@ -234,7 +243,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
             self.assertEqual(newNamingContexts[x].componentId, origNamingContexts[x].componentId)
             self.assertEqual(newNamingContexts[x].elementId, origNamingContexts[x].elementId)
 
-        # Verify that the connection between the CF::Application and the assemblyController was 
+        # Verify that the connection between the CF::Application and the assemblyController was
         # restored.
         newQuery = app.query([])
         self.assertEqual(len(newQuery), len(origQuery))
@@ -313,7 +322,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         _proxy_supplier.connect_push_consumer(_consumer._this())
 
         # a flag is raised only when two responses come back (one for each running app)
-        _proxy_consumer.push(any.to_any("hello"))
+        _proxy_consumer.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
 
@@ -322,7 +331,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app2.releaseObject()
 
         self.localEvent.clear()
-        _proxy_consumer.push(any.to_any("hello"))
+        _proxy_consumer.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()
@@ -372,7 +381,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         _proxy_supplier.connect_push_consumer(_consumer._this())
 
         # a flag is raised only when two responses come back (one for each running app)
-        _proxy_consumer.push(any.to_any("hello"))
+        _proxy_consumer.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
 
@@ -381,7 +390,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app2.releaseObject()
 
         self.localEvent.clear()
-        _proxy_consumer.push(any.to_any("hello"))
+        _proxy_consumer.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()
@@ -461,7 +470,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         _proxy_supplier.connect_push_consumer(_consumer._this())
 
         # a flag is raised only when two responses come back (one for each running app)
-        _proxy_consumer.push(any.to_any("hello"))
+        _proxy_consumer.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
 
@@ -470,7 +479,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app2.releaseObject()
 
         self.localEvent.clear()
-        _proxy_consumer.push(any.to_any("hello"))
+        _proxy_consumer.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()
@@ -555,14 +564,14 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         os.kill(self._nb_domMgr.pid, signal.SIGKILL)
         if not self.waitTermination(self._nb_domMgr):
             self.fail("Domain Manager Failed to Die")
-      
+
         os.kill(self._nb_devMgr.pid, signal.SIGTERM)
         if not self.waitTermination(self._nb_devMgr):
             self.fail("Device Manager Failed to Die")
 
         # Start the domainMgr again
         self._nb_domMgr, newDomMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
-        
+
         # Verify our client reference still is valid
         self.assertEqual(False, newDomMgr._non_existent())
         self.assertEqual(newDomMgr._get_identifier(),'DCE:5f52f645-110f-4142-8cc9-4d9316ddd958')
@@ -576,7 +585,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         domBooter, domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml")
         svcBooter, svcMgr = self.launchDeviceManager("/nodes/test_BasicService_node/DeviceManager.dcd.xml")
-        
+
         # Make sure that the service node is up before killing the domain manager
         while len(svcMgr._get_registeredServices()) != 1:
             time.sleep(0.1)
@@ -627,7 +636,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         # Restart the domain manager
         domBooter, domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
-        
+
         # Start the first node; the pending connection from the second node
         # should be completed now.
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml")
@@ -645,7 +654,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
             if identifier == dev._get_identifier():
                 device2 = dev
         self.assertNotEqual(device2, None)
-        
+
         # Forcibly terminate the domain manager to simulate a crash (again)
         os.kill(domBooter.pid, signal.SIGKILL)
         if not self.waitTermination(domBooter):
@@ -664,7 +673,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
     def test_DeviceManagerRegisterWhileDomainManagerCrashed(self):
         domBooter, domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
         self.assertNotEqual(domMgr, None)
-        
+
         # Forcibly terminate the domain manager to simulate a crash
         os.kill(domBooter.pid, signal.SIGKILL)
         if not self.waitTermination(domBooter):
@@ -684,7 +693,278 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         # Wait for the DeviceManager and make sure it registers.
         devMgr = self.waitDeviceManager(devBooter, dcdFile)
         self.assertNotEqual(devMgr, None)
+
+    def test_ApplicationUsesDevice(self):
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_SADUsesDevice/DeviceManager.dcd.xml")
+
+        self._domMgr.installApplication("/waveforms/SADUsesDeviceWave/SADUsesDeviceWaveExternalSimple.sad.xml")
+        appFact = self._domMgr._get_applicationFactories()[0]
+        app = appFact.create(appFact._get_name(), [], [])
+
+        # Make sure that the allocation was made to the device
+        prop = CF.DataType(id='simple_alloc', value=any.to_any(None))
+        for dev in devMgr._get_registeredDevices():
+            if dev._get_label() == 'SADUsesDevice_1':
+                allocRes = dev.query([prop])
+        self.assertEquals(allocRes[0].value.value(), 8)
+
+        # Kill the domainMgr
+        os.kill(self._nb_domMgr.pid, signal.SIGTERM)
+
+        # TODO if SIGKILL is used (simulating a nodeBooter unexpected abort,
+        # the IOR and the newly spawned domain manager do not work
+        if not self.waitTermination(self._nb_domMgr):
+            self.fail("Domain Manager Failed to Die")
+
+        # Start the domainMgr again
+        self._nb_domMgr, newDomMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+
+        # Capacity still allocated to device
+        prop = CF.DataType(id='simple_alloc', value=any.to_any(None))
+        for dev in devMgr._get_registeredDevices():
+            if dev._get_label() == 'SADUsesDevice_1':
+                allocRes = dev.query([prop])
+        self.assertEquals(allocRes[0].value.value(), 8)
+
+        # Release app to free up device capacity to make sure usesdevicecapacties was properly restored
+        newApp = newDomMgr._get_applications()[0]
+        newApp.releaseObject()
+        prop = CF.DataType(id='simple_alloc', value=any.to_any(None))
+        for dev in devMgr._get_registeredDevices():
+            if dev._get_label() == 'SADUsesDevice_1':
+                allocRes = dev.query([prop])
+        self.assertEquals(allocRes[0].value.value(), 10)
+
+    def test_ApplicationStartOrder(self):
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+
+        self._domMgr.installApplication("/waveforms/ExternalProperties/ExternalProperties.sad.xml")
+        appFact = self._domMgr._get_applicationFactories()[0]
+        app = appFact.create(appFact._get_name(), [], [])
+        app.start()
+        comps = app._get_registeredComponents()
+        for c in comps:
+            self.assertEquals(c.componentObject._get_started(), True)
+
+        # Kill the domainMgr
+        os.kill(self._nb_domMgr.pid, signal.SIGTERM)
+
+        # TODO if SIGKILL is used (simulating a nodeBooter unexpected abort,
+        # the IOR and the newly spawned domain manager do not work
+        if not self.waitTermination(self._nb_domMgr):
+            self.fail("Domain Manager Failed to Die")
+
+        # Start the domainMgr again
+        self._nb_domMgr, newDomMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+
+        # Components should all still be started
+        for c in comps:
+            self.assertEquals(c.componentObject._get_started(), True)
+
+        # Stop application to make sure that start order Resource variables were recovered properly
+        app = newDomMgr._get_applications()[0]
+        app.stop()
+        for c in comps:
+            self.assertEquals(c.componentObject._get_started(), False)
+
+        # Start components to make sure that start also works
+        app.start()
+        for c in comps:
+            self.assertEquals(c.componentObject._get_started(), True)
+
+    def test_ApplicationRegisteredComponents(self):
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+
+        self._domMgr.installApplication("/waveforms/ExternalProperties/ExternalProperties.sad.xml")
+        appFact = self._domMgr._get_applicationFactories()[0]
+        app = appFact.create(appFact._get_name(), [], [])
+
+        comps = app._get_registeredComponents()
+
+        # Kill the domainMgr
+        os.kill(self._nb_domMgr.pid, signal.SIGTERM)
+
+        # TODO if SIGKILL is used (simulating a nodeBooter unexpected abort,
+        # the IOR and the newly spawned domain manager do not work
+        if not self.waitTermination(self._nb_domMgr):
+            self.fail("Domain Manager Failed to Die")
+
+        # Start the domainMgr again
+        self._nb_domMgr, newDomMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        newApp = newDomMgr._get_applications()[0]
+        newComps = newApp._get_registeredComponents()
+
+        # Recovered list should be the same
+        self.assertEquals(len(comps), len(newComps))
+        for comp in comps:
+            found = False
+            for newComp in newComps:
+                if comp.identifier == newComp.identifier:
+                    self.assertEqual(comp.softwareProfile, newComp.softwareProfile)
+                    self.assertEqual(comp.type, newComp.type)
+                    self.assertEqual(comp.componentObject._get_identifier(), newComp.componentObject._get_identifier())
+                    found = True
+            if not found:
+                self.fail("No component recovered with ID : " + comp.identifier)
+
+    def test_ApplicationExternalPorts(self):
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml")
+
+        self._domMgr.installApplication("/waveforms/PortConnectExternalPortRename/PortConnectExternalPortRename.sad.xml")
+        appFact = self._domMgr._get_applicationFactories()[0]
+        app = appFact.create(appFact._get_name(), [], [])
+
+        # Make sure old names raise errors
+        self.assertRaises(CF.PortSupplier.UnknownPort, app.getPort, 'resouce_in')
+        self.assertRaises(CF.PortSupplier.UnknownPort, app.getPort, 'resource_out')
+
+        # Make sure we can get the renamed port
+        providesPort = app.getPort('rename_resource_in')
+        usesPort = app.getPort('rename_resource_out')
+        self.assertNotEqual(providesPort, None)
+        self.assertNotEqual(usesPort, None)
+
+        # Connect the application's external ports together.
+        connectionId = 'test_connection'
+        usesPort.connectPort(providesPort, connectionId)
+
+        # Kill the domainMgr
+        os.kill(self._nb_domMgr.pid, signal.SIGTERM)
+
+        # TODO if SIGKILL is used (simulating a nodeBooter unexpected abort,
+        # the IOR and the newly spawned domain manager do not work
+        if not self.waitTermination(self._nb_domMgr):
+            self.fail("Domain Manager Failed to Die")
+
+        # Start the domainMgr again
+        self._nb_domMgr, newDomMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        newApp = newDomMgr._get_applications()[0]
+
+        # Make sure old names raise errors
+        self.assertRaises(CF.PortSupplier.UnknownPort, newApp.getPort, 'resouce_in')
+        self.assertRaises(CF.PortSupplier.UnknownPort, newApp.getPort, 'resource_out')
+
+        # Make sure we can get the renamed port
+        newProvidesPort = newApp.getPort('rename_resource_in')
+        newUsesPort = newApp.getPort('rename_resource_out')
+        self.assertNotEqual(newProvidesPort, None)
+        self.assertNotEqual(newUsesPort, None)
+
+        # Should be able to disconnect new port vars with orig ID
+        newUsesPort.disconnectPort(connectionId)
+
+    def test_ApplicationExternalProperties(self):
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+
+        self._domMgr.installApplication("/waveforms/ExternalProperties/ExternalProperties.sad.xml")
+        appFact = self._domMgr._get_applicationFactories()[0]
+        app = appFact.create(appFact._get_name(), [], [])
+
+        props = app.query([])
+
+        # Kill the domainMgr
+        os.kill(self._nb_domMgr.pid, signal.SIGTERM)
+
+        # TODO if SIGKILL is used (simulating a nodeBooter unexpected abort,
+        # the IOR and the newly spawned domain manager do not work
+        if not self.waitTermination(self._nb_domMgr):
+            self.fail("Domain Manager Failed to Die")
+
+        # Start the domainMgr again
+        self._nb_domMgr, newDomMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        newApp = newDomMgr._get_applications()[0]
+        newProps = newApp.query([])
+
+        # Recovered list should be the same
+        self.assertEqual(len(props), len(newProps))
+        for prop in props:
+            found = False
+            for newProp in newProps:
+                if prop.id == newProp.id:
+                    found = True
+            if not found:
+                self.fail("No external property recovered with ID : " + prop.id)
+
+        # Make sure configure doesn't fail
+        newApp.configure(props)
+
+    def test_RegisteredDomains(self):
+        nb, domMgr = self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile, debug=self.debuglevel)
+
+        testMgr1 = TestDomainManager('test1')
+        domMgr.registerRemoteDomainManager(testMgr1._this())
         
+        testMgr2 = TestDomainManager('test2')
+        domMgr.registerRemoteDomainManager(testMgr2._this())
+
+        remotes = [r._get_identifier() for r in domMgr._get_remoteDomainManagers()]
+        self.assertEqual(len(remotes), 2)
+        self.assert_(testMgr1._get_identifier() in remotes)
+        self.assert_(testMgr2._get_identifier() in remotes)
+
+        # Kill the DomainManager
+        os.kill(nb.pid, signal.SIGTERM)
+        if not self.waitTermination(nb):
+            self.fail("Domain Manager Failed to Die")
+        
+        # Deactivate the second domain manager to check that its connection is
+        # not restored
+        poa = testMgr2._default_POA()
+        oid = poa.servant_to_id(testMgr2)
+        poa.deactivate_object(oid)
+
+        # Re-launch and check that the remote domain is restored
+        nb, domMgr = self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile, debug=self.debuglevel)
+        remotes = domMgr._get_remoteDomainManagers()
+        self.assertEqual(len(remotes), 1)
+        self.assertEqual(remotes[0]._get_identifier(), testMgr1._get_identifier())
+
+    def test_Allocations(self):
+        nb, domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+
+        # Make a couple of different allocations
+        allocMgr = domMgr._get_allocationMgr()
+        memCapacityId = 'DCE:8dcef419-b440-4bcf-b893-cab79b6024fb'
+        bogoMipsId = 'DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8'
+        nicCapacityId = 'DCE:4f9a57fc-8fb3-47f6-b779-3c2692f52cf9'
+        allocations = { 'test1': {memCapacityId:2048, nicCapacityId:0.125},
+                        'test2': {bogoMipsId:10000}}
+        requests = [CF.AllocationManager.AllocationRequestType(k, properties.props_from_dict(v), [], []) for k,v in allocations.iteritems()]
+        results = allocMgr.allocate(requests)
+        self.assertEqual(len(results), len(requests))
+
+        # Save the allocation state prior to termination
+        pre = dict((al.allocationID, al) for al in allocMgr.allocations([]))
+        self.assertEqual(len(pre), len(results))
+
+        # Kill the DomainManager
+        os.kill(nb.pid, signal.SIGTERM)
+        if not self.waitTermination(nb):
+            self.fail("Domain Manager Failed to Die")
+
+        # Re-launch and check that the allocation state remains the same;
+        # implicitly tests that the AllocationManager reference is persistent
+        self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile, debug=self.debuglevel)
+        post = dict((al.allocationID, al) for al in allocMgr.allocations([]))
+        self.assertEqual(len(pre), len(post))
+        self.assertEqual(pre.keys(), post.keys())
+        for allocId, status in pre.iteritems():
+            self._compareAllocation(status, post[allocId])
+
+    def _compareAllocation(self, lhs, rhs):
+        self.assertEqual(lhs.allocationID, rhs.allocationID)
+        self.assertEqual(lhs.requestingDomain, rhs.requestingDomain)
+        lhsProps = properties.props_to_dict(lhs.allocationProperties)
+        rhsProps = properties.props_to_dict(rhs.allocationProperties)
+        self.assertEqual(lhsProps, rhsProps)
+        self.assert_(lhs.allocatedDevice._is_equivalent(rhs.allocatedDevice))
+        self.assert_(lhs.allocationDeviceManager._is_equivalent(rhs.allocationDeviceManager))
 
 # Only run these tests if persistence was enabled at compile time
 if not scatest.persistenceEnabled():

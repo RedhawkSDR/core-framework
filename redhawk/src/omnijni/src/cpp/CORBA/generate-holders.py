@@ -111,11 +111,11 @@ if __name__ == '__main__':
     header = cppcode.Header('holders.h')
     header.include('<omniORB4/CORBA.h>')
     header.include('<jni.h>')
+    header.include('<omnijni/loader.h>')
     body = header.Namespace('CORBA').Namespace('jni')
 
     module = cppcode.Module()
-    module.include('<omnijni/class.h>')
-    module.include('<omnijni/any.h>')
+    module.include('<omnijni/omnijni.h>')
     module.include('"holders.h"')
 
     helper = idljni.HolderHelper()

@@ -1,0 +1,126 @@
+# bash completion for nodeBooter
+
+_nodeBooter_abspath()
+{
+  compopt -o nospace
+
+  # For an empty suggestion or non-absolute path, suggest directories in /
+  if [ -z "$cur" ] || [[ "$cur" != /* ]]; then
+    COMPREPLY=( $(compgen -A directory -S / /) )
+  else
+    COMPREPLY=( $(compgen -A directory -S / "$cur") )
+  fi
+}
+
+_nodeBooter_absfile_with_root()
+{
+  local root="$1"
+  local pattern="$2"
+  local cur_relative=`echo "$cur" | sed s:^/::`
+  local dirs files
+
+  cd "$root" 2> /dev/null
+  if [ $? != 0 ]; then
+    COMPREPLY=( )
+    return 0
+  fi
+
+  dirs=$(compgen -A directory -P / -S / -- "$cur_relative")
+  if [ $? = 0 ]; then
+    compopt -o nospace
+  fi
+  files=$(compgen -A file -P / -X "!${pattern}" -- "$cur_relative")
+  COMPREPLY=( ${dirs[@]} ${files[@]} )
+
+  cd - > /dev/null
+}
+
+_nodeBooter_get_sdrroot()
+{
+  local sdrroot=
+
+  # First, check environment
+  [ -n $SDRROOT ] && sdrroot=$SDRROOT
+
+  # Override with command-line
+  if [ "$COMP_CWORD" -gt 1 ]; then
+    for (( i = 1; i < "$COMP_CWORD" - 1; i++ )); do
+      [ "${COMP_WORDS[I]}" = "-sdrroot" ] && sdrroot="${COMP_WORDS[COMP_CWORD+1]}"
+    done
+  fi
+
+  echo $sdrroot
+}
+
+_nodeBooter()
+{
+  local cur prev opts sdrroot
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+  opts="--help -D -d -sdrroot -sdrcache -debug -logcfgfile --dburl --nopersist --force-rebind --daemon --pidfile --user --group --ORBport --ORBInitRef --domainname --version"
+
+  # Determine the SDRROOT to use, if any
+  sdrroot=`_nodeBooter_get_sdrroot`
+
+  # Use the option list to complete the very first argument
+  if [[ "$COMP_CWORD" = 1 ]]; then
+    COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+    return 0
+  fi
+
+  # Complete various command-line arguments
+  case "$prev" in
+    -D)
+      # Try to complete files ending with .dmd.xml, relative to either
+      # SDRROOT or /. Also allow a new option, since the file is optional.
+      _nodeBooter_absfile_with_root $sdrroot/dom '*.dmd.xml'
+      COMPREPLY=( ${COMPREPLY[@]} $(compgen -W "$opts" -- "$cur") )
+      return 0
+      ;;
+    -d)
+      # Try to complete files ending with .dcd.xml, relative to either
+      # SDRROOT or /
+      if [ -n "$sdrroot" ]; then
+        _nodeBooter_absfile_with_root $sdrroot/dev '*.dcd.xml'
+      else
+        _nodeBooter_absfile_with_root / '*.dcd.xml'
+      fi
+      return 0
+      ;;
+    -debug)
+      COMPREPLY=( $(compgen -W "0 1 2 3 4 5" -- "$cur") )
+      return 0
+      ;;
+    --nopersist|--force-rebind|--daemon|--version)
+      # These are no-arg; suggest a new option
+      COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+      return 0
+      ;;
+    --user)
+      COMPREPLY=( $( compgen -u -- "$cur" ) )
+      return 0
+      ;;
+    --group)
+      COMPREPLY=( $( compgen -g -- "$cur" ) )
+      return 0
+      ;;
+    -sdrroot|-sdrcache)
+      # Help suggest an absolute path starting with /
+      _nodeBooter_abspath
+      return $?
+      ;;
+  esac
+
+  # If the previous arg doesn't start with a dash, assume we're working on a new option
+  if [[ ${prev} =~ ^[^-] ]]; then
+    COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+    return 0
+  fi
+
+  # No idea!
+  return 0
+}
+
+complete -F _nodeBooter nodeBooter
+

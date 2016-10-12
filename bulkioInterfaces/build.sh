@@ -25,9 +25,9 @@ elif [ "$1" = "rpm" ]; then
   # A very simplistic RPM build scenario
   mydir=`dirname $0`
   tmpdir=`mktemp -d`
-  cp -r ${mydir} ${tmpdir}/bulkioInterfaces-1.8.8
-  tar czf ${tmpdir}/bulkioInterfaces-1.8.8.tar.gz --exclude=".git" -C ${tmpdir} bulkioInterfaces-1.8.8
-  rpmbuild -ta ${tmpdir}/bulkioInterfaces-1.8.8.tar.gz
+  cp -r ${mydir} ${tmpdir}/bulkioInterfaces-1.10.2
+  tar czf ${tmpdir}/bulkioInterfaces-1.10.2.tar.gz --exclude=".git" -C ${tmpdir} bulkioInterfaces-1.10.2
+  rpmbuild -ta ${tmpdir}/bulkioInterfaces-1.10.2.tar.gz
   rm -rf $tmpdir
 else
   # Checks if build is newer than makefile (based on modification time)
@@ -35,6 +35,6 @@ else
     ./reconf
     ./configure
   fi
-  make
+  make -j
 fi
 

@@ -20,6 +20,10 @@
 
 package org.ossie;
 
+@Deprecated
+/**
+ * This class has been deprecated, suggest class LongProperty instead
+ */
 public class LongSimplePropertyContainer extends SimplePropertyContainer<Long> {
 
     @Override

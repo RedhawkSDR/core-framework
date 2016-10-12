@@ -20,7 +20,7 @@
 #
 
 
-from qt import *
+from PyQt4.QtGui import *
 from installdialogbase import InstallDialogBase
 
 
@@ -29,29 +29,21 @@ class InstallDialog(InstallDialogBase):
     def __init__(self, fileList, parent = None,name = None,modal = 0,fl = 0):
         InstallDialogBase.__init__(self,parent,name,modal,fl)
         for file in fileList:
-            self.appListBox.insertItem(file)
-
+            QListWidgetItem(file, self.appListBox)
 
     def selectedApp (self):
-        return str(self.appListBox.currentText())
-
+        tmp = self.appListBox.currentItem()
+        return str(tmp.text())
 
 def getApplicationFile (appList, parent):
     d = InstallDialog(appList, parent)
     d.setModal(True)
     d.show()
-    d.exec_loop()
+    d.exec_()
     if d.result() != QDialog.Accepted:
         return None
     app = d.selectedApp()
     d.hide()
     del d
-    appName = '/waveforms/'+app+"/*"
-    file_list = parent.fileMgr.list(appName)
-    
-    for entry in file_list:
-        if entry.name[-8:] == ".sad.xml":
-            appName = appName[:-1]+entry.name
-            break
 
-    return appName
+    return app

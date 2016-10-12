@@ -23,8 +23,6 @@ from xml.dom import minidom
 import CosNaming
 from ossie.cf import CF
 
-XML_DIR = '/midas/sca/sdr'
-
 def xmlFile (file, fs=None):
     if fs != None:
         try:

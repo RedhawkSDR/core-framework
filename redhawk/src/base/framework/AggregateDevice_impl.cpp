@@ -37,9 +37,7 @@ void AggregateDevice_impl::addDevice(CF::Device_ptr associatedDevice)
     unsigned int devSeqLength = _devices->length();
 
     for (unsigned int i = 0; i < devSeqLength; i++) {
-      std::string a_id = ossie::corba::returnString(associatedDevice->identifier());
-      std::string dev_id = ossie::corba::returnString((*_devices)[i]->identifier() );
-      if (!strcmp(a_id.c_str(), dev_id.c_str()) ) {
+        if (!strcmp(associatedDevice->identifier(), (*_devices)[i]->identifier())) {
             return;
         }
     }
@@ -52,9 +50,7 @@ void AggregateDevice_impl::removeDevice(CF::Device_ptr associatedDevice)
     unsigned int devSeqLength = _devices->length();
 
     for (unsigned int i = 0; i < devSeqLength; i++) {
-      std::string a_id = ossie::corba::returnString(associatedDevice->identifier());
-      std::string dev_id = ossie::corba::returnString((*_devices)[i]->identifier() );
-       if (!strcmp(a_id.c_str(), dev_id.c_str()) ) {
+        if (!strcmp(associatedDevice->identifier(), (*_devices)[i]->identifier())) {
             for (unsigned int j = i + 1; j < devSeqLength; j++) {
                 (*_devices)[j-1] = (*_devices)[j];
             }

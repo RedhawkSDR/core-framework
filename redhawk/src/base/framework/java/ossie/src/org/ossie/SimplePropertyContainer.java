@@ -25,6 +25,10 @@ import java.util.Vector;
 import org.omg.CORBA.Any;
 import CF.DataType;
 
+@Deprecated
+/**
+ * This class has been deprecated
+ */
 public abstract class SimplePropertyContainer<T extends Object> {
     protected PropertyContainer prop;
 

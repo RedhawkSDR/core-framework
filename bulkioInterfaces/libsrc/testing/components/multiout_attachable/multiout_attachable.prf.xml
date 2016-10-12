@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK bulkioInterfaces.
+
+REDHAWK bulkioInterfaces is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK bulkioInterfaces is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="packets_ingested" mode="readwrite" name="packets_ingested" type="ushort">
+    <value>0</value>
+  </simple>
+  <structsequence id="connectionTable" mode="readwrite">
+    <struct id="connectionTable::connection_descriptor" name="connection_descriptor">
+      <simple id="connectionTable::connection_id" name="connection_id" type="string"/>
+      <simple id="connectionTable::stream_id" name="stream_id" type="string"/>
+      <simple id="connectionTable::port_name" name="port_name" type="string"/>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+  <structsequence id="SDDSStreamDefinitions" mode="readwrite">
+    <struct id="SDDSStreamDefinition">
+      <simple id="sdds::id" name="id" type="string"/>
+      <simple id="sdds::multicastAddress" name="multicastAddress" type="string">
+        <value>0.0.0.0</value>
+      </simple>
+      <simple id="sdds::vlan" name="vlan" type="ulong">
+        <value>0</value>
+      </simple>
+      <simple id="sdds::port" name="port" type="ulong">
+        <value>0</value>
+      </simple>
+      <simple id="sdds::sampleRate" name="sampleRate" type="ulong"/>
+      <simple id="sdds::timeTagValid" name="timeTagValid" type="boolean">
+        <value>false</value>
+      </simple>
+      <simple id="sdds::privateInfo" name="privateInfo" type="string"/>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+  <structsequence id="VITA49StreamDefinitions" mode="readwrite">
+    <struct id="VITA49StreamDefinition">
+      <simple id="vita49::id" name="id" type="string"/>
+      <simple id="vita49::ip_address" name="ip_address" type="string">
+        <value>0.0.0.0</value>
+      </simple>
+      <simple id="vita49::vlan" name="vlan" type="ulong">
+        <value>0</value>
+      </simple>
+      <simple id="vita49::port" name="port" type="ulong">
+        <value>0</value>
+      </simple>
+      <simple id="vita49::valid_data_format" name="valid_data_format" type="boolean">
+        <value>false</value>
+      </simple>
+      <simple id="vita49::packing_method_processing_efficient" name="packing_method_processing_efficient" type="boolean">
+        <value>false</value>
+      </simple>
+      <simple id="vita49::repeating" name="repeating" type="boolean">
+        <value>false</value>
+      </simple>
+      <simple id="vita49::event_tag_size" name="event_tag_size" type="long"/>
+      <simple id="vita49::channel_tag_size" name="channel_tag_size" type="long">
+        <value>0</value>
+      </simple>
+      <simple id="vita49::item_packing_field_size" name="item_packing_field_size" type="long">
+        <value>0</value>
+      </simple>
+      <simple id="vita49::data_item_size" name="data_item_size" type="long">
+        <value>0</value>
+      </simple>
+      <simple id="vita49::repeat_count" name="repeat_count" type="long">
+        <value>0</value>
+      </simple>
+      <simple id="vita49::vector_size" name="vector_size" type="long">
+        <value>0</value>
+      </simple>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+  <structsequence id="received_sdds_attachments" mode="readwrite">
+    <struct id="sdds_attachment">
+      <simple id="sdds::streamId" name="streamId" type="string"/>
+      <simple id="sdds::attachId" name="attachId" type="string"/>
+      <simple id="sdds::rec_port" name="port" type="ulong">
+        <value>0</value>
+      </simple>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+  <structsequence id="received_vita49_attachments" mode="readwrite">
+    <struct id="vita49_attachment">
+      <simple id="vita49::streamId" name="streamId" type="string"/>
+      <simple id="vita49::attachId" name="attachId" type="string"/>
+      <simple id="vita49::rec_port" name="port" type="ulong">
+        <value>0</value>
+      </simple>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+  <struct id="callback_stats" mode="readwrite">
+    <simple id="num_sdds_attaches" type="ushort">
+      <value>0</value>
+    </simple>
+    <simple id="num_sdds_detaches" type="ushort">
+      <value>0</value>
+    </simple>
+    <simple id="num_vita49_attaches" type="ushort">
+      <value>0</value>
+    </simple>
+    <simple id="num_vita49_detaches" type="ushort">
+      <value>0</value>
+    </simple>
+    <simple id="num_new_sri_callbacks" type="ushort">
+      <value>0</value>
+    </simple>
+    <simple id="num_sri_change_callbacks" type="ushort">
+      <value>0</value>
+    </simple>
+    <configurationkind kindtype="configure"/>
+  </struct>
+</properties>

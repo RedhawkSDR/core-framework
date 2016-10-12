@@ -29,21 +29,21 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <simplesequence id="DCE:5d8bfe8d-bc25-4f26-8144-248bc343aa53" mode="readwrite" name="args" type="string">
         <description>The arguments for the process.</description> 
         <values>
-	    <value>Hello World</value>
+            <value>Hello World</value>
         </values>
         <kind kindtype="configure"/>
     </simplesequence>
     <struct id="DCE:ffe634c9-096d-425b-86cc-df1cce50612f" mode="readwrite" name="struct_test">
         <description>Test that structs are supported</description> 
-	<simple id="item1" mode="readwrite" type="string">
-	    <value>value1</value>
-	</simple>
-	<simple id="item2" mode="readwrite" type="long">
-	    <value>100</value>
-	</simple>
-	<simple id="item3" mode="readwrite" type="double">
-	    <value>3.14156</value>
-	</simple>
+        <simple id="item1" mode="readwrite" type="string">
+            <value>value1</value>
+        </simple>
+        <simple id="item2" mode="readwrite" type="long">
+            <value>100</value>
+        </simple>
+        <simple id="item3" mode="readwrite" type="double">
+            <value>3.14156</value>
+        </simple>
         <configurationkind kindtype="configure"/>
     </struct>
     <simple id="DCE:95f19cb8-679e-48fb-bece-dc199ef45f20" mode="readonly" name="commandAlive" type="boolean">

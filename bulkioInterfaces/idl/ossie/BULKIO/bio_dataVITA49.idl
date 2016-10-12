@@ -1,0 +1,172 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _DATAVITIA49_IDL_
+#define _DATAVITIA49_IDL_
+
+#include "ossie/BULKIO/bio_runtimeStats.idl"
+#include "ossie/BULKIO/bio_updateSRI.idl"
+
+module BULKIO {
+
+    /*** VITA49 defined data types ***/
+    enum VITA49DataDigraph {
+		VITA49_1P,	//1 bit packed data
+		VITA49_2P,	//2 bit packed data
+		VITA49_4P,	//4 bit packed data
+		VITA49_8T,	//8 bit signed data
+		VITA49_8U,	//8 bit unsigned data
+		VITA49_16F,	//16 bit floating point
+		VITA49_16T,	//16 bit signed data
+		VITA49_16U,	//16 bit unsigned data
+		VITA49_32F,	//32 bit floating point
+		VITA49_32T,	//32 bit signed data
+		VITA49_32U,	//32 bit unsigned data
+		VITA49_64F,	//64 bit float data
+		VITA49_64T,	//64 bit signed data
+		VITA49_64U	//64 bit unsigned data
+	};
+
+    /*** VITA49 defined transport protocols ***/
+	enum TransportProtocol{
+		VITA49_UDP_TRANSPORT,
+		VITA49_TCP_TRANSPORT,
+		VITA49_UNKNOWN_TRANSPORT
+	};
+
+
+    /*** VITA49 defined data complexity ***/
+	enum VITA49DataComplexity {
+		VITA49_REAL, 
+		VITA49_COMPLEX_CARTESIAN, 
+		VITA49_RESERVED1, 
+		VITA49_RESERVED2
+	};
+	
+	
+	/*** VITA49 defined data payload format - Please see specification for additional descriptions***/
+	struct VITA49DataPacketPayloadFormat{
+		boolean packing_method_processing_efficient;	// True (Processing Efficient) - Byte Aligned; False (Link Efficient)- Fewest Bytes
+		VITA49DataComplexity complexity; 				// Real/Complex enum
+		VITA49DataDigraph data_item_format;  			// Data format enum 
+		boolean repeating;								// True - Sample/channel repeating enabled
+		long event_tag_size;			   				// Unsigned number equal to event tag size (lsb right most)
+		long channel_tag_size;		 	   				// Unsigned number equal to channel-tag size
+		long item_packing_field_size;      				// Unsigned number that is one less than the actual item packing field size
+		long data_item_size;               				// Unsigned number that is one less than the actual data tem size
+		long repeat_count;              				// Refers to either channel repeating count or the sampler component repeating count
+		long vector_size;               				// Unsigned number that is one less than the actual vector size
+	};
+	
+	
+    /*** BULKIO VITA49 stream definition structure ***/
+    struct VITA49StreamDefinition {                  
+	string ip_address;                     	     // IP address 
+        unsigned long vlan;                          // VLAN (can be zero or greater)
+        unsigned long port;                          // Port Number
+	TransportProtocol protocol;                  // Transport protocl - UDP, TCP or UNKNOWN
+        string id;                                   // Addition of id for multiport implementations
+	boolean valid_data_format;                   // True - Data will be processed immediately (will not wait on context packet) with the specified settings. False - data will not be processed until a context packet is received
+	VITA49DataPacketPayloadFormat data_format;   // Describes data format when context packet is not received. 
+    };
+    
+  
+  
+    typedef sequence <VITA49StreamDefinition> VITA49StreamSequence;
+
+    /**
+     * This is the interface for an VITA49 stream port.
+     */
+    interface dataVITA49 : ProvidesPortStatisticsProvider  {
+
+      enum InputUsageState {
+         IDLE,
+         ACTIVE,
+         BUSY
+      };
+
+      /**
+       * Thrown when the input port cannot accept anymore
+       * new attachments.
+       */
+      exception AttachError{string msg;};
+
+      /**
+       * Thrown when the input port encountered an error
+       * in the detach process.
+       */
+      exception DetachError{string msg;};
+
+      /**
+       * A generic exception.
+       */
+      exception StreamInputError{string msg;};
+
+      /**
+       * IDLE if no streams are attached.
+       * ACTIVE if some streams are attached, but the device/component can accept more.
+       * BUSY if the input can accept no more attachments.
+       */
+      readonly attribute InputUsageState usageState;
+
+      /**
+       * A sequence of attached streams.
+       */
+      readonly attribute VITA49StreamSequence attachedStreams;
+
+      /**
+       * A sequence of attachment IDs
+       */
+      readonly attribute StringSequence attachmentIds;
+
+      /**
+       * Attaches a stream to the input.  An input may handle 1
+       * or more streams.
+       *
+       * Returns: a unique identifier for this attach which must
+       *          be passed to detach.
+       */
+      string attach(in VITA49StreamDefinition stream, in string userid)
+        raises (AttachError, StreamInputError);
+
+      /**
+       * Detach one or more stream attachments.
+       */
+      void detach(in string attachId)
+        raises (DetachError, StreamInputError);
+
+      VITA49StreamDefinition getStreamDefinition(in string attachId)
+        raises (StreamInputError);
+
+     string getUser(in string attachId)
+        raises (StreamInputError);
+
+      /**
+      * List of all active streamSRIs (that have not been ended)
+      */
+      readonly attribute StreamSRISequence attachedSRIs;
+
+      /**
+	  * Push SRI to downstream components with time tag 
+	  */
+      void pushSRI(in BULKIO::StreamSRI H, in BULKIO::PrecisionUTCTime T);
+    };
+};
+#endif

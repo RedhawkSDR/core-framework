@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:5a68aee6-5875-4cfe-9609-d0c440a6ef77" name="test_collocation_node2_1dev4cap">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="test_collocation_device_fc97fac1-3641-4081-8e3b-630b61899508" type="SPD">
+      <localfile name="/devices/test_collocation_device/test_collocation_device.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="test_collocation_device_fc97fac1-3641-4081-8e3b-630b61899508"/>
+      <componentinstantiation id="test_collocation_node1_2dev2cap:test_collocation_device_2">
+        <usagename>test_collocation_device_2</usagename>
+        <componentproperties>
+          <simpleref refid="supported_components" value="4"/>
+        </componentproperties>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK/REDHAWK"/>
+  </domainmanager>
+</deviceconfiguration>

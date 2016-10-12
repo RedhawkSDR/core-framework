@@ -74,7 +74,7 @@ class Jackhammer:
         
         while self.runThreads.isSet():
             try:
-                self.test(id)
+                self.test()
             except:
                 excType = sys.exc_info()[0]
                 excStr = sys.exc_info()[1]

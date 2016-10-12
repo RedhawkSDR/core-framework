@@ -1,0 +1,88 @@
+/*
+ * WARNING: This file is generated from BurstIn.java.template.
+ *          Do not modify directly.
+ */
+
+package burstio;
+
+import burstio.traits.@name@Traits;
+
+public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<BURSTIO.@name@Burst>
+{
+    private final InPortImpl<BURSTIO.@name@Burst> impl_;
+
+    public Burst@name@In (final String name)
+    {
+        this.impl_ = new InPortImpl<BURSTIO.@name@Burst>(name, new @name@Traits());
+    }
+
+    public String getName ()
+    {
+        return this.impl_.getName();
+    }
+
+    public void start ()
+    {
+        this.impl_.start();
+    }
+
+    public void stop ()
+    {
+        this.impl_.stop();
+    }
+
+    public int getQueueThreshold ()
+    {
+        return this.impl_.getQueueThreshold();
+    }
+
+    public void setQueueThreshold (int count)
+    {
+        this.impl_.setQueueThreshold(count);
+    }
+
+    public BULKIO.PortUsageType state()
+    {
+        return this.impl_.state();
+    }
+
+    public BULKIO.PortStatistics statistics()
+    {
+        return this.impl_.statistics();
+    }
+
+    public void pushBursts(BURSTIO.@name@Burst[] bursts)
+    {
+        this.impl_.pushBursts(bursts);
+    }
+
+    public @name@Packet getBurst (float timeout)
+    {
+        BURSTIO.@name@Burst burst = this.impl_.getBurst(timeout);
+        if (burst == null) {
+            return null;
+        }
+        boolean blocked = this.impl_.blockOccurred();
+        return new @name@Packet(burst, blocked);
+    }
+
+    public BURSTIO.@name@Burst[] getBursts (float timeout)
+    {
+        return this.impl_.getBursts(timeout);
+    }
+
+    public boolean blockOccurred ()
+    {
+        return this.impl_.blockOccurred();
+    }
+
+    public int getQueueDepth ()
+    {
+        return this.impl_.getQueueDepth();
+    }
+
+    public void flush ()
+    {
+        this.impl_.flush();
+    }
+}

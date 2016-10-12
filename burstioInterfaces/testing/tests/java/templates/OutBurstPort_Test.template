@@ -1,0 +1,329 @@
+//package test_burstio;
+
+
+import static org.junit.Assert.*;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
+import org.junit.BeforeClass;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.Ignore;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.PropertyConfigurator;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.Layout;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Appender;
+import org.apache.log4j.Level;
+import org.apache.log4j.xml.DOMConfigurator;
+import org.omg.CORBA.Object;
+
+import BULKIO.StreamSRI;
+import BULKIO.PrecisionUTCTime;
+import BULKIO.PortStatistics;
+import BULKIO.PortUsageType;
+import BULKIO.UsesPortStatistics;
+import org.ossie.properties.StructDef;
+
+import org.omg.CORBA.ORB;
+
+import burstio.OutputPolicy;
+import burstio.RoutingMode;
+
+public class OutBurst@name@Port_Test {
+	
+    public static ORB orb;
+
+    Logger logger =  Logger.getRootLogger();    
+    
+    class test_fact {
+
+	String  name = "Out@name@";
+	String  port_name = new String("test-outport-api");
+	String  sid = new String("test-outport-streamid");
+	String  cid = new String("connect-1");
+	String  cid2 = new String("connect-2");
+	short   mode = 1;
+	double  srate=22.0;
+
+	test_fact( String tname ) {
+	    name=tname;
+	}
+    };
+    
+    
+    class connect_listener implements burstio.ConnectionListener {
+
+	test_fact ctx=null;
+
+	connect_listener( test_fact inCtx ) {
+	    ctx = inCtx;
+	}
+	
+	public void portConnected( String sid ){
+	    assertTrue("Connection Callback, StreamID mismatch",  ctx.cid == sid );
+	};
+
+	public void portDisconnected( String sid ){
+	    assertTrue("Disconnection Callback, StreamID mismatch",  ctx.cid == sid );
+	};
+    };
+    
+    public static BURSTIO.BurstSRI make_sri_test( String sid, String id) {
+        BURSTIO.BurstSRI sri = new BURSTIO.BurstSRI();
+        sri.streamID = sid;
+        sri.id = id;
+        sri.xdelta = 1.0;
+        sri.mode = 0;       /* 0-Scalar, 1-Complex */
+        sri.flags = 0;
+        sri.tau = 1.1;
+        sri.theta = 1.2f;
+        sri.gain = 1.3f;
+        sri.uwlength = 128;
+        sri.bursttype = 2;
+        sri.burstLength = 1024;
+        sri.CHAN_RF = 1e6;
+        sri.baudestimate = 2.0f;
+        sri.carrieroffset = 2.1;
+        sri.SNR = 2.3;
+        sri.modulation = "mod";
+        sri.baudrate = 56000.0;
+        sri.fec = "vit";       /* fec type */
+        sri.fecrate = "7/8";   /* not a number for TPC rates like (64,57)x(64,57) */
+        sri.randomizer="R20";
+        sri.overhead="unknown";
+        sri.expectedStartOfBurstTime=burstio.Utils.now();
+        return sri;
+    }
+
+    @BeforeClass
+	public static void oneTimeSetUp() {
+	// Set up a simple configuration that logs on the console.
+	BasicConfigurator.configure();
+
+        // Create and initialize the ORB
+        String [] args = new String[0];
+        orb = ORB.init(args, null);
+    }
+
+    @AfterClass
+	public static void oneTimeTearDown() {
+        LogManager.shutdown();
+    }
+
+    @Before
+	public void setUp() {
+    }
+
+    @After
+	public void tearDown() {
+    }
+    
+    @Test
+	public void test_setget_api( ) {
+
+	test_fact ctx=new test_fact("Out@name@");
+
+	logger.debug("BURSTIO OUT-PORT API BEGIN: @name@");
+		
+	burstio.Burst@name@Out port = new burstio.Burst@name@Out(ctx.port_name);
+
+        String pname = port.getName();
+	assertTrue("Port Name Failed",  ctx.port_name.equals(pname) == true );    
+
+	// port statistics test
+	UsesPortStatistics[] stats = port.statistics();
+	assertTrue("Port Statistics Failed",  stats != null );
+
+	BULKIO.PortUsageType rt = port.state();
+	assertTrue("Port Usage Type Failed",  rt == BULKIO.PortUsageType.IDLE );
+
+	ExtendedCF.UsesConnection []clist = port.connections();
+	assertTrue("Uses Connections List Failed",  clist != null );
+	assertTrue("Uses Connections List Failed",  clist.length == 0 );
+	
+	//
+	// test callback feature
+	//
+	connect_listener cl = new connect_listener(ctx);
+	port.addConnectionListener( cl );
+	
+	burstio.Burst@name@In inport = new burstio.Burst@name@In("sink_1");
+	try {
+
+	    port.connectPort( inport._this_object(orb), ctx.cid );
+
+	    port.disconnectPort( ctx.cid );
+	    port.disconnectPort( ctx.cid );
+	}
+	catch(Exception e){
+	}
+	
+        clist = port.connections();
+	assertTrue("Uses Connections List Failed - after connect/disconnect ",  clist != null );
+	assertTrue("Uses Connections List Failed - after connect/disconnect ",  clist.length == 0);
+
+        // clear callback and reconnect
+        port.removeConnectionListener(cl);
+    
+        clist = port.connections();
+	assertTrue("Uses Connections List Failed - after remove listener ",  clist != null );
+	assertTrue("Uses Connections List Failed - after remove listener ",  clist.length == 0 );
+
+        //
+        // test max bursts state
+        //
+        int exp=22;
+        port.setMaxBursts (exp);
+        int tmp = port.getMaxBursts ();
+	assertTrue("Set/Get MaxBursts ",  tmp == exp );  
+
+        //
+        // test byte threshold state
+        //    
+	exp=0xdeedbeef;
+        port.setByteThreshold (exp);
+        tmp = port.getByteThreshold ();
+	assertTrue("Set/Get ByteThreshold  ",  tmp ==exp ); 
+	
+	exp=123456789;
+        port.setLatencyThreshold(exp);
+        tmp = port.getLatencyThreshold ();
+	assertTrue("Set/Get LatencyThreshold ",  tmp == exp ); 
+   
+        RoutingMode exp1= burstio.RoutingMode.ROUTE_ALL_STREAMS;
+        port.setRoutingMode( exp1 );
+
+        burstio.OutputPolicy op = port.getStreamPolicy("test");
+	assertTrue("Get Output Policy/Stream  ",  op != null ); 	
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, inport._this_object(orb), ctx);
+
+	// connect endpoint so we can simulate a flow
+	try {
+
+	    port.connectPort( inport._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+	}
+
+	// push sri
+        String sid = new String("test_output_api");
+	BURSTIO.BurstSRI sri = make_sri_test( sid, "id-1");
+        BURSTIO.@name@Burst b = new BURSTIO.@name@Burst();
+        b.data  = new @type@[50];
+        b.SRI = sri;
+        b.EOS = false;
+        b.T = bulkio.time.utils.now();
+        for ( int i=0; i < b.data.length; i ++ ) b.data[i]=(@type@)i;
+
+        BURSTIO.@name@Burst[] bursts = new BURSTIO.@name@Burst[1];
+        bursts[0]=b;
+
+        // push vector of bursts
+        port.pushBursts( bursts );
+    
+        // test single burst push
+        @type@[] data  = new @type@[1];
+        port.pushBurst( data, sri);
+
+        // test start/stop sequence
+        port.start();
+        port.stop();
+
+        port.start();
+        port.stop();
+
+        port.start();
+        port.flush();
+        port.flush();
+        port.flush();
+        port.stop();
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, inport._this_object(orb), ctx);
+
+	logger.debug("BURSTIO OUT-PORT API END: @name@");
+    }
+
+    @Test
+	public void test_connection_filter( ) {
+
+	test_fact ctx=new test_fact("Out@name@");
+
+	logger.debug("BURSTIO CONNECTION FILTER TEST:  @name@");
+		
+	burstio.Burst@name@Out port = new burstio.Burst@name@Out(ctx.port_name);
+
+        List< bulkio.connection_descriptor_struct> filterTable = null;
+
+	filterTable = new ArrayList< bulkio.connection_descriptor_struct>(10);
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_1", "stream-1-1", "multiout_source") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_1", "stream-1-2", "multiout_source") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_1", "stream-1-3", "multiout_source") );
+
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_2", "stream-2-1", "multiout_source") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_2", "stream-2-2", "multiout_source") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_2", "stream-2-3", "multiout_source") );
+
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_3", "stream-3-1", "multiout_source") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_3", "stream-3-2", "multiout_source") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_3", "stream-3-3", "multiout_source") );
+
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_4", "stream-4-1", "multiout_source") );
+        port.updateConnectionFilter(filterTable);
+
+        port.addConnectionFilter( "connection_1", "stream-1-1") ;
+        port.addConnectionFilter( "connection_1", "stream-1-2");
+        port.addConnectionFilter( "connection_2", "stream-2-1");
+        port.addConnectionFilter( "connection_2", "stream-2-2");
+        port.addConnectionFilter( "connection_3", "stream-3-1");
+        port.addConnectionFilter( "connection_3", "stream-3-2");
+        port.addConnectionFilter( "connection_4", "stream-4-1");
+
+        // simple add remove sequence
+        port.addConnectionFilter( "stream-4-2", "connection_4");
+        port.addConnectionFilter( "stream-4-3", "connection_4");
+
+        port.removeConnectionFilter( "stream-4-2", "connection_4");
+        port.removeConnectionFilter( "stream-4-3", "connection_4");
+
+        // simple add remove to create possible errant handling of ids
+        port.addConnectionFilter( "stream-4-3", "connection_4");
+
+        port.removeConnectionFilter( "stream-4-3", "connection_4");
+        port.removeConnectionFilter( "stream-4-3", "connection_4");
+        port.removeConnectionFilter( "stream-4-3", "connection_4");
+        port.removeConnectionFilter( "stream-4-3", "connection_4");
+
+    };
+
+    private void test_statistics(BULKIO.UsesPortStatisticsProviderPOA port,
+                                 org.omg.CORBA.Object sink,
+                                 test_fact ctx)
+    {
+        try {
+            port.connectPort(sink, ctx.cid);
+            port.connectPort(sink, ctx.cid2);
+        } catch (final CF.PortPackage.OccupiedPort ex) {
+            fail("Port should never throw CF.Port.OccupiedPort");
+        } catch (final CF.PortPackage.InvalidPort ex) {
+            fail("Failed to connect ports");
+        }
+        BULKIO.UsesPortStatistics[] stats = port.statistics();
+        assertEquals("Statistics returned wrong number of connections", stats.length, 2);
+        assertNotNull("Statistics[0] is null", stats[0]);
+        assertNotNull("Statistics[1] is null", stats[1]);
+    }
+
+    
+}

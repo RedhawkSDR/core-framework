@@ -21,6 +21,8 @@
 #ifndef __OMNIJNI_H__
 #define __OMNIJNI_H__
 
+#include <omnithread.h>
+
 #include "class.h"
 #include "servant.h"
 #include "object.h"
@@ -28,6 +30,8 @@
 #include "exception.h"
 #include "sequence.h"
 #include "struct.h"
+#include "loader.h"
 #include "holders.h"
+#include "threading.h"
 
 #endif // __OMNIJNI_H__

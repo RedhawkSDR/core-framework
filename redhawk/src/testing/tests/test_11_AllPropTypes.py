@@ -1,34 +1,34 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
 from omniORB import any
 import unittest
-import scatest
+from _unitTestHelpers import scatest
 from ossie.cf import CF
 from omniORB import CORBA
 import struct
 
 class TestAllTypes(scatest.CorbaTestCase):
     def setUp(self):
-        domBooter, self._domMgr = self.launchDomainManager(debug=9)
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=9)
+        domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
         self._app = None
 
     def tearDown(self):
@@ -44,7 +44,7 @@ class TestAllTypes(scatest.CorbaTestCase):
         self.assertNotEqual(self._domMgr, None, "DomainManager not available")
         self.assertNotEqual(self._devMgr, None, "DeviceManager not available")
         self.assertNotEqual(self._app, None, "Application not created")
-        
+
     def launchApplication(self, language):
         if self._domMgr:
             try:
@@ -57,7 +57,7 @@ class TestAllTypes(scatest.CorbaTestCase):
                 self._app = appFact.create(appFact._get_name(), [], [])
             except:
                 pass
-        
+
     def test_AllPropTypes(self):
         languages = ['Cpp', 'Python', 'Java']
         for lang in languages:

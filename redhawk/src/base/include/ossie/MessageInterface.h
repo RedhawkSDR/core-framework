@@ -24,8 +24,7 @@
 #include <map>
 #include <string>
 #include <vector>
-
-#if ENABLE_EVENTS
+#include <iterator>
 
 #include "CF/ExtendedEvent.h"
 #include "CF/cf.h"
@@ -206,71 +205,55 @@ protected:
 class MessageSupplierPort : public Port_Uses_base_impl, public virtual POA_CF::Port {
 
 public:
-    MessageSupplierPort (std::string port_name) : Port_Uses_base_impl(port_name)
-    { };
-    virtual ~MessageSupplierPort (void) { };
+    MessageSupplierPort (std::string port_name);
+    virtual ~MessageSupplierPort (void);
 
     // CF::Port methods
-    void connectPort(CORBA::Object_ptr connection, const char* connectionId) {
-        boost::mutex::scoped_lock lock(portInterfaceAccess);
-        this->active = true;
-        CosEventChannelAdmin::EventChannel_var channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(connection);
-        if (CORBA::is_nil(channel)) {
-            throw CF::Port::InvalidPort(0, "The object provided did not narrow to a CosEventChannelAdmin::EventChannel type");
-        }
-        CosEventChannelAdmin::SupplierAdmin_var supplier_admin = channel->for_suppliers();
-        CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer = supplier_admin->obtain_push_consumer();
-        extendConsumers(connectionId, proxy_consumer);
-    };
+    void connectPort(CORBA::Object_ptr connection, const char* connectionId);
+    void disconnectPort(const char* connectionId);
 
-    void disconnectPort(const char* connectionId) {
-        boost::mutex::scoped_lock lock(portInterfaceAccess);
-        CosEventChannelAdmin::ProxyPushConsumer_var consumer = removeConsumer(connectionId);
-        if (CORBA::is_nil(consumer)) {
-            return;
-        }
-        consumer->disconnect_push_consumer();
-        if (this->consumers.empty()) {
-            this->active = false;
-        }
-    };
+    void push(const CORBA::Any& data);
 
-    void push(const CORBA::Any& data) {
-        boost::mutex::scoped_lock lock(portInterfaceAccess);
-        std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var>::iterator connection = consumers.begin();
-        while (connection != consumers.end()) {
-            try {
-                (connection->second)->push(data);
-            } catch ( ... ) {
-            }
-            connection++;
+    CosEventChannelAdmin::ProxyPushConsumer_ptr removeConsumer(std::string consumer_id);
+    void extendConsumers(std::string consumer_id, CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer);
+
+    template <typename Message>
+    void sendMessage(const Message& message) {
+        const Message* begin(&message);
+        const Message* end(&begin[1]);
+        sendMessages(begin, end);
+    }
+
+    template <class Sequence>
+    void sendMessages(const Sequence& messages) {
+        sendMessages(messages.begin(), messages.end());
+    }
+    
+    template <typename Iterator>
+    void sendMessages(Iterator first, Iterator last)
+    {
+        CF::Properties properties;
+        properties.length(std::distance(first, last));
+        for (CORBA::ULong ii = 0; first != last; ++ii, ++first) {
+            // Workaround for older components whose structs have a non-const,
+            // non-static member function getId(): determine the type of value
+            // pointed to by the iterator, and const_cast the dereferenced
+            // value; this ensures that it works for both bare pointers and
+            // "true" iterators
+            typedef typename std::iterator_traits<Iterator>::value_type value_type;
+            properties[ii].id = const_cast<value_type&>(*first).getId().c_str();
+            properties[ii].value <<= *first;
         }
-    };
-
-    CosEventChannelAdmin::ProxyPushConsumer_ptr removeConsumer(std::string consumer_id) {
-        std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var>::iterator connection = consumers.find(consumer_id);
-        if (connection == consumers.end()) {
-            return CosEventChannelAdmin::ProxyPushConsumer::_nil();
-        }
-        CosEventChannelAdmin::ProxyPushConsumer_var consumer = connection->second;
-        consumers.erase(connection);
-        return consumer._retn();
-    };
-
-    void extendConsumers(std::string consumer_id, CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer) {
-        consumers[std::string(consumer_id)] = proxy_consumer;
-    };
-
+        CORBA::Any data;
+        data <<= properties;
+        push(data);
+    }
 
 protected:
-    
     boost::mutex portInterfaceAccess;
     std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var> consumers;
     std::map<std::string, CosEventChannelAdmin::EventChannel_ptr> _connections;
-    
-    
-};
 
-#endif // ENABLE_EVENTS
+};
 
 #endif // MESSAGEINTERFACE_H

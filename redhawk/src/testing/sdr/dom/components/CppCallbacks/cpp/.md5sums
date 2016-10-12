@@ -1,0 +1,11 @@
+21017aff3a3dd4a93e8ae0cc638c3c10 main.cpp
+f93e4a4160e6956e2b26d8ac35604e66 CppCallbacks_base.cpp
+990a2982ae0b754d3cea5cb76644ef09 CppCallbacks.cpp
+b31dacb40ed68618ebee561ba4f98d83 CppCallbacks_base.h
+c99df9fa4ab0cd042eac42fcee6441c3 reconf
+a6573460dfdde51016dcc7e5c7da29b4 CppCallbacks.h
+faf156187183091059f9a98fba44287d configure.ac
+78dc65183d76f1c9580be9d933b67fc3 Makefile.am
+1e68477795ff7f5f4882470ce98fd7c6 struct_props.h
+8f67f442f23a203c77bb13b264ae75a4 Makefile.am.ide
+2edeb4570ba55b42155b992f38587fb6 build.sh

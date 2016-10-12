@@ -21,46 +21,42 @@
 
 
 import atexit as _atexit
-import commands as _commands
 import os as _os
-import xml.dom.minidom as _minidom
 from ossie.cf import CF as _CF
 from ossie.cf import CF__POA as _CF__POA
 from ossie.cf import ExtendedCF as _ExtendedCF
+from ossie.cf import StandardEvent
 from omniORB import CORBA as _CORBA
 import CosNaming as _CosNaming
 import sys as _sys
-import copy as _copy
 import time as _time
-import ossie.parsers as _parsers
-import string as _string
 import datetime as _datetime
-from ossie.properties import __TYPE_MAP
-from ossie.utils.sca import importIDL as _importIDL
-from ossie.utils import prop_helpers as _prop_helpers
-from omniORB import any as _any
+import weakref
+import threading
+import logging
+from ossie import parsers
+from ossie.utils import idllib
+from ossie.utils.model import _Port
+from ossie.utils.model import _readProfile
+from ossie.utils.model import _idllib
+from ossie.utils.model import *
+from ossie.utils.notify import notification
+from ossie.utils import weakobj
 
-_ossiehome = _os.getenv('OSSIEHOME')
+from channels import IDMListener, ODMListener
+from component import Component
+from device import Device, createDevice
+from service import Service
+from model import DomainObjectList
 
-if _ossiehome == None:
-    _ossiehome = ''
+# Limit exported symbols
+__all__ = ('App', 'Component', 'Device', 'DeviceManager', 'Domain',
+           'getCFType', 'getCurrentDateTimeString', 'getDEBUG',
+           'getMemberType', 'setDEBUG', 'setTrackApps', 'getTrackApps')
 
-_interface_list = []
-_loadedInterfaceList = False
-_interfaces = {}
-
-__MIDAS_TYPE_MAP = {'char'  : ('/SB/8t'),
-                    'octet' : ('/SO/8o'),
-                    'short' : ('/SI/16t'),
-                    'long'  : ('/SL/32t'),
-                    'float' : ('/SF/32f'),
-                    'double': ('/SD/64f')}
-
-_DEBUG = False 
 _launchedApps = []
 
-def _uuidgen():
-    return _commands.getoutput('uuidgen')
+log = logging.getLogger(__name__)
 
 def getCurrentDateTimeString():
     # return a string representing current day and time
@@ -74,1071 +70,16 @@ def getCurrentDateTimeString():
         time_str, microseconds_str = time_str.split('.')
     return _time.strftime("%j_%H%M%S",dt.timetuple()) + microseconds_str[:3]
 
-def setDEBUG(debug=False):
-    global _DEBUG
-    _DEBUG = debug
-
-def getDEBUG():
-    return _DEBUG
-
 def _cleanUpLaunchedApps():
     for app in _launchedApps[:]:
-        app.releaseObject()
+        try:
+            app.releaseObject()
+        except:
+            log.warn('Unable to release application object...continuing')
 
 _atexit.register(_cleanUpLaunchedApps)
 
-
-class _componentBase(object):
-    '''
-      componentDescriptor can be either the name of the component or the absolute file path
-    '''
-    def __setattr__(self,name,value):
-        # If setting any class attribute except for _propertySet,
-        # Then need to see if name matches any component properties
-        # If so, then call configure on the component for the particular property and value
-        if name != "_propertySet":
-            try:
-                if hasattr(self,"_propertySet"):
-                    propSet = object.__getattribute__(self,"_propertySet")
-                    if propSet != None:
-                        for prop in propSet:
-                            if name == prop.clean_name:
-                                if _DEBUG == True:
-                                    print "Component:__setattr__() Setting component property attribute " + str(name) + " to value " + str(value)
-                                self._configureSingleProp(prop.id,value)
-                                break
-                            if name == prop.id:
-                                if _DEBUG == True:
-                                    print "Component:__setattr__() Setting component property attribute " + str(name) + " to value " + str(value)
-                                self._configureSingleProp(name,value)
-                                break
-            except AttributeError, e:
-                # This would be thrown if _propertySet attribute hasn't been set yet
-                # This will occur only with setting of class attibutes before _propertySet has been set
-                # This will not affect setting attributes based on component properties since this will
-                #   occur after all class attributes have been set
-                if str(e).find("_propertySet") != -1:
-                    pass
-                else:
-                    raise e
-        return object.__setattr__(self,name,value)
-
-    def __getattr__(self,name):
-        # Need to see if name matches any component properties
-        # If so, then call query on the component for the property and return that value 
-        if name != "_propertySet" and hasattr(self,"_propertySet"):
-            propSet = object.__getattribute__(self,"_propertySet")
-            if propSet != None:
-                for prop in propSet: 
-                    if name == prop.clean_name:                    
-                        queryResults = self.query([_CF.DataType(id=str(prop.id),value=_any.to_any(None))])[0]
-                        if (queryResults != None):
-                            currentValue = queryResults.value._v
-                            if _DEBUG == True:
-                                print "Component:__getattr__() query returns component property value " + str(currentValue) + " for property " + str(name)
-                            return currentValue 
-        return object.__getattribute__(self,name)
-
-    def __getattribute__(self,name):
-        try:
-            if name != "_propertySet" and hasattr(self,"_propertySet"):
-                propSet = object.__getattribute__(self,"_propertySet")
-                if propSet != None:
-                    for prop in propSet: 
-                        if name == prop.id or name == prop.clean_name:  
-                            return prop
-            return object.__getattribute__(self,name)
-        except AttributeError:
-            raise
-
-class Component(_componentBase):
-    """
-    This representation provides a proxy to a running component. The CF::Resource api can be accessed
-    directly by accessing the members of the class
-    
-      componentDescriptor can be either the name of the component or the absolute file path
-    
-    A simplified access to properties is available through:
-        Component.<property id> provides read/write access to component properties
-    
-    """
-    def __init__(self,componentDescriptor=None,instanceName=None,refid=None,componentObj=None,impl=None,domainMgr=None,int_list=None,*args,**kwargs):
-        self._profile = ''
-        self._spd = None
-        self._scd = None
-        self._prf = None
-        self._spdContents = None
-        self._scdContents = None
-        self._prfContents = None
-        self._impl = impl
-        self.ref = componentObj
-        self.ports = []
-        self._providesPortDict = {}
-        self._configureTable = {}
-        self._usesPortDict = {}
-        self._autoKick = False
-        self._fileManager = None
-        self.name = None
-        self._interface_list = int_list
-        if domainMgr != None:
-            self._fileManager = domainMgr.ref._get_fileMgr()
-
-        if refid == None:
-            self._refid = _uuidgen()
-        else:
-            self._refid = refid
-
-        try:
-            if componentDescriptor != None:
-                self._profile = componentDescriptor
-                self.name = _os.path.basename(componentDescriptor).split('.')[0]
-                self._parseComponentXMLFiles()
-                self._buildAPI()
-                if self.ref != None:
-                    self._populatePorts(fs=self._fileManager)
-            else:
-                raise AssertionError, "Component:__init__() ERROR - Failed to instantiate invalid component % " % (str(self.name))
-
-        except Exception, e:
-            print "Component:__init__() ERROR - Failed to instantiate component " + str(self.name) + " with exception " + str(e)
-
-    def _isMatch(self, prop, modes, kinds, actions):
-        if prop.get_mode() == None:
-            m = "readwrite"
-        else:
-            m = prop.get_mode()
-        matchMode = (m in modes)
-
-        if prop.__class__ in (_parsers.PRFParser.simple, _parsers.PRFParser.simpleSequence):
-            if prop.get_action() == None:
-                a = "external"
-            else:
-                a = prop.get_action().get_type()
-            matchAction = (a in actions)
-
-            matchKind = False
-            if prop.get_kind() == None:
-                k = ["configure"]
-            else:
-                k = prop.get_kind()
-            for kind in k:
-                if kind.get_kindtype() in kinds:
-                    matchKind = True
-
-        elif prop.__class__ in (_parsers.PRFParser.struct, _parsers.PRFParser.structSequence):
-            matchAction = True # There is no action, so always match
-
-            matchKind = False
-            if prop.get_configurationkind() == None:
-                k = ["configure"]
-            else:
-                k = prop.get_configurationkind()
-            for kind in k:
-                if kind.get_kindtype() in kinds:
-                    matchKind = True
-
-            if k in kinds:
-                matchKind = True
-
-
-        return matchMode and matchKind and matchAction
-
-    def _getPropertySet(self, kinds=("configure",), \
-                             modes=("readwrite", "writeonly", "readonly"), \
-                             action="external", \
-                             includeNil=True):
-        if _DEBUG == True:
-            print "Component: _getPropertySet() kinds " + str(kinds)
-            print "Component: _getPropertySet() modes " + str(modes)
-            print "Component: _getPropertySet() action " + str(action)
-        """
-        A useful utility function that extracts specified property types from
-        the PRF file and turns them into a _CF.PropertySet
-        """
-        propertySet = []
-        translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_"
-
-        # Simples
-        for prop in self._prf.get_simple(): 
-            if self._isMatch(prop, modes, kinds, (action,)):
-                if prop.get_value() == None and includeNil == False:
-                    continue
-                propType = prop.get_type()
-                val = prop.get_value()
-                if str(val) == str(None):
-                    defValue = None
-                else:
-                    if propType in ['long', 'longlong', 'octet', 'short', 'ulong', 'ulonglong', 'ushort']: 
-                        # If value contains an x, it is a hex value (base 16) 
-                        if val.find('x') != -1:
-                            defValue = int(val,16)
-                        else:
-                            defValue = int(val)
-                    elif propType in ['double', 'float']:
-                        defValue = float(val)
-                    elif propType in ['char', 'string']:
-                        defValue = str(val)
-                    elif propType == 'boolean':
-                        defValue = {"TRUE": True, "FALSE": False}[val.strip().upper()]
-                    else:
-                        defValue = None
-                p = _prop_helpers.simpleProperty(id=prop.get_id(), valueType=propType, compRef=self, defValue=defValue, mode=prop.get_mode())
-                prop_id = prop.get_name()
-                if prop_id == None:
-                    prop_id = prop.get_id()
-                id_clean = str(prop_id).translate(translation)
-                p.clean_name = _prop_helpers.addCleanName(id_clean, prop.get_id(), self._get_identifier())
-                self._configureTable[prop.get_id()] = p
-                propertySet.append(p)
-
-                # If property has enumerations, stores them 
-                if prop.enumerations != None:
-                    _prop_helpers._addEnumerations(prop, p.clean_name)
-
-        # Simple Sequences
-        for prop in self._prf.get_simplesequence():
-            if self._isMatch(prop, modes, kinds, (action,)):
-                values = prop.get_values()
-                propType = prop.get_type()
-                defValue = None
-                if str(values) != str(None):
-                    defValue = []
-                    defValues = values.get_value()
-                    for val in defValues:
-                        if propType in ['long', 'longlong', 'octet', 'short', 'ulong', 'ulonglong', 'ushort']: 
-                            # If value contains an x, it is a hex value (base 16) 
-                            if val.find('x') != -1:
-                                defValue.append(int(val,16))
-                            else:
-                                defValue.append(int(val))
-                        elif propType in ['double', 'float']:
-                            defValue.append(float(val))
-                        elif propType in ['char', 'string']:
-                            defValue.append(str(val))
-                        elif propType == 'boolean':
-                            defValue.append({"TRUE": True, "FALSE": False}[val.strip().upper()])
-                p = _prop_helpers.sequenceProperty(id=prop.get_id(), valueType=propType, compRef=self, defValue=defValue, mode=prop.get_mode())
-                prop_id = prop.get_name()
-                if prop_id == None:
-                    prop_id = prop.get_id()
-                id_clean = str(prop_id).translate(translation)
-                p.clean_name = id_clean
-                self._configureTable[prop.get_id()] = p
-                propertySet.append(p)
-
-        # Structures
-        for prop in self._prf.get_struct():
-            if self._isMatch(prop, modes, kinds, (action,)):
-                members = []
-                if prop.get_simple() != None:
-                    for simple in prop.get_simple():
-                        propType = simple.get_type()
-                        val = simple.get_value()
-                        if str(val) == str(None):
-                            defValue = None
-                        else:
-                            if propType in ['long', 'longlong', 'octet', 'short', 'ulong', 'ulonglong', 'ushort']: 
-                                # If value contains an x, it is a hex value (base 16) 
-                                if val.find('x') != -1:
-                                    defValue = int(val,16)
-                                else:
-                                    defValue = int(val)
-                            elif propType in ['double', 'float']:
-                                defValue = float(val)
-                            elif propType in ['char', 'string']:
-                                defValue = str(val)
-                            elif propType == 'boolean':
-                                defValue = {"TRUE": True, "FALSE": False}[val.strip().upper()]
-                            else:
-                                defValue = None
-                        prop_id = simple.get_name()
-                        if prop_id == None:
-                            prop_id = simple.get_id()
-                        id_clean = str(prop_id).translate(translation)
-                        # Checks for enumerated properties
-                        if simple.enumerations != None:
-                            _prop_helpers._addEnumerations(simple, id_clean)
-                        # Add individual property
-                        id_clean = _prop_helpers.addCleanName(id_clean, simple.get_id(), self._refid)
-                        members.append((simple.get_id(), propType, defValue, id_clean))
-                p = _prop_helpers.structProperty(id=prop.get_id(), valueType=members, compRef=self, mode=prop.get_mode())
-                prop_id = prop.get_name()
-                if prop_id == None:
-                    prop_id = prop.get_id()
-                id_clean = str(prop_id).translate(translation)
-                p.clean_name = _prop_helpers.addCleanName(id_clean, prop.get_id(), self._refid)
-                self._configureTable[prop.get_id()] = p
-                propertySet.append(p)
-
-        # Struct Sequence
-        for prop in self._prf.get_structsequence():
-            if self._isMatch(prop, modes, kinds, (action,)):
-                if prop.get_struct() != None:
-                    members = []
-                    #get the struct definition
-                    for simple in prop.get_struct().get_simple():
-                        propType = simple.get_type()
-                        val = simple.get_value()
-                        if str(val) == str(None):
-                            simpleDefValue = None
-                        else:
-                            if propType in ['long', 'longlong', 'octet', 'short', 'ulong', 'ulonglong', 'ushort']: 
-                                # If value contains an x, it is a hex value (base 16) 
-                                if val.find('x') != -1:
-                                    simpleDefValue = int(val,16)
-                                else:
-                                    simpleDefValue = int(val)
-                            elif propType in ['double', 'float']:
-                                simpleDefValue = float(val)
-                            elif propType in ['char', 'string']:
-                                simpleDefValue = str(val)
-                            elif propType == 'boolean':
-                                simpleDefValue = {"TRUE": True, "FALSE": False}[val.strip().upper()]
-                            else:
-                                simpleDefValue = None
-                        prop_id = simple.get_name()
-                        if prop_id == None:
-                            prop_id = simple.get_id()
-                        id_clean = str(prop_id).translate(translation)
-                        members.append((simple.get_id(), propType, simpleDefValue, id_clean))
-                        _prop_helpers.addCleanName(id_clean, simple.get_id(), self._refid)
-
-                    structSeqDefValue = None
-                    structValues = prop.get_structvalue()
-                    if len(structValues) != 0:
-                        structSeqDefValue = []
-                        for structValue in structValues:
-                            simpleRefs = structValue.get_simpleref()
-                            newValue = {}
-                            for simpleRef in simpleRefs:
-                                value = simpleRef.get_value()
-                                id = simpleRef.get_refid()
-                                if str(value) == str(None):
-                                    _value = None
-                                else:
-                                    _propType = None
-                                    for _id, pt, dv, cv in members:
-                                        if _id == str(id):
-                                            _propType = pt
-                                    _value = None
-                                    if _propType in ['long', 'longlong', 'octet', 'short', 'ulong', 'ulonglong', 'ushort']: 
-                                        # If value contains an x, it is a hex value (base 16) 
-                                        if value.find('x') != -1:
-                                            _value = int(value,16)
-                                        else:
-                                            _value = int(value)
-                                    elif _propType in ['double', 'float']:
-                                        _value = float(value)
-                                    elif _propType in ['char', 'string']:
-                                        _value = str(value)
-                                    elif _propType == 'boolean':
-                                        _value = {"TRUE": True, "FALSE": False}[value.strip().upper()]
-                                    else:
-                                        _value = None    
-                                newValue[str(id)] = _value
-                            structSeqDefValue.append(newValue)
-                p = _prop_helpers.structSequenceProperty(id=prop.get_id(), structID=prop.get_struct().get_id(), valueType=members, compRef=self, defValue=structSeqDefValue, mode=prop.get_mode())
-                prop_id = prop.get_name()
-                if prop_id == None:
-                    prop_id = prop.get_id()
-                id_clean = str(prop_id).translate(translation)
-                p.clean_name = _prop_helpers.addCleanName(id_clean, prop.get_id(), self._refid)
-                self._configureTable[prop.get_id()] = p
-                propertySet.append(p)
-
-        if _DEBUG == True:
-            print "Component: _getPropertySet() propertySet " + str(propertySet)
-        return propertySet
-
-    ########################################
-    # External Resource API
-    def _get_identifier(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_identifier()
-            except:
-                pass
-        return retval
-    
-    def _get_started(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_started()
-            except:
-                pass
-        return retval
-    
-    def start(self):
-        if _DEBUG == True:
-            print "Component: start()"
-        if self.ref:
-            try:
-                self.ref.start()
-            except:
-                raise
-    
-    def stop(self):
-        if _DEBUG == True:
-            print "Component: stop()"
-        if self.ref:
-            try:
-                self.ref.stop()
-            except:
-                raise
-    
-    def initialize(self):
-        if _DEBUG == True:
-            print "Component: initialize()"
-        if self.ref:
-            try:
-                self.ref.initialize()
-            except:
-                raise
-    
-    def releaseObject(self):
-        if _DEBUG == True:
-            print "Component: releaseObject()"
-        if self.ref:
-            try:
-                self.ref.releaseObject()
-            except:
-                raise
-    
-    def getPort(self, name):
-        if _DEBUG == True:
-            print "Component: getPort()"
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref.getPort(name)
-            except:
-                raise
-        return retval
-    
-    def configure(self, props):
-        if _DEBUG == True:
-            print "Component: configure() props " + str(props)
-        if self.ref:
-            try:
-                self.ref.configure(props)
-            except:
-                raise
-    
-    def query(self, props):
-        if _DEBUG == True:
-            print "Component: query() props " + str(props)
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref.query(props)
-            except:
-                raise
-        return retval
-    
-    def runTest(self, testid, props):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref.query(testid, props)
-            except:
-                raise
-        return retval
-    
-    #####################################
-    
-    def eos(self):
-        '''
-        Returns the value of the most recently received end-of-stream flag over a bulkio port
-        '''
-        return None
-    
-    def _query(self, props=[], printResults=False):
-        results = self.query(props)
-        # If querying all properties, display all property names and values
-        propDict = _properties.props_to_dict(results)
-        maxNameLen = 0
-        if printResults:
-            if results != [] and len(props) == 0: 
-                for prop in propDict.items():
-                    if len(prop[0]) > maxNameLen:
-                        maxNameLen = len(prop[0])
-                print "_query():"
-                print "Property Name" + " "*(maxNameLen-len("Property Name")) + "\tProperty Value"
-                print "-------------" + " "*(maxNameLen-len("Property Name")) + "\t--------------"
-                for prop in propDict.items():
-                    print str(prop[0]) + " "*(maxNameLen-len(str(prop[0]))) + "\t    " + str(prop[1])
-        return propDict
-
-    # helper function for property changes
-    def _configureSingleProp(self, propName, propValue):
-        if _DEBUG == True:
-            print "Component:_configureSingleProp() propName " + str(propName)
-            print "Component:_configureSingleProp() propValue " + str(propValue)
-
-        prop = self._configureTable[propName]
-        if (prop != None):
-            #will generate a configure call on the component
-            prop.configureValue(propValue)
-        else:
-            raise AssertionError,'Component:_configureSingleProp() ERROR - Property not found in _configureSingleProp'
-
-    def _buildAPI(self):
-        if _DEBUG == True:
-            print "Component:_buildAPI()"
-        count = 0
-        for port in self._scd.get_componentfeatures().get_ports().get_provides():
-            if port.get_providesname() != None:
-                self._providesPortDict[count] = {}
-                self._providesPortDict[count]["Port Name"] = port.get_providesname()
-                self._providesPortDict[count]["Port Interface"] = port.get_repid()
-                count = count + 1
-
-        count = 0
-        for port in self._scd.get_componentfeatures().get_ports().get_uses():
-            if port.get_usesname() != None:
-                self._usesPortDict[count] = {}
-                self._usesPortDict[count]["Port Name"] = port.get_usesname()
-                self._usesPortDict[count]["Port Interface"] = port.get_repid()
-                count = count + 1
-
-        self._propertySet = self._getPropertySet()
-
-        if _DEBUG == True:
-            self.api()
-
-    def api(self, showComponentName=True, showInterfaces=True, showProperties=True):
-        '''
-        Inspect interfaces and properties for the component
-        '''
-        if _DEBUG == True:
-            print "Component:api()"
-        if showComponentName == True:
-            print "Component [" + str(self.name) + "]:"
-        if showInterfaces == True:
-            # Determine the maximum length of port names for print formatting
-            maxNameLen = 0
-            for port in self._providesPortDict.values():
-                if len(port['Port Name']) > maxNameLen:
-                    maxNameLen = len(port['Port Name']) 
-            print "Provides (Input) Ports =============="
-            print "Port Name" + " "*(maxNameLen-len("Port Name")) + "\tPort Interface"
-            print "---------" + " "*(maxNameLen-len("---------")) + "\t--------------"
-            if len(self._providesPortDict) > 0:
-                for port in self._providesPortDict.values():
-                    print str(port['Port Name']) + " "*(maxNameLen-len(str(port['Port Name']))) + "\t" + str(port['Port Interface'])
-            else:
-                print "None"
-            print "\n"
-
-            maxNameLen = 0
-            # Determine the maximum length of port names for print formatting
-            for port in self._usesPortDict.values():
-                if len(port['Port Name']) > maxNameLen:
-                    maxNameLen = len(port['Port Name']) 
-            print "Uses (Output) Ports =============="
-            print "Port Name" + " "*(maxNameLen-len("Port Name")) + "\tPort Interface"
-            print "---------" + " "*(maxNameLen-len("---------")) + "\t--------------"
-            if len(self._usesPortDict) > 0:
-                for port in self._usesPortDict.values():
-                    print str(port['Port Name']) + " "*(maxNameLen-len(str(port['Port Name']))) + "\t" + str(port['Port Interface'])
-            else:
-                print "None"
-            print "\n"
-        
-        if showProperties == True and self._propertySet != None:
-            if globals().has_key('__TYPE_MAP'):  
-                typeMap = globals()['__TYPE_MAP']
-                midasTypeMap = globals()['__MIDAS_TYPE_MAP']
-            maxNameLen = len("Property Name")
-            maxSCATypeLen = len("(Data Type)")
-            maxDefaultValueLen = len("[Default Value]") 
-            propList = []
-            for prop in self._propertySet:
-                id = _copy.deepcopy(prop.id)
-                clean_name = _copy.deepcopy(prop.clean_name)
-                mode = _copy.deepcopy(prop.mode)
-                propType = _copy.deepcopy(prop.type)
-                propRef = _copy.deepcopy(prop.propRef)
-                defValue = _copy.deepcopy(prop.defValue)
-                valueType = _copy.deepcopy(prop.valueType)
-            
-                if mode != "writeonly":
-                    if propType == 'struct':
-                        currentValue = prop.members
-                    else:
-                        currentValue = _copy.deepcopy(prop.queryValue())
-
-                scaType = str(propType)
-                if midasTypeMap.has_key(scaType):
-                    scaType = scaType + midasTypeMap[scaType]
-
-                propList.append([clean_name,scaType,defValue,currentValue,valueType]) 
-                # Keep track of the maximum length of strings in each column for print formatting
-                if len(str(clean_name)) > maxNameLen:
-                    maxNameLen = len(str(clean_name))
-                if len(str(scaType)) > maxSCATypeLen:
-                    maxSCATypeLen = len(str(scaType))
-                if len(str(propRef.value.value())) > maxDefaultValueLen:
-                    maxDefaultValueLen = len(str(propRef.value.value()))
-
-            # Limit the amount of space between columns of data for display
-            if maxSCATypeLen > len("\t\t\t\t".expandtabs()):
-                maxSCATypeLen = len("\t\t\t\t".expandtabs())
-            if maxDefaultValueLen > len("\t\t\t".expandtabs()):
-                maxDefaultValueLen = len("\t\t\t".expandtabs())
-            if len(propList) > 0:
-                print "Properties =============="
-                print "Property Name" + " "*(maxNameLen-len("Property Name"))+ "\t(Data Type)" + " "*(maxSCATypeLen-len("(Data Type)")) + "\t\t[Default Value]" + " "*(maxDefaultValueLen-len("[Default Value]")) +"\t\tCurrent Value"
-                print "-------------" + " "*(maxNameLen-len("Property Name"))+ "\t-----------" + " "*(maxSCATypeLen-len("(Data Type)")) + "\t\t---------------" + " "*(maxDefaultValueLen-len("[Default Value]")) + "\t\t-------------"
-                for clean_name, propType, defValue, currentValue, valueType in propList:
-                    name = str(clean_name)
-                    if len(name) > maxNameLen:
-                        name = str(clean_name)[0:maxNameLen-3] + '...'
-
-                    scaType = str(propType)
-                    if len(scaType) > maxSCATypeLen:
-                        scaType = scaType[0:maxSCATypeLen-3] + '...'
-    
-                    if scaType == 'structSeq':
-                        currVal = ''
-                        defVal = ''
-                        print name + " "*(maxNameLen-len(name)) + "\t(" + scaType + ")" + " "*(maxSCATypeLen-len(scaType)) + "\t\t" + defVal + " "*(maxDefaultValueLen-len(defVal)) + "\t" + currVal
-                        item_count = -1
-                        for item in currentValue:
-                            item_count += 1
-                            for member in valueType:
-                                _id = _copy.deepcopy(member[0])
-                                _propType = _copy.deepcopy(member[1])
-                                _defValue = _copy.deepcopy(member[2])
-                                _currentValue = _copy.deepcopy(item[member[0]])
-                        
-                                name = str(_id)
-                                if len(name) > maxNameLen:
-                                     name = name[0:maxNameLen-3] + '...'
-                                
-                                scaType = str(_propType)
-                                if midasTypeMap.has_key(scaType):
-                                    scaType = scaType + midasTypeMap[scaType]
-                             
-                                if len(scaType) > maxSCATypeLen+1:
-                                    scaType = scaType[0:maxSCATypeLen-3] + '...'
-                        
-                                defVal = str(_defValue)    
-                                if defVal != None and len(defVal) > maxDefaultValueLen:
-                                    defVal = defVal[0:maxDefaultValueLen-3] + '...'
-                        
-                                currVal = str(_currentValue)
-                                if currVal != None and len(currVal) > maxDefaultValueLen:
-                                    currVal = currVal[0:maxDefaultValueLen-3] + '...'
-                            
-                                print ' ['+str(item_count)+'] ' + name + " "*(maxNameLen-len(name)) + "\t(" + scaType + ")" + " "*(maxSCATypeLen-len(scaType)) + "\t\t" + defVal  + " "*(maxDefaultValueLen-len(defVal)) + "\t\t" + currVal
-                    elif scaType == 'struct':
-                        currVal = ''
-                        defVal = ''
-                        print name + " "*(maxNameLen-len(name)) + "\t(" + scaType + ")" + " "*(maxSCATypeLen-len(scaType)) + "\t\t" + defVal + " "*(maxDefaultValueLen-len(defVal)) + "\t" + currVal
-                    
-                        for member in currentValue.values():
-                            _id = _copy.deepcopy(member.id)
-                            _propType = _copy.deepcopy(member.type)
-                            _defValue = _copy.deepcopy(member.defValue)
-                            _currentValue = _copy.deepcopy(member.queryValue())
-                        
-                            name = str(_id)
-                            if len(name) > maxNameLen:
-                                 name = name[0:maxNameLen-3] + '...'
-                                
-                            scaType = str(_propType)
-                            if midasTypeMap.has_key(scaType):
-                                scaType = scaType + midasTypeMap[scaType]
-                             
-                            if len(scaType) > maxSCATypeLen+1:
-                                scaType = scaType[0:maxSCATypeLen-3] + '...'
-                        
-                            defVal = str(_defValue)    
-                            if defVal != None and len(defVal) > maxDefaultValueLen:
-                                defVal = defVal[0:maxDefaultValueLen-3] + '...'
-                        
-                            currVal = str(_currentValue)
-                            if currVal != None and len(currVal) > maxDefaultValueLen:
-                                currVal = currVal[0:maxDefaultValueLen-3] + '...'
-                            
-                            print '  ' + name + " "*(maxNameLen-len(name)) + "\t(" + scaType + ")" + " "*(maxSCATypeLen-len(scaType)) + "\t\t" + defVal  + " "*(maxDefaultValueLen-len(defVal)) + "\t\t" + currVal
-                    else:     
-                        defVal = str(defValue)    
-                        if defVal != None and len(defVal) > maxDefaultValueLen:
-                            defVal = defVal[0:maxDefaultValueLen-3] + '...'
-                           
-                        currVal = str(currentValue)
-                        if currVal != None and len(currVal) > maxDefaultValueLen:
-                            currVal = currVal[0:maxDefaultValueLen-3] + '...'
-                
-                        print name + " "*(maxNameLen-len(name)) + "\t(" + scaType + ")" + " "*(maxSCATypeLen-len(scaType)) + "\t\t" + defVal  + " "*(maxDefaultValueLen-len(defVal)) + "\t\t" + currVal
-            
-    def _parseComponentXMLFiles(self):
-        if self._fileManager != None and len(self._profile) > 0:
-            # SPD File
-            spdFile = self._fileManager.open(self._profile,True)
-            self._spdContents = spdFile.read(spdFile.sizeOf())
-            spdFile.close()
-            if self._spdContents != None:
-                self._spd = _parsers.SPDParser.parseString(self._spdContents)
-
-            # PRF File
-            doc_spd = _minidom.parseString(self._spdContents)
-            localfiles = doc_spd.getElementsByTagName('localfile')
-            for localfile in localfiles:
-                if localfile.parentNode.tagName == 'propertyfile':
-                    self.__setattr__('_prf_path',object.__getattribute__(self,'_profile')[:object.__getattribute__(self,'_profile').rfind('/')+1]+str(localfile.getAttribute('name')))
-                if localfile.parentNode.tagName == 'descriptor':
-                    self.__setattr__('_scd_path',object.__getattribute__(self,'_profile')[:object.__getattribute__(self,'_profile').rfind('/')+1]+str(localfile.getAttribute('name')))
-            prfFile = self._fileManager.open(object.__getattribute__(self,'_prf_path'), True)
-            self._prfContents = prfFile.read(prfFile.sizeOf())
-            prfFile.close()
-            if self._prfContents != None:
-                self._prf = _parsers.PRFParser.parseString(self._prfContents)
-
-            # SCD File
-            scdFile = self._fileManager.open(object.__getattribute__(self,'_scd_path'), True)
-            self._scdContents = scdFile.read(scdFile.sizeOf())
-            scdFile.close()
-            if self._scdContents != None:
-                self._scd = _parsers.SCDParser.parseString(self._scdContents)
-
-        # create a map between prop ids and names
-        if self._prf != None:
-            self._props = _prop_helpers.getPropNameDict(self._prf)
-
-    def connect(self,providesComponent, providesPortName=None, usesPortName=None, connectionID=None):
-        '''
-        This function establishes a connection with a provides-side port. Python will attempt
-        to find a matching port automatically. If there are multiple possible matches,
-        a uses-side or provides-side port name may be necessary to resolve the ambiguity
-        '''
-        # If passed in object is of type _OutputBase, set uses port IOR string and return
-        if isinstance(providesComponent, _io_helpers._OutputBase):
-            usesPort_ref = None
-            if usesPortName == None and len(self._usesPortDict.values()) == 1:
-                usesPortName = self._usesPortDict.values()[0]['Port Name']
-            if usesPortName != None:
-                usesPort_ref = self.getPort(str(usesPortName))
-                if usesPort_ref != None:
-                    portIOR = str(orb.object_to_string(usesPort_ref))
-
-                    # determine port type
-                    foundUsesPortInterface = None
-                    for outputPort in self._usesPortDict.values():
-                        if outputPort['Port Name'] == usesPortName:
-                            foundUsesPortInterface = outputPort['Port Interface']
-                            break
-                    if foundUsesPortInterface != None:
-                        dataType = foundUsesPortInterface
-                        providesComponent.setup(portIOR, dataType=dataType, componentName=self.name, usesPortName=usesPortName)
-                        return
-                    raise AssertionError, "Component:connect() failed because usesPortName given was not a valid port for providesComponent"
-                else:
-                    raise AssertionError, "Component:connect() failed because usesPortName given was not a valid port for providesComponent"
-            else:
-                raise AssertionError, "Component:connect() failed because usesPortName was not specified ... providesComponent being connect requires it for connection"
-
-        if isinstance(providesComponent,Component) == False and \
-           isinstance(providesComponent, _io_helpers.OutputFile) == False and \
-           isinstance(providesComponent, _io_helpers.OutputData) == False:
-            raise AssertionError,"Component:connect() ERROR - connect failed because providesComponent passed in is not of valid type ... valid types include instance of _OutputBase,OutputData,OutputFile, or Component classes"
-
-        # Perform connect between this Component instance and a given Component instance called providesComponent 
-        if _DEBUG == True:
-            print "Component: connect()"
-            if providesPortName != None:
-                print "Component: connect() providesPortName " + str(providesPortName)
-            if usesPortName != None:
-                print "Component: connect() usesPortName " + str(usesPortName)
-            if connectionID != None:
-                print "Component: connect() connectionID " + str(connectionID)
-        portMatchFound = False 
-        multipleMatchesFound = False
-        foundProvidesPortInterface = None
-        foundProvidesPortName = None
-        foundUsesPortName = None 
-        foundUsesPortInterface = None 
-        # If both uses and provides port name are provided no need to search
-        if usesPortName != None and providesPortName != None:
-            foundUsesPortName = usesPortName
-            foundProvidesPortName = providesPortName
-        # If just provides port name is provided, find first matching port interface
-        elif providesPortName != None:
-            for outputPort in self._usesPortDict.values():
-                for inputPort in providesComponent._providesPortDict.values():
-                    if inputPort['Port Name'] == providesPortName and \
-                       outputPort['Port Interface'] == inputPort['Port Interface']:
-                        portMatchFound = True
-                        foundProvidesPortInterface = inputPort['Port Interface']
-                        foundProvidesPortName = inputPort['Port Name']
-                        foundUsesPortInterface = outputPort['Port Interface']
-                        foundUsesPortName = outputPort['Port Name']
-                        # If match was found, break out of inputPort for loop
-                        break
-                if portMatchFound == True:
-                    # If match was found, break out of outputPort for loop
-                    break
-        # If just uses port name is provided, find first matching port interface
-        elif usesPortName != None:
-            for outputPort in self._usesPortDict.values():
-                if outputPort['Port Name'] == usesPortName:
-                    # If output port is of type CF:Resource, then input port is just component
-                    if outputPort['Port Interface'].find("CF/Resource") != -1:
-                        portMatchFound = True
-                        foundProvidesPortInterface = outputPort['Port Interface'] 
-                        foundProvidesPortName = None 
-                        foundUsesPortInterface = outputPort['Port Interface']  
-                        foundUsesPortName = outputPort['Port Name'] 
-                    # else need to find matching provides port interface
-                    else:
-                        for inputPort in providesComponent._providesPortDict.values():
-                            if outputPort['Port Name'] == usesPortName and \
-                               outputPort['Port Interface'] == inputPort['Port Interface']:
-                                portMatchFound = True
-                                foundProvidesPortInterface = inputPort['Port Interface']
-                                foundProvidesPortName = inputPort['Port Name']
-                                foundUsesPortInterface = outputPort['Port Interface']
-                                foundUsesPortName = outputPort['Port Name']
-                                # If match was found, break out of inputPort for loop
-                                break
-                if portMatchFound == True:
-                    # If match was found, break out of outputPort for loop
-                    break
-        # If no port names provided, find matching port interfaces
-        # If more than one port interface matches, then connect fails
-        else:
-            for outputPort in self._usesPortDict.values():
-                # If output port is of type CF:Resource, then input port is just component
-                if outputPort['Port Interface'].find("CF/Resource") != -1:
-                    # If a previous match had been found, connect fails due to ambiguity
-                    if portMatchFound == True:
-                        raise AssertionError,"Component:connect(): ERROR - connect failed ... multiple ports matched interfaces on connect call ... must specify providesPortName or usesPortName" 
-                    # First port match found
-                    else:                        
-                        portMatchFound = True
-                        foundProvidesPortInterface = inputPort['Port Interface']
-                        foundProvidesPortName = inputPort['Port Name']
-                        foundUsesPortInterface = None 
-                        foundUsesPortName = None 
-                        continue
-
-                for inputPort in providesComponent._providesPortDict.values():
-                    if outputPort["Port Interface"] == inputPort['Port Interface']:
-                        # If a previous match had been found, connect fails due to ambiguity
-                        if portMatchFound == True:
-                            raise AssertionError, "Component:connect(): ERROR connect failed ... multiple ports matched interfaces on connect call ... must specify providesPortName or usesPortName" 
-                        # First port match found
-                        else:                        
-                            portMatchFound = True
-                            foundProvidesPortInterface = inputPort['Port Interface']
-                            foundProvidesPortName = inputPort['Port Name']
-                            foundUsesPortInterface = outputPort['Port Interface']
-                            foundUsesPortName = outputPort['Port Name']
-
-        if _DEBUG == True:
-            if foundUsesPortName != None:
-                print "Component:connect() foundUsesPortName " + str(foundUsesPortName)
-            if foundUsesPortInterface != None:
-                print "Component:connect() foundUsesPortInterface " + str(foundUsesPortInterface)
-            if foundProvidesPortName != None:
-                print "Component:connect() foundProvidesPortName " + str(foundProvidesPortName)
-            if foundProvidesPortInterface != None:
-                print "Component:connect() foundProvidesPortInterface " + str(foundProvidesPortInterface)
-
-        if (foundUsesPortName != None) and \
-           (foundProvidesPortName != None or foundUsesPortInterface.find("CF/Resource")):             
-            try:
-                usesPort_ref = None
-                usesPort_handle = None
-                providesPort_ref = None
-                usesPort_ref = self.getPort(str(foundUsesPortName))
-                if usesPort_ref != None:
-                    usesPort_handle = usesPort_ref._narrow(_CF.Port)
-
-                if foundProvidesPortName != None:
-                    providesPort_ref = providesComponent.getPort(str(foundProvidesPortName))
-                elif foundUsesPortInterface.find("CF/Resource") != -1:
-                    providesPort_ref = providesComponent.ref._narrow(_CF.Resource)
-                if providesPort_ref != None:
-                    if connectionID == None:
-                        counter = 0
-                        while True:
-                            connectionID = self._instanceName+"-"+providesComponent._instanceName+"_"+repr(counter)
-                            counter = counter + 1
-                    usesPort_handle.connectPort(providesPort_ref, str(connectionID))
-                    if _DEBUG == True:
-                        print "Component:connect() calling connectPort() with connectionID " + str(connectionID) 
-
-            except Exception, e:
-                print "Component:connect(): connect failed " + str(e)
-                return
-
-            if _DEBUG == True:
-                print "Component:connect() succeeded"
-            return
-        else:
-            raise AssertionError, "Component:connect failed" 
-
-    def disconnect(self,providesComponent):
-        if _DEBUG == True:
-            print "Component: disconnect()"
-        usesPort_ref = None
-        usesPort_handle = None
-
-    def _populatePorts(self, fs=None):
-        """Add all port descriptions to the component instance"""
-        cname=object.__getattribute__(self,'name')
-        if _DEBUG == True:
-            print ' Populating Ports For:' + str(cname)
-        if object.__getattribute__(self,'_spd') == '':
-            print "Unable to create port list for " + object.__getattribute__(self,'name') + " - profile unavailable"
-            return
-        if len(object.__getattribute__(self,'ports')) != 0:
-            return
-    
-        if fs != None:
-            spdFile = fs.open(object.__getattribute__(self,'_profile'),True)
-            spdContents = spdFile.read(spdFile.sizeOf())
-            spdFile.close()
-        else:
-            spdFile = open(object.__getattribute__(self,'_profile'),'r')
-            spdContents = spdFile.read()
-            spdFile.close()
-        doc_spd = _minidom.parseString(spdContents)
-        localfiles = doc_spd.getElementsByTagName('localfile')
-        for localfile in localfiles:
-            if localfile.parentNode.tagName == 'propertyfile':
-                self.__setattr__('_prf_path',object.__getattribute__(self,'_profile')[:object.__getattribute__(self,'_profile').rfind('/')+1]+str(localfile.getAttribute('name')))
-            if localfile.parentNode.tagName == 'descriptor':
-                self.__setattr__('_scd_path',object.__getattribute__(self,'_profile')[:object.__getattribute__(self,'_profile').rfind('/')+1]+str(localfile.getAttribute('name')))
-        if fs != None:
-          prfFile = fs.open(object.__getattribute__(self,'_prf_path'), True)
-          prfContents = prfFile.read(prfFile.sizeOf())
-          prfFile.close()
-        else:
-          prfFile = open(object.__getattribute__(self,'_prf_path'), 'r')
-          prfContents = prfFile.read()
-          prfFile.close()
-        doc_prf = _minidom.parseString(prfContents)
-        if fs != None:
-            scdFile = fs.open(object.__getattribute__(self,'_scd_path'), True)
-            scdContents = scdFile.read(scdFile.sizeOf())
-            scdFile.close()
-        else:
-            scdFile = open(object.__getattribute__(self,'_scd_path'), 'r')
-            scdContents = scdFile.read()
-            scdFile.close()
-        doc_scd = _minidom.parseString(scdContents)
-    
-        interface_modules = ['BULKIO', 'BULKIO__POA']
-        
-        int_list = {}
-
-        if self._interface_list == None:
-            if not globals()["_loadedInterfaceList"]:
-                globals()["_interface_list"] = _importIDL.importStandardIdl()
-                globals()["_loadedInterfaceList"] = True
-            self._interface_list = globals()["_interface_list"]
-
-        for int_entry in self._interface_list:
-            int_list[int_entry.repoId]=int_entry
-        for uses in doc_scd.getElementsByTagName('uses'):
-            idl_repid = str(uses.getAttribute('repid'))
-            if not int_list.has_key(idl_repid):
-                if _DEBUG == True:
-                    print "Invalid port descriptor in scd for " + self.name + " for " + idl_repid
-                continue
-            int_entry = int_list[idl_repid]
-
-            if _DEBUG == True:
-                print '---> UsesPort ' + str(uses.getAttribute('usesname'))
-            new_port = _Port(str(uses.getAttribute('usesname')), interface=None, direction="Uses", using=int_entry)
-            try:
-                new_port.generic_ref = self.getPort(str(new_port.name))
-                new_port.ref = new_port.generic_ref._narrow(_ExtendedCF.QueryablePort)
-                if new_port.ref == None:
-                    new_port.ref = new_port.generic_ref._narrow(_CF.Port)
-                new_port.extendPort()
-    
-                idl_repid = new_port.ref._NP_RepositoryId
-                if not int_list.has_key(idl_repid):
-                    if _DEBUG == True:
-                        print "Unable to find port description for " + self.name + " for " + idl_repid
-                    continue
-                int_entry = int_list[idl_repid]
-                new_port._interface = int_entry
-                if _DEBUG == True:
-                   print 'Component Adding USES Port:' + str(new_port.name)
-                object.__getattribute__(self,'ports').append(new_port)
-            except:
-                if _DEBUG == True:
-                    print "getPort failed for port name: ", str(new_port.name)
-        for provides in doc_scd.getElementsByTagName('provides'):
-            idl_repid = str(provides.getAttribute('repid'))
-            if not int_list.has_key(idl_repid):
-                if _DEBUG == True:
-                    print "Invalid port descriptor in scd for " + self.name + " for " + idl_repid
-                continue
-            int_entry = int_list[idl_repid]
-            if _DEBUG == True:
-                print '---> ProvidesPort ' + str(provides.getAttribute('providesname'))
-            new_port = _Port(str(provides.getAttribute('providesname')), interface=int_entry, direction="Provides")
-            try:
-                new_port.generic_ref = object.__getattribute__(self,'ref').getPort(str(new_port.name))
-                
-                # See if interface python module has been loaded, if not then try to import it
-                if str(int_entry.nameSpace) not in interface_modules:
-                    success = False
-                try:
-                    pkg_name = (int_entry.nameSpace.lower())+'.'+(int_entry.nameSpace.lower())+'Interfaces'
-                    _to = str(int_entry.nameSpace)
-                    mod = __import__(pkg_name,globals(),locals(),[_to])
-                    globals()[_to] = mod.__dict__[_to]
-                    success = True
-                except ImportError, msg:
-                    pass
-                if not success:
-                    std_idl_path = _os.path.join(_os.environ['OSSIEHOME'], 'lib/python')
-                    for dirpath, dirs, files in _os.walk(std_idl_path):
-                        if len(dirs) == 0:
-                            continue
-                        for directory in dirs:
-                            try:
-                                _from = directory+'.'+(int_entry.nameSpace.lower())+'Interfaces'
-                                _to = str(int_entry.nameSpace)
-                                mod = __import__(_from,globals(),locals(),[_to])
-                                globals()[_to] = mod.__dict__[_to]
-                                success = True
-                            except:
-                                continue
-                            break
-                        if success:
-                            break
-                if not success:
-                    continue
-        
-                interface_modules.append(str(int_entry.nameSpace))
-                
-                exec_string = 'new_port.ref = new_port.generic_ref._narrow('+int_entry.nameSpace+'.'+int_entry.name+')'
-        
-                try:
-                    exec(exec_string)
-                    if _DEBUG == True:
-                        print 'Component Adding PROVDES Port:' + str(new_port.name)
-                    object.__getattribute__(self,'ports').append(new_port)
-                except:
-                    if _DEBUG == True:
-                        print 'ERROR, Provides NARROW failed: ' + exec_string
-                    continue
-            except:
-                if _DEBUG == True:
-                    print "getPort failed for port name: ", str(new_port.name)
-
-class App(_CF__POA.Application, object):
+class App(_CF__POA.Application, Resource):
     """This is the basic descriptor for a waveform (collection of inter-connected Components)
        
        App overview:
@@ -1163,21 +104,22 @@ class App(_CF__POA.Application, object):
                                   ----------
        
     """
-    def __init__(self, name="", int_list=None, domain=None, sad=None):
+    def __init__(self, name="", domain=None, sad=None):
         # _componentsUpdated needs to be set first to prevent __setattr__ from entering an error state
         self._componentsUpdated = False
+        Resource.__init__(self, None)
         self.name = name
         self.comps = []
         self.ports = []
         self._portsUpdated = False
         self.ns_name = ''
-        self.ref = None
-        self._interface_list = int_list
         self._domain = domain
         self._sad = sad
+        self._externalProps = self._getExternalProperties()
         self.adhocConnections = []
-        self.connectioncount = 0
+        self._connectioncount = 0
         self.assemblyController = None
+        self._acRef = None
 
         if self._domain == None:
             orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
@@ -1186,23 +128,8 @@ class App(_CF__POA.Application, object):
         else:
             self.rootContext = self._domain.rootContext
 
-        if self._interface_list == None:
-            if not globals()["_loadedInterfaceList"]:
-                globals()["_interface_list"] = _importIDL.importStandardIdl()
-                globals()["_loadedInterfaceList"] = True
-            self._interface_list = globals()["_interface_list"]
-
     ########################################
-    # External Resource API
-    def _get_identifier(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_identifier()
-            except:
-                pass
-        return retval
-    
+    # External Application API
     def _get_profile(self):
         retval = None
         if self.ref:
@@ -1217,6 +144,15 @@ class App(_CF__POA.Application, object):
         if self.ref:
             try:
                 retval = self.ref._get_name()
+            except:
+                pass
+        return retval
+    
+    def _get_registeredComponents(self):
+        retval = None
+        if self.ref:
+            try:
+                retval = self.ref._get_registeredComponents()
             except:
                 pass
         return retval
@@ -1257,27 +193,6 @@ class App(_CF__POA.Application, object):
                 pass
         return retval
     
-    def start(self):
-        if self.ref:
-            try:
-                self.ref.start()
-            except:
-                raise
-    
-    def stop(self):
-        if self.ref:
-            try:
-                self.ref.stop()
-            except:
-                raise
-    
-    def initialize(self):
-        if self.ref:
-            try:
-                self.ref.initialize()
-            except:
-                raise
-    
     def releaseObject(self):
         if self.ref:
             try:
@@ -1285,46 +200,12 @@ class App(_CF__POA.Application, object):
             except:
                 raise
     
-    def getPort(self, name):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref.getPort(name)
-            except:
-                raise
-        return retval
-    
-    def configure(self, props):
-        if self.ref:
-            try:
-                self.ref.configure(props)
-            except:
-                raise
-    
-    def query(self, props):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref.query(props)
-            except:
-                raise
-        return retval
-    
-    def runTest(self, testid, props):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref.query(testid, props)
-            except:
-                raise
-        return retval
-
-    # End external Resource API
+    # End external Application API
     ########################################
-    
+
     def __getattribute__(self, name):
         try:
-            if name == 'ports':
+            if name in ('ports', '_usesPortDict', '_providesPortDict'):
                 if not object.__getattribute__(self,'_portsUpdated'):
                     self._populatePorts()
             if name == 'comps':
@@ -1333,26 +214,44 @@ class App(_CF__POA.Application, object):
 
             return object.__getattribute__(self,name)
         except AttributeError:
-            # Check if current request value is a member Components Property
-            for curr_comp in self.comps:
-                if curr_comp._get_identifier().find(self.assemblyController) != -1:
-                    try:
-                        return curr_comp.__getattribute__(name)
-                    except AttributeError:
-                        continue
+            # Check if current request is an external prop
+            if self._externalProps.has_key(name):
+                propId, compRefId = self._externalProps[name]
+                for curr_comp in self.comps:
+                    if curr_comp._get_identifier().find(compRefId) != -1:
+                        try:
+                            return getattr(curr_comp, propId)
+                        except AttributeError:
+                            continue
+            else:
+                # If it's not external, check assembly controller
+                try:
+                    return getattr(self._acRef, name)
+                except AttributeError:
+                    pass
             raise AttributeError('App object has no attribute ' + str(name))
     
     def __setattr__(self, name, value):
         if name == '_componentsUpdated' or self._componentsUpdated == False:
             return object.__setattr__(self, name, value)
         else:
-            # Check if current value to be set is a member Components property
-            for curr_comp in self.comps:
-                if curr_comp._get_identifier().find(self.assemblyController) != -1:
-                    try:
-                        return curr_comp.__setattr__(name, value)
-                    except AttributeError:
-                        continue
+            if self._componentsUpdated == True and (name == '_connectioncount' or name == 'assemblyController' or name == '_portsUpdated'):
+                return object.__setattr__(self, name, value)
+            # Check if current value to be set is an external prop
+            if self._externalProps.has_key(name):
+                propId, compRefId = self._externalProps[name]
+                for curr_comp in self.comps:
+                    if curr_comp._get_identifier().find(compRefId) != -1:
+                        try:
+                            return setattr(curr_comp, propId, value)
+                        except AttributeError:
+                            continue
+            else:
+                # If it's not external, check assembly controller
+                try:
+                    return setattr(self._acRef, name, value)
+                except AttributeError:
+                    pass
            
         return object.__setattr__(self, name, value)
     
@@ -1362,102 +261,107 @@ class App(_CF__POA.Application, object):
         app_name = self.ref._get_name()
         self._populateComponents(comp_list)
 
+    def _getExternalProperties(self):
+        # Return a map with all external properties
+        extProps = {}
+        if self._sad.get_externalproperties():
+            for prop in self._sad.get_externalproperties().get_property():
+                propId = prop.get_externalpropid()
+                if not propId:
+                    propId = prop.get_propid()
+                extProps[propId] = (prop.get_propid(), prop.get_comprefid())
+        return extProps
+
     def _populateComponents(self, component_list):
         """component_list is a list of component names
-           in_doc_sad is a parsed version of the SAD (using xml.dom.minidom)"""
+           in_doc_sad is a parsed version of the SAD (using ossie.parsers.sad)"""
 
         spd_list = {}
-        for compfile in self._sad.getElementsByTagName('componentfile'):
-            spd_list[str(compfile.getAttribute('id'))] = str(compfile.getElementsByTagName('localfile')[0].getAttribute('name'))
+        for compfile in self._sad.get_componentfiles().get_componentfile():
+            spd_list[str(compfile.get_id())] = str(compfile.get_localfile().get_name())
 
-        dce_list = {}
-        for compplac in self._sad.getElementsByTagName('componentplacement'):
-            dce_list[str(compplac.getElementsByTagName('componentinstantiation')[0].getAttribute('id'))] = str(compplac.getElementsByTagName('componentfileref')[0].getAttribute('refid'))
+        if self._sad.get_assemblycontroller():
+            self.assemblyController = self._sad.get_assemblycontroller().get_componentinstantiationref().get_refid()
 
-        for compfile in self._sad.getElementsByTagName('assemblycontroller'):
-             self.assemblyController = compfile.getElementsByTagName('componentinstantiationref')[0].getAttribute('refid')
+        try:
+            impls = dict((c.componentId, c.elementId) for c in self.ref._get_componentImplementations())
+        except:
+            impls = {}
 
+        componentPids = self.ref._get_componentProcessIds()
+        componentDevs = self.ref._get_componentDevices()
         for comp_entry in component_list:
-            new_comp = Component(
-                componentDescriptor=comp_entry.softwareProfile,
-                componentObj=comp_entry.componentObject,
-                domainMgr=self._domain,
-                int_list=self._interface_list)
-
-            foundObject = False
+            profile = comp_entry.softwareProfile
+            compRef = comp_entry.componentObject
             try:
-                new_comp._id = new_comp.ref._get_identifier()
-                foundObject = True
+                refid = compRef._get_identifier()
+                implId = impls.get(refid, None)
+                instanceName = '%s/%s' % (self.ns_name, refid.split(':')[0])
+                pid = 0
+                devs = []
+                for compPid in componentPids:
+                    if compPid.componentId == refid:
+                        pid = compPid.processId
+                        break
+                for compDev in componentDevs:
+                    if compDev.componentId == refid:
+                        devs.append(compDev.assignedDeviceId)
             except:
-                pass
-
-            if not foundObject:
-                print "Unable to get the pointer to Component "+comp_entry.identifier+", it is probably not running"
+                refid = None
+                implId = None
+                instanceName = None
+                pid = 0
+                devs = []
+            spd, scd, prf = _readProfile(profile, self._domain.fileManager)
+            new_comp = Component(profile, spd, scd, prf, compRef, instanceName, refid, implId, pid, devs)
 
             self.comps.append(new_comp)
+
+            if refid.find(self.assemblyController) >= 0:
+                self._acRef = new_comp
 
     def api(self):
         # Display components, their properties, and external ports
         print "Waveform [" + self.ns_name + "]"
         print "---------------------------------------------------"
-        # Determine the maximum length of port names for print formatting
-        print "External Ports =============="
-        maxNameLen = 0
-        hasProvidesPort = False
-        for port in self.ports:
-            if len(port.name) > maxNameLen:
-                maxNameLen = len(port.name)
-        print "Provides (Input) Ports =============="
-        print "Port Name" + " "*(maxNameLen-len("Port Name")) + "\tPort Interface"
-        print "---------" + " "*(maxNameLen-len("---------")) + "\t--------------"
-        for port in self.ports:
-            if port._direction == "Provides":
-                hasProvidesPort = True
-                print str(port.name) + " "*(maxNameLen-len(str(port.name))) + "\t" + "IDL:" + str(port._interface.nameSpace + "/" + port._interface.name)
-        if hasProvidesPort == False:
-            print "None"
-        print "\n"
 
-        maxNameLen = 0
-        hasUsesPort = False
-        # Determine the maximum length of port names for print formatting
-        for port in self.ports:
-            if len(port.name) > maxNameLen:
-                maxNameLen = len(port.name)
-        print "Uses (Output) Ports =============="
-        print "Port Name" + " "*(maxNameLen-len("Port Name")) + "\tPort Interface"
-        print "---------" + " "*(maxNameLen-len("---------")) + "\t--------------"
-        for port in self.ports:
-            if port._direction == "Uses":
-                hasUsesPort = True
-                print str(port.name) + " "*(maxNameLen-len(str(port.name))) + "\t" + "IDL:" + str(port._interface.nameSpace + "/" + port._interface.name)
-        if hasUsesPort == False:
-            print "None"
-        print "\n"
-    
+        print "External Ports =============="
+        PortSupplier.api(self)
 
         print "Components =============="
-        count = 1 
-        for comp_entry in self.comps:
+        for count, comp_entry in enumerate(self.comps):
+            name = comp_entry.name
             if comp_entry._get_identifier().find(self.assemblyController) != -1:
-                print str(count) + ". " + comp_entry.name + " (Assembly Controller)"
-            else:
-                print str(count) + ". " + comp_entry.name
-            count += 1
+                name += " (Assembly Controller)"
+            print "%d. %s" % (count+1, name)
         print "\n"
 
-        for comp_entry in self.comps:
-            if comp_entry._get_identifier().find(self.assemblyController) != -1:
-                comp_entry.api(showComponentName=False,showInterfaces=False,showProperties=True)
-        print "\n"
+        # Display AC props
+        if self._acRef:
+            self._acRef.api(showComponentName=False, showInterfaces=False, showProperties=True)
+
+        # Loops through each external prop looking for a component to use to display the internal prop value
+        for extId in self._externalProps.keys():
+            propId, compRefId = self._externalProps[extId]
+            for comp_entry in self.comps:
+                if comp_entry._get_identifier().find(compRefId) != -1:
+                    # Pass along external prop info to component api()
+                    comp_entry.api(showComponentName=False,showInterfaces=False,showProperties=True, externalPropInfo=(extId, propId))
+                    break
+
+        print
 
     def _populatePorts(self, fs=None):
-        self.__setattr__('_portsUpdated', True)
         """Add all port descriptions to the component instance"""
-        if object.__getattribute__(self,'_sad') == '':
+        object.__setattr__(self, '_portsUpdated', True)
+
+        sad = object.__getattribute__(self,'_sad')
+        if not sad:
             print "Unable to create port list for " + object.__getattribute__(self,'name') + " - sad file unavailable"
             return
-        if len(object.__getattribute__(self,'ports')) != 0:
+
+        ports = object.__getattribute__(self,'ports')
+        if len(ports) > 0:
             return
     
         if fs==None:
@@ -1465,98 +369,112 @@ class App(_CF__POA.Application, object):
     
         interface_modules = ['BULKIO', 'BULKIO__POA']
         
-        int_list = {}
-        for int_entry in object.__getattribute__(self,'_interface_list'):
-            int_list[int_entry.repoId]=int_entry
+        if not sad.get_externalports():
+            # Nothing to do
+            return
         
-        externalports = object.__getattribute__(self,'_sad').getElementsByTagName('port')
-        for externalport in externalports:
+        for externalport in sad.get_externalports().get_port():
             portName = None
             instanceId = None
-            for child in externalport.childNodes:
-                if str(child.nodeName) == 'usesidentifier' or str(child.nodeName) == 'providesidentifier':
-                    portName = str(child.childNodes[0].data)
-                if str(child.nodeName) == 'componentinstantiationref':
-                    instanceId = str(child._attrs['refid'].value)
-            if portName == None or instanceId == None:
+            if externalport.get_usesidentifier():
+                portName = externalport.get_usesidentifier()
+            elif externalport.get_providesidentifier():
+                portName = externalport.get_providesidentifier()
+            else:
+                # Invalid XML; this should never occur.
                 continue
-            placements = object.__getattribute__(self,'_sad').getElementsByTagName('componentplacement')
+            instanceId = externalport.get_componentinstantiationref().get_refid()
+            placements = sad.get_partitioning().get_componentplacement()
             componentfileref = None
-            foundinstance = False
             for placement in placements:
-                for child in placement.childNodes:
-                    if str(child.nodeName) == 'componentinstantiation':
-                        if str(child._attrs['id'].value) == instanceId:
-                            foundinstance = True
-                    if str(child.nodeName) == 'componentfileref':
-                        componentfileref = str(child._attrs['refid'].value)
-                if foundinstance:
-                    break
-            if not foundinstance and componentfileref == None:
+                for inst in placement.get_componentinstantiation():
+                    if inst.get_id() == instanceId:
+                        componentfileref = placement.get_componentfileref().get_refid()
+            if not componentfileref:
                 continue
-            componentfiles = object.__getattribute__(self,'_sad').getElementsByTagName('componentfile')
             spd_file = None
-            foundinstance = False
-            for componentfile in componentfiles:
-                if str(componentfile._attrs['id'].value) != componentfileref:
-                    continue
-                else:
-                    foundinstance = True
-                for child in componentfile.childNodes:
-                    if str(child.nodeName) == 'localfile':
-                        spd_file = str(child._attrs['name'].value)
-            if not foundinstance and spd_file == None:
+            for componentfile in sad.get_componentfiles().get_componentfile():
+                if componentfile.get_id() == componentfileref:
+                    spd_file = componentfile.get_localfile().get_name()
+                    break
+            if not spd_file:
                 continue
             
+            # Read and parse the SPD file.
             spdFile = fs.open(spd_file, True)
             spdContents = spdFile.read(spdFile.sizeOf())
             spdFile.close()
-            doc_spd = _minidom.parseString(spdContents)
-            localfiles = doc_spd.getElementsByTagName('localfile')
-            for localfile in localfiles:
-                if localfile.parentNode.tagName == 'descriptor':
-                    scdpath = spd_file[:spd_file.rfind('/')+1]+str(localfile.getAttribute('name'))
+            doc_spd = parsers.spd.parseString(spdContents)
+            
+            # Get the SCD file from the SPD file.
+            if not doc_spd.get_descriptor():
+                continue
+            basedir = _os.path.dirname(spd_file)
+            scdpath = _os.path.join(basedir, doc_spd.get_descriptor().get_localfile().get_name())
+
+            # Read and parse the SCD file.
             scdFile = fs.open(scdpath, True)
             scdContents = scdFile.read(scdFile.sizeOf())
             scdFile.close()
-            doc_scd = _minidom.parseString(scdContents)
+            doc_scd = parsers.scd.parseString(scdContents)
             
-            for uses in doc_scd.getElementsByTagName('uses'):
-                if str(uses.getAttribute('usesname')) != portName:
+            scd_ports = doc_scd.get_componentfeatures().get_ports()
+            for uses in scd_ports.get_uses():
+                usesName = str(uses.get_usesname())
+                if usesName != portName:
                     continue
-                idl_repid = str(uses.getAttribute('repid'))
-                if not int_list.has_key(idl_repid):
+                idl_repid = str(uses.get_repid())
+
+                #Checks if this external port was renamed
+                if externalport.get_externalname():
+                    usesName = externalport.get_externalname()
+
+                # Add the port to the uses port list
+                self._usesPortDict[usesName] = {'Port Name': usesName, 'Port Interface':idl_repid}
+
+                try:
+                    int_entry = _idllib.getInterface(idl_repid)
+                except idllib.IDLError:
                     print "Invalid port descriptor in scd for " + self.name + " for " + idl_repid
                     continue
-                int_entry = int_list[idl_repid]
-    
-                new_port = _Port(str(uses.getAttribute('usesname')), interface=None, direction="Uses", using=int_entry)
-                new_port.generic_ref = self.ref.getPort(str(new_port.name))
+                new_port = _Port(usesName, interface=None, direction="Uses", using=int_entry)
+                new_port.generic_ref = self.ref.getPort(str(new_port._name))
                 new_port.ref = new_port.generic_ref._narrow(_ExtendedCF.QueryablePort)
                 if new_port.ref == None:
                     new_port.ref = new_port.generic_ref._narrow(_CF.Port)
                 new_port.extendPort()
     
                 idl_repid = new_port.ref._NP_RepositoryId
-                if not int_list.has_key(idl_repid):
+                try:
+                    int_entry = _idllib.getInterface(idl_repid)
+                except idllib.IDLError:
                     print "Unable to find port description for " + self.name + " for " + idl_repid
                     continue
-                int_entry = int_list[idl_repid]
                 new_port._interface = int_entry
     
-                object.__getattribute__(self,'ports').append(new_port)
+                ports.append(new_port)
             
-            for provides in doc_scd.getElementsByTagName('provides'):
-                if str(provides.getAttribute('providesname')) != portName:
+            for provides in scd_ports.get_provides():
+                providesName = str(provides.get_providesname())
+                if providesName != portName:
                     continue
-                idl_repid = str(provides.getAttribute('repid'))
-                if not int_list.has_key(idl_repid):
+                idl_repid = str(provides.get_repid())
+
+                #checks if this external port was renamed
+                if externalport.get_externalname():
+                    providesName = externalport.get_externalname()
+
+                # Add the port to the provides port list
+                self._providesPortDict[providesName] = {'Port Name': providesName, 'Port Interface':idl_repid}
+
+                try:
+                    int_entry = _idllib.getInterface(idl_repid)
+                except idllib.IDLError:
                     print "Invalid port descriptor in scd for " + self.name + " for " + idl_repid
                     continue
-                int_entry = int_list[idl_repid]
-                new_port = _Port(str(provides.getAttribute('providesname')), interface=int_entry, direction="Provides")
-                new_port.generic_ref = self.ref.getPort(str(new_port.name))
-                
+                new_port = _Port(providesName, interface=int_entry, direction="Provides")
+                new_port.generic_ref = self.ref.getPort(str(new_port._name))
+
                 # See if interface python module has been loaded, if not then try to import it
                 if str(int_entry.nameSpace) not in interface_modules:
                     success = False
@@ -1569,7 +487,7 @@ class App(_CF__POA.Application, object):
                 except ImportError, msg:
                     pass
                 if not success:
-                    std_idl_path = _os.path.join(_os.environ['OSSIEHOME'], 'lib/python')
+                    std_idl_path = _os.path.join(_os.environ.get('OSSIEHOME', ''), 'lib/python')
                     for dirpath, dirs, files in _os.walk(std_idl_path):
                         if len(dirs) == 0:
                             continue
@@ -1594,212 +512,36 @@ class App(_CF__POA.Application, object):
         
                 try:
                     exec(exec_string)
-                    object.__getattribute__(self,'ports').append(new_port)
+                    ports.append(new_port)
                 except:
                     continue
     
-    def connect(self, provides, usesName=None, providesName=None):
-        for port in self.ports:
-            if port._direction == 'Uses':
-                for provide_port in provides.ports:
-                    if provide_port._direction == 'Provides' and port._using.name == provide_port._interface.name:
-                        self.connectioncount += 1
-                        connectionid = 'adhoc_connection_'+str(self.connectioncount)
-                        port.connectPort(port.ref, connectionid)
-                        self.adhocConnections.append((provides, port, connectionid))
-    
-    def disconnect(self, provides):
-        done = False
-        while not done:
-            for connection_idx in range(len(self.adhocConnections)):
-                if self.adhocConnections[connection_idx][0] == provides:
-                    self.adhocConnections[connection_idx][1].disconnectPort(self.adhocConnections[connection_idx][2])
-                    tmp = self.adhocConnections.pop(connection_idx)
-                    break
-            if connection_idx == len(self.adhocConnections)-1 or len(self.adhocConnections) == 0:
-                done = True
+    def connect(self, provides, usesPortName=None, providesPortName=None, usesName=None, providesName=None):
+        """usesName and providesName are deprecated. Use usesPortName or providesPortName
+        """
+        uses_name = usesName
+        provides_name = providesName
+        if usesPortName != None:
+            uses_name = usesPortName
+        if providesPortName != None:
+            provides_name = providesPortName
+        if providesPortName != None and providesName != None:
+            log.warn('providesPortName and providesName provided; using only providesName')
+        if usesPortName != None and usesName != None:
+            log.warn('usesPortName and usesName provided; using only usesPortName')
+        connections = ConnectionManager.instance().getConnections()
+        while True:
+            connectionId = 'adhoc_connection_%d' % (self._connectioncount)
+            if not connectionId in connections:
+                break
+            self._connectioncount = self._connectioncount+1
+        PortSupplier.connect(self, provides, usesPortName=uses_name, providesPortName=provides_name, connectionId=connectionId)
     
     def __getitem__(self,i):
         """Return the component with the given index (obsolete)"""
         return self.comps[i]
 
-class Device(Component):
-    def __init__(self,componentDescriptor=None,instanceName=None,refid=None,componentObj=None,impl=None,domainMgr=None,int_list=None,*args,**kwargs):
-        self._profile = ''
-        self._spd = None
-        self._scd = None
-        self._prf = None
-        self._spdContents = None
-        self._scdContents = None
-        self._prfContents = None
-        self._impl = impl
-        self.ref = componentObj
-        self.ports = []
-        self._providesPortDict = {}
-        self._configureTable = {}
-        self._usesPortDict = {}
-        self._autoKick = False
-        self._fileManager = None
-        self.name = None
-        self._interface_list = int_list
-        self._propertySet = None
-        if self._interface_list == None:
-            if not globals()["_loadedInterfaceList"]:
-                globals()["_interface_list"] = _importIDL.importStandardIdl()
-                globals()["_loadedInterfaceList"] = True
-            self._interface_list = globals()["_interface_list"]
 
-        if refid == None:
-            self._refid = _uuidgen()
-        else:
-            self._refid = refid
-
-        if domainMgr != None:
-            self._fileManager = domainMgr.ref._get_fileMgr()
-
-        try:
-            if componentDescriptor != None:
-                self._profile = componentDescriptor
-                self.name = _os.path.basename(componentDescriptor).split('.')[0]
-                self._parseComponentXMLFiles()
-                self._buildAPI()
-                if self.ref != None:
-                    self._populatePorts(fs=self._fileManager)
-            else:
-                raise AssertionError, "Component:__init__() ERROR - Failed to instantiate invalid component % " % (str(self.name))
-
-        except Exception, e:
-            print "Component:__init__() ERROR - Failed to instantiate component " + str(self.name) + " with exception " + str(e)
-
-    def updateReferences(self):
-        self.device_ref = self.ref
-        self.loadabledevice_ref = self.ref._narrow(_CF.LoadableDevice)
-        self.executabledevice_ref = self.ref._narrow(_CF.ExecutableDevice)
-        self.aggregatedevice_ref = self.ref._narrow(_CF.AggregateDevice)
-
-    def _get_usageState(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_usageState()
-            except:
-                pass
-        return retval
-
-    def _get_adminState(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_adminState()
-            except:
-                pass
-        return retval
-
-    def _get_operationalState(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_operationalState()
-            except:
-                pass
-        return retval
-
-    def _get_softwareProfile(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_softwareProfile()
-            except:
-                pass
-        return retval
-
-    def _get_label(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_label()
-            except:
-                pass
-        return retval
-
-    def _get_compositeDevice(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_compositeDevice()
-            except:
-                pass
-        return retval
-
-    def allocateCapacity(self, props):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref.allocateCapacity(props)
-            except:
-                raise
-        return retval
-
-    def deallocateCapacity(self, props):
-        if self.ref:
-            try:
-                self.ref.deallocateCapacity(props)
-            except:
-                raise
-
-    def load(self, fs, fileName, loadKind):
-        if self.loadabledevice_ref:
-            try:
-                self.loadabledevice_ref.load(fs, fileName, loadKind)
-            except:
-                raise
-
-    def unload(self, fileName):
-        if self.loadabledevice_ref:
-            try:
-                self.loadabledevice_ref.unload(fileName)
-            except:
-                raise
-
-    def execute(self, name, options, parameters):
-        retval = None
-        if self.executabledevice_ref:
-            try:
-                retval = self.executabledevice_ref.execute(name, options, parameters)
-            except:
-                raise
-        return retval
-
-    def terminate(self, processID):
-        if self.executabledevice_ref:
-            try:
-                self.executabledevice_ref.terminate(processID)
-            except:
-                raise
-
-    def _get_devices(self):
-        retval = None
-        if self.aggregatedevice_ref:
-            try:
-                retval = self.aggregatedevice_ref._get_devices()
-            except:
-                pass
-        return retval
-
-    def addDevice(self, associatedDevice):
-        if self.aggregatedevice_ref:
-            try:
-                self.aggregatedevice_ref.addDevice(associatedDevice)
-            except:
-                raise
-
-    def removeDevice(self, associatedDevice):
-        if self.aggregatedevice_ref:
-            try:
-                self.aggregatedevice_ref.removeDevice(associatedDevice)
-            except:
-                raise
-        
 class DeviceManager(_CF__POA.DeviceManager, object):
     """The DeviceManager is a descriptor for an logical grouping of devices.
 
@@ -1807,16 +549,56 @@ class DeviceManager(_CF__POA.DeviceManager, object):
        name - Node's name
 
     """
-    def __init__(self, name="", devMgr=None, int_list=None, dcd=None, domain=None):
+    @notification
+    def deviceRegistered(self, device):
+        """
+        A new device registered with this device manager.
+        """
+        pass
+
+    @notification
+    def deviceUnregistered(self, identifier):
+        """
+        A device with the given identifier unregistered from this device manager.
+        """
+        pass
+
+    @notification
+    def serviceRegistered(self, service):
+        """
+        A new service registered with this device manager.
+        """
+        pass
+
+    @notification
+    def serviceUnregistered(self, identifier):
+        """
+        A service with the given identifier unregistered from this device manager.
+        """
+        pass
+
+    def __init__(self, name="", devMgr=None, dcd=None, domain=None, idmListener=None, odmListener=None):
         self.name = name
         self.ref = devMgr
-        self.devs = []
-        self.id = ""
-        self._interface_list = int_list
+        self.id = self.ref._get_identifier()
         self._domain = domain
         self._dcd = dcd
         self.fs = self.ref._get_fileSys()
-        self._deviceManagerUpdated = False
+        self.__odmListener = odmListener
+        self.__idmListener = idmListener
+
+        self.__devices = DomainObjectList(weakobj.boundmethod(self._get_registeredDevices),
+                                          weakobj.boundmethod(self.__newDevice),
+                                          lambda x: x._get_identifier())
+        self.__services = DomainObjectList(weakobj.boundmethod(self._get_registeredServices),
+                                           weakobj.boundmethod(self.__newService),
+                                           lambda x: x.serviceName)
+
+        # Connect notification points to device lists.
+        self.__devices.itemAdded.addListener(weakobj.boundmethod(self.deviceRegistered))
+        self.__devices.itemRemoved.addListener(weakobj.boundmethod(self.deviceUnregistered))
+        self.__services.itemAdded.addListener(weakobj.boundmethod(self.serviceRegistered))
+        self.__services.itemRemoved.addListener(weakobj.boundmethod(self.serviceUnregistered))
 
         if self._domain == None:
             orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
@@ -1825,12 +607,16 @@ class DeviceManager(_CF__POA.DeviceManager, object):
         else:
             self.rootContext = self._domain.rootContext
 
-        if self._interface_list == None:
-            if not globals()["_loadedInterfaceList"]:
-                globals()["_interface_list"] = _importIDL.importStandardIdl()
-                globals()["_loadedInterfaceList"] = True
-                self._interface_list = globals()["_interface_list"]
-    
+        # If connected to the ODM channel, listen for device added and removed
+        # events. With the current device manager implemenatation, it's unlikely
+        # that a new device will register after startup, but we handle it anyway.
+        # Unregistration, on the other hand, may happen at any time.
+        if self.__odmListener:
+            weakobj.addListener(self.__odmListener.deviceAdded, self.__deviceAddedEvent)
+            weakobj.addListener(self.__odmListener.deviceRemoved, self.__deviceRemovedEvent)
+            weakobj.addListener(self.__odmListener.serviceAdded, self.__serviceAddedEvent)
+            weakobj.addListener(self.__odmListener.serviceRemoved, self.__serviceRemovedEvent)
+
     ########################################
     # Begin external Device Manager API
     
@@ -1956,56 +742,122 @@ class DeviceManager(_CF__POA.DeviceManager, object):
             except:
                 raise
         return retval
-    
+
+    @property
+    def devs(self):
+        """
+        The devices currently registered with this device manager.
+        """
+        if not self.__odmListener:
+            self.__devices.sync()
+        return self.__devices.values()
+
+    @property
+    def services(self):
+        """
+        The services currently registered with this device manager.
+        """
+        if not self.__odmListener:
+            self.__services.sync()
+        return self.__services.values()
+
     # End external Device Manager API
     ########################################
         
-    def _populateDevices(self):
-        """dev_list is a list of device names
-           in_doc_sad is a parsed version of the SAD (using xml.dom.minidom)"""
+    def __newDevice(self, device):
         try:
-            dev_list = self.ref._get_registeredDevices()
-        except:
+            profile = device._get_softwareProfile()
+            deviceRef = device._narrow(_CF.Device)
+            instanceName = '%s/%s' % (self.name, device._get_label())
+            refid = device._get_identifier()
+            implId = self.ref.getComponentImplementationId(refid)
+            spd, scd, prf = _readProfile(profile, self.fs)
+            return createDevice(profile, spd, scd, prf, deviceRef, instanceName, refid, implId, self.__idmListener)
+        except _CORBA.Exception:
+            log.warn('Ignoring inaccessible device')
+
+    def __deviceAddedEvent(self, event):
+        if not self.ref:
             return
-        self.__setattr__('_deviceManagerUpdated', True)
-
-        spd_list = {}
-        for compfile in self._dcd.getElementsByTagName('componentfile'):
-            spd_list[str(compfile.getAttribute('id'))] = str(compfile.getElementsByTagName('localfile')[0].getAttribute('name'))
-
-        dce_list = {}
-        for compplac in self._dcd.getElementsByTagName('componentplacement'):
-            dce_list[str(compplac.getElementsByTagName('componentinstantiation')[0].getAttribute('id'))] = str(compplac.getElementsByTagName('componentfileref')[0].getAttribute('refid'))
-
-        for comp_entry in dev_list:
-            new_comp = Device(
-                componentDescriptor="/"+self.name+comp_entry._get_softwareProfile(),
-                componentObj=comp_entry._narrow(_CF.Device), 
-                domainMgr=self._domain,
-                int_list=self._interface_list)
-            new_comp.updateReferences()
-
-            foundObject = False
-            try:
-                new_comp._id = comp_entry._get_identifier()
-                foundObject = True
-            except:
-                pass
-
-            if not foundObject:
-                print "Unable to get the pointer to Device "+comp_entry.identifier+", it is probably not running"
-
-            self.devs.append(new_comp)
-    
-    def __getattribute__(self, name):
+        # The device added event does not include the device manager to which
+        # the new device belongs, so check it against the CORBA object's list
+        # of current devices.
+        # NB: The way the current device manager implementation works, this is
+        #     an unlikely occurrance, anyway.
         try:
-            if name == 'devs':
-                if not object.__getattribute__(self,'_deviceManagerUpdated'):
-                    self._populateDevices()
+            devices = self.ref._get_registeredDevices()
+        except:
+            # The device manager is not reachable.
+            return
+        for device in devices:
+            try:
+                deviceId = device._get_identifier()
+            except:
+                # Skip unreachable device.
+                continue
+            if deviceId == event.sourceId:
+                self.__devices.add(event.sourceId, event.sourceIOR)
+                break
 
-            return object.__getattribute__(self,name)
-        except AttributeError:
-            raise
+    def __deviceRemovedEvent(self, event):
+        # If the complete device set is not cached, there is no way of checking
+        # whether the device was registered with this particular device manager
+        # (it wouldn't be in the 'registeredDevices' attribute anymore), so try
+        # to remove the device and ignore the error.
+        try:
+            self.__devices.remove(event.sourceId)
+        except KeyError:
+            pass
+
+    def __newService(self, service):
+        try:
+            serviceRef = service.serviceObject
+            instanceName = service.serviceName
+            for placement in self._dcd.partitioning.componentplacement:
+                if instanceName == placement.componentinstantiation[0].usagename:
+                    spd_id = placement.componentfileref.get_refid()
+                    refid = placement.componentinstantiation[0].get_id()
+                    for componentfile in self._dcd.componentfiles.componentfile:
+                        if componentfile.get_id() == spd_id:
+                            profile = componentfile.localfile.name
+                            break
+                    break
+            implId = self.ref.getComponentImplementationId(refid)
+            spd, scd, prf = _readProfile(profile, self.fs)
+            return Service(profile, spd, scd, prf, serviceRef, instanceName, refid, implId)
+        except _CORBA.Exception:
+            log.warn('Ignoring inaccessible service')
+
+    def __serviceAddedEvent(self, event):
+        if not self.ref:
+            return
+        # The service added event does not include the device manager to which
+        # the new service belongs, so check it against the CORBA object's list
+        # of current services.
+        # NB: The way the current device manager implementation works, this is
+        #     an unlikely occurrance, anyway.
+        try:
+            services = self.ref._get_registeredServices()
+        except:
+            # The device manager is not reachable.
+            return
+        for service in services:
+            if service.serviceName == event.sourceName:
+                # Pass the CF.DeviceManager.ServiceType object, not the service
+                # reference. The DomainObjectList expects the argument to an
+                # individual add to be the same as the type of one item in the
+                # CORBA list, which in this case is ServiceType.
+                self.__services.add(event.sourceName, service)
+                break
+
+    def __serviceRemovedEvent(self, event):
+        # Remove the service from the list, ignoring the error raised if it
+        # doesn't belong to this DeviceManager (see also __deviceRemovedEvent).
+        try:
+            self.__services.remove(event.sourceName)
+        except KeyError:
+            pass
+
 
 class Domain(_CF__POA.DomainManager, object):
     """The Domain is a descriptor for a Domain Manager.
@@ -2014,29 +866,88 @@ class Domain(_CF__POA.DomainManager, object):
         - terminate - uninstalls all running waveforms and terminates the node
         - waveform management:
             - createApplication - install/create a particular waveform application
-            - releaseApplication - release a particular waveform application
+            - removeApplication - release a particular waveform application
     """
-    def __init__(self, name="DomainName1", int_list=None, location=None):
+    @notification
+    def deviceManagerAdded(self, deviceManager):
+        """
+        The device manager 'deviceManager' was added to the system.
+        """
+        log.trace('deviceManagerAdded %s', deviceManager.id)
+
+    @notification
+    def deviceManagerRemoved(self, identifier):
+        """
+        A device manager with the given identifier was removed from the system.
+        """
+        log.trace('deviceManagerRemoved %s', identifier)
+
+    @notification
+    def applicationAdded(self, application):
+        """
+        The application object 'application' was added to the system.
+        """
+        log.trace('applicationAdded %s', application.name)
+
+    @notification
+    def applicationRemoved(self, identifier):
+        """
+        An application with the given identifier was removed from the system.
+        """
+        log.trace('applicationRemoved %s', identifier)
+
+    @notification
+    def deviceRegistered(self, device):
+        """
+        The device object 'device' registered with this DomainManager.
+        """
+        log.trace('deviceRegistered %s', device)
+
+    @notification
+    def deviceUnregistered(self, identifier):
+        """
+        The device with the given identifier unregistered from this
+        DomainManager.
+        """
+        log.trace('deviceUnregistered %s', identifier)
+
+    @notification
+    def serviceRegistered(self, service):
+        """
+        The service object 'service' registered with this DomainManager.
+        """
+        log.trace('serviceRegistered %s', service.serviceName)
+
+    @notification
+    def serviceUnregistered(self, name):
+        """
+        The service with the given name unregistered from this DomainManager.
+        """
+        log.trace('serviceUnregistered %s', name)
+
+    def __init__(self, name="DomainName1", location=None):
         self.name = name
         self._sads = []
+        self._sadFullPath = []
         self.ref = None
         self.NodeAlive = True
         self._waveformsUpdated = False
-        self._deviceManagersUpdated = False
-        self.devMgrs = []
         self.location = location
         
         # create orb reference
-        self.orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
-        if location:
-            obj = self.orb.string_to_object('corbaname::'+location)
-        else:
-            obj = self.orb.resolve_initial_references("NameService")
-        try:
-            self.rootContext = obj._narrow(_CosNaming.NamingContext)
-        except:
-            raise RuntimeError('NameService not found')
+        input_arguments = _sys.argv
+        if location != None:
+            if len(_sys.argv) == 1:
+                if _sys.argv[0] == '':
+                    input_arguments = ['-ORBInitRef','NameService=corbaname::'+location]
+                else:
+                    input_arguments.extend(['-ORBInitRef','NameService=corbaname::'+location])
+            else:
+                input_arguments.extend(['-ORBInitRef','NameService=corbaname::'+location])
 
+        self.orb = _CORBA.ORB_init(input_arguments, _CORBA.ORB_ID)
+        obj = self.orb.resolve_initial_references("NameService")
+        self.rootContext = obj._narrow(_CosNaming.NamingContext)
         # get DomainManager reference
         dm_name = [_CosNaming.NameComponent(self.name,""),_CosNaming.NameComponent(self.name,"")]
         found_domain = False
@@ -2060,100 +971,146 @@ class Domain(_CF__POA.DomainManager, object):
                 
         self.ref = obj._narrow(_CF.DomainManager)
         self.fileManager = self.ref._get_fileMgr()
-        
-        if int_list == None:
-            self._interface_list = _importIDL.importStandardIdl()
-        else:
-            self._interface_list = int_list
-        
-        for int_entry in self._interface_list:
-            _interfaces[int_entry.repoId]=int_entry
-    
-    def _populateDeviceManagers(self):
+
+        self.__deviceManagers = DomainObjectList(weakobj.boundmethod(self._get_deviceManagers),
+                                                 weakobj.boundmethod(self.__newDeviceManager),
+                                                 lambda x: x._get_identifier())
+        self.__applications = DomainObjectList(weakobj.boundmethod(self._get_applications),
+                                               weakobj.boundmethod(self.__newApplication),
+                                               lambda x: x._get_identifier())
+
+        # Connect notification points to domain object lists.
+        self.__deviceManagers.itemAdded.addListener(weakobj.boundmethod(self.deviceManagerAdded))
+        self.__deviceManagers.itemRemoved.addListener(weakobj.boundmethod(self.deviceManagerRemoved))
+        self.__applications.itemAdded.addListener(weakobj.boundmethod(self.applicationAdded))
+        self.__applications.itemRemoved.addListener(weakobj.boundmethod(self.applicationRemoved))
+
+        # Connect the the IDM channel for updates to device states.
         try:
-            devmgr_seq = object.__getattribute__(self, 'ref')._get_deviceManagers()
-        except:
-            return None
+            idmListener = IDMListener()
+            idmListener.connect(self.ref)
+        except Exception, e:
+            # No device events will be received
+            log.warning('Unable to connect to IDM channel: %s', e)
+            idmListener = None
+        self.__idmListener = idmListener
 
-        self.__setattr__('_deviceManagersUpdated', True)
-
-        for devMgr in devmgr_seq:
-            try:
-                dcdPath = devMgr._get_deviceConfigurationProfile()
-                devMgrFileSys = devMgr._get_fileSys()
-                dcdFile = devMgrFileSys.open(dcdPath, True)
-            except:
-                print "Unable to open $SDRROOT/dev"+dcdPath+". Unable to add Device Manager '"+devMgr._get_label()+"'"
-                continue
-            dcdContents = dcdFile.read(dcdFile.sizeOf())
-            dcdFile.close()
-
-            parsed_dcd=_minidom.parseString(dcdContents)
-
-            self._addDeviceManager(DeviceManager(name=devMgr._get_label(), 
-                                                 devMgr=devMgr, 
-                                                 int_list=object.__getattribute__(self, '_interface_list'), 
-                                                 dcd=parsed_dcd, domain=self))
+        # Connect to the ODM channel for updates to domain objects.
+        try:
+            odmListener = ODMListener()
+            odmListener.connect(self.ref)
             
+            # Object lists directly managed by DomainManager
+            # NB: In contrast to other languages, this object is deleted before
+            #     the objects it references, so use weak listeners to prevent
+            #     race conditions that lead to annoying error messages.
+            weakobj.addListener(odmListener.deviceManagerAdded, self.__deviceManagerAddedEvent)
+            weakobj.addListener(odmListener.deviceManagerRemoved, self.__deviceManagerRemovedEvent)
+            weakobj.addListener(odmListener.applicationAdded, self.__applicationAddedEvent)
+            weakobj.addListener(odmListener.applicationRemoved, self.__applicationRemovedEvent)
+            weakobj.addListener(odmListener.applicationFactoryAdded, self.__appFactoryAddedEvent)
+            weakobj.addListener(odmListener.applicationFactoryRemoved, self.__appFactoryRemovedEvent)
+
+            # Object lists managed by DeviceManagers
+            # NB: See above.
+            weakobj.addListener(odmListener.deviceAdded, self.__deviceAddedEvent)
+            weakobj.addListener(odmListener.deviceRemoved, self.__deviceRemovedEvent)
+            weakobj.addListener(odmListener.serviceAdded, self.__serviceAddedEvent)
+            weakobj.addListener(odmListener.serviceRemoved, self.__serviceRemovedEvent)
+        except Exception, e:
+            # No domain object events will be received
+            log.warning('Unable to connect to ODM channel: %s', e)
+            odmListener = None
+        self.__odmListener = odmListener
+
     def _populateApps(self):
         self.__setattr__('_waveformsUpdated', True)
         self._updateListAvailableSads()
+
+    def __newDeviceManager(self, deviceManager):
+        label = deviceManager._get_label()
+        dcdPath = deviceManager._get_deviceConfigurationProfile()
+        devMgrFileSys = deviceManager._get_fileSys()
+        try:
+            dcdFile = devMgrFileSys.open(dcdPath, True)
+        except:
+            raise RuntimeError, "Unable to open $SDRROOT/dev"+dcdPath+". Unable to create proxy for Device Manager '"+label+"'"
+        dcdContents = dcdFile.read(dcdFile.sizeOf())
+        dcdFile.close()
+
+        parsed_dcd=parsers.dcd.parseString(dcdContents)
+        return DeviceManager(name=label, devMgr=deviceManager, dcd=parsed_dcd, domain=weakref.proxy(self), idmListener=self.__idmListener, odmListener=self.__odmListener)
     
     @property
-    def apps(self):
-        apps = []
-        # Gets current list of apps from the domain manager
-        try:
-            app_list = self.ref._get_applications()
-        except:
-            return
-    
-        app_name_list = []
-    
-        for app in app_list:
-            prof_path = app._get_profile()
-            
-            sadFile = self.fileManager.open(prof_path, True)
-            sadContents = sadFile.read(sadFile.sizeOf())
-            sadFile.close()
-            doc_sad = _minidom.parseString(sadContents)
-            comp_list = app._get_componentNamingContexts()
-            waveform_ns_name = ''
-            if len(comp_list) > 0:
-                comp_ns_name = comp_list[0].elementId
-                waveform_ns_name = comp_ns_name.split('/')[1]
-    
-            app_name_list.append(waveform_ns_name)
-    
-            app_name = app._get_name()
-            if app_name[:7]=='OSSIE::':
-                waveform_name = app_name[7:]
-            else:
-                waveform_name = app_name
-            waveform_entry = App(name=waveform_name, int_list=self._interface_list, domain=self, sad=doc_sad)
-            waveform_entry.ref = app
-            waveform_entry.ns_name = waveform_ns_name
-            waveform_entry.update()
-    
-            apps.append(waveform_entry)        
-        return apps       
-    
-    def __getattribute__(self, name):
-        try:
-            if name == 'devMgrs':
-                if not object.__getattribute__(self,'_deviceManagersUpdated'):
-                    self._populateDeviceManagers()
+    def devMgrs(self):
+        # If the ODM channel is not connected, force an update to the list.
+        if not self.__odmListener:
+            self.__deviceManagers.sync()
+        return self.__deviceManagers.values()
 
-            return object.__getattribute__(self,name)
-        except AttributeError:
-            raise
-    
+    def __newApplication(self, app):
+        prof_path = app._get_profile()
+
+        sadFile = self.fileManager.open(prof_path, True)
+        sadContents = sadFile.read(sadFile.sizeOf())
+        sadFile.close()
+        doc_sad = parsers.sad.parseString(sadContents)
+        comp_list = app._get_componentNamingContexts()
+        waveform_ns_name = ''
+        if len(comp_list) > 0:
+            comp_ns_name = comp_list[0].elementId
+            waveform_ns_name = comp_ns_name.split('/')[1]
+
+        app_name = app._get_name()
+        if app_name[:7]=='OSSIE::':
+            waveform_name = app_name[7:]
+        else:
+            waveform_name = app_name
+        waveform_entry = App(name=waveform_name, domain=weakref.proxy(self), sad=doc_sad)
+        waveform_entry.ref = app
+        waveform_entry.ns_name = waveform_ns_name
+        waveform_entry.update()
+        return waveform_entry
+
+    @property
+    def apps(self):
+        # If the ODM channel is not connected, force an update to the list.
+        if not self.__odmListener:
+            self.__applications.sync()
+        return self.__applications.values()
+
+    @property
+    def devices(self):
+        devs = []
+        for devMgr in self.devMgrs:
+            devs.extend(devMgr.devs)
+        return devs
+
+    @property
+    def services(self):
+        svcs = []
+        for devMgr in self.devMgrs:
+            svcs.extend(devMgr.services)
+        return svcs
+
     def __del__(self):
         """
             Destructor
         """
-        pass
-    
+        # Explicitly disconnect ODM listener to avoid warnings on shutdown
+        if self.__odmListener:
+            try:
+                self.__odmListener.disconnect()
+            except:
+                pass
+
+        # Explictly disconnect IDM Listener to avoid warnings on shutdown
+        if self.__idmListener:
+            try:
+                self.__idmListener.disconnect()
+            except:
+                pass
+
     ########################################
     # External Domain Manager API
     
@@ -2300,10 +1257,6 @@ class Domain(_CF__POA.DomainManager, object):
     # End external Domain Manager API
     ########################################
     
-    def _addDeviceManager(self, in_node=None):
-        if in_node != None:
-            self.devMgrs.append(in_node)
-    
     def _searchFilePattern(self, starting_point, pattern):
         file_list = self.fileManager.list(starting_point+'/*')
         filesFound = []
@@ -2318,13 +1271,21 @@ class Domain(_CF__POA.DomainManager, object):
                     filesFound.append(starting_point+'/'+entry.name)
         return filesFound
     
+    def catalogSads(self):
+        self._updateListAvailableSads()
+        return self._sadFullPath
+
     def _updateListAvailableSads(self):
         """
             Update available waveforms list.
         """
         sadList = self._searchFilePattern('/waveforms', 'sad.xml')
         for entry in range(len(sadList)):
-            self._sads.append(sadList[entry].split('/')[-2])
+            sad_filename = sadList[entry].split('/')[-1]
+            sad_entry = sad_filename.split('.')[-3]
+            if not (sad_entry in self._sads):
+                self._sads.append(sad_entry)
+                self._sadFullPath.append(sadList[entry])
     
     def terminate(self):
         # Kills waveforms (in reverse order since removeApplication() pops items from list) 
@@ -2338,15 +1299,11 @@ class Domain(_CF__POA.DomainManager, object):
     def removeApplication(self, app_obj=None):
         if app_obj == None:
             return
-        app_idx = 0
-        for app_idx in range(len(self.apps)):
-            if self.apps[app_idx].ref._is_equivalent(app_obj.ref):
-                break
 
-        if app_idx == len(self.apps):
-            return
+        # Remove the application from the internal list.
+        appId = app_obj._get_identifier()
+        self.__applications.remove(appId)
         
-        appId = self.apps[app_idx]._get_identifier()
         for app in _launchedApps:
             if app._get_identifier() == appId:
                 _launchedApps.remove(app)
@@ -2371,13 +1328,13 @@ class Domain(_CF__POA.DomainManager, object):
         sadContents = sadFile.read(sadFile.sizeOf())
         sadFile.close()
     
-        doc_sad = _minidom.parseString(sadContents)
+        doc_sad = parsers.SADParser.parseString(sadContents)
     
         # get a list of the application factories in the Domain
         _applicationFactories = self.ref._get_applicationFactories()
     
         # find the application factory that is needed
-        app_name = str(doc_sad.getElementsByTagName('softwareassembly')[0].getAttribute('name'))
+        app_name = str(doc_sad.get_name())
         app_factory_num = -1
         for app_num in range(len(_applicationFactories)):
             if _applicationFactories[app_num]._get_name()==app_name:
@@ -2394,20 +1351,14 @@ class Domain(_CF__POA.DomainManager, object):
         except:
             if uninstallAppWhenDone:
                 self.ref.uninstallApplication(_applicationFactories[app_factory_num]._get_identifier())
-            print "Unable to create application - make sure that all appropriate nodes are installed"
-            return
+            raise
         
-        comp_list_1 = app._get_componentNamingContexts()
-        waveform_ns_name = ''
-        if len(comp_list_1) > 0:
-            comp_ns_name = comp_list_1[0].elementId
-            waveform_ns_name = comp_ns_name.split('/')[1]
-        
-        waveform_entry = App(name=app._get_name(), int_list=self._interface_list, domain=self, sad=doc_sad)
-        waveform_entry.ref = app
-        waveform_entry.ns_name = waveform_ns_name
-        _launchedApps.append(waveform_entry)
-        waveform_entry.update()
+        appId = app._get_identifier()
+        # Add the app to the application list, or get the existing object if
+        # the ODM event was processed first.
+        waveform_entry = self.__applications.add(appId, app)
+        if getTrackApps():
+            _launchedApps.append(waveform_entry)
         
         if uninstallAppWhenDone:
             self.ref.uninstallApplication(_applicationFactories[app_factory_num]._get_identifier())
@@ -2418,50 +1369,48 @@ class Domain(_CF__POA.DomainManager, object):
         """Makes sure that the dictionary of waveforms is up-to-date"""
         print "WARNING: _updateRunningApps() is deprecated.  Running apps are automatically updated on access."
 
-
-class _Port(object):
-    """The Port is the gateway into and out of a particular component. A Port has a string name that is unique
-        to that port within the context of a particular component.
-        
-        There are two types of Ports: Uses (output) and Provides (input).
-    """
-    def __init__(self, name, interface=None, direction="Uses",portType="data",using=None):
-        self.extendedFunctionList = []
-        self.name = name
-        self._interface = interface
-        self._using=using
-        self._portType = portType    #control or data
-        self._direction = direction  #Uses or Provides
-        self.generic_ref = None
-        self.ref = None
-    
-    def __getattribute__(self, name):
+    ########################################
+    # Internal event channel management
+    def __deviceManagerAddedEvent(self, event):
         try:
-            if name in object.__getattribute__(self,'extendedFunctionList'):
-                # the intercepted call to a port's supported interface has to be dynamically mapped.
-                #  the use of exec is a bit awkward, but retrieves the function pointer
-                #  when the base class does not implement __getattr__, __getattribute__, or __call__,
-                #  which apparently can happen in the CORBA mapping to Python
-                try:
-                    retreiveFunc = "functionref = object.__getattribute__(self,'ref')."+name
-                    exec(retreiveFunc)
-                except:
-                    raise AttributeError
-                return functionref
-            else:
-                return object.__getattribute__(self,name)
-        except AttributeError:
-            raise
-    
-    def extendPort(self):
-        if self.ref == None:
-            return
-        # the assumption made here is that the CORBA pointer won't have any functions whose implementation
-        #  starts with __; all those would be Python basic services. The use of this list is such that
-        #  if the object that ref points to implements any function call that the Port class implements,
-        #  then the CORBA pointer one gets called insted of the Port one
-        functions = dir(self.ref)
-        for function in functions:
-            if function[:2] == '__':
-                continue
-            self.extendedFunctionList.append(function)
+            self.__deviceManagers.add(event.sourceId, event.sourceIOR)
+        except:
+            # The device manager is already gone or otherwise unavailable.
+            pass
+
+    def __deviceManagerRemovedEvent(self, event):
+        self.__deviceManagers.remove(event.sourceId)
+
+    def __deviceAddedEvent(self, event):
+        # TODO: Decide how to create Device object (via DeviceManager?)
+        pass
+
+    def __deviceRemovedEvent(self, event):
+        self.deviceUnregistered(event.sourceId)
+
+    def __appFactoryAddedEvent(self, event):
+        log.trace('Installed app factory %s', event.sourceName)
+
+    def __appFactoryRemovedEvent(self, event):
+        log.trace('Uninstalled app factory %s', event.sourceName)
+
+    def __applicationAddedEvent(self, event):
+        try:
+            self.__applications.add(event.sourceId, event.sourceIOR)
+        except:
+            # The application is already gone or otherwise unavailable.
+            pass
+
+    def __applicationRemovedEvent(self, event):
+        try:
+            self.__applications.remove(event.sourceId)
+        except KeyError:
+            # Ignore applications already removed via App.releaseObject
+            pass
+
+    def __serviceAddedEvent(self, event):
+        # TODO: Decide how to create service object
+        pass
+
+    def __serviceRemovedEvent(self, event):
+        self.serviceUnregistered(event.sourceName)

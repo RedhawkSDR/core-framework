@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:diagram="http://sca.jpeojtrs.mil/diagram" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmlns:sad="http://sca.jpeojtrs.mil/sad" xmi:id="_L-X0wJ1FEeKj0rn4skDj6w" type="Sad" name="TestComplexPropsWaveform.sad_diagramV2" measurementUnit="Pixel">
+  <children xmi:type="notation:Shape" xmi:id="_MkmuUJ1FEeKj0rn4skDj6w" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_MkmuUp1FEeKj0rn4skDj6w" type="5006"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_MkmuU51FEeKj0rn4skDj6w" type="7002">
+      <children xmi:type="notation:Shape" xmi:id="_2ckKcKdbEeKT7q9iRwivUg" type="3002" fontName="Sans">
+        <children xmi:type="notation:DecorationNode" xmi:id="_2ckKcqdbEeKT7q9iRwivUg" type="5004"/>
+        <element xmi:type="sad:SadComponentInstantiation" href="TestComplexPropsWaveform.sad.xml#TestComplexProps_1"/>
+        <layoutConstraint xmi:type="notation:Bounds" xmi:id="_2ckKcadbEeKT7q9iRwivUg"/>
+      </children>
+      <styles xmi:type="notation:SortingStyle" xmi:id="_MkmuVJ1FEeKj0rn4skDj6w"/>
+      <styles xmi:type="notation:FilteringStyle" xmi:id="_MkmuVZ1FEeKj0rn4skDj6w"/>
+    </children>
+    <element xmi:type="sad:SadComponentPlacement" href="TestComplexPropsWaveform.sad.xml#//@partitioning/@componentPlacement.0"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_MkmuUZ1FEeKj0rn4skDj6w" x="228" y="141"/>
+  </children>
+  <styles xmi:type="notation:DiagramStyle" xmi:id="_L-X0wZ1FEeKj0rn4skDj6w"/>
+  <styles xmi:type="diagram:EObjectContainerStyle" xmi:id="_L-Yb0J1FEeKj0rn4skDj6w" name="FindByStubContainer"/>
+  <element xmi:type="sad:SoftwareAssembly" href="TestComplexPropsWaveform.sad.xml#DCE:0afbc854-f6fa-493e-958c-06c72d8ab778"/>
+</notation:Diagram>

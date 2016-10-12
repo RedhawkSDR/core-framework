@@ -20,6 +20,10 @@
 
 package org.ossie;
 
+@Deprecated
+/**
+ * This class has been deprecated, suggest class CharProperty instead
+ */
 public class CharSimplePropertyContainer extends SimplePropertyContainer<Character> {
 
     @Override

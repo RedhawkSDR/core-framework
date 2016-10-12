@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg type="sca_compliant" id="template" name="template">
+    <title></title>
+    <author>
+        <name>null</name>
+    </author>
+</softpkg>

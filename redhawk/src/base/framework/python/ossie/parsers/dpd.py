@@ -1,34 +1,84 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*- 
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-
 #
-# Generated Thu Nov  4 15:01:55 2010 by generateDS.py version 1.17d.REDHAWK.
+# Generated Thu Sep 12 14:49:30 2013 by generateDS.py version 2.7c.
 #
 
 import sys
 import getopt
-from string import lower as str_lower
-from xml.dom import minidom
-from xml.dom import Node
+import re as re_
+
+etree_ = None
+Verbose_import_ = False
+(   XMLParser_import_none, XMLParser_import_lxml,
+    XMLParser_import_elementtree
+    ) = range(3)
+XMLParser_import_library = None
+try:
+    # lxml
+    from lxml import etree as etree_
+    XMLParser_import_library = XMLParser_import_lxml
+    if Verbose_import_:
+        print("running with lxml.etree")
+except ImportError:
+    try:
+        # cElementTree from Python 2.5+
+        import xml.etree.cElementTree as etree_
+        XMLParser_import_library = XMLParser_import_elementtree
+        if Verbose_import_:
+            print("running with cElementTree on Python 2.5+")
+    except ImportError:
+        try:
+            # ElementTree from Python 2.5+
+            import xml.etree.ElementTree as etree_
+            XMLParser_import_library = XMLParser_import_elementtree
+            if Verbose_import_:
+                print("running with ElementTree on Python 2.5+")
+        except ImportError:
+            try:
+                # normal cElementTree install
+                import cElementTree as etree_
+                XMLParser_import_library = XMLParser_import_elementtree
+                if Verbose_import_:
+                    print("running with cElementTree")
+            except ImportError:
+                try:
+                    # normal ElementTree install
+                    import elementtree.ElementTree as etree_
+                    XMLParser_import_library = XMLParser_import_elementtree
+                    if Verbose_import_:
+                        print("running with ElementTree")
+                except ImportError:
+                    raise ImportError("Failed to import ElementTree from any known place")
+
+def parsexml_(*args, **kwargs):
+    if (XMLParser_import_library == XMLParser_import_lxml and
+        'parser' not in kwargs):
+        # Use the lxml ElementTree compatible parser so that, e.g.,
+        #   we ignore comments.
+        kwargs['parser'] = etree_.ETCompatXMLParser()
+    doc = etree_.parse(*args, **kwargs)
+    return doc
 
 #
 # User methods
@@ -41,17 +91,95 @@ try:
     from generatedssuper import GeneratedsSuper
 except ImportError, exp:
 
-    class GeneratedsSuper:
-        def format_string(self, input_data, input_name=''):
+    class GeneratedsSuper(object):
+        def gds_format_string(self, input_data, input_name=''):
             return input_data
-        def format_integer(self, input_data, input_name=''):
+        def gds_validate_string(self, input_data, node, input_name=''):
+            return input_data
+        def gds_format_integer(self, input_data, input_name=''):
             return '%d' % input_data
-        def format_float(self, input_data, input_name=''):
-            return '%f' % input_data
-        def format_double(self, input_data, input_name=''):
-            return '%e' % input_data
-        def format_boolean(self, input_data, input_name=''):
+        def gds_validate_integer(self, input_data, node, input_name=''):
+            return input_data
+        def gds_format_integer_list(self, input_data, input_name=''):
             return '%s' % input_data
+        def gds_validate_integer_list(self, input_data, node, input_name=''):
+            values = input_data.split()
+            for value in values:
+                try:
+                    fvalue = float(value)
+                except (TypeError, ValueError), exp:
+                    raise_parse_error(node, 'Requires sequence of integers')
+            return input_data
+        def gds_format_float(self, input_data, input_name=''):
+            return '%f' % input_data
+        def gds_validate_float(self, input_data, node, input_name=''):
+            return input_data
+        def gds_format_float_list(self, input_data, input_name=''):
+            return '%s' % input_data
+        def gds_validate_float_list(self, input_data, node, input_name=''):
+            values = input_data.split()
+            for value in values:
+                try:
+                    fvalue = float(value)
+                except (TypeError, ValueError), exp:
+                    raise_parse_error(node, 'Requires sequence of floats')
+            return input_data
+        def gds_format_double(self, input_data, input_name=''):
+            return '%e' % input_data
+        def gds_validate_double(self, input_data, node, input_name=''):
+            return input_data
+        def gds_format_double_list(self, input_data, input_name=''):
+            return '%s' % input_data
+        def gds_validate_double_list(self, input_data, node, input_name=''):
+            values = input_data.split()
+            for value in values:
+                try:
+                    fvalue = float(value)
+                except (TypeError, ValueError), exp:
+                    raise_parse_error(node, 'Requires sequence of doubles')
+            return input_data
+        def gds_format_boolean(self, input_data, input_name=''):
+            return '%s' % input_data
+        def gds_validate_boolean(self, input_data, node, input_name=''):
+            return input_data
+        def gds_format_boolean_list(self, input_data, input_name=''):
+            return '%s' % input_data
+        def gds_validate_boolean_list(self, input_data, node, input_name=''):
+            values = input_data.split()
+            for value in values:
+                if value not in ('true', '1', 'false', '0', ):
+                    raise_parse_error(node, 'Requires sequence of booleans ("true", "1", "false", "0")')
+            return input_data
+        def gds_str_lower(self, instring):
+            return instring.lower()
+        def get_path_(self, node):
+            path_list = []
+            self.get_path_list_(node, path_list)
+            path_list.reverse()
+            path = '/'.join(path_list)
+            return path
+        Tag_strip_pattern_ = re_.compile(r'\{.*\}')
+        def get_path_list_(self, node, path_list):
+            if node is None:
+                return
+            tag = GeneratedsSuper.Tag_strip_pattern_.sub('', node.tag)
+            if tag:
+                path_list.append(tag)
+            self.get_path_list_(node.getparent(), path_list)
+        def get_class_obj_(self, node, default_class=None):
+            class_obj1 = default_class
+            if 'xsi' in node.nsmap:
+                classname = node.get('{%s}type' % node.nsmap['xsi'])
+                if classname is not None:
+                    names = classname.split(':')
+                    if len(names) == 2:
+                        classname = names[1]
+                    class_obj2 = globals().get(classname)
+                    if class_obj2 is not None:
+                        class_obj1 = class_obj2
+            return class_obj1
+        def gds_build_any(self, node, type_name=None):
+            return None
 
 
 #
@@ -74,16 +202,22 @@ except ImportError, exp:
 #
 
 ExternalEncoding = 'ascii'
+Tag_pattern_ = re_.compile(r'({.*})?(.*)')
+String_cleanup_pat_ = re_.compile(r"[\n\r\s]+")
+Namespace_extract_pat_ = re_.compile(r'{(.*)}(.*)')
 
 #
 # Support/utility functions.
 #
 
-def showIndent(outfile, level):
-    for idx in range(level):
-        outfile.write('    ')
+def showIndent(outfile, level, pretty_print=True):
+    if pretty_print:
+        for idx in range(level):
+            outfile.write('    ')
 
 def quote_xml(inStr):
+    if not inStr:
+        return ''
     s1 = (isinstance(inStr, basestring) and inStr or
           '%s' % inStr)
     s1 = s1.replace('&', '&amp;')
@@ -121,6 +255,40 @@ def quote_python(inStr):
         else:
             return '"""%s"""' % s1
 
+def get_all_text_(node):
+    if node.text is not None:
+        text = node.text
+    else:
+        text = ''
+    for child in node:
+        if child.tail is not None:
+            text += child.tail
+    return text
+
+def find_attr_value_(attr_name, node):
+    attrs = node.attrib
+    attr_parts = attr_name.split(':')
+    value = None
+    if len(attr_parts) == 1:
+        value = attrs.get(attr_name)
+    elif len(attr_parts) == 2:
+        prefix, name = attr_parts
+        namespace = node.nsmap.get(prefix)
+        if namespace is not None:
+            value = attrs.get('{%s}%s' % (namespace, name, ))
+    return value
+
+
+class GDSParseError(Exception):
+    pass
+
+def raise_parse_error(node, msg):
+    if XMLParser_import_library == XMLParser_import_lxml:
+        msg = '%s (element %s/line %d)' % (msg, node.tag, node.sourceline, )
+    else:
+        msg = '%s (element %s)' % (msg, node.tag, )
+    raise GDSParseError(msg)
+
 
 class MixedContainer:
     # Constants for category:
@@ -150,13 +318,15 @@ class MixedContainer:
         return self.value
     def getName(self):
         return self.name
-    def export(self, outfile, level, name, namespace):
+    def export(self, outfile, level, name, namespace, pretty_print=True):
         if self.category == MixedContainer.CategoryText:
-            outfile.write(self.value)
+            # Prevent exporting empty content as empty lines.
+            if self.value.strip(): 
+                outfile.write(self.value)
         elif self.category == MixedContainer.CategorySimple:
             self.exportSimple(outfile, level, name)
         else:    # category == MixedContainer.CategoryComplex
-            self.value.export(outfile, level, namespace,name)
+            self.value.export(outfile, level, namespace, name, pretty_print)
     def exportSimple(self, outfile, level, name):
         if self.content_type == MixedContainer.TypeString:
             outfile.write('<%s>%s</%s>' % (self.name, self.value, self.name))
@@ -171,22 +341,22 @@ class MixedContainer:
     def exportLiteral(self, outfile, level, name):
         if self.category == MixedContainer.CategoryText:
             showIndent(outfile, level)
-            outfile.write('MixedContainer(%d, %d, "%s", "%s"),\n' % \
+            outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' % \
                 (self.category, self.content_type, self.name, self.value))
         elif self.category == MixedContainer.CategorySimple:
             showIndent(outfile, level)
-            outfile.write('MixedContainer(%d, %d, "%s", "%s"),\n' % \
+            outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' % \
                 (self.category, self.content_type, self.name, self.value))
         else:    # category == MixedContainer.CategoryComplex
             showIndent(outfile, level)
-            outfile.write('MixedContainer(%d, %d, "%s",\n' % \
+            outfile.write('model_.MixedContainer(%d, %d, "%s",\n' % \
                 (self.category, self.content_type, self.name,))
             self.value.exportLiteral(outfile, level + 1)
             showIndent(outfile, level)
             outfile.write(')\n')
 
 
-class _MemberSpec(object):
+class MemberSpec_(object):
     def __init__(self, name='', data_type='', container=0):
         self.name = name
         self.data_type = data_type
@@ -194,22 +364,54 @@ class _MemberSpec(object):
     def set_name(self, name): self.name = name
     def get_name(self): return self.name
     def set_data_type(self, data_type): self.data_type = data_type
-    def get_data_type(self): return self.data_type
+    def get_data_type_chain(self): return self.data_type
+    def get_data_type(self):
+        if isinstance(self.data_type, list):
+            if len(self.data_type) > 0:
+                return self.data_type[-1]
+            else:
+                return 'xs:string'
+        else:
+            return self.data_type
     def set_container(self, container): self.container = container
     def get_container(self): return self.container
 
+def _cast(typ, value):
+    if typ is None or value is None:
+        return value
+    return typ(value)
 
 #
 # Data representation classes.
 #
 
 class devicepkg(GeneratedsSuper):
+    """DEVICE PACKAGE The SCA Device Package Descriptor (DPD) is the part
+    of a Device Profile that contains hardware device Registration
+    attributes, which are typically used by a Human Computer
+    Interface application to display information about the device(s)
+    resident in an SCA-compliant radio system. DPD information is
+    intended to provide hardware configuration and revision
+    information to a radio operator or to radio maintenance
+    personnel. A DPD may be used to describe a single hardware
+    element residing in a radio or it may be used to describe the
+    complete hardware structure of a radio. In either case, the
+    description of the hardware structure should be consistent with
+    hardware partitioning as described in the Hardware Architecture
+    Definition in section 4.0 of the SCA. The devicepkg element (see
+    Figure D-8) is the root element of the DPD. The devicepkg id
+    attribute uniquely identifies the package and is a DCE UUID, as
+    defined in paragraph D.2.1.The name attribute is a user-friendly
+    label for the devicepkg.The version attribute specifies the
+    version of the devicepkg. The format of the version string is
+    numerical major and minor version numbers separated by commas
+    (e.g., "1,0,0,0")."""
     subclass = None
     superclass = None
     def __init__(self, version=None, id_=None, name=None, title=None, author=None, description=None, hwdeviceregistration=None):
-        self.version = version
-        self.id_ = id_
-        self.name = name
+        self.version = _cast(None, version)
+        self.id_ = _cast(None, id_)
+        self.name = _cast(None, name)
         self.title = title
         if author is None:
             self.author = []
@@ -241,42 +443,56 @@ class devicepkg(GeneratedsSuper):
     def set_version(self, version): self.version = version
     versionProp = property(get_version, set_version)
     def get_id(self): return self.id_
-    def set_id(self, id_): self.id_ = id_
-    id_Prop = property(get_id, set_id)
+    def set_id(self, id): self.id_ = id
+    idProp = property(get_id, set_id)
     def get_name(self): return self.name
     def set_name(self, name): self.name = name
     nameProp = property(get_name, set_name)
-    def export(self, outfile, level, namespace_='', name_='devicepkg', namespacedef_=''):
-        showIndent(outfile, level)
-        outfile.write('<%s%s' % (namespace_, name_, ))
-        if len(namespacedef_) > 0: outfile.write('%s' % (namespacedef_, ))
-        self.exportAttributes(outfile, level, namespace_, name_='devicepkg')
-        if self.hasContent_():
-            outfile.write('>\n')
-            self.exportChildren(outfile, level + 1, namespace_, name_)
-            showIndent(outfile, level)
-            outfile.write('</%s%s>\n' % (namespace_, name_))
+    def export(self, outfile, level, namespace_='', name_='devicepkg', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
         else:
-            outfile.write(' />\n')
-    def exportAttributes(self, outfile, level, namespace_='', name_='devicepkg'):
-        if self.version is not None:
-            outfile.write(' version=%s' % (self.format_string(quote_attrib(self.version).encode(ExternalEncoding), input_name='version'), ))
-        outfile.write(' id=%s' % (self.format_string(quote_attrib(self.id_).encode(ExternalEncoding), input_name='id'), ))
-        outfile.write(' name=%s' % (self.format_string(quote_attrib(self.name).encode(ExternalEncoding), input_name='name'), ))
-    def exportChildren(self, outfile, level, namespace_='', name_='devicepkg'):
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='devicepkg')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='devicepkg'):
+        if self.version is not None and 'version' not in already_processed:
+            already_processed.append('version')
+            outfile.write(' version=%s' % (self.gds_format_string(quote_attrib(self.version).encode(ExternalEncoding), input_name='version'), ))
+        if self.id_ is not None and 'id' not in already_processed:
+            already_processed.append('id')
+            outfile.write(' id=%s' % (self.gds_format_string(quote_attrib(self.id_).encode(ExternalEncoding), input_name='id'), ))
+        if self.name is not None and 'name' not in already_processed:
+            already_processed.append('name')
+            outfile.write(' name=%s' % (self.gds_format_string(quote_attrib(self.name).encode(ExternalEncoding), input_name='name'), ))
+    def exportChildren(self, outfile, level, namespace_='', name_='devicepkg', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
         if self.title is not None:
-            showIndent(outfile, level)
-            outfile.write('<%stitle>%s</%stitle>\n' % (namespace_, self.format_string(quote_xml(self.title).encode(ExternalEncoding), input_name='title'), namespace_))
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%stitle>%s</%stitle>%s' % (namespace_, self.gds_format_string(quote_xml(self.title).encode(ExternalEncoding), input_name='title'), namespace_, eol_))
         for author_ in self.author:
-            author_.export(outfile, level, namespace_, name_='author')
-        if self.description:
-            self.description.export(outfile, level, namespace_, name_='description')
-        if self.hwdeviceregistration:
-            self.hwdeviceregistration.export(outfile, level, namespace_, name_='hwdeviceregistration', )
+            author_.export(outfile, level, namespace_, name_='author', pretty_print=pretty_print)
+        if self.description is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%sdescription>%s</%sdescription>%s' % (namespace_, self.gds_format_string(quote_xml(self.description).encode(ExternalEncoding), input_name='description'), namespace_, eol_))
+        if self.hwdeviceregistration is not None:
+            self.hwdeviceregistration.export(outfile, level, namespace_, name_='hwdeviceregistration', pretty_print=pretty_print)
     def hasContent_(self):
         if (
             self.title is not None or
-            self.author is not None or
+            self.author or
             self.description is not None or
             self.hwdeviceregistration is not None
             ):
@@ -285,78 +501,79 @@ class devicepkg(GeneratedsSuper):
             return False
     def exportLiteral(self, outfile, level, name_='devicepkg'):
         level += 1
-        self.exportLiteralAttributes(outfile, level, name_)
+        self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, name_):
-        if self.version is not None:
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
+        if self.version is not None and 'version' not in already_processed:
+            already_processed.append('version')
             showIndent(outfile, level)
-            outfile.write('version = %s,\n' % (self.version,))
-        if self.id_ is not None:
+            outfile.write('version = "%s",\n' % (self.version,))
+        if self.id_ is not None and 'id' not in already_processed:
+            already_processed.append('id')
             showIndent(outfile, level)
-            outfile.write('id_ = %s,\n' % (self.id_,))
-        if self.name is not None:
+            outfile.write('id = "%s",\n' % (self.id_,))
+        if self.name is not None and 'name' not in already_processed:
+            already_processed.append('name')
             showIndent(outfile, level)
-            outfile.write('name = %s,\n' % (self.name,))
+            outfile.write('name = "%s",\n' % (self.name,))
     def exportLiteralChildren(self, outfile, level, name_):
-        showIndent(outfile, level)
-        outfile.write('title=%s,\n' % quote_python(self.title).encode(ExternalEncoding))
+        if self.title is not None:
+            showIndent(outfile, level)
+            outfile.write('title=%s,\n' % quote_python(self.title).encode(ExternalEncoding))
         showIndent(outfile, level)
         outfile.write('author=[\n')
         level += 1
-        for author in self.author:
+        for author_ in self.author:
             showIndent(outfile, level)
             outfile.write('model_.author(\n')
-            author.exportLiteral(outfile, level)
+            author_.exportLiteral(outfile, level)
             showIndent(outfile, level)
             outfile.write('),\n')
         level -= 1
         showIndent(outfile, level)
         outfile.write('],\n')
-        if self.description:
+        if self.description is not None:
             showIndent(outfile, level)
-            outfile.write('description=model_.description(\n')
-            self.description.exportLiteral(outfile, level)
-            showIndent(outfile, level)
-            outfile.write('),\n')
-        if self.hwdeviceregistration:
+            outfile.write('description=%s,\n' % quote_python(self.description).encode(ExternalEncoding))
+        if self.hwdeviceregistration is not None:
             showIndent(outfile, level)
             outfile.write('hwdeviceregistration=model_.hwdeviceregistration(\n')
             self.hwdeviceregistration.exportLiteral(outfile, level)
             showIndent(outfile, level)
             outfile.write('),\n')
-    def build(self, node_):
-        attrs = node_.attributes
-        self.buildAttributes(attrs)
-        for child_ in node_.childNodes:
-            nodeName_ = child_.nodeName.split(':')[-1]
-            self.buildChildren(child_, nodeName_)
-    def buildAttributes(self, attrs):
-        if attrs.get('version'):
-            self.version = attrs.get('version').value
-        if attrs.get('id'):
-            self.id_ = attrs.get('id').value
-        if attrs.get('name'):
-            self.name = attrs.get('name').value
-    def buildChildren(self, child_, nodeName_):
-        if child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'title':
-            title_ = ''
-            for text__content_ in child_.childNodes:
-                title_ += text__content_.nodeValue
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
+        value = find_attr_value_('version', node)
+        if value is not None and 'version' not in already_processed:
+            already_processed.append('version')
+            self.version = value
+        value = find_attr_value_('id', node)
+        if value is not None and 'id' not in already_processed:
+            already_processed.append('id')
+            self.id_ = value
+        value = find_attr_value_('name', node)
+        if value is not None and 'name' not in already_processed:
+            already_processed.append('name')
+            self.name = value
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'title':
+            title_ = child_.text
+            title_ = self.gds_validate_string(title_, node, 'title')
             self.title = title_
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'author':
+        elif nodeName_ == 'author':
             obj_ = author.factory()
             obj_.build(child_)
             self.author.append(obj_)
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'description':
-            obj_ = description.factory()
-            obj_.build(child_)
-            self.set_description(obj_)
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'hwdeviceregistration':
+        elif nodeName_ == 'description':
+            description_ = child_.text
+            description_ = self.gds_validate_string(description_, node, 'description')
+            self.description = description_
+        elif nodeName_ == 'hwdeviceregistration':
             obj_ = hwdeviceregistration.factory()
             obj_.build(child_)
             self.set_hwdeviceregistration(obj_)
@@ -390,33 +607,41 @@ class author(GeneratedsSuper):
     def get_webpage(self): return self.webpage
     def set_webpage(self, webpage): self.webpage = webpage
     webpageProp = property(get_webpage, set_webpage)
-    def export(self, outfile, level, namespace_='', name_='author', namespacedef_=''):
-        showIndent(outfile, level)
-        outfile.write('<%s%s' % (namespace_, name_, ))
-        if len(namespacedef_) > 0: outfile.write('%s' % (namespacedef_, ))
-        self.exportAttributes(outfile, level, namespace_, name_='author')
-        if self.hasContent_():
-            outfile.write('>\n')
-            self.exportChildren(outfile, level + 1, namespace_, name_)
-            showIndent(outfile, level)
-            outfile.write('</%s%s>\n' % (namespace_, name_))
+    def export(self, outfile, level, namespace_='', name_='author', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
         else:
-            outfile.write(' />\n')
-    def exportAttributes(self, outfile, level, namespace_='', name_='author'):
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='author')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='author'):
         pass
-    def exportChildren(self, outfile, level, namespace_='', name_='author'):
+    def exportChildren(self, outfile, level, namespace_='', name_='author', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
         for name_ in self.name:
-            showIndent(outfile, level)
-            outfile.write('<%sname>%s</%sname>\n' % (namespace_, self.format_string(quote_xml(name_).encode(ExternalEncoding), input_name='name'), namespace_))
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%sname>%s</%sname>%s' % (namespace_, self.gds_format_string(quote_xml(name_).encode(ExternalEncoding), input_name='name'), namespace_, eol_))
         if self.company is not None:
-            showIndent(outfile, level)
-            outfile.write('<%scompany>%s</%scompany>\n' % (namespace_, self.format_string(quote_xml(self.company).encode(ExternalEncoding), input_name='company'), namespace_))
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%scompany>%s</%scompany>%s' % (namespace_, self.gds_format_string(quote_xml(self.company).encode(ExternalEncoding), input_name='company'), namespace_, eol_))
         if self.webpage is not None:
-            showIndent(outfile, level)
-            outfile.write('<%swebpage>%s</%swebpage>\n' % (namespace_, self.format_string(quote_xml(self.webpage).encode(ExternalEncoding), input_name='webpage'), namespace_))
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%swebpage>%s</%swebpage>%s' % (namespace_, self.gds_format_string(quote_xml(self.webpage).encode(ExternalEncoding), input_name='webpage'), namespace_, eol_))
     def hasContent_(self):
         if (
-            self.name is not None or
+            self.name or
             self.company is not None or
             self.webpage is not None
             ):
@@ -425,62 +650,67 @@ class author(GeneratedsSuper):
             return False
     def exportLiteral(self, outfile, level, name_='author'):
         level += 1
-        self.exportLiteralAttributes(outfile, level, name_)
+        self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, name_):
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         pass
     def exportLiteralChildren(self, outfile, level, name_):
         showIndent(outfile, level)
         outfile.write('name=[\n')
         level += 1
-        for name in self.name:
+        for name_ in self.name:
             showIndent(outfile, level)
-            outfile.write('%s,\n' % quote_python(name).encode(ExternalEncoding))
+            outfile.write('%s,\n' % quote_python(name_).encode(ExternalEncoding))
         level -= 1
         showIndent(outfile, level)
         outfile.write('],\n')
-        showIndent(outfile, level)
-        outfile.write('company=%s,\n' % quote_python(self.company).encode(ExternalEncoding))
-        showIndent(outfile, level)
-        outfile.write('webpage=%s,\n' % quote_python(self.webpage).encode(ExternalEncoding))
-    def build(self, node_):
-        attrs = node_.attributes
-        self.buildAttributes(attrs)
-        for child_ in node_.childNodes:
-            nodeName_ = child_.nodeName.split(':')[-1]
-            self.buildChildren(child_, nodeName_)
-    def buildAttributes(self, attrs):
+        if self.company is not None:
+            showIndent(outfile, level)
+            outfile.write('company=%s,\n' % quote_python(self.company).encode(ExternalEncoding))
+        if self.webpage is not None:
+            showIndent(outfile, level)
+            outfile.write('webpage=%s,\n' % quote_python(self.webpage).encode(ExternalEncoding))
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
         pass
-    def buildChildren(self, child_, nodeName_):
-        if child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'name':
-            name_ = ''
-            for text__content_ in child_.childNodes:
-                name_ += text__content_.nodeValue
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'name':
+            name_ = child_.text
+            name_ = self.gds_validate_string(name_, node, 'name')
             self.name.append(name_)
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'company':
-            company_ = ''
-            for text__content_ in child_.childNodes:
-                company_ += text__content_.nodeValue
+        elif nodeName_ == 'company':
+            company_ = child_.text
+            company_ = self.gds_validate_string(company_, node, 'company')
             self.company = company_
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'webpage':
-            webpage_ = ''
-            for text__content_ in child_.childNodes:
-                webpage_ += text__content_.nodeValue
+        elif nodeName_ == 'webpage':
+            webpage_ = child_.text
+            webpage_ = self.gds_validate_string(webpage_, node, 'webpage')
             self.webpage = webpage_
 # end class author
 
 
 class hwdeviceregistration(GeneratedsSuper):
+    """At a minimum, the hwdeviceregistration element must include a
+    description, the manufacturer, the model number and the
+    device’s hardware class(es) (Refer to SCA section 4, Hardware
+    Architecture Definition).The hwdeviceregistration id attribute
+    uniquely identifies the device and is a DCE UUID, as defined in
+    paragraph D.2.1.The name attribute is a userfriendlylabel for
+    the hardware device being registered.The version attribute
+    specifies the version of the hwdeviceregistration element. The
+    format of the version string is numerical major and minor
+    version numbers separated by commas (e.g., "1,0,0,0")."""
     subclass = None
     superclass = None
     def __init__(self, version=None, id_=None, name=None, propertyfile=None, description=None, manufacturer=None, modelnumber=None, deviceclass=None, childhwdevice=None):
-        self.version = version
-        self.id_ = id_
-        self.name = name
+        self.version = _cast(None, version)
+        self.id_ = _cast(None, id_)
+        self.name = _cast(None, name)
         self.propertyfile = propertyfile
         self.description = description
         self.manufacturer = manufacturer
@@ -520,43 +750,57 @@ class hwdeviceregistration(GeneratedsSuper):
     def set_version(self, version): self.version = version
     versionProp = property(get_version, set_version)
     def get_id(self): return self.id_
-    def set_id(self, id_): self.id_ = id_
-    id_Prop = property(get_id, set_id)
+    def set_id(self, id): self.id_ = id
+    idProp = property(get_id, set_id)
     def get_name(self): return self.name
     def set_name(self, name): self.name = name
     nameProp = property(get_name, set_name)
-    def export(self, outfile, level, namespace_='', name_='hwdeviceregistration', namespacedef_=''):
-        showIndent(outfile, level)
-        outfile.write('<%s%s' % (namespace_, name_, ))
-        if len(namespacedef_) > 0: outfile.write('%s' % (namespacedef_, ))
-        self.exportAttributes(outfile, level, namespace_, name_='hwdeviceregistration')
-        if self.hasContent_():
-            outfile.write('>\n')
-            self.exportChildren(outfile, level + 1, namespace_, name_)
-            showIndent(outfile, level)
-            outfile.write('</%s%s>\n' % (namespace_, name_))
+    def export(self, outfile, level, namespace_='', name_='hwdeviceregistration', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
         else:
-            outfile.write(' />\n')
-    def exportAttributes(self, outfile, level, namespace_='', name_='hwdeviceregistration'):
-        if self.version is not None:
-            outfile.write(' version=%s' % (self.format_string(quote_attrib(self.version).encode(ExternalEncoding), input_name='version'), ))
-        outfile.write(' id=%s' % (self.format_string(quote_attrib(self.id_).encode(ExternalEncoding), input_name='id'), ))
-        outfile.write(' name=%s' % (self.format_string(quote_attrib(self.name).encode(ExternalEncoding), input_name='name'), ))
-    def exportChildren(self, outfile, level, namespace_='', name_='hwdeviceregistration'):
-        if self.propertyfile:
-            self.propertyfile.export(outfile, level, namespace_, name_='propertyfile')
-        if self.description:
-            self.description.export(outfile, level, namespace_, name_='description', )
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='hwdeviceregistration')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='hwdeviceregistration'):
+        if self.version is not None and 'version' not in already_processed:
+            already_processed.append('version')
+            outfile.write(' version=%s' % (self.gds_format_string(quote_attrib(self.version).encode(ExternalEncoding), input_name='version'), ))
+        if self.id_ is not None and 'id' not in already_processed:
+            already_processed.append('id')
+            outfile.write(' id=%s' % (self.gds_format_string(quote_attrib(self.id_).encode(ExternalEncoding), input_name='id'), ))
+        if self.name is not None and 'name' not in already_processed:
+            already_processed.append('name')
+            outfile.write(' name=%s' % (self.gds_format_string(quote_attrib(self.name).encode(ExternalEncoding), input_name='name'), ))
+    def exportChildren(self, outfile, level, namespace_='', name_='hwdeviceregistration', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.propertyfile is not None:
+            self.propertyfile.export(outfile, level, namespace_, name_='propertyfile', pretty_print=pretty_print)
+        if self.description is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%sdescription>%s</%sdescription>%s' % (namespace_, self.gds_format_string(quote_xml(self.description).encode(ExternalEncoding), input_name='description'), namespace_, eol_))
         if self.manufacturer is not None:
-            showIndent(outfile, level)
-            outfile.write('<%smanufacturer>%s</%smanufacturer>\n' % (namespace_, self.format_string(quote_xml(self.manufacturer).encode(ExternalEncoding), input_name='manufacturer'), namespace_))
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%smanufacturer>%s</%smanufacturer>%s' % (namespace_, self.gds_format_string(quote_xml(self.manufacturer).encode(ExternalEncoding), input_name='manufacturer'), namespace_, eol_))
         if self.modelnumber is not None:
-            showIndent(outfile, level)
-            outfile.write('<%smodelnumber>%s</%smodelnumber>\n' % (namespace_, self.format_string(quote_xml(self.modelnumber).encode(ExternalEncoding), input_name='modelnumber'), namespace_))
-        if self.deviceclass:
-            self.deviceclass.export(outfile, level, namespace_, name_='deviceclass', )
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%smodelnumber>%s</%smodelnumber>%s' % (namespace_, self.gds_format_string(quote_xml(self.modelnumber).encode(ExternalEncoding), input_name='modelnumber'), namespace_, eol_))
+        if self.deviceclass is not None:
+            self.deviceclass.export(outfile, level, namespace_, name_='deviceclass', pretty_print=pretty_print)
         for childhwdevice_ in self.childhwdevice:
-            childhwdevice_.export(outfile, level, namespace_, name_='childhwdevice')
+            childhwdevice_.export(outfile, level, namespace_, name_='childhwdevice', pretty_print=pretty_print)
     def hasContent_(self):
         if (
             self.propertyfile is not None or
@@ -564,44 +808,46 @@ class hwdeviceregistration(GeneratedsSuper):
             self.manufacturer is not None or
             self.modelnumber is not None or
             self.deviceclass is not None or
-            self.childhwdevice is not None
+            self.childhwdevice
             ):
             return True
         else:
             return False
     def exportLiteral(self, outfile, level, name_='hwdeviceregistration'):
         level += 1
-        self.exportLiteralAttributes(outfile, level, name_)
+        self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, name_):
-        if self.version is not None:
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
+        if self.version is not None and 'version' not in already_processed:
+            already_processed.append('version')
             showIndent(outfile, level)
-            outfile.write('version = %s,\n' % (self.version,))
-        if self.id_ is not None:
+            outfile.write('version = "%s",\n' % (self.version,))
+        if self.id_ is not None and 'id' not in already_processed:
+            already_processed.append('id')
             showIndent(outfile, level)
-            outfile.write('id_ = %s,\n' % (self.id_,))
-        if self.name is not None:
+            outfile.write('id = "%s",\n' % (self.id_,))
+        if self.name is not None and 'name' not in already_processed:
+            already_processed.append('name')
             showIndent(outfile, level)
-            outfile.write('name = %s,\n' % (self.name,))
+            outfile.write('name = "%s",\n' % (self.name,))
     def exportLiteralChildren(self, outfile, level, name_):
-        if self.propertyfile:
+        if self.propertyfile is not None:
             showIndent(outfile, level)
             outfile.write('propertyfile=model_.propertyfile(\n')
             self.propertyfile.exportLiteral(outfile, level)
             showIndent(outfile, level)
             outfile.write('),\n')
-        if self.description:
+        if self.description is not None:
             showIndent(outfile, level)
-            outfile.write('description=model_.description(\n')
-            self.description.exportLiteral(outfile, level)
+            outfile.write('description=%s,\n' % quote_python(self.description).encode(ExternalEncoding))
+        if self.manufacturer is not None:
             showIndent(outfile, level)
-            outfile.write('),\n')
-        showIndent(outfile, level)
-        outfile.write('manufacturer=%s,\n' % quote_python(self.manufacturer).encode(ExternalEncoding))
-        showIndent(outfile, level)
-        outfile.write('modelnumber=%s,\n' % quote_python(self.modelnumber).encode(ExternalEncoding))
-        if self.deviceclass:
+            outfile.write('manufacturer=%s,\n' % quote_python(self.manufacturer).encode(ExternalEncoding))
+        if self.modelnumber is not None:
+            showIndent(outfile, level)
+            outfile.write('modelnumber=%s,\n' % quote_python(self.modelnumber).encode(ExternalEncoding))
+        if self.deviceclass is not None:
             showIndent(outfile, level)
             outfile.write('deviceclass=model_.deviceclass(\n')
             self.deviceclass.exportLiteral(outfile, level)
@@ -610,58 +856,55 @@ class hwdeviceregistration(GeneratedsSuper):
         showIndent(outfile, level)
         outfile.write('childhwdevice=[\n')
         level += 1
-        for childhwdevice in self.childhwdevice:
+        for childhwdevice_ in self.childhwdevice:
             showIndent(outfile, level)
             outfile.write('model_.childhwdevice(\n')
-            childhwdevice.exportLiteral(outfile, level)
+            childhwdevice_.exportLiteral(outfile, level)
             showIndent(outfile, level)
             outfile.write('),\n')
         level -= 1
         showIndent(outfile, level)
         outfile.write('],\n')
-    def build(self, node_):
-        attrs = node_.attributes
-        self.buildAttributes(attrs)
-        for child_ in node_.childNodes:
-            nodeName_ = child_.nodeName.split(':')[-1]
-            self.buildChildren(child_, nodeName_)
-    def buildAttributes(self, attrs):
-        if attrs.get('version'):
-            self.version = attrs.get('version').value
-        if attrs.get('id'):
-            self.id_ = attrs.get('id').value
-        if attrs.get('name'):
-            self.name = attrs.get('name').value
-    def buildChildren(self, child_, nodeName_):
-        if child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'propertyfile':
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
+        value = find_attr_value_('version', node)
+        if value is not None and 'version' not in already_processed:
+            already_processed.append('version')
+            self.version = value
+        value = find_attr_value_('id', node)
+        if value is not None and 'id' not in already_processed:
+            already_processed.append('id')
+            self.id_ = value
+        value = find_attr_value_('name', node)
+        if value is not None and 'name' not in already_processed:
+            already_processed.append('name')
+            self.name = value
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'propertyfile':
             obj_ = propertyfile.factory()
             obj_.build(child_)
             self.set_propertyfile(obj_)
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'description':
-            obj_ = description.factory()
-            obj_.build(child_)
-            self.set_description(obj_)
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'manufacturer':
-            manufacturer_ = ''
-            for text__content_ in child_.childNodes:
-                manufacturer_ += text__content_.nodeValue
+        elif nodeName_ == 'description':
+            description_ = child_.text
+            description_ = self.gds_validate_string(description_, node, 'description')
+            self.description = description_
+        elif nodeName_ == 'manufacturer':
+            manufacturer_ = child_.text
+            manufacturer_ = self.gds_validate_string(manufacturer_, node, 'manufacturer')
             self.manufacturer = manufacturer_
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'modelnumber':
-            modelnumber_ = ''
-            for text__content_ in child_.childNodes:
-                modelnumber_ += text__content_.nodeValue
+        elif nodeName_ == 'modelnumber':
+            modelnumber_ = child_.text
+            modelnumber_ = self.gds_validate_string(modelnumber_, node, 'modelnumber')
             self.modelnumber = modelnumber_
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'deviceclass':
+        elif nodeName_ == 'deviceclass':
             obj_ = deviceclass.factory()
             obj_.build(child_)
             self.set_deviceclass(obj_)
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'childhwdevice':
+        elif nodeName_ == 'childhwdevice':
             obj_ = childhwdevice.factory()
             obj_.build(child_)
             self.childhwdevice.append(obj_)
@@ -672,7 +915,7 @@ class propertyfile(GeneratedsSuper):
     subclass = None
     superclass = None
     def __init__(self, type_=None, localfile=None):
-        self.type_ = type_
+        self.type_ = _cast(None, type_)
         self.localfile = localfile
     def factory(*args_, **kwargs_):
         if propertyfile.subclass:
@@ -685,25 +928,34 @@ class propertyfile(GeneratedsSuper):
     localfileProp = property(get_localfile, set_localfile)
     def get_type(self): return self.type_
     def set_type(self, type_): self.type_ = type_
-    type_Prop = property(get_type, set_type)
-    def export(self, outfile, level, namespace_='', name_='propertyfile', namespacedef_=''):
-        showIndent(outfile, level)
-        outfile.write('<%s%s' % (namespace_, name_, ))
-        if len(namespacedef_) > 0: outfile.write('%s' % (namespacedef_, ))
-        self.exportAttributes(outfile, level, namespace_, name_='propertyfile')
-        if self.hasContent_():
-            outfile.write('>\n')
-            self.exportChildren(outfile, level + 1, namespace_, name_)
-            showIndent(outfile, level)
-            outfile.write('</%s%s>\n' % (namespace_, name_))
+    typeProp = property(get_type, set_type)
+    def export(self, outfile, level, namespace_='', name_='propertyfile', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
         else:
-            outfile.write(' />\n')
-    def exportAttributes(self, outfile, level, namespace_='', name_='propertyfile'):
-        if self.type_ is not None:
-            outfile.write(' type=%s' % (self.format_string(quote_attrib(self.type_).encode(ExternalEncoding), input_name='type'), ))
-    def exportChildren(self, outfile, level, namespace_='', name_='propertyfile'):
-        if self.localfile:
-            self.localfile.export(outfile, level, namespace_, name_='localfile', )
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='propertyfile')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='propertyfile'):
+        if self.type_ is not None and 'type_' not in already_processed:
+            already_processed.append('type_')
+            outfile.write(' type=%s' % (self.gds_format_string(quote_attrib(self.type_).encode(ExternalEncoding), input_name='type'), ))
+    def exportChildren(self, outfile, level, namespace_='', name_='propertyfile', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.localfile is not None:
+            self.localfile.export(outfile, level, namespace_, name_='localfile', pretty_print=pretty_print)
     def hasContent_(self):
         if (
             self.localfile is not None
@@ -713,32 +965,33 @@ class propertyfile(GeneratedsSuper):
             return False
     def exportLiteral(self, outfile, level, name_='propertyfile'):
         level += 1
-        self.exportLiteralAttributes(outfile, level, name_)
+        self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, name_):
-        if self.type_ is not None:
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
+        if self.type_ is not None and 'type_' not in already_processed:
+            already_processed.append('type_')
             showIndent(outfile, level)
-            outfile.write('type_ = %s,\n' % (self.type_,))
+            outfile.write('type_ = "%s",\n' % (self.type_,))
     def exportLiteralChildren(self, outfile, level, name_):
-        if self.localfile:
+        if self.localfile is not None:
             showIndent(outfile, level)
             outfile.write('localfile=model_.localfile(\n')
             self.localfile.exportLiteral(outfile, level)
             showIndent(outfile, level)
             outfile.write('),\n')
-    def build(self, node_):
-        attrs = node_.attributes
-        self.buildAttributes(attrs)
-        for child_ in node_.childNodes:
-            nodeName_ = child_.nodeName.split(':')[-1]
-            self.buildChildren(child_, nodeName_)
-    def buildAttributes(self, attrs):
-        if attrs.get('type'):
-            self.type_ = attrs.get('type').value
-    def buildChildren(self, child_, nodeName_):
-        if child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'localfile':
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
+        value = find_attr_value_('type', node)
+        if value is not None and 'type' not in already_processed:
+            already_processed.append('type')
+            self.type_ = value
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'localfile':
             obj_ = localfile.factory()
             obj_.build(child_)
             self.set_localfile(obj_)
@@ -748,9 +1001,9 @@ class propertyfile(GeneratedsSuper):
 class localfile(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, name=None, valueOf_=''):
-        self.name = name
-        self.valueOf_ = valueOf_
+    def __init__(self, name=None):
+        self.name = _cast(None, name)
+        pass
     def factory(*args_, **kwargs_):
         if localfile.subclass:
             return localfile.subclass(*args_, **kwargs_)
@@ -760,64 +1013,66 @@ class localfile(GeneratedsSuper):
     def get_name(self): return self.name
     def set_name(self, name): self.name = name
     nameProp = property(get_name, set_name)
-    def getValueOf_(self): return self.valueOf_
-    def setValueOf_(self, valueOf_): self.valueOf_ = valueOf_
-    def export(self, outfile, level, namespace_='', name_='localfile', namespacedef_=''):
-        showIndent(outfile, level)
-        outfile.write('<%s%s' % (namespace_, name_, ))
-        if len(namespacedef_) > 0: outfile.write('%s' % (namespacedef_, ))
-        self.exportAttributes(outfile, level, namespace_, name_='localfile')
-        outfile.write('>')
-        self.exportChildren(outfile, level + 1, namespace_, name_)
-        outfile.write('</%s%s>\n' % (namespace_, name_))
-    def exportAttributes(self, outfile, level, namespace_='', name_='localfile'):
-        outfile.write(' name=%s' % (self.format_string(quote_attrib(self.name).encode(ExternalEncoding), input_name='name'), ))
-    def exportChildren(self, outfile, level, namespace_='', name_='localfile'):
-        if self.valueOf_.find('![CDATA')>-1:
-            value=quote_xml('%s' % self.valueOf_)
-            value=value.replace('![CDATA','<![CDATA')
-            value=value.replace(']]',']]>')
-            outfile.write(value)
+    def export(self, outfile, level, namespace_='', name_='localfile', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
         else:
-            outfile.write(quote_xml('%s' % self.valueOf_))
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='localfile')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='localfile'):
+        if self.name is not None and 'name' not in already_processed:
+            already_processed.append('name')
+            outfile.write(' name=%s' % (self.gds_format_string(quote_attrib(self.name).encode(ExternalEncoding), input_name='name'), ))
+    def exportChildren(self, outfile, level, namespace_='', name_='localfile', fromsubclass_=False, pretty_print=True):
+        pass
     def hasContent_(self):
         if (
-            self.valueOf_ is not None
+
             ):
             return True
         else:
             return False
     def exportLiteral(self, outfile, level, name_='localfile'):
         level += 1
-        self.exportLiteralAttributes(outfile, level, name_)
+        self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, name_):
-        if self.name is not None:
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
+        if self.name is not None and 'name' not in already_processed:
+            already_processed.append('name')
             showIndent(outfile, level)
-            outfile.write('name = %s,\n' % (self.name,))
+            outfile.write('name = "%s",\n' % (self.name,))
     def exportLiteralChildren(self, outfile, level, name_):
-        showIndent(outfile, level)
-        outfile.write('valueOf_ = "%s",\n' % (self.valueOf_,))
-    def build(self, node_):
-        attrs = node_.attributes
-        self.buildAttributes(attrs)
-        self.valueOf_ = ''
-        for child_ in node_.childNodes:
-            nodeName_ = child_.nodeName.split(':')[-1]
-            self.buildChildren(child_, nodeName_)
-    def buildAttributes(self, attrs):
-        if attrs.get('name'):
-            self.name = attrs.get('name').value
-    def buildChildren(self, child_, nodeName_):
-        if child_.nodeType == Node.TEXT_NODE:
-            self.valueOf_ += child_.nodeValue
-        elif child_.nodeType == Node.CDATA_SECTION_NODE:
-            self.valueOf_ += '![CDATA['+child_.nodeValue+']]'
+        pass
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
+        value = find_attr_value_('name', node)
+        if value is not None and 'name' not in already_processed:
+            already_processed.append('name')
+            self.name = value
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        pass
 # end class localfile
 
 
 class deviceclass(GeneratedsSuper):
+    """The deviceclass element is used to identify one or more hardware
+    classes that make up the device being installed (e.g., RF,
+    Modem, I/O, as defined in SCA section 4.2.2 HWModule(s) Class
+    Structure)."""
     subclass = None
     superclass = None
     def __init__(self, classxx=None):
@@ -836,67 +1091,82 @@ class deviceclass(GeneratedsSuper):
     def add_class(self, value): self.classxx.append(value)
     def insert_class(self, index, value): self.classxx[index] = value
     classProp = property(get_class, set_class)
-    def export(self, outfile, level, namespace_='', name_='deviceclass', namespacedef_=''):
-        showIndent(outfile, level)
-        outfile.write('<%s%s' % (namespace_, name_, ))
-        if len(namespacedef_) > 0: outfile.write('%s' % (namespacedef_, ))
-        self.exportAttributes(outfile, level, namespace_, name_='deviceclass')
-        if self.hasContent_():
-            outfile.write('>\n')
-            self.exportChildren(outfile, level + 1, namespace_, name_)
-            showIndent(outfile, level)
-            outfile.write('</%s%s>\n' % (namespace_, name_))
+    def export(self, outfile, level, namespace_='', name_='deviceclass', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
         else:
-            outfile.write(' />\n')
-    def exportAttributes(self, outfile, level, namespace_='', name_='deviceclass'):
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='deviceclass')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='deviceclass'):
         pass
-    def exportChildren(self, outfile, level, namespace_='', name_='deviceclass'):
+    def exportChildren(self, outfile, level, namespace_='', name_='deviceclass', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
         for class_ in self.classxx:
-            showIndent(outfile, level)
-            outfile.write('<%sclass>%s</%sclass>\n' % (namespace_, self.format_string(quote_xml(class_).encode(ExternalEncoding), input_name='class'), namespace_))
+            showIndent(outfile, level, pretty_print)
+            outfile.write('<%sclass>%s</%sclass>%s' % (namespace_, self.gds_format_string(quote_xml(class_).encode(ExternalEncoding), input_name='class'), namespace_, eol_))
     def hasContent_(self):
         if (
-            self.classxx is not None
+            self.classxx
             ):
             return True
         else:
             return False
     def exportLiteral(self, outfile, level, name_='deviceclass'):
         level += 1
-        self.exportLiteralAttributes(outfile, level, name_)
+        self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, name_):
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         pass
     def exportLiteralChildren(self, outfile, level, name_):
         showIndent(outfile, level)
-        outfile.write('class=[\n')
+        outfile.write('classxx=[\n')
         level += 1
-        for classxx in self.classxx:
+        for class_ in self.classxx:
             showIndent(outfile, level)
-            outfile.write('%s,\n' % quote_python(classxx).encode(ExternalEncoding))
+            outfile.write('%s,\n' % quote_python(class_).encode(ExternalEncoding))
         level -= 1
         showIndent(outfile, level)
         outfile.write('],\n')
-    def build(self, node_):
-        attrs = node_.attributes
-        self.buildAttributes(attrs)
-        for child_ in node_.childNodes:
-            nodeName_ = child_.nodeName.split(':')[-1]
-            self.buildChildren(child_, nodeName_)
-    def buildAttributes(self, attrs):
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
         pass
-    def buildChildren(self, child_, nodeName_):
-        if child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'class':
-            class_ = ''
-            for text__content_ in child_.childNodes:
-                class_ += text__content_.nodeValue
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'class':
+            class_ = child_.text
+            class_ = self.gds_validate_string(class_, node, 'class')
             self.classxx.append(class_)
 # end class deviceclass
 
 
 class childhwdevice(GeneratedsSuper):
+    """The childhwdevice element (see Figure D-10) indicates additional
+    device-specific information for hardware devices that make up
+    the root or parent hardware device registration. An example of
+    childhwdevice would be a radio’s RF module that has receiver
+    and exciter functions within it. In this case, a CF Device
+    representing the RF module itself would be a parent Device with
+    its DPD, and the receiver and exciter are child devices to the
+    module. The parent / child relationship indicates that when the
+    RF module is removed from the system, the receiver and exciter
+    devices are also removed."""
     subclass = None
     superclass = None
     def __init__(self, hwdeviceregistration=None, devicepkgref=None):
@@ -914,25 +1184,33 @@ class childhwdevice(GeneratedsSuper):
     def get_devicepkgref(self): return self.devicepkgref
     def set_devicepkgref(self, devicepkgref): self.devicepkgref = devicepkgref
     devicepkgrefProp = property(get_devicepkgref, set_devicepkgref)
-    def export(self, outfile, level, namespace_='', name_='childhwdevice', namespacedef_=''):
-        showIndent(outfile, level)
-        outfile.write('<%s%s' % (namespace_, name_, ))
-        if len(namespacedef_) > 0: outfile.write('%s' % (namespacedef_, ))
-        self.exportAttributes(outfile, level, namespace_, name_='childhwdevice')
-        if self.hasContent_():
-            outfile.write('>\n')
-            self.exportChildren(outfile, level + 1, namespace_, name_)
-            showIndent(outfile, level)
-            outfile.write('</%s%s>\n' % (namespace_, name_))
+    def export(self, outfile, level, namespace_='', name_='childhwdevice', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
         else:
-            outfile.write(' />\n')
-    def exportAttributes(self, outfile, level, namespace_='', name_='childhwdevice'):
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='childhwdevice')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='childhwdevice'):
         pass
-    def exportChildren(self, outfile, level, namespace_='', name_='childhwdevice'):
-        if self.hwdeviceregistration:
-            self.hwdeviceregistration.export(outfile, level, namespace_, name_='hwdeviceregistration', )
-        if self.devicepkgref:
-            self.devicepkgref.export(outfile, level, namespace_, name_='devicepkgref', )
+    def exportChildren(self, outfile, level, namespace_='', name_='childhwdevice', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.hwdeviceregistration is not None:
+            self.hwdeviceregistration.export(outfile, level, namespace_, name_='hwdeviceregistration', pretty_print=pretty_print)
+        if self.devicepkgref is not None:
+            self.devicepkgref.export(outfile, level, namespace_, name_='devicepkgref', pretty_print=pretty_print)
     def hasContent_(self):
         if (
             self.hwdeviceregistration is not None or
@@ -943,40 +1221,37 @@ class childhwdevice(GeneratedsSuper):
             return False
     def exportLiteral(self, outfile, level, name_='childhwdevice'):
         level += 1
-        self.exportLiteralAttributes(outfile, level, name_)
+        self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, name_):
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         pass
     def exportLiteralChildren(self, outfile, level, name_):
-        if self.hwdeviceregistration:
+        if self.hwdeviceregistration is not None:
             showIndent(outfile, level)
             outfile.write('hwdeviceregistration=model_.hwdeviceregistration(\n')
             self.hwdeviceregistration.exportLiteral(outfile, level)
             showIndent(outfile, level)
             outfile.write('),\n')
-        if self.devicepkgref:
+        if self.devicepkgref is not None:
             showIndent(outfile, level)
             outfile.write('devicepkgref=model_.devicepkgref(\n')
             self.devicepkgref.exportLiteral(outfile, level)
             showIndent(outfile, level)
             outfile.write('),\n')
-    def build(self, node_):
-        attrs = node_.attributes
-        self.buildAttributes(attrs)
-        for child_ in node_.childNodes:
-            nodeName_ = child_.nodeName.split(':')[-1]
-            self.buildChildren(child_, nodeName_)
-    def buildAttributes(self, attrs):
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
         pass
-    def buildChildren(self, child_, nodeName_):
-        if child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'hwdeviceregistration':
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'hwdeviceregistration':
             obj_ = hwdeviceregistration.factory()
             obj_.build(child_)
             self.set_hwdeviceregistration(obj_)
-        elif child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'devicepkgref':
+        elif nodeName_ == 'devicepkgref':
             obj_ = devicepkgref.factory()
             obj_.build(child_)
             self.set_devicepkgref(obj_)
@@ -987,7 +1262,7 @@ class devicepkgref(GeneratedsSuper):
     subclass = None
     superclass = None
     def __init__(self, type_=None, localfile=None):
-        self.type_ = type_
+        self.type_ = _cast(None, type_)
         self.localfile = localfile
     def factory(*args_, **kwargs_):
         if devicepkgref.subclass:
@@ -1000,25 +1275,34 @@ class devicepkgref(GeneratedsSuper):
     localfileProp = property(get_localfile, set_localfile)
     def get_type(self): return self.type_
     def set_type(self, type_): self.type_ = type_
-    type_Prop = property(get_type, set_type)
-    def export(self, outfile, level, namespace_='', name_='devicepkgref', namespacedef_=''):
-        showIndent(outfile, level)
-        outfile.write('<%s%s' % (namespace_, name_, ))
-        if len(namespacedef_) > 0: outfile.write('%s' % (namespacedef_, ))
-        self.exportAttributes(outfile, level, namespace_, name_='devicepkgref')
-        if self.hasContent_():
-            outfile.write('>\n')
-            self.exportChildren(outfile, level + 1, namespace_, name_)
-            showIndent(outfile, level)
-            outfile.write('</%s%s>\n' % (namespace_, name_))
+    typeProp = property(get_type, set_type)
+    def export(self, outfile, level, namespace_='', name_='devicepkgref', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
         else:
-            outfile.write(' />\n')
-    def exportAttributes(self, outfile, level, namespace_='', name_='devicepkgref'):
-        if self.type_ is not None:
-            outfile.write(' type=%s' % (self.format_string(quote_attrib(self.type_).encode(ExternalEncoding), input_name='type'), ))
-    def exportChildren(self, outfile, level, namespace_='', name_='devicepkgref'):
-        if self.localfile:
-            self.localfile.export(outfile, level, namespace_, name_='localfile', )
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='devicepkgref')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='devicepkgref'):
+        if self.type_ is not None and 'type_' not in already_processed:
+            already_processed.append('type_')
+            outfile.write(' type=%s' % (self.gds_format_string(quote_attrib(self.type_).encode(ExternalEncoding), input_name='type'), ))
+    def exportChildren(self, outfile, level, namespace_='', name_='devicepkgref', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.localfile is not None:
+            self.localfile.export(outfile, level, namespace_, name_='localfile', pretty_print=pretty_print)
     def hasContent_(self):
         if (
             self.localfile is not None
@@ -1028,32 +1312,33 @@ class devicepkgref(GeneratedsSuper):
             return False
     def exportLiteral(self, outfile, level, name_='devicepkgref'):
         level += 1
-        self.exportLiteralAttributes(outfile, level, name_)
+        self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, name_):
-        if self.type_ is not None:
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
+        if self.type_ is not None and 'type_' not in already_processed:
+            already_processed.append('type_')
             showIndent(outfile, level)
-            outfile.write('type_ = %s,\n' % (self.type_,))
+            outfile.write('type_ = "%s",\n' % (self.type_,))
     def exportLiteralChildren(self, outfile, level, name_):
-        if self.localfile:
+        if self.localfile is not None:
             showIndent(outfile, level)
             outfile.write('localfile=model_.localfile(\n')
             self.localfile.exportLiteral(outfile, level)
             showIndent(outfile, level)
             outfile.write('),\n')
-    def build(self, node_):
-        attrs = node_.attributes
-        self.buildAttributes(attrs)
-        for child_ in node_.childNodes:
-            nodeName_ = child_.nodeName.split(':')[-1]
-            self.buildChildren(child_, nodeName_)
-    def buildAttributes(self, attrs):
-        if attrs.get('type'):
-            self.type_ = attrs.get('type').value
-    def buildChildren(self, child_, nodeName_):
-        if child_.nodeType == Node.ELEMENT_NODE and \
-            nodeName_ == 'localfile':
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
+        value = find_attr_value_('type', node)
+        if value is not None and 'type' not in already_processed:
+            already_processed.append('type')
+            self.type_ = value
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'localfile':
             obj_ = localfile.factory()
             obj_.build(child_)
             self.set_localfile(obj_)
@@ -1062,8 +1347,6 @@ class devicepkgref(GeneratedsSuper):
 
 USAGE_TEXT = """
 Usage: python <Parser>.py [ -s ] <in_xml_file>
-Options:
-    -s        Use the SAX parser, not the minidom parser.
 """
 
 def usage():
@@ -1071,26 +1354,40 @@ def usage():
     sys.exit(1)
 
 
+def get_root_tag(node):
+    tag = Tag_pattern_.match(node.tag).groups()[-1]
+    rootClass = globals().get(tag)
+    return tag, rootClass
+
+
 def parse(inFileName):
-    doc = minidom.parse(inFileName)
-    rootNode = doc.documentElement
-    rootObj = devicepkg.factory()
+    doc = parsexml_(inFileName)
+    rootNode = doc.getroot()
+    rootTag, rootClass = get_root_tag(rootNode)
+    if rootClass is None:
+        rootTag = 'devicepkg'
+        rootClass = devicepkg
+    rootObj = rootClass.factory()
     rootObj.build(rootNode)
-    doc.unlink()
     # Enable Python to collect the space used by the DOM.
     doc = None
 ##     sys.stdout.write('<?xml version="1.0" ?>\n')
-##     rootObj.export(sys.stdout, 0, name_="devicepkg", 
-##         namespacedef_='')
+##     rootObj.export(sys.stdout, 0, name_=rootTag,
+##         namespacedef_='',
+##         pretty_print=True)
     return rootObj
 
 
 def parseString(inString):
-    doc = minidom.parseString(inString)
-    rootNode = doc.documentElement
-    rootObj = devicepkg.factory()
+    from StringIO import StringIO
+    doc = parsexml_(StringIO(inString))
+    rootNode = doc.getroot()
+    rootTag, rootClass = get_root_tag(rootNode)
+    if rootClass is None:
+        rootTag = 'devicepkg'
+        rootClass = devicepkg
+    rootObj = rootClass.factory()
     rootObj.build(rootNode)
-    doc.unlink()
     # Enable Python to collect the space used by the DOM.
     doc = None
 ##     sys.stdout.write('<?xml version="1.0" ?>\n')
@@ -1100,16 +1397,20 @@ def parseString(inString):
 
 
 def parseLiteral(inFileName):
-    doc = minidom.parse(inFileName)
-    rootNode = doc.documentElement
-    rootObj = devicepkg.factory()
+    doc = parsexml_(inFileName)
+    rootNode = doc.getroot()
+    rootTag, rootClass = get_root_tag(rootNode)
+    if rootClass is None:
+        rootTag = 'devicepkg'
+        rootClass = devicepkg
+    rootObj = rootClass.factory()
     rootObj.build(rootNode)
-    doc.unlink()
     # Enable Python to collect the space used by the DOM.
     doc = None
-##     sys.stdout.write('from dpd import *\n\n')
-##     sys.stdout.write('rootObj = devicepkg(\n')
-##     rootObj.exportLiteral(sys.stdout, 0, name_="devicepkg")
+##     sys.stdout.write('#from dpd import *\n\n')
+##     sys.stdout.write('import dpd as model_\n\n')
+##     sys.stdout.write('rootObj = model_.rootTag(\n')
+##     rootObj.exportLiteral(sys.stdout, 0, name_=rootTag)
 ##     sys.stdout.write(')\n')
     return rootObj
 
@@ -1123,7 +1424,17 @@ def main():
 
 
 if __name__ == '__main__':
+    #import pdb; pdb.set_trace()
     main()
-    #import pdb
-    #pdb.run('main()')
 
+
+__all__ = [
+    "author",
+    "childhwdevice",
+    "deviceclass",
+    "devicepkg",
+    "devicepkgref",
+    "hwdeviceregistration",
+    "localfile",
+    "propertyfile"
+    ]

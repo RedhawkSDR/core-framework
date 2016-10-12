@@ -23,9 +23,19 @@ package basicac_java_impl1.ports;
 
 import java.util.HashMap;
 import java.util.Map;
-
+import org.apache.log4j.Level;
 import org.ossie.component.UsesPort;
 import CF.*;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.PropertyConfigurator;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.Layout;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Appender;
+import org.apache.log4j.Level;
 
 /**
  * @generated
@@ -280,6 +290,29 @@ public class CF_ResourceOutPort extends UsesPort<ResourceOperations> implements 
     /**
      * @generated
      */
+    public String softwareProfile() 
+    {
+        String retval = "";
+        
+        synchronized(this.updatingPortsLock) {    // don't want to process while command information is coming in
+            if (this.active) {
+                //begin-user-code
+                //end-user-code
+                
+                for (ResourceOperations p : this.outConnections.values()) {
+                       retval = p.softwareProfile();
+                }
+            }
+        }    // don't want to process while command information is coming in
+        
+        //begin-user-code
+        //end-user-code
+        
+        return retval;
+    }
+    /**
+     * @generated
+     */
     public void stop() throws CF.ResourcePackage.StopError
     {
         synchronized(this.updatingPortsLock) {    // don't want to process while command information is coming in
@@ -299,8 +332,107 @@ public class CF_ResourceOutPort extends UsesPort<ResourceOperations> implements 
         return;
     }
 
+
+    public int log_level() {
+	return logLevel;
+    }
+
+    public void log_level( int newLogLevel ) {
+	Level tlevel=Level.INFO;
+	logLevel = newLogLevel;	       
+	if (newLogLevel == CF.LogLevels.OFF) {
+	    tlevel = Level.OFF;
+	}
+	if (newLogLevel == CF.LogLevels.ERROR) {
+	    tlevel = Level.ERROR;
+	}
+	if (newLogLevel == CF.LogLevels.WARN) {
+	    tlevel = Level.WARN;
+	}
+	if (newLogLevel == CF.LogLevels.INFO) {
+	    tlevel = Level.INFO;
+	}
+	if (newLogLevel == CF.LogLevels.DEBUG) {
+	    tlevel = Level.DEBUG;
+	}
+	if (newLogLevel == CF.LogLevels.TRACE) {
+	    tlevel = Level.TRACE;
+	}
+	if (newLogLevel == CF.LogLevels.ALL) {
+	    tlevel = Level.ALL;
+	}
+
+        Logger logger = Logger.getRootLogger();
+	logger.setLevel(tlevel);
+    }
+
+
+      public void setLogLevel( String logger_id, int newLogLevel ) throws UnknownIdentifier {
+
+	    Level tlevel=Level.INFO;
+	    logLevel = newLogLevel;	       
+	    if (newLogLevel == CF.LogLevels.OFF) {
+		tlevel = Level.OFF;
+	    }
+	    if (newLogLevel == CF.LogLevels.ERROR) {
+		tlevel = Level.ERROR;
+	    }
+	    if (newLogLevel == CF.LogLevels.WARN) {
+		tlevel = Level.WARN;
+	    }
+	    if (newLogLevel == CF.LogLevels.INFO) {
+		tlevel = Level.INFO;
+	    }
+	    if (newLogLevel == CF.LogLevels.DEBUG) {
+		tlevel = Level.DEBUG;
+	    }
+	    if (newLogLevel == CF.LogLevels.TRACE) {
+		tlevel = Level.TRACE;
+	    }
+	    if (newLogLevel == CF.LogLevels.ALL) {
+		tlevel = Level.ALL;
+	    }
+	    Logger logger = Logger.getLogger( logger_id );
+	    if ( logger != null ) {
+		logger.setLevel( tlevel );
+	    }
+
+	}
+    public  String getLogConfig() {
+	return logConfig;
+    }
+
+    public void setLogConfig( String config_contents ) {
+	logConfig = config_contents;
+    }
+
+    public void setLogConfigURL( String config_url ) {
+    }
+
+    
+    protected int     logLevel;
+    protected String  logConfig;
+
     /**
      * @generated
      */
     private CF.DataType[] Sequence_configure_0;
+
+    public CF.LogEvent[] retrieve_records( org.omg.CORBA.IntHolder howMany, int startingPoint ) {
+        howMany=new org.omg.CORBA.IntHolder(0);
+        CF.LogEvent[] seq = new CF.LogEvent[0]; 
+	return seq;
+    }
+
+    public CF.LogEvent[] retrieve_records_by_date( org.omg.CORBA.IntHolder howMany, long to_timeStamp ) {
+        howMany=new org.omg.CORBA.IntHolder(0);
+        CF.LogEvent[] seq = new CF.LogEvent[0]; 
+	return seq;
+    }
+
+    public CF.LogEvent[] retrieve_records_from_date( org.omg.CORBA.IntHolder howMany, long from_timeStamp ) {
+        howMany=new org.omg.CORBA.IntHolder(0);
+        CF.LogEvent[] seq = new CF.LogEvent[0]; 
+	return seq;
+    }
 }

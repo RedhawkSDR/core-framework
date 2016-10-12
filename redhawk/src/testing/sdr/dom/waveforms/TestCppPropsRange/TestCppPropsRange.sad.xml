@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:dd1e1dd2-633b-4902-a32a-82035aaa9a7b" name="TestCppPropsRange">
+  <componentfiles>
+    <componentfile id="TestCppPropsRange_fed509a7-541f-4be7-a016-9516f4fe2b16" type="SPD">
+      <localfile name="/components/TestCppPropsRange/TestCppPropsRange.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="TestCppPropsRange_fed509a7-541f-4be7-a016-9516f4fe2b16"/>
+      <componentinstantiation id="TestCppPropsRange_1" startorder="0">
+        <usagename>TestCppPropsRange_1</usagename>
+        <findcomponent>
+          <namingservice name="TestCppPropsRange_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="TestCppPropsRange_1"/>
+  </assemblycontroller>
+</softwareassembly>

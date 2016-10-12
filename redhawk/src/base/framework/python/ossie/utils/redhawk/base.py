@@ -28,13 +28,6 @@ from ossie.cf import CF as _CF
 import ossie.utils as _utils
 from ossie.utils.sca import importIDL as _importIDL
 
-_ossiehome = _os.getenv('OSSIEHOME')
-if _ossiehome == None:
-    _ossiehome = ''
-    _interface_list = []
-else:
-    _interface_list = _importIDL.importStandardIdl()
-
 class _envContainer(object):
     def __init__(self, domain, stdout):
         self.domain = int(domain)
@@ -141,16 +134,19 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
     
 
 def scan(location=None):
-    orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
-
-    if location:
-        obj = orb.string_to_object('corbaname::'+location)
-    else:
-        obj = orb.resolve_initial_references("NameService")
-    try:
-        rootContext = obj._narrow(_CosNaming.NamingContext)
-    except:
-        raise RuntimeError('NameService not found')
+    input_arguments = _sys.argv
+    if location != None:
+        if len(_sys.argv) == 1:
+            if _sys.argv[0] == '':
+                input_arguments = ['-ORBInitRef','NameService=corbaname::'+location]
+            else:
+                input_arguments.append('-ORBInitRef','NameService=corbaname::'+location)
+        else:
+            input_arguments.append('-ORBInitRef','NameService=corbaname::'+location)
+        
+    orb = _CORBA.ORB_init(input_arguments, _CORBA.ORB_ID)
+    obj = orb.resolve_initial_references("NameService")
+    rootContext = obj._narrow(_CosNaming.NamingContext)
     
     base_list = rootContext.list(100)
     domainsFound = []
@@ -184,8 +180,13 @@ def attach(domain=None, location=None):
         to the Domain.
     """
     if domain == None:
-        return None
+        domains = scan(location)
+        if len(domains) == 1:
+            domain = domains[0]
+        else:
+            print "Multiple domains found: "+str(domains)+". Please specify one."
+            return None
     
-    dom_entry = _core.Domain(name=domain, int_list = _interface_list, location=location)
+    dom_entry = _core.Domain(name=str(domain), location=location)
     
     return dom_entry

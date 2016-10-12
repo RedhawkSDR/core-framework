@@ -28,7 +28,7 @@ Prefix:         %{_prefix}
 %bcond_without java
 
 Name:           bulkioInterfaces
-Version:        1.8.8
+Version:        1.10.2
 Release:        1%{?dist}
 Summary:        The bulkio library for REDHAWK
 
@@ -36,33 +36,17 @@ Group:          Applications/Engineering
 License:        LGPLv3+
 URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
+Vendor:         REDHAWK
 
 BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
-Requires: 	redhawk >= 1.8
-BuildRequires: 	redhawk >= 1.8
-BuildRequires: 	autoconf automake libtool
-BuildRequires: 	omniORB
-BuildRequires: 	python omniORBpy omniORBpy-devel
-BuildRequires: 	apache-log4cxx-devel
-%if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
-BuildRequires: 	libuuid-devel
-%else
-BuildRequires: 	e2fsprogs-devel
-%endif
-%if %{with java}
-Requires:       java >= 1.6
-BuildRequires: 	java-devel >= 1.6
-BuildRequires:  jpackage-utils
-%endif
-
+Requires: 	redhawk >= 1.9
+BuildRequires: 	redhawk-devel >= 1.9
 
 %description
 Libraries and interface definitions for bulkio interfaces.
  * Commit: __REVISION__
  * Source Date/Time: __DATETIME__
-
-
 
 %prep
 %setup -q
@@ -84,18 +68,24 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 
 
 %files
-%defattr(-,redhawk,redhawk)
+%defattr(-,root,root,-)
 %{_datadir}/idl/ossie/BULKIO
+%{_includedir}/bulkio
 %{_includedir}/ossie/BULKIO
 %{_libdir}/libbulkioInterfaces.*
+%{_libdir}/libbulkio-*
+%{_libdir}/pkgconfig/bulkio.pc
 %{_libdir}/pkgconfig/bulkioInterfaces.pc
 %{_prefix}/lib/python/bulkio
 %if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
+%{_prefix}/lib/python/bulkio-%{version}-py%{python_version}.egg-info
 %{_prefix}/lib/python/bulkioInterfaces-%{version}-py%{python_version}.egg-info
 %endif
 %if %{with java}
 %{_prefix}/lib/BULKIOInterfaces.jar
 %{_prefix}/lib/BULKIOInterfaces.src.jar
+%{_prefix}/lib/bulkio.jar
+%{_prefix}/lib/bulkio.src.jar
 %{_prefix}/%{_lib}/libbulkiojni.*
 %endif
 
@@ -108,8 +98,11 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 
 
 %changelog
-* Fri Mar 21 2014 1.8.7-1
+* Fri Mar 21 2014 1.10.0-1
 - Improve OS version detection for RHEL/CentOS/Fedora
+
+* Fri May 24 2013 1.9.0-1
+- Update dependencies
 
 * Fri Mar 29 2013 1.8.4
 - Re-work java use

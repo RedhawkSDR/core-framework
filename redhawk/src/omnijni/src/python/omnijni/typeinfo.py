@@ -60,6 +60,16 @@ def isStruct (itype):
     itype = itype.unalias()
     return isinstance(itype, idltype.Declared) and isinstance(itype.decl(), idlast.Struct)
 
+def structAllPrimatives (itype):
+    if isStruct(itype):
+        itype = itype.unalias()
+        for m in itype.decl().members():
+            if isPrimitiveType(m.memberType()) == False:
+                return False
+        return True
+    return False
+
+
 def isInterface (itype):
     itype = itype.unalias()
     if isinstance(itype, idltype.Declared):
@@ -84,7 +94,7 @@ def isBuiltIn (itype):
 
 class Method:
 
-    def __init__ (self, name, returnType, parameters, exceptions=()):
+    def __init__ (self, name, returnType, parameters, exceptions=() ):
         self.__name = name
         self.__returnType = returnType
         self.__parameters = parameters
@@ -107,8 +117,8 @@ class Method:
 
 class Getter (Method):
 
-    def __init__ (self, name, attrType):
-        Method.__init__(self, name, attrType, [], [])
+    def __init__ (self, name, attrType ):
+        Method.__init__(self, name, attrType, [], [] )
 
     def stubName (self):
         return '_get_' + self.name()
@@ -137,7 +147,7 @@ class MethodVisitor:
 
     def visitAttribute (self, node):
         name = node.identifiers()[0]
-        self.__methods.append(Getter(name, node.attrType()))
+        self.__methods.append(Getter(name, node.attrType())) 
         if not node.readonly():
             self.__methods.append(Setter(name, node.attrType()))
     

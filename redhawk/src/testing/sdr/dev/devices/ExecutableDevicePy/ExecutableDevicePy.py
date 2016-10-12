@@ -36,6 +36,9 @@ class ExecutableDevicePy(CF__POA.ExecutableDevice, ExecutableDevice):
   def get_CLASSPATH(self):
     return os.getenv('CLASSPATH', '')
 
+  def get_OCTAVE_PATH(self):
+    return os.getenv('OCTAVE_PATH', '')
+
   LD_LIBRARY_PATH = simple_property(id_="LD_LIBRARY_PATH",
                                     type_="string",
                                     mode="readonly",
@@ -56,6 +59,13 @@ class ExecutableDevicePy(CF__POA.ExecutableDevice, ExecutableDevice):
                               action="external",
                               kinds=("configure",),
                               fget=get_CLASSPATH)
+
+  OCTAVE_PATH = simple_property(id_="OCTAVE_PATH",
+                                type_="string",
+                                mode="readonly",
+                                action="external",
+                                kinds=("configure",),
+                                fget=get_OCTAVE_PATH)
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)

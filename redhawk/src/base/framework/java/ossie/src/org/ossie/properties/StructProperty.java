@@ -25,46 +25,28 @@ import java.util.ArrayList;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 
-import CF.DataType;
-import CF.PropertiesHelper;
-
 public class StructProperty<T extends StructDef> extends Property<T> {
     
-    protected T value;
-    protected T tmp;
-    final protected T structDef;
-    
-    public StructProperty(String id, String name, T structDef, T structDef_tmp, String mode, String[] kinds) {
-        super(id, name, mode, null, kinds);
+    final protected Class<T> structDef;
+
+    public StructProperty(String id, String name, Class<T> structDef, T value, Mode mode, Kind[] kinds) {
+        super(id, name, value, mode, null, kinds);
         this.structDef = structDef;
-        this.value = structDef;
-        this.tmp = structDef_tmp;
     }
-    
-    @Override
-    public T getValue() {
-        // TODO Auto-generated method stub
-        return value;
+
+    @Deprecated
+    public StructProperty(String id, String name, T structDef, T structDef_tmp, String mode, String[] kinds) {
+        super(id, name, structDef, Mode.get(mode), null, Kind.get(kinds));
+        @SuppressWarnings("unchecked") Class<T> clazz = (Class<T>)structDef.getClass();
+        this.structDef = clazz;
     }
-    @Override
-    public void setValue(final T value) {
-        //this.value = value;
-        for (final IProperty prop : value.getElements()) {
-            this.value.getElement(prop.getId()).fromAny(prop.toAny());
-        }
-    }
-    
     
     public Any toAny() {
-        final Any retVal = ORB.init().create_any();
-        
-        final ArrayList<DataType> props = new ArrayList<DataType>();
-        for (IProperty prop : this.value.getElements()) {
-            props.add(new DataType(prop.getId(), prop.toAny()));
+        if (this.value == null) {
+            return ORB.init().create_any();
+        } else {
+            return this.value.toAny();
         }
-        
-        PropertiesHelper.insert(retVal, props.toArray(new DataType[props.size()]));
-        return retVal;
     }
     
     @Override
@@ -72,24 +54,19 @@ public class StructProperty<T extends StructDef> extends Property<T> {
         return this.id + "/" + this.name +  " = " + this.value;
     }
     
-    
-    public void fromAny(Any any) {
+    protected T fromAny_(Any any) {
+        T tmp;
         try {
-            DataType[] struct  = (DataType[])AnyUtils.convertAny(any);
-            
-            for (final DataType prop : struct) {
-                tmp.getElement(prop.id).fromAny(prop.value);
-            }
-            this.setValue(tmp);
-        } catch (ClassCastException ex) {
-            ex.printStackTrace();
-            throw new IllegalArgumentException("Incorrect any type recevied");
+            tmp = this.structDef.newInstance();
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Unable to construct new struct value: " + ex.getMessage(), ex);
         }
+        
+        tmp.fromAny(any); 
+        return tmp;
     }
-    
     
     public void fromString(String str) {
         throw new IllegalArgumentException("Only simple properties can be initialized with strings");
     }
-
 }

@@ -34,8 +34,7 @@
 #include "ossie/CF/cf.h"
 #include "ossie/CF/StandardEvent.h"
 
-#include "ossieparser.h" // For OSSIEPARSER_API which is needed for windows shared libraries, for other targets the definition is empty
-#include "applicationSupport.h"
+#include "debug.h"
 
 /**
 The ossieSupport namespace contains useful functions used throughout the
@@ -50,7 +49,7 @@ namespace ossie
     The ORB class provides access to a CORBA orb variable across multiple classes.
 
     */
-    class OSSIEPARSER_API ORB
+    class ORB
     {
     public:
         /**
@@ -110,7 +109,7 @@ namespace ossie
     const char* spd_rel_file(const char* spdfile, const char* name, std::string& fileName);
 
     void configureLogging(const char* logcfgUri, int defaultLevel);
-    std::string getCurrentDirName();
+
     std::string generateUUID();
 
     class ossieComponent
@@ -144,6 +143,25 @@ namespace ossie
 
         unsigned int numArgs;
         CF::Properties CLArgs;
+    };
+
+    
+    namespace helpers {
+
+      /**
+         is_jarfile 
+     
+         Helper method to test if a file is valid jar file in lue of "file" command
+         due to results differences from various OS distros
+
+         @return 0   contents of jarPath is a valid jar format
+         @return 1   contents of file does not match magic number format
+         @return -1  file acces/open error
+
+      */
+
+      int is_jarfile( const std::string &jarPath );
+
     };
 
 

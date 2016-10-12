@@ -28,13 +28,16 @@
 #include <ossie/CF/StandardEvent.h>
 #include <ossie/SoftwareAssembly.h>
 #include <ossie/debug.h>
+#include <ossie/prop_utils.h>
+#include <ossie/prop_helpers.h>
 
-#include "PersistanceStore.h"
+#include "PersistenceStore.h"
 #include "applicationSupport.h"
 #include "connectionSupport.h"
 
 class DomainManager_impl;
 class Application_impl;
+class AllocationManager_impl;
 
 class createHelper;
 
@@ -105,12 +108,31 @@ public:
 
     // allow createHelper to have access to ApplicationFactory_impl
     friend class createHelper;
-
+    friend class ScopedAllocations;
 };
 #endif
 
 #ifndef CREATEHELPER_H
 #define CREATEHELPER_H
+
+class ScopedAllocations {
+public:
+    ScopedAllocations(AllocationManager_impl& allocator);
+    ~ScopedAllocations();
+
+    void push_back(const std::string& allocationID);
+
+    template <class T>
+    void transfer(T& dest);
+
+    void transfer(ScopedAllocations& dest);
+
+    void deallocate();
+
+private:
+    AllocationManager_impl& _allocator;
+    std::list<std::string> _allocations;
+};
 
 class createHelper:
 public ossie::ComponentLookup,
@@ -118,6 +140,8 @@ public ossie::DeviceLookup
 {
 
 public:
+    typedef std::map<std::string,std::string> DeviceAssignmentMap;
+
     createHelper (const ApplicationFactory_impl& appFact,
                   std::string waveformContextName,
                   std::string base_naming_context,
@@ -126,7 +150,7 @@ public:
 
     CF::Application_ptr create (const char* name,
                                 const CF::Properties& initConfiguration,
-                                const CF::DeviceAssignmentSequence& deviceAssignments)
+                                const DeviceAssignmentMap& deviceAssignments)
     throw (CF::ApplicationFactory::InvalidInitConfiguration,
            CF::ApplicationFactory::CreateApplicationRequestError,
            CF::ApplicationFactory::CreateApplicationError,
@@ -151,11 +175,13 @@ private:
 
     // Used for storing the current state of the OE & create process
     const ApplicationFactory_impl& _appFact;
+
+    // Local pointer to the allocation manager
+    AllocationManager_impl* _allocationMgr;
  
-    //
-    // List of allocated capacities (i.e. property settings) set against assigned devices
-    //
-    CapacityAllocationTable _appCapacityTable;
+    // Tracks allocation IDs made during creation, and automates cleanup on
+    // failure
+    ScopedAllocations _allocations;
 
     ossie::DeviceList _registeredDevices;
     ossie::DeviceList _executableDevices;
@@ -170,7 +196,6 @@ private:
     
     CF::Application::ComponentProcessIdSequence _pidSeq;
     std::map<std::string, std::string>          _fileTable;
-    ossie::SoftPkgList                          _softpkgList;
 
     // mapping of component id to filenames/device id tuple
     std::map<std::string, std::pair<std::string, std::string> > _loadedComponentTable; 
@@ -190,60 +215,74 @@ private:
     CF::Application::ComponentElementSequence _namingCtxSeq;
     CF::Application::ComponentElementSequence _implSeq;
 
+    ossie::ApplicationInfo _appInfo;
+
     // createHelper helper methods
     void overrideAssemblyControllerProperties(
         const CF::Properties& initConfiguration,
         ossie::ComponentInfo*& assemblyControllerComponent);
+    void overrideExternalProperties(const CF::Properties& initConfiguration);
     void overrideProperties(
         const CF::Properties& initConfiguration,
         ossie::ComponentInfo*& component);
+    void assignRemainingComponentsToDevices();
+    void initialize(void);
+    void checkRegisteredDevicesSize(const char* name);
+    void _assignComponentsUsingDAS(
+        const DeviceAssignmentMap& deviceAssignments);
+    void _getComponentsToPlace(
+        const std::vector<ossie::ComponentPlacement>& collocatedComponents,
+        ossie::DeviceIDList&                          assignedDevices,
+        PlacementList&                                placingComponents);
+    void _loadAndExecuteComponents();
+    void _initializeComponents(CF::Resource_var& assemblyController);
+    void _connectComponents(
+        std::vector<ossie::ConnectionNode>& connections);
+    void _configureComponents();
+    void _checkAssemblyController(
+        CF::Resource_var&      assemblyController,
+        ossie::ComponentInfo*& assemblyControllerComponent) const;
+    void setUpExternalPorts(std::auto_ptr<Application_impl>& application);
+    void setUpExternalProperties(
+        std::auto_ptr<Application_impl>& application);
+    void _handleHostCollocation();
+    void _placeHostCollocation(const ossie::SoftwareAssembly::HostCollocation& collocation);
+    void _handleUsesDevices(const std::string& appName);
+    void _resolveImplementations(PlacementList::iterator comp, PlacementList& compList, std::vector<ossie::ImplementationInfo::List> &res_vec);
+    void _removeUnmatchedImplementations(std::vector<ossie::ImplementationInfo::List> &res_vec);
+    void _consolidateAllocations(const ossie::ImplementationInfo::List& implementations, CF::Properties& allocs);
+    void _evaluateMATHinRequest(CF::Properties &request, CF::Properties configureProperties);
+    void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SPD::PropertyRef> &prop_refs, unsigned int offset=0);
+    void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SoftwareAssembly::PropertyRef> &prop_refs,
+            unsigned int offset=0);
+    CF::DataType castProperty(const ossie::ComponentProperty* property);
 
     // Populate _requiredComponents vector
     void getRequiredComponents() throw (CF::ApplicationFactory::CreateApplicationError); 
 
-    void getDeviceImplementations(std::vector<ossie::SPD::Implementation>&, const CF::DeviceAssignmentSequence&);
-
     // Supports allocation
-    CF::Device_ptr allocateUsesDeviceProperties(ossie::ComponentImplementationInfo* component_impl,
-                                                unsigned int usesDevIdx,
-                                                CF::Properties &allocatedProps,
-                                                const CF::Properties& configureProperties);
+    bool allocateUsesDevices(const std::string& componentIdentifier,
+                             const ossie::UsesDeviceInfo::List& usesDevices,
+                             const CF::Properties& configureProperties,
+                             DeviceAssignmentList& deviceAssignments,
+                             ScopedAllocations& allocations);
+    CF::AllocationManager::AllocationResponseSequence* allocateUsesDeviceProperties(
+        const ossie::UsesDeviceInfo::List& component,
+        const CF::Properties& configureProperties);
     void allocateComponent(ossie::ComponentInfo* component,
-                           const CF::DeviceAssignmentSequence& deviceAssignments,
-                           CapacityAllocationTable &appCapacities,
-                           DeviceAssignmentList    &appAssignedDevices,
-                           bool cleanup=true );
+                           const std::string& assignedDeviceId,
+                           DeviceAssignmentList &appAssignedDevices);
 
-    void allocateComponentToDevice(ossie::ComponentInfo* component,
+    ossie::AllocationResult allocateComponentToDevice(ossie::ComponentInfo* component,
                                    ossie::ImplementationInfo* implementation,
-                                   const CF::DeviceAssignmentSequence& deviceAssignments,
-                                   CapacityAllocation &deviceCapacityAlloc,
-                                   ossie::Properties& devicePRF );
+                                   const std::string& assignedDeviceId);
 
-    CF::Properties allocateCapacity(ossie::ComponentInfo* component,
-                                    ossie::ImplementationInfo* implementation,
-                                    ossie::DeviceNode &deviceNode,
-                                    ossie::Properties& devicePRF)
-    throw (CF::ApplicationFactory::CreateApplicationError);
-    
-    bool resolveSoftpkgDependencies(
-        ossie::ImplementationInfo* implementation, 
-        CF::Device_ptr             device,
-        ossie::Properties&         devicePRF)
-            throw (CF::ApplicationFactory::CreateApplicationError);
+    bool resolveSoftpkgDependencies(ossie::ImplementationInfo* implementation, ossie::DeviceNode& device);
     
     bool checkImplementationDependencyMatch(
         ossie::ImplementationInfo&       implementation_1, 
         const ossie::ImplementationInfo& implementation_2, 
-        CF::Device_ptr device,
-        ossie::Properties& devicePRF);
-    
-    void errorMsgAllocate(
-        std::ostringstream&        eout, 
-        ossie::ComponentInfo*      component,
-        ossie::ImplementationInfo* implementation, 
-        const ossie::DeviceNode&   deviceNode, 
-        std::string                eMsg);
+        ossie::DeviceNode& device);
  
     // Supports loading, executing, initializing, configuring, & connecting
     void loadAndExecuteComponents(
@@ -259,7 +298,7 @@ private:
         ossie::ComponentInfo*&                                          component,
         const ossie::ImplementationInfo*&                               implementation,
         CF::Application::ComponentProcessIdSequence*&                   pid,
-		std::map<std::string, std::pair<std::string, unsigned long> >*& runningComponentTable);
+        std::map<std::string, std::pair<std::string, unsigned long> >*& runningComponentTable);
 
     void initializeComponents(
         CF::Resource_var&            assemblyController, 
@@ -274,11 +313,10 @@ private:
     // Functions for looking up particular components/devices
     CF::Device_ptr find_device_from_id(const char*);
     const ossie::DeviceNode& find_device_node_from_id(const char*) throw(std::exception);
-    CF::DeviceManager_ptr find_devicemgr_for_device(CF::Device_ptr device);
     ossie::ComponentInfo* findComponentByInstantiationId(const std::string& identifier);
 
     // Cleanup - used when create fails/doesn't succeed for some reason
-    bool alreadyCleaned;
+    bool _alreadyCleaned;
     void _cleanupLoadAndExecuteComponents();
     void _cleanupNewContext();
     void _cleanupCollocation( CapacityAllocationTable & collocCapacities, DeviceAssignmentList & collocAssignedDevs);
@@ -302,17 +340,15 @@ private:
     // ComponentLookup interface
     CF::Resource_ptr lookupComponentByInstantiationId(const std::string& identifier);
     CF::DeviceManager_ptr lookupDeviceManagerByInstantiationId(const std::string& identifier);
-#if ENABLE_EVENTS
     CosEventChannelAdmin::EventChannel_ptr lookupEventChannel(const std::string &EventChannelName);
     unsigned int incrementEventChannelConnections(const std::string &EventChannelName);
     unsigned int decrementEventChannelConnections(const std::string &EventChannelName);
-#endif
+
     // DeviceLookup interface
     CF::Device_ptr lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId);
     CF::Device_ptr lookupDeviceUsedByComponentInstantiationId(
         const std::string& componentId, 
         const std::string& usesId);
-
-    void rotateDeviceList (ossie::DeviceList& devices, const std::string& identifier);
+    CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId);
 };
 #endif

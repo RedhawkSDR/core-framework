@@ -1,0 +1,31 @@
+/*
+ * WARNING: This file is generated from BurstOut.java.template.
+ *          Do not modify directly.
+ */
+
+package burstio;
+
+import BURSTIO.burst@name@Operations;
+
+import burstio.traits.@name@Traits;
+
+public class Burst@name@Out extends OutPort<burst@name@Operations, BURSTIO.@name@Burst, @type@[]> {
+
+    public Burst@name@Out(final String name) {
+        super(name, new @name@Traits());
+    }
+
+    protected void pushBursts(burst@name@Operations port, BURSTIO.@name@Burst[] bursts) {
+        port.pushBursts(bursts);
+    }
+
+    @Override
+    protected burst@name@Operations narrow(org.omg.CORBA.Object connection) {
+        return BURSTIO.jni.burst@name@Helper.narrow(connection);
+    }
+
+    protected String repoId ()
+    {
+        return BURSTIO.burst@name@Helper.id();
+    }
+}

@@ -1,0 +1,175 @@
+#!/usr/bin/python
+"""
+Given a library, create a soft-package dependency.
+
+The soft-package dependency consists of:
+    - an spd.xml file
+    - a directory containing the library (this program will create a symbolic
+      link to the library)
+    - autoconf files
+
+Example usage:
+
+    $ ./createPackageDependency --type=directory --implementation=noarch /home/user/theLibrary/
+
+"""
+
+from redhawk.packagegen.directoryPackageDependency import DirectoryPackageDependency
+from getopt import getopt
+import sys
+import os
+
+usage = """%s [options] <package path>
+
+Arguments:
+    <library path>
+
+Required Flags:
+    --type              Soft package dependency type.  Valid types:
+
+                            - directory
+
+Options:
+    --implementation    Implementation (e.g., noarch, x86_64). Default "noarch"
+                        for directory-type packages.
+
+    --outputDir         Location of all output files.  Default is ".".
+
+    --variant           Variant of the package.  For example, variant "v1" and
+                        package name "myLibrary" will yield "myLibraryPackagev1".
+
+    -f                  Forward force flag to redhawk-codegen.
+
+    --sharedLibraries   Dependencies that have been installed
+                        as a Soft Package Dependency. Points to an spd.xml file
+                        whose path is relative to $SDRROOT/dom.
+
+                            e.g., --sharedLibraries=/sharedPkgs/foo/foo.spd.xml
+
+                        When listing multiple files, the filenames must be
+                        comma-separated, with no spaces.
+
+    --buildRpm          If set, compile an rpm after generating the code.
+
+    --install           If set, run "reconf; configure; make install" after
+                        generating the code.
+
+
+""" % os.path.basename(sys.argv[0])
+
+def _generatePackageName(libraryLocation):
+    """
+    Given a directory a/b/c, return cPkg.
+
+    """
+
+    subdirs = libraryLocation.split("/")
+
+    # remove blank entries
+    subdirs = [x for x in subdirs if x != ""]
+
+    # last item in the list
+    libraryName = subdirs[-1] + "Pkg"
+
+    return libraryName
+
+def _createDirectoryPackageDependency(
+        libraryLocation,
+        implementation,
+        outputDir,
+        sharedLibraries = [],
+        variant = ""):
+    '''
+    Instantiate a package class instance for a directory package dependency.
+
+    '''
+
+    name = _generatePackageName(libraryLocation=libraryLocation)
+    myDirectoryDependency = DirectoryPackageDependency(
+        name = name,
+        implementation = implementation,
+        libraryLocation = libraryLocation,
+        sharedLibraries = sharedLibraries,
+        variant = variant)
+
+    return myDirectoryDependency
+
+if __name__ == "__main__":
+    """
+    Parse command line arguments and use them to create the appropriate 
+    package type.
+
+    """
+
+    # begin parsing of command-line options
+    opts, args = getopt(
+        sys.argv[1:],
+        'f',
+        ['outputDir=',
+         'type=',
+         'implementation=',
+         'variant=',
+         'sharedLibraries=',
+         'buildRpm',
+         'install',
+         'help'])
+
+    type = None
+    implementation = None
+
+    outputDir = "."
+    force = False
+    sharedLibraries = []
+    buildRpm = False
+    install = False
+    variant = ""
+
+    for key, value in opts:
+        if key == '--outputDir':
+            outputDir = value
+        elif key == '--type':
+            type = value
+        elif key == '--implementation':
+            implementation = value
+        elif key == '--variant':
+            variant = value
+        elif key == '--sharedLibraries':
+            sharedLibraries = value.split(',')
+        elif key.lower() == '--buildrpm':
+            buildRpm = True
+        elif key == '--install':
+            install = True
+        elif key == '--help':
+            raise SystemExit(usage)
+        elif key == '-f':
+            force = True
+    try:
+        libraryLocation = args[0]
+    except:
+        raise SystemExit(usage)
+
+    if not type in ["directory"]:
+        raise SystemExit(usage)
+    # done parsing command-line arguments
+
+    # create approrpate package class instance given the type
+    if type == "directory":
+        if not implementation:
+            implementation = "noarch"
+
+        package = _createDirectoryPackageDependency(
+            libraryLocation = libraryLocation,
+            implementation = implementation,
+            outputDir = outputDir,
+            sharedLibraries = sharedLibraries,
+            variant = variant)
+
+    # Begin operations that are applied to all package types
+    package.writeXML()
+    package.callCodegen(
+        force = force,
+        variant = variant)
+    if buildRpm:
+        package.runCompileRpm()
+    if install:
+        package.runInstall()

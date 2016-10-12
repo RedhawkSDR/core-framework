@@ -62,6 +62,21 @@ post_AccessType ()
   return v;
 }
 
+// IsComplex_pimpl
+//
+
+void IsComplex_pimpl::
+pre ()
+{
+}
+
+::std::string IsComplex_pimpl::
+post_IsComplex ()
+{
+  const ::std::string& v (post_string ());
+  return v;
+}
+
 // action_pimpl
 //
 
@@ -366,11 +381,13 @@ post_resultValue ()
 void simple_pimpl::
 pre ()
 {
-    _id = "";
-    _name = "";
-    _type = "";
-    _mode = "";
-    _action = "";
+    _id      = "";
+    _name    = "";
+    _type    = "";
+    _complex = "";
+    _mode    = "";
+    _action  = "";
+
     _kinds.clear();
     _value.reset();
 }
@@ -448,15 +465,22 @@ type (const ::std::string& type)
     _type = type;
 }
 
+void simple_pimpl::
+complex (const ::std::string& complex_)
+{
+    LOG_TRACE(prf_parser, "simple_pimpl complex " << complex_)
+    _complex = complex_;
+}
+
 ossie::SimpleProperty* simple_pimpl::
 post_simple ()
 {
   if (_value.get()  != 0) {
       LOG_TRACE(prf_parser, "simple_pimpl post " << _id << " " << _name << " " << _value->c_str())
-      return new ossie::SimpleProperty(_id, _name, _type, _mode, _action, _kinds, _value.get());
+      return new ossie::SimpleProperty(_id, _name, _type, _mode, _action, _kinds, _value.get(), _complex);
   } else {
       LOG_TRACE(prf_parser, "simple_pimpl post " << _id << " " << _name << " None")
-      return new ossie::SimpleProperty(_id, _name, _type, _mode, _action, _kinds, 0);
+      return new ossie::SimpleProperty(_id, _name, _type, _mode, _action, _kinds, 0, _complex);
   }
 }
 
@@ -494,11 +518,13 @@ post_simpleRef ()
 void simpleSequence_pimpl::
 pre ()
 {
-    _id = "";
-    _name = "";
-    _type = "";
-    _mode = "";
-    _action = "";
+    _id      = "";
+    _name    = "";
+    _type    = "";
+    _complex = "";
+    _mode    = "";
+    _action  = "";
+
     _kinds.clear();
     _values.clear();
 }
@@ -565,10 +591,24 @@ type (const ::std::string& type)
     _type = type;
 }
 
+void simpleSequence_pimpl::
+complex (const ::std::string& complex_)
+{
+    LOG_TRACE(prf_parser, "simpleSequence_pimpl complex " << complex_)
+    _complex = complex_;
+}
+
 ossie::SimpleSequenceProperty* simpleSequence_pimpl::
 post_simpleSequence ()
 {
-    return new ossie::SimpleSequenceProperty(_id, _name, _type, _mode, _action, _kinds, _values);
+    return new ossie::SimpleSequenceProperty(_id, 
+                                             _name, 
+                                             _type, 
+                                             _mode, 
+                                             _action, 
+                                             _kinds, 
+                                             _values,
+                                             _complex);
 }
 
 // struct_pimpl
@@ -672,7 +712,14 @@ structvalue (const std::map<std::string, std::string>& value)
         const std::string id = prop->getID();
         std::map<std::string, std::string>::const_iterator ii = value.find(id);
         if (ii != value.end()) {
-            propValue.push_back(ossie::SimpleProperty(id, prop->getName(), prop->getType(), prop->getMode(), prop->getAction(), prop->getKinds(), ii->second));
+            propValue.push_back(ossie::SimpleProperty(id, 
+                                                      prop->getName(), 
+                                                      prop->getType(), 
+                                                      prop->getMode(), 
+                                                      prop->getAction(), 
+                                                      prop->getKinds(), 
+                                                      ii->second, 
+                                                      prop->getComplex()));
         } else {
             propValue.push_back(*prop);
         }

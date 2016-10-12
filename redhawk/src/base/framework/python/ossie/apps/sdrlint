@@ -436,8 +436,24 @@ def checkFile(root, fPath, opts, referencedFiles, readonlyIds, localFileRefs=Tru
 
     if docType == None:
         return {fPath: 'ignored'}
+    dtdLocation = os.environ["OSSIEHOME"]+'/share/xml/sca/2.2.2/dtd/'
+    if 'SPD' in docType:
+       dtdLocation += 'softpkg.dtd'
+    if 'DPD' in docType:
+       dtdLocation += 'devicepkg.dtd'
+    if 'PRF' in docType:
+       dtdLocation += 'properties.dtd'
+    if 'SCD' in docType:
+       dtdLocation += 'softwarecomponent.dtd'
+    if 'SAD' in docType:
+       dtdLocation += 'softwareassembly.dtd'
+    if 'DCD' in docType:
+       dtdLocation += 'deviceconfiguration.dtd'
+    if 'DMD' in docType:
+       dtdLocation += 'domainmanagerconfiguration.dtd'
 
-    cmd = "xmllint --nowarning --nonet --catalogs --noout --dropdtd --dtdvalidfpi '%s' %s" % (docType, fPath)
+    #cmd = "xmllint --nowarning --nonet --catalogs --noout --dropdtd --dtdvalidfpi '%s' %s" % (docType, fPath)
+    cmd = "xmllint --nowarning --nonet --noout --dtdvalid '%s' %s" % (dtdLocation, fPath)
     logging.debug("Running %s", cmd)
 
     status, output = commands.getstatusoutput(cmd)
@@ -462,7 +478,7 @@ def checkFile(root, fPath, opts, referencedFiles, readonlyIds, localFileRefs=Tru
                 print "    %s" % output.split('\n')[0]
 
     # Check that elements that are required to have UUIDS, do have UUIDS
-    checkUUIDs(fPath)
+    #checkUUIDs(fPath)
 
     # Check that all localfile references exist in the SDRROOT
     if localFileRefs: 
@@ -567,7 +583,7 @@ if __name__ == "__main__":
                     fAbsPath = os.path.abspath(os.path.join(root, f))
                     try:
                         print "\nCHECKING FILE:", fAbsPath
-                        xmlStatus = checkFile(root, fAbsPath, opts, referencedFiles, readonlyIds, localFileRefs ) 
+                        xmlStatus = checkFile(root, fAbsPath, opts, referencedFiles, readonlyIds, localFileRefs )
                         checkedFiles.update(xmlStatus)
                     except Exception, e:
                         check_error("unexpected exception checking file '%s'" % str(e), location=fAbsPath)

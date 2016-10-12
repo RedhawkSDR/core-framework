@@ -23,7 +23,6 @@
 #include <vector>
 #include <cstdlib>
 #include <sstream>
-#include <map>
 #if HAVE_OMNIORB4
 #include "omniORB4/CORBA.h"
 #endif
@@ -31,13 +30,13 @@
 #include <ossie/CorbaUtils.h>
 #include <ossie/prop_helpers.h>
 #include <ossie/debug.h>
+#include <iostream> //testing
 
 using namespace ossie;
 
 CREATE_LOGGER(prop_helpers)
 
-bool ossie::compare_anys(CORBA::Any& a, CORBA::Any& b, std::string& action)
-{
+bool ossie::compare_anys(const CORBA::Any& a, const CORBA::Any& b, std::string& action) {
     CORBA::TypeCode_var typeA = a.type();
     CORBA::TypeCode_var typeB = b.type();
 
@@ -138,6 +137,15 @@ bool ossie::compare_anys(CORBA::Any& a, CORBA::Any& b, std::string& action)
         break;
     }
 
+    case CORBA::tk_ulonglong: {
+        CORBA::ULongLong tmp1;
+        CORBA::ULongLong tmp2;
+        a >>= tmp1;
+        b >>= tmp2;
+        result = perform_action(tmp1, tmp2, action);
+        break;
+    }
+
     case CORBA::tk_string: {
         const char* tmp1;
         const char* tmp2;
@@ -146,17 +154,56 @@ bool ossie::compare_anys(CORBA::Any& a, CORBA::Any& b, std::string& action)
         result = perform_action(std::string(tmp1), std::string(tmp2), action);
         break;
     }
+// TODO: support for comparing complex values
     default:
         result = false;
     }
     return result;
 }
 
+/**
+ * Convert a string in the format A+jB to a CORBA::Any.
+ *
+ * Type corresponds to the type of the real/imag members of the CF::complex
+ * struct (e.g., CORBA::Long or float).
+ *
+ * CFComplexType corresponds to the type of the CF::complexStruct (e.g.,
+ * CF::complexLong or CF::complexFloat).
+ */
+template <typename  Type, class CFComplexType>
+CORBA::Any ossie::convertComplexStringToAny(std::string value) {
+    char sign, j;  // sign represents + or -, j represents the letter j in the string
+    Type A, B;     // A is the real value, B is the complex value
+
+    CORBA::Any result;
+
+    // Assuming a string of the format A+jB, parse out A and B.
+    std::stringstream stream(value);
+    stream >> A >> sign >> j >> B;
+
+    // if A-jB instead of A+jB, flip the sign of B
+    if (sign == '-') {
+        B *= -1;
+    }
+
+    // Create a complex representation and convert it to a CORBA::any.
+    CFComplexType cfComplex;
+    cfComplex.real = A;
+    cfComplex.imag = B;
+    result <<= cfComplex;
+
+    return result;
+}
+
+/**
+ * Performs __MATH__ operations.
+ *
+ * Note: not supported for tk_struct, including complex values.
+ */
 CORBA::Any ossie::calculateDynamicProp(double operand, CORBA::Any& prop, std::string& math, CORBA::TCKind resultKind)
 {
     double tmp_result = 0.0;
     CORBA::TypeCode_var typeProp = prop.type();
-
     switch (typeProp->kind()) {
     case CORBA::tk_ushort: {
         CORBA::UShort tmp1;
@@ -211,6 +258,13 @@ CORBA::Any ossie::calculateDynamicProp(double operand, CORBA::Any& prop, std::st
         break;
     }
 
+    case CORBA::tk_ulonglong: {
+        CORBA::ULongLong tmp1;
+        prop >>= tmp1;
+        tmp_result = perform_math(operand, tmp1, math);
+        break;
+    }
+
     case CORBA::tk_string: {
         // Do nothing
         break;
@@ -259,6 +313,10 @@ CORBA::Any ossie::calculateDynamicProp(double operand, CORBA::Any& prop, std::st
         break;
     }
 
+    case CORBA::tk_ulonglong: {
+        result <<= static_cast<CORBA::ULongLong>(tmp_result);
+    }
+
     case CORBA::tk_string: {
         result <<= any_to_string(prop);
         break;
@@ -270,64 +328,111 @@ CORBA::Any ossie::calculateDynamicProp(double operand, CORBA::Any& prop, std::st
     return result;
 }
 
-CORBA::Any ossie::string_to_any(std::string value, CORBA::TCKind kind)
-{
+/**
+ * Convert a string in the form of A+jB to a CORBA::Any.
+ *
+ * This method differs from stringToSimpleAny in that the data type to
+ * use is looked-up using the struct name (parameter(0)) of the tc_struct.
+ *
+ * Struct types that are not explicitly supported will cause the function to
+ * return a new, empty CORBA::Any.
+ */
+CORBA::Any ossie::stringToComplexAny(std::string value, std::string structName) {
     CORBA::Any result;
-    switch (kind) {
-    case CORBA::tk_boolean:
+
+    if (structName == "complexFloat"){
+        result = convertComplexStringToAny<float, CF::complexFloat>(value);
+    } else if (structName == "complexBoolean"){
+        result = convertComplexStringToAny<bool, CF::complexBoolean>(value);
+    } else if (structName == "complexULong"){
+        result = convertComplexStringToAny<CORBA::ULong, CF::complexULong>(value);
+    } else if (structName == "complexShort"){
+        result = convertComplexStringToAny<short, CF::complexShort>(value);
+    } else if (structName == "complexOctet"){
+        result = convertComplexStringToAny<unsigned int, CF::complexOctet>(value);
+    } else if (structName == "complexChar"){
+        result = convertComplexStringToAny<int, CF::complexChar>(value);
+    } else if (structName == "complexUShort"){
+        result = convertComplexStringToAny<unsigned short, CF::complexUShort>(value);
+    } else if (structName == "complexDouble"){
+        result = convertComplexStringToAny<double, CF::complexDouble>(value);
+    } else if (structName == "complexLong"){
+        result = convertComplexStringToAny<CORBA::Long, CF::complexLong>(value);
+    } else if (structName == "complexLongLong"){
+        result = convertComplexStringToAny<CORBA::LongLong, CF::complexLongLong>(value);
+    } else if (structName == "complexULongLong"){
+        result = convertComplexStringToAny<CORBA::ULongLong, CF::complexULongLong>(value);
+    } else {
+        result = CORBA::Any();
+    }
+    return result;
+}
+
+/**
+ * Convert from a string to a simple CORBA::Any.
+ *
+ * The data type must be one of the simple, built-in CORBA::TCKinds (e.g., _tk_float).
+ *
+ * Simple types that are not explicitly supported will return an empty CORBA::Any.
+ */
+CORBA::Any ossie::stringToSimpleAny(std::string value, CORBA::TCKind kind) {
+    CORBA::Any result;
+    if (kind == CORBA::tk_boolean){
         if ((value == "true") || (value == "True") || (value == "TRUE") || (value == "1")) {
             result <<= CORBA::Any::from_boolean(CORBA::Boolean(true));
         } else {
             result <<= CORBA::Any::from_boolean(CORBA::Boolean(false));
         }
-        break;
-
-    case CORBA::tk_char:
+    } else if (kind == CORBA::tk_char){
         result <<= CORBA::Any::from_char(CORBA::Char(value[0]));
-        break;
-
-    case CORBA::tk_double:
+    } else if (kind == CORBA::tk_double){
         result <<= CORBA::Double(strtod(value.c_str(), NULL));
-        break;
-
-    case CORBA::tk_octet:
+    } else if (kind == CORBA::tk_octet){
         result <<= CORBA::Any::from_octet(CORBA::Octet(strtol(value.c_str(), NULL, 0)));
-        break;
-
-    case CORBA::tk_ushort:
+    } else if (kind == CORBA::tk_ushort){
         result <<= CORBA::UShort(strtol(value.c_str(), NULL, 0));
-        break;
-
-    case CORBA::tk_short:
+    } else if (kind == CORBA::tk_short){
         result <<= CORBA::Short(strtol(value.c_str(), NULL, 0));
-        break;
-
-    case CORBA::tk_float:
+    } else if (kind == CORBA::tk_float){
         result <<= CORBA::Float(strtof(value.c_str(), NULL));
-        break;
-
-    case CORBA::tk_ulong:
+    } else if (kind == CORBA::tk_ulong){
         result <<= CORBA::ULong(strtol(value.c_str(), NULL, 0));
-        break;
-
-    case CORBA::tk_long:
+    } else if (kind == CORBA::tk_long){
         result <<= CORBA::Long(strtol(value.c_str(), NULL, 0));
-        break;
-
-    case CORBA::tk_longlong:
+    } else if (kind == CORBA::tk_longlong){
         result <<= CORBA::LongLong(strtoll(value.c_str(), NULL, 0));
-        break;
-
-    case CORBA::tk_ulonglong:
+    } else if (kind == CORBA::tk_ulonglong){
         result <<= CORBA::ULongLong(strtoll(value.c_str(), NULL, 0));
-        break;
-
-    case CORBA::tk_string:
+    } else if (kind == CORBA::tk_string){
         result <<= value.c_str();
-        break;
-    default:
+    } else {
         result = CORBA::Any();
+    } // end of outer switch statement
+
+    return result;
+}
+
+/**
+ * Convert from a string to a CORBA::Any for simple and complex types.
+ *
+ * Simple types are indexed by typeCode kind, while complex types are indexed
+ * by struct name.
+ */
+CORBA::Any ossie::string_to_any(std::string value, CORBA::TypeCode_ptr type)
+{
+    CORBA::Any result;
+
+    if (type->kind() == CORBA::tk_struct) {
+        // Struct types are assumed to be complex values.  Struct types
+        // that are not explicitly supported will cause the function to
+        // return a new, empty CORBA::Any.
+        std::string structName = any_to_string(*(type->parameter(0)));
+        result = stringToComplexAny(value, structName);
     }
+    else {
+        result = stringToSimpleAny(value, type->kind());
+    }
+
     return result;
 }
 
@@ -388,7 +493,66 @@ CORBA::Any ossie::strings_to_any(const std::vector<std::string>& values, CORBA::
     return result;
 }
 
-std::string ossie::any_to_string(const CORBA::Any& value)
+/**
+ * Convert a CORBA::Any to a string in the format A+jB.
+ *
+ * CFComplexType corresponds to the type of the CF::complexStruct (e.g.,
+ * CF::complexLong or CF::complexFloat).
+ */
+template <class CFComplexType>
+std::string ossie::convertComplexAnyToString(const CORBA::Any& value){
+
+    std::ostringstream result;
+
+    CFComplexType *tmpCFComplexType;
+    value >>= tmpCFComplexType;
+
+    if (tmpCFComplexType->imag < 0) {
+        // format result as A-jB instead of a+j-B
+        result << tmpCFComplexType->real << "-j" << tmpCFComplexType->imag * -1;
+    }
+    else {
+        result << tmpCFComplexType->real << "+j" << tmpCFComplexType->imag;
+    }
+
+    return result.str();
+}
+
+std::string ossie::complexAnyToString(const CORBA::Any& value)
+{
+    std::string result;
+    CORBA::TypeCode_var valueType = value.type();
+    std::string structName = any_to_string(*(valueType->parameter(0)));
+    if (structName == "complexFloat"){
+         result = convertComplexAnyToString<CF::complexFloat>(value);
+    } else if (structName == "complexBoolean"){
+        result = convertComplexAnyToString<CF::complexBoolean>(value);
+    } else if (structName == "complexULong"){
+        result = convertComplexAnyToString<CF::complexULong>(value);
+    } else if (structName == "complexShort"){
+        result = convertComplexAnyToString<CF::complexShort>(value);
+    } else if (structName == "complexOctet"){
+        result = convertComplexAnyToString<CF::complexOctet>(value);
+    } else if (structName == "complexChar"){
+        result = convertComplexAnyToString<CF::complexChar>(value);
+    } else if (structName == "complexUShort"){
+        result = convertComplexAnyToString<CF::complexUShort>(value);
+    } else if (structName == "complexDouble"){
+        result = convertComplexAnyToString<CF::complexDouble>(value);
+    } else if (structName == "complexLong"){
+        result = convertComplexAnyToString<CF::complexLong>(value);
+    } else if (structName == "complexLongLong"){
+        result = convertComplexAnyToString<CF::complexLongLong>(value);
+    } else if (structName == "complexULongLong"){
+        result = convertComplexAnyToString<CF::complexULongLong>(value);
+    } else {
+        std::ostringstream tmp;
+        tmp << "Kind: " << valueType;
+        result = tmp.str();
+    }
+    return result;
+}
+std::string ossie::simpleAnyToString(const CORBA::Any& value)
 {
     std::ostringstream result;
     CORBA::TypeCode_var typeValue = value.type();
@@ -470,6 +634,13 @@ std::string ossie::any_to_string(const CORBA::Any& value)
         break;
     }
 
+    case CORBA::tk_ulonglong: {
+        CORBA::ULongLong tmp;
+        value >>= tmp;
+        result << tmp;
+        break;
+    }
+
     case CORBA::tk_string: {
         const char* tmp;
         value >>= tmp;
@@ -480,6 +651,20 @@ std::string ossie::any_to_string(const CORBA::Any& value)
         result << "Kind: " << typeValue->kind();
     }
     return result.str();
+}
+
+std::string ossie::any_to_string(const CORBA::Any& value)
+{
+    std::string result;
+
+    CORBA::TypeCode_var valueType = value.type();
+    if (valueType->kind() == CORBA::tk_struct) {
+        result = complexAnyToString(value);
+    }
+    else {
+        result = simpleAnyToString(value);
+    }
+    return result;
 }
 
 
@@ -743,48 +928,12 @@ CORBA::StringSeq* ossie::strings_to_string_sequence(const std::vector<std::strin
     return result._retn();
 }
 
-CF::DataType ossie::convertPropertyToDataType(const Property* prop) {
-    if (dynamic_cast<const SimpleProperty*>(prop) != NULL) {
-        const SimpleProperty* simp = dynamic_cast<const SimpleProperty*>(prop);
-        return convertPropertyToDataType(simp);
-    } else if (dynamic_cast<const SimpleSequenceProperty*>(prop) != NULL) {
-        const SimpleSequenceProperty* simpseq = dynamic_cast<const SimpleSequenceProperty*>(prop);
-        return convertPropertyToDataType(simpseq);
-    } else if (dynamic_cast<const StructProperty*>(prop) != NULL) {
-        const StructProperty* stru = dynamic_cast<const StructProperty*>(prop);
-        return convertPropertyToDataType(stru);
-    } else if (dynamic_cast<const StructSequenceProperty*>(prop) != NULL) {
-        const StructSequenceProperty* struseq = dynamic_cast<const StructSequenceProperty*>(prop);
-        return convertPropertyToDataType(struseq);
-    }
-    return CF::DataType();
-}
-
-CF::DataType ossie::overridePropertyValue(const Property* prop, const ComponentProperty* compprop) {
-    if (dynamic_cast<const SimpleProperty*>(prop) != NULL) {
-        const SimpleProperty* simp = dynamic_cast<const SimpleProperty*>(prop);
-        return overridePropertyValue(simp, compprop);
-    } else if (dynamic_cast<const SimpleSequenceProperty*>(prop) != NULL) {
-        const SimpleSequenceProperty* simpseq = dynamic_cast<const SimpleSequenceProperty*>(prop);
-        return overridePropertyValue(simpseq, compprop);
-    } else if (dynamic_cast<const StructProperty*>(prop) != NULL) {
-        const StructProperty* stru = dynamic_cast<const StructProperty*>(prop);
-        return overridePropertyValue(stru, compprop);
-    } else if (dynamic_cast<const StructSequenceProperty*>(prop) != NULL) {
-        const StructSequenceProperty* struseq = dynamic_cast<const StructSequenceProperty*>(prop);
-        return overridePropertyValue(struseq, compprop);
-    }
-    return CF::DataType();
-}
-
-CF::DataType ossie::overridePropertyValue(const Property* prop, const ComponentProperty* compprop, const CF::Properties& configureProperties) {
-    if (dynamic_cast<const StructProperty*>(prop) != NULL) {
-        const StructProperty* stru = dynamic_cast<const StructProperty*>(prop);
-        return overridePropertyValue(stru, compprop, configureProperties);
-    }
-    return CF::DataType();
-}
-
+/**
+ * Get the TypeCode kind based on a string.  Note that complex
+ * types are not supported, as the TypeCode kind for all complex
+ * types is tk_struct.  For complex types, use getTypeCode and
+ * compare the StructName (any_to_string(TypeCode->parameter(0))).
+ */
 CORBA::TCKind ossie::getTypeKind(std::string type) {
     CORBA::TCKind kind;
     if (type == "boolean") {
@@ -807,7 +956,7 @@ CORBA::TCKind ossie::getTypeKind(std::string type) {
         kind = CORBA::tk_ushort;
     } else if (type == "ulong") {
         kind = CORBA::tk_ulong;
-    } else if (type == "ulonglong") {
+    } else if (type == "ulonglong"){
         kind = CORBA::tk_ulonglong;
     } else if (type == "string") {
         kind = CORBA::tk_string;
@@ -817,383 +966,124 @@ CORBA::TCKind ossie::getTypeKind(std::string type) {
     return kind;
 }
 
-CF::DataType ossie::convertPropertyToDataType(const SimpleProperty* prop) {
-    CF::DataType dataType;
-    dataType.id = CORBA::string_dup(prop->getID());
+CORBA::TypeCode_ptr ossie::getTypeCode(std::string type) {
 
-    if (prop->getValue() != NULL) {
-        std::string value(prop->getValue());
-        CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(prop->getType()));
-        dataType.value = ossie::string_to_any(value, kind);
+    CORBA::TypeCode_ptr kind;
+    if (type == "boolean") {
+        kind = CORBA::_tc_boolean;
+    } else if (type == "char") {
+        kind = CORBA::_tc_char;
+    } else if (type == "double") {
+        kind = CORBA::_tc_double;
+    } else if (type == "float") {
+        kind = CORBA::_tc_float;
+    } else if (type == "short") {
+        kind = CORBA::_tc_short;
+    } else if (type == "long") {
+        kind = CORBA::_tc_long;
+    } else if (type == "longlong") {
+        kind = CORBA::_tc_longlong;
+    } else if (type == "octet") {
+        kind = CORBA::_tc_octet;
+    } else if (type == "ushort") {
+        kind = CORBA::_tc_ushort;
+    } else if (type == "ulong") {
+        kind = CORBA::_tc_ulong;
+    } else if (type == "ulonglong"){
+        kind = CORBA::_tc_ulonglong;
+    } else if (type == "string"){
+        kind = CORBA::_tc_string;
+    } else if (type == "complexDouble") {
+        kind = CF::_tc_complexDouble;
+    } else if (type == "complexFloat") {
+        kind = CF::_tc_complexFloat;
+    } else if (type == "complexShort") {
+        kind = CF::_tc_complexShort;
+    } else if (type == "complexUShort") {
+        kind = CF::_tc_complexUShort;
+    } else if (type == "complexOctet") {
+        kind = CF::_tc_complexOctet;
+    } else if (type == "complexChar") {
+        kind = CF::_tc_complexChar;
+    } else if (type == "complexBoolean") {
+        kind = CF::_tc_complexBoolean;
+    } else if (type == "complexLong") {
+        kind = CF::_tc_complexLong;
+    } else if (type == "complexLongLong") {
+        kind = CF::_tc_complexLongLong;
+    } else if (type == "complexULong") {
+        kind = CF::_tc_complexULong;
+    } else if (type == "complexULongLong") {
+        kind = CF::_tc_complexULongLong;
+    } else {
+        kind = CORBA::_tc_null;
     }
-    return dataType;
+    return kind;
 }
 
-CF::DataType ossie::convertPropertyToDataType(const SimpleSequenceProperty* prop) {
-    CF::DataType dataType;
-    dataType.id = CORBA::string_dup(prop->getID());
-    if (!prop->isNone()) {
-        CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(prop->getType()));
-        dataType.value = ossie::strings_to_any(prop->getValues(), kind);
-    }
-    return dataType;
-}
+/**
+ * Convert from a kind to a CORBA TypeCode.
+ *
+ * The structName argument is provided because kind needs to be further described to map to a specific type code
+ */
+CORBA::TypeCode_ptr ossie::getTypeCode(CORBA::TCKind kind, std::string structName) {
 
-CF::DataType ossie::convertPropertyToDataType(const StructProperty* prop) {
-    CF::DataType dataType;
-    dataType.id = CORBA::string_dup(prop->getID());
-
-    if (prop->isNone()) {
-        return dataType;
-    }
-
-    CF::Properties structval_;
-    for (std::vector<SimpleProperty>::const_iterator i = prop->getValue().begin();
-         i != prop->getValue().end();
-         ++i) {
-
-        CF::DataType dt;
-        dt.id = CORBA::string_dup(i->getID());
-        CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(i->getType()));
-        if (i->getValue()) {
-            dt.value = ossie::string_to_any(i->getValue(), kind);
-            LOG_TRACE(prop_helpers, "setting struct item " << i->getID());
+    CORBA::TypeCode_ptr typecode;
+    if (kind == CORBA::tk_boolean) {
+    	typecode = CORBA::_tc_boolean;
+    } else if (kind == CORBA::tk_char) {
+    	typecode = CORBA::_tc_char;
+    } else if (kind == CORBA::tk_double) {
+    	typecode = CORBA::_tc_double;
+    } else if (kind == CORBA::tk_float) {
+    	typecode = CORBA::_tc_float;
+    } else if (kind == CORBA::tk_short) {
+    	typecode = CORBA::_tc_short;
+    } else if (kind == CORBA::tk_long) {
+    	typecode = CORBA::_tc_long;
+    } else if (kind == CORBA::tk_longlong) {
+    	typecode = CORBA::_tc_longlong;
+    } else if (kind == CORBA::tk_octet) {
+    	typecode = CORBA::_tc_octet;
+    } else if (kind == CORBA::tk_ushort) {
+    	typecode = CORBA::_tc_ushort;
+    } else if (kind == CORBA::tk_ulong) {
+    	typecode = CORBA::_tc_ulong;
+    } else if (kind == CORBA::tk_ulonglong){
+    	typecode = CORBA::_tc_ulonglong;
+    } else if (kind == CORBA::tk_string){
+    	typecode = CORBA::_tc_string;
+    } else if (kind == CORBA::tk_struct) {
+        if (structName == "complexDouble") {
+            typecode = CF::_tc_complexDouble;
+        } else if (structName == "complexFloat") {
+            typecode = CF::_tc_complexFloat;
+        } else if (structName == "complexShort") {
+            typecode = CF::_tc_complexShort;
+        } else if (structName == "complexUShort") {
+            typecode = CF::_tc_complexUShort;
+        } else if (structName == "complexOctet") {
+            typecode = CF::_tc_complexOctet;
+        } else if (structName == "complexChar") {
+            typecode = CF::_tc_complexChar;
+        } else if (structName == "complexBoolean") {
+            typecode = CF::_tc_complexBoolean;
+        } else if (structName == "complexLong") {
+            typecode = CF::_tc_complexLong;
+        } else if (structName == "complexLongLong") {
+            typecode = CF::_tc_complexLongLong;
+        } else if (structName == "complexULong") {
+            typecode = CF::_tc_complexULong;
+        } else if (structName == "complexULongLong") {
+            typecode = CF::_tc_complexULongLong;
         } else {
-            LOG_TRACE(prop_helpers, "struct item " << i->getID() << " has no default value");
+        	typecode = CORBA::_tc_null;
         }
-        structval_.length(structval_.length() + 1);
-        structval_[structval_.length() - 1] = dt;
-    }
-    dataType.value <<= structval_;
-    return dataType;
-}
-
-CF::DataType ossie::convertPropertyToDataType(const StructSequenceProperty* prop) {
-    CF::DataType dataType;
-    dataType.id = CORBA::string_dup(prop->getID());
-
-    if (prop->isNone()) {
-        return dataType;
-    }
-
-    const std::vector<StructProperty>& propValues = prop->getValues();
-    CORBA::AnySeq values;
-    values.length(propValues.size());
-    for (CORBA::ULong ii = 0; ii < values.length(); ++ii) {
-        CF::DataType val = convertPropertyToDataType(&propValues[ii]);
-        values[ii] = val.value;
-    }
-    dataType.value <<= values;
-    return dataType;
-}
-
-static CF::DataType overrideSimpleValue(const SimpleProperty* prop, const std::string& value)
-{
-    CF::DataType dataType;
-    dataType.id = CORBA::string_dup(prop->getID());
-    CORBA::TCKind kind = ossie::getTypeKind(prop->getType());
-    dataType.value = ossie::string_to_any(value, kind);
-    return dataType;
-}
-
-CF::DataType ossie::overridePropertyValue(const SimpleProperty* prop, const ComponentProperty* compprop) {
-    const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(compprop);
-    if (!simpleref) {
-        LOG_WARN(prop_helpers, "ignoring attempt to override simple property " << prop->getID() << " because override definition is not a simpleref");
-        return convertPropertyToDataType(prop);
-    }
-
-    LOG_TRACE(prop_helpers, "overriding simple property id " << prop->getID());
-    return overrideSimpleValue(prop, simpleref->getValue());
-}
-
-CF::DataType ossie::overridePropertyValue(const SimpleSequenceProperty* prop, const ComponentProperty* compprop) {
-    CF::DataType dataType = convertPropertyToDataType(prop);
-    if (dynamic_cast<const SimpleSequencePropertyRef*>(compprop) != NULL) {
-        const SimpleSequencePropertyRef* simpleseqref = dynamic_cast<const SimpleSequencePropertyRef*>(compprop);
-        LOG_TRACE(prop_helpers, "overriding simpleseq property id " << dataType.id);
-        CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(prop->getType()));
-        dataType.value = ossie::strings_to_any(simpleseqref->getValues(), kind);
     } else {
-        LOG_WARN(prop_helpers, "ignoring attempt to override simple sequence property " << dataType.id << " because override definition is not a simpleseqref");
-    }
-    return dataType;
-}
+    	typecode = CORBA::_tc_null;
+	}
 
-static CF::Properties overrideStructValues(const StructProperty* prop, const std::map<std::string, std::string>& values)
-{
-    const std::vector<SimpleProperty>& simpleProps = prop->getValue();
-    LOG_TRACE(prop_helpers, "structure has " << simpleProps.size() << " elements");
-    CF::Properties structval;
-    structval.length(simpleProps.size());
-    for (CORBA::ULong ii = 0; ii < structval.length(); ++ii) {
-        const SimpleProperty& simple = simpleProps[ii];
-        const std::string id = simple.getID();
-        std::map<std::string, std::string>::const_iterator itemoverride = values.find(id);
-        if (itemoverride == values.end()) {
-            LOG_TRACE(prop_helpers, "using default value for struct element " << id);
-            structval[ii] = convertPropertyToDataType(&simple);
-        } else {
-            LOG_TRACE(prop_helpers, "setting structure element " << id << " to " << itemoverride->second);
-            structval[ii] = overrideSimpleValue(&simple, itemoverride->second);
-        }
-    }
-
-    return structval;
-}
-
-static CF::Properties overrideStructValues(const StructProperty* prop, const std::map<std::string, std::string>& values, const CF::Properties& configureProperties)
-{
-    const std::vector<SimpleProperty>& simpleProps = prop->getValue();
-    LOG_TRACE(prop_helpers, "structure has " << simpleProps.size() << " elements");
-    CF::Properties structval;
-    structval.length(simpleProps.size());
-    for (CORBA::ULong ii = 0; ii < structval.length(); ++ii) {
-        const SimpleProperty& simple = simpleProps[ii];
-        const std::string id = simple.getID();
-        std::map<std::string, std::string>::const_iterator itemoverride = values.find(id);
-        if (itemoverride == values.end()) {
-            LOG_TRACE(prop_helpers, "using default value for struct element " << id);
-            structval[ii] = convertPropertyToDataType(&simple);
-        } else {
-            LOG_TRACE(prop_helpers, "setting structure element " << id << " to " << itemoverride->second);
-            std::string value = itemoverride->second;
-            if (strncmp(value.c_str(), "__MATH__", 8) == 0) {
-                CF::DataType dataType;
-                dataType.id = CORBA::string_dup(simple.getID());
-                CORBA::TCKind kind = ossie::getTypeKind(simple.getType());
-                LOG_TRACE(prop_helpers, "Invoking custom OSSIE dynamic allocation property support")
-                // Turn propvalue into a string for easy parsing
-                std::string mathStatement = value.substr(8);
-                if ((*mathStatement.begin() == '(') && (*mathStatement.rbegin() == ')')) {
-                    // TODO - implement a more relaxed parser
-                    mathStatement.erase(mathStatement.begin(), mathStatement.begin() + 1);
-                    mathStatement.erase(mathStatement.end() - 1, mathStatement.end());
-                    std::vector<std::string> args;
-                    while ((mathStatement.length() > 0) && (mathStatement.find(',') != std::string::npos)) {
-                        args.push_back(mathStatement.substr(0, mathStatement.find(',')));
-                        LOG_TRACE(prop_helpers, "ARG " << args.back())
-                        mathStatement.erase(0, mathStatement.find(',') + 1);
-                    }
-                    args.push_back(mathStatement);
-                    LOG_TRACE(prop_helpers, "ARG " << args.back())
-
-                    if (args.size() != 3) {
-                        std::ostringstream eout;
-                        eout << " invalid __MATH__ statement; '" << mathStatement << "'";
-                        throw ossie::PropertyMatchingError(eout.str());
-                    }
-
-                    LOG_TRACE(prop_helpers, "__MATH__ " << args[0] << " " << args[1] << " " << args[2])
-
-                    double operand;
-                    operand = strtod(args[0].c_str(), NULL);
-
-                    // See if there is a property in the component
-                    LOG_TRACE(prop_helpers, "Attempting to find matching property for " << args[1])
-                    const CF::DataType* matchingCompProp = 0;
-                    for (unsigned int j = 0; j < configureProperties.length(); j++) {
-                        if (strcmp(configureProperties[j].id, args[1].c_str()) == 0) {
-                            LOG_TRACE(prop_helpers, "Matched property for " << args[1])
-                            matchingCompProp = &configureProperties[j];
-                        }
-                        // See if the property we're looking for is a member of a struct
-                        //  **note: this only works because the dtd states that each
-                        //          property id is globally unique within the prf
-                        const CF::Properties* tmp_ref = NULL;
-                        configureProperties[j].value >>= tmp_ref;
-                        if (tmp_ref != NULL) {
-                            for (unsigned prop_idx = 0; prop_idx<tmp_ref->length(); prop_idx++) {
-                                if (strcmp((*tmp_ref)[prop_idx].id, args[1].c_str()) == 0) {
-                                    LOG_TRACE(prop_helpers, "Matched property for " << args[1])
-                                    matchingCompProp = &(*tmp_ref)[prop_idx];
-                                }
-                            }
-                        }
-                    }
-
-                    if (matchingCompProp == 0) {
-                        std::ostringstream eout;
-                        eout << " failed to match component property in __MATH__ statement; property id = " << args[1] << " does not exist in component as a configure property";
-                        throw ossie::PropertyMatchingError(eout.str());
-                    }
-
-                    std::string math = args[2];
-                    CORBA::Any compValue = matchingCompProp->value;
-                    dataType.value = ossie::calculateDynamicProp(operand, compValue, math, kind);
-                } else {
-                    std::ostringstream eout;
-                    eout << " invalid __MATH__ statement; '" << mathStatement << "'";
-                    throw ossie::PropertyMatchingError(eout.str());
-                }
-                structval[ii] = dataType;
-            } else {
-                structval[ii] = overrideSimpleValue(&simple, itemoverride->second);
-            }
-        }
-    }
-
-    return structval;
-}
-
-CF::DataType ossie::overridePropertyValue(const StructProperty* prop, const ComponentProperty* compprop) {
-    CF::DataType dataType = convertPropertyToDataType(prop);
-
-    const StructPropertyRef* structref = dynamic_cast<const StructPropertyRef*>(compprop);
-    if (structref) {
-        LOG_TRACE(prop_helpers, "overriding struct property id " << dataType.id);
-        dataType.value <<= overrideStructValues(prop, structref->getValue());
-    } else {
-        LOG_WARN(prop_helpers, "ignoring attempt to override struct property " << dataType.id << " because override definition is not a structref");
-    }
-    return dataType;
-}
-
-CF::DataType ossie::overridePropertyValue(const StructProperty* prop, const ComponentProperty* compprop, const CF::Properties& configureProperties) {
-    CF::DataType dataType = convertPropertyToDataType(prop);
-
-    const StructPropertyRef* structref = dynamic_cast<const StructPropertyRef*>(compprop);
-    if (structref) {
-        LOG_TRACE(prop_helpers, "overriding struct property id " << dataType.id << " (supports __MATH__)");
-        dataType.value <<= overrideStructValues(prop, structref->getValue(), configureProperties);
-    } else {
-        LOG_WARN(prop_helpers, "ignoring attempt to override struct property " << dataType.id << " because override definition is not a structref");
-    }
-    return dataType;
-}
-
-CF::DataType ossie::overridePropertyValue(const StructSequenceProperty* prop, const ComponentProperty* compprop) {
-    CF::DataType dataType = convertPropertyToDataType(prop);
-
-    const StructSequencePropertyRef* structsequenceref = dynamic_cast<const StructSequencePropertyRef*>(compprop);
-    if (structsequenceref) {
-        LOG_TRACE(prop_helpers, "overriding structsequence property id " << dataType.id);
-
-        const std::vector<std::map<std::string, std::string> >& overrideValues = structsequenceref->getValues();
-        LOG_TRACE(prop_helpers, "structsequence has " << overrideValues.size() << " values");
-
-        CORBA::AnySeq values;
-        values.length(overrideValues.size());
-        const std::vector<StructProperty>default_values = prop->getValues();
-        for (CORBA::ULong ii = 0; ii < values.length(); ++ii) {
-            StructProperty tmp = prop->getStruct();
-            if (ii < default_values.size()) {
-                tmp = default_values[ii];
-            }
-            values[ii] <<= overrideStructValues(&tmp, overrideValues[ii]);
-        }
-        dataType.value <<= values;
-    } else {
-        LOG_WARN(prop_helpers, "ignoring attempt to override structsequence property " << dataType.id << " because override definition is not a structsequenceref");
-    }
-    return dataType;
-}
-
-bool ossie::checkProcessor(const std::vector<std::string>& processorDeps, const std::vector<const Property*>& props)
-{
-    if (processorDeps.size() == 0) {
-        return true;
-    }
-
-    // Interpreting D.2.1.6.8, if more than one processor element is provided assume that the implementation
-    // can run on any of those...so once we find one match we are successful
-    for (unsigned int j = 0; j < processorDeps.size(); j++) {
-        bool matchProcessor = true;
-
-        std::string processor = processorDeps[j];
-        if (processor != "") {
-            matchProcessor = false;
-            LOG_TRACE(prop_helpers, "Attempting to match processor " << processor << " against " << props.size() << " properties")
-            for (unsigned int i = 0; i < props.size(); i++) {
-                if (dynamic_cast<const SimpleProperty*>(props[i]) != NULL) {
-                    const SimpleProperty* matchingProp = dynamic_cast<const SimpleProperty*>(props[i]);
-                    std::string action = matchingProp->getAction();
-                    LOG_TRACE(prop_helpers, "Checking property " << matchingProp->getID() << " " << matchingProp->getName())
-                    if (strcmp(matchingProp->getName(), "processor_name") == 0) {
-                        const char *tmp_value = matchingProp->getValue();
-                        std::string dev_processor_name("");
-                        if (tmp_value != NULL) {
-                            dev_processor_name = tmp_value;
-                        }
-                        LOG_TRACE(prop_helpers, "Performing comparison operation '" << dev_processor_name << "' " << action << " '" << processor << "'")
-                        matchProcessor = ossie::perform_action(dev_processor_name, processor, action);
-                        if (matchProcessor) break;
-                    }
-                }
-            }
-        }
-    
-        if (matchProcessor) {
-                return true;
-        }
-    }
-    return false;
-}
-
-bool ossie::checkOs(const std::vector<ossie::SPD::NameVersionPair>& osDeps, const std::vector<const Property*>& props)
-{
-    if (osDeps.size() == 0) {
-        return true;
-    }
-
-    // Interpreting D.2.1.6.7, if more than one processor element is provided assume that the implementation
-    // can run on any of those...so once we find one match we are successful
-    for (unsigned int j = 0; j < osDeps.size(); j++) {
-        bool matchOs = true;
-        bool matchOsVersion = true;
-
-        std::string os = osDeps[j].first;
-        std::string osVersion = osDeps[j].second;
-
-        if (os != "") {
-            matchOs = false;
-            LOG_TRACE(prop_helpers, "Attempting to match os " << os)
-            for (unsigned int i = 0; i < props.size(); i++) {
-                if (dynamic_cast<const SimpleProperty*>(props[i]) != NULL) {
-                    const SimpleProperty* matchingProp = dynamic_cast<const SimpleProperty*>(props[i]);
-                    std::string action = matchingProp->getAction();
-                    if (strcmp(matchingProp->getName(), "os_name") == 0) {
-                        const char *tmp_dev_os_name = matchingProp->getValue();
-                        std::string dev_os_name("");
-                        if (tmp_dev_os_name != NULL) {
-                            dev_os_name = tmp_dev_os_name;
-                        }
-                        LOG_TRACE(prop_helpers, "Performing comparison operation " << dev_os_name << " " << action << " " << os)
-                        matchOs = ossie::perform_action(dev_os_name, os, action);
-                        if (matchOs) break;
-                    }
-                }
-            }
-        }
-
-        LOG_TRACE(prop_helpers, "Attempting to match os version")
-        if (osVersion != "") {
-            matchOsVersion = false;
-            LOG_TRACE(prop_helpers, "Attempting to match os version" << osVersion)
-            for (unsigned int i = 0; i < props.size(); i++) {
-                if (dynamic_cast<const SimpleProperty*>(props[i]) != NULL) {
-                    const SimpleProperty* matchingProp = dynamic_cast<const SimpleProperty*>(props[i]);
-                    std::string action = matchingProp->getAction();
-                    if (strcmp(matchingProp->getName(), "os_version") == 0) {
-                        const char *tmp_dev_os_version = matchingProp->getValue();
-                        std::string dev_os_version("");
-                        if (tmp_dev_os_version != NULL) {
-                            dev_os_version = tmp_dev_os_version;
-                        }
-                        LOG_TRACE(prop_helpers, "Performing comparison operation " << dev_os_version << " " << action << " " << osVersion)
-                        matchOsVersion = ossie::perform_action(dev_os_version, osVersion, action);
-                        if (matchOsVersion) break;
-                    }
-                }
-            }
-        }
-
-        if (matchOs && matchOsVersion) {
-            return true;
-        }
-    }
-
-    return false;
+    return typecode;
 }
 
 CF::Properties ossie::getNonNilConfigureProperties(CF::Properties& originalProperties)

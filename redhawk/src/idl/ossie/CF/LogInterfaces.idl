@@ -1,0 +1,288 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file
+ * distributed with this source distribution.
+ *
+ * This file is part of REDHAWK core.
+ *
+ * REDHAWK core is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+#ifndef MODULE_CF_LOGGING_INF_IDL
+#define MODULE_CF_LOGGING_INF_IDL
+
+//
+// 
+//  Common Namespace for RedHawk Logging interface...in lue of CosLwLog
+//
+//
+
+module CF {
+
+  
+  exception UnknownIdentifier {
+  };
+
+
+  //
+  // CosLwLog Levels 
+  //
+  interface SysLogLevels {
+    const long SECURITY_ALARM = 1;
+    const long FAILURE_ALARM = 2;
+    const long DEGRADED_ALARM =3;
+    const long EXCEPTION_ERROR =4;
+    const long FLOW_CONTROL_ERROR =5;
+    const long RANGE_ERROR =6;
+    const long USAGE_ERROR = 7;
+    const long ADMINISTRATIVE_EVENT = 8;
+    const long STATISTIC_REPORT = 9;
+  };
+
+
+  //
+  // log4cxx levels
+  //
+  interface  LogLevels : SysLogLevels {
+    const long   OFF =  60000 ;
+    const long   FATAL = 50000;
+    const long   ERROR = 40000;
+    const long   WARN = 30000;
+    const long   INFO = 20000;
+    const long   DEBUG = 10000;
+    const long   TRACE = 5000;
+    const long   ALL = 0;
+  };
+
+  //
+  // RH Logging event level types
+  //
+  typedef long               LogLevel;
+
+  //
+  // record id used to report records from a logging service
+  //
+  typedef unsigned long long RecordId;
+
+  enum LogOperationalState {  LOG_DISABLED, LOG_ENABLED};
+  enum LogAdministrativeState { LOG_LOCKED, LOG_UNLOCKED };
+  enum LogFullAction {WRAP, HALT};
+
+  struct LogTime {
+    long seconds;
+    long nanoseconds;
+  };
+
+  struct LogAvailabilityStatus{
+    boolean off_duty;
+    boolean log_full;
+  };
+  
+
+  struct LogEvent {
+    string   producerId;                      // resource instance identifier
+    string   producerName;                    // canical name for producer 
+    string   producerName_fqn;                // fully qualified name of resource in naming service
+    unsigned long long timeStamp;             // time since 1.1.1970  
+    LogLevel level;
+    string   msg;
+  };
+
+
+  struct LogRecord {
+    RecordId    id;                          
+    LogTime     time;
+    LogEvent    info;
+  };
+
+  typedef sequence< LogRecord > LogRecordSequence;
+
+  typedef sequence< LogEvent > LogEventSequence;
+
+  typedef sequence< LogLevel > LogLevelSequence;
+
+  interface LogStatus {
+    unsigned long long get_max_size();
+    unsigned long long get_current_size();
+    unsigned long long get_n_records();
+    LogFullAction get_log_full_action();
+    LogAdministrativeState get_administrative_state();
+    LogOperationalState get_operational_state();
+    LogAvailabilityStatus get_availability_status();
+  };
+
+  interface LogAdministrator: LogStatus {
+    void  set_max_size(in unsigned long long size);
+    void  set_log_full_action(in LogFullAction action);
+    void  set_administrative_state( in LogAdministrativeState state );
+    void  clear_log();
+    void  destroy();
+  };
+
+  /**
+   * LogProducer
+   *  
+   * Allow a resource to publish logging event records to a consumer that is attached
+   * to this interface.
+   *
+   */
+  interface LogProducer : LogStatus {
+    oneway void write_records(in LogEventSequence records);
+    oneway void write_record(in LogEventSequence record);
+  };
+
+  /**
+   * LogEventConsumer
+   *
+   * This interface defines the basic logging event retrival methods from a resource.  
+   * 
+   */
+  interface LogEventConsumer {
+
+    /**
+     * retrieve_records 
+     *
+     * Return a sequence of log event records from the current list of event records being maintained.
+     * The set of records to be returned is restricted by the howMany and startRecord parameters.
+     *
+     * startRecord defines the starting point for selecting records. If a zero is passed then
+     * then the retrival will start from the first record of available log event records.
+     *
+     * howMany restricts the number of records to return in the LogEventSequence. If the number of event
+     * records is less than howMany, then only those records will be returned.
+     *
+     * @return LogEventSequence a sequence of LogEvent records from a resource
+     */
+    LogEventSequence retrieve_records( inout unsigned long howMany, in unsigned long startingRecord );
+
+
+    /**
+     * retrieve_records_by_date
+     *
+     * Return a sequence of log event records from the current list of event records being maintained.
+     * The howMany and timeStamp parameters restrict the number of records returned.  The actual number of 
+     * records returned will update the howMany parameter.
+     *
+     * to_timeStamp, number seconds since 1.1.1970, limit records that were recorded before the value 
+     * of to_timeStamp
+     *
+     * howMany restricts the number of records to return in the LogEventSequence. If the number of event
+     * records is less than howMany, then only those records will be returned.
+     *
+     * @return LogEventSequence a sequence of LogEvent records from a resource
+     *
+     */
+    LogEventSequence retrieve_records_by_date( inout unsigned long howMany, 
+                                               in   unsigned long long to_timeStamp );
+
+    /**
+     * retrieve_records_from_date
+     *
+     * Return a sequence of log event records from the current list of event records being maintained.
+     * The howMany and timeStamp parameters restrict the number of records returned.  The actual number of 
+     * records returned will update the howMany parameter.
+     *
+     * from_timeStamp, number seconds since 1.1.1970, use the from_timeStamp value to signify the starting 
+     * point in time to start the record selection process.
+     *
+     * howMany restricts the number of records to return in the LogEventSequence. If the number of event
+     * records is less than howMany, then only those records will be returned.
+     *
+     * @return LogEventSequence a sequence of LogEvent records from a resource
+     *
+     */
+    LogEventSequence retrieve_records_from_date( inout unsigned long howMany, 
+                                                 in   unsigned long long from_timeStamp );
+    /**
+     * retrieve_records_by_level
+     *
+     * Return a sequence of log event records from the current list of event records being maintained.
+     * The howMany and valueList parameters restrict the number of records returned. The actual number of 
+     * records returned will update the howMany parameter.
+     *
+     */
+    //LogEventSequence retrieve_records_by_level( inout unsigned long   howMany, 
+    //in   LogLevelSequence valueList ); 
+
+  };
+
+  typedef string   LogConfigID;
+  
+  interface LogConfigurator {
+    
+    /**
+     * getConfig - Get the logging level assigned for a key or path, the config_id
+     * value will be interpreted against the current configuration database.
+     *
+     *
+     *
+     * @param LogLevel  current level 
+     */
+    LogLevel getLogLevel( in LogConfigID  config_id ) raises (CF::UnknownIdentifier);
+
+    /**
+     * getConfig - Get a logging configuration information for a key or path. The config_id
+     * value will be interpreted against the current configuration database.
+     *
+     * @param LogConfigID - key or resource name used to lookup configuration information
+     * @return string   file:///path  path to configuration file on local system
+     * @return string   sca://path    path to configuration file on specified SCA system
+     * @return string   http://path   path to configuration file via http protocol
+     * @return string   str:///string   contents of configuration as string stream object
+     */
+    string getLogConfig( in LogConfigID  config_id ) raises (CF::UnknownIdentifier);
+
+  };
+
+  /**
+   * Configuration
+   * Interface implemented by a REDHAWK resource to maintain the current logging
+   * configuration/level information for a resource.
+   */
+  interface LogConfiguration {
+    
+    /**
+     * Current logging level for a Resource, default will be LOG_INFO.
+     */
+    attribute LogLevel   log_level;
+
+
+    /**
+     * Assigns the named logger to the new level
+     */
+    void   setLogLevel( in string logger_id, in LogLevel newLevel )  raises (CF::UnknownIdentifier);
+    
+    /**
+     * Return the current contents of the logging configuration as a string object. 
+     */
+    string  getLogConfig( );
+
+    /**
+     * Set the logging configuration context 
+     */
+    void setLogConfig( in string config_contents );
+
+    /**
+     * Set the logging configuratino using the specified URL
+     */
+    void setLogConfigURL( in string config_url );
+
+  };
+
+
+  interface  Logging : LogEventConsumer, LogConfiguration {
+
+  };
+
+};
+
+#endif

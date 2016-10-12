@@ -73,16 +73,28 @@ if __name__ == '__main__':
                 os.kill(oe_pid, 9)
             except:
                 pass
+        if os.path.exists("/proc/"+str(oe_pid)):
+            try:
+                if options.verbose:
+                    print "Killing omniEvents process"
+                os.kill(oe_pid, 9)
+            except:
+                pass
     if options.verbose:
         print "Removing omniNames log"
-    retval=commands.getstatusoutput('rm -rf /var/omniNames/*')
+    retval=commands.getstatusoutput('rm -rf /var/log/omniORB/*')
     if options.verbose:
         print "Removing omniEvents log"
     retval=commands.getstatusoutput('rm -rf /var/lib/omniEvents/*')
     if options.verbose:
         print "Starting omniNames"
-    retval=commands.getstatusoutput('/etc/init.d/omniNames start')
+    retval=os.system('/etc/init.d/omniNames start')
     if options.verbose:
         print "Starting omniEvents"
     retval=commands.getstatusoutput('/etc/init.d/omniEvents start')
-    
+    while "FAILED" in retval[1]:   
+        if options.verbose:
+            print "Starting omniEvents Failed"
+        retval=commands.getstatusoutput('/etc/init.d/omniEvents start')
+    if options.verbose:
+        print "Starting omniEvents"

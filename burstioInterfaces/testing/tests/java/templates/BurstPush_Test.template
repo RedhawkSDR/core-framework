@@ -1,0 +1,727 @@
+//package test_burstio;
+
+
+import static org.junit.Assert.*;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
+import org.junit.BeforeClass;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.Ignore;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.PropertyConfigurator;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.Layout;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Appender;
+import org.apache.log4j.Level;
+import org.apache.log4j.xml.DOMConfigurator;
+import org.omg.CORBA.Object;
+
+import BULKIO.StreamSRI;
+import BULKIO.PrecisionUTCTime;
+import BULKIO.PortStatistics;
+import BULKIO.PortUsageType;
+import BULKIO.UsesPortStatistics;
+import org.ossie.properties.StructDef;
+
+import org.omg.CORBA.ORB;
+
+import burstio.OutputPolicy;
+import burstio.RoutingMode;
+
+public class Burst@name@Push_Test {
+	
+    public static ORB orb;
+
+    public burstio.Burst@name@In ip1 = null;
+    public burstio.Burst@name@In ip2 = null;
+    public burstio.Burst@name@In ip3 = null;
+    public burstio.Burst@name@In ip4 = null;
+    public burstio.Burst@name@Out op1 = null;
+    public burstio.Burst@name@Out op2 = null;
+    public burstio.Burst@name@Out op3 = null;
+    public burstio.Burst@name@Out op4 = null;
+
+    protected List< bulkio.connection_descriptor_struct> filterTable = null;
+
+    Logger logger =  Logger.getRootLogger();    
+    
+    public static BURSTIO.BurstSRI make_sri_test( String sid, String id) {
+        BURSTIO.BurstSRI sri = new BURSTIO.BurstSRI();
+        sri.streamID = sid;
+        sri.id = id;
+        sri.xdelta = 1.0;
+        sri.mode = 0;       /* 0-Scalar, 1-Complex */
+        sri.flags = 0;
+        sri.tau = 1.1;
+        sri.theta = 1.2f;
+        sri.gain = 1.3f;
+        sri.uwlength = 128;
+        sri.bursttype = 2;
+        sri.burstLength = 1024;
+        sri.CHAN_RF = 1e6;
+        sri.baudestimate = 2.0f;
+        sri.carrieroffset = 2.1;
+        sri.SNR = 2.3;
+        sri.modulation = "mod";
+        sri.baudrate = 56000.0;
+        sri.fec = "vit";       /* fec type */
+        sri.fecrate = "7/8";   /* not a number for TPC rates like (64,57)x(64,57) */
+        sri.randomizer="R20";
+        sri.overhead="unknown";
+        sri.expectedStartOfBurstTime=burstio.Utils.now();
+        return sri;
+    }
+
+    @BeforeClass
+	public static void oneTimeSetUp() {
+	// Set up a simple configuration that logs on the console.
+	BasicConfigurator.configure();
+
+        // Create and initialize the ORB
+        String [] args = new String[0];
+        orb = ORB.init(args, null);
+    }
+
+    @AfterClass
+	public static void oneTimeTearDown() {
+        LogManager.shutdown();
+    }
+
+    @Before
+	public void setUp() {
+
+        ip1 = new burstio.Burst@name@In("sink_1" );
+        ip2 = new burstio.Burst@name@In("sink_2" );
+        ip3 = new burstio.Burst@name@In("sink_3" );
+        ip4 = new burstio.Burst@name@In("sink_4" );
+        op1 = new burstio.Burst@name@Out("source_1" );
+        op2 = new burstio.Burst@name@Out("source_2" );
+        op3 = new burstio.Burst@name@Out("source_3" );
+        op4 = new burstio.Burst@name@Out("source_4" );
+
+	filterTable = new ArrayList< bulkio.connection_descriptor_struct>(10);
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_1", "stream-1-1", "source_1") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_1", "stream-1-2", "source_1") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_1", "stream-1-3", "source_1") );
+
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_2", "stream-2-1", "source_1") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_2", "stream-2-2", "source_1") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_2", "stream-2-3", "source_1") );
+
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_3", "stream-3-1", "source_1") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_3", "stream-3-2", "source_1") );
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_3", "stream-3-3", "source_1") );
+
+	filterTable.add( new bulkio.connection_descriptor_struct("connection_4", "stream-4-1", "source_1") );
+    }
+
+    @After
+	public void tearDown() {
+        
+        if ( ip1 != null ) { ip1.stop(); }
+        if ( ip2  != null) { ip2.stop(); }
+        if ( ip3 != null ) { ip3.stop(); }
+        if ( ip4  != null) { ip4.stop(); }
+        if ( op1  != null) { op1.stop(); }
+        if ( op2  != null) { op2.stop(); }
+        if ( op3 != null ) { op3.stop(); }
+        if ( op4  != null) { op4.stop(); }
+	
+    }
+    
+
+    @Test
+	public void test_push_simple( ) {
+
+	logger.debug("BURSTIO SIMPLE FLOW BEGIN: @name@");
+
+        String cid = new String("connection_1");
+
+	try {
+	    op1.connectPort( ip1._this_object(orb), cid);
+	}
+	catch( Exception e  ) {
+	}
+
+        ip1.start();
+        op1.start();
+
+	BULKIO.PrecisionUTCTime TS = burstio.Utils.now();
+	String sid = new String("stream-1-1");
+	BURSTIO.BurstSRI sri = make_sri_test( sid, "id-1");
+        BURSTIO.@name@Burst [] bursts = new BURSTIO.@name@Burst[1];
+        BURSTIO.@name@Burst burst  = new BURSTIO.@name@Burst();
+        burst.SRI = sri;
+        burst.EOS = false;
+        burst.T = TS;
+        burst.data = new @type@[50];
+        bursts[0] = burst;
+        
+        op1.pushBursts( bursts );
+        
+        burstio.@name@Packet pkt = ip1.getBurst( bulkio.Const.NON_BLOCKING);
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts PKT != null ", null != pkt );
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts EOS mismatch ", false == pkt.getEOS() );
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts Data Length mismatch ", 50 == pkt.getSize() );
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts Mode ", false == pkt.isComplex() );
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts SRI mismatch ", sid.equals(pkt.getStreamID()) );
+        BURSTIO.BurstSRI asri = pkt.getSRI();
+        String t = asri.modulation;
+        String expected= "mod";
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts SRI.modulation", expected.equals(t) );
+        t = asri.fec;  
+        expected = "vit";
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts SRI.fec", expected.equals(t) );
+        t = asri.fecrate;  
+        expected = "7/8";
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts SRI.fec", expected.equals(t) );
+        t = asri.randomizer;  
+        expected = "R20";
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts SRI.fec", expected.equals(t) );
+        t = asri.overhead;  
+        expected = "unknown";
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts SRI.overhead", expected.equals(t) );
+
+        pkt = ip1.getBurst( bulkio.Const.NON_BLOCKING);
+        assertTrue( "BURSTIO_SIMPLE_FLOW getBursts PKT == null ", null == pkt );
+
+        try {
+            op1.disconnectPort(cid);
+        }
+        catch( Exception e){
+        };
+		
+	logger.debug("BURSTIO SIMPLE FLOW END: @name@");
+    };
+
+
+
+    @Test
+	public void test_push_bursts_sequence( ) {
+
+	logger.debug("BURSTIO PUSH-BURSTS SEQUENCE BEGIN: @name@");
+
+        String cid = new String("connection_1");
+
+	try {
+	    op1.connectPort( ip1._this_object(orb), cid);
+	}
+	catch( Exception e  ) {
+	}
+
+        ip1.start();
+        op1.start();
+
+	BULKIO.PrecisionUTCTime TS = burstio.Utils.now();
+	String sid = new String("stream-1-1");
+	BURSTIO.BurstSRI sri = make_sri_test( sid, "id-1");
+        int nseq=10;
+        int[] burst_count = new int[nseq];
+        int  tbursts = 0;
+        for( int i=0; i < nseq; i++ ) {
+            int nbursts=i+1;
+            burst_count[i] = nbursts;
+            BURSTIO.@name@Burst [] bursts = new BURSTIO.@name@Burst[nbursts];
+            for ( int j=0; j < nbursts; j++ ) {
+                BURSTIO.@name@Burst burst  = new BURSTIO.@name@Burst();
+                burst.SRI = sri;
+                burst.EOS = false;
+                burst.T = TS;
+                burst.data = new @type@[50];
+                tbursts++;
+                bursts[j] = burst;
+            }
+            op1.pushBursts( bursts );
+        }
+
+        BURSTIO.@name@Burst[] in_bursts = ip1.getBursts( bulkio.Const.NON_BLOCKING);
+        assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts Sequence is empty ", in_bursts.length != 0 );
+        assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts Sequence Length mismatch ", in_bursts.length == tbursts );
+
+        for ( int j=0; j < in_bursts.length; j++ ) {
+            BURSTIO.@name@Burst burst = in_bursts[j];
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts EOS mismatch ", false == burst.EOS );
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts Data Length mismatch ", 50 == burst.data.length );
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts Mode ", 0 == burst.SRI.mode );
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI mismatch ", sid.equals(burst.SRI.streamID ));
+            BURSTIO.BurstSRI asri = burst.SRI;
+            String t = asri.modulation;
+            String expected= "mod";
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI.modulation", expected.equals(t) );
+            t = asri.fec;  
+            expected = "vit";
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI.fec", expected.equals(t) );
+            t = asri.fecrate;  
+            expected = "7/8";
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI.fec", expected.equals(t) );
+            t = asri.randomizer;  
+            expected = "R20";
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI.fec", expected.equals(t) );
+            t = asri.overhead;  
+            expected = "unknown";
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI.overhead", expected.equals(t) );
+        }
+
+        burstio.@name@Packet pkt = ip1.getBurst( bulkio.Const.NON_BLOCKING);
+        assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts PKT == null ", null == pkt );
+
+        try {
+            op1.disconnectPort(cid);
+        }
+        catch( Exception e){
+        };
+		
+
+	logger.debug("BURSTIO PUSH-BURSTS SEQUENCE END: @name@");
+    };
+
+
+
+
+    @Test
+	public void test_push_burst_sequence( ) {
+
+	logger.debug("BURSTIO PUSH-BURST SEQUENCE BEGIN: @name@");
+
+        String cid = new String("connection_1");
+
+	try {
+	    op1.connectPort( ip1._this_object(orb), cid);
+	}
+	catch( Exception e  ) {
+	}
+
+        ip1.start();
+        op1.start();
+
+	BULKIO.PrecisionUTCTime TS = burstio.Utils.now();
+	String sid = new String("stream-1-1");
+	BURSTIO.BurstSRI sri = make_sri_test( sid, "id-1");
+        int nseq=10;
+        int[] burst_count = new int[nseq];
+        int  tbursts = 0;
+        for( int i=0; i < nseq; i++ ) {
+            int nbursts=i+1;
+            burst_count[i] = nbursts;
+            BURSTIO.@name@Burst [] bursts = new BURSTIO.@name@Burst[nbursts];
+            for ( int j=0; j < nbursts; j++ ) {
+                BURSTIO.@name@Burst burst  = new BURSTIO.@name@Burst();
+                burst.SRI = sri;
+                burst.EOS = false;
+                burst.T = TS;
+                burst.data = new @type@[50];
+                tbursts++;
+                bursts[j] = burst;
+            }
+            op1.pushBursts( bursts );
+        }
+
+        int tmp = ip1.getQueueDepth();
+        assertTrue( "BURSTIO_PUSH_SEQUENCE getQueueDepth size mismatch ", tmp == tbursts );            
+
+        for ( int i=0; i < tbursts; i++ ){
+            burstio.@name@Packet pkt = ip1.getBurst( bulkio.Const.NON_BLOCKING);
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts PKT != null ", null != pkt );
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts EOS mismatch ", false == pkt.getEOS() );
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts Data Length mismatch ", 50 == pkt.getSize() );
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts Mode ", false == pkt.isComplex() );
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI mismatch ", sid.equals(pkt.getStreamID()) );
+            BURSTIO.BurstSRI asri = pkt.getSRI();
+            String t = asri.modulation;
+            String expected= "mod";
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI.modulation", expected.equals(t) );
+            t = asri.fec;  
+            expected = "vit";
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI.fec", expected.equals(t) );
+            t = asri.fecrate;  
+            expected = "7/8";
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI.fec", expected.equals(t) );
+            t = asri.randomizer;  
+            expected = "R20";
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI.fec", expected.equals(t) );
+            t = asri.overhead;  
+            expected = "unknown";
+            assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts SRI.overhead", expected.equals(t) );
+        }
+
+        burstio.@name@Packet pkt = ip1.getBurst( bulkio.Const.NON_BLOCKING);
+        assertTrue( "BURSTIO_PUSH_SEQUENCE getBursts PKT == null ", null == pkt );
+
+        try {
+            op1.disconnectPort(cid);
+        }
+        catch( Exception e){
+        };
+		
+
+	logger.debug("BURSTIO PUSH-BURST SEQUENCE END: @name@");
+    };
+
+
+
+    int  push_bursts(  burstio.Burst@name@Out op, String sid, int oid , int nbursts ) {
+
+        BULKIO.PrecisionUTCTime TS = burstio.Utils.now();
+        String id="id-"+oid;
+	BURSTIO.BurstSRI sri = make_sri_test( sid, id );
+        int tbursts=0;
+        BURSTIO.@name@Burst [] bursts = new BURSTIO.@name@Burst[nbursts];
+        for ( int j=0; j < nbursts; j++ ) {
+            BURSTIO.@name@Burst burst  = new BURSTIO.@name@Burst();
+            burst.SRI = sri;
+            burst.EOS = false;
+            burst.T = TS;
+            burst.data = new @type@[50];
+            tbursts++;
+            bursts[j] = burst;
+        }
+        op.pushBursts( bursts );
+        return tbursts;
+    }
+
+    int  push_bursts_multiout2(  burstio.Burst@name@Out op, String sid, int oid , int nbursts ) {
+
+        String id="id-"+oid;
+        int tbursts=0;
+        for ( int j=0; j < nbursts; j++ ) {
+            BURSTIO.BurstSRI sri = make_sri_test( sid, id );
+            BULKIO.PrecisionUTCTime ts = burstio.Utils.now();
+            @type@[] data = new @type@[50];
+            tbursts++;
+            op.pushBurst( data, sri, ts );
+        }
+
+        op.flush();
+
+        return tbursts;
+    }
+
+
+    int  push_bursts_multiout(  burstio.Burst@name@Out op, String sid, int oid , int nbursts ) {
+
+        BULKIO.PrecisionUTCTime TS = burstio.Utils.now();
+        String id="id-"+oid;
+	BURSTIO.BurstSRI sri = make_sri_test( sid, id );
+        int tbursts=0;
+        BURSTIO.@name@Burst [] bursts = new BURSTIO.@name@Burst[nbursts];
+        for ( int j=0; j < nbursts; j++ ) {
+            BURSTIO.@name@Burst burst  = new BURSTIO.@name@Burst();
+            burst.SRI = sri;
+            burst.EOS = false;
+            burst.T = TS;
+            burst.data = new @type@[50];
+            tbursts++;
+            bursts[j] = burst;
+        }
+        op.pushBursts( bursts );
+        return tbursts;
+    }
+
+    int  check_results(  burstio.Burst@name@In ip, String sid, int oid , int nbursts ) {
+
+        int ncnt=0;
+        for ( int i=0; i < nbursts; i++ ){
+            burstio.@name@Packet pkt = ip.getBurst( bulkio.Const.NON_BLOCKING);
+            if ( pkt == null ) break;
+            ncnt++;
+            assertTrue( "BURSTIO CHECK RESULTS getBursts PKT != null ", null != pkt );
+            assertTrue( "BURSTIO CHECK RESULTS getBursts EOS mismatch ", false == pkt.getEOS() );
+            assertTrue( "BURSTIO CHECK RESULTS getBursts Data Length mismatch ", 50 == pkt.getSize() );
+            assertTrue( "BURSTIO CHECK RESULTS getBursts Mode ", false == pkt.isComplex() );
+            assertTrue( "BURSTIO CHECK RESULTS getBursts SRI mismatch ", sid.equals(pkt.getStreamID()) );
+            BURSTIO.BurstSRI asri = pkt.getSRI();
+            String t = asri.modulation;
+            String expected= "mod";
+            assertTrue( "BURSTIO CHECK RESULTS getBursts SRI.modulation", expected.equals(t) );
+            t = asri.fec;  
+            expected = "vit";
+            assertTrue( "BURSTIO CHECK RESULTS getBursts SRI.fec", expected.equals(t) );
+            t = asri.fecrate;  
+            expected = "7/8";
+            assertTrue( "BURSTIO CHECK RESULTS getBursts SRI.fec", expected.equals(t) );
+            t = asri.randomizer;  
+            expected = "R20";
+            assertTrue( "BURSTIO CHECK RESULTS getBursts SRI.fec", expected.equals(t) );
+            t = asri.overhead;  
+            expected = "unknown";
+            assertTrue( "BURSTIO CHECK RESULTS getBursts SRI.overhead", expected.equals(t) );
+        }
+
+        return ncnt;
+    }
+
+    @Test
+	public void test_fan_in( ) {
+
+
+        logger.debug("BURSTIO - FAN IN - BEGIN " );
+
+        logger.debug("Burstio Flow - Create Connections and Filter list " );
+	try {
+	    op1.connectPort( ip1._this_object(orb), "connection_1");
+	    op2.connectPort( ip1._this_object(orb), "connection_2");
+	    op3.connectPort( ip1._this_object(orb), "connection_3");
+	    op4.connectPort( ip1._this_object(orb), "connection_4");
+	}
+	catch( Exception e  ) {
+	}
+
+
+        // need to allow for flow of data
+        op1.start();
+        op2.start();
+        op3.start();
+        op4.start();
+        ip1.start();
+        int nseq=10;
+        int nbursts=10;
+        // setup to allow for all bursts to be pushed without blocking
+        ip1.setQueueThreshold( nbursts * nseq * 4 );
+        int totalBursts = 0;
+        int[][] pbursts = new int[nseq][4];
+        int n;
+        for ( int i=0; i < nseq; i++ ) {
+            n = push_bursts( op1, "stream-1-1", 1, nbursts );
+            pbursts[i][0] = n;
+            totalBursts += n;
+            n = push_bursts( op2, "stream-2-1", 2, nbursts );
+            pbursts[i][1] = n;
+            totalBursts += n;
+            n = push_bursts( op3, "stream-3-1", 3, nbursts );
+            pbursts[i][2] = n;
+            totalBursts += n;
+            n = push_bursts( op4, "stream-4-1", 4, nbursts );
+            pbursts[i][3] = n;
+            totalBursts += n;
+        }
+
+        // check the results
+        for ( int i=0; i < nseq; i++ ) {
+            check_results( ip1, "stream-1-1", 1, pbursts[i][0] );
+            check_results( ip1, "stream-2-1", 2, pbursts[i][1] );
+            check_results( ip1, "stream-3-1", 3, pbursts[i][2] );
+            check_results( ip1, "stream-4-1", 4, pbursts[i][3] );
+        }
+
+        logger.debug( "BURSTIO - FAN IN - END " );
+
+    };
+
+
+
+    @Test
+	public void test_fan_out( ) {
+
+        /// RESOLVE -- wait unit c++ issue is resolved
+        };
+
+
+/*** 
+     REMOVED -- push burst seq not working for multiout
+	public void test_multiout( ) {
+
+	logger.debug("BURSTIO MULTIOUT  BEGIN: @name@");
+
+
+        String cid = new String("connection_1");
+	try {
+	    op1.connectPort( ip1._this_object(orb), "connection_1");
+	    op1.connectPort( ip2._this_object(orb), "connection_2");
+	    op1.connectPort( ip3._this_object(orb), "connection_3");
+	    op1.connectPort( ip4._this_object(orb), "connection_4");
+	}
+	catch( Exception e  ) {
+	}
+
+        op1.start();
+        ip1.start();
+        ip2.start();
+        ip3.start();
+        ip4.start();
+
+        op1.setRoutingMode(burstio.RoutingMode.ROUTE_CONNECTION_STREAMS);
+        op1.updateConnectionFilter( filterTable );
+
+        //
+        //  Test Filter for IP1
+        //
+        int nbursts=10;
+        int n=0;
+        String filter_stream_id= "stream-1-1";
+        push_bursts_multiout( op1, filter_stream_id, 1, nbursts );
+        n= check_results( ip1, filter_stream_id, 1, nbursts );
+        assertTrue( "MultiOut Filter Port 1- Input Port 1 Pkts received mismatch", nbursts == n );  
+
+        // make sure the other ports did not get the data
+        n= check_results( ip2, filter_stream_id, 1, nbursts );
+        assertTrue( "MultiOut Filter Port 1- Input Port 2 Pkts received mismatch", 0 == n );  
+        n= check_results( ip3, filter_stream_id, 1, nbursts );
+        assertTrue( "MultiOut Filter Port 1- Input Port 3 Pkts received mismatch", 0 == n );  
+        n= check_results( ip4, filter_stream_id, 1, nbursts );
+        assertTrue( "MultiOut Filter Port 1- Input Port 4 Pkts received mismatch", 0 == n );  
+
+        //
+        //  Test Filter for IP2
+        //
+        filter_stream_id="stream-2-1";
+        push_bursts_multiout( op1, filter_stream_id, 2, nbursts );
+        n= check_results( ip2, filter_stream_id, 2, nbursts );
+        assertTrue( "MultiOut Filter Port 2- Input Port 2 Pkts received mismatch", nbursts == n );  
+
+        // make sure the other ports did not get the data
+        n= check_results( ip1, filter_stream_id, 2, nbursts );
+        assertTrue( "MultiOut Filter Port 2- Input Port 1 Pkts received mismatch", 0 == n );  
+        n= check_results( ip3, filter_stream_id, 2, nbursts );
+        assertTrue( "MultiOut Filter Port 2- Input Port 3 Pkts received mismatch", 0 == n );  
+        n= check_results( ip4, filter_stream_id, 2, nbursts );
+        assertTrue( "MultiOut Filter Port 2- Input Port 4 Pkts received mismatch", 0 == n );  
+
+        //
+        //  Test Filter for IP3
+        //
+        filter_stream_id="stream-3-1";
+        push_bursts_multiout( op1, filter_stream_id, 3, nbursts );
+        n= check_results( ip3, filter_stream_id, 3, nbursts );
+        assertTrue( "MultiOut Filter Port 3- Input Port 3 Pkts received mismatch", nbursts == n );  
+
+        // make sure the other ports did not get the data
+        n= check_results( ip1, filter_stream_id, 3, nbursts );
+        assertTrue( "MultiOut Filter Port 3- Input Port 1 Pkts received mismatch", 0 == n );  
+        n= check_results( ip2, filter_stream_id, 3, nbursts );
+        assertTrue( "MultiOut Filter Port 3- Input Port 2 Pkts received mismatch", 0 == n );  
+        n= check_results( ip4, filter_stream_id, 3, nbursts );
+        assertTrue( "MultiOut Filter Port 3- Input Port 4 Pkts received mismatch", 0 == n );  
+
+        //
+        //  Test Filter for IP4
+        //
+        filter_stream_id="stream-4-1";
+        push_bursts_multiout( op1, filter_stream_id, 4, nbursts );
+        n= check_results( ip4, filter_stream_id, 4, nbursts );
+        assertTrue( "MultiOut Filter Port 4- Input Port 4 Pkts received mismatch", nbursts == n );  
+
+        // make sure the other ports did not get the data
+        n= check_results( ip1, filter_stream_id, 4, nbursts );
+        assertTrue( "MultiOut Filter Port 4- Input Port 1 Pkts received mismatch", 0 == n );  
+        n= check_results( ip2, filter_stream_id, 4, nbursts );
+        assertTrue( "MultiOut Filter Port 4- Input Port 2 Pkts received mismatch", 0 == n );  
+        n= check_results( ip3, filter_stream_id, 4, nbursts );
+        assertTrue( "MultiOut Filter Port 4- Input Port 3 Pkts received mismatch", 0 == n );  
+
+
+		
+	logger.debug("BURSTIO MULTIOUT END: @name@");
+    };
+***/
+
+
+    @Test
+	public void test_multiout2( ) {
+
+	logger.debug("BURSTIO MULTIOUT  BEGIN: @name@");
+
+
+        String cid = new String("connection_1");
+	try {
+	    op1.connectPort( ip1._this_object(orb), "connection_1");
+	    op1.connectPort( ip2._this_object(orb), "connection_2");
+	    op1.connectPort( ip3._this_object(orb), "connection_3");
+	    op1.connectPort( ip4._this_object(orb), "connection_4");
+	}
+	catch( Exception e  ) {
+	}
+
+        op1.start();
+        ip1.start();
+        ip2.start();
+        ip3.start();
+        ip4.start();
+
+        op1.setRoutingMode(burstio.RoutingMode.ROUTE_CONNECTION_STREAMS);
+        op1.updateConnectionFilter( filterTable );
+
+        //
+        //  Test Filter for IP1
+        //
+        int nbursts=10;
+        int n=0;
+        String filter_stream_id= "stream-1-1";
+        push_bursts_multiout2( op1, filter_stream_id, 1, nbursts );
+        n= check_results( ip1, filter_stream_id, 1, nbursts );
+        assertTrue( "MultiOut Filter Port 1- Input Port 1 Pkts received mismatch", nbursts == n );  
+
+        // make sure the other ports did not get the data
+        n= check_results( ip2, filter_stream_id, 1, nbursts );
+        assertTrue( "MultiOut Filter Port 1- Input Port 2 Pkts received mismatch", 0 == n );  
+        n= check_results( ip3, filter_stream_id, 1, nbursts );
+        assertTrue( "MultiOut Filter Port 1- Input Port 3 Pkts received mismatch", 0 == n );  
+        n= check_results( ip4, filter_stream_id, 1, nbursts );
+        assertTrue( "MultiOut Filter Port 1- Input Port 4 Pkts received mismatch", 0 == n );  
+
+        //
+        //  Test Filter for IP2
+        //
+        filter_stream_id="stream-2-1";
+        push_bursts_multiout2( op1, filter_stream_id, 2, nbursts );
+        n= check_results( ip2, filter_stream_id, 2, nbursts );
+        assertTrue( "MultiOut Filter Port 2- Input Port 2 Pkts received mismatch", nbursts == n );  
+
+        // make sure the other ports did not get the data
+        n= check_results( ip1, filter_stream_id, 2, nbursts );
+        assertTrue( "MultiOut Filter Port 2- Input Port 1 Pkts received mismatch", 0 == n );  
+        n= check_results( ip3, filter_stream_id, 2, nbursts );
+        assertTrue( "MultiOut Filter Port 2- Input Port 3 Pkts received mismatch", 0 == n );  
+        n= check_results( ip4, filter_stream_id, 2, nbursts );
+        assertTrue( "MultiOut Filter Port 2- Input Port 4 Pkts received mismatch", 0 == n );  
+
+        //
+        //  Test Filter for IP3
+        //
+        filter_stream_id="stream-3-1";
+        push_bursts_multiout2( op1, filter_stream_id, 3, nbursts );
+        n= check_results( ip3, filter_stream_id, 3, nbursts );
+        assertTrue( "MultiOut Filter Port 3- Input Port 3 Pkts received mismatch", nbursts == n );  
+
+        // make sure the other ports did not get the data
+        n= check_results( ip1, filter_stream_id, 3, nbursts );
+        assertTrue( "MultiOut Filter Port 3- Input Port 1 Pkts received mismatch", 0 == n );  
+        n= check_results( ip2, filter_stream_id, 3, nbursts );
+        assertTrue( "MultiOut Filter Port 3- Input Port 2 Pkts received mismatch", 0 == n );  
+        n= check_results( ip4, filter_stream_id, 3, nbursts );
+        assertTrue( "MultiOut Filter Port 3- Input Port 4 Pkts received mismatch", 0 == n );  
+
+        //
+        //  Test Filter for IP4
+        //
+        filter_stream_id="stream-4-1";
+        push_bursts_multiout2( op1, filter_stream_id, 4, nbursts );
+        n= check_results( ip4, filter_stream_id, 4, nbursts );
+        assertTrue( "MultiOut Filter Port 4- Input Port 4 Pkts received mismatch", nbursts == n );  
+
+        // make sure the other ports did not get the data
+        n= check_results( ip1, filter_stream_id, 4, nbursts );
+        assertTrue( "MultiOut Filter Port 4- Input Port 1 Pkts received mismatch", 0 == n );  
+        n= check_results( ip2, filter_stream_id, 4, nbursts );
+        assertTrue( "MultiOut Filter Port 4- Input Port 2 Pkts received mismatch", 0 == n );  
+        n= check_results( ip3, filter_stream_id, 4, nbursts );
+        assertTrue( "MultiOut Filter Port 4- Input Port 3 Pkts received mismatch", 0 == n );  
+
+
+		
+	logger.debug("BURSTIO MULTIOUT END: @name@");
+    };
+
+
+
+
+}

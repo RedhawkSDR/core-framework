@@ -1,0 +1,4 @@
+#!/usr/bin/python
+
+from ossie.apps.rhlauncher.main import main
+main()

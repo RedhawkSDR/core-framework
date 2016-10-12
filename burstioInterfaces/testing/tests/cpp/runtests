@@ -1,0 +1,8 @@
+#
+#
+burstio_top=../../..
+burstio_libsrc_top=$burstio_top/src
+burstio_cpp_lib=$burstio_libsrc_top/cpp
+export LD_LIBRARY_PATH=$burstio_cpp_lib/.libs:$burstio_libsrc_top/.libs:${LD_LIBRARY_PATH}
+make check
+

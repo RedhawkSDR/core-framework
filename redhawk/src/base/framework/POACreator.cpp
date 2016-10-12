@@ -92,7 +92,6 @@ CORBA::Boolean POACreator::unknown_adapter (PortableServer::POA_ptr parent, cons
         lifespan = parent->create_lifespan_policy(PortableServer::TRANSIENT);
         idassignment = parent->create_id_assignment_policy(PortableServer::SYSTEM_ID);
         thread = parent->create_thread_policy(PortableServer::ORB_CTRL_MODEL);
-#if ENABLE_EVENTS
     } else if (child_name == "EventChannels") {
         if (parent_name != "DomainManager") {
             return 0;
@@ -100,7 +99,6 @@ CORBA::Boolean POACreator::unknown_adapter (PortableServer::POA_ptr parent, cons
         lifespan = parent->create_lifespan_policy(PortableServer::TRANSIENT);
         idassignment = parent->create_id_assignment_policy(PortableServer::SYSTEM_ID);
         thread = parent->create_thread_policy(PortableServer::ORB_CTRL_MODEL);
-#endif
     } else {
         return 0;
     }

@@ -56,4 +56,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <kind kindtype="configure"/>
         <action type="external"/>
     </simple>
+    <simple id="OCTAVE_PATH" mode="readonly" type="string">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
 </properties>

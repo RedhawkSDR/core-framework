@@ -37,7 +37,7 @@ namespace omnijni {
     {
         jstring jstr = (jstring)obj;
         const char* utf = env->GetStringUTFChars(jstr, NULL);
-        str = utf;            
+        str = utf;
         env->ReleaseStringUTFChars(jstr, utf);
     }
 
@@ -144,6 +144,105 @@ namespace omnijni {
         return toJObjectArray_(sequence, env, clazz);
     }
 
+#define ARRAY_ELEMENT_METHODS(ELEM, NAME) \
+    inline void releaseArrayElements(JNIEnv* env, ELEM##Array array, ELEM* elements) \
+    {                                                                                \
+        env->Release##NAME##ArrayElements(array, elements, JNI_ABORT);               \
+    }                                                                                \
+    inline ELEM* getArrayElements (JNIEnv* env, ELEM##Array array)                   \
+    {                                                                                \
+        return env->Get##NAME##ArrayElements(array, NULL);                           \
+    }
+
+    ARRAY_ELEMENT_METHODS(jbyte, Byte);
+    ARRAY_ELEMENT_METHODS(jchar, Char);
+    ARRAY_ELEMENT_METHODS(jshort, Short);
+    ARRAY_ELEMENT_METHODS(jint, Int);
+    ARRAY_ELEMENT_METHODS(jlong, Long);
+    ARRAY_ELEMENT_METHODS(jfloat, Float);
+    ARRAY_ELEMENT_METHODS(jdouble, Double);
+
+#undef ARRAY_ELEMENT_METHODS
+
+    // Wrapper class for automated release of Java array elements
+    template <typename ElemT, typename ArrayT>
+    class ArrayWrapper {
+    public:
+        typedef ArrayT array_type;
+        typedef ElemT elem_type;
+
+        ArrayWrapper (array_type array, JNIEnv* env) :
+            array_(array),
+            env_(env),
+            data_(acquire())
+        {
+        }
+
+        ~ArrayWrapper ()
+        {
+            release();
+        }
+
+        size_t size ()
+        {
+            return env_->GetArrayLength(array_);
+        }
+
+        elem_type* data ()
+        {
+            return data_;
+        }
+
+        operator elem_type* ()
+        {
+            return data();
+        }
+
+    private:
+        elem_type* acquire ()
+        {
+            return getArrayElements(env_, array_);
+        }
+
+        void release ()
+        {
+            releaseArrayElements(env_, array_, data_);
+        }
+
+        array_type array_;
+        JNIEnv* env_;
+        elem_type* data_;
+    };
+
+    typedef ArrayWrapper<jbyte, jbyteArray> ByteArrayWrapper;
+    typedef ArrayWrapper<jchar, jcharArray> CharArrayWrapper;
+    typedef ArrayWrapper<jshort, jshortArray> ShortArrayWrapper;
+    typedef ArrayWrapper<jint, jintArray> IntArrayWrapper;
+    typedef ArrayWrapper<jlong, jlongArray> LongArrayWrapper;
+    typedef ArrayWrapper<jfloat, jfloatArray> FloatArrayWrapper;
+    typedef ArrayWrapper<jdouble, jdoubleArray> DoubleArrayWrapper;
+
+    // Strings behave largely the same as arrays, so the same basic behavior
+    // works, with minor adaptations.
+    typedef ArrayWrapper<const char, jstring> StringWrapper;
+
+    template<>
+    inline size_t StringWrapper::size ()
+    {
+        return strlen(data_);
+    }
+
+    template<>
+    inline const char* StringWrapper::acquire ()
+    {
+        return env_->GetStringUTFChars(array_, NULL);
+    }
+
+    template<>
+    inline void StringWrapper::release ()
+    {
+        env_->ReleaseStringUTFChars(array_, data_);
+    }
 }
 
 #endif // __OMNIJNI_SEQUENCE_H__

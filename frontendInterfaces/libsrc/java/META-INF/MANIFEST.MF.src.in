@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: FRONTEND Base Class Library Source
+Bundle-SymbolicName: frontend.src
+Bundle-Version: @FRONTEND_API_VERSION@
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-Vendor: REDHAWK
+Eclipse-SourceBundle: frontend;version=@FRONTEND_API_VERSION@

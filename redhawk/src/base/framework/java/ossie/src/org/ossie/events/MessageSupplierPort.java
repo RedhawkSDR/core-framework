@@ -21,10 +21,12 @@
 package org.ossie.events;
 
 import org.omg.CORBA.Any;
+import org.omg.CORBA.ORB;
+import org.omg.CosEventChannelAdmin.*;
 import java.util.Hashtable;
+import java.util.Arrays;
+import java.util.Collection;
 
-import CosEventChannelAdmin.*;
-import org.ossie.events.Consumer_i;
 import org.ossie.component.*;
 import org.ossie.properties.StructDef;
 
@@ -38,6 +40,7 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
                 final EventChannelOperations port = narrow(connection);
                 final SupplierAdminOperations supplier_admin = port.for_suppliers();
                 final ProxyPushConsumerOperations proxy_consumer = supplier_admin.obtain_push_consumer();
+                proxy_consumer.connect_push_supplier(null);
                 this.outConnections_channel.put(connectionId, proxy_consumer);
                 this.active = true;
             }
@@ -45,6 +48,18 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
             t.printStackTrace();
         }
 
+    }
+
+    public void disconnectPort(final String connectionId)
+    {
+        synchronized (this.updatingPortsLock) {
+            final ProxyPushConsumerOperations proxy_consumer = this.outConnections_channel.get(connectionId);
+            if (proxy_consumer != null) {
+                proxy_consumer.disconnect_push_consumer();
+                this.outConnections_channel.remove(connectionId);
+                this.active = !this.outConnections_channel.isEmpty();
+            }
+        }
     }
     
     public MessageSupplierPort(String portName) 
@@ -60,7 +75,7 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
                 for (ProxyPushConsumerOperations p : this.outConnections_channel.values()) {
                     try {
                         ((ProxyPushConsumerOperations) p).push(data);
-                    } catch (final COS.CosEventComm.Disconnected ex) {
+                    } catch (final org.omg.CosEventComm.Disconnected ex) {
                         continue;
                     }
                 }
@@ -68,23 +83,39 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         }    // don't want to process while command information is coming in
     }
 
+    public void sendMessage(final StructDef message)
+    {
+        this.sendMessages(Arrays.asList(message));
+    }
+
+    public void sendMessages(final Collection<StructDef> messages) {
+        final CF.DataType[] properties = new CF.DataType[messages.size()];
+        int index = 0;
+        for (StructDef message : messages) {
+            properties[index++] = new CF.DataType(message.getId(), message.toAny());
+        }
+        final Any any = ORB.init().create_any();
+        CF.PropertiesHelper.insert(any, properties);
+        this.push(any);
+    }
+
     protected EventChannelOperations narrow(org.omg.CORBA.Object connection) 
     {
         return EventChannelHelper.narrow(connection);
     }
 
-    public CosEventChannelAdmin.ConsumerAdmin for_consumers() 
+    public org.omg.CosEventChannelAdmin.ConsumerAdmin for_consumers() 
     {
-        CosEventChannelAdmin.ConsumerAdmin retval = null;
+        org.omg.CosEventChannelAdmin.ConsumerAdmin retval = null;
         return retval;
     }
     public void destroy() 
     {
         return;
     }
-    public CosEventChannelAdmin.SupplierAdmin for_suppliers() 
+    public org.omg.CosEventChannelAdmin.SupplierAdmin for_suppliers() 
     {
-        CosEventChannelAdmin.SupplierAdmin retval = null;
+        org.omg.CosEventChannelAdmin.SupplierAdmin retval = null;
         return retval;
     }
 }

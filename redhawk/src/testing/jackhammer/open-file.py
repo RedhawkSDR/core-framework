@@ -27,7 +27,11 @@ class OpenFile(jackhammer.Jackhammer):
 
     def test (self):
         file = self.fs.open(self.filename, True)
-        data = file.read(file.sizeOf())
+        nbytes = file.sizeOf()
+        while nbytes > 0:
+            toRead = min(nbytes, 2048000)
+            data = file.read(toRead)
+            nbytes -= toRead
         file.close()
 
 if __name__ == '__main__':

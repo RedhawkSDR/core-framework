@@ -1,0 +1,43 @@
+/*
+ * WARNING: This file is generated from Traits.java.template.
+ *          Do not modify directly.
+ */
+
+package burstio.traits;
+
+import java.util.Collection;
+
+public class @name@Traits implements BurstTraits<BURSTIO.@name@Burst, @type@[]>
+{
+    public static final int BYTE_SIZE = @size@;
+
+    public int byteSize ()
+    {
+        return BYTE_SIZE;
+    }
+
+    public int burstLength(BURSTIO.@name@Burst burst)
+    {
+        return burst.data.length;
+    }
+
+    public BURSTIO.@name@Burst[] toArray(Collection<BURSTIO.@name@Burst> bursts)
+    {
+        return bursts.toArray(new BURSTIO.@name@Burst[bursts.size()]);
+    }    
+
+    public BURSTIO.@name@Burst createBurst(@type@[] data, BURSTIO.BurstSRI sri, BULKIO.PrecisionUTCTime timestamp, boolean eos)
+    {
+        return new BURSTIO.@name@Burst(sri, data, timestamp, eos);
+    }
+
+    public BURSTIO.BurstSRI sri(BURSTIO.@name@Burst burst)
+    {
+        return burst.SRI;
+    }
+
+    public boolean eos(BURSTIO.@name@Burst burst)
+    {
+        return burst.EOS;
+    }
+}

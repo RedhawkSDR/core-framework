@@ -1,0 +1,12 @@
+7be36eeff2e854e390682e3c99ea0149  main.cpp
+71b211822c5c77bb39daadcbc3a94d62  PersonaDevice_persona_base.h
+7a9452f7d20cbdeee49d8db32382f95b  PersonaDevice_base.h
+53276096c556766098f1e9693b2aeab1  PersonaDevice_base.cpp
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+7e4ffe7189e8efb1262a3ec14cb338bb  PersonaDevice_persona_base.cpp
+21a0e498991bc6a382906a21bf70c547  PersonaDevice.cpp
+18a2d5607da81f96e7087e40b3583f7e  PersonaDevice.h
+585a5f1e0809f8826433b7e652da47ff  configure.ac
+33af54c2321cb9a8442be35c26323509  Makefile.am
+639d45bf0a7a191b7e71d38d46dca6ee  Makefile.am.ide
+2edeb4570ba55b42155b992f38587fb6  build.sh

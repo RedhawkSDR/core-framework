@@ -18,10 +18,10 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
- 
-EventSend_java_impl1.jar: $(EventSend_java_impl1_jar_SOURCES)
+
+EventSend_java_impl1.jar$(EXEEXT): $(EventSend_java_impl1_jar_SOURCES)
 	mkdir -p bin
-	$(JAVAC) -cp ../../../../../../base/framework/java/CFInterfaces.jar:../../../../../../base/framework/java/log4j-1.2.15.jar:../../../../../../base/framework/java/ossie.jar:../../../../../../base/framework/java/CosEventChannelAdminInterfaces.jar -d bin $(EventSend_java_impl1_jar_SOURCES)
+	$(JAVAC) -cp $(OSSIE_CLASSPATH) -d bin $(EventSend_java_impl1_jar_SOURCES)
 	$(JAR) cf ./EventSend_java_impl1.jar -C bin .
 
 rpm: clean

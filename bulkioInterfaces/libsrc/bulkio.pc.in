@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+javadir=@javadir@
+classpath=${javadir}/bulkio.jar:${javadir}/BULKIOInterfaces.jar
+
+Name: bulkio
+Description: BULKIO base class library
+Requires: bulkioInterfaces >= @PACKAGE_VERSION@
+Version: @BULKIO_API_VERSION@
+Libs: -L${libdir} -lbulkio-@BULKIO_API_VERSION@
+Cflags: -I${includedir}/bulkio 

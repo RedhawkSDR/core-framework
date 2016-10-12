@@ -18,10 +18,9 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
- 
-issue_111_java.jar: $(issue_111_java_jar_SOURCES)
+issue_111_java.jar$(EXEEXT): $(issue_111_java_jar_SOURCES)
 	mkdir -p bin
-	$(JAVAC) -cp ../../../../../../base/framework/java/CFInterfaces.jar:../../../../../../base/framework/java/log4j-1.2.15.jar:../../../../../../base/framework/java/ossie.jar -d bin $(issue_111_java_jar_SOURCES)
+	$(JAVAC) -cp $(OSSIE_CLASSPATH) -d bin $(issue_111_java_jar_SOURCES)
 	$(JAR) cf ./issue_111_java.jar -C bin .
 
 clean-local:

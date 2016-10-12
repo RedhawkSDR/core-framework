@@ -19,41 +19,32 @@
 #
 
 pkginclude_HEADERS = AggregateDevice_impl.h \
-                     ApplicationFactory_impl.h \
-		     LoadableDevice_impl.h \
-		     Application_impl.h \
-		     ossiecf.h \
-		     ossieparser.h \
-		     Port_impl.h \
-		     PortSupplier_impl.h \
-		     PropertySet_impl.h \
-		     Resource_impl.h \
-		     Device_impl.h \
-		     DeviceManager_impl.h \
-		     DeviceManagerConfiguration.h \
-		     DomainManager_impl.h \
-		     ExecutableDevice_impl.h \
-		     File_impl.h \
-		     FileManager_impl.h \
-		     FileSystem_impl.h \
-		     TestableObject_impl.h \
-		     LifeCycle_impl.h \
-		     ossieSupport.h \
-		     portability.h \
-		     prop_helpers.h \
-		     debug.h \
-		     applicationSupport.h \
-		     FileStream.h \
-		     Properties.h \
-		     DomainManagerConfiguration.h \
-		     ComponentDescriptor.h \
-		     componentProfile.h \
-		     connectionSupport.h \
-		     CorbaUtils.h \
-		     DomainProfile.h \
-		     exceptions.h \
-		     parserSupport.h \
-                     SoftPkg.h \
-                     PersistanceStore.h \
-                     PropertyInterface.h \
-                     MessageInterface.h
+             LoadableDevice_impl.h \
+             Port_impl.h \
+             PortSupplier_impl.h \
+             PropertySet_impl.h \
+             Logging_impl.h \
+             Resource_impl.h \
+             Device_impl.h \
+             ExecutableDevice_impl.h \
+             EventChannelSupport.h \
+             TestableObject_impl.h \
+             LifeCycle_impl.h \
+             ossieSupport.h \
+             prop_helpers.h \
+             debug.h \
+             FileStream.h \
+             CorbaSequence.h \
+             CorbaUtils.h \
+             PropertyInterface.h \
+             ComplexProperties.h \
+             Service_impl.h \
+             MessageInterface.h \
+             type_traits.h \
+             AnyUtils.h \
+             ThreadedComponent.h \
+             exceptions.h
+
+nobase_pkginclude_HEADERS = internal/equals.h \
+	     logging/rh_logger.h \
+	     logging/loghelpers.h

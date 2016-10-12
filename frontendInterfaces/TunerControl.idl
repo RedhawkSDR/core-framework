@@ -1,0 +1,197 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _FRONTEND_TUNERCONTROL_IDL_
+#define _FRONTEND_TUNERCONTROL_IDL_
+
+#include "redhawk/FRONTEND/Frontend.idl" 
+
+module FRONTEND {
+
+	/**
+		Mandated Structures and Ports:
+		------------------------------
+		Frontend mandates three property structures outside of normal REDHAWK properties of "device_kind" and "device_model" :
+			(1) FRONTEND::tuner_allocation  - allocation structure to acquire capability on a tuner based off tuner settings. 	       
+					Name || ID || Type || Description
+					- tuner_type || FRONTEND::tuner_allocation::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER
+					- allocation_id || FRONTEND::tuner_allocation::allocation_id || string || The allocation_id set by the caller. Used by the caller to reference the device uniquely
+					- center_frequency || FRONTEND::tuner_allocation::center_frequency || double || Requested center frequency in Hz
+					- bandwidth || FRONTEND::tuner_allocation::bandwidth || double || Requested Bandwidth in Hz
+					- bandwidth_tolerance || FRONTEND::tuner_allocation::bandwidth_tolerance || double || Allowable Percent above requested bandwidth (ie - 100 would be up to twice)
+					- sample_rate || FRONTEND::tuner_allocation::sample_rate || double || Requested sample rate in Hz. This can be ignored for such devices as analog tuners
+					- sample_rate_tolerance	|| FRONTEND::tuner_allocation::sample_rate_tolerance || double || Allowable Percent above requested sample rate (ie - 100 would be up to twice)
+					- device_control || FRONTEND::tuner_allocation::device_control || boolean || True: Has control over the device to make changes. False: Does not need control and can just attach 
+					        to any currently tasked device that satisfies the parameters (essentually a listener)
+					- group_id || FRONTEND::tuner_allocation::group_id || string || Unique identifier that specifies a group of device. Must match group_id on the device
+					- rf_flow_id || FRONTEND::tuner_allocation::rf_flow_id || string || Optional. Specifies a certain RF flow to allocate against. If left empty, it will match all frontend devices. 
+			(2) FRONTEND::listener_allocation  - additional allocation structure to acquire "listener" capability on a tuner based off a previous allocation. "Listeners" have the ability to receive the data 
+					but can not modify the settings of the tuner	       
+					Name || ID || Type || Description
+					- existing_allocation_id || FRONTEND::listener_allocation::existing_allocation_id || string || Allocation ID for an existing allocation. Could be either control or listener
+					- listener_allocation_id || FRONTEND::listener_allocation::listener_allocation_id || string || New Listener ID 
+			(3) FRONTEND::tuner_status  - a struct sequence containing the status of all tuners. There are optional and required fields for this structure. The required fields are listed below:
+					Name || ID || Type || Description
+					- tuner_type || FRONTEND::tuner_status::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGTIZIER_CHANNELIZER
+					- allocation_id_csv || FRONTEND::tuner_status::allocation_id_csv || string || Comma seperated list of currrent allocation ids, both control and listeners.
+					- center_frequency || FRONTEND::tuner_status::center_frequency || double || Current center frequency in Hz
+					- bandwidth || FRONTEND::tuner_status::bandwidth || double || Current Bandwidth in Hz
+					- sample_rate || FRONTEND::tuner_status::sample_rate || double || Current sample rate in Hz. This can be ignored for such devices as analog tuners
+					- group_id || FRONTEND::tuner_status::group_id || string || Unique identifier that specifies a group of device.
+					- rf_flow_id || FRONTEND::tuner_status::rf_flow_id || string || Specifies a certain RF flow to allocate against.
+					- enabled || FRONTEND::tuner_status::enabled || boolean || True is tuner is enabled. Can be allocated but disabled 
+					
+		Usual port additions include a input (provides) port for the tuner control as well as an output (uses) BULKIO data port that follows the naming convention [interface]_[in/out]. Examples
+		include dataShort_out, dataSDDS_out,  dataOctet_in, and DigitalTuner_in.
+		
+		
+		Tuner Types:
+		------------
+		Frontend devices are seperated in several tuner types based on functionality. The base supported types are listed below but can be extended (ie - new types can be created)
+		to satisfy ones CONOP.	
+			- TX: Transmitter (input digital, output analog) 
+			- RX: Analog Receiver (input analog, output analog) 
+			- RX_DIGITIZER: Digital Receiver (input analog, output digital) 
+			- CHANNELIZER: Accepts digitized wideband and provides DDC's (allocation against a channelizer ensures that the input port is not shared)  
+			- DDC: Digital Down Converter. Channel that is extracted from a wider bandwidth (ie - Channelizer). Similar to a RX_DIGITIZER but often much cheaper.
+			- RX_DIGITIZER_CHANNELIZER: RX_DIGITIZER and CHANNELIZER combo. The reason they are combined is because they are a single device that cannot operate 
+			 		independetly (ie - RX_DIGITIZER can not output full-rate or the CHANNELIZER can not accept external input)  
+			
+			
+			
+		Allocation ID:
+		--------------
+		This interface introduces the concept of an allocation id. An allocation id is a unique identifier given to the tuner (channel) in a device at allocation time. For the 
+		life of that allocation, that specific tuner is referenced by that unique allocation id. When that tuner is no longer needed, a deallocation occurs on that allocation id, 
+		thus freeing the tuner. 
+		
+		
+		
+		Data Egress:
+		------------
+		Multi-tuner frontend devices requires customization of the output port. In this case, data from all tuners are sent out a single output port named "data[Type]_out" (ie - dataShort_out). Since there
+		are multiple streams going out of the port, data is routed based off the streams "allocation_id" and the ports "connection_id". For example, lets say you have 3 tuners allocated with the respective 
+		allocation id's: allocID_1, allocID_2, and allocID_3. Now lets say you want to make a connection to the device and get the second tuners data. What you would have to do is to connect to the data[Type]_out 
+		port with the connection_id set to "allocID_2". 
+	
+	*/
+
+
+    /***********************/
+    /**     CONSTANTS      */
+    /***********************/
+    
+    /** Device Kind */
+    const string FE_TUNER_DEVICE_KIND = "FRONTEND::TUNER";
+
+    /** Output format for digital tuners */
+    const long REFERNCE_SOURCE_INTERNAL = 0; 
+    const long REFERNCE_SOURCE_EXTERNAL = 1; 
+
+	/** --- Tuner Types - Expandable list of supported FE types --- */
+	const string TUNER_TYPE_TX = "TX"; 
+	const string TUNER_TYPE_RX = "RX"; 
+	const string TUNER_TYPE_RX_DIGITIZER = "RX_DIGITIZER"; 
+	const string TUNER_TYPE_CHANNELIZER = "CHANNELIZER"; 
+	const string TUNER_TYPE_DDC = "DDC"; 
+	const string TUNER_TYPE_RX_DIGITIZER_CHANNELIZER = "RX_DIGITIZER_CHANNELIZER"; 
+	
+
+    /*************************/
+    /***      INTERFACE      */
+    /*************************/
+    
+    interface FrontendTuner
+    {
+    	/** Get the type of tuner (ie- RX or DDC) associated with this allocation id*/
+    	string getTunerType(in string id)
+    		raises (FrontendException, BadParameterException, NotSupportedException);
+    	
+    	/** Returns whether this allocation id has control (modification privledges) over the tuner*/
+    	boolean getTunerDeviceControl(in string id)
+    		raises (FrontendException, BadParameterException, NotSupportedException);
+    	
+    	/** Retrieves the group id (may be empty) for this allocation id */
+    	string getTunerGroupId(in string id)
+    		raises (FrontendException, BadParameterException, NotSupportedException);
+    		
+    	/** Retrieves the rf flow id (may be empty) for this allocation id */
+    	string getTunerRfFlowId(in string id)
+    		raises (FrontendException, BadParameterException, NotSupportedException);
+    	
+    	/** Key/Value pair of entire tuner status structure */
+    	CF::Properties getTunerStatus(in string id) 
+    		raises (FrontendException, BadParameterException, NotSupportedException);
+    };
+    
+    
+    interface AnalogTuner : FrontendTuner
+    {
+
+        /** Set/Get tuner center frequency */
+        void    setTunerCenterFrequency(in string id, in double freq)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+        double  getTunerCenterFrequency(in string id)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+
+        /**  Set/Get tuner bandwidth */
+        void    setTunerBandwidth(in string id,in double bw)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+        double  getTunerBandwidth(in string id)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+
+        /**  MGC/AGC  */
+        void    setTunerAgcEnable(in string id,in boolean enable)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+        boolean   getTunerAgcEnable(in string id)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+        
+        /**  MGC Gain (where negative gain is attentuation)*/
+        void    setTunerGain(in string id,in float gain)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+        float   getTunerGain(in string id)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+   
+    	/**  Tuner Reference Source: 0 = internal,  1 = external*/
+	    void    setTunerReferenceSource(in string id,in long source)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+	    long    getTunerReferenceSource(in string id)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+
+        /**  Enable/Disable Tuner - Expected to keep current tuner settings on a disable and an EOS to be sent */
+        void    setTunerEnable(in string id, in boolean enable)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+        boolean getTunerEnable(in string id)
+          raises (FrontendException, BadParameterException, NotSupportedException);
+  };
+
+
+    interface DigitalTuner : AnalogTuner
+    {
+        /**  Set output sample rate  */
+        void    setTunerOutputSampleRate(in string id,in double sr)
+          raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
+        double  getTunerOutputSampleRate(in string id)
+          raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
+
+  };
+
+};
+#endif

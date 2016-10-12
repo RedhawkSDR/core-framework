@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="ASCII"?>
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="cpp">
+    <value outputDir="cpp" template="gov.redhawk.ide.codegen.jet.cplusplus.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.cplusplus.CplusplusGenerator" primary="true">
+      <generatedFileCRCs crc="1746641546" file="reconf"/>
+      <generatedFileCRCs crc="410273300" file="port_impl.cpp"/>
+      <generatedFileCRCs crc="1864112797" file="TestComplexProps_base.cpp"/>
+      <generatedFileCRCs crc="301786514" file="TestComplexProps_base.h"/>
+      <generatedFileCRCs crc="864280150" file="build.sh"/>
+      <generatedFileCRCs crc="3053326511" file="configure.ac"/>
+      <generatedFileCRCs crc="2886948823" file="port_impl.h"/>
+      <generatedFileCRCs crc="3739557462" file="TestComplexProps.h"/>
+      <generatedFileCRCs crc="838667204" file="main.cpp"/>
+      <generatedFileCRCs crc="568796030" file="../TestComplexProps.spec"/>
+      <generatedFileCRCs crc="1942573142" file="struct_props.h"/>
+      <generatedFileCRCs crc="639930516" file="TestComplexProps.cpp"/>
+      <generatedFileCRCs crc="758673341" file="Makefile.am"/>
+    </value>
+  </implSettings>
+  <implSettings key="java">
+    <value outputDir="java" template="gov.redhawk.ide.codegen.jet.java.JavaGenerator" generatorId="gov.redhawk.ide.codegen.jet.java.JavaGenerator">
+      <properties id="java_package" value="TestComplexProps.java"/>
+      <properties id="use_jni" value="TRUE"/>
+      <generatedFileCRCs crc="568796030" file="../TestComplexProps.spec"/>
+      <generatedFileCRCs crc="2598860484" file="Makefile.am"/>
+      <generatedFileCRCs crc="602631177" file="configure.ac"/>
+      <generatedFileCRCs crc="1746641546" file="reconf"/>
+      <generatedFileCRCs crc="3790051912" file="startJava.sh"/>
+    </value>
+  </implSettings>
+  <implSettings key="python">
+    <value outputDir="python" template="gov.redhawk.ide.codegen.jet.python.pattern.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.python.PythonGenerator">
+      <generatedFileCRCs crc="568796030" file="../TestComplexProps.spec"/>
+      <generatedFileCRCs crc="1386287463" file="Makefile.am"/>
+      <generatedFileCRCs crc="4088049273" file="TestComplexProps.py"/>
+      <generatedFileCRCs crc="527849792" file="TestComplexProps_base.py"/>
+      <generatedFileCRCs crc="4140790153" file="configure.ac"/>
+      <generatedFileCRCs crc="1746641546" file="reconf"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>

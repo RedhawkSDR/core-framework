@@ -31,10 +31,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
             <componentfileref refid="CommandWrapper_592b8bd6-b011-4468-9417-705af45e907b"/>
             <componentinstantiation id="DCE:a39e37bc-280e-406f-9952-5beee6575fb4">
                 <usagename>CommandWrapper1</usagename>
-		<componentproperties>
-		    <simpleref refid="DCE:cf623573-a09d-4fb1-a2ae-24b0b507115d" value="2.0"/>
-		    <simpleref refid="DCE:9ec6e2ff-6a4f-4452-8f38-4df47d6eebc1" value="22222222222"/>
-		</componentproperties>
+                <componentproperties>
+                    <simpleref refid="DCE:cf623573-a09d-4fb1-a2ae-24b0b507115d" value="2.0"/>
+                    <simpleref refid="DCE:9ec6e2ff-6a4f-4452-8f38-4df47d6eebc1" value="22222222222"/>
+                </componentproperties>
                 <findcomponent>
                     <namingservice name="CommandWrapper1"/>
                 </findcomponent>

@@ -44,6 +44,7 @@
 #include <errno.h>
 
 #include "ossie/ExecutableDevice_impl.h"
+#include "ossie/prop_helpers.h"
 
 
 //vector<CF::ExecutableDevice::ProcessID_Type> ExecutableDevice_impl::PID;
@@ -92,17 +93,7 @@ ExecutableDevice_impl::ExecutableDevice_impl (char* devMgr_ior, char* id, char* 
 /* execute *****************************************************************
     - executes a process on the device
 ************************************************************************* */
-CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::execute (
-    const char* name, 
-    const CF::Properties& options, 
-    const CF::Properties& parameters) 
-        throw (CORBA::SystemException, 
-                CF::Device::InvalidState, 
-                CF::ExecutableDevice::InvalidFunction, 
-                CF::ExecutableDevice::InvalidParameters, 
-                CF::ExecutableDevice::InvalidOptions, 
-                CF::InvalidFileName, 
-                CF::ExecutableDevice::ExecuteFail)
+CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::execute (const char* name, const CF::Properties& options, const CF::Properties& parameters) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
 {
     CORBA::TypeCode_var tc;                       // CORBA type code
     const char* tempStr;                          // temporary character string
@@ -197,7 +188,7 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::execute (
         if (getenv("VALGRIND")) {
             char* new_argv[24];
             strcpy(new_argv[0], "/usr/local/bin/valgrind");
-            string logFile = "--log-file=";
+            std::string logFile = "--log-file=";
             logFile += argv[0];
             new_argv[1] = (char*)logFile.c_str();
             unsigned int i;

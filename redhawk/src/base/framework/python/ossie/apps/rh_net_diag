@@ -31,6 +31,9 @@ import socket
 import re
 import subprocess
 
+def is_readable(path):
+    return os.access(path,os.R_OK)
+
 def is_running(process):
 
     s = subprocess.Popen(["ps", "axw"],stdout=subprocess.PIPE)
@@ -47,8 +50,7 @@ def checkCatior():
     retval = commands.getstatusoutput('catior.omni')
     if retval[0] == 256:
         return 'catior.omni'
-    print 'catior/catior.omni is not present. Is omniORB installed?'
-    return 'foo'
+    return '' 
 
 # process variable denotes the process being checked
 # Possible values will be "Naming Service", "Domain Manager", "Device Manager"
@@ -101,7 +103,6 @@ def checkOmniEvents(process, verbose):
                 print "ERROR(" + str(process) + "): Can't find omniEvents in output of "+catior+" of \"nameclt resolve EventChannelFactory\""
                 errorFound = True
         else:
-            print 'foo'
             print "ERROR(" + str(process) + "): "+catior+" of \"nameclt resolve EventChannelFactory\" failed"
             errorFound = True
     else:
@@ -261,6 +262,26 @@ if __name__ == '__main__':
     if options.verbose:
         print "hostname running this script: " + hostname
         print "=========================================================================="
+
+    # Make sure OSSIEHOME, SDRROOT, and /etc/omniORB.cfg are readable
+    if os.environ.has_key('OSSIEHOME'):
+        if not is_readable(os.environ['OSSIEHOME']):
+            print "WARNING: $OSSIEHOME is not readable by this user."
+            print "=========================================================================="
+    if os.environ.has_key('SDRROOT'):
+        if not is_readable(os.environ['SDRROOT']):
+            print "WARNING: $SDRROOT is not readable by this user."
+            print "=========================================================================="
+    if not is_readable('/etc/omniORB.cfg'):
+        print "ERROR: /etc/omniORB.cfg is not readable by this user.  This will cause nameclt to fail."
+        print "SOLUTION: Set file permissions on /etc/omniORB.cfg to make it accessible to this user."
+        print "=========================================================================="
+        sys.exit() 
+    if len(checkCatior()) == 0:
+        print 'ERROR: Neither catior (version 4.1.6 of omniORB) nor catior.omni (version 4.1.0 of omniORB) is present. Is omniORB installed?'
+        print 'SOLUTION: Make sure omniORB is installed and confirm that either catior or catior.omni is visible in the current path by using the following commands: \"which catior\" and \"which catior.omni\"'
+        print "=========================================================================="
+        sys.exit() 
 
     # If this script is running on the omniNames host, run the following diagnostics:
     errorFound = False

@@ -18,28 +18,16 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-# vim: noet: softtabstop=0
-if HAVE_JAVASUPPORT
-
-JAVA_LIBDIR = $(top_srcdir)/base/framework/java
-
 all-local: TestJavaProps.jar
 
-TestJavaProps.jar: TestJavaProps.java
-	$(JAVAC) -source 1.5 -cp $(JAVA_LIBDIR)/CFInterfaces.jar:$(JAVA_LIBDIR)/log4j-1.2.15.jar:$(JAVA_LIBDIR)/ossie.jar TestJavaProps.java
-	$(JAR) cf TestJavaProps.jar TestJavaProps.class
-	$(JAR) uf TestJavaProps.jar TestJavaProps.java
+TestJavaProps.jar$(EXEEXT): TestJavaProps.java
+	mkdir -p bin
+	$(JAVAC) -source 1.5 -cp $(OSSIE_CLASSPATH) -d bin TestJavaProps.java
+	$(JAR) cf TestJavaProps.jar -C bin .
 
 clean-local:
-	rm -f *.class
+	rm -rf bin
 	rm -f TestJavaProps.jar
 
 ossieName = TestJavaProps
 noinst_PROGRAMS = TestJavaProps.jar
-
-else
-
-all-local:
-	@echo "Java support disabled - TestJavaProps will not be compiled"
-
-endif

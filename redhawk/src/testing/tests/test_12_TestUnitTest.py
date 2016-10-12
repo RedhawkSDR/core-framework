@@ -1,25 +1,25 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
 import unittest
-import scatest
+from _unitTestHelpers import scatest
 import tempfile
 import os
 from omniORB import CORBA, any
@@ -68,7 +68,7 @@ class UnitTestTest(scatest.OssieTestCase):
         self.assertEqual(cfgparams.has_key("DCE:9ec6e2ff-6a4f-4452-8f38-4df47d6eebc1"), True)
         self.assertEqual(cfgparams.has_key("DCE:cf623573-a09d-4fb1-a2ae-24b0b507115d"), True)
         self.assertEqual(cfgparams.has_key("DCE:6ad84383-49cf-4017-b7ca-0ec4c4917952"), True)
-        
+
         self.assertEqual(cfgparams["DCE:a4e7b230-1d17-4a86-aeff-ddc6ea3df26e"], "/bin/echo")
         self.assertEqual(cfgparams["DCE:5d8bfe8d-bc25-4f26-8144-248bc343aa53"], ["Hello World"])
         self.assertEqual(cfgparams["DCE:ffe634c9-096d-425b-86cc-df1cce50612f"], [{"id": 'item1', 'value': 'value1'},
@@ -92,22 +92,17 @@ class UnitTestTest(scatest.OssieTestCase):
         tc.setUp()
 
         self.assertEqual(tc.comp_obj, None)
-        self.assertEqual(len(tc._processes), 0)
+        self.assertEqual(tc.comp, None)
 
-        tc.launch(ossiehome=os.getcwd()+'/../base/')
+        tc.launch(ossiehome=os.getcwd()+'/../')
         pid = None
         comp_obj = None
         try:
             self.assertNotEqual(tc.comp_obj, None)
-            self.assertEqual(len(tc._processes), 1)
-            pid = tc._processes.keys()[0]
+            self.assertNotEqual(tc.comp, None)
             comp_obj = tc.comp_obj
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                self.fail("Component process not alive")
             self.assertEqual(comp_obj._non_existent(), False)
-            self.assertEqual(tc.comp_obj._is_a("IDL:CF/Resource:1.0"), True)
+            self.assertEqual(comp_obj._is_a("IDL:CF/Resource:1.0"), True)
         finally:
             tc.tearDown()
 
@@ -118,14 +113,6 @@ class UnitTestTest(scatest.OssieTestCase):
             nonExistent = True
         self.assertEqual(nonExistent, True)
         self.assertEqual(tc.comp_obj, None)
-        self.assertEqual(len(tc._processes), 0)
-        self.assertNotEqual(pid, None)
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            pass
-        else:
-            self.fail("Component process did not die")
 
     def test_DeviceLaunch(self):
         # Simulate ScaComponentTestProgram
@@ -137,20 +124,14 @@ class UnitTestTest(scatest.OssieTestCase):
         tc.setUp()
 
         self.assertEqual(tc.comp_obj, None)
-        self.assertEqual(len(tc._processes), 0)
+        self.assertEqual(tc.comp, None)
 
-        tc.launch(ossiehome=os.getcwd()+'/../base/')
-        pid = None
+        tc.launch(ossiehome=os.getcwd()+'/../')
         comp_obj = None
         try:
             self.assertNotEqual(tc.comp_obj, None)
-            self.assertEqual(len(tc._processes), 1)
-            pid = tc._processes.keys()[0]
+            self.assertNotEqual(tc.comp, None)
             comp_obj = tc.comp_obj
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                self.fail("Component process not alive")
             self.assertEqual(comp_obj._non_existent(), False)
             self.assertEqual(tc.comp_obj._is_a("IDL:CF/Resource:1.0"), True)
             self.assertEqual(tc.comp_obj._is_a("IDL:CF/Device:1.0"), True)
@@ -166,13 +147,5 @@ class UnitTestTest(scatest.OssieTestCase):
             nonExistent = True
         self.assertEqual(nonExistent, True)
         self.assertEqual(tc.comp_obj, None)
-        self.assertEqual(len(tc._processes), 0)
-        self.assertNotEqual(pid, None)
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            pass
-        else:
-            self.fail("Component process did not die")
 
 

@@ -1,0 +1,461 @@
+#!/usr/bin/python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
+# distributed with this source distribution.
+#
+# This file is part of REDHAWK core.
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+import os
+import shutil
+import sys
+import subprocess
+import commands
+from getopt import getopt
+
+from redhawk.codegen.model.softpkg import SoftPkg
+from redhawk.codegen.utils import strenum
+from redhawk.codegen.settings import ImplementationSettings, importWavedevSettings
+
+# With RHEL 5/6, Jinja2 2.6 is parallel-installed as an egg. We explicitly
+# add it to the path if present to ensure it gets picked up.
+for x in [ "2.4","2.6", "2.7" ]:
+  eggfile="/usr/lib/python"+x+"/site-packages/Jinja2-2.6-py"+x+".egg"
+  if os.path.exists(eggfile):
+     sys.path.insert(0, eggfile)
+     break
+
+#
+# dict: for each resource type :  ( [ list of maps: impl:template name ], help text )
+#
+TemplateSetup = {
+    "frontend": ( [ {"cpp" : "redhawk.codegen.jinja.cpp.component.frontend"} ], "Generate a frontend compliant device" ),
+    "octave"  : ( [ {"cpp": "redhawk.codegen.jinja.cpp.component.octave"} ], "Generate an octave component" ),
+    "persona"  : ( [ {"cpp": "redhawk.codegen.jinja.cpp.component.persona"} ], "Generate a persona device" ),
+    "pgdevice" : ( [ { "cpp": "redhawk.codegen.jinja.cpp.component.programmable"} ], "Generate programmable device"),
+    "component" : ( [ {"cpp": "redhawk.codegen.jinja.cpp.component.pull"}, {"java": "redhawk.codegen.jinja.java.component.pull"}, {"python": "redhawk.codegen.jinja.python.component.pull"} ], "Generate a component or device" ),
+    "device" : ( [ {"cpp": "redhawk.codegen.jinja.cpp.component.pull"}, {"java": "redhawk.codegen.jinja.java.component.pull"}, {"python": "redhawk.codegen.jinja.python.component.pull"} ], "Generate a component or device" ),
+    "service" : ([ {"cpp": "redhawk.codegen.jinja.cpp.service.pull"}, {"java": "redhawk.codegen.jinja.java.service.pull"}, {"python": "redhawk.codegen.jinja.python.service.pull"}  ], "Generate a service" )
+}
+
+# Try to use setuptools to locate Jinja2 and import it
+try:
+    import pkg_resources
+except ImportError:
+    # setuptools is not installed; we'll import without a check
+    pass
+else:
+    try:
+        for dist in pkg_resources.require('Jinja2 >= 2.6'):
+            # Ensure requirements are on the path
+            dist.activate()
+    except pkg_resources.DistributionNotFound:
+        raise SystemExit, os.path.basename(sys.argv[0]) + ' requires Jinja2 2.6 or later'
+    except pkg_resources.VersionConflict, e:
+        raise SystemExit, os.path.basename(sys.argv[0]) + ' requires Jinja2 2.6 or later, but found ' + str(e.args[0])
+
+try:
+    import jinja2
+except ImportError:
+    raise SystemExit, os.path.basename(sys.argv[0]) + ' requires Jinja2 2.6 or later'
+
+usage = """%s [options] <SPD file> [filenames...]
+
+Arguments:
+    <SPD file>          Path to component .spd.xml
+    [filenames]         Optional list of specific filenames to generate
+
+Options:
+    -i                  ignore wavedev file, requires resource type option
+    -l                  List the files that would be generated
+    -f                  Overwrite existing files even if modified
+    -C <dir>            Put output files in directory <dir>
+    --impl <id>         Generate implementation <id> [default: all]
+    -m <mfile>          Provide .m file to be copied into the component cpp directory
+    -s <srcFile>        Provide the .cpp files for the project
+    -h <hdFile>         Provide the .h files for the project
+    -obj                Provide the .o file for the project
+    -link               Provides optional linking commands 
+    -cflags             Provides optional cflag commands
+    --variant           Variant tag to be appended to the directory name
+
+Options only valid with a single implementation (if a component contains
+multiple implementations, must use --impl to specify which):
+    --impldir <dir>     Put implementation-specific files in <dir>
+                        (relative to -C if given)
+    --template <id>     Use template <id> for generation
+    -B <name[=value]>   Pass option 'name' (with optional value) to template
+    --checkSupport      Only check to see if the template is supported.  Will
+                        not generate.
+
+Select from one of the following resource types when generating output:
+%s
+""" % (os.path.basename(sys.argv[0]), "\n".join( [ "    --" + x[0]+"\t\t"+x[1][1] for x in TemplateSetup.items() ] ) )
+
+def performSupportCheck(template):
+    """
+    Performs a check based on the template type to determine if the template
+    is supported.
+
+    If the template is supported, return True.  If the template is not
+    supported, return False.
+
+    If the template is not explicityly unsupported, this function will default
+    to returning True.
+
+    """
+
+    if template == "redhawk.codegen.jinja.cpp.component.octave":
+        # Attempt to determine if octave-devel v3.4 or greater is installed.
+        findCommand = 'find /usr -regextype posix-extended -regex ".*include\/octave\-[3-9]+\.[4-9]+\.[0-9]+$" -print -quit 2>/dev/null'
+        (status,output) = commands.getstatusoutput(findCommand)
+        if output == "":
+            # suitable octave header files were not found
+            print "Could not find suitable Octave installation.  Octave-devel v3.4 or greater is required."
+            return False
+        else:
+            # suitable octave header files were found
+            return True
+    else:
+        return True
+
+def determineProjectType(implList):
+    projectType = "component"
+
+    for implId in implList:
+        implSettings = settings.get(implId, ImplementationSettings())
+        implTemplate = implSettings.template
+        if not implTemplate:
+            continue
+        elif implTemplate.find("softPackageDependency") != -1:
+            projectType = "softPackageDependency"
+        elif implTemplate.find("octave") != -1:
+            projectType = "octaveComponent"
+
+    return projectType
+
+def copyMFiles(mFiles, outputdir):
+    ''' 
+    Copy over m files
+    code generators will need to parse the m file that is in the cpp dir
+
+    '''
+    for mFile in mFiles:
+        if not os.path.isdir(outputdir+"/cpp"):
+            os.makedirs(outputdir+"/cpp")
+        else:
+            # touch the localfile directory (cpp), so that the device will see an
+            # updated timestamp when loading.
+            subprocess.call(['touch', outputdir+"/cpp"])
+
+        mFileName = mFile.split("/")
+        mFileName = mFileName[-1]
+        shutil.copyfile(mFile, outputdir + "/cpp/" + mFileName)
+
+
+Function = strenum('list', 'generate')
+
+if __name__ == '__main__':
+  
+    # add predefined template settings a full word options
+    topts = ['help', 'template=', 'impl=', 'impldir=', 'lang=', 'variant=', 'checkSupport'] + [ x for x in TemplateSetup.keys() ]
+#    opts, args = getopt(sys.argv[1:], 'filC:B:m:s:h:obj', topts )
+    opts, args = getopt(sys.argv[1:], 'filC:B:m:', topts )
+    outputdir = None
+    action = Function.GENERATE
+    overwrite = False
+    overrides = ImplementationSettings()
+    implId = None
+    ignoreWavedev=False
+    resource_type=None
+    language=None
+    variant=""
+    mFiles = []
+    sFiles = []
+    hFiles = []
+    obj = ""
+    checkSupport = False
+    for key, value in opts:
+        if key == '--help':
+            raise SystemExit(usage)
+        elif key == '-C':
+            outputdir = value
+        elif key == '-m':
+            mFiles.append(value)
+#        elif key == '-s':
+#            sFiles.append(value)
+#        elif key == '-h':
+#            hFiles.append(value)
+#        elif key == '-obj':
+#           obj = value
+        elif key == '-i':
+            ignoreWavedev=True
+        elif key == '--impl':
+            implId = value
+        elif key == '--template':
+            overrides.template = value
+        elif key[2:] in TemplateSetup.keys():
+            resource_type=key[2:]
+        elif key == '--impldir':
+            overrides.outputDir = value
+        elif key == '--lang':
+            language = value
+        elif key == '--checkSupport':
+            checkSupport = True
+        elif key == '--variant':
+            variant = value
+        elif key == '-l':
+            action = Function.LIST
+        elif key == '-f':
+            overwrite = True
+        elif key == '-B':
+            if '=' in value:
+                name, value = value.split('=')
+            else:
+                name = value
+                value = True
+            overrides.properties[name] = value
+
+    if checkSupport:
+        # performSupportCheck will return True if supported and False if not
+        # supported.  The program exit code will be the inverse of this value
+        # as "0" indicates no error (supported) and "1" indicates an error
+        # (not supported).
+        sys.exit(not performSupportCheck(overrides.template))
+
+    try:
+        spdFile = args[0]
+    except:
+        raise SystemExit(usage)
+
+
+    if resource_type and overrides.template:
+        raise SystemExit, '--template cannot be selected with a predefined resource type.'
+
+    if ignoreWavedev and ( resource_type==None or implId ==None ):
+        raise SystemExit, 'Ignore wavedev option, requires resource type and --impl options.'
+
+    # Any remaining arguments are filenames to be generated; place into bins
+    # based on the first path component.
+    # NB: This does not work with implementation directories more than 1
+    #     level deep.
+    filelist = {}
+    for filename in args[1:]:
+        if filename.count('/'):
+            dirname, filename = filename.split('/', 1)
+        else:
+            dirname = ''
+        if not dirname in filelist:
+            filelist[dirname] = []
+        filelist[dirname].append(filename)
+
+
+    if not outputdir:
+        # Default to the same location as the SPD unless told otherwise.
+        outputdir = os.path.dirname(spdFile)
+
+
+    copyMFiles(mFiles, outputdir)
+
+    # Parse the component profile
+    softpkg = SoftPkg(spdFile)
+
+    # Read existing WaveDev settings file
+    if variant:
+        spdFile = spdFile.replace("_"+str(variant),"")
+    wavedev = '.' + os.path.basename(spdFile).replace('.spd.xml', '.wavedev')     
+    wavedev = os.path.join(os.path.dirname(spdFile), wavedev)
+
+    if os.path.exists(wavedev) and not ignoreWavedev:
+       settings = importWavedevSettings(wavedev)
+    else:
+        settings = {}
+
+    # If an implementation was specified, only generate that; otherwise generate
+    # all implementations.
+    
+    if implId:
+        implList = [implId]
+    else:
+        implList = settings.keys()
+
+    # Check that at least one implementation has been selected.
+    if len(implList) < 1:
+        raise SystemExit, 'No implementation specified and implementation(s) cannot be automatically determined.  Use --impl option.'
+
+    # Disallow invalid combinations of command-line arguments.
+    if len(implList) > 1:
+        if overrides.template:
+            raise SystemExit, 'Cannot specify template for multiple implementations'
+        if overrides.outputDir:
+            raise SystemExit, 'Cannot override implementation directory for multiple implementations'
+        if overrides.properties:
+            raise SystemExit, 'Cannot override template-specific options for multiple implementations'
+
+    # Change to the output directory; all XML should have been processed, so
+    # there are no worries about relative paths.
+    if outputdir:
+        os.chdir(outputdir)
+
+    # Pull out CRCs for top-level files.
+    toplevelCRCs = {}
+    for implSettings in settings.itervalues():
+        # Iterate through all items using a copy, because the source dictionary
+        # will be modified.
+        for filename, checksum in implSettings.generatedFileCRCs.items():
+            if not filename.startswith('../'):
+                continue
+            # Remove from implementation CRC list and put into top-level list.
+            del implSettings.generatedFileCRCs[filename]
+            filename = filename[3:]
+            toplevelCRCs[filename] = checksum
+
+    generators = []
+
+    # Top-level code generation
+    # TODO: Allow disabling, explicit file list, template selection
+    projectType = determineProjectType(implList)
+    if projectType == "octaveComponent":
+        from redhawk.codegen.jinja.project import octaveComponent as component
+    elif projectType == "softPackageDependency":
+        from redhawk.codegen.jinja.project import softPackageDependency as component
+    elif projectType == "component":
+        from redhawk.codegen.jinja.project import component
+    else:
+        SystemExit("Fatal Error: Unsupported project type.  This should never happen")
+
+    generator = component.factory(
+        outputdir='.',
+        overwrite=overwrite,
+        crcs=toplevelCRCs,
+        variant=variant)
+    generators.append(('Component '+softpkg.name(), '', generator))
+    
+    if projectType != "softPackageDependency":
+        # Generate unit tests
+        from redhawk.codegen.jinja.unitTests.resource import sca
+        generator = sca.factory(outputdir='tests', overwrite=overwrite)
+        generators.append(('Tests '+softpkg.name(), 'tests', generator))
+
+    # Set up generation for each requested implementation.
+    
+    for implId in implList:
+        # Make sure the implementation actually exists.
+       
+        try:
+            impl = softpkg.getImplementation(implId)
+        except KeyError:
+            raise SystemExit, "No implementation '%s'" % implId
+
+        # look up template if resource type was given
+        if resource_type and overrides.template==None:
+           if implId :
+              try:
+                 tkey = implId
+                 if language :
+                    tkey = language
+                 else:
+                     tkey=None
+                     # get programming language from implementation
+                     pl = impl.programminglanguage()
+                     if pl == 'C++' :
+                        tkey="cpp"
+                     elif pl.upper() == 'PYTHON' :
+                        tkey="python"
+                     elif pl.upper() == 'JAVA' :
+                        tkey="java"
+
+                     overrides.template = filter( lambda  x: tkey in x.keys(), TemplateSetup[resource_type][0]  )[0][tkey]
+
+              except:
+                 raise SystemExit, 'Template override does not exist or --impl missing'
+           else :
+                 raise SystemExit, 'Template override requires missing --impl option'
+
+        # Get generation settings, from a combination of the command line and (optionally)
+        # the .wavedev configuration file; the former has higher precedence.
+        implSettings = settings.get(implId, ImplementationSettings())
+        implSettings.override(overrides)
+
+        # Check that a template was given, either from the configuration file or the
+        # command line.
+        implTemplate = implSettings.template
+        if not implTemplate:
+            availableTemplates = [ y.values()[0] for x in TemplateSetup.values()  for y in x[0] ]
+            raise SystemExit, "No generator template given for implementation '%s'\n" % implId + \
+                              "Use --template option with one of the following:\n\t" + \
+                              "\n\t".join(availableTemplates)
+
+        # If no implementation directory was given at all, infer it from the entry point.
+        implOutputDir = implSettings.outputDir
+        if implOutputDir is None:
+            implOutputDir = os.path.dirname(impl.entrypoint())
+
+        # Find the code generator module from the template argument. Since it
+        # probably has dots, get the most specific module (e.g. 'component' from
+        # 'template.cpp.component').
+
+        package = __import__(implTemplate)
+
+        for name in implTemplate.split('.')[1:]:
+            package = getattr(package, name)
+
+        generator = package.factory(
+            implId = implId,
+            outputdir = implOutputDir,
+            overwrite = overwrite,
+            crcs = implSettings.generatedFileCRCs,
+            variant = variant,
+            **implSettings.properties)
+
+        # Display the implementation; pre-1.8 projects use UUIDs for the identifier
+        # and have a separate symbolic name in the project settings.
+        implName = implSettings.name
+        if not implName:
+            implName = implId
+
+        generators.append(('Implementation: '+implName, implOutputDir, generator))
+
+    # Run all generators.
+    for header, path, generator in generators:
+        if action == Function.GENERATE:
+            if filelist:
+                if not path in filelist:
+                    continue
+                implFiles = filelist[path]
+            else:
+                implFiles = []
+
+            generated, skipped = generator.generate(softpkg, *implFiles)
+            for filename, verb in skipped:
+                print >>sys.stderr, 'WARNING:', os.path.join(path, filename), 'has been modified, use -f to', verb
+            for filename, verb in generated:
+                print ' ', os.path.join(path, filename), verb
+        elif action == Function.LIST:
+            for fileinfo in generator.fileinfo(softpkg):
+                # Convert file attributes to annotations; if the attribute is
+                # true, add the corresponding character to the string
+                attrmap = (('user',     'U'),
+                           ('modified', 'M'),
+                           ('new',      'A'),
+                           ('remove',   'D'))
+                attrs = ''
+                for key, mark in attrmap:
+                    if fileinfo[key]:
+                        attrs += mark
+                    else:
+                        attrs += ' '
+                print attrs, os.path.join(path, fileinfo['filename'])

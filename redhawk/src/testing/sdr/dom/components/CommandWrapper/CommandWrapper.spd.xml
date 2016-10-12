@@ -20,7 +20,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 
 <!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
-<softpkg id="DCE:458872f6-a316-4082-b1eb-ce5704f5c49d" name="CommandWrapper">
+<softpkg id="DCE:458872f6-a316-4082-b1eb-ce5704f5c49d" name="CommandWrapper" type="123">
     <title/>
     <author>
         <name>REDHAWK test author</name>
@@ -74,24 +74,24 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <!--                                                  -->
         <dependency type="runtime_requirements">
             <!-- Consume memory capacity -->
-	    <!-- In this one, the __MATH__ should be performed against a value
-	         in the components .prf -->
+            <!-- In this one, the __MATH__ should be performed against a value
+                 in the components .prf -->
             <propertyref refid="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb" 
                          value="__MATH__(0.5,DCE:fa8c5924-845c-484a-81df-7941f2c5baa9,*)"/>
         </dependency>
         <dependency type="runtime_requirements">
             <!-- Consume nic capacity -->
-	    <!-- In this one, the __MATH__ should be performed against a value
-	         in the waveform .sad -->
+            <!-- In this one, the __MATH__ should be performed against a value
+                 in the waveform .sad -->
             <propertyref refid="DCE:4f9a57fc-8fb3-47f6-b779-3c2692f52cf9" 
                          value="__MATH__(100,DCE:cf623573-a09d-4fb1-a2ae-24b0b507115d,/)"/>
         </dependency>
         <dependency type="runtime_requirements">
             <!-- Fake capacity -->
-	    <!-- In this one, the __MATH__ should be performed against a value
-	         in provided in the create() function call -->
+            <!-- In this one, the __MATH__ should be performed against a value
+                 in provided in the create() function call -->
             <propertyref refid="DCE:0cfccc59-7853-4b19-9110-29dccc443374" 
-	                 value="__MATH__(3.5,DCE:6ad84383-49cf-4017-b7ca-0ec4c4917952,-)"/>
+                         value="__MATH__(3.5,DCE:6ad84383-49cf-4017-b7ca-0ec4c4917952,-)"/>
         </dependency>
         <dependency type="runtime_requirements">
             <!-- BogoMips capacity -->

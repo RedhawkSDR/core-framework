@@ -22,7 +22,8 @@
 
 import sys
 import getopt
-from qt import *
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
 import logging
 
 from browsewindow import BrowseWindow
@@ -33,7 +34,7 @@ def main():
     formatter = logging.Formatter("%(asctime)s %(name)-12s:%(levelname)-8s: %(message)s")
     console.setFormatter(formatter)
     logging.getLogger().addHandler(console)
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.INFO)
 
     kw = {}
     longopts = ['domainname=', 'verbose']
@@ -47,9 +48,8 @@ def main():
     a = QApplication(sys.argv)
     QObject.connect(a,SIGNAL("lastWindowClosed()"),a,SLOT("quit()"))
     w = BrowseWindow(**kw)
-    a.setMainWidget(w)
     w.show()
-    a.exec_loop()
+    a.exec_()
 
 if __name__ == "__main__":
     main()

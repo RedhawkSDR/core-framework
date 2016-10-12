@@ -22,23 +22,24 @@
 #define PROPERTYINTERFACE_H
 
 #include <string>
+#include <complex>
+#include <iostream>
+#include <list>
 
-class Resource_impl;
+#include <boost/function.hpp>
 
+#include "ossie/AnyUtils.h"
 #include "ossie/CorbaUtils.h"
 #include "CF/cf.h"
 #include "ossie/Port_impl.h"
 
-#if ENABLE_EVENTS
+#include "ossie/ComplexProperties.h"
+#include "internal/equals.h"
+#include "type_traits.h"
+#include "exceptions.h"
+
 #include "CF/ExtendedEvent.h"
 #include <COS/CosEventChannelAdmin.hh>
-#endif
-
-#if not ENABLE_EVENTS
-#include "CF/cf.h"
-class PropertyEventSupplier : public virtual POA_CF::Port {
-};
-#endif
 
 /**
  *
@@ -50,11 +51,6 @@ public:
     {
     }
     
-    virtual bool isNilEnabled ()
-    {
-        return enableNil_;
-    }
-
     /**
      * By default, the PropertyWrapper will ignore Nil values set via setValue()
      * and will never return Nil values in response to getValue()
@@ -67,70 +63,18 @@ public:
      *     value managed by the wrapper will not be changed.  You should
      *     be checking isNil() before accessing this value.
      */
-    virtual void enableNil (bool enableNil)
-    {
-        enableNil_ = enableNil;
-    }
+    virtual bool isNilEnabled ();
+    virtual void enableNil (bool enableNil);
 
-    bool isQueryable ()
-    {
-        if (mode != std::string("writeonly")) {
-            std::vector<std::string>::iterator p = kinds.begin();
-            while (p != kinds.end()) {
-                if ((*p) == std::string("configure"))
-                    return true;
-                if ((*p) == std::string("execparam"))
-                    return true;
-                if ((*p) == std::string("allocation"))
-                    if (action == std::string("external"))
-                        return true;
-                p++;
-            }
-        }
-        return false;
-    }
+    bool isQueryable () const;
+    bool isConfigurable () const;
+    bool isAllocatable () const;
 
-    bool isConfigurable ()
-        {
-            if (mode != std::string("readonly")) {
-                std::vector<std::string>::iterator p = kinds.begin();
-                while (p != kinds.end()) {
-                    if ((*p) == std::string("configure"))
-                        return true;
-                    p++;
-                }
-            }
-            return false;
-        }
-
-    virtual bool isNil ()
-    {
-        return isNil_;
-    }
-
-    virtual void isNil (bool nil)
-    {
-        isNil_ = nil;
-    }
+    virtual bool isNil ();
+    virtual void isNil (bool nil);
 
     void configure(const std::string& _id, const std::string& _name, const std::string& _mode,
-                   const std::string& _units, const std::string& _action, const std::string& _kinds)
-    {
-        id = _id;
-        name = _name;
-        mode = _mode;
-        units = _units;
-        action = _action;
-        std::string::size_type istart = 0;
-        while (istart < _kinds.size()) {
-            std::string::size_type iend = _kinds.find(',', istart);
-            kinds.push_back(_kinds.substr(istart, iend));
-            if (iend == std::string::npos) {
-                break;
-            }
-            istart = iend + 1;
-        }
-    }
+                   const std::string& _units, const std::string& _action, const std::string& _kinds);
 
     virtual void getValue (CORBA::Any& a) = 0;
     virtual void setValue (const CORBA::Any& a) = 0;
@@ -138,34 +82,27 @@ public:
     virtual void increment (const CORBA::Any& a) = 0;
     virtual void decrement (const CORBA::Any& a) = 0;
 
+    virtual bool allocate (const CORBA::Any& a) = 0;
+    virtual void deallocate (const CORBA::Any& a) = 0;
+
+    virtual const std::string getNativeType () const = 0;
+
     std::string id;
     std::string name;
-    short type;
+    CORBA::TypeCode_ptr type;
     std::string mode;
     std::string units;
     std::string action;
     std::vector<std::string> kinds;
 
 protected:
-    PropertyInterface(short _type) :
-        id(),
-        name(),
-        type(_type),
-        mode(),
-        units(),
-        action(),
-        kinds(),
-        isNil_(false),
-        enableNil_(false)
-    {
-    }
+    PropertyInterface(CORBA::TypeCode_ptr _type);
 
     friend class PropertySet_impl;
     
     bool isNil_;
     bool enableNil_;
 };
-
 
 /**
  * 
@@ -176,6 +113,9 @@ class PropertyWrapper : public PropertyInterface
 public:
     typedef T value_type;
     typedef PropertyInterface super;
+    typedef boost::function<void (const value_type*, const value_type*)> Callback;
+    typedef boost::function<bool (const value_type&)> Allocator;
+    typedef boost::function<void (const value_type&)> Deallocator;
 
     virtual void getValue (CORBA::Any& outValue)
     {
@@ -186,12 +126,34 @@ public:
         }
     }
 
-    virtual void setValue (const CORBA::Any& newValue)
+    virtual void setValue (const CORBA::Any& any)
     {
-        if (this->fromAny(newValue, value_)) {
-            isNil_ = false;
+        // Save existing value and create a pointer to it, representing nil as
+        // a null pointer.
+        value_type savedValue = value_;
+        value_type* oldValue;
+        if (enableNil_ && isNil_) {
+            oldValue = 0;
         } else {
+            oldValue = &savedValue;
+        }
+
+        // Convert value from Any to natural type, and create a pointer to the
+        // new value, representing nil as a null pointer.
+        value_type* newValue;
+        if (this->fromAny(any, value_)) {
+            isNil_ = false;
+            newValue = &value_;
+        } else if (ossie::any::isNull(any)) {
             isNil_ = enableNil_;
+            newValue = 0;
+        } else {
+            throw std::invalid_argument("Unable to set value");
+        }
+
+        // Check if the value has changed; if it has, fire the callback(s).
+        if (!this->equals(oldValue, newValue)) {
+            valueChanged(oldValue, newValue);
         }
     }
 
@@ -206,20 +168,31 @@ public:
         isNil_ = false;
     }
 
-    virtual short compare (const CORBA::Any& a)
+    virtual short compare (const CORBA::Any& any)
     {
-        if (super::isNil_) {
-            if (a.type()->kind() == (CORBA::tk_null)) {
-                return 0;
-            }
-            return 1;
+        // Account for the possibility of nil in the current value
+        value_type* current;
+        if (enableNil_ && isNil_) {
+            current = 0;
+        } else {
+            current = &value_;
         }
-
-        value_type tmp;
-        if (this->fromAny(a, tmp)) {
-            if (tmp != this->value_) {
+        
+        // Extract the any value, also accounting for the possibility of nil
+        value_type temp;
+        value_type* other;
+        if (ossie::any::isNull(any)) {
+            other = 0;
+        } else {
+            if (!this->fromAny(any, temp)) {
+                // Extraction failed, assume unequal
                 return 1;
             }
+            other = &temp;
+        }
+
+        // Compare the effective values, converting boolean return into short
+        if (this->equals(current, other)) {
             return 0;
         } else {
             return 1;
@@ -234,10 +207,213 @@ public:
     {
     }
 
+    virtual bool allocate (const CORBA::Any& any)
+    {
+        value_type capacity;
+        if (!fromAny(any, capacity)) {
+            // Could not extract value
+            return false;
+        }
+        if (allocator_) {
+            return allocator_(capacity);
+        } else {
+            return allocate(capacity);
+        }
+    }
+
+    virtual void deallocate (const CORBA::Any& any)
+    {
+        value_type capacity;
+        if (!fromAny(any, capacity)) {
+            // Could not extract value
+            return;
+        }
+        if (deallocator_) {
+            deallocator_(capacity);
+        } else {
+            deallocate(capacity);
+        }
+    }
+
+    void addChangeListener (Callback listener)
+    {
+        changeListeners_.push_back(listener);
+    }
+
+    void setAllocator (Allocator allocator)
+    {
+        allocator_ = allocator;
+    }
+
+    void setDeallocator (Deallocator deallocator)
+    {
+        deallocator_ = deallocator;
+    }
+
+    const std::string getNativeType () const
+    {
+	return ossie::traits<T>::name();
+    }
+
 protected:
-    PropertyWrapper (value_type& value) :
-        super(ossie::corba::TypeCode<value_type>()),
+    typedef std::list<Callback> CallbackList;
+    CallbackList changeListeners_;
+
+    Allocator allocator_;
+    Deallocator deallocator_;
+
+    PropertyWrapper (value_type& value, CORBA::TypeCode_ptr typecode) :
+        super(typecode),
         value_(value)
+    {
+    }
+
+    void valueChanged (const value_type* oldValue, const value_type* newValue)
+    {
+        for (typename CallbackList::iterator ii = changeListeners_.begin(); ii != changeListeners_.end(); ++ii) {
+            (*ii)(oldValue, newValue);
+        }
+    }
+
+    bool equals (const value_type* oldValue, const value_type* newValue)
+    {
+        if (oldValue && newValue) {
+            // Both old and new are non-nil, check value equality
+            // NB: Prior to 1.8, the code generators did not define an
+            //     operator== for struct properties. For 1.X, an internal
+            //     function abstracts the complexity; in 2.0, this can be
+            //     replaced by a regular comparison.
+            return ossie::internal::equals(*oldValue, *newValue);
+        } else {
+            // One or both values is nil, so determine equality by comparing
+            // the pointers--they will only be the same if both are nil (i.e. a
+            // null pointer).
+            return (oldValue == newValue);
+        }
+    }
+
+    virtual bool fromAny (const CORBA::Any& a, value_type& v) = 0;
+    virtual void toAny (const value_type& v, CORBA::Any& a) = 0;
+
+    // Default allocation implemenation always fails; subclasses may override
+    // to provide different default behavior
+    virtual bool allocate (const value_type& capacity)
+    {
+        throw ossie::not_implemented_error("allocate");
+    }
+
+    // Default deallocation implemenation does nothing; subclasses may override
+    // to provide different default behavior
+    virtual void deallocate (const value_type& capacity)
+    {
+        throw ossie::not_implemented_error("deallocate");
+    }
+    
+    value_type& value_;
+};
+
+// Convenience typedefs for simple property types.
+typedef PropertyWrapper<std::string> StringProperty;
+typedef PropertyWrapper<bool> BooleanProperty;
+typedef PropertyWrapper<char> CharProperty;
+typedef PropertyWrapper<CORBA::Octet> OctetProperty;
+typedef PropertyWrapper<CORBA::Short> ShortProperty;
+typedef PropertyWrapper<CORBA::UShort> UShortProperty;
+typedef PropertyWrapper<CORBA::Long> LongProperty;
+typedef PropertyWrapper<CORBA::ULong> ULongProperty;
+typedef PropertyWrapper<CORBA::ULongLong> ULongLongProperty;
+typedef PropertyWrapper<CORBA::LongLong> LongLongProperty;
+typedef PropertyWrapper<CORBA::Float> FloatProperty;
+typedef PropertyWrapper<CORBA::Double> DoubleProperty;
+
+typedef PropertyWrapper<std::complex<float> >            ComplexFloatProperty;
+typedef PropertyWrapper<std::complex<bool> >             ComplexBooleanProperty;
+typedef PropertyWrapper<std::complex<CORBA::ULong> >     ComplexULongProperty;
+typedef PropertyWrapper<std::complex<short> >            ComplexShortProperty;
+typedef PropertyWrapper<std::complex<unsigned char> >    ComplexOctetProperty;
+typedef PropertyWrapper<std::complex<char> >             ComplexCharProperty;
+typedef PropertyWrapper<std::complex<unsigned short> >   ComplexUShortProperty;
+typedef PropertyWrapper<std::complex<double> >           ComplexDoubleProperty;
+typedef PropertyWrapper<std::complex<CORBA::Long> >      ComplexLongProperty;
+typedef PropertyWrapper<std::complex<CORBA::LongLong> >  ComplexLongLongProperty;
+typedef PropertyWrapper<std::complex<CORBA::ULongLong> > ComplexULongLongProperty;
+
+/**
+ * 
+ */
+template <typename T>
+class SequenceProperty : public PropertyWrapper<std::vector<T> >
+{
+public:
+    typedef T elem_type;
+    typedef std::vector<T> value_type;
+    typedef PropertyWrapper<value_type> super;
+
+    virtual void setValue (const CORBA::Any& newValue)
+    {
+        if (ossie::any::isNull(newValue)) {
+            // Nil values should clear the sequence
+            super::value_.clear();
+        } else {
+            super::setValue(newValue);
+        }
+    }
+
+    virtual void isNil (bool nil)
+    {
+        super::isNil_ = false;
+    }
+
+protected:
+    SequenceProperty(value_type& value, CORBA::TypeCode_ptr typecode) :
+        super(value, typecode)
+    {
+    }
+};
+
+typedef SequenceProperty<std::string>      StringSeqProperty;
+typedef SequenceProperty<char>             CharSeqProperty;
+typedef SequenceProperty<bool>             BooleanSeqProperty;
+typedef SequenceProperty<CORBA::Octet>     OctetSeqProperty;
+typedef SequenceProperty<CORBA::Short>     ShortSeqProperty;
+typedef SequenceProperty<CORBA::UShort>    UShortSeqProperty;
+typedef SequenceProperty<CORBA::Long>      LongSeqProperty;
+typedef SequenceProperty<CORBA::ULong>     ULongSeqProperty;
+typedef SequenceProperty<CORBA::LongLong>  LongLongSeqProperty;
+typedef SequenceProperty<CORBA::ULongLong> ULongLongSeqProperty;
+typedef SequenceProperty<CORBA::Float>     FloatSeqProperty;
+typedef SequenceProperty<CORBA::Double>    DoubleSeqProperty;
+
+typedef SequenceProperty<std::complex<float> >            ComplexFloatSeqProperty;
+typedef SequenceProperty<std::complex<double> >           ComplexDoubleSeqProperty;
+typedef SequenceProperty<std::complex<char> >             ComplexCharSeqProperty;
+typedef SequenceProperty<std::complex<bool> >             ComplexBooleanSeqProperty;
+typedef SequenceProperty<std::complex<unsigned char> >    ComplexOctetSeqProperty;
+typedef SequenceProperty<std::complex<short> >            ComplexShortSeqProperty;
+typedef SequenceProperty<std::complex<unsigned short> >   ComplexUShortSeqProperty;
+typedef SequenceProperty<std::complex<CORBA::Long> >      ComplexLongSeqProperty;
+typedef SequenceProperty<std::complex<CORBA::ULong> >     ComplexULongSeqProperty;
+typedef SequenceProperty<std::complex<CORBA::LongLong> >  ComplexLongLongSeqProperty;
+typedef SequenceProperty<std::complex<CORBA::ULongLong> > ComplexULongLongSeqProperty;
+
+template <typename T>
+class StructProperty : public PropertyWrapper<T>
+{
+public:
+    typedef T value_type;
+    typedef PropertyWrapper<T> super;
+
+    // This definition exists strictly because pre-1.10 code generators define
+    // an explicit specialization of this method; it may be removed when source
+    // compatibility with 1.9 and older is no longer required.
+    virtual short compare (const CORBA::Any& a)
+    {
+        return super::compare(a);
+    }
+
+protected:
+    StructProperty (value_type& value) :
+        super(value, CORBA::_tc_TypeCode)
     {
     }
 
@@ -252,440 +428,30 @@ protected:
     }
 
     friend class PropertyWrapperFactory;
-
-    value_type& value_;
 };
 
-
-template <>
-inline bool PropertyWrapper<char>::fromAny (const CORBA::Any& a, char& v)
-{
-    CORBA::Char c;
-    if (a >>= CORBA::Any::to_char(c)) {
-        v = c;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-template<>
-inline void PropertyWrapper<char>::toAny (const char& v, CORBA::Any& a)
-{
-    a <<= CORBA::Any::from_char(v);
-}
-
-
-template <>
-inline bool PropertyWrapper<unsigned char>::fromAny (const CORBA::Any& a, CORBA::Octet& v)
-{
-    return (a >>= CORBA::Any::to_octet(v));
-}
-
-template<>
-inline void PropertyWrapper<unsigned char>::toAny (const CORBA::Octet& v, CORBA::Any& a)
-{
-    a <<= CORBA::Any::from_octet(v);
-}
-
-template <>
-inline short PropertyWrapper<std::string>::compare (const CORBA::Any& a)
-{
-    const char* tmp;
-    if (a >>= tmp) {
-        return strcmp(tmp, value_.c_str());
-    } else {
-        return 1;
-    }
-}
-
-
-template <>
-inline short PropertyWrapper<bool>::compare (const CORBA::Any& a)
-{
-    bool tmp;
-    if ((a >>= tmp) && (value_ == tmp)) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
-/**
- *
- */
 template <typename T>
-class NumericPropertyWrapper : public PropertyWrapper<T>
+class StructSequenceProperty : public SequenceProperty<T>
 {
 public:
-    typedef T value_type;
-    typedef PropertyWrapper<T> super;
+    typedef T elem_type;
+    typedef std::vector<elem_type> value_type;
+    typedef SequenceProperty<elem_type> super;
 
+    // This definition exists strictly because pre-1.10 code generators define
+    // an explicit specialization of this method; it may be removed when source
+    // compatibility with 1.9 and older is no longer required.
     virtual short compare (const CORBA::Any& a)
     {
-        if (super::isNil_) {
-            if (a.type()->kind() == (CORBA::tk_null)) {
-                return 0;
-            }
-            return 1;
-        }
-
-        value_type tmp;
-        if (this->fromAny(a, tmp)) {
-            if (tmp < super::value_) {
-                return -1;
-            }
-            if (tmp == super::value_) {
-                return 0;
-            }
-            return 1;
-        } else {
-            return 1;
-        }
-    }
-
-    virtual void increment (const CORBA::Any& a)
-    {
-        if (!super::isNil_) {
-            value_type tmp;
-            if (this->fromAny(a, tmp)) {
-                super::value_ += tmp;
-            }
-        }
-    }
-
-    virtual void decrement (const CORBA::Any& a)
-    {
-        if (!super::isNil_) {
-            value_type tmp;
-            if (this->fromAny(a, tmp)) {
-                super::value_ -= tmp;
-            }
-        }
+        return super::compare(a);
     }
 
 protected:
-    NumericPropertyWrapper (value_type& value) :
-        super(value)
-    {
-    }
-
-    friend class PropertyWrapperFactory;
-
-};
-
-
-// Convenience typedefs for simple property types.
-typedef PropertyWrapper<std::string> StringProperty;
-typedef PropertyWrapper<bool> BooleanProperty;
-typedef PropertyWrapper<char> CharProperty;
-typedef NumericPropertyWrapper<CORBA::Octet> OctetProperty;
-typedef NumericPropertyWrapper<CORBA::Short> ShortProperty;
-typedef NumericPropertyWrapper<CORBA::UShort> UShortProperty;
-typedef NumericPropertyWrapper<CORBA::Long> LongProperty;
-typedef NumericPropertyWrapper<CORBA::ULong> ULongProperty;
-typedef NumericPropertyWrapper<CORBA::ULongLong> ULongLongProperty;
-typedef NumericPropertyWrapper<CORBA::LongLong> LongLongProperty;
-typedef NumericPropertyWrapper<CORBA::Float> FloatProperty;
-typedef NumericPropertyWrapper<CORBA::Double> DoubleProperty;
-
-/**
- * 
- */
-// There is probably a more elegant wait (i.e. a traits class) to
-// get SEQ_T and SEQ_VAR_T, but this is a quick hack to get ready for
-// the next release
-template <typename T, typename SEQ_T>
-class SeqPropertyWrapper : public PropertyInterface
-{
-public:
-    typedef std::vector<T> value_type;
-    typedef SEQ_T seq_type;
-    typedef typename SEQ_T::_var_type seq_var_type;
-
-    typedef PropertyInterface super;
-
-    virtual void getValue (CORBA::Any& outValue)
-    {
-        if (enableNil_ && isNil_) {
-            outValue = CORBA::Any();
-        } else {
-            toAny(value_, outValue);
-        }
-    }
-
-    virtual void setValue (const CORBA::Any& newValue)
-    {
-        this->fromAny(newValue, value_);
-    }
-
-    virtual void isNil (bool nil)
-    {
-        isNil_ = false;
-    }
-
-    virtual const value_type& getValue (void)
-    {
-        return value_;
-    }
-
-    virtual void setValue (const value_type& newValue)
-    {
-        value_ = newValue;
-        isNil_ = false;
-    }
-
-    virtual short compare (const CORBA::Any& a)
-    {
-        if (super::isNil_) {
-            if (a.type()->kind() == (CORBA::tk_null)) {
-                return 0;
-            }
-            return 1;
-        }
-
-        value_type tmp;
-        if (this->fromAny(a, tmp)) {
-            if (tmp.size() != this->value_.size()) {
-                return 1;
-            }
-            for (unsigned int i = 0; i < tmp.size(); i++) {
-                if (tmp[i] != this->value_[i]) {
-                    return 1;
-                }
-            }
-            return 0;
-        } else {
-            return 1;
-        }
-    }
-
-    virtual void increment (const CORBA::Any& a)
-    {
-    }
-
-    virtual void decrement (const CORBA::Any& a)
-    {
-    }
-
-protected:
-    SeqPropertyWrapper (value_type& value) :
-        super(ossie::corba::TypeCode<value_type>()),
-        value_(value)
-    {
-    }
-
-    virtual bool fromAny (const CORBA::Any& a, value_type& v)
-    {
-        SEQ_T* seq_p;
-        if (a >>= seq_p) {
-            v.resize(seq_p->length());
-	    if ( v.size() > 0 )  {
-                memcpy(&v[0], &(*seq_p)[0], seq_p->length()*sizeof(T));
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    virtual void toAny (const value_type& v, CORBA::Any& a)
-    {
-        seq_var_type seq = new SEQ_T(v.size(), v.size(), (T*)&v[0], 0);
-        a <<= seq;
-    }
-
-    friend class PropertyWrapperFactory;
-
-    value_type& value_;
-};
-
-template<>
-inline bool SeqPropertyWrapper<bool, CORBA::BooleanSeq>::fromAny (const CORBA::Any& a, std::vector<bool>& v) {
-    CORBA::BooleanSeq* seq_p = new CORBA::BooleanSeq();
-    CORBA::BooleanSeq_var seq(seq_p); // Use a var to cleanup the memory when we are done
-    if (a >>= seq_p) {
-        v.resize(seq_p->length());
-        for (size_t i = 0; i < v.size(); i++) {
-            v[i] = (*seq_p)[i];
-        }
-        return true;
-    } else {
-        return false;
-    }
-}
-
-template<>
-inline void SeqPropertyWrapper<bool, CORBA::BooleanSeq>::toAny (const std::vector<bool>& v, CORBA::Any& a) {
-    CORBA::BooleanSeq_var seq = new CORBA::BooleanSeq();
-    seq->length(v.size());
-    for (size_t i = 0; i < seq->length(); i++) {
-        seq[i] = v[i];
-    }
-    a <<= seq;
-}
-
-template<>
-inline bool SeqPropertyWrapper<char, CORBA::CharSeq>::fromAny (const CORBA::Any& a, std::vector<char>& v) {
-    CORBA::CharSeq* seq_p = new CORBA::CharSeq();
-    
-    CORBA::CharSeq_var seq(seq_p); // Use a var to cleanup the memory when we are done
-    if (a >>= seq_p) {
-        v.resize(seq_p->length());
-        for (size_t i = 0; i < v.size(); i++) {
-            v[i] = (*seq_p)[i];
-        }
-        return true;
-    } else {
-        return false;
-    }
-}
-
-template<>
-inline void SeqPropertyWrapper<char, CORBA::CharSeq>::toAny (const std::vector<char>& v, CORBA::Any& a) {
-    CORBA::CharSeq_var seq = new CORBA::CharSeq();
-    seq->length(v.size());
-    for (size_t i = 0; i < seq->length(); i++) {
-        seq[i] = v[i];
-    }
-    a <<= seq;
-}
-
-
-template<>
-inline bool SeqPropertyWrapper<std::string, CORBA::StringSeq>::fromAny (const CORBA::Any& a, std::vector<std::string>& v) {
-    CORBA::StringSeq* seq_p = new CORBA::StringSeq();
-    CORBA::StringSeq_var seq(seq_p); // Use a var to cleanup the memory when we are done
-    if (a >>= seq_p) {
-        v.resize(seq_p->length());
-        for (size_t i = 0; i < v.size(); i++) {
-            v[i] = std::string(static_cast<const char*>((*seq_p)[i]));
-        }
-        return true;
-    } else {
-        return false;
-    }
-}
-
-template<>
-inline void SeqPropertyWrapper<std::string, CORBA::StringSeq>::toAny (const std::vector<std::string>& v, CORBA::Any& a) {
-    CORBA::StringSeq_var seq = new CORBA::StringSeq();
-    seq->length(v.size());
-    for (size_t i = 0; i < seq->length(); i++) {
-        seq[i] = CORBA::string_dup(v[i].c_str());
-    }
-    a <<= seq;
-}
-
-typedef SeqPropertyWrapper<std::string, CORBA::StringSeq> StringSeqProperty;
-typedef SeqPropertyWrapper<char, CORBA::CharSeq> CharSeqProperty;
-typedef SeqPropertyWrapper<bool, CORBA::BooleanSeq> BooleanSeqProperty;
-typedef SeqPropertyWrapper<CORBA::Octet, CORBA::OctetSeq> OctetSeqProperty;
-typedef SeqPropertyWrapper<CORBA::Short, CORBA::ShortSeq> ShortSeqProperty;
-typedef SeqPropertyWrapper<CORBA::UShort, CORBA::UShortSeq> UShortSeqProperty;
-typedef SeqPropertyWrapper<CORBA::Long, CORBA::LongSeq > LongSeqProperty;
-typedef SeqPropertyWrapper<CORBA::ULong, CORBA::ULongSeq > ULongSeqProperty;
-typedef SeqPropertyWrapper<CORBA::LongLong, CORBA::LongLongSeq > LongLongSeqProperty;
-typedef SeqPropertyWrapper<CORBA::ULongLong, CORBA::ULongLongSeq > ULongLongSeqProperty;
-typedef SeqPropertyWrapper<CORBA::Float, CORBA::FloatSeq> FloatSeqProperty;
-typedef SeqPropertyWrapper<CORBA::Double, CORBA::DoubleSeq> DoubleSeqProperty;
-
-
-template <typename T>
-class StructProperty : public PropertyWrapper<T>
-{
-public:
-    typedef T value_type;
-    typedef PropertyWrapper<T> super;
-
-    virtual short compare (const CORBA::Any& a)
-    {
-        if (super::isNil_) {
-            if (a.type()->kind() == (CORBA::tk_null)) {
-                return 0;
-            }
-            return 1;
-        }
-
-        value_type tmp;
-        if (this->fromAny(a, tmp)) {
-            if (tmp != super::value_) {
-                return 1;
-            }
-            return 0;
-        } else {
-            return 1;
-        }
-    }
-protected:
-    StructProperty (value_type& value) :
-        super(value)
-    {
-        super::type = CORBA::tk_struct;
-    }
-
-    friend class PropertyWrapperFactory;
-};
-
-
-template <typename T>
-class StructSequenceProperty : public PropertyInterface
-{
-public:
-    typedef std::vector<T> value_type;
-
-    typedef PropertyInterface super;
-
-    virtual void getValue (CORBA::Any& outValue)
-    {
-        if (enableNil_ && isNil_) {
-            outValue = CORBA::Any();
-        } else {
-            toAny(value_, outValue);
-        }
-    }
-
-    virtual void isNil (bool nil)
-    {
-        isNil_ = false;
-    }
-
-    virtual void setValue (const CORBA::Any& newValue)
-    {
-        this->fromAny(newValue, value_);
-    }
-
-    virtual const value_type& getValue (void)
-    {
-        return value_;
-    }
-
-    virtual void setValue (const value_type& newValue)
-    {
-        value_ = newValue;
-        isNil_ = false;
-    }
-
-    virtual short compare (const CORBA::Any& a)
-    {
-        return 1;
-    }
-
-    virtual void increment (const CORBA::Any& a)
-    {
-    }
-
-    virtual void decrement (const CORBA::Any& a)
-    {
-    }
-
     StructSequenceProperty (value_type& value) :
-        super(CORBA::tk_sequence),
-        value_(value)
+        super(value, CORBA::_tc_TypeCode)
     {
     }
 
-protected:
     virtual bool fromAny (const CORBA::Any& a, value_type& v)
     {
         CORBA::AnySeq* anySeqPtr;
@@ -713,166 +479,78 @@ protected:
     }
 
     friend class PropertyWrapperFactory;
-
-    value_type& value_;
 };
-
 
 class PropertyWrapperFactory
 {
 public:
     template <typename T>
-    static PropertyInterface* Create (T& value)
+    static PropertyWrapper<T>* Create (T& value)
     {
         return new StructProperty<T>(value);
     }
 
     template <typename T>
-    static PropertyInterface* Create (std::vector<T>& value)
+    static PropertyWrapper<std::vector<T> >* Create (std::vector<T>& value)
     {
         return new StructSequenceProperty<T>(value);
     }
+
+    static StringProperty* Create (std::string&);
+    static BooleanProperty* Create (bool&);
+    static CharProperty* Create (char&);
+    static OctetProperty* Create (CORBA::Octet&);
+    static ShortProperty* Create (CORBA::Short&);
+    static UShortProperty* Create (CORBA::UShort&);
+    static LongProperty* Create (CORBA::Long&);
+    static ULongProperty* Create (CORBA::ULong&);
+    static LongLongProperty* Create (CORBA::LongLong&);
+    static ULongLongProperty* Create (CORBA::ULongLong&);
+    static FloatProperty* Create (CORBA::Float&);
+    static DoubleProperty* Create (CORBA::Double&);
+
+    static ComplexBooleanProperty* Create (std::complex<bool>&);
+    static ComplexCharProperty* Create (std::complex<char>&);
+    static ComplexOctetProperty* Create (std::complex<unsigned char>&);
+    static ComplexShortProperty* Create (std::complex<short>&);
+    static ComplexUShortProperty* Create (std::complex<unsigned short>&);
+    static ComplexLongProperty* Create (std::complex<CORBA::Long>&);
+    static ComplexULongProperty* Create (std::complex<CORBA::ULong>&);
+    static ComplexLongLongProperty* Create (std::complex<CORBA::LongLong>&);
+    static ComplexULongLongProperty* Create (std::complex<CORBA::ULongLong>&);
+    static ComplexFloatProperty* Create (std::complex<float>&);
+    static ComplexDoubleProperty* Create (std::complex<double>&);
+
+    static StringSeqProperty* Create (std::vector<std::string>&);
+    static BooleanSeqProperty* Create (std::vector<bool>&);
+    static CharSeqProperty* Create (std::vector<char>&);
+    static OctetSeqProperty* Create (std::vector<CORBA::Octet>&);
+    static ShortSeqProperty* Create (std::vector<CORBA::Short>&);
+    static UShortSeqProperty* Create (std::vector<CORBA::UShort>&);
+    static LongSeqProperty* Create (std::vector<CORBA::Long>&);
+    static ULongSeqProperty* Create (std::vector<CORBA::ULong>&);
+    static LongLongSeqProperty* Create (std::vector<CORBA::LongLong>&);
+    static ULongLongSeqProperty* Create (std::vector<CORBA::ULongLong>&);
+    static FloatSeqProperty* Create (std::vector<CORBA::Float>&);
+    static DoubleSeqProperty* Create (std::vector<CORBA::Double>&);
+
+    static ComplexBooleanSeqProperty* Create (std::vector<std::complex<bool> >&);
+    static ComplexCharSeqProperty* Create (std::vector<std::complex<char> >&);
+    static ComplexOctetSeqProperty* Create (std::vector<std::complex<unsigned char> >&);
+    static ComplexShortSeqProperty* Create (std::vector<std::complex<short> >&);
+    static ComplexUShortSeqProperty* Create (std::vector<std::complex<unsigned short> >&);
+    static ComplexLongSeqProperty* Create (std::vector<std::complex<CORBA::Long> >&);
+    static ComplexULongSeqProperty* Create (std::vector<std::complex<CORBA::ULong> >&);
+    static ComplexLongLongSeqProperty* Create (std::vector<std::complex<CORBA::LongLong> >&);
+    static ComplexULongLongSeqProperty* Create (std::vector<std::complex<CORBA::ULongLong> >&);
+    static ComplexFloatSeqProperty* Create (std::vector<std::complex<float> >&);
+    static ComplexDoubleSeqProperty* Create (std::vector<std::complex<double> >&);
 
 private:
     // This class should never be instantiated.
     PropertyWrapperFactory();
 
 };
-
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<std::string> (std::string& value)
-{
-    return new StringProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<bool> (bool& value)
-{
-    return new BooleanProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<char> (char& value)
-{
-    return new CharProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::Octet> (CORBA::Octet& value)
-{
-    return new OctetProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::Short> (CORBA::Short& value)
-{
-    return new ShortProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::UShort> (CORBA::UShort& value)
-{
-    return new UShortProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::Long> (CORBA::Long& value)
-{
-    return new LongProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::ULong> (CORBA::ULong& value)
-{
-    return new ULongProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::Float> (CORBA::Float& value)
-{
-    return new FloatProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::Double> (CORBA::Double& value)
-{
-    return new DoubleProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<std::string> (std::vector<std::string>& value)
-{
-    return new StringSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<bool> (std::vector<bool>& value)
-{
-    return new BooleanSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<char> (std::vector<char>& value)
-{
-    return new CharSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::Octet> (std::vector<CORBA::Octet>& value)
-{
-    return new OctetSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::Short> (std::vector<CORBA::Short>& value)
-{
-    return new ShortSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::UShort> (std::vector<CORBA::UShort>& value)
-{
-    return new UShortSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::Long> (std::vector<CORBA::Long>& value)
-{
-    return new LongSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::ULong> (std::vector<CORBA::ULong>& value)
-{
-    return new ULongSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::LongLong> (std::vector<CORBA::LongLong>& value)
-{
-    return new LongLongSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::ULongLong> (std::vector<CORBA::ULongLong>& value)
-{
-    return new ULongLongSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::Float> (std::vector<CORBA::Float>& value)
-{
-    return new FloatSeqProperty(value);
-}
-
-template <>
-inline PropertyInterface* PropertyWrapperFactory::Create<CORBA::Double> (std::vector<CORBA::Double>& value)
-{
-    return new DoubleSeqProperty(value);
-}
-
-#if ENABLE_EVENTS
 
 /************************************************************************************
   PropertyChange producer
@@ -956,7 +634,5 @@ protected:
     
     
 };
-
-#endif // ENABLE_EVENTS
 
 #endif // PROPERTYINTERFACE_H

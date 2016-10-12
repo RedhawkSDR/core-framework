@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration name="test_Matching_node" id="DCE:ff936e2b-65b2-43ca-bb95-ab4ea7dc6e53">
+    <devicemanagersoftpkg>
+    	<localfile name="/mgr/DeviceManager.spd.xml">
+    	</localfile>
+    </devicemanagersoftpkg>
+    <componentfiles> 
+    	<componentfile type="SPD" id="MatchingDevice_5f2c4295-75d5-4943-b393-9c53d320addc">
+    		<localfile name="/devices/MatchingDevice/MatchingDevice.spd.xml">
+    		</localfile>
+    	</componentfile>
+    </componentfiles>    
+    <partitioning>
+		<componentplacement>
+	    	<componentfileref refid="MatchingDevice_5f2c4295-75d5-4943-b393-9c53d320addc">
+    		</componentfileref>
+	     	<componentinstantiation id="DCE:e5efe766-bb51-4e2f-b228-03d24957ad07">
+	     		<usagename>MatchingDevice_1</usagename>
+	     	</componentinstantiation>
+    	</componentplacement>
+    </partitioning>
+    <domainmanager>
+    	<namingservice name="REDHAWK/REDHAWK">
+    	</namingservice>
+    </domainmanager>
+</deviceconfiguration>

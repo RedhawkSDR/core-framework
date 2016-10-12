@@ -19,7 +19,7 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 
-<!DOCTYPE softwarecomponent PUBLIC '-//JTRS//DTD SCA V2.2.2 SCD//EN' 'softwarecomponent.dtd'>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
 <softwarecomponent>
   <corbaversion>2.2</corbaversion>
   <componentrepid repid="IDL:CF/Resource:1.0"/>

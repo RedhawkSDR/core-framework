@@ -19,7 +19,6 @@
 #
 
 AM_LDFLAGS =  -no-install -rpath /dev/null
-INCLUDES = -I../../../../../base/include -I../../../../../base/parser
 
 noinst_LTLIBRARIES = liblinkedLibraryTest.la 
 

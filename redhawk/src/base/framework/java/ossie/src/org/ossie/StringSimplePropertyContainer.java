@@ -20,6 +20,10 @@
 
 package org.ossie;
 
+@Deprecated
+/**
+ * This class has been deprecated, suggest class StringProperty instead
+ */
 public class StringSimplePropertyContainer extends SimplePropertyContainer<String> {
 
     @Override

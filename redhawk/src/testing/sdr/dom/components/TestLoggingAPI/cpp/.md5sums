@@ -1,0 +1,10 @@
+b81ddec246a77809a8694dc03405900b  main.cpp
+74d5944bc21a20b35bcbffdbdc631e2c  TestLoggingAPI.h
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+b438237c9a271247a68a4cfa9cd3842c  TestLoggingAPI.cpp
+51eb46e41d21651b810dc907efcaf5d1  TestLoggingAPI_base.cpp
+40ba9bbfa8094d1757b298c2e3c5928c  configure.ac
+6f7910e795cf200e248a5df2fd324c03  Makefile.am
+1fda490836ba55bc781ec2a57e04b8c0  TestLoggingAPI_base.h
+b8a544071ac3ba0501f5c93491b5bea8  Makefile.am.ide
+2edeb4570ba55b42155b992f38587fb6  build.sh

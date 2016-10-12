@@ -1,0 +1,5 @@
+[report]
+omit = *parsers*,\
+       *uuid*,\
+       *testing*,\
+       *usr/lib/python2.6*

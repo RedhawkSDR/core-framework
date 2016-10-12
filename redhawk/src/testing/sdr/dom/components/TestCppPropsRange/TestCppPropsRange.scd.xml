@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:CF/Resource:1.0"/>
+  <componenttype>resource</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:CF/Resource:1.0" supportsname="Resource"/>
+    <supportsinterface repid="IDL:CF/LifeCycle:1.0" supportsname="LifeCycle"/>
+    <supportsinterface repid="IDL:CF/PortSupplier:1.0" supportsname="PortSupplier"/>
+    <supportsinterface repid="IDL:CF/PropertySet:1.0" supportsname="PropertySet"/>
+    <supportsinterface repid="IDL:CF/TestableObject:1.0" supportsname="TestableObject"/>
+    <ports/>
+  </componentfeatures>
+  <interfaces>
+    <interface name="Resource" repid="IDL:CF/Resource:1.0">
+      <inheritsinterface repid="IDL:CF/LifeCycle:1.0"/>
+      <inheritsinterface repid="IDL:CF/PortSupplier:1.0"/>
+      <inheritsinterface repid="IDL:CF/PropertySet:1.0"/>
+      <inheritsinterface repid="IDL:CF/TestableObject:1.0"/>
+    </interface>
+    <interface name="LifeCycle" repid="IDL:CF/LifeCycle:1.0"/>
+    <interface name="PortSupplier" repid="IDL:CF/PortSupplier:1.0"/>
+    <interface name="PropertySet" repid="IDL:CF/PropertySet:1.0"/>
+    <interface name="TestableObject" repid="IDL:CF/TestableObject:1.0"/>
+  </interfaces>
+</softwarecomponent>

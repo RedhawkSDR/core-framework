@@ -21,14 +21,56 @@
 #include <iostream>
 #include <string.h>
 
+
 #include "ossie/Device_impl.h"
 #include "ossie/CorbaUtils.h"
 
-#if ENABLE_EVENTS
 #include "ossie/EventChannelSupport.h"
-#endif
+
 
 PREPARE_LOGGING(Device_impl)
+
+//
+// Helper class for performing cleanup when an allocation partially succeeds
+//
+class DeallocationHelper {
+public:
+    DeallocationHelper (Device_impl* device):
+        device(device),
+        capacities()
+    {
+
+    }
+
+    // Destructor deallocates all registered allocations
+    ~DeallocationHelper ()
+    {
+        try {
+            if (capacities.length() > 0) {
+                device->deallocateCapacity(capacities);
+            }
+        } catch (...) {
+            // Exceptions cannot propgate out of a dtor
+        }
+    }
+
+    // Add the given capacity to the list of successful allocations
+    void add (const CF::DataType& capacity)
+    {
+        ossie::corba::push_back(capacities, capacity);
+    }
+
+    // Mark that the allocation was successful, so that the capacities are not
+    // deallocated at destruction
+    void clear ()
+    {
+        capacities.length(0);
+    }
+
+private:
+    Device_impl* device;
+    CF::Properties capacities;
+};
 
 
 void Device_impl::initResources (char* devMgr_ior, char* _id, 
@@ -44,6 +86,8 @@ void Device_impl::initResources (char* devMgr_ior, char* _id,
     _operationalState = CF::Device::ENABLED;
     _adminState = CF::Device::UNLOCKED;
     initialConfiguration = true;
+
+    useNewAllocation = false;
 }                          
 
 
@@ -69,6 +113,8 @@ Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrf
 {
 
     LOG_TRACE(Device_impl, "Constructing Device")
+    initResources(devMgr_ior, _id, lbl, sftwrPrfl);
+    _compositeDev_ior = compositeDev_ior;
     CORBA::Object_var _aggDev_obj = ossie::corba::Orb()->string_to_object(_compositeDev_ior.c_str());
     if (CORBA::is_nil(_aggDev_obj)) {
         LOG_ERROR(Device_impl, "Invalid composite device IOR: " << _compositeDev_ior);
@@ -77,7 +123,6 @@ Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrf
         _aggregateDevice->addDevice(this->_this());
     }
 
-    initResources(devMgr_ior, _id, lbl, sftwrPrfl);
     configure (capacities);
     LOG_TRACE(Device_impl, "Done Constructing Device")
 }
@@ -87,6 +132,8 @@ Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrf
 {
 
     LOG_TRACE(Device_impl, "Constructing Device")
+    initResources(devMgr_ior, _id, lbl, sftwrPrfl);
+    _compositeDev_ior = compositeDev_ior;
     CORBA::Object_var _aggDev_obj = ossie::corba::Orb()->string_to_object(_compositeDev_ior.c_str());
     if (CORBA::is_nil(_aggDev_obj)) {
         LOG_ERROR(Device_impl, "Invalid composite device IOR: " << _compositeDev_ior);
@@ -95,7 +142,6 @@ Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrf
         _aggregateDevice->addDevice(this->_this());
     }
 
-    initResources(devMgr_ior, _id, lbl, sftwrPrfl);
     LOG_TRACE(Device_impl, "Done Constructing Device")
 }
 
@@ -122,9 +168,6 @@ void  Device_impl::run ()
 void  Device_impl::halt ()
 {
     LOG_DEBUG(Device_impl, "Halting Device")
-    if (not _adminState == CF::Device::LOCKED) {
-        return;
-    }
     Resource_impl::halt();
 }
 
@@ -160,9 +203,7 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
         LOG_DEBUG(Device_impl, "Done Releasing Device")
     }
     
-    PortableServer::POA_ptr root_poa = ossie::corba::RootPOA();
-    PortableServer::ObjectId_var oid = root_poa->servant_to_id(this);
-    root_poa->deactivate_object(oid);
+    Resource_impl::releaseObject();
 }
 
 
@@ -177,11 +218,6 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
 {
     LOG_TRACE(Device_impl, "in allocateCapacity");
 
-    CF::Properties currentCapacities;
-
-    bool extraCap = false;  /// Flag to check remaining extra capacity to allocate
-    bool foundProperty;     /// Flag to indicate if the requested property was found
-
     if (capacities.length() == 0) {
         // Nothing to do, return
         LOG_TRACE(Device_impl, "no capacities to configure.");
@@ -189,10 +225,57 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
     }
 
     // Verify that the device is in a valid state
-    if (!isUnlocked () || isDisabled ()) {
-        LOG_WARN(Device_impl, "Cannot allocate capacity: System is either LOCKED, SHUTTING DOWN, or DISABLED.");
-        throw (CF::Device::InvalidState("Cannot allocate capacity. System is either LOCKED, SHUTTING DOWN or DISABLED."));
+    if (!isUnlocked() || isDisabled()) {
+        const char* invalidState;
+        if (isLocked()) {
+            invalidState = "LOCKED";
+        } else if (isDisabled()) {
+            invalidState = "DISABLED";
+        } else {
+            invalidState = "SHUTTING_DOWN";
+        }
+        LOG_DEBUG(Device_impl, "Cannot allocate capacity: System is " << invalidState);
+        throw CF::Device::InvalidState(invalidState);
     }
+
+    if (useNewAllocation) {
+        return allocateCapacityNew(capacities);
+    } else {
+        return allocateCapacityLegacy(capacities);
+    }
+}
+
+void Device_impl::validateCapacities (const CF::Properties& capacities)
+{
+    CF::Properties unknownProperties;
+    CF::Properties nonAllocProperties;
+    for (size_t ii = 0; ii < capacities.length(); ++ii) {
+        const CF::DataType& capacity = capacities[ii];
+        const std::string id = static_cast<const char*>(capacity.id);
+        PropertyInterface* property = getPropertyFromId(id);
+        if (!property) {
+            ossie::corba::push_back(unknownProperties, capacity);
+        } else if (!property->isAllocatable()) {
+            ossie::corba::push_back(nonAllocProperties, capacity);
+        }
+    }
+
+    if (unknownProperties.length() > 0) {
+        throw CF::Device::InvalidCapacity("Unknown properties", unknownProperties);
+    } else if (nonAllocProperties.length() > 0) {
+        throw CF::Device::InvalidCapacity("Not allocatable", nonAllocProperties);
+    }
+}
+
+bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
+{
+    LOG_TRACE(Device_impl, "Using legacy capacity allocation");
+    
+    CF::Properties currentCapacities;
+
+    bool extraCap = false;  /// Flag to check remaining extra capacity to allocate
+    bool foundProperty;     /// Flag to indicate if the requested property was found
+
     if (!isBusy ()) {
         // The try is just a formality in this case
         try {
@@ -262,22 +345,70 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
     }
 }
 
+bool Device_impl::allocateCapacityNew (const CF::Properties& capacities)
+{
+    LOG_TRACE(Device_impl, "Using callback-based capacity allocation");
+
+    validateCapacities(capacities);
+
+    DeallocationHelper allocations(this);
+
+    for (size_t ii = 0; ii < capacities.length(); ++ii) {
+        const CF::DataType& capacity = capacities[ii];
+        const std::string id = static_cast<const char*>(capacity.id);
+        PropertyInterface* property = getPropertyFromId(id);
+        LOG_TRACE(Device_impl, "Allocating property '" << id << "'");
+        try {
+            if (property->allocate(capacity.value)) {
+                allocations.add(capacity);
+            } else {
+                LOG_DEBUG(Device_impl, "Cannot allocate capacity. Insufficent capacity for property '" << id << "'");
+                return false;
+            }
+        } catch (const ossie::not_implemented_error& ex) {
+            LOG_WARN(Device_impl, "No allocation implementation for property '" << id << "'");
+            return false;
+        }
+    }
+
+    // All allocations were successful, clear 
+    allocations.clear();
+
+    updateUsageState();
+    return true;
+}
 
 void Device_impl::deallocateCapacity (const CF::Properties& capacities)
 throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState)
 {
+    // Verify that the device is in a valid state
+    if (isLocked() || isDisabled()) {
+        const char* invalidState;
+        if (isLocked()) {
+            invalidState = "LOCKED";
+        } else {
+            invalidState = "DISABLED";
+        }
+        LOG_DEBUG(Device_impl, "Cannot deallocate capacity: System is " << invalidState);
+        throw CF::Device::InvalidState(invalidState);
+    }
+
+    if (useNewAllocation) {
+        deallocateCapacityNew(capacities);
+    } else {
+        deallocateCapacityLegacy(capacities);
+    }
+}
+
+void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
+{
+    LOG_TRACE(Device_impl, "Using legacy capacity deallocation");
+
     CF::Properties currentCapacities;
 
     bool totalCap = true;                         /* Flag to check remaining extra capacity to allocate */
     bool foundProperty;                           /* Flag to indicate if the requested property was found */
     AnyComparisonType compResult;
-
-    /* Verify that the device is in a valid state */
-    if (isLocked () || isDisabled ()) {
-        LOG_WARN(Device_impl, "Cannot deallocate capacity. System is either LOCKED or DISABLED.");
-        throw (CF::Device::InvalidState("Cannot deallocate capacity. System is either LOCKED or DISABLED."));
-        return;
-    }
 
     /* Now verify that there is capacity currently being used */
     if (!isIdle ()) {
@@ -344,6 +475,35 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
     }
 }
 
+void Device_impl::deallocateCapacityNew (const CF::Properties& capacities)
+{
+    LOG_TRACE(Device_impl, "Using callback-based capacity deallocation");
+
+    validateCapacities(capacities);
+
+    for (size_t ii = 0; ii < capacities.length(); ++ii) {
+        const CF::DataType& capacity = capacities[ii];
+        const std::string id = static_cast<const char*>(capacity.id);
+        PropertyInterface* property = getPropertyFromId(id);
+        LOG_TRACE(Device_impl, "Deallocating property '" << id << "'");
+        try {
+            property->deallocate(capacity.value);
+        } catch (const ossie::not_implemented_error& ex) {
+            LOG_WARN(Device_impl, "No deallocation implementation for property '" << id << "'");
+        } catch (const std::exception& ex) {
+            CF::Properties invalidProps;
+            ossie::corba::push_back(invalidProps, capacity);
+            throw CF::Device::InvalidCapacity(ex.what(), invalidProps);
+        }
+    }
+
+    updateUsageState();
+}
+
+void Device_impl::updateUsageState ()
+{
+    // Default implementation does nothing
+}
 
 bool Device_impl::allocate (CORBA::Any& deviceCapacity, const CORBA::Any& resourceRequest)
 {
@@ -563,7 +723,6 @@ Device_impl::AnyComparisonType Device_impl::compareAnyToZero (CORBA::Any& first)
 void Device_impl::setUsageState (CF::Device::UsageType newUsageState)
 {
     /* Keep a copy of the actual usage state */
-#if ENABLE_EVENTS
     StandardEvent::StateChangeType current_state = StandardEvent::BUSY;
     StandardEvent::StateChangeType new_state = StandardEvent::BUSY;
     switch (_usageState) {
@@ -590,13 +749,11 @@ void Device_impl::setUsageState (CF::Device::UsageType newUsageState)
     }
     ossie::sendStateChangeEvent(Device_impl::__logger, _identifier.c_str(), _identifier.c_str(), StandardEvent::USAGE_STATE_EVENT, 
         current_state, new_state, proxy_consumer);
-#endif
     _usageState = newUsageState;
 }
 
 void Device_impl::setAdminState (CF::Device::AdminType new_adminState)
 {
-#if ENABLE_EVENTS
     /* Keep a copy of the actual usage state */
     StandardEvent::StateChangeType current_state = StandardEvent::UNLOCKED;
     StandardEvent::StateChangeType new_state = StandardEvent::UNLOCKED;
@@ -624,7 +781,6 @@ void Device_impl::setAdminState (CF::Device::AdminType new_adminState)
     }
     ossie::sendStateChangeEvent(Device_impl::__logger, _identifier.c_str(), _identifier.c_str(), StandardEvent::ADMINISTRATIVE_STATE_EVENT, 
         current_state, new_state, proxy_consumer);
-#endif
     _adminState = new_adminState;
 }
 
@@ -694,13 +850,6 @@ throw (CORBA::SystemException)
 }
 
 
-char* Device_impl::softwareProfile ()
-throw (CORBA::SystemException)
-{
-    return CORBA::string_dup(_softwareProfile.c_str());
-}
-
-
 CF::Device::UsageType Device_impl::usageState ()
 throw (CORBA::SystemException)
 {
@@ -725,7 +874,7 @@ throw (CORBA::SystemException)
 CF::AggregateDevice_ptr Device_impl::compositeDevice ()
 throw (CORBA::SystemException)
 {
-    return _aggregateDevice;
+    return CF::AggregateDevice::_duplicate(_aggregateDevice);
 }
 
 
@@ -749,7 +898,6 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
     PropertySet_impl::configure(capacities);
 }
 
-#if ENABLE_EVENTS
 IDM_Channel_Supplier_i::IDM_Channel_Supplier_i (Device_impl *_dev)
 {
     TRACE_ENTER(Device_impl)
@@ -863,4 +1011,195 @@ void Device_impl::connectSupplierToIncomingEventChannel(CosEventChannelAdmin::Ev
 
 }
 
-#endif
+void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa, int argc, char* argv[])
+{
+    char* devMgr_ior = 0;
+    char* id = 0;
+    char* label = 0;
+    char* profile = 0;
+    char* idm_channel_ior = 0;
+    char* composite_device = 0;
+    const char* logging_config_uri = 0;
+    int debug_level = -1; // use log level from configuration file 
+    std::string logcfg_uri("");
+    std::string log_dpath("");
+    std::string log_id("");
+    std::string log_label("");
+    bool skip_run = false;
+        
+    std::map<std::string, char*> execparams;
+                
+    for (int i = 0; i < argc; i++) {
+            
+        if (strcmp("DEVICE_MGR_IOR", argv[i]) == 0) {
+            devMgr_ior = argv[++i];
+        } else if (strcmp("PROFILE_NAME", argv[i]) == 0) {
+            profile = argv[++i];
+        } else if (strcmp("DEVICE_ID", argv[i]) == 0) {
+            id = argv[++i];
+            log_id = id;
+        } else if (strcmp("DEVICE_LABEL", argv[i]) == 0) {
+            label = argv[++i];
+            log_label = label;
+        } else if (strcmp("IDM_CHANNEL_IOR", argv[i]) == 0) {
+            idm_channel_ior = argv[++i];
+        } else if (strcmp("COMPOSITE_DEVICE_IOR", argv[i]) == 0) {
+            composite_device = argv[++i];
+        } else if (strcmp("LOGGING_CONFIG_URI", argv[i]) == 0) {
+            logging_config_uri = argv[++i];
+        } else if (strcmp("DEBUG_LEVEL", argv[i]) == 0) {
+            debug_level = atoi(argv[++i]);
+        } else if (strcmp("DOM_PATH", argv[i]) == 0) {
+            log_dpath = argv[++i];
+        } else if (strcmp("SKIP_RUN", argv[i]) == 0){
+            skip_run = true;
+        } else if (i > 0) {  // any other argument besides the first one is part of the execparams
+            std::string paramName = argv[i];
+            execparams[paramName] = argv[++i];
+        }
+    }
+                       
+
+    // The ORB must be initialized before configuring logging, which may use
+    // CORBA to get its configuration file. Devices do not need persistent IORs.
+    ossie::corba::CorbaInit(argc, argv);
+
+    // check if logging config URL was specified...
+    if ( logging_config_uri ) logcfg_uri=logging_config_uri;
+
+    // setup logging context for this resource
+    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::DeviceCtx( log_label, log_id, log_dpath ) );
+
+    // configure logging
+    if (!skip_run){
+        // configure the logging library 
+        ossie::logging::Configure(logcfg_uri, debug_level, ctx);
+    }
+
+    if ((devMgr_ior == 0) || (id == 0) || (profile == 0) || (label == 0)) {
+        LOG_FATAL(Device_impl, "Per SCA specification SR:478, DEVICE_MGR_IOR, PROFILE_NAME, DEVICE_ID, and DEVICE_LABEL must be provided");
+        exit(-1);
+    }
+
+    LOG_DEBUG(Device_impl, "Identifier = " << id << "Label = " << label << " Profile = " << profile << " IOR = " << devMgr_ior);
+
+    // Associate SIGINT to signal_catcher interrupt handler
+    if( sigaction( SIGINT, &sa, NULL ) == -1 ) {
+        LOG_FATAL(Device_impl, "SIGINT association failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Associate SIGQUIT to signal_catcher interrupt handler
+    if( sigaction( SIGQUIT, &sa, NULL ) == -1 ) {
+        LOG_FATAL(Device_impl, "SIGQUIT association failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Associate SIGTERM to signal_catcher interrupt handler
+    if( sigaction( SIGTERM, &sa, NULL ) == -1 ) {
+        LOG_FATAL(Device_impl, "SIGTERM association failed");
+        exit(EXIT_FAILURE);
+    }
+
+    /** Ignore SIGInterrupt because when you CTRL-C the node
+        booter we don't want the device to die, and it's the shells responsibility
+        to send CTRL-C to all foreground processes (even children) */
+    signal(SIGINT, SIG_IGN);
+
+    Device_impl* device = ctor(devMgr_ior, id, label, profile, composite_device);
+        
+    if ( !skip_run ) {
+        // assign logging context to the resource..to support logging interface
+        device->saveLoggingContext( logcfg_uri, debug_level, ctx );
+    }
+
+    // setting all the execparams passed as argument, this method resides in the Resource_impl class
+    device->setExecparamProperties(execparams);
+
+    if (idm_channel_ior) {
+        try {
+            CORBA::Object_var IDM_channel_obj = ossie::corba::Orb()->string_to_object(idm_channel_ior);
+            if (CORBA::is_nil(IDM_channel_obj)) {
+                LOG_ERROR(Device_impl, "Invalid IDM channel IOR: " << idm_channel_ior);
+            } else {
+                CosEventChannelAdmin::EventChannel_var idm_channel = CosEventChannelAdmin::EventChannel::_narrow(IDM_channel_obj);
+                device->connectSupplierToIncomingEventChannel(idm_channel);
+            }
+        }
+        CATCH_LOG_WARN(Device_impl, "Unable to connect to IDM channel");
+    }
+    if (skip_run) {
+        return;
+    }    
+    device->run();
+    LOG_DEBUG(Device_impl, "Goodbye!");
+    device->_remove_ref();
+    ossie::corba::OrbShutdown(true);
+}
+
+std::string Device_impl::getLogConfig(const char* devmgr_ior, const char* log_config, std::string& devmgr_label)
+{
+    // connect to the device manager and copy the log config file to the local directory
+
+    std::string _local_logconfig_path;
+
+    // connect to device manager
+    CF::DeviceManager_ptr _devMgr_ptr = CF::DeviceManager::_nil();
+    CORBA::Object_var _devMgr_obj = ossie::corba::Orb()->string_to_object(devmgr_ior);
+    if (CORBA::is_nil(_devMgr_obj)) {
+        std::cout << "ERROR:Device_impl:getLogConfig - Invalid device manager IOR: " << devmgr_ior << std::endl;
+        return _local_logconfig_path;
+    }
+
+    _devMgr_ptr = CF::DeviceManager::_narrow(_devMgr_obj);
+    if (CORBA::is_nil(_devMgr_ptr)) {
+        std::cout << "ERROR:Device_impl:getLogConfig - Could not narrow device manager IOR: " << devmgr_ior << std::endl;
+        return _local_logconfig_path;
+    }
+
+    // store the dev manager's label
+    devmgr_label = _devMgr_ptr->label();
+
+    // copy the file to memory
+    CF::File_var logFile;
+    CF::OctetSequence_var logFileData;
+    try {
+        logFile = _devMgr_ptr->fileSys()->open(log_config, true);
+        unsigned int logFileSize = logFile->sizeOf();
+        logFile->read(logFileData, logFileSize);
+    } catch ( ... ) {
+        std::cout << "ERROR:Device_impl:getLogConfig - Could not copy file to local memory. File name: " << log_config << std::endl;
+        return _local_logconfig_path;
+    }
+
+    // get the log config file name from the path
+    std::string tmp_log_config = log_config;
+    std::string::size_type slash_loc = tmp_log_config.find_last_of("/");
+    if (slash_loc != std::string::npos) {
+        _local_logconfig_path = tmp_log_config.substr(slash_loc + 1);
+    }
+
+    // write the file to local directory
+    std::fstream _local_logconfig;
+    std::ios_base::openmode _local_logconfig_mode = std::ios::in | std::ios::out | std::ios::trunc;
+    try {
+        _local_logconfig.open(_local_logconfig_path.c_str(), _local_logconfig_mode);
+        if (!_local_logconfig.is_open()) {
+            std::cout << "ERROR:Device_impl:getLogConfig - Could not open log file on local system. File name: " << _local_logconfig_path << std::endl;
+            throw;
+        }
+
+        _local_logconfig.write((const char*)logFileData->get_buffer(), logFileData->length());
+        if (_local_logconfig.fail()) {
+            std::cout << "ERROR:Device_impl:getLogConfig - Could not write log file on local system. File name: " << _local_logconfig_path << std::endl;
+            throw;
+        }
+        _local_logconfig.close();
+    } catch ( ... ) {
+        std::cout << "ERROR:Device_impl:getLogConfig - Could not copy file to local system. File name: " << _local_logconfig_path << std::endl;
+        _local_logconfig_path.clear();  // so calling function knows not to use value
+        return _local_logconfig_path;
+    }
+
+    return _local_logconfig_path;
+}

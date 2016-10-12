@@ -30,7 +30,6 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <kind kindtype="configure"/>
     </simple>
     <!-- Provide a processor_name and os_name matching property -->
-    <!-- See section D2.1.6.8 and Attachment 2 to Appendix D -->
     <simple id="DCE:4a23ad60-0b25-4121-a630-68803a498f75"
             name="os_name"
             mode="readonly"

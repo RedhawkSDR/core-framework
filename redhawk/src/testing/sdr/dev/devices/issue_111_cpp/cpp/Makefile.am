@@ -18,14 +18,13 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
- 
-AM_CXXFLAGS = -Wall $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS) $(BOOST_CPPFLAGS)
-AM_LDFLAGS = -Wall $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB)
-INCLUDES = -I../../../../../../base/include -I../../../../../../base/parser -I../../../../../../base/include/ossie
+CFDIR = ../../../../../../base
+AM_CPPFLAGS = -I$(CFDIR)/include
 
 ossieName = issue_111_cpp
 noinst_PROGRAMS = issue_111_cpp
 
 issue_111_cpp_SOURCES = issue_111_cpp.cpp issue_111_cpp_base.cpp main.cpp port_impl.cpp port_impl.h
-
-issue_111_cpp_LDADD = ../../../../../../base/framework/libossiecf.la ../../../../../../base/parser/libossieparser.la ../../../../../../base/framework/idl/libossieidl.la
+issue_111_cpp_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS) 
+issue_111_cpp_LDADD = $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNICOS_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+issue_111_cpp_LDFLAGS = -Wall

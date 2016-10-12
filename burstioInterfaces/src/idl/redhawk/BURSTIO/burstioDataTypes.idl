@@ -1,0 +1,60 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _BURSTIODATATYPES_IDL_
+#define _BURSTIODATATYPES_IDL_
+
+#include "ossie/CF/PortTypes.idl"
+#include "ossie/CF/cf.idl"
+#include "ossie/BULKIO/bio_runtimeStats.idl"
+
+
+module BURSTIO {
+
+    struct BurstSRI {
+        long hversion;    /* version of the BurstSRI header */
+        string streamID;  /* stream identifier */
+        string id;
+        double xdelta;    /* delta between two samples */
+        short mode;       /* 0-Scalar, 1-Complex */
+        short flags;
+        double tau;
+        float theta;
+        float gain;
+        short uwlength;	
+        short bursttype;
+        long burstLength;
+        double CHAN_RF;   /* provided by Front End Interfaces devices */
+        float baudestimate;
+        double carrieroffset;
+        double SNR;
+        string modulation;
+        double baudrate;
+        string fec;       /* fec type */
+        string fecrate;   /* not a number for TPC rates like (64,57)x(64,57) */
+        string randomizer;
+        string overhead;	
+        BULKIO::PrecisionUTCTime expectedStartOfBurstTime;
+        sequence<CF::DataType> keywords; /* user defined keywords */
+    };
+
+};
+
+#endif

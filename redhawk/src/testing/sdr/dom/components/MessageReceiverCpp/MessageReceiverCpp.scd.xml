@@ -31,9 +31,12 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <supportsinterface repid="IDL:CF/PropertySet:1.0" supportsname="PropertySet"/>
     <supportsinterface repid="IDL:CF/TestableObject:1.0" supportsname="TestableObject"/>
     <ports>
-      <provides repid="IDL:ExtendedEvent/MessageReceiver:1.0" providesname="message_in">
-        <porttype type="data"/>
+      <provides repid="IDL:ExtendedEvent/MessageEvent:1.0" providesname="message_in">
+        <porttype type="responses"/>
       </provides>
+      <uses repid="IDL:ExtendedEvent/MessageEvent:1.0" usesname="message_in">
+        <porttype type="responses"/>
+      </uses>
     </ports>
   </componentfeatures>
   <interfaces>

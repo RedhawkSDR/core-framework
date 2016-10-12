@@ -20,6 +20,10 @@
 
 package org.ossie;
 
+@Deprecated
+/**
+ * This class has been deprecated, suggest class FloatProperty instead
+ */
 public class FloatSimplePropertyContainer extends SimplePropertyContainer<Float> {
 
     @Override

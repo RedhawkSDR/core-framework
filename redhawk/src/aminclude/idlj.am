@@ -1,0 +1,113 @@
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
+# distributed with this source distribution.
+#
+# This file is part of REDHAWK core.
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+# Find all Java files in path referenced by first argument, replace that path
+# with a variable refernce to the second argument (e.g., output will contain
+# the unexpanded value '$(IDLJ_BUILDDIR)') and combine all lines into one.
+rh__idlfind = find $(1) -name '*.java' | sed 's|^$(1)|$$($2)|' | paste -s -d " " -
+
+###############################################################################
+# Generate Java source from IDL files using IDLJ
+###############################################################################
+rh__idlj = $(IDLJ) -fall -fallTIE $(IDLJFLAGS)
+rh__idljtemp = .idlj/$*
+
+# If not otherwise set, generate .java files from .idl source in current
+# directory
+IDLJ_BUILDDIR ?= .
+
+.idlj/%.mk : %.idl
+	$(AM_V_at)rm -rf $(rh__idljtemp); mkdir -p $(rh__idljtemp)
+	$(AM_V_at)$(rh__idlj) -td $(rh__idljtemp) $<
+	$(AM_V_at)echo -n "$*_idlj_SOURCE = " > $@
+	$(AM_V_at)$(call rh__idlfind,$(rh__idljtemp),IDLJ_BUILDDIR) >> $@
+	$(AM_V_at)rm -rf $(rh__idljtemp)
+	$(AM_V_at)echo '$$($*_idlj_SOURCE) : $(rh__idljtemp).idlj' >> $@
+	$(AM_V_at)echo '.INTERMEDIATE : $(rh__idljtemp).idlj' >> $@
+	$(AM_V_at)echo '$(rh__idljtemp).idlj : $<' >> $@
+	$(AM_V_at)echo '	@mkdir -p $$(IDLJ_BUILDDIR)' >> $@
+	$(AM_V_at)echo '	$$(RH_V_IDLJ)$(value rh__idlj) -td $$(IDLJ_BUILDDIR) $$<' >> $@
+
+###############################################################################
+# Generate JNI-side Java source from IDL files using omniidl/omnijni
+###############################################################################
+rh__idljni = $(IDLJNI) $(IDLJNIFLAGS)
+rh__idljnitemp = .idljni/$*
+
+# If not otherwise set, generate JNI .java files from .idl source in current
+# directory
+IDLJNI_BUILDDIR ?= .
+
+.idljni/%.mk : %.idl
+	$(AM_V_at)rm -rf $(rh__idljnitemp); mkdir -p $(rh__idljnitemp)
+	$(AM_V_at)$(rh__idljni) -C $(rh__idljnitemp) $<
+	$(AM_V_at)echo -n "$*_idljni_SOURCE = " > $@
+	$(AM_V_at)$(call rh__idlfind,$(rh__idljnitemp),IDLJNI_BUILDDIR) >> $@
+	$(AM_V_at)rm -rf $(rh__idljnitemp)
+	$(AM_V_at)echo '$$($*_idljni_SOURCE) : $(rh__idljnitemp).idljni' >> $@
+	$(AM_V_at)echo '.INTERMEDIATE : $(rh__idljnitemp).idljni' >> $@
+	$(AM_V_at)echo '$(rh__idljnitemp).idljni : $<' >> $@
+	$(AM_V_at)echo '	@mkdir -p $$(IDLJNI_BUILDDIR)' >> $@
+	$(AM_V_at)echo '	$$(RH_V_IDLJNI)$(value rh__idljni) -C $$(IDLJNI_BUILDDIR) $$<' >> $@
+
+###############################################################################
+# Automake target emulation
+###############################################################################
+
+# Include a makefile fragment only if it exists; the "if wildcard" expansion
+# only occurs if the file exists. This allows Makefiles to depend on makefile
+# fragments that are generated.
+define INCLUDE_IFEXIST
+$(if $(wildcard $(1)),include $(1))
+endef
+
+# Template to handle generation of Java code from IDL files via both IDLJ and
+# omniidl/omnijni; the resulting Java source files will be computed and stored
+# in the corresponding variable (e.g., idlj_SOURCE).
+#   $(1) = idlj or idljni
+define JAVA_IDL_template
+# Include Java IDL makefile fragments. 
+$(foreach mkfile,$($(1)_IDLSRC:%.idl=.$(1)/%.mk),$(eval $(call INCLUDE_IFEXIST,$(mkfile))))
+$(eval $(1)_SOURCE = $(foreach idlfile,$($(1)_IDLSRC:%.idl=%),$$($(idlfile)_$(1)_SOURCE)))
+
+# Chain clean and distclean off of Automake targets
+.PHONY: clean-$(1) distclean-$(1)
+$(RH_TARGET_CLEAN_AM): clean-$(1)
+$(RH_TARGET_DISTCLEAN_AM) : distclean-$(1)
+
+# Clean up generated source.
+clean-$(1):
+	rm -f $$($(1)_SOURCE)
+
+# Clean up makefile fragments.
+distclean-$(1):
+	rm -rf .$(1)
+
+# Add the IDL makefile fragments as prerequisites of Makefile (hidden behind a
+# variable to allow Automake to work its magic); if the makefile fragments do
+# not exist, or are out of date, they will be (re)built and force Makefile to
+# get regenerated.
+$(RH_TARGET_MAKEFILE) : $$($(1)_IDLSRC:%.idl=.$(1)/%.mk)
+endef
+
+# Use special variables "idlj_IDLSRC" and "idljni_IDLSRC" to enable special
+# targets and variables ("idlj_SOURCE" and "idljni_SOURCE", respectively) for
+# Java file generation.
+$(if $(idlj_IDLSRC),$(eval $(call JAVA_IDL_template,idlj)))
+$(if $(idljni_IDLSRC),$(eval $(call JAVA_IDL_template,idljni)))

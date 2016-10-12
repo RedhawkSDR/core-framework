@@ -21,17 +21,16 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 
 #include <uuid/uuid.h>
 
 #include <boost/filesystem/path.hpp>
 
-#include <ossie/CF/cf.h>
+namespace fs = boost::filesystem;
+
 #include <ossie/CorbaUtils.h>
 #include <ossie/ossieSupport.h>
-#include <ossie/debug.h>
-
-namespace fs = boost::filesystem;
 
 void ossie::createProfileFromFileName(std::string fileName, std::string& profile)
 {
@@ -48,10 +47,10 @@ bool ossie::isValidFileName(const char* fileName)
         try {
 #if BOOST_FILESYSTEM_VERSION == 2
             fs::path testPath(fileName, fs::portable_posix_name);
-#else
-            fs::path testPath(fileName);
+#else            
+	    fs::path testPath(fileName);
 #endif
-            fsOpSuccess = true;
+	    fsOpSuccess = true;
         } catch ( ... ) {
             fsOpSuccessAttempts++;
             if (fsOpSuccessAttempts == 10)
@@ -86,83 +85,42 @@ std::string ossie::generateUUID()
 }
 
 
-std::string ossie::getCurrentDirName()
-{
-  std::string retval;
-  char *tdir = get_current_dir_name();
-  if ( tdir ) {
-    retval = tdir;
-    free(tdir);
-  }
-  return retval;
-}
+namespace ossie {
 
+  namespace helpers {
+  
+  /**
+     is_jarfile 
+     
+     Helper method to test if parameter is a valid jar file in lue of "file" command
+     result differences from various OS distros
 
-static std::string getLogConfig(std::string uri)
-{
-    std::string localPath;
+     @return 0   contents of jarPath is a valid jar format
+     @return 1   contents of file does not match magic number format
+     @return -1  file acces/open error
 
-    std::string::size_type fsPos = uri.find("?fs=");
-    if (std::string::npos == fsPos) {
-        return localPath;
-    }
-
-    std::string IOR = uri.substr(fsPos + 4);
-    CORBA::Object_var obj = ossie::corba::stringToObject(IOR);
-    if (CORBA::is_nil(obj)) {
-        return localPath;
-    }
-
-    CF::FileSystem_var fileSystem = CF::FileSystem::_narrow(obj);
-    if (CORBA::is_nil(fileSystem)) {
-        return localPath;
-    }
-
-    std::string remotePath = uri.substr(0, fsPos);
-    CF::OctetSequence_var data;
-    try {
-        CF::File_var remoteFile = fileSystem->open(remotePath.c_str(), true);
-        CORBA::ULong size = remoteFile->sizeOf();
-        remoteFile->read(data, size);
-    } catch (...) {
-        return localPath;
-    }
-
-    std::string tempPath = remotePath;
-    std::string::size_type slashPos = remotePath.find_last_of('/');
-    if (std::string::npos != slashPos) {
-        tempPath.erase(0, slashPos + 1);
-    }
-    std::fstream localFile(tempPath.c_str(), std::ios::out|std::ios::trunc);
-    if (!localFile) {
-        return localPath;
-    }
-
-    if (localFile.write((const char*)data->get_buffer(), data->length())) {
-        localPath = tempPath;
-    }
-    localFile.close();
-
-    return localPath;
-}
-
-
-void ossie::configureLogging(const char* logcfgUri, int defaultLevel)
-{
-    if (logcfgUri) {
-        if (strncmp("file://", logcfgUri, 7) == 0) {
-            // File URI, just remove the scheme.
-            LoggingConfigurator::configure(logcfgUri + 7);
-            return;
-        } else if (strncmp("sca:", logcfgUri, 4) == 0) {
-            // SCA URI; "?fs=" must have been given, or the file will not be located.
-            std::string localFile = getLogConfig(std::string(logcfgUri + 4));
-            if (!localFile.empty()) {
-                LoggingConfigurator::configure(localFile.c_str());
-                return;
-            }
+   */
+    int is_jarfile( const std::string &jarPath ) {
+      int retval=-1;
+      std::ifstream r_fs(jarPath.c_str() );
+      // test if file was opened...
+      if ( r_fs.fail() == false )  {
+        int mlen=6;
+        // magic numbers for jar/zip files
+        uint8_t java_m1[6] = { 0x50, 0x4b, 0x03, 0x04, 0x14, 0x00 };
+        uint8_t java_m2[6] = { 0x50, 0x4b, 0x03, 0x04, 0x0a, 0x00 };
+        uint8_t tbuf[mlen];
+        r_fs.read( (char *)tbuf, mlen );
+        retval=memcmp( tbuf, java_m1, mlen);
+        /// check file contents against magic number sequence
+        if ( retval != 0 ) {
+          retval = memcmp( tbuf, java_m2, mlen);
+          if ( retval != 0 ) retval=1;
         }
-    }
+      }
+      return retval;
+    };
 
-    LoggingConfigurator::configure(defaultLevel);
-}
+  };
+
+};

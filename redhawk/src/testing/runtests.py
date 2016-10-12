@@ -19,11 +19,14 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+# System imports
+# NOTE: all REDHAWK framework imports must occur after prepending
+# ../base/framework/python to the PYTHONPATH.
 import commands
 import unittest
-import imp
 import os
 import re
+import shutil
 import sys
 
 if os.path.abspath(os.path.dirname(__file__)) != os.getcwd():
@@ -39,6 +42,13 @@ def prependPythonPath(thepath):
     else:
         os.environ['PYTHONPATH'] = "%s" % (theabspath) 
 
+def appendPath(varname, path):
+    varpath = os.environ.get(varname, '').split(':')
+    varpath.append(os.path.abspath(path))
+    os.environ[varname] = ':'.join(varpath)
+
+def appendClassPath(path):
+    appendPath('CLASSPATH', path)
 
 if sys.hexversion < 0x020400F0:
     # Python 2.3 requires us to import the backports module
@@ -46,28 +56,31 @@ if sys.hexversion < 0x020400F0:
 
 # Point to the testing SDR folder
 os.environ['SDRROOT'] = os.path.join(os.getcwd(), "sdr")
-# Bring in the Python OSSIE stuff for things runing in this process
 
+# Point the SDR cache to a different location so that it's easy to clean/ignore
+os.environ['SDRCACHE'] = os.path.join(os.environ['SDRROOT'], "cache")
+shutil.rmtree(os.environ['SDRCACHE'], ignore_errors=True)
+
+# Bring in the Python OSSIE stuff for things running in this process
 prependPythonPath("../base/framework/python")
 
-def loadModule(filename):
-    if filename == '':
-        raise RuntimeError, 'Empty filename cannot be loaded'
-    print "Loading module %s" % (filename)
-    searchPath, file = os.path.split(filename)
-    if not searchPath in sys.path: 
-        sys.path.append(searchPath)
-        sys.path.append(os.path.normpath(searchPath+"/../"))
-    moduleName, ext = os.path.splitext(file)
-    fp, pathName, description = imp.find_module(moduleName, [searchPath,])
+# Add Java libraries to CLASSPATH so that test components can find them
+# regardless of where they run.
+appendClassPath('../base/framework/java/CFInterfaces.jar')
+appendClassPath('../base/framework/java/apache-commons-lang-2.4.jar')
+appendClassPath('../base/framework/java/log4j-1.2.15.jar')
+appendClassPath('../base/framework/java/ossie/ossie.jar')
 
-    try:
-        module = imp.load_module(moduleName, fp, pathName, description)
-    finally:
-        if fp:
-            fp.close()
+# Add path to libomnijni.so to LD_LIBRARY_PATH for Java components
+appendPath('LD_LIBRARY_PATH', '../omnijni/src/cpp/.libs')
 
-    return module
+# Set the model IDL paths to point to the (uninstalled) REDHAWK IDLs.
+from _unitTestHelpers import scatest
+from _unitTestHelpers import runtestHelpers
+from ossie.utils import model
+from ossie.utils.idllib import IDLLibrary
+model._idllib = IDLLibrary()
+model._idllib.addSearchPath('../idl')
 
 class PromptTestLoader(unittest.TestLoader):
     PROMPT = False
@@ -90,7 +103,7 @@ class PromptTestLoader(unittest.TestLoader):
                     else:
                         testCaseNamesToRun.append(name)
                 testCaseNames = testCaseNamesToRun
-                    
+
         return self.suiteClass(map(testCaseClass, testCaseNames))
 
 class TestCollector(unittest.TestSuite):
@@ -106,7 +119,7 @@ class TestCollector(unittest.TestSuite):
 
     def loadTests(self):
         for file in self.__files:
-            mod = loadModule(file)
+            mod = runtestHelpers.loadModule(file)
             candidates = dir(mod)
             for candidate in candidates:
                 candidate = getattr(mod, candidate)
@@ -120,40 +133,69 @@ class TestCollector(unittest.TestSuite):
                 except TypeError, e:
                     pass
 
-def getUnitTestFiles(rootpath, testFileGlob="test_*.py"):
-    rootpath = os.path.normpath(rootpath) + "/"
-    print "Searching for files in %s with prefix %s" % (rootpath, testFileGlob)
-    test_files = commands.getoutput("find %s -name '%s'" % (rootpath, testFileGlob))
-    files = test_files.split('\n')
-    if files == ['']:
-        files = []
-    files.sort()
-    return files
-
 if __name__ == "__main__":
     from optparse import OptionParser
     sys.path.append("helpers")
-    import scatest
     import xmlrunner
 
     parser = OptionParser()
-    parser.add_option("--debug", dest="debug", help="run the unittest with the python debugger", default=False, action="store_true")
-    parser.add_option("--prompt", dest="prompt", help="prompt for the set of tests to run", default=False, action="store_true")
-    parser.add_option("--prefix", dest="prefix", help="only run tests with this prefix", default="test_")
-    parser.add_option("--log4cxx", dest="logconfig", help="specify a new log4cxx config file", default="runtest.props")
-    parser.add_option("--gdb", dest="gdb", help="debug nodebooter with gdb", default=False, action="store_true")
-    parser.add_option("--gdb-file", dest="gdbfile", help="initial gdb commands", default=None)
-    parser.add_option("--xml", dest="xmlfile", help="output to XML file", default=None)
-    parser.add_option("--verbosity", dest="verbosity", help="verbosity of test output", default=2, type="int")
-    parser.add_option("--valgrind", dest="valgrind", help="run nodebooter through valgrind", default=False, action="store_true")
+
+    parser.add_option(
+        "--debug",
+        dest="debug",
+        help="run the unittest with the python debugger",
+        default=False,
+        action="store_true")
+    parser.add_option("--prompt",
+        dest="prompt",
+        help="prompt for the set of tests to run",
+        default=False,
+        action="store_true")
+    parser.add_option(
+        "--prefix",
+        dest="prefix",
+        help="only run tests with this prefix",
+        default="test_")
+    parser.add_option(
+        "--log4cxx",
+        dest="logconfig",
+        help="specify a new log4cxx config file",
+        default="runtest.props")
+    parser.add_option(
+        "--gdb",
+        dest="gdb",
+        help="debug nodebooter with gdb",
+        default=False,
+        action="store_true")
+    parser.add_option(
+        "--gdb-file",
+        dest="gdbfile",
+        help="initial gdb commands",
+        default=None)
+    parser.add_option(
+        "--xml",
+        dest="xmlfile",
+        help="output to XML file",
+        default=None)
+    parser.add_option(
+        "--verbosity",
+        dest="verbosity",
+        help="verbosity of test output",
+        default=2,
+        type="int")
+    parser.add_option(
+        "--debuglevel",
+        dest="debuglevel",
+        help="debug level to be passed to nodebooter",
+        default=9)
+    
     (options, args) = parser.parse_args()
 
     scatest.DEBUG_NODEBOOTER = options.gdb
     scatest.GDB_CMD_FILE = options.gdbfile
-    scatest.VALGRIND = options.valgrind
 
     if len(args) == 0:
-        files = getUnitTestFiles("tests")
+        files = runtestHelpers.getUnitTestFiles("tests")
     else:
         files = args
 
@@ -163,7 +205,7 @@ if __name__ == "__main__":
             sys.exit()
     else:
         os.environ['OSSIEUNITTESTSLOGCONFIG'] = os.path.abspath(options.logconfig)
-                
+
     print ""
     print "Creating the Test Domain"
     print ""
@@ -185,4 +227,4 @@ if __name__ == "__main__":
         import pdb
         pdb.run("runner.run(suite)")
     else:
-        runner.run(suite)                                                               
+        runner.run(suite)

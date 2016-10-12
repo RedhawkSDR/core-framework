@@ -23,4 +23,6 @@ package omnijni;
 public abstract class Servant
 {
     public abstract org.omg.CORBA.Object _this_object(org.omg.CORBA.ORB orb);
+    public abstract void _activate();
+    public abstract void _deactivate();
 }

@@ -52,9 +52,15 @@ namespace urn:mil:jpeojtrs:sca:sad {
     values "::std::vector<std::string>";
     devicethatloadedthiscomponentref "::std::string";
     deviceusedbythiscomponentref "::std::pair<std::string, std::string>";
+    deviceusedbyapplication "::std::string";
     externalports "::std::vector<ossie::SoftwareAssembly::Port>";
     port "ossie::SoftwareAssembly::Port";
     usesidentifier "::std::string";
     providesidentifier "::std::string";
     supportedidentifier "::std::string";
+    externalproperties "::std::vector<ossie::SoftwareAssembly::Property>";
+    property "ossie::SoftwareAssembly::Property";
+    usesdevicedependencies "::std::vector<ossie::SoftwareAssembly::UsesDevice>";
+    usesdevice "ossie::SoftwareAssembly::UsesDevice";
+    propertyref "ossie::SoftwareAssembly::PropertyRef";
 }

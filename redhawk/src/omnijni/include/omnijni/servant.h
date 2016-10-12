@@ -48,6 +48,8 @@ namespace omnijni {
         jobject delegate_;
     };
 
+    JNIEnv* attachThread (JavaVM* jvm);
+
 } // namespace omnijni
 
 #endif // __OMNIJNI_SERVANT_H__

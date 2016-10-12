@@ -36,11 +36,61 @@ import java.math.BigInteger;
  */
 public final class UnsignedUtils {
 
-    private static final int MAX_USHORT = 0xFFFF;
-    private static final long MAX_UINT = 0xFFFFFFFFL;
+    public static final short MAX_OCTET = 255;
+    public static final int MAX_USHORT = 65535;
+    public static final long MAX_ULONG = 4294967295L;
+    public static final BigInteger MAX_ULONGLONG = new BigInteger("18446744073709551615");
 
     private UnsignedUtils() {
 
+    }
+
+    public static byte parseOctet(final String str) {
+        short retVal = Short.decode(str);
+        if (retVal < 0 || retVal > MAX_OCTET) {
+            throw new IllegalArgumentException("octet value must be greater than '0' and less than " + MAX_OCTET);
+        }
+        return (byte)retVal;
+    }
+
+    public static int parseULong(final String str) {
+        final long retVal = Long.decode(str);
+        if (retVal < 0 || retVal > MAX_ULONG) {
+            throw new IllegalArgumentException("ulong value must be greater than '0' and less than " + MAX_ULONG);
+        }
+        return (int)retVal;
+    }
+
+    public static short parseUShort(final String str) {
+        final int retVal = Integer.decode(str);
+        if (retVal < 0 || retVal > MAX_USHORT) {
+            throw new IllegalArgumentException("ushort value must be greater than '0' and less than " + MAX_USHORT);
+        }
+        return (short)retVal;
+    }
+
+    public static long parseULongLong(final String str) {
+        final BigInteger retVal = AnyUtils.bigIntegerDecode(str);
+        if (retVal.compareTo(BigInteger.ZERO) < 0 || retVal.compareTo(MAX_ULONGLONG) > 0) {
+            throw new IllegalArgumentException("ulonglong value must be greater than '0' and less than " + MAX_ULONGLONG);
+        }
+        return retVal.longValue();
+    }
+
+    public static int compareOctet(final byte lhs, final byte rhs) {
+        return ((Short)toSigned(lhs)).compareTo(toSigned(rhs));
+    }
+
+    public static int compareUShort(final short lhs, final short rhs) {
+        return ((Integer)toSigned(lhs)).compareTo(toSigned(rhs));
+    }
+
+    public static int compareULong(final int lhs, final int rhs) {
+        return ((Long)toSigned(lhs)).compareTo(toSigned(rhs));
+    }
+
+    public static int compareULongLong(final long lhs, final long rhs) {
+        return toSigned(lhs).compareTo(toSigned(rhs));
     }
 
     public static int[] toSigned(final short[] ushort) {
@@ -91,6 +141,14 @@ public final class UnsignedUtils {
         return retVal;
     }
 
+    public static byte toUnsigned(final short ubyte) {
+        return (byte) ubyte;
+    }
+
+    public static short toSigned(final byte ubyte) {
+        return (short)(MAX_OCTET & ubyte);
+    }
+
     public static int toSigned(final short ushort) {
         return MAX_USHORT & ushort;
     }
@@ -100,7 +158,7 @@ public final class UnsignedUtils {
     }
 
     public static long toSigned(final int uint) {
-        return MAX_UINT & uint;
+        return MAX_ULONG & uint;
     }
 
     public static int toUnsigned(final long uint) {

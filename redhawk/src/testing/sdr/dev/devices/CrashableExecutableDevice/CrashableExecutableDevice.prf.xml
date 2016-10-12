@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC '-//JTRS//DTD SCA V2.2.2 PRF//EN' 'properties.dtd'>
+<properties>
+    <!-- Provide a processor_name and os_name matching property -->
+    <simple id="DCE:4a23ad60-0b25-4121-a630-68803a498f75"
+            name="os_name"
+            mode="readonly"
+            type="string">
+        <description>
+            SCA required property describing the Operating Syste
+        </description>
+        <value>Linux</value>
+        <kind kindtype="allocation"/>
+        <action type="eq"/>
+    </simple>
+    <simple id="DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b"
+            name="processor_name"
+            mode="readonly"
+            type="string">
+        <description>
+            SCA required property describing the CPU type
+        </description>
+        <value>x86</value>
+        <kind kindtype="allocation"/>
+        <action type="eq"/>
+    </simple>
+    <!-- DeviceKind extension -->
+    <simple id="DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b"
+            name="DeviceKind"
+            mode="readonly"
+            type="string">
+        <description>
+            The type of this device...see D.4.1.17
+        </description>
+        <value>CrashableExecutableDevice</value>
+        <kind kindtype="allocation"/>
+        <action type="eq"/>
+    </simple>
+    <!-- Allocatable capacity -->
+    <simple id="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8"
+            name="BogoMipsCapacity"
+            mode="readonly"
+            type="long">
+        <description>
+            Amount of BogoMips provided by the machine.
+        </description>
+	<units>bogomips</units>
+        <kind kindtype="allocation"/>
+    </simple>
+    <simple id="crashEnabled" mode="readwrite" type="boolean">
+        <value>false</value>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+</properties>

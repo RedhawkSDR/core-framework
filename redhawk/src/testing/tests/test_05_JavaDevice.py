@@ -1,44 +1,34 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
 import unittest, os
-import scatest
-import buildconfig
+from _unitTestHelpers import scatest
+from _unitTestHelpers import buildconfig
 from ossie.cf import CF
 from omniORB import any
 
-class ApplicationFactoryTest(scatest.CorbaTestCase):
-    def setUp(self):
-        self._testFiles = []
-
-    def tearDown(self):
-        scatest.CorbaTestCase.tearDown(self)
-        for file in self._testFiles:
-            os.unlink(file)
+class JavaDeviceTest(scatest.CorbaTestCase):
 
     def test_BasicDevice(self):
-        if buildconfig.HAVE_JAVASUPPORT != "yes":
-            return
-
-        nodebooter, domMgr = self.launchDomainManager(debug=9)
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_java_node/DeviceManager.dcd.xml", debug=9)
+        nodebooter, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_java_node/DeviceManager.dcd.xml", debug=self.debuglevel)
 
         # Ensure the expected device is available
         self.assertNotEqual(devMgr, None)
@@ -130,15 +120,22 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertRaises(CF.Device.InvalidCapacity, device.deallocateCapacity, props_int)
         self.assertRaises(CF.Device.InvalidCapacity, device.deallocateCapacity, props_short)
 
+        # Save current values to restore later
+        state = device.query([CF.DataType(int_id, any.to_any(None)), CF.DataType(short_id, any.to_any(None))])
+
         # Makes sure if if 1 dealloc fails, neither are written
+        # NB: 1.9 does not guarantee this behavior.
         props = [CF.DataType(id=int_id, value=any.to_any(1)), CF.DataType(id=short_id, value=any.to_any(20))]
         self.assertRaises(CF.Device.InvalidCapacity, device.deallocateCapacity, props)
-        res = device.query([])
-        for r in res:
-            if r.id == int_id:
-                self.assertEqual(any.from_any(r.value), 9)
-            elif r.id == short_id:
-                self.assertEqual(any.from_any(r.value), 21)
+        #res = device.query([])
+        #for r in res:
+        #    if r.id == int_id:
+        #        self.assertEqual(any.from_any(r.value), 9)
+        #    elif r.id == short_id:
+        #        self.assertEqual(any.from_any(r.value), 21)
+
+        # Restore device to known state
+        device.configure(state)
 
         # Makes sure if props are at full capacity, usage State returns to IDLE
         props = [CF.DataType(id=int_id, value=any.to_any(1)), CF.DataType(id=short_id, value=any.to_any(1))]
@@ -153,13 +150,13 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         # Makes sure that props with aren't allocatable, don't get allocated
         prop = [CF.DataType(id="no_allocation", value=any.to_any(1))]
-        self.assertEqual(device.allocateCapacity(prop), False)
+        self.assertRaises(CF.Device.InvalidCapacity, device.allocateCapacity, prop)
         prop = [CF.DataType(id="not_external", value=any.to_any(1.1))]
-        self.assertEqual(device.allocateCapacity(prop), False)
+        self.assertRaises(CF.Device.InvalidCapacity, device.allocateCapacity, prop)
         prop = [CF.DataType(id="non_simple1", value=any.to_any("Hello"))]
-        self.assertEqual(device.allocateCapacity(prop), False)
+        self.assertRaises(CF.Device.InvalidCapacity, device.allocateCapacity, prop)
         prop = [CF.DataType(id="non_simple2", value=any.to_any([]))]
-        self.assertEqual(device.allocateCapacity(prop), False)
+        self.assertRaises(CF.Device.InvalidCapacity, device.allocateCapacity, prop)
         res = device.query([])
         for r in res:
             if r.id == int_id:
@@ -179,4 +176,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         devMgr.shutdown()
 
         self.assertEqual(len(domMgr._get_deviceManagers()), 0)
+
+if buildconfig.HAVE_JAVASUPPORT != "yes":
+    del JavaDeviceTest
 

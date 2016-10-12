@@ -56,3 +56,4 @@ if [ ! -f ltmain.sh ]; then
     libtoolize --force --automake 
     automake --foreign --add-missing 
 fi 
+

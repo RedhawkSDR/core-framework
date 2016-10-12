@@ -23,11 +23,16 @@
 # ${includedir}/ossie/COS.
 noinst_LTLIBRARIES = libcosjni.la
 
+# The COS modules are mapped to the org.omg package.
+COSPKGS = CosEventComm CosNaming CosEventChannelAdmin
+COSPREFIX = org.omg
+IDLJNIFLAGS = $(COSPKGS:%=-Wbpkgprefix=%:$(COSPREFIX))
+
 jni_CosEvent%.cpp jni_CosEvent%.h : $(OMNICOS_IDLDIR)/CosEvent%.idl
-	$(OMNIJNI_IDLJNI) -Wbincprefix=COS -Wbincext=.hh -Wbpkgprefix=CosEventComm:COS -I$(OMNICOS_IDLDIR) $<
+	$(AM_V_GEN)$(IDLJNICXX) -Wbincprefix=COS -Wbincext=.hh $(IDLJNIFLAGS) -I$(OMNICOS_IDLDIR) $<
 
 jni_CosNam%.cpp jni_CosNam%.h : $(OMNICOS_IDLDIR)/CosNam%.idl
-	$(OMNIJNI_IDLJNI) -Wbstandalone -Wbpkgprefix=CosNaming:COS -I$(OMNICOS_IDLDIR) $<
+	$(AM_V_GEN)$(IDLJNICXX) -Wbstandalone $(IDLJNIFLAGS) -I$(OMNICOS_IDLDIR) $<
 
 jni_CosEventChannelAdmin.o : jni_CosEventComm.h
 

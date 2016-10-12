@@ -1,0 +1,161 @@
+#!/usr/bin/python
+
+'''
+Command-line wrapper to the createOctaveComponent.py's create() method.
+
+'''
+
+from getopt import getopt
+from redhawk.packagegen.binaryPackage import BinaryPackage
+import sys
+import os
+
+usage = """
+Script for automatic component generation given a Binary (program)
+
+All Binary components have the following properties:
+ - inputFileArg (string, default nil)
+ - outputFileArg (string, default nil)
+ - inputFmt (string, default 8o)
+ - outputFmt (string, default 8o)
+ - binary (string, default <binary file>)
+ - bufferingEnabled (Boolean, default 1)
+
+{0} [flags] <binary file>
+
+E.g.,
+
+    {0} --compName=foo my_bin
+
+Arguments:
+    <binary file>       Binary file to be packaged with the component.
+
+Options:
+    --inputArg          Argument used to indicate input filename (default=nil)
+    
+    --inputFmt          Format used for the input file (valid: 8o, 16t, 16u, 32t, 32u, 32f, 64f)
+    
+    --outputArg         Argument used to indicate output filename (default=nil)
+    
+    --outputFmt         Format used for the output file (valid: 8o, 16t, 16u, 32t, 32u, 32f, 64f)
+    
+    --compName          Name for the newly-created component (default=<binary file>)
+    
+    --sharedLibraries   Dependencies that have been installed
+                        as a Soft Package Dependency. Points to an spd.xml file
+                        whose path is relative to $SDRROOT/dom.
+
+                            e.g., --sharedLibraries=/sharedPkgs/foo/foo.spd.xml
+
+                        When listing multiple files, the filenames must be
+                        comma-separated, with no spaces.
+
+    --outputDir         Location of all output files.  Default is ".".
+
+    -f                  Forward force flag to redhawk-codegen.
+
+    --buildRpm          If set, compile an rpm after generating the code.
+
+    --install           If set, run "reconf; configure; make install" after
+                        generating the code.
+
+    --enableBuffering   If set, enable buffering.  If enabled, the component
+                        will buffer data at its input until an EOS flag is
+                        encountered. If disabled, packets will be sent
+                        immediately to the binary, even if the EOS flag is not set.
+
+""".format(os.path.basename(sys.argv[0]))
+
+if __name__ == "__main__":
+    opts, args = getopt(
+        sys.argv[1:],
+        'fh',
+        ['outputDir=',
+         'inputArg=',
+         'outputArg=',
+         'inputFmt=',
+         'outputFmt=',
+         'compName=',
+         'help',
+         'sharedLibraries=',
+         'buildRpm',
+         'install',
+         'enableBuffering',
+         'LOGGING_CONFIG_URI='])
+
+    outputDir        = "."
+    force            = False
+    sharedLibraries  = []
+    bFile            = None
+    cmdArgs          = None
+    buildRpm         = False
+    install          = False
+    bufferingEnabled = True
+    loggingConfigUri = None
+    inputfile        = None
+    outputfile       = None
+    inputfmt         = '8o'
+    outputfmt        = '8o'
+    compName         = None
+
+    # Set option variables based on option flags set on the command line
+    for key, value in opts:
+        if key == '--help' or key == '-h':
+            print usage
+            raise SystemExit
+        elif key == '--outputDir':
+            outputDir = value
+        elif key == '--inputArg':
+            inputfile = value
+        elif key == '--outputArg':
+            outputfile = value
+        elif key == '--inputFmt':
+            inputfmt = value
+        elif key == '--outputFmt':
+            outputfmt = value
+        elif key == '--compName':
+            compName = value
+        elif key == '--sharedLibraries':
+            sharedLibraries = value.split(',')
+        elif key.lower() == '--buildrpm':
+            buildRpm = True
+        elif key == '--install':
+            install = True
+        elif key == '--enableBuffering':
+            bufferingEnabled = True
+        elif key == '--LOGGING_CONFIG_URI':
+            loggingConfigUri = value
+        elif key == '-f':
+            force = True
+
+    if len(args) == 0:
+        # No m files have been provided, print usage and quit
+        print usage
+        raise SystemExit
+
+    dirs = args[0].split('/')
+    bFile = dirs[-1]
+
+    # Create XML model
+    myBinaryPackage = BinaryPackage(
+        bFile            = bFile,
+        compName         = compName,
+        cmdArgs          = cmdArgs,
+        inputFile        = inputfile,
+        outputFile       = outputfile,
+        inputFmt         = inputfmt,
+        outputFmt        = outputfmt,
+        outputDir        = outputDir,
+        sharedLibraries  = sharedLibraries,
+        bufferingEnabled = bufferingEnabled,
+        loggingConfigUri = loggingConfigUri)
+
+    myBinaryPackage.writeXML()
+    myBinaryPackage.callCodegen(force)
+    
+    myBinaryPackage.copyBinary()
+
+    if buildRpm:
+        myBinaryPackage.runCompileRpm()
+    if install:
+        myBinaryPackage.runInstall()

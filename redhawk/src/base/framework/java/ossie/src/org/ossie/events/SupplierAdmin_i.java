@@ -30,20 +30,20 @@ import org.ossie.events.MessageConsumerPort;
 
 import org.ossie.component.*;
 
-public class SupplierAdmin_i extends CosEventChannelAdmin.SupplierAdminPOA implements CosEventChannelAdmin.SupplierAdminOperations {
+public class SupplierAdmin_i extends org.omg.CosEventChannelAdmin.SupplierAdminPOA implements org.omg.CosEventChannelAdmin.SupplierAdminOperations {
 
-    protected CosEventChannelAdmin.SupplierAdmin supplier_admin;
+    protected org.omg.CosEventChannelAdmin.SupplierAdmin supplier_admin;
     protected MessageConsumerPort parent;
 
     public SupplierAdmin_i(MessageConsumerPort _parent) {
         this.parent = _parent;
     }
 
-    public CosEventChannelAdmin.SupplierAdmin setup(final ORB orb, final POA poa) {
-        CosEventChannelAdmin.SupplierAdminPOATie tie = new CosEventChannelAdmin.SupplierAdminPOATie(this, poa);
+    public org.omg.CosEventChannelAdmin.SupplierAdmin setup(final ORB orb, final POA poa) {
+        org.omg.CosEventChannelAdmin.SupplierAdminPOATie tie = new org.omg.CosEventChannelAdmin.SupplierAdminPOATie(this, poa);
         tie._this(orb);
         try {
-            supplier_admin = CosEventChannelAdmin.SupplierAdminHelper.narrow(poa.servant_to_reference((Servant)tie));
+            supplier_admin = org.omg.CosEventChannelAdmin.SupplierAdminHelper.narrow(poa.servant_to_reference((Servant)tie));
         } catch (ServantNotActive e) {
             return null;
         } catch (WrongPolicy e) {
@@ -56,18 +56,18 @@ public class SupplierAdmin_i extends CosEventChannelAdmin.SupplierAdminPOA imple
         return supplier_admin;
     }
 
-    public CosEventChannelAdmin.ProxyPushConsumer obtain_push_consumer() {
-        CosEventChannelAdmin.ProxyPushConsumer retval = null;
+    public org.omg.CosEventChannelAdmin.ProxyPushConsumer obtain_push_consumer() {
+        org.omg.CosEventChannelAdmin.ProxyPushConsumer retval = null;
         synchronized (this.parent.updatingPortsLock) {
-            retval = CosEventChannelAdmin.ProxyPushConsumerHelper.narrow(this.parent.local_consumer_ref);
+            retval = org.omg.CosEventChannelAdmin.ProxyPushConsumerHelper.narrow(this.parent.local_consumer_ref);
         }
         
         return retval;
         
     }
 
-    public CosEventChannelAdmin.ProxyPullConsumer obtain_pull_consumer() {
-        CosEventChannelAdmin.ProxyPullConsumer retval = null;
+    public org.omg.CosEventChannelAdmin.ProxyPullConsumer obtain_pull_consumer() {
+        org.omg.CosEventChannelAdmin.ProxyPullConsumer retval = null;
         
         return retval;
     }

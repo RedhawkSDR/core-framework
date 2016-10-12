@@ -55,6 +55,7 @@ namespace ossie {
                 StructPropertyConfigurationType_pimpl StructPropertyConfigurationType_p;
                 structSequence_pimpl structSequence_p;
                 structValue_pimpl structValue_p;
+                IsComplex_pimpl IsComplex_p;
                 simpleRef_pimpl simpleRef_p;
 
                 // Connect the parsers together.
@@ -76,6 +77,7 @@ namespace ossie {
                                 string_p,
                                 AccessType_p,
                                 string_p,
+                                IsComplex_p,
                                 PropertyValueType_p);
 
                 range_p.parsers (string_p,
@@ -99,7 +101,8 @@ namespace ossie {
                                         string_p,
                                         AccessType_p,
                                         string_p,
-                                        PropertyValueType_p);
+                                        PropertyValueType_p,
+                                        IsComplex_p);
 
                 values_p.parsers (string_p);
 

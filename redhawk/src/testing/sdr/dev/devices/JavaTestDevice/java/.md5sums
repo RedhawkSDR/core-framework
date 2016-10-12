@@ -1,0 +1,6 @@
+7c809860fe6e1ed9d21c311631986d13 reconf
+1252603f847ad842b6336ab573c2af72 src/JavaTestDevice/java/JavaTestDevice.java
+4fef8553bd808037e091afd535eafeb8 src/JavaTestDevice/java/JavaTestDevice_base.java
+0cb1f901d377ffa8fbefc407e3c4f83e configure.ac
+b5cd18e343e44092eca738a5104dd108 startJava.sh
+e3522ff6685d7ca84b5bb87a670b0a55 Makefile.am

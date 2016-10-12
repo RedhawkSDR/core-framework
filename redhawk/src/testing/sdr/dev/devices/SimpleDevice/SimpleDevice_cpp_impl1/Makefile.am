@@ -19,13 +19,13 @@
 #
 
  
-AM_CXXFLAGS = -Wall $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS)
-AM_LDFLAGS = -Wall $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNICOS_LIBS) $(OMNIDYNAMIC_LIBS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB)
-INCLUDES = -I../../../../../../base/include -I../../../../../../base/parser -I../../../../../../base/include/ossie
+CFDIR = ../../../../../../base
+AM_CPPFLAGS = -I$(CFDIR)/include
 
 ossieName = SimpleDevice_cpp_impl1
 noinst_PROGRAMS = SimpleDevice_cpp_impl1
 
 SimpleDevice_cpp_impl1_SOURCES = SimpleDevice_cpp_impl1.cpp SimpleDevice_cpp_impl1_base.cpp SimpleDevice_cpp_impl1.h main.cpp port_impl.cpp port_impl.h
-
-SimpleDevice_cpp_impl1_LDADD = ../../../../../../base/framework/libossiecf.la ../../../../../../base/parser/libossieparser.la ../../../../../../base/framework/idl/libossieidl.la
+SimpleDevice_cpp_impl1_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS)
+SimpleDevice_cpp_impl1_LDADD = $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB)  $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+SimpleDevice_cpp_impl1_LDFLAGS = -Wall

@@ -45,8 +45,8 @@ class Consumer_i(CosEventComm__POA.PushConsumer):
         self.portRef = portRef
     
     def push(self, data):
-        if data._v == "hello device":
-            self.portRef.parent.ports['event_supplier'].sendEvent(any.to_any("bye device"))
+        if data._v == "message device":
+            self.portRef.parent.ports['event_supplier'].sendEvent(any.to_any("response device"))
     
     def disconnect_push_consumer (self):
         pass

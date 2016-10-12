@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="SADUsesDeviceWaveConnectionBadDeviceRef" name="SADUsesDeviceWaveConnectionBadDeviceRef">
+  <componentfiles>
+    <componentfile id="SADUsesComponent_5aef02a2-91e0-404b-97a9-da2054ad839d" type="SPD">
+      <localfile name="/components/SADUsesComponent/SADUsesComponent.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="SADUsesComponent_5aef02a2-91e0-404b-97a9-da2054ad839d"/>
+      <componentinstantiation id="SADUsesComponent_1" startorder="0">
+        <usagename>SADUsesComponent_1</usagename>
+        <findcomponent>
+          <namingservice name="SADUsesComponent_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="SADUsesComponent_1"/>
+  </assemblycontroller>
+  <connections>
+    <connectinterface id="connection1">
+      <usesport>
+        <usesidentifier>comp_resource_out</usesidentifier>
+        <componentinstantiationref refid="SADUsesComponent_1"/>
+      </usesport>
+      <providesport>
+        <providesidentifier>dev_resource_in</providesidentifier>
+        <!-- Intentionally incorrect refid -->
+        <deviceusedbyapplication usesrefid="usesdevice2"/>
+      </providesport>
+    </connectinterface>
+  </connections>
+  <usesdevicedependencies>
+    <usesdevice id="usesdevice1">
+      <!-- Simple macth to get device to connect to -->
+      <propertyref refid="device_id" value="USES_DEV"/>
+    </usesdevice>
+  </usesdevicedependencies>
+</softwareassembly>

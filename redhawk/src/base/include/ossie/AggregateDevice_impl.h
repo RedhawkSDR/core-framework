@@ -21,14 +21,10 @@
 #ifndef AGGREGATE_DEVICE_IMPL_H
 #define AGGREGATE_DEVICE_IMPL_H
 
-#include "ossiecf.h"
 #include "CF/cf.h"
 #include "CF/AggregateDevices.h"
-#include "Device_impl.h"
-#include "LoadableDevice_impl.h"
-#include "ExecutableDevice_impl.h"
 
-class OSSIECF_API AggregateDevice_impl: public virtual POA_CF::AggregateDevice
+class AggregateDevice_impl: public virtual POA_CF::AggregateDevice
 {
 public:
     AggregateDevice_impl();

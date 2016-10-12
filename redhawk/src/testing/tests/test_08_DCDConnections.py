@@ -1,37 +1,37 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
 import time
 import unittest
-import scatest
+from _unitTestHelpers import scatest
 from omniORB import URI, any
 from ossie.cf import CF
 
 class DCDConnectionsTest(scatest.CorbaTestCase):
     def setUp(self):
-        domBooter, self._domMgr = self.launchDomainManager(debug=9)
+        domBooter, self._domMgr = self.launchDomainManager(debug=self.debuglevel)
 
     def test_DCDConnection(self):
         self.assertNotEqual(self._domMgr, None)
 
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml", debug=9)
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
         self.assertNotEqual(devMgr, None)
 
         # These UUIDs must be kept in sync with the DCD
@@ -42,7 +42,7 @@ class DCDConnectionsTest(scatest.CorbaTestCase):
         connections = {}
         for device in devMgr._get_registeredDevices():
             id = device._get_identifier()
- 
+
             # Check that the UUID matches what we expect; a failure here is
             # probably more indicative of a faulty test.
             if id != usesId and id != providesId:
@@ -64,7 +64,7 @@ class DCDConnectionsTest(scatest.CorbaTestCase):
 
         # Start the second node first; it should not report any connections yet
         # because the connection is pending.
-        devBooter2, devMgr2 = self.launchDeviceManager("/nodes/test_PortTestDevice2_node/DeviceManager.dcd.xml", debug=9)
+        devBooter2, devMgr2 = self.launchDeviceManager("/nodes/test_PortTestDevice2_node/DeviceManager.dcd.xml", debug=self.debuglevel)
         self.assertNotEqual(devMgr2, None)
         device = devMgr2._get_registeredDevices()[0]
         self.assertEqual(device._get_label(), "PortTestDevice3")
@@ -72,7 +72,7 @@ class DCDConnectionsTest(scatest.CorbaTestCase):
 
         # Start the first node; the pending connection from the second node
         # should be completed now.
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml", debug=9)
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
         self.assertNotEqual(devMgr, None)
 
         # Verify that the connection is completed, and points to a device on
@@ -86,14 +86,14 @@ class DCDConnectionsTest(scatest.CorbaTestCase):
             if identifier == dev._get_identifier():
                 device2 = dev
         self.assertNotEqual(device2, None)
-        
+
         # Terminate the first node and verify that the connection is broken.
         self.terminateChild(devBooter)
         self.assertEqual(len(device.runTest(0, [])), 0)
 
         # Restart the first node; the pending connection from the second node
         # should be re-established.
-        devBooter, devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml", debug=9)
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml", debug=self.debuglevel)
         self.assertNotEqual(devMgr, None)
 
         device = devMgr2._get_registeredDevices()[0]
@@ -106,11 +106,11 @@ class DCDConnectionsTest(scatest.CorbaTestCase):
         self.assertNotEqual(svcMgrSecond, None)
         svcBooterSecond, svcMgrThird = self.launchDeviceManager("/nodes/test_PortTestDeviceService_node/DeviceManager.dcd.xml")
         self.assertNotEqual(svcMgrSecond, None)
-        
+
         #confirm connection is there
         device = svcMgrThird._get_registeredDevices()[0]
         service_1 = svcMgr._get_registeredServices()[0]
-        
+
         props = service_1.serviceObject.query([])
         testOut = device.runTest(2, [])
         for ii in range(len(props)):

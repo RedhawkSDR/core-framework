@@ -35,7 +35,6 @@ class CreateApp(jackhammer.Jackhammer):
         domRoot = os.path.join(os.environ["SDRROOT"], "dom")
         sad = ossie.parsers.sad.parse(domRoot + sadFile)
         id = sad.get_id()
-        self.count=0
         for appFact in self.domMgr._get_applicationFactories():
             if appFact._get_identifier() == id:
                 self.appFact = appFact
@@ -43,12 +42,10 @@ class CreateApp(jackhammer.Jackhammer):
 
         raise KeyError, "Couldn't find app factory"
 
-    def test (self, id):
-	#print "Starting..... thread:" + str(id) + " application :" + str(self.count)
+    def test (self):
         app = self.appFact.create(self.appFact._get_name(), [], [])
         app.stop()
         app.releaseObject()
-        self.count = self.count + 1
 
 
 if __name__ == '__main__':

@@ -67,11 +67,11 @@ CORBA::Boolean BasicTestDevice_cpp_impl1_i::allocateCapacity (const CF::Properti
     
     bool response = true;
     std::string tmp;
-    propertyContainer *pCptr;
+    PropertyInterface *pCptr;
 
     for (unsigned int i = 0; i < capacities.length(); i++) {
         tmp = capacities[i].id;
-        pCptr = getPropFromId(tmp);
+        pCptr = getPropertyFromId(tmp);
         if (!pCptr) {
             response = false;
             break;
@@ -86,7 +86,7 @@ CORBA::Boolean BasicTestDevice_cpp_impl1_i::allocateCapacity (const CF::Properti
         
     for (unsigned int i = 0; i < capacities.length(); i++) {
         tmp = capacities[i].id;
-        pCptr = getPropFromId(tmp);
+        pCptr = getPropertyFromId(tmp);
         pCptr->decrement(capacities[i].value);
     }
     return true;
@@ -97,11 +97,11 @@ void BasicTestDevice_cpp_impl1_i::deallocateCapacity (const CF::Properties & cap
 {
 
     std::string tmp;
-    propertyContainer *pCptr;
+    PropertyInterface *pCptr;
 
     for (unsigned int i=0; i<capacities.length(); i++) {
         tmp = capacities[i].id;
-        pCptr = getPropFromId(tmp);
+        pCptr = getPropertyFromId(tmp);
         if (!pCptr) {
             continue;
         }

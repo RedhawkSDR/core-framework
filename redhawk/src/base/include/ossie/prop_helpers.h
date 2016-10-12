@@ -25,13 +25,11 @@
 #include <string>
 #include <vector>
 
-#include "ossie/Properties.h"
-#include "ossie/SoftPkg.h"
-#include "ossie/componentProfile.h"
-
 #if HAVE_OMNIORB4
-#include "omniORB4/CORBA.h"
+#include <omniORB4/CORBA.h>
 #endif
+
+#include "CF/cf.h"
 
 namespace ossie
 {
@@ -73,10 +71,21 @@ namespace ossie
         }
     }
 
-    bool compare_anys(CORBA::Any& a, CORBA::Any& b, std::string& action);
+    bool compare_anys(const CORBA::Any& a, const CORBA::Any& b, std::string& action);
     CORBA::Any calculateDynamicProp(double operand, CORBA::Any& prop, std::string& math, CORBA::TCKind resultKind);
-    CORBA::Any string_to_any(std::string value, CORBA::TCKind kind);
+    CORBA::Any string_to_any(std::string value, CORBA::TypeCode_ptr type);
+    CORBA::Any stringToSimpleAny(std::string value, CORBA::TCKind kind);
+    CORBA::Any stringToComplexAny(std::string value, std::string structName);
+
+    template <typename Type, class CFComplexType>
+        CORBA::Any convertComplexStringToAny(std::string value);
+    template <class CFComplexType>
+        std::string convertComplexAnyToString(const CORBA::Any&);
+
+    std::string complexAnyToString(const CORBA::Any& value);
+    std::string simpleAnyToString(const CORBA::Any& value);
     std::string any_to_string(const CORBA::Any& value);
+
     CORBA::Any::from_boolean strings_to_boolean(const std::vector<std::string> &values);
     CORBA::Any::from_char strings_to_char(const std::vector<std::string> &values);
     CORBA::Double strings_to_double(const std::vector<std::string> &values);
@@ -104,24 +113,10 @@ namespace ossie
     CORBA::ULongLongSeq* strings_to_unsigned_long_long_sequence(const std::vector<std::string> &values);
     CORBA::StringSeq* strings_to_string_sequence(const std::vector<std::string> &values);
 
-    CORBA::TCKind getTypeKind(std::string type);
-    CF::DataType convertPropertyToDataType(const Property* prop);
-    CF::DataType convertPropertyToDataType(const SimpleProperty* prop);
-    CF::DataType convertPropertyToDataType(const SimpleSequenceProperty* prop);
-    CF::DataType convertPropertyToDataType(const StructProperty* prop);
-    CF::DataType convertPropertyToDataType(const StructSequenceProperty* prop);
-
-    CF::DataType overridePropertyValue(const Property* prop, const ossie::ComponentProperty* compprop);
-    CF::DataType overridePropertyValue(const SimpleProperty* prop, const ossie::ComponentProperty* compprop);
-    CF::DataType overridePropertyValue(const SimpleSequenceProperty* prop, const ossie::ComponentProperty* compprop);
-    CF::DataType overridePropertyValue(const StructProperty* prop, const ossie::ComponentProperty* compprop);
-    CF::DataType overridePropertyValue(const StructSequenceProperty* prop, const ossie::ComponentProperty* compprop);
-    CF::DataType overridePropertyValue(const Property* prop, const ossie::ComponentProperty* compprop, const CF::Properties& configureProperties);
-    CF::DataType overridePropertyValue(const StructProperty* prop, const ossie::ComponentProperty* compprop, const CF::Properties& configureProperties);
-
-    bool checkProcessor(const std::vector<std::string>& processorDeps, const std::vector<const Property*>& props);
-    bool checkOs(const std::vector<ossie::SPD::NameVersionPair>& osDeps, const std::vector<const Property*>& props);
-    CF::Properties getNonNilConfigureProperties(CF::Properties& originalProperties);
+    CORBA::TCKind       getTypeKind(std::string type);
+    CORBA::TypeCode_ptr getTypeCode(std::string type);
+    CORBA::TypeCode_ptr getTypeCode(CORBA::TCKind kind, std::string structName);
+    CF::Properties      getNonNilConfigureProperties(CF::Properties& originalProperties);
 }
 
 #endif

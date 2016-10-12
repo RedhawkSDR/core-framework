@@ -1,20 +1,20 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
@@ -41,8 +41,22 @@ import os as _os
 import subprocess as _subprocess
 import Queue as _Queue
 import struct as _struct
+import logging as _logging
 from omniORB import any as _any
 from omniORB import CORBA as _CORBA
+
+from ossie.utils.model import PortSupplier, OutputBase
+from ossie.utils.model.connect import ConnectionManager
+from ossie.utils.uuid import uuid4
+
+# Use orb reference from domainless
+import domainless
+
+log = _logging.getLogger(__name__)
+
+__all__ = ('DataSink', 'DataSource', 'FileSink', 'FileSource', 'MessageSink',
+           'MessageSource','Plot', 'SRIKeyword', 'compareSRI', 'helperBase',
+           'probeBULKIO')
 
 def compareSRI(a, b):
     '''
@@ -79,58 +93,49 @@ def compareSRI(a, b):
             return False
     return True
 
+def _checkComplex(data):
+    for item in data:
+        if isinstance(item, complex):
+            return True
+    return False
+
 class helperBase(object):
     def __init__(self):
-        pass
+        # Create a unique instance identifier.
+        self._refid = str(uuid4())
+        self._sandbox = _domainless._getSandbox()
 
-    def _cleanUpCurrentState(self):
-        if not hasattr(self,'_instanceName'):
-            return
-
-        if _domainless._DEBUG == True:
-            print "Component: _cleanUpCurrentState() for component " + str(self._instanceName)
-        # Remove any connections involving this component
-        if _domainless._currentState != None and _domainless._currentState.has_key('Component Connections'):
-            # Loop over connections to see if component has any uses side connections
-            for connection in _domainless._currentState['Component Connections'].keys():
-                if _domainless._currentState['Component Connections'][connection]['Uses Component'] == self:
-                    providesComponent = _domainless._currentState['Component Connections'][connection]['Provides Component']
-                    try:
-                        self.disconnect(providesComponent)
-                    except:
-                        pass
-            # Loop over connections to see if component has any provides side connections
-            for connection in _domainless._currentState['Component Connections'].keys():
-                if _domainless._currentState['Component Connections'][connection]['Provides Component'] == self:
-                    usesComponent = _domainless._currentState['Component Connections'][connection]['Uses Component']
-                    try:
-                        usesComponent.disconnect(self)
-                    except:
-                        pass
-        # Remove component entry in _currentState
-        if _domainless._currentState != None and _domainless._currentState.has_key('Components Running'):
-            for component in _domainless._currentState['Components Running'].keys():
-                if _domainless._currentState['Components Running'][component] == self:
-                    del _domainless._currentState['Components Running'][component]
+        # Create a unique instance name and register with the sandbox.
+        baseName = '__local' + self.__class__.__name__
+        self._instanceName = self._sandbox._createInstanceName(baseName)
+        self._sandbox._registerComponent(self)
 
     def releaseObject(self):
-        self._cleanUpCurrentState()
+        # Break any connections involving this component.
+        manager = ConnectionManager.instance()
+        for identifier, (uses, provides) in manager.getConnections().items():
+            if uses.hasComponent(self) or provides.hasComponent(self):
+                usesRef = uses.getReference()
+                usesRef.disconnectPort(identifier)
+                manager.unregisterConnection(identifier)
+        self._sandbox._unregisterComponent(self)
 
     def reset(self):
         pass
 
-class MessageSink(helperBase):
+class MessageSink(helperBase, PortSupplier):
     def __init__(self, messageId = None, messageFormat = None, messageCallback = None):
+        helperBase.__init__(self)
+        PortSupplier.__init__(self)
         self._messagePort = None
         self._messageId = messageId
         self._messageFormat = messageFormat
         self._messageCallback = messageCallback
         self._providesPortDict = {}
-        self._providesPortDict[0] = {}
-        numComponentsRunning  = len(_domainless._currentState['Components Running'].keys())
-        self._instanceName = "__localMessageSink_" + str(numComponentsRunning+1)
-        _domainless._currentState['Components Running'][self._instanceName] = self
-        self._buildAPI()
+        self._providesPortDict['msgIn'] = {
+            'Port Interface': 'IDL:ExtendedEvent/MessageEvent:1.0',
+            'Port Name': 'msgIn'
+            }
 
     def messageCallback(self, msgId, msgData):
         print msgId, msgData
@@ -144,33 +149,12 @@ class MessageSink(helperBase):
                                          self._messageFormat, self._messageCallback)
             return self._messagePort._this()
         except Exception, e:
-            print "MessageSink:getPort(): failed " + str(e)
+            log.error("MessageSink:getPort(): failed " + str(e))
         return None
-
-    def _buildAPI(self):
-        self._providesPortDict[0] = {}
-        self._providesPortDict[0]["Port Interface"] = "IDL:ExtendedEvent/MessageEvent:1.0"
-        self._providesPortDict[0]["Port Name"] = "msgIn"
-        if _domainless._DEBUG == True:
-            print "MessageSink:_buildAPI()"
-            self.api()
 
     def api(self):
         print "Component MessageSink :"
-        # Determine the maximum length of port names for print formatting
-        maxNameLen = 0
-        for port in self._providesPortDict.values():
-            if len(port['Port Name']) > maxNameLen:
-                maxNameLen = len(port['Port Name']) 
-        print "Provides (Input) Ports =============="
-        print "Port Name" + " "*(maxNameLen-len("Port Name")) + "\tPort Interface"
-        print "---------" + " "*(maxNameLen-len("---------")) + "\t--------------"
-        if len(self._providesPortDict) > 0:
-            for port in self._providesPortDict.values():
-                print str(port['Port Name']) + " "*(maxNameLen-len(str(port['Port Name']))) + "\t" + str(port['Port Interface'])
-        else:
-            print "None"
-        print "\n"
+        PortSupplier.api(self)
 
     def start(self):
         pass
@@ -184,17 +168,18 @@ class MessageSink(helperBase):
     def sri(self):
         return None
 
-class MessageSource(helperBase):
+class MessageSource(helperBase, PortSupplier):
     def __init__(self, messageId = None, messageFormat = None):
+        helperBase.__init__(self)
+        PortSupplier.__init__(self)
         self._messagePort = None
         self._messageId = messageId
         self._messageFormat = messageFormat
-        self._usesPortDict = {}
-        self._usesPortDict[0] = {}
-        numComponentsRunning  = len(_domainless._currentState['Components Running'].keys())
-        self._instanceName = "__localMessageSource_" + str(numComponentsRunning+1)
-        _domainless._currentState['Components Running'][self._instanceName] = self
-        self._buildAPI()
+
+        self._usesPortDict['msgOut'] = {
+            'Port Interface': 'IDL:ExtendedEvent/MessageEvent:1.0',
+            'Port Name': 'msgOut'
+            }
 
     def sendMessage(self, msg):
         outmsg = None
@@ -222,7 +207,7 @@ class MessageSource(helperBase):
             self._messagePort = _events.MessageSupplierPort()
             return self._messagePort._this()
         except Exception, e:
-            print "MessageSource:getPort(): failed " + str(e)
+            log.error("MessageSource:getPort(): failed " + str(e))
         return None
 
     def connectPort(self, connection, connectionId):
@@ -238,158 +223,12 @@ class MessageSource(helperBase):
             else:
                 return self._messagePort._this()
         except Exception, e:
-            print "MessageSource:getUsesPort(): failed " + str(e)
+            log.error("MessageSource:getUsesPort(): failed " + str(e))
         return None
-
-    def connect(self,providesComponent, providesPortName=None, usesPortName=None):
-        # If passed in object is of type _OutputBase, set uses port IOR string and return
-        if isinstance(providesComponent, _OutputBase):
-            usesPort_ref = None
-            # If only one uses port, select it to connect to output
-            if len(self._usesPortDict) == 1:
-                usesPortName = self._usesPortDict[0]['Port Name']
-            if usesPortName != None:
-                usesPort_ref = self.getUsesPort()
-                if usesPort_ref != None:
-                    portIOR = str(_domainless.orb.object_to_string(usesPort_ref))
-                    # determine port type
-                    foundUsesPortInterface = None
-                    for outputPort in self._usesPortDict.values():
-                        if outputPort['Port Name'] == usesPortName:
-                            foundUsesPortInterface = outputPort['Port Interface']
-                            break
-                    if foundUsesPortInterface != None:
-                        dataType = foundUsesPortInterface
-                        providesComponent.setup(portIOR, dataType=dataType, componentName="__localMessageSource", usesPortName=usesPortName)
-                        return
-                    raise AssertionError, "MessageSource:connect() failed because usesPortName given was not a valid port for providesComponent"
-                else:
-                    raise AssertionError, "MessageSource:connect() failed because usesPortName given was not a valid port for providesComponent"
-            else:
-                raise AssertionError, "MessageSource:connect() failed because usesPortName was not specified ... providesComponent being connect requires it for connection"
-
-        if isinstance(providesComponent, _domainless.Component) == False and \
-           isinstance(providesComponent, MessageSink) == False:
-            raise AssertionError,"MessageSource:connect() ERROR - connect failed because providesComponent passed in is not of valid type ... valid types include instance of MessageSink, or Component classes"
-
-        global currentState
-        if _domainless._DEBUG == True:
-            if providesPortName != None:
-                print "MessageSource(): connect() providesPortName " + str(providesPortName)
-            if usesPortName != None:
-                print "MessageSource(): connect() usesPortName " + str(usesPortName)
-        portMatchFound = False
-        foundProvidesPortInterface = None
-        foundProvidesPortName = None
-        foundUsesPortName = None
-        foundUsesPortInterface = None
-        outputPort = self._usesPortDict[0]
-        if providesPortName != None:
-            for inputPort in providesComponent._providesPortDict.values():
-                if inputPort['Port Name'] == providesPortName and \
-                   outputPort['Port Interface'] == inputPort['Port Interface']:
-                    portMatchFound = True
-                    foundProvidesPortInterface = inputPort['Port Interface']
-                    foundProvidesPortName = inputPort['Port Name']
-                    foundUsesPortInterface = outputPort['Port Interface']
-                    foundUsesPortName = outputPort['Port Name']
-                    # If match was found, break out of inputPort for loop
-                    break
-        else:
-            for inputPort in providesComponent._providesPortDict.values():
-                if outputPort["Port Interface"] == inputPort["Port Interface"]:
-                    # If a previous match had been found, connect fails due to ambiguity
-                    if portMatchFound == True:
-                        raise AssertionError,"MessageSource:connect(): ERROR - connect failed ... multiple ports matched interfaces on connect call ... must specify providesPortName or usesPortName"
-                    # First port match found
-                    else:
-                        portMatchFound = True 
-                        foundProvidesPortInterface = inputPort["Port Interface"]
-                        foundProvidesPortName = inputPort["Port Name"]
-                        foundUsesPortInterface = outputPort["Port Interface"]
-                        foundUsesPortName = outputPort["Port Name"]
-                        if _domainless._DEBUG == True:
-                            print "MessageSource:connect() portMatchFound == True"
-                            print "MessageSource:connect() inputPort name " + str(inputPort["Port Name"])
-                            print "MessageSource:connect() inputPort interface " + str(inputPort["Port Interface"])
-                            print "MessageSource:connect() outputPort name " + str(outputPort["Port Name"])
-                            print "MessageSource:connect() outputPort interface " + str(outputPort["Port Interface"])
-
-        if foundProvidesPortName != None and \
-            foundUsesPortName != None:
-            try:
-                usesPort_ref = None
-                providesPort_ref = None
-                usesPort_handle = self.getUsesPort()
-                if (hasattr(providesComponent, 'ref')):
-                    providesPort_ref = providesComponent.ref.getPort(str(foundProvidesPortName))
-                else:
-                    providesPort_ref = providesComponent.getPort(str(foundProvidesPortName))
-                if providesPort_ref != None:
-                    counter = 0
-                    while True:
-                        connectionID = self._instanceName+"-"+providesComponent._instanceName+"_"+repr(counter)
-                        if not _domainless._currentState['Component Connections'].has_key(connectionID):
-                            break
-                        counter = counter + 1
-                    if _domainless._DEBUG == True:
-                        print "MessageSource:connect() calling connectPort() with connectionID " + str(connectionID)
-                    usesPort_handle.connectPort(providesPort_ref, str(connectionID))
-                    _domainless._currentState['Component Connections'][connectionID] = {}
-                    _domainless._currentState['Component Connections'][connectionID]['Uses Port Name'] = str(foundUsesPortName)
-                    _domainless._currentState['Component Connections'][connectionID]['Uses Port Interface'] = str(foundUsesPortInterface)
-                    _domainless._currentState['Component Connections'][connectionID]['Uses Component'] = self
-                    _domainless._currentState['Component Connections'][connectionID]['Provides Port Name'] = str(foundProvidesPortName)
-                    _domainless._currentState['Component Connections'][connectionID]['Provides Port Interface'] = str(foundProvidesPortInterface)
-                    _domainless._currentState['Component Connections'][connectionID]['Provides Component'] = providesComponent
-                    return
-            except Exception, e:
-                print "MessageSource:connect() failed " + str(e)
-        return
-
-    def disconnect(self,providesComponent):
-        if _domainless._DEBUG == True:
-            print "MessageSource:disconnect()"
-        usesPort_ref = None
-        usesPort_handle = None
-        for id in _domainless._currentState['Component Connections'].keys():
-            if _domainless._currentState['Component Connections'][id]['Uses Component']._refid == self._refid and \
-               _domainless._currentState['Component Connections'][id]['Provides Component']._refid == providesComponent._refid:
-                usesPortName = _domainless._currentState['Component Connections'][id]['Uses Port Name']
-                usesPort_ref = None
-                usesPort_ref = self.getUsesPort()
-                if usesPort_ref != None:
-                    usesPort_handle = usesPort_ref._narrow(_CF.Port)
-                if usesPort_handle != None:
-                    if _domainless._DEBUG == True:
-                        print "MessageSource:disconnect(): calling disconnectPort"
-                    usesPort_handle.disconnectPort(id)
-                    del _domainless._currentState['Component Connections'][id]
-
-    def _buildAPI(self):
-        self._usesPortDict[0] = {}
-        self._usesPortDict[0]["Port Interface"] = "IDL:ExtendedEvent/MessageEvent:1.0"
-        self._usesPortDict[0]["Port Name"] = "msgOut"
-        if _domainless._DEBUG == True:
-            print "MessageSource:_buildAPI()"
-            self.api()
 
     def api(self):
         print "Component MessageSource :"
-        # Determine the maximum length of port names for print formatting
-        maxNameLen = 0
-        for port in self._usesPortDict.values():
-            if len(port['Port Name']) > maxNameLen:
-                maxNameLen = len(port['Port Name']) 
-        print "Uses (Output) Ports =============="
-        print "Port Name" + " "*(maxNameLen-len("Port Name")) + "\tPort Interface"
-        print "---------" + " "*(maxNameLen-len("---------")) + "\t--------------"
-        if len(self._usesPortDict) > 0:
-            for port in self._usesPortDict.values():
-                print str(port['Port Name']) + " "*(maxNameLen-len(str(port['Port Name']))) + "\t" + str(port['Port Interface'])
-        else:
-            print "None"
-        print "\n"
+        PortSupplier.api(self)
 
     def start(self):
         pass
@@ -403,9 +242,9 @@ class MessageSource(helperBase):
     def sri(self):
         return None
 
-class _DataPortBase(helperBase):
+class _DataPortBase(helperBase, PortSupplier):
 
-    def __init__(self, className, portNameAppendix = ""):
+    def __init__(self, portNameAppendix = "", formats=None):
         """
         Protected
 
@@ -415,8 +254,10 @@ class _DataPortBase(helperBase):
         supported by inheriting classes.
 
         """
+        helperBase.__init__(self)
+        PortSupplier.__init__(self)
 
-        self.className = className # for DEBUG/WARNING statements
+        self.className = self.__class__.__name__ # for DEBUG/WARNING statements
 
         self.portNameAppendix = portNameAppendix
 
@@ -425,11 +266,9 @@ class _DataPortBase(helperBase):
         self._defaultDataPortName = self._defaultDataFormat + self.portNameAppendix
 
 
-        helperBase.__init__(self)
-
         # top-level keys should be all lower-case
         #
-        # To add support for a new interface type, simply add it to the 
+        # To add support for a new interface type, simply add it to the
         # dictionary following the format of the other entries.  The
         # current list of entries represents supported interfaces that
         # have been verified to work; this list does not include all
@@ -437,59 +276,82 @@ class _DataPortBase(helperBase):
         self.supportedPorts = {
              "char"      : {"bytesPerSample" : 1,
                             "pktSize"        : -1,
+                            "format"         : 'b',
                             "portType" : "_BULKIO__POA.dataChar",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataChar:1.0",
                                           "Port Name"      : "char"}},
              "short"     : {"bytesPerSample" : 2,
                             "pktSize"        : -1,
+                            "format"         : 'h',
                             "portType" : "_BULKIO__POA.dataShort",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataShort:1.0",
                                           "Port Name"      : "short"}},
              "long"      : {"bytesPerSample" : 4,
                             "pktSize"        : -1,
+                            "format"         : 'i',
                             "portType" : "_BULKIO__POA.dataLong",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataLong:1.0",
                                           "Port Name"      : "long"}},
              "float"     : {"bytesPerSample" : 4,
                             "pktSize"        : -1,
+                            "format"         : 'f',
                             "portType" : "_BULKIO__POA.dataFloat" ,
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataFloat:1.0",
                                           "Port Name"      : "float"}},
              "ulong"     : {"bytesPerSample" : 4,
                             "pktSize"        : -1,
+                            "format"         : 'I',
                             "portType" : "_BULKIO__POA.dataUlong" ,
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataUlong:1.0",
-                                          "Port Name"      : "uLong"}},
+                                          "Port Name"      : "ulong"}},
              "double"    : {"bytesPerSample" : 8,
                             "pktSize"        : -1,
+                            "format"         : 'd',
                             "portType" : "_BULKIO__POA.dataDouble",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataDouble:1.0",
                                           "Port Name"      : "double"}},
              "longlong"  : {"bytesPerSample" : 8,
                             "pktSize"        : -1,
+                            "format"         : 'q',
                             "portType" : "_BULKIO__POA.dataLongLong",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataLongLong:1.0",
                                           "Port Name"      : "longlong"}},
              "octet"     : {"bytesPerSample" : 1,
                             "pktSize"        : -1,
+                            "format"         : 'B',
                             "portType" : "_BULKIO__POA.dataOctet",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataOctet:1.0",
                                           "Port Name"      : "octet"}},
              "ulonglong" : {"bytesPerSample" : 8,
                             "pktSize"        : -1,
+                            "format"         : 'Q',
                             "portType" : "_BULKIO__POA.dataUlongLong",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataUlongLong:1.0",
                                           "Port Name"      : "ulonglong"}},
              "ushort"    : {"bytesPerSample" : 2,
                             "pktSize"        : -1,
+                            "format"         : 'H',
                             "portType" : "_BULKIO__POA.dataUshort",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataUshort:1.0",
                                           "Port Name"      : "ushort"}},
+             "file"      : {"bytesPerSample" : 1,
+                            "pktSize"        : -1,
+                            "format"         : 's',
+                            "portType" : "_BULKIO__POA.dataFile",
+                            "portDict" : {"Port Interface" : "IDL:BULKIO/dataFile:1.0",
+                                          "Port Name"      : "file"}},
              "xml"       : {"bytesPerSample" : 1,
                             "pktSize"        : -1,
+                            "format"         : 's',
                             "portType" : "_BULKIO__POA.dataXML",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataXML:1.0",
                                           "Port Name"      : "xml"}}}
+
+        # Allow subclasses to support only a subset of formats
+        if formats is not None:
+            for name in self.supportedPorts.keys():
+                if name not in formats:
+                    del self.supportedPorts[name]
 
     def _getMetaByPortName(self, key, portName):
         """
@@ -503,7 +365,7 @@ class _DataPortBase(helperBase):
             if port["portDict"]["Port Name"] == portName:
                 return port[key]
 
- 
+
     def getPortByName(self, portName):
         """
         Returns the entry of self.supportedPorts associated with portName.
@@ -514,18 +376,24 @@ class _DataPortBase(helperBase):
             if port["portDict"]["Port Name"] == portName:
                 return port
 
-        # portName not found in self.supportedPorts.  This should never happen 
+        # portName not found in self.supportedPorts.  This should never happen
         # as the portName should be set via self.supportedPorts.
         raise Exception, "Port name " + portName + " not found."
- 
+
+    def api(self):
+        """
+        Prints application programming interface (API) information and returns.
+
+        """
+        print "Component " + self.__class__.__name__ + " :"
+        PortSupplier.api(self)
+
 
 class _SourceBase(_DataPortBase):
 
-    def __init__(self, className, bytesPerPush, dataFormat, data = None):
+    def __init__(self, bytesPerPush, dataFormat, data = None, formats=None):
         """
         Forward parameters to parent constructor.
-
-        className to be used in print statements.
 
         Set self._dataFormat to dataFormat it it is in the list
         of supported ports, otherwise attempt to guess the format
@@ -534,15 +402,12 @@ class _SourceBase(_DataPortBase):
         Calls _buildAPI()
 
         """
-
-        _DataPortBase.__init__(self, 
-                               className = className, 
-                               portNameAppendix = "Out")
+        _DataPortBase.__init__(self, portNameAppendix = "Out", formats=formats)
 
         self.bytesPerPush = int(bytesPerPush)
 
         if data != None:
-            print "WARNING: predicting data source format type by data argument is deprecated.  This will be removed in the next version"
+            log.warn("Predicting data source format type by data argument is deprecated.  This will be removed in the next version")
 
         if dataFormat != None:
             # add support for format byte (which is the same as char)
@@ -550,15 +415,17 @@ class _SourceBase(_DataPortBase):
                 dataFormat = 'char'
             if self.supportedPorts.has_key(dataFormat.lower()):
                 self._dataFormat = dataFormat.lower()
+            else:
+                self._dataFormat = None
         else:
             self._dataFormat = None
- 
+
         self._connections = {}
         self._buildAPI()
 
-    def _addConnection(self, portName, arraySrcInst, connectionId):
+    def _addConnection(self, portName, arraySrcInst):
         """
-        When a connection is made, this method should be called 
+        When a connection is made, this method should be called
         to update the running list of array sources.
 
         """
@@ -570,21 +437,21 @@ class _SourceBase(_DataPortBase):
                       "srcPortType"  : srcPortType,
                       "arraySrcInst" : arraySrcInst}
 
-        self._connections[connectionId] = connection
+        self._connections[portName] = connection
 
-    def _addUsesPort(self, port, index):
+    def _addUsesPort(self, port):
         """
         Adds the port to self._usesPortDictionary.
 
         Also sets the pktSize associated with the port.
 
         """
-
-        self._usesPortDict[index] = port["portDict"]
-        self._usesPortDict[index]["Port Name"] += self.portNameAppendix
+        name = port['portDict']['Port Name'] + self.portNameAppendix
+        self._usesPortDict[name] = port["portDict"]
+        self._usesPortDict[name]["Port Name"] = name
         # Determine number of elements per pushPacket
-        # NOTE: complex data is treated real data with alternating real and 
-        # imaginary values 
+        # NOTE: complex data is treated real data with alternating real and
+        # imaginary values
         self._pktSize = self.bytesPerPush / port["bytesPerSample"]
         port["pktSize"] = self._pktSize
 
@@ -596,326 +463,49 @@ class _SourceBase(_DataPortBase):
         self.supportedPorts dictionary as indexed by the self._dataFormat
 
         """
-
-        self._usesPortDict = {}
-
-        index = 0
         if self._dataFormat != None:
             port = self.supportedPorts[self._dataFormat]
-            self._srcPortType = port["portType"] 
-            self._addUsesPort(port, index)
+            self._srcPortType = port["portType"]
+            self._addUsesPort(port)
         else:
-            # Create all ports
             for port in self.supportedPorts.values():
-                self._addUsesPort(port, index)
-                index += 1
-        
+                self._addUsesPort(port)
+
 
         if _domainless._DEBUG == True:
             print self.className + ":_buildAPI()"
             self.api()
 
-    def api(self):
-        """
-        Prints application programming interface (API) information and returns.
-
-        """
-
-        print "Component " + self.className + " :"
-        maxNameLen = 0
-        # Determine the maximum length of port names for print formatting
-        for port in self._usesPortDict.values():
-            if len(port['Port Name']) > maxNameLen:
-                maxNameLen = len(port['Port Name']) 
-        print "Uses (Output) Ports =============="
-        print "Port Name" + " "*(maxNameLen-len("Port Name")) + "\tPort Interface"
-        print "---------" + " "*(maxNameLen-len("---------")) + "\t--------------"
-        if len(self._usesPortDict) > 0:
-            for port in self._usesPortDict.values():
-                print str(port['Port Name']) + " "*(maxNameLen-len(str(port['Port Name']))) + "\t" + str(port['Port Interface'])
+    def getPort(self, name):
+        if name in self._connections:
+            arraySrcInst = self._connections[name]['arraySrcInst']
         else:
-            print "None"
-        print "\n"
-
-    def _setupProvidesComponent(self, usesPortName, providesComponent):
-        """
-        Handles the passing of port IOR information to a provides component.
-
-        This method is used when connecting to things like Plot modules.
-
-        """
-
-        if usesPortName == None and len(self._usesPortDict.keys()) == 1:
-            # If no uses port name is provided, and there is only 1 uses
-            # port, use the 1 uses port
-            usesPortName = self._usesPortDict[0]["Port Name"]
-        elif usesPortName == None and len(self._usesPortDict.keys()) > 1:
-            # If no uses port name is provided, and there are multiple uses
-            # ports, use the default
-            usesPortName = self._defaultDataPortName 
-
-        arraySrcInst = self._createArraySrcInst(self._getMetaByPortName("portType", usesPortName))
-
-        usesPort_ref = arraySrcInst.getPort()
-
-        if usesPort_ref != None:
-            portIOR = str(_domainless.orb.object_to_string(usesPort_ref))
-            # determine port type
-            foundUsesPortInterface = None
-            for outputPort in self._usesPortDict.values():
-                if outputPort['Port Name'] == usesPortName:
-                    foundUsesPortInterface = outputPort['Port Interface']
-                    break
-            if foundUsesPortInterface != None:
-                dataType = foundUsesPortInterface
-                providesComponent.setup(portIOR,
-                                        dataType=dataType, 
-                                        componentName="__local"+self.className, 
-                                        usesPortName=usesPortName)
-                self._addConnection(usesPortName, arraySrcInst, portIOR)
-
-                return True
-            raise AssertionError, self.className+":connect() failed because usesPortName given was not a valid port for providesComponent"
-        else:
-            raise AssertionError, self.className+":connect() failed because usesPortName given was not a valid port for providesComponent"
-
-    def _determineUsesPortName(self, providesComponent, providesName):
-        """
-        Attempts to guess the appropriate uses port name.  If a provides
-        port is provided, a uses port with a matching interface type is
-        returned.  Otherwise, the appropriate uses port is determined
-        by calling self._findNameByMatchingInterface.
-
-        """
-
-        # If a provides port name is given, match to the port type 
-        # of that interface.
-        if providesName:
-            providesInterface = self._getInterfaceByName(
-                                    providesComponent._providesPortDict,
-                                    providesName)
-            for usesPort in self._usesPortDict.values():
-                if usesPort["Port Interface"] == providesInterface:
-                    return usesPort["Port Name"]
-            raise Exception, self.className + ":connect() failed.  The specified provides port is of type " + providesInterface + ".  There is no correspinding uses port of this type."
-
-        return self._findNameByMatchingInterface(
-                    matchToDict = providesComponent._providesPortDict,
-                    portCandidateDict = self._usesPortDict)
-
-    def _findNameByMatchingInterface(self, matchToDict, portCandidateDict):
-        """
-        Loop through all the ports in matchToDict and portCandidateDict.
-        If a matching port type is found, return the corresponding port
-        name from portCandiateDict.
-
-        If more than one match is found, or if no matches are found,
-        throw an exception.
-
-        """
-
-        matchesFound = 0
-        for matchToPort in matchToDict.values():
-            for portCandidate in portCandidateDict.values():
-                if portCandidate["Port Interface"] == matchToPort["Port Interface"]:
-                    portName = portCandidate["Port Name"]
-                    matchesFound += 1
-            
-        if matchesFound == 1:
-            return portName
-        elif matchesFound == 0: 
-            raise Exception, self.className + ":connect() failed.  No matching interface found."
-        else:
-            raise Exception, self.className + ":connect() failed.  Multiple matching interfaces found.  Must specify port name"
-
-
-    def connect(self,
-                providesComponent, 
-                providesPortName=None, 
-                usesPortName=None):
-        """
-        Connect this module to the providesPort specified.  There are 4 main
-        sections to this process:
-
-            1.  Determine the name of the uses port.  If one is provided, use
-                it; if one is not provided, attempt to guess the appropriate
-                uses port based on the interface types.
-
-            2.  Determine the name of the provides port.  If one is provided,
-                use it; if one is not provided, find an interface that matches
-                the iterface type of the uses port.
-
-            3.  If connectinig to a providesComponent of type _OutputBase, 
-                call self._setupProvidesComponent and leave.
-
-            4.  If not connecting to a providesComponent of type _OutputBase,
-                make the connection using the self._connectWithKnownNames()
-                method.
-
-        """
-
-        # Make sure providesComponent type is valid
-        if isinstance(providesComponent, _domainless.Component) == False and \
-           isinstance(providesComponent, _OutputBase) == False and \
-           isinstance(providesComponent, FileSink) == False and \
-           isinstance(providesComponent, DataSink) == False:
-            raise AssertionError,self.className+":connect() ERROR - connect failed because providesComponent passed in is not of valid type ... valid types include instance of _OutputBase, FileSink, DataSink, or Component classes"
-
-        # If passed in object is of type _OutputBase, set uses port IOR string and return
-        if isinstance(providesComponent, _OutputBase):
-            # We are doing something like connecting to a Plot instance
-            return self._setupProvidesComponent(usesPortName, providesComponent)
-
-        # If uses port name is not provided, try to guess one
-        if usesPortName == None:
-            usesPortName = self._determineUsesPortName(providesComponent, 
-                                                       providesPortName)
-
-        usesPort = self.getPortByName(usesPortName)["portDict"]
-
-        # If provides port name is not provided, try to guess one
-        if providesPortName == None:
-            # We know which uses port we want to use, so we only
-            # pass one for the method to choose from.
-            providesPortName = self._findNameByMatchingInterface(matchToDict = {1: usesPort},
-                                                                 portCandidateDict = providesComponent._providesPortDict)
-
-        # Look up the uses/provides interface types now that we knwo the
-        # port names.
-        usesPortInterface     = usesPort["Port Interface"]
-        providesPortInterface = self._getInterfaceByName(providesComponent._providesPortDict, 
-                                                         providesPortName)
-
-        # Debug print statements
-        if _domainless._DEBUG == True:
-            if providesPortName != None:
-                print self.className+"(): connect() providesPortName " + str(providesPortName)
-            if usesPortName != None:
-                print self.className+"(): connect() usesPortName " + str(usesPortName)
-
-        return self._connectWithKnownNames(usesPortName, 
-                                           providesPortName, 
-                                           usesPortInterface, 
-                                           providesPortInterface,
-                                           providesComponent)
-
-    def _getInterfaceByName(self, dictOfPorts, portName):
-        """
-        Provided a dictionary of ports (each entry of the dictionary being
-        a dictionary with keys 'Port Name' and 'Port Interface') and a
-        portName, itterate through the dictionary to find the interface
-        type associated with the portName.
-
-        """
-
-        for port in dictOfPorts.values():
-            if port['Port Name'] == portName:
-                return port['Port Interface']
-
-        raise Exception, self.className + "::connect() failed.  Port named " + portName + " not found"
-
-    def _connectWithKnownNames(self, 
-                              foundUsesPortName, 
-                              foundProvidesPortName, 
-                              foundUsesPortInterface, 
-                              foundProvidesPortInterface,
-                              providesComponent):
-        """
-        Creates a connection between two ports given the metadata associated
-        with the port.  This method assumes that the appropriate ports are 
-        already know (that is, they have already been specified by the user,
-        or another module has already guessed the appropriate ports).
-
-        Creates an array source associated with the connection and adds
-        the array source to the module's list of array source.
-
-        """
-
-        if foundUsesPortInterface != foundProvidesPortInterface:
-            raise Exception, self.className + "::connect failed.  Uses/provides interface types do not match"
-        try:
-            usesPort_ref = None
-            providesPort_ref = None
-            srcPortType = self._getMetaByPortName("portType", foundUsesPortName)
+            srcPortType = self._getMetaByPortName("portType", name)
             arraySrcInst = self._createArraySrcInst(srcPortType)
-            usesPort_handle = arraySrcInst.getPort()
-            providesPort_ref = providesComponent.ref.getPort(str(foundProvidesPortName))
-            if providesPort_ref != None:
-                counter = 0
-                while True:
-                    connectionID = self._instanceName+"-"+providesComponent._instanceName+"_"+repr(counter)
-                    if not _domainless._currentState['Component Connections'].has_key(connectionID):
-                        break
-                    counter = counter + 1
-                if _domainless._DEBUG == True:
-                    print self.className+":connect() calling connectPort() with connectionID " + str(connectionID)
-                usesPort_handle.connectPort(providesPort_ref, str(connectionID))
-                _domainless._currentState['Component Connections'][connectionID] = {}
-                _domainless._currentState['Component Connections'][connectionID]['Uses Port Name'] = str(foundUsesPortName)
-                _domainless._currentState['Component Connections'][connectionID]['Uses Port Interface'] = str(foundUsesPortInterface)
-                _domainless._currentState['Component Connections'][connectionID]['Uses Component'] = self
-                _domainless._currentState['Component Connections'][connectionID]['Provides Port Name'] = str(foundProvidesPortName)
-                _domainless._currentState['Component Connections'][connectionID]['Provides Port Interface'] = str(foundProvidesPortInterface)
-                _domainless._currentState['Component Connections'][connectionID]['Provides Component'] = providesComponent
+            self._addConnection(name, arraySrcInst)
+        return arraySrcInst.getPort()
 
-                self._addConnection(foundUsesPortName, arraySrcInst, connectionID)
-
-        except Exception, e:
-            print self.className+":connect() failed " + str(e)
-
-    def disconnect(self,providesComponent):
-        if _domainless._DEBUG == True:
-            print self.className + ":disconnect()"
-        usesPort_ref = None
-        usesPort_handle = None
-        for id in _domainless._currentState['Component Connections'].keys():
-            if _domainless._currentState['Component Connections'][id]['Uses Component']._refid == self._refid and \
-               _domainless._currentState['Component Connections'][id]['Provides Component']._refid == providesComponent._refid:
-                usesPortName = _domainless._currentState['Component Connections'][id]['Uses Port Name']
-                usesPort_ref = None
-                arraySrcInst = self._connections[id]["arraySrcInst"]
-                usesPort_ref = arraySrcInst.getPort()
-                del self._connections[id]
-                if usesPort_ref != None:
-                    usesPort_handle = usesPort_ref._narrow(_CF.Port)
-                if usesPort_handle != None:
-                    if _domainless._DEBUG == True:
-                        print self.className + ":disconnect(): calling disconnectPort"
-                    usesPort_handle.disconnectPort(id)
-                    del _domainless._currentState['Component Connections'][id]
 
 class _SinkBase(_DataPortBase):
 
-    def __init__(self, className):
+    def __init__(self, formats=None):
         """
         Forward parameters to parent constructor.
-
-        className to be used in print statements.
 
         Calls _buildAPI()
 
         """
-
-        _DataPortBase.__init__(self, 
-                               className = className, 
-                               portNameAppendix = "In")
+        _DataPortBase.__init__(self, portNameAppendix = "In", formats=formats)
 
         # Amount of time the self._sink is given to write to the gotEOS flag
         self._sleepTime = 0.001
         self.breakBlock = False
 
-        self._providesPortDict = {}
-        self._providesPortDict[0] = {}
         self._sinkPortObject = None
         self._sinkPortType = None
         self._sink = None
         self.ref = self
         self._buildAPI()
-        self._refid = _domainless._uuidgen()
-        numComponentsRunning  = len(_domainless._currentState['Components Running'].keys())
-        # Use one-up counter to make component instance unique
-        self._instanceName = "__local" + self.className + "_" + str(numComponentsRunning+1)
-        _domainless._currentState['Components Running'][self._instanceName] = self
 
     def _buildAPI(self):
         """
@@ -923,16 +513,15 @@ class _SinkBase(_DataPortBase):
         port type defined in self.supportedPorts.
 
         """
-        index = 0
         for port in self.supportedPorts.values():
-            self._providesPortDict[index] = port["portDict"]
-            self._providesPortDict[index]["Port Name"] += self.portNameAppendix
-            index += 1
+            name = port['portDict']['Port Name'] + self.portNameAppendix
+            self._providesPortDict[name] = port["portDict"]
+            self._providesPortDict[name]["Port Name"] = name
 
         if _domainless._DEBUG == True:
             print self.className + ":_buildAPI()"
             self.api()
-      
+
     def getPortType(self, portName):
         """
         Uses self.getPortByName to retrieve the prt type
@@ -944,16 +533,16 @@ class _SinkBase(_DataPortBase):
 
     def start(self):
         pass
-    
+
     def stop(self):
         """
-        Sets a flag to break the module out of a loop that 
+        Sets a flag to break the module out of a loop that
         is waiting for an EOS flag (if applicable).
 
         """
 
         self.breakBlock = True
-    
+
     def eos(self):
         """
         Returns the end of sequence (EOS) state of self._sink, or false if no
@@ -967,7 +556,7 @@ class _SinkBase(_DataPortBase):
 
     def sri(self):
         """
-        Returns the signal related information (SRI) associated with of 
+        Returns the signal related information (SRI) associated with of
         self._sink, or false if no self._sink exists.
 
         """
@@ -976,32 +565,11 @@ class _SinkBase(_DataPortBase):
         else:
             return self._sink.sri
 
-    def api(self):
-        """
-        Prints application programming interface (API) information and returns.
 
-        """
-
-        print "Component " + self.className + " :"
-        # Determine the maximum length of port names for print formatting
-        maxNameLen = 0
-        for port in self._providesPortDict.values():
-            if len(port['Port Name']) > maxNameLen:
-                maxNameLen = len(port['Port Name']) 
-        print "Provides (Input) Ports =============="
-        print "Port Name" + " "*(maxNameLen-len("Port Name")) + "\tPort Interface"
-        print "---------" + " "*(maxNameLen-len("---------")) + "\t--------------"
-        if len(self._providesPortDict) > 0:
-            for port in self._providesPortDict.values():
-                print str(port['Port Name']) + " "*(maxNameLen-len(str(port['Port Name']))) + "\t" + str(port['Port Interface'])
-        else:
-            print "None"
-        print "\n"
-    
 class FileSource(_SourceBase):
     def __init__(self,
-                 filename     = "", 
-                 dataFormat   = None, 
+                 filename     = "",
+                 dataFormat   = None,
                  midasFile    = False,
                  sampleRate   = 1.0,
                  complexData  = False,
@@ -1010,9 +578,55 @@ class FileSource(_SourceBase):
                  startTime    = 0.0,
                  streamID     = None,
                  blocking     = True):
-       
+
         self._filename = filename
         self._midasFile = midasFile
+        self._src         = None
+        self._runThread   = None
+        self._sampleRate  = sampleRate 
+        self._complexData = complexData
+        self._SRIKeywords = SRIKeywords
+        self._startTime   = startTime
+        self._streamID    = streamID
+        self._blocking    = blocking 
+        self._sri         = None
+        self._byteswap    = False
+        self._defaultDataFormat = '16t'
+
+        # the following data format code is messy because the arguments to the filesource can be either from the list
+        # of reserved type names ('short','char','octet','long','ulong','longlong','ulonglong','float','double')
+        # or from a combined string (<bits><type><complex?><reversed?>
+        # for the follow-on functionality expects a type declaration from the reserved type name list
+        # and flags to determine whether or not it's reversed or complex
+        
+        if dataFormat == None:
+            log.warn("dataFormat not provided for FileSource; defaulting to " + self._defaultDataFormat)
+            dataFormat = self._defaultDataFormat
+            if complexData:
+                dataFormat = dataFormat + 'c'
+
+        reserved_type_names = ['short','char','octet','long','ulong','longlong','ulonglong','float','double']
+        if dataFormat.lower() in reserved_type_names:
+            if dataFormat.lower() == 'short':
+                dataFormat = '16t'
+            elif dataFormat.lower() == 'char':
+                dataFormat = '8t'
+            elif dataFormat.lower() == 'octet':
+                dataFormat = '8u'
+            elif dataFormat.lower() == 'long':
+                dataFormat = '32t'
+            elif dataFormat.lower() == 'ulong':
+                dataFormat = '32u'
+            elif dataFormat.lower() == 'longlong':
+                dataFormat = '64t'
+            elif dataFormat.lower() == 'ulonglong':
+                dataFormat = '64u'
+            elif dataFormat.lower() == 'float':
+                dataFormat = '32f'
+            elif dataFormat.lower() == 'double':
+                dataFormat = '64f'
+            if complexData:
+                dataFormat = dataFormat + 'c'
 
         if self._midasFile:
             hdr, data = _bluefile.read(self._filename, list)
@@ -1026,74 +640,67 @@ class FileSource(_SourceBase):
                 dataFormat = 'float'
             elif hdr['format'].endswith('D'):
                 dataFormat = 'double'
-
-        _SourceBase.__init__(self, 
-                             className = "FileSource", 
-                             bytesPerPush = bytesPerPush, 
-                             dataFormat = dataFormat) 
-
-        if dataFormat == None:
-            print "WARNING: dataFormat not provided for FileSource; defaulting to " + self._defaultDataFormat
-            dataFormat = self._defaultDataFormat 
+            if hdr['data_rep']=='EEEI':
+                self._byteswap = False
+            else:
+                self._byteswap = True
+            if len(hdr['format']) > 0 and hdr['format'][0]=='C':
+                self._complexData = True
+            else:
+                self._complexData = False
+        else:
+            if 'c' in dataFormat:
+                self._complexData = True
+            if 'r' in dataFormat:
+                self._byteswap = True
+            if '8' in dataFormat:
+                if 'u' in dataFormat:
+                    dataFormat = 'octet'
+                elif 't' in dataFormat:
+                    dataFormat = 'char'
+            if '16' in dataFormat:
+                if 'u' in dataFormat:
+                    dataFormat = 'ushort'
+                elif 't' in dataFormat:
+                    dataFormat = 'short'
+            if '32' in dataFormat:
+                if 'u' in dataFormat:
+                    dataFormat = 'ulong'
+                elif 't' in dataFormat:
+                    dataFormat = 'long'
+                elif 'f' in dataFormat:
+                    dataFormat = 'float'
+            if '64' in dataFormat:
+                if 'u' in dataFormat:
+                    dataFormat = 'ulonglong'
+                elif 't' in dataFormat:
+                    dataFormat = 'longlong'
+                elif 'f' in dataFormat:
+                    dataFormat = 'double'
+ 
+        _SourceBase.__init__(self, bytesPerPush = bytesPerPush, dataFormat = dataFormat) 
         if self.supportedPorts.has_key(dataFormat):
             self._srcPortType = self.supportedPorts[dataFormat]["portType"]
         else:
             raise Exception, "ERROR: FileSource does not supporte data type " + dataFormat
- 
-        self._src         = None
-        self._runThread   = None
-        self._processes   = {}
-        self._sampleRate  = sampleRate 
-        self._complexData = complexData
-        self._SRIKeywords = SRIKeywords
-        self._startTime   = startTime
-        self._streamID    = streamID
-        self._blocking    = blocking 
-        self._refid       = _domainless._uuidgen()
-        self._sri         = None
 
         self._srcPortObject = None
         self.setupFileReader()
-        numComponentsRunning  = len(_domainless._currentState['Components Running'].keys())
-        # Use one-up counter to make component instance unique
-        self._instanceName = "__local" + self.className + "_" + str(numComponentsRunning+1)
-        _domainless._currentState['Components Running'][self._instanceName] = self
-
-    def __del__(self):
-        if _domainless._DEBUG == True:
-            print self.className + ": __del__() calling cleanUp"
-        self.cleanUp()
-
-    def cleanUp(self):
-        for pid in self._processes.keys():
-            if _domainless._DEBUG == True:
-                print self.className + ": cleanUp() calling __terminate for pid " + str(pid)
-            self.__terminate(pid)
-
-    def __terminate(self,pid):
-        sp = self._processes[pid]
-        for sig, timeout in self._STOP_SIGNALS:
-            try:
-                # the group id is used to handle child processes (if they 
-                # exist) of the component being cleaned up
-                if _domainless._DEBUG == True:
-                    print self.className + ": __terminate () making killpg call on pid " + str(pid) + " with signal " + str(sig)
-                _os.killpg(pid, sig)
-            except OSError:
-                print self.className + ": __terminate() OSERROR ==============="
-                pass
-            if timeout != None:
-                giveup_time = _time.time() + timeout
-            while sp.poll() == None:
-                if _time.time() > giveup_time: break
-                _time.sleep(0.1)
-            if sp.poll() != None: break
-        sp.wait()
 
     def _createArraySrcInst(self, srcPortType):
         return self._src
 
     def setupFileReader(self):
+        portTypes = {}
+        for usesPort in self._usesPortDict:
+            portTypes[usesPort] = {}
+            portTypes[usesPort]['Port Interface']=self._usesPortDict[usesPort]['Port Interface']
+            portTypes[usesPort]['Port Name']=self._usesPortDict[usesPort]['Port Name']
+            foundType = False
+            for support in self.supportedPorts:
+                if self.supportedPorts[support]['portDict']['Port Interface'] == portTypes[usesPort]['Port Interface']:
+                    portTypes[usesPort]['Port Type']=eval(self.supportedPorts[support]['portType'])
+                    foundType = True
         try:
             portType = self._srcPortType
             # If input file is a Midas Blue file
@@ -1102,13 +709,16 @@ class FileSource(_SourceBase):
                 self._src = _bluefile_helpers.BlueFileReader(eval(portType))
             # else, input file is binary file
             else:
-                self._src = _bulkio_data_helpers.FileSource(eval(portType))
+                self._src = _bulkio_data_helpers.FileSource(eval(portType),self._byteswap, portTypes)
                 keywords = []
                 for key in self._SRIKeywords:
                     keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
-            
+
+                if self._streamID == None:
+                    self._streamID = self._filename.split('/')[-1]
+
                 self._sri = _BULKIO.StreamSRI(1, 0.0, 1, 0, 0, 0.0, 0, 0, 0,
-                                            "defaultStreamID", True, keywords)
+                                            self._streamID, True, keywords)
 
                 if self._sampleRate > 0.0:
                     self._sri.xdelta = 1.0/float(self._sampleRate)
@@ -1127,7 +737,7 @@ class FileSource(_SourceBase):
                 self._sri.blocking = self._blocking
 
         except Exception, e:
-            print self.className + ":setupFileReader(): failed " + str(e)
+            log.error(self.className + ":setupFileReader(): failed " + str(e))
 
     def getUsesPort(self):
         try:
@@ -1135,7 +745,7 @@ class FileSource(_SourceBase):
                 self._srcPortObject = self._src.getPort()
                 return self._srcPortObject
         except Exception, e:
-            print self.className + ":getUsesPort(): failed " + str(e)
+            log.error(self.className + ":getUsesPort(): failed " + str(e))
         return None
 
     def start(self):
@@ -1156,8 +766,8 @@ class FileSource(_SourceBase):
             self._src.EOS = True
 
 class FileSink(_SinkBase):
-    def __init__(self,filename="", midasFile=False):
-        className = "FileSink"
+    def __init__(self,filename=None, midasFile=False):
+        _SinkBase.__init__(self)
 
         if _domainless._DEBUG == True:
             print className + ":__init__() filename " + str(filename)
@@ -1165,8 +775,6 @@ class FileSink(_SinkBase):
         self._filename = filename
         self._midasFile = midasFile
 
-        _SinkBase.__init__(self, className = className)
-   
     def getPort(self, portName):
         try:
             self._sinkPortType = self.getPortType(portName)
@@ -1180,13 +788,13 @@ class FileSink(_SinkBase):
             else:
                 self._sink = _bulkio_data_helpers.FileSink(self._filename, eval(self._sinkPortType))
 
-            if self._sink != None and self._sink.outFile != None:
+            if self._sink != None:
                 self._sinkPortObject = self._sink.getPort()
                 return self._sinkPortObject
             else:
                 return None
         except Exception, e:
-            print self.className + ":getPort(): failed " + str(e)
+            log.error(self.className + ":getPort(): failed " + str(e))
         return None
 
     def waitForEOS(self):
@@ -1211,7 +819,7 @@ class FileSink(_SinkBase):
                         self._sink.port_lock.acquire()
 
                 except Exception, e:
-                    print self.className + ": " + str(e)
+                    log.error(self.className + ": " + str(e))
 
             finally:
                 # If this thread dies for some reason, need to release
@@ -1220,21 +828,21 @@ class FileSink(_SinkBase):
         else:
             # If the user has yet to call getPort(), the the file sink may
             # not yet exist.
-            print "No file writer present, therefore not waiting for EOS.  Is the " + self.className + " module connected?"
+            log.warn("No file writer present, therefore not waiting for EOS.  Is the " + self.className + " module connected?")
 
 class DataSource(_SourceBase):
-    def __init__(self, 
-                 data         = None, 
+    def __init__(self,
+                 data         = None,
                  dataFormat   = None,
                  loop         = False,
                  bytesPerPush = 512000,
-                 startTime    = 0.0):
+                 startTime    = 0.0,
+                 blocking     = True):
 
         self.threadExited = None
-        
-        _SourceBase.__init__(self, 
-                             className    = "DataSource", 
-                             bytesPerPush = bytesPerPush, 
+
+        _SourceBase.__init__(self,
+                             bytesPerPush = bytesPerPush,
                              dataFormat   = dataFormat,
                              data         = data)
 
@@ -1243,17 +851,18 @@ class DataSource(_SourceBase):
         self._SRIKeywords = []
         self._sri         = None
         self._startTime   = startTime
+        self._blocking    = blocking
         self._loop        = loop
         self._runThread   = None
         self._dataQueue   = _Queue.Queue()
 
-        self.ref = self
-        self._refid = _domainless._uuidgen()
-        numComponentsRunning  = len(_domainless._currentState['Components Running'].keys())
-        # Use one-up counter to make component instance unique
-        self._instanceName = "__local" + self.className + "_" + str(numComponentsRunning+1)
-        _domainless._currentState['Components Running'][self._instanceName] = self
+        # Track unsent packets so that callers can monitor for when all packets
+        # have really been sent; checking for an empty queue only tells whether
+        # the packet has been picked up by the work thread.
+        self._packetsPending = 0
+        self._packetsSentCond = _threading.Condition()
 
+        self.ref = self
 
     def _createArraySrcInst(self, srcPortType):
 
@@ -1261,7 +870,7 @@ class DataSource(_SourceBase):
             return _bulkio_data_helpers.ArraySource(eval(srcPortType))
         else:
             return _bulkio_data_helpers.XmlArraySource(eval(srcPortType))
-        
+
 
     def start(self):
         self._exitThread = False
@@ -1282,6 +891,20 @@ class DataSource(_SourceBase):
              complexData = False,
              SRIKeywords = [],
              loop        = None):
+
+        # Detect whether or not any of the data is of type complex
+        _complexData = _checkComplex(data)
+
+        # If complex values are present, interleave the data as scalar values
+        # and set the complex flag
+        if _complexData:
+            if self._dataFormat in ('octet', 'short', 'ushort', 'long', 'ulong', 'longlong', 'ulonglong'):
+                itemType = int
+            else:
+                itemType = float
+            data = _bulkio_helpers.pythonComplexListToBulkioComplex(data, itemType)
+            complexData = True
+
         self._dataQueue.put((data,
                              EOS,
                              streamID,
@@ -1289,11 +912,28 @@ class DataSource(_SourceBase):
                              complexData,
                              SRIKeywords,
                              loop))
+        self._packetQueued()
+
+    def _packetQueued(self):
+        self._packetsSentCond.acquire()
+        self._packetsPending += 1
+        self._packetsSentCond.release()
+
+    def _packetSent(self):
+        self._packetsSentCond.acquire()
+        try:
+            if self._packetsPending == 0:
+                raise AssertionError, 'Packet sent but no packets pending'
+            self._packetsPending -= 1
+            if self._packetsPending == 0:
+                self._packetsSentCond.notifyAll()
+        finally:
+            self._packetsSentCond.release()
 
     def pushThread(self):
         self.settingsAcquired = False
         self.threadExited = False
-        # Make sure data passed in is within min/max bounds on port type 
+        # Make sure data passed in is within min/max bounds on port type
         # and is a valid type
         currentSampleTime = self._startTime
         while not self._exitThread:
@@ -1308,10 +948,11 @@ class DataSource(_SourceBase):
                         exitInputLoop = True
             if self._exitThread:
                 if self.settingsAcquired:
-                    self._pushPacketAllConnectedPorts([], 
-                                                      currentSampleTime, 
+                    self._pushPacketAllConnectedPorts([],
+                                                      currentSampleTime,
                                                       EOS,
                                                       streamID)
+                    self._packetSent()
                 self.threadExited = True
                 return
 
@@ -1331,7 +972,7 @@ class DataSource(_SourceBase):
                 self._complexData = complexData
                 self._SRIKeywords = SRIKeywords
                 self._streamID    = streamID
-                candidateSri      = None 
+                candidateSri      = None
                 # If any SRI info is set, call pushSRI
                 if streamID != None or \
                   sampleRate != None or \
@@ -1341,11 +982,11 @@ class DataSource(_SourceBase):
                     for key in self._SRIKeywords:
                         keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
                     candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, 0, 0.0, 0, 0, 0,
-                                                streamID, True, keywords)
-                
+                                                     streamID, self._blocking, keywords)
+
                     if sampleRate > 0.0:
                         candidateSri.xdelta = 1.0/float(sampleRate)
-    
+
                     if complexData == True:
                         candidateSri.mode = 1
                     else:
@@ -1355,40 +996,41 @@ class DataSource(_SourceBase):
                         candidateSri.xstart = self._startTime
                 else:
                     candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, 0, 0.0, 0, 0, 0,
-                                                "defaultStreamID", True, [])
+                                                     "defaultStreamID", self._blocking, [])
 
                 if self._sri==None or not compareSRI(candidateSri, self._sri):
                     self._sri = candidateSri
                     self._pushSRIAllConnectedPorts(sri = self._sri)
-    
+
                 # Call pushPacket
-                # If necessary, break data into chunks of pktSize for each 
+                # If necessary, break data into chunks of pktSize for each
                 # pushPacket
                 if len(data) > 0:
                     self._pushPacketsAllConnectedPorts(data,
-                                                       currentSampleTime, 
-                                                       EOS, 
+                                                       currentSampleTime,
+                                                       EOS,
                                                        streamID)
-                    # If loop is set to True, continue pushing data until loop 
+                    # If loop is set to True, continue pushing data until loop
                     # is set to False or stop() is called
                     while self._loop:
-                        self._pushPacketsAllConnectedPorts(data, 
-                                                           currentSampleTime, 
-                                                           EOS, 
+                        self._pushPacketsAllConnectedPorts(data,
+                                                           currentSampleTime,
+                                                           EOS,
                                                            streamID)
                 else:
                     self._pushPacketAllConnectedPorts(data,
                                                       currentSampleTime,
                                                       EOS,
                                                       streamID)
+                self._packetSent()
             except Exception, e:
-                print self.className + ":pushData() failed " + str(e)
+                log.warn(self.className + ":pushData() failed " + str(e))
         self.threadExited = True
 
-    def _pushPacketsAllConnectedPorts(self, 
-                                      data, 
-                                      currentSampleTime, 
-                                      EOS, 
+    def _pushPacketsAllConnectedPorts(self,
+                                      data,
+                                      currentSampleTime,
+                                      EOS,
                                       streamID):
 
         for connection in self._connections.values():
@@ -1400,10 +1042,10 @@ class DataSource(_SourceBase):
                               srcPortType       = connection["srcPortType"],
                               pktSize           = connection["pktSize"])
 
-    def _pushPacketAllConnectedPorts(self, 
-                                     data, 
-                                     currentSampleTime, 
-                                     EOS, 
+    def _pushPacketAllConnectedPorts(self,
+                                     data,
+                                     currentSampleTime,
+                                     EOS,
                                      streamID):
 
         for connection in self._connections.values():
@@ -1414,13 +1056,13 @@ class DataSource(_SourceBase):
                              streamID          = streamID,
                              srcPortType       = connection["srcPortType"])
 
-    def _pushPackets(self, 
-                     arraySrcInst, 
-                     data, 
-                     currentSampleTime, 
-                     EOS, 
-                     streamID, 
-                     srcPortType, 
+    def _pushPackets(self,
+                     arraySrcInst,
+                     data,
+                     currentSampleTime,
+                     EOS,
+                     streamID,
+                     srcPortType,
                      pktSize):
 
         # If necessary, break data into chunks of pktSize for each pushPacket
@@ -1442,48 +1084,48 @@ class DataSource(_SourceBase):
                 currentSampleTime = currentSampleTime + dataSize/self._sampleRate
                 data = data[pktSize:]
         else:
-            self._pushPacket(arraySrcInst, 
-                             data, 
-                             currentSampleTime, 
-                             EOS, 
-                             streamID, 
+            self._pushPacket(arraySrcInst,
+                             data,
+                             currentSampleTime,
+                             EOS,
+                             streamID,
                              srcPortType)
 
-    def _pushPacket(self, 
-                    arraySrcInst, 
-                    data, 
-                    currentSampleTime, 
-                    EOS, 
-                    streamID, 
+    def _pushPacket(self,
+                    arraySrcInst,
+                    data,
+                    currentSampleTime,
+                    EOS,
+                    streamID,
                     srcPortType):
 
-        if srcPortType == "_BULKIO__POA.dataXML":
+        if srcPortType == "_BULKIO__POA.dataXML" or srcPortType == "_BULKIO__POA.dataFile":
             if type(data) != str:
-                print "data must be a string for the specified data type"
+                log.error("data must be a string for the specified data type")
                 return
         else:
             if type(data) != list:
-                print "data must be a list of values for the specified data type"
+                log.error("data must be a list of values for the specified data type")
                 return
         if len(data)>0:
-                data = _bulkio_helpers.formatData(data, 
+                data = _bulkio_helpers.formatData(data,
                                                   BULKIOtype=eval(srcPortType))
 
-        T = _BULKIO.PrecisionUTCTime(_BULKIO.TCM_CPU, 
-                                     _BULKIO.TCS_VALID, 
-                                     0.0, 
-                                     int(currentSampleTime), 
+        T = _BULKIO.PrecisionUTCTime(_BULKIO.TCM_CPU,
+                                     _BULKIO.TCS_VALID,
+                                     0.0,
+                                     int(currentSampleTime),
                                      currentSampleTime - int(currentSampleTime))
         if srcPortType != "_BULKIO__POA.dataXML":
-            _bulkio_data_helpers.ArraySource.pushPacket(arraySrcInst, 
-                                                        data     = data, 
-                                                        T        = T, 
-                                                        EOS      = EOS, 
+            _bulkio_data_helpers.ArraySource.pushPacket(arraySrcInst,
+                                                        data     = data,
+                                                        T        = T,
+                                                        EOS      = EOS,
                                                         streamID = streamID)
         else:
-            _bulkio_data_helpers.XmlArraySource.pushPacket(arraySrcInst, 
-                                                           data     = data, 
-                                                           EOS      = EOS, 
+            _bulkio_data_helpers.XmlArraySource.pushPacket(arraySrcInst,
+                                                           data     = data,
+                                                           EOS      = EOS,
                                                            streamID = streamID)
 
     def _pushSRIAllConnectedPorts(self, sri):
@@ -1498,6 +1140,21 @@ class DataSource(_SourceBase):
         else:
             _bulkio_data_helpers.XmlArraySource.pushSRI(arraySrcInst, sri)
 
+    def waitAllPacketsSent(self, timeout=None):
+        """
+        Wait until all of the packets queued on this source have been pushed to
+        all connected ports. If timeout is given, it should be the maximum
+        number of seconds to wait before giving up.
+        """
+        self._packetsSentCond.acquire()
+        try:
+            # Assume no spurious signals will occur, so we can defer to the
+            # timeout handling of Python's Condition object.
+            if self._packetsPending > 0:
+                self._packetsSentCond.wait(timeout)
+        finally:
+            self._packetsSentCond.release()
+
     def stop(self):
         self._exitThread = True
         self._loop = False
@@ -1510,9 +1167,6 @@ class DataSource(_SourceBase):
                     raise AssertionError, self.className + ":stop() failed to exit thread"
 
 class DataSink(_SinkBase):
-    def __init__(self):
-        _SinkBase.__init__(self, className = "DataSink")
-
     def getPort(self, portName):
         if _domainless._DEBUG == True:
             print self.className + ":getPort() portName " + str(portName) + "================================="
@@ -1532,66 +1186,45 @@ class DataSink(_SinkBase):
                 return None
             pass
         except Exception, e:
-            print self.className + ":getPort(): failed " + str(e)
+            log.error(self.className + ":getPort(): failed " + str(e))
         return None
 
-    def getData(self, length=None, eos_block=False):
-        isChar = False
-        if self._sink.port_type == _BULKIO__POA.dataChar:
-            isChar = True
-            
-        if self._sink != None:
-            self._sink.port_lock.acquire()
-            try:
-                if length == None:
-                    if not eos_block:
-                        retval = self._sink.data
-                        self._sink.data = []
-                    else:
-                        while not self._sink.gotEOS and (not self.breakBlock):
-                            self._sink.port_lock.release()
-                            _time.sleep(self._sleepTime)
-                            self._sink.port_lock.acquire()
-                        retval = self._sink.data
-                        self._sink.data = []
-                else:
-                    if not eos_block:
-                        if len(self._sink.data) >= length:
-                            retval = self._sink.data[:length]
-                            self._sink.data.__delslice__(0,length)
-                        else:
-                            while (len(self._sink.data) < length) and (not self._sink.gotEOS) and (not self.breakBlock):
-                                self._sink.port_lock.release()
-                                _time.sleep(self._sleepTime)
-                                self._sink.port_lock.acquire()
-                            if len(self._sink.data) >= length:
-                                retval = self._sink.data[:length]
-                                self._sink.data.__delslice__(0,length)
-                            else:
-                                retval = self._sink.data
-                                self._sink.data = []
-                    else:
-                        while not self._sink.gotEOS and (not self.breakBlock):
-                            self._sink.port_lock.release()
-                            _time.sleep(self._sleepTime)
-                            self._sink.port_lock.acquire()
-                        if length == None:
-                            retval = self._sink.data
-                            self._sink.data = []
-                        else:
-                            retval = self._sink.data[:length]
-                            self._sink.data.__delslice__(0,length)
-            finally:
-                self._sink.port_lock.release()
-            if isChar:
-                newretval = list(_struct.unpack(str(len(retval))+'b',''.join(retval)))
-                retval=newretval
-            return retval
-        else:
+    def getData(self, length=None, eos_block=False, tstamps=False):
+        '''
+        Returns either an array of the received data elements or a tuple containing the received list
+        and their associated time stamps
+
+        Parameters
+        ----------
+        length: number of elements that are requested
+        eos_block: setting to True creates a blocking call until eos is received
+        tstamps: setting to True makes the return value a tuple, where the first
+            element is the data set and the second element is a series of tuples
+            containing the element index number of and timestamp
+        '''
+        isChar = self._sink.port_type == _BULKIO__POA.dataChar
+
+        if not self._sink:
             return None
+        if eos_block:
+            self._sink.waitEOS()
+        (retval, timestamps) = self._sink.retrieveData(length=length)
+        if isChar:
+            newretval = list(_struct.unpack(str(len(retval))+'b',''.join(retval)))
+            retval=newretval
+        if tstamps:
+            return (retval,timestamps)
+        else:
+            return retval
+
+    def stop(self):
+        super(DataSink,self).stop()
+        if self._sink:
+            self._sink.stop()
 
 class _OutputBase(helperBase):
     def __init__(self):
+        helperBase.__init__(self)
         self.usesPortIORString = None
         self._providesPortDict = {}
         self._processes = {}
@@ -1620,13 +1253,13 @@ class _OutputBase(helperBase):
         sp = self._processes[pid]
         for sig, timeout in self._STOP_SIGNALS:
             try:
-                # the group id is used to handle child processes (if they 
+                # the group id is used to handle child processes (if they
                 # exist) of the component being cleaned up
                 if _domainless._DEBUG == True:
                     print "_OutputBase: __terminate () making killpg call on pid " + str(pid) + " with signal " + str(sig)
                 _os.killpg(pid, sig)
             except OSError:
-                print "_OutputBase: __terminate() OSERROR ==============="
+                log.error("_OutputBase: __terminate() OSERROR ===============")
                 pass
             if timeout != None:
                 giveup_time = _time.time() + timeout
@@ -1639,78 +1272,15 @@ class _OutputBase(helperBase):
     def setup(self,portIOR, dataType=None, componentName=None, usesPortName=None):
         pass
 
-class probeBULKIO(_OutputBase):
+class probeBULKIO(_SinkBase):
     def __init__(self):
-
-        self._providesPortDict    = {}
-        self._providesPortDict[0] = {}
-        self._sinkPortObject      = None
-        self._sinkPortType        = None
-        self._sink                = None
-        self.ref                  = self
-        self.breakBlock           = False
-
-        self._buildAPI()
-
-        self._refid = _domainless._uuidgen()
-        numComponentsRunning  = len(_domainless._currentState['Components Running'].keys())
-        # Use one-up counter to make component instance unique
-        self._instanceName = "__localprobeBULKIO_" + str(numComponentsRunning+1)
-        _domainless._currentState['Components Running'][self._instanceName] = self
-
-    def _buildAPI(self):
-        self._providesPortDict[0] = {} 
-        self._providesPortDict[0]["Port Interface"] = "IDL:BULKIO/dataChar:1.0" 
-        self._providesPortDict[0]["Port Name"] = "charIn"
-        self._providesPortDict[1] = {} 
-        self._providesPortDict[1]["Port Interface"] = "IDL:BULKIO/dataShort:1.0" 
-        self._providesPortDict[1]["Port Name"] = "shortIn"
-        self._providesPortDict[2] = {} 
-        self._providesPortDict[2]["Port Interface"] = "IDL:BULKIO/dataLong:1.0" 
-        self._providesPortDict[2]["Port Name"] = "longIn"
-        self._providesPortDict[3] = {} 
-        self._providesPortDict[3]["Port Interface"] = "IDL:BULKIO/dataFloat:1.0" 
-        self._providesPortDict[3]["Port Name"] = "floatIn"
-        self._providesPortDict[4] = {} 
-        self._providesPortDict[4]["Port Interface"] = "IDL:BULKIO/dataDouble:1.0" 
-        self._providesPortDict[4]["Port Name"] = "doubleIn"
-        if _domainless._DEBUG == True:
-            print "probeBULKIO:_buildAPI()"
-            self.api()
-
-    def api(self):
-        print "Component probeBULKIO :"
-        # Determine the maximum length of port names for print formatting
-        maxNameLen = 0
-        for port in self._providesPortDict.values():
-            if len(port['Port Name']) > maxNameLen:
-                maxNameLen = len(port['Port Name']) 
-        print "Provides (Input) Ports =============="
-        print "Port Name" + " "*(maxNameLen-len("Port Name")) + "\tPort Interface"
-        print "---------" + " "*(maxNameLen-len("---------")) + "\t--------------"
-        if len(self._providesPortDict) > 0:
-            for port in self._providesPortDict.values():
-                print str(port['Port Name']) + " "*(maxNameLen-len(str(port['Port Name']))) + "\t" + str(port['Port Interface'])
-        else:
-            print "None"
-        print "\n"
+        _SinkBase.__init__(self)
 
     def getPort(self, portName):
         if _domainless._DEBUG == True:
             print "probeBULKIO:getPort() portName " + str(portName) + "================================="
         try:
-            if portName == "charIn":
-                self._sinkPortType = "_BULKIO__POA.dataChar" 
-            elif portName == "shortIn":
-                self._sinkPortType = "_BULKIO__POA.dataShort" 
-            elif portName == "longIn":
-                self._sinkPortType = "_BULKIO__POA.dataLong" 
-            elif portName == "floatIn":
-                self._sinkPortType = "_BULKIO__POA.dataFloat" 
-            elif portName == "doubleIn":
-               self._sinkPortType = "_BULKIO__POA.dataDouble" 
-            else:
-                return None
+            self._sinkPortType = self.getPortType(portName)
 
             # Set up output array sink
             self._sink = _bulkio_data_helpers.ProbeSink(eval(self._sinkPortType))
@@ -1722,28 +1292,9 @@ class probeBULKIO(_OutputBase):
                 return None
 
         except Exception, e:
-            print "probeBULKIO:getPort(): failed " + str(e)
+            log.error("probeBULKIO:getPort(): failed " + str(e))
         return None
 
-    def start(self):
-        self.breakBlock = False
-        if self._sink != None:
-            self._sink.start()
-
-    def stop(self):
-        self.breakBlock = True
-    
-    def eos(self):
-        if self._sink == None:
-            return False
-        return self._sink.gotEOS
-
-    def sri(self):
-        if self._sink == None:
-            return None
-        else:
-            return self._sink.sri
-    
     def receivedStreams(self):
         if self._sink == None:
             print None
@@ -1757,10 +1308,10 @@ class probeBULKIO(_OutputBase):
                 average_packet = self._sink.received_data[entry][0]/float(self._sink.received_data[entry][1])
                 print "Received "+str(self._sink.received_data[entry])+" on stream ID "+entry+" with mean packet length of "+str(average_packet)
 
-# Plot class requires the following: 
+# Plot class requires the following:
 # - Eclipse Redhawk IDE must be installed
 # - Environment variable RH_IDE must be set defining the path to the main eclipse directory (/data/eclipse for example)
-class Plot(_OutputBase):
+class Plot(OutputBase, _OutputBase):
     def __init__(self,usesPortName=None):
         if _domainless._DEBUG == True:
             print "Plot:__init__()"
@@ -1792,7 +1343,7 @@ class Plot(_OutputBase):
     def plot(self):
         if _domainless._DEBUG == True:
             print "Plot:plot()"
-        
+
         # Error checking before launching plot
         if self.usesPortIORString == None:
             raise AssertionError, "Plot:plot() ERROR - usesPortIORString not set ... must call connect() on this object from another component"
@@ -1814,10 +1365,10 @@ class Plot(_OutputBase):
             self._processes[pid] = sub_process
         except Exception, e:
             raise AssertionError, "Plot:plot() Failed to launch plotting due to %s" % ( e)
-         
 
-    def setup(self, usesPortIOR, dataType=None, componentName=None, usesPortName=None):
-        self.usesPortIORString = usesPortIOR
+
+    def setup(self, usesPort, dataType=None, componentName=None, usesPortName=None):
+        self.usesPortIORString = domainless.orb.object_to_string(usesPort)
         self._dataType = dataType
         self._usesPortName = usesPortName
 
@@ -1843,34 +1394,3 @@ class SRIKeyword(object):
         self._name   = name
         self._value  = value
         self._format = format
-
-class InputFile(FileSource):
-    def __init__(self,filename="", dataFormat=None, midasFile=False,sampleRate=1.0,complexData=False,SRIKeywords=[],bytesPerPush=512000,startTime=0.0,streamID=None,blocking=True):
-        print "WARNING: InputFile is deprecated.  Use FileSource instead."
-        FileSource.__init__(self,filename=filename, dataFormat=dataFormat, midasFile=midasFile,sampleRate=sampleRate,complexData=complexData,SRIKeywords=SRIKeywords,bytesPerPush=bytesPerPush,startTime=startTime,streamID=streamID,blocking=blocking)
-
-class OutputData(DataSink):
-    def __init__(self):
-        print "WARNING: OutputData is deprecated.  Use DataSink instead."
-        DataSink.__init__(self)
-
-class InputData(DataSource):
-    def __init__(self, data=None, dataFormat=None,loop=False,bytesPerPush=512000,startTime=0.0):
-        print "WARNING: InputData is deprecated.  Use DataSource instead."
-        DataSource.__init__(self, data=data, dataFormat=dataFormat,loop=loop,bytesPerPush=bytesPerPush,startTime=startTime)
-
-class OutputFile(FileSink):
-    def __init__(self,filename="", midasFile=False):
-        print "WARNING: OutputFile is deprecated.  Use FileSink instead."
-        FileSink.__init__(self,filename=filename, midasFile=midasFile)
-
-class InputEvents(MessageSource):
-    def __init__(self, messageId = None, messageFormat = None):
-        print "WARNING: InputEvents is deprecated.  Use MessageSource instead."
-        MessageSource.__init__(self,messageId=messageId, messageFormat=messageFormat)
-
-class OutputEvents(MessageSink):
-    def __init__(self, messageId = None, messageFormat = None, messageCallback = None):
-        print "WARNING: OutputEvents is deprecated.  Use MessageSink instead."
-        MessageSink.__init__(self,messageId=messageId, messageFormat=messageFormat, messageCallback=messageCallback)
-

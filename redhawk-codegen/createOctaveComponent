@@ -1,0 +1,157 @@
+#!/usr/bin/python
+
+'''
+Command-line wrapper to the createOctaveComponent.py's create() method.
+
+'''
+
+from getopt import getopt
+from redhawk.packagegen.octavePackage import OctavePackage
+import sys
+import os
+
+usage = """
+Script for automatic component generation given an Octave m-function.
+
+All Octave components will have a diaryEnabled property (Boolean, default 0)
+and a bufferingEnabled property (Boolean, default 0).
+
+{0} [flags] <M files>
+
+E.g.,
+
+    {0}\\
+        --function=foo \\
+        --sharedLibraries=/deps/foo/foo.spd.xml \\
+        foo.m /home/user1/bar.m
+
+Arguments:
+    <M files>            List of m files to be packaged with the component.
+                         When listing multiple files, the function option
+                         must be used to specify which function should be
+                         called by the component
+
+Options:
+    --function           Name of function to be called.  Required if more than
+                         one M file is present
+
+                             e.g., --function=foo
+
+
+    --sharedLibraries    Proprietary dependencies that have been installed
+                         as a Soft Package Dependency. Points to an spd.xml file
+                         whose path is relative to $SDRROOT/dom.
+
+                             e.g., --sharedLibraries=/deps/foo/foo.spd.xml
+
+                         When listing multiple files, the filenames must be
+                         comma-separated, with no spaces.
+
+    --outputDir          Location of all output files.  Default is ".".
+
+    -f                   Forward force flag to redhawk-codegen.
+
+    --buildRpm           If set, compile an rpm after generating the code.
+
+    --install            If set, run "reconf; configure; make install" after
+                         generating the code.
+
+    --enableDiary        If set, enable the Octave diary.  Diary will be written
+                         to the logging directory (retrieved from log4cxx).
+
+    --enableBuffering    If set, enable buffering.  If enabled, the component
+                         will buffer data at its input until an EOS flag is
+                         encountered. If disabled, packets will be sent
+                         immediately to Octave, even if the EOS flag is not set.
+
+    --LOGGING_CONFIG_URI Value for the LOGGING_CONFIG_URI property.
+
+""".format(os.path.basename(sys.argv[0]))
+
+if __name__ == "__main__":
+    opts, args = getopt(
+        sys.argv[1:],
+        'fh',
+        ['outputDir=',
+         'help',
+         'sharedLibraries=',
+         'mFiles=',
+         'function=',
+         'buildRpm',
+         'install',
+         'enableBuffering',
+         'enableDiary',
+         'LOGGING_CONFIG_URI='])
+
+    outputDir        = "."
+    force            = False
+    sharedLibraries  = []
+    mFiles           = None
+    function         = None
+    buildRpm         = False
+    install          = False
+    diaryEnabled     = False
+    bufferingEnabled = False
+    loggingConfigUri = None
+
+    # Set option variables based on option flags set on the command line
+    for key, value in opts:
+        if key == '--help' or key == '-h':
+            print usage
+            raise SystemExit
+        elif key == '--function':
+            function = value
+        elif key == '--outputDir':
+            outputDir = value
+        elif key == '--sharedLibraries':
+            sharedLibraries = value.split(',')
+        elif key == '--mFiles':
+            mFiles = value.split(',')
+        elif key.lower() == '--buildrpm':
+            buildRpm = True
+        elif key == '--install':
+            install = True
+        elif key == '--enableDiary':
+            diaryEnabled = True
+        elif key == '--enableBuffering':
+            bufferingEnabled = True
+        elif key == '--LOGGING_CONFIG_URI':
+            loggingConfigUri = value
+        elif key == '-f':
+            force = True
+
+    if len(args) == 0:
+        # No m files have been provided, print usage and quit
+        print usage
+        raise SystemExit
+    elif len(args) == 1:
+        # If there is only 1 m file, use it as the main function
+        dirs = args[0].split('/')
+        filename = dirs[-1]
+        function = filename[0:-2]
+
+    mFiles = args
+
+    if function is None:
+        # if multiple m files have been provided, but no function was
+        # specified, print usage and quit
+        print usage
+        raise SystemExit
+
+    # Create XML model
+    myOctavePackage = OctavePackage(
+        mFiles           = mFiles,
+        function         = function,
+        outputDir        = outputDir,
+        sharedLibraries  = sharedLibraries,
+        diaryEnabled     = diaryEnabled,
+        bufferingEnabled = bufferingEnabled,
+        loggingConfigUri = loggingConfigUri)
+
+    myOctavePackage.writeXML()
+    myOctavePackage.callCodegen(force)
+
+    if buildRpm:
+        myOctavePackage.runCompileRpm()
+    if install:
+        myOctavePackage.runInstall()

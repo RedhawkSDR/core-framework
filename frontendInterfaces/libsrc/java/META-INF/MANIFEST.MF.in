@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: FRONTEND Base Class Library
+Bundle-SymbolicName: frontend
+Bundle-Version: @FRONTEND_API_VERSION@
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-Vendor: REDHAWK
+Import-Package: FRONTEND,
+ CF,
+ ExtendedCF,
+ org.omg.CORBA,
+ org.ossie.component,
+ org.ossie.properties
+Export-Package: frontend

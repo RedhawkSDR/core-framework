@@ -22,23 +22,57 @@
 #ifndef PORTSUPPLIER_IMPL_H
 #define PORTSUPPLIER_IMPL_H
 
-#include "ossiecf.h"
+#include <map>
+#include <string>
 
 #include "CF/cf.h"
-
+#include "Port_impl.h"
+#include "debug.h"
 
 /**
 The port supplier interface provides a method that supplies an object
 reference for a port.
 */
 
-class OSSIECF_API PortSupplier_impl: public virtual POA_CF::PortSupplier
+class PortSupplier_impl: public virtual POA_CF::PortSupplier
 {
+    ENABLE_LOGGING;
+
 public:
-    PortSupplier_impl () { }
+    PortSupplier_impl ();
 
     /// Return an object reference for the named port.
     CORBA::Object* getPort (const char*) throw (CF::PortSupplier::UnknownPort, CORBA::SystemException);
 
+protected:
+    typedef std::map<std::string, PortBase*> PortServantMap;
+    PortServantMap _portServants;
+
+    void addPort (const std::string& name, PortBase* servant);
+    void releasePorts ();
+
+    void startPorts ();
+    void stopPorts ();
+
+    // Legacy interface; new components should use the above methods
+    typedef std::map<std::string, Port_Uses_base_impl *>       RH_UsesPortMap;
+    typedef std::map<std::string, Port_Provides_base_impl *>   RH_ProvidesPortMap;
+
+    RH_UsesPortMap  outPorts;
+    std::map<std::string, CF::Port_var> outPorts_var;
+    RH_ProvidesPortMap inPorts;
+
+    void registerInPort(Port_Provides_base_impl *port);
+    void registerOutPort(Port_Uses_base_impl *port, CF::Port_ptr ref);
+
+    void releaseInPorts();
+    void releaseOutPorts();
+    void deactivateOutPorts();
+    void deactivateInPorts();
+
+private:
+    void insertPort (const std::string& name, PortBase* servant);
+    void deactivatePort (PortBase* servant);
 };
-#endif                                            /*  */
+
+#endif

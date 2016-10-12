@@ -158,12 +158,12 @@ class TestAllPropTypes_base(CF__POA.Resource, Resource):
                                           action="external",
                                           kinds=("configure",)
                                           )       
-        simple_objref = simple_property(id_="simple_objref",
-                                          type_="objref",
-                                          mode="readwrite",
-                                          action="external",
-                                          kinds=("configure",)
-                                          )       
+#        simple_objref = simple_property(id_="simple_objref",
+#                                          type_="objref",
+#                                          mode="readwrite",
+#                                          action="external",
+#                                          kinds=("configure",)
+#                                          )       
         simple_short = simple_property(id_="simple_short",
                                           type_="short",
                                           mode="readwrite",
@@ -239,13 +239,13 @@ class TestAllPropTypes_base(CF__POA.Resource, Resource):
                                           action="external",
                                           kinds=("configure",)
                                           ) 
-        simple_sequence_objref = simpleseq_property(id_="simple_sequence_objref",  
-                                          type_="objref",
-                                          defvalue=None,
-                                          mode="readwrite",
-                                          action="external",
-                                          kinds=("configure",)
-                                          ) 
+#        simple_sequence_objref = simpleseq_property(id_="simple_sequence_objref",  
+#                                          type_="objref",
+#                                          defvalue=None,
+#                                          mode="readwrite",
+#                                          action="external",
+#                                          kinds=("configure",)
+#                                          ) 
         simple_sequence_short = simpleseq_property(id_="simple_sequence_short",  
                                           type_="short",
                                           defvalue=None,
@@ -319,9 +319,9 @@ class TestAllPropTypes_base(CF__POA.Resource, Resource):
             struct_ulong = simple_property(id_="struct_ulong",
                                           type_="ulong",
                                           )
-            struct_objref = simple_property(id_="struct_objref",
-                                          type_="objref",
-                                          )
+#            struct_objref = simple_property(id_="struct_objref",
+#                                          type_="objref",
+#                                          )
             struct_short = simple_property(id_="struct_short",
                                           type_="short",
                                           )
@@ -364,7 +364,7 @@ class TestAllPropTypes_base(CF__POA.Resource, Resource):
                 d["struct_string"] = self.struct_string
                 d["struct_boolean"] = self.struct_boolean
                 d["struct_ulong"] = self.struct_ulong
-                d["struct_objref"] = self.struct_objref
+#                d["struct_objref"] = self.struct_objref
                 d["struct_short"] = self.struct_short
                 d["struct_float"] = self.struct_float
                 d["struct_octet"] = self.struct_octet
@@ -383,7 +383,8 @@ class TestAllPropTypes_base(CF__POA.Resource, Resource):
                 return True
 
             def getMembers(self):
-                return [("struct_string",self.struct_string),("struct_boolean",self.struct_boolean),("struct_ulong",self.struct_ulong),("struct_objref",self.struct_objref),("struct_short",self.struct_short),("struct_float",self.struct_float),("struct_octet",self.struct_octet),("struct_char",self.struct_char),("struct_ushort",self.struct_ushort),("struct_double",self.struct_double),("struct_long",self.struct_long),("struct_longlong",self.struct_longlong),("struct_ulonglong",self.struct_ulonglong)]
+                return [("struct_string",self.struct_string),("struct_boolean",self.struct_boolean),("struct_ulong",self.struct_ulong),#("struct_objref",self.struct_objref),
+("struct_short",self.struct_short),("struct_float",self.struct_float),("struct_octet",self.struct_octet),("struct_char",self.struct_char),("struct_ushort",self.struct_ushort),("struct_double",self.struct_double),("struct_long",self.struct_long),("struct_longlong",self.struct_longlong),("struct_ulonglong",self.struct_ulonglong)]
 
         
         struct_vars = struct_property(id_="struct_vars",
@@ -401,9 +402,9 @@ class TestAllPropTypes_base(CF__POA.Resource, Resource):
             struct_seq_ulong = simple_property(id_="struct_seq_ulong",
                                           type_="ulong",
                                           )
-            struct_seq_objref = simple_property(id_="struct_seq_objref",
-                                          type_="objref",
-                                          )
+#            struct_seq_objref = simple_property(id_="struct_seq_objref",
+#                                          type_="objref",
+#                                          )
             struct_seq_short = simple_property(id_="struct_seq_short",
                                           type_="short",
                                           )

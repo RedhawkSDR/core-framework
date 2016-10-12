@@ -32,10 +32,8 @@ File_buffer::File_buffer(CF::File_ptr fptr, size_t buff_sz, size_t put_back) :
     put_back_(std::max(put_back, size_t(1))),
     buffer_(std::max(buff_sz, put_back_) + put_back_)
 {
-  size_t tmax = std::max((size_t)32768,buffer_.size());
-  buffer_.resize(tmax);
-  char *end = &buffer_.front() + buffer_.size();
-  setg(end, end, end);
+        char *end = &buffer_.front() + buffer_.size();
+        setg(end, end, end);
 }
 
 std::streambuf::int_type File_buffer::underflow()

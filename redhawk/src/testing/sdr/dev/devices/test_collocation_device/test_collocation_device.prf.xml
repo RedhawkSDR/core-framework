@@ -39,7 +39,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <kind kindtype="allocation"/>
     <action type="external"/>
   </simple>
-  <simple id="os_name" mode="readwrite" name="os_name" type="string">
+  <simple id="DCE:4a23ad60-0b25-4121-a630-68803a498f75" mode="readwrite" name="os_name" type="string">
     <value>Linux</value>
     <kind kindtype="configure"/>
     <kind kindtype="allocation"/>

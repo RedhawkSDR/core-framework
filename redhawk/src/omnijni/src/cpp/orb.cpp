@@ -71,3 +71,12 @@ extern "C" JNIEXPORT jstring JNICALL Java_omnijni_ORB_objectref_1to_1string (JNI
     CORBA::String_var ior = orb->object_to_string(object);
     return env->NewStringUTF(ior);
 }
+
+extern "C" JNIEXPORT void JNICALL Java_omnijni_ORB_shutdown (JNIEnv* env, jclass)
+{
+    if (!CORBA::is_nil(orb)) {
+        orb->shutdown(true);
+        orb->destroy();
+        orb = CORBA::ORB::_nil();
+    }
+}

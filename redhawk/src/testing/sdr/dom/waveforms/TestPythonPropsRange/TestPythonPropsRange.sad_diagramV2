@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:diagram="http://sca.jpeojtrs.mil/diagram" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmlns:sad="http://sca.jpeojtrs.mil/sad" xmi:id="_TGP6wbNcEeKgauGuhNYiwQ" type="Sad" name="TestPythonPropsRange.sad_diagramV2" measurementUnit="Pixel">
-  <styles xmi:type="notation:DiagramStyle" xmi:id="_TGP6wrNcEeKgauGuhNYiwQ"/>
-  <styles xmi:type="diagram:EObjectContainerStyle" xmi:id="_TGP6w7NcEeKgauGuhNYiwQ" name="FindByStubContainer"/>
-  <element xmi:type="sad:SoftwareAssembly" href="TestPythonPropsRange.sad.xml#DCE:d1b752b2-f407-4337-ab64-e19676286a4f"/>
-</notation:Diagram>

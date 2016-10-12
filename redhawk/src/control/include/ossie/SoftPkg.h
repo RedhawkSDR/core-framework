@@ -339,7 +339,12 @@ namespace ossie {
                 assert(_spd.get() != 0);
                 return (strcmp(getSoftPkgType(), "sca_compliant") == 0);
             }
-
+            
+            bool isScaNonCompliant() {
+                assert(_spd.get() != 0);
+                return (strcmp(getSoftPkgType(), "sca_non_compliant") == 0);
+            }
+            
         protected:
             std::auto_ptr<SPD> _spd;
             std::string _spdFile;

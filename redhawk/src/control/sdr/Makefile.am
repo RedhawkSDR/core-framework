@@ -27,7 +27,8 @@ devdir = $(SDR_ROOT)/dev
 devicesdir = $(devdir)/devices
 nodesdir = $(devdir)/nodes
 
-dist_domain_DATA = domain/DomainManager.dmd.xml.template
+dist_domain_DATA = domain/DomainManager.dmd.xml \
+  domain/DomainManager.dmd.xml.template
 
 SUBDIRS = dommgr devmgr
 

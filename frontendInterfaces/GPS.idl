@@ -1,0 +1,99 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _FRONTEND_GPS_IDL_
+#define _FRONTEND_GPS_IDL_
+
+#include "redhawk/FRONTEND/Frontend.idl"
+#include "ossie/BULKIO/bulkioDataTypes.idl"
+
+module FRONTEND {
+
+
+	/**
+		Concept of Operation:
+		---------------------
+		
+		This interface provides basic GPS information such as position, time, and GPS status. The GPSInfo structure provides source and status
+		information and can be expanded/customized via the "additional_info" property. Any updates from time or positions should be relayed via the 
+		"GpsTimePos" structure. 
+		
+	*/
+
+    /************************/
+    /**     CONSTANTS       */
+    /************************/
+    
+    /** Device Kind */
+    const string FE_GPS_DEVICE_KIND = "FRONTEND::GPS";
+    const string GPS_MODE_LOCKED = "Locked";
+    const string GPS_MODE_UNLOCKED = "Unlocked";    
+    const string GPS_MODE_TRACKING = "Tracking";
+
+
+    /************************/
+    /**     STRUCTURES      */
+    /************************/      
+    struct GPSInfo {
+        string source_id;  /** NAV source identifier */
+        string rf_flow_id; /** identifier of rf_flow (ie - antenna) feeding into this GPS hardware */
+        string mode;
+             
+        long fom; 		/** Figure of merit (for position) */
+        long tfom; 		/** Figure of merit (for time) */
+        long datumID;  	/** Should be 47, WGS 1984 */
+        
+        double time_offset; 	/** Characterization of the Reference Source - should be mostly 0 */
+        double freq_offset; 	/** Frequency offset of Reference Source */
+        double time_variance; 	/** Timing Stability/Variance of Reference Source */
+        double freq_variance; 	/** Frequency Stability/Variance of Reference Source */
+       
+        short satellite_count;
+        float snr;
+        string status_message;
+        BULKIO::PrecisionUTCTime timestamp;
+        
+        /** Allows for keyword expansion*/
+        CF::Properties additional_info;
+    };
+    
+    /** Provides the correlation between a timestamp and position */
+    struct GpsTimePos {
+	    PositionInfo position;
+	    BULKIO::PrecisionUTCTime timestamp;
+    };
+
+    /************************/
+    /**      INTERFACE      */
+    /************************/      
+    interface GPS {
+    
+    	/** Updates as necessary */
+    	attribute GPSInfo gps_info;
+    	
+    	/** Main timing structure. If pososition is not known, set position valid to false */
+    	attribute GpsTimePos gps_time_pos; 	
+
+    }; 
+    
+    
+};
+
+#endif

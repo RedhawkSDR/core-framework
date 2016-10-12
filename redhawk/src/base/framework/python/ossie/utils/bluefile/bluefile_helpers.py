@@ -42,10 +42,14 @@ import ossie.utils.bulkio.bulkio_helpers as bulkio_helpers
 import os
 import threading
 import time
+import logging
 try:
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
 except:
     pass
+
+logging.basicConfig()
+log = logging.getLogger(__name__)
 
 arch = platform.machine()
 
@@ -173,7 +177,7 @@ def compare_bluefiles(file1=None, file2=None):
         msg = '\nThe file %s is either invalid or it does not exists\n' % file2
 
     if msg != None:
-        print msg
+        log.error(msg)
         return False
     
     hdr1, data1 = bluefile.read(file1)
@@ -190,14 +194,14 @@ def compare_bluefiles(file1=None, file2=None):
       
     # check the number of elements
     if sz1 != sz2:
-        print "Files does not contain the same amount of items"
+        log.error("Files does not contain the same amount of items")
         return False
     
     are_the_same = True
     # check each element in the data
     for i, item1, item2 in zip(range(0, sz1), data1, data2):
         if item1 != item2:
-            print ("Item[%d]:\t%s  <==>   %s are not the same" % 
+            log.error("Item[%d]:\t%s  <==>   %s are not the same" % 
                                             (i, str(item1), str(item2)))
             are_the_same = False
     
@@ -254,7 +258,7 @@ class BlueFileReader(object):
             except Exception, e:
                 msg = "The call to pushSRI failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                print(msg)
+                log.warn(msg)
         finally:
             self.port_lock.release()
 
@@ -269,7 +273,7 @@ class BlueFileReader(object):
             except Exception, e:
                 msg = "The call to pushPacket failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                print(msg)
+                log.warn(msg)
         finally:
             self.port_lock.release()
 
@@ -573,76 +577,3 @@ class BlueFileWriter(object):
                 self.eos_cond.wait(timeout)
         finally:
             self.eos_cond.release()
-
-
-class BlueFileByteReader(BlueFileReader):
-    "This sub-class exists to override pushPacket for dataXML ports."
-    def __init__(self, porttype):
-        print "WARNING: BlueFileByteReader has been deprecated.  Use BlueFileReader instead"
-        BlueFileReader.__init__(self, porttype)
-
-    def run(self, infile, pktsize = 1024,streamID=None):
-        """
-        This overridden method converts dataBytes or dataOctets to a string
-        instead of a list.
-
-        Pushes the data through the connected port.  Each packet of data
-        contains no more than pktsize elements.  Once all the elements have
-        been sent, the method sends an empty list with the EOS set to True to
-        indicate the end of the stream.
-
-        Inputs:
-            <infile>     The name of the X-Midas file containing the data
-                         to push
-            <pktsize>    The maximum number of elements to send on each push
-            <streamID>   The stream ID to be used, if None, then it defaults to filename 
-        """
-
-        hdr, data = bluefile.read(infile, list)
-        # generates a new SRI based on the header of the file
-        path, stream_id = os.path.split(infile)
-        if streamID == None:
-            sri = hdr_to_sri(hdr, stream_id)
-        else:
-            sri = hdr_to_sri(hdr, streamID)
-        self.pushSRI(sri)
-
-        if hdr['format'].startswith('C'):
-            data = data.flatten()
-
-        start = 0           # stores the start of the packet
-        end = start         # stores the end of the packet
-        sz = len(data)
-        self.done = False
-
-        # Use midas header timecode to set time of first sample
-        # NOTE: midas time is seconds since Jan. 1 1950
-        #       Redhawk time is seconds since Jan. 1 1970
-        currentSampleTime = 0.0
-        if hdr.has_key('timecode'):
-            # Set sample time to seconds since Jan. 1 1970 
-            currentSampleTime = hdr['timecode'] - long(631152000)
-            if currentSampleTime < 0:
-                currentSampleTime = 0.0
-
-        while not self.done:
-            chunk = start + pktsize
-            # if the next chunk is greater than the file, then grab remaining
-            # only, otherwise grab a whole packet size
-            if chunk > sz:
-                end = sz
-                self.done = True
-            else:
-                end = chunk
-
-            # X-Midas returns an array, so we need to generate a list
-            T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(currentSampleTime), currentSampleTime - int(currentSampleTime))
-            self.pushPacket(data[start:end].tostring(), T, False, sri.streamID)
-            dataSize = len(data[start:end])
-            sampleRate = 1.0/sri.xdelta
-            currentSampleTime = currentSampleTime + dataSize/sampleRate
-
-            start = end
-
-        T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(currentSampleTime), currentSampleTime - int(currentSampleTime))
-        self.pushPacket('', T, True, sri.streamID)

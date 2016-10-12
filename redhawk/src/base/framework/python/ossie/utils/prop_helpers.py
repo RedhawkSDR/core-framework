@@ -17,8 +17,14 @@
 # You should have received a copy of the GNU Lesser General Public License 
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-
-from ossie.properties import __TYPE_MAP, _SCA_TYPES
+from ossie.properties import _SCA_TYPES
+from ossie.properties import __TYPE_MAP
+from ossie.properties import getPyType 
+from ossie.properties import getTypeCode
+from ossie.properties import getCFType 
+from ossie.properties import getMemberType 
+from ossie.properties import getCFSeqType 
+from ossie import parsers as _parsers
 from ossie.utils import type_helpers as _type_helpers
 from ossie.cf import CF as _CF
 from ossie.cf import PortTypes as _PortTypes
@@ -27,10 +33,33 @@ from omniORB import CORBA as _CORBA
 from omniORB import tcInternal as _tcInternal
 import copy as _copy
 import struct as _struct
-from ossie.utils.type_helpers import OutOfRangeException
-
+import string as _string
+import operator as _operator
+import warnings as _warnings
+from ossie.utils.type_helpers import OutOfRangeException, EnumValueError
+from ossie.utils.formatting import TablePrinter
+from ossie.parsers.prf import configurationKind as _configurationKind
 SCA_TYPES = globals()['_SCA_TYPES']
-TYPE_MAP = globals()['__TYPE_MAP']
+
+# Map the type of the complex number (e.g., complexFloat) to the 
+# type of the real and imaginary members (e.g., float).
+__COMPLEX_SIMPLE_TYPE_MAP = {
+    'complexFloat'    : 'float',
+    'complexBoolean'  : 'boolean',
+    'complexULong'    : 'ulong',
+    'complexShort'    : 'short',
+    'complexOctet'    : 'octet',
+    'complexChar'     : 'char',
+    'complexUShort'   : 'ushort',
+    'complexDouble'   : 'double',
+    'complexLong'     : 'long',
+    'complexLongLong' : 'longlong',
+    'complexULongLong': 'ulonglong'
+}
+
+def mapComplexToSimple(complexType):
+    return __COMPLEX_SIMPLE_TYPE_MAP[complexType]
+    
 
 #helper function for configuring simple and sequence properties
 def configureProp(compRef, propName, propValue):
@@ -67,11 +96,18 @@ def configureProp(compRef, propName, propValue):
         else:
             applicableTypes = strListTypes + boolListTypes + longListTypes + floatListTypes
     else:
-        strTypes = [TYPE_MAP['string'][1], TYPE_MAP['char'][1]]
-        boolTypes = [TYPE_MAP['boolean'][1]]
-        longTypes = [TYPE_MAP['ulong'][1], TYPE_MAP['short'][1], TYPE_MAP['octet'][1], TYPE_MAP['ushort'][1],
-                     TYPE_MAP['long'][1], TYPE_MAP['longlong'][1], TYPE_MAP['ulonglong'][1]]
-        floatTypes = [TYPE_MAP['float'][1], TYPE_MAP['double'][1]]
+        strTypes   = [getTypeCode('string'), 
+                      getTypeCode('char')]
+        boolTypes  = [getTypeCode('boolean')]
+        longTypes  = [getTypeCode('ulong'), 
+                      getTypeCode('short'), 
+                      getTypeCode('octet'), 
+                      getTypeCode('ushort'),
+                      getTypeCode('long'), 
+                      getTypeCode('longlong'), 
+                      getTypeCode('ulonglong')]
+        floatTypes = [getTypeCode('float'), 
+                      getTypeCode('double')]
         
         valueType = type(propValue)
         
@@ -178,10 +214,8 @@ def getPropNameDict(prf):
     return nameDict
 
 
-_enums = {}
 _displayNames = {}
 _duplicateNames = {}
-
 '''
 -Maps a properties clean, display and access name to its ID
 -Prevents duplicate entries within a component
@@ -204,31 +238,71 @@ def addCleanName(cleanName, id, compRefId):
         _duplicateNames[compRefId][cleanName] = count
         return cleanName + str(count)
     
-'''
--Adds a property to the enumerated properties map
--This allows enforcement of enumerations as the property
-values are configured
-'''
-def _addEnumerations(prop, clean_id):
-    propType = prop.get_type()
-    for en in prop.enumerations.enumeration:
-        if str(en.get_value()) == str(None):
-            en.set_value(None) 
-        elif propType in ['long', 'longlong', 'octet', 'short', 'ulong', 'ulonglong', 'ushort']: 
-            if en.get_value().find('x') != -1:
-                en.set_value(int(en.get_value(),16))
-            else:
-                en.set_value(int(en.get_value()))
-        elif propType in ['double', 'float']:
-            en.set_value(float(en.get_value()))
-        elif propType in ['char', 'string']:
-            en.set_value(str(en.get_value()))
-        elif propType == 'boolean':
-            en.set_value({"TRUE": True, "FALSE": False}[en.get_value().strip().upper()])
+def _cleanId(prop):
+    translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_"
+    prop_id = prop.get_name()
+    if prop_id is None:
+        prop_id = prop.get_id()
+    return str(prop_id).translate(translation)
+
+def isMatch(prop, modes, kinds, actions):
+    """
+    Tests whether a given SCA property (as an XML node) matches the given modes,
+    kinds and actions.
+    """
+    if prop.get_mode() == None:
+        m = "readwrite"
+    else:
+        m = prop.get_mode()
+    matchMode = (m in modes)
+
+    if isinstance(prop, (_parsers.PRFParser.simple, _parsers.PRFParser.simpleSequence)):
+        if prop.get_action() == None:
+            a = "external"
         else:
-            en.set_value(None)                          
-    _enums[clean_id] = prop.enumerations
-    
+            a = prop.get_action().get_type()
+        matchAction = (a in actions)
+
+        matchKind = False
+        if prop.get_kind() == None or prop.get_kind() == []:
+            k = [_configurationKind()]
+        else:
+            k = prop.get_kind()
+        for kind in k:
+            if kind.get_kindtype() in kinds:
+                matchKind = True
+
+        # If kind is both configure and allocation, then action is a match
+        # Bug 295
+        foundConf = False
+        foundAlloc = False
+        for kind in k:
+            if "configure" == kind.get_kindtype():
+                foundConf = True
+            if "allocation" == kind.get_kindtype():
+                foundAlloc = True
+        if foundConf and foundAlloc:
+            matchAction = True
+
+    elif isinstance(prop, (_parsers.PRFParser.struct, _parsers.PRFParser.structSequence)):
+        matchAction = True # There is no action, so always match
+
+        matchKind = False
+        if prop.get_configurationkind() == None or prop.get_configurationkind() == []:
+            k = [_configurationKind()]
+        else:
+            k = prop.get_configurationkind()
+        for kind in k:
+            if kind.get_kindtype() in kinds:
+                matchKind = True
+
+        if k in kinds:
+            matchKind = True
+
+
+    return matchMode and matchKind and matchAction
+
+
 '''
 THE CLASSES BELOW SERVE AS WRAPPER CLASSES TO BE USED EXTENSIVELY IN
 THE SANDBOX BUT CAN BE USED FOR POTENTIAL UNIT TESTING SCHEMES AS WELL
@@ -240,12 +314,13 @@ class Property(object):
     """
     MODES = ['readwrite', 'writeonly', 'readonly']
     
-    def __init__(self, id, type, compRef, mode='readwrite'):
+    def __init__(self, id, type, kinds, compRef, mode='readwrite', action='external', parent=None, defValue=None):
         """ 
         compRef - (domainless.componentBase) - pointer to the component that owns this property
         type - (string): type of property (SCA Type or 'struct' or 'structSequence')
         id - (string): the property ID
         mode - (string): mode for the property, must be in MODES
+        parent - (Property): the property that contains this instance (e.g., struct that holds a simple)
         """
         self.id = id
         self.type = type
@@ -254,1745 +329,814 @@ class Property(object):
             print str(mode) + ' is not a valid mode, defaulting to "readwrite"'
             self.mode = 'readwrite'
         else:
-            self.mode = mode            
-
-class simpleProperty(Property):
-    def __init__(self, id, valueType, compRef, defValue=None, structRef=None, structSeqRef=None, structSeqIdx=None, mode='readwrite'):
-        """ 
-        id - (string): the property ID
-        valueType - (string): type of the property, must be in VALUE_TYPES
-        compRef - (domainless.componentBase) - pointer to the component that owns this property
-        structRef - (string): name of the struct that this simple is a member of, or None
-        structSeqRef - (string): name of the struct sequence the above struct is a member of, or None
-        structSeqIdx - (int): index of the above struct in the struct sequence, or None
-        mode - (string): mode for the property, must be in MODES
-        """
-        if valueType not in SCA_TYPES:
-            raise('"' + str(valueType) + '"' + ' is not a valid valueType, choose from\n ' + str(SCA_TYPES))
-        
-        #initilaize the parent
-        Property.__init__(self, id, type=valueType, compRef=compRef, mode=mode)
-        
-        self.valueType = valueType
+            self.mode = mode
+        self.action = action
+        self._parent = parent
         self.defValue = defValue
-        
-        #used when the simple is part of a struct
-        self.structRef = structRef
-        
-        #used when the struct is part of a struct sequence
-        self.structSeqRef = structSeqRef
-        self.structSeqIdx = structSeqIdx
-        
-        #create the CF.DataType reference, change value to the correct type
-        self.propRef = _CF.DataType(id=str(self.id), value=_any.to_any(None))
-        self.propRef.value._t = TYPE_MAP[self.valueType][1]
+        if kinds:
+            self.kinds = kinds
+        else:
+            # Default to "configure" if no kinds given
+            self.kinds = ('configure',)
+
+    def _getStructsSimpleProps(self,simple,prop):
+        kinds = []
+        enums = []
+        value = None
+        defVal = None
+        for i in self.compRef._properties:
+            if i.clean_name == prop.id_:
+                for k in prop.get_configurationkind():
+                    kinds.append(k.get_kindtype())
+                if i.members[_cleanId(simple)]._enums != None:
+                    enums = i.members[_cleanId(simple)]._enums
+                if self.mode != "writeonly":
+                    value = str(i.members[_cleanId(simple)])
+                defVal = str(i.members[_cleanId(simple)].defValue)
+        type = str(self.compRef._getPropType(simple))
+        return defVal, value, type, kinds, enums
+
+    def api(self):
     
+        kinds = []
+        print "\nProperty\n--------"
+        print "% -*s %s" % (17,"ID:",self.id)
+        print "% -*s %s" % (17,"Type:",self.type)
+        simpleOrSequence = False
+        if self.type != "structSeq" and self.type != "struct":
+            simpleOrSequence = True
+            print "% -*s %s" % (17,"Default Value:", self.defValue)
+            if self.mode != "writeonly":
+                print "% -*s %s" % (17,"Value: ", self.queryValue())
+            try:
+                if self._enums != None:
+                    print "% -*s %s" % (17,"Enumumerations:", self._enums)
+            except:
+                simpleOrSequence = True
+        if self.type != "struct":
+            print "% -*s %s" % (17,"Action:", self.action) 
+        print "% -*s %s" % (17,"Mode: ", self.mode)
+
+        if self.type == "struct":
+            structTable = TablePrinter('Name','Data Type','Default Value', 'Current Value','Enumerations')
+            structTable.limit_column(1,20)
+            structTable.limit_column(2,15)
+            structTable.limit_column(3,15)
+            structTable.limit_column(4,40)
+            for prop in self.compRef._prf.get_struct():
+                if prop.id_ == self.id:
+                    first = True
+                    for simple in prop.get_simple():
+                        defVal,value, type, kinds,enums = self._getStructsSimpleProps(simple,prop)
+                        structTable.append(simple.get_id(),type,str(defVal),str(value),enums)
+                        if first:
+                            print "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
+                            first = False
+            structTable.write()
+        elif self.type == "sequence":
+            print "sequence: ",type(self)
+
+        elif self.type == "structSeq":
+            structNum = -1
+            structTable = TablePrinter('Name','Data Type')
+            structTable.limit_column(1,35)
+            for prop in self.compRef._prf.get_structsequence():
+                for kind in prop.get_configurationkind():
+                    kinds.append(kind.get_kindtype())
+                if prop.id_ == self.id and prop.get_struct() != None:
+                    for simple in prop.get_struct().get_simple():
+                        structTable.append(simple.id_, simple.get_type())
+            print "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
+            print "\nStruct\n======"
+            structTable.write()
+
+            simpleTable = TablePrinter('Index','Name','Value')
+            simpleTable.limit_column(1,30)
+            simpleTable.limit_column(2,35)
+            for i in self.compRef._properties:
+                if i.type == "structSeq" and self.mode != "writeonly":
+                    for s in i:
+                        structNum +=1
+                        for key in s.keys():
+                            simpleTable.append(str(structNum),key,str(s[key]))
+            if self.mode != "writeonly":
+                print "\nSimple Properties\n================="
+                simpleTable.write()
+
+        elif simpleOrSequence:
+            for prop in self.compRef._prf.get_simple() + self.compRef._prf.get_simplesequence():
+                if prop.id_ == self.id:
+                    for kind in prop.get_kind():
+                        kinds.append(kind.get_kindtype())
+            print "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
+          
+
+    def _isNested(self):
+        return self._parent is not None
+
+    def _checkRead(self):
+        if self._isNested():
+            return self._parent._checkRead()
+        return self.mode != 'writeonly'
+
+    def _checkWrite(self):
+        if self._isNested():
+            return self._parent._checkWrite()
+        return self.mode != 'readonly'
+
+    def _getItemKey(self):
+        raise AssertionError(self.__class__.__name__ + ' cannot be nested')
+
+    def _queryItem(self, key):
+        raise AssertionError(self.__class__.__name__ + ' cannot contain other properties')
+
+    def _configureItem(self, key, value):
+        raise AssertionError(self.__class__.__name__ + ' cannot contain other properties')
+
+    def _queryValue(self):
+        if self._isNested():
+            return self._parent._queryItem(self._getItemKey())
+        else:
+            try:
+                results = self.compRef.query([_CF.DataType(str(self.id), _any.to_any(None))])
+            except:
+                results = None
+                if self.mode == "writeonly":
+                    print "Invalid Action: can not query a partial property if it is writeonly"
+            if results is None:
+                return None
+            else:
+                return results[0].value
+            
+    def _configureValue(self, value):
+        if self._isNested():
+            self._parent._configureItem(self._getItemKey(), value)
+        else:
+            self.compRef.configure([_CF.DataType(str(self.id), value)])
+
+    @property
+    def propRef(self):
+        # DEPRECATED: create the CF.DataType reference, change value to the correct type
+        _warnings.warn("'propRef' is deprecated; use 'toAny' to create Any value", DeprecationWarning)
+        return _CF.DataType(id=str(self.id), value=_CORBA.Any(self.typecode, None))
+
     def queryValue(self):
         '''
         Returns the current value of the property by doing a query
         on the component and returning only the value
         '''
-        if self.mode == 'writeonly':
+        if not self._checkRead():
             raise Exception, 'Could not perform query, ' + str(self.id) + ' is a writeonly property'
-        else:
-            #check if the simple is part of a struct
-            if self.structRef != None:
-                #check if the struct is part of a struct sequence
-                if self.structSeqRef != None:
-                    #get the struct sequence from the component and do a query
-                    structSeqProp = self.compRef.__getattribute__(self.structSeqRef)
-                    queryRef = _copy.deepcopy(structSeqProp.propRef)
-                    results = self.compRef.query([queryRef])
-                    if results == None:
-                        return None
-                    else:
-                        structRefList = results[0].value.value()
-                        
-                        #find the right struct
-                        structRef = structRefList[self.structSeqIdx].value()
-                        for simpleRef in structRef:
-                            if simpleRef.id == self.id:
-                                return simpleRef.value.value()
-                else:
-                    #get the struct from the component and do a query
-                    structProp = self.compRef.__getattribute__(self.structRef)
-                    queryRef = _copy.deepcopy(structProp.propRef)
-                    queryRef.value = _any.to_any(None)
-                    results = self.compRef.query([queryRef])
-                    if results == None:
-                        return None
-                    else:
-                        structRef = results[0].value.value() 
-                        for simpleRef in structRef:
-                            if simpleRef.id == self.id:
-                                return simpleRef.value.value()
-            else:
-                queryRef = _copy.deepcopy(self.propRef)
-                queryRef.value = _any.to_any(None)
-                results = self.compRef.query([queryRef])
-                if results == None:
-                    return None
-                return results[0].value.value()
-    
+
+        value = self._queryValue()
+        return self.fromAny(value)
+
     def configureValue(self, value):
         '''
-        Helper function for configuring a simple property
+        Sets the current value of the property by doing a configure
+        on the component. If this property is a child of another property,
+        the parent property is configured.
         '''
-        if self.mode == 'readonly':
+        if not self._checkWrite():
             raise Exception, 'Could not perform configure, ' + str(self.id) + ' is a readonly property'
-        else:
-            if value != None:
-                # If property is an enumeration, enforce proper value
-                if self.id in _enums.keys():
-                    found = False
-                    for en in _enums[self.id].enumeration:
-                        if value == en.get_label():
-                            value = en.get_value()
-                            found = True
-                        elif value == en.get_value():
-                            found = True
-                    # If enumeration is invalid list available enumerations
-                    if not found:
-                        print 'Could not perform configure on ' + str(self.id) + ', invalid enumeration provided'
-                        print "Valid enumerations: "
-                        for en in _enums[self.id].enumeration:
-                            print "\t" + str(en.get_label()) + "=" + str(en.get_value())
-                        return
-                        
-                if type(value) not in [str,int,long,bool,float]:
-                        raise TypeError, 'configureValue() must be called with str, int, bool, or float instance as second argument (got ' + str(type(value))[7:-2] + ' instance instead)'
-                #validate the value and provide more meaningful exception
-                value = _type_helpers.checkValidValue(value, self.valueType)
-            
-            #check if the simple is part of a struct
-            if self.structRef != None:
-                #check if the struct is part of a struct sequence
-                if self.structSeqRef != None:
-                    #get the struct sequence from the component and do a query
-                    structSeqProp = self.compRef.__getattribute__(self.structSeqRef)
-                    if structSeqProp.mode == 'readonly':
-                        raise Exception, 'Could not perform configure, ' + str(structSeqProp.id) + ' is a readonly property'
-                    else:
-                        queryRef = _copy.deepcopy(structSeqProp.propRef)
-                        results = self.compRef.query([queryRef])
-                        if results == None:
-                            structRefList = []
-                        else:
-                            structRefList = results[0].value.value()
-                            
-                            #find the right struct
-                            structRef = structRefList[self.structSeqIdx].value()
-                            
-                            #find the member and change it
-                            for simpleRef in structRef:
-                                if simpleRef.id == self.id:
-                                    if value == None:
-                                        simpleRef.value = _any.to_any(None)
-                                    else:
-                                        simpleRef.value._v = value
-                                        simpleRef.value._t = self.propRef.value._t
-                                    break
-                            
-                            #copy in all of the struct instances and then configure
-                            configRef = _copy.deepcopy(structSeqProp.propRef)
-                            for instance in structRefList:
-                                configRef.value._v.append(instance)
-                            self.compRef.configure([configRef])
-                else:
-                    #get the struct from the component and do a query
-                    structProp = self.compRef.__getattribute__(self.structRef)
-                    if structProp.mode == 'readonly':
-                        raise Exception, 'Could not perform configure, ' + str(structProp.id) + ' is a readonly property'
-                    else :
-                        queryRef = _copy.deepcopy(structProp.propRef)
-                        queryRef.value = _any.to_any(None)
-                        results = self.compRef.query([queryRef])
-                        if results == None:
-                            structRefList = []
-                        else:
-                            structRef = results[0].value.value()
-                            
-                            #find the member and change it
-                            for simpleRef in structRef:
-                                if simpleRef.id == self.id:
-                                    if value == None:
-                                        simpleRef.value = _any.to_any(None)
-                                    else:
-                                        simpleRef.value._v = value
-                                        simpleRef.value._t = self.propRef.value._t
-                                    break
-                            
-                            #copy in all of the struct's members and then configure
-                            configRef = _copy.deepcopy(structProp.propRef)
-                            configRef.value._v = []
-                            for simpleRef in structRef:
-                                configRef.value._v.append(simpleRef)
-                            self.compRef.configure([configRef])
-            else:
-                configRef = _copy.deepcopy(self.propRef)
-                if value == None:
-                    configRef.value = _any.to_any(None)
-                    self.compRef.configure([configRef])
-                else:
-                    configRef.value._v = value
-                    self.compRef.configure([configRef])
 
+        try:
+            value = self.toAny(value)
+        except EnumValueError, ex:
+            # If enumeration value is invalid, list available enumerations.
+            print 'Could not perform configure on ' + str(ex.id) + ', invalid enumeration provided'
+            print "Valid enumerations: "
+            for name, value in ex.enums.iteritems():
+                print "\t%s=%s" % (name, value)
+            return
+        self._configureValue(value)
+
+    # Wrapper functions for common operations on the property value. These
+    # allow the data type (e.g. int, float, list) to determine the behavior
+    # of common operations, rather than having to explicitly write each
+    # operator.
+    def proxy_operator(op):
+        """
+        Performs an operator on the result of queryValue().
+        """
+        def wrapper(self, *args, **kwargs):
+            return op(self.queryValue(), *args, **kwargs)
+        return wrapper
+
+    def proxy_reverse_operator(op):
+        """
+        Performs a reflected operator on the result of queryValue().
+        """
+        def wrapper(self, y, *args, **kwargs):
+            return op(y, self.queryValue(), *args, **kwargs)
+        return wrapper
+
+    def proxy_inplace_operator(op):
+        """
+        Performs an in-place operator on the result of queryValue(). After
+        the value is modified, the new value is stored via configureValue().
+        """
+        def wrapper(self, y, *args, **kwargs):
+            temp = op(self.queryValue(), y, *args, **kwargs)
+            self.configureValue(temp)
+            return temp
+        return wrapper
+
+    def proxy_modifier_function(op):
+        """
+        Calls a member function that modifies the state of its instance on the
+        result queryValue(). After the value is modified, the  new value is
+        stored via configureValue().
+        """
+        def wrapper(self, *args, **kwargs):
+            temp = self.queryValue()
+            op(temp, *args, **kwargs)
+            self.configureValue(temp)
+        return wrapper
 
     '''
     BELOW ARE OVERRIDDEN FUNCTIONS FOR LITERAL TYPES IN
     PYTHON SO THAT THE PROPERTIES BEHAVE WITHIN THE CODE
     AS IF THEY WERE THEIR LITERAL TYPES
     '''
-    def __abs__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__abs__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__abs__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__abs__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__abs__(val, *args)
-        except:
-            raise
-    
-    def __add__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__add__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__add__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__add__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__add__(val, *args)
-        except:
-            raise
-    
-    def __and__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__and__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__and__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__and__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__and__(val, *args)
-        except:
-            raise
-    
-    def __contains__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__contains__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__contains__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__contains__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__contains__(val, *args)
-        except:
-            raise
-    
-    def __div__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__div__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__div__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__div__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__div__(val, *args)
-        except:
-            raise
-    
-    def __divmod__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__divmod__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__divmod__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__divmod__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__divmod__(val, *args)
-        except:
-            raise
-    
-    def __eq__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return val == args[0]
-            if self.type in ['double', 'float']:
-                return float.__eq__(val, *args)
-            if self.type in ['boolean']:
-                return val == args[0]
-            if self.type in ['char', 'string']:
-                if val == None:
-                    return val == args[0]
-                return str.__eq__(val, *args)
-        except:
-            raise
-    
-    def __floordiv__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__floordiv__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__floordiv__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__floordiv__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__floordiv__(val, *args)
-        except:
-            raise
-    
-    def __ge__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return val >= args[0]
-            if self.type in ['double', 'float']:
-                return float.__ge__(val, *args)
-            if self.type in ['boolean']:
-                return val >= args[0]
-            if self.type in ['char', 'string']:
-                return str.__ge__(val, *args)
-        except:
-            raise
-    
-    def __getitem__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__getitem__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__getitem__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__getitem__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__getitem__(val, *args)
-        except:
-            raise
-    
-    def __getslice__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__getslice__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__getslice__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__getslice__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__getslice__(val, *args)
-        except:
-            raise
-    
-    def __gt__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return val > args[0]
-            if self.type in ['double', 'float']:
-                return float.__gt__(val, *args)
-            if self.type in ['boolean']:
-                return val > args[0]
-            if self.type in ['char', 'string']:
-                return str.__gt__(val, *args)
-        except:
-            raise
-    
-    def __invert__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__invert__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__invert__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__invert__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__invert__(val, *args)
-        except:
-            raise
+    # Binary arithmetic operations
+    __add__ = proxy_operator(_operator.add)
+    __sub__ = proxy_operator(_operator.sub)
+    __mul__ = proxy_operator(_operator.mul)
+    __div__ = proxy_operator(_operator.div)
+    __truediv__ = proxy_operator(_operator.truediv)
+    __floordiv__ = proxy_operator(_operator.floordiv)
+    __mod__= proxy_operator(_operator.mod)
+    __divmod__ = proxy_operator(divmod)
+    __pow__ = proxy_operator(pow)
+    __lshift__ = proxy_operator(_operator.lshift)
+    __rshift__ = proxy_operator(_operator.rshift)
+    __and__ = proxy_operator(_operator.and_)
+    __xor__ = proxy_operator(_operator.xor)
+    __or__ = proxy_operator(_operator.or_)
 
-    def __nonzero__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__nonzero__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__nonzero__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__nonzero__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__nonzero__(val, *args)
-        except:
-            raise
+    # In-place arithmetic operations
+    __iadd__ = proxy_inplace_operator(_operator.add)
+    __isub__ = proxy_inplace_operator(_operator.sub)
+    __imul__ = proxy_inplace_operator(_operator.mul)
+    __idiv__ = proxy_inplace_operator(_operator.div)
+    __itruediv__ = proxy_inplace_operator(_operator.truediv)
+    __ifloordiv__ = proxy_inplace_operator(_operator.floordiv)
+    __imod__ = proxy_inplace_operator(_operator.mod)
+    __ipow__ = proxy_inplace_operator(pow)
+    __ilshift__ = proxy_inplace_operator(_operator.lshift)
+    __irshift__ = proxy_inplace_operator(_operator.rshift)
+    __iand__ = proxy_inplace_operator(_operator.and_)
+    __ixor__ = proxy_inplace_operator(_operator.xor)
+    __ior__ = proxy_inplace_operator(_operator.or_)
+
+    # Reflected binary arithmetic operations
+    __radd__ = proxy_reverse_operator(_operator.add)
+    __rsub__ = proxy_reverse_operator(_operator.sub)
+    __rmul__ = proxy_reverse_operator(_operator.mul)
+    __rdiv__ = proxy_reverse_operator(_operator.div)
+    __rtruediv__ = proxy_reverse_operator(_operator.truediv)
+    __rfloordiv__ = proxy_reverse_operator(_operator.floordiv)
+    __rmod__ = proxy_reverse_operator(_operator.mod)
+    __rdivmod__ = proxy_reverse_operator(divmod)
+    __rpow__ = proxy_reverse_operator(pow)
+    __rlshift__ = proxy_reverse_operator(_operator.lshift)
+    __rrshift__ = proxy_reverse_operator(_operator.rshift)
+    __rand__ = proxy_reverse_operator(_operator.and_)
+    __rxor__ = proxy_reverse_operator(_operator.xor)
+    __ror__ = proxy_reverse_operator(_operator.or_)
+
+    # Unary arithmetic operations
+    __neg__ = proxy_operator(_operator.neg)
+    __pos__ = proxy_operator(_operator.pos)
+    __abs__ = proxy_operator(abs)
+    __invert__ = proxy_operator(_operator.invert)
+
+    # Type conversions
+    __complex__ = proxy_operator(complex)
+    __int__ = proxy_operator(int)
+    __long__ = proxy_operator(long)
+    __float__ = proxy_operator(float)
+    __nonzero__ = proxy_operator(bool)
+
+    # Base conversion
+    __oct__ = proxy_operator(oct)
+    __hex__ = proxy_operator(hex)
+
+    # Coercion
+    __coerce__ = proxy_operator(coerce)
+
+    # Rich comparison methods
+    __lt__ = proxy_operator(_operator.lt)
+    __le__ = proxy_operator(_operator.le)
+    __eq__ = proxy_operator(_operator.eq)
+    __ne__ = proxy_operator(_operator.ne)
+    __gt__ = proxy_operator(_operator.gt)
+    __ge__ = proxy_operator(_operator.ge)
+
+    # Sequence/string operations
+    __len__ = proxy_operator(len)
+    __getitem__ = proxy_operator(_operator.getitem)
+    __contains__ = proxy_operator(_operator.contains)
+
+    # Turn wrapper creation methods into static methods so that they can be
+    # called by subclasses.
+    proxy_operator = staticmethod(proxy_operator)
+    proxy_inplace_operator = staticmethod(proxy_inplace_operator)
+    proxy_reverse_operator = staticmethod(proxy_reverse_operator)
+    proxy_modifier_function = staticmethod(proxy_modifier_function)
     
-    def __le__(self, *args):
+def _convertToComplex(value):
+    if value == None:
+        return None
+    if isinstance(value.real, str):
+        # for characters, we need to map to an integer as
+        # the complex() method will not accept 2 strings as input
+        value = complex(ord(value.real), ord(value.imag))
+    else:
+        value = complex(value.real, value.imag)
+    return value
+ 
+class simpleProperty(Property):
+    def __init__(self, id, valueType, enum, compRef, kinds,defValue=None, parent=None, mode='readwrite', action='external',
+                 structRef=None, structSeqRef=None, structSeqIdx=None):
+        """ 
+        Create a new simple property.
+
+        Arguments:
+          id        - The property ID
+          valueType - Type of the property, must be in VALUE_TYPES
+          compRef   - Reference to the PropertySet that owns this property
+          defValue  - Default Python value for this property (default: None)
+          parent    - Parent property that contains this property (default: None)
+          mode      - Mode for the property, must be in MODES (default: 'readwrite')
+          action    - Allocation action type (default: 'external')
+
+        Deprecated arguments:
+          structRef, structSeqRef, structSeqIdx
+        """
+        if valueType not in SCA_TYPES:
+            raise('"' + str(valueType) + '"' + ' is not a valid valueType, choose from\n ' + str(SCA_TYPES))
+        
+        # Initialize the parent
+        Property.__init__(self, id, type=valueType, kinds=kinds,compRef=compRef, mode=mode, action=action, parent=parent,
+                          defValue=defValue)
+        
+        self.valueType = valueType
+        self.typecode = getTypeCode(self.valueType)
+        if enum != None:
+            self._enums = self._parseEnumerations(enum)
+        else:
+            self._enums = None
+
+    def _getItemKey(self):
+        return self.id
+
+    def _parseEnumerations(self,enum):
+        enums = {}
+        for en in enum:
+            if en.get_value() is None:
+                value = None
+            elif self.valueType in ['long', 'longlong', 'octet', 'short', 'ulong', 'ulonglong', 'ushort']: 
+                if en.get_value().find('x') != -1:
+                    value = int(en.get_value(),16)
+                else:
+                    value = int(en.get_value())
+            elif self.valueType in ['double', 'float']:
+                value = float(en.get_value())
+            elif self.valueType in ['char', 'string']:
+                value = str(en.get_value())
+            elif self.valueType == 'boolean':
+                value = {"TRUE": True, "FALSE": False}[en.get_value().strip().upper()]
+            else:
+                value = None
+            enums[str(en.get_label())] = value
+        return enums
+
+
+    def _enumValue(self, value):
+         if value in self._enums.values():
+             return value
+         elif value in self._enums.keys():
+             return self._enums.get(value)
+         raise EnumValueError(self.id, value, self._enums)
+
+    @property
+    def structRef(self):
+        if self._isNested():
+            return self._parent.id
+        else:
+            return None
+
+    @property
+    def structSeqRef(self):
+        # DEPRECATED: used when the struct is part of a struct sequence
         try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return val <= args[0]
-            if self.type in ['double', 'float']:
-                return float.__le__(val, *args)
-            if self.type in ['boolean']:
-                return val <= args[0]
-            if self.type in ['char', 'string']:
-                return str.__le__(val, *args)
+            # NB: Deprecation warning issued by parent
+            return self._parent.structSeqRef
         except:
-            raise
-    
-    def __lshift__(self, *args):
+            _warnings.warn("'structSeqRef' is deprecated", DeprecationWarning)
+            return None
+
+    @property
+    def structSeqIdx(self):
+        # DEPRECATED: used when the struct is part of a struct sequence
+        _warnings.warn("'structSeqIdx' is deprecated for simple properties", DeprecationWarning)
         try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__lshift__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__lshift__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__lshift__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__lshift__(val, *args)
+            return self._parent.structSeqIdx
         except:
-            raise
-    
-    def __lt__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return val < args[0]
-            if self.type in ['double', 'float']:
-                return float.__lt__(val, *args)
-            if self.type in ['boolean']:
-                return val < args[0]
-            if self.type in ['char', 'string']:
-                return str.__lt__(val, *args)
-        except:
-            raise
-    
-    def __mod__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__mod__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__mod__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__mod__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__mod__(val, *args)
-        except:
-            raise
-    
-    def __mul__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__mul__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__mul__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__mul__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__mul__(val, *args)
-        except:
-            raise
-    
-    def __neg__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__neg__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__neg__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__neg__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__neg__(val, *args)
-        except:
-            raise
-    
-    def __or__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__or__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__or__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__or__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__or__(val, *args)
-        except:
-            raise
-    
-    def __pow__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__pow__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__pow__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__pow__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__pow__(val, *args)
-        except:
-            raise
-    
-    def __radd__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__radd__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__radd__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__radd__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__radd__(val, *args)
-        except:
-            raise
-    
-    def __rand__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rand__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rand__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rand__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rand__(val, *args)
-        except:
-            raise
-    
-    def __rdiv__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rdiv__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rdiv__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rdiv__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rdiv__(val, *args)
-        except:
-            raise
-    
-    def __rdivmod__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rdivmod__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rdivmod__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rdivmod__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rdivmod__(val, *args)
-        except:
-            raise
-    
-    def __rfloordiv__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rfloordiv__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rfloordiv__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rfloordiv__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rfloordiv__(val, *args)
-        except:
-            raise
-    
-    def __rlshift__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rlshift__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rlshift__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rlshift__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rlshift__(val, *args)
-        except:
-            raise
-    
-    def __rmod__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rmod__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rmod__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rmod__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rmod__(val, *args)
-        except:
-            raise
-    
-    def __rmul__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rmul__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rmul__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rmul__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rmul__(val, *args)
-        except:
-            raise
-    
-    def __ror__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__ror__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__ror__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__ror__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__ror__(val, *args)
-        except:
-            raise
-    
-    def __rpow__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rpow__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rpow__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rpow__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rpow__(val, *args)
-        except:
-            raise
-    
-    def __rrshift__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rrshift__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rrshift__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rrshift__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rrshift__(val, *args)
-        except:
-            raise
-    
-    def __rshift__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rshift__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rshift__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rshift__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rshift__(val, *args)
-        except:
-            raise
-    
-    def __rsub__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rsub__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rsub__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rsub__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rsub__(val, *args)
-        except:
-            raise
-    
-    def __rtruediv__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rtruediv__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rtruediv__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rtruediv__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rtruediv__(val, *args)
-        except:
-            raise
-    
-    def __rxor__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__rxor__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__rxor__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__rxor__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__rxor__(val, *args)
-        except:
-            raise
-    
-    def __sub__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__sub__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__sub__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__sub__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__sub__(val, *args)
-        except:
-            raise
-    
-    def __truediv__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__truediv__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__truediv__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__truediv__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__truediv__(val, *args)
-        except:
-            raise
-    
-    def __xor__(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.__xor__(val, *args)
-            if self.type in ['double', 'float']:
-                return float.__xor__(val, *args)
-            if self.type in ['boolean']:
-                return bool.__xor__(val, *args)
-            if self.type in ['char', 'string']:
-                return str.__xor__(val, *args)
-        except:
-            raise
-    
-    def capitalize(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.capitalize(val, *args)
-            if self.type in ['double', 'float']:
-                return float.capitalize(val, *args)
-            if self.type in ['boolean']:
-                return bool.capitalize(val, *args)
-            if self.type in ['char', 'string']:
-                return str.capitalize(val, *args)
-        except:
-            raise
-    
-    def center(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.center(val, *args)
-            if self.type in ['double', 'float']:
-                return float.center(val, *args)
-            if self.type in ['boolean']:
-                return bool.center(val, *args)
-            if self.type in ['char', 'string']:
-                return str.center(val, *args)
-        except:
-            raise
-    
-    def count(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.count(val, *args)
-            if self.type in ['double', 'float']:
-                return float.count(val, *args)
-            if self.type in ['boolean']:
-                return bool.count(val, *args)
-            if self.type in ['char', 'string']:
-                return str.count(val, *args)
-        except:
-            raise
-    
-    def decode(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.decode(val, *args)
-            if self.type in ['double', 'float']:
-                return float.decode(val, *args)
-            if self.type in ['boolean']:
-                return bool.decode(val, *args)
-            if self.type in ['char', 'string']:
-                return str.decode(val, *args)
-        except:
-            raise
-    
-    def encode(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.encode(val, *args)
-            if self.type in ['double', 'float']:
-                return float.encode(val, *args)
-            if self.type in ['boolean']:
-                return bool.encode(val, *args)
-            if self.type in ['char', 'string']:
-                return str.encode(val, *args)
-        except:
-            raise
-    
-    def endswith(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.endswith(val, *args)
-            if self.type in ['double', 'float']:
-                return float.endswith(val, *args)
-            if self.type in ['boolean']:
-                return bool.endswith(val, *args)
-            if self.type in ['char', 'string']:
-                return str.endswith(val, *args)
-        except:
-            raise
-    
-    def expandtabs(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.expandtabs(val, *args)
-            if self.type in ['double', 'float']:
-                return float.expandtabs(val, *args)
-            if self.type in ['boolean']:
-                return bool.expandtabs(val, *args)
-            if self.type in ['char', 'string']:
-                return str.expandtabs(val, *args)
-        except:
-            raise
-    
-    def find(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.find(val, *args)
-            if self.type in ['double', 'float']:
-                return float.find(val, *args)
-            if self.type in ['boolean']:
-                return bool.find(val, *args)
-            if self.type in ['char', 'string']:
-                return str.find(val, *args)
-        except:
-            raise
-    
-    def index(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.index(val, *args)
-            if self.type in ['double', 'float']:
-                return float.index(val, *args)
-            if self.type in ['boolean']:
-                return bool.index(val, *args)
-            if self.type in ['char', 'string']:
-                return str.index(val, *args)
-        except:
-            raise
-    
-    def isalnum(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.isalnum(val, *args)
-            if self.type in ['double', 'float']:
-                return float.isalnum(val, *args)
-            if self.type in ['boolean']:
-                return bool.isalnum(val, *args)
-            if self.type in ['char', 'string']:
-                return str.isalnum(val, *args)
-        except:
-            raise
-    
-    def isalpha(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.isalpha(val, *args)
-            if self.type in ['double', 'float']:
-                return float.isalpha(val, *args)
-            if self.type in ['boolean']:
-                return bool.isalpha(val, *args)
-            if self.type in ['char', 'string']:
-                return str.isalpha(val, *args)
-        except:
-            raise
-    
-    def isdigit(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.isdigit(val, *args)
-            if self.type in ['double', 'float']:
-                return float.isdigit(val, *args)
-            if self.type in ['boolean']:
-                return bool.isdigit(val, *args)
-            if self.type in ['char', 'string']:
-                return str.isdigit(val, *args)
-        except:
-            raise
-    
-    def islower(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.islower(val, *args)
-            if self.type in ['double', 'float']:
-                return float.islower(val, *args)
-            if self.type in ['boolean']:
-                return bool.islower(val, *args)
-            if self.type in ['char', 'string']:
-                return str.islower(val, *args)
-        except:
-            raise
-    
-    def isspace(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.isspace(val, *args)
-            if self.type in ['double', 'float']:
-                return float.isspace(val, *args)
-            if self.type in ['boolean']:
-                return bool.isspace(val, *args)
-            if self.type in ['char', 'string']:
-                return str.isspace(val, *args)
-        except:
-            raise
-    
-    def istitle(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.istitle(val, *args)
-            if self.type in ['double', 'float']:
-                return float.istitle(val, *args)
-            if self.type in ['boolean']:
-                return bool.istitle(val, *args)
-            if self.type in ['char', 'string']:
-                return str.istitle(val, *args)
-        except:
-            raise
-    
-    def isupper(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.isupper(val, *args)
-            if self.type in ['double', 'float']:
-                return float.isupper(val, *args)
-            if self.type in ['boolean']:
-                return bool.isupper(val, *args)
-            if self.type in ['char', 'string']:
-                return str.isupper(val, *args)
-        except:
-            raise
-    
-    def join(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.join(val, *args)
-            if self.type in ['double', 'float']:
-                return float.join(val, *args)
-            if self.type in ['boolean']:
-                return bool.join(val, *args)
-            if self.type in ['char', 'string']:
-                return str.join(val, *args)
-        except:
-            raise
-    
-    def ljust(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.ljust(val, *args)
-            if self.type in ['double', 'float']:
-                return float.ljust(val, *args)
-            if self.type in ['boolean']:
-                return bool.ljust(val, *args)
-            if self.type in ['char', 'string']:
-                return str.ljust(val, *args)
-        except:
-            raise
-    
-    def lower(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.lower(val, *args)
-            if self.type in ['double', 'float']:
-                return float.lower(val, *args)
-            if self.type in ['boolean']:
-                return bool.lower(val, *args)
-            if self.type in ['char', 'string']:
-                return str.lower(val, *args)
-        except:
-            raise
-    
-    def lstrip(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.lstrip(val, *args)
-            if self.type in ['double', 'float']:
-                return float.lstrip(val, *args)
-            if self.type in ['boolean']:
-                return bool.lstrip(val, *args)
-            if self.type in ['char', 'string']:
-                return str.lstrip(val, *args)
-        except:
-            raise
-    
-    def replace(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.replace(val, *args)
-            if self.type in ['double', 'float']:
-                return float.replace(val, *args)
-            if self.type in ['boolean']:
-                return bool.replace(val, *args)
-            if self.type in ['char', 'string']:
-                return str.replace(val, *args)
-        except:
-            raise
-    
-    def rfind(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.rfind(val, *args)
-            if self.type in ['double', 'float']:
-                return float.rfind(val, *args)
-            if self.type in ['boolean']:
-                return bool.rfind(val, *args)
-            if self.type in ['char', 'string']:
-                return str.rfind(val, *args)
-        except:
-            raise
-    
-    def rindex(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.rindex(val, *args)
-            if self.type in ['double', 'float']:
-                return float.rindex(val, *args)
-            if self.type in ['boolean']:
-                return bool.rindex(val, *args)
-            if self.type in ['char', 'string']:
-                return str.rindex(val, *args)
-        except:
-            raise
-    
-    def rjust(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.rjust(val, *args)
-            if self.type in ['double', 'float']:
-                return float.rjust(val, *args)
-            if self.type in ['boolean']:
-                return bool.rjust(val, *args)
-            if self.type in ['char', 'string']:
-                return str.rjust(val, *args)
-        except:
-            raise
-    
-    def rsplit(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.rsplit(val, *args)
-            if self.type in ['double', 'float']:
-                return float.rsplit(val, *args)
-            if self.type in ['boolean']:
-                return bool.rsplit(val, *args)
-            if self.type in ['char', 'string']:
-                return str.rsplit(val, *args)
-        except:
-            raise
-    
-    def rstrip(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.rstrip(val, *args)
-            if self.type in ['double', 'float']:
-                return float.rstrip(val, *args)
-            if self.type in ['boolean']:
-                return bool.rstrip(val, *args)
-            if self.type in ['char', 'string']:
-                return str.rstrip(val, *args)
-        except:
-            raise
-    
-    def split(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.split(val, *args)
-            if self.type in ['double', 'float']:
-                return float.split(val, *args)
-            if self.type in ['boolean']:
-                return bool.split(val, *args)
-            if self.type in ['char', 'string']:
-                return str.split(val, *args)
-        except:
-            raise
-    
-    def splitlines(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.splitlines(val, *args)
-            if self.type in ['double', 'float']:
-                return float.splitlines(val, *args)
-            if self.type in ['boolean']:
-                return bool.splitlines(val, *args)
-            if self.type in ['char', 'string']:
-                return str.splitlines(val, *args)
-        except:
-            raise
-    
-    def startswith(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.startswith(val, *args)
-            if self.type in ['double', 'float']:
-                return float.startswith(val, *args)
-            if self.type in ['boolean']:
-                return bool.startswith(val, *args)
-            if self.type in ['char', 'string']:
-                return str.startswith(val, *args)
-        except:
-            raise
-    
-    def strip(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.strip(val, *args)
-            if self.type in ['double', 'float']:
-                return float.strip(val, *args)
-            if self.type in ['boolean']:
-                return bool.strip(val, *args)
-            if self.type in ['char', 'string']:
-                return str.strip(val, *args)
-        except:
-            raise
-    
-    def swapcase(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.swapcase(val, *args)
-            if self.type in ['double', 'float']:
-                return float.swapcase(val, *args)
-            if self.type in ['boolean']:
-                return bool.swapcase(val, *args)
-            if self.type in ['char', 'string']:
-                return str.swapcase(val, *args)
-        except:
-            raise
-    
-    def title(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.title(val, *args)
-            if self.type in ['double', 'float']:
-                return float.title(val, *args)
-            if self.type in ['boolean']:
-                return bool.title(val, *args)
-            if self.type in ['char', 'string']:
-                return str.title(val, *args)
-        except:
-            raise
-    
-    def translate(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.translate(val, *args)
-            if self.type in ['double', 'float']:
-                return float.translate(val, *args)
-            if self.type in ['boolean']:
-                return bool.translate(val, *args)
-            if self.type in ['char', 'string']:
-                return str.translate(val, *args)
-        except:
-            raise
-    
-    def upper(self, *args):
-        try:
-            val = self.queryValue()
-            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-                return int.upper(val, *args)
-            if self.type in ['double', 'float']:
-                return float.upper(val, *args)
-            if self.type in ['boolean']:
-                return bool.upper(val, *args)
-            if self.type in ['char', 'string']:
-                return str.upper(val, *args)
-        except:
-            raise
-    
+            return None
+        
+    def fromAny(self, value):
+        '''
+        Converts the input value in CORBA Any format to Python.
+        '''
+        if value is None:
+            return None
+
+        value = value.value()
+        if self.valueType.find("complex") != -1:
+            return _convertToComplex(value)
+        else:
+            return value
+
+    def toAny(self, value):
+        '''
+        Converts the input value in Python format to a CORBA Any.
+        '''
+        if value == None:
+            return _any.to_any(None)
+
+        # If property is an enumeration, enforce proper value
+        if self._enums != None:
+            value = self._enumValue(value)
+
+        if self.valueType.startswith("complex"):
+            memberTypeStr = mapComplexToSimple(self.valueType)
+            real, imag = _type_helpers._splitComplex(value)
+            realValue = _type_helpers.checkValidValue(real, memberTypeStr)
+            imagValue = _type_helpers.checkValidValue(imag, memberTypeStr)
+
+            # Convert to CORBA type (e.g., CF.complexFloat)
+            value = getCFType(self.valueType)(realValue, imagValue)
+        else:
+            # Validate the value
+            value = _type_helpers.checkValidValue(value, self.valueType)
+
+        return _CORBA.Any(self.typecode, value)
+
     def __repr__(self, *args):
-        value = self.queryValue()
-        if value != None:
-            print str(value),
+        if self.mode != "writeonly":
+            value = self.queryValue()
+            if value != None:
+                print str(value),
         return ''
         
     def __str__(self, *args):
-        value = self.queryValue()
-        if value != None:
-            return str(value)
-        else:
-            return ''
+        return self.__repr__()
 
-'''
-WE ARE AS OF YET UNABLE TO OVERRIDE THE FUNCTIONS BELOW DUE 
-TO COMPLICATIONS WITH THE INITIAL SETUP OF THE COMPONENT
-'''
-#    def __cmp__(self, *args):
-#        try:
-#            val = self.queryValue()
-#            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-#                return int.__cmp__(val, *args)
-#            if self.type in ['double', 'float']:
-#                return float.__cmp__(val, *args)
-#            if self.type in ['boolean']:
-#                return bool.__cmp__(val, *args)
-#            if self.type in ['char', 'string']:
-#                return str.__cmp__(val, *args)
-#        except:
-#            raise
-#
-#    def __len__(self, *args):
-#        try:
-#            val = self.queryValue()
-#            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-#                return int.__len__(val, *args)
-#            if self.type in ['double', 'float']:
-#                return float.__len__(val, *args)
-#            if self.type in ['boolean']:
-#                return bool.__len__(val, *args)
-#            if self.type in ['char', 'string']:
-#                return str.__len__(val, *args)
-#        except:
-#            raise   
-# 
-#    def __ne__(self, *args):
-#        try:
-#            val = self.queryValue()
-#            if self.type in ['short', 'long', 'longlong', 'octet', 'ulong', 'ushort', 'longlong', 'ulonglong']:
-#                return int.__ne__(val, *args)
-#            if self.type in ['double', 'float']:
-#                return float.__ne__(val, *args)
-#            if self.type in ['boolean']:
-#                return bool.__ne__(val, *args)
-#            if self.type in ['char', 'string']:
-#                return str.__ne__(val, *args)
-#        except:
-#            raise
+    def enums(self):
+        print self._enums
         
+    def __getattr__(self, name):
+        # If attribute is not found on simpleProperty, defer to the value; this
+        # allows things like '.real' and '.imag', or string methods to work
+        # without explicit support.
+        return getattr(self.queryValue(), name)
 
-class sequenceProperty(Property, list):
-    def __init__(self, id, valueType, compRef, defValue=None, mode='readwrite'):
-        """ 
-        id - (string): the property ID
-        valueType - (string): type of the property, must be in VALUE_TYPES, or can be struct
-        compRef - (domainless.componentBase) - pointer to the component that owns this property 
-        mode - (string): mode for the property, must be in MODES
-        
-        This class inherits from list so that the property will behave
-        as a list when the user wishes to manipulate it
+
+class sequenceProperty(Property):
+    def __init__(self, id, valueType, kinds, compRef, defValue=None, mode='readwrite'):
+        """
+        Create a new sequence property. Instances behave like list objects.
+
+        Arguments:
+          id        - The property ID
+          valueType - Type of the property, must be in VALUE_TYPES, or can be struct
+          compRef   - Reference to the PropertySet that owns this property
+          defValue  - Default Python value for this property (default: None)
+          mode      - Mode for the property, must be in MODES (default: 'readwrite')
         """
         if valueType not in SCA_TYPES and valueType != 'structSeq':
             raise('"' + str(valueType) + '"' + ' is not a valid valueType, choose from\n ' + str(SCA_TYPES))
         
-        #initialize the list, and the parent Property
-        list.__init__([])
-        Property.__init__(self, id, type=valueType, compRef=compRef, mode=mode)
+        # Initialize the parent Property
+        Property.__init__(self, id, type=valueType, kinds=kinds, compRef=compRef, mode=mode, action='external',
+                          defValue=defValue)
         
-        self.defValue = defValue
+        self.complex = False
         
         #try to set the value type in ref unless this is a sequence of structs
         if valueType != 'structSeq':
             self.valueType = valueType
-            #create the CF.DataType reference, change value to the correct type
-            self.propRef = _CF.DataType(id=str(self.id), value=_any.to_any(None))
             if self.valueType == "string":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.StringSeq)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.StringSeq)
             elif self.valueType == "boolean":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.BooleanSeq)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.BooleanSeq)
             elif self.valueType == "ulong":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.ULongSeq)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.ULongSeq)
             elif self.valueType == "short":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.ShortSeq)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.ShortSeq)
             elif self.valueType == "float":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.FloatSeq)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.FloatSeq)
             elif self.valueType == "char":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.CharSeq)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.CharSeq)
             elif self.valueType == "octet":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.OctetSeq)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.OctetSeq)
             elif self.valueType == "ushort":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.UShortSeq)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.UShortSeq)
             elif self.valueType == "double":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.DoubleSeq)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.DoubleSeq)
             elif self.valueType == "long":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.LongSeq)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_CORBA.LongSeq)
             elif self.valueType == "longlong":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_PortTypes.LongLongSequence)
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_PortTypes.LongLongSequence)
             elif self.valueType == "ulonglong":
-                self.propRef.value._t = _tcInternal.typeCodeFromClassOrRepoId(_PortTypes.UlongLongSequence) 
-    
-    def queryValue(self):
-        '''
-        Returns the current value of the property by doing a query
-        on the component and returning only the value, or an empty list
-        '''
-        if self.mode == 'writeonly':
-            raise Exception, 'Could not perform query, ' + str(self.id) + ' is a writeonly property'
-        else:
-            queryRef = _copy.deepcopy(self.propRef)
-            queryRef.value = _any.to_any(None)
-            results = self.compRef.query([queryRef])
-            if results != None:
-                val = results[0].value.value()
-                if val != None and val != '':
-                    # Octet sequences are stored as strings
-                    if self.valueType == 'octet':
-                        val = list([ord(x) for x in val])
-                    elif self.valueType == 'char':
-                        val = list([x for x in val])
-                    return val
-            if self.valueType == 'octet' or self.valueType == 'char':
-                return ''
-            return []
-    
-    def configureValue(self, value):
-        '''
-        Helper function for configuring a sequence property
-        '''
-        if self.mode == 'readonly':
-            raise Exception, 'Could not perform configure, ' + str(self.id) + ' is a readonly property'
-        else:
-            if value == None:
-                configRef = _copy.deepcopy(self.propRef)
-                configRef.value = _any.to_any(None)
-                self.compRef.configure([configRef])
-            else:
-                if type(value) != list and type(value) != tuple and type(value) != str:
-                    if self.valueType == 'octet' or self.valueType == 'char':
-                        msg = 'configureValue() must be called with str instance as second argument (got ' + str(type(value))[7:-2] + ' instance instead)'
-                    else:
-                        msg = 'configureValue() must be called with list or tuple instance as second argument (got ' + str(type(value))[7:-2] + ' instance instead)'
-                    raise TypeError, msg
-            
-                # For octet convert list to string
-                if self.valueType == 'octet':
-                    strVal = ''
-                    for x in value:
-                        # Make sure value is correct and is within range so that pack doesn't fail
-                        if type(x) != int:
-                            raise TypeError, 'configureValue() must be called with type int instance as second argument (got ' + str(type(x))[7:-2] + ' instance instead)'
-                        elif x < 0 or x > 255:
-                            raise OutOfRangeException, '"'+str(x)+'"'+ ' is out of range for type octet(unsigned 8 bit) [0 <= x <= 255]'
-                        else:
-                            strVal +=  _struct.pack('B', int(x))
-                    value = strVal
-                elif self.valueType == 'char':
-                    strVal = ''
-                    for x in value:
-                        # Makes sure each value is only a single char
-                        if type(x) != str:
-                            raise TypeError, 'configureValue() must be called with type char instance as second argument (got ' + str(type(x))[7:-2] + ' instance instead)'
-                        elif len(x) > 1:
-                            raise TypeError, 'configureValue() must be called with type char instance as second argument (got a str instance instead)'
-                        strVal += x
-                        
-                    value = strVal
-                #validate each value within the list
-                _type_helpers.checkValidDataSet(value, self.valueType)
-                configRef = _copy.deepcopy(self.propRef)
-                configRef.value._v = value
-                self.compRef.configure([configRef])
+                self.typecode = _tcInternal.typeCodeFromClassOrRepoId(_PortTypes.UlongLongSequence) 
+            elif self.valueType.find("complex") == 0:
+                self.typecode = getCFSeqType(self.valueType)
 
+                # It is important to have a means other than .find("complex")
+                # to determine complexity, as in the case of a struct sequence,
+                # the value of self.valueType may not be a string.
+                self.complex = True
+
+    def _mapCFtoComplex(self, CFVal):
+        return complex(CFVal.real, CFVal.imag)
+
+    def _getComplexConfigValues(self, value):
+        '''
+        Go from:
+            [complex(a,b), complex(a,b), ..., complex(a,b)]
+        to:
+            [CF.complexType(a,b), CF.complexType(a,b), ..., complexType(a,b)]
+        '''
+
+        memberTypeStr = mapComplexToSimple(self.valueType)
+        newValues = []
+        for val in value:
+            # value is actually a list.  loop through each val
+            # in the list and validate it
+            try:
+                real = val.real
+                imag = val.imag
+            except AttributeError:
+                # In Python 2.4, basic types don't support 'real' and 'imag',
+                # so assume that val is the real component and use its type to
+                # create an imaginary component with a value of 0
+                real = val
+                imag = type(val)(0)
+            realValue = _type_helpers.checkValidValue(real, memberTypeStr)
+            imagValue = _type_helpers.checkValidValue(imag, memberTypeStr)
+        
+            # convert to CORBA type (e.g., CF.complexFloat)
+            newValues.append(getCFType(self.valueType)(realValue, imagValue))
+        return newValues
+
+    def fromAny(self, value):
+        '''
+        Converts the input value in CORBA Any format to Python.
+        '''
+        if value is None:
+            return []
+
+        values = value.value()
+        if values is not None and values != '':
+            if self.complex:
+                values = [self._mapCFtoComplex(x) for x in values]
+            elif self.valueType == 'octet':
+                # Octet sequences are stored as strings
+                values = [ord(x) for x in values]
+            elif self.valueType == 'char':
+                values = [x for x in values]
+            return values
+        if self.valueType == 'octet' or self.valueType == 'char':
+            return ''
+        return []
+
+    def toAny(self, value):
+        '''
+        Converts the input value in Python format to a CORBA Any.
+        '''
+        if value == None:
+            return _any.to_any(None)
+
+        if self.complex:
+            value = self._getComplexConfigValues(value)
+        else:
+            value = _type_helpers.checkValidDataSet(value, self.valueType)
+
+        return _CORBA.Any(self.typecode, value)
+        
     '''
     BELOW ARE OVERRIDDEN FUNCTIONS FOR THE LIST CLASS IN
     PYTHON SO THAT THE PROPERTIES BEHAVE WITHIN THE CODE
     AS IF THEY ARE ACTUALLY LISTS
     '''
-    def __add__(self, *args):
-        return list.__add__([x for x in self.queryValue()], args)
-    
-    def __contains__(self, *args):
-        return list.__contains__([x for x in self.queryValue()], *args)
-    
-    def __delitem__(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        list.__delitem__(tmp, *args)
-        self.configureValue(tmp)
-    
-    def __delslice__(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        list.__delslice__(tmp, *args)
-        self.configureValue(tmp)
+    # Container methods
+    # __getitem__ and __contains__ are implemented in Property
+    __setitem__ = Property.proxy_modifier_function(_operator.setitem)
+    __delitem__ = Property.proxy_modifier_function(_operator.delitem)
+    __iter__ = Property.proxy_operator(iter)
+    # NB: __reversed__ is ignored prior to Python 2.6
+    __reversed__ = Property.proxy_operator(reversed)
 
-    def __eq__(self, *args):
-        return list.__eq__([x for x in self.queryValue()], *args)
-    
-    def __ge__(self, *args):
-        return list.__ge__([x for x in self.queryValue()], *args)
-    
-    def __getslice__(self, *args):
-        return list.__getslice__([x for x in self.queryValue()], *args)
-    
-    def __getitem__(self, *args):
-        return list.__getitem__([x for x in self.queryValue()], *args)
-    
-    def __gt__(self, *args):
-        return list.__gt__([x for x in self.queryValue()], *args)
-    
-    def __iadd__(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        result = list.__iadd__(tmp, *args)
-        self.configureValue(result)
-        return [x for x in self.queryValue()]
-    
-    def __imul__(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        result = list.__imul__(tmp, *args)
-        self.configureValue(result)
-        return [x for x in self.queryValue()]
-    
-    def __iter__(self, *args):
-        return list.__iter__([x for x in self.queryValue()], *args)
-    
-    def __le__(self, *args):
-        return list.__le__([x for x in self.queryValue()], *args)
-    
-    def __len__(self, *args):
-        return list.__len__([x for x in self.queryValue()], *args)
-    
-    def __lt__(self, *args):
-        return list.__lt__([x for x in self.queryValue()], *args)
-    
-    def __mul__(self, *args):
-        return list.__mul__([x for x in self.queryValue()], *args)
-    
-    def __ne__(self, *args):
-        return list.__ne__([x for x in self.queryValue()], *args)
-    
+    # List methods
+    append = Property.proxy_modifier_function(list.append)
+    count = Property.proxy_operator(list.count)
+    extend = Property.proxy_modifier_function(list.extend)
+    index = Property.proxy_operator(list.index)
+    insert = Property.proxy_modifier_function(list.insert)
+    pop = Property.proxy_modifier_function(list.pop)
+    remove = Property.proxy_modifier_function(list.remove)
+    reverse = Property.proxy_modifier_function(list.reverse)
+    sort = Property.proxy_modifier_function(list.sort)
+
     def __repr__(self):
-        return str(self.queryValue())
+        if self.mode != "writeonly":
+            return repr(self.queryValue())
+        return ''
     
-    def __reversed__(self, *args):
-        return list.__reversed__([x for x in self.queryValue()], *args)
-    
-    def __rmul__(self, *args):
-        return list.__rmul__([x for x in self.queryValue()], *args)
-    
-    def __setitem__(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        list.__setitem__(tmp, *args)
-        self.configureValue(tmp)
-    
-    def __setslice__(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        list.__setslice__(tmp, *args)
-        self.configureValue(tmp)
-        
     def __str__(self):
-        return str(self.queryValue())
+        return self.__repr__()
     
-    def append(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        list.append(tmp, *args)
-        self.configureValue(tmp)
-        
-    def count(self, *args):
-        return list.count([x for x in self.queryValue()], *args)
-    
-    def extend(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        list.extend(tmp, *args)
-        self.configureValue(tmp)
-    
-    def index(self, *args):
-        return list.index([x for x in self.queryValue()], *args)
-    
-    def insert(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        list.insert(tmp, *args)
-        self.configureValue(tmp)
-    
-    def pop(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        value = list.pop(tmp, *args)
-        self.configureValue(tmp)
-        return value
-    
-    def remove(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        list.remove(tmp, *args)
-        self.configureValue(tmp)
-    
-    def reverse(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        list.reverse(tmp, *args)
-        self.configureValue(tmp)
-    
-    def sort(self, *args):
-        tmp = _copy.deepcopy([x for x in self.queryValue()])
-        list.sort(tmp, *args)
-        self.configureValue(tmp)
             
 class structProperty(Property):
-    def __init__(self, id, valueType, compRef, defValue=None, structSeqRef=None, structSeqIdx=None, mode='readwrite'):
+    # All structs have the same CORBA typecode.
+    typecode = _CORBA.TypeCode("IDL:CF/Properties:1.0")
+
+    def __init__(self, id, valueType, kinds, compRef, props, defValue=None, parent=None, structSeqIdx=None, mode='readwrite',
+                 structSeqRef=None):
         """ 
-        id - (string): the property ID
-        valueType - (list): each entry in the list is a tuple defined in the following fashion:
-                                (id, valueType(as defined for simples), defValue)
-        compRef - (domainless.componentBase) - pointer to the component that owns this property
-        structSeqRef - (string) - name of the struct sequence that this struct is a part of, or None
-        structSeqIdx - (int) - index of the struct  int the struct sequence, or None
-        mode - (string): mode for the property, must be in MODES
+        Create a struct property.
+
+        Arguments:
+          id           - The property ID
+          valueType    - List of tuples describing members, in the following format:
+                         (id, valueType(as defined for simples), defValue, name)
+          compRef      - Reference to the PropertySet that owns this property
+          defValue     - Default Python value for this property (default: None)
+          parent       - Parent property that contains this property (default: None)
+          structSeqIdx - Index of the struct in parent struct sequence (default: None)
+          mode         - Mode for the property, must be in MODES (default: 'readwrite')
+
+        Deprecated arguments:
+          structSeqRef
         """
-        if type(valueType) != list:
-            raise('valueType must be provided as a list')
-        self.valueType = valueType
-        self.defValue = defValue
-        
-        #used when the struct is part of a struct sequence
-        self.structSeqRef = structSeqRef
-        self.structSeqIdx = structSeqIdx
+        if not isinstance(valueType, list):
+            raise TypeError('valueType must be provided as a list')
+
+        # Since members is used for attribute lookup, initialize it first
+        self.members = {}
+        self._memberNames = {}
         
         #initialize the parent
-        Property.__init__(self, id, type='struct', compRef=compRef, mode=mode)
+        Property.__init__(self, id, type='struct', kinds=kinds, compRef=compRef, mode=mode, action='external', parent=parent,
+                          defValue=defValue)
         
+        self.valueType = valueType
+
+        #used when the struct is part of a struct sequence
+        self.structSeqIdx = structSeqIdx
+
         #each of these members is itself a simple property
-        self.members = {}
+        simplePropIndex = 0
         for _id, _type, _defValue, _clean_name in valueType:
-            if self.structSeqRef:
-                simpleProp = simpleProperty(_id, _type, compRef=compRef, defValue=_defValue, structRef=id, structSeqRef=self.structSeqRef, structSeqIdx=self.structSeqIdx)
-                simpleProp.clean_name = _clean_name
-            else:
-                simpleProp = simpleProperty(_id, _type, compRef=compRef, defValue=_defValue, structRef=id)
-                simpleProp.clean_name = _clean_name
-            self.members[_id] = (simpleProp)
-        
-        #create the CF.DataType reference        
-        self.propRef = _CF.DataType(id=str(self.id), value=_CORBA.Any(_CORBA.TypeCode("IDL:CF/Properties:1.0"), None))            
-    
-    def queryValue(self):
-        '''
-        Returns the current value of the property by doing a query
-        on the component and returning only the value as a dictionary
-        '''
-        if self.mode == 'writeonly':
-            raise Exception, 'Could not perform query, ' + str(self.id) + ' is a writeonly property'
-        else:
-            #check if this struct is a member of a struct sequence
-            if self.structSeqRef != None:
-                #get the struct sequence from the component and do a query
-                structSeqProp = self.compRef.__getattribute__(self.structSeqRef)
-                queryRef = _copy.deepcopy(structSeqProp.propRef)
-                results = self.compRef.query([queryRef])
-                if results == None:
-                    return {}
-                else:
-                    structRefList = results[0].value.value()
-                    
-                    #build the dictionary
-                    structRef = structRefList[self.structSeqIdx].value()
-                    structDict = {}
-                    for simpleRef in structRef:
-                        structDict[simpleRef.id] = simpleRef.value.value()
-                    return structDict   
-            else:
-                #do a query
-                queryRef = _copy.deepcopy(self.propRef)
-                queryRef.value = _any.to_any(None)
-                results = self.compRef.query([queryRef])
-                if results == None:
-                    return {}
-                else:
-                    #build the dictionary
-                    structRef = results[0].value.value()
-                    structDict = {}
-                    for simpleRef in structRef:
-                        structDict[simpleRef.id] = simpleRef.value.value()
-                    return structDict
-    
-    def configureValue(self, value):
-        '''
-        Helper function for configuring a sequence property, using a
-        dictionary as the passed in value
-        '''
-        if self.mode == 'readonly':
-            raise Exception, 'Could not perform configure, ' + str(self.id) + ' is a readonly property'
-        else:
-            if value != None:
-                if type(value) != dict:
-                    raise TypeError, 'configureValue() must be called with dict instance as second argument (got ' + str(type(value))[7:-2] + ' instance instead)'
-                    #check that the value passed in matches the struct definition
-                    _type_helpers.checkValidValue(value, [(_id, _type) for _id, _type, _val, _cleanName in self.valueType])
-            
-            #check if this struct is a member of a struct sequence
-            if self.structSeqRef != None:
-                #get the struct sequence from the component and do a query
-                structSeqProp = self.compRef.__getattribute__(self.structSeqRef)
-                queryRef = _copy.deepcopy(structSeqProp.propRef)
-                results = self.compRef.query([queryRef])
-                if results == None:
-                    return self.compRef.configure([self.propRef])
-                else:
-                    structRefList = results[0].value.value()
-                    
-                    #find the right struct
-                    structRef = structRefList[self.structSeqIdx].value()
-                    
-                    if value == None:
-                        #go through each member of the struct and set it to None
-                        for simpleRef in structRef:
-                            simpleRef.value = _any.to_any(None)
-                        
-                        #copy in all the struct instances and do a configure    
-                        configRef = _copy.deepcopy(structSeqProp.propRef)
-                        for instance in structRefList:
-                            configRef.value._v.append(instance)
-                        self.compRef.configure([configRef])
-                
-                    else:
-                        #go through each member of the struct and change it if a value 
-                        #was sent in for it, else use the value returned from the query
-                        querymembers = self.queryValue()
-                        for simpleRef in structRef:
-                            currValue = None
-                            try:
-                                currValue = value[simpleRef.id]
-                            except:
-                                try:
-                                    currValue = querymembers[simpleRef.id]
-                                except:
-                                    pass
-                                
-                            if currValue == None:
-                                simpleRef.value = _any.to_any(None)
-                            else:
-                                simpleRef.value._v = currValue
-                                #must change the type back in case it was set to TK_null by a previous configure
-                                simpleRef.value._t = self.members[simpleRef.id].propRef.value._t
-                        
-                        #copy in all the struct instances and do a configure 
-                        configRef = _copy.deepcopy(structSeqProp.propRef)
-                        for instance in structRefList:
-                            configRef.value._v.append(instance)
-                        self.compRef.configure([configRef])
-            else:
-                configRef = _copy.deepcopy(self.propRef)
-                configRef.value._v = [_copy.deepcopy(member.propRef) for member in self.members.values()]
-                
-                if value == None:
-                    #go through each member of the struct and set it to None, then do a configure
-                    for simpleRef in configRef.value.value():
-                        simpleRef.value = _any.to_any(None)
-                    self.compRef.configure([configRef])
-                else:
-                    #go through each member of the struct and change it if a value 
-                    #was sent in for it, else use the value returned from the query
-                    querymembers = self.queryValue()
-                    for simpleRef in configRef.value.value():
-                        currValue = None
-                        try:
-                            currValue = value[simpleRef.id]
-                        except:
-                            try:
-                                currValue = querymembers[simpleRef.id]
-                            except:
-                                pass
-                            
-                        if currValue == None:
-                            simpleRef.value = _any.to_any(None)
-                        else:
-                            simpleRef.value._v = currValue
-                            #must change the type back in case it was set to TK_null by a previous configure
-                            simpleRef.value._t = self.members[simpleRef.id].propRef.value._t
-                    
-                    #do a configure
-                    self.compRef.configure([configRef])
-            return value
-    
+            try:
+                enum = props[simplePropIndex].get_enumerations().get_enumeration()
+            except:
+                enum = None
+            simpleProp = simpleProperty(_id, _type, enum, compRef=compRef, kinds=kinds, defValue=_defValue, parent=self)
+            simpleProp.clean_name = _clean_name
+            self.members[_id] = simpleProp
+            # Map the clean name back to the ID, and if it was a duplicate
+            # (and thus had a count appended), map the non-unique name as well
+            self._memberNames[_clean_name] = _id
+            baseName = _cleanId(props[simplePropIndex])
+            if baseName != _clean_name:
+                self._memberNames[baseName] = _id
+            simplePropIndex += 1
+
+    def _getItemKey(self):
+        return self.structSeqIdx
+
+    def _queryItem(self, propId):
+        results = self._queryValue()
+        if results is None:
+            return None
+        for item in results.value():
+            if item.id == propId:
+                return item.value
+        return None
+
+    def _configureItem(self, propId, value):
+        structValue = self._queryValue()
+        if structValue is None:
+            return
+        for simple in structValue._v:
+            if simple.id == propId:
+                simple.value = value
+        self._configureValue(structValue)
+
+    def _checkValue(self, value):
+        for memberId in value.iterkeys():
+            self._getMemberId(memberId)
+
+    def _getMemberId(self, name):
+        if name in self.members:
+            return name
+        memberId = self._memberNames.get(name, None)
+        if memberId:
+            return memberId
+        raise TypeError, "'%s' is not a member of '%s'" % (name, self.id)
+
+    def _remapValue(self, value):
+        valout = {}
+        for memberId, memberVal in value.iteritems():
+            memberId = self._getMemberId(memberId)
+            valout[memberId] = memberVal
+        return valout
 
     def _getMember(self, name):
-        '''
-        Helper function to get the simple member of a struct.  Needed when there are duplicate simple
-        property names in different structs.
-        '''
-        try:
-            return object.__getattribute__(self, "members")[_displayNames[self.compRef._refid][name]]
-        except:
-            for member in object.__getattribute__(self, "members").itervalues():
-                if name in member.clean_name and _duplicateNames[self.compRef._refid].has_key(name):
-                    return member
+        memberId = self._memberNames.get(name, None)
+        if memberId:
+            return self.members[memberId]
+        else:
             return None
+
+    @property
+    def structSeqRef(self):
+        # DEPRECATED: used when the struct is part of a struct sequence
+        _warnings.warn("'structSeqRef' is deprecated", DeprecationWarning)
+        if self._isNested():
+            return self._parent.id
+        else:
+            return None
+
+    def fromAny(self, value):
+        '''
+        Converts the input value in CORBA Any format to Python.
+        '''
+        if value is None:
+            return {}
+
+        structVal = {}
+        for simple in value.value():
+            member = self.members[simple.id]
+            structVal[simple.id] = member.fromAny(simple.value)
+        return structVal
+
+    def toAny(self, value):
+        '''
+        Converts the input value in Python format to a CORBA Any.
+        '''
+        if value is None:
+            props = [_CF.DataType(str(m.id), m.toAny(None)) for m in self.members.values()]
+            return _CORBA.Any(self.typecode, props)
+
+        if not isinstance(value, dict):
+            raise TypeError, 'configureValue() must be called with dict instance as second argument (got ' + str(type(value))[7:-2] + ' instance instead)'
+
+        # Remap the value keys, which may be names, to IDs; this also checks
+        # that the value passed in matches the struct definition
+        value = self._remapValue(value)
+
+        # Convert struct items into CF::Properties.
+        props = []
+        for _id, member in self.members.iteritems():
+            memberVal = value.get(_id, member.defValue)
+            props.append(_CF.DataType(str(_id), member.toAny(memberVal)))
+
+        return _CORBA.Any(self.typecode, props)
+
+    def configureValue(self, value):
+        '''
+        Helper function for configuring a struct property, using a
+        dictionary as the passed in value
+        '''
+        if value is not None:
+            # Remap the keys in the dictionary to ensure that they are all
+            # valid member IDs, throwing an exception if there are any unknown
+            # IDs; this will also make a copy, so that any updates do not
+            # affect the passed-in value
+            value = self._remapValue(value)
+            
+            # We now know that all the keys in the dictionary are also in the
+            # members dictionary, so if the sizes are not equal, there are
+            # values missing; query the current value for those
+            if len(value) != len(self.members):
+                current = self.queryValue()
+                current.update(value)
+                value = current
+        super(structProperty,self).configureValue(value)
     
-   
     def __str__(self):
-        currValue = self.queryValue()
-        structView = "ID: " + self.id
-        for key in currValue:
-            structView = structView + '\n  ' + str(self.members[key].clean_name) + ": " + str(currValue[key])
-        return structView
+        return self.__repr__()
     
     def __repr__(self):
-        currValue = self.queryValue()
+        currValue = ""
+        if self.mode != "writeonly":
+            currValue = self.queryValue()
         structView = "ID: " + self.id
         for key in currValue:
             structView = structView + '\n  ' + str(self.members[key].clean_name) + ": " + str(currValue[key])
@@ -2004,121 +1148,154 @@ class structProperty(Property):
         If the attribute being looked up is actually a member of the struct,
         then return that simple property, otherwise default to the normal
         getattribute function
-        ''' 
-        member =self._getMember(name)
+        '''
+        member = self._getMember(name)
         if member is not None:
             return member
-        return object.__getattribute__(self,name)
-        
+        else:
+            return super(structProperty, self).__getattribute__(name)
+    
     def __setattr__(self, name, value):
         '''
         If the attribute being looked up is actually a member of the struct,
         then try to configure the simple property.  This will result in a
         configure of the entire struct in the simpleProperty class
         '''
-        try:
+        if name not in ('members', '_memberNames'):
             member = self._getMember(name)
             if member is not None:
-                name = member.clean_name
-            self.members[_displayNames[self.compRef._refid][name]].configureValue(value)
-        except AttributeError:
-            return object.__setattr__(self, name, value)
-        except KeyError:
-            return object.__setattr__(self, name, value)
-            
-        
+                member.configureValue(value)
+                return
+        super(structProperty, self).__setattr__(name, value)
+
+    # Container methods
+    # __getitem__ and __contains__ are implemented in Property
+    __setitem__ = Property.proxy_modifier_function(_operator.setitem)
+    __iter__ = Property.proxy_operator(iter)
+
+    # Dict methods
+    has_key = Property.proxy_operator(dict.has_key)
+    items = Property.proxy_operator(dict.items)
+    iteritems = Property.proxy_operator(dict.iteritems)
+    iterkeys = Property.proxy_operator(dict.iterkeys)
+    itervalues = Property.proxy_operator(dict.itervalues)
+    keys = Property.proxy_operator(dict.keys)
+    update = Property.proxy_modifier_function(dict.update)
+    values = Property.proxy_operator(dict.values)
+
+
 class structSequenceProperty(sequenceProperty):
-    def __init__(self, id, structID, valueType, compRef, defValue=[], mode='readwrite'):
+    # All struct sequences have the same CORBA typecode.
+    typecode = _CORBA.TypeCode("IDL:omg.org/CORBA/AnySeq:1.0")
+
+    def __init__(self, id, structID, valueType, kinds, props, compRef, defValue=[], mode='readwrite'):
         """ 
-        id - (string): the property ID
-        valueType - (list): each entry in the list is a tuple defined in the following fashion:
-                                (id, valueType(as defined for simples), defValue)
-        compRef - (domainless.componentBase) - pointer to the component that owns this property
-        mode - (string): mode for the property, must be in MODES
+        Create a struct sequence property.
+
+        Arguments:
+          id           - The property ID
+          structID     - The struct definition ID
+          valueType    - List of tuples describing members, in the following format:
+                         (id, valueType(as defined for simples), defValue, name)
+          compRef      - Reference to the PropertySet that owns this property
+          defValue     - Default Python value for this property (default: [])
+          mode         - Mode for the property, must be in MODES (default: 'readwrite')
         """
-        if type(valueType) != list:
-            raise('valueType must be provided as a list')
-        self.valueType = valueType
-        self.structID = structID
-        self.defValue = defValue
+        if not isinstance(valueType, list):
+            raise TypeError('valueType must be provided as a list')
         
         #initialize the parent
-        sequenceProperty.__init__(self, id, valueType='structSeq', compRef=compRef, defValue=self.defValue, mode=mode)
+        sequenceProperty.__init__(self, id, valueType='structSeq', kinds=kinds, compRef=compRef, defValue=defValue, mode=mode)
+        self.valueType = valueType
+        self.props = props
+        # Create a property for the struct definition.
+        self.structDef = structProperty(id=structID, valueType=self.valueType, kinds=kinds,props=props, compRef=self.compRef, mode=self.mode)
 
-        #create the CF.DataType reference   
-        self.propRef = _CF.DataType(id=str(self.id), value=_CORBA.Any(_CORBA.TypeCode("IDL:omg.org/CORBA/AnySeq:1.0"), []))
+    @property
+    def propRef(self):
+        # DEPRECATED: Create the CF.DataType reference
+        # NB: Use the superclass propRef property to issue the deprecation
+        #     warning, then alter the returned value to match old behavior
+        value = super(structSequenceProperty, self).propRef
+        value.value._v = []
+        return value
 
-    def __getitem__(self, *args):
-        #the actual struct property doesn't exist, so create it and return it
-        newProp = structProperty(id=self.structID, valueType=self.valueType, compRef=self.compRef, \
-                                 structSeqRef=self.id, structSeqIdx=args[0], mode=self.mode)
-        return newProp
+    @property
+    def structID(self):
+        return self.structDef.id
+
+    def __getitem__(self, index):
+        # The actual struct property doesn't exist, so create and return it
+        return structProperty(id=self.structDef.id, valueType=self.valueType, kinds=self.kinds, props=self.props, compRef=self.compRef,
+                              parent=self, structSeqIdx=index, mode=self.mode)
     
-    def __setitem__(self, *args):
-        #the actual struct property doesn't exist, so create it and configure it,
-        #this will trigure a configure of the entire sequence from within structProperty
-        newProp = structProperty(id=self.structID, valueType=self.valueType, compRef=self.compRef, \
-                                 structSeqRef=self.id, structSeqIdx=args[0], mode=self.mode)
-        structProperty.configureValue(newProp, args[1])
-    
-    def queryValue(self):
-        '''
-        Returns the current value of the property by doing a query
-        on the component and returning only the value as a list of dictionary
-        '''
-        if self.mode == 'writeonly':
-            raise Exception, 'Could not perform query, ' + str(self.id) + ' is a writeonly property'
-        else:
-            #get the list of struct refs from the parent
-            structRefs = sequenceProperty.queryValue(self)
-            structRefList = []
-            for structRef in structRefs:
-                simpleRefs = structRef.value()
-                struct = {}
-                for simpleRef in simpleRefs:
-                    struct[simpleRef.id] = simpleRef.value.value()
-                structRefList.append(struct)
-            return structRefList
+    def __setitem__(self, index, value):
+        # Use __getitem__ to get a struct property, then configure it; this
+        # will trigger a configure of the entire sequence
+        self[index].configureValue(value)
 
-    def configureValue(self, value):
+    def _queryItem(self, index):
+        # Get the full struct sequence value.
+        results = self._queryValue()
+        if results is None:
+            return None
+        return results.value()[index]
+
+    def _configureItem(self, index, value):
+        # Get the full struct sequence value.
+        results = self._queryValue()
+        if results is None:
+            return
+
+        # Replace the struct in the list.
+        results._v[index] = value
+
+        # Configure the complete, updated struct sequence.
+        self._configureValue(results)
+
+    def fromAny(self, value):
         '''
-        Helper function for configuring a struct sequence property
+        Converts the input value in CORBA Any format to Python.
         '''
-        if self.mode == 'readonly':
-            raise Exception, 'Could not perform configure, ' + str(self.id) + ' is a readonly property'
-        else:
-            if value == None:
-                configRef = _copy.deepcopy(self.propRef)
-                self.compRef.configure([configRef])
-            else:
-                if type(value) != list:
-                    raise TypeError, 'configureValue() must be called with list instance as second argument (got ' + str(type(value))[7:-2] + ' instance instead)'
-            
-                _type_helpers.checkValidDataSet(value, [(_id, _type) for _id, _type, _val, _cleanName in self.valueType])
-                
-                structRefs = []
-                for dict in value:
-                    newProp = structProperty(id=self.structID, valueType=self.valueType, compRef=self.compRef, mode=self.mode)
-                    newPropRef = newProp.propRef
-                    newPropRef.value._v = [_copy.deepcopy(member.propRef) for member in newProp.members.values()]
-                    simpleRefs = []
-                    for simpleRef in newPropRef.value.value():
-                        try:
-                            if dict[simpleRef.id] == None:
-                                simpleRef.value = _any.to_any(None)
-                            else:
-                                simpleRef.value._v = dict[simpleRef.id]
-                        except:
-                            oldType = simpleRef.value._t
-                            simpleRef.value = _any.to_any(None)
-                            for _id, _type, _defValue, _cleanName in self.valueType:
-                                if _id == simpleRef.id:
-                                    if _defValue != None:
-                                        simpleRef.value._v = _defValue
-                                        simpleRef.value._t = oldType    
-                        simpleRefs.append(_copy.deepcopy(simpleRef))
-                    tmpRef = _CORBA.Any(_CORBA.TypeCode("IDL:CF/Properties:1.0"), simpleRefs)
-                    structRefs.append(_copy.deepcopy(tmpRef))
-                configRef = _copy.deepcopy(self.propRef)
-                configRef.value._v = structRefs
-                self.compRef.configure([configRef])
+        if value is None:
+            return []
+
+        return [self.structDef.fromAny(v) for v in value.value()]
+
+    def toAny(self, value):
+        '''
+        Converts the input value in Python format to a CORBA Any.
+        '''
+        if value is None:
+            return _any.to_any(None)
+
+        return _CORBA.Any(self.typecode, [self.structDef.toAny(v) for v in value])
+
+def parseComplexString(ajbString, baseType):
+    '''
+    Parse a string in the form A+jB into its real (A) and imag (B) components.
+
+    baseType can either be a Python type (e.g., float) , or a string
+    containing the name of a complex type (e.g., "float").
+    '''
+
+    if __TYPE_MAP.has_key(baseType): 
+        # if the type is passed in as a string
+        # e.g., "float" vs. float
+        baseType = getPyType(baseType) 
+
+    real = baseType(0)
+    imag = baseType(0)
+    sign = 1
+    signLocation = ajbString.find("-j")
+    if signLocation != -1:
+        # if a negative-sign is found for imag data
+        sign = -1
+    jLocation = ajbString.find("j")
+    if jLocation < 0:
+        # if no "j", then we just have a real number
+        real = baseType(ajbString)
+    else:
+        real = baseType(ajbString[:jLocation-1])
+        imag = sign * baseType(ajbString[jLocation+1:])
+    return real, imag

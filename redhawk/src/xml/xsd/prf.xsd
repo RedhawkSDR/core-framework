@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<xs:schema targetNamespace="urn:mil:jpeojtrs:sca:prf"
+           xmlns="urn:mil:jpeojtrs:sca:prf"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	   xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+           elementFormDefault="unqualified"
+	   ecore:nsPrefix=""
+	   ecore:package="mil.jpeojtrs.sca.prf">
+  <xs:annotation>
+    <xs:documentation>
+The Properties Descriptor file details component and device attribute settings. For purposes of
+the SCA, Property Descriptor files will contain simple, simplesequence, test, struct or
+structsequence elements. These elements will be used to describe attributes of a component that
+will be used for dependency checking. These elements will also be used for SCA component
+values used by a CF Resource component’s configure(), query(), and runTest() operations..
+  </xs:documentation>
+  </xs:annotation>
+  <xs:element name="properties" type="properties"/>
+  <xs:simpleType name="Unit">
+  	<xs:restriction base="xs:string"/>
+  </xs:simpleType>
+  <xs:simpleType name="IsComplex">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="false"/>
+      <xs:enumeration value="true"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="AccessType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="writeonly"/>
+      <xs:enumeration value="readonly"/>
+      <xs:enumeration value="readwrite"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="action">
+    <xs:attribute default="external" name="type" type="ActionType"/>
+  </xs:complexType>
+  <xs:simpleType name="ActionType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ge"/>
+      <xs:enumeration value="gt"/>
+      <xs:enumeration value="external"/>
+      <xs:enumeration value="le"/>
+      <xs:enumeration value="lt"/>
+      <xs:enumeration value="ne"/>
+      <xs:enumeration value="eq"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="configurationKind">
+    <xs:attribute ecore:name="type" default="configure" name="kindtype" type="StructPropertyConfigurationType"/>
+  </xs:complexType>
+  <xs:complexType name="enumeration">
+    <xs:attribute name="label" type="xs:string" use="required"/>
+    <xs:attribute name="value" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="enumerations">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" type="enumeration" name="enumeration"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="inputValue">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" type="simple" name="simple"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType ecore:name="Kind" name="kind">
+    <xs:attribute default="configure" ecore:name="type" name="kindtype" type="PropertyConfigurationType"/>
+  </xs:complexType>
+  <xs:simpleType name="PropertyConfigurationType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="configure"/>
+      <xs:enumeration value="execparam"/>
+      <xs:enumeration value="allocation"/>
+      <xs:enumeration value="factoryparam"/>
+      <xs:enumeration value="test"/>
+      <xs:enumeration value="event"/>
+      <xs:enumeration value="message"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StructPropertyConfigurationType">
+    <xs:restriction base="PropertyConfigurationType">
+      <xs:enumeration value="configure"/>
+      <xs:enumeration value="allocation"/>
+      <xs:enumeration value="factoryparam"/>
+      <xs:enumeration value="test"/>
+      <xs:enumeration value="event"/>
+      <xs:enumeration value="message"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="properties">
+        <xs:annotation>
+        	<xs:documentation>The properties element (see Figure D-11) is used to describe property attributes that will be used
+in the configure( ) and query( ) operations for SCA CF Resource components and for definition
+of attributes used for dependency checking. The properties element can also used in the CF
+TestableObject runTest() operation to configure tests and provide test results.</xs:documentation></xs:annotation>
+        <xs:sequence>
+      <xs:element minOccurs="0" type="xs:string" name="description">
+      	<xs:annotation>
+      		<xs:documentation>The description element is used to provide a description of the properties element that is being
+defined.</xs:documentation></xs:annotation></xs:element>
+      <xs:choice ecore:name="properties" maxOccurs="unbounded" minOccurs="0">
+        <xs:element type="simple" name="simple"/>
+        <xs:element type="simpleSequence" name="simplesequence" ecore:name="simpleSequence"/>
+        <xs:element type="test" name="test"/>
+        <xs:element type="struct" name="struct"/>
+        <xs:element type="structSequence" name="structsequence" ecore:name="structSequence"/>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="PropertyValueType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="string"/>
+      <xs:enumeration value="boolean"/>
+      <xs:enumeration value="ulong"/>
+      <xs:enumeration value="objref"/>
+      <xs:enumeration value="short"/>
+      <xs:enumeration value="float"/>
+      <xs:enumeration value="octet"/>
+      <xs:enumeration value="char"/>
+      <xs:enumeration value="ushort"/>
+      <xs:enumeration value="double"/>
+      <xs:enumeration value="long"/>
+      <xs:enumeration value="longlong"/>
+      <xs:enumeration value="ulonglong"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="range">
+    <xs:attribute name="max" type="xs:string" use="required"/>
+    <xs:attribute name="min" type="xs:string" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="resultValue">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" type="simple" name="simple"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="simple">
+        <xs:annotation>
+        	<xs:documentation>The simple element (see Figure D-12) provides for the definition of a property which includes a
+unique id, type, name and mode attributes of the property that will be used in the CF Resource
+configure() and query() operations, for indication of component capabilities, or in the CF
+TestableObject runTest operation. The simple element is specifically designed to support idvalue
+pair definitions. A simple property id attribute corresponds to the id of the id-value pair.
+The value and range of a simple property correspond to the value of the id-value pair. If no
+value is given, then the property cannot be used for input test values for testing and/or as an
+initial configuration or execute parameter of a component. The optional enumerations element
+allows for the definition of a label-to-value for a particular property. The mode attribute defines
+whether the properties element is "readonly", "writeonly" or "readwrite". The id attribute is an
+identifier for the simple property element. The id attribute for a simple property that is an
+allocation type is a DCE UUID value, as specified in section D.2.1. The id attribute for all other
+simple property elements can be any valid XML ID type. The mode attribute is only meaningful
+when the type of the kind element is "configure".</xs:documentation></xs:annotation>
+        <xs:sequence>
+      <xs:element minOccurs="0" name="description" type="xs:string">
+      	<xs:annotation>
+      		<xs:documentation>The description element is used to provide a description of the properties element that is being
+defined.</xs:documentation></xs:annotation></xs:element>
+      <xs:element minOccurs="0" name="value" type="xs:string"/>
+      <xs:element minOccurs="0" type="Unit" name="units"/>
+      <xs:element minOccurs="0" type="range" name="range"/>
+      <xs:element minOccurs="0" type="enumerations" name="enumerations"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" type="kind" name="kind"/>
+      <xs:element minOccurs="0" type="action" name="action"/>
+    </xs:sequence>
+    <xs:attribute ecore:id="true" name="id" type="xs:string" use="required"/>
+    <xs:attribute default="readwrite" name="mode" type="AccessType"/>
+    <xs:attribute name="name" type="xs:string"/>
+    <xs:attribute default="false" name="complex" type="IsComplex"/>
+    <xs:attribute name="type" type="PropertyValueType" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="simpleRef">
+    <xs:attribute name="refid" type="xs:string" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="simpleSequence">
+    <xs:sequence>
+      <xs:element minOccurs="0" type="xs:string" name="description"/>
+      <xs:element minOccurs="0" type="values" name="values"/>
+      <xs:element minOccurs="0" type="Unit" name="units"/>
+      <xs:element minOccurs="0" type="range" name="range"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" type="kind" name="kind"/>
+      <xs:element minOccurs="0" type="action" name="action"/>
+    </xs:sequence>
+    <xs:attribute ecore:id="true" name="id" type="xs:string" use="required"/>
+    <xs:attribute default="readwrite" name="mode" type="AccessType"/>
+    <xs:attribute name="name" type="xs:string"/>
+    <xs:attribute name="type" type="PropertyValueType" use="required"/>
+    <xs:attribute default="false" name="complex" type="IsComplex"/>
+  </xs:complexType>
+  <xs:complexType name="struct">
+    <xs:sequence>
+     <xs:element minOccurs="0" type="xs:string" name="description"/>
+      <xs:element maxOccurs="unbounded" type="simple" name="simple"/>
+      <xs:element minOccurs="0" maxOccurs="unbounded" type="configurationKind" name="configurationkind" ecore:name="configurationKind"/>
+    </xs:sequence>
+    <xs:attribute ecore:id="true" name="id" type="xs:string" use="required"/>
+    <xs:attribute default="readwrite" name="mode" type="AccessType"/>
+    <xs:attribute name="name" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="structSequence">
+    <xs:sequence>
+      <xs:element minOccurs="0" type="xs:string" name="description"/>
+      <xs:element type="struct" name="struct"/>
+      <xs:element minOccurs="0" maxOccurs="unbounded" type="structValue" name="structvalue"/>
+      <xs:element minOccurs="0" maxOccurs="unbounded" type="configurationKind" name="configurationkind"/>
+    </xs:sequence>
+    <xs:attribute ecore:id="true" name="id" type="xs:string" use="required"/>
+    <xs:attribute default="readwrite" name="mode" type="AccessType"/>
+    <xs:attribute name="name" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="structValue">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" type="simpleRef" name="simpleref"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="test">
+    <xs:sequence>
+      <xs:element minOccurs="0" type="xs:string" name = "description"/>
+      <xs:element minOccurs="0" type="inputValue" name="inputvalue"/>
+      <xs:element type="resultValue" name="resultvalue" ecore:name="resultValue"/>
+    </xs:sequence>
+    <xs:attribute ecore:id="true" name="id" type="xs:string" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="values">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" name="value" nillable="true" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

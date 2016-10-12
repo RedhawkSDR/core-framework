@@ -22,8 +22,6 @@
 #ifndef TESTABLEOBJECT_IMPL_H
 #define TESTABLEOBJECT_IMPL_H
 
-#include "ossiecf.h"
-
 #include "CF/cf.h"
 
 /**
@@ -33,8 +31,7 @@ of an SCA component. This function is useful for built in test (BIT)
 operations.
 */
 
-class OSSIECF_API TestableObject_impl: public virtual
-    POA_CF::TestableObject
+class TestableObject_impl: public virtual POA_CF::TestableObject
 {
 public:
     TestableObject_impl () { }

@@ -1,0 +1,49 @@
+<project name="burstio-java-tests" default="test" basedir=".">
+
+  <description>
+    Builds and runs the JUnit tests and produces XML output
+  </description>
+
+  <property environment="env" />
+  <property name="src.dir" location="${basedir}" />
+  <property name="build.dir" location="${basedir}" />
+
+  <path id="junit.class.path">
+    <pathelement path="${java.class.path}"/>
+    <pathelement location="/usr/share/java/junit4.jar"/>
+    <pathelement location="${basedir}"/>
+    <pathelement location="${env.OSSIEHOME}/lib/CFInterfaces.jar"/>
+    <pathelement location="${env.OSSIEHOME}/lib/log4j-1.2.15.jar"/>
+    <pathelement location="${env.OSSIEHOME}/lib/ossie.jar"/>
+    <pathelement location="${env.OSSIEHOME}/lib/bulkio.jar"/>
+    <pathelement location="${env.OSSIEHOME}/lib/BULKIOInterfaces.jar"/>
+    <pathelement location="${basedir}/../../../src/java/burstio.jar"/>
+    <pathelement location="${basedir}/../../../src/java/BURSTIOInterfaces.jar"/>
+  </path>
+
+  <target name="compile" depends="clean">
+    <javac srcdir="${src.dir}" destdir="${build.dir}">
+      <classpath refid="junit.class.path" />
+    </javac>
+  </target>
+
+  <target name="clean">
+    <delete>
+      <fileset dir="${build.dir}" includes="*.class" />
+    </delete>
+  </target>
+
+  <target name="test" depends="compile">
+    <junit fork="yes" printsummary="yes" haltonfailure="no">
+      <classpath refid="junit.class.path"/>
+      <formatter type="xml" />
+      <batchtest todir="${basedir}/../" >
+        <fileset dir="${basedir}">
+          <include name="*Test.class" />
+        </fileset>
+      </batchtest>
+    </junit>
+  </target>
+
+</project>
+

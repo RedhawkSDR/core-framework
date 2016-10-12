@@ -34,45 +34,148 @@ import types
 import struct
 
 # From section 1.3 of the CORBA Python language mapping
-__TYPE_MAP = {'boolean': (int, CORBA.TC_boolean), 
-              'char': (str, CORBA.TC_char), 
-              'double': (float, CORBA.TC_double), 
-              'float': (float, CORBA.TC_float), 
-              'long': (int, CORBA.TC_long),
-              'longdouble': (float, CORBA.TC_longdouble), 
-              'longlong': (long, CORBA.TC_longlong), 
-              'None': (None, CORBA.TC_null), 
-              'octet': (int, CORBA.TC_octet), 
-              'short': (int, CORBA.TC_short), 
-              'string': (str, CORBA.TC_string), 
-              'ulong': (long, CORBA.TC_ulong), 
-              'ulonglong':(long, CORBA.TC_ulonglong), 
-              'ushort': (int, CORBA.TC_ushort), 
-              'void': (None, CORBA.TC_void), 
-              'wchar': (str, CORBA.TC_char), 
-              'wstring': (str, CORBA.TC_string)}
+__TYPE_MAP = {
+    'boolean':    (int,   CORBA.TC_boolean), 
+    'char':       (str,   CORBA.TC_char), 
+    'double':     (float, CORBA.TC_double), 
+    'float':      (float, CORBA.TC_float), 
+    'long':       (int,   CORBA.TC_long),
+    'longdouble': (float, CORBA.TC_longdouble), 
+    'longlong':   (long,  CORBA.TC_longlong), 
+    'None':       (None,  CORBA.TC_null), 
+    'objref':     (CORBA.Object, CORBA.TC_Object), 
+    'octet':      (int,   CORBA.TC_octet), 
+    'short':      (int,   CORBA.TC_short), 
+    'string':     (str,   CORBA.TC_string), 
+    'ulong':      (long,  CORBA.TC_ulong), 
+    'ulonglong':  (long,  CORBA.TC_ulonglong), 
+    'ushort':     (int,   CORBA.TC_ushort), 
+    'void':       (None,  CORBA.TC_void), 
+    'wchar':      (str,   CORBA.TC_char), 
+    'wstring':    (str,   CORBA.TC_string),
+    'complexFloat':     (complex, 
+                         CF._tc_complexFloat,
+                         CF.complexFloat,
+                         float, 
+                         CF._tc_complexFloatSeq),
+    'complexBoolean':   (complex, 
+                         CF._tc_complexBoolean,
+                         CF.complexBoolean,
+                         int,
+                         CF._tc_complexBooleanSeq),
+    'complexULong':     (complex,
+                         CF._tc_complexULong,
+                         CF.complexULong,
+                         long,
+                         CF._tc_complexLongSeq),
+    'complexShort':     (complex,
+                         CF._tc_complexShort,
+                         CF.complexShort,
+                         int,
+                         CF._tc_complexShortSeq),
+    'complexOctet':     (complex,
+                         CF._tc_complexOctet,
+                         CF.complexOctet,
+                         int,
+                         CF._tc_complexOctetSeq),
+    'complexChar':      (complex,
+                         CF._tc_complexChar,
+                         CF.complexChar,
+                         str,
+                         CF._tc_complexCharSeq),
+    'complexUShort':    (complex,
+                         CF._tc_complexUShort,
+                         CF.complexUShort,
+                         int,
+                         CF._tc_complexUShortSeq),
+    'complexDouble':    (complex,
+                         CF._tc_complexDouble,
+                         CF.complexDouble,
+                         float,
+                         CF._tc_complexDoubleSeq),
+    'complexLong':      (complex,
+                         CF._tc_complexLong,
+                         CF.complexLong,
+                         long,
+                         CF._tc_complexLongSeq),
+    'complexLongLong':  (complex,
+                         CF._tc_complexLongLong,
+                         CF.complexLongLong,
+                         long,
+                         CF._tc_complexLongLongSeq),
+    'complexULongLong': (complex,
+                         CF._tc_complexULongLong,
+                         CF.complexULongLong,
+                         long,
+                         CF._tc_complexULongLongSeq)
+}
 
-_SCA_TYPES = ['boolean', 'char', 'double', 'float', 'short', 'long', 'longlong',
-              'objref', 'octet', 'string', 'ulong', 'ushort', 'longlong', 'ulonglong']
+_SCA_TYPES = [
+    'boolean', 'char', 'double', 'float', 'short', 'long', 'longlong',
+    'objref', 'octet', 'string', 'ulong', 'ushort', 'longlong', 'ulonglong', 
+    'complexFloat', 'complexBoolean', 'complexULong', 'complexShort', 
+    'complexOctet', 'complexChar', 'complexUShort', 'complexDouble', 
+    'complexLong', 'complexLongLong', 'complexULongLong' 
+]
+
+def getPyType(type_):
+    return __TYPE_MAP[type_][0]
+
+def getTypeCode(type_):
+    return __TYPE_MAP[type_][1]
+
+def getCFType(type_):
+    return __TYPE_MAP[type_][2]
+
+def getMemberType(type_):
+    ''' 
+    For a complex property type, return the type of the
+    real/imag members (e.g., float for complexFloat).
+    '''
+    return __TYPE_MAP[type_][3]
+    
+def getCFSeqType(type_):
+    return __TYPE_MAP[type_][4]
+
+def _toPyComplex(data, type_):
+    ''' 
+    convert any of :
+        {"real": A, "imag": B}
+        (A+jB)
+        CF.complexType(real=A, imag=B)
+    to complex(A,B)
+    '''
+    if type(data) == type({}):
+        real = data["real"]
+        imag = data["imag"]
+        newdata = complex(real, imag)
+    elif type(data) == complex:
+        newdata = complex(data)
+    else:
+        # assume CF::complexType
+        real = data.real
+        imag = data.imag
+        newdata = complex(real, imag)
+    return newdata
 
 def to_pyvalue(data, type_):
     """Given a data value in any python type and the desired SCA type_, attempt
-    to return a python value of the correct type"""
+    to return a python value of the correct type."""
     if data == None:
         return None
+    pytype = getPyType(type_)
 
-    pytype = __TYPE_MAP[type_][0]
     if type(data) != pytype:
         # Handle boolean strings as a special case
         if type_ == "boolean" and type(data) in (str, unicode):
             data = {"TRUE": 1, "FALSE": 0}[data.strip().upper()]
-        # Otherwise, fall back to built in python conversion
         else:
-            data = pytype(data)
+            # Fall back to built in python conversion
+            if type_.find("complex") == 0:
+                data = _toPyComplex(data, type_)
+            else:
+                data = pytype(data)
     return data
-
-def getTypeMap(type_):
-    return __TYPE_MAP[type_][1]
 
 def to_xmlvalue(data, type_):
     if data == None:
@@ -111,23 +214,37 @@ def to_xmlvalue(data, type_):
         v = v[1:-1]
     return v
 
+def _convertComplexToCFComplex(data, type_):
+    cfComplexType = getCFType(type_)
+    memberType    = getMemberType(type_)
+
+    if type(data) == type({}):
+        #if the data is already in the form of a CF:complex, recast
+        real = data["real"]
+        imag = data["imag"]
+    else:
+        real = data.real
+        imag = data.imag
+
+    data = cfComplexType(memberType(real), memberType(imag))
+ 
+    return data
+
 def to_tc_value(data, type_):
+    ''' Returns an AnyType. '''
     if data is None:
         return any.to_any(None)
 
-    # If the typecode is known, use that
-    if __TYPE_MAP.has_key(type_):
+    if type_.find('complex') == 0:
+        # complex types
+        data = _convertComplexToCFComplex(data, type_)
+ 
+        # get the CF typecode
+        tc = getTypeCode(type_)
+        return CORBA.Any(tc, data)
+    elif __TYPE_MAP.has_key(type_):
+        # If the typecode is known, use that
         pytype, tc = __TYPE_MAP[type_]
-
-        # If the value is already an Any, check its type; if it's already the
-        # right type, nothing needs to happen, otherwise extract the value and
-        # convert
-        if isinstance(data, CORBA.Any):
-            if data.typecode().equal(tc):
-                return data
-            else:
-                data = data.value()
-
         # Convert to the correct Python type, if necessary
         if not isinstance(data, pytype):
             data = to_pyvalue(data, type_)
@@ -155,7 +272,11 @@ def struct_values(value):
     fields = struct_fields(value)
     for attr in fields:
         field_value = attr.get(value)
-        result.append((attr.id_, field_value))
+        if type(field_value) == dict:
+            for key in field_value.keys():
+                result.append((attr.id_+key, field_value[key]))
+        else:
+            result.append((attr.id_, field_value))
     return result
 
 def struct_to_props(value, fields=None):
@@ -349,6 +470,30 @@ def xml_to_class(prop):
 
     return type(name, (object,), members)
 
+def mapComplexType(type):
+    """
+    Convert primitive type string (e.g., "Float") to
+    its complex equivalent (e.g., "complexFloat").
+    """
+    if type.find("complex") == 0:
+        # type is already complex
+        return type
+    primitiveToComplexMap = {"float"     : "complexFloat",
+                             "double"    : "complexDouble",
+                             "boolean"   : "complexBoolean",
+                             "char"      : "complexChar",
+                             "octet"     : "complexOctet",
+                             "short"     : "complexShort",
+                             "ushort"    : "complexUShort",
+                             "long"      : "complexLong",
+                             "ulong"     : "complexULong",
+                             "longlong"  : "complexLongLong",
+                             "ulonglong" : "complexULongLong"}
+    if not primitiveToComplexMap.has_key(type):
+        raise ValueError, "Type %s cannot be complex" % type
+    return primitiveToComplexMap[type]
+
+
 class _property(object):
     def __init__(self, 
                  id_, 
@@ -361,12 +506,24 @@ class _property(object):
                  description=None, 
                  fget=None, 
                  fset=None, 
-                 fval=None):
+                 fval=None,
+                 complex=False):
+        '''
+        complex (True/False) indicates whether or not data is complex
+        '''
+
+        self._complex = complex
+
         self.id_ = id_
         if type_ != None and type_ not in _SCA_TYPES:
             raise ValueError, "type %s is invalid" % type_
 
-        self.type_ = type_
+        if complex:
+            # Downstream processing wants complexFloat instead of float
+            self.type_ = mapComplexType(type_)
+        else:
+            self.type_ = type_
+
         if name == None:
             self.name = self.id_
         else:
@@ -430,7 +587,99 @@ class _property(object):
         # Convert the value to its proper representation (e.g. structs
         # should be a class instance, not a dictionary).
         value = self._fromAny(value)
+        self.checkValue(value, obj)
         self._configure(obj, value)
+
+    def _checkBoundsOfSimpleProperty(self, value):
+        goodValue = True
+        class Bounds:
+            def __init__(self, lower, upper):
+                self.upperBound = upper
+                self.lowerBound = lower
+                
+            def inBounds(self, value): 
+                if value >= self.upperBound or value < self.lowerBound:
+                    return False
+                else:
+                    return True
+                
+        realBounds = {"octet"    : Bounds(0, 256),
+                      "short"    : Bounds(-32768, 32768),
+                      "ushort"   : Bounds(0, 65536),
+                      "long"     : Bounds(-2147483648L,2147483648L),
+                      "ulong"    : Bounds(0, 4294967296L),
+                      "longlong" : Bounds(-9223372036854775808L, 9223372036854775808L),
+                      "ulonglong": Bounds(0, 18446744073709551616L)}
+        
+        if realBounds.has_key(self.type_):
+            # Check bounds of simple type
+            goodValue = realBounds[self.type_].inBounds(value)
+        
+        # Map complex types to the types of the real/imag members
+        # This will allow us to look up the appropriate realBounds
+        # dictionary value for checking the bounds of the real/imag members.
+        complexBounds = {"complexOctet"     : "octet",
+                         "complexShort"     : "short",
+                         "complexUShort"    : "ushort",
+                         "complexLong"      : "long",
+                         "complexULong:"    : "ulong",
+                         "complexLongLong"  : "longlong",
+                         "complexULongLong" : "ulonglong"}
+        if complexBounds.has_key(self.type_):
+            # Check bounds of complex type
+            
+            # Create a bounds checker for the individual members of the 
+            # complex data struct.
+            boundChecker = realBounds[complexBounds[self.type_]]
+            
+            # The value is good if both real and imag members fall within 
+            # the bounds.
+            goodValue = boundChecker.inBounds(value["real"]) and boundChecker.inBounds(value["imag"])
+            
+        return goodValue
+
+    def checkValue(self, value, obj):
+        if value == None:
+            return
+        goodValue = True
+
+        if type(self) == ossie.properties.simple_property:
+            goodValue = self._checkBoundsOfSimpleProperty(value)
+        
+        elif type(self) == ossie.properties.struct_property:
+            # Gets the members of the current resources struct
+            members = obj._props._PropertyStorage__properties[self.id_].fields.items()
+            # Finds matching struct members to compare
+            for id, prop in members:
+                name, val = prop
+                for inId, inVal in value.__dict__.items():
+                    if id == inId[2:len(inId)-2]:
+                        val.checkValue(inVal, obj)
+                        
+        elif type(self) == ossie.properties.simpleseq_property:
+            # Create a temp simple prop to check values
+            simple_prop = simple_property("", self.type_)
+            for val in value:
+                # If octets are treated as strings instead of lists, we need to pass the ASCII value
+                if self.type_ == 'octet' and type(value) == str:
+                    simple_prop.checkValue(ord(val), obj)
+                else:
+                    simple_prop.checkValue(val, obj)
+                    
+        elif type(self) == ossie.properties.structseq_property:
+            # Gets the members of the current resources struct
+            members = obj._props._PropertyStorage__properties[self.id_].fields.items()     
+            # Loops through each structure in the sequence
+            for currStruct in value:
+                # Finds matching struct members to compare
+                for id , prop in members:
+                    name, val = prop
+                    for inId, inVal in currStruct.__dict__.items():
+                        if id == inId[2:len(inId)-2]:
+                            val.checkValue(inVal, obj)
+
+        if not goodValue:
+            raise ValueError(': value out of range')
 
     def compareValues(self, oldValue, newValue):
         return (oldValue != newValue)
@@ -577,7 +826,6 @@ class _property(object):
             else:
                 #there is no PropertyEventSupplier so we don't have a function to call
                 pass
-
     # Subclasses may override these functions to control conversion to and from
     # CORBA Any values.
     def _toAny(self, value):
@@ -592,14 +840,27 @@ class _sequence_property(_property):
                  type_, 
                  name=None, 
                  units=None, 
-                 mode="readwrite", 
-                 action="external", 
-                 kinds=("configure",), 
-                 description=None, 
-                 fget=None, 
-                 fset=None, 
-                 fval=None):
-        _property.__init__(self, id_, type_, name, units, mode, action, kinds, description, fget, fset, fval)
+                 mode        = "readwrite", 
+                 action      = "external", 
+                 kinds       = ("configure",), 
+                 description = None, 
+                 fget        = None, 
+                 fset        = None, 
+                 fval        = None,
+                 complex     = False):
+        _property.__init__(self, 
+                           id_         = id_, 
+                           type_       = type_, 
+                           name        = name, 
+                           units       = units, 
+                           mode        = mode, 
+                           action      = action, 
+                           kinds       = kinds, 
+                           description = description, 
+                           fget        = fget, 
+                           fset        = fset, 
+                           fval        = fval, 
+                           complex     = complex)
 
     def query(self, obj, operator=None):
         # Get the complete current value via the base class interface.
@@ -643,6 +904,7 @@ class _sequence_property(_property):
             value = self._setKeyValuePairsOperator(oldvalue, v, operator)
         else:
             value = self._fromAny(value)
+            self.checkValue(value, obj)
 
         # Set the new value via the base interface.
         self._configure(obj, value)
@@ -652,6 +914,31 @@ class _sequence_property(_property):
 
     def _itemFromAny(self, value):
         return any.from_any(value)
+
+    def __get__(self, obj, objtype=None):
+        """Returns the current value of this property as a python type"""
+        if obj is None:
+            return self
+        # to_pyvalue will assure complex types are returned as type complex
+        # instead of CF::complex
+        values = self.get(obj)
+        if self._complex:
+            newValues = []
+            for value in values:
+                newValues.append(to_pyvalue(value, self.type_))
+            tuple(newValues)
+            return tuple(newValues)
+        else:
+            return values
+
+    def __set__(self, obj, values):
+        """Sets the current value of this property from the given python type"""
+        if self._complex:
+            for value in values:
+               value = _convertComplexToCFComplex(value, self.type_) 
+        self.set(obj, values)
+
+
 
     # Internal operator definitions
     def _getDefaultOperator(self, value, operator):
@@ -730,8 +1017,21 @@ class simple_property(_property):
                  description=None, 
                  fget=None, 
                  fset=None, 
-                 fval=None):
-        _property.__init__(self, id_, type_, name, units, mode, action, kinds, description, fget, fset, fval)
+                 fval=None,
+                 complex=False):
+        _property.__init__(self, 
+                           id_, 
+                           type_, 
+                           name, 
+                           units, 
+                           mode, 
+                           action, 
+                           kinds, 
+                           description, 
+                           fget, 
+                           fset, 
+                           fval, 
+                           complex)
         self.defvalue = defvalue
 
     def rebind(self, fget=None, fset=None, fval=None):
@@ -774,22 +1074,50 @@ class simple_property(_property):
 
     def _toAny(self, value):
         return to_tc_value(value, self.type_)
-    
+ 
+    def __get__(self, obj, objtype=None):
+        """Returns the current value of this property as a python type"""
+        if obj is None:
+            return self
+        # to_pyvalue will assure complex types are returned as type complex
+        # instead of CF::complex
+        return to_pyvalue(self.get(obj), self.type_)
+
+    def __set__(self, obj, value):
+        """Sets the current value of this property from the given python type"""
+        if self._complex:
+            value = _convertComplexToCFComplex(value, self.type_) 
+        self.set(obj, value)
+
+   
 class simpleseq_property(_sequence_property):
     def __init__(self, 
                  id_, 
                  type_, 
-                 name=None, 
-                 defvalue=None,
-                 units=None, 
-                 mode="readwrite", 
-                 action="external", 
-                 kinds=("configure",), 
-                 description=None, 
-                 fget=None, 
-                 fset=None, 
-                 fval=None):
-        _sequence_property.__init__(self, id_, type_, name, units, mode, action, kinds, description, fget, fset, fval)
+                 name        = None, 
+                 defvalue    = None,
+                 units       = None, 
+                 mode        = "readwrite", 
+                 action      = "external", 
+                 kinds       = ("configure",), 
+                 description = None, 
+                 fget        = None, 
+                 fset        = None, 
+                 fval        = None, 
+                 complex     = False):
+        _sequence_property.__init__(self, 
+                                    id_, 
+                                    type_, 
+                                    name, 
+                                    units, 
+                                    mode, 
+                                    action, 
+                                    kinds, 
+                                    description, 
+                                    fget, 
+                                    fset, 
+                                    fval, 
+                                    complex)
         self.defvalue = defvalue
         
     def rebind(self, fget=None, fset=None, fval=None):
@@ -807,13 +1135,14 @@ class simpleseq_property(_sequence_property):
                                   fval) 
 
     def toXML(self, level=0, version="2.2.2"):
-        simpseq = ossie.parsers.prf.simpleSequence(id_=self.id_, 
-                                                   type_=self.type_,
-                                                   name=self.name, 
-                                                   mode=self.mode,
-                                                   description=self.__doc__,
-                                                   units=self.units,
-                                                   action=ossie.parsers.prf.action(type_=self.action))
+        simpseq = ossie.parsers.prf.simpleSequence(
+            id_=self.id_, 
+            type_=self.type_,
+            name=self.name, 
+            mode=self.mode,
+            description=self.__doc__,
+            units=self.units,
+            action=ossie.parsers.prf.action(type_=self.action))
 
         values = ossie.parsers.prf.values()
         if self.defvalue:
@@ -838,12 +1167,30 @@ class simpleseq_property(_sequence_property):
         elif self.type_ == "octet":
             result = CORBA.Any(CORBA.TypeCode(CORBA.OctetSeq), str(value))
         else:
-            expectedType = getTypeMap(self.type_)
-            expectedTypeCode = tcInternal.createTypeCode((tcInternal.tv_sequence, expectedType._d, 0))
-            # Coerce the value into the correct simple type,  may thrown a TypeError if the
-            # type cannot be coerced...let this propagate up in the hopes that it will get
-            # logged somewhere
-            result = CORBA.Any(expectedTypeCode, [to_pyvalue(item, self.type_) for item in value])
+            if self._complex:
+                # type code for CF::complex sequence is looked up
+                # directly since it must be explicitly storred.
+                expectedType = getTypeCode(self.type_)
+                expectedTypeCode = tcInternal.createTypeCode(
+                    (tcInternal.tv_sequence, expectedType._d, 0))
+                result = CORBA.Any(expectedTypeCode, 
+                                   [_convertComplexToCFComplex(item, self.type_) 
+                                        for item in value])
+                
+            else:
+                # get the type code for the member variables, then
+                # construct a typecode for the sequence assuming
+                # it is a sequence of CORBA primitive types.
+                expectedType = getTypeCode(self.type_)
+                expectedTypeCode = tcInternal.createTypeCode(
+                    (tcInternal.tv_sequence, expectedType._d, 0))
+
+                # Coerce the value into the correct simple type,  may thrown a 
+                # TypeError if the type cannot be coerced...let this propagate 
+                # up in the hopes that it will get logged somewhere
+                result = CORBA.Any(expectedTypeCode, 
+                                   [to_pyvalue(item, self.type_) 
+                                        for item in value])
         
         return result
 
@@ -971,13 +1318,6 @@ class structseq_property(_sequence_property):
                 self.fields[attr.id_] = (name, attr)                
         self.defvalue = defvalue
 
-    # Internal implementation
-    def __get__(self, obj, objtype=None):
-        """Returns the current value of this property as a python type"""
-        if obj is None:
-            return self
-        return self.get(obj)
-
     def __getattribute__(self, name):
         return object.__getattribute__(self,name)
         
@@ -1100,6 +1440,7 @@ class PropertyStorage:
         self._loadProperties()
         self._loadTuples(propertydefs)
         self._changeListeners = {}
+        self._genericListeners = []
 
 
     _ID_IDX = 0
@@ -1142,15 +1483,15 @@ class PropertyStorage:
                                            action = propdef[self._ACTION_IDX],
                                            kinds = propdef[self._KIND_IDX])
             if property != None:
-                self._addProperty(self.__resource, property)
+                self._addProperty(property)
 
     def _loadProperties(self):
         for name in dir(type(self.__resource)):
             attr = getattr(type(self.__resource), name)
             if isinstance(attr, _property):
-                self._addProperty(self.__resource, attr)
+                self._addProperty(attr)
 
-    def _addProperty(self, obj, property):
+    def _addProperty(self, property):
         property.sendPropertyChangeEvent = self.__propertyChangeEvent
         # Don't add things if they are already defined
         id_ = str(property.id_)
@@ -1203,9 +1544,9 @@ class PropertyStorage:
         oldvalue = prop.get(self.__resource)
         prop.configure(self.__resource, value, operator)
         newvalue = prop.get(self.__resource)
-        for callback, filter in self._changeListeners.items():
-            if filter and not id_ in filter:
-                continue
+        if id_ in self._changeListeners:
+            self._changeListeners[id_](id_, oldvalue, newvalue)
+        for callback in self._genericListeners:
             callback(id_, oldvalue, newvalue)
         
     def splitId(self, propid):
@@ -1358,10 +1699,30 @@ class PropertyStorage:
             return str(value)
 
     def addChangeListener(self, callback, filter=None):
-        self._changeListeners[callback] = filter
+        if filter is None:
+            # Backwards compatibility: if no filter given, callback applies to
+            # all properties
+            self._genericListeners.append(callback)
+        else:
+            # Turn single property ID into a list of one
+            if isinstance(filter, basestring):
+                filter = [filter]
+
+            # Associate the property IDs with the callback
+            for propid in filter:
+                self._changeListeners[propid] = callback
 
     def removeChangeListener(self, callback):
-        del self._changeListeners[callback]
+        if isinstance(callback, basestring):
+            # Caller provided a property ID
+            del self._changeListeners[callback]
+        else:
+            # Remove any by-id callbacks that use the same function
+            for propid in self._changeListeners.keys():
+                if self._changeListeners[propid] == callback:
+                    del self._changeListeners[propid]
+            # Filter out generic callbacks that use the same function
+            self._genericListeners = [cb for cb in self._genericListeners if cb != callback]
     
     def setPropertyChangeEvent(self, callback):
         self.__propertyChangeEvent = callback
@@ -1377,3 +1738,5 @@ class PropertyStorage:
         self.__propertyChangeEvent = None
         for prop_id in self.__properties:
             self.__properties[prop_id].sendPropertyChangeEvent = self.__propertyChangeEvent
+
+

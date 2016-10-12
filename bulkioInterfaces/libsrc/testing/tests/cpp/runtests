@@ -1,0 +1,7 @@
+#
+#
+bulkio_top=../../../..
+bulkio_libsrc_top=$bulkio_top/libsrc
+export LD_LIBRARY_PATH=$bulkio_libsrc_top/.libs:$bulkio_top/.libs:${LD_LIBRARY_PATH}
+make check -j 10
+

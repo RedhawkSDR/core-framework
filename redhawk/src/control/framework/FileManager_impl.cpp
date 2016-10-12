@@ -19,500 +19,231 @@
  */
 
 
-#include <iostream>
 #include <string>
-#include <algorithm>
+#include <list>
 
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/exception.hpp>
-
-#ifndef BOOST_VERSION
-#include <boost/version.hpp>
-#endif
-
-#if BOOST_VERSION < 103499
-#  include <boost/filesystem/cerrno.hpp>
-#else
-#  include <boost/cerrno.hpp>
-#endif
-
-namespace fs = boost::filesystem;
-
-#if BOOST_FILESYSTEM_VERSION >= 3
-#include <boost/filesystem/operations.hpp>
-#endif
+#include <fnmatch.h>
 
 #include "ossie/FileManager_impl.h"
 #include "ossie/debug.h"
 #include "ossie/CorbaUtils.h"
+#include "ossie/ossieSupport.h"
 
-#include <boost/regex.hpp>
 
-//#include <sys/types.h>
-//#include <regex.h>
+namespace {
+
+    static std::string normalizeMountPath (const std::string& path)
+    {
+        // Remove any trailing / in the mount point.
+        if (!path.empty() && (path[path.size()-1] == '/')) {
+            return path.substr(0, path.size()-1);
+        }
+        return path;
+    }
+
+}
+
+
+bool FileManager_impl::MountPoint::contains (const std::string& filepath) const
+{
+    if (filepath.find(path) != 0) {
+        // File path is not on mount path
+        return false;
+    }
+
+    if (filepath.length() > path.length()) {
+        // File path does not explicitly match mount path; ensure that the last path components
+        // match exactly (e.g. "/a/bc" should not match "/a/b").
+        if (filepath[path.length()] != '/') {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+std::string FileManager_impl::MountPoint::getRelativePath (const std::string& filepath) const
+{
+    // Assuming that root is a prefix of path, remove it from path.
+    return filepath.substr(path.length());
+}
+
 
 PREPARE_LOGGING(FileManager_impl);
 
-FileManager_impl::FileManager_impl (const char* _fsroot): FileSystem_impl (_fsroot)
+FileManager_impl::FileManager_impl (const char* _fsroot):
+    FileSystem_impl(_fsroot),
+    mountedFileSystems(),
+    mountsLock()
 {
-    TRACE_ENTER(FileManager_impl)
-
-    int fsOpSuccessAttempts = 0;
-    bool fsOpSuccess = false;
-    while (!fsOpSuccess) {
-        try {
-#if BOOST_FILESYSTEM_VERSION < 3
-            if (fs::path::default_name_check_writable())
-                { fs::path::default_name_check(boost::filesystem::portable_posix_name); }
-#endif
-            numMounts = 0;
-            mount_table = new CF::FileManager::MountSequence(5);
-            fsOpSuccess = true;
-        } catch ( const fs::filesystem_error& ex ) {
-            LOG_WARN(FileManager_impl, "Error in filesystem: "<<ex.what()<<". Attempting again")
-            fsOpSuccessAttempts++;
-            if (fsOpSuccessAttempts == 10)
-                { break; }
-            usleep(10000);
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" when creating the File Manager. Attempting again";
-            LOG_WARN(FileManager_impl, eout.str())
-            fsOpSuccessAttempts++;
-            if (fsOpSuccessAttempts == 10)
-                { break; }
-            usleep(10000);
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" when creating the File Manager. Attempting again";
-            LOG_WARN(FileManager_impl, eout.str())
-            fsOpSuccessAttempts++;
-            if (fsOpSuccessAttempts == 10)
-                { break; }
-            usleep(10000);
-        } catch ( ... ) {
-            LOG_WARN(FileManager_impl, "Caught an unhandled file system exception. Attempting again")
-            fsOpSuccessAttempts++;
-            if (fsOpSuccessAttempts == 10)
-                { break; }
-            usleep(10000);
-        }
-    }
-    if (!fsOpSuccess) {
-        LOG_ERROR(FileManager_impl, "Unable to get access to initial path");
-        throw CF::FileException (CF::CF_EEXIST, "Unable to get access to initial path");
-    }
-
-    TRACE_EXIT(FileManager_impl)
+    TRACE_ENTER(FileManager_impl);
+    TRACE_EXIT(FileManager_impl);
 }
 
 FileManager_impl::~FileManager_impl()
 {
     TRACE_ENTER(FileManager_impl)
+    TRACE_EXIT(FileManager_impl);
 }
 
-void
-FileManager_impl::mount (const char* mountPoint,
-                         CF::FileSystem_ptr _fileSystem)
-throw (CORBA::SystemException, CF::InvalidFileName,
-       CF::FileManager::InvalidFileSystem,
-       CF::FileManager::MountPointAlreadyExists)
+void FileManager_impl::mount (const char* mountPoint, CF::FileSystem_ptr fileSystem)
+    throw (CORBA::SystemException, CF::InvalidFileName,
+           CF::FileManager::InvalidFileSystem, CF::FileManager::MountPointAlreadyExists)
 {
-    TRACE_ENTER(FileManager_impl)
-    LOG_TRACE(FileManager_impl, "Entering mount with " << mountPoint)
+    TRACE_ENTER(FileManager_impl);
 
-    if (CORBA::is_nil (_fileSystem))
-        { throw CF::FileManager::InvalidFileSystem (); }
-
-    CF::FileManager::MountType _mt;
-
-    for (unsigned int i = 0; i < mount_table->length(); i++) {
-        if (strcmp(mountPoint, mount_table[i].mountPoint) == 0)
-            { throw CF::FileManager::MountPointAlreadyExists (); }
+    if (CORBA::is_nil(fileSystem)) {
+        throw CF::FileManager::InvalidFileSystem();
     }
 
-    numMounts++;
-    mount_table->length(numMounts);
+    std::string mountPath = normalizeMountPath(mountPoint);
+    if (!ossie::isValidFileName(mountPath.c_str())) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid mount point");
+    }
 
-    mount_table[numMounts-1].mountPoint = CORBA::string_dup(mountPoint);
-    mount_table[numMounts-1].fs = CF::FileSystem::_duplicate(_fileSystem);
+    // Exclusive access to the mount table is required.
+    boost::unique_lock<boost::shared_mutex> lock(mountsLock);
 
+    // Ensure that the mount point is not already in use or inside another
+    // mount point.
+    for (MountList::iterator mount = mountedFileSystems.begin(); mount != mountedFileSystems.end(); ++mount) {
+        if (mount->path == mountPath) {
+            throw CF::FileManager::MountPointAlreadyExists();
+        } else if (mount->contains(mountPath)) {
+            throw CF::InvalidFileName(CF::CF_EINVAL, "Cannot mount file system inside another mounted file system");
+        }
+    }
+
+    LOG_TRACE(FileManager_impl, "Mounting remote file system on " << mountPath);
+    mountedFileSystems.push_back(MountPoint(mountPath, fileSystem));
 
     TRACE_EXIT(FileManager_impl)
 }
 
 
-void
-FileManager_impl::unmount (const char* mountPoint)
-throw (CORBA::SystemException, CF::FileManager::NonExistentMount)
+void FileManager_impl::unmount (const char* mountPoint)
+    throw (CORBA::SystemException, CF::FileManager::NonExistentMount)
 {
-    TRACE_ENTER(FileManager_impl)
-    LOG_TRACE(FileManager_impl, "Entering unmount with " << mountPoint)
+    TRACE_ENTER(FileManager_impl);
 
-    for (unsigned int i = 0; i < numMounts; i++) {
-        if (strcmp (mount_table[i].mountPoint, mountPoint) == 0) {
-            LOG_TRACE(FileManager_impl, "Found mount point to delete.")
-            for (unsigned int j = i; j < mount_table->length() - 1; ++j) ///\todo this leaks FileSystems etc (check)
-                { mount_table[j] = mount_table[j+1]; }
+    std::string mountPath = normalizeMountPath(mountPoint);
 
-            mount_table->length(mount_table->length() - 1);
-            numMounts--;
-            TRACE_EXIT(FileManager_impl)
+    // Exclusive access to the mount table is required.
+    boost::unique_lock<boost::shared_mutex> lock(mountsLock);
+
+    // Find the mount and remove it.
+    for (MountList::iterator mount = mountedFileSystems.begin(); mount != mountedFileSystems.end(); ++mount) {
+        if (mount->path == mountPath) {
+            LOG_TRACE(FileManager_impl, "Unmounting remote file system on " << mountPath);
+            mountedFileSystems.erase(mount);
+
+            TRACE_EXIT(FileManager_impl);
             return;
         }
     }
 
-    LOG_ERROR(FileManager_impl, "Throwing CF::FileManager::NonExistentMount from FileManger unmount.")
-    throw CF::FileManager::NonExistentMount ();
+    // Mount did not exist.
+    throw CF::FileManager::NonExistentMount();
 }
 
 
-void
-FileManager_impl::remove (const char* pattern)
-throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
+void FileManager_impl::remove (const char* fileName)
+    throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
-    TRACE_ENTER(FileManager_impl)
-    LOG_TRACE(FileManager_impl, "Entering remove with " << pattern)
+    TRACE_ENTER(FileManager_impl);
 
-    if (pattern[0] != '/' || !ossie::isValidFileName(pattern)) {
-        LOG_ERROR(FileManager_impl, "remove passed bad filename, throwing exception.");
-        throw CF::InvalidFileName (CF::CF_EINVAL, "[FileManager::remove] Invalid file name");
+    if (!ossie::isValidFileName(fileName)) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
 
-    std::string new_pattern;
+    LOG_TRACE(FileManager_impl, "Removing file " << fileName);
 
-    if ((pattern[0] != '/') && (strlen(pattern) > 0)) {
-        if (pattern[0] == '?') {
-            new_pattern="/";
-            new_pattern.append(&pattern[1]);
-        } else if (pattern[0] == '*') {
-            new_pattern="/";
-            new_pattern.append(pattern);
-        } else {
-            throw CF::InvalidFileName(CF::CF_EINVAL, "[FileManager::remove] Relative path given.");
-        }
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
+
+    // Check if file is on one of the mounted file systems
+    MountList::iterator mount = getMountForPath(fileName);
+    if (mount == mountedFileSystems.end()) {
+        LOG_TRACE(FileManager_impl, "Removing local file");
+        FileSystem_impl::remove(fileName);
     } else {
-        new_pattern = pattern;
+        std::string filePath = mount->getRelativePath(fileName);
+        LOG_TRACE(FileManager_impl, "Removing " << filePath << " on remote file system mounted at " << mount->path);
+        mount->fs->remove(filePath.c_str());
     }
-    
-    long fileFS(0);
-    std::string filePath;
-    std::string searchPattern = new_pattern.c_str();
-    
-    // see if file is on one of the mounted file systems
-    if (getFSandFSPath(new_pattern.c_str(), fileFS, filePath)) {
-        LOG_TRACE(FileManager_impl, "[FileManager::remove] found mountPoint " << ossie::corba::returnString(mount_table[fileFS].mountPoint) << " and localPath " << filePath);
-        
-        std::string::size_type nextSlash = searchPattern.find("/", 1);   // see if there are any slashes after the initial one
-        if (nextSlash == std::string::npos) {   // there's no additional slashes
-            regularExpressionMountDelete(new_pattern);
-        } else {  // look into the contents of the mount point only if it has a trailing slash
-            try {
-                // invoke remove on the mounted file system
-                mount_table[fileFS].fs->remove(filePath.c_str());
-            } catch ( std::exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following standard exception occurred: "<<ex.what()<<" While removing " << new_pattern;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch ( CF::FileException& ex ) {
-                throw;
-            } catch ( CORBA::Exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following CORBA exception occurred: "<<ex._name()<<" While removing " << new_pattern;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch( ... ) {
-                LOG_ERROR(FileManager_impl, "[FileManager::remove] While removing " << new_pattern.c_str() << ": Unknown Exception\n");
-                throw(CF::FileException());
-            }
-        }
-    }
-    // if not on a mounted file system, see if it's in the local file system
-    else {
-        LOG_TRACE(FileManager_impl, "[FileManager::remove] couldn't find file on mountPoint - removing local filesystem");
-        try {
-            FileSystem_impl::remove(new_pattern.c_str());
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While removing " << new_pattern;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While removing " << new_pattern;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::remove] While removing " << new_pattern.c_str() << ": Unknown Exception\n");
-            throw(CF::FileException());
-        }
-        // only the FileManager can mount file systems, so the search for mount points applies only here
-        //  also assume that a single level of mounting is possible
-        if (searchPattern.size() > 1) {
-            std::string::size_type nextSlash = searchPattern.find("/", 1);   // see if there are any slashes after the initial one
-            if (nextSlash == std::string::npos) {   // there's no additional slashes
-                regularExpressionMountDelete(new_pattern);
-            } else if ((nextSlash == (searchPattern.size()-1))) {  // it's a trailing slash (list the mount's contents)
-                // this was done in getFSandFSPath
-            }
-        }
-    }
+
     TRACE_EXIT(FileManager_impl)
 }
 
-void FileManager_impl::regularExpressionMountDelete(std::string new_pattern)
+
+void FileManager_impl::copy (const char* sourceFileName, const char* destinationFileName)
+    throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    std::string initial_patternString = new_pattern.c_str();
-    std::string::iterator pattern_iter = initial_patternString.begin();
-    std::string patternString = "";
-    while (pattern_iter != initial_patternString.end()) {
-        const char value = *pattern_iter;
-        if (value == '*') {
-            patternString.append(".*");
-        } else if (value == '?') {
-            patternString.append(1, '.');
+    TRACE_ENTER(FileManager_impl);
+
+    // Validate absolute file names
+    if (sourceFileName[0] != '/' || !ossie::isValidFileName(sourceFileName)) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid source file name");
+    } else if (destinationFileName[0] != '/' || !ossie::isValidFileName(destinationFileName)) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid destination file name");
+    } else if (strcmp(sourceFileName, destinationFileName) == 0) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Destination file name is identical to source file name");
+    }
+
+    LOG_TRACE(FileManager_impl, "Copy " << sourceFileName << " to " << destinationFileName);
+
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
+
+    MountList::iterator sourceMount = getMountForPath(sourceFileName);
+    MountList::iterator destMount = getMountForPath(destinationFileName);
+
+    if (sourceMount == destMount) {
+        // Source and destination are on the same file system...
+        if (sourceMount == mountedFileSystems.end()) {
+            // ...which is also the local file system.
+            LOG_TRACE(FileManager_impl, "Copying locally");
+            FileSystem_impl::copy(sourceFileName, destinationFileName);
         } else {
-            patternString.append(1, value);
+            // ...which is a remote file system.
+            LOG_TRACE(FileManager_impl, "Copying locally on remote file system");
+            const std::string srcPath = sourceMount->getRelativePath(sourceFileName);
+            const std::string dstPath = destMount->getRelativePath(destinationFileName);
+            sourceMount->fs->copy(srcPath.c_str(), dstPath.c_str());
         }
-        pattern_iter++;
-    }
-    boost::regex expression(patternString);
-    for (unsigned int mount = 0; mount<mount_table->length(); mount++) {
-        std::string tmpMount = ossie::corba::returnString(mount_table[mount].mountPoint);
-        bool match = boost::regex_match(tmpMount, expression);
-        if (match) {
-            // delete the file
-        }
-    }
-}
-
-
-void
-FileManager_impl::copy (const char* sourceFileName,
-                        const char* destinationFileName)
-throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
-{
-    LOG_TRACE(FileManager_impl, "[FileManager::copy] entering with " << sourceFileName << " to " << destinationFileName)
-
-    if (!ossie::isValidFileName(sourceFileName) || !ossie::isValidFileName(destinationFileName)) {
-        LOG_ERROR(FileManager_impl, "[FileManager::copy] passed bad filename, throwing exception.");
-        throw CF::InvalidFileName (CF::CF_EINVAL, "[FileManager::copy] Invalid file name");
+        return;
     }
 
-    long srcFS(0), dstFS(0);
-    bool srcMountedFlag, dstMountedFlag;
-    std::string srcPath;
-    std::string dstPath;
+    LOG_TRACE(FileManager_impl, "Copying between filesystems");
 
-    srcMountedFlag = getFSandFSPath(sourceFileName, srcFS, srcPath);
-    dstMountedFlag = getFSandFSPath(destinationFileName, dstFS, dstPath);
-
-    // make sure source file exists
-    if (srcMountedFlag) {
-        if (!mount_table[srcFS].fs->exists (srcPath.c_str())) {
-            LOG_ERROR(FileManager_impl, "[FileManager::copy] Throwing exception from copy because source file does not exist.");
-            throw CF::InvalidFileName (CF::CF_EINVAL, "[FileSystem::Copy] Invalid file name");
-        }
-    } else {
-        if (!FileSystem_impl::exists(sourceFileName)) {
-            LOG_ERROR(FileManager_impl, "[FileManager::copy] Throwing exception from copy because source file does not exist.");
-            throw CF::InvalidFileName (CF::CF_EINVAL, "[FileSystem::Copy] Invalid file name");
-        }
-    }
-
-
-    //-----------------------------
-    // Check within one FileSystem
-    //-----------------------------
-    if (srcMountedFlag == dstMountedFlag) {
-        // both files are on local file system
-        if (srcMountedFlag == false) {
-            LOG_TRACE(FileManager_impl, "[FileManager::copy] \"fs->copy\" " << sourceFileName << " to " << destinationFileName << " locally on FileManager's filesystem");
-            try {
-                FileSystem_impl::copy(sourceFileName, destinationFileName);
-            } catch ( std::exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following standard exception occurred: "<<ex.what()<<" While \"fs->copy\" " << sourceFileName << " to " << destinationFileName;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch ( CF::FileException& ex ) {
-                throw;
-            } catch ( CORBA::Exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"fs->copy\" " << sourceFileName << " to " << destinationFileName;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch( ... ) {
-                LOG_ERROR(FileManager_impl, "[FileManager::copy] \"fs->copy\" " << sourceFileName << " to " << destinationFileName << " failed with Unknown Exception\n");
-                throw(CF::FileException());
-            }
-            return;
-        }
-        // if both files are on the same mounted filesystem
-        else if (srcFS == dstFS) {
-            LOG_TRACE(FileManager_impl, "[FileManager::copy] \"fs->copy\" " << sourceFileName << " to " << destinationFileName << "  locally on mounted filesystem");
-            try {
-                mount_table[srcFS].fs->copy(srcPath.c_str(), dstPath.c_str());
-            } catch ( std::exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following standard exception occurred: "<<ex.what()<<" While \"fs->copy\" " << sourceFileName << " to " << destinationFileName;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch ( CF::FileException& ex ) {
-                throw;
-            } catch ( CORBA::Exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"fs->copy\" " << sourceFileName << " to " << destinationFileName;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch( ... ) {
-                LOG_ERROR(FileManager_impl, "[FileManager::copy] \"fs->copy\" " << srcPath << " to " << dstPath << " failed with Unknown Exception\n");
-                throw(CF::FileException());
-            }
-            return;
-        }
-    }
-
-    //-----------------------------
-    // Copy file across FileSystems
-    //-----------------------------
-
+    // Open the source file (may be local).
     CF::File_var srcFile;
-    CF::File_var dstFile;
-
-    //open source file
-    if (srcMountedFlag) {
-        try {
-            srcFile = mount_table[srcFS].fs->open(srcPath.c_str(), true);
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While opening file " << srcPath;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While opening file " << srcPath;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::copy] While opening file " << srcPath << ": Unknown Exception\n");
-            throw(CF::FileException());
-        }
+    if (sourceMount == mountedFileSystems.end()) {
+        srcFile = FileSystem_impl::open(sourceFileName, true);
     } else {
-        try {
-            srcFile = FileSystem_impl::open(sourceFileName, true);
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While opening file " << srcPath;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While opening file " << srcPath;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::copy] While opening file " << sourceFileName << ": Unknown Exception\n");
-            throw(CF::FileException());
-        }
+        const std::string srcPath = sourceMount->getRelativePath(sourceFileName);
+        srcFile = sourceMount->fs->open(srcPath.c_str(), true);
     }
 
-    // ensure destination file is available and ready for writing
-    if (dstMountedFlag) {   // destination is a mounted filesystem
-        //remove file if it already exists
-        if (mount_table[dstFS].fs->exists(dstPath.c_str())) {
-            try {
-                mount_table[dstFS].fs->remove(dstPath.c_str());
-            } catch ( std::exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following standard exception occurred: "<<ex.what()<<" While \"fs->remove\" " << dstPath;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch ( CF::FileException& ex ) {
-                throw;
-            } catch ( CORBA::Exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"fs->remove\" " << dstPath;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch( ... ) {
-                LOG_ERROR(FileManager_impl, "[FileManager::copy] \"fs->remove\" " << dstPath << " failed with Unknown Exception\n");
-                throw(CF::FileException());
-            }
-        }
-        // create new file
-        try {
-            dstFile = mount_table[dstFS].fs->create(dstPath.c_str());
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While \"fs->create\" " << dstPath;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"fs->create\" " << dstPath;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::copy] \"fs->create\" " << dstPath << " failed with Unknown Exception\n");
-            throw(CF::FileException());
-        }
-    } else { // destination is on the local filesystem
-        // remove the file if it already exists
+    // Open the destination file (may be local).
+    CF::File_var dstFile;
+    if (destMount == mountedFileSystems.end()) {
         if (FileSystem_impl::exists(destinationFileName)) {
-            try {
-                FileSystem_impl::remove(destinationFileName);
-            } catch ( std::exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following standard exception occurred: "<<ex.what()<<" While \"fs->remove\" " << destinationFileName;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch ( CF::FileException& ex ) {
-                throw;
-            } catch ( CORBA::Exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"fs->remove\" " << destinationFileName;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch( ... ) {
-                LOG_ERROR(FileManager_impl, "[FileManager::copy] \"fs->remove\" " << destinationFileName << " failed with Unknown Exception\n");
-                throw(CF::FileException());
-            }
+            FileSystem_impl::remove(destinationFileName);
         }
-        // create the file
-        try {
-            dstFile = FileSystem_impl::create(destinationFileName);
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While \"fs->create\" " << destinationFileName;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"fs->create\" " << destinationFileName;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::copy] \"fs->create\" " << destinationFileName << " failed with Unknown Exception\n");
-            throw(CF::FileException());
+        dstFile = FileSystem_impl::create(destinationFileName);
+    } else {
+        const std::string dstPath = destMount->getRelativePath(destinationFileName);
+        CF::FileSystem_ptr destFS = destMount->fs;
+        if (destFS->exists(dstPath.c_str())) {
+            destFS->remove(dstPath.c_str());
         }
+        dstFile = destFS->create(dstPath.c_str());
     }
 
-    LOG_TRACE(FileManager_impl, "[FileManager::copy] \"fs->copy\" " << sourceFileName << " to " << destinationFileName << "  remotely between filesystems");
-
-    // read the data
+    // Read the data
     CF::OctetSequence_var data;
     CORBA::ULong bytes = srcFile->sizeOf();
     while (bytes > 0) {
@@ -521,621 +252,372 @@ throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
         // size and raise a MARSHAL exception.
         const CORBA::ULong DEFAULT_CHUNK_SIZE = 1*1024*1024;
         CORBA::ULong chunkSize = std::min(bytes, DEFAULT_CHUNK_SIZE);
-        bytes -= chunkSize;
-        try {
-            srcFile->read(data, chunkSize);
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While \"srcFile->read\"";
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"srcFile->read\"";
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::copy] \"srcFile->read\" failed with Unknown Exception\n");
-            throw(CF::FileException());
+        srcFile->read(data, chunkSize);
+        dstFile->write(data);
+        bytes -= data->length();
+    }
+
+    // Close the files
+    srcFile->close();
+    dstFile->close();
+
+    TRACE_EXIT(FileManager_impl);
+}
+
+
+void FileManager_impl::move (const char* sourceFileName, const char* destinationFileName)
+    throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
+{
+    TRACE_ENTER(FileManager_impl);
+
+    // Validate absolute file names
+    if (sourceFileName[0] != '/' || !ossie::isValidFileName(sourceFileName)) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid source file name");
+    } else if (destinationFileName[0] != '/' || !ossie::isValidFileName(destinationFileName)) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid destination file name");
+    } else if (strcmp(sourceFileName, destinationFileName) == 0) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Destination file name is identical to source file name");
+    }
+
+    LOG_TRACE(FileManager_impl, "Move " << sourceFileName << " to " << destinationFileName);
+
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
+
+    MountList::iterator sourceMount = getMountForPath(sourceFileName);
+    MountList::iterator destMount = getMountForPath(destinationFileName);
+
+    if (sourceMount == destMount) {
+        // Source and destination are on the same file system...
+        if (sourceMount == mountedFileSystems.end()) {
+            // ...which is also the local file system.
+            LOG_TRACE(FileManager_impl, "Moving locally");
+            FileSystem_impl::move(sourceFileName, destinationFileName);
+        } else {
+            // ...which is a remote file system.
+            LOG_TRACE(FileManager_impl, "Moving locally on remote file system");
+            const std::string srcPath = sourceMount->getRelativePath(sourceFileName);
+            const std::string dstPath = destMount->getRelativePath(destinationFileName);
+            sourceMount->fs->move(srcPath.c_str(), dstPath.c_str());
         }
-
-
-        // write the data
-        try {
-            dstFile->write(data);
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While \"dstFile->write\"";
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"dstFile->write\"";
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::copy] \"dstFile->write\" failed with Unknown Exception\n");
-            throw(CF::FileException());
-        }
+        return;
     }
 
-    // close the files
-    try {
-        srcFile->close();
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While \"srcFile->close\"";
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"srcFile->close\"";
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-    } catch( ... ) {
-        LOG_ERROR(FileManager_impl, "[FileManager::copy] \"srcFile->close\" failed with Unknown Exception\n");
-        throw(CF::FileException());
-    }
+    LOG_TRACE(FileManager_impl, "Moving between filesystems");
 
-    try {
-        dstFile->close();
-    } catch ( std::exception& ex ) {
-        std::ostringstream eout;
-        eout << "The following standard exception occurred: "<<ex.what()<<" While \"dstFile->close\"";
-        LOG_ERROR(FileManager_impl, eout.str())
-        throw(CF::FileException());
-    } catch ( CF::FileException& ex ) {
-        throw;
-    } catch ( CORBA::Exception& ex ) {
-        std::ostringstream eout;
-        eout << "The following CORBA exception occurred: "<<ex._name()<<" While \"dstFile->close\"";
-        LOG_ERROR(FileManager_impl, eout.str())
-        throw(CF::FileException());
-    } catch( ... ) {
-        LOG_ERROR(FileManager_impl, "[FileManager::copy] \"dstFile->close\" failed with Unknown Exception\n");
-        throw(CF::FileException());
-    }
+    // Perform a copy followed by a remove, which is the only way we can move
+    // across file systems. This operation is not atomic, and making it atomic
+    // across a distributed file system is difficult. If necessary, we can
+    // acquire an exclusive lock which at least prevents anyone going through
+    // the domain's FileManager from interfering with this operation.
+    this->copy(sourceFileName, destinationFileName);
+    this->remove(sourceFileName);
+
+    TRACE_EXIT(FileManager_impl);
 }
 
 
 CORBA::Boolean FileManager_impl::exists (const char* fileName)
-throw (CORBA::SystemException, CF::InvalidFileName)
+    throw (CORBA::SystemException, CF::InvalidFileName)
 {
-    LOG_TRACE(FileManager_impl, "[FileManager::exists] Entering exists with " << fileName)
+    TRACE_ENTER(FileManager_impl);
 
     if (!ossie::isValidFileName(fileName)) {
-        LOG_ERROR(FileManager_impl, "[FileManager::exists] passed bad filename, throwing exception.");
-        throw CF::InvalidFileName (CF::CF_EINVAL, "[FileManager::exists] Invalid file name");
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
 
-    LOG_TRACE(FileManager_impl, "[FileManager::exists] running FS.exists for file " << fileName)
+    LOG_TRACE(FileManager_impl, "Checking for existence of " << fileName);
 
-    //test code
-    long fileFS(0);
-    std::string filePath;
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
 
-    // see if file is on one of the mounted file systems
-    if (getFSandFSPath(fileName, fileFS, filePath)) {
-        LOG_TRACE(FileManager_impl, "[FileManager::exists] found mountPoint " << mount_table[fileFS].mountPoint << " and localPath " << filePath);
-
-        if (mount_table[fileFS].fs->exists(filePath.c_str())) {
-            return true;
-        } else {
-            return false;
-        }
+    // Check if path is on one of the mounted file systems
+    MountList::iterator mount = getMountForPath(fileName);
+    CORBA::Boolean status;
+    if (mount == mountedFileSystems.end()) {
+        LOG_TRACE(FileManager_impl, "Checking local file system");
+        status = FileSystem_impl::exists(fileName);
     } else {
-        return FileSystem_impl::exists(fileName);
+        std::string filePath = mount->getRelativePath(fileName);
+        LOG_TRACE(FileManager_impl, "Checking for " << filePath << " on remote file system mounted at " << mount->path);
+        status = mount->fs->exists(filePath.c_str());
     }
 
+    TRACE_EXIT(FileManager_impl);
+    return status;
 }
 
 
-CF::FileSystem::FileInformationSequence *
-FileManager_impl::list (const char* pattern) throw (CORBA::SystemException,
-                                                    CF::FileException,
-                                                    CF::InvalidFileName)
+CF::FileSystem::FileInformationSequence* FileManager_impl::list (const char* pattern)
+    throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
-    LOG_TRACE(FileManager_impl, "[FileManager::list] entering with " << pattern);
+    TRACE_ENTER(FileManager_impl);
     
-    std::string new_pattern;
+    LOG_TRACE(FileManager_impl, "List files with pattern " << pattern);
 
-    if ((pattern[0] != '/') && (strlen(pattern) > 0)) {
-        if (pattern[0] == '?') {
-            new_pattern="/";
-            new_pattern.append(&pattern[1]);
-        } else if (pattern[0] == '*') {
-            new_pattern="/";
-            new_pattern.append(pattern);
-        } else {
-            throw CF::InvalidFileName(CF::CF_EINVAL, "[FileManager::list] Relative path given.");
+    CF::FileSystem::FileInformationSequence_var result;
+
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
+
+    MountList::iterator mount = getMountForPath(pattern);
+    if (mount == mountedFileSystems.end()) { 
+        LOG_TRACE(FileManager_impl, "Listing local file system");
+        result = FileSystem_impl::list(pattern);
+
+        // Check for any mount points that match the pattern.
+        std::string searchPattern = pattern;
+        if (!searchPattern.empty() && (searchPattern[searchPattern.size()-1] == '/')) {
+            searchPattern += "*";
+        }
+
+        for (MountList::iterator ii = mountedFileSystems.begin(); ii != mountedFileSystems.end(); ++ii) {
+            if (fnmatch(searchPattern.c_str(), ii->path.c_str(), 0) == 0) {
+                CORBA::ULong index = result->length();
+                result->length(index+1);
+                result[index].name = CORBA::string_dup(ii->path.substr(1).c_str());
+                result[index].kind = CF::FileSystem::FILE_SYSTEM;
+                result[index].size = 0;
+                result[index].fileProperties.length(0);
+            }
         }
     } else {
-        new_pattern = pattern;
-    }
-
-    long fileFS(0);
-    std::string filePath;
-    std::string searchPattern = new_pattern.c_str();
-
-    CF::FileSystem::FileInformationSequence_var fis;
-
-    // see if file is on one of the mounted file systems
-    if (getFSandFSPath(new_pattern.c_str(), fileFS, filePath)) {
-        LOG_TRACE(FileManager_impl, "[FileManager::list] found mountPoint " << ossie::corba::returnString(mount_table[fileFS].mountPoint) << " and localPath " << filePath);
-
-        std::string::size_type nextSlash = searchPattern.find("/", 1);   // see if there are any slashes after the initial one
-        if (nextSlash == std::string::npos) {   // there's no additional slashes
-            fis = new CF::FileSystem::FileInformationSequence;
-            fis->length(0);
-            regularExpressionMountSearch(new_pattern, fis);
-        } else {  // look into the contents of the mount point only if it has a trailing slash
-            try {
-                fis = mount_table[fileFS].fs->list(filePath.c_str());
-            } catch ( std::exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following standard exception occurred: "<<ex.what()<<" While listing " << new_pattern;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch ( CF::FileException& ex ) {
-                throw;
-            } catch ( CORBA::Exception& ex ) {
-                std::ostringstream eout;
-                eout << "The following CORBA exception occurred: "<<ex._name()<<" While listing " << new_pattern;
-                LOG_ERROR(FileManager_impl, eout.str())
-                throw(CF::FileException());
-            } catch( ... ) {
-                LOG_ERROR(FileManager_impl, "[FileManager::list] While listing " << new_pattern.c_str() << ": Unknown Exception\n");
-                throw(CF::FileException());
-            }
-        }
-    }
-    // if not on a mounted file system, see if it's in the local file system
-    else {
-        LOG_TRACE(FileManager_impl, "[FileManager::list] couldn't find file on mountPoint - listing local filesystem");
-        try {
-            fis = FileSystem_impl::list(new_pattern.c_str());
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While listing " << new_pattern;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While listing " << new_pattern;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::list] While listing " << new_pattern.c_str() << ": Unknown Exception\n");
-            throw(CF::FileException());
-        }
-        // only the FileManager can mount file systems, so the search for mount points applies only here
-        //  also assume that a single level of mounting is possible
-        if (searchPattern.size() > 1) {
-            std::string::size_type nextSlash = searchPattern.find("/", 1);   // see if there are any slashes after the initial one
-            if (nextSlash == std::string::npos) {   // there's no additional slashes
-                regularExpressionMountSearch(new_pattern, fis);
-            } else if ((nextSlash == (searchPattern.size()-1))) {  // it's a trailing slash (list the mount's contents)
-                // this was done in getFSandFSPath
-            }
-        } else if (strncmp(pattern, "/", 1) == 0) { // the search string is /
-            for (unsigned int mount = 0; mount<mount_table->length(); mount++) {
-                std::string tmpMount = ossie::corba::returnString(mount_table[mount].mountPoint);
-                fis->length(fis->length()+1);
-                fis[fis->length()-1].name = CORBA::string_dup(&(tmpMount.c_str()[1])); // eliminate the preceding slash
-                fis[fis->length()-1].kind = CF::FileSystem::FILE_SYSTEM;
-                fis[fis->length()-1].size = 0;
-                CF::Properties prop;
-                prop.length(0);
-                fis[fis->length()-1].fileProperties = prop;
-            }
-        }
-    }
-
-    return fis._retn();
-
-}
-
-void FileManager_impl::regularExpressionMountSearch(std::string new_pattern, CF::FileSystem::FileInformationSequence_var& fis)
-{
-    std::string initial_patternString = new_pattern.c_str();
-    std::string::iterator pattern_iter = initial_patternString.begin();
-    std::string patternString = "";
-    while (pattern_iter != initial_patternString.end()) {
-        const char value = *pattern_iter;
-        if (value == '*') {
-            patternString.append(".*");
-        } else if (value == '?') {
-            patternString.append(1, '.');
+        const std::string searchPath = mount->getRelativePath(pattern);
+        if (searchPath.empty()) {
+            // Exact match for mount point
+            LOG_TRACE(FileManager_impl, "List mount point " << mount->path);
+            result = new CF::FileSystem::FileInformationSequence();
+            result->length(1);
+            result[0].name = CORBA::string_dup(mount->path.substr(1).c_str());
+            result[0].kind = CF::FileSystem::FILE_SYSTEM;
+            result[0].size = 0;
+            result[0].fileProperties.length(0);
         } else {
-            patternString.append(1, value);
-        }
-        pattern_iter++;
-    }
-    boost::regex expression(patternString);
-    for (unsigned int mount = 0; mount<mount_table->length(); mount++) {
-        std::string tmpMount = ossie::corba::returnString(mount_table[mount].mountPoint);
-        bool match = boost::regex_match(tmpMount, expression);
-        if (match) {
-            fis->length(fis->length()+1);
-            fis[fis->length()-1].name = CORBA::string_dup(&(tmpMount.c_str()[1])); // eliminate the preceding slash
-            fis[fis->length()-1].kind = CF::FileSystem::FILE_SYSTEM;
-            fis[fis->length()-1].size = 0;
-            CF::Properties prop;
-            prop.length(0);
-            fis[fis->length()-1].fileProperties = prop;
+            // List contents of mount point
+            LOG_TRACE(FileManager_impl, "Listing " << searchPath << " on remote file system mounted at " << mount->path);
+            result = mount->fs->list(searchPath.c_str());
         }
     }
-}
 
-
-CF::File_ptr FileManager_impl::create (const char* fileName) throw (CORBA::
-                                                                    SystemException,
-                                                                    CF::
-                                                                    InvalidFileName,
-                                                                    CF::
-                                                                    FileException)
-{
-    LOG_TRACE(FileManager_impl, "Entering create with " << fileName)
-
-    if (!ossie::isValidFileName(fileName)) {
-        LOG_ERROR(FileManager_impl, "create passed bad filename, throwing exception.");
-        throw CF::InvalidFileName (CF::CF_EINVAL, "[FileManager::create] Invalid file name");
-    }
-
-    long fileFS(0);
-    std::string filePath;
-    CF::File_var file_var;
-
-    // see if location is on one of the mounted file systems
-    if (getFSandFSPath(fileName, fileFS, filePath)) {
-        LOG_TRACE(FileManager_impl, "Found mountPoint " << mount_table[fileFS].mountPoint << " and localPath " << filePath);
-
-        // File should not already exist
-        if (mount_table[fileFS].fs->exists(filePath.c_str())) {
-            throw CF::FileException(CF::CF_NOTSET, "[FileManager::create] File already exists on requested File System");
-        }
-
-        try {
-            file_var = mount_table[fileFS].fs->create(filePath.c_str());
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While creating file " << fileName;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While creating file " << fileName;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::open] While creating file " << fileName << ": Unknown Exception\n");
-            throw(CF::FileException());
-        }
-    }
-    // if location is not on a mounted file system, see if it's in the local file system
-    else if (FileSystem_impl::exists(fileName)) {
-        throw CF::FileException(CF::CF_NOTSET, "[FileManager::create] File already exists on the local File System");
-    }
-    // file can't be found
-    else {
-        LOG_TRACE(FileManager_impl, "couldn't find location on mountPoint - creating with local filesystem");
-        return FileSystem_impl::create(fileName);
-    }
-
-    return file_var._retn();
-}
-
-
-CF::File_ptr
-FileManager_impl::open (const char* fileName, CORBA::Boolean read_Only)
-throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
-{
-    LOG_TRACE(FileManager_impl, "Entering open with " << fileName)
-
-    if (!ossie::isValidFileName(fileName)) {
-        LOG_ERROR(FileManager_impl, "open passed bad filename, throwing exception.");
-        throw CF::InvalidFileName (CF::CF_EINVAL, "[FileManager::open] Invalid file name");
-    }
-
-    long fileFS(0);
-    std::string filePath;
-    CF::File_var file_var;
-
-    // see if file is on one of the mounted file systems
-    if (getFSandFSPath(fileName, fileFS, filePath)) {
-        LOG_TRACE(FileManager_impl, "Found mountPoint " << mount_table[fileFS].mountPoint << " and localPath " << filePath);
-
-        if (!mount_table[fileFS].fs->exists(filePath.c_str())) {
-            throw CF::FileException(CF::CF_NOTSET, "[FileManager::open] File does not exist on requested File System");
-        }
-
-        try {
-            file_var = mount_table[fileFS].fs->open (filePath.c_str(), read_Only);
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While opening file " << fileName;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While opening file " << fileName;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::open] While opening file " << fileName << ": Unknown Exception\n");
-            throw(CF::FileException());
-        }
-    }
-    // if not on a mounted file system, see if it's in the local file system
-    else if (FileSystem_impl::exists(fileName)) {
-        LOG_TRACE(FileManager_impl, "couldn't find file on mountPoint - opening with local filesystem");
-        file_var = FileSystem_impl::open(fileName, read_Only);
-    }
-    // file can't be found
-    else {
-        LOG_ERROR(FileManager_impl, "File does not exist on any mounted File System");
-        throw CF::FileException(CF::CF_NOTSET, "[FileManager::open] File does not exist on any mounted File System");
-    }
-
-    return file_var._retn();
-}
-
-
-void
-FileManager_impl::mkdir (const char* directoryName)
-throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
-{
-    LOG_TRACE(FileManager_impl, "[FileManager::mkdir] Entering with " << directoryName)
-
-    if (!ossie::isValidFileName(directoryName)) {
-        LOG_ERROR(FileManager_impl, "[FileManager::mkdir] passed bad filename, throwing exception.");
-        throw CF::InvalidFileName (CF::CF_EINVAL, "[FileManager::mkdir] Invalid directory name");
-    }
-
-    long fileFS(0);
-    std::string filePath;
-
-    // see if location is on one of the mounted file systems
-    if (getFSandFSPath(directoryName, fileFS, filePath)) {
-        LOG_TRACE(FileManager_impl, "[FileManager::mkdir] Found mountPoint " << mount_table[fileFS].mountPoint << " and localPath " << filePath);
-
-        // Directory should not already exist
-        if (mount_table[fileFS].fs->exists(filePath.c_str())) {
-            throw CF::FileException(CF::CF_NOTSET, "[FileManager::mkdir] Directory already exists on requested File System");
-        }
-
-        try {
-            mount_table[fileFS].fs->mkdir(filePath.c_str());
-        } catch ( std::exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following standard exception occurred: "<<ex.what()<<" While making directory " << directoryName;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch ( CF::FileException& ex ) {
-            throw;
-        } catch ( CORBA::Exception& ex ) {
-            std::ostringstream eout;
-            eout << "The following CORBA exception occurred: "<<ex._name()<<" While making directory " << directoryName;
-            LOG_ERROR(FileManager_impl, eout.str())
-            throw(CF::FileException());
-        } catch( ... ) {
-            LOG_ERROR(FileManager_impl, "[FileManager::mkdir] While making directory " << directoryName << ": Unknown Exception\n");
-            throw(CF::FileException());
-        }
-    }
-    // if location is not on a mounted file system, see if it's in the local file system
-    else if (FileSystem_impl::exists(directoryName)) {
-        LOG_ERROR(FileManager_impl, "Directory already exists on the local File System")
-        throw CF::FileException(CF::CF_NOTSET, "[FileManager::mkdir] Directory already exists on the local File System");
-    }
-    // directory doesn't exist (that's a good thing)
-    else {
-        LOG_TRACE(FileManager_impl, "[FileManager::mkdir] couldn't find location on mountPoint - making on local filesystem");
-        FileSystem_impl::mkdir(directoryName);
-    }
-
-    TRACE_EXIT(FileManager_impl)
-}
-
-
-void
-FileManager_impl::rmdir (const char* directoryName)
-throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
-{
-    LOG_TRACE(FileManager_impl, "Entering rmdir with " << directoryName)
-
-    if (!ossie::isValidFileName(directoryName)) {
-        LOG_ERROR(FileManager_impl, "rmdir passed bad filename, throwing exception.");
-        throw CF::InvalidFileName (CF::CF_EINVAL, "[FileManager::rmdir] Invalid directory name");
-    }
-
-    long fileFS(0);
-    std::string filePath;
-
-    // see if location is on one of the mounted file systems
-    if (getFSandFSPath(directoryName, fileFS, filePath)) {
-        LOG_TRACE(FileManager_impl, "[FileManager::rmdir] Found mountPoint " << mount_table[fileFS].mountPoint << " and localPath " << filePath);
-
-        // Directory should already exist
-        if (!mount_table[fileFS].fs->exists(filePath.c_str())) {
-            throw CF::FileException(CF::CF_NOTSET, "[FileManager::rmdir] Directory does not exist on requested File System");
-        }
-
-        // Ask the mounted file system handle the call, letting any exceptions propagate through
-        // (FileManager is a subclass of FileSystem, and inherits the behavior of rmdir, including
-        // the exceptions).
-        mount_table[fileFS].fs->rmdir(filePath.c_str());
-    }
-    // if location is not on a mounted file system, see if it's in the local file system
-    else if (FileSystem_impl::exists(directoryName)) {
-        FileSystem_impl::rmdir(directoryName);
-    }
-    // directory doesn't exist
-    else {
-        throw CF::FileException(CF::CF_NOTSET, "[FileManager::rmdir] Directory does not exist on the local File System");
-    }
-
-    TRACE_EXIT(FileManager_impl)
-}
-
-
-void
-FileManager_impl::query (CF::Properties& fileSysProperties)
-throw (CORBA::SystemException, CF::FileSystem::UnknownFileSystemProperties)
-{
-    TRACE_ENTER(FileManager_impl)
-
-    bool check;
-
-    for (unsigned int i = 0; i < fileSysProperties.length (); i++) {
-        check = false;
-
-        if (strcmp (fileSysProperties[i].id, CF::FileSystem::SIZE) == 0) {
-            CORBA::Long totalSize, temp;
-            totalSize = 0;
-
-            for (unsigned int j = 0; j < mount_table->length(); j++) {
-                CF::DataType dt;
-                dt.id = CORBA::string_dup ("SIZE");
-                CF::Properties pr (2, 1, &dt, 0);
-
-                try {
-                    mount_table[j].fs->query (pr);
-                } catch( CORBA::SystemException& se ) {
-                    LOG_ERROR(FileManager_impl, "fs->query failed with CORBA::SystemException");
-                    throw;
-                } catch ( std::exception& ex ) {
-                    std::ostringstream eout;
-                    eout << "The following standard exception occurred: "<<ex.what()<<" While fs->query";
-                    LOG_ERROR(FileManager_impl, eout.str())
-                    throw(CF::FileException());
-                } catch ( CF::FileException& ex ) {
-                    throw;
-                } catch ( CORBA::Exception& ex ) {
-                    std::ostringstream eout;
-                    eout << "The following CORBA exception occurred: "<<ex._name()<<" While fs->query";
-                    LOG_ERROR(FileManager_impl, eout.str())
-                    throw(CF::FileException());
-                } catch( ... ) {
-                    LOG_ERROR(FileManager_impl, "fs->query failed with Unknown Exception");
-                    throw;
-                }
-
-                CF::DataType* _dt = pr.get_buffer ();
-
-                for (unsigned int k = 0; k < pr.length (); k++) {
-                    _dt->value >>= temp;
-                    totalSize = totalSize + temp;
-                    _dt++;
-                }
-
-                fileSysProperties[i].value >>= temp;
-                fileSysProperties[i].value <<= totalSize + temp;
-
-                check = true;
-            }
-        }
-
-        if (strcmp (fileSysProperties[i].id,
-                    CF::FileSystem::AVAILABLE_SPACE) == 0) {
-            CORBA::Long totalSize;
-            totalSize = 0;
-
-            for (unsigned int i = 0; i < mount_table->length(); i++) {
-            }
-
-            check = true;
-        }
-
-        if (!check)
-            { throw CF::FileSystem::UnknownFileSystemProperties (); }
-
-        ///\todo Add functionality to query ALL FileManager properties
-    }
-    TRACE_EXIT(FileManager_impl)
-}
-
-
-CF::FileManager::MountSequence*
-FileManager_impl::getMounts ()throw (CORBA::SystemException)
-{
-    TRACE_ENTER(FileManager_impl)
-    CF::FileManager::MountSequence_var result = new CF::FileManager::MountSequence(mount_table);
+    TRACE_EXIT(FileManager_impl);
     return result._retn();
 }
 
-bool FileManager_impl::getFSandFSPath(const char* path, long& mountTableIndex, std::string& FSPath)
+
+CF::File_ptr FileManager_impl::create (const char* fileName)
+    throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    LOG_TRACE(FileManager_impl, "Entering getFSandFSPath with path " << path)
+    TRACE_ENTER(FileManager_impl);
 
-    fs::path fullPath(path);
-    fs::path::iterator fullItr(fullPath.begin());
-    std::string tmpFSPath;
-
-    unsigned int lastMatchLength(0);
-    mountTableIndex = -1;
-
-    for(unsigned int i(0); i < numMounts; ++i) {
-        unsigned int matchLength = pathMatches(path, mount_table[i].mountPoint, tmpFSPath);
-        if ( matchLength > lastMatchLength) {
-            mountTableIndex = i;
-            lastMatchLength = matchLength;
-            FSPath = tmpFSPath;
-        }
+    if (!ossie::isValidFileName(fileName)) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
-    LOG_TRACE(FileManager_impl, "Found mountIndex " << mountTableIndex << " and local path " << FSPath << " lastMatchLength " << lastMatchLength)
-    if (mountTableIndex < 0 ) {
-        return false;
-    }
-    return true;
 
+    LOG_TRACE(FileManager_impl, "Creating file " << fileName)
+
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
+
+    MountList::iterator mount = getMountForPath(fileName);
+    CF::File_var file;
+    if (mount == mountedFileSystems.end()) {
+        LOG_TRACE(FileManager_impl, "Creating local file");
+        file = FileSystem_impl::create(fileName);
+    } else {
+        const std::string filePath = mount->getRelativePath(fileName);
+        LOG_TRACE(FileManager_impl, "Creating " << filePath << " on remote file system mounted at " << mount->path);
+        file = mount->fs->create(filePath.c_str());
+    }
+
+    TRACE_EXIT(FileManager_impl);
+    return file._retn();
 }
 
-unsigned int FileManager_impl::pathMatches(const char* path, const char* mPoint, std::string& FSPath)
+
+CF::File_ptr FileManager_impl::open (const char* fileName, CORBA::Boolean read_Only)
+    throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    LOG_TRACE(FileManager_impl, "Entering pathMatches with path " << path << " mount point " << mPoint)
+    TRACE_ENTER(FileManager_impl);
 
-    fs::path fullPath(path);
-    fs::path::iterator fullItr(fullPath.begin());
-
-    fs::path mPath(mPoint);
-    fs::path::iterator mItr(mPath.begin());
-
-    unsigned int commonElements(0);
-
-    while (fullItr != fullPath.end()) {
-        if (*fullItr != *mItr)
-            { break; }
-
-        // don't want to match "/" to "/"
-        if ((commonElements > 0) || (*fullItr != "/")) {
-            ++commonElements;
-        }
-        ++fullItr;
-        ++mItr;
+    if (!ossie::isValidFileName(fileName)) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
 
+    LOG_TRACE(FileManager_impl, "Opening file " << fileName << std::string((read_Only)?" readonly":" readwrite"));
 
-    fs::path localPath("/");
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
 
-    while (fullItr != fullPath.end()) {
-        localPath /= *fullItr;
-        ++fullItr;
+    MountList::iterator mount = getMountForPath(fileName);
+    CF::File_var file;
+    if (mount == mountedFileSystems.end()) {
+        LOG_TRACE(FileManager_impl, "Opening local file");
+        file = FileSystem_impl::open(fileName, read_Only);
+    } else {
+        const std::string filePath = mount->getRelativePath(fileName);
+        LOG_TRACE(FileManager_impl, "Opening " << filePath << " on remote file system mounted at " << mount->path);
+        file = mount->fs->open(filePath.c_str(), read_Only);
     }
-    FSPath = localPath.string();
 
-    return commonElements;
+    TRACE_EXIT(FileManager_impl);
+    return file._retn();
 }
 
+
+void FileManager_impl::mkdir (const char* directoryName)
+    throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
+{
+    TRACE_ENTER(FileManager_impl);
+
+    if (!ossie::isValidFileName(directoryName)) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid directory name");
+    }
+
+    LOG_TRACE(FileManager_impl, "Making directory " << directoryName)
+
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
+
+    MountList::iterator mount = getMountForPath(directoryName);
+    if (mount == mountedFileSystems.end()) {
+        LOG_TRACE(FileManager_impl, "Making local directory");
+        FileSystem_impl::mkdir(directoryName);
+    } else {
+        const std::string dirPath = mount->getRelativePath(directoryName);
+        LOG_TRACE(FileManager_impl, "Making directory " << dirPath << " on remote file system mounted at " << mount->path);
+        mount->fs->mkdir(dirPath.c_str());
+    }
+
+    TRACE_EXIT(FileManager_impl);
+}
+
+
+void FileManager_impl::rmdir (const char* directoryName)
+    throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
+{
+    TRACE_ENTER(FileManager_impl);
+
+    if (!ossie::isValidFileName(directoryName)) {
+        throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid directory name");
+    }
+
+    LOG_TRACE(FileManager_impl, "Removing directory " << directoryName)
+
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
+
+    MountList::iterator mount = getMountForPath(directoryName);
+    if (mount == mountedFileSystems.end()) {
+        LOG_TRACE(FileManager_impl, "Removing local directory");
+        FileSystem_impl::rmdir(directoryName);
+    } else {
+        const std::string dirPath = mount->getRelativePath(directoryName);
+        LOG_TRACE(FileManager_impl, "Removing directory " << dirPath << " on remote file system mounted at " << mount->path);
+        mount->fs->rmdir(dirPath.c_str());
+    }
+
+    TRACE_EXIT(FileManager_impl);
+}
+
+
+void FileManager_impl::query (CF::Properties& fileSysProperties)
+    throw (CORBA::SystemException, CF::FileSystem::UnknownFileSystemProperties)
+{
+    TRACE_ENTER(FileManager_impl);
+
+    CF::Properties unknownProps;
+
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
+    if (fileSysProperties.length () == 0) {
+        LOG_TRACE(FileManager_impl, "Query all properties (SIZE, AVAILABLE_SPACE)");
+        fileSysProperties.length(2);
+        fileSysProperties[0].id = CORBA::string_dup("SIZE");
+        CORBA::ULongLong size = getSize();
+        size += getCombinedProperty(CF::FileSystem::SIZE);
+        fileSysProperties[0].value <<= size;
+        fileSysProperties[1].id = CORBA::string_dup("AVAILABLE_SPACE");
+        CORBA::ULongLong available = getAvailableSpace();
+        available += getCombinedProperty(CF::FileSystem::AVAILABLE_SPACE);
+        fileSysProperties[1].value <<= available;
+    } else {
+        for (CORBA::ULong index = 0; index < fileSysProperties.length(); ++index) {
+            if (strcmp (fileSysProperties[index].id, CF::FileSystem::SIZE) == 0) {
+                CORBA::ULongLong size = getSize();
+                size += getCombinedProperty(CF::FileSystem::SIZE);
+                fileSysProperties[index].value <<= size;
+            } else if (strcmp(fileSysProperties[index].id, CF::FileSystem::AVAILABLE_SPACE) == 0) {
+                CORBA::ULongLong available = getAvailableSpace();
+                available += getCombinedProperty(CF::FileSystem::AVAILABLE_SPACE);
+                fileSysProperties[index].value <<= available;
+            } else {
+                CORBA::ULong count = unknownProps.length();
+                unknownProps.length(count+1);
+                unknownProps[count] = fileSysProperties[index];
+            }
+        }
+    }
+
+    if (unknownProps.length() > 0) {
+        throw CF::FileSystem::UnknownFileSystemProperties(unknownProps);
+    }
+
+    TRACE_EXIT(FileManager_impl)
+}
+
+CORBA::ULongLong FileManager_impl::getCombinedProperty (const char* propId)
+{
+    CORBA::ULongLong totalSize = 0;
+    for (MountList::iterator mount = mountedFileSystems.begin(); mount != mountedFileSystems.end(); ++mount) {
+        CF::Properties props;
+        props.length(1);
+        props[0].id = propId;
+        mount->fs->query(props);
+        CORBA::ULongLong fsSize;
+        props[0].value >>= fsSize;
+        totalSize += fsSize;
+    }
+
+    return totalSize;
+}
+
+
+CF::FileManager::MountSequence* FileManager_impl::getMounts ()
+    throw (CORBA::SystemException)
+{
+    TRACE_ENTER(FileManager_impl);
+
+    // Lock the mount table shared to allow others to access the file system,
+    // but prevent changes to the mount table itself.
+    boost::shared_lock<boost::shared_mutex> lock(mountsLock);
+
+    CF::FileManager::MountSequence_var result = new CF::FileManager::MountSequence(mountedFileSystems.size());
+    CORBA::ULong index = 0;
+    for (MountList::iterator ii = mountedFileSystems.begin(); ii != mountedFileSystems.end(); ++ii, ++index) {
+        result[index].mountPoint = ii->path.c_str();
+        result[index].fs = CF::FileSystem::_duplicate(ii->fs);
+    }
+
+    TRACE_EXIT(FileManager_impl);
+    return result._retn();
+}
+ 
+ 
+FileManager_impl::MountList::iterator FileManager_impl::getMountForPath (const std::string& path)
+{
+    MountList::iterator mount;
+    for (mount = mountedFileSystems.begin(); mount != mountedFileSystems.end(); ++mount) {
+        if (mount->contains(path)) {
+            break;
+        }
+    }
+    return mount;
+}

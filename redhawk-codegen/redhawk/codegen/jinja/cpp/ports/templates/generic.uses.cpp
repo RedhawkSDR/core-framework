@@ -1,0 +1,62 @@
+/*#
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ #*/
+//% set classname = portgen.className()
+//% set vartype = portgen.interfaceClass() + '_var'
+PREPARE_ALT_LOGGING(${classname},${component.userclass.name})
+${classname}::${classname}(std::string port_name, ${component.baseclass.name} *_parent) :
+Port_Uses_base_impl(port_name)
+{
+    parent = static_cast<${component.userclass.name} *> (_parent);
+    recConnectionsRefresh = false;
+    recConnections.length(0);
+}
+
+${classname}::~${classname}()
+{
+}
+/*{% for operation in portgen.operations() %}*/
+
+${operation.returns} ${classname}::${operation.name}(${operation.arglist})
+{
+//% set hasreturn = operation.returns != 'void'
+/*{% if hasreturn %}*/
+    ${operation.returns} retval;
+/*{% endif %}*/
+    std::vector < std::pair < ${vartype}, std::string > >::iterator i;
+
+    boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
+
+    if (active) {
+        for (i = outConnections.begin(); i != outConnections.end(); ++i) {
+            try {
+                ${"retval = " if hasreturn}((*i).first)->${operation.name}(${operation.argnames});
+            } catch(...) {
+                LOG_ERROR(${classname},"Call to ${operation.name} by ${classname} failed");
+            }
+        }
+    }
+
+/*{% if hasreturn %}*/
+    return retval;
+/*{% else %}*/
+    return;
+/*{% endif %}*/
+}
+/*{% endfor %}*/

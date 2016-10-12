@@ -27,6 +27,10 @@ dist_noinst_JAVA = \
 	$(pkgpath)/CORBAObject.java \
 	$(pkgpath)/ORB.java \
 	$(pkgpath)/ObjectImpl.java \
-	$(pkgpath)/Servant.java
+	$(pkgpath)/Servant.java \
+	$(pkgpath)/StreamConverter.java
+dist_noinst_JAVA += $(pkgpath)/impl/ArrayStreamConverter.java
+dist_noinst_JAVA += $(pkgpath)/impl/DefaultStreamConverter.java
+dist_noinst_JAVA += $(pkgpath)/impl/SunStreamConverter.java
 
 CLEANFILES = $(JAVAROOT)/$(pkgpath)/*.class

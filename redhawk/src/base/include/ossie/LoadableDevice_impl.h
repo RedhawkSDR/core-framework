@@ -25,7 +25,6 @@
 #include <map>
 #include "Resource_impl.h"
 #include "Device_impl.h"
-#include "FileSystem_impl.h"
 #include "CF/cf.h"
 #include <boost/filesystem/path.hpp>
 
@@ -35,7 +34,7 @@ copiedFiles_type;
 
 /* CLASS DEFINITION *******************************************************************************
  ************************************************************************************************ */
-class OSSIECF_API LoadableDevice_impl: public virtual
+class LoadableDevice_impl: public virtual
     POA_CF::LoadableDevice,
     public
     Device_impl
@@ -54,7 +53,7 @@ public:
     LoadableDevice_impl (char*, char*, char*, char*, CF::Properties capacities);
     LoadableDevice_impl (char*, char*, char*, char*, char*);
     LoadableDevice_impl (char*, char*, char*, char*, CF::Properties capacities, char*);
-    virtual ~LoadableDevice_impl ();
+    ~LoadableDevice_impl ();
     void
     load (CF::FileSystem_ptr fs, const char* fileName,
           CF::LoadableDevice::LoadType loadKind)
@@ -68,13 +67,9 @@ public:
     bool
     isFileLoaded (const char* fileName);
 
- protected:
-
     void _loadTree(CF::FileSystem_ptr fs, std::string remotePath, boost::filesystem::path& localPath, std::string fileKey);
-    void _deleteTree(const std::string &fileKey);
-    void _copyFile(CF::FileSystem_ptr fs, const std::string &remotePath, const std::string &localPath, const std::string &fileKey);
-
- public:
+    void _deleteTree(std::string fileKey);
+    void _copyFile(CF::FileSystem_ptr fs, std::string remotePath, std::string localPath, std::string fileKey);
 
     void configure (const CF::Properties& configProperties)
     throw (CF::PropertySet::PartialConfiguration,

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="changed" mode="readwrite" type="boolean">
+    <value>false</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="verified" mode="readwrite" type="boolean">
+    <value>false</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+</properties>

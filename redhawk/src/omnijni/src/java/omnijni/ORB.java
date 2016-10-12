@@ -22,6 +22,14 @@ package omnijni;
 
 public abstract class ORB {
 
+    public static org.omg.CORBA.portable.OutputStream create_output_stream ()
+    {
+        // JacORB does not allow the ORB singleton to create output streams, so
+        // create a temporary Any; furthermore, using an output stream created
+        // from an existing Any leads to bad values or exceptions
+        return org.omg.CORBA.ORB.init().create_any().create_output_stream();
+    }
+
     public static org.omg.CORBA.Object string_to_object (String ior)
     {
         long ref = string_to_object_ref(ior);
@@ -37,6 +45,8 @@ public abstract class ORB {
             return orb.object_to_string(obj);
         }
     }
+
+    public static native void shutdown ();
 
     static {
         System.loadLibrary("omnijni");

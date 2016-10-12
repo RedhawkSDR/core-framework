@@ -51,9 +51,16 @@ def _trace(msg, *args, **kw):
 logging.trace = _trace
 del _trace
 
-# Add a "trace" method to Logger.
-def _logger_trace(self, msg, *args, **kw):
-  self.log(logging.TRACE, msg, *args, **kw)
+# Extend logging class to add a "trace" method, and "getChild" if necessary.
+LoggerBase = logging.getLoggerClass()
+class RedhawkLogger(LoggerBase):
+  def trace(self, msg, *args, **kw):
+    self.log(logging.TRACE, msg, *args, **kw)
 
-logging.Logger.trace = _logger_trace
-del _logger_trace
+  if not hasattr(LoggerBase, 'getChild'):
+    def getChild(self, suffix):
+      return logging.getLogger(self.name + '.' + suffix)
+
+del LoggerBase
+
+logging.setLoggerClass(RedhawkLogger)
