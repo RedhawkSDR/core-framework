@@ -11,9 +11,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
     def testConsistentSize(self):
         #######################################################################
         # Launch the resource with the default execparams
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        self.launch(execparams)
+        self.launch()
         
         snk=sb.DataSink()
         snk.start()
@@ -23,7 +21,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         # Make sure start and stop can be called without throwing exceptions
         self.comp.start()
         
-        (retval, timestamps) = snk._sink.retrieveData(20000000)
+        (retval, timestamps) = snk._sink.retrieveData(19999744)
         self.assertEquals(timestamps[1][0]%1024,0) 
 
         #######################################################################

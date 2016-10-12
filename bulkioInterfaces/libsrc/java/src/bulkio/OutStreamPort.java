@@ -14,7 +14,7 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
     /**
      * CORBA transfer limit in samples
      */
-    protected final int maxSamplesPerPush;
+    protected int maxSamplesPerPush;
 
     protected OutStreamPort(String portName, Logger logger, ConnectionEventListener connectionListener, int size) {
         super(portName, logger, connectionListener, size);
@@ -38,6 +38,18 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
     private void pushOversizedPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID) {
         final int length = arraySize(data);
 
+        SriMapStruct sriStruct = this.currentSRIs.get(streamID);
+        if (sriStruct.sri.subsize != 0) {
+            if (this.maxSamplesPerPush%sriStruct.sri.subsize != 0) {
+                this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/this.sizeof) & 0xFFFFFFFE;
+                while (this.maxSamplesPerPush%sriStruct.sri.subsize != 0) {
+                    this.maxSamplesPerPush -= this.maxSamplesPerPush%sriStruct.sri.subsize;
+                    if (this.maxSamplesPerPush%2 != 0){
+                        this.maxSamplesPerPush--;
+                    }
+                }
+            }
+        }
         // If there is no need to break data into smaller packets, skip
         // straight to the pushPacket call and return.
         if (length <= this.maxSamplesPerPush) {
