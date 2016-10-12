@@ -220,4 +220,4 @@ test:deployed:el6:
     - printf "[redhawk-deps]\nname=redhawk-deps\nbaseurl=$REDHAWK_DEPS_URL/el6/x86_64\nenabled=1\ngpgcheck=0" > /etc/yum.repos.d/redhawk-deps.repo
     - printf "[redhawk]\nname=redhawk\nbaseurl=$PUBLISH_WEB_URL/$CI_BUILD_REF_NAME/el6/x86_64/\nenabled=1\ngpgcheck=0" > /etc/yum.repos.d/redhawk.repo
     - yum install -y epel-release
-    - yum install -y "redhawk-devel redhawk-* bulkio* burstio* frontend* GPP*"
+    - yum install -y redhawk-devel redhawk-* bulkio* burstio* frontend* GPP*
