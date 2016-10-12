@@ -384,7 +384,7 @@ void GPP_base::loadProperties()
                 "property");
 
     addProperty(sys_limits,
-                ulimit_struct(),
+                sys_limits_struct(),
                 "sys_limits",
                 "",
                 "readonly",

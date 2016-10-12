@@ -2191,8 +2191,8 @@ void GPP_i::update()
 
   int64_t user=0, system=0;
   ProcStat::GetTicks( system, user);
-  float f_start_total = (float)(system);
-  float f_use_start_total = (float)(user);
+  int64_t f_start_total = system;
+  int64_t f_use_start_total = user;
   float reservation_set = 0;
   size_t nres=0;
   int64_t usage=0;
@@ -2232,9 +2232,9 @@ void GPP_i::update()
 
   user=0, system=0;
   ProcStat::GetTicks( system, user);
-  float f_end_total = (float)(system);
-  float f_use_end_total = (float)(user);
-  float f_total = f_end_total-f_start_total;
+  int64_t f_end_total = system;
+  int64_t f_use_end_total = user;
+  float f_total = (float)(f_end_total-f_start_total);
   if ( f_total <= 0.0 ) {
     LOG_TRACE(GPP_i, __FUNCTION__ << std::endl<< " System Ticks end/start " << f_end_total << "/" << f_start_total << std::endl );
     f_total=1.0;
