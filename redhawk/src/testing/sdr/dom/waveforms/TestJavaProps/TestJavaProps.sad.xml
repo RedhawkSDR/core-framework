@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
+<softwareassembly id="DCE:12399a1b-9bab-44a9-9c84-a7b07d5e864e" name="TestJavaProps">
+  <componentfiles>
+    <componentfile id="TestJavaProps_9694dda4-baeb-4ab4-934e-a258476ba756" type="SPD">
+      <localfile name="/components/TestJavaProps/TestJavaProps.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="TestJavaProps_9694dda4-baeb-4ab4-934e-a258476ba756"/>
+      <componentinstantiation id="DCE:92f8901f-0199-4c0f-bc8f-bbe888d7fc19">
+        <usagename>TestJavaProps1</usagename>
+        <componentproperties>
+          <structref refid="DCE:23a6d333-55fb-4425-a102-185e6e998782">
+            <simpleref refid="item_long" value="1"/>
+            <simpleref refid="item_string" value="New value!"/>
+          </structref>
+          <structsequenceref refid="DCE:d933f8ba-9e79-4d2c-a1b5-9fb9da0ea740">
+            <structvalue>
+              <simpleref refid="item_long" value="5"/>
+              <simpleref refid="item_string" value="five"/>
+            </structvalue>
+            <structvalue>
+              <simpleref refid="item_long" value="7"/>
+              <simpleref refid="item_string" value="seven"/>
+            </structvalue>
+          </structsequenceref>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="TestJavaProps1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="DCE:92f8901f-0199-4c0f-bc8f-bbe888d7fc19"/>
+  </assemblycontroller>
+  <connections/>
+</softwareassembly>

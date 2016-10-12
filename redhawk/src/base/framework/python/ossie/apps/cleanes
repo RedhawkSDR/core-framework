@@ -1,0 +1,157 @@
+#!/usr/bin/env python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+
+USAGE="""\
+usage: %prog [options] [event channels]
+
+This program cleans out event channels from the omniORB Event channel service.
+
+Arguments, if provided, are the list of event channels to search-and-destroy.
+
+If no arguments are provided, then all channels are fair game.
+"""
+
+has_omniORB = False
+try:
+    from omniORB import CORBA, PortableServer
+    from omniORB import URI, any
+    has_omniORB = True
+except:
+    pass
+
+if not has_omniORB:
+    try:
+        import CORBA, PortableServer
+        import URI, any
+    except:
+        pass
+
+from ossie.cf import CF, CF__POA
+import CosNaming
+import CosEventChannelAdmin
+import os
+import sys
+from optparse import OptionParser
+
+parser = OptionParser(usage=USAGE)
+parser.add_option("-e", "--events", dest="omniEvents_cfg", help="omniEvents log file")
+parser.add_option("-o", "--orb", dest="omniORB_cfg", help="omniORB configuration file")
+parser.add_option("-f", "--force", dest="force", default=False, action="store_true", help="clean event channels, even if they are alive")
+parser.add_option("-l", "--list", dest="list", default=False, action="store_true", help="list registered event channels")
+
+orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
+poa=orb.resolve_initial_references("RootPOA")
+poaManager=poa._get_the_POAManager()
+poaManager.activate()
+
+options, args = parser.parse_args()
+
+if options.force and len(args) == 0:
+    ans = raw_input("You have select to force the kill of all channels; are you sure Y/[N]?")
+    if not (ans in ('y', 'Y')):
+        sys.exit(0)
+
+
+if options.omniEvents_cfg != None:
+    omniEvents_cfg = options.omniEvents_cfg
+else:
+    omniEvents_cfg = '/var/lib/omniEvents/omnievents-%s.log' % os.environ['HOSTNAME']
+    
+if options.omniORB_cfg != None:
+    omniORB_cfg = options.omniORB_cfg
+else:
+    try:
+        omniORB_cfg = os.environ['OMNIORB_CONFIG']
+    except KeyError:
+        omniORB_cfg = '/etc/omniORB.cfg'
+
+try:
+    fp = open(omniEvents_cfg, 'r')
+    events = fp.readlines()
+    fp.close()
+except:
+    print "Unable to read ", omniEvents_cfg
+    sys.exit(-1)
+    
+try:
+    fp = open(omniORB_cfg, 'r')
+    configFile = fp.readlines()
+    fp.close()
+except:
+    print "Unable to read ", omniORB_cfg
+    sys.exit(-1)
+
+for entry in configFile:
+    foundHost = False
+    if "InitRef" in entry and "EventService=" in entry and entry[0] != "#":
+        sections = entry.split(':')
+        hostname = sections[2]
+        foundHost = True
+        break
+        for section in sections:
+            if section[:5] == "port=":
+                portNumber = section[5:]
+                foundPort = True
+                break
+
+if not foundHost:
+    print "hostname not found in ", omniORB_cfg
+    sys.exit(-1)
+
+
+for entry in events:
+    foundPort = False
+    if "port=" in entry:
+        sections = entry.split(' ')
+        for section in sections:
+            if section[:5] == "port=":
+                portNumber = section[5:]
+                foundPort = True
+                break
+    if foundPort:
+        break
+
+if not foundPort:
+    print "Port number not found in ", omniEvents_cfg
+    sys.exit(-1)
+
+for entry in events:
+    if "InsName=" in entry:
+        sections = entry.split(' ')
+        for section in sections:
+            if section[:8] == "InsName=":
+                if section[-1] == '\n':
+                    channelName = section[8:-1]
+                else:
+                    channelName = section[8:]
+                if options.list:
+                    print channelName
+                if len(args) == 0 or channelName in args:
+                    URI = "corbaloc::"+hostname+":"+portNumber+"/"+channelName
+                    obj = orb.string_to_object(URI)
+                    if not obj._non_existent or options.force:
+                        try:
+                            channel=obj._narrow(CosEventChannelAdmin.EventChannel)
+                            print "Destroying Channel", channelName
+                            channel.destroy()
+                        except CORBA.Exception, e:
+                            print "Error destroying channel", channelName, e

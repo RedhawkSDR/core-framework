@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:ed9ada84-867c-434e-bb3b-d1efea90c102" name="CommandWrapperWithRelativePaths">
+    <title/>
+    <author>
+        <name>REDHAWK test author</name>
+    </author>
+    <description>A python script that can wrap a non-sca command.  This is useful because
+    OSSIE doesn't support components with the non-sca-compliant type.
+    </description> 
+    <propertyfile type="PRF">
+        <localfile name="CommandWrapper.prf.xml"/>
+    </propertyfile>
+    <descriptor>
+        <localfile name="CommandWrapper.scd.xml"/>
+    </descriptor>
+    <implementation id="DCE:c98e634d-2aba-469b-a848-3042e431085a">
+        <description>The command wraper executable uses a property to determine
+        which command to launch when start is called.
+        </description> 
+        <!-- This tests a common form of <code> for python components -->
+        <code type="Executable">
+            <localfile name="./"/> 
+            <entrypoint>CommandWrapper.py</entrypoint>
+        </code>
+        <os name="Linux"/>
+        <processor name="x86"/>
+        <dependency type="device_matching">
+            <!-- Check DeviceKind -->
+            <propertyref refid="DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b" value="BasicTestDevice"/>
+        </dependency>
+        <dependency type="runtime_requirements">
+            <!-- Consume memory capacity -->
+            <propertyref refid="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb" value="1000000"/>
+        </dependency>
+        <dependency type="runtime_requirements">
+            <!-- BogoMips capacity -->
+            <propertyref refid="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8" value="1000"/>
+        </dependency>
+    </implementation>
+</softpkg>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:2e251e85-7198-4b3d-95ba-b1664ac8e88e" name="softpkgDep">
+    <title/>
+    <author>
+        <name></name>
+        <company></company>
+        <webpage></webpage>
+    </author>
+    <description>An empty SPD to test softpkg dependencies
+    </description> 
+    <propertyfile type="PRF">
+        <localfile name="softpkgDep.prf.xml"/>
+    </propertyfile>
+    <descriptor>
+        <localfile name="softpkgDep.scd.xml"/>
+    </descriptor>
+    <implementation id="secondImplementation">
+        <description>
+        </description>
+        <code type="SharedLibrary">
+            <localfile name="spdDepLibrary_64_empty"/>
+        </code>
+        <os name="Linux"/>
+        <processor name="x86_64"/>
+    </implementation>
+    <implementation id="firstImplementation">
+        <description>
+        </description>
+        <code type="SharedLibrary">
+            <localfile name="spdDepLibrary"/>
+        </code>
+        <os name="Linux"/>
+        <processor name="x86"/>
+    </implementation>
+</softpkg>

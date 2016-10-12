@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE deviceconfiguration PUBLIC '-//JTRS//DTD SCA V2.2.2 DCD//EN' 'deviceconfiguration.dtd'>
+<deviceconfiguration name="MultipleBasicTestDevice_node" id="DCE:65f84ea9-cbe9-42cc-bc2e-6807f7ff9b8c">
+    <devicemanagersoftpkg>
+        <localfile name="/mgr/DeviceManager.spd.xml"/>
+    </devicemanagersoftpkg>
+    <componentfiles>
+        <!--Device Definitions--> 
+        <componentfile type="SPD" id="BasicTestDevice1_c6e250b8-5223-11db-9fc4-000d56d8556e">
+            <localfile name="/devices/BasicTestDevice/BasicTestDevice.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+    <partitioning>
+        <componentplacement>
+            <componentfileref refid="BasicTestDevice1_c6e250b8-5223-11db-9fc4-000d56d8556e"/>
+            <componentinstantiation id="DCE:8f3478e3-626e-45c3-bd01-0a8117dbe59b">
+                <usagename>BasicTestDevice1</usagename> 
+		<componentproperties>
+		    <simpleref refid="DCE:6b298d70-6735-43f2-944d-06f754cd4eb9" value="BasicTestDevice1_no_default_prop"/>
+		    <simpleref refid="DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea" value="BasicTestDevice1_default_prop"/>
+		    <simpleref refid="DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648" value="path/to/some/config/file"/>
+		    <simpleref refid="DCE:716ea1c4-059a-4b18-8b66-74804bd8d435" value="OverloadedTheImplementationSpecific"/>
+		</componentproperties>
+            </componentinstantiation>
+        </componentplacement>
+        <componentplacement>
+            <componentfileref refid="BasicTestDevice1_c6e250b8-5223-11db-9fc4-000d56d8556e"/>
+            <componentinstantiation id="DCE:f6ee5832-6a99-4ff8-bacf-d2f9c7574a72">
+                <usagename>BasicTestDevice2</usagename> 
+		<componentproperties>
+		    <simpleref refid="DCE:6b298d70-6735-43f2-944d-06f754cd4eb9" value="BasicTestDevice1_no_default_prop"/>
+		    <simpleref refid="DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea" value="BasicTestDevice1_default_prop"/>
+		    <simpleref refid="DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648" value="path/to/some/config/file"/>
+		    <simpleref refid="DCE:716ea1c4-059a-4b18-8b66-74804bd8d435" value="OverloadedTheImplementationSpecific"/>
+		</componentproperties>
+            </componentinstantiation>
+        </componentplacement>
+    </partitioning>
+    <domainmanager>
+        <namingservice name="DomainName1/DomainManager"/>
+    </domainmanager>
+</deviceconfiguration>

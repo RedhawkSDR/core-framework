@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:diagram="http://sca.jpeojtrs.mil/diagram" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmlns:partitioning="http://sca.jpeojtrs.mil/partitioning" xmlns:sad="http://sca.jpeojtrs.mil/sad" xmi:id="_jQ0mQKYGEeKoK87CJpoJ6Q" type="Sad" name="ac_prop_order_test.sad_diagramV2" measurementUnit="Pixel">
+  <children xmi:type="notation:Shape" xmi:id="_k_OBwKYGEeKoK87CJpoJ6Q" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_k_OBwqYGEeKoK87CJpoJ6Q" type="5006"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_k_OBw6YGEeKoK87CJpoJ6Q" type="7002">
+      <children xmi:type="notation:Shape" xmi:id="_k_PP4KYGEeKoK87CJpoJ6Q" type="3002" fontName="Sans">
+        <children xmi:type="notation:DecorationNode" xmi:id="_k_PP4qYGEeKoK87CJpoJ6Q" type="5004"/>
+        <children xmi:type="notation:Node" xmi:id="_k_QeAKYGEeKoK87CJpoJ6Q" type="3005">
+          <styles xmi:type="notation:DescriptionStyle" xmi:id="_k_RFEKYGEeKoK87CJpoJ6Q"/>
+          <styles xmi:type="notation:FontStyle" xmi:id="_k_RFEaYGEeKoK87CJpoJ6Q" fontName="Sans"/>
+          <styles xmi:type="notation:LineStyle" xmi:id="_k_RFEqYGEeKoK87CJpoJ6Q"/>
+          <element xmi:type="partitioning:ComponentSupportedInterfaceStub" href="ac_prop_order_test.sad.xml#//@partitioning/@componentPlacement.0/@componentInstantiation.0/@interfaceStub"/>
+          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_k_RFE6YGEeKoK87CJpoJ6Q"/>
+        </children>
+        <element xmi:type="sad:SadComponentInstantiation" href="ac_prop_order_test.sad.xml#non_ac_with_properties_1"/>
+        <layoutConstraint xmi:type="notation:Bounds" xmi:id="_k_PP4aYGEeKoK87CJpoJ6Q"/>
+      </children>
+      <styles xmi:type="notation:SortingStyle" xmi:id="_k_OBxKYGEeKoK87CJpoJ6Q"/>
+      <styles xmi:type="notation:FilteringStyle" xmi:id="_k_OBxaYGEeKoK87CJpoJ6Q"/>
+    </children>
+    <element xmi:type="sad:SadComponentPlacement" href="ac_prop_order_test.sad.xml#//@partitioning/@componentPlacement.0"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_k_OBwaYGEeKoK87CJpoJ6Q" x="48" y="48"/>
+  </children>
+  <children xmi:type="notation:Shape" xmi:id="_lqiPoKYGEeKoK87CJpoJ6Q" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_lqiPoqYGEeKoK87CJpoJ6Q" type="5006"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_lqiPo6YGEeKoK87CJpoJ6Q" type="7002">
+      <children xmi:type="notation:Shape" xmi:id="_lqjdwKYGEeKoK87CJpoJ6Q" type="3002" fontName="Sans">
+        <children xmi:type="notation:DecorationNode" xmi:id="_lqjdwqYGEeKoK87CJpoJ6Q" type="5004"/>
+        <children xmi:type="notation:Node" xmi:id="_lqmhEKYGEeKoK87CJpoJ6Q" type="3003">
+          <children xmi:type="notation:DecorationNode" xmi:id="_lqmhFaYGEeKoK87CJpoJ6Q" type="5001">
+            <layoutConstraint xmi:type="notation:Location" xmi:id="_lqmhFqYGEeKoK87CJpoJ6Q" y="5"/>
+          </children>
+          <styles xmi:type="notation:DescriptionStyle" xmi:id="_lqmhEaYGEeKoK87CJpoJ6Q"/>
+          <styles xmi:type="notation:FontStyle" xmi:id="_lqmhEqYGEeKoK87CJpoJ6Q" fontName="Sans"/>
+          <styles xmi:type="notation:LineStyle" xmi:id="_lqmhE6YGEeKoK87CJpoJ6Q"/>
+          <element xmi:type="partitioning:UsesPortStub" href="ac_prop_order_test.sad.xml#//@partitioning/@componentPlacement.1/@componentInstantiation.0/@uses.0"/>
+          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_lqmhFKYGEeKoK87CJpoJ6Q"/>
+        </children>
+        <children xmi:type="notation:Node" xmi:id="_lqmhF6YGEeKoK87CJpoJ6Q" type="3005">
+          <styles xmi:type="notation:DescriptionStyle" xmi:id="_lqmhGKYGEeKoK87CJpoJ6Q"/>
+          <styles xmi:type="notation:FontStyle" xmi:id="_lqmhGaYGEeKoK87CJpoJ6Q" fontName="Sans"/>
+          <styles xmi:type="notation:LineStyle" xmi:id="_lqmhGqYGEeKoK87CJpoJ6Q"/>
+          <element xmi:type="partitioning:ComponentSupportedInterfaceStub" href="ac_prop_order_test.sad.xml#//@partitioning/@componentPlacement.1/@componentInstantiation.0/@interfaceStub"/>
+          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_lqmhG6YGEeKoK87CJpoJ6Q"/>
+        </children>
+        <element xmi:type="sad:SadComponentInstantiation" href="ac_prop_order_test.sad.xml#ac_with_properties_1"/>
+        <layoutConstraint xmi:type="notation:Bounds" xmi:id="_lqjdwaYGEeKoK87CJpoJ6Q"/>
+      </children>
+      <styles xmi:type="notation:SortingStyle" xmi:id="_lqiPpKYGEeKoK87CJpoJ6Q"/>
+      <styles xmi:type="notation:FilteringStyle" xmi:id="_lqiPpaYGEeKoK87CJpoJ6Q"/>
+    </children>
+    <element xmi:type="sad:SadComponentPlacement" href="ac_prop_order_test.sad.xml#//@partitioning/@componentPlacement.1"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_lqiPoaYGEeKoK87CJpoJ6Q" x="449" y="356"/>
+  </children>
+  <styles xmi:type="notation:DiagramStyle" xmi:id="_jQ0mQaYGEeKoK87CJpoJ6Q"/>
+  <styles xmi:type="diagram:EObjectContainerStyle" xmi:id="_jQ0mQqYGEeKoK87CJpoJ6Q" name="FindByStubContainer"/>
+  <element xmi:type="sad:SoftwareAssembly" href="ac_prop_order_test.sad.xml#DCE:57e3f39a-af06-4f3b-a859-4843f41bbc02"/>
+  <edges xmi:type="notation:Connector" xmi:id="_mPWz8KYGEeKoK87CJpoJ6Q" type="4001" source="_lqmhEKYGEeKoK87CJpoJ6Q" target="_k_QeAKYGEeKoK87CJpoJ6Q" routing="Rectilinear" avoidObstructions="true">
+    <styles xmi:type="notation:FontStyle" xmi:id="_mPWz8aYGEeKoK87CJpoJ6Q" fontName="Sans"/>
+    <element xmi:type="sad:SadConnectInterface" href="ac_prop_order_test.sad.xml#connection_1"/>
+    <bendpoints xmi:type="notation:RelativeBendpoints" xmi:id="_mPWz8qYGEeKoK87CJpoJ6Q" points="[-7, -3, 675, 307]$[-682, -310, 0, 0]"/>
+  </edges>
+</notation:Diagram>

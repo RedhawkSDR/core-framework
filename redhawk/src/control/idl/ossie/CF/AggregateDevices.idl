@@ -1,0 +1,43 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef __AGGREGATEDEVICES_DEFINED
+#define __AGGREGATEDEVICES_DEFINED
+/* It appears that OMNIOrb, nor the standard CORBA C++ mapping
+   supports a single server implementation that inherits from
+   multiple skeleton classes (although other ORBs appear to 
+   allow this).  As a work-around, define the multiple inheritence
+   in the IDL.
+*/
+#include "ossie/CF/cf.idl"
+
+/* These are SCA CoreFramework extensions provided by OSSIE
+*/
+module CF {
+  interface AggregatePlainDevice : CF::Device, CF::AggregateDevice
+  {};
+
+  interface AggregateLoadableDevice : CF::LoadableDevice, CF::AggregateDevice
+  {};
+
+  interface AggregateExecutableDevice : CF::ExecutableDevice, CF::AggregateDevice
+  {};
+};
+#endif

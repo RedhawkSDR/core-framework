@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:c09750e1-4aab-4192-9e4b-4d9461881b6c" name="test_no_collocation_mix1">
+  <componentfiles>
+    <componentfile id="NOOP_SIMP_a51c0d9c-e967-4cb6-b4db-a830b3872e79" type="SPD">
+      <localfile name="/components/NOOP_SIMP/NOOP_SIMP.spd.xml"/>
+    </componentfile>
+    <componentfile id="NOOP_ROLL_618defd0-8c61-4bab-9522-121ee30526ac" type="SPD">
+      <localfile name="/components/NOOP_ROLL/NOOP_ROLL.spd.xml"/>
+    </componentfile>
+    <componentfile id="NOOP_CAP_29c2f053-4cc6-459c-9162-d84c86e1901e" type="SPD">
+      <localfile name="/components/NOOP_CAP/NOOP_CAP.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="NOOP_SIMP_a51c0d9c-e967-4cb6-b4db-a830b3872e79"/>
+      <componentinstantiation id="NOOP_SIMP_1" startorder="0">
+        <usagename>NOOP_SIMP_1</usagename>
+        <findcomponent>
+          <namingservice name="NOOP_SIMP_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="NOOP_SIMP_a51c0d9c-e967-4cb6-b4db-a830b3872e79"/>
+      <componentinstantiation id="NOOP_SIMP_2" startorder="1">
+        <usagename>NOOP_SIMP_2</usagename>
+        <findcomponent>
+          <namingservice name="NOOP_SIMP_2"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="NOOP_ROLL_618defd0-8c61-4bab-9522-121ee30526ac"/>
+      <componentinstantiation id="NOOP_ROLL_1" startorder="2">
+        <usagename>NOOP_ROLL_1</usagename>
+        <findcomponent>
+          <namingservice name="NOOP_ROLL_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="NOOP_ROLL_618defd0-8c61-4bab-9522-121ee30526ac"/>
+      <componentinstantiation id="NOOP_ROLL_2" startorder="3">
+        <usagename>NOOP_ROLL_2</usagename>
+        <findcomponent>
+          <namingservice name="NOOP_ROLL_2"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="NOOP_CAP_29c2f053-4cc6-459c-9162-d84c86e1901e"/>
+      <componentinstantiation id="NOOP_CAP_1" startorder="4">
+        <usagename>NOOP_CAP_1</usagename>
+        <findcomponent>
+          <namingservice name="NOOP_CAP_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="NOOP_CAP_29c2f053-4cc6-459c-9162-d84c86e1901e"/>
+      <componentinstantiation id="NOOP_CAP_2" startorder="5">
+        <usagename>NOOP_CAP_2</usagename>
+        <findcomponent>
+          <namingservice name="NOOP_CAP_2"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="NOOP_SIMP_1"/>
+  </assemblycontroller>
+</softwareassembly>

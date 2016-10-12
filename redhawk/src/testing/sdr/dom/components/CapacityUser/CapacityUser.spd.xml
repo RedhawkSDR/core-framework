@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:cc4fcf8c-e975-413a-8bbf-9dbf46ec549e" name="CapacityUser" type="sca_compliant" version="1.0">
+  <title></title>
+  <author></author>
+  <description>A test component that uses a large amount of BogoMips on a BasicTestDevice.</description>
+  <propertyfile type="PRF">
+    <localfile name="CapacityUser.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="CapacityUser.scd.xml"/>
+  </descriptor>
+  <implementation id="DCE:a2431f4b-64bf-4888-a194-d03c51be3cdc">
+    <description>This test component is a NOOP.</description>
+    <code type="Executable">
+      <localfile name="CapacityUser.py"/>
+      <entrypoint>CapacityUser.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <dependency type="runtime_requirements">
+      <!-- BogoMips capacity -->
+      <propertyref refid="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8" value="50000000"/>
+    </dependency>
+  </implementation>
+</softpkg>

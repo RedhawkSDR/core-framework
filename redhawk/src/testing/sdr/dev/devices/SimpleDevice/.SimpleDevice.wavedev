@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="ASCII"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="DCE:2219993f-542b-42fc-a751-f9ac559b4021">
+    <value name="SimpleDevice_cpp_impl1" outputDir="SimpleDevice_cpp_impl1" template="src/" generatorId="gov.redhawk.ide.codegen.jet.cplusplus.CplusplusGenerator">
+      <properties id="auto_start" value="false"/>
+      <generatedFileCRCs crc="3245162965" file="Makefile.am"/>
+      <generatedFileCRCs crc="2266519772" file="SimpleDevice_cpp_impl1.spec"/>
+      <generatedFileCRCs crc="418928926" file="SimpleDevice_cpp_impl1_support.cpp"/>
+      <generatedFileCRCs crc="581096937" file="build.sh"/>
+      <generatedFileCRCs crc="3675236553" file="configure.ac"/>
+      <generatedFileCRCs crc="3714016601" file="main.cpp"/>
+      <generatedFileCRCs crc="2328670236" file="port_impl.cpp"/>
+      <generatedFileCRCs crc="1914866520" file="port_impl.h"/>
+      <generatedFileCRCs crc="3068226435" file="reconf"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>

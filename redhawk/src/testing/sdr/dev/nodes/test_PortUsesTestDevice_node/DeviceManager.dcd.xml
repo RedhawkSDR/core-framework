@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE deviceconfiguration PUBLIC '-//JTRS//DTD SCA V2.2.2 DCD//EN' 'deviceconfiguration.dtd'>
+<!-- Created with REDHAWK IDE-->
+<!-- Powered by Eclipse -->
+<deviceconfiguration name="PortUsesTestDevice_node" id="DCE:5e51ac08-ada2-41fc-8996-0270bf05c236">
+    <devicemanagersoftpkg>
+        <localfile name="/mgr/DeviceManager.spd.xml"/>
+    </devicemanagersoftpkg>
+    <componentfiles>
+        <componentfile type="SPD" id="PortTestDevice1_2e39845e-69f0-45e2-9f4e-1a6152639bbe">
+            <localfile name="/devices/PortTestDevice/PortTestDevice.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+    <partitioning>
+        <componentplacement>
+            <componentfileref refid="PortTestDevice1_2e39845e-69f0-45e2-9f4e-1a6152639bbe"/>
+            <componentinstantiation id="DCE:52df1a35-f0f0-46da-96e7-63346f240f6b">
+                <usagename>PortTestDevice1</usagename> 
+            </componentinstantiation>
+        </componentplacement>
+    </partitioning>
+    <connections>
+        <connectinterface>
+            <usesport>
+                <usesidentifier>devicemanager_out</usesidentifier>
+                <componentinstantiationref refid="DCE:52df1a35-f0f0-46da-96e7-63346f240f6b"/>
+            </usesport>
+            <componentsupportedinterface>
+                <supportedidentifier>IDL:CF/DeviceManager:1.0</supportedidentifier>
+                <componentinstantiationref refid="DCE:5e51ac08-ada2-41fc-8996-0270bf05c236"/>
+            </componentsupportedinterface>
+        </connectinterface>
+    </connections>
+    <domainmanager>
+        <namingservice name="DomainName1/DomainManager"/>
+    </domainmanager>
+</deviceconfiguration>

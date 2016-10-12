@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+
+USAGE="""\
+usage: %prog [options] <domainname> <channelname>
+
+options:
+    -f --force        : if the channel does not exist, then create it
+    -p --prettyprint  : print event channel messages in a human-readable format
+    -i --include      : comma-separated list of message fields to include when pretty-printing
+    -x --exclude      : comma-separated list of message fields to exclude when pretty-printing
+    -s --search       : regular expression used to search for event channel messages to print; only messages containing a match to the regex will be printed
+"""
+
+from omniORB import any
+from ossie.utils import redhawk
+from ossie.cf import CF
+import os
+import CosNaming
+
+try:
+    import CosEventComm,CosEventComm__POA
+    hasEvents = True
+except:
+    hasEvents = False
+
+# create a class for consuming events
+class Consumer_i(CosEventComm__POA.PushConsumer):
+    def __init__(self, prettyprint=False, excludeList=[], includeList=[], regex=None):
+        self.pp = prettyprint
+        self.excludeList = excludeList
+        self.includeAll = False
+        if (len(includeList) == 0):
+            self.includeAll = True
+        self.includeList = includeList
+        self.regex = regex
+   
+    def push(self, data):
+        event = any.from_any(data)
+        stringToPrint = ""
+        if (self.pp):
+            stringToPrint = self.getPrettyPrintFormat(event)
+        else:
+            stringToPrint = str(event)
+
+        printString = True
+        if (self.regex != None):
+            import re
+            pattern = re.compile(self.regex)
+            printString = pattern.search(stringToPrint)
+
+        if (printString):
+            print stringToPrint
+
+    def getPrettyPrintFormat(self, event):
+        prettyStr = ""
+        for topLevelField in event:
+            prettyStr = prettyStr + str(topLevelField['id']) + ':\n'
+            fieldList = sorted(topLevelField['value'])
+            for field in fieldList:
+                fieldName = str(field['id'])
+                fieldValue = str(field['value'])
+                if (not(fieldName in self.excludeList)) and ((self.includeAll) or (fieldName in self.includeList)):
+                    prettyStr = prettyStr + '\t' + fieldName + " : " + fieldValue + '\n'
+        return prettyStr
+
+    
+    def disconnect_push_consumer (self):
+        pass
+
+if __name__ == '__main__':
+    # Grab command line arguments and options
+    if not hasEvents:
+        parser.error("Events not installed")
+    import sys
+    from optparse import OptionParser
+
+    parser = OptionParser(usage=USAGE)
+    parser.add_option("-f", "--force", dest="force", action="store_true", help="if the channel does not exist, then create it", default=False)
+    parser.add_option("-p", "--prettyprint", dest="prettyprint", action="store_true", help="print event channel messages in a human-readable format", default=False)
+    parser.add_option("-i", "--include", dest="includeListStr", action="store", help="comma-separated list of message fields to include when pretty printing", default=None)
+    parser.add_option("-x", "--exclude", dest="excludeListStr", action="store", help="comma-separated list of message fields to exclude when pretty printing", default=None)
+    parser.add_option("-s", "--search", dest="regexStr", action="store", help="regular expression used to search for event channel messages to print; only messages containing a match to the regex will be printed", default=None)
+
+    options, args = parser.parse_args()
+
+    try:
+        domainname = args[0]
+    except IndexError:
+        parser.error("no domain name provided")
+
+    try:
+        channelname = args[1]
+    except IndexError:
+        parser.error("no channel name provided")
+    
+    try:
+        dom = redhawk.attach(domainname)
+    except:
+        parser.error(domainname+" domain not found")
+    
+    channel_name = [CosNaming.NameComponent(domainname,""),CosNaming.NameComponent(channelname,"")]
+    foundChannel = False
+    try:
+        dom.rootContext.resolve(channel_name)
+        foundChannel = True
+    except:
+        pass
+    
+    if not foundChannel:
+        if not options.force:
+            print "No such channel exists"
+            sys.exit(-1)
+    
+    excludeList = []
+    if (options.excludeListStr):
+        excludeList = options.excludeListStr.split(',')
+    includeList = []
+    if (options.includeListStr):
+        includeList = options.includeListStr.split(',')
+    _consumer = Consumer_i(prettyprint=options.prettyprint, excludeList=excludeList, includeList=includeList, regex=options.regexStr)
+
+    try:
+        dom.registerWithEventChannel(_consumer._this(), os.environ['USER']+str(os.getpid()), channelname)
+    except CF.DomainManager.InvalidEventChannelName:
+        parser.error(channelname+" is an invalid channel name")
+    
+    raw_input("Receiving events. Press 'enter' key to exit\n")
+
+    dom.unregisterFromEventChannel(os.environ['USER']+str(os.getpid()), channelname)

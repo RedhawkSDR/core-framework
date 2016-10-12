@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC '-//JTRS//DTD SCA V2.2.2 PRF//EN' 'properties.dtd'>
+<properties>
+    <simple id="myprop" name="myprop" type="long">
+        <value>0</value>
+        <kind kindtype="configure"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simple>
+    <simple id="anotherprop" name="anotherprop" type="long">
+        <value>0</value>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+    <simplesequence id="seqprop" mode="readwrite" type="float">
+        <kind kindtype="configure"/>
+        <kind kindtype="event"/>
+        <action type="external"/>
+    </simplesequence>
+    <struct id="some_struct" mode="readwrite">
+        <simple id="some_number" mode="readwrite" type="double">
+            <kind kindtype="configure"/>
+            <action type="external"/>
+        </simple>
+        <simple id="some_string" mode="readwrite" type="string">
+            <kind kindtype="configure"/>
+            <action type="external"/>
+        </simple>
+        <configurationkind kindtype="configure"/>
+        <configurationkind kindtype="event"/>
+    </struct>
+    <structsequence id="structseq_prop" mode="readwrite">
+        <struct id="another_struct" mode="readwrite">
+            <simple id="a_number" mode="readwrite" type="double">
+                <kind kindtype="configure"/>
+                <action type="external"/>
+            </simple>
+            <simple id="a_string" mode="readwrite" type="string">
+                <kind kindtype="configure"/>
+                <action type="external"/>
+            </simple>
+            <configurationkind kindtype="configure"/>
+        </struct>
+        <configurationkind kindtype="configure"/>
+        <configurationkind kindtype="event"/>
+    </structsequence>
+</properties>

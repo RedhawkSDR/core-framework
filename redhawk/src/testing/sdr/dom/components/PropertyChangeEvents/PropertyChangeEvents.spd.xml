@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:21b76935-a386-433b-ab8d-c897d470c442" name="PropertyChangeEvents">
+    <title/>
+    <author>
+    </author>
+    <description>
+        Example property change event port component
+    </description>
+    <propertyfile type="PRF">
+        <localfile name="PropertyChangeEvents.prf.xml"/>
+    </propertyfile>
+    <descriptor>
+        <localfile name="PropertyChangeEvents.scd.xml"/>
+    </descriptor>
+    <implementation id="DCE:7d8e00da-7948-4b51-b8b9-b9c4eb52426c">
+        <description>Python implementation</description>
+        <code type="Executable">
+            <localfile name="PropertyChangeEvents.py"/>
+            <entrypoint>PropertyChangeEvents.py</entrypoint>
+        </code>
+        <os name="Linux"/>
+        <processor name="x86"/>
+    </implementation>
+</softpkg>

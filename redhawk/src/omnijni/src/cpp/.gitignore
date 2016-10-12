@@ -1,0 +1,5 @@
+.deps
+.libs
+jni_*.cpp
+jni_*.h
+libomnijni.la

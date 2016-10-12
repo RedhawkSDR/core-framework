@@ -1,0 +1,46 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+//Source file: PortTypes.idl
+#ifndef __PORTTYPES_DEFINED
+#define __PORTTYPES_DEFINED
+module PortTypes {
+    /* This type is a unbounded sequence of booleans. */
+    typedef sequence <boolean> BooleanSequence;
+    /* This type is a unbounded sequence of characters. */
+    typedef sequence <char> CharSequence;
+    /* This type is a unbounded sequence of doubles. */
+    typedef sequence <double> DoubleSequence;
+    /* This type is a unbounded sequence of longlongs. */
+    typedef sequence <long long> LongLongSequence;
+    /* This type is a unbounded sequence of longs. */
+    typedef sequence <long> LongSequence;
+    /* This type is a unbounded sequence of shorts. */
+    typedef sequence <short> ShortSequence;
+    /* This type is a unbounded sequence of unsigned long longs. */
+    typedef sequence <unsigned long long> UlongLongSequence;
+    /* This type is a unbounded sequence of unsigned longs. */
+    typedef sequence <unsigned long> UlongSequence;
+    /* This type is a unbounded sequence of unsigned shorts. */
+    typedef sequence <unsigned short> UshortSequence;
+    /* This type is a unbounded sequence of floats. */
+    typedef sequence <float> FloatSequence;
+};
+#endif

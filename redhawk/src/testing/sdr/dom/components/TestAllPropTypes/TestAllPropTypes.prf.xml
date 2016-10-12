@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="simple_string" mode="readwrite" type="string">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_boolean" mode="readwrite" type="boolean">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_ulong" mode="readwrite" type="ulong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_objref" mode="readwrite" type="objref">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_short" mode="readwrite" type="short">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_float" mode="readwrite" type="float">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_octet" mode="readwrite" type="octet">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_char" mode="readwrite" type="char">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_ushort" mode="readwrite" type="ushort">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_double" mode="readwrite" type="double">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_long" mode="readwrite" type="long">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_longlong" mode="readwrite" type="longlong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_ulonglong" mode="readwrite" type="ulonglong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="simple_sequence_string" mode="readwrite" type="string">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_boolean" mode="readwrite" type="boolean">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_ulong" mode="readwrite" type="ulong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_objref" mode="readwrite" type="objref">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_short" mode="readwrite" type="short">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_float" mode="readwrite" type="float">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_octet" mode="readwrite" type="octet">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_char" mode="readwrite" type="char">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_ushort" mode="readwrite" type="ushort">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_double" mode="readwrite" type="double">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_long" mode="readwrite" type="long">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_longlong" mode="readwrite" type="longlong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_ulonglong" mode="readwrite" type="ulonglong">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <struct id="struct_vars" mode="readwrite">
+    <simple id="struct_string" type="string"/>
+    <simple id="struct_boolean" mode="readwrite" type="boolean">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_ulong" mode="readwrite" type="ulong">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_objref" mode="readwrite" type="objref">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_short" mode="readwrite" type="short">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_float" mode="readwrite" type="float">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_octet" mode="readwrite" type="octet">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_char" mode="readwrite" type="char">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_ushort" mode="readwrite" type="ushort">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_double" mode="readwrite" type="double">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_long" mode="readwrite" type="long">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_longlong" mode="readwrite" type="longlong">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="struct_ulonglong" mode="readwrite" type="ulonglong">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="configure"/>
+  </struct>
+  <structsequence id="struct_seq" mode="readwrite">
+    <struct id="struct_seq_vars">
+      <simple id="struct_seq_string" type="string"/>
+      <simple id="struct_seq_boolean" mode="readwrite" type="boolean">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_ulong" mode="readwrite" type="ulong">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_objref" mode="readwrite" type="objref">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_short" mode="readwrite" type="short">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_float" mode="readwrite" type="float">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_octet" mode="readwrite" type="octet">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_char" mode="readwrite" type="char">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_ushort" mode="readwrite" type="ushort">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_double" mode="readwrite" type="double">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_long" mode="readwrite" type="long">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_longlong" mode="readwrite" type="longlong">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="struct_seq_ulonglong" mode="readwrite" type="ulonglong">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+</properties>

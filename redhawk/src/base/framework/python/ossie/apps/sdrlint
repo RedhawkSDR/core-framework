@@ -1,0 +1,589 @@
+#!/usr/bin/python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+""" Check xmls for compliance with dtd's and other simple compliance
+    issues.  See the USAGE string for more details about just what
+    is done.  
+"""
+
+USAGE = """usage: %prog [options] [SDRROOT]
+
+This program will check all SCA domain profile XML within a given SDRROOT.  If
+no SDRROOT is given, the environment variable $SDRROOT will be used.
+
+The following checks are performed:
+    1. All XMLs are valid SCA XML (as defined by the SCA DTDs)
+    2. DCE:UUIDs are used when required by SCA.  This is for ids in:
+          softpkg
+          implementation
+          propertyref
+          devicepkg
+          hwdeviceregistration
+          simple property that is an allocation type
+          softwareassembly
+          componentplacement
+          deviceconfiguration
+          componentfileref
+          componentinstantiation
+          domainmanagerconfiguration
+    3. All <localfile> cross references exist 
+    4. All <localfile> cross references are valid
+    5. DCD/SAD files don't attempt to override 'readonly' properties 
+    6. All execparam properties are 'simple' properties
+
+Note!!:  If calling sdrlint with the '-p' option, checking of <localfile> 
+         cross references is disabled (for now).
+"""
+
+import os
+import pprint
+import commands
+import sys
+import re
+import xml.dom
+import xml.dom.minidom
+import xml.sax
+import traceback
+import logging
+
+DocTypePubIdMap = {'softpkg': "-//JTRS//DTD SCA V2.2.2 SPD//EN",
+                   'devicepkg': "-//JTRS//DTD SCA V2.2.2 DPD//EN",
+                   'properties': "-//JTRS//DTD SCA V2.2.2 PRF//EN",
+                   'softwarecomponent': "-//JTRS//DTD SCA V2.2.2 SCD//EN",
+                   'softwareassembly': "-//JTRS//DTD SCA V2.2.2 SAD//EN",
+                   'deviceconfiguration': "-//JTRS//DTD SCA V2.2.2 DCD//EN",
+                   'domainmanagerconfiguration': "-//JTRS//DTD SCA V2.2.2 DMD//EN"}
+
+UUIDPAT = re.compile(r'\ADCE:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(:\d+)?\Z')
+
+SDRROOT = None
+SDR_FS_ROOT = None # Either 'dev' or 'dom'
+
+def check_msg(msg):
+    print msg
+
+def check_info(msg, location=""):
+    print " %s: info : %s" % (location, msg)
+
+def check_warning(msg, location=""):
+    print " %s: warning : %s" % (location, msg)
+
+def check_error(msg, location=""):
+    print " %s: error : %s" % (location, msg)
+
+def getReadonly(sdrroot):
+    """Get a dictionary of all the elements with a mode attribute
+       of readonly.  Used to check if any xml's attempt to set 
+       readonly attributes.
+
+       sdrroot -- path to root directory to search through (recursively)
+                  for xml files
+    """
+    result = {}
+    for root, dirs, files in os.walk(sdrroot):
+        for fName in files:
+            if (os.path.splitext(fName)[1] == '.xml' and
+                os.path.splitext(os.path.splitext(fName)[0])[1] == '.prf'):
+                f = open(os.path.join(root, fName))
+                xmlstr = f.read()
+                f.close()
+                try:
+                    xmlRoot = ET.fromstring(xmlstr)
+                except:
+                    continue
+                for element in xmlRoot.getiterator():
+                    if (element.attrib.has_key('mode') and 
+                        element.attrib.has_key('id') and
+                        element.attrib['mode'] == 'readonly'):
+                        result[element.attrib['id']] = os.path.join(root, fName)
+    return result
+                
+def isOrderError(error):
+    """Does the xmllint error line indicate a 'section out of order'
+       error? 
+     
+       error -- error string returned from xmllint
+    """
+    try:
+        err = error.split(':')[-1]
+        return err.split()[8] == 'expecting'
+    except:
+        return False
+
+def getErrorInfo(error):
+    """Get the expected order of sections within the element
+       identified in the error message.  Return the element
+       name, and the expected order of elements. We are just 
+       getting an order in which to sort elements, so we can 
+       ignore all the "*+|() indications.
+     
+       error -- error string returned from xmllint
+    """
+    err = error.split(':')[-1]
+    element = err.split()[1]
+    orderPat = re.compile(r'expecting \((.*), got \(')
+    try:
+        oMatch = orderPat.search(err)
+    except:
+        print "error in search"
+    if oMatch is not None:
+        expected = oMatch.groups()[0]
+        expected = re.sub(r'[,()*+?|]', ' ', expected)
+        expected = expected.split()
+        es = [e.strip() for e in expected]
+        expected = {}
+        for e,n  in zip(es, xrange(1,100000)):
+            expected[e] = n
+        return element, expected
+    else: return element, []
+
+def fixElementOrder(element, expected, children):
+    """Get all the children of the element into the order indicated
+       by expected dictionary
+
+       element -- xml.dom object representing the xml element to be fixed
+       expected -- dictionary with element names as keys, values are the 
+                   order expected for the element.  Used to sort elements.
+       children -- xml.dom list of children
+    """
+    ocs = children[:]
+    ocs.sort(lambda x,y: cmp(x.tagName, y.tagName))
+    ncs = [oc.cloneNode(True) for oc in ocs]
+    for child, nc in zip(children, ncs):
+        element.replaceChild(nc, child)
+
+def fixOrder(fPath, output):
+    """Look at the error message in the output.  If it is complaining
+       about section order/existence issues, fix the order.
+   
+       fPath -- path to xml to fix
+       output -- output from xmllint call
+    """
+    output = output.split('\n')
+    d = xml.dom.minidom.parse(fPath)
+    for error in output[:2]:
+        if isOrderError(error):
+            elementTag, expected = getErrorInfo(error)
+            if len(expected) > 0:
+                for element in d.getElementsByTagName(elementTag):
+                    if element.nodeType != xml.dom.Node.ELEMENT_NODE: continue
+                    children = []
+                    for child in element.childNodes:
+                        if (child.nodeType == xml.dom.Node.ELEMENT_NODE and
+                            child.tagName in expected.keys()):
+                            children.append(child)
+                    fixElementOrder(element, expected, children)
+    pxml = d.toprettyxml(encoding="utf-8").split('\n')
+    pxml = '\n'.join([l for l in pxml if len(l.strip()) > 0]) + '\n'
+    f = open(fPath, 'w')
+    f.write(pxml)
+    f.close()
+
+def isDCE_UUID(id):
+    """Check if the id is a dec uuid. Pattern check is solid; spec conformance
+       and DCE type checks are based of web search and a quick read of the 
+       spec.  
+    """
+
+    if UUIDPAT.match(id) is not None:
+        if opts.strictUUIDS:
+            if id[23] not in '89abAB':
+                check_warning("uuid does not conform to RFC spec")
+            if id[18] != '2':
+                check_warning("expected UUID type '2' received type '%s'" % id[18])
+        return True
+    else:
+        logging.debug("uuid pattern match failed")
+    return False
+
+def checkUUIDs(fPath):
+    # Elements that should have an id="DCE:UUID"
+    uuidTags = ['softpkg', 'implementation', 'devicepkg', 
+                'hwdeviceregistration', 'softwareassembly',
+                'deviceconfiguration', 'componentinstantiation', 
+                'domainmanagerconfiguration']
+
+    class UUIDChecker(xml.sax.handler.ContentHandler):
+
+        def startElement(self, name, attrs):
+            if name in uuidTags:
+                if not attrs.has_key("id"):
+                    print name, "DOESN'T HAVE KEY"
+                if not isDCE_UUID(attrs["id"]):
+                    if self._locator != None:
+                        location = "%s:%s" % (fPath, self._locator.getLineNumber())
+                    else:
+                        location = fPath
+                    check_error("SCA requires element %s to have a DCE UUID id attribute" % name, location=location)
+
+    parser = xml.sax.make_parser()
+    parser.setFeature("http://xml.org/sax/features/external-general-entities",  0)
+    parser.setFeature("http://xml.org/sax/features/external-parameter-entities",  0)
+    parser.setContentHandler(UUIDChecker())
+    parser.parse(fPath)
+
+def localfileExists(fPath, referencedFiles):
+    """Check all the localfile references in the xml
+       
+       fPath -- path to xml file
+       root -- ET object for the element to be checked for localfile entries
+       referencedFiles -- dict whose keys are paths to referenced files.  This 
+                         is added to by this function, and is used to determine
+                         if there are any referenced files unchecked.
+    """
+    class LocalFileChecker(xml.sax.handler.ContentHandler):
+
+        def startElement(self, name, attrs):
+            if name == "localfile":
+                fName = attrs["name"]
+                if os.path.basename(fPath) in ("DomainManager.spd.xml", "DeviceManager.spd.xml"):
+                    # Work around a REDHAWK idosyncracy
+                    return
+
+                if fName.startswith("/"):
+                    # the path is absolute to the SDRROOT
+                    fAbsPath = os.path.abspath(os.path.join(SDRROOT, SDR_FS_ROOT, fName[1:]))
+                else:
+                    # the path is relative to fPath
+                    fAbsPath = os.path.abspath(os.path.join(os.path.dirname(fPath), fName))
+
+                logging.debug("checking for the existence of %s", fAbsPath)
+                if not os.path.exists(fAbsPath):
+                    if self._locator != None:
+                        location = "%s:%s" % (fPath, self._locator.getLineNumber())
+                    else:
+                        location = fPath
+                    check_error("localfile %s does not exist at %s" % (fName, fAbsPath), location=location)
+                else:
+                    # If this is a referenced .xml file, include it in our check
+                    if os.path.splitext(fName)[1] == '.xml':
+                        referencedFiles[fAbsPath] = 'unchecked'
+
+    parser = xml.sax.make_parser()
+    parser.setFeature("http://xml.org/sax/features/external-general-entities",  0)
+    parser.setFeature("http://xml.org/sax/features/external-parameter-entities",  0)
+    parser.setContentHandler(LocalFileChecker())
+    parser.parse(fPath)
+
+   
+def guessDocType(fPath):
+    try:
+        d = xml.dom.minidom.parse(fPath)
+    except:
+        # The document didn't parse, so it's probably invalid
+        # XML...but let's look for '<!DOCTYPE' anyways
+        fp = open(fPath)
+        s = fp.read()
+        fp.close()
+        dtypePat = re.compile(r'<!DOCTYPE\s+(\w+)')
+        m = dtypePat.search(s)
+        if m is not None:
+            return m.groups()[0], None, None
+        else:
+            return None, None, None
+    else:
+        if d.doctype != None:
+            # If the document told us the doctype, the by-golly
+            # we got it
+            return d.doctype.name, d.doctype.publicId, d.doctype.systemId
+        else:
+            # Otherwise guess based off the root element
+            for n in d.childNodes:
+                if n.nodeType == 1:
+                    return n.nodeName, None, None
+
+def checkDTD(root, fPath):
+    """Fix the DTD element in the xml. Parse to get doctype item, and 
+       attributes.
+
+       root -- directory xml file is in
+       fName -- name of xml file
+
+       returns -- the assumed doctype
+    """
+    fixTypes = ['softpkg', 'devicepkg', 'properties', 'softwarecomponent', 
+                'softwareassembly', 'deviceconfiguration',
+                'domainmanagerconfiguration']
+
+    rootElementName, pubId, sysId = guessDocType(fPath)
+    if rootElementName == None:
+        check_error("could not guess appropriate doctype", location=fPath)
+        return None, None
+    if rootElementName not in fixTypes:
+        check_info("skipping file with non-SCA root element '%s'" % rootElementName, location=fPath)
+        return None, None
+
+    expectedPubId = DocTypePubIdMap[rootElementName]
+    expectedSysId = "%s.dtd" % rootElementName
+
+    if pubId != expectedPubId or sysId != expectedSysId:
+        if not (opts.modify or opts.fixDTD):
+            pass
+            # check_warning("file DOCTYPE isn't correct.  expected '%s', '%s'" % (expectedPubId, expectedSysId), location=fPath) 
+        else:
+            check_info("fixing incorrect DOCTYPE", location=fPath) 
+            fp = open(fPath)
+            s = fp.read()
+            fp.close()
+
+            # See if there is an existing DOCTYPE to replace
+            dtpat = re.compile(r'<!DOCTYPE[^>]*>')
+            newdoctype = "<!DOCTYPE %s PUBLIC '%s' '%s'>" % \
+                              (rootElementName, expectedPubId, expectedSysId)
+
+            m = dtpat.search(s)
+            if m != None:
+                logging.debug("replacing exsting doctype in %s", fPath)
+                s = dtpat.sub(newdoctype, s)
+            else:
+                logging.debug("adding doctype in %s", fPath)
+                # There is no existing doctype, so add ours
+                lines = s.split("\n")
+                if not lines[0].strip().startswith("<?xml"):
+                    lines.insert(0, '<?xml version="1.0"?>')
+                lines.insert(1, newdoctype)
+                s = "\n".join(lines)
+
+            fp = open(fPath, 'w')
+            fp.write(s)
+            fp.close()
+
+    return rootElementName, expectedPubId
+
+
+def checkSoftPkg(fPath):
+    d = xml.dom.minidom.parse(fPath)
+    for code in d.getElementsByTagName("code"):
+        implId = code.parentNode.getAttribute("id")
+        if code.getAttribute("type") == "Executable":
+            if len(code.getElementsByTagName("entrypoint")) != 1:
+                check_error("implementation %s has Executable code without entrypoint" % implId, location=fPath)
+            # We don't need to check localfile because the DTD check ensures it's existence
+            # TODO - check the existence of entrypoint since with directory based loads the entry-point
+            # and the localfile may not be one and the same
+
+    # TODO Check that usesdevice and dependency propertyrefs match an allocation property found in the domain
+
+def checkProperties(fPath):
+    d = xml.dom.minidom.parse(fPath)
+    for prop in d.firstChild.childNodes:
+        if prop.nodeType == prop.TEXT_NODE:
+            continue
+        kinds = [ k.getAttribute("kindtype") for k in prop.getElementsByTagName("kind") ]
+        if "execparam" in kinds and prop.tagName != 'simple':
+            check_error("non-simple property %s has kind execparam: execparams must be of simple type" % prop.getAttribute("id"), location=fPath)
+
+        if "allocation" in kinds:
+            if not isDCE_UUID(prop.getAttribute("id")):
+                check_error("allocation property %s has non-UUID 'id'" % prop.getAttribute("id"), location=fPath)
+
+def checkComponentProperties(fPath, readonlyIds):
+    """Check to ensure no element attempts to reset the value of an 
+       attribute that is set to readonly
+    
+       fPath -- path to xml
+       xmlRoot -- ET root object for xml
+       readOnlyIds -- dict with id's of readonly elements as keys
+    """
+    d = xml.dom.minidom.parse(fPath)
+    for compprops in d.getElementsByTagName("componentproperties"):
+        for propref in compprops.childNodes:
+            # TODO validate that the property ref exists in the component
+            # by looking up the component via componentfileref
+            # validate that the property is not readonly
+            pass
+
+def checkFile(root, fPath, opts, referencedFiles, readonlyIds, localFileRefs=True):
+    """Make all the checks on an xml file.  Fill in referenced files as
+       localfile refs are checked.  
+   
+       root -- path to directory of xml file
+       f -- xml file name
+       referencedFiles -- dict with paths to referenced files for keys
+       readonlyIds -- dict with ids of readonly elements as keys
+       localFileRefs -- logical; check local file references if true
+    """
+    logging.debug("Checking file %s", fPath) 
+    xmlStatus = {}
+    rootElem = None
+
+    try:
+        logging.debug("Checking document doc type %s", fPath)
+        rootElem, docType = checkDTD(root, fPath)
+    except Exception, e:
+        check_error("unexpected failure while trying to check/fix dtd", location=fPath)
+        xmlStatus[fPath] = 'failed DTD'
+        logging.exception("")
+        return xmlStatus
+
+    if docType == None:
+        return {fPath: 'ignored'}
+
+    cmd = "xmllint --nowarning --nonet --catalogs --noout --dropdtd --dtdvalidfpi '%s' %s" % (docType, fPath)
+    logging.debug("Running %s", cmd)
+
+    status, output = commands.getstatusoutput(cmd)
+    if status == 0:
+        xmlStatus[fPath] = 'OK'
+    else:
+        check_error("failed DTD validity\n %s" % output, location=fPath)
+        xmlStatus[fPath] = '  Fail DTD validation'
+        if not opts.modify:
+            return xmlStatus
+        else:
+            for i in range(5):
+                retval = 1
+                fixOrder(fPath, output)
+                status, output = commands.getstatusoutput(cmd)
+                if status == 0:
+                    xmlStatus[fPath] = 'OK'
+                    break
+            else:
+                xmlStatus[fPath] = '  Fail DTD validation'
+                print "  <<<<DTD check not valid"
+                print "    %s" % output.split('\n')[0]
+
+    # Check that elements that are required to have UUIDS, do have UUIDS
+    checkUUIDs(fPath)
+
+    # Check that all localfile references exist in the SDRROOT
+    if localFileRefs: 
+        localfileExists(fPath, referencedFiles)
+
+    # Check some file specific 
+    if rootElem == "properties":
+        checkProperties(fPath)
+
+    if rootElem == "softpkg":
+        checkSoftPkg(fPath)
+
+    if rootElem in ("softwareassembly", "deviceconfiguration"):
+        checkComponentProperties(fPath, readonlyIds)
+
+
+    return xmlStatus
+
+if __name__ == "__main__":
+    from optparse import OptionParser
+    parser = OptionParser(usage=USAGE)
+    parser.add_option("-d", "--debug",
+                      action="store_true",
+                      dest="debug",
+                      default=False)
+    parser.add_option("-f", "--fixDTD",
+                      action="store_true",
+                      dest="fixDTD",
+                      default=False,
+                      help="Fix the DTD reference for top-level items")
+# THIS ISN'T VERY RELIABLE SO DON'T PROVIDE IT
+#    parser.add_option("-m", "--modify", 
+#                      action="store_true", 
+#		      dest="modify", 
+#		      default=False, 
+#		      help="when possible attempt to fix problems in the XML; currently only fixes out of order subelements.  Also sets fixDTD to true")
+    parser.add_option("-c", "--catalogs", 
+                      type="string",
+		      dest="catalogs", 
+		      default=None, 
+		      metavar="CATALOG_FILES",
+		      help="use DTD catalogs from CATALOG_FILES  [default: /etc/xml/catalog]")
+    parser.add_option("-p", "--profile", 
+            type="string",
+            action="append",
+		      dest="profiles", 
+		      default=None, 
+		      metavar="PROFILES",
+		      help="lint only the xml in dir-tree given by PROFILES  [default: None]")	      
+    parser.add_option("-u", "--strict-uuids", 
+                      action="store_true",
+                      dest="strictUUIDS",
+                      default=False,
+                      help="Enable warnings for strict DCE UUID checking")
+
+    opts, args = parser.parse_args()
+    opts.modify = False
+    try:
+        SDRROOT = args[0]
+    except IndexError:
+        try:
+	    SDRROOT = os.environ["SDRROOT"]
+	except KeyError:
+	    parser.error("SDRROOT not defined")
+
+    # Use the logging facility for internal messages
+    # Output destinted for the user should use print, 
+    # check_info, check_warning, and check_error
+    logging.basicConfig()
+    if opts.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.ERROR) # Disable all internal output
+
+
+    if opts.catalogs is not None:
+        os.environ['SGML_CATALOG_FILES'] = opts.catalogs
+
+    # Walk the SDR file tree
+    checkedFiles = {}
+    referencedFiles = {}
+    flimit = 10000
+    readonlyIds = getReadonly(SDRROOT)
+    
+    # disable localfile cross reference checking if checking specific profile
+    if opts.profiles is None:
+        localFileRefs = True
+    else:
+        localFileRefs = False
+
+    for SDR_FS_ROOT in opts.profiles or ('dev', 'dom' ):
+        if opts.profiles is None :
+            fGenerator = os.walk( os.path.join( SDRROOT, SDR_FS_ROOT ) )
+        else:
+            fGenerator = os.walk( os.path.abspath( SDR_FS_ROOT ) )
+        for root, dirs, files in fGenerator:
+            if len(checkedFiles) > flimit: break
+            gotFile = False
+            for f in files:
+                if len(checkedFiles) > flimit: break
+                if os.path.splitext(f)[1] == '.xml':
+                    fAbsPath = os.path.abspath(os.path.join(root, f))
+                    try:
+                        print "\nCHECKING FILE:", fAbsPath
+                        xmlStatus = checkFile(root, fAbsPath, opts, referencedFiles, readonlyIds, localFileRefs ) 
+                        checkedFiles.update(xmlStatus)
+                    except Exception, e:
+                        check_error("unexpected exception checking file '%s'" % str(e), location=fAbsPath)
+                        logging.exception("")
+    print "\n" 
+    print "Checked files: %s" % (len(checkedFiles))
+    unchecked = [x for x in referencedFiles.keys() if x not in checkedFiles.keys()]
+    logging.debug(" %s of %s referencedFiles remain unchecked", len(referencedFiles), len(unchecked))
+
+    for fPath in unchecked:
+        root, f = os.path.split(fPath)
+        try:
+            # set localFileRefs to false to avoid circular checks
+            localFileRefs = False
+            fAbsPath = os.path.join(root, f)
+            checkFile(root, fAbsPath, opts, referencedFiles, readonlyIds, localFileRefs)
+        except Exception, e:
+            check_error("unexpected error %s while checking file" % str(e), location=fAbsPath)
+            logging.exception("")

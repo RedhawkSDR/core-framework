@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:5248a1dc-0f67-4469-b1d2-8d8d90b6c015" name="PythonWave">
+  <componentfiles>
+    <componentfile id="PythonComponent_eb540111-9267-42dc-9eb6-6638eb1fdab0" type="SPD">
+      <localfile name="/components/PythonComponent/PythonComponent.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="PythonComponent_eb540111-9267-42dc-9eb6-6638eb1fdab0"/>
+      <componentinstantiation id="DCE:2a9c34dd-16ce-4391-92b0-0b0020e04fdd">
+        <usagename>PythonComponent_1</usagename>
+        <findcomponent>
+          <namingservice name="PythonComponent_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="DCE:2a9c34dd-16ce-4391-92b0-0b0020e04fdd"/>
+  </assemblycontroller>
+</softwareassembly>

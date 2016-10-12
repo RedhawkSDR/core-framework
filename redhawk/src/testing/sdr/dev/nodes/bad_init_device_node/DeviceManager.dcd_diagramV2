@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns="http://sca.jpeojtrs.mil/dcd" xmlns:diagram="http://sca.jpeojtrs.mil/diagram" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmi:id="_SBM1kD_2EeOLELktmeaBGQ" type="Dcd" name="DeviceManager.dcd_diagramV2" measurementUnit="Pixel">
+  <children xmi:type="notation:Shape" xmi:id="_TgyZAD_2EeOLELktmeaBGQ" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_TgzAED_2EeOLELktmeaBGQ" type="5005"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_TgzAET_2EeOLELktmeaBGQ" type="7002"/>
+    <element xmi:type="DcdComponentPlacement" href="DeviceManager.dcd.xml#//@partitioning/@componentPlacement.0"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_TgyZAT_2EeOLELktmeaBGQ" x="481" y="233"/>
+  </children>
+  <styles xmi:type="notation:DiagramStyle" xmi:id="_SBM1kT_2EeOLELktmeaBGQ"/>
+  <styles xmi:type="diagram:EObjectContainerStyle" xmi:id="_SBM1kj_2EeOLELktmeaBGQ" name="FindByStubContainer"/>
+  <element xmi:type="DeviceConfiguration" href="DeviceManager.dcd.xml#DCE:37d29f0c-e7f4-4051-9417-5bee91f841a2"/>
+</notation:Diagram>

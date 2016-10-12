@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties SYSTEM "properties.dtd">
+<properties>
+  <simple id="DCE:9190eb70-bd1e-4556-87ee-5a259dcfee39" mode="readonly" name="hostName" type="string">
+    <description>Host name on which the device is deployed</description>
+    <value>localhost</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d" mode="readonly" name="DeviceKind" type="string">
+    <description>The type of this device</description>
+    <value>GPP</value>
+    <kind kindtype="configure"/>
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
+  </simple>
+  <simple id="DCE:4a23ad60-0b25-4121-a630-68803a498f75" mode="readwrite" name="os_name" type="string">
+    <description>SCA required property describing the Operating System Name.</description>
+    <value>Linux</value>
+    <kind kindtype="execparam"/>
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
+  </simple>
+  <simple id="DCE:0f3a9a37-a342-43d8-9b7f-78dc6da74192" mode="readwrite" name="os_version" type="string">
+    <description>SCA required property describing the Operating System Version</description>
+    <kind kindtype="allocation"/>
+    <kind kindtype="execparam"/>
+    <action type="eq"/>
+  </simple>
+  <simple id="DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b" mode="readwrite" name="processor_name" type="string">
+    <description>SCA required property describing the CPU type</description>
+    <kind kindtype="allocation"/>
+    <kind kindtype="execparam"/>
+    <action type="eq"/>
+  </simple>
+  <simple id="DCE:2df4cfe4-675c-41ec-9cc8-84dff2f468b3" mode="readonly" name="processor_cores" type="long">
+    <description>The number of true processing cores that can execute programs concurrently (i.e. not hyperthreaded).  Although external, implemented with behavior identical to a matching property with action 'le'</description>
+    <kind kindtype="allocation"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="DCE:7c922411-5085-4a89-992d-0a0a51767aea" mode="readonly" name="processor_flags" type="string">
+    <description>The flags associated with the CPU, for e.g., 'sse2'</description>
+    <kind kindtype="allocation"/>
+    <action type="external"/>
+  </simplesequence>
+  <simple id="DCE:329d9304-839e-4fec-a36f-989e3b4d311d" mode="readonly" name="memTotal" type="long">
+    <description>Total amount of RAM installed in the GPP</description>
+    <units>MiB</units>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:6565bffd-cb09-4927-9385-2ecac68035c7" mode="readonly" name="memFree" type="long">
+    <description>Amount of RAM in the GPP not in use (measured)</description>
+    <units>MiB</units>
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb" mode="readwrite" name="memCapacity" type="long">
+    <description>Amount of RAM in the GPP not allocated to an application</description>
+    <units>MiB</units>
+    <kind kindtype="allocation"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:fc24e19d-eda9-4200-ae96-8ba2ed953128" mode="readwrite" name="memThreshold" type="long">
+    <description>Percentage of total system memory this GPP can use for capacity management.</description>
+    <value>80</value>
+    <units>%</units>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:4e416acc-3144-47eb-9e38-97f1d24f7700" mode="readwrite" name="mcastnicInterface" type="string">
+    <description>The Multicast NIC interface associated with this GPP (e.g. eth1).  If not provided no multicast allocations are permitted.</description>
+    <value></value>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:5a41c2d3-5b68-4530-b0c4-ae98c26c77ec" mode="readwrite" name="mcastnicIngressTotal" type="long">
+    <description>Total NIC bandwidth for the interfaces defined in mcastnicInterface.  This must be specified in the PRF or DCD because ethtool requires super-user privs.</description>
+    <value>0</value>
+    <units>Mb/s</units>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:442d5014-2284-4f46-86ae-ce17e0749da0" mode="readwrite" name="mcastnicEgressTotal" type="long">
+    <description>Total NIC bandwidth for the interfaces defined in mcastnicInterface.  This must be specified in the PRF or DCD because ethtool requires super-user privs.</description>
+    <value>0</value>
+    <units>Mb/s</units>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:506102d6-04a9-4532-9420-a323d818ddec" mode="readwrite" name="mcastnicIngressCapacity" type="long">
+    <description>Amount of ingress multicast NIC capacity in the GPP not allocated to an application</description>
+    <units>Mb/s</units>
+    <kind kindtype="allocation"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:eb08e43f-11c7-45a0-8750-edff439c8b24" mode="readwrite" name="mcastnicEgressCapacity" type="long">
+    <description>Amount of egress multicast NIC capacity in the GPP not allocated to an application</description>
+    <units>Mb/s</units>
+    <kind kindtype="allocation"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:0b57a27a-8fa2-412b-b0ae-010618b8f40e" mode="readonly" name="mcastnicIngressFree" type="long">
+    <description>Free NIC bandwidth for the interfaces defined in mcastnicInterface.</description>
+    <value>0</value>
+    <units>Mb/s</units>
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:9b5bbdcb-1894-4b95-847c-787f121c05ae" mode="readonly" name="mcastnicEgressFree" type="long">
+    <description>Free NIC bandwidth for the interfaces defined in mcastnicInterface.</description>
+    <value>0</value>
+    <units>Mb/s</units>
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1" mode="readwrite" name="mcastnicThreshold" type="long">
+    <description>Percentage of total Multicast NIC this GPP can use for capacity management.</description>
+    <value>80</value>
+    <units>%</units>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:28b23bc8-e4c0-421b-9c52-415a24715209" mode="readonly" name="loadTotal" type="double">
+    <description>Equal to &quot;processor_cores&quot; x &quot;loadCapacityPerCore&quot;.</description>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:3bf07b37-0c00-4e2a-8275-52bd4e391f07" mode="readwrite" name="loadCapacityPerCore" type="double">
+    <description>The performance ratio of this machine, relative to the benchmark machine.</description>
+    <value>1.0</value>
+    <kind kindtype="execparam"/>
+    <kind kindtype="allocation"/>
+    <action type="gt"/>
+  </simple>
+  <simple id="DCE:6c000787-6fea-4765-8686-2e051e6c24b0" mode="readonly" name="loadFree" type="double">
+    <description>Equal to loadCapacity</description>
+    <kind kindtype="configure"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056" mode="readwrite" name="loadCapacity" type="double">
+    <description>The amount of load capacity remaining to be allocated.</description>
+    <kind kindtype="allocation"/>
+    <kind kindtype="event"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:22a60339-b66e-4309-91ae-e9bfed6f0490" mode="readwrite" name="loadThreshold" type="long">
+    <description>Percentage of toal load that can be used for capacity.</description>
+    <value>80</value>
+    <units>%</units>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:b911fa00-e411-4eb6-93d4-fff12dcf03bc" mode="readwrite" name="diskThreshold" type="long">
+    <description>Percentage of total disk this GPP can use for capacity management.</description>
+    <value>80</value>
+    <units>%</units>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:218e612c-71a7-4a73-92b6-bf70959aec45" mode="readwrite" name="useScreen" type="boolean">
+    <description>If true, GNU screen will be used for the execution of components.</description>
+    <value>False</value>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:c80f6c5a-e3ea-4f57-b0aa-46b7efac3176" mode="readwrite" name="componentOutputLog" type="string">
+    <description>If provided, all component output will be redirected to this file.  The GPP will not delete or rotate these logs.  The provided value may contain environment variables or reference component exec-params with @EXEC_PARAM@.  For example, this would be a valid value $SDRROOT/logs/@COMPONENT_IDENTIFIER@.log</description>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="propertyEventRate" mode="readwrite" type="ushort">
+    <description>The rate at which property events will be emitted for back-ground status</description>
+    <value>60</value>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="DCE:65544aad-4c73-451f-93de-d4d76984025a" mode="readwrite" name="mcastnicVLANs" type="long">
+    <description>When queired, returns the list of vlans on this host.  When used as an allocation, defines the list of VLANS the component requires.</description>
+    <kind kindtype="allocation"/>
+    <action type="external"/>
+  </simplesequence>
+  <struct id="DCE:9da85ebc-6503-48e7-af36-b77c7ad0c2b4" mode="readonly" name="loadAverage">
+    <description>The current load average, as reported by /proc/loadavg.  Each core on a computer can have a load average between 0.0 and 1.0.  This differs greatly from CPU percentage (as reported by top).  Load averages differ in two significant ways: 1) they measure the trend of CPU utlization, and 2) they include all demand for the CPU not only how much was active at the time of measurement.  Load averages do not include any processes or threads waiting on I/O, networking, databases, or anything else not demanding the CPU.</description>
+    <simple id="onemin" mode="readwrite" name="onemin" type="double">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="fivemin" mode="readwrite" name="fivemin" type="double">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="fifteenmin" mode="readwrite" name="fifteenmin" type="double">
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="event"/>
+  </struct>
+  <structsequence id="DCE:f5f78038-b7d4-4fcd-8294-344369c8a74f" mode="readonly" name="fileSystems">
+    <description>The list of file systems mounted on this host and their current usage.</description>
+    <struct id="filesystem" mode="readwrite" name="filesystem">
+      <simple id="device" mode="readwrite" name="device" type="string">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="mount" mode="readwrite" name="mount" type="string">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="total" mode="readwrite" name="total" type="ulong">
+        <units>MiB</units>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="used" mode="readwrite" name="used" type="ulong">
+        <units>MiB</units>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="available" mode="readwrite" name="available" type="ulong">
+        <units>MiB</units>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <configurationkind kindtype="configure"/>
+    </struct>
+    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="event"/>
+  </structsequence>
+  <structsequence id="DCE:6786dd11-1e30-4910-aaac-a92b8b82614c" mode="readwrite" name="diskCapacity">
+    <description>Used as an allocatation dependency to ensure the specified path has enough disk space.</description>
+    <struct id="diskCapacityStruct" mode="readwrite" name="diskCapacityStruct">
+      <simple id="diskCapacityPath" mode="readwrite" name="diskCapacityPath" type="string">
+        <description>The path that your component intends to write to, the mount point is determined based off this path.  Environment variables, in the form ${VAR} may be used.  Components should generally use ${SDRROOT} or ${TMPDIR} as the basis for capacity allocation.  This will ensure maximum portability to other systems.  The referenced path must exist on the system and be a directory.</description>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="diskCapacity" mode="readwrite" name="diskCapacity" type="ulong">
+        <description>The amount of capacity on the path that your component requires.  Note, the allocation will be successful even if the path does not exist or if the path is not writable.  The capacity check simply ensures that the mount point that holds the specified path has enough free space.</description>
+        <units>MiB</units>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <configurationkind kindtype="configure"/>
+    </struct>
+    <configurationkind kindtype="allocation"/>
+    <configurationkind kindtype="event"/>
+  </structsequence>
+  <structsequence id="DCE:8c79aea8-479c-4b9b-98ab-efbb89305750" mode="readwrite" name="diskrateTotal">
+    <struct id="diskrateTotalStruct" mode="readwrite" name="diskrateTotalStruct">
+      <simple id="diskrateTotalDevice" mode="readwrite" name="diskrateTotalDevice" type="string">
+        <description>The device that the diskrate was measured against.</description>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="diskrateTotal" mode="readwrite" name="diskrateTotal" type="string">
+        <units>Mbytes/sec</units>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <configurationkind kindtype="configure"/>
+    </struct>
+    <configurationkind kindtype="allocation"/>
+  </structsequence>
+  <structsequence id="DCE:41c4eecf-bd8c-4904-a1ac-b617d87df67b" mode="readwrite" name="diskrateCapacity">
+    <struct id="diskrateCapacityStruct" mode="readwrite" name="diskrateCapacityStruct">
+      <simple id="diskrateCapacityPath" mode="readwrite" name="diskrateCapacityPath" type="string">
+        <description>The path that your component intends to write to, the mount point is determined based off this path.  Environment variables, in the form ${VAR} may be used.  Components should generally use ${PWD}, ${SDRROOT}, or ${TMPDIR} as the basis for capacity allocation.  This will ensure maximum portability to other systems.</description>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="diskrateCapacity" mode="readwrite" name="diskrateCapacity" type="string">
+        <units>Mbytes/sec</units>
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <configurationkind kindtype="configure"/>
+    </struct>
+    <configurationkind kindtype="allocation"/>
+    <configurationkind kindtype="event"/>
+  </structsequence>
+</properties>

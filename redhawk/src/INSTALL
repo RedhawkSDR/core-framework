@@ -1,0 +1,82 @@
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+
+
+I. Installing Dependencies
+----------------------------------------------
+The Core Framework requires the following RPMS:
+ * gcc 
+ * gcc-c++
+ * apr, apr-devel
+ * apr-util, apr-util-devel
+ * expat-devel
+ * autoconf
+ * automake
+ * libtool
+ * e2fsprogs-devel
+ * zip
+ * xsd
+ * boost, boost-devel
+ * libomniORB4, libomniORB4-devel 
+ * omniORB-servers, omniORB-bootscripts
+
+The following are option, but highly recommended
+ * apache-log4cxx, apache-log4cxx-devel
+ * libomniEvents, libomniEvents-devel
+ * omniEvents-server, omniEvents-bootscripts, omniEvents-utils
+
+II. Building and installing the Core Framework
+----------------------------------------------
+
+The installation of the Core Framework entails setting up environment variables, creating installation directories, and running the standard Autotools configuration and make commands:
+
+    $ export OSSIEHOME=${HOME}/redhawk
+    $ export SDRROOT=${OSSIEHOME}/sdr
+    $ mkdir -p $OSSIEHOME
+    $ mkdir -p $SDRROOT
+    $ ./reconf
+    $ ./configure
+    $ make
+    $ make install
+
+III. Common install issues.
+----------------------------------------------
+
+ERROR: "No package 'liblog4cxx' found"
+
+SOLUTION: Try locating liblog4cxx.la.  If, for example, liblog4cxx.la is found in /usr/local/lib64/, set the PKG_CONFIG_PATH to  "/usr/local/lib64/pkgconfig/":
+
+    $ export PKG_CONFIG_PATH="/usr/local/lib64/pkgconfig/"
+
+-----------------
+
+ERROR: "/bin/mkdir: cannot create directory `/usr/local/share': Permission denied"
+
+SOLUTION: The installation script is attempting to install to a directory for which you do not have write permissions.  Either update the OSSIEHOME/SDRROOT environment variables in order to install to a different location, or perform "make install" with root permissions.
+
+-----------------
+
+ERROR: "/usr/bin/install: cannot remove `/usr/local/share/aclocal/ossie/*"
+
+SOLUTION: The installation script may be attempting to install over an existing copy of the Core Framework that was installed with root permissions.  Either update the OSSIEHOME/SDRROOT environment variables in order to install to a different location, or perform "make install" with root permissions.
+
+-----------------
+
+ERROR: "No such file or directory /bin/java" (encountered when running test scripts)
+
+SOLUTION: Point the JAVA_HOME environment variable to the appropriate version of java (e.g., "export JAVA_HOME=/usr/java/latest").

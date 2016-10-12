@@ -1,0 +1,147 @@
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!ELEMENT properties
+     	 ( description?
+     	 , 	( simple
+		| simplesequence
+		| test
+		| struct
+		| structsequence)+
+       )> 
+
+<!ELEMENT simple 
+	( description?
+	, value?
+	, units?
+	, range?
+	, enumerations?
+	, kind*
+	, action?
+	)>
+
+<!-- Support non-SCA compliant longlong -->
+<!ATTLIST simple
+	id	ID							#REQUIRED
+	type	( boolean	| char	| double | float
+		| short	| long	| longlong | objref | octet
+		| string	| ulong	| ushort )		#REQUIRED
+	name	CDATA							#IMPLIED
+	mode	( readonly	| readwrite | writeonly)	"readwrite">
+
+<!ELEMENT description (#PCDATA)>
+
+<!ELEMENT value (#PCDATA)>
+
+<!ELEMENT units (#PCDATA)>
+
+<!ELEMENT range EMPTY>
+<!ATTLIST range
+	min		CDATA	#REQUIRED
+	max		CDATA	#REQUIRED>
+
+<!ELEMENT enumerations
+	( enumeration+
+	)>
+
+<!ELEMENT enumeration EMPTY>
+<!ATTLIST enumeration
+	label		CDATA	#REQUIRED
+	value		CDATA	#IMPLIED>
+
+<!ELEMENT kind EMPTY>
+<!ATTLIST kind
+	kindtype	(allocation | configure | test | execparam | factoryparam | event | message) 
+"configure">
+
+<!ELEMENT action EMPTY>
+<!ATTLIST action
+	type	( eq  | ne | gt  |  lt | ge | le | external ) "external">
+
+<!ELEMENT simplesequence 
+	( description?
+	, values?
+	, units?
+	, range?
+	, kind*
+	, action?
+	)>
+<!ATTLIST simplesequence
+	id	ID						#REQUIRED
+	type  ( boolean | char   | double | float
+	      | short  | long   | objref | octet
+	      | string | ulong  | ushort )		#REQUIRED
+	name	CDATA						#IMPLIED
+	mode	(readonly | readwrite | writeonly)	"readwrite">
+
+<!ELEMENT values
+	( value+ 
+	)>
+
+<!ELEMENT test 
+	( description
+      , inputValue?
+	, resultValue
+	)>
+<!ATTLIST test
+	id		CDATA #REQUIRED>
+
+<!ELEMENT inputValue
+	( simple+
+	)>
+
+<!ELEMENT resultValue
+	( simple+
+	)>
+
+<!ELEMENT struct 
+	( description?
+	, simple+
+	, configurationkind*
+	)>
+<!ATTLIST struct
+	id		ID	#REQUIRED
+	name		CDATA	#IMPLIED
+	mode		(readonly | readwrite | writeonly)  "readwrite">
+
+<!ELEMENT configurationkind EMPTY>
+<!ATTLIST configurationkind
+	kindtype	(allocation | configure | test | factoryparam | event | message)
+"configure">
+
+<!ELEMENT structsequence
+	( description?
+	, struct
+	, structvalue*
+	, configurationkind*
+	)>
+<!ATTLIST structsequence
+	id       	ID	#REQUIRED
+	name		CDATA	#IMPLIED
+	mode		(readonly | readwrite | writeonly)  "readwrite">
+		
+<!ELEMENT structvalue
+	(simpleref+	        
+	)>
+		
+<!ELEMENT simpleref EMPTY>
+<!ATTLIST simpleref
+	refid 	CDATA	#REQUIRED
+	value 	CDATA	#REQUIRED>

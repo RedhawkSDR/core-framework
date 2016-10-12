@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<xs:schema targetNamespace="urn:mil:jpeojtrs:sca:dmd"
+           xmlns="urn:mil:jpeojtrs:sca:dmd"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	   xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+           elementFormDefault="unqualified"
+	   ecore:nsPrefix=""
+	   ecore:package="mil.jpeojtrs.sca.dmd">
+	<xs:complexType name="domainmanagerconfiguration" ecore:name="DomainManagerConfiguration">
+        <xs:annotation>
+        	<xs:documentation>DOMAINMANAGER CONFIGURATION DESCRIPTOR.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+			<xs:element ref="description" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>The optional description element of the DMD may be used to provide information about the
+configuration.</xs:documentation></xs:annotation></xs:element>
+			<xs:element ref="domainmanagersoftpkg" ecore:name="domainManagerSoftPkg">
+				<xs:annotation>
+					<xs:documentation>The domainmanagersoftpkg element refers to the SPD for the CF DomainManager. The SPD
+file is referenced by a localfile element. This SPD can be used to describe the CF
+DomainManager implementation and to specify the usesports for the services (Log(s), etc…)
+used by the CF DomainManager. See section D.2.1.1.1 for description of the localfile element.</xs:documentation></xs:annotation></xs:element>
+			<xs:element ref="services" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>The services element in the DMD is used by the CF DomainManager to determine which service
+(Log, etc.) instances to use; it makes use of the service element (see Figure D-39). See section
+D.6.5.1.1.3 for a description of the findby element.</xs:documentation></xs:annotation></xs:element>
+		</xs:sequence>
+		<xs:attribute name="id" use="required" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>The
+domainmanagerconfiguration element id attribute is a DCE UUID that uniquely identifies the
+DomainManager.</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="name" use="required" type="xs:string"/>
+	</xs:complexType>
+	<xs:element name="domainmanagerconfiguration" type="domainmanagerconfiguration"/>
+	<xs:element name="description" type="xs:string"/>
+	<xs:complexType name="domainmanagersoftpkg" ecore:name="DomainManagerSoftPkg">
+		<xs:sequence>
+			<xs:element ref="localfile" ecore:name="localFile"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="domainmanagersoftpkg" type="domainmanagersoftpkg"/>
+	<xs:complexType name="localfile" ecore:name="LocalFile">
+		<xs:attribute name="name" use="required" type="xs:string"/>
+	</xs:complexType>
+	<xs:element name="localfile" type="localfile"/>
+	<xs:complexType name="services">
+		<xs:sequence>
+			<xs:element ref="service" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="services" type="services"/>
+	<xs:complexType name="service">
+		<xs:sequence>
+			<xs:element ref="usesidentifier" ecore:name="usesIdentifier"/>
+			<xs:element ref="findby" ecore:name="findBy"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="service" type="service"/>
+	<xs:element name="usesidentifier" type="xs:string"/>
+	<xs:complexType name="findby" ecore:name="FindBy">
+		<xs:choice>
+			<xs:element ref="namingservice" ecore:name="nameService"/>
+			<xs:element ref="stringifiedobjectref" ecore:name="stringifiedObjectRef"/>
+			<xs:element ref="domainfinder" ecore:name="domainFinder"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:element name="findby" type="findby"/>
+	<xs:complexType name="namingservice" ecore:name="NamingService">
+		<xs:attribute name="name" use="required" type="xs:anySimpleType"/>
+	</xs:complexType>
+	<xs:element name="namingservice" type="namingservice"/>
+	<xs:element name="stringifiedobjectref" type="xs:string"/>
+	<xs:complexType name="domainfinder" ecore:name="DomainFinder">
+		<xs:attribute name="type" use="required" type="xs:string"/>
+		<xs:attribute name="name" type="xs:string"/>
+	</xs:complexType>
+	<xs:element name="domainfinder" type="domainfinder"/>
+</xs:schema>

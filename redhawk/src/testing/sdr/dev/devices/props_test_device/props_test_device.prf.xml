@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d" mode="readonly" name="device_kind" type="string">
+    <description>This specifies the device kind</description>
+    <kind kindtype="configure"/>
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
+  </simple>
+  <simple id="DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb" mode="readonly" name="device_model" type="string">
+    <description> This specifies the specific device</description>
+    <kind kindtype="configure"/>
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
+  </simple>
+  <simple id="writeonly_config" mode="writeonly" name="writeonly_config" type="float">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:446e722d-acd9-4079-8c70-0c156ff374a5" mode="writeonly" name="writeonly_alloc" type="float">
+    <kind kindtype="allocation"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple_config" mode="readwrite" name="simple_config" type="float">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:1d9bed5e-1e6c-4607-9391-0e692f8fd1ae" mode="readwrite" name="simple_alloc" type="float">
+    <kind kindtype="allocation"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:ee48d37f-ad9a-4678-86b5-8b568013f5f4" mode="readwrite" name="no_extern_alloc" type="float">
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
+  </simple>
+  <simple id="execparam_readwrite" mode="readwrite" name="execparam_readwrite" type="float">
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="test_prop" mode="readwrite" name="test_prop" type="float">
+    <kind kindtype="test"/>
+    <action type="external"/>
+  </simple>
+</properties>

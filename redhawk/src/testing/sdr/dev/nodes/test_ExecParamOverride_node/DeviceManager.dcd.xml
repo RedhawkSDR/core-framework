@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<!-- Created with REDHAWK IDE-->
+<!-- Powered by Eclipse -->
+<deviceconfiguration name="BasicTestNodeWithExecParam" id="DCE:4829b106-530d-4547-96ce-8ebbf0ee038a">
+    <devicemanagersoftpkg>
+    	<localfile name="/mgr/DeviceManager.spd.xml">
+    	</localfile>
+    </devicemanagersoftpkg>
+    <componentfiles>
+    	<componentfile type="SPD" id="BasicDevWithExecParam_49e35386-37ec-454b-8a47-b56151ed4755">
+    		<localfile name="/devices/BasicDevWithExecParam_cpp/BasicDevWithExecParam_cpp.spd.xml">
+    		</localfile>
+    	</componentfile>
+    </componentfiles>
+    <partitioning>
+		    <componentplacement>
+	    	    <componentfileref refid="BasicDevWithExecParam_49e35386-37ec-454b-8a47-b56151ed4755">
+    		</componentfileref>
+	     	<componentinstantiation id="DCE:ca183484-b196-48ac-9f88-5936254a0329">
+     		    <usagename>BasicDevWithExecParam_1</usagename>
+
+            <componentproperties>
+                <simpleref refid="DCE:68dc0d3b-deb2-4fae-b898-62273b74614b" value="new execparam value"/>
+                <simpleref refid="DCE:07350439-e917-45ef-b71f-e387a737fd9c" value="new configured value"/>
+                <simpleref refid="DCE:07350439-e917-45ef-b71f-a-bad-id" value="some bad id"/>
+            </componentproperties>
+
+	     	</componentinstantiation>
+    	</componentplacement>
+    </partitioning>
+    <domainmanager>
+    	<namingservice name="REDHAWK_DEV/REDHAWK_DEV">
+    	</namingservice>
+    </domainmanager>
+</deviceconfiguration>

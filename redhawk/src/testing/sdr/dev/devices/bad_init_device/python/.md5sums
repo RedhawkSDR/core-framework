@@ -1,0 +1,6 @@
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+3d825d0f4ddd7ee039b33014ce1ed0cf  bad_init_device.py
+f88a74a6f74b6a4d577d3313eb2ac9fd  bad_init_device_base.py
+b0544dc7661f4608c9b086f1546033c0  configure.ac
+5294f942ca08cef08a2e5aa2d5cd5bd5  Makefile.am
+39f0688728f414218618bca338faa6a9  Makefile.am.ide

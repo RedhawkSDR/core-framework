@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:9b6c3353-0cc9-4c0a-8c1e-69c91eecc786" name="BasicDevWithExecParam_cpp" type="sca_compliant">
+  <title></title>
+  <author>
+    <name></name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="BasicDevWithExecParam_cpp.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="BasicDevWithExecParam_cpp.scd.xml"/>
+  </descriptor>
+  <implementation id="DCE:8d19c799-c3ae-43c6-9963-83f9ac44908d">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="BasicDevWithExecParam_cpp_impl1/BasicDevWithExecParam_cpp_impl1"/>
+      <entrypoint>BasicDevWithExecParam_cpp_impl1/BasicDevWithExecParam_cpp_impl1</entrypoint>
+    </code>
+    <compiler name="/usr/bin/gcc" version="4.1.2"/>
+    <programminglanguage name="C++"/>
+    <humanlanguage name="EN"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
+  </implementation>
+</softpkg>

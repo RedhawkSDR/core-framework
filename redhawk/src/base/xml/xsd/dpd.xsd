@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<xs:schema targetNamespace="urn:mil:jpeojtrs:sca:dpd"
+           xmlns="urn:mil:jpeojtrs:sca:dpd"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	   xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+           elementFormDefault="unqualified"
+	   ecore:nsPrefix=""
+	   ecore:package="mil.jpeojtrs.sca.dpd">
+    <xs:annotation>
+    	<xs:documentation>DEVICE PACKAGE DESCRIPTOR.
+The SCA Device Package Descriptor (DPD) is the part of a Device Profile that contains
+hardware device Registration attributes, which are typically used by a Human Computer
+Interface application to display information about the device(s) resident in an SCA-compliant
+radio system. DPD information is intended to provide hardware configuration and revision
+information to a radio operator or to radio maintenance personnel. A DPD may be used to
+describe a single hardware element residing in a radio or it may be used to describe the complete
+hardware structure of a radio. In either case, the description of the hardware structure should be
+consistent with hardware partitioning as described in the Hardware Architecture Definition in
+section 4.0 of the SCA.</xs:documentation></xs:annotation>
+    <xs:complexType name="devicepkg" ecore:name="DevicePkg">
+        <xs:annotation>
+        	<xs:documentation>DEVICE PACKAGE 
+The SCA Device Package Descriptor (DPD) is the part of a Device Profile that contains
+hardware device Registration attributes, which are typically used by a Human Computer
+Interface application to display information about the device(s) resident in an SCA-compliant
+radio system. DPD information is intended to provide hardware configuration and revision
+information to a radio operator or to radio maintenance personnel. A DPD may be used to
+describe a single hardware element residing in a radio or it may be used to describe the complete
+hardware structure of a radio. In either case, the description of the hardware structure should be
+consistent with hardware partitioning as described in the Hardware Architecture Definition in
+section 4.0 of the SCA.
+
+The devicepkg element (see Figure D-8) is the root element of the DPD.
+</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+			<xs:element ref="title" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>The title element is used for indicating a title for the hardware device being described by
+devicepkg.</xs:documentation></xs:annotation></xs:element>
+			<xs:element ref="author" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>See D.2.1.3 for a definition of the author element.</xs:documentation></xs:annotation></xs:element>
+			<xs:element ref="description" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>The description element is used to describe any pertinent information about the device
+implementation that the hardware developer wishes to document within the Device Package.</xs:documentation></xs:annotation></xs:element>
+			<xs:element ref="hwdeviceregistration" ecore:name="hwDeviceRegistration">
+				<xs:annotation>
+					<xs:documentation>The hwdeviceregistration element (see Figure D-9) provides device-specific information for a
+hardware device.</xs:documentation></xs:annotation></xs:element>
+		</xs:sequence>
+		<xs:attribute name="id" use="required" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>The devicepkg id
+attribute uniquely identifies the package and is a DCE UUID, as defined in paragraph D.2.1.</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="name" use="required" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>The name
+attribute is a user-friendly label for the devicepkg.</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="version" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>The
+version attribute specifies the version of the devicepkg.
+
+The format of the version string is
+numerical major and minor version numbers separated by commas (e.g., "1,0,0,0").</xs:documentation>
+			</xs:annotation></xs:attribute>
+	</xs:complexType>
+	<xs:element name="devicepkg" type="devicepkg"/>
+	<xs:element name="title" type="xs:string"/>
+	<xs:complexType name="author">
+		<xs:choice>
+			<xs:element ref="name" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="company" minOccurs="0"/>
+			<xs:element ref="webpage" minOccurs="0"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:element name="author" type="author"/>
+	<xs:element name="name" type="xs:string"/>
+	<xs:element name="company" type="xs:string"/>
+	<xs:element name="webpage" type="xs:anyURI"/>
+	<xs:element name="description" type="xs:string"/>
+	<xs:complexType name="hwdeviceregistration" ecore:name="HwDeviceRegistration">
+        <xs:annotation>
+        	<xs:documentation>
+At a minimum, the hwdeviceregistration
+element must include a description, the manufacturer, the model number and the device’s
+hardware class(es) (Refer to SCA section 4, Hardware Architecture Definition).</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+			<xs:element ref="propertyfile" minOccurs="0" ecore:name="propertyFile">
+				<xs:annotation>
+					<xs:documentation>The propertyfile element is used to indicate the local filename of the property file associated with
+the hwdeviceregistration element. The format of a property file is described in the Properties
+Descriptor (Section D.4).
+
+The intent of the property file is to provide the definition of properties elements for the hardware
+device being deployed and described in the Device Package (devicepkg) or hwdeviceregistration
+element.</xs:documentation>
+				</xs:annotation></xs:element>
+			<xs:element ref="description">
+				<xs:annotation>
+					<xs:documentation>See D.2.1.4 for definition of the description element.</xs:documentation></xs:annotation></xs:element>
+			<xs:element ref="manufacturer">
+				<xs:annotation>
+					<xs:documentation>The manufacturer element is used to convey the name of manufacturer of the device being
+installed.</xs:documentation></xs:annotation></xs:element>
+			<xs:element ref="modelnumber" ecore:name="modelNumber">
+				<xs:annotation>
+					<xs:documentation>The modelnumber element is used to indicate the manufacture’s model number, for the device
+being installed.</xs:documentation></xs:annotation></xs:element>
+			<xs:element ref="deviceclass" ecore:name="deviceClass"/>
+			<xs:element ref="childhwdevice" minOccurs="0" maxOccurs="unbounded" ecore:name="childHwDevice"/>
+		</xs:sequence>
+		<xs:attribute name="id" use="required" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>The hwdeviceregistration id attribute uniquely identifies the device and is a
+DCE UUID, as defined in paragraph D.2.1.</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="name" use="required" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>The name attribute is a userfriendlylabel
+for the hardware device being registered.</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="version" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>The version attribute specifies the version of the
+hwdeviceregistration element. The format of the version string is numerical major and minor
+version numbers separated by commas (e.g., &quot;1,0,0,0&quot;).</xs:documentation></xs:annotation></xs:attribute>
+	</xs:complexType>
+	<xs:element name="hwdeviceregistration" type="hwdeviceregistration"/>
+	<xs:complexType name="propertyfile" ecore:name="PropertyFile">
+		<xs:sequence>
+			<xs:element ref="localfile" ecore:name="localFile"/>
+		</xs:sequence>
+		<xs:attribute name="type" type="xs:string"/>
+	</xs:complexType>
+	<xs:element name="propertyfile" type="propertyfile"/>
+	<xs:complexType name="localfile" ecore:name="LocalFile">
+		<xs:attribute name="name" use="required" type="xs:string"/>
+	</xs:complexType>
+	<xs:element name="localfile" type="localfile"/>
+	<xs:element name="manufacturer" type="xs:string"/>
+	<xs:element name="modelnumber" type="xs:string"/>
+	<xs:complexType name="deviceclass" ecore:name="DeviceClass">
+        <xs:annotation>
+        	<xs:documentation>The deviceclass element is used to identify one or more hardware classes that make up the device
+being installed (e.g., RF, Modem, I/O, as defined in SCA section 4.2.2 HWModule(s) Class
+Structure).</xs:documentation></xs:annotation>
+        <xs:sequence>
+			<xs:element ref="class" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="deviceclass" type="deviceclass"/>
+	<xs:element name="class" type="xs:string"/>
+	<xs:complexType name="childhwdevice" ecore:name="ChildHwDevice">
+        <xs:annotation>
+        	<xs:documentation>The childhwdevice element (see Figure D-10) indicates additional device-specific information
+for hardware devices that make up the root or parent hardware device registration. An example
+of childhwdevice would be a radio’s RF module that has receiver and exciter functions within it.
+In this case, a CF Device representing the RF module itself would be a parent Device with its
+DPD, and the receiver and exciter are child devices to the module. The parent / child
+relationship indicates that when the RF module is removed from the system, the receiver and
+exciter devices are also removed.</xs:documentation></xs:annotation>
+        <xs:choice>
+			<xs:element ref="hwdeviceregistration" ecore:name="hwDeviceRegistration">
+				<xs:annotation>
+					<xs:documentation>The hwdeviceregistration element provides device-specific information for the child hardware
+device. See D.3.1.4 for definition of the hwdeviceregistration element.</xs:documentation></xs:annotation></xs:element>
+			<xs:element ref="devicepkgref" ecore:name="devicePkgRef">
+				<xs:annotation>
+					<xs:documentation>The devicepkgref element is used to indicate the local filename of a Device Package Descriptor
+file pointed to by Device Package Descriptor (e.g., a devicepkg within a devicepkg).</xs:documentation></xs:annotation></xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:element name="childhwdevice" type="childhwdevice"/>
+	<xs:complexType name="devicepkgref" ecore:name="DevicePkgRef">
+		<xs:sequence>
+			<xs:element ref="localfile" ecore:name="localFile"/>
+		</xs:sequence>
+		<xs:attribute name="type" type="xs:string"/>
+	</xs:complexType>
+	<xs:element name="devicepkgref" type="devicepkgref"/>
+</xs:schema>

@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+
+from ossie.utils.sb import *
+import sys
+
+def usage():
+    print "Usage:"
+    print "    rh-inspect <component name>"
+    print "    If no component specified, all available components are listed"
+
+if '__main__':
+    try:
+        # If not specific component specified, display all available
+        if len(sys.argv) == 1:
+            print catalog()
+        # else, display component
+        else:
+            for arg in sys.argv[1:]:
+                # Instantiate component and build API, but don't actually launch component process
+                comp = Component(componentDescriptor=arg,autoKick=False)           
+                print "rh-inspect " + str(arg) + "*******************************"
+                comp.api()
+                print "\n" 
+
+    except Exception, e:
+        print "rh-inspect Exception " + str(e)
+        usage()
+

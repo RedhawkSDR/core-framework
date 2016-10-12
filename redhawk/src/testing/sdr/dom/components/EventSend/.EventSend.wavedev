@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="ASCII"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="DCE:f098c47a-183a-4b7a-8f50-b8afa3346a53">
+    <value name="EventSend_java_impl1" outputDir="EventSend_java_impl1" template="gov.redhawk.ide.codegen.jet.java.JavaGenerator" generatorId="gov.redhawk.ide.codegen.jet.java.JavaGenerator">
+      <properties id="queued_ports" value="TRUE"/>
+      <properties id="java_package" value="EventSend_java_impl1"/>
+      <properties id="auto_start" value="FALSE"/>
+      <generatedFileCRCs crc="3068226435" file="reconf"/>
+      <generatedFileCRCs crc="2855618866" file="EventSend_java_impl1.spec"/>
+      <generatedFileCRCs crc="1443823643" file="startJava.sh"/>
+      <generatedFileCRCs crc="1796807229" file="configure.ac"/>
+      <generatedFileCRCs crc="615683328" file="Makefile.am"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>

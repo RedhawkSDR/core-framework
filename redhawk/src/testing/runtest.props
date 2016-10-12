@@ -1,0 +1,44 @@
+# Set root logger default levels and appender
+# By default all loggers will only log INFO level and higher
+log4j.rootLogger=DEBUG, CONSOLE, FILE
+log4j.debug=false
+
+# Appender
+log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
+log4j.appender.CONSOLE.File=stdout
+log4j.appender.FILE=org.apache.log4j.FileAppender
+log4j.appender.FILE.File=runtests.log
+
+# Leave the CONSOLE and FILE thresholds at TRACE so that when
+# individual loggers are set to TRACE the messages will appear
+log4j.appender.CONSOLE.threshold=TRACE
+log4j.appender.FILE.threshold=TRACE
+
+# If you want to debug a specific class, uncomment or add
+# the appropriate line(s) below
+#log4j.logger.nodebooter=TRACE
+#log4j.logger.DomainManager_impl=TRACE
+#log4j.logger.ApplicationFactory_impl=TRACE
+#log4j.logger.Application_impl=TRACE
+#log4j.logger.ComponentInfo=TRACE
+#log4j.logger.ConnectionManager=TRACE
+#log4j.logger.DeviceManager_impl=TRACE
+#log4j.logger.DeviceManagerConfiguration=TRACE
+#log4j.logger.ImplementationInfo=TRACE
+#log4j.logger.FileManager_impl=TRACE
+#log4j.logger.FileSystem_impl=TRACE
+#log4j.logger.File_impl=TRACE
+#log4j.logger.Properties=TRACE
+#log4j.logger.PropertySet_impl=TRACE
+#log4j.logger.PRF=TRACE
+#log4j.logger.prf_parser=TRACE
+#log4j.logger.dmd_parser=TRACE
+#log4j.logger.spd_parser=TRACE
+#log4j.logger.dcd_parser=TRACE
+#log4j.logger.sad_parser=TRACE
+
+# A1 appender layout
+log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
+log4j.appender.CONSOLE.layout.ConversionPattern=%p:%c - %m [%F:%L]%n
+log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
+log4j.appender.FILE.layout.ConversionPattern=%d %p:%c - %m [%F:%L]%n

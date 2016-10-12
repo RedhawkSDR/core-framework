@@ -1,0 +1,10 @@
+suffix=none
+indent=spaces=4
+indent-namespaces
+brackets=linux
+convert-tabs
+pad=oper
+max-instatement-indent=80
+lineend=linux
+add-one-line-brackets
+align-pointer=type

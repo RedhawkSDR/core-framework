@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:77dc667f-fbd2-4508-8571-b26c7f7af3ff" name="BasicChildDevice" type="sca_compliant" version="">
+    <title />
+    <author>
+        <name>REDHAWK test author</name>
+    </author>
+    <propertyfile type="PRF">
+        <localfile name="BasicChildDevice.prf.xml" />
+    </propertyfile>
+    <descriptor name="">
+        <localfile name="BasicChildDevice.scd.xml" />
+    </descriptor>
+    <implementation id="DCE:c6ed18a7-6ecc-462c-b950-94a446bd625e" aepcompliance="aep_compliant">
+        <code type="Executable">
+            <localfile name="./" />
+	    <entrypoint>BasicChildDevice.py</entrypoint>
+        </code>
+        <humanlanguage name="english" />
+        <os name="Linux"/>
+        <processor name="x86" />
+        <processor name="x86_64" />
+    </implementation>
+</softpkg>

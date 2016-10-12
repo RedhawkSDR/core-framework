@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="ASCII"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="DCE:94c2dc02-44f2-4e76-a4ce-62e9fb3acb8c">
+    <value name="HardLimit_python_impl1" outputDir="HardLimit_python_impl1" template="src/" generatorId="gov.redhawk.ide.codegen.jet.python.PythonGenerator">
+      <properties id="use_old_style" value="false"/>
+      <properties id="auto_start_component" value="false"/>
+    </value>
+  </implSettings>
+  <implSettings key="DCE:564f672f-b72b-4b90-82d2-6c98b7442a12">
+    <value name="HardLimit_java_impl1" outputDir="HardLimit_java_impl1" template="src/" generatorId="gov.redhawk.ide.codegen.jet.java.JavaGenerator">
+      <properties id="queued_ports" value="true"/>
+      <properties id="java_package" value="HardLimit_java_impl1"/>
+    </value>
+  </implSettings>
+  <implSettings key="DCE:9cb75cc7-5ea4-4231-8e79-fd5f11bce92a">
+    <value name="HardLimit_cpp_impl1" outputDir="HardLimit_cpp_impl1" template="src/" generatorId="gov.redhawk.ide.codegen.jet.cplusplus.CplusplusGenerator">
+      <properties id="queued_ports" value="true"/>
+      <properties id="memcpy_buffer" value="TRUE"/>
+      <properties id="generatorStyle" value="true"/>
+      <properties id="auto_start" value="FALSE"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>

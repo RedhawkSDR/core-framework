@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
+<softwareassembly id="DCE:8ea0dcee-a953-11de-9d50-001cc4ed247c" name="CommandWrapper" version="1.0">
+    <componentfiles>
+        <componentfile id="some_file" type="SPD">
+            <localfile name="/components/CommandWrapper/CommandWrapper.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+    <partitioning>
+        <componentplacement>
+            <componentfileref refid="some_file"/>
+            <componentinstantiation id="some_instance">
+                <usagename>CommandWrapper1</usagename>
+		<componentproperties>
+		    <simpleref refid="DCE:cf623573-a09d-4fb1-a2ae-24b0b507115d" value="2.0"/>
+		    <simpleref refid="DCE:9ec6e2ff-6a4f-4452-8f38-4df47d6eebc1" value="22222222222"/>
+		</componentproperties>
+                <findcomponent>
+                    <namingservice name="CommandWrapper1"/>
+                </findcomponent>
+            </componentinstantiation>
+        </componentplacement>
+    </partitioning>
+    <assemblycontroller>
+        <componentinstantiationref refid="some_instance"/>
+    </assemblycontroller>
+    <connections>
+    </connections>
+</softwareassembly>

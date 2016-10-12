@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE deviceconfiguration PUBLIC '-//JTRS//DTD SCA V2.2.2 DCD//EN' 'deviceconfiguration.dtd'>
+<deviceconfiguration name="BasicChildDevice_python_node" id="DCE:65f84ea9-cbe9-42cc-bc2e-6807f7ff9b8c">
+    <devicemanagersoftpkg>
+        <localfile name="/mgr/DeviceManager.spd.xml"/>
+    </devicemanagersoftpkg>
+    <componentfiles>
+        <!--Device Definitions--> 
+        <componentfile type="SPD" id="BasicTestDevice1_c6e250b8-5223-11db-9fc4-000d56d8556e">
+            <localfile name="/devices/BasicTestDevice_python/BasicTestDevice.spd.xml"/>
+        </componentfile>
+        <componentfile type="SPD" id="BasicChildDevice1_d76e19e6-e8a3-48a4-a01b-93d18ee42d99">
+            <localfile name="/devices/BasicChildDevice/BasicChildDevice.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+    <partitioning>
+        <componentplacement>
+            <componentfileref refid="BasicTestDevice1_c6e250b8-5223-11db-9fc4-000d56d8556e"/>
+            <componentinstantiation id="DCE:8f3478e3-626e-45c3-bd01-0a8117dbe59b">
+            <!--componentinstantiation id="DCE:cdffec5c-5223-11db-9502-000d56d8556e"-->
+                <usagename>BasicTestDevice1</usagename> 
+                <componentproperties>
+                    <simpleref refid="DCE:6b298d70-6735-43f2-944d-06f754cd4eb9" value="BasicTestDevice1_no_default_prop"/>
+                    <simpleref refid="DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea" value="BasicTestDevice1_default_prop"/>
+                </componentproperties>
+            </componentinstantiation>
+        </componentplacement>
+        <componentplacement>
+            <componentfileref refid="BasicChildDevice1_d76e19e6-e8a3-48a4-a01b-93d18ee42d99"/>
+            <compositepartofdevice refid="DCE:8f3478e3-626e-45c3-bd01-0a8117dbe59b"/>
+            <componentinstantiation id="DCE:2427279b-ed30-4f27-8a58-022110e1f898">
+            <!--componentinstantiation id="DCE:cdffec5c-5223-11db-9502-000d56d8556e"-->
+                <usagename>BasicChildDevice1</usagename> 
+            </componentinstantiation>
+        </componentplacement>
+    </partitioning>
+    <domainmanager>
+        <namingservice name="DomainName1/DomainManager"/>
+    </domainmanager>
+</deviceconfiguration>

@@ -1,0 +1,168 @@
+#!/bin/sh
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+# 
+# Script template to build REDHAWK .ipk files for install onto embedded systems 
+# Designed to be used by ant in releng for generating releases 
+#
+# To use by hand:
+#   Copy to genIPK.sh one directory up
+#   run ./genIPK.sh from that directory
+#
+
+#Set the build version.
+RH_VERSION="1.8.7"
+
+#Set the base directory
+if [ -z "$RH_BUILD_DIR" ]; then
+  RH_BUILD_DIR=${PWD}
+fi
+
+#generate a temp dir
+TEMP_DIR=`mktemp -d /tmp/genIPK-XXXXXXXXXX` || exit 1
+
+#set the rest
+SDRROOT=${TEMP_DIR}/var/redhawk/sdr
+IPK_DIR=${RH_BUILD_DIR}
+RH_HOST_TYPE=arm-angstrom-linux-gnueabi
+RH_ARCHITECTURE=armv7a
+FRAMEWORK_IPK_NAME=redhawk-framework_${RH_VERSION}.ipk
+SDRROOT_IPK_NAME=redhawk-sdrroot_${RH_VERSION}.ipk
+BUILD_LOG=${RH_BUILD_DIR}/genIPK.log
+
+echo "***************************************"
+echo "Building version: ${RH_VERSION}"
+echo "Building from redhawk-core at: ${RH_BUILD_DIR}"
+echo "Using temporary space at: ${TEMP_DIR}"
+echo "Using SDRROOT at: ${SDRROOT}"
+echo "Placing ipk files at: ${IPK_DIR}"
+echo "Building for host: ${RH_HOST_TYPE}"
+echo "Generating Framework ipk: ${FRAMEWORK_IPK_NAME}"
+echo "Generating SDRROOT ipk: ${SDRROOT_IPK_NAME}"
+echo "***************************************"
+
+#initalize the angstrom/cross-compile environment
+echo "Initalizing the cross-compiler environment..."
+. /usr/local/angstrom/arm/environment-setup
+
+echo "Cheking temp space..."
+if  touch ${TEMP_DIR}/test ; then
+  rm -rf ${TEMP_DIR}/*
+  mkdir -p ${TEMP_DIR}/usr/local
+else
+  echo "Unable to use temporary space at ${TEMP_DIR}, does it exist and do you have permissions?"
+  exit 1
+fi
+
+#build the framework
+echo "Building the framework..."
+echo "    Output is redirected to ${BUILD_LOG}"
+cd ${RH_BUILD_DIR}/src/ossie
+./reconf > ${BUILD_LOG} 2>&1
+./configure --host=${RH_HOST_TYPE} --prefix=${TEMP_DIR}/usr/local/redhawk/core --with-sdr=${SDRROOT} --disable-log4cxx >> ${BUILD_LOG} 2>&1
+make clean >> ${BUILD_LOG} 2>&1
+make >> ${BUILD_LOG} 2>&1
+echo "Installing the framework to ${TEMP_DIR} ..."
+make install >> ${BUILD_LOG} 2>&1
+
+#build the framework
+echo "Building the interfaces..."
+echo "    Output is redirected to ${BUILD_LOG}"
+cd ${RH_BUILD_DIR}/interfaces
+./reconf >> ${BUILD_LOG} 2>&1
+./configure --host=${RH_HOST_TYPE} --prefix=${TEMP_DIR}/usr/local/redhawk/core --with-sdr=${SDRROOT} --with-ossie=/usr/local/redhawk/core --disable-log4cxx >> ${BUILD_LOG} 2>&1
+make clean >> ${BUILD_LOG} 2>&1
+make >> ${BUILD_LOG} 2>&1
+echo "Installing the interfaces to ${TEMP_DIR} ..."
+make install >> ${BUILD_LOG} 2>&1
+
+#edit the .pc package-config files to remove temp dir from prefix
+echo "Removing temp directory from prefix in pkg-cfg files..."
+for f in ${TEMP_DIR}/usr/local/redhawk/core/lib/pkgconfig/*.pc
+do
+  sed "s_${TEMP_DIR}__" $f > $f.tmp
+  mv $f.tmp $f
+done
+
+#package framework up
+echo "Generating ${FRAMEWORK_IPK_NAME}"
+cd ${TEMP_DIR}
+echo "  Building control section..."
+touch control
+#make a control file
+cat >control <<_EOF
+Package: redhawk-framework
+Priority: optional
+Depends: omniorb omniorbpy python
+Section: Communications
+Description: REDHAWK is a Software Defined Radio framework 
+Source: N/A
+Version: ${RH_VERSION}
+Architecture: ${RH_ARCHITECTURE}
+_EOF
+#make a conffiles file
+touch conffiles
+#make a debian-binary file
+touch debian-binary
+echo "2.0" > debian-binary
+tar -cf control.tar control 
+gzip -f control.tar
+echo "  Building data section..."
+tar -cf data.tar usr 
+gzip -f data.tar
+echo "  Building final ipk"
+tar -cf package.tar debian-binary control.tar.gz data.tar.gz
+gzip -f package.tar
+mv package.tar.gz ${IPK_DIR}/${FRAMEWORK_IPK_NAME}
+
+#package sdrroot up
+echo "Generating ${SDRROOT_IPK_NAME}"
+cd ${TEMP_DIR}
+echo "  Building control section..."
+touch control
+cat >control <<_EOF
+Package: redhawk-sdrroot
+Priority: optional
+Depends: omniorb omniorbpy python redhawk-framework
+Section: Communications
+Description: REDHAWK default Software Defined Radio implementation 
+Source: N/A
+Version: ${RH_VERSION}
+Architecture: ${RH_ARCHITECTURE}
+_EOF
+#make a conffiles file
+touch conffiles
+#make a debian-binary file
+touch debian-binary
+echo "2.0" > debian-binary
+tar -cf control.tar control conffiles
+gzip -f control.tar
+echo "  Building data section..."
+tar -cf data.tar var 
+gzip -f data.tar
+echo "  Building final ipk"
+tar -cf package.tar debian-binary control.tar.gz data.tar.gz
+gzip -f package.tar
+mv package.tar.gz ${IPK_DIR}/${SDRROOT_IPK_NAME}
+
+#clean it up
+echo "Cleaning ${TEMP_DIR}..."
+rm -rf ${TEMP_DIR}

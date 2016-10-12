@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
+<softwareassembly id="DCE:d206ab51-6342-4976-bac3-55e6902f3489" name="CommandWrapperWithPropertyOverride">
+    <componentfiles>
+        <componentfile id="CommandWrapper_592b8bd6-b011-4468-9417-705af45e907b" type="SPD">
+            <localfile name="/components/CommandWrapper/CommandWrapper.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+    <partitioning>
+        <componentplacement>
+            <componentfileref refid="CommandWrapper_592b8bd6-b011-4468-9417-705af45e907b"/>
+            <componentinstantiation id="DCE:8c129782-a6a4-4095-8212-757f01de0c09">
+                <usagename>CommandWrapper1</usagename> 
+                <componentproperties>
+                    <simpleref refid="DCE:a4e7b230-1d17-4a86-aeff-ddc6ea3df26e" value="/bin/date"/>
+                    <simplesequenceref  refid="DCE:5d8bfe8d-bc25-4f26-8144-248bc343aa53">
+                        <values>
+                            <value>-u</value>
+                        </values>
+                    </simplesequenceref>
+                    <simpleref refid="EXEC_PARAM_1" value="New1"/>
+                    <simpleref refid="EXEC_PARAM_2" value="-2"/>
+                    <simpleref refid="EXEC_PARAM_3" value="4.0"/>
+                    <simpleref refid="DCE:6ad84383-49cf-4017-b7ca-0ec4c4917952" value="1.0"/>
+		    <structref refid="DCE:ffe634c9-096d-425b-86cc-df1cce50612f">
+			<simpleref refid="item1" value="a new string"/>
+			<simpleref refid="item2" value="500"/>
+			<simpleref refid="item3" value="3.33"/>
+		    </structref>
+                </componentproperties>
+                <findcomponent>
+                    <namingservice name="CommandWrapper1"/>
+                </findcomponent>
+            </componentinstantiation>
+        </componentplacement>
+    </partitioning>
+    <assemblycontroller>
+        <componentinstantiationref refid="DCE:8c129782-a6a4-4095-8212-757f01de0c09"/>
+    </assemblycontroller>
+    <connections>
+    </connections>
+</softwareassembly>

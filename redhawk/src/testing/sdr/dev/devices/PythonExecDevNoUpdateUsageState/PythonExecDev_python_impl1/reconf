@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+
+rm -f config.cache
+
+# Setup the libtool stuff
+if [ -e /usr/local/share/aclocal/libtool.m4 ]; then
+    /bin/cp /usr/local/share/aclocal/libtool.m4 aclocal.d/acinclude.m4
+elif [ -e /usr/share/aclocal/libtool.m4 ]; then
+    /bin/cp /usr/share/aclocal/libtool.m4 acinclude.m4
+fi
+libtoolize --force --automake
+
+# Search in expected locations for the OSSIE acincludes
+if [ -n ${OSSIEHOME} ] && [ -d ${OSSIEHOME}/share/aclocal/ossie ]; then
+        OSSIE_AC_INCLUDE=${OSSIEHOME}/share/aclocal/ossie
+else
+    echo "Error: Cannot find the OSSIE aclocal files. This is not expected!"
+fi
+
+if [ -n ${OSSIE_AC_INCLUDE} ]; then
+        aclocal -I ${OSSIE_AC_INCLUDE}
+else
+        aclocal
+fi
+
+autoconf
+automake --foreign --add-missing

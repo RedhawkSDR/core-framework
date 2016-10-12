@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
+<softwareassembly id="DCE:7455ba10-e405-4bc8-a3fd-a84d049f2157" name="TestCppProps">
+  <componentfiles>
+    <componentfile id="TestCppProps_3295fabc-c89c-43b7-be66-cc2aa5b9bdf1" type="SPD">
+      <localfile name="/components/TestCppProps/TestCppProps.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="TestCppProps_3295fabc-c89c-43b7-be66-cc2aa5b9bdf1"/>
+      <componentinstantiation id="DCE:87f4687e-6b67-458c-a32d-bef8f99a1064">
+        <usagename>TestCppProps1</usagename>
+        <componentproperties>
+          <structsequenceref refid="DCE:e415de60-68cb-403e-812e-76f114731bb4">
+            <structvalue>
+              <simpleref refid="item_bool" value="true"/>
+              <simpleref refid="item_string" value="Third"/>
+            </structvalue>
+          </structsequenceref>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="TestCppProps1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="DCE:87f4687e-6b67-458c-a32d-bef8f99a1064"/>
+  </assemblycontroller>
+  <connections/>
+</softwareassembly>

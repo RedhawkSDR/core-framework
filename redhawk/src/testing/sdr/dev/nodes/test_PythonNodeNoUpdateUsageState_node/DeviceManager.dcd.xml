@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<!-- Created with REDHAWK IDE-->
+<!-- Powered by Eclipse -->
+<deviceconfiguration name="test_PythonNodeNoUpdateUsageState_node" id="DCE:bc6b7f40-9aeb-498e-91f7-c04a533445b8">
+    <devicemanagersoftpkg>
+    	<localfile name="/mgr/DeviceManager.spd.xml">
+    	</localfile>
+    </devicemanagersoftpkg>
+    <componentfiles>
+    	<componentfile type="SPD" id="PythonExecDevNoUpdateUsageState_21956c16-3c6f-4647-8313-9f3e0bae3294">
+    		<localfile name="/devices/PythonExecDevNoUpdateUsageState/PythonExecDev.spd.xml">
+    		</localfile>
+    	</componentfile>
+    </componentfiles>
+    <partitioning>
+		<componentplacement>
+	    	<componentfileref refid="PythonExecDevNoUpdateUsageState_21956c16-3c6f-4647-8313-9f3e0bae3294">
+    		</componentfileref>
+	     	<componentinstantiation id="DCE:9162e850-3131-4520-99eb-5f9c4130bda5">
+	     		<usagename>PythonExecDevNoUpdateUsageState_1</usagename>
+	     	</componentinstantiation>
+    	</componentplacement>
+    </partitioning>
+    <domainmanager>
+    	<namingservice name="DomainManager1/DomainManager">
+    	</namingservice>
+    </domainmanager>
+</deviceconfiguration>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE deviceconfiguration PUBLIC '-//JTRS//DTD SCA V2.2.2 DCD//EN' 'deviceconfiguration.dtd'>
+<deviceconfiguration name="ExecutableDevicePy_node" id="DCE:7dad3f6e-7f83-4624-b891-920d022bdcc6">
+    <devicemanagersoftpkg>
+        <localfile name="/mgr/DeviceManager.spd.xml"/>
+    </devicemanagersoftpkg>
+    <componentfiles>
+        <componentfile type="SPD" id="ExecutableDevicePy_b1d51b84-c0dc-4e23-9e84-7f62eb0d39a0">
+            <localfile name="/devices/ExecutableDevicePy/ExecutableDevicePy.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+    <partitioning>
+        <componentplacement>
+            <componentfileref refid="ExecutableDevicePy_b1d51b84-c0dc-4e23-9e84-7f62eb0d39a0"/>
+            <componentinstantiation id="DCE:7de9d9e8-4a0f-4b7f-93b7-8a2ff7eb0b3e">
+                <usagename>ExecutableDevicePy1</usagename> 
+            </componentinstantiation>
+        </componentplacement>
+    </partitioning>
+    <domainmanager>
+        <namingservice name="DomainName1/DomainManager"/>
+    </domainmanager>
+</deviceconfiguration>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:5a2cb2cb-9b3e-4972-aee6-986b1beb4bb0" name="HardLimit" type="sca_compliant">
+  <title></title>
+  <author>
+    <name></name>
+  </author>
+  <description>Shapes incoming signal based on given properties.</description>
+  <propertyfile type="PRF">
+    <localfile name="HardLimit.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="HardLimit.scd.xml"/>
+  </descriptor>
+  <implementation id="DCE:564f672f-b72b-4b90-82d2-6c98b7442a12">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="HardLimit_java_impl1"/>
+      <entrypoint>HardLimit_java_impl1/startJava.sh</entrypoint>
+    </code>
+    <compiler name="/usr/bin/javac" version="1.5.22"/>
+    <programminglanguage name="Java"/>
+    <humanlanguage name="EN"/>
+    <runtime name="/usr/bin/java" version="1.5.22"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
+    <dependency type="runtime_requirements">
+        <softpkgref>
+            <localfile name="/components/javaDep/javaDep.spd.xml"/>
+            <implref refid="firstImplementation"/>
+        </softpkgref>
+    </dependency>
+  </implementation>
+</softpkg>

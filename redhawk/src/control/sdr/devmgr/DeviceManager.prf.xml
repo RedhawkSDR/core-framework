@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+    <description>These are the properties to configure the device manager</description>
+
+    <simple id="LOGGING_CONFIG_URI" mode="readonly" name="LOGGING_CONFIG_URI" type="string">
+        <description>
+	A URI that points to a log4j configuration file used
+	for the device manager and all devices spawned by this device.
+	</description>
+        <kind kindtype="configure"/>
+    </simple>
+    <simple id="DCD_FILE" mode="readwrite" name="DCD_FILE" type="string">
+        <description>
+        Path to the Device Configuration Descriptor (DCD) XML file..
+        </description>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple id="DOMAIN_NAME" mode="readwrite" name="DOMAIN_NAME" type="string">
+        <description>
+        The name of the domain in which this device manager will operate.
+        During startup, the device manager will attempt to connect to the
+        domain manager for the given domain.
+        </description>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple id="SDRCACHE" mode="readwrite" name="SDRCACHE" type="string">
+        <description>
+            The location where files from remote SCA filesystems will be cached.
+        </description>
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple id="HOSTNAME" mode="readonly" name="HOSTNAME" type="string">
+        <description>
+            Name of the host where this device manager is running
+        </description>
+        <kind kindtype="configure"/>
+    </simple>
+</properties>

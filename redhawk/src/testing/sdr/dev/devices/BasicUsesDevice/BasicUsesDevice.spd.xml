@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:e4ee1009-45f0-45f4-a47e-eaa6d73f85c7" name="BasicUsesDevice" type="sca_compliant" version="">
+    <title />
+    <author>
+        <name>REDHAWK test author</name>
+    </author>
+    <propertyfile type="PRF">
+        <localfile name="BasicUsesDevice.prf.xml" />
+    </propertyfile>
+    <descriptor name="">
+        <localfile name="BasicUsesDevice.scd.xml" />
+    </descriptor>
+    <!-- Test two implementations, the first one shouldn't match anything 
+         and therefore should never be used -->
+    <implementation id="DCE:7b74dc64-e674-46e5-90d6-e2823c7c2984" aepcompliance="aep_compliant">
+        <code type="Executable">
+            <localfile name="NonExistantTestDevice.py" />
+	    <entrypoint>NonExistantTestDevice.py</entrypoint>
+        </code>
+        <compiler name="gcc" version="3.4" />
+        <humanlanguage name="english" />
+        <os name="SCO ODT"/>
+        <processor name="ADSP21xx" />
+    </implementation>
+    <implementation id="DCE:6a7bb7a5-5407-40b8-995a-8f0b544dd974" aepcompliance="aep_compliant">
+        <code type="Executable">
+            <localfile name="BasicUsesDevice.py" />
+	    <entrypoint>BasicUsesDevice.py</entrypoint>
+        </code>
+        <compiler name="gcc" version="3.4" />
+        <humanlanguage name="english" />
+        <os name="Linux"/>
+        <processor name="x86" />
+        <processor name="x86_64" />
+    </implementation>
+</softpkg>

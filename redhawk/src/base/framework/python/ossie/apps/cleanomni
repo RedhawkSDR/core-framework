@@ -1,0 +1,88 @@
+#!/usr/bin/python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+
+USAGE="""\
+usage: %prog [options]
+
+This program cleans up services associated with omniORB. It stops omniNames and omniEvents, removes all relevant log files, and re-starts the services.
+
+Use this program only if the Domain is hopelessly damaged and a complete cleanup is needed.
+"""
+import os, sys, commands
+
+if __name__ == '__main__':
+    # Grab command line arguments and options
+    import sys
+    from optparse import OptionParser
+
+    parser = OptionParser(usage=USAGE)
+    parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="print the cleanup progress", default=False)
+
+    options, args = parser.parse_args()
+    
+    fp = None
+    try:
+        fp=open('/var/run/omniEvents.pid','r')
+    except Exception, e:
+        if e.errno == 13:
+            print "This script must be run with root privileges"
+            sys.exit(-1)
+    oe_pid=None
+    if fp:
+        oe_pid=int(fp.read())
+        fp.close()
+    oe_up = False
+    if oe_pid:
+        try:
+            retval = os.getsid(oe_pid)
+            oe_up = True
+        except:
+            oe_up = False
+    if options.verbose:
+        print "Stopping omniEvents"
+    retval=commands.getstatusoutput('/etc/init.d/omniEvents stop')
+    if options.verbose:
+        print "Stopping omniNames"
+    retval=commands.getstatusoutput('/etc/init.d/omniNames stop')
+    if oe_up:
+        try:
+            retval = os.getsid(oe_pid)
+        except:
+            try:
+                if options.verbose:
+                    print "Killing omniEvents process"
+                os.kill(oe_pid, 9)
+            except:
+                pass
+    if options.verbose:
+        print "Removing omniNames log"
+    retval=commands.getstatusoutput('rm -rf /var/omniNames/*')
+    if options.verbose:
+        print "Removing omniEvents log"
+    retval=commands.getstatusoutput('rm -rf /var/lib/omniEvents/*')
+    if options.verbose:
+        print "Starting omniNames"
+    retval=commands.getstatusoutput('/etc/init.d/omniNames start')
+    if options.verbose:
+        print "Starting omniEvents"
+    retval=commands.getstatusoutput('/etc/init.d/omniEvents start')
+    

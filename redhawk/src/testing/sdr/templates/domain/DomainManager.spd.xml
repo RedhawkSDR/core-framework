@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg SYSTEM "../xml/dtd/softpkg.dtd">
+<softpkg id="DCE:82f6515a-de05-47f0-8e7a-1c9f621c00ee" name="DomainManager">
+        <author>
+	   <name>OSSIE Development Team</name>
+	</author>
+	<descriptor>
+		<localfile name="domain/DomainManager.scd.xml"/>
+	</descriptor>
+	<implementation id="DCE:d3e8aba5-4421-45c5-9be6-372b763883e7">
+		<description>implementation of a Domain Manager</description>
+		<code type="Executable">
+			<localfile name="/domainmanager.exe"/>
+			<entrypoint>domainmanager.exe</entrypoint>
+		</code>
+		<compiler name="msvc" version="6.0"/>
+		<programminglanguage name="c++"/>
+		<processor name="x86"/>
+		<os name="WinNT" version="5.0"/>
+	</implementation>
+</softpkg>

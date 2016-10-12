@@ -1,0 +1,154 @@
+#!/usr/bin/python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+
+USAGE="""\
+usage: %prog [options]
+
+This program unbinds objects from the naming service that are no longer active.
+When a naming context contains no bound objects, the naming context is removed.
+"""
+
+# Import the CORBA stuff
+has_omniORB = False
+try:
+    from omniORB import CORBA, PortableServer
+    from omniORB import URI, any
+    has_omniORB = True
+except:
+    pass
+
+if not has_omniORB:
+    try:
+        import CORBA, PortableServer
+        import URI, any
+    except:
+        pass
+    
+from ossie.cf import CF, CF__POA
+import CosNaming
+import os
+
+rootContext = None
+
+def cleanNC(context, avoid=[], force=False, parent_name=''):
+    avoid_list = avoid
+    force_remove = force
+    this_parent = parent_name
+    nclist = context.list(100)
+    for entry in nclist[0]:
+        obj = context.resolve(entry.binding_name)
+        if entry.binding_type == CosNaming.ncontext:
+            foundContext = False
+            if len(avoid_list) > 0:
+                for avoid_context in avoid_list:
+                    if avoid_context:
+                        if entry.binding_name[0].id in avoid_context:
+                            foundContext = True
+                            break
+            if foundContext:
+                continue
+            try:
+                nc = obj._narrow(CosNaming.NamingContext)
+                cleanNC(nc, avoid=avoid_list, force=force_remove, parent_name = this_parent+"/"+entry.binding_name[0].id)
+                new_list = nc.list(100)
+                if len(new_list[0]) == 0:
+                    context.unbind(entry.binding_name)
+            except:
+                context.unbind(entry.binding_name)
+        elif entry.binding_type == CosNaming.nobject:
+            unbind = False
+            try:
+                if obj._non_existent():
+                    unbind = True
+            except:
+                unbind = True
+            if unbind or force_remove:
+                context.unbind(entry.binding_name)
+
+if __name__ == '__main__':
+    # Grab command line arguments and options
+    import sys
+    from optparse import OptionParser
+
+    parser = OptionParser(usage=USAGE)
+    parser.add_option("-s", "--spare", dest="spare_context", help="spare this particular context (and all child naming contexts) under the parent context")
+    parser.add_option("-i", "--initial", dest="init_context", help="initial (parent) context")
+    parser.add_option("-f", "--force", dest="force", action="store_true", help="forcibly unbind object even if it's not empty", default=False)
+
+    options, args = parser.parse_args()
+    
+    # Validate 
+    # Initialize CORBA
+    orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
+    
+    # get the POA
+    obj_poa = orb.resolve_initial_references("RootPOA")
+    poaManager = obj_poa._get_the_POAManager()
+    poaManager.activate()
+
+    # get the naming context
+    ns_obj = orb.resolve_initial_references("NameService")
+    rootContext = ns_obj._narrow(CosNaming.NamingContext)
+    if rootContext is None:
+        raise StandardError('Could not initialize CORBA.\nFailed to get root context')
+    
+    initialContext = rootContext
+    
+    if options.init_context != None:
+        context_list = options.init_context.split('/')
+        if context_list[0] == '':
+            context_list.pop(0)
+        if context_list[-1] == '':
+            context_list.pop()
+        if len(context_list) != 0:
+            if len(context_list) == 1:
+                context_name = URI.stringToName(context_list[0])
+            else:
+                context_name = URI.stringToName('/'.join(context_list))
+            try:
+                obj = rootContext.resolve(context_name)
+                initialContext = obj._narrow(CosNaming.NamingContext)
+            except:
+                print "Unable to find context: ", options.init_context
+                sys.exit(-1)
+        
+
+    # Call the operation
+    try:
+        if options.force:
+            cleanNC(initialContext, avoid=[options.spare_context], force=True)
+        else:
+            cleanNC(initialContext, avoid=[options.spare_context])
+    except Exception, e:
+        print e
+        sys.exit(-1)
+
+    if options.init_context != None:
+        if len(context_list) != 0:
+            if len(context_list) == 1:
+                context_name = URI.stringToName(context_list[0])
+            else:
+                context_name = URI.stringToName('/'.join(context_list))
+            try:
+                rootContext.unbind(context_name)
+            except:
+                print "unable to remove ", options.init_context

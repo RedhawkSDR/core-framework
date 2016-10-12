@@ -1,0 +1,26 @@
+# These are common settings for GPP screen sessions
+
+# Allow scrollback of 10000 lines
+defscrollback 10000
+
+# While scrolling, don't block the process from writing to stdout
+defnonblock on
+
+# If a process dies, don't immediately terminate the screen window.
+# Without this, when processes die the screen session goes away
+# and you cannot see why they died.
+#
+# Note, when the GPP.terminate() is called the screen session
+# is always killed
+zombie x
+
+# These screen sessions should not be treated as login sessiosn
+deflogin off
+
+# Show useful information in the caption
+caption always "%t %H%? %l%?"
+
+# screen wipes out the LD_LIBRARY_PATH :(
+# use this trick to bring it back
+setenv LD_LIBRARY_PATH ${GPP_LD_LIBRARY_PATH}
+

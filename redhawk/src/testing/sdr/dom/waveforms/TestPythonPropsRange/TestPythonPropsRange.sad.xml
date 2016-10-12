@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<!-- Created with REDHAWK IDE-->
+<!-- Powered by Eclipse -->
+<softwareassembly name="TestPythonPropsRange" id="DCE:d1b752b2-f407-4337-ab64-e19676286a4f">
+    <componentfiles>
+		<componentfile type="SPD" id="TestPythonPropsRange_8707c6b4-20a7-4544-894e-6e0b6ff8a3d5">
+			<localfile name="/components/TestPythonPropsRange/TestPythonPropsRange.spd.xml">
+			</localfile>
+		</componentfile>
+    </componentfiles>
+    <partitioning>
+	<componentplacement>
+		<componentfileref refid="TestPythonPropsRange_8707c6b4-20a7-4544-894e-6e0b6ff8a3d5">
+		</componentfileref>
+		<componentinstantiation id="DCE:02e94a47-571c-4bd8-9546-b46510deaaa0">
+			<usagename>TestPythonPropsRange_1</usagename>
+			<findcomponent>
+				<namingservice name="TestPythonPropsRange_1"/>
+			</findcomponent>
+		</componentinstantiation>
+	</componentplacement>
+    </partitioning>
+    <assemblycontroller>
+		<componentinstantiationref refid="DCE:02e94a47-571c-4bd8-9546-b46510deaaa0"/>
+    </assemblycontroller>
+</softwareassembly>

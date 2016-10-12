@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
+<softwareassembly id="DCE:ed4f262d-8ac7-421e-b15b-32bcb736e250" name="StructAllocTest">
+  <componentfiles>
+    <componentfile id="StructAllocProps_429e66e6-6c7a-43a5-893a-6521e8a5a404" type="SPD">
+      <localfile name="/components/StructAllocProps/StructAllocProps.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="StructAllocProps_429e66e6-6c7a-43a5-893a-6521e8a5a404"/>
+      <componentinstantiation id="DCE:a9c45e5f-7b44-48b4-adb1-543710a86b15">
+        <usagename>StructAllocProps1</usagename>
+        <findcomponent>
+          <namingservice name="StructAllocProps1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="DCE:a9c45e5f-7b44-48b4-adb1-543710a86b15"/>
+  </assemblycontroller>
+  <connections>
+  </connections>
+</softwareassembly>

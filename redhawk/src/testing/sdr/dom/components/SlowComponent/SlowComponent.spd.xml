@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:eea24033-5f18-4b00-b795-a23350f92b21" name="SlowComponent">
+    <title/>
+    <author>
+    </author>
+    <description>
+        A component that takes its sweet time to start up, to test multi-threaded launching.
+    </description> 
+    <propertyfile type="PRF">
+        <localfile name="SlowComponent.prf.xml"/>
+    </propertyfile>
+    <descriptor>
+        <localfile name="SlowComponent.scd.xml"/>
+    </descriptor>
+    <implementation id="DCE:c46d1b3b-0b87-48dd-b2c3-54279db6386b">
+        <description>The command wraper executable uses a property to determine
+        which command to launch when start is called.
+        </description> 
+        <code type="Executable">
+            <localfile name="SlowComponent.py"/>
+            <entrypoint>SlowComponent.py</entrypoint>
+        </code>
+        <os name="Linux"/>
+        <processor name="x86"/>
+        <dependency type="runtime_requirements">
+            <!-- BogoMips capacity -->
+            <propertyref refid="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8" value="2000000"/>
+        </dependency>
+    </implementation>
+</softpkg>

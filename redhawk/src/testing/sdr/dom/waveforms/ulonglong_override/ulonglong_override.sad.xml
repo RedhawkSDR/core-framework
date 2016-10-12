@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:1354edaf-5948-4b8c-adfc-5eed0e5e5518" name="ulonglong_override">
+  <componentfiles>
+    <componentfile id="TestPythonPropsRange_9e4eabc6-39a5-4028-be86-c9ae9c658bfc" type="SPD">
+      <localfile name="/components/TestPythonPropsRange/TestPythonPropsRange.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="TestPythonPropsRange_9e4eabc6-39a5-4028-be86-c9ae9c658bfc"/>
+      <componentinstantiation id="DCE:db59e788-9148-4ed5-9745-32b5c0ebd1d7">
+        <usagename>TestPythonPropsRange_1</usagename>
+        <componentproperties>
+          <simpleref refid="my_ulonglong" value="1000"/>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="TestPythonPropsRange_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="DCE:db59e788-9148-4ed5-9745-32b5c0ebd1d7"/>
+  </assemblycontroller>
+</softwareassembly>

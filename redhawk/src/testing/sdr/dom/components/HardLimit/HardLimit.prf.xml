@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="DCE:06281569-8b63-4034-961e-665b36b33cf1" mode="readwrite" name="upper_limit" type="double">
+    <description>Sets the upper limit threshold before modification of the input if triggered.</description>
+    <value>0.5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:18a49108-e4c0-40b7-a193-aac98eb52a1d" mode="readwrite" name="lower_limit" type="double">
+    <description>Sets the lower limit threshold before modification of the input if triggered.</description>
+    <value>-0.5</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:a49d55c0-ad66-4605-aa42-08728f2a2aa3" mode="readwrite" name="upper_val" type="double">
+    <description>The upper output value if the 'upper_limit' is exceeded.</description>
+    <value>1.0</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:565a1d4f-ee69-48ae-89d7-403ccf399b2b" mode="readwrite" name="lower_val" type="double">
+    <description>The lower output value if the 'lower_limit' is exceeded.</description>
+    <value>-1.0</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+</properties>

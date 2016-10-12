@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="simple_prop" mode="readwrite" type="string">
+    <value>default_value</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="seq_prop" mode="readwrite" type="short">
+    <values>
+      <value>111</value>
+      <value>222</value>
+      <value>333</value>
+    </values>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <struct id="struct_prop" mode="readwrite">
+    <simple id="prop_one" type="boolean">
+      <value>true</value>
+    </simple>
+    <simple id="prop_two" type="string">
+      <value>This is another default value</value>
+    </simple>
+    <simple id="prop_three" type="float">
+      <value>555</value>
+    </simple>
+    <configurationkind kindtype="configure"/>
+  </struct>
+  <structsequence id="struct_seq_prop" mode="readwrite">
+    <struct id="tmp_struct">
+      <simple id="prop_four" type="string">
+        <value>yet another default</value>
+      </simple>
+      <simple id="prop_five" type="long">
+        <value>246</value>
+      </simple>
+      <simple id="prop_six" type="double">
+        <value>135</value>
+      </simple>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+</properties>

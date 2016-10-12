@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:diagram="http://sca.jpeojtrs.mil/diagram" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmlns:sad="http://sca.jpeojtrs.mil/sad" xmi:id="_YCHEIC1AEeSCHvu6Xopn1w" type="Sad" name="ticket_cf_939_wave.sad_diagramV2" measurementUnit="Pixel">
+  <children xmi:type="notation:Shape" xmi:id="_dM8xUC1AEeSCHvu6Xopn1w" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_dM9YYC1AEeSCHvu6Xopn1w" type="5006"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_dM9YYS1AEeSCHvu6Xopn1w" type="7002">
+      <styles xmi:type="notation:SortingStyle" xmi:id="_dM9YYi1AEeSCHvu6Xopn1w"/>
+      <styles xmi:type="notation:FilteringStyle" xmi:id="_dM9YYy1AEeSCHvu6Xopn1w"/>
+    </children>
+    <element xmi:type="sad:SadComponentPlacement" href="ticket_cf_939_wave.sad.xml#//@partitioning/@componentPlacement.0"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_dM8xUS1AEeSCHvu6Xopn1w" x="183" y="156"/>
+  </children>
+  <styles xmi:type="notation:DiagramStyle" xmi:id="_YCHEIS1AEeSCHvu6Xopn1w"/>
+  <styles xmi:type="diagram:EObjectContainerStyle" xmi:id="_YCHEIi1AEeSCHvu6Xopn1w" name="FindByStubContainer"/>
+  <element xmi:type="sad:SoftwareAssembly" href="ticket_cf_939_wave.sad.xml#DCE:f08f4c35-2584-4693-b8b5-fde169c8e9a0"/>
+</notation:Diagram>

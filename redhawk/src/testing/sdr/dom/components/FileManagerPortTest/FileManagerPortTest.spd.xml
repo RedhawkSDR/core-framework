@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:38ff33e0-9615-41d5-91cf-20ac3413c988" name="FileManagerPortTest" type="sca_compliant">
+  <title></title>
+  <author>
+    <name></name>
+  </author>
+  <descriptor>
+      <localfile name="FileManagerPortTest.scd.xml"/>
+  </descriptor>
+  <implementation id="DCE:d0b6327b-8582-497e-bea4-2f195f8af697">
+    <description>Python port test implementation</description>
+    <code type="Executable">
+        <localfile name="FileManagerPortTest.py"/>
+        <entrypoint>FileManagerPortTest.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <runtime name="python" version="2.4.4"/>
+    <os name="Linux"/>
+    <processor name="i686"/>
+    <!--                                                  -->
+    <!-- Include some basic 'external' allocation properties -->
+    <!--                                                  -->
+    <dependency type="runtime_requirements">
+	<!-- Consume memory capacity -->
+	<!-- In this one, the __MATH__ should be performed against a value
+	     in the components .prf -->
+	<propertyref refid="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb" 
+		     value="5000"/>
+    </dependency>
+    <dependency type="runtime_requirements">
+	<!-- BogoMips capacity -->
+	<propertyref refid="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8" value="1000"/>
+    </dependency>
+    <usesdevice id="DCE:1a02ef64-9fa7-48d3-b2df-67fc3f56f754" type="">
+      <propertyref refid="DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b" value="i686"/>
+    </usesdevice>
+  </implementation>
+</softpkg>

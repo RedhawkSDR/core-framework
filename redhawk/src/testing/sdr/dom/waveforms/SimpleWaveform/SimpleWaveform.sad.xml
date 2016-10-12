@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:3f029894-0464-4cf5-a50b-84a06229bc3d" name="SimpleWaveform">
+  <componentfiles>
+    <componentfile id="SimpleComponent_4da30adb-29ac-451b-adcd-59e67cfe49ef" type="SPD">
+      <localfile name="/components/SimpleComponent/SimpleComponent.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="SimpleComponent_4da30adb-29ac-451b-adcd-59e67cfe49ef"/>
+      <componentinstantiation id="DCE:6a4bb53b-258a-4a17-a05c-be58c7030e01">
+        <usagename>SimpleComponent_1</usagename>
+        <componentproperties>
+            <simpleref refid="DCE:c709f95e-6b05-439a-9db9-dba95e70888e" value="new execparam value"/>
+            <simpleref refid="DCE:6ea8108d-76ea-4532-9255-01684ad68429" value="new configured value"/>
+            <simpleref refid="DCE:07350439-e917-45ef-b71f-a-bad-id" value="some bad id"/>
+            <simpleref refid="DCE:10add64d-1160-4de0-885b-46a991f52f1d" value="255"/>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="SimpleComponent_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="DCE:6a4bb53b-258a-4a17-a05c-be58c7030e01"/>
+  </assemblycontroller>
+</softwareassembly>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:40f11894-527d-4a9c-92c0-9c71828b7e8c" name="TestStructDep" type="sca_compliant" version="1.0">
+  <title></title>
+  <author>
+    <name></name>
+  </author>
+  <description>Test component for Python properties</description>
+  <propertyfile type="PRF">
+    <localfile name="TestStructDep.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="TestStructDep.scd.xml"/>
+  </descriptor>
+  <implementation id="DCE:e080078e-e01e-4064-b139-a1042684c285">
+    <description>Test component for Python properties</description>
+    <code type="Executable">
+      <localfile name="./"/>
+      <entrypoint>TestStructDep.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <dependency type="runtime_requirements">
+        <structref refid="DCE:001fad60-b4b3-4ed2-94cb-40e1d956bf4f"> 
+            <simpleref refid="long_capacity" value="__MATH__(1,long_capacity,=)"/>
+            <simpleref refid="float_capacity" value="__MATH__(1,float_capacity,=)"/>
+        </structref>
+    </dependency>
+    <usesdevice id="DCE:1c860fb2-85d9-4f60-beb5-eaa851f012f8" type="">
+        <structref refid="DCE:001fad60-b4b3-4ed2-94cb-40e1d956bf4f"> 
+            <simpleref refid="long_capacity" value="__MATH__(1,long_capacity,=)"/>
+            <simpleref refid="float_capacity" value="__MATH__(1,float_capacity,=)"/>
+        </structref>
+        <structref refid="DCE:a5a6ab83-d2a8-4350-ac4d-05b40ee93838">
+            <simpleref refid="password" value="__MATH__(1,magicword,=)"/>
+        </structref>
+    </usesdevice>
+  </implementation>
+</softpkg>

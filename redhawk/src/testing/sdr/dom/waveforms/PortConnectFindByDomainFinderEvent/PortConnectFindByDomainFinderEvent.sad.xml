@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
+<softwareassembly id="DCE:310025d3-45ab-4ac1-8207-bde2a60f29d3" name="PortConnectFindByDomainFinderEvent">
+  <componentfiles>
+    <componentfile id="PortTest_74fce942-ce9d-48a0-bc18-47093ee04997" type="SPD">
+      <localfile name="/components/PortTest/PortTest.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="PortTest_74fce942-ce9d-48a0-bc18-47093ee04997"/>
+      <componentinstantiation id="porttest_instance">
+        <usagename>PortTest1</usagename>
+        <findcomponent>
+          <namingservice name="PortTest1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+      <componentinstantiationref refid="porttest_instance"/>
+  </assemblycontroller>
+  <connections>
+    <connectinterface>
+      <usesport>
+        <usesidentifier>event_supplier</usesidentifier>
+        <componentinstantiationref refid="porttest_instance"/>
+      </usesport>
+      <findby>
+        <domainfinder type="eventchannel" name="anotherChannel"/>
+      </findby>
+    </connectinterface>
+    <connectinterface>
+      <usesport>
+        <usesidentifier>event_consumer</usesidentifier>
+        <componentinstantiationref refid="porttest_instance"/>
+      </usesport>
+      <findby>
+        <domainfinder type="eventchannel" name="anotherChannel"/>
+      </findby>
+    </connectinterface>
+  </connections>
+</softwareassembly>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:ef414b9b-338e-46bf-a4d4-f06a928aa523" name="test_collocation_implementation_rollover">
+  <componentfiles>
+    <componentfile id="NOOP_ROLL_3ec03ba6-2f1d-41c5-8806-f51977d99b34" type="SPD">
+      <localfile name="/components/NOOP_ROLL/NOOP_ROLL.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <hostcollocation id="ID_TEST_SET_1" name="COLLOC_SET1">
+      <componentplacement>
+        <componentfileref refid="NOOP_ROLL_3ec03ba6-2f1d-41c5-8806-f51977d99b34"/>
+        <componentinstantiation id="NOOP_ROLL_1">
+          <usagename>NOOP_ROLL_1</usagename>
+          <findcomponent>
+            <namingservice name="NOOP_ROLL_1"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+      <componentplacement>
+        <componentfileref refid="NOOP_ROLL_3ec03ba6-2f1d-41c5-8806-f51977d99b34"/>
+        <componentinstantiation id="NOOP_ROLL_2" startorder="1">
+          <usagename>NOOP_ROLL_2</usagename>
+          <findcomponent>
+            <namingservice name="NOOP_ROLL_2"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+    </hostcollocation>
+    <hostcollocation id="ID_TEST_SET2" name="COLLOC_SET2">
+      <componentplacement>
+        <componentfileref refid="NOOP_ROLL_3ec03ba6-2f1d-41c5-8806-f51977d99b34"/>
+        <componentinstantiation id="NOOP_ROLL_4" startorder="3">
+          <usagename>NOOP_ROLL_4</usagename>
+          <findcomponent>
+            <namingservice name="NOOP_ROLL_4"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+      <componentplacement>
+        <componentfileref refid="NOOP_ROLL_3ec03ba6-2f1d-41c5-8806-f51977d99b34"/>
+        <componentinstantiation id="NOOP_ROLL_3" startorder="2">
+          <usagename>NOOP_ROLL_3</usagename>
+          <findcomponent>
+            <namingservice name="NOOP_ROLL_3"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+    </hostcollocation>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="NOOP_ROLL_1"/>
+  </assemblycontroller>
+</softwareassembly>

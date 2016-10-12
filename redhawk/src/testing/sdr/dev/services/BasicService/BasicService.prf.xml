@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC '-//JTRS//DTD SCA V2.2.2 PRF//EN' 'properties.dtd'>
+<properties>
+    <simple id="PARAM1"
+            type="string">
+        <value>ABCD</value>
+        <kind kindtype="execparam"/>
+    </simple>
+    <simple id="PARAM2"
+            type="short">
+        <description>The meaning of life</description>
+        <value>42</value>
+        <kind kindtype="execparam"/>
+    </simple>
+    <simple id="PARAM3"
+            type="float">
+        <description>PI</description>
+        <value>3.1459</value>
+        <kind kindtype="execparam"/>
+    </simple>
+    <simple id="PARAM4"
+            type="boolean">
+        <value>False</value>
+        <kind kindtype="execparam"/>
+    </simple>
+    <!-- No default for PARAM5, but we expect the DCD to override it -->
+    <simple id="PARAM5"
+            type="string">
+        <kind kindtype="execparam"/>
+    </simple>
+    <!-- No default for PARAM5, but we expect the DCD to *NOT* override it -->
+    <simple id="PARAM6"
+            type="string">
+        <kind kindtype="execparam"/>
+    </simple>
+</properties>

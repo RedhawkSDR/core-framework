@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+    <structsequence id="DCE:897a5489-f680-46a8-a698-e36fd8bbae80[]" name="multicasts" mode="readwrite">
+        <description>SCA property DCE:897a5489-f680-46a8-a698-e36fd8bbae80[]</description>
+        <struct id="">
+            <simple type="string" id="ip_address">
+                <description>SCA property ip_address</description>
+            </simple>
+            <simple type="ushort" id="port">
+                <description>SCA property port</description>
+            </simple>
+        </struct>
+        <configurationkind kindtype="configure"></configurationkind>
+    </structsequence>
+
+    <simple type="string" id="DCE:b8f43ac8-26b5-40b3-9102-d127b84f9e4b" name="string_prop" mode="readwrite">
+        <description>SCA property DCE:b8f43ac8-26b5-40b3-9102-d127b84f9e4b</description>
+        <kind kindtype="configure"></kind>
+        <action type="external"></action>
+    </simple>
+
+    <simplesequence type="string" id="DCE:10b3364d-f035-4639-8e7f-02ac4706f5c7[]" name="stringseq_prop" mode="readwrite">
+        <description>SCA property DCE:10b3364d-f035-4639-8e7f-02ac4706f5c7[]</description>
+        <action type="external"></action>
+    </simplesequence>
+
+    <struct id="DCE:ffe634c9-096d-425b-86cc-df1cce50612f" name="struct_test" mode="readwrite">
+        <description>SCA property DCE:ffe634c9-096d-425b-86cc-df1cce50612f</description>
+        <simple type="long" id="item2">
+            <description>SCA property item2</description>
+        </simple>
+        <simple type="double" id="item3">
+            <description>SCA property item3</description>
+        </simple>
+        <simple type="string" id="item1">
+            <description>SCA property item1</description>
+        </simple>
+        <configurationkind kindtype="configure"></configurationkind>
+    </struct>
+
+</properties>

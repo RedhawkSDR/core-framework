@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<xs:schema targetNamespace="urn:mil:jpeojtrs:sca:sad"
+           xmlns="urn:mil:jpeojtrs:sca:sad"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	   xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+           elementFormDefault="unqualified"
+	   ecore:nsPrefix=""
+	   ecore:package="mil.jpeojtrs.sca.sad">
+	<xs:complexType name="softwareassembly">
+		<xs:sequence>
+			<xs:element name="description" minOccurs="0"  type="xs:string"/>
+			<xs:element name="componentfiles" type="componentfiles" ecore:name="componentfiles"/>
+			<xs:element name="partitioning" type="partitioning"/>
+			<xs:element name="assemblycontroller" type="assemblycontroller" ecore:name="assemblyController"/>
+			<xs:element name="connections" type="connections" minOccurs="0"/>
+			<xs:element name="externalports" type="externalports" minOccurs="0" ecore:name="externalPorts"/>
+		</xs:sequence>
+		<xs:attribute name="id" use="required" type="xs:string"/>
+		<xs:attribute name="name" type="xs:string"/>
+		<xs:attribute name="version" type="xs:string"/>
+	</xs:complexType>
+	<xs:element name="softwareassembly" type="softwareassembly"/>
+	<xs:complexType name="componentfiles">
+		<xs:sequence>
+			<xs:element name="componentfile" type="componentfile" maxOccurs="unbounded" ecore:name="componentFile"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="componentfile">
+		<xs:sequence>
+			<xs:element name="localfile" type="localfile" ecore:name="localFile"/>
+		</xs:sequence>
+		<xs:attribute name="id" use="required" type="xs:string"/>
+		<xs:attribute name="type" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="localfile">
+		<xs:attribute name="name" use="required" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="partitioning">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="componentplacement" type="componentplacement" ecore:name="componentPlacement"/>
+			<xs:element name="hostcollocation" type="hostcollocation" ecore:name="hostCollocation"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="componentplacement">
+		<xs:sequence>
+			<xs:element name="componentfileref" type="componentfileref" ecore:name="componentFileRef"/>
+			<xs:element name="componentinstantiation" type="componentinstantiation"  maxOccurs="unbounded" ecore:name="componentInstantiation"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="componentfileref">
+		<xs:attribute name="refid" use="required" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="componentinstantiation">
+		<xs:sequence>
+			<xs:element name="usagename" type="xs:string" minOccurs="0" ecore:name="usageName"/>
+			<xs:element name="componentproperties" type="componentproperties" minOccurs="0" ecore:name="componentProperties"/>
+			<xs:element name="findcomponent" type="findcomponent" minOccurs="0" ecore:name="findComponent"/>
+		</xs:sequence>
+		<xs:attribute name="id" use="required" type="xs:string"/>
+		<xs:attribute name="startorder" use="optional" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="componentproperties">
+		<xs:choice maxOccurs="unbounded">
+			<xs:element name="simpleref" type="simpleref" ecore:name="simpleRef"/>
+			<xs:element name="simplesequenceref" type="simplesequenceref" ecore:name="simpleSequenceRef"/>
+			<xs:element  name="structref" type="structref" ecore:name="structRef"/>
+			<xs:element name="structsequenceref" type="structsequenceref" ecore:name="structSequenceRef"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="findcomponent">
+		<xs:choice>
+			<xs:element name="componentresourcefactoryref" type="componentresourcefactoryref" ecore:name="componentResourceFactoryRef"/>
+			<xs:element name="namingservice" type="namingservice" ecore:name="namingService"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="componentresourcefactoryref">
+		<xs:sequence>
+			<xs:element name="resourcefactoryproperties" type="resourcefactoryproperties" minOccurs="0" ecore:name="resourceFactoryProperties"/>
+		</xs:sequence>
+		<xs:attribute name="refid" use="required" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="devicethatloadedthiscomponentref">
+		<xs:attribute name="refid" use="required" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="deviceusedbythiscomponentref" >
+		<xs:attribute name="refid" use="required" type="xs:string" ecore:name="refId"/>
+		<xs:attribute name="usesrefid" use="required" type="xs:string" ecore:name="usesRefId"/>
+	</xs:complexType>
+	<xs:complexType name="resourcefactoryproperties">
+		<xs:choice maxOccurs="unbounded">
+			<xs:element name="simpleref" type="simpleref" ecore:name="simpleRef"/>
+			<xs:element name="simplesequenceref" type="simplesequenceref" ecore:name="simpleSequenceRef"/> 
+			<xs:element  name="structref" type="structref" ecore:name="structRef"/>
+			<xs:element name="structsequenceref" type="structsequenceref" ecore:name="structSequenceRef"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="simpleref">
+		<xs:attribute name="refid" use="required" type="xs:string" ecore:name="refId"/>
+		<xs:attribute name="value" use="required" type="xs:string" />
+	</xs:complexType>
+	<xs:complexType name="simplesequenceref" >
+		<xs:sequence>
+			<xs:element name="values" type="values"/>
+		</xs:sequence>
+		<xs:attribute name="refid" use="required" type="xs:string" ecore:name="refId"/>
+	</xs:complexType>
+	<xs:complexType name="structref">
+		<xs:sequence>
+			<xs:element name="simpleref" type="simpleref" maxOccurs="unbounded" ecore:name="simpleRef"/>
+		</xs:sequence>
+		<xs:attribute name="refid" use="required" type="xs:string" ecore:name="refId"/>
+	</xs:complexType>
+	<xs:complexType name="structsequenceref">
+		<xs:sequence>
+			<xs:element name="structvalue" type="structvalue" maxOccurs="unbounded" ecore:name="structValue"/>
+		</xs:sequence>
+		<xs:attribute name="refid" use="required" type="xs:string" ecore:name="refId"/>
+	</xs:complexType>
+	<xs:complexType name="structvalue">
+		<xs:sequence>
+			<xs:element name="simpleref" type="simpleref" maxOccurs="unbounded" ecore:name="simpleRef"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="values">
+		<xs:sequence>
+			<xs:element name="value" type="xs:string" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="componentinstantiationref">
+		<xs:attribute name="refid" use="required" type="xs:string" ecore:name="refId"/>
+	</xs:complexType>
+	<xs:complexType name="findby">
+		<xs:choice>
+			<xs:element name="namingservice" type="namingservice" ecore:name="namingService"/>
+			<xs:element name="stringifiedobjectref" type="xs:string" ecore:name="stringifiedObjectRef"/>
+			<xs:element name="domainfinder" type="domainfinder" ecore:name="domainFinder"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="namingservice">
+		<xs:attribute name="name" use="required" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="domainfinder">
+		<xs:attribute name="type" use="required" type="xs:string"/>
+		<xs:attribute name="name" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="hostcollocation">
+		<xs:sequence maxOccurs="unbounded">
+			<xs:element name="componentplacement" type="componentplacement" ecore:name="componentplacement"/>
+		</xs:sequence>
+		<xs:attribute name="id" type="xs:string"/>
+		<xs:attribute name="name" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="assemblycontroller">
+		<xs:sequence>
+			<xs:element name="componentinstantiationref" type="componentinstantiationref" ecore:name="componentInstantiationRef"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="connections">
+		<xs:sequence>
+			<xs:element name="connectinterface" type="connectinterface" minOccurs="0" maxOccurs="unbounded" ecore:name="connectInterface"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="connectinterface" >
+		<xs:sequence>
+			<xs:element name="usesport" type="usesport" ecore:name="usesPort"/>
+			<xs:choice>
+				<xs:element name="providesport" type="providesport" ecore:name="providesPort"/>
+				<xs:element name="componentsupportedinterface" type="componentsupportedinterface" ecore:name="componentSupportedInterface"/>
+				<xs:element name="findby" type="findby" ecore:name="findBy"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="id" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="usesport">
+		<xs:sequence>
+			<xs:element name="usesidentifier" type="xs:string" ecore:name="usesIndentifier"/>
+			<xs:choice>
+				<xs:element name="componentinstantiationref" type="componentinstantiationref" ecore:name="componentInstantiationRef"/>
+				<xs:element name="devicethatloadedthiscomponentref" type="devicethatloadedthiscomponentref" ecore:name="deviceThatLoadedThisComponentRef"/>
+				<xs:element name="deviceusedbythiscomponentref" type="deviceusedbythiscomponentref" ecore:name="deviceUsedByThisComponentRef"/>
+				<xs:element name="findby" type="findby" ecore:name="findBy"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="providesport" >
+		<xs:sequence>
+			<xs:element name="providesidentifier" type="xs:string" ecore:name="providesIdentifier"/>
+			<xs:choice>
+				<xs:element name="componentinstantiationref" type="componentinstantiationref" ecore:name="componentInstantiationRef"/>
+				<xs:element name="devicethatloadedthiscomponentref" type="devicethatloadedthiscomponentref" ecore:name="deviceThatLoadedThisComponentRef"/>
+				<xs:element name="deviceusedbythiscomponentref" type="deviceusedbythiscomponentref" ecore:name="deviceByThisComponentRef"/>
+				<xs:element name="findby" type="findby" ecore:name="findBy"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="componentsupportedinterface">
+		<xs:sequence>
+			<xs:element name="supportedidentifier" type="xs:string" ecore:name="supportedIdentifier"/>
+			<xs:choice>
+				<xs:element name="componentinstantiationref" type="componentinstantiationref" ecore:name="componentInstantiationRef"/>
+				<xs:element name="findby" type="findby" ecore:name="findBy"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="externalports">
+		<xs:sequence>
+			<xs:element name="port" type="port" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="port">
+		<xs:sequence>
+			<xs:element name="description" minOccurs="0"  type="xs:string"/>
+			<xs:choice>
+				<xs:element name="usesidentifier" type="xs:string" ecore:name="usesIdentifier"/>
+				<xs:element name="providesidentifier" type="xs:string" ecore:name="providesIndentifier"/>
+				<xs:element name="supportedidentifier" type="xs:string" ecore:name="supportedIdentifier"/>
+			</xs:choice>
+			<xs:element name="componentinstantiationref" type="componentinstantiationref" ecore:name="componentInstantiationRef"/>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

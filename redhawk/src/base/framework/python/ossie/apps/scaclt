@@ -1,0 +1,368 @@
+#!/usr/bin/env python
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+
+USAGE="""\
+usage: %prog [options] <operation> [args]
+
+where <operation> is one of:
+  Domain operations:
+    list <domainname>
+      (list the contents of the entire domain)
+
+    install <domainname> <waveform profile path>
+      (install the waveform indicated in the <waveform profile path>)
+
+    uninstall <domainname> <application factory id>
+      (uninstall the waveform indicated by <application id>)
+
+    create <domainname> <application factory id> <appname>
+      (create an instance of the application.  TODO initConfiguration and deviceAssignments) 
+
+    release <domainname> <application id>
+      (release the application indicated by <application id>)
+
+    configure <corbaname> [id1=value1 id2=value2 ... ]
+    
+    query <corbaname> [id1 id2 ... ]
+
+  FileManager operations:
+
+    dir <domainname> <directory path>
+      (list the contents of <directory path> on the FileManager)
+
+    get <domainname> <file path> [<destination>]
+      (get the contents of <file path> on the FileManager and write them to destination.
+       If destination is not provided, or is "-" the contents are sent to stdout)
+
+    put <domainname> <local file> <file path>
+      (put the contents of <local file> and write them to <file path> on the FileManager)
+
+    rm <domainname> <path>
+      (remove the file at path)
+
+    mkdir <domainname> <path>
+      (make the directory on the FileManager at path)
+
+    rmdir <domainname> <path>
+      (remove the directory on the FileManager at path)
+
+    closeall <domainname> <file path>
+      (close all open files with the given filename)
+"""
+
+# Import the CORBA stuff
+from omniORB import URI, any
+from ossie.cf import CF, CF__POA
+from ossie.utils import redhawk
+import os
+
+rootContext = None
+orb = None
+
+def listProperties(component):
+    prpList = []
+    if len(prpList) == 0:
+        prpList = component.query(prpList)
+
+    print "     There are %d Properties" % len(prpList)
+    for prp in prpList:
+        value = repr(prp.value._v)
+        if len(value) > 25:
+            value = value[:25] + "..."
+
+        print "       %s %s" % (prp.id, str(value))
+    
+    return prpList
+
+def listAppFactory(appFact):
+    print "  name: %s" % appFact._get_name()
+    print "  identifier: %s" % appFact._get_identifier()
+    print "  softwareProfile: %s" % appFact._get_softwareProfile()
+
+def listDeviceManager(devMan):
+    print "  label: %s" % devMan._get_label()
+    print "  identifier: %s" % devMan._get_identifier()
+    print "  configuration: %s" % devMan._get_deviceConfigurationProfile()
+    devices = devMan._get_registeredDevices()
+    print "   There are %d registered devices" % len(devices)
+    for device in devices:
+        listDevice(device)
+    services = devMan._get_registeredServices()
+    print "   There are %d registered services" % len(services)
+    for service in services:
+        listService(service)
+
+def listDevice(device):
+    print "    identifier: %s" % device._get_identifier()
+    print "    label: %s" % device._get_label()
+    print "    adminState: %s" % device._get_adminState()
+    print "    operationalState: %s" % device._get_operationalState()
+    print "    usageState: %s" % device._get_usageState()
+    print "    softwareProfile: %s" % device._get_softwareProfile()
+    listProperties(device)
+
+def listService(service):
+    print "    identifier: %s" % service.serviceName
+
+
+def listApplication(appObj):
+    print "  profile: %s" % appObj._get_profile()
+    print "  name: %s" % appObj._get_name()
+    print "  Resource_id: %s" % appObj._get_identifier()
+    components = appObj._get_registeredComponents()
+    print "   There are %d Components" % len(components)
+    for comp in components:
+        print "    %s" % (comp.identifier)
+        listProperties(comp.componentObject)
+
+    componentPids = appObj._get_componentProcessIds()
+    print "   There are %d component process ID's" % len(componentPids)
+    for componentPid in componentPids: 
+        print "    %s %s" % (componentPid.componentId, componentPid.processId)
+
+    componentDevices = appObj._get_componentDevices()
+    print "   There are %d devices assignments" % len(componentDevices)
+    for componentDevice in componentDevices: 
+        print "    %s %s" % (componentDevice.componentId, componentDevice.assignedDeviceId)
+
+    componentImplementations = appObj._get_componentImplementations()
+    print "   There are %d devices assignments" % len(componentImplementations)
+    for componentImplementation in componentImplementations: 
+        print "    %s %s" % (componentImplementation.componentId, componentImplementation.elementId)
+
+def listDomain(domManager):
+    print "Domain %s" % domManager._get_identifier()
+    print " Application Factories"
+    appFactories = domManager._get_applicationFactories()
+    for appFactory in appFactories:
+        listAppFactory(appFactory)
+
+    print " Running Applications"
+    appObjs = domManager._get_applications()
+    for appObj in appObjs:
+        listApplication(appObj)
+
+    print " Registered Device Managers"
+    devManObjs = domManager._get_deviceManagers()
+    for devManObj in devManObjs:
+        listDeviceManager(devManObj)
+
+
+def listOp(domainname):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    listDomain(domManager)
+
+def dirOp(domainname, path="/"):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    fis = domManager._get_fileMgr().list(path)
+    for fi in fis:
+	if fi.kind == CF.FileSystem.PLAIN: 
+	    print fi.name
+	elif fi.kind == CF.FileSystem.DIRECTORY: 
+	    print "%s/" % fi.name
+	elif fi.kind == CF.FileSystem.FILE_SYSTEM: 
+	    print "%s@" % fi.name
+
+def rmOp(domainname, path):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    domManager._get_fileMgr().remove(path)
+
+def rmdirOp(domainname, path):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    domManager._get_fileMgr().rmdir(path)
+
+def closeallOp(domainname, path):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    fileList = domManager._get_fileMgr().list(path)
+    for file in fileList:
+        for prop in file.fileProperties:
+            if prop.id == 'IOR_AVAILABLE':
+                IORs = prop.value._v
+                for IOR in IORs:
+                    ptr = orb.string_to_object(IOR)
+                    filePtr = ptr._narrow(CF.File)
+                    filePtr.close()
+
+def mkdirOp(domainname, path):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    domManager._get_fileMgr().mkdir(path)
+
+def getOp(domainname, path="-", dest="-"):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    f = domManager._get_fileMgr().open(path, True)
+    try:
+	data = f.read(f.sizeOf())
+	if dest == "-":
+	    out = sys.stdout
+	else:
+	    out = open(dest, "wb")
+	out.write(data)
+	out.close()
+    finally:
+	f.close()
+
+def putOp(src, domainname, dest):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    input = open(src)
+    if domManager._get_fileMgr().exists(dest):
+	f = domManager._get_fileMgr().open(dest, False)
+    else:
+	f = domManager._get_fileMgr().create(dest)
+
+    try:
+	f.write(input.read())
+	input.close()
+    finally:
+	f.close()
+
+def installOp(domainname, profilePath):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    domManager.installApplication(profilePath)
+ 
+def uninstallOp(domainname, appFactId):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    domManager.uninstallApplication(appFactId)
+
+def createOp(domainname, appFactId, appName):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    for appFact in domManager._get_applicationFactories():
+	if appFact._get_identifier() == appFactId:
+	    appFact.create(appName, [], [])
+	    break
+
+def releaseOp(domainname, appId):
+    domManager = redhawk.attach(domainname)
+    if domManager is None:
+	raise StandardError('Could not resolve Domain Manager')
+
+    for app in domManager._get_applications():
+	if app._get_identifier() == appId:
+	    app.releaseObject()
+	    break
+
+def queryOp(name, *ids):
+    objURI = URI.stringToName(name)
+    obj = rootContext.resolve(objURI)
+    if obj is None:
+	raise StandardError('Could not resolve object')
+
+    obj = obj._narrow(CF.PropertySet)
+    if obj is None:
+	raise StandardError('Could not narrow to PropertySet')
+    
+    props = [CF.DataType(x, any.to_any(None)) for x in ids] 
+    props = obj.query(props)
+    for prop in props:
+	print prop.id, str(prop.value._v)
+
+def configureOp(name, *kvpairs):
+    objURI = URI.stringToName(name)
+    obj = rootContext.resolve(objURI)
+    if obj is None:
+	raise StandardError('Could not resolve object')
+
+    obj = obj._narrow(CF.PropertySet)
+    if obj is None:
+	raise StandardError('Could not narrow to PropertySet')
+
+    props = [] 
+    for kv in kvpairs:
+        k, v = kv.split("=", 1)
+	# TODO parse the prf so we know the type to convert to
+        v = eval(v)
+        props.append(CF.DataType(k, any.to_any(v)))
+     
+    obj.configure(props)
+
+OPERATIONS = {'list': listOp,
+              'dir': dirOp,
+              'install': installOp,
+              'uninstall': uninstallOp,
+              'create': createOp,
+              'release': releaseOp,
+              'query': queryOp,
+	      'configure': configureOp,
+              'get': getOp,
+              'put': putOp,
+              'rm': rmOp,
+              'rmdir': rmdirOp,
+              'mkdir': mkdirOp,
+              'closeall': closeallOp
+	     }
+
+if __name__ == '__main__':
+    # Grab command line arguments and options
+    import sys
+    from optparse import OptionParser
+
+    parser = OptionParser(usage=USAGE)
+
+    options, args = parser.parse_args()
+
+    try:
+        operation = args[0]
+    except IndexError:
+	parser.error("no operation provided")
+
+    try:
+        op_func = OPERATIONS[operation]			
+    except KeyError:
+	parser.error("invalid operation provided")
+
+    # Call the operation
+    try:
+	op_func(*args[1:])
+    except Exception, e:
+	print e

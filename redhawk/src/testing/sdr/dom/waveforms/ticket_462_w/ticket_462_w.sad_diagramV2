@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:diagram="http://sca.jpeojtrs.mil/diagram" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmlns:sad="http://sca.jpeojtrs.mil/sad" xmi:id="_LpFF4bGsEeK-bf417G-RXA" type="Sad" name="ticket_462_w.sad_diagramV2" measurementUnit="Pixel">
+  <children xmi:type="notation:Shape" xmi:id="_M1PXALGsEeK-bf417G-RXA" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_M1QlILGsEeK-bf417G-RXA" type="5006"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_M1RzQLGsEeK-bf417G-RXA" type="7002">
+      <styles xmi:type="notation:SortingStyle" xmi:id="_M1RzQbGsEeK-bf417G-RXA"/>
+      <styles xmi:type="notation:FilteringStyle" xmi:id="_M1RzQrGsEeK-bf417G-RXA"/>
+    </children>
+    <element xmi:type="sad:SadComponentPlacement" href="ticket_462_w.sad.xml#//@partitioning/@componentPlacement.0"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_M1PXAbGsEeK-bf417G-RXA" x="132" y="206"/>
+  </children>
+  <children xmi:type="notation:Shape" xmi:id="_ND1zsLGsEeK-bf417G-RXA" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_ND1zsrGsEeK-bf417G-RXA" type="5006"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_ND1zs7GsEeK-bf417G-RXA" type="7002">
+      <styles xmi:type="notation:SortingStyle" xmi:id="_ND1ztLGsEeK-bf417G-RXA"/>
+      <styles xmi:type="notation:FilteringStyle" xmi:id="_ND1ztbGsEeK-bf417G-RXA"/>
+    </children>
+    <element xmi:type="sad:SadComponentPlacement" href="ticket_462_w.sad.xml#//@partitioning/@componentPlacement.1"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_ND1zsbGsEeK-bf417G-RXA" x="535" y="327"/>
+  </children>
+  <styles xmi:type="notation:DiagramStyle" xmi:id="_LpFF4rGsEeK-bf417G-RXA"/>
+  <styles xmi:type="diagram:EObjectContainerStyle" xmi:id="_LpFF47GsEeK-bf417G-RXA" name="FindByStubContainer"/>
+  <element xmi:type="sad:SoftwareAssembly" href="ticket_462_w.sad.xml#DCE:1abcc10d-0e39-4be2-9c57-89b2f9be376d"/>
+</notation:Diagram>

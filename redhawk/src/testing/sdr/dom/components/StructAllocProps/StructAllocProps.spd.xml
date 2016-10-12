@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:1b57ee2d-a33e-4bc3-a7ee-51cf48e055c8" name="StructAllocProps" type="sca_compliant">
+  <title></title>
+  <author>
+    <name></name>
+  </author>
+  <descriptor>
+    <localfile name="StructAllocProps.scd.xml"/>
+  </descriptor>
+  <implementation id="DCE:1e896f6f-f44b-4cb8-ae1c-f0c99e3a3940">
+    <description>Python struct alloc props test implementation</description>
+    <code type="Executable">
+      <localfile name="./"/>
+      <entrypoint>StructAllocProps.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <runtime name="python" version="2.4.4"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <dependency type="runtime_requirements">
+      <structref refid="DCE:001fad60-b4b3-4ed2-94cb-40e1d956bf4f">
+        <simpleref refid="long_capacity" value="75"/>
+        <simpleref refid="float_capacity" value="0.75"/>
+      </structref>
+    </dependency>
+    <usesdevice id="DCE:aa486aad-fddf-4339-8254-19c2238dd685" type="">
+      <structref refid="DCE:001fad60-b4b3-4ed2-94cb-40e1d956bf4f">
+        <simpleref refid="long_capacity" value="50"/>
+        <simpleref refid="float_capacity" value="0.5"/>
+      </structref>
+    </usesdevice>
+  </implementation>
+</softpkg>

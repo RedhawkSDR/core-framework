@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="DCE:9d1e3621-27ca-4cd0-909d-90b7448b8f71" mode="readwrite" name="prop_long" type="long">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:4e7c1977-5f53-4061-bae7-cb8c1072f4b7" mode="readwrite" name="prop_str" type="string">
+    <value>default value</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="DCE:f877b9ee-a682-43a6-ba21-5ea980167f55" mode="readwrite" name="seq_oct" type="short">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <structsequence id="DCE:e415de60-68cb-403e-812e-76f114731bb4" mode="readwrite" name="prop_foo">
+    <struct id="">
+      <simple id="item_bool" mode="readwrite" type="boolean">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <simple id="item_string" mode="readwrite" type="string">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+      </simple>
+      <configurationkind kindtype="configure"/>
+    </struct>
+    <structvalue>
+      <simpleref refid="item_bool" value="false"/>
+      <simpleref refid="item_string" value="First"/>
+    </structvalue>
+    <structvalue>
+      <simpleref refid="item_bool" value="true"/>
+      <simpleref refid="item_string" value="Second"/>
+    </structvalue>
+    <configurationkind kindtype="configure"/>
+  </structsequence> 
+</properties>

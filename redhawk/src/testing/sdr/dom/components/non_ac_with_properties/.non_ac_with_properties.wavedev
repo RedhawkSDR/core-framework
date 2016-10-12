@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="ASCII"?>
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="python">
+    <value outputDir="python" template="gov.redhawk.ide.codegen.jet.python.pattern.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.python.PythonGenerator">
+      <generatedFileCRCs crc="1746641546" file="reconf"/>
+      <generatedFileCRCs crc="2842453104" file="../non_ac_with_properties.spec"/>
+      <generatedFileCRCs crc="1209863322" file="non_ac_with_properties.py"/>
+      <generatedFileCRCs crc="4140790153" file="configure.ac"/>
+      <generatedFileCRCs crc="366285357" file="non_ac_with_properties_base.py"/>
+      <generatedFileCRCs crc="3694961710" file="Makefile.am"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>

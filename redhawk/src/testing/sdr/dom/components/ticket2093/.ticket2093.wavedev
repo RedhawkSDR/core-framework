@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="ASCII"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="cpp">
+    <value outputDir="cpp" template="gov.redhawk.ide.codegen.jet.cplusplus.PullPortDataTemplate" generatorId="gov.redhawk.ide.codegen.jet.cplusplus.CplusplusGenerator" primary="true">
+      <generatedFileCRCs crc="3068226435" file="reconf"/>
+      <generatedFileCRCs crc="1076137230" file="port_impl.cpp"/>
+      <generatedFileCRCs crc="3283831679" file="ticket2093_base.cpp"/>
+      <generatedFileCRCs crc="4011668441" file="../ticket2093.spec"/>
+      <generatedFileCRCs crc="3212480079" file="ticket2093.cpp"/>
+      <generatedFileCRCs crc="581096937" file="build.sh"/>
+      <generatedFileCRCs crc="1365114394" file="configure.ac"/>
+      <generatedFileCRCs crc="1424918029" file="port_impl.h"/>
+      <generatedFileCRCs crc="2278045868" file="ticket2093.h"/>
+      <generatedFileCRCs crc="1640619981" file="main.cpp"/>
+      <generatedFileCRCs crc="1632182946" file="struct_props.h"/>
+      <generatedFileCRCs crc="3998735161" file="ticket2093_base.h"/>
+      <generatedFileCRCs crc="4210356863" file="Makefile.am"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>

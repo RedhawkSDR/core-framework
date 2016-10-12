@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:fa92d285-1b7c-4442-9ae6-6b5ef86633a6" name="BasicAC" type="sca_compliant">
+  <title></title>
+  <author>
+    <name></name>
+  </author>
+  <description>Basic Assembly Controller that will call start, stop, etc. on all Resources to which it is connected.</description>
+  <propertyfile type="PRF">
+    <localfile name="BasicAC.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="BasicAC.scd.xml"/>
+  </descriptor>
+  <implementation id="DCE:0dc2fd78-921b-424a-a806-268755a28a33">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="BasicAC_python_impl1"/>
+      <entrypoint>BasicAC_python_impl1/BasicAC_python_impl1.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <runtime name="python" version="2.4.4"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
+    <os name="WinNT"/>
+  </implementation>
+  <implementation id="DCE:6f7f39ec-2582-4aff-b57b-6fb1cb1ee2fb">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="basicac_java_impl1"/>
+      <entrypoint>basicac_java_impl1/startJava.sh</entrypoint>
+    </code>
+    <compiler name="/usr/bin/javac" version="1.5"/>
+    <programminglanguage name="Java"/>
+    <humanlanguage name="EN"/>
+    <runtime name="/usr/bin/java" version="1.5"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
+    <os name="Linux"/>
+  </implementation>
+</softpkg>

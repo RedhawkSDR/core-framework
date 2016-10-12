@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<xs:schema targetNamespace="urn:mil:jpeojtrs:sca:profile"
+           xmlns="urn:mil:jpeojtrs:sca:profile"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	   xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+           elementFormDefault="unqualified"
+	   ecore:nsPrefix=""
+	   ecore:package="mil.jpeojtrs.sca.profile">
+	<xs:complexType name="profile">
+        <xs:annotation>
+        	<xs:documentation>The profile element can be used to specify the absolute profile file pathname relative to a mounted CF FileSystem.</xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="filename" use="required" type="xs:string">
+        	<xs:annotation>
+        		<xs:documentation>The filename attribute is the absolute pathname relative to a mounted FileSystem. This filename can also be used to access any other local file elements in the profile.</xs:documentation>
+        	</xs:annotation></xs:attribute>
+		<xs:attribute name="type" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>The type attribute indicates the type of profile being referenced. The valid type attribute values are “SAD”, “SPD”, “DCD”, and “DMD”.</xs:documentation>
+			</xs:annotation></xs:attribute>
+	</xs:complexType>
+	<xs:element name="profile" type="profile"/>
+</xs:schema>

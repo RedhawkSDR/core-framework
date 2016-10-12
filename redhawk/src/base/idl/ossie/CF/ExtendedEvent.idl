@@ -1,0 +1,65 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+//Source file: ExtendedEvent.idl
+#ifndef __EXTENDEDEVENT_DEFINED
+#define __EXTENDEDEVENT_DEFINED
+
+#include <COS/CosEventComm.idl>
+#include <COS/CosEventChannelAdmin.idl>
+#include "ossie/CF/cf.idl"
+
+module ExtendedEvent {
+
+    enum ResourceStateChangeType {
+        STOPPED,
+        STARTED
+    };
+
+    struct ResourceStateChangeEventType {
+        string sourceId;
+        string sourceName;
+        ExtendedEvent::ResourceStateChangeType stateChangeFrom;
+        ExtendedEvent::ResourceStateChangeType stateChangeTo;
+    };
+
+    /* Type PropertySetChangeEventType is a structure used to indicate that the
+       event source (which must be a CF::PropertySet) has had a change in one of
+       it's property values.  This can be due to a CF::PropertySet::configure()
+       call or due to an internal change.  A component shall only send
+       PropertySetChangeEvents for 'queryable' properties.
+    */
+    struct PropertySetChangeEventType {
+        string sourceId;
+        string sourceName;
+        CF::Properties properties;
+    };
+
+    /* Intended to allow a port to act as a PushConsumer for point-to-point
+       connections and over the event service */
+    interface MessageEvent : CosEventChannelAdmin::EventChannel, CF::Port {
+    
+    };
+    /*interface MessageReceiver : CosEventComm::PushConsumer, CF::Port {
+
+    };*/
+
+};
+#endif

@@ -1,0 +1,142 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _DATASDDS_IDL_
+#define _DATASDDS_IDL_
+
+#include "ossie/BULKIO/bio_runtimeStats.idl"
+#include "ossie/BULKIO/bio_updateSRI.idl"
+
+module BULKIO {
+
+    /**
+     * Enum definition for the possible data types.
+     */
+    enum SDDSDataDigraph {
+        SDDS_SP,  // packed bit data
+        SDDS_SB,  // scalar int8_t
+        SDDS_SI,  // scalar int16_t
+        SDDS_SL,  // scalar int32_t
+        SDDS_SX,  // scalar int64_t
+        SDDS_SF,  // scalar float
+        SDDS_SD,  // scalar double
+        SDDS_CB,  // complex int8_t
+        SDDS_CI,  // complex int16_t
+        SDDS_CL,  // complex int32_t
+        SDDS_CX,  // complex int64_t
+        SDDS_CF,  // complex float
+        SDDS_CD   // complex double
+    }; 
+
+    /**
+     * Stream definition struct for SDDS streams. 
+     */
+    struct SDDSStreamDefinition {
+        string        id; // a UUID to uniquely identify a stream.
+        SDDSDataDigraph   dataFormat;
+        string        multicastAddress;
+        unsigned long vlan;
+        unsigned long port;
+        unsigned long sampleRate;
+        boolean       timeTagValid;
+        string        privateInfo; // user generated text
+    };
+
+    typedef sequence <SDDSStreamDefinition> SDDSStreamSequence;
+
+    /**
+     * This is the interface for an SDDS stream port.
+     */
+    interface dataSDDS : ProvidesPortStatisticsProvider  {
+
+      enum InputUsageState {
+         IDLE,
+         ACTIVE,
+         BUSY
+      };
+
+      /**
+       * Thrown when the input port cannot accept anymore
+       * new attachments.
+       */
+      exception AttachError{string msg;};
+
+      /**
+       * Thrown when the input port encountered an error
+       * in the detach process.
+       */
+      exception DetachError{string msg;};
+
+      /**
+       * A generic exception.
+       */
+      exception StreamInputError{string msg;};
+
+      /**
+       * IDLE if no streams are attached.
+       * ACTIVE if some streams are attached, but the device/component can accept more.
+       * BUSY if the input can accept no more attachments.
+       */
+      readonly attribute InputUsageState usageState;
+
+      /**
+       * A sequence of attached streams.
+       */
+      readonly attribute SDDSStreamSequence attachedStreams;
+
+      /**
+       * A sequence of attachment IDs
+       */
+      readonly attribute StringSequence attachmentIds;
+
+      /**
+       * Attaches a stream to the input.  An input may handle 1
+       * or more streams.
+       *
+       * Returns: a unique identifier for this attach which must
+       *          be passed to detach.
+       */
+      string attach(in SDDSStreamDefinition stream, in string userid)
+        raises (AttachError, StreamInputError);
+
+      /**
+       * Detach one or more stream attachments.
+       */
+      void detach(in string attachId)
+        raises (DetachError, StreamInputError);
+
+      SDDSStreamDefinition getStreamDefinition(in string attachId)
+        raises (StreamInputError);
+
+      string getUser(in string attachId)
+        raises (StreamInputError);
+
+      /**
+      * List of all active streamSRIs (that have not been ended)
+      */
+      readonly attribute StreamSRISequence attachedSRIs;
+
+      /**
+	  * Push SRI to downstream components with time tag 
+	  */
+      void pushSRI(in BULKIO::StreamSRI H, in BULKIO::PrecisionUTCTime T);
+    };
+};
+#endif

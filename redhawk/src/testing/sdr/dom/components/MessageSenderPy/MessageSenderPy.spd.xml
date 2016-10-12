@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:3ba9cfc9-11f8-407b-aad3-596630057030" name="MessageSenderPy">
+    <title/>
+    <author>
+    </author>
+    <description>
+        Example Python message sender
+    </description>
+    <propertyfile type="PRF">
+        <localfile name="MessageSenderPy.prf.xml"/>
+    </propertyfile>
+    <descriptor>
+        <localfile name="MessageSenderPy.scd.xml"/>
+    </descriptor>
+    <implementation id="DCE:2302e246-3b28-4789-9871-0deb4e7acf55">
+        <description>Python implementation</description>
+        <code type="Executable">
+            <localfile name="./"/>
+            <entrypoint>MessageSenderPy.py</entrypoint>
+        </code>
+        <os name="Linux"/>
+        <processor name="x86"/>
+    </implementation>
+</softpkg>

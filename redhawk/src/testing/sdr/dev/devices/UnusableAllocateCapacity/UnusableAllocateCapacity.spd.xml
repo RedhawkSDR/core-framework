@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:5908b6e6-40e3-4e60-aa7a-222193a41111" name="UnusableAllocateCapacity" type="sca_compliant" version="">
+    <title />
+    <author>
+        <name></name>
+    </author>
+    <propertyfile type="PRF">
+        <localfile name="UnusableAllocateCapacity.prf.xml" />
+    </propertyfile>
+    <descriptor name="">
+        <localfile name="UnusableAllocateCapacity.scd.xml" />
+    </descriptor>
+    <implementation id="DCE:93a628a2-3c41-49a4-8299-71178b3f1e09" aepcompliance="aep_compliant">
+        <code type="Executable">
+            <localfile name="./" />
+            <entrypoint>UnusableAllocateCapacity.py</entrypoint>
+        </code>
+        <programminglanguage name="Python"/>
+        <humanlanguage name="EN"/>
+        <runtime name="python" version="2.4.4"/>
+        <os name="Linux"/>
+        <processor name="x86"/>
+        <processor name="x86_64"/>
+    </implementation>
+</softpkg>

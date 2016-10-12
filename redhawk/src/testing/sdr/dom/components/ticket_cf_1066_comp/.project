@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>ticket_cf_1066_comp</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>gov.redhawk.ide.codegen.builders.TopLevelBuildScript</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+		<buildCommand>
+			<name>gov.redhawk.ide.codegen.jet.python.sourceinclude</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>org.python.pydev.pythonNature</nature>
+		<nature>gov.redhawk.ide.natures.scaproject</nature>
+		<nature>gov.redhawk.ide.natures.sca.component</nature>
+	</natures>
+</projectDescription>

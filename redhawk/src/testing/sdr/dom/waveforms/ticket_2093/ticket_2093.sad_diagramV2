@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:diagram="http://sca.jpeojtrs.mil/diagram" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmlns:sad="http://sca.jpeojtrs.mil/sad" xmi:id="_-G0bAITBEeG1W8poOIy_iA" type="Sad" name="ticket_2093.sad_diagramV2" measurementUnit="Pixel">
+  <children xmi:type="notation:Shape" xmi:id="__p1F4ITBEeG1W8poOIy_iA" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="__p3iIITBEeG1W8poOIy_iA" type="5006"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="__p4wQITBEeG1W8poOIy_iA" type="7002">
+      <styles xmi:type="notation:SortingStyle" xmi:id="__p4wQYTBEeG1W8poOIy_iA"/>
+      <styles xmi:type="notation:FilteringStyle" xmi:id="__p4wQoTBEeG1W8poOIy_iA"/>
+    </children>
+    <element xmi:type="sad:SadComponentPlacement" href="ticket_2093.sad.xml#//@partitioning/@componentPlacement.0"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="__p1F4YTBEeG1W8poOIy_iA" x="385" y="189"/>
+  </children>
+  <styles xmi:type="notation:DiagramStyle" xmi:id="_-G0bAYTBEeG1W8poOIy_iA"/>
+  <styles xmi:type="diagram:EObjectContainerStyle" xmi:id="_-G0bAoTBEeG1W8poOIy_iA" name="FindByStubContainer"/>
+  <element xmi:type="sad:SoftwareAssembly" href="ticket_2093.sad.xml#DCE:1c04ef30-6368-4a4e-a23e-f1771593310c"/>
+</notation:Diagram>

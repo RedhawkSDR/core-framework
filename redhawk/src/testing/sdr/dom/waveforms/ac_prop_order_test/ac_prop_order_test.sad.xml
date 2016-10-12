@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:57e3f39a-af06-4f3b-a859-4843f41bbc02" name="ac_prop_order_test">
+  <componentfiles>
+    <componentfile id="non_ac_with_properties_ab4f16a2-4bd6-42fd-aff9-eece6cc0d468" type="SPD">
+      <localfile name="/components/non_ac_with_properties/non_ac_with_properties.spd.xml"/>
+    </componentfile>
+    <componentfile id="ac_with_properties_b3287fe8-2118-4d7b-b88e-d990f62ec53b" type="SPD">
+      <localfile name="/components/ac_with_properties/ac_with_properties.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="ac_with_properties_b3287fe8-2118-4d7b-b88e-d990f62ec53b"/>
+      <componentinstantiation id="ac_with_properties_1" startorder="0">
+        <usagename>ac_with_properties_1</usagename>
+        <componentproperties>
+          <simpleref refid="trigger_property" value="foo"/>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="ac_with_properties_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="non_ac_with_properties_ab4f16a2-4bd6-42fd-aff9-eece6cc0d468"/>
+      <componentinstantiation id="non_ac_with_properties_1" startorder="1">
+        <usagename>non_ac_with_properties_1</usagename>
+        <componentproperties>
+          <simpleref refid="my_property" value="2.0"/>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="non_ac_with_properties_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="ac_with_properties_1"/>
+  </assemblycontroller>
+  <connections>
+    <connectinterface id="connection_1">
+      <usesport>
+        <usesidentifier>components</usesidentifier>
+        <componentinstantiationref refid="ac_with_properties_1"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:CF/Resource:1.0</supportedidentifier>
+        <componentinstantiationref refid="non_ac_with_properties_1"/>
+      </componentsupportedinterface>
+    </connectinterface>
+  </connections>
+</softwareassembly>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns="http://sca.jpeojtrs.mil/sad" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmi:id="_iK_DwIMfEeCa_MtC-8FWpA" type="Sad" name="SimpleWaveform.sad_diagram" measurementUnit="Pixel">
+  <children xmi:type="notation:Node" xmi:id="_j2va8IMfEeCa_MtC-8FWpA" type="1001">
+    <children xmi:type="notation:Node" xmi:id="_j2va9YMfEeCa_MtC-8FWpA" type="4004"/>
+    <styles xmi:type="notation:ShapeStyle" xmi:id="_j2va8YMfEeCa_MtC-8FWpA" fontName="Sans"/>
+    <styles xmi:type="notation:HintedDiagramLinkStyle" xmi:id="_j2va8oMfEeCa_MtC-8FWpA"/>
+    <styles xmi:type="notation:PropertiesSetStyle" xmi:id="_j2va84MfEeCa_MtC-8FWpA"/>
+    <element xmi:type="ComponentPlacement" href="SimpleWaveform.sad.xml#//@partitioning/@componentPlacement.0"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_j2va9IMfEeCa_MtC-8FWpA" x="421" y="159"/>
+  </children>
+  <styles xmi:type="notation:DiagramStyle" xmi:id="_iK_DwYMfEeCa_MtC-8FWpA"/>
+  <element xmi:type="SoftwareAssembly" href="SimpleWaveform.sad.xml#DCE:3f029894-0464-4cf5-a50b-84a06229bc3d"/>
+</notation:Diagram>

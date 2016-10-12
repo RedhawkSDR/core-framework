@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
+<softwareassembly id="DCE:8ea0dcee-a953-11de-9d50-001cc4ed247c" name="CommandWrapperBadSad">
+    <componentfiles>
+        <componentfile id="CommandWrapper_592b8bd6-b011-4468-9417-705af45e907b" type="SPD">
+            <localfile name="/components/CommandWrapper/CommandWrapper.spd.xml"/>
+        </componentfile>
+        <componentfile id="CommandWrapperBad_e2001914-8eb0-4573-91e4-65553c3dd5be" type="SPD">
+            <localfile name="/components/CommandWrapperBad/CommandWrapperBad.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+    <partitioning>
+        <componentplacement>
+            <componentfileref refid="CommandWrapper_592b8bd6-b011-4468-9417-705af45e907b"/>
+            <componentinstantiation id="DCE:a39e37bc-280e-406f-9952-5beee6575fb4">
+                <usagename>CommandWrapper1</usagename> 
+                <findcomponent>
+                    <namingservice name="CommandWrapper1"/>
+                </findcomponent>
+            </componentinstantiation>
+        </componentplacement>
+        <componentplacement>
+            <componentfileref refid="CommandWrapperBad_e2001914-8eb0-4573-91e4-65553c3dd5be"/>
+            <componentinstantiation id="DCE:f0474a82-9360-4311-b111-e4967d31aaf1">
+                <usagename>CommandWrapperBad1</usagename> 
+                <findcomponent>
+                    <namingservice name="CommandWrapperBad1"/>
+                </findcomponent>
+            </componentinstantiation>
+        </componentplacement>
+    </partitioning>
+    <assemblycontroller>
+        <componentinstantiationref refid="DCE:a39e37bc-280e-406f-9952-5beee6575fb4"/>
+    </assemblycontroller>
+    <connections>
+    </connections>
+</softwareassembly>

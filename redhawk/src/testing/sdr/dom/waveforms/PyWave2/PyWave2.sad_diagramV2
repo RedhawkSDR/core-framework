@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:diagram="http://sca.jpeojtrs.mil/diagram" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmlns:partitioning="http://sca.jpeojtrs.mil/partitioning" xmlns:sad="http://sca.jpeojtrs.mil/sad" xmi:id="_yRkdMJK_EeCeAs59sNiWHw" type="Sad" name="PyWave2.sad_diagramV2" measurementUnit="Pixel">
+  <children xmi:type="notation:Shape" xmi:id="_2NgHQJK_EeCeAs59sNiWHw" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_2NgHQpK_EeCeAs59sNiWHw" type="5006"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_2NgHQ5K_EeCeAs59sNiWHw" type="7002">
+      <children xmi:type="notation:Shape" xmi:id="_2NhVYJK_EeCeAs59sNiWHw" type="3002" fontName="Sans">
+        <children xmi:type="notation:DecorationNode" xmi:id="_2NhVYpK_EeCeAs59sNiWHw" type="5004"/>
+        <children xmi:type="notation:Node" xmi:id="_2Nh8cJK_EeCeAs59sNiWHw" type="3003">
+          <children xmi:type="notation:DecorationNode" xmi:id="_2Nh8dZK_EeCeAs59sNiWHw" type="5001">
+            <layoutConstraint xmi:type="notation:Location" xmi:id="_2Nh8dpK_EeCeAs59sNiWHw" y="5"/>
+          </children>
+          <styles xmi:type="notation:DescriptionStyle" xmi:id="_2Nh8cZK_EeCeAs59sNiWHw"/>
+          <styles xmi:type="notation:FontStyle" xmi:id="_2Nh8cpK_EeCeAs59sNiWHw" fontName="Sans"/>
+          <styles xmi:type="notation:LineStyle" xmi:id="_2Nh8c5K_EeCeAs59sNiWHw"/>
+          <element xmi:type="partitioning:UsesPortStub" href="PyWave2.sad.xml#//@partitioning/@componentPlacement.0/@componentInstantiation.0/@uses.0"/>
+          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_2Nh8dJK_EeCeAs59sNiWHw"/>
+        </children>
+        <children xmi:type="notation:Node" xmi:id="_2Nh8d5K_EeCeAs59sNiWHw" type="3005">
+          <styles xmi:type="notation:DescriptionStyle" xmi:id="_2Nh8eJK_EeCeAs59sNiWHw"/>
+          <styles xmi:type="notation:FontStyle" xmi:id="_2Nh8eZK_EeCeAs59sNiWHw" fontName="Sans"/>
+          <styles xmi:type="notation:LineStyle" xmi:id="_2Nh8epK_EeCeAs59sNiWHw"/>
+          <element xmi:type="partitioning:ComponentSupportedInterfaceStub" href="PyWave2.sad.xml#//@partitioning/@componentPlacement.0/@componentInstantiation.0/@interfaceStub"/>
+          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_2Nh8e5K_EeCeAs59sNiWHw"/>
+        </children>
+        <element xmi:type="sad:SadComponentInstantiation" href="PyWave2.sad.xml#DCE:234d4a77-4473-427c-855e-f95155e24a2c"/>
+        <layoutConstraint xmi:type="notation:Bounds" xmi:id="_2NhVYZK_EeCeAs59sNiWHw"/>
+      </children>
+      <styles xmi:type="notation:SortingStyle" xmi:id="_2NgHRJK_EeCeAs59sNiWHw"/>
+      <styles xmi:type="notation:FilteringStyle" xmi:id="_2NgHRZK_EeCeAs59sNiWHw"/>
+    </children>
+    <element xmi:type="sad:SadComponentPlacement" href="PyWave2.sad.xml#//@partitioning/@componentPlacement.0"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_2NgHQZK_EeCeAs59sNiWHw" x="144" y="408"/>
+  </children>
+  <children xmi:type="notation:Shape" xmi:id="_2rrRAJK_EeCeAs59sNiWHw" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_2rrRApK_EeCeAs59sNiWHw" type="5006"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_2rrRA5K_EeCeAs59sNiWHw" type="7002">
+      <children xmi:type="notation:Shape" xmi:id="_2rsfIJK_EeCeAs59sNiWHw" type="3002" fontName="Sans">
+        <children xmi:type="notation:DecorationNode" xmi:id="_2rsfIpK_EeCeAs59sNiWHw" type="5004"/>
+        <children xmi:type="notation:Node" xmi:id="_2rtGMJK_EeCeAs59sNiWHw" type="3003">
+          <children xmi:type="notation:DecorationNode" xmi:id="_2rtGNZK_EeCeAs59sNiWHw" type="5001">
+            <layoutConstraint xmi:type="notation:Location" xmi:id="_2rtGNpK_EeCeAs59sNiWHw" y="5"/>
+          </children>
+          <styles xmi:type="notation:DescriptionStyle" xmi:id="_2rtGMZK_EeCeAs59sNiWHw"/>
+          <styles xmi:type="notation:FontStyle" xmi:id="_2rtGMpK_EeCeAs59sNiWHw" fontName="Sans"/>
+          <styles xmi:type="notation:LineStyle" xmi:id="_2rtGM5K_EeCeAs59sNiWHw"/>
+          <element xmi:type="partitioning:UsesPortStub" href="PyWave2.sad.xml#//@partitioning/@componentPlacement.1/@componentInstantiation.0/@uses.0"/>
+          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_2rtGNJK_EeCeAs59sNiWHw"/>
+        </children>
+        <children xmi:type="notation:Node" xmi:id="_2rtGN5K_EeCeAs59sNiWHw" type="3005">
+          <styles xmi:type="notation:DescriptionStyle" xmi:id="_2rtGOJK_EeCeAs59sNiWHw"/>
+          <styles xmi:type="notation:FontStyle" xmi:id="_2rtGOZK_EeCeAs59sNiWHw" fontName="Sans"/>
+          <styles xmi:type="notation:LineStyle" xmi:id="_2rtGOpK_EeCeAs59sNiWHw"/>
+          <element xmi:type="partitioning:ComponentSupportedInterfaceStub" href="PyWave2.sad.xml#//@partitioning/@componentPlacement.1/@componentInstantiation.0/@interfaceStub"/>
+          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_2rtGO5K_EeCeAs59sNiWHw"/>
+        </children>
+        <element xmi:type="sad:SadComponentInstantiation" href="PyWave2.sad.xml#DCE:5fa25678-26e4-4e33-b8ca-55943f3c5221"/>
+        <layoutConstraint xmi:type="notation:Bounds" xmi:id="_2rsfIZK_EeCeAs59sNiWHw"/>
+      </children>
+      <styles xmi:type="notation:SortingStyle" xmi:id="_2rrRBJK_EeCeAs59sNiWHw"/>
+      <styles xmi:type="notation:FilteringStyle" xmi:id="_2rrRBZK_EeCeAs59sNiWHw"/>
+    </children>
+    <element xmi:type="sad:SadComponentPlacement" href="PyWave2.sad.xml#//@partitioning/@componentPlacement.1"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_2rrRAZK_EeCeAs59sNiWHw" x="456" y="156"/>
+  </children>
+  <children xmi:type="notation:Shape" xmi:id="_3AuT8JK_EeCeAs59sNiWHw" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_3AuT8pK_EeCeAs59sNiWHw" type="5006"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_3AuT85K_EeCeAs59sNiWHw" type="7002">
+      <children xmi:type="notation:Shape" xmi:id="_3AviEJK_EeCeAs59sNiWHw" type="3002" fontName="Sans">
+        <children xmi:type="notation:DecorationNode" xmi:id="_3AviEpK_EeCeAs59sNiWHw" type="5004"/>
+        <children xmi:type="notation:Node" xmi:id="_3AwJIJK_EeCeAs59sNiWHw" type="3004">
+          <children xmi:type="notation:DecorationNode" xmi:id="_3AwJJZK_EeCeAs59sNiWHw" type="5002">
+            <layoutConstraint xmi:type="notation:Location" xmi:id="_3AwJJpK_EeCeAs59sNiWHw" y="5"/>
+          </children>
+          <styles xmi:type="notation:DescriptionStyle" xmi:id="_3AwJIZK_EeCeAs59sNiWHw"/>
+          <styles xmi:type="notation:FontStyle" xmi:id="_3AwJIpK_EeCeAs59sNiWHw" fontName="Sans"/>
+          <styles xmi:type="notation:LineStyle" xmi:id="_3AwJI5K_EeCeAs59sNiWHw"/>
+          <element xmi:type="partitioning:ProvidesPortStub" href="PyWave2.sad.xml#//@partitioning/@componentPlacement.2/@componentInstantiation.0/@provides.0"/>
+          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_3AwJJJK_EeCeAs59sNiWHw"/>
+        </children>
+        <children xmi:type="notation:Node" xmi:id="_3AwJJ5K_EeCeAs59sNiWHw" type="3005">
+          <styles xmi:type="notation:DescriptionStyle" xmi:id="_3AwJKJK_EeCeAs59sNiWHw"/>
+          <styles xmi:type="notation:FontStyle" xmi:id="_3AwJKZK_EeCeAs59sNiWHw" fontName="Sans"/>
+          <styles xmi:type="notation:LineStyle" xmi:id="_3AwJKpK_EeCeAs59sNiWHw"/>
+          <element xmi:type="partitioning:ComponentSupportedInterfaceStub" href="PyWave2.sad.xml#//@partitioning/@componentPlacement.2/@componentInstantiation.0/@interfaceStub"/>
+          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_3AwJK5K_EeCeAs59sNiWHw"/>
+        </children>
+        <element xmi:type="sad:SadComponentInstantiation" href="PyWave2.sad.xml#DCE:0cd605ee-1805-49cd-975a-652f799231e0"/>
+        <layoutConstraint xmi:type="notation:Bounds" xmi:id="_3AviEZK_EeCeAs59sNiWHw"/>
+      </children>
+      <styles xmi:type="notation:SortingStyle" xmi:id="_3AuT9JK_EeCeAs59sNiWHw"/>
+      <styles xmi:type="notation:FilteringStyle" xmi:id="_3AuT9ZK_EeCeAs59sNiWHw"/>
+    </children>
+    <element xmi:type="sad:SadComponentPlacement" href="PyWave2.sad.xml#//@partitioning/@componentPlacement.2"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_3AuT8ZK_EeCeAs59sNiWHw" x="819" y="384"/>
+  </children>
+  <styles xmi:type="notation:DiagramStyle" xmi:id="_yRkdMZK_EeCeAs59sNiWHw"/>
+  <styles xmi:type="diagram:EObjectContainerStyle" xmi:id="_yRkdMpK_EeCeAs59sNiWHw" name="FindByStubContainer"/>
+  <element xmi:type="sad:SoftwareAssembly" href="PyWave2.sad.xml#DCE:f2db0e7f-700a-4558-a6b5-1fcbb00dfe48"/>
+  <edges xmi:type="notation:Connector" xmi:id="_33Y2MJK_EeCeAs59sNiWHw" type="4001" source="_2Nh8cJK_EeCeAs59sNiWHw" target="_2rtGN5K_EeCeAs59sNiWHw" routing="Rectilinear" avoidObstructions="true">
+    <styles xmi:type="notation:FontStyle" xmi:id="_33Y2MZK_EeCeAs59sNiWHw" fontName="Sans"/>
+    <element xmi:type="sad:SadConnectInterface" href="PyWave2.sad.xml#DCE:2a3c9cf2-c412-4582-a12e-dc202a6394fa"/>
+    <bendpoints xmi:type="notation:RelativeBendpoints" xmi:id="_33Y2MpK_EeCeAs59sNiWHw" points="[-7, 5, 496, -315]$[-503, 320, 0, 0]"/>
+  </edges>
+  <edges xmi:type="notation:Connector" xmi:id="_43PwsJK_EeCeAs59sNiWHw" type="4001" source="_2Nh8cJK_EeCeAs59sNiWHw" target="_3AwJJ5K_EeCeAs59sNiWHw" routing="Rectilinear" avoidObstructions="true">
+    <styles xmi:type="notation:FontStyle" xmi:id="_43PwsZK_EeCeAs59sNiWHw" fontName="Sans"/>
+    <element xmi:type="sad:SadConnectInterface" href="PyWave2.sad.xml#DCE:a15e91f6-a71c-481c-acc2-54bf215c771f"/>
+    <bendpoints xmi:type="notation:RelativeBendpoints" xmi:id="_43PwspK_EeCeAs59sNiWHw" points="[3, 8, -121, -344]$[124, 352, 0, 0]"/>
+  </edges>
+  <edges xmi:type="notation:Connector" xmi:id="_5jMQsJK_EeCeAs59sNiWHw" type="4001" source="_2rtGMJK_EeCeAs59sNiWHw" target="_3AwJIJK_EeCeAs59sNiWHw" routing="Rectilinear" avoidObstructions="true">
+    <styles xmi:type="notation:FontStyle" xmi:id="_5jM3wJK_EeCeAs59sNiWHw" fontName="Sans"/>
+    <element xmi:type="sad:SadConnectInterface" href="PyWave2.sad.xml#DCE:1b4f3c4f-ba9d-4f8d-8fbb-a931412bcabd"/>
+    <bendpoints xmi:type="notation:RelativeBendpoints" xmi:id="_5jM3wZK_EeCeAs59sNiWHw" points="[8, 7, -399, -2]$[407, 9, 0, 0]"/>
+  </edges>
+</notation:Diagram>

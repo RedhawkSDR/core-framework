@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE deviceconfiguration PUBLIC '-//JTRS//DTD SCA V2.2.2 DCD//EN' 'deviceconfiguration.dtd'>
+<deviceconfiguration name="test_collocation_noexec_node" id="DCE:3db212f9-aae3-4ecc-8edf-28d4e3a7b310">
+    <devicemanagersoftpkg>
+        <localfile name="/mgr/DeviceManager.spd.xml"/>
+    </devicemanagersoftpkg>
+    <componentfiles>
+        <componentfile type="SPD" id="BasicUsesDevice_6eca3e97-3f7e-4c1f-a627-dc25f00c2f76">
+            <localfile name="/devices/BasicUsesDevice/BasicUsesDevice.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+    <partitioning>
+        <componentplacement>
+            <componentfileref refid="BasicUsesDevice_6eca3e97-3f7e-4c1f-a627-dc25f00c2f76"/>
+            <componentinstantiation id="test_collocation_noexec_node:noexec_device_1">
+                <usagename>noexec_device_1</usagename> 
+            </componentinstantiation>
+        </componentplacement>
+    </partitioning>
+    <domainmanager>
+        <namingservice name="DomainName1/DomainManager"/>
+    </domainmanager>
+</deviceconfiguration>

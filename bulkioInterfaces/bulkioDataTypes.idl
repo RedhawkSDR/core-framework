@@ -1,0 +1,95 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _BULKIODATATYPES_IDL_
+#define _BULKIODATATYPES_IDL_
+
+#include "ossie/CF/PortTypes.idl"
+#include "ossie/CF/cf.idl"
+
+module BULKIO {
+
+    //
+    // Time code modes
+    //
+    const short TCM_OFF  = 0;
+    const short TCM_CPU  = 1;
+    const short TCM_ZTC  = 2;
+    const short TCM_SDN  = 3;
+    const short TCM_SMS  = 4;
+    const short TCM_DTL  = 5;
+    const short TCM_IRB  = 6;
+    const short TCM_SDDS = 7;
+	
+    //
+    // Time code status
+    //
+    const short TCS_INVALID = 0;
+    const short TCS_VALID   = 1;
+
+    // 
+    // Units codes
+    //  - Only common units codes defined here
+    //
+    const short UNITS_NONE         = 0;  /* None / Not Applicable (N/A) */
+    const short UNITS_TIME         = 1;  /* Time (sec) */
+    const short UNITS_DELAY        = 2;  /* Delay (sec) */
+    const short UNITS_FREQUENCY    = 3;  /* Frequency (Hz) */
+    const short UNITS_TIMECODE     = 4;  /* Time code format */
+    const short UNITS_DISTANCE     = 5;  /* Distance (m) */
+    const short UNITS_VELOCITY     = 6;  /* Velocity (m/sec) */
+    const short UNITS_ACCELERATION = 7;  /* Acceleration (m/sec^2) */
+    const short UNITS_JERK         = 8;  /* Jerk (m/sec^3) */
+    const short UNITS_DOPPLER      = 9;  /* Doppler (Hz) */
+    const short UNITS_DOPPLERRATE  = 10; /* Doppler rate (Hz/sec) */
+    const short UNITS_ENERGY       = 11; /* Energy (J) */
+    const short UNITS_POWER        = 12; /* Power (W) */
+    const short UNITS_MASS         = 13; /* Mass (g) */
+
+    struct PrecisionUTCTime {
+        short tcmode;       /* timecode mode */
+        short tcstatus;     /* timecode status */
+        double toff;        /* Fractional sample offset */
+        double twsec;       /* J1970 GMT */
+        double tfsec;       /* 0.0 to 1.0 */
+
+    };
+
+    struct StreamSRI {
+        long hversion;    /* version of the StreamSRI header */
+        double xstart;    /* start time of the stream */
+        double xdelta;    /* delta between two samples */
+        short xunits;     /* unit types from Platinum specification; common codes defined above */
+        long subsize;     /* 0 if the data is one dimensional; > 0 if two dimensional */
+        double ystart;    /* start of second dimension */
+        double ydelta;    /* delta between two samples of second dimension */
+        short yunits;     /* unit types from Platinum specification; common codes defined above */
+        short mode;       /* 0-Scalar, 1-Complex */
+        string streamID;  /* stream identifier */
+        boolean blocking; /* flag to determine whether the receiving port should exhibit back pressure*/
+        sequence<CF::DataType> keywords; /* user defined keywords */
+    };
+    
+    typedef sequence <string>   StringSequence;
+    typedef sequence<StreamSRI> StreamSRISequence;
+
+};
+
+#endif

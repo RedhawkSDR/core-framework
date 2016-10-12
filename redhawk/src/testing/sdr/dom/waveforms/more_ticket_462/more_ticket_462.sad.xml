@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:1abcc10d-0e39-4be2-9c57-89b2f9be376d" name="more_ticket_462">
+  <componentfiles>
+    <componentfile id="ticket_462_ac_c31f0abe-7b5b-4541-9e1c-997a67e41d9d" type="SPD">
+      <localfile name="/components/ticket_462_ac/ticket_462_ac.spd.xml"/>
+    </componentfile>
+    <componentfile id="ticket_462_ce3fc2e2-40ab-4a02-b426-29d5b1400f0f" type="SPD">
+      <localfile name="/components/ticket_462/ticket_462.spd.xml"/>
+    </componentfile>
+    <componentfile id="another_ticket_462_98461cb9-4a51-4905-88f2-433092817bea" type="SPD">
+      <localfile name="/components/another_ticket_462/another_ticket_462.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="ticket_462_ac_c31f0abe-7b5b-4541-9e1c-997a67e41d9d"/>
+      <componentinstantiation id="ticket_462_ac_1" startorder="0">
+        <usagename>ticket_462_ac_1</usagename>
+        <componentproperties>
+          <simplesequenceref refid="my_seq">
+            <values>
+              <value>initial value</value>
+            </values>
+          </simplesequenceref>
+          <simpleref refid="my_simple" value="foo"/>
+          <structref refid="basic_struct">
+            <simpleref refid="some_simple" value="4"/>
+          </structref>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="ticket_462_ac_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="ticket_462_ce3fc2e2-40ab-4a02-b426-29d5b1400f0f"/>
+      <componentinstantiation id="ticket_462_1" startorder="1">
+        <usagename>ticket_462_1</usagename>
+        <componentproperties>
+          <structsequenceref refid="over_struct_seq">
+            <structvalue>
+              <simpleref refid="a_number" value="1"/>
+              <simpleref refid="a_word" value="something"/>
+            </structvalue>
+          </structsequenceref>
+          <simpleref refid="over_simple" value="override"/>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="ticket_462_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="another_ticket_462_98461cb9-4a51-4905-88f2-433092817bea"/>
+      <componentinstantiation id="another_ticket_462_1" startorder="2">
+        <usagename>another_ticket_462_1</usagename>
+        <componentproperties>
+          <simpleref refid="simple_prop" value="This is a string"/>
+          <simplesequenceref refid="seq_prop">
+             <values>
+               <value>9</value>
+               <value>8</value>
+               <value>7</value>
+             </values>
+          </simplesequenceref>
+          <structref refid="struct_prop">
+             <simpleref refid="prop_two" value="string override"/>
+          </structref>
+          <structsequenceref refid="struct_seq_prop">
+             <structvalue>
+               <simpleref refid="prop_five" value="1"/>
+               <simpleref refid="prop_six" value="123.0"/>
+             </structvalue>
+             <structvalue>
+               <simpleref refid="prop_four" value="anotherString"/>
+               <simpleref refid="prop_six" value="345.0"/>
+             </structvalue>
+             <structvalue>
+               <simpleref refid="prop_four" value="string_override"/>
+               <simpleref refid="prop_five" value="3"/>
+               <simpleref refid="prop_six" value="678.0"/>
+             </structvalue>
+             <structvalue>
+               <simpleref refid="prop_six" value="987.0"/>
+             </structvalue>
+           </structsequenceref>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="another_ticket_462_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="ticket_462_ac_1"/>
+  </assemblycontroller>
+</softwareassembly>

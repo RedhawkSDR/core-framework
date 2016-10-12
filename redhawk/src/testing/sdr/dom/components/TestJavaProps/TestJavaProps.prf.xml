@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+    <simple id="DCE:dd8d450f-d377-4c2c-8c3c-207e42dae017" mode="readwrite" name="ulong_prop" type="ulong">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+    <simple id="non_queryable" mode="writeonly" name="non_queryable" type="ulong">
+        <kind kindtype="configure"/>
+        <action type="external"/>
+    </simple>
+    <simple id="exec_param" mode="readwrite" name="exec_param" type="ulong">
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+    <simple id="non_query_exec_param" mode="writeonly" name="non_query_exec_param" type="ulong">
+        <kind kindtype="execparam"/>
+        <action type="external"/>
+    </simple>
+  <simplesequence id="DCE:3303ee57-70bb-4325-84ad-fb7fd333c44a" mode="readwrite" name="long_seq" type="long">
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <struct id="DCE:23a6d333-55fb-4425-a102-185e6e998782" mode="readwrite" name="struct_prop">
+    <simple id="item_long" mode="readwrite" type="long">
+      <value>0</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="item_string" mode="readwrite" type="string">
+      <value>default</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="configure"/>
+  </struct>
+  <structsequence id="DCE:d933f8ba-9e79-4d2c-a1b5-9fb9da0ea740" mode="readwrite" name="structseq_prop">
+    <struct id="">
+      <simple id="item_long" type="long"/>
+      <simple id="item_string" type="string"/>
+    </struct>
+    <configurationkind kindtype="configure"/>
+  </structsequence>
+</properties>

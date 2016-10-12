@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:73ccfe0b-cd20-4230-915c-fea266621325" name="PyWave">
+  <componentfiles>
+    <componentfile id="PySigGen_19dccdc3-6bae-4e6f-a5b5-81b8e8f7f455" type="SPD">
+      <localfile name="/components/PySigGen/PySigGen.spd.xml"/>
+    </componentfile>
+    <componentfile id="PySink_8a5695e8-96b1-4877-b68c-665eeeccef6e" type="SPD">
+      <localfile name="/components/PySink/PySink.spd.xml"/>
+    </componentfile>
+    <componentfile id="BasicAC_7ce74e06-01c3-4591-8ffc-ca856ae045b8" type="SPD">
+      <localfile name="/components/BasicAC/BasicAC.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="PySink_8a5695e8-96b1-4877-b68c-665eeeccef6e"/>
+      <componentinstantiation id="DCE:34ed47fb-8a13-4471-b377-3c04e61774de">
+        <usagename>PySink_1</usagename>
+        <findcomponent>
+          <namingservice name="PySink_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="BasicAC_7ce74e06-01c3-4591-8ffc-ca856ae045b8"/>
+      <componentinstantiation id="DCE:ead64ea3-cd34-470b-8678-6965f6a98800">
+        <usagename>BasicAC_1</usagename>
+        <findcomponent>
+          <namingservice name="BasicAC_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="PySigGen_19dccdc3-6bae-4e6f-a5b5-81b8e8f7f455"/>
+      <componentinstantiation id="DCE:03acc78d-68b6-4db7-b46f-e08f178f570e">
+        <usagename>PySigGen_1</usagename>
+        <findcomponent>
+          <namingservice name="PySigGen_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="DCE:ead64ea3-cd34-470b-8678-6965f6a98800"/>
+  </assemblycontroller>
+<!--
+  <connections>
+    <connectinterface id="DCE:cb32b407-e8b3-45c6-956b-cd8420f8609c">
+      <usesport>
+        <usesidentifier>resourceOut</usesidentifier>
+        <componentinstantiationref refid="DCE:ead64ea3-cd34-470b-8678-6965f6a98800"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:CF/Resource:1.0</supportedidentifier>
+        <componentinstantiationref refid="DCE:34ed47fb-8a13-4471-b377-3c04e61774de"/>
+      </componentsupportedinterface>
+    </connectinterface>
+    <connectinterface id="DCE:1eb5de1e-2b26-45a4-8543-25ed5929fbe3">
+      <usesport>
+        <usesidentifier>resourceOut</usesidentifier>
+        <componentinstantiationref refid="DCE:ead64ea3-cd34-470b-8678-6965f6a98800"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:CF/Resource:1.0</supportedidentifier>
+        <componentinstantiationref refid="DCE:03acc78d-68b6-4db7-b46f-e08f178f570e"/>
+      </componentsupportedinterface>
+    </connectinterface>
+    <connectinterface id="DCE:99270d2e-33b0-47e4-a9c6-656aa5b56e83">
+      <usesport>
+        <usesidentifier>dataOut</usesidentifier>
+        <componentinstantiationref refid="DCE:03acc78d-68b6-4db7-b46f-e08f178f570e"/>
+      </usesport>
+      <providesport>
+        <providesidentifier>dataIn</providesidentifier>
+        <componentinstantiationref refid="DCE:34ed47fb-8a13-4471-b377-3c04e61774de"/>
+      </providesport>
+    </connectinterface>
+  </connections>
+-->
+  <connections>
+    <connectinterface>
+      <usesport>
+        <usesidentifier>resourceOut</usesidentifier>
+        <componentinstantiationref refid="DCE:ead64ea3-cd34-470b-8678-6965f6a98800"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:CF/Resource:1.0</supportedidentifier>
+        <componentinstantiationref refid="DCE:34ed47fb-8a13-4471-b377-3c04e61774de"/>
+      </componentsupportedinterface>
+    </connectinterface>
+    <connectinterface>
+      <usesport>
+        <usesidentifier>resourceOut</usesidentifier>
+        <componentinstantiationref refid="DCE:ead64ea3-cd34-470b-8678-6965f6a98800"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:CF/Resource:1.0</supportedidentifier>
+        <componentinstantiationref refid="DCE:03acc78d-68b6-4db7-b46f-e08f178f570e"/>
+      </componentsupportedinterface>
+    </connectinterface>
+    <connectinterface>
+      <usesport>
+        <usesidentifier>dataOut</usesidentifier>
+        <componentinstantiationref refid="DCE:03acc78d-68b6-4db7-b46f-e08f178f570e"/>
+      </usesport>
+      <providesport>
+        <providesidentifier>dataIn</providesidentifier>
+        <componentinstantiationref refid="DCE:34ed47fb-8a13-4471-b377-3c04e61774de"/>
+      </providesport>
+    </connectinterface>
+  </connections>  
+</softwareassembly>

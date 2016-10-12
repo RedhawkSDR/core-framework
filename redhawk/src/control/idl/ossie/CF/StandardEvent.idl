@@ -1,0 +1,74 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+//Source file: StandardEvent.idl
+#ifndef __STANDARDEVENT_DEFINED
+#define __STANDARDEVENT_DEFINED
+module StandardEvent {
+    /* Type StateChangeCategoryType is an enumeration that is utilized in the StateChangeEventType. It is used to identify the category of state change that has occurred. */
+    enum StateChangeCategoryType {
+        ADMINISTRATIVE_STATE_EVENT,
+        OPERATIONAL_STATE_EVENT,
+        USAGE_STATE_EVENT
+    };
+    /* Type StateChangeType is an enumeration that is utilized in the StateChangeEventType. It is used to identify the specific states of the event source before and after the state change occurred. */
+    enum StateChangeType {
+        LOCKED,
+        UNLOCKED,
+        SHUTTING_DOWN,
+        ENABLED,
+        DISABLED,
+        IDLE,
+        ACTIVE,
+        BUSY
+    };
+    /* Type StateChangeEventType is a structure used to indicate that the state of the event source has changed. The event producer will send this structure into an event channel on behalf of the event source. */
+    struct StateChangeEventType {
+        string producerId;
+        string sourceId;
+        StandardEvent::StateChangeCategoryType stateChangeCategory;
+        StandardEvent::StateChangeType stateChangeFrom;
+        StandardEvent::StateChangeType stateChangeTo;
+    };
+    /* Type SourceCategoryType is an enumeration that is utilized in the DomainManagementObjectAddedEventType and DomainManagementObjectRemovedEventType. Is used to identify the type of object that has been added to or removed from the domain. */
+    enum SourceCategoryType {
+        DEVICE_MANAGER,
+        DEVICE,
+        APPLICATION_FACTORY,
+        APPLICATION,
+        SERVICE
+    };
+    /* Type DomainManagementObjectRemovedEventType is a structure used to indicate that the event source has been removed from the domain. The event producer will send this structure into an event channel on behalf of the event source. */
+    struct DomainManagementObjectRemovedEventType {
+        string producerId;
+        string sourceId;
+        string sourceName;
+        StandardEvent::SourceCategoryType sourceCategory;
+    };
+    /* Type DomainManagementObjectAddedEventType is a structure used to indicate that the event source has been added to the domain. The event producer will send this structure into an event channel on behalf of the event source. */
+    struct DomainManagementObjectAddedEventType {
+        string producerId;
+        string sourceId;
+        string sourceName;
+        StandardEvent::SourceCategoryType sourceCategory;
+        Object sourceIOR;
+    };
+};
+#endif

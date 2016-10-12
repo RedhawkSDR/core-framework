@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:938362bb-d35f-4b9e-8b5c-b73789d2b8f4" name="BasicAlwaysBusyDevice" type="sca_compliant" version="">
+    <title />
+    <author>
+        <name>REDHAWK test author</name>
+    </author>
+    <propertyfile type="PRF">
+        <localfile name="BasicAlwaysBusyDevice.prf.xml" />
+    </propertyfile>
+    <descriptor name="">
+        <localfile name="BasicAlwaysBusyDevice.scd.xml" />
+    </descriptor>
+    <!-- Test two implementations, the first one shouldn't match anything 
+         and therefore should never be used -->
+    <implementation id="DCE:3e77bf67-1622-4adf-b2b9-8548235ad36f" aepcompliance="aep_compliant">
+        <code type="Executable">
+            <localfile name="NonExistantTestDevice.py" />
+            <entrypoint>NonExistantTestDevice.py</entrypoint>
+        </code>
+        <compiler name="gcc" version="3.4" />
+        <humanlanguage name="english" />
+        <os name="SCO ODT"/>
+        <processor name="ADSP21xx" />
+    </implementation>
+    <implementation id="DCE:e2297b73-c7ea-405c-bbbd-361322d97b4d" aepcompliance="aep_compliant">
+        <propertyfile type="PRF">
+            <localfile name="BasicAlwaysBusyDevice.Linux.x86.prf.xml" />
+        </propertyfile>
+        <code type="Executable">
+            <localfile name="./" />
+            <entrypoint>BasicAlwaysBusyDevice.py</entrypoint>
+        </code>
+        <compiler name="gcc" version="3.4" />
+        <humanlanguage name="english" />
+        <os name="Linux"/>
+        <processor name="x86" />
+        <processor name="x86_64" />
+    </implementation>
+</softpkg>

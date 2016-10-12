@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:e6b136d5-6bf2-48ee-b2ec-52ceb9b80194" name="CommandWrapperWithOrder">
+	<componentfiles>
+		<componentfile id="CommandWrapperStartCounter_bfbfc18d-206a-4432-8a71-e219882abff2" type="SPD">
+			<localfile name="/components/CommandWrapperStartCounter/CommandWrapperStartCounter.spd.xml" />
+		</componentfile>
+	</componentfiles>
+	<partitioning>
+		<componentplacement>
+			<componentfileref refid="CommandWrapperStartCounter_bfbfc18d-206a-4432-8a71-e219882abff2" />
+			<componentinstantiation id="myid1" startorder="100">
+				<usagename>CWSC1</usagename>
+				<findcomponent>
+					<namingservice name="CWSC1" />
+				</findcomponent>
+			</componentinstantiation>
+		</componentplacement>
+		<componentplacement>
+			<componentfileref refid="CommandWrapperStartCounter_bfbfc18d-206a-4432-8a71-e219882abff2" />
+			<componentinstantiation id="myid2" startorder="5">
+				<usagename>CWSC2</usagename>
+				<findcomponent>
+					<namingservice name="CWSC2" />
+				</findcomponent>
+			</componentinstantiation>
+		</componentplacement>
+		<componentplacement>
+			<componentfileref refid="CommandWrapperStartCounter_bfbfc18d-206a-4432-8a71-e219882abff2" />
+			<componentinstantiation id="myid3" startorder="5">
+				<usagename>CWSC3</usagename>
+				<findcomponent>
+					<namingservice name="CWSC3" />
+				</findcomponent>
+			</componentinstantiation>
+		</componentplacement>
+		<componentplacement>
+			<componentfileref refid="CommandWrapperStartCounter_bfbfc18d-206a-4432-8a71-e219882abff2" />
+			<componentinstantiation id="myid4">
+				<usagename>CWSC4</usagename>
+				<findcomponent>
+					<namingservice name="CWSC4" />
+				</findcomponent>
+			</componentinstantiation>
+		</componentplacement>
+	</partitioning>
+	<assemblycontroller>
+		<componentinstantiationref refid="myid1" />
+	</assemblycontroller>
+</softwareassembly>

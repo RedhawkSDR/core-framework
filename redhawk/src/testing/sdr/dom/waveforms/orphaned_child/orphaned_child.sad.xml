@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<softwareassembly name="orphaned_child" id="DCE:9cd1c0ff-842f-46fb-a352-40095b2bc79d">
+    <componentfiles>
+		<componentfile type="SPD" id="orphaned_child_df0ab02d-e96a-4278-ba8a-4367fe4f60bb">
+			<localfile name="/components/orphaned_child/orphaned_child.spd.xml">
+			</localfile>
+		</componentfile>
+    </componentfiles>
+    <partitioning>
+	<componentplacement>
+		<componentfileref refid="orphaned_child_df0ab02d-e96a-4278-ba8a-4367fe4f60bb">
+		</componentfileref>
+		<componentinstantiation id="DCE:c13e7510-460d-44d0-8dc7-76bcc2ee139b">
+			<usagename>orphaned_child_1</usagename>
+			<findcomponent>
+				<namingservice name="orphaned_child_1"/>
+			</findcomponent>
+		</componentinstantiation>
+	</componentplacement>
+    </partitioning>
+    <assemblycontroller>
+		<componentinstantiationref refid="DCE:c13e7510-460d-44d0-8dc7-76bcc2ee139b"/>
+    </assemblycontroller>
+</softwareassembly>

@@ -1,0 +1,4 @@
+if (! $?SDRROOT ) then
+    setenv SDRROOT @sdrroot@
+endif
+

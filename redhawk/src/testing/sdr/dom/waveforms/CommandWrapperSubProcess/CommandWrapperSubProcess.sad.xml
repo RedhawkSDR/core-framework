@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
+<softwareassembly id="DCE:6a91eb79-8c2a-4a3c-bc9d-eb868099c286" name="CommandWrapperSubProcess">
+    <componentfiles>
+        <componentfile id="CommandWrapperSubProcess_spd_file" type="SPD">
+            <localfile name="/components/CommandWrapperSubProcess/CommandWrapperSubProcess.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+    <partitioning>
+        <componentplacement>
+            <componentfileref refid="CommandWrapperSubProcess_spd_file"/>
+            <componentinstantiation id="DCE:c4be2b85-fb96-4b45-99b2-4815af13d181">
+                <usagename>CommandWrapperSubProcess1</usagename> 
+                <findcomponent>
+                    <namingservice name="CommandWrapperSubProcess1"/>
+                </findcomponent>
+            </componentinstantiation>
+        </componentplacement>
+    </partitioning>
+    <assemblycontroller>
+        <componentinstantiationref refid="DCE:c4be2b85-fb96-4b45-99b2-4815af13d181"/>
+    </assemblycontroller>
+    <connections>
+    </connections>
+</softwareassembly>

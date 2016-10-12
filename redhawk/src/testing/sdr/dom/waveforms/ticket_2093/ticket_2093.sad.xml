@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:1c04ef30-6368-4a4e-a23e-f1771593310c" name="ticket_2093">
+  <componentfiles>
+    <componentfile id="ticket2093_50b9d1b3-fdea-4903-8fcd-a043c9430881" type="SPD">
+      <localfile name="/components/ticket2093/ticket2093.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="ticket2093_50b9d1b3-fdea-4903-8fcd-a043c9430881"/>
+      <componentinstantiation id="ticket2093_1" startorder="0">
+        <usagename>ticket2093_1</usagename>
+        <findcomponent>
+          <namingservice name="ticket2093_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="ticket2093_1"/>
+  </assemblycontroller>
+</softwareassembly>

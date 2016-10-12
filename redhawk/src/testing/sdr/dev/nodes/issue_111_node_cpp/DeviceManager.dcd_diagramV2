@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns="http://sca.jpeojtrs.mil/dcd" xmlns:diagram="http://sca.jpeojtrs.mil/diagram" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmi:id="_AzOgwB-rEeK3Qei3rII0AQ" type="Dcd" name="DeviceManager.dcd_diagramV2" measurementUnit="Pixel">
+  <children xmi:type="notation:Shape" xmi:id="_BjjxgB-rEeK3Qei3rII0AQ" type="3001" fontName="Sans">
+    <children xmi:type="notation:DecorationNode" xmi:id="_Bjjxgh-rEeK3Qei3rII0AQ" type="5005"/>
+    <children xmi:type="notation:DecorationNode" xmi:id="_Bjjxgx-rEeK3Qei3rII0AQ" type="7002"/>
+    <element xmi:type="DcdComponentPlacement" href="DeviceManager.dcd.xml#//@partitioning/@componentPlacement.0"/>
+    <layoutConstraint xmi:type="notation:Bounds" xmi:id="_BjjxgR-rEeK3Qei3rII0AQ" x="467" y="213"/>
+  </children>
+  <styles xmi:type="notation:DiagramStyle" xmi:id="_AzOgwR-rEeK3Qei3rII0AQ"/>
+  <styles xmi:type="diagram:EObjectContainerStyle" xmi:id="_AzOgwh-rEeK3Qei3rII0AQ" name="FindByStubContainer"/>
+  <element xmi:type="DeviceConfiguration" href="DeviceManager.dcd.xml#DCE:b0215c09-e60b-45bf-b808-8b8f56183471"/>
+</notation:Diagram>

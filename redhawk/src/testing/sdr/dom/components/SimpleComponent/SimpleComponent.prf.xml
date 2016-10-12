@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="DCE:c709f95e-6b05-439a-9db9-dba95e70888e" mode="readwrite" name="ep_only" type="string">
+    <value>default execparam only value</value>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:6ea8108d-76ea-4532-9255-01684ad68429" mode="readwrite" name="ep_cfg" type="string">
+    <value>default execparam-config value</value>
+    <kind kindtype="configure"/>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+  <simple id="DCE:10add64d-1160-4de0-885b-46a991f52f1d" mode="readwrite" name="myOct" type="octet">
+    <value>50</value>
+    <kind kindtype="configure"/>
+    <kind kindtype="execparam"/>
+    <action type="external"/>
+  </simple>
+</properties>

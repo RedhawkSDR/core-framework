@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
+<softwareassembly id="DCE:2370aeff-05f1-4dff-9744-2812de0baf84" name="MessageTestCpp">
+    <componentfiles>
+        <componentfile id="MessageReceiverCppFile" type="SPD">
+            <localfile name="/components/MessageReceiverCpp/MessageReceiverCpp.spd.xml"/>
+        </componentfile>
+        <componentfile id="MessageSenderCppFile" type="SPD">
+            <localfile name="/components/MessageSenderCpp/MessageSenderCpp.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+  <partitioning>
+    <componentplacement>
+        <componentfileref refid="MessageReceiverCppFile"/>
+        <componentinstantiation id="DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8">
+            <usagename>MessageReceiverCpp_1</usagename>
+            <findcomponent>
+                <namingservice name="MessageReceiverCpp_1"/>
+            </findcomponent>
+        </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+        <componentfileref refid="MessageSenderCppFile"/>
+        <componentinstantiation id="DCE:f7e0ac7c-5d4c-45b2-910f-a937bf7625b5">
+            <usagename>MessageSenderCpp_1</usagename>
+            <findcomponent>
+                <namingservice name="MessageSenderCpp_1"/>
+            </findcomponent>
+        </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+      <componentinstantiationref refid="DCE:f7e0ac7c-5d4c-45b2-910f-a937bf7625b5"/>
+  </assemblycontroller>
+  <connections>
+      <connectinterface>
+          <usesport>
+              <usesidentifier>message_out</usesidentifier>
+              <componentinstantiationref refid="DCE:f7e0ac7c-5d4c-45b2-910f-a937bf7625b5"/>
+          </usesport>
+          <providesport>
+              <providesidentifier>message_in</providesidentifier>
+              <componentinstantiationref refid="DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8"/>
+          </providesport>
+      </connectinterface>
+      <connectinterface>
+          <usesport>
+              <usesidentifier>message_in</usesidentifier>
+              <componentinstantiationref refid="DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8"/>
+          </usesport>
+          <findby>
+              <domainfinder type="eventchannel" name="message_two"/>
+          </findby>
+      </connectinterface>
+      <connectinterface>
+          <usesport>
+              <usesidentifier>message_out</usesidentifier>
+              <componentinstantiationref refid="DCE:f7e0ac7c-5d4c-45b2-910f-a937bf7625b5"/>
+          </usesport>
+          <findby>
+              <domainfinder type="eventchannel" name="message_two"/>
+          </findby>
+      </connectinterface>
+  </connections>
+</softwareassembly>

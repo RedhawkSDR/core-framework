@@ -1,0 +1,57 @@
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# distributed with this source distribution.
+# 
+# This file is part of REDHAWK core.
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
+# later version.
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Lesser General Public License 
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+namespace urn:mil:jpeojtrs:sca:dcd {
+    include "memory";
+    include "map";
+    include "../include/ossie/DeviceManagerConfiguration.h";
+    deviceconfiguration "::std::auto_ptr<ossie::DeviceManagerConfiguration::DCD>";
+    componentfiles "::std::vector<ossie::ComponentFile>";
+    componentfile "::ossie::ComponentFile";
+    componentplacement "::ossie::ComponentPlacement";
+    partitioning "::std::vector<ossie::ComponentPlacement>";
+    componentinstantiation "::ossie::ComponentInstantiation";
+    connections "::std::vector<ossie::Connection>";
+    connectinterface "::ossie::Connection";
+    usesport "::ossie::UsesPort";
+    providesport "::ossie::ProvidesPort";
+    componentsupportedinterface "::ossie::ComponentSupportedInterface";
+    devicemanagersoftpkg "::std::string";
+    localfile "::std::string";
+    description "::std::string";
+    domainmanager "::std::string";
+    findby "::ossie::FindBy";
+    namingservice "::std::string";
+    domainfinder "::std::pair<std::string, std::string>";
+    componentproperties "::std::vector<ossie::ComponentProperty*>";
+    simpleref "ossie::SimplePropertyRef*";
+    simplesequenceref "ossie::SimpleSequencePropertyRef*";
+    structref "ossie::StructPropertyRef*";
+    structsequenceref "ossie::StructSequencePropertyRef*";
+    structvalue "::std::map<std::string, std::string>";
+    values "::std::vector<std::string>";
+    componentfileref "::std::string";
+    deployondevice "::std::string";
+    compositepartofdevice "::std::string";
+    refid "::std::string";
+    componentinstantiationref "::std::string";
+    devicethatloadedthiscomponentref "::std::string";
+    deviceusedbythiscomponentref "::std::pair<std::string, std::string>";
+}
