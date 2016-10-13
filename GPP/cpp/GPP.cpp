@@ -1382,7 +1382,7 @@ bool GPP_i::_component_cleanup( const int child_pid, const int exit_status ) {
 
 bool GPP_i::_check_limits( const thresholds_struct &thresholds)
 {
-    limit_check_count = (++limit_check_count) % 10;
+    limit_check_count = (limit_check_count + 1) % 10;
     if ( limit_check_count ) {
         return false;
     }
@@ -2407,13 +2407,14 @@ int GPP_i::sigchld_handler(int sig)
           int status;
           pid_t child_pid;
           bool reap=false;
-          bool retv=false;
           while( (child_pid = waitpid(-1, &status, WNOHANG)) > 0 ) {
             LOG_TRACE(GPP_i, "WAITPID died , pid .................................." << child_pid);
             if ( (uint)child_pid == si.ssi_pid ) reap=true;
-            retv=_component_cleanup( child_pid, status );
+            _component_cleanup( child_pid, status );
           }
-          if ( !reap ) { retv=_component_cleanup( si.ssi_pid, status ); }
+          if ( !reap ) {
+            _component_cleanup( si.ssi_pid, status );
+          }
         }
         else {
           LOG_TRACE(GPP_i, "read from signalfd --> signo:" << si.ssi_signo);
