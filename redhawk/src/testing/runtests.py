@@ -1,4 +1,3 @@
-import os.path
 #!/usr/bin/env python
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
@@ -49,7 +48,7 @@ def appendClassPath(path):
 
 def configureTestPaths():
     # Point to the testing SDR folder
-    testdir = os.path.abspath(os.dirname(__file__))
+    testdir = os.path.abspath(os.path.dirname(__file__))
     os.environ['SDRROOT'] = os.path.join(testdir, "sdr")
 
     # The top source directory is one levels up from this file
