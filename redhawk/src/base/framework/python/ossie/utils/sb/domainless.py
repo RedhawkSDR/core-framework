@@ -646,7 +646,7 @@ def loadSADFile(filename, props={}):
         externprops=[]
         if sad.get_externalproperties():
             externprops=[ { 'comprefid' : x.comprefid, 'propid' : x.propid, 'externalpropid' : x.externalpropid } for x in sad.get_externalproperties().get_property() ]
-            log.info( "External Props:", externprops )
+            log.debug( "External Props: %s", externprops )
 
         # Loop over each <componentplacement> entry to determine actual instance name for component
         # NOTE: <componentplacement> can also occur within <hostcollocation> elements if that exists
