@@ -1145,7 +1145,34 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
     }
     catch( CF::InvalidObjectReference &ex ) {
       LOG_FATAL(Device_impl, "Device " << label << ", Failed initialization and registration, terminating execution");
+      CORBA::COMM_FAILURE
       exit(EXIT_FAILURE);
+    } catch ( CORBA::SystemException &ex ) {
+        std::ostringstream eout;
+        eout<<"CORBA::"<<ex._name()<<"(";
+        const char* minor = ex.NP_minorString();
+        if (minor)
+            eout<<minor;
+        else {
+            eout << "0x" << std::hex << ex.minor();
+        }
+        eout << ", CORBA::";
+        switch (ex.completed()) {
+            case CORBA::COMPLETED_YES:
+                eout << "COMPLETED_YES";
+                break;
+            case CORBA::COMPLETED_NO:
+                eout << "COMPLETED_NO";
+                break;
+            default:
+                eout << "COMPLETED_MAYBE";
+        }
+        eout << ")";
+        LOG_FATAL(Device_impl, "Unable to complete Device construction: "<<eout.str());
+        exit(EXIT_FAILURE);
+    } catch ( ... ) {
+        LOG_FATAL(Device_impl, "device fatal failure");
+        exit(EXIT_FAILURE);
     }
 
     if (skip_run) {

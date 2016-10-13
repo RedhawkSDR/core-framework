@@ -326,6 +326,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dev/devices/PersonaDevice/cpp/Makefile \
                 testing/sdr/dev/devices/ProgrammableDevice/cpp/Makefile \
                 testing/sdr/dev/devices/cpp_dev/cpp/Makefile \
+                testing/sdr/dev/devices/dev_kill_devmgr/cpp/Makefile \
                 testing/sdr/dev/devices/GPP/cpp/Makefile \
                 testing/sdr/dev/devices/java_dev/java/Makefile \
                 testing/sdr/dev/services/BasicService_java/java/Makefile \
