@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-TestLargePush.jar: $(TestLargePush_jar_SOURCES)
+TestLargePush.jar$(EXEEXT): $(TestLargePush_jar_SOURCES)
 	mkdir -p bin
 	$(JAVAC) -cp $(CLASSPATH_SOFTPKG_DEP)$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(bulkio_top)/BULKIOInterfaces.jar:$(bulkio_libsrc_top)/bulkio.jar -d bin $(TestLargePush_jar_SOURCES)
 	$(JAR) cf ./TestLargePush.jar -C bin .
