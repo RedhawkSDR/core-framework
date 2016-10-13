@@ -20,8 +20,7 @@
 #
 
 # System imports
-# NOTE: all REDHAWK framework imports must occur after prepending
-# ../base/framework/python to the PYTHONPATH.
+# NOTE: all REDHAWK framework imports must occur after configureTestPaths()
 import commands
 import unittest
 import os
@@ -29,10 +28,6 @@ import re
 import shutil
 import sys
 import time
-
-if os.path.abspath(os.path.dirname(__file__)) != os.getcwd():
-    print "runtests.py *must* be run from within the testing folder"
-    sys.exit(-1)
 
 def prependPythonPath(thepath):
     theabspath = os.path.abspath(thepath)
@@ -51,34 +46,43 @@ def appendPath(varname, path):
 def appendClassPath(path):
     appendPath('CLASSPATH', path)
 
-# Point to the testing SDR folder
-os.environ['SDRROOT'] = os.path.join(os.getcwd(), "sdr")
+def configureTestPaths():
+    # Point to the testing SDR folder
+    testdir = os.path.dirname(__file__)
+    os.environ['SDRROOT'] = os.path.join(testdir, "sdr")
+
+    # The top source directory is one levels up from this file
+    topdir = os.path.abspath(os.path.join(testdir, '..'))
+
+    # Bring in the Python OSSIE stuff for things running in this process
+    prependPythonPath(os.path.join(topdir, 'base/framework/python'))
+
+    # Add Java libraries to CLASSPATH so that test components can find them
+    # regardless of where they run.
+    jarfiles = [ 'CFInterfaces.jar', 'apache-commons-lang-2.4.har'
+                 'log4j-1.2.15.jar', 'ossie/ossie.jar' ]
+    for jarfile in jarfiles:
+        appendClassPath(os.path.join(topdir, 'base/framework/java', jarfile))
+
+    # Add path to libomnijni.so to LD_LIBRARY_PATH for Java components
+    appendPath('LD_LIBRARY_PATH', os.path.join(topdir, 'omnijni/src/cpp/.libs'))
+    appendPath('LD_LIBRARY_PATH', os.path.join(topdir, 'base/plugin/logcfg/.libs'))
+
+    # Set the model IDL paths to point to the (uninstalled) REDHAWK IDLs.
+    from ossie.utils import model
+    from ossie.utils.idllib import IDLLibrary
+    model._idllib = IDLLibrary()
+    model._idllib.addSearchPath(os.path.join(topdir, 'idl'))
+
+# Set up the system paths (LD_LIBRARY_PATH, PYTHONPATH, CLASSPATH), IDL paths
+# and SDRROOT to allow testing against an uninstalled framework.
+configureTestPaths()
 
 # Point the SDR cache to a different location so that it's easy to clean/ignore
 os.environ['SDRCACHE'] = os.path.join(os.environ['SDRROOT'], "cache")
 shutil.rmtree(os.environ['SDRCACHE'], ignore_errors=True)
 
-# Bring in the Python OSSIE stuff for things running in this process
-prependPythonPath("../base/framework/python")
-
-# Add Java libraries to CLASSPATH so that test components can find them
-# regardless of where they run.
-appendClassPath('../base/framework/java/CFInterfaces.jar')
-appendClassPath('../base/framework/java/apache-commons-lang-2.4.jar')
-appendClassPath('../base/framework/java/log4j-1.2.15.jar')
-appendClassPath('../base/framework/java/ossie/ossie.jar')
-
-# Add path to libomnijni.so to LD_LIBRARY_PATH for Java components
-appendPath('LD_LIBRARY_PATH', '../omnijni/src/cpp/.libs')
-appendPath('LD_LIBRARY_PATH', '../base/plugin/logcfg/.libs')
-
-# Set the model IDL paths to point to the (uninstalled) REDHAWK IDLs.
-from _unitTestHelpers import scatest
 from _unitTestHelpers import runtestHelpers
-from ossie.utils import model
-from ossie.utils.idllib import IDLLibrary
-model._idllib = IDLLibrary()
-model._idllib.addSearchPath('../idl')
 
 class PromptTestLoader(unittest.TestLoader):
     PROMPT = False
@@ -132,6 +136,10 @@ class TestCollector(unittest.TestSuite):
                     pass
 
 if __name__ == "__main__":
+    if os.path.abspath(os.path.dirname(__file__)) != os.getcwd():
+        print "runtests.py *must* be run from within the testing folder"
+        sys.exit(-1)
+
     from optparse import OptionParser
     sys.path.append("helpers")
     import xmlrunner
@@ -189,6 +197,7 @@ if __name__ == "__main__":
     
     (options, args) = parser.parse_args()
     
+    from _unitTestHelpers import scatest
     scatest.DEBUG_NODEBOOTER = options.gdb
     scatest.GDB_CMD_FILE = options.gdbfile
 
