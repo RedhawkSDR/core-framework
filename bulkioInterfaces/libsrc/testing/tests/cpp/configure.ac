@@ -20,8 +20,9 @@
 
 
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(Makefile.am)
-AM_INIT_AUTOMAKE(Bulkio_Test,0.1)
+AC_INIT([Bulkio_Test], [0.1])
+AC_CONFIG_SRCDIR([Bulkio.cpp])
+AM_INIT_AUTOMAKE
 AM_PATH_CPPUNIT(1.9.6)
 AC_PROG_CXX
 AC_PROG_CC
