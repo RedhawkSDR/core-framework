@@ -23,6 +23,10 @@ import sys
 # The testing directory should be one level above this package
 testdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
+# Explicitly set the test logging config properties (if not already set)
+if 'OSSIEUNITTESTSLOGCONFIG' not in os.environ:
+    os.environ['OSSIEUNITTESTSLOGCONFIG'] = os.path.join(testdir, "runtest.props")
+
 # Add the testing directory to the Python system path so that we can import
 # runtests as a module, and the _unitTestHelpers package
 sys.path.append(testdir)
