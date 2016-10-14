@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:89753cf5-0ba0-4d50-bb07-83a956c03f67" name="dev_comp_softpkg" type="2.0.4">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="dev_comp_softpkg.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="dev_comp_softpkg.scd.xml"/>
+  </descriptor>
+  <implementation id="python">
+    <description>The implementation contains descriptive information about the template for a software resource.</description>
+    <code type="Executable">
+      <localfile name="python"/>
+      <entrypoint>python/dev_comp_softpkg.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <runtime name="python" version="2.6.6"/>
+    <os name="Linux"/>
+    <dependency type="allocation">
+      <propertyref refid="some_alloc" value="5"/>
+    </dependency>
+  </implementation>
+</softpkg>
