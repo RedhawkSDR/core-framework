@@ -1145,7 +1145,6 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
     }
     catch( CF::InvalidObjectReference &ex ) {
       LOG_FATAL(Device_impl, "Device " << label << ", Failed initialization and registration, terminating execution");
-      CORBA::COMM_FAILURE
       exit(EXIT_FAILURE);
     } catch ( CORBA::SystemException &ex ) {
         std::ostringstream eout;
