@@ -79,8 +79,11 @@ class DeviceDeviceManagerTest(scatest.CorbaTestCase):
             os.remove('tmp_logfile.log')
 
         killChildProcesses(os.getpid())
-        
+
+    @scatest.requireLog4cxx
     def test_deviceKillDeviceManager(self):
+        # This test requires log4cxx support because it checks the device
+        # manager's log output
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/dev_kill_devmgr_node/DeviceManager.dcd.xml", loggingURI=os.getcwd()+'/tmp_logfile.config', wait=False)
         time.sleep(2)
         self.assertEquals(devMgr, None)
@@ -88,6 +91,3 @@ class DeviceDeviceManagerTest(scatest.CorbaTestCase):
         logcontents = fp.read()
         fp.close()
         self.assertNotEqual(logcontents.find('Unable to complete Device construction: CORBA'), -1)
-        
-        
-
