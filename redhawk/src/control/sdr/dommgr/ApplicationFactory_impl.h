@@ -72,8 +72,26 @@ private:
     std::string getBaseWaveformContext(std::string waveform_context);
 
     static void ValidateFileLocation ( CF::FileManager_ptr fileMgr, const std::string &profile );
-    static void ValidateSoftPkgDep( CF::FileManager_ptr fileMgr, DomainManager_impl *domMgr, const std::string &profile );
-    static void ValidateSPD (CF::FileManager_ptr fileMgr, DomainManager_impl *domMgr, ossie::SoftPkg &spd, const std::string &profile, const bool require_prf=true, const bool require_scd=true );
+    static void ValidateSoftPkgDep( CF::FileManager_ptr fileMgr, 
+                                    DomainManager_impl *domMgr,  
+                                    const std::string &profile, 
+                                    const bool allow_missing=true );
+    static void ValidateSPD (CF::FileManager_ptr fileMgr, 
+                             DomainManager_impl *domMgr, 
+                             ossie::SoftPkg &spd, 
+                             const std::string &profile, 
+                             const bool require_prf=true, 
+                             const bool require_scd=true, 
+                             const bool allow_missing_impl=true,
+                             const bool is_dep = false);
+
+    static bool ValidateImplementationCodeFile( CF::FileManager_ptr fileMgr,
+                                        DomainManager_impl *domMgr,
+                                        const std::string &spd_path,
+                                        const std::string &sfw_profile,
+                                        const std::string &codeFile,
+                                        const bool allow_missing_impl=true );
+
 
 protected:
     static std::string xmlParsingVersionMismatch(DomainManager_impl *domMgr, std::string &component_version);
@@ -262,13 +280,19 @@ private:
                                    const std::string& assignedDeviceId,
                                    const std::string& appIdentifier);
 
+    bool validateImplementationCodeFile(ossie::ComponentInfo*  component,
+                                        ossie::ImplementationInfo* impl, 
+                                        std::string &emsg,
+                                        const bool clear_on_fail=true,
+                                        const bool suppress_log = false );
+    void validateSoftpkgDependencies( const ossie::ImplementationInfo* implementation );
     bool resolveSoftpkgDependencies(ossie::ImplementationInfo* implementation, ossie::DeviceNode& device);
-    ossie::ImplementationInfo* resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg, ossie::DeviceNode& device);
+    ossie::ImplementationInfo* resolveDependencyImplementation(const ossie::SoftpkgInfoPtr &softpkg, ossie::DeviceNode& device);
     
     // Supports loading, executing, initializing, configuring, & connecting
     void loadDependencies(ossie::ComponentInfo& component,
                           CF::LoadableDevice_ptr device,
-                          const std::vector<ossie::SoftpkgInfo*>& dependencies);
+                          const ossie::SoftpkgInfoList & dependencies);
 
     void loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg);
     void applyApplicationAffinityOptions();

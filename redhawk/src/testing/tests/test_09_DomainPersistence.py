@@ -895,8 +895,15 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
             if not found:
                 self.fail("No external property recovered with ID : " + prop.id)
 
-        # Make sure configure doesn't fail
-        newApp.configure(props)
+        # Make sure configure doesn't fail (using the assumption that all of
+        # the external start with 'ext_' and are writeable)
+        configProps = []
+        for prop in props:
+            if prop.id.startswith('ext_'):
+                configProps.append(prop)
+        # If there are no external properties, this test is invalid
+        self.assert_(len(configProps) > 0)
+        newApp.configure(configProps)
 
     def test_RegisteredDomains(self):
         nb, domMgr = self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile)

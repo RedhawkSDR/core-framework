@@ -17,26 +17,24 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-import os,sys,inspect
-dir = os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe())))
-sys.path.append(os.path.join(dir, "../_unitTestHelper"))
-sys.path.append(os.path.join(dir, "../../base/framework/python"))
-os.environ['PYTHONPATH'] = os.path.join(dir, "../../base/framework/python")
+import os
+import sys
+
+# The testing directory should be one level above this package
+testdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+# Explicitly set the test logging config properties (if not already set)
+if 'OSSIEUNITTESTSLOGCONFIG' not in os.environ:
+    os.environ['OSSIEUNITTESTSLOGCONFIG'] = os.path.join(testdir, "runtest.props")
+
+# Add the testing directory to the Python system path so that we can import
+# runtests as a module, and the _unitTestHelpers package
+sys.path.append(testdir)
+
+# Set up the system paths (LD_LIBRARY_PATH, PYTHONPATH, CLASSPATH), IDL paths
+# and SDRROOT to allow testing against an uninstalled framework.
+import runtests
+runtests.configureTestPaths()
+
 from _unitTestHelpers import scatest
-os.environ['OSSIEUNITTESTSLOGCONFIG'] = os.path.join(dir, "../runtest.props")
-os.environ['SDRROOT'] = os.path.join(dir, "../sdr")
-# Point the SDR cache to a different location so that it's easy to clean/ignore
-os.environ['SDRCACHE'] = os.path.join(os.environ['SDRROOT'], "cache")
-
-def appendClassPath(path):
-    classpath = os.environ.get('CLASSPATH', '').split(':')
-    classpath.append(os.path.abspath(path))
-    os.environ['CLASSPATH'] = ':'.join(classpath)
-
-# Add Java libraries to CLASSPATH so that test components can find them
-# regardless of where they run.
-appendClassPath(os.path.join(dir, "../../base/framework/java/CFInterfaces.jar"))
-appendClassPath(os.path.join(dir, "../../base/framework/java/apache-commons-lang-2.4.jar"))
-appendClassPath(os.path.join(dir, "../../base/framework/java/log4j-1.2.15.jar"))
-appendClassPath(os.path.join(dir, "../../base/framework/java/ossie/ossie.jar"))
 scatest.createTestDomain()

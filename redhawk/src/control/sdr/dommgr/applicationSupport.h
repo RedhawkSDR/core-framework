@@ -112,6 +112,8 @@ namespace ossie
     };
 
     class SoftpkgInfo;
+    typedef SoftpkgInfo*                  SoftpkgInfoPtr;
+    typedef std::vector< SoftpkgInfoPtr >  SoftpkgInfoList;
 
     /* Base class to contain data for implementations
      *  - Used to store information about about implementations
@@ -137,7 +139,7 @@ namespace ossie
         const bool hasStackSize() const;
         const bool hasPriority() const;
         const std::vector<SPD::PropertyRef>& getDependencyProperties() const;
-        const std::vector<SoftpkgInfo*>& getSoftPkgDependency() const;
+        const SoftpkgInfoList&  getSoftPkgDependencies() const;
 
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
 

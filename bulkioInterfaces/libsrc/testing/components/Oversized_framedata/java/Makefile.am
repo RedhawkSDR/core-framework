@@ -1,6 +1,6 @@
 Oversized_framedata_jar_CLASSPATH = $(CLASSPATH_SOFTPKG_DEP)$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(OSSIE_HOME)/lib/bulkio.jar:$(OSSIE_HOME)/lib/BULKIOInterfaces.jar
 
-Oversized_framedata.jar: $(Oversized_framedata_jar_SOURCES)
+Oversized_framedata.jar$(EXEEXT): $(Oversized_framedata_jar_SOURCES)
 	mkdir -p bin
 	$(JAVAC) -cp $(Oversized_framedata_jar_CLASSPATH) -d bin $(Oversized_framedata_jar_SOURCES)
 	$(JAR) cf ./Oversized_framedata.jar -C bin .

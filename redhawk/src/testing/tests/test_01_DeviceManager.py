@@ -375,6 +375,10 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         retprops = devMgr._get_registeredDevices()[0].query(props)
         self.assertEqual('abc',retprops[0].value._v)
 
+    def test_deviceWithDepInSPD(self):
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/dev_comp_softpkg_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
     def test_ComponentPlacementSimpleSeqPropertyOverride(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_DCDSimpleSeq_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)

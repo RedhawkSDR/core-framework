@@ -263,10 +263,17 @@ class DomainManager_ApplicationInstall(scatest.CorbaTestCase):
         self.wf_name="cpp_deps_wf"
         self.sadfile="/waveforms/"+self.wf_name+"/"+self.wf_name+".sad.xml"
         self.comp_name="cpp_with_deps"
+        self.dep_dir=None
 
     def tearDown(self):
+        if self.dep_dir:
+            shutil.move( self.dep_dir+".XXX", self.dep_dir)
         scatest.CorbaTestCase.tearDown(self)
         killChildProcesses(os.getpid())
+
+    def test_installApplication_sad_missing_impls(self):
+        self._domMgr.installApplication("/waveforms/cpp_deps_wf/cpp_deps_wf.sad.xml")
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
 
     def test_installApplicationFailures_sad_invalid(self):
         self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, "/waveforms/cpp_deps_wf.OUCH/cpp_deps_wf.sad.xml")
@@ -380,22 +387,27 @@ class DomainManager_ApplicationInstall(scatest.CorbaTestCase):
         sadfile=self.sadfile
 
         dep_dir=scatest.getSdrPath()+"/dom/deps/cpp_dep1"
+        self.dep_dir = dep_dir
         shutil.move(dep_dir, dep_dir+".XXX")
         self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
 
         ## reset file
         shutil.move(dep_dir+".XXX", dep_dir)
+        self.dep_dir = None
 
     def test_installApplicationFailures_dep_missing_dep_dir(self):
         wf_name=self.wf_name
         sadfile=self.sadfile
 
         dep_dir=scatest.getSdrPath()+"/dom/deps/cpp_dep1/cpp"
+        self.dep_dir=dep_dir
         shutil.move(dep_dir, dep_dir+".XXX")
-        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+        # should work refers to code's localfile
+        self._domMgr.installApplication(sadfile)
 
         ## reset file
         shutil.move( dep_dir+".XXX", dep_dir)
+        self.dep_dir=None
 
 
     def test_installApplicationFailures_dep_bad_rec_dep_file(self):
@@ -415,22 +427,26 @@ class DomainManager_ApplicationInstall(scatest.CorbaTestCase):
         sadfile=self.sadfile
 
         dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2"
+        self.dep_dir=dep_spd
         shutil.move(dep_spd, dep_spd+".XXX")
         self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
 
         ## reset file
         shutil.move(dep_spd+".XXX", dep_spd)
+        self.dep_dir=None
 
     def test_installApplicationFailures_recdep_missing_file(self):
         wf_name=self.wf_name
         sadfile=self.sadfile
 
         dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
+        self.dep_dir=dep_spd
         shutil.move(dep_spd, dep_spd+".XXX")
         self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
 
         ## reset file
         shutil.move(dep_spd+".XXX", dep_spd)
+        self.dep_dir=None
 
 
     def test_installApplicationFailures_recdep_bad_dir(self):
@@ -439,7 +455,8 @@ class DomainManager_ApplicationInstall(scatest.CorbaTestCase):
 
         dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
         shutil.copy( dep_spd+".TEST.bad.dir", dep_spd)
-        self.assertRaises( CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
+        # code's localfile not checked during install
+        self._domMgr.installApplication(sadfile)
 
         ## reset file
         shutil.copy(dep_spd+".ORIG", dep_spd)
@@ -485,10 +502,17 @@ class DomainManager_CreateApplication(scatest.CorbaTestCase):
         self.wf_name="cpp_deps_wf"
         self.sadfile="/waveforms/"+self.wf_name+"/"+self.wf_name+".sad.xml"
         self.comp_name="cpp_with_deps"
+        self.dep_dir=None
 
     def tearDown(self):
+        if self.dep_dir:
+            shutil.move( self.dep_dir+".XXX", self.dep_dir)
         scatest.CorbaTestCase.tearDown(self)
         killChildProcesses(os.getpid())
+
+    def test_createApplication_sad_missing_impl(self):
+        self._domMgr.createApplication( "/waveforms/cpp_deps_wf/cpp_deps_wf.sad.xml","",[],[])
+        self.assertEqual(len(self._domMgr._get_applications()), 1)
 
     def test_createApplicationFailures_sad_invalid(self):
         self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, "/waveforms/cpp_deps_wf.OUCH/cpp_deps_wf.sad.xml","",[],[])
@@ -602,22 +626,26 @@ class DomainManager_CreateApplication(scatest.CorbaTestCase):
         sadfile=self.sadfile
 
         dep_dir=scatest.getSdrPath()+"/dom/deps/cpp_dep1"
+        self.dep_dir=dep_dir
         shutil.move(dep_dir, dep_dir+".XXX")
         self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
 
         ## reset file
         shutil.move(dep_dir+".XXX", dep_dir)
+        self.dep_dir=None
 
     def test_createApplicationFailures_dep_missing_dep_dir(self):
         wf_name=self.wf_name
         sadfile=self.sadfile
 
         dep_dir=scatest.getSdrPath()+"/dom/deps/cpp_dep1/cpp"
+        self.dep_dir = dep_dir
         shutil.move(dep_dir, dep_dir+".XXX")
-        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+        self.assertRaises( CF.ApplicationFactory.CreateApplicationError, self._domMgr.createApplication, sadfile, "", [], [])
 
         ## reset file
         shutil.move( dep_dir+".XXX", dep_dir)
+        self.dep_dir=None
 
 
     def test_createApplicationFailures_dep_bad_rec_dep_file(self):
@@ -637,22 +665,26 @@ class DomainManager_CreateApplication(scatest.CorbaTestCase):
         sadfile=self.sadfile
 
         dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2"
+        self.dep_dir=dep_spd
         shutil.move(dep_spd, dep_spd+".XXX")
         self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
 
         ## reset file
         shutil.move(dep_spd+".XXX", dep_spd)
+        self.dep_dir=None
 
     def test_createApplicationFailures_recdep_missing_file(self):
         wf_name=self.wf_name
         sadfile=self.sadfile
 
         dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
+        self.dep_dir=dep_spd
         shutil.move(dep_spd, dep_spd+".XXX")
         self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
 
         ## reset file
         shutil.move(dep_spd+".XXX", dep_spd)
+        self.dep_dir=None
 
 
     def test_createApplicationFailures_recdep_bad_dir(self):
@@ -661,7 +693,7 @@ class DomainManager_CreateApplication(scatest.CorbaTestCase):
 
         dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
         shutil.copy( dep_spd+".TEST.bad.dir", dep_spd)
-        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
+        self.assertRaises( CF.ApplicationFactory.CreateApplicationError, self._domMgr.createApplication, sadfile, "", [], [])
 
         ## reset file
         shutil.copy(dep_spd+".ORIG", dep_spd)
