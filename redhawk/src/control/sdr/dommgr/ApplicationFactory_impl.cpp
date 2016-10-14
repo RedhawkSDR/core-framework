@@ -184,10 +184,46 @@ ApplicationFactory_impl::ValidateFileLocation( CF::FileManager_ptr fileMgr, cons
     }
 }
 
+bool ApplicationFactory_impl::ValidateImplementationCodeFile( CF::FileManager_ptr fileMgr,
+                                                              DomainManager_impl *domMgr,
+                                                              const std::string &spd_path,
+                                                              const std::string &sfw_profile,
+                                                              const std::string &codeFile,
+                                                              const bool allow_missing_impl ) {
 
-void ApplicationFactory_impl::ValidateSoftPkgDep (CF::FileManager_ptr fileMgr, DomainManager_impl *domMgr, const std::string& sfw_profile )  {
+    bool hasImpl = false;
+    try {
+        boost::filesystem::path implPath = boost::filesystem::path( spd_path ) /  codeFile;
+        LOG_TRACE(ApplicationFactory_impl, "Validating Implmentation existance: " << implPath.string() );
+        ValidateFileLocation( fileMgr, implPath.string().c_str() );
+        hasImpl=true;
+    } catch (CF::InvalidFileName ex) {
+        if ( allow_missing_impl) {
+            LOG_WARN( ApplicationFactory_impl, "Invalid localfile for PROFILE: " << sfw_profile << "  CODE: " << codeFile);
+        }
+        else {
+            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
+        }
+    } catch (CF::FileException ex) {
+        if ( allow_missing_impl) {
+            LOG_WARN(ApplicationFactory_impl, "Invalid or missing localfile for  PROFILE: " << sfw_profile << "  CODE: " << codeFile);
+        }
+        else {
+            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
+        }
+    } catch ( ... ) {
+        if ( !allow_missing_impl )  {
+            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "");
+        }
+    }
+
+    return hasImpl;
+}
+
+
+void ApplicationFactory_impl::ValidateSoftPkgDep (CF::FileManager_ptr fileMgr, DomainManager_impl *domMgr, const std::string& sfw_profile, const bool allow_missing_impl )  {
   SoftPkg pkg;
-  ValidateSPD(fileMgr, domMgr, pkg, sfw_profile, false, false );
+  ValidateSPD(fileMgr, domMgr, pkg, sfw_profile, false, false, allow_missing_impl, true );
 }
 
 std::string ApplicationFactory_impl::xmlParsingVersionMismatch(DomainManager_impl *domMgr, std::string &component_version)
@@ -213,7 +249,10 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
                                           SoftPkg &spdParser, 
                                           const std::string& sfw_profile, 
                                           const bool require_prf, 
-                                          const bool require_scd) {
+                                          const bool require_scd,
+                                          const bool allow_missing_impl,
+                                          const bool is_dep ){
+
     TRACE_ENTER(ApplicationFactory_impl)
 
     if ( sfw_profile == "" ) {
@@ -274,42 +313,53 @@ void ApplicationFactory_impl::ValidateSPD(CF::FileManager_ptr fileMgr,
         //
         const ossie::SPD::Implementations& impls = spdParser.getImplementations();
         ossie::SPD::Implementations::const_iterator impl = impls.begin();
+        int impl_cnt=0;
         for( ; impl != impls.end(); impl++ ) {
 
-          
-          // validate code file exists
-          try {
-            boost::filesystem::path implPath = boost::filesystem::path( spdParser.getSPDPath()) /  impl->getCodeFile();
-            LOG_TRACE(ApplicationFactory_impl, "Validating Implmentation existance: " << implPath.string() );
-            ValidateFileLocation( fileMgr, implPath.string().c_str() );
-          } catch (CF::InvalidFileName ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Invalid Code File,  PROFILE:" << sfw_profile << "  CODE:" << impl->getCodeFile());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-          } catch (CF::FileException ex) {
-            LOG_ERROR(ApplicationFactory_impl, "Invalid Code File,  PROFILE:" << sfw_profile << "  CODE:" << impl->getCodeFile());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-          } catch ( ... ) {
-            LOG_ERROR(ApplicationFactory_impl, "Unexpected error validating PRF " << spdParser.getPRFFile());
-            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "");
-          }
+            std::string code_file = impl->getCodeFile();
+            LOG_TRACE(ApplicationFactory_impl, "Validating Implementation: " << impl->getID() << " File: " << code_file << " impl_cnt " << impl_cnt );
+            bool hasImpl=ValidateImplementationCodeFile( fileMgr, domMgr, spdParser.getSPDPath(), 
+                                                         sfw_profile, code_file, allow_missing_impl );
+            if (  hasImpl ) {
+                impl_cnt++;
 
-          // validate all the soft package dependencies....
-          const ossie::SPD::SoftPkgDependencies& deps = impl->getSoftPkgDependencies();
-          ossie::SPD::SoftPkgDependencies::const_iterator dep = deps.begin();
-          for(; dep != deps.end(); dep++ ) {
-            try {
-              LOG_TRACE(ApplicationFactory_impl, "Validating Dependency: " << dep->localfile);
-              ValidateSoftPkgDep(fileMgr, domMgr, dep->localfile);
-            } catch (CF::InvalidFileName ex) {
-              LOG_ERROR(ApplicationFactory_impl, "Invalid Code File,  PROFILE:" << sfw_profile << "  CODE:" << impl->getCodeFile());
-              throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
-            } catch (CF::FileException ex) {
-              LOG_ERROR(ApplicationFactory_impl, "Invalid Code File,  PROFILE:" << sfw_profile << "  CODE:" << impl->getCodeFile());
-              throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
+                const ossie::SPD::SoftPkgDependencies& deps = impl->getSoftPkgDependencies();
+                ossie::SPD::SoftPkgDependencies::const_iterator dep = deps.begin();
+                for(; dep != deps.end(); dep++ ) {
+                    std::string localfile = dep->localfile;
+
+                    try {
+                        LOG_TRACE(ApplicationFactory_impl, "Validating Dependency: " << localfile);
+                        ValidateSoftPkgDep(fileMgr, domMgr, localfile, allow_missing_impl );
+                    } catch (CF::InvalidFileName ex) {
+                        if ( allow_missing_impl) {
+                            LOG_WARN( ApplicationFactory_impl, "Invalid Code File (dependency),  PROFILE: " << sfw_profile << "  CODE: " << code_file);
+                        }
+                        else {
+                            LOG_ERROR(ApplicationFactory_impl, "Invalid Code File (dependency),  PROFILE: " << sfw_profile << "  CODE: " << code_file);
+                            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
+                        }
+                    } catch (CF::FileException ex) {
+                        if ( allow_missing_impl) {
+                            LOG_WARN(ApplicationFactory_impl, "Invalid Code File (dependency),  PROFILE: " << sfw_profile << "  CODE: " << code_file);
+                        }
+                        else {
+                            LOG_ERROR(ApplicationFactory_impl, "Invalid Code File (dependency),  PROFILE: " << sfw_profile << "  CODE: " << code_file);
+                            throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
+                        }
+                    }
+                }
             }
-            
-          }
+            LOG_TRACE(ApplicationFactory_impl, "After Validating File: " << code_file << " impl_cnt " << impl_cnt );
+        }
 
+        if ( 0 == impl_cnt ) {
+            if ( !is_dep or !allow_missing_impl ) {
+                ostringstream os;
+                os << "No valid implementations found, PROFILE:" << sfw_profile;
+                LOG_ERROR(ApplicationFactory_impl, os.str() );
+                throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, os.str().c_str() );
+            }
         }
         
         // query SPD for PRF
@@ -448,6 +498,8 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, "Could not get File Manager from Domain Manager");
     }
 
+    bool strict_spd_validation = _domainManager->strictSPDValidation();
+
     try {
 
       LOG_INFO(ApplicationFactory_impl, "Installing application " << _softwareProfile.c_str());
@@ -526,7 +578,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         if ( _sadParser.getSPDById(comp->getFileRefId())) {
             p_name = _sadParser.getSPDById(comp->getFileRefId());
             LOG_DEBUG(ApplicationFactory_impl, "Validating...  COMP profile: " << p_name);
-            ValidateSPD(_fileMgr, _domainManager, comp_pkg, p_name) ;
+            ValidateSPD(_fileMgr, _domainManager, comp_pkg, p_name, !strict_spd_validation ) ;
         }
         else {
           LOG_ERROR(ApplicationFactory_impl, "installApplication: invalid  componentfileref: " << comp->getFileRefId() );
@@ -962,6 +1014,7 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
             ossie::ImplementationInfo::List::iterator impl = res_vec[index].end()-1;
             DeviceAssignmentList      collocAssignedDevs;
             collocAssignedDevs.resize(placingComponents.size());
+            std::string emsg;
             for (unsigned int i=0; i<collocAssignedDevs.size(); i++,comp++,impl--) {
                 collocAssignedDevs[i].device = CF::Device::_duplicate(node->device);
                 collocAssignedDevs[i].deviceAssignment.assignedDeviceId = CORBA::string_dup(deviceId.c_str());
@@ -969,6 +1022,11 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
                 if (!resolveSoftpkgDependencies(*impl, *node)) {
                     LOG_TRACE(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                               << (*comp)->getIdentifier() << " implementation " << (*impl)->getId());
+                    continue;
+                }
+                LOG_TRACE(ApplicationFactory_impl, "(collocation) Validate compponent's deployment files, component: " << 
+                              (*comp)->getIdentifier() << " implementation " << (*impl)->getId());                
+                if ( !validateImplementationCodeFile( *comp, *impl, emsg, false, true ) ) {
                     continue;
                 }
                 (*comp)->setAssignedDevice(node);
@@ -1662,6 +1720,7 @@ void createHelper::allocateComponent(ossie::ComponentInfo*  component,
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
     }
     
+    std::string emsg;
     // now attempt to find an implementation that can have it's allocation requirements met
     for (size_t implCount = 0; implCount < implementations.size(); implCount++) {
         ossie::ImplementationInfo* impl = implementations[implCount];
@@ -1694,14 +1753,21 @@ void createHelper::allocateComponent(ossie::ComponentInfo*  component,
         // Convert from response back into a device node
         DeviceNode& node = *(response.second);
         const std::string& deviceId = node.identifier;
-        
         if (!resolveSoftpkgDependencies(impl, node)) {
             component->clearSelectedImplementation();
             LOG_DEBUG(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
                       << component->getIdentifier() << " implementation " << impl->getId());
             continue;
         }
-        
+        //
+        // validate necessary code files and dependency files  exists
+        //
+        LOG_TRACE(ApplicationFactory_impl, "(allocate_component) Validate compponent's deployment files, component: " << 
+                      component->getIdentifier() << " implementation " << impl->getId());
+        if  ( !validateImplementationCodeFile( component, impl, emsg ) ) {
+            continue;
+        }
+
         // Allocation to a device succeeded
         LOG_DEBUG(ApplicationFactory_impl, "Assigned component " << component->getInstantiationIdentifier()
                   << " implementation " << impl->getId() << " to device " << deviceId);
@@ -1750,6 +1816,10 @@ void createHelper::allocateComponent(ossie::ComponentInfo*  component,
         eout << "Unable to launch component '"<<component->getName()<<"'. All executable devices (i.e.: GPP) in the Domain are busy";
         LOG_DEBUG(ApplicationFactory_impl, eout.str());
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_ENOSPC, eout.str().c_str());
+    }
+
+    if ( emsg.size() != 0 ) {
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EBADF, emsg.c_str());
     }
 
     // Report failure
@@ -2054,16 +2124,110 @@ CF::DataType createHelper::castProperty(const ossie::ComponentProperty* property
     return dataType;
 }
 
+
+bool createHelper::validateImplementationCodeFile(ossie::ComponentInfo*  component,
+                                                  ossie::ImplementationInfo* impl, 
+                                                  std::string &emsg,
+                                                  const bool clear_on_fail,
+                                                  const bool suppress_log ) {
+
+    bool all_pass = false;
+    std::string impl_id = impl->getId();
+    try {
+        LOG_TRACE(ApplicationFactory_impl, "Validate compponent's deployment files, component: " << 
+                  component->getIdentifier() << " implementation " << impl->getId());
+        _appFact.ValidateImplementationCodeFile( _appFact._fileMgr, 
+                                                 _appFact._domainManager, 
+                                                 component->spd.getSPDPath(), 
+                                                 component->getName(),
+                                                 impl->getLocalFileName(),
+                                                 false );
+
+        // for each dependency validate code file...
+        validateSoftpkgDependencies( impl );
+        all_pass = true;
+            
+    } catch (CF::InvalidFileName ex) {
+        ostringstream os;
+        os << "Failed to validate SPD and dependencies for component: " << component->getIdentifier() << " implementation: " << impl_id << ". Invalid file name exception: " << ex.msg;
+        if ( !suppress_log ) {
+            LOG_WARN(ApplicationFactory_impl,  os.str() );
+        }
+        if ( clear_on_fail ) {
+            component->clearSelectedImplementation();
+        }
+        emsg = os.str();
+    } catch (CF::FileException ex) {
+        ostringstream os;
+        os << "Failed to validate SPD and dependencies for component: " << component->getIdentifier() << " implementation: " << impl_id << ". File exception: " << ex.msg;
+        if ( !suppress_log ) {
+            LOG_WARN(ApplicationFactory_impl,  os.str() );
+        }
+        if ( clear_on_fail ) {
+            component->clearSelectedImplementation();
+        }
+        emsg = os.str();
+    } catch ( CF::DomainManager::ApplicationInstallationError &ex ) {
+        ostringstream os;
+        os << "Failed to validate SPD and dependencies for component: " << component->getIdentifier() << " implementation: " << impl_id << " Exception:: " << ex.msg;
+        if ( !suppress_log ) {
+            LOG_WARN(ApplicationFactory_impl,  os.str() );
+        }
+        if ( clear_on_fail ) {
+            component->clearSelectedImplementation();
+        }
+        emsg = os.str();
+    } catch ( ... ) {
+        ostringstream os;
+        os << "Failed to validate SPD and dependencies for component: " << component->getIdentifier() << " implementation: " << impl_id;
+        if ( !suppress_log ) {
+            LOG_WARN(ApplicationFactory_impl,  os.str() );
+        }
+        if ( clear_on_fail ) {
+            component->clearSelectedImplementation();
+        }
+        emsg = os.str();
+    }
+
+    return all_pass;
+
+}
+
+void createHelper::validateSoftpkgDependencies(const ossie::ImplementationInfo* implementation )
+{
+    const SoftpkgInfoList & tmpSoftpkg = implementation->getSoftPkgDependencies();
+    SoftpkgInfoList::const_iterator iterSoftpkg;
+
+    for (iterSoftpkg = tmpSoftpkg.begin(); iterSoftpkg != tmpSoftpkg.end(); ++iterSoftpkg) {
+        SoftpkgInfoPtr pkg = *iterSoftpkg;
+        const ossie::ImplementationInfo* impl = pkg->getSelectedImplementation();
+        if ( impl ) {
+            LOG_DEBUG(ApplicationFactory_impl, "Validate softpkgdep's deployment files, pkg: " << 
+                      pkg->getName() << " implementation " << impl->getId());
+            _appFact.ValidateImplementationCodeFile(_appFact._fileMgr, 
+                                                    _appFact._domainManager, 
+                                                    pkg->spd.getSPDPath(), 
+                                                    pkg->getName(),
+                                                    impl->getLocalFileName(),
+                                                    false );
+            validateSoftpkgDependencies( impl );
+        }
+         
+    }   
+
+}
+
 bool createHelper::resolveSoftpkgDependencies(ossie::ImplementationInfo* implementation, ossie::DeviceNode& device)
 {
-    const std::vector<ossie::SoftpkgInfo*>& tmpSoftpkg = implementation->getSoftPkgDependency();
-    std::vector<ossie::SoftpkgInfo*>::const_iterator iterSoftpkg;
+    const SoftpkgInfoList & tmpSoftpkg = implementation->getSoftPkgDependencies();
+    SoftpkgInfoList::const_iterator iterSoftpkg;
 
     for (iterSoftpkg = tmpSoftpkg.begin(); iterSoftpkg != tmpSoftpkg.end(); ++iterSoftpkg) {
         // Find an implementation whose dependencies match
         ossie::ImplementationInfo* spdImplInfo = resolveDependencyImplementation(*iterSoftpkg, device);
         if (spdImplInfo) {
             (*iterSoftpkg)->setSelectedImplementation(spdImplInfo);
+            LOG_DEBUG(ApplicationFactory_impl, "resolveSoftpkgDependencies: selected: " << (*iterSoftpkg)->getName());
         } else {
             LOG_DEBUG(ApplicationFactory_impl, "resolveSoftpkgDependencies: implementation match not found between soft package dependency and device");
             implementation->clearSelectedDependencyImplementations();
@@ -2074,7 +2238,7 @@ bool createHelper::resolveSoftpkgDependencies(ossie::ImplementationInfo* impleme
     return true;
 }
 
-ossie::ImplementationInfo* createHelper::resolveDependencyImplementation(ossie::SoftpkgInfo* softpkg,
+ossie::ImplementationInfo* createHelper::resolveDependencyImplementation(const ossie::SoftpkgInfoPtr &softpkg,
                                                                          ossie::DeviceNode& device)
 {
     ossie::ImplementationInfo::List spd_list;
@@ -2324,9 +2488,9 @@ string ApplicationFactory_impl::getBaseWaveformContext(string waveform_context)
 
 void createHelper::loadDependencies(ossie::ComponentInfo& component,
                                     CF::LoadableDevice_ptr device,
-                                    const std::vector<SoftpkgInfo*>& dependencies)
+                                    const SoftpkgInfoList & dependencies)
 {
-    for (std::vector<SoftpkgInfo*>::const_iterator dep = dependencies.begin(); dep != dependencies.end(); ++dep) {
+    for ( SoftpkgInfoList::const_iterator dep = dependencies.begin(); dep != dependencies.end(); ++dep) {
         const ossie::ImplementationInfo* implementation = (*dep)->getSelectedImplementation();
         if (!implementation) {
             LOG_ERROR(ApplicationFactory_impl, "No implementation selected for dependency " << (*dep)->getName());
@@ -2335,7 +2499,7 @@ void createHelper::loadDependencies(ossie::ComponentInfo& component,
 
         // Recursively load dependencies
         LOG_TRACE(ApplicationFactory_impl, "Loading dependencies for soft package " << (*dep)->getName());
-        loadDependencies(component, device, implementation->getSoftPkgDependency());
+        loadDependencies(component, device, implementation->getSoftPkgDependencies());
 
         // Determine absolute path of dependency's local file
         CF::LoadableDevice::LoadType codeType = implementation->getCodeType();
@@ -2431,7 +2595,7 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
             throw std::logic_error(message.str());
         }
 
-        loadDependencies(*component, loadabledev, implementation->getSoftPkgDependency());
+        loadDependencies(*component, loadabledev, implementation->getSoftPkgDependencies());
 
         // load the file(s)
         ostringstream load_eout; // used for any error messages dealing with load

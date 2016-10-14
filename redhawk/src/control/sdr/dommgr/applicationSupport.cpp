@@ -231,7 +231,7 @@ const std::vector<std::string>& ImplementationInfo::getProcessorDeps() const
     return processorDeps;
 }
 
-const std::vector<SoftpkgInfo*>& ImplementationInfo::getSoftPkgDependency() const
+const ossie::SoftpkgInfoList& ImplementationInfo::getSoftPkgDependencies() const
 {
     return softPkgDependencies;
 }
