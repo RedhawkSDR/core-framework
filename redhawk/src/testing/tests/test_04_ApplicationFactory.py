@@ -76,6 +76,9 @@ def pidExists(pid):
     process_listing = commands.getoutput('ls /proc').split('\n')
     return str(pid) in process_listing
 
+# This test suite requires log4cxx support because it checks the domain's log
+# output
+@scatest.requireLog4cxx
 class ApplicationExceptionTest(scatest.CorbaTestCase):
     def setUp(self):
         cfg = "log4j.rootLogger=DEBUG,STDOUT,FILE\n " + \
