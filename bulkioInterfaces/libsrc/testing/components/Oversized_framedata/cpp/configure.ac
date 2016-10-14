@@ -1,5 +1,5 @@
 AC_INIT(Oversized_framedata, 1.0.0)
-AM_INIT_AUTOMAKE(nostdinc)
+AM_INIT_AUTOMAKE([nostdinc foreign])
 
 AC_PROG_CC
 AC_PROG_CXX
