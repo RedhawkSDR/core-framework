@@ -27,6 +27,19 @@
 // Registers the fixture into the 'registry'
 CPPUNIT_TEST_SUITE_REGISTRATION( Bulkio_OutPort_Fixture );
 
+class NewSriCallback  {
+
+public:
+
+    std::vector<std::string>  sids;
+
+    ~NewSriCallback() {};
+
+    void newSriCB( const BULKIO::StreamSRI& sri) {
+        std::string sid(sri.streamID);
+        sids.push_back( sid );
+    }
+};
 
 // Global connection/disconnection callbacks
 static void port_connected( const char* connectionId ) {
