@@ -58,6 +58,11 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         except:
             self.fail("Did not create application ")
 
+    def _test_installFail(self, extra):
+        self.assertNotEqual(self._domMgr, None)
+        sadpath = '/waveforms/ExternalProperties/ExternalProperties%s.sad.xml' % extra
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadpath)
+
     def _getComponents(self):
         # Get references to the waveform's components.
         components = {}
@@ -67,10 +72,6 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         return components
 
     def test_ExternalProps(self):
-        # Makes sure that duplicate external property names throws an error
-        self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._createApp, 'Duplicate')
-        self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._createApp, 'Duplicate2')
-
         self._createApp("")
 
         # Internal property IDs should fail
@@ -93,7 +94,7 @@ class SADPropertiesTest(scatest.CorbaTestCase):
 
         # Configure all
         props = [pythonProp, cppProp]
-        number_props = 5
+        number_props = 6
         to_find = 2
         if java_support:
             props.append(javaProp)
@@ -180,6 +181,10 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         self.assertEquals(cppRet2.value.value(), "HELLO WORLD2")
         self.assertEquals(cppRet.value.value(), -333)
 
+    def test_DuplicateProps(self):
+        # Makes sure that duplicate external property names throws an error
+        self._test_installFail('Duplicate')
+        self._test_installFail('Duplicate2')
 
     def test_externalAndACProp(self):
         self._createApp("")
@@ -200,15 +205,13 @@ class SADPropertiesTest(scatest.CorbaTestCase):
 
     def test_externalAcConflict(self):
         # External property name that is the same as an Assembly Controller property should throw an error
-        self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._createApp, 'AcExternalConflict')
+        self._test_installFail('AcExternalConflict')
 
     def test_badInternalId(self):
-        extra = 'BadInternal'
-
         self.assertNotEqual(self._domMgr, None)
         self.assertNotEqual(self._devMgr, None)
 
-        sadpath = "/waveforms/ExternalProperties/ExternalProperties"+extra+".sad.xml"
+        sadpath = "/waveforms/ExternalProperties/ExternalPropertiesBadInternal.sad.xml"
         self._domMgr.installApplication(sadpath)
         self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -216,15 +219,10 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         self.assertRaises(CF.ApplicationFactory.CreateApplicationError, appFact.create, appFact._get_name(), [], [])
 
     def test_badCompRef(self):
-        extra = 'BadCompRef'
-
         self.assertNotEqual(self._domMgr, None)
         self.assertNotEqual(self._devMgr, None)
 
-        if java_support:
-            sadpath = '/waveforms/ExternalProperties/ExternalProperties'+extra+'.sad.xml'
-        else:
-            sadpath = '/waveforms/ExternalProperties/ExternalProperties'+extra+'NoJava.sad.xml'
+        sadpath = '/waveforms/ExternalProperties/ExternalPropertiesBadCompRef.sad.xml'
         self._domMgr.installApplication(sadpath)
         self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
         appFact = self._domMgr._get_applicationFactories()[0]
