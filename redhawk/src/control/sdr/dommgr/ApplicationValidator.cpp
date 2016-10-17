@@ -40,6 +40,15 @@ public:
     }
 };
 
+class no_valid_implemenation : public redhawk::validation_error
+{
+public:
+    no_valid_implemenation(const SoftPkg* softpkg) :
+        redhawk::validation_error("Soft package " + softpkg->getSPDFile() + " has no valid implementations")
+    {
+    }
+};
+
 PREPARE_CF_LOGGING(ApplicationValidator);
 
 ApplicationValidator::ApplicationValidator(CF::FileSystem_ptr fileSystem) :
@@ -112,13 +121,13 @@ void ApplicationValidator::validateSoftPkgRef(const SPD::SoftPkgRef& softpkgref)
 {
     const std::string& spd_file = softpkgref.localfile;
     if (spd_file.empty()) {
-        throw std::runtime_error("empty softpkgref");
+        throw validation_error("empty softpkgref");
     }
 
     // Basic checking for valid, existing filename
     LOG_TRACE(ApplicationValidator, "Validating SPD " << spd_file);
     if (!fileExists(spd_file)) {
-        throw std::runtime_error("softpkgref " + spd_file + " does not exist");
+        throw validation_error("softpkgref " + spd_file + " does not exist");
     }
     if (!endsWith(spd_file, ".spd.xml")) {
         LOG_WARN(ApplicationValidator, "SPD file " << spd_file << " should end with .spd.xml");
@@ -133,14 +142,23 @@ void ApplicationValidator::validateSoftPkgRef(const SPD::SoftPkgRef& softpkgref)
         const std::string& impl_id = *(softpkgref.implref);
         const SPD::Implementation* implementation = softpkg->getImplementation(impl_id);
         if (!implementation) {
-            throw std::runtime_error("softpkgref " + spd_file + " has no implementation " + impl_id);
+            throw validation_error("softpkgref " + spd_file + " has no implementation " + impl_id);
         }
 
         validateImplementation(softpkg, *implementation, false);
     } else {
         // Validate all implementations
+        int valid_implementations = 0;
         BOOST_FOREACH(const SPD::Implementation& implementation, softpkg->getImplementations()) {
-            validateImplementation(softpkg, implementation, false);
+            try {
+                validateImplementation(softpkg, implementation, false);
+                valid_implementations++;
+            } catch (const validation_error& err) {
+                LOG_WARN(ApplicationValidator, err.what());
+            }
+        }
+        if (valid_implementations == 0) {
+            throw no_valid_implemenation(softpkg);
         }
     }
 }
@@ -152,10 +170,10 @@ void ApplicationValidator::validateImplementation(const SoftPkg* softpkg,
     LOG_TRACE(ApplicationValidator, "Validating SPD implementation " << implementation.getID());
 
     // Always ensure that the localfile exists
-    fs::path code = fs::path(softpkg->getSPDPath()) / implementation.getCodeFile();
-    LOG_TRACE(ApplicationValidator, "Validating code localfile " << code.string());
-    if (!fileExists(code.string())) {
-        throw bad_implementation(softpkg, implementation, "missing localfile " + code.string());
+    std::string localfile = _relativePath(softpkg, implementation.getCodeFile());
+    LOG_TRACE(ApplicationValidator, "Validating code localfile " << localfile);
+    if (!fileExists(localfile)) {
+        throw bad_implementation(softpkg, implementation, "missing localfile " + localfile);
     }
 
     // If the implementation needs to be executable (i.e., would be used for a
@@ -164,10 +182,10 @@ void ApplicationValidator::validateImplementation(const SoftPkg* softpkg,
         if (!implementation.getEntryPoint()) {
             throw bad_implementation(softpkg, implementation, "has no entry point");
         }
-        fs::path entry_point = fs::path(softpkg->getSPDPath()) / implementation.getEntryPoint();
-        LOG_TRACE(ApplicationValidator, "Validating code entry point " << entry_point.string());
-        if (!fileExists(entry_point.string())) {
-            throw bad_implementation(softpkg, implementation, "missing entrypoint " + entry_point.string());
+        std::string entry_point = _relativePath(softpkg, implementation.getEntryPoint());
+        LOG_TRACE(ApplicationValidator, "Validating code entry point " << entry_point);
+        if (!fileExists(entry_point)) {
+            throw bad_implementation(softpkg, implementation, "missing entrypoint " + entry_point);
         }
     }
 
@@ -175,7 +193,7 @@ void ApplicationValidator::validateImplementation(const SoftPkg* softpkg,
     BOOST_FOREACH(const SPD::SoftPkgRef& spdref, implementation.getSoftPkgDependencies()) {
         try {
             validateSoftPkgRef(spdref);
-        } catch (const std::runtime_error& exc) {
+        } catch (const validation_error& exc) {
             // Turn the exception into a more detailed bad_implementation that
             // includes enough context to debug the XML
             throw bad_implementation(softpkg, implementation, exc.what());
@@ -223,8 +241,17 @@ void ApplicationValidator::validateComponentPlacement(const ComponentPlacement& 
         }
     }
 
+    int valid_implementations = 0;
     BOOST_FOREACH(const SPD::Implementation& implementation, softpkg->getImplementations()) {
-        validateImplementation(softpkg, implementation, true);
+        try {
+            validateImplementation(softpkg, implementation, true);
+            valid_implementations++;
+        } catch (const validation_error& err) {
+            LOG_WARN(ApplicationValidator, err.what());
+        }
+    }
+    if (valid_implementations == 0) {
+        throw no_valid_implemenation(softpkg);
     }
 
     // If the softpkg is SCA-compliant, make sure it has a descriptor
@@ -271,4 +298,14 @@ bool ApplicationValidator::endsWith(const std::string& filename, const std::stri
     // Compare the end of the filename to the entirety of the suffix
     std::string::size_type start = filename.size() - suffix.size();
     return filename.compare(start, suffix.size(), suffix) == 0;
+}
+
+std::string ApplicationValidator::_relativePath(const SoftPkg* softpkg, const std::string& path)
+{
+    if (path.find('/') == 0) {
+        return path;
+    } else {
+        fs::path abspath = fs::path(softpkg->getSPDPath()) / path;
+        return abspath.string();
+    }
 }

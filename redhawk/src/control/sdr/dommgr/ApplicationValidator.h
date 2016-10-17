@@ -82,6 +82,8 @@ namespace redhawk {
         bool endsWith(const std::string& filename, const std::string& suffix);
         bool fileExists(const std::string& filename);
 
+        std::string _relativePath(const ossie::SoftPkg* softpkg, const std::string& path);
+
         CF::FileSystem_var fileSystem;
         redhawk::ProfileCache cache;
     };
