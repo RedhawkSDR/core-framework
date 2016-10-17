@@ -50,6 +50,7 @@ check_SCRIPTS = Burstio
 
 Burstio : $(Burstio_CLASSES) Makefile.am
 	@echo "#!/bin/sh" > $@
+	@echo "export LD_LIBRARY_PATH=$(top_builddir)/src/java/.libs:${LD_LIBRARY_PATH}" >> $@
 	@echo "exec java -cp $(Burstio_CLASSPATH):. -Dlog4j.configuration=file:$(srcdir)/log4j_config.txt org.junit.runner.JUnitCore $(TEST_CLASSES)" >> $@
 	@chmod +x $@
 

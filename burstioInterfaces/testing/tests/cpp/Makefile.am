@@ -20,7 +20,7 @@
 
 burstio_include=$(top_srcdir)/src/cpp/include
 Burstio_SOURCES = Burstio.cpp Burstio_InPort.cpp Burstio_OutPort.cpp Burstio_PushTest.cpp Burstio_Utils_Test.cpp
-Burstio_INCLUDES = -I$(burstio_include) -I$(burstio_include)/burstio -I$(top_builddir)/src/cpp/redhawk
+Burstio_INCLUDES = -I$(burstio_include) -I$(burstio_include)/burstio -I$(top_builddir)/src/cpp -I$(top_builddir)/src/cpp/redhawk
 Burstio_CXXFLAGS = $(CPPUNIT_CFLAGS) $(Burstio_INCLUDES) $(BOOST_CPPFLAGS) $(BULKIO_CFLAGS)
 Burstio_LDADD = $(BULKIO_LIBS) $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(CPPUNIT_LIBS) -llog4cxx -ldl
 Burstio_LDADD += $(top_builddir)/src/cpp/libburstio.la $(top_builddir)/src/cpp/libburstioInterfaces.la
