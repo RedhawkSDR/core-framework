@@ -3,6 +3,7 @@
 *.lo
 *.m4
 *.o
+*.pyc
 *.so
 .deps/
 .libs/
