@@ -132,16 +132,16 @@ AC_MSG_RESULT($HAVE_JAVASUPPORT)
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 # End optional java support
 
-# Optionally enable unit tests
-AC_ARG_ENABLE([testing], AS_HELP_STRING([--enable-testing], [enable build of unit tests]))
-AS_IF([test "x$enable_testing" == "xyes"], [
-  AM_PATH_CPPUNIT(1.9.6)
+# Optionally disable unit tests
+AC_ARG_ENABLE([testing], AS_HELP_STRING([--disable-testing], [disable build of unit tests]))
+AS_IF([test "x$enable_testing" != "xno"], [
+  AM_PATH_CPPUNIT(1.12.1)
   AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
     dnl Use RPM location hard-coded for now
     AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")
   ])
 ])
-AM_CONDITIONAL(ENABLE_TESTING, test "x$enable_testing" == "xyes")
+AM_CONDITIONAL(ENABLE_TESTING, test "x$enable_testing" != "xno")
 
 AC_SUBST(idldir, '${prefix}/share/idl')
 
