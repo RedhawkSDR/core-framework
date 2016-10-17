@@ -19,7 +19,7 @@
 #
 multiout_attachable_jar_CLASSPATH = $(CLASSPATH_SOFTPKG_DEP)$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(bulkio_libsrc_top)/bulkio.jar:$(bulkio_top)/BULKIOInterfaces.jar
 
-multiout_attachable.jar: $(multiout_attachable_jar_SOURCES)
+multiout_attachable.jar$(EXEEXT): $(multiout_attachable_jar_SOURCES)
 	mkdir -p bin
 	$(JAVAC) -cp $(multiout_attachable_jar_CLASSPATH) -d bin $(multiout_attachable_jar_SOURCES)
 	$(JAR) cf ./multiout_attachable.jar -C bin .

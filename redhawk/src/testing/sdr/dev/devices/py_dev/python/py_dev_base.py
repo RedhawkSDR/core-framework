@@ -103,5 +103,13 @@ class py_dev_base(CF__POA.Device, Device, ThreadedComponent):
                                  mode="readonly",
                                  action="external",
                                  kinds=("configure",))
-        
+
+        readOnly = simple_property(id_="readOnly",
+                                       name="readOnly",
+                                       type_="string",
+                                       defvalue="empty",
+                                       mode="readonly",
+                                       action="external",
+                                       kinds=("property"),
+                                       description=""" readonly prop""")
 

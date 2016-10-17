@@ -40,14 +40,15 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
 
     def test_EmptyQuery (self):
         results = self.comp.query([])
-        self.assertEqual(len(results), 5)
+        self.assertEqual(len(results), 6)
 
         ids = set(r.id for r in results)
         expected = ("ulong_prop",
                     "long_seq",
                     "struct_prop",
                     "exec_param",
-                    "structseq_prop")
+                    "structseq_prop",
+                    "readOnly" )
         for prop in expected:
             self.assert_(prop in ids, "'%s' not in default query" % prop)
 
@@ -229,6 +230,7 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
 			self.assertEquals(v.value.value(), [0, 4294967295])
 		    elif v.id == 'struct_seq_longlong':
 			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+
 
 
 @scatest.requireJava
@@ -735,3 +737,40 @@ class JAVAPropertyTest(scatest.CorbaTestCase):
 
 
         app.releaseObject()
+
+@scatest.requireJava
+class JavaPropertiesReadOnly(scatest.CorbaTestCase):
+
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self._domain=redhawk.attach(scatest.getTestDomainName())
+        self._app = None
+        if self._domMgr:
+            try:
+                self._app = self._domain.createApplication('/waveforms/TestJavaProps/TestJavaReadOnly.sad.xml')
+            except:
+                pass
+
+    def tearDown(self):
+        if self._app:
+            self._app.stop()
+            self._app.releaseObject()
+
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+
+
+    def test_readonly_sad(self):
+        self.assertNotEqual(self._domain, None, "DomainManager not available")
+        self.assertNotEqual(self._app, None, "Failed to launch app")
+
+        props = self._app.query([CF.DataType("readOnly", any.to_any(None))])
+        self.assertEqual(props[0].value._v, "set_once")
+
+        # try and configure the component
+        comp=filter( lambda c : c.name == 'TestJavaProps', self._app.comps )[0]
+        self.assertNotEqual(comp,None)
+        readonly_prop=CF.DataType("readOnly", any.to_any("try_again"))
+        self.assertRaises(CF.PropertySet.InvalidConfiguration, comp.configure, [ readonly_prop ] )

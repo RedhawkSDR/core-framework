@@ -77,6 +77,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
   _domainManagerProfile(dmdFile),
   _connectionManager(this, this, domainName),
   _useLogConfigUriResolver(useLogCfgResolver),
+  _strict_spd_validation(false),
   _bindToDomain(bindToDomain)
 {
     TRACE_ENTER(DomainManager_impl)

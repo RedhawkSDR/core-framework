@@ -20,6 +20,8 @@
 
 import unittest, os
 from _unitTestHelpers import scatest
+from test_01_DeviceManager import killChildProcesses
+import time
 
 class DeviceLifeCycleTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -44,4 +46,48 @@ class DeviceLifeCycleTest(scatest.CorbaTestCase):
 
     def test_DeviceLifeCycleNoKill(self):
         pass
+        
+class DeviceDeviceManagerTest(scatest.CorbaTestCase):
+    def setUp(self):
+    
+        cfg = "log4j.rootLogger=TRACE,CONSOLE,FILE\n" + \
+            "log4j.debug=false\n" + \
+            "# Direct log messages to FILE\n" + \
+            "log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender\n" + \
+            "log4j.appender.CONSOLE.File=stdout\n" + \
+            "log4j.appender.FILE=org.apache.log4j.FileAppender\n" + \
+            "log4j.appender.FILE.File="+os.getcwd()+"/tmp_logfile.log\n" + \
+            "log4j.appender.CONSOLE.threshold=TRACE\n" + \
+            "log4j.appender.FILE.threshold=TRACE\n" + \
+            "log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.CONSOLE.layout.ConversionPattern=%p:%c - %m [%F:%L]%n\n" + \
+            "log4j.appender.FILE.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.FILE.layout.ConversionPattern=%d %p:%c - %m [%F:%L]%n\n"
+            
+        fp = open('tmp_logfile.config','w')
+        fp.write(cfg)
+        fp.close()
+        
+        nodebooter, self._domMgr = self.launchDomainManager()
+        self._domBooter = nodebooter
 
+    def tearDown(self):
+        scatest.CorbaTestCase.tearDown(self)
+        if os.path.exists('tmp_logfile.config'):
+            os.remove('tmp_logfile.config')
+        if os.path.exists('tmp_logfile.log'):
+            os.remove('tmp_logfile.log')
+
+        killChildProcesses(os.getpid())
+
+    @scatest.requireLog4cxx
+    def test_deviceKillDeviceManager(self):
+        # This test requires log4cxx support because it checks the device
+        # manager's log output
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/dev_kill_devmgr_node/DeviceManager.dcd.xml", loggingURI=os.getcwd()+'/tmp_logfile.config', wait=False)
+        time.sleep(2)
+        self.assertEquals(devMgr, None)
+        fp = open('tmp_logfile.log', 'r')
+        logcontents = fp.read()
+        fp.close()
+        self.assertNotEqual(logcontents.find('Unable to complete Device construction: CORBA'), -1)

@@ -23,13 +23,14 @@ bin_PROGRAMS = sri_changed_cpp
 
 xmldir = $(prefix)/dom/components/sri_changed_cpp/
 dist_xml_DATA = ../sri_changed_cpp.scd.xml ../sri_changed_cpp.prf.xml ../sri_changed_cpp.spd.xml
-ACLOCAL_AMFLAGS = -I$(OSSIEHOME)/share/aclocal/ossie
+ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
 
 # this is use to build against local bulkio interface and library and not installed version
 bulkio_top=../../../../../
 bulkio_libsrc_top=$(bulkio_top)/libsrc
 
 distclean-local:
+	rm -f m4/*
 	rm -f config.*
 	rm -rf autom4te.cache
 	rm -f acinclude.m4

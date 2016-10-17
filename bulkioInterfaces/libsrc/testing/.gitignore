@@ -1,7 +1,12 @@
 components/CPP_Ports/cpp/CPP_Ports
 components/Java_Ports/java/bin/
+components/Oversized_framedata/cpp/Oversized_framedata
+components/Oversized_framedata/java/bin
 components/TestLargePush/cpp/TestLargePush
 components/TestLargePush/java/bin/
 components/multiout_attachable/cpp/multiout_attachable
 components/sri_changed_cpp/cpp/sri_changed_cpp
+devices/dev_snk/java/bin/
+devices/dev_src/java/bin/
 tests/cpp/Bulkio
+tests/cpp/test-driver

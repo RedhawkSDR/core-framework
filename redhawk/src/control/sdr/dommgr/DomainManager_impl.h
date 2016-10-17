@@ -239,6 +239,8 @@ public:
     
     std::string getRedhawkVersion() { return redhawk_version; };
 
+    bool  strictSPDValidation() {  return _strict_spd_validation;  };
+
 /////////////////////////////
 // Internal Helper Functions
 /////////////////////////////
@@ -357,6 +359,7 @@ private:
     CORBA::ULong     componentBindingTimeout;
     std::string      redhawk_version;
     bool             _useLogConfigUriResolver;
+    bool             _strict_spd_validation;
 
     void _exit(int __status) {
         ossie::logging::Terminate();            //no more logging....

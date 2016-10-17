@@ -63,8 +63,8 @@ void CPP_Ports_base::MySddsCallback::detach( const char* attachId) {
 
 CPP_Ports_base::CPP_Ports_base(const char *uuid, const char *label) :
   Resource_impl(uuid, label),
-  serviceThread(0),
-  cb(*this)
+  cb(*this),
+  serviceThread(0)
 {
     construct();
 

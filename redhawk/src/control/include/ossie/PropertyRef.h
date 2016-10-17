@@ -54,9 +54,11 @@ namespace ossie {
         {
         }
         
-        PropertyRef(const PropertyRef& other) :
-            property(other.property->clone())
+        PropertyRef(const PropertyRef& other)
         {
+            if (other.property) {
+                property.reset(other.property->clone());
+            }
         }
 
         boost::shared_ptr<ossie::ComponentProperty> property;

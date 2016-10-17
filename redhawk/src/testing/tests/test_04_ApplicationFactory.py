@@ -76,6 +76,9 @@ def pidExists(pid):
     process_listing = commands.getoutput('ls /proc').split('\n')
     return str(pid) in process_listing
 
+# This test suite requires log4cxx support because it checks the domain's log
+# output
+@scatest.requireLog4cxx
 class ApplicationExceptionTest(scatest.CorbaTestCase):
     def setUp(self):
         cfg = "log4j.rootLogger=DEBUG,STDOUT,FILE\n " + \
@@ -586,43 +589,42 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         componentPid = app._get_componentProcessIds()[0].processId
 
-        Done = False
-        while not Done:
-            firstChildren = getChildren(componentPid)
-            if not firstChildren:
-                time.sleep(0.1)
-                totalTries += 1
-                if totalTries == 10:
-                    break
-            else:
-                Done = True
-        self.assertNotEqual(firstChildren, None)
-        totalTries = 0
-        Done = False
-        firstChild = firstChildren[0]
+        # Predicate class to fetch the first child of a process, for use with
+        # assertPredicateWithWait()
+        class child_finder(object):
+            def __init__(self, pid):
+                self.pid = pid
+                self.children = []
+            def __call__(self):
+                if not self.children:
+                    self.children = getChildren(self.pid)
+                if self.children:
+                    return self.children[0]
+                else:
+                    return None
 
-        secondChildren = getChildren(firstChild)
-        totalTries = 0
-        Done = False
-        while not Done:
-            if len(secondChildren) != 1:
-                time.sleep(0.1)
-                totalTries += 1
-                if totalTries == 10:
-                    break
-            else:
-                Done = True
-        self.assertEqual(len(secondChildren), 1)
-        secondChild = secondChildren[0]
+        # Wait for the component process to have at least one child process
+        pred = child_finder(componentPid)
+        self.assertPredicateWithWait(pred, 'could not find first child process', 1.0)
+        firstChild = pred()
+
+        # Wait for the first child process to have at least one child process
+        pred = child_finder(firstChild)
+        self.assertPredicateWithWait(pred, 'could not find second child process', 1.0)
+        secondChild = pred()
 
         self.assertEqual(pidExists(componentPid), True)
         self.assertEqual(pidExists(firstChild), True)
         self.assertEqual(pidExists(secondChild), True)
         app.releaseObject()
-        time.sleep(0.5)
-        self.assertEqual(pidExists(componentPid), False)
-        self.assertEqual(pidExists(firstChild), False)
-        self.assertEqual(pidExists(secondChild), False)
+
+        # Wait up to a second for all of the children to exit
+        def children_exited():
+            for pid in (componentPid, firstChild, secondChild):
+                if pidExists(pid):
+                    return False
+            return True
+        self.assertPredicateWithWait(children_exited, wait=1.0)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
         self.assertEqual(len(domMgr._get_applications()), 0)

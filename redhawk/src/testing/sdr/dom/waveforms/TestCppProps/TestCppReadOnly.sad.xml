@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
+<softwareassembly id="DCE:7636d29e-19c2-4fd0-8921-416e60f98222" name="TestCppReadOnly">
+  <componentfiles>
+    <componentfile id="TestCppProps_3295fabc-c89c-43b7-be66-cc2aa5b9bdf1" type="SPD">
+      <localfile name="/components/TestCppProps/TestCppProps.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="TestCppProps_3295fabc-c89c-43b7-be66-cc2aa5b9bdf1"/>
+      <componentinstantiation id="TestCppProps1">
+        <usagename>TestCppProps1</usagename>
+        <componentproperties>
+          <simpleref refid="readOnly" value="set_once"/>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="TestCppProps1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="TestCppProps1"/>
+  </assemblycontroller>
+  <connections/>
+</softwareassembly>

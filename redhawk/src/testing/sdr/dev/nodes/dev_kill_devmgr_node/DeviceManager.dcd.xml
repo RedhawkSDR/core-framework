@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:1a0cafac-270b-4997-befc-c7a1308e0fa2" name="dev_kill_devmgr_node">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="dev_kill_devmgr_ee1f4f5c-4457-496d-ab18-05ed7e6d30a6" type="SPD">
+      <localfile name="/devices/dev_kill_devmgr/dev_kill_devmgr.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="dev_kill_devmgr_ee1f4f5c-4457-496d-ab18-05ed7e6d30a6"/>
+      <componentinstantiation id="dev_kill_devmgr_node:dev_kill_devmgr_1">
+        <usagename>dev_kill_devmgr_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

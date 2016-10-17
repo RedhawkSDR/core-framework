@@ -1,0 +1,50 @@
+<comps>
+    <group>
+        <id>redhawk-development</id>
+        <name>REDHAWK Development</name>
+        <default>true</default>
+        <description>REDHAWK Development Installation</description>
+        <uservisible>true</uservisible>
+        <packagelist>
+            <packagereq type="default">redhawk</packagereq>
+            <packagereq type="default">redhawk-basic-components</packagereq>
+            <packagereq type="default">redhawk-basic-devices</packagereq>
+            <packagereq type="default">redhawk-basic-waveforms</packagereq>
+            <packagereq type="default">redhawk-codegen</packagereq>
+            <packagereq type="default">redhawk-devel</packagereq>
+            <packagereq type="default">redhawk-debuginfo</packagereq>
+            <packagereq type="default">redhawk-ide</packagereq>
+            <packagereq type="default">redhawk-qt-tools</packagereq>
+            <packagereq type="default">redhawk-sdrroot-dev-mgr</packagereq>
+            <packagereq type="default">redhawk-sdrroot-dom-mgr</packagereq>
+            <packagereq type="default">redhawk-sdrroot-dom-profile</packagereq>
+            <packagereq type="default">GPP</packagereq>
+            <packagereq type="default">GPP-profile</packagereq>
+            <packagereq type="default">bulkioInterfaces</packagereq>
+            <packagereq type="default">burstioInterfaces</packagereq>
+            <packagereq type="default">frontendInterfaces</packagereq>
+            <packagereq type="default">omniORB-servers</packagereq>
+            <packagereq type="default">omniEvents-bootscripts</packagereq>
+        </packagelist>
+    </group>
+    <group>
+        <id>redhawk-runtime</id>
+        <name>REDHAWK Runtime</name>
+        <default>true</default>
+        <description>REDHAWK Runtime Installation</description>
+        <uservisible>true</uservisible>
+        <packagelist>
+            <packagereq type="default">redhawk</packagereq>
+            <packagereq type="default">redhawk-sdrroot-dev-mgr</packagereq>
+            <packagereq type="default">redhawk-sdrroot-dom-mgr</packagereq>
+            <packagereq type="default">redhawk-sdrroot-dom-profile</packagereq>
+            <packagereq type="default">GPP</packagereq>
+            <packagereq type="default">GPP-profile</packagereq>
+            <packagereq type="default">bulkioInterfaces</packagereq>
+            <packagereq type="default">burstioInterfaces</packagereq>
+            <packagereq type="default">frontendInterfaces</packagereq>
+            <packagereq type="default">omniORB-servers</packagereq>
+            <packagereq type="default">omniEvents-bootscripts</packagereq>
+        </packagelist>
+    </group>
+</comps>

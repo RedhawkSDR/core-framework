@@ -980,6 +980,8 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
     for (size_t implCount = 0; implCount < implementations.size(); implCount++) {
         const ossie::SPD::Implementation* implementation = &implementations[implCount];
 
+        // TODO: Validate code file and dependency files exist
+
         // Handle 'usesdevice' dependencies for the particular implementation
         redhawk::UsesDeviceDeployment implAssignedDevices;
         ScopedAllocations implAllocations(*this->_allocationMgr);

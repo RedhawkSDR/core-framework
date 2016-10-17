@@ -52,7 +52,6 @@ class CommandWrapper_i(CF__POA.Resource):
     # avoid creating zombie processes
     STOP_SIGNALS = ((signal.SIGINT, 1), (signal.SIGTERM, 5), (signal.SIGKILL, None))
     def __init__(self, parent_orb, execparams,  poa):
-        CF._objref_Resource.__init__(self._this())
         # The CORBA name this object is registered under
         self.naming_service_name = execparams['NAME_BINDING']
         # The parent ORB for this object
@@ -144,6 +143,9 @@ class CommandWrapper_i(CF__POA.Resource):
         # return from the function.
         self._log.debug("query -> %s", props)
         return props 
+
+    def initializeProperties(self, props):
+        self._log.debug("%s.initializeProperties(%s)", self.naming_service_name, props)
 
     ######################################
     # Implement the PortSupplier interface

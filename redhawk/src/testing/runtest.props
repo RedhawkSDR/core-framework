@@ -5,14 +5,19 @@ log4j.debug=false
 
 # Appender
 log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
-log4j.appender.CONSOLE.File=stdout
-log4j.appender.FILE=org.apache.log4j.FileAppender
-log4j.appender.FILE.File=runtests.log
-
-# Leave the CONSOLE and FILE thresholds at TRACE so that when
-# individual loggers are set to TRACE the messages will appear
+log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
+log4j.appender.CONSOLE.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
 log4j.appender.CONSOLE.threshold=TRACE
-log4j.appender.FILE.threshold=TRACE
+
+log4j.appender.FILE=org.apache.log4j.FileAppender
+log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
+log4j.appender.FILE.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+log4j.appender.FILE.File=runtests.log
+log4j.appender.FILE.Threshold=TRACE
+
+#
+#
+# individual loggers are set to TRACE the messages will appear
 
 # If you want to debug a specific class, uncomment or add
 # the appropriate line(s) below
@@ -41,7 +46,3 @@ log4j.appender.FILE.threshold=TRACE
 #log4j.logger.sad_parser=TRACE
 
 # A1 appender layout
-log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
-log4j.appender.CONSOLE.layout.ConversionPattern=%p:%c - %m [%F:%L]%n
-log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
-log4j.appender.FILE.layout.ConversionPattern=%d %p:%c - %m [%F:%L]%n

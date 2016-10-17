@@ -61,4 +61,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </struct>
     <configurationkind kindtype="configure"/>
   </structsequence>
+  <simple id="readOnly" mode="readonly" name="readOnly" type="string">
+    <value>empty</value>
+    <kind kindtype="property"/>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
 </properties>

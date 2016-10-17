@@ -1212,8 +1212,11 @@ class ExecutableDevice(LoadableDevice):
                 "Cannot terminate.  Process %s does not exist." % str(pid))
         # SR:456
         try:
-            sp = self._applications[pid]
             for sig, timeout in self.STOP_SIGNALS:
+                if not _checkpg(pid):
+                    # The entire process group has exited
+                    break
+
                 try:
                     self._log.debug('Sending signal %d to process group %d', sig, pid)
                     # the group id is used to handle child processes (if they exist) of the component being cleaned up
@@ -1221,30 +1224,22 @@ class ExecutableDevice(LoadableDevice):
                 except OSError:
                     pass
 
-                # check if pid has finished
-                status=None
-                try:
-                    status = self._applications[pid].poll()
-                except KeyError:
-                    time.sleep(0.01)                    
-                    continue
-            
-                if status != None: 
-                    self._log.debug('Process has stopped...pocess group ' + str(pid) + ' status' + str(status))
-                    time.sleep(0.01)                    
-                    continue
-            
-                if not _checkpg(pid): break
                 giveup_time = time.time() + timeout
                 while _checkpg(pid) and time.time() < giveup_time:
                     time.sleep(0.1)
 
-                if not _checkpg(pid): break
-
             try:
                 self._log.debug(' Delete APP (_terminate)  %d', pid)
+                proc = self._applications[pid]
                 del self._applications[pid]
-            except:
+
+                # check if pid has finished
+                status = proc.poll()
+                if status is not None: 
+                    self._log.debug('Process has stopped...process group %d status %d', pid, status)
+            except KeyError:
+                # The SIGCHLD handler must have been called in the interim, and
+                # removed the entry
                 pass
         except:
             pass

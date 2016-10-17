@@ -4,7 +4,7 @@ bin_PROGRAMS = Oversized_framedata
 
 xmldir = $(prefix)/dom/components/Oversized_framedata/
 dist_xml_DATA = ../Oversized_framedata.scd.xml ../Oversized_framedata.prf.xml ../Oversized_framedata.spd.xml
-ACLOCAL_AMFLAGS = -I$(OSSIEHOME)/share/aclocal/ossie
+ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
 
 
 distclean-local:
