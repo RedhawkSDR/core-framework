@@ -15,7 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>icons/RedHawk_Logo250x.gif</normaloff>icons/RedHawk_Logo250x.gif</iconset>
+    <normaloff>icons/RedHawk_Logo128x.gif</normaloff>icons/RedHawk_Logo128x.gif</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
