@@ -54,7 +54,7 @@ AM_CONDITIONAL([BUILD_BASE_CLASSES], [test "$enable_base_classes" != "no"])
 
 if test "$enable_base_classes" != "no"; then
   AC_SUBST([BULKIO_SO_VERSION], [0:0:0])
-  AC_SUBST([BULKIO_API_VERSION], [2.0])
+  AC_SUBST([BULKIO_API_VERSION], [2.1])
 
   AX_BOOST_BASE([1.41])
   AX_BOOST_THREAD
