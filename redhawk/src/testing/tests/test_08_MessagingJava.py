@@ -25,6 +25,8 @@ from ossie.cf import CF
 import threading
 import time
 
+import CosEventChannelAdmin
+
 @scatest.requireJava
 class EventPortConnectionsTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -96,10 +98,34 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         time.sleep(2)
         for component in components:
             print component.componentObject._get_identifier()
-            if 'DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8' in component.componentObject._get_identifier():
+            if 'EventReceiveJava_1' in component.componentObject._get_identifier():
                 stuff = component.componentObject.query([CF.DataType("received_messages", any.to_any(None))])
         recval = any.from_any(stuff[0].value)
         self.assertEquals(6, len(recval))
         for val in recval:
             self.assertEquals('test_message' in val, True)
         app.releaseObject() # kill producer/consumer
+
+    def test_QueryablePortJava(self):
+        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr)
+        self.assertNotEqual(self._devBooter, None)
+        self._domMgr.installApplication("/waveforms/MessageTestJava/MessageTestJava.sad.xml")
+        appFact = self._domMgr._get_applicationFactories()[0]
+        app = appFact.create(appFact._get_name(), [], [])
+        for component in app._get_registeredComponents():
+            if 'EventSenderJava_1' in component.componentObject._get_identifier():
+                sender_port = component.componentObject.getPort('message_out')
+            elif 'EventReceiveJava_1' in component.componentObject._get_identifier():
+                receiver_port = component.componentObject.getPort('message_in')
+
+        # There should be two connections, one to the receiver's port and
+        # another to the event channel
+        connections = sender_port._get_connections()
+        self.assertEqual(len(connections), 2)
+        for connection in connections:
+            if 'direct' in connection.connectionId:
+                self.assertTrue(connection.port._is_equivalent(receiver_port))
+            else:
+                channel = connection.port._narrow(CosEventChannelAdmin.EventChannel)
+                self.assertNotEqual(channel, None)
+        app.releaseObject()

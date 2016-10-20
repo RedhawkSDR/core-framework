@@ -39,11 +39,11 @@ import org.omg.PortableServer.POAPackage.WrongPolicy;
 
 import org.apache.log4j.Logger;
 
-import org.ossie.component.UsesPort;
+import org.ossie.component.QueryableUsesPort;
 import org.ossie.component.PortBase;
 import org.ossie.properties.StructDef;
 
-public class MessageSupplierPort extends UsesPort<EventChannelOperations> implements EventChannelOperations, PortBase {
+public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperations> implements EventChannelOperations, PortBase {
 
     /**
      * Internal class to adapt PushSupplier CORBA interface for disconnection
@@ -126,6 +126,8 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         }
 
         synchronized (this.updatingPortsLock) { 
+            // Store the original channel in the parent object's container
+            this.outPorts.put(connectionId, channel);
             this.suppliers.put(connectionId, supplier);
             this.consumers.put(connectionId, proxy_consumer);
             this.active = true;
@@ -180,6 +182,10 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         SupplierAdapter supplier = null;
         PushConsumer proxy_consumer = null;
         synchronized (this.updatingPortsLock) {
+            // Remove the original EventChannel object from the parent class'
+            // container
+            this.outPorts.remove(connectionId);
+
             proxy_consumer = this.consumers.get(connectionId);
             if (proxy_consumer == null) {
                 return;

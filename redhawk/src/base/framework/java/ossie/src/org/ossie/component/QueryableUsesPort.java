@@ -24,6 +24,7 @@
  */
 package org.ossie.component;
 
+import java.util.Map;
 import java.util.HashMap;
 
 import org.ossie.component.UsesPort;
@@ -93,7 +94,14 @@ public abstract class QueryableUsesPort< E > extends QueryablePortPOA { // SUPPR
     protected abstract E narrow(org.omg.CORBA.Object connection);
 
     public UsesConnection[] connections() {
-        final UsesConnection[] connList = new UsesConnection[0];
-        return connList;
+        synchronized (this.updatingPortsLock) {
+            final UsesConnection[] connList = new UsesConnection[this.outPorts.size()];
+            int index = 0;
+            for (Map.Entry<String,E> entry : this.outPorts.entrySet()) {
+                org.omg.CORBA.Object obj = (org.omg.CORBA.Object)entry.getValue();
+                connList[index++] = new UsesConnection(entry.getKey(), obj);
+            }
+            return connList;
+        }
     }
 }
