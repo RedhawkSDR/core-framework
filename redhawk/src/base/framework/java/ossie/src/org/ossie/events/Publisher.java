@@ -80,7 +80,7 @@ public class  Publisher  {
       protected Lock                        _lock = new ReentrantLock();
       protected Condition                   _cond = _lock.newCondition();
       protected boolean                     _recv_disconnect = true;
-      protected Logger                      _logger = Logger.getLogger("Publisher.Receiver");                     
+      protected Logger                      _logger = Logger.getLogger("ossie.events.Publisher.Receiver");                     
 
     };
 
@@ -248,6 +248,7 @@ public class  Publisher  {
             try {
                 proxy.connect_push_supplier(sptr);
                 disconnectReceiver.reset();
+                logger.trace( "Connected to event channel");
                 retval=0;
                 break;
             }
@@ -283,6 +284,7 @@ public class  Publisher  {
       try {
         if (  proxy != null ) {
             proxy.push(data);
+            logger.trace( "pushed data down stream....");
         }
         else{
           retval=-1;

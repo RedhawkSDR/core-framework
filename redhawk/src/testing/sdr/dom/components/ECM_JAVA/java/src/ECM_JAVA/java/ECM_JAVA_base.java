@@ -79,6 +79,22 @@ public abstract class ECM_JAVA_base extends Component {
             Action.EXTERNAL, //action
             new Kind[] {Kind.CONFIGURE} //kind
             );
+
+    /**
+     * The property enablecb
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final BooleanProperty enablecb =
+        new BooleanProperty(
+            "enablecb", //id
+            "enablecb", //name
+            false, //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.CONFIGURE,Kind.PROPERTY} //kind} //kind
+            );
     
     /**
      * @generated
@@ -93,6 +109,8 @@ public abstract class ECM_JAVA_base extends Component {
         addProperty(msg_recv);
 
         addProperty(msg_xmit);
+
+        addProperty(enablecb);
 
     }
 
