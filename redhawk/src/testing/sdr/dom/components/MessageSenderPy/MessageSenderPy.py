@@ -47,7 +47,7 @@ class TestMessagePort(CF__POA.Resource, Resource):
     Example component to demonstrate REDHAWK sender-side messaging port.
     """
     message_out = usesport(name="message_out",
-                         repid="IDL:CosEventComm/PushConsumer:1.0",
+                         repid="IDL:ExtendedEvent/MessageEvent:1.0",
                          type_="data")
 
     def __init__(self, identifier, execparams):
