@@ -161,6 +161,39 @@ class EventChannelManager(scatest.CorbaTestCase):
 
 
 
+    @scatest.requireJava
+    def test_ECM_JavaComponent_Callbacks(self):
+        self.localEvent = threading.Event()
+        self.eventFlag = False
+
+        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr)
+        self.assertNotEqual(self._devBooter, None)
+        self._domMgr.installApplication("/waveforms/ECM3/ECM3.sad.xml")
+        appFact = self._domMgr._get_applicationFactories()[0]
+        self.assertNotEqual(appFact, None)
+        app = appFact.create(appFact._get_name(), [], [])
+        self.assertNotEqual(app, None)
+        components = app._get_registeredComponents()
+        for component in components:
+            if 'ECM' in component.componentObject._get_identifier():
+                component.componentObject.configure([CF.DataType( id='enablecb', value=any.to_any(True)) ])
+        app.start()
+        time.sleep(5)
+        components = app._get_registeredComponents()
+        for component in components:
+            if 'ECM' in component.componentObject._get_identifier():
+                stuff = component.componentObject.query([])
+        
+        if stuff:
+            pdict = props_to_dict(stuff)
+            mlimit = pdict['msg_limit']
+            mxmit = pdict['msg_xmit']
+            mrecv = pdict['msg_recv']
+            self.assertEquals(mlimit, mxmit )
+            self.assertEquals(mlimit, mrecv )
+
+
+
         app.releaseObject()
 
 class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):

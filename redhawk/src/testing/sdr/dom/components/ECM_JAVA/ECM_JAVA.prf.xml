@@ -16,4 +16,10 @@
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
+  <simple id="enablecb" mode="readwrite" name="enablecb" type="boolean">
+    <value>false</value>
+    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
 </properties>

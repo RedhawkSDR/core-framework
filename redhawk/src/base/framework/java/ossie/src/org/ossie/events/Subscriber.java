@@ -79,11 +79,10 @@ public class  Subscriber  {
             return;
         };
 
-      
       protected Lock                        _lock = new ReentrantLock();
       protected Condition                   _cond = _lock.newCondition();
       protected boolean                     _recv_disconnect = true;
-      protected Logger                      _logger = Logger.getLogger("Publisher.Receiver");                     
+      protected Logger                      _logger = Logger.getLogger("ossie.events.Subscriber.Receiver");                     
 
     };
 
@@ -96,6 +95,7 @@ public class  Subscriber  {
 
     
 	public  void push( final org.omg.CORBA.Any data ) {
+            _logger.trace(" received data from event channel ..");
 	    if ( parent != null ) {
 		// if parent defines a callback
 		if ( parent.dataArrivedCB != null ) {
@@ -160,6 +160,10 @@ public class  Subscriber  {
       }
 
       return retval;
+    }
+
+    public void setDataArrivedListener( DataArrivedListener newListener ) {
+        dataArrivedCB = newListener;
     }
 
 
@@ -283,7 +287,17 @@ public class  Subscriber  {
 
         PushConsumer sptr=null;
 	if  ( consumer != null ) {
-	    sptr = consumer._this();
+            try {
+                org.omg.PortableServer.POA poa = org.ossie.corba.utils.OrbContext.RootPOA();
+                org.omg.CORBA.Object consumer_obj =  poa.servant_to_reference(consumer);
+                sptr = PushConsumerHelper.narrow(consumer_obj);
+            }
+	    catch(org.omg.PortableServer.POAPackage.ServantNotActive  ex) {
+                logger.error( "Subscriber, Caught ServantNotActive exception connecting Push Consumer!");
+	    }
+	    catch(org.omg.PortableServer.POAPackage.WrongPolicy  ex) {
+                logger.error( "Subscriber, Caught WrongPolicy exception connecting Push Consumer!");
+	    }
 	}
 
 	// now attach supplier to the proxy
@@ -291,11 +305,15 @@ public class  Subscriber  {
 	do {
 	    try {
 		proxy.connect_push_consumer( sptr );
-                consumer.reset();
+                if ( consumer  != null ) {
+                    logger.debug( "Subscriber, Reset consumer state ....." );
+                    consumer.reset();
+                }
                 logger.debug( "Subscriber, Connected Consumer to EventChannel....." );
                 retval=0;
 		break;
 	    }
+
 	    catch(TypeError ex) {
                 logger.error( "Subscriber, Caught TypeError exception connecting Push Consumer!");
 		break;
@@ -377,7 +395,6 @@ public class  Subscriber  {
 	// connect to the event channel for a subscriber pattern
         connect();
     }
-
 
 
 };
