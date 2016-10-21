@@ -910,6 +910,7 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
     child_pids = []
     dom = None
     _domainBooter = None
+    _domainManager = None
     _deviceBooter = None
     _deviceLock = threading.Lock()
     _deviceBooters = []
@@ -1056,12 +1057,22 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
         super(ComponentTests_SystemReservations,self).setUp()
         self.child_pids=[]
         self._domainBooter = None
+        self._domainManager = None
         self._deviceBooter = None
         self.orig_sdrroot=os.getenv('SDRROOT')
         os.putenv('SDRROOT', os.getcwd()+'/sdr')
         print "\n-----------------------"
         print "Running: ", self.id().split('.')[-1]
         print "-----------------------\n"
+        copyfile(self.orig_sdrroot+'/dom/mgr/DomainManager', 'sdr/dom/mgr/DomainManager')
+        os.chmod('sdr/dom/mgr/DomainManager',0777)
+        copyfile(self.orig_sdrroot+'/dev/mgr/DeviceManager', 'sdr/dev/mgr/DeviceManager')
+        os.chmod('sdr/dev/mgr/DeviceManager',0777)
+        if not os.path.exists('sdr/dev/devices/GPP/cpp'):
+            os.makedirs('sdr/dev/devices/GPP/cpp')
+        copyfile('../cpp/GPP', 'sdr/dev/devices/GPP/cpp/GPP')
+        os.chmod('sdr/dev/devices/GPP/cpp/GPP',0777)
+
 
     def tearDown(self):
         super(ComponentTests_SystemReservations, self).tearDown()
@@ -1116,8 +1127,12 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
 
 
     def testMonitorComponents(self):
+        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self.assertNotEquals(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("sdr/dev/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEquals(devMgr,None)
         app_1=self.dom.createApplication('/waveforms/load_comp_w/load_comp_w.sad.xml','load_comp_w',[])
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 6
         time.sleep(wait_amount)
@@ -1139,8 +1154,12 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
         self.assertTrue(component_monitor.cores < 1.75)
 
     def testDeadlock(self):
+        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self.assertNotEquals(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("sdr/dev/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEquals(devMgr,None)
         self.dom.devMgrs[0].devs[0].threshold_cycle_time = 50
         count = 0
         while count < 20:
@@ -1153,18 +1172,12 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
             count += 1
     
     def testSystemReservation(self):
-        copyfile(self.orig_sdrroot+'/dom/mgr/DomainManager', 'sdr/dom/mgr/DomainManager')
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
-        os.chmod('sdr/dom/mgr/DomainManager',0777)
-        copyfile(self.orig_sdrroot+'/dev/mgr/DeviceManager', 'sdr/dev/mgr/DeviceManager')
-        os.chmod('sdr/dev/mgr/DeviceManager',0777)
-        if not os.path.exists('sdr/dev/devices/GPP/cpp'):
-            os.makedirs('sdr/dev/devices/GPP/cpp')
-        copyfile('../cpp/GPP', 'sdr/dev/devices/GPP/cpp/GPP')
-        os.chmod('sdr/dev/devices/GPP/cpp/GPP',0777)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self.assertNotEquals(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("sdr/dev/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
         cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
