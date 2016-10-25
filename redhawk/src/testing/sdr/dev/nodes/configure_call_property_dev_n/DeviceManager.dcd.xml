@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:699931db-b638-4a4e-b270-f05717693d03" name="configure_call_property_dev_n">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="configure_call_property_dev_9b7eef69-25e8-40bc-8ef9-e83577020a00" type="SPD">
+      <localfile name="/devices/configure_call_property_dev/configure_call_property_dev.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="configure_call_property_dev_9b7eef69-25e8-40bc-8ef9-e83577020a00"/>
+      <componentinstantiation id="configure_call_property_dev_n:configure_call_property_dev_1">
+        <usagename>configure_call_property_dev_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

@@ -3237,7 +3237,8 @@ void createHelper::configureComponents()
                 }
                 try {
                     // try to configure the component
-                    _rsc->configure (component->getNonNilConfigureProperties());
+                    if (component->getNonNilConfigureProperties().length() != 0)
+                        _rsc->configure (component->getNonNilConfigureProperties());
                 } catch(CF::PropertySet::InvalidConfiguration& e) {
                     ostringstream eout;
                     eout << "Failed to 'configure' component: '";
@@ -3338,7 +3339,8 @@ void createHelper::configureComponents()
                 }
                 try {
                     // try to configure the component
-                    _rsc->configure (component->getNonNilConfigureProperties());
+                    if (component->getNonNilConfigureProperties().length() != 0)
+                        _rsc->configure (component->getNonNilConfigureProperties());
                 } catch(CF::PropertySet::InvalidConfiguration& e) {
                     ostringstream eout;
                     eout << "Failed to 'configure' Assembly Controller: '";
