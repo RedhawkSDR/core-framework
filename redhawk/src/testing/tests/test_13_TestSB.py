@@ -501,6 +501,28 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.over_simple, "override")
         self.assertEquals(comp.over_struct_seq, [{'a_word': 'something', 'a_number': 1}])
 
+
+    def test_loadSADFile_startorder(self):
+        maxpid=32768
+        try:
+            out=subprocess.Popen(['cat', '/proc/sys/kernel/pid_max'], stdout=subprocess.PIPE)
+            res=out.communicate()
+            maxpid=int(res[0].strip())
+        except:
+            pass
+        retval = sb.loadSADFile('sdr/dom/waveforms/ticket_462_w/ticket_462_w.sad.xml')
+        self.assertEquals(retval, True)
+        comp_ac = sb.getComponent('ticket_462_ac_1')
+        self.assertNotEquals(comp_ac, None)
+        comp = sb.getComponent('ticket_462_1')
+        self.assertNotEquals(comp, None)
+        if comp_ac._pid <= maxpid-1:
+            isless= comp_ac._pid < comp._pid
+        else:
+            isless=comp._pid < comp_ac._pid 
+        self.assertTrue(isless)
+
+
     def test_SDDS_SRI(self):
         c = sb.launch('sdds_src')
         self.assertNotEquals(c, None)
