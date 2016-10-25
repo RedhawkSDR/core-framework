@@ -655,10 +655,31 @@ def loadSADFile(filename, props={}):
         for hostCollocation in sad.get_partitioning().get_hostcollocation():
             componentPlacements.extend(hostCollocation.get_componentplacement())
 
+
+        log.debug("Creating start order for: ", filename )
+        startorder={}
+        for c in componentPlacements:
+            log.debug("COMPONENT PLACEMENT component instantiation id '%s'", c.get_componentinstantiation()[0].id_)
+            seq = None
+            try:
+                seq = c.get_componentinstantiation()[0].get_startorder()
+                seq = int(seq)
+                log.debug("COMPONENT PLACEMENT component startorder '%s'", str(seq))
+            except:
+                seq=-1
+            startorder.setdefault( seq, [])
+            startorder[ seq ].append( c )
+
+        # flatten dictionary to an ordered list
+        ordered_placements=[]
+        for k,v in startorder.items():
+            ordered_placements = ordered_placements + v
+
         configurable = {}
-        for component in componentPlacements:
+        for component in ordered_placements:
             log.debug("COMPONENT PLACEMENT component spd file id '%s'", component.componentfileref.refid)
             log.debug("COMPONENT PLACEMENT component instantiation id '%s'", component.get_componentinstantiation()[0].id_)
+            log.debug("COMPONENT PLACEMENT component startorder '%s'", component.get_componentinstantiation()[0].get_startorder())
             log.debug("COMPONENT PLACEMENT component name '%s'", component.get_componentinstantiation()[0].get_usagename())
             # If component has a valid SPD file (isKickable), launch it
             refid = component.componentfileref.refid
