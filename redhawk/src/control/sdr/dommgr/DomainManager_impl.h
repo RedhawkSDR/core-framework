@@ -117,7 +117,7 @@ public:
 
     void installApplication (const char* profileFileName)
         throw (CF::DomainManager::ApplicationInstallationError, CF::InvalidFileName, CF::InvalidProfile, CORBA::SystemException, CF::DomainManager::ApplicationAlreadyInstalled);
-    void _local_installApplication (const char* profileFileName);
+    void _local_installApplication (const std::string& profileFileName);
            
     void uninstallApplication (const char* applicationId)
         throw (CF::DomainManager::ApplicationUninstallationError, CF::DomainManager::InvalidIdentifier, CORBA::SystemException);
@@ -253,11 +253,11 @@ protected:
 
     void parseDMDProfile();
     void storeDeviceInDomainMgr (CF::Device_ptr, CF::DeviceManager_ptr);
-    void storeServiceInDomainMgr (CORBA::Object_ptr, CF::DeviceManager_ptr, const char*, const char*);
+    void storeServiceInDomainMgr (CORBA::Object_ptr, CF::DeviceManager_ptr, const std::string&, const std::string&);
     bool deviceMgrIsRegistered (CF::DeviceManager_ptr);
     bool domainMgrIsRegistered (CF::DomainManager_ptr);
     bool deviceIsRegistered (CF::Device_ptr);
-    bool serviceIsRegistered (const char*);
+    bool serviceIsRegistered (const std::string&);
     void addDeviceMgr (CF::DeviceManager_ptr deviceMgr);
     void mountDeviceMgrFileSys (CF::DeviceManager_ptr deviceMgr);
     void addDomainMgr (CF::DomainManager_ptr domainMgr);

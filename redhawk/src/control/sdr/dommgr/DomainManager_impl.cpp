@@ -141,7 +141,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
             _exit(EXIT_FAILURE);
         }
     } catch ( ... ) {
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager; error creating new context for domain " << this->_domainName.c_str())
+        LOG_FATAL(DomainManager_impl, "Stopping domain manager; error creating new context for domain " << this->_domainName);
         _exit(EXIT_FAILURE);
     }
 
@@ -369,7 +369,7 @@ void DomainManager_impl::restoreState(const std::string& _db_uri) {
                 LOG_INFO(DomainManager_impl, "Recovered connection to Service: " << ii->name);
                 ossie::DeviceManagerList::iterator deviceManager = findDeviceManagerById(ii->deviceManagerId);
                 if (deviceManager != _registeredDeviceManagers.end()) {
-                    storeServiceInDomainMgr(ii->service, deviceManager->deviceManager, ii->name.c_str(), ii->serviceId.c_str());
+                    storeServiceInDomainMgr(ii->service, deviceManager->deviceManager, ii->name, ii->serviceId);
                 } else {
                     LOG_WARN(DomainManager_impl, "Failed to recover connection to Service: " << ii->name << ": DeviceManager "
                              << ii->deviceManagerId << " no longer exists");
@@ -411,7 +411,7 @@ void DomainManager_impl::restoreState(const std::string& _db_uri) {
     for (std::set<std::string>::iterator profile = restoredSADs.begin(); profile != restoredSADs.end(); ++profile) {
         LOG_TRACE(DomainManager_impl, "Attempting to restore application factory " << *profile);
         try {
-            _local_installApplication(profile->c_str());
+            _local_installApplication(*profile);
             LOG_INFO(DomainManager_impl, "Restored application factory " << *profile);
         } CATCH_LOG_WARN(DomainManager_impl, "Failed to restore application factory " << *profile);
     }
@@ -932,7 +932,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
 
     std::string identifier = ossie::corba::returnString(deviceMgr->identifier());
     std::string label = ossie::corba::returnString(deviceMgr->label());
-    sendAddEvent( _identifier.c_str(), identifier, label, deviceMgr, StandardEvent::DEVICE_MANAGER );
+    sendAddEvent(_identifier, identifier, label, deviceMgr, StandardEvent::DEVICE_MANAGER);
 }
 
 void DomainManager_impl::_local_registerDeviceManager (CF::DeviceManager_ptr deviceMgr)
@@ -1122,7 +1122,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
         _local_unregisterDeviceManager(devMgrIter);
     } CATCH_LOG_ERROR(DomainManager_impl, "Exception unregistering device manager");
 
-    sendRemoveEvent( _identifier.c_str(), identifier.c_str(), label.c_str(), StandardEvent::DEVICE_MANAGER );
+    sendRemoveEvent(_identifier, identifier, label, StandardEvent::DEVICE_MANAGER);
 }
 
 ossie::DeviceManagerList::iterator DomainManager_impl::_local_unregisterDeviceManager (ossie::DeviceManagerList::iterator deviceManager)
@@ -1238,7 +1238,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
 
     std::string identifier = ossie::corba::returnString(registeringDevice->identifier());
     std::string label = ossie::corba::returnString(registeringDevice->label());
-    sendAddEvent( _identifier.c_str(), identifier, label, registeringDevice, StandardEvent::DEVICE );
+    sendAddEvent(_identifier, identifier, label, registeringDevice, StandardEvent::DEVICE);
 }
 
 void DomainManager_impl::_local_registerDevice (CF::Device_ptr registeringDevice,
@@ -1357,7 +1357,7 @@ void DomainManager_impl::storeDeviceInDomainMgr (CF::Device_ptr registeringDevic
 //This function adds the registeringService and its name to the DomainMgr.
 //if the service already exists it does nothing
 void
-DomainManager_impl::storeServiceInDomainMgr (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name, const char * serviceId)
+DomainManager_impl::storeServiceInDomainMgr (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const std::string& name, const std::string& serviceId)
 {
     TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
@@ -1448,8 +1448,7 @@ ossie::DeviceList::iterator DomainManager_impl::_local_unregisterDevice (ossie::
 
     // Sent event here (as opposed to unregisterDevice), so we see the event on regular
     // unregisterDevice calls, and on cleanup (deviceManager shutdown, catastropic cleanup, etc.)
-    sendRemoveEvent( _identifier.c_str(), (*deviceNode)->identifier.c_str(), (*deviceNode)->label.c_str(),
-                     StandardEvent::DEVICE );
+    sendRemoveEvent(_identifier, (*deviceNode)->identifier, (*deviceNode)->label, StandardEvent::DEVICE);
 
     // Remove the device from the internal list.
     deviceNode = _registeredDevices.erase(deviceNode);
@@ -1478,7 +1477,7 @@ bool DomainManager_impl::deviceIsRegistered (CF::Device_ptr registeredDevice)
 }
 
 
-bool DomainManager_impl::serviceIsRegistered (const char* serviceName)
+bool DomainManager_impl::serviceIsRegistered (const std::string& serviceName)
 {
     TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
@@ -1567,11 +1566,11 @@ throw (CORBA::SystemException,
         const std::string& identifier = appFact->first;
         const std::string& name = appFact->second->getName();
         CF::ApplicationFactory_var appFactRef = appFact->second->_this();
-        sendAddEvent( _identifier.c_str(), identifier, name, appFactRef, StandardEvent::APPLICATION_FACTORY );
+        sendAddEvent(_identifier, identifier, name, appFactRef, StandardEvent::APPLICATION_FACTORY);
     }
 }
 
-void DomainManager_impl::_local_installApplication (const char* profileFileName)
+void DomainManager_impl::_local_installApplication (const std::string& profileFileName)
 {
     TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
@@ -1580,11 +1579,12 @@ void DomainManager_impl::_local_installApplication (const char* profileFileName)
 //               that is currently installed because it is the installed factory that
 //               provides the value of profileFileName
 
-    try {
-        // check the profile ends with .sad.xml, warn if it doesn't
-        if ((strstr (profileFileName, ".sad.xml")) == NULL)
-            { LOG_WARN(DomainManager_impl, "File " << profileFileName << " should end with .sad.xml."); }
+    // check the profile ends with .sad.xml, warn if it doesn't
+    if (profileFileName.find(".sad.xml") == std::string::npos) {
+        LOG_WARN(DomainManager_impl, "File " << profileFileName << " should end with .sad.xml.");
+    }
 
+    try {
         LOG_TRACE(DomainManager_impl, "installApplication: Createing new AppFac");
         ApplicationFactory_impl* appFact = new ApplicationFactory_impl(profileFileName, this->_domainName, this);
         const std::string& appFactoryId = appFact->getIdentifier();
@@ -1671,7 +1671,7 @@ throw (CORBA::SystemException, CF::DomainManager::InvalidIdentifier,
         // sourceCategory = APPLICATION_FACTORY
         // StandardEvent enumeration
 
-    sendRemoveEvent(_identifier.c_str(), appFactory_id.c_str(), appFactory_name.c_str(),StandardEvent::APPLICATION_FACTORY);
+    sendRemoveEvent(_identifier, appFactory_id, appFactory_name, StandardEvent::APPLICATION_FACTORY);
 }
 
 void DomainManager_impl::_local_uninstallApplication (const char* applicationId)
@@ -1989,7 +1989,7 @@ void DomainManager_impl::_local_registerService (CORBA::Object_ptr registeringSe
 
 //Add registeringService and its name to domain manager
     try {
-        storeServiceInDomainMgr(registeringService, registeredDeviceMgr, name, serviceId.c_str());
+        storeServiceInDomainMgr(registeringService, registeredDeviceMgr, name, serviceId);
     } catch ( ... ) {
         throw;
     }
@@ -2019,7 +2019,7 @@ void DomainManager_impl::_local_registerService (CORBA::Object_ptr registeringSe
 //3. The sourceName shall be the input name parameter for the registering service.
 //4. The sourceIOR shall be the registered service object reference.
 //5. The sourceCategory shall be SERVICE.
-    sendAddEvent( _identifier.c_str(), serviceId.c_str(), name, registeringService, StandardEvent::SERVICE );
+    sendAddEvent(_identifier, serviceId, name, registeringService, StandardEvent::SERVICE);
 
 //The registerService operation shall raise the RegisterError exception when an internal error
 //exists which causes an unsuccessful registration.
@@ -2103,7 +2103,7 @@ ossie::ServiceList::iterator DomainManager_impl::_local_unregisterService(ossie:
     //4. The sourceCategory shall be SERVICE.
     // Sent event here (as opposed to unregisterDevice), so we see the event on regular
     // unregisterDevice calls, and on cleanup (deviceManager shutdown, catastropic cleanup, etc.)
-    sendRemoveEvent( _identifier.c_str(), serviceId.c_str(), serviceName.c_str(), StandardEvent::SERVICE );
+    sendRemoveEvent(_identifier, serviceId, serviceName, StandardEvent::SERVICE);
 
     return service;
 }
@@ -2436,7 +2436,7 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
         dcd.load(dcd_file);
     } catch (const ossie::parser_error& error) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(error.what());
-        LOG_WARN(DomainManager_impl, "Error parsing DCD: " << deviceManagerProfile.c_str() << " overrides for Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
+        LOG_WARN(DomainManager_impl, "Error parsing DCD: " << deviceManagerProfile << " overrides for Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
     } catch (...) {
         LOG_WARN(DomainManager_impl, "Unable to cache DCD overrides for Device: " << node.identifier);
     }
@@ -2452,9 +2452,9 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
 
 Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode& node)
 {
-    Application_impl* application = new Application_impl(node.identifier.c_str(), 
-                                                         node.name.c_str(),
-                                                         node.profile.c_str(), 
+    Application_impl* application = new Application_impl(node.identifier, 
+                                                         node.name,
+                                                         node.profile, 
                                                          this,
                                                          node.contextName,
                                                          node.context,
