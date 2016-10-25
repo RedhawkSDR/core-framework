@@ -2151,10 +2151,6 @@ ossie::ServiceList::iterator DomainManager_impl::_local_unregisterService(ossie:
 
     if (!_applications.empty()) {
         std::vector<Application_impl*> appsToRelease;
-
-        PortableServer::POA_var dm_poa = ossie::corba::RootPOA()->find_POA("DomainManager", 0);
-        PortableServer::POA_var poa = dm_poa->find_POA("Applications", 1);
-
         for (ApplicationTable::iterator app = _applications.begin(); app != _applications.end(); ++app) {
             if (app->second->checkConnectionDependency(ossie::Endpoint::SERVICENAME, serviceName)) {
                 app->second->_add_ref();
