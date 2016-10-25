@@ -311,7 +311,8 @@ protected:
     ossie::ServiceList _registeredServices;
     std::vector < ossie::EventChannelNode > _eventChannels;
 
-
+    Application_impl* _restoreApplication(ossie::ApplicationNode& node);
+    void _persistApplication(Application_impl* application);
 
     //
     // Handle to EventChannelManager for the Domain

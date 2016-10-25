@@ -432,53 +432,12 @@ void DomainManager_impl::restoreState(const std::string& _db_uri) {
         try {
             if (ossie::corba::objectExists(i->context)) {
                 LOG_TRACE(DomainManager_impl, "Creating application " << i->identifier << " " << _domainName << " " << i->contextName);
-                Application_impl* _application = new Application_impl (i->identifier.c_str(), 
-                                       i->name.c_str(), i->profile.c_str(), 
-                                       this, 
-                                       i->contextName, 
-                                       i->context,
-                                       i->aware_application,
-                                       CosNaming::NamingContext::_nil() );
-                LOG_TRACE(DomainManager_impl, "Restored " << i->connections.size() << " connections");
+                Application_impl* application = _restoreApplication(*i);
+                Application_impl::Activate(application);
+                addApplication(application);
+                application->_remove_ref();
 
-                _application->populateApplication(i->assemblyController,
-                                                  i->componentDevices,
-                                                  i->componentRefs,
-                                                  i->connections,
-                                                  i->allocationIDs);
-
-                // Restore various state about the components in the waveform
-                _application->_components = i->components;
-
-                // Add external ports
-                for (std::map<std::string, CORBA::Object_var>::const_iterator it = i->ports.begin();
-                        it != i->ports.end();
-                        ++it) {
-                    _application->addExternalPort(it->first, it->second);
-                }
-
-                // Add external properties
-                for (std::map<std::string, std::pair<std::string, std::string> >::const_iterator it = i->properties.begin();
-                        it != i->properties.end();
-                        ++it) {
-                    std::string extId = it->first;
-                    std::string propId = it->second.first;
-                    std::string compId = it->second.second;
-                    std::vector<CF::Resource_var> comps = i->componentRefs;
-                    comps.push_back(i->assemblyController);
-                    for (unsigned int ii = 0; ii < comps.size(); ++ii) {
-                        if (compId == ossie::corba::returnString(comps[ii]->identifier())) {
-                            _application->addExternalProperty(propId, extId, comps[ii]);
-                            break;
-                        }
-                    }
-                }
-
-                Application_impl::Activate(_application);
-                addApplication(_application);
-                _application->_remove_ref();
-
-                LOG_INFO(DomainManager_impl, "Restored application " << i->identifier);
+                LOG_INFO(DomainManager_impl, "Restored application " << application->getIdentifier());
             }
         } CATCH_LOG_WARN(DomainManager_impl, "Failed to restore application" << i->identifier);
     }
@@ -1781,44 +1740,10 @@ DomainManager_impl::addApplication(Application_impl* new_app)
         _applications[identifier] = new_app;
         new_app->_add_ref();
 
-        ApplicationNode appNode;
-        appNode.name = new_app->getName();
-        appNode.identifier = new_app->getIdentifier();
-        appNode.profile = new_app->getProfile();
-        appNode.contextName = new_app->_waveformContextName;
-        appNode.context = CosNaming::NamingContext::_duplicate(new_app->_waveformContext);
-        appNode.componentDevices = new_app->_componentDevices;
-        appNode.components = new_app->_components;
-        appNode.assemblyController = CF::Resource::_duplicate(new_app->assemblyController);
-        appNode.componentRefs.clear();
-        for (unsigned int i = 0; i < new_app->_appStartSeq.size(); ++i) {
-            appNode.componentRefs.push_back(CF::Resource::_duplicate(new_app->_appStartSeq[i]));
-        }
-        appNode.allocationIDs = new_app->_allocationIDs;
-        appNode.connections = new_app->_connections;
-        appNode.aware_application = new_app->_isAware;
-        appNode.ports = new_app->_ports;
-        // Adds external properties
-        for (std::map<std::string, std::pair<std::string, CF::Resource_var> >::const_iterator it = new_app->_properties.begin();
-                it != new_app->_properties.end();
-                ++it) {
-            std::string extId = it->first;
-            std::string propId = it->second.first;
-            std::string compId = ossie::corba::returnString(it->second.second->identifier());
-            appNode.properties[extId] = std::pair<std::string, std::string>(propId, compId);
-        }
-
-        _runningApplications.push_back(appNode);
-
         // Make any deferred connections dependent on this application
         _connectionManager.applicationRegistered(identifier);
 
-        try {
-            db.store("APPLICATIONS", _runningApplications);
-        } catch (const ossie::PersistenceException& ex) {
-            LOG_ERROR(DomainManager_impl, "Error persisting change to device managers");
-        }
-
+        _persistApplication(new_app);
     } catch (...) {
         ostringstream eout;
         eout << "Could not add new application to AppSeq; ";
@@ -2522,5 +2447,91 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
         node.prf.override(instantiation->properties);
     } else {
         LOG_WARN(DomainManager_impl, "Unable to find device " << node.identifier << " in DCD");
+    }
+}
+
+Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode& node)
+{
+    Application_impl* application = new Application_impl(node.identifier.c_str(), 
+                                                         node.name.c_str(),
+                                                         node.profile.c_str(), 
+                                                         this,
+                                                         node.contextName,
+                                                         node.context,
+                                                         node.aware_application,
+                                                         CosNaming::NamingContext::_nil());
+    LOG_TRACE(DomainManager_impl, "Restored " << node.connections.size() << " connections");
+
+    application->populateApplication(node.assemblyController,
+                                      node.componentDevices,
+                                      node.componentRefs,
+                                      node.connections,
+                                      node.allocationIDs);
+
+    // Restore various state about the components in the waveform
+    application->_components = node.components;
+
+    // Add external ports
+    for (std::map<std::string, CORBA::Object_var>::const_iterator it = node.ports.begin();
+         it != node.ports.end();
+         ++it) {
+        application->addExternalPort(it->first, it->second);
+    }
+
+    // Add external properties
+    for (std::map<std::string, std::pair<std::string, std::string> >::const_iterator it = node.properties.begin();
+         it != node.properties.end();
+         ++it) {
+        std::string extId = it->first;
+        std::string propId = it->second.first;
+        std::string compId = it->second.second;
+        std::vector<CF::Resource_var> comps = node.componentRefs;
+        comps.push_back(node.assemblyController);
+        for (unsigned int ii = 0; ii < comps.size(); ++ii) {
+            if (compId == ossie::corba::returnString(comps[ii]->identifier())) {
+                application->addExternalProperty(propId, extId, comps[ii]);
+                break;
+            }
+        }
+    }
+
+    return application;
+}
+
+void DomainManager_impl::_persistApplication(Application_impl* application)
+{
+    ApplicationNode appNode;
+    appNode.name = application->getName();
+    appNode.identifier = application->getIdentifier();
+    appNode.profile = application->getProfile();
+    appNode.contextName = application->_waveformContextName;
+    appNode.context = CosNaming::NamingContext::_duplicate(application->_waveformContext);
+    appNode.componentDevices = application->_componentDevices;
+    appNode.components = application->_components;
+    appNode.assemblyController = CF::Resource::_duplicate(application->assemblyController);
+    appNode.componentRefs.clear();
+    for (unsigned int i = 0; i < application->_appStartSeq.size(); ++i) {
+        appNode.componentRefs.push_back(CF::Resource::_duplicate(application->_appStartSeq[i]));
+    }
+    appNode.allocationIDs = application->_allocationIDs;
+    appNode.connections = application->_connections;
+    appNode.aware_application = application->_isAware;
+    appNode.ports = application->_ports;
+    // Adds external properties
+    for (std::map<std::string, std::pair<std::string, CF::Resource_var> >::const_iterator it = application->_properties.begin();
+         it != application->_properties.end();
+         ++it) {
+        std::string extId = it->first;
+        std::string propId = it->second.first;
+        std::string compId = ossie::corba::returnString(it->second.second->identifier());
+        appNode.properties[extId] = std::pair<std::string, std::string>(propId, compId);
+    }
+
+    _runningApplications.push_back(appNode);
+
+    try {
+        db.store("APPLICATIONS", _runningApplications);
+    } catch (const ossie::PersistenceException& ex) {
+        LOG_ERROR(DomainManager_impl, "Error persisting change to device managers");
     }
 }
