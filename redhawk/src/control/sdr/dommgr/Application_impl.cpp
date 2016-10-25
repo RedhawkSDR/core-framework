@@ -944,7 +944,6 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
     LOG_TRACE(Application_impl, "Unbinding application naming context " << _waveformContextName);
     CosNaming::Name DNContextname;
     DNContextname.length(1);
-    std::string domainName = _domainManager->getDomainManagerName();
     DNContextname[0].id = CORBA::string_dup(_waveformContextName.c_str());
     try {
       if ( CORBA::is_nil(_domainContext) ==  false ) {
