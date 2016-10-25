@@ -121,8 +121,7 @@ namespace ossie {
         std::vector<std::string> allocationIDs;
         std::vector<CF::Resource_var> componentRefs;
         std::map<std::string, CORBA::Object_var> ports;
-        // Ext Props map :  extid -> (propid, compid)
-        std::map<std::string, std::pair<std::string, std::string> > properties;
+        std::map<std::string, std::pair<std::string, CF::Resource_var> > properties;
         bool aware_application;
     };
     

@@ -2479,20 +2479,12 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
     }
 
     // Add external properties
-    for (std::map<std::string, std::pair<std::string, std::string> >::const_iterator it = node.properties.begin();
+    for (std::map<std::string, std::pair<std::string, CF::Resource_var> >::const_iterator it = node.properties.begin();
          it != node.properties.end();
          ++it) {
         std::string extId = it->first;
         std::string propId = it->second.first;
-        std::string compId = it->second.second;
-        std::vector<CF::Resource_var> comps = node.componentRefs;
-        comps.push_back(node.assemblyController);
-        for (unsigned int ii = 0; ii < comps.size(); ++ii) {
-            if (compId == ossie::corba::returnString(comps[ii]->identifier())) {
-                application->addExternalProperty(propId, extId, comps[ii]);
-                break;
-            }
-        }
+        application->addExternalProperty(propId, extId, it->second.second);
     }
 
     return application;
@@ -2517,15 +2509,7 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
     appNode.connections = application->_connections;
     appNode.aware_application = application->_isAware;
     appNode.ports = application->_ports;
-    // Adds external properties
-    for (std::map<std::string, std::pair<std::string, CF::Resource_var> >::const_iterator it = application->_properties.begin();
-         it != application->_properties.end();
-         ++it) {
-        std::string extId = it->first;
-        std::string propId = it->second.first;
-        std::string compId = ossie::corba::returnString(it->second.second->identifier());
-        appNode.properties[extId] = std::pair<std::string, std::string>(propId, compId);
-    }
+    appNode.properties = application->_properties;
 
     _runningApplications.push_back(appNode);
 
