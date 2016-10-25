@@ -132,11 +132,9 @@ public:
            
     void registerWithEventChannel (CORBA::Object_ptr registeringObject, const char* registeringId, const char* eventChannelName)
         throw (CF::DomainManager::AlreadyConnected, CF::DomainManager::InvalidEventChannelName, CF::InvalidObjectReference, CORBA::SystemException);
-    void _local_registerWithEventChannel (CORBA::Object_ptr registeringObject, std::string &registeringId, std::string &eventChannelName);
            
     void unregisterFromEventChannel (const char* unregisteringId, const char* eventChannelName)
         throw (CF::DomainManager::NotConnected, CF::DomainManager::InvalidEventChannelName, CORBA::SystemException);
-    void _local_unregisterFromEventChannel (std::string &unregisteringId, std::string &eventChannelName);
 
     void registerRemoteDomainManager (CF::DomainManager_ptr registeringRemoteDomainManager)
         throw (CF::DomainManager::RegisterError, CF::InvalidObjectReference, CORBA::SystemException);
@@ -249,6 +247,9 @@ protected:
     ossie::DeviceManagerList::iterator _local_unregisterDeviceManager (ossie::DeviceManagerList::iterator deviceManager);
     ossie::DeviceList::iterator _local_unregisterDevice (ossie::DeviceList::iterator device);
     ossie::ServiceList::iterator _local_unregisterService (ossie::ServiceList::iterator service);
+
+    void _local_registerWithEventChannel (CORBA::Object_ptr registeringObject, const std::string& registeringId, const std::string& eventChannelName);
+    void _local_unregisterFromEventChannel (const std::string& unregisteringId, const std::string& eventChannelName);
 
     void parseDMDProfile();
     void storeDeviceInDomainMgr (CF::Device_ptr, CF::DeviceManager_ptr);

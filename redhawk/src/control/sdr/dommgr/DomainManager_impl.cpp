@@ -596,7 +596,7 @@ void DomainManager_impl::releaseAllApplications()
         try {
             (*app)->releaseObject();
         } catch ( ... ) {
-            LOG_TRACE(DomainManager_impl, "Error releasing application " << ossie::corba::returnString((*app)->name()));
+            LOG_TRACE(DomainManager_impl, "Error releasing application " << (*app)->getName());
         }
         (*app)->_remove_ref();
     }
@@ -1600,16 +1600,16 @@ throw (CORBA::SystemException,
        CF::DomainManager::ApplicationInstallationError, 
        CF::DomainManager::ApplicationAlreadyInstalled)
 {
-  boost::mutex::scoped_lock lock(interfaceAccess);
-  _local_installApplication(profileFileName);
+    boost::mutex::scoped_lock lock(interfaceAccess);
+    _local_installApplication(profileFileName);
 
-  ApplicationFactoryTable::iterator appFact = _applicationFactories.find(profileFileName);
-  if (appFact != _applicationFactories.end()) {
-    std::string identifier = ossie::corba::returnString(appFact->first.c_str());
-    std::string name = ossie::corba::returnString(appFact->second->name());
-    CF::ApplicationFactory_var appFactRef = appFact->second->_this();
-    sendAddEvent( _identifier.c_str(), identifier, name, appFactRef, StandardEvent::APPLICATION_FACTORY );
-  }
+    ApplicationFactoryTable::iterator appFact = _applicationFactories.find(profileFileName);
+    if (appFact != _applicationFactories.end()) {
+        const std::string& identifier = appFact->first;
+        const std::string& name = appFact->second->getName();
+        CF::ApplicationFactory_var appFactRef = appFact->second->_this();
+        sendAddEvent( _identifier.c_str(), identifier, name, appFactRef, StandardEvent::APPLICATION_FACTORY );
+    }
 }
 
 void DomainManager_impl::_local_installApplication (const char* profileFileName)
@@ -1628,12 +1628,12 @@ void DomainManager_impl::_local_installApplication (const char* profileFileName)
 
         LOG_TRACE(DomainManager_impl, "installApplication: Createing new AppFac");
         ApplicationFactory_impl* appFact = new ApplicationFactory_impl(profileFileName, this->_domainName, this);
-        const std::string appFactoryId = appFact->getID();
+        const std::string& appFactoryId = appFact->getIdentifier();
 
         // Check if application factory already exists for this profile
         LOG_TRACE(DomainManager_impl, "Installing application ID " << appFactoryId);
         if (_applicationFactories.count(appFactoryId)) {
-            LOG_INFO(DomainManager_impl, "Application " << appFact->getName() << " with id " << appFact->getID()
+            LOG_INFO(DomainManager_impl, "Application " << appFact->getName() << " with id " << appFactoryId
                      << " already installed (Application Factory already exists)");
             delete appFact;
             appFact=NULL;
@@ -1694,7 +1694,7 @@ throw (CORBA::SystemException, CF::DomainManager::InvalidIdentifier,
     ApplicationFactoryTable::iterator appFact = _applicationFactories.find(applicationId);
     if (appFact != _applicationFactories.end()) {
         appFactory_id = appFact->first;
-        appFactory_name = ossie::corba::returnString(appFact->second->name());
+        appFactory_name = appFact->second->getName();
     }
 
     _local_uninstallApplication(applicationId);
@@ -1728,7 +1728,7 @@ void DomainManager_impl::_local_uninstallApplication (const char* applicationId)
     }
 
     // Update the persistence database
-    const std::string sad_file = ossie::corba::returnString(appFact->second->softwareProfile());
+    const std::string sad_file = appFact->second->getSoftwareProfile();
     _installedApplications.erase(sad_file);
     try {
         db.store("APP_FACTORIES", _installedApplications);
@@ -1775,17 +1775,16 @@ DomainManager_impl::addApplication(Application_impl* new_app)
     TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
-    LOG_TRACE(DomainManager_impl, "Attempting to add application to AppSeq with id: " << ossie::corba::returnString(new_app->identifier()));
-
+    const std::string& identifier = new_app->getIdentifier();
+    LOG_TRACE(DomainManager_impl, "Attempting to add application to AppSeq with id: " << identifier);
     try {
-        const std::string identifier = ossie::corba::returnString(new_app->identifier());
         _applications[identifier] = new_app;
         new_app->_add_ref();
 
         ApplicationNode appNode;
-        appNode.name = ossie::corba::returnString(new_app->name());
+        appNode.name = new_app->getName();
         appNode.identifier = new_app->getIdentifier();
-        appNode.profile = ossie::corba::returnString(new_app->profile());
+        appNode.profile = new_app->getProfile();
         appNode.contextName = new_app->_waveformContextName;
         appNode.context = CosNaming::NamingContext::_duplicate(new_app->_waveformContext);
         appNode.componentDevices = new_app->_componentDevices;
@@ -1821,7 +1820,6 @@ DomainManager_impl::addApplication(Application_impl* new_app)
         }
 
     } catch (...) {
-        const std::string identifier = ossie::corba::returnString(new_app->identifier());        
         ostringstream eout;
         eout << "Could not add new application to AppSeq; ";
         eout << " application id: " << identifier << "; ";
@@ -1926,14 +1924,12 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
        CF::DomainManager::AlreadyConnected)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
-    std::string tmp_id = ossie::corba::returnString(registeringId);
-    std::string eventchannel_name = ossie::corba::returnString(eventChannelName);
-    _local_registerWithEventChannel(registeringObject, tmp_id, eventchannel_name);
+    _local_registerWithEventChannel(registeringObject, registeringId, eventChannelName);
 }
 
 void DomainManager_impl::_local_registerWithEventChannel (CORBA::Object_ptr registeringObject,
-                                                          std::string &registeringId,
-                                                          std::string &eventChannelName)
+                                                          const std::string& registeringId,
+                                                          const std::string& eventChannelName)
 {
     TRACE_ENTER(DomainManager_impl)
     
@@ -1974,13 +1970,11 @@ throw (CORBA::SystemException, CF::DomainManager::InvalidEventChannelName,
        CF::DomainManager::NotConnected)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
-    std::string tmp_id = ossie::corba::returnString(unregisteringId);
-    std::string eventchannel_name = ossie::corba::returnString(eventChannelName);
-    _local_unregisterFromEventChannel(tmp_id, eventchannel_name);
+    _local_unregisterFromEventChannel(unregisteringId, eventChannelName);
 }
 
-void DomainManager_impl::_local_unregisterFromEventChannel (std::string &unregisteringId,
-                                                            std::string &eventChannelName)
+void DomainManager_impl::_local_unregisterFromEventChannel (const std::string& unregisteringId,
+                                                            const std::string& eventChannelName)
 {
     TRACE_ENTER(DomainManager_impl)
     
@@ -2161,7 +2155,7 @@ ossie::ServiceList::iterator DomainManager_impl::_local_unregisterService(ossie:
         LOG_DEBUG(DomainManager_impl, "Releasing " << appsToRelease.size() << " applications");
         for (std::vector<Application_impl*>::iterator iter = appsToRelease.begin(); iter != appsToRelease.end(); ++iter) {
             Application_impl* app = *iter;
-            LOG_DEBUG(DomainManager_impl, "Releasing " << ossie::corba::returnString(app->identifier()));
+            LOG_DEBUG(DomainManager_impl, "Releasing " << app->getIdentifier());
             app->releaseObject();
             app->_remove_ref();
         }

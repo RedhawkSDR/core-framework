@@ -133,6 +133,8 @@ public:
     CF::ApplicationRegistrar_ptr appReg (void);
 
     const std::string& getIdentifier() const;
+    const std::string& getName() const;
+    const std::string& getProfile() const;
 
     void addExternalPort (const std::string&, CORBA::Object_ptr);
     void addExternalProperty (const std::string&, const std::string&, CF::Resource_ptr);

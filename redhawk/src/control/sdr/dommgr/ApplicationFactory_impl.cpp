@@ -248,6 +248,21 @@ ApplicationFactory_impl::~ApplicationFactory_impl ()
 
 }
 
+const std::string& ApplicationFactory_impl::getIdentifier() const
+{
+    return _identifier;
+}
+
+const std::string& ApplicationFactory_impl::getName() const
+{
+    return _name;
+}
+
+const std::string& ApplicationFactory_impl::getSoftwareProfile() const
+{
+    return _softwareProfile;
+}
+
 void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& appDeployment,
                                              const DeviceAssignmentMap& devices)
 {

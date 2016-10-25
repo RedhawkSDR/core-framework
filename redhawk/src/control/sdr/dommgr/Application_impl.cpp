@@ -1182,6 +1182,16 @@ const std::string& Application_impl::getIdentifier() const
     return _identifier;
 }
 
+const std::string& Application_impl::getName() const
+{
+    return _appName;
+}
+
+const std::string& Application_impl::getProfile() const
+{
+    return _sadProfile;
+}
+
 void Application_impl::addExternalPort (const std::string& identifier, CORBA::Object_ptr port)
 {
     if (_ports.count(identifier)) {

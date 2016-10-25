@@ -85,8 +85,9 @@ public:
         return CORBA::string_dup(_softwareProfile.c_str());
     }
 
-    const std::string & getID () { return _identifier; }
-    const std::string & getName () { return _name; }
+    const std::string& getIdentifier () const;
+    const std::string& getName () const;
+    const std::string& getSoftwareProfile() const;
 
     // allow createHelper to have access to ApplicationFactory_impl
     friend class createHelper;
