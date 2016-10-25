@@ -32,6 +32,8 @@
 #include <ossie/debug.h>
 #include <ossie/Logging_impl.h>
 
+#include "Deployment.h"
+#include "ApplicationDeployment.h"
 #include "PersistenceStore.h"
 #include "connectionSupport.h"
 
@@ -141,12 +143,9 @@ public:
     void _cleanupActivations();
 
     // Set component state
-    void addComponent(const std::string& identifier, const std::string& profile);
-    void addContainer(const std::string& identifier, const std::string& profile);
+    ossie::ApplicationComponent* addComponent(const redhawk::ComponentDeployment* deployment);
+    ossie::ApplicationComponent* addContainer(const redhawk::ContainerDeployment* container);
     void setComponentPid(const std::string& identifier, unsigned long pid);
-    void setComponentNamingContext(const std::string& identifier, const std::string& name);
-    void setComponentImplementation(const std::string& identifier, const std::string& implementationId);
-    void setComponentDevice(const std::string& identifier, CF::Device_ptr device);
     void addComponentLoadedFile(const std::string& identifier, const std::string& fileName);
 
     CORBA::Object_ptr getComponentObject(const std::string& identifier);

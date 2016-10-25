@@ -1436,10 +1436,6 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
     // TODO: Promote contained component affinity values
 
     BOOST_FOREACH(redhawk::ContainerDeployment* container, containers) {
-        const ossie::SoftPkg* softpkg = container->getSoftPkg();
-        const ossie::SPD::Implementation* implementation = container->getImplementation();
-        const ossie::ComponentInstantiation* instantiation = container->getInstantiation();
-
         boost::shared_ptr<ossie::DeviceNode> device = container->getAssignedDevice();
         if (!device) {
             std::ostringstream message;
@@ -1448,13 +1444,11 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
         }
 
         // Let the application know to expect the given component
-        _application->addContainer(container->getIdentifier(), softpkg->getSPDFile());
+        ossie::ApplicationComponent* app_container = _application->addContainer(container);
+        const ossie::ComponentInstantiation* instantiation = container->getInstantiation();
         if (instantiation->isNamingService()) {
-            std::string lookupName = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
-            _application->setComponentNamingContext(container->getIdentifier(), lookupName);
+            app_container->namingContext = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
         }
-        _application->setComponentImplementation(container->getIdentifier(), implementation->getID());
-        _application->setComponentDevice(container->getIdentifier(), device->device);
 
         // get the code.localfile
         LOG_TRACE(ApplicationFactory_impl, "Host is " << device->label << " Local file name is "
@@ -1499,31 +1493,27 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
     // apply application affinity options to required components
     applyApplicationAffinityOptions(deployments);
 
-    for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
-        redhawk::ComponentDeployment* deployment = deployments[rc_idx];
-        const ossie::SoftPkg* softpkg = deployment->getSoftPkg();
-        const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
-        const ossie::SPD::Implementation* implementation = deployment->getImplementation();
+    BOOST_FOREACH(redhawk::ComponentDeployment* deployment, deployments) {
+        const std::string& component_id = deployment->getIdentifier();
+        LOG_TRACE(ApplicationFactory_impl, "Loading and executing component '" << component_id << "'");
 
         boost::shared_ptr<ossie::DeviceNode> device = deployment->getAssignedDevice();
         if (!device) {
             std::ostringstream message;
-            message << "component " << deployment->getIdentifier() << " was not assigned to a device";
+            message << "component " << component_id << " was not assigned to a device";
             throw std::logic_error(message.str());
         }
 
         LOG_INFO(ApplicationFactory_impl, "Application '" << _waveformContextName << "' component '"
-                 << deployment->getIdentifier() << "' assigned to device '" << device->label
+                 << component_id << "' assigned to device '" << device->label
                  << "' (" << device->identifier << ")");
 
         // Let the application know to expect the given component
-        _application->addComponent(deployment->getIdentifier(), softpkg->getSPDFile());
-        _application->setComponentImplementation(deployment->getIdentifier(), implementation->getID());
+        ossie::ApplicationComponent* app_component = _application->addComponent(deployment);
+        const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
         if (instantiation->isNamingService()) {
-            std::string lookupName = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
-            _application->setComponentNamingContext(deployment->getIdentifier(), lookupName);
+            app_component->namingContext = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
         }
-        _application->setComponentDevice(deployment->getIdentifier(), device->device);
 
         // get the code.localfile
         LOG_TRACE(ApplicationFactory_impl, "Host is " << device->label << " Local file name is "
@@ -1540,7 +1530,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         CF::LoadableDevice_var loadabledev = ossie::corba::_narrowSafe<CF::LoadableDevice>(device->device);
         if (CORBA::is_nil(loadabledev)) {
             std::ostringstream message;
-            message << "component " << deployment->getIdentifier() << " was assigned to non-loadable device "
+            message << "component " << component_id << " was assigned to non-loadable device "
                     << device->identifier;
             LOG_ERROR(ApplicationFactory_impl, message);
             throw std::logic_error(message.str());

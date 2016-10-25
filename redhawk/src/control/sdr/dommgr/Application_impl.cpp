@@ -1315,34 +1315,42 @@ ossie::ApplicationComponent* Application_impl::findComponent(const std::string& 
     return 0;
 }
 
-void Application_impl::addContainer(const std::string& identifier, const std::string& profile)
+ossie::ApplicationComponent* Application_impl::addContainer(const redhawk::ContainerDeployment* container)
 {
+    const std::string& identifier = container->getIdentifier();
     if (findComponent(identifier)) {
-        LOG_ERROR(Application_impl, "Container '" << identifier << "' is already registered");
-        return;
+        throw std::logic_error("container '" + identifier + "' is already registered");
     }
+    const std::string& profile = container->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding container '" << identifier << "' with profile " << profile);
     ossie::ApplicationComponent component;
     component.identifier = identifier;
     component.softwareProfile = profile;
     component.processId = 0;
     component.isContainer = true;
+    component.implementationId = container->getImplementation()->getID();
+    component.assignedDevice = CF::Device::_duplicate(container->getAssignedDevice()->device);
     _components.push_back(component);
+    return &(_components.back());
 }
 
-void Application_impl::addComponent(const std::string& identifier, const std::string& profile)
+ossie::ApplicationComponent* Application_impl::addComponent(const redhawk::ComponentDeployment* deployment)
 {
+    const std::string& identifier = deployment->getIdentifier();
     if (findComponent(identifier)) {
-        LOG_ERROR(Application_impl, "Component '" << identifier << "' is already registered");
-        return;
+        throw std::logic_error("component '" + identifier + "' is already registered");
     }
+    const std::string& profile = deployment->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding component '" << identifier << "' with profile " << profile);
     ossie::ApplicationComponent component;
     component.identifier = identifier;
     component.softwareProfile = profile;
     component.processId = 0;
     component.isContainer = false;
+    component.implementationId = deployment->getImplementation()->getID();
+    component.assignedDevice = CF::Device::_duplicate(deployment->getAssignedDevice()->device);
     _components.push_back(component);
+    return &(_components.back());
 }
 
 void Application_impl::setComponentPid(const std::string& identifier, unsigned long pid)
@@ -1352,36 +1360,6 @@ void Application_impl::setComponentPid(const std::string& identifier, unsigned l
         LOG_ERROR(Application_impl, "Setting process ID for unknown component '" << identifier << "'");
     } else {
         component->processId = pid;
-    }
-}
-
-void Application_impl::setComponentNamingContext(const std::string& identifier, const std::string& name)
-{
-    ossie::ApplicationComponent* component = findComponent(identifier);
-    if (!component) {
-        LOG_ERROR(Application_impl, "Setting naming context for unknown component '" << identifier << "'");
-    } else {
-        component->namingContext = name;
-    }
-}
-
-void Application_impl::setComponentImplementation(const std::string& identifier, const std::string& implementationId)
-{
-    ossie::ApplicationComponent* component = findComponent(identifier);
-    if (!component) {
-        LOG_ERROR(Application_impl, "Setting implementation for unknown component '" << identifier << "'");
-    } else {
-        component->implementationId = implementationId;
-    }
-}
-
-void Application_impl::setComponentDevice(const std::string& identifier, CF::Device_ptr device)
-{
-    ossie::ApplicationComponent* component = findComponent(identifier);
-    if (!component) {
-        LOG_ERROR(Application_impl, "Setting device for unknown component '" << identifier << "'");
-    } else {
-        component->assignedDevice = CF::Device::_duplicate(device);
     }
 }
 
@@ -1408,12 +1386,20 @@ CORBA::Object_ptr Application_impl::getComponentObject(const std::string& identi
 
 void Application_impl::componentTerminated(const std::string& componentId, const std::string& deviceId)
 {
-    LOG_WARN(Application_impl, "Component '" << componentId << "' from application '" << _identifier
-             << "' terminated abnormally on device '" << deviceId << "'");
+    boost::mutex::scoped_lock lock(_registrationMutex);
     ossie::ApplicationComponent* component = findComponent(componentId);
-    if (component) {
-        boost::mutex::scoped_lock lock(_registrationMutex);
-        component->processId = 0;
-        _registrationCondition.notify_all();
+    if (!component) {
+        LOG_WARN(Application_impl, "Unrecognized component '" << componentId << "' from application '" << _identifier
+                 << "' terminated abnormally on device " << deviceId);
+        return;
     }
+    if (component->isContainer) {
+        LOG_WARN(Application_impl, "Component host from application '" << _identifier
+                 << "' terminated abnormally on device " << deviceId);
+    } else {
+        LOG_WARN(Application_impl, "Component '" << componentId << "' from application '" << _identifier
+                 << "' terminated abnormally on device " << deviceId);
+    }
+    component->processId = 0;
+    _registrationCondition.notify_all();
 }
