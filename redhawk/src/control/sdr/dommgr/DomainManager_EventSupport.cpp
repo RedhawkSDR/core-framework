@@ -183,10 +183,21 @@ void DomainManager_impl::idmTerminationMessages(const redhawk::events::Component
         }
     }
 
-    if (application) {
-        application->componentTerminated(termMsg.component_id, termMsg.device_id);
+    // Make the device identification as useful as possible by providing the
+    // label first (if available) and then the unique identifier, which is
+    // often a UUID
+    std::string device_label;
+    DeviceList::iterator device = findDeviceById(termMsg.device_id);
+    if (device != _registeredDevices.end()) {
+        device_label = "'" + (*device)->label + "' (" + termMsg.device_id + ")";
     } else {
-        LOG_WARN(DomainManager_impl, "Abnormal Component Termination, Reporting Device: " << termMsg.device_id
+        device_label = termMsg.device_id;
+    }
+
+    if (application) {
+        application->componentTerminated(termMsg.component_id, device_label);
+    } else {
+        LOG_WARN(DomainManager_impl, "Abnormal Component Termination, Reporting Device: " << device_label
                  << " Application/Component " << termMsg.application_id << "/" << termMsg.component_id);
     }
 }
