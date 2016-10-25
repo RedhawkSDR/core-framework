@@ -2042,7 +2042,8 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     for (unsigned int j=0; j<cprops.length(); j++) {
       LOG_TRACE(DeviceManager_impl, "Prop id " << cprops[j].id );
     }
-    registeringDevice->configure (cprops);
+    if (cprops.length() != 0)
+        registeringDevice->configure (cprops);
   } catch (CF::PropertySet::PartialConfiguration& ex) {
     std::ostringstream eout;
     eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "

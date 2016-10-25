@@ -288,6 +288,17 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         domMgr.uninstallApplication(appFact._get_identifier())
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
 
+    def test_ConfigureNotCalledProperty(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        # Ensure the expected device is available
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        app = domMgr.createApplication("/waveforms/configure_call_property_w/configure_call_property_w.sad.xml", 'configure_call_property', [], [])
+        self.assertNotEqual(app, None)
+        configure_called = app.query([CF.DataType(id='configure_called',value=any.to_any(None))])
+        self.assertEquals(configure_called[0].value._v, False)
+
     def _test_NamespacedWaveform(self, name):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)

@@ -396,6 +396,18 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(len(any.from_any(result[0].value)), 2)
 
 
+    def test_ConfigureNotCalledProperty(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/configure_call_property_dev_n/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+
+        device = devMgr._get_registeredDevices()[0]
+        # this device implementation will put a non-nil value on the property (even if a nil has been passed in a configure call)
+        configure_called = device.query([CF.DataType(id='configure_called',value=any.to_any(None))])
+        self.assertEquals(configure_called[0].value._v, False)
+
     def test_ComponentPlacementNoPropOverride(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_DCDSimpleSeq_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
