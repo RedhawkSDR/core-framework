@@ -2130,7 +2130,7 @@ CF::Resource_ptr DomainManager_impl::lookupComponentByInstantiationId(const std:
         std::string normalized_comp_id = identifier.substr(0,pos)+std::string(":")+appid.substr(appid.rfind(":")+1);
         for (Application_impl::ComponentList::iterator _comp=_applications[appid]->_components.begin(); _comp!=_applications[appid]->_components.end(); _comp++) {\
             if (normalized_comp_id == _comp->getIdentifier()) {
-                return CF::Resource::_duplicate(CF::Resource::_narrow(_comp->componentObject));
+                return _comp->getResourcePtr();
             }
         }
     }
@@ -2474,11 +2474,11 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
     BOOST_FOREACH(ossie::ComponentNode& compNode, node.components) {
         redhawk::ApplicationComponent component(compNode.identifier);
         component.softwareProfile = compNode.softwareProfile;
-        component.namingContext = compNode.namingContext;
+        component.setNamingContext(compNode.namingContext);
         component.implementationId = compNode.implementationId;
         component.loadedFiles = compNode.loadedFiles;
         component.setProcessId(compNode.processId);
-        component.componentObject = CORBA::Object::_duplicate(compNode.componentObject);
+        component.setComponentObject(compNode.componentObject);
         component.assignedDevice = compNode.assignedDevice;
         component.isContainer = compNode.isContainer;
         application->_components.push_back(component);
@@ -2516,11 +2516,11 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
         ossie::ComponentNode compNode;
         compNode.identifier = component.getIdentifier();
         compNode.softwareProfile = component.softwareProfile;
-        compNode.namingContext = component.namingContext;
+        compNode.namingContext = component.getNamingContext();
         compNode.implementationId = component.implementationId;
         compNode.loadedFiles = component.loadedFiles;
         compNode.processId = component.getProcessId();
-        compNode.componentObject = CORBA::Object::_duplicate(component.componentObject);
+        compNode.componentObject = component.getComponentObject();
         compNode.assignedDevice = component.assignedDevice;
         compNode.isContainer = component.isContainer;
         appNode.components.push_back(compNode);

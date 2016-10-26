@@ -1462,7 +1462,7 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
         redhawk::ApplicationComponent* app_container = _application->addContainer(container);
         const ossie::ComponentInstantiation* instantiation = container->getInstantiation();
         if (instantiation->isNamingService()) {
-            app_container->namingContext = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
+            app_container->setNamingContext(_baseNamingContext + "/" + instantiation->getFindByNamingServiceName());
         }
         container->setApplicationComponent(app_container);
 
@@ -1528,7 +1528,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         redhawk::ApplicationComponent* app_component = _application->addComponent(deployment);
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
         if (instantiation->isNamingService()) {
-            app_component->namingContext = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
+            app_component->setNamingContext(_baseNamingContext + "/" + instantiation->getFindByNamingServiceName());
         }
         deployment->setApplicationComponent(app_component);
 
@@ -1813,7 +1813,7 @@ void createHelper::waitForContainerRegistration(redhawk::ApplicationDeployment& 
     BOOST_FOREACH(redhawk::ContainerDeployment* container, appDeployment.getContainerDeployments()) {
         // Check that the component host registered with the application; it
         // should have a valid CORBA reference
-        CORBA::Object_ptr objref = container->getApplicationComponent()->componentObject;
+        CORBA::Object_ptr objref = container->getApplicationComponent()->getComponentObject();
         if (CORBA::is_nil(objref)) {
             throw redhawk::ExecuteError(container, "container did not register with application");
         }
@@ -1878,7 +1878,7 @@ void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& 
         if (softpkg->isScaCompliant()) {
             // Check that the component registered with the application; it
             // should have a valid CORBA reference
-            CORBA::Object_ptr objref = deployment->getApplicationComponent()->componentObject;
+            CORBA::Object_ptr objref = deployment->getApplicationComponent()->getComponentObject();
             if (CORBA::is_nil(objref)) {
                 std::string message = "component did not register with application";
                 message += ::getVersionMismatchMessage(softpkg);

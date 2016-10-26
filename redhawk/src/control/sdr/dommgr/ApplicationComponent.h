@@ -35,17 +35,29 @@ namespace redhawk {
         unsigned long getProcessId() const;
         void setProcessId(unsigned long processId);
 
+        bool isTerminated() const;
+        bool isRegistered() const;
+
+        CORBA::Object_ptr getComponentObject() const;
+        void setComponentObject(CORBA::Object_ptr object);
+
+        CF::Resource_ptr getResourcePtr() const;
+
+        bool hasNamingContext() const;
+        const std::string& getNamingContext() const;
+        void setNamingContext(const std::string& namingContext);
+
         std::string softwareProfile;
-        std::string namingContext;
         std::string implementationId;
         std::vector<std::string> loadedFiles;
-        CORBA::Object_var componentObject;
         CF::Device_var assignedDevice;
         bool isContainer;
 
     private:
         std::string _identifier;
+        std::string _namingContext;
         unsigned long _processId;
+        CORBA::Object_var _componentObject;
     };
 }
 

@@ -47,16 +47,11 @@ namespace {
         return result;
     }
 
-    bool has_naming_context(const redhawk::ApplicationComponent& component)
-    {
-        return !component.namingContext.empty();
-    }
-
     CF::Application::ComponentElementType to_name_element(const redhawk::ApplicationComponent& component)
     {
         CF::Application::ComponentElementType result;
         result.componentId = component.getIdentifier().c_str();
-        result.elementId = component.namingContext.c_str();
+        result.elementId = component.getNamingContext().c_str();
         return result;
     }
 
@@ -68,23 +63,13 @@ namespace {
         return result;
     }
 
-    bool is_registered(const redhawk::ApplicationComponent& component)
-    {
-        return !CORBA::is_nil(component.componentObject);
-    }
-
-    bool is_terminated(const redhawk::ApplicationComponent& component)
-    {
-        return (component.getProcessId() == 0);
-    }
-
     CF::ComponentType to_component_type(const redhawk::ApplicationComponent& component)
     {
         CF::ComponentType result;
         result.identifier = component.getIdentifier().c_str();
         result.softwareProfile = component.softwareProfile.c_str();
         result.type = CF::APPLICATION_COMPONENT;
-        result.componentObject = CORBA::Object::_duplicate(component.componentObject);
+        result.componentObject = component.getComponentObject();
         return result;
     }
 
@@ -763,7 +748,7 @@ CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
     std::vector<CF::PortSet::PortInfoSequence_var> comp_portsets;
     for (ComponentList::iterator _component_iter=this->_components.begin(); _component_iter!=this->_components.end(); _component_iter++) {
         try {
-            CF::Resource_ptr comp = CF::Resource::_narrow(_component_iter->componentObject);
+            CF::Resource_var comp = _component_iter->getResourcePtr();
             comp_portsets.push_back(comp->getPortSet());
         } catch ( ... ) {
             // failed to get the port set from the component
@@ -904,8 +889,8 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
     //  - unload and deallocate
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
 
-        if (!ii->namingContext.empty()) {
-            std::string componentName = ii->namingContext;
+        if (ii->hasNamingContext()) {
+            const std::string& componentName = ii->getNamingContext();
 
             // Unbind the component from the naming context. This assumes that the component is
             // bound into the waveform context, and its name inside of the context follows the
@@ -996,14 +981,14 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 void Application_impl::releaseComponents()
 {
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (ii->isContainer || CORBA::is_nil(ii->componentObject)) {
+        if (ii->isContainer || !ii->isRegistered()) {
             // Ignore components that never registered
             continue;
         }
 
         LOG_DEBUG(Application_impl, "Releasing component '" << ii->getIdentifier() << "'");
         try {
-            CF::Resource_var resource = CF::Resource::_narrow(ii->componentObject);
+            CF::Resource_var resource = ii->getResourcePtr();
             unsigned long timeout = 3; // seconds
             omniORB::setClientCallTimeout(resource, timeout * 1000);
             resource->releaseObject();
@@ -1011,14 +996,14 @@ void Application_impl::releaseComponents()
     }
 
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (!(ii->isContainer) || CORBA::is_nil(ii->componentObject)) {
+        if (!(ii->isContainer) || !ii->isRegistered()) {
             // Ignore components that never registered
             continue;
         }
 
         LOG_DEBUG(Application_impl, "Releasing container '" << ii->getIdentifier() << "'");
         try {
-            CF::Resource_var resource = CF::Resource::_narrow(ii->componentObject);
+            CF::Resource_var resource = ii->getResourcePtr();
             unsigned long timeout = 3; // seconds
             omniORB::setClientCallTimeout(resource, timeout * 1000);
             resource->releaseObject();
@@ -1141,7 +1126,8 @@ throw (CORBA::SystemException)
 CF::Components* Application_impl::registeredComponents ()
 {
     CF::Components_var result = new CF::Components();
-    convert_sequence_if(result, _components, to_component_type, is_registered);
+    convert_sequence_if(result, _components, to_component_type,
+                        std::mem_fun_ref(&redhawk::ApplicationComponent::isRegistered));
     return result._retn();
 }
 
@@ -1154,7 +1140,8 @@ CF::Application::ComponentElementSequence* Application_impl::componentNamingCont
 throw (CORBA::SystemException)
 {
     CF::Application::ComponentElementSequence_var result = new CF::Application::ComponentElementSequence();
-    convert_sequence_if(result, _components, to_name_element, has_naming_context);
+    convert_sequence_if(result, _components, to_name_element,
+                        std::mem_fun_ref(&redhawk::ApplicationComponent::hasNamingContext));
     return result._retn();
 }
 
@@ -1221,9 +1208,9 @@ bool Application_impl::checkConnectionDependency (Endpoint::DependencyType type,
 bool Application_impl::_checkRegistrations (std::set<std::string>& identifiers)
 {
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (is_registered(*ii)) {
+        if (ii->isRegistered()) {
             identifiers.erase(ii->getIdentifier());
-        } else if (is_terminated(*ii)) {
+        } else if (ii->isTerminated()) {
             throw redhawk::ComponentTerminated(ii->getIdentifier());
         }
     }
@@ -1296,7 +1283,7 @@ void Application_impl::registerComponent (CF::Resource_ptr resource)
     }
 
     LOG_TRACE(Application_impl, "REGISTERING Component '" << componentId << "' software profile " << softwareProfile << " pid:" << comp->getProcessId());
-    comp->componentObject = CORBA::Object::_duplicate(resource);
+    comp->setComponentObject(resource);
     _registrationCondition.notify_all();
 }
 

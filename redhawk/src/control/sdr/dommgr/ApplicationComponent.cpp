@@ -42,3 +42,43 @@ void ApplicationComponent::setProcessId(unsigned long processId)
 {
     _processId = processId;
 }
+
+bool ApplicationComponent::isTerminated() const
+{
+    return (_processId == 0);
+}
+
+bool ApplicationComponent::isRegistered() const
+{
+    return !CORBA::is_nil(_componentObject);
+}
+
+CORBA::Object_ptr ApplicationComponent::getComponentObject() const
+{
+    return CORBA::Object::_duplicate(_componentObject);
+}
+
+void ApplicationComponent::setComponentObject(CORBA::Object_ptr object)
+{
+    _componentObject = CORBA::Object::_duplicate(object);
+}
+
+CF::Resource_ptr ApplicationComponent::getResourcePtr() const
+{
+    return CF::Resource::_narrow(_componentObject);
+}
+
+bool ApplicationComponent::hasNamingContext() const
+{
+    return !_namingContext.empty();
+}
+
+const std::string& ApplicationComponent::getNamingContext() const
+{
+    return _namingContext;
+}
+
+void ApplicationComponent::setNamingContext(const std::string& namingContext)
+{
+    _namingContext = namingContext;
+}
