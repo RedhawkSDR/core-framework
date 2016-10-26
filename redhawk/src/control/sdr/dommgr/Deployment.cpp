@@ -143,7 +143,7 @@ std::vector<std::string> SoftPkgDeployment::getDependencyLocalFiles()
     return files;
 }
 
-void SoftPkgDeployment::load(ossie::ApplicationComponent* appComponent, CF::FileSystem_ptr fileSystem,
+void SoftPkgDeployment::load(redhawk::ApplicationComponent* appComponent, CF::FileSystem_ptr fileSystem,
                              CF::LoadableDevice_ptr device)
 {
     if (!implementation) {
@@ -606,12 +606,12 @@ std::string ComponentDeployment::getLoggingConfiguration() const
     return std::string();
 }
 
-ossie::ApplicationComponent* ComponentDeployment::getApplicationComponent()
+redhawk::ApplicationComponent* ComponentDeployment::getApplicationComponent()
 {
     return appComponent;
 }
 
-void ComponentDeployment::setApplicationComponent(ossie::ApplicationComponent* component)
+void ComponentDeployment::setApplicationComponent(redhawk::ApplicationComponent* component)
 {
     appComponent = component;
 }

@@ -36,7 +36,7 @@
 #include "ApplicationDeployment.h"
 #include "PersistenceStore.h"
 #include "connectionSupport.h"
-
+#include "ApplicationComponent.h"
 
 class DomainManager_impl;
 class ApplicationRegistrar_impl;
@@ -145,8 +145,8 @@ public:
     void _cleanupActivations();
 
     // Set component state
-    ossie::ApplicationComponent* addComponent(const redhawk::ComponentDeployment* deployment);
-    ossie::ApplicationComponent* addContainer(const redhawk::ContainerDeployment* container);
+    redhawk::ApplicationComponent* addComponent(const redhawk::ComponentDeployment* deployment);
+    redhawk::ApplicationComponent* addContainer(const redhawk::ContainerDeployment* container);
 
     void releaseComponents();
     void terminateComponents();
@@ -159,7 +159,7 @@ public:
     CF::Application_ptr getComponentApplication();
     CF::DomainManager_ptr getComponentDomainManager();
     
-    ossie::ApplicationComponent* getComponent(const std::string& identifier);
+    redhawk::ApplicationComponent* getComponent(const std::string& identifier);
 
 private:
     Application_impl (); // No default constructor
@@ -198,7 +198,8 @@ private:
     
     ApplicationRegistrar_impl* _registrar;
 
-    ossie::ComponentList _components;
+    typedef std::list<redhawk::ApplicationComponent> ComponentList;
+    ComponentList _components;
     CosNaming::NamingContext_var _domainContext;
 
     boost::mutex _registrationMutex;
@@ -212,7 +213,7 @@ private:
 
     PropertyChangeRegistry   _propertyChangeRegistrations;
 
-    ossie::ApplicationComponent* findComponent(const std::string& identifier);
+    redhawk::ApplicationComponent* findComponent(const std::string& identifier);
 
     // Returns externalpropid if one exists based off of compId and
     // internal propId, returns empty string if no external prop exists

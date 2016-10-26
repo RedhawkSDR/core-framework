@@ -1459,7 +1459,7 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
         }
 
         // Let the application know to expect the given component
-        ossie::ApplicationComponent* app_container = _application->addContainer(container);
+        redhawk::ApplicationComponent* app_container = _application->addContainer(container);
         const ossie::ComponentInstantiation* instantiation = container->getInstantiation();
         if (instantiation->isNamingService()) {
             app_container->namingContext = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
@@ -1525,7 +1525,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
                  << "' (" << device->identifier << ")");
 
         // Let the application know to expect the given component
-        ossie::ApplicationComponent* app_component = _application->addComponent(deployment);
+        redhawk::ApplicationComponent* app_component = _application->addComponent(deployment);
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
         if (instantiation->isNamingService()) {
             app_component->namingContext = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
@@ -1734,8 +1734,8 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     if (pid < 0) {
         throw redhawk::ExecuteError(deployment, "execute returned invalid process ID");
     } else {
-        ossie::ApplicationComponent* app_component = deployment->getApplicationComponent();
-        app_component->processId = pid;
+        redhawk::ApplicationComponent* app_component = deployment->getApplicationComponent();
+        app_component->setProcessId(pid);
     }
 }
 

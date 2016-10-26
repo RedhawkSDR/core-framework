@@ -27,6 +27,8 @@
 #include <vector>
 #include <signal.h>
 
+#include <boost/foreach.hpp>
+
 #include <ossie/debug.h>
 #include <ossie/exceptions.h>
 #include <ossie/FileManager_impl.h>
@@ -2126,8 +2128,8 @@ CF::Resource_ptr DomainManager_impl::lookupComponentByInstantiationId(const std:
             return CF::Resource::_nil();
         }
         std::string normalized_comp_id = identifier.substr(0,pos)+std::string(":")+appid.substr(appid.rfind(":")+1);
-        for (ossie::ComponentList::iterator _comp=_applications[appid]->_components.begin(); _comp!=_applications[appid]->_components.end(); _comp++) {\
-            if (normalized_comp_id == _comp->identifier) {
+        for (Application_impl::ComponentList::iterator _comp=_applications[appid]->_components.begin(); _comp!=_applications[appid]->_components.end(); _comp++) {\
+            if (normalized_comp_id == _comp->getIdentifier()) {
                 return CF::Resource::_duplicate(CF::Resource::_narrow(_comp->componentObject));
             }
         }
@@ -2469,7 +2471,18 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
                                       node.allocationIDs);
 
     // Restore various state about the components in the waveform
-    application->_components = node.components;
+    BOOST_FOREACH(ossie::ComponentNode& compNode, node.components) {
+        redhawk::ApplicationComponent component(compNode.identifier);
+        component.softwareProfile = compNode.softwareProfile;
+        component.namingContext = compNode.namingContext;
+        component.implementationId = compNode.implementationId;
+        component.loadedFiles = compNode.loadedFiles;
+        component.setProcessId(compNode.processId);
+        component.componentObject = CORBA::Object::_duplicate(compNode.componentObject);
+        component.assignedDevice = compNode.assignedDevice;
+        component.isContainer = compNode.isContainer;
+        application->_components.push_back(component);
+    }
 
     // Add external ports
     for (std::map<std::string, CORBA::Object_var>::const_iterator it = node.ports.begin();
@@ -2499,7 +2512,19 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
     appNode.contextName = application->_waveformContextName;
     appNode.context = CosNaming::NamingContext::_duplicate(application->_waveformContext);
     appNode.componentDevices = application->_componentDevices;
-    appNode.components = application->_components;
+    BOOST_FOREACH(redhawk::ApplicationComponent& component, application->_components) {
+        ossie::ComponentNode compNode;
+        compNode.identifier = component.getIdentifier();
+        compNode.softwareProfile = component.softwareProfile;
+        compNode.namingContext = component.namingContext;
+        compNode.implementationId = component.implementationId;
+        compNode.loadedFiles = component.loadedFiles;
+        compNode.processId = component.getProcessId();
+        compNode.componentObject = CORBA::Object::_duplicate(component.componentObject);
+        compNode.assignedDevice = component.assignedDevice;
+        compNode.isContainer = component.isContainer;
+        appNode.components.push_back(compNode);
+    }
     appNode.assemblyController = CF::Resource::_duplicate(application->assemblyController);
     appNode.componentRefs.clear();
     for (unsigned int i = 0; i < application->_appStartSeq.size(); ++i) {

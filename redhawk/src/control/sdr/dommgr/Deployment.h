@@ -29,9 +29,9 @@
 #include <ossie/PropertyMap.h>
 #include "PersistenceStore.h"
 
-class Application_impl;
-
 namespace redhawk {
+
+    class ApplicationComponent;
 
     class UsesDeviceAssignment
     {
@@ -89,7 +89,7 @@ namespace redhawk {
         std::vector<std::string> getDependencyLocalFiles();
 
     protected:
-        void load(ossie::ApplicationComponent* appComponent, CF::FileSystem_ptr fileSystem,
+        void load(redhawk::ApplicationComponent* appComponent, CF::FileSystem_ptr fileSystem,
                   CF::LoadableDevice_ptr device);
 
         const ossie::SoftPkg* softpkg;
@@ -159,8 +159,8 @@ namespace redhawk {
 
         std::string getLoggingConfiguration() const;
 
-        ossie::ApplicationComponent* getApplicationComponent();
-        void setApplicationComponent(ossie::ApplicationComponent* appComponent);
+        redhawk::ApplicationComponent* getApplicationComponent();
+        void setApplicationComponent(redhawk::ApplicationComponent* appComponent);
 
         /**
          * @brief  Initializes the deployed component
@@ -208,7 +208,7 @@ namespace redhawk {
         ComponentDeployment* container;
         CF::Resource_var resource;
 
-        ossie::ApplicationComponent* appComponent;
+        redhawk::ApplicationComponent* appComponent;
 
         redhawk::PropertyMap overrides;
         std::string nicAssignment;

@@ -39,49 +39,49 @@ PREPARE_CF_LOGGING(Application_impl);
 using namespace ossie;
 
 namespace {
-    CF::Application::ComponentElementType to_impl_element(const ossie::ApplicationComponent& component)
+    CF::Application::ComponentElementType to_impl_element(const redhawk::ApplicationComponent& component)
     {
         CF::Application::ComponentElementType result;
-        result.componentId = component.identifier.c_str();
+        result.componentId = component.getIdentifier().c_str();
         result.elementId = component.implementationId.c_str();
         return result;
     }
 
-    bool has_naming_context(const ossie::ApplicationComponent& component)
+    bool has_naming_context(const redhawk::ApplicationComponent& component)
     {
         return !component.namingContext.empty();
     }
 
-    CF::Application::ComponentElementType to_name_element(const ossie::ApplicationComponent& component)
+    CF::Application::ComponentElementType to_name_element(const redhawk::ApplicationComponent& component)
     {
         CF::Application::ComponentElementType result;
-        result.componentId = component.identifier.c_str();
+        result.componentId = component.getIdentifier().c_str();
         result.elementId = component.namingContext.c_str();
         return result;
     }
 
-    CF::Application::ComponentProcessIdType to_pid_type(const ossie::ApplicationComponent& component)
+    CF::Application::ComponentProcessIdType to_pid_type(const redhawk::ApplicationComponent& component)
     {
         CF::Application::ComponentProcessIdType result;
-        result.componentId = component.identifier.c_str();
-        result.processId = component.processId;
+        result.componentId = component.getIdentifier().c_str();
+        result.processId = component.getProcessId();
         return result;
     }
 
-    bool is_registered(const ossie::ApplicationComponent& component)
+    bool is_registered(const redhawk::ApplicationComponent& component)
     {
         return !CORBA::is_nil(component.componentObject);
     }
 
-    bool is_terminated(const ossie::ApplicationComponent& component)
+    bool is_terminated(const redhawk::ApplicationComponent& component)
     {
-        return (component.processId == 0);
+        return (component.getProcessId() == 0);
     }
 
-    CF::ComponentType to_component_type(const ossie::ApplicationComponent& component)
+    CF::ComponentType to_component_type(const redhawk::ApplicationComponent& component)
     {
         CF::ComponentType result;
-        result.identifier = component.identifier.c_str();
+        result.identifier = component.getIdentifier().c_str();
         result.softwareProfile = component.softwareProfile.c_str();
         result.type = CF::APPLICATION_COMPONENT;
         result.componentObject = CORBA::Object::_duplicate(component.componentObject);
@@ -761,7 +761,7 @@ CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
 {
     CF::PortSet::PortInfoSequence_var retval = new CF::PortSet::PortInfoSequence();
     std::vector<CF::PortSet::PortInfoSequence_var> comp_portsets;
-    for (ossie::ComponentList::iterator _component_iter=this->_components.begin(); _component_iter!=this->_components.end(); _component_iter++) {
+    for (ComponentList::iterator _component_iter=this->_components.begin(); _component_iter!=this->_components.end(); _component_iter++) {
         try {
             CF::Resource_ptr comp = CF::Resource::_narrow(_component_iter->componentObject);
             comp_portsets.push_back(comp->getPortSet());
@@ -902,9 +902,7 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
     //  - unbind from NS
     //  - release each component
     //  - unload and deallocate
-    for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-
-        const std::string id = ii->identifier;
+    for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
 
         if (!ii->namingContext.empty()) {
             std::string componentName = ii->namingContext;
@@ -997,54 +995,54 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 
 void Application_impl::releaseComponents()
 {
-    for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
+    for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
         if (ii->isContainer || CORBA::is_nil(ii->componentObject)) {
             // Ignore components that never registered
             continue;
         }
 
-        LOG_DEBUG(Application_impl, "Releasing component '" << ii->identifier << "'");
+        LOG_DEBUG(Application_impl, "Releasing component '" << ii->getIdentifier() << "'");
         try {
             CF::Resource_var resource = CF::Resource::_narrow(ii->componentObject);
             unsigned long timeout = 3; // seconds
             omniORB::setClientCallTimeout(resource, timeout * 1000);
             resource->releaseObject();
-        } CATCH_LOG_WARN(Application_impl, "releaseObject failed for component '" << ii->identifier << "'");
+        } CATCH_LOG_WARN(Application_impl, "releaseObject failed for component '" << ii->getIdentifier() << "'");
     }
 
-    for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
+    for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
         if (!(ii->isContainer) || CORBA::is_nil(ii->componentObject)) {
             // Ignore components that never registered
             continue;
         }
 
-        LOG_DEBUG(Application_impl, "Releasing container '" << ii->identifier << "'");
+        LOG_DEBUG(Application_impl, "Releasing container '" << ii->getIdentifier() << "'");
         try {
             CF::Resource_var resource = CF::Resource::_narrow(ii->componentObject);
             unsigned long timeout = 3; // seconds
             omniORB::setClientCallTimeout(resource, timeout * 1000);
             resource->releaseObject();
-        } CATCH_LOG_WARN(Application_impl, "releaseObject failed for component '" << ii->identifier << "'");
+        } CATCH_LOG_WARN(Application_impl, "releaseObject failed for component '" << ii->getIdentifier() << "'");
     }
 }
 
 void Application_impl::terminateComponents()
 {
     // Terminate any components that were executed on devices
-    for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        const unsigned long pid = ii->processId;
+    for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
+        const unsigned long pid = ii->getProcessId();
         if (pid == 0 || pid >= 65536) {
             continue;
         }
 
-        LOG_DEBUG(Application_impl, "Terminating component '" << ii->identifier << "' pid " << pid);
+        LOG_DEBUG(Application_impl, "Terminating component '" << ii->getIdentifier() << "' pid " << pid);
 
         CF::ExecutableDevice_var device = ossie::corba::_narrowSafe<CF::ExecutableDevice>(ii->assignedDevice);
         if (CORBA::is_nil(device)) {
-            LOG_WARN(Application_impl, "Cannot find device to terminate component " << ii->identifier);
+            LOG_WARN(Application_impl, "Cannot find device to terminate component " << ii->getIdentifier());
         } else {
             try {
-                device->terminate(ii->processId);
+                device->terminate(pid);
             } CATCH_LOG_WARN(Application_impl, "Unable to terminate process " << pid);
         }
     }
@@ -1053,17 +1051,17 @@ void Application_impl::terminateComponents()
 void Application_impl::unloadComponents()
 {
     // Terminate any components that were executed on devices
-    for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
+    for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
         if (ii->loadedFiles.empty()) {
             continue;
         }
 
         LOG_DEBUG(Application_impl, "Unloading " << ii->loadedFiles.size() << " file(s) for component '"
-                  << ii->identifier << "'");
+                  << ii->getIdentifier() << "'");
         
         CF::LoadableDevice_var device = ossie::corba::_narrowSafe<CF::LoadableDevice>(ii->assignedDevice);
         if (CORBA::is_nil(device)) {
-            LOG_WARN(Application_impl, "Cannot find device to unload files for component " << ii->identifier);
+            LOG_WARN(Application_impl, "Cannot find device to unload files for component " << ii->getIdentifier());
             continue;
         }
 
@@ -1222,11 +1220,11 @@ bool Application_impl::checkConnectionDependency (Endpoint::DependencyType type,
 
 bool Application_impl::_checkRegistrations (std::set<std::string>& identifiers)
 {
-    for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
+    for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
         if (is_registered(*ii)) {
-            identifiers.erase(ii->identifier);
+            identifiers.erase(ii->getIdentifier());
         } else if (is_terminated(*ii)) {
-            throw redhawk::ComponentTerminated(ii->identifier);
+            throw redhawk::ComponentTerminated(ii->getIdentifier());
         }
     }
     return identifiers.empty();
@@ -1266,9 +1264,9 @@ CF::DomainManager_ptr Application_impl::getComponentDomainManager ()
     }
 }
 
-ossie::ApplicationComponent* Application_impl::getComponent(const std::string& identifier)
+redhawk::ApplicationComponent* Application_impl::getComponent(const std::string& identifier)
 {
-    ossie::ApplicationComponent* component = findComponent(identifier);
+    redhawk::ApplicationComponent* component = findComponent(identifier);
     if (!component) {
         throw std::logic_error("unknown component '" + identifier + "'");
     }
@@ -1282,16 +1280,14 @@ void Application_impl::registerComponent (CF::Resource_ptr resource)
 
 
     boost::mutex::scoped_lock lock(_registrationMutex);
-    ossie::ApplicationComponent* comp = findComponent(componentId);
+    redhawk::ApplicationComponent* comp = findComponent(componentId);
 
     if (!comp) {
         LOG_WARN(Application_impl, "Unexpected component '" << componentId
                  << "' registered with application '" << _appName << "'");
-        _components.push_back(ossie::ApplicationComponent());
+        _components.push_back(redhawk::ApplicationComponent(componentId));
         comp = &(_components.back());
-        comp->identifier = componentId;
         comp->softwareProfile = softwareProfile;
-        comp->processId = 0;
     } else if (softwareProfile != comp->softwareProfile) {
         // Mismatch between expected and reported SPD path
         LOG_WARN(Application_impl, "Component '" << componentId << "' software profile " << softwareProfile
@@ -1299,7 +1295,7 @@ void Application_impl::registerComponent (CF::Resource_ptr resource)
         comp->softwareProfile = softwareProfile;
     }
 
-    LOG_TRACE(Application_impl, "REGISTERING Component '" << componentId << "' software profile " << softwareProfile << " pid:" << comp->processId );
+    LOG_TRACE(Application_impl, "REGISTERING Component '" << componentId << "' software profile " << softwareProfile << " pid:" << comp->getProcessId());
     comp->componentObject = CORBA::Object::_duplicate(resource);
     _registrationCondition.notify_all();
 }
@@ -1322,10 +1318,10 @@ std::string Application_impl::getExternalPropertyId(std::string compIdIn, std::s
     return "";
 }
 
-ossie::ApplicationComponent* Application_impl::findComponent(const std::string& identifier)
+redhawk::ApplicationComponent* Application_impl::findComponent(const std::string& identifier)
 {
-    for (ossie::ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (identifier == ii->identifier) {
+    for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
+        if (identifier == ii->getIdentifier()) {
             return &(*ii);
         }
     }
@@ -1333,7 +1329,7 @@ ossie::ApplicationComponent* Application_impl::findComponent(const std::string& 
     return 0;
 }
 
-ossie::ApplicationComponent* Application_impl::addContainer(const redhawk::ContainerDeployment* container)
+redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::ContainerDeployment* container)
 {
     const std::string& identifier = container->getIdentifier();
     if (findComponent(identifier)) {
@@ -1341,10 +1337,8 @@ ossie::ApplicationComponent* Application_impl::addContainer(const redhawk::Conta
     }
     const std::string& profile = container->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding container '" << identifier << "' with profile " << profile);
-    ossie::ApplicationComponent component;
-    component.identifier = identifier;
+    redhawk::ApplicationComponent component(identifier);
     component.softwareProfile = profile;
-    component.processId = 0;
     component.isContainer = true;
     component.implementationId = container->getImplementation()->getID();
     component.assignedDevice = CF::Device::_duplicate(container->getAssignedDevice()->device);
@@ -1352,7 +1346,7 @@ ossie::ApplicationComponent* Application_impl::addContainer(const redhawk::Conta
     return &(_components.back());
 }
 
-ossie::ApplicationComponent* Application_impl::addComponent(const redhawk::ComponentDeployment* deployment)
+redhawk::ApplicationComponent* Application_impl::addComponent(const redhawk::ComponentDeployment* deployment)
 {
     const std::string& identifier = deployment->getIdentifier();
     if (findComponent(identifier)) {
@@ -1360,10 +1354,8 @@ ossie::ApplicationComponent* Application_impl::addComponent(const redhawk::Compo
     }
     const std::string& profile = deployment->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding component '" << identifier << "' with profile " << profile);
-    ossie::ApplicationComponent component;
-    component.identifier = identifier;
+    redhawk::ApplicationComponent component(identifier);
     component.softwareProfile = profile;
-    component.processId = 0;
     component.isContainer = false;
     component.implementationId = deployment->getImplementation()->getID();
     component.assignedDevice = CF::Device::_duplicate(deployment->getAssignedDevice()->device);
@@ -1374,7 +1366,7 @@ ossie::ApplicationComponent* Application_impl::addComponent(const redhawk::Compo
 void Application_impl::componentTerminated(const std::string& componentId, const std::string& deviceId)
 {
     boost::mutex::scoped_lock lock(_registrationMutex);
-    ossie::ApplicationComponent* component = findComponent(componentId);
+    redhawk::ApplicationComponent* component = findComponent(componentId);
     if (!component) {
         LOG_WARN(Application_impl, "Unrecognized component '" << componentId << "' from application '" << _identifier
                  << "' terminated abnormally on device " << deviceId);
@@ -1387,6 +1379,6 @@ void Application_impl::componentTerminated(const std::string& componentId, const
         LOG_WARN(Application_impl, "Component '" << componentId << "' from application '" << _identifier
                  << "' terminated abnormally on device " << deviceId);
     }
-    component->processId = 0;
+    component->setProcessId(0);
     _registrationCondition.notify_all();
 }

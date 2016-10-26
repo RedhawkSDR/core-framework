@@ -95,7 +95,7 @@ namespace ossie {
     typedef std::map<std::string, AllocationType> AllocationTable;
     typedef std::map<std::string, RemoteAllocationType> RemoteAllocationTable;
 
-    struct ApplicationComponent {
+    struct ComponentNode {
         std::string identifier;
         std::string softwareProfile;
         std::string namingContext;
@@ -106,7 +106,7 @@ namespace ossie {
         CF::Device_var assignedDevice;
         bool isContainer;
     };
-    typedef std::list<ApplicationComponent> ComponentList;
+    typedef std::list<ComponentNode> ComponentList;
 
     struct ApplicationNode {
         std::string name;
@@ -252,7 +252,7 @@ namespace boost {
         }
 
         template<class Archive>
-        void serialize(Archive& ar, ossie::ApplicationComponent& node, const unsigned int version) {
+        void serialize(Archive& ar, ossie::ComponentNode& node, const unsigned int version) {
             ar & node.identifier;
             ar & node.softwareProfile;
             ar & node.namingContext;
