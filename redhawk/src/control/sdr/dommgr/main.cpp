@@ -39,6 +39,10 @@
 
 #include "DomainManager_impl.h"
 
+#if ENABLE_BDB_PERSISTENCE || ENABLE_GDBM_PERSISTENCE || ENABLE_SQLITE_PERSISTENCE
+#define ENABLE_PERSISTENCE
+#endif
+
 namespace fs = boost::filesystem;
 using namespace std;
 
@@ -109,7 +113,7 @@ int old_main(int argc, char* argv[])
 
     // If "--nopersist" is asserted, turn off persistent IORs.
     bool enablePersistence = false;
-#if ENABLE_BDB_PERSISTENCE || ENABLE_GDBM_PERSISTENCE || ENABLE_SQLITE_PERSISTENCE
+#ifdef ENABLE_PERSISTENCE
     enablePersistence = true;
 #endif
     bool endPoint = false;
@@ -158,7 +162,7 @@ int old_main(int argc, char* argv[])
         } else if (param == "PERSISTENCE") {
             string value = argv[ii];
             std::transform(value.begin(), value.begin(), value.end(), ::tolower);
-#if ENABLE_BDB_PERSISTENCE || ENABLE_GDBM_PERSISTENCE || ENABLE_SQLITE_PERSISTENCE
+#ifdef ENABLE_PERSISTENCE
             enablePersistence = (value == "true");
 #endif
         } else if (param == "FORCE_REBIND") {
@@ -176,6 +180,13 @@ int old_main(int argc, char* argv[])
         std::cerr << "ERROR: DMD_FILE and DOMAIN_NAME must be provided" << std::endl;
         return(EXIT_FAILURE);
     }
+
+#ifdef ENABLE_PERSISTENCE
+    if (enablePersistence and db_uri.empty()) {
+        std::cerr << "ERROR: PERSISTENCE requires DB_URI" << std::endl;
+        return(EXIT_FAILURE);
+    }
+#endif
 
     // We have to have a real SDRROOT
     fs::path sdrRootPath;
@@ -259,6 +270,13 @@ int old_main(int argc, char* argv[])
     else {
       LOG_INFO(DomainManager, "Loading log configuration from uri:" << logfile_uri);
     }
+
+#if ! defined ENABLE_PERSISTENCE
+    if  (!db_uri.empty()) {
+        // reset db_uri to empty... to force ignore of restore operations
+        db_uri.clear();
+    }
+#endif
 
 #if 0 
     // test logger configuration....
