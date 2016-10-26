@@ -981,33 +981,17 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 void Application_impl::releaseComponents()
 {
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (ii->isContainer || !ii->isRegistered()) {
-            // Ignore components that never registered
-            continue;
+        if (!ii->isContainer) {
+            // Release "real" components first
+            ii->releaseObject();
         }
-
-        LOG_DEBUG(Application_impl, "Releasing component '" << ii->getIdentifier() << "'");
-        try {
-            CF::Resource_var resource = ii->getResourcePtr();
-            unsigned long timeout = 3; // seconds
-            omniORB::setClientCallTimeout(resource, timeout * 1000);
-            resource->releaseObject();
-        } CATCH_LOG_WARN(Application_impl, "releaseObject failed for component '" << ii->getIdentifier() << "'");
     }
 
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (!(ii->isContainer) || !ii->isRegistered()) {
-            // Ignore components that never registered
-            continue;
+        if (ii->isContainer) {
+            // Release containers once all "real" components have been released
+            ii->releaseObject();
         }
-
-        LOG_DEBUG(Application_impl, "Releasing container '" << ii->getIdentifier() << "'");
-        try {
-            CF::Resource_var resource = ii->getResourcePtr();
-            unsigned long timeout = 3; // seconds
-            omniORB::setClientCallTimeout(resource, timeout * 1000);
-            resource->releaseObject();
-        } CATCH_LOG_WARN(Application_impl, "releaseObject failed for component '" << ii->getIdentifier() << "'");
     }
 }
 
@@ -1015,22 +999,7 @@ void Application_impl::terminateComponents()
 {
     // Terminate any components that were executed on devices
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        const unsigned long pid = ii->getProcessId();
-        if (pid == 0 || pid >= 65536) {
-            continue;
-        }
-
-        LOG_DEBUG(Application_impl, "Terminating component '" << ii->getIdentifier() << "' pid " << pid);
-
-        CF::Device_var assignedDevice = ii->getAssignedDevice();
-        CF::ExecutableDevice_var device = ossie::corba::_narrowSafe<CF::ExecutableDevice>(assignedDevice);
-        if (CORBA::is_nil(device)) {
-            LOG_WARN(Application_impl, "Cannot find device to terminate component " << ii->getIdentifier());
-        } else {
-            try {
-                device->terminate(pid);
-            } CATCH_LOG_WARN(Application_impl, "Unable to terminate process " << pid);
-        }
+        ii->terminate();
     }
 }
 
@@ -1038,27 +1007,7 @@ void Application_impl::unloadComponents()
 {
     // Terminate any components that were executed on devices
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (ii->loadedFiles.empty()) {
-            continue;
-        }
-
-        LOG_DEBUG(Application_impl, "Unloading " << ii->loadedFiles.size() << " file(s) for component '"
-                  << ii->getIdentifier() << "'");
-        
-        CF::Device_var assignedDevice = ii->getAssignedDevice();
-        CF::LoadableDevice_var device = ossie::corba::_narrowSafe<CF::LoadableDevice>(assignedDevice);
-        if (CORBA::is_nil(device)) {
-            LOG_WARN(Application_impl, "Cannot find device to unload files for component " << ii->getIdentifier());
-            continue;
-        }
-
-        for (std::vector<std::string>::iterator file = ii->loadedFiles.begin(); file != ii->loadedFiles.end();
-             ++file) {
-            LOG_TRACE(Application_impl, "Unloading file " << *file);
-            try {
-                device->unload(file->c_str());
-            } CATCH_LOG_WARN(Application_impl, "Unable to unload file " << *file);
-        }
+        ii->unloadFiles();
     }
 }
 

@@ -18,7 +18,10 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#include <boost/foreach.hpp>
+
 #include "ApplicationComponent.h"
+#include "Application_impl.h"
 
 using redhawk::ApplicationComponent;
 
@@ -111,4 +114,58 @@ CF::Device_ptr ApplicationComponent::getAssignedDevice() const
 void ApplicationComponent::setAssignedDevice(CF::Device_ptr assignedDevice)
 {
     _assignedDevice = CF::Device::_duplicate(assignedDevice);
+}
+
+void ApplicationComponent::releaseObject()
+{
+    if (!isRegistered()) {
+        return;
+    }
+
+    LOG_DEBUG(Application_impl, "Releasing component '" << _identifier << "'");
+    try {
+        CF::Resource_var resource = CF::Resource::_narrow(_componentObject);
+        unsigned long timeout = 3; // seconds;
+        omniORB::setClientCallTimeout(resource, timeout * 1000);
+        resource->releaseObject();
+    } CATCH_LOG_WARN(Application_impl, "releaseObject failed for component '" << _identifier << "'");
+}
+
+void ApplicationComponent::terminate()
+{
+    // TODO: PIDs are not necessarily capped at 64K; the limit is system-
+    // dependent
+    if (_processId == 0 || _processId >= 65536) {
+        return;
+    }
+
+    CF::ExecutableDevice_var device = ossie::corba::_narrowSafe<CF::ExecutableDevice>(_assignedDevice);
+    if (CORBA::is_nil(device)) {
+        LOG_WARN(Application_impl, "Cannot find device to terminate component " << _identifier);
+    } else {
+        device->terminate(_processId);
+    }
+}
+
+void ApplicationComponent::unloadFiles()
+{
+    if (loadedFiles.empty()) {
+        return;
+    }
+
+    LOG_DEBUG(Application_impl, "Unloading " << loadedFiles.size() << " file(s) for component '"
+              << _identifier << "'");
+        
+    CF::LoadableDevice_var device = ossie::corba::_narrowSafe<CF::LoadableDevice>(_assignedDevice);
+    if (CORBA::is_nil(device)) {
+        LOG_WARN(Application_impl, "Cannot find device to unload files for component " << _identifier);
+        return;
+    }
+
+    BOOST_FOREACH(const std::string& file, loadedFiles) {
+        LOG_TRACE(Application_impl, "Unloading file " << file);
+        try {
+            device->unload(file.c_str());
+        } CATCH_LOG_WARN(Application_impl, "Unable to unload file " << file);
+    }
 }

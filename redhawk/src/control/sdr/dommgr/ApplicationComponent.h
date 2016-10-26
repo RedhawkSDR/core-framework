@@ -59,6 +59,10 @@ namespace redhawk {
         std::vector<std::string> loadedFiles;
         bool isContainer;
 
+        void releaseObject();
+        void terminate();
+        void unloadFiles();
+
     private:
         std::string _identifier;
         std::string _softwareProfile;
