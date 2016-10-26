@@ -143,8 +143,8 @@ std::vector<std::string> SoftPkgDeployment::getDependencyLocalFiles()
     return files;
 }
 
-void SoftPkgDeployment::load(Application_impl* application, CF::FileSystem_ptr fileSystem,
-                             CF::LoadableDevice_ptr device, const std::string& componentId)
+void SoftPkgDeployment::load(ossie::ApplicationComponent* appComponent, CF::FileSystem_ptr fileSystem,
+                             CF::LoadableDevice_ptr device)
 {
     if (!implementation) {
         throw std::logic_error("no implementation selected for soft package " + softpkg->getName());
@@ -155,7 +155,7 @@ void SoftPkgDeployment::load(Application_impl* application, CF::FileSystem_ptr f
         RH_NL_TRACE("ApplicationFactory_impl", "Loading " << dependencies.size() <<
                     " dependency(ies) for soft package " << softpkg->getName());
         for (DeploymentList::iterator dep = dependencies.begin(); dep != dependencies.end(); ++dep) {
-            (*dep)->load(application, fileSystem, device, componentId);
+            (*dep)->load(appComponent, fileSystem, device);
         }
     }
 
@@ -185,7 +185,7 @@ void SoftPkgDeployment::load(Application_impl* application, CF::FileSystem_ptr f
         message += " loading " + fileName;
         throw DeploymentError(message);
     }
-    application->addComponentLoadedFile(componentId, fileName);
+    appComponent->loadedFiles.push_back(fileName);
 }
 
 std::string SoftPkgDeployment::getLocalFile()
@@ -249,7 +249,8 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
     instantiation(instantiation),
     identifier(identifier),
     assemblyController(false),
-    container(0)
+    container(0),
+    appComponent(0)
 {
     // If the SoftPkg has an associated Properties, check the overrides for
     // validity
@@ -560,10 +561,12 @@ CF::Resource_ptr ComponentDeployment::getResourcePtr() const
     return CF::Resource::_duplicate(resource);
 }
 
-void ComponentDeployment::load(Application_impl* application, CF::FileSystem_ptr fileSystem,
-                               CF::LoadableDevice_ptr device)
+void ComponentDeployment::load(CF::FileSystem_ptr fileSystem, CF::LoadableDevice_ptr device)
 {
-    SoftPkgDeployment::load(application, fileSystem, device, identifier);
+    if (!appComponent) {
+        throw std::logic_error("deployment is not assigned to an application component");
+    }
+    SoftPkgDeployment::load(appComponent, fileSystem, device);
 }
 
 std::string ComponentDeployment::getLoggingConfiguration() const
@@ -601,6 +604,16 @@ std::string ComponentDeployment::getLoggingConfiguration() const
     }
 
     return std::string();
+}
+
+ossie::ApplicationComponent* ComponentDeployment::getApplicationComponent()
+{
+    return appComponent;
+}
+
+void ComponentDeployment::setApplicationComponent(ossie::ApplicationComponent* component)
+{
+    appComponent = component;
 }
 
 void ComponentDeployment::initializeProperties()

@@ -89,8 +89,8 @@ namespace redhawk {
         std::vector<std::string> getDependencyLocalFiles();
 
     protected:
-        void load(Application_impl* application, CF::FileSystem_ptr fileSystem,
-                  CF::LoadableDevice_ptr device, const std::string& componentId);
+        void load(ossie::ApplicationComponent* appComponent, CF::FileSystem_ptr fileSystem,
+                  CF::LoadableDevice_ptr device);
 
         const ossie::SoftPkg* softpkg;
         const ossie::SPD::Implementation* implementation;
@@ -155,10 +155,12 @@ namespace redhawk {
         void setResourcePtr(CF::Resource_ptr resource);
         CF::Resource_ptr getResourcePtr() const;
 
-        void load(Application_impl* application, CF::FileSystem_ptr fileSystem,
-                  CF::LoadableDevice_ptr device);
+        void load(CF::FileSystem_ptr fileSystem, CF::LoadableDevice_ptr device);
 
         std::string getLoggingConfiguration() const;
+
+        ossie::ApplicationComponent* getApplicationComponent();
+        void setApplicationComponent(ossie::ApplicationComponent* appComponent);
 
         /**
          * @brief  Initializes the deployed component
@@ -205,6 +207,8 @@ namespace redhawk {
         boost::shared_ptr<ossie::DeviceNode> assignedDevice;
         ComponentDeployment* container;
         CF::Resource_var resource;
+
+        ossie::ApplicationComponent* appComponent;
 
         redhawk::PropertyMap overrides;
         std::string nicAssignment;

@@ -1464,6 +1464,7 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
         if (instantiation->isNamingService()) {
             app_container->namingContext = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
         }
+        container->setApplicationComponent(app_container);
 
         // get the code.localfile
         LOG_TRACE(ApplicationFactory_impl, "Host is " << device->label << " Local file name is "
@@ -1489,7 +1490,7 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
         LOG_TRACE(ApplicationFactory_impl, "Loading " << codeLocalFile << " and dependencies on device "
                   << device->label);
         try {
-            container->load(_application, _appFact._fileMgr, loadabledev);
+            container->load(_appFact._fileMgr, loadabledev);
         } catch (const std::exception& exc) {
             throw redhawk::ComponentError(container, exc.what());
         }
@@ -1529,6 +1530,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         if (instantiation->isNamingService()) {
             app_component->namingContext = _baseNamingContext + "/" + instantiation->getFindByNamingServiceName();
         }
+        deployment->setApplicationComponent(app_component);
 
         // get the code.localfile
         LOG_TRACE(ApplicationFactory_impl, "Host is " << device->label << " Local file name is "
@@ -1554,7 +1556,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         LOG_TRACE(ApplicationFactory_impl, "Loading " << codeLocalFile << " and dependencies on device "
                   << device->label);
         try {
-            deployment->load(_application, _appFact._fileMgr, loadabledev);
+            deployment->load(_appFact._fileMgr, loadabledev);
         } catch (const std::exception& exc) {
             throw redhawk::ComponentError(deployment, exc.what());
         }
@@ -1732,7 +1734,8 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     if (pid < 0) {
         throw redhawk::ExecuteError(deployment, "execute returned invalid process ID");
     } else {
-        _application->setComponentPid(deployment->getIdentifier(), pid);
+        ossie::ApplicationComponent* app_component = deployment->getApplicationComponent();
+        app_component->processId = pid;
     }
 }
 
@@ -1808,9 +1811,9 @@ void createHelper::waitForContainerRegistration(redhawk::ApplicationDeployment& 
 
     // Fetch the objects, finding any components that did not register
     BOOST_FOREACH(redhawk::ContainerDeployment* container, appDeployment.getContainerDeployments()) {
-        // Find the component on the Application
-        const std::string component_id = container->getIdentifier();
-        CORBA::Object_var objref = _application->getComponentObject(component_id);
+        // Check that the component host registered with the application; it
+        // should have a valid CORBA reference
+        CORBA::Object_ptr objref = container->getApplicationComponent()->componentObject;
         if (CORBA::is_nil(objref)) {
             throw redhawk::ExecuteError(container, "container did not register with application");
         }
@@ -1873,9 +1876,9 @@ void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& 
     BOOST_FOREACH(redhawk::ComponentDeployment* deployment, deployments) {
         const SoftPkg* softpkg = deployment->getSoftPkg();
         if (softpkg->isScaCompliant()) {
-            // Find the component on the Application
-            const std::string componentId = deployment->getIdentifier();
-            CORBA::Object_var objref = _application->getComponentObject(componentId);
+            // Check that the component registered with the application; it
+            // should have a valid CORBA reference
+            CORBA::Object_ptr objref = deployment->getApplicationComponent()->componentObject;
             if (CORBA::is_nil(objref)) {
                 std::string message = "component did not register with application";
                 message += ::getVersionMismatchMessage(softpkg);

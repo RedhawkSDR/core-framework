@@ -147,10 +147,6 @@ public:
     // Set component state
     ossie::ApplicationComponent* addComponent(const redhawk::ComponentDeployment* deployment);
     ossie::ApplicationComponent* addContainer(const redhawk::ContainerDeployment* container);
-    void setComponentPid(const std::string& identifier, unsigned long pid);
-    void addComponentLoadedFile(const std::string& identifier, const std::string& fileName);
-
-    CORBA::Object_ptr getComponentObject(const std::string& identifier);
 
     void releaseComponents();
     void terminateComponents();
@@ -163,6 +159,8 @@ public:
     CF::Application_ptr getComponentApplication();
     CF::DomainManager_ptr getComponentDomainManager();
     
+    ossie::ApplicationComponent* getComponent(const std::string& identifier);
+
 private:
     Application_impl (); // No default constructor
     Application_impl(Application_impl&);  // No copying

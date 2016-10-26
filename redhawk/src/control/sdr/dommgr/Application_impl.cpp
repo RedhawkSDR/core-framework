@@ -1266,6 +1266,15 @@ CF::DomainManager_ptr Application_impl::getComponentDomainManager ()
     }
 }
 
+ossie::ApplicationComponent* Application_impl::getComponent(const std::string& identifier)
+{
+    ossie::ApplicationComponent* component = findComponent(identifier);
+    if (!component) {
+        throw std::logic_error("unknown component '" + identifier + "'");
+    }
+    return component;
+}
+
 void Application_impl::registerComponent (CF::Resource_ptr resource)
 {
     const std::string componentId = ossie::corba::returnString(resource->identifier());
@@ -1360,37 +1369,6 @@ ossie::ApplicationComponent* Application_impl::addComponent(const redhawk::Compo
     component.assignedDevice = CF::Device::_duplicate(deployment->getAssignedDevice()->device);
     _components.push_back(component);
     return &(_components.back());
-}
-
-void Application_impl::setComponentPid(const std::string& identifier, unsigned long pid)
-{
-    ossie::ApplicationComponent* component = findComponent(identifier);
-    if (!component) {
-        LOG_ERROR(Application_impl, "Setting process ID for unknown component '" << identifier << "'");
-    } else {
-        component->processId = pid;
-    }
-}
-
-void Application_impl::addComponentLoadedFile(const std::string& identifier, const std::string& fileName)
-{
-    ossie::ApplicationComponent* component = findComponent(identifier);
-    if (!component) {
-        LOG_ERROR(Application_impl, "Adding loaded file for unknown component '" << identifier << "'");
-    } else {
-        component->loadedFiles.push_back(fileName);
-    }
-}
-
-CORBA::Object_ptr Application_impl::getComponentObject(const std::string& identifier)
-{
-    ossie::ApplicationComponent* component = findComponent(identifier);
-    if (!component) {
-        LOG_ERROR(Application_impl, "Cannot return object for unknown component '" << identifier << "'");
-        return CORBA::Object::_nil();
-    } else {
-        return CORBA::Object::_duplicate(component->componentObject);
-    }
 }
 
 void Application_impl::componentTerminated(const std::string& componentId, const std::string& deviceId)
