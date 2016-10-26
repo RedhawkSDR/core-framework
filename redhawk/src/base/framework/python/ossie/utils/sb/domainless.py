@@ -984,7 +984,6 @@ def loadSADFile(filename, props={}):
             
         launchedComponents = []
     except Exception as e:
-        traceback.print_exc()
         msg=" ERROR - Failed to load sad file: " + str(filename) + " REASON: " + str(e)
         for lc in launchedComponents:
             lc.releaseObject()
