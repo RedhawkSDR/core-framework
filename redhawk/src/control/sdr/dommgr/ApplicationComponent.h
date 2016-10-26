@@ -32,6 +32,16 @@ namespace redhawk {
 
         const std::string& getIdentifier() const;
 
+        const std::string& getSoftwareProfile() const;
+        void setSoftwareProfile(const std::string& softwareProfile);
+
+        bool hasNamingContext() const;
+        const std::string& getNamingContext() const;
+        void setNamingContext(const std::string& namingContext);
+
+        const std::string& getImplementationId() const;
+        void setImplementationId(const std::string& implementationId);
+
         unsigned long getProcessId() const;
         void setProcessId(unsigned long processId);
 
@@ -43,21 +53,20 @@ namespace redhawk {
 
         CF::Resource_ptr getResourcePtr() const;
 
-        bool hasNamingContext() const;
-        const std::string& getNamingContext() const;
-        void setNamingContext(const std::string& namingContext);
+        CF::Device_ptr getAssignedDevice() const;
+        void setAssignedDevice(CF::Device_ptr assignedDevice);
 
-        std::string softwareProfile;
-        std::string implementationId;
         std::vector<std::string> loadedFiles;
-        CF::Device_var assignedDevice;
         bool isContainer;
 
     private:
         std::string _identifier;
+        std::string _softwareProfile;
         std::string _namingContext;
+        std::string _implementationId;
         unsigned long _processId;
         CORBA::Object_var _componentObject;
+        CF::Device_var _assignedDevice;
     };
 }
 

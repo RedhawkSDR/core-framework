@@ -43,7 +43,7 @@ namespace {
     {
         CF::Application::ComponentElementType result;
         result.componentId = component.getIdentifier().c_str();
-        result.elementId = component.implementationId.c_str();
+        result.elementId = component.getImplementationId().c_str();
         return result;
     }
 
@@ -67,7 +67,7 @@ namespace {
     {
         CF::ComponentType result;
         result.identifier = component.getIdentifier().c_str();
-        result.softwareProfile = component.softwareProfile.c_str();
+        result.softwareProfile = component.getSoftwareProfile().c_str();
         result.type = CF::APPLICATION_COMPONENT;
         result.componentObject = component.getComponentObject();
         return result;
@@ -1022,7 +1022,8 @@ void Application_impl::terminateComponents()
 
         LOG_DEBUG(Application_impl, "Terminating component '" << ii->getIdentifier() << "' pid " << pid);
 
-        CF::ExecutableDevice_var device = ossie::corba::_narrowSafe<CF::ExecutableDevice>(ii->assignedDevice);
+        CF::Device_var assignedDevice = ii->getAssignedDevice();
+        CF::ExecutableDevice_var device = ossie::corba::_narrowSafe<CF::ExecutableDevice>(assignedDevice);
         if (CORBA::is_nil(device)) {
             LOG_WARN(Application_impl, "Cannot find device to terminate component " << ii->getIdentifier());
         } else {
@@ -1044,7 +1045,8 @@ void Application_impl::unloadComponents()
         LOG_DEBUG(Application_impl, "Unloading " << ii->loadedFiles.size() << " file(s) for component '"
                   << ii->getIdentifier() << "'");
         
-        CF::LoadableDevice_var device = ossie::corba::_narrowSafe<CF::LoadableDevice>(ii->assignedDevice);
+        CF::Device_var assignedDevice = ii->getAssignedDevice();
+        CF::LoadableDevice_var device = ossie::corba::_narrowSafe<CF::LoadableDevice>(assignedDevice);
         if (CORBA::is_nil(device)) {
             LOG_WARN(Application_impl, "Cannot find device to unload files for component " << ii->getIdentifier());
             continue;
@@ -1274,12 +1276,12 @@ void Application_impl::registerComponent (CF::Resource_ptr resource)
                  << "' registered with application '" << _appName << "'");
         _components.push_back(redhawk::ApplicationComponent(componentId));
         comp = &(_components.back());
-        comp->softwareProfile = softwareProfile;
-    } else if (softwareProfile != comp->softwareProfile) {
+        comp->setSoftwareProfile(softwareProfile);
+    } else if (softwareProfile != comp->getSoftwareProfile()) {
         // Mismatch between expected and reported SPD path
         LOG_WARN(Application_impl, "Component '" << componentId << "' software profile " << softwareProfile
-                 << " does not match expected profile " << comp->softwareProfile);
-        comp->softwareProfile = softwareProfile;
+                 << " does not match expected profile " << comp->getSoftwareProfile());
+        comp->setSoftwareProfile(softwareProfile);
     }
 
     LOG_TRACE(Application_impl, "REGISTERING Component '" << componentId << "' software profile " << softwareProfile << " pid:" << comp->getProcessId());
@@ -1325,10 +1327,10 @@ redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::Con
     const std::string& profile = container->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding container '" << identifier << "' with profile " << profile);
     redhawk::ApplicationComponent component(identifier);
-    component.softwareProfile = profile;
+    component.setSoftwareProfile(profile);
     component.isContainer = true;
-    component.implementationId = container->getImplementation()->getID();
-    component.assignedDevice = CF::Device::_duplicate(container->getAssignedDevice()->device);
+    component.setImplementationId(container->getImplementation()->getID());
+    component.setAssignedDevice(container->getAssignedDevice()->device);
     _components.push_back(component);
     return &(_components.back());
 }
@@ -1342,10 +1344,10 @@ redhawk::ApplicationComponent* Application_impl::addComponent(const redhawk::Com
     const std::string& profile = deployment->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding component '" << identifier << "' with profile " << profile);
     redhawk::ApplicationComponent component(identifier);
-    component.softwareProfile = profile;
+    component.setSoftwareProfile(profile);
     component.isContainer = false;
-    component.implementationId = deployment->getImplementation()->getID();
-    component.assignedDevice = CF::Device::_duplicate(deployment->getAssignedDevice()->device);
+    component.setImplementationId(deployment->getImplementation()->getID());
+    component.setAssignedDevice(deployment->getAssignedDevice()->device);
     _components.push_back(component);
     return &(_components.back());
 }

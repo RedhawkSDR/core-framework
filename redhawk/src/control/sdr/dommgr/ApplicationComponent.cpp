@@ -33,6 +33,41 @@ const std::string& ApplicationComponent::getIdentifier() const
     return _identifier;
 }
 
+const std::string& ApplicationComponent::getSoftwareProfile() const
+{
+    return _softwareProfile;
+}
+
+void ApplicationComponent::setSoftwareProfile(const std::string& softwareProfile)
+{
+    _softwareProfile = softwareProfile;
+}
+
+bool ApplicationComponent::hasNamingContext() const
+{
+    return !_namingContext.empty();
+}
+
+const std::string& ApplicationComponent::getNamingContext() const
+{
+    return _namingContext;
+}
+
+void ApplicationComponent::setNamingContext(const std::string& namingContext)
+{
+    _namingContext = namingContext;
+}
+
+const std::string& ApplicationComponent::getImplementationId() const
+{
+    return _implementationId;
+}
+
+void ApplicationComponent::setImplementationId(const std::string& implementationId)
+{
+    _implementationId = implementationId;
+}
+
 unsigned long ApplicationComponent::getProcessId() const
 {
     return _processId;
@@ -68,17 +103,12 @@ CF::Resource_ptr ApplicationComponent::getResourcePtr() const
     return CF::Resource::_narrow(_componentObject);
 }
 
-bool ApplicationComponent::hasNamingContext() const
+CF::Device_ptr ApplicationComponent::getAssignedDevice() const
 {
-    return !_namingContext.empty();
+    return CF::Device::_duplicate(_assignedDevice);
 }
 
-const std::string& ApplicationComponent::getNamingContext() const
+void ApplicationComponent::setAssignedDevice(CF::Device_ptr assignedDevice)
 {
-    return _namingContext;
-}
-
-void ApplicationComponent::setNamingContext(const std::string& namingContext)
-{
-    _namingContext = namingContext;
+    _assignedDevice = CF::Device::_duplicate(assignedDevice);
 }

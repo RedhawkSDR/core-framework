@@ -2473,13 +2473,13 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
     // Restore various state about the components in the waveform
     BOOST_FOREACH(ossie::ComponentNode& compNode, node.components) {
         redhawk::ApplicationComponent component(compNode.identifier);
-        component.softwareProfile = compNode.softwareProfile;
+        component.setSoftwareProfile(compNode.softwareProfile);
         component.setNamingContext(compNode.namingContext);
-        component.implementationId = compNode.implementationId;
+        component.setImplementationId(compNode.implementationId);
         component.loadedFiles = compNode.loadedFiles;
         component.setProcessId(compNode.processId);
         component.setComponentObject(compNode.componentObject);
-        component.assignedDevice = compNode.assignedDevice;
+        component.setAssignedDevice(compNode.assignedDevice);
         component.isContainer = compNode.isContainer;
         application->_components.push_back(component);
     }
@@ -2515,13 +2515,13 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
     BOOST_FOREACH(redhawk::ApplicationComponent& component, application->_components) {
         ossie::ComponentNode compNode;
         compNode.identifier = component.getIdentifier();
-        compNode.softwareProfile = component.softwareProfile;
+        compNode.softwareProfile = component.getSoftwareProfile();
         compNode.namingContext = component.getNamingContext();
-        compNode.implementationId = component.implementationId;
+        compNode.implementationId = component.getImplementationId();
         compNode.loadedFiles = component.loadedFiles;
         compNode.processId = component.getProcessId();
         compNode.componentObject = component.getComponentObject();
-        compNode.assignedDevice = component.assignedDevice;
+        compNode.assignedDevice = component.getAssignedDevice();
         compNode.isContainer = component.isContainer;
         appNode.components.push_back(compNode);
     }
