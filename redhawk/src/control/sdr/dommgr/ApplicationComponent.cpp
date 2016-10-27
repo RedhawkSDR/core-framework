@@ -20,6 +20,8 @@
 
 #include <boost/foreach.hpp>
 
+#include <ossie/CorbaUtils.h>
+
 #include "ApplicationComponent.h"
 #include "Application_impl.h"
 
@@ -81,6 +83,11 @@ void ApplicationComponent::setProcessId(unsigned long processId)
     _processId = processId;
 }
 
+bool ApplicationComponent::isResource() const
+{
+    return !CORBA::is_nil(_resource);
+}
+
 bool ApplicationComponent::isTerminated() const
 {
     return (_processId == 0);
@@ -109,11 +116,12 @@ CORBA::Object_ptr ApplicationComponent::getComponentObject() const
 void ApplicationComponent::setComponentObject(CORBA::Object_ptr object)
 {
     _componentObject = CORBA::Object::_duplicate(object);
+    _resource = ossie::corba::_narrowSafe<CF::Resource>(object);
 }
 
 CF::Resource_ptr ApplicationComponent::getResourcePtr() const
 {
-    return CF::Resource::_narrow(_componentObject);
+    return CF::Resource::_duplicate(_resource);
 }
 
 const boost::shared_ptr<ossie::DeviceNode>& ApplicationComponent::getAssignedDevice() const

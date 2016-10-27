@@ -47,17 +47,13 @@ class Application_impl : public virtual POA_CF::Application, public Logging_impl
     ENABLE_LOGGING
     friend class DomainManager_impl;
 
-protected:
-    CF::Resource_var assemblyController;
-
 public:
 
     Application_impl (const std::string& id, const std::string& name, const std::string& profile,
                       DomainManager_impl* domainManager, const std::string& waveformContextName,
                       CosNaming::NamingContext_ptr waveformContext, bool aware, CosNaming::NamingContext_ptr DomainContext);
     
-    void populateApplication (CF::Resource_ptr _assemblyController,
-                              const CF::DeviceAssignmentSequence& deviceAssignments,
+    void populateApplication (const CF::DeviceAssignmentSequence& deviceAssignments,
                               std::vector<CF::Resource_var> _startSeq,
                               std::vector<ossie::ConnectionNode>& connections,
                               std::vector<std::string> allocationIDs);
@@ -132,6 +128,9 @@ public:
     
     CF::ApplicationRegistrar_ptr appReg (void);
 
+    void setAssemblyController (const std::string& assemblyControllerRef);
+    redhawk::ApplicationComponent* getAssemblyController();
+
     const std::string& getIdentifier() const;
     const std::string& getName() const;
     const std::string& getProfile() const;
@@ -182,6 +181,7 @@ private:
 
     bool _checkRegistrations(std::set<std::string>& identifiers);
 
+    redhawk::ApplicationComponent* _assemblyController;
     const std::string _identifier;
     const std::string _sadProfile;
     const std::string _appName;

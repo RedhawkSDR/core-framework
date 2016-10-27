@@ -126,7 +126,7 @@ namespace ossie {
         CosNaming::NamingContext_var context;
         CF::DeviceAssignmentSequence componentDevices;
         ossie::ComponentList components;
-        CF::Resource_var assemblyController;
+        std::string assemblyControllerId;
         std::vector<ConnectionNode> connections;
         std::vector<std::string> allocationIDs;
         std::vector<CF::Resource_var> componentRefs;
@@ -283,7 +283,7 @@ namespace boost {
             ar & (node.context);
             ar & (node.componentDevices);
             ar & (node.components);
-            ar & (node.assemblyController);
+            ar & (node.assemblyControllerId);
             ar & (node.allocationIDs);
             ar & (node.connections);
             ar & (node.componentRefs);

@@ -46,6 +46,7 @@ namespace redhawk {
         unsigned long getProcessId() const;
         void setProcessId(unsigned long processId);
 
+        bool isResource() const;
         bool isTerminated() const;
         bool isRegistered() const;
 
@@ -74,6 +75,7 @@ namespace redhawk {
         std::vector<std::string> _loadedFiles;
         unsigned long _processId;
         CORBA::Object_var _componentObject;
+        CF::Resource_var _resource;
         boost::shared_ptr<ossie::DeviceNode> _assignedDevice;
     };
 }

@@ -849,12 +849,13 @@ CF::Application_ptr createHelper::create (
         // This condition should have been prevented by parser validation
         throw std::logic_error("Assembly controller has not been assigned");
     }
-    CF::Resource_var assemblyController = assemblyController = ac_deployment->getResourcePtr();
+    CF::Resource_var assemblyController = ac_deployment->getResourcePtr();
     if (CORBA::is_nil(assemblyController) && ac_deployment->getSoftPkg()->isScaCompliant()) {
         // Likewise, component registration should have already thrown an
         // exception if an SCA-compliant component did not register
         throw std::logic_error("Assembly controller has not registered with the application");
     }
+    _application->setAssemblyController(ac_deployment->getIdentifier());
 
     initializeComponents(app_deployment.getComponentDeployments());
 
@@ -913,12 +914,10 @@ CF::Application_ptr createHelper::create (
     }
 
     std::vector<CF::Resource_var> start_order = getStartOrder(app_deployment.getComponentDeployments());
-    _application->populateApplication(
-        assemblyController,
-        app_devices, 
-        start_order, 
-        connections, 
-        allocationIDs);
+    _application->populateApplication(app_devices, 
+                                      start_order, 
+                                      connections, 
+                                      allocationIDs);
 
     // Add a reference to the new application to the 
     // ApplicationSequence in DomainManager

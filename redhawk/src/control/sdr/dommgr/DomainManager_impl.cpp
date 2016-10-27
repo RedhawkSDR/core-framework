@@ -2464,11 +2464,10 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
                                                          CosNaming::NamingContext::_nil());
     LOG_TRACE(DomainManager_impl, "Restored " << node.connections.size() << " connections");
 
-    application->populateApplication(node.assemblyController,
-                                      node.componentDevices,
-                                      node.componentRefs,
-                                      node.connections,
-                                      node.allocationIDs);
+    application->populateApplication(node.componentDevices,
+                                     node.componentRefs,
+                                     node.connections,
+                                     node.allocationIDs);
 
     // Restore various state about the components in the waveform
     BOOST_FOREACH(ossie::ComponentNode& compNode, node.components) {
@@ -2492,6 +2491,7 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
         component.isContainer = compNode.isContainer;
         application->_components.push_back(component);
     }
+    application->setAssemblyController(node.assemblyControllerId);
 
     // Add external ports
     for (std::map<std::string, CORBA::Object_var>::const_iterator it = node.ports.begin();
@@ -2534,7 +2534,7 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
         compNode.isContainer = component.isContainer;
         appNode.components.push_back(compNode);
     }
-    appNode.assemblyController = CF::Resource::_duplicate(application->assemblyController);
+    appNode.assemblyControllerId = application->getAssemblyController()->getIdentifier();
     appNode.componentRefs.clear();
     for (unsigned int i = 0; i < application->_appStartSeq.size(); ++i) {
         appNode.componentRefs.push_back(CF::Resource::_duplicate(application->_appStartSeq[i]));

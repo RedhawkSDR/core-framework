@@ -109,6 +109,7 @@ namespace {
 Application_impl::Application_impl (const std::string& id, const std::string& name, const std::string& profile,
                                     DomainManager_impl* domainManager, const std::string& waveformContextName,
                                     CosNaming::NamingContext_ptr waveformContext, bool aware, CosNaming::NamingContext_ptr DomainContext) :
+    _assemblyController(0),
     _identifier(id),
     _sadProfile(profile),
     _appName(name),
@@ -127,8 +128,23 @@ Application_impl::Application_impl (const std::string& id, const std::string& na
     }
 };
 
-void Application_impl::populateApplication(CF::Resource_ptr _controller,
-                                           const CF::DeviceAssignmentSequence& assignedDevices,
+void Application_impl::setAssemblyController(const std::string& assemblyControllerRef)
+{
+    LOG_DEBUG(Application_impl, "Assigning the assembly controller")
+    _assemblyController = findComponent(assemblyControllerRef);
+    // Assume _controller is NIL implies that the assembly controller component is Non SCA-Compliant
+    if (!_assemblyController || !_assemblyController->isResource()) {
+        LOG_INFO(Application_impl, "Assembly controller is non SCA-compliant");
+        _assemblyController = 0;
+    }
+}
+
+redhawk::ApplicationComponent* Application_impl::getAssemblyController()
+{
+    return _assemblyController;
+}
+
+void Application_impl::populateApplication(const CF::DeviceAssignmentSequence& assignedDevices,
                                            std::vector<CF::Resource_var> _startSeq,
                                            std::vector<ConnectionNode>& connections,
                                            std::vector<std::string> allocationIDs)
@@ -141,13 +157,6 @@ void Application_impl::populateApplication(CF::Resource_ptr _controller,
     LOG_DEBUG(Application_impl, "Creating allocation sequence");
     this->_allocationIDs = allocationIDs;
 
-    LOG_DEBUG(Application_impl, "Assigning the assembly controller")
-    // Assume _controller is NIL implies that the assembly controller component is Non SCA-Compliant
-    if (CORBA::is_nil(_controller)) {
-        LOG_INFO(Application_impl, "Assembly controller is non SCA-compliant");
-    } else {
-        assemblyController = CF::Resource::_duplicate(_controller);
-    }
     TRACE_EXIT(Application_impl)
 }
 
@@ -194,15 +203,15 @@ CORBA::Boolean Application_impl::started () throw (CORBA::SystemException)
 void Application_impl::start ()
 throw (CORBA::SystemException, CF::Resource::StartError)
 {
-    if (CORBA::is_nil(assemblyController) and (_appStartSeq.size() == 0)) {
-        throw(CF::Resource::StartError(CF::CF_ENOTSUP, "No assembly controller and no Components with startorder set"));
-        return;
+    if (!_assemblyController && _appStartSeq.empty()) {
+        throw CF::Resource::StartError(CF::CF_ENOTSUP, "No assembly controller and no Components with startorder set");
     }
 
     try {
-        omniORB::setClientCallTimeout(assemblyController, 0);       
+        CF::Resource_var resource = _assemblyController->getResourcePtr();
+        omniORB::setClientCallTimeout(resource, 0);       
         LOG_TRACE(Application_impl, "Calling start on assembly controller")
-        assemblyController->start ();
+        resource->start ();
 
         // Start the rest of the components
         for (unsigned int i = 0; i < _appStartSeq.size(); i++){
@@ -256,9 +265,8 @@ bool Application_impl::stopComponent (CF::Resource_ptr component)
 void Application_impl::stop ()
 throw (CORBA::SystemException, CF::Resource::StopError)
 {
-    if (CORBA::is_nil(assemblyController) and (_appStartSeq.size() == 0)) {
-        throw(CF::Resource::StopError(CF::CF_ENOTSUP, "No assembly controller and no Components with startorder set"));
-        return;
+    if (!_assemblyController && _appStartSeq.empty()) {
+        throw CF::Resource::StopError(CF::CF_ENOTSUP, "No assembly controller and no Components with startorder set");
     }
 
     int failures = 0;
@@ -270,7 +278,8 @@ throw (CORBA::SystemException, CF::Resource::StopError)
     }
 
     LOG_TRACE(Application_impl, "Calling stop on assembly controller");
-    if (!stopComponent(assemblyController)) {
+    CF::Resource_var ac_resource = _assemblyController->getResourcePtr();
+    if (!stopComponent(ac_resource)) {
         failures++;
     }
     if (failures > 0) {
@@ -307,9 +316,10 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
     // to allow for one batched configure call per component
 
     CF::Properties acProps;
-    const std::string acId = ossie::corba::returnString(assemblyController->identifier());
+    const std::string acId = _assemblyController->getIdentifier();
+    CF::Resource_var ac_resource = _assemblyController->getResourcePtr();
     std::map<std::string, std::pair<CF::Resource_ptr, CF::Properties> > batch;
-    batch[acId] = std::pair<CF::Resource_ptr, CF::Properties>(assemblyController, acProps);
+    batch[acId] = std::pair<CF::Resource_ptr, CF::Properties>(ac_resource, acProps);
 
     // Loop through each passed external property, mapping it with its respective resource
     for (unsigned int i = 0; i < configProperties.length(); ++i) {
@@ -349,7 +359,7 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
                     batch[compId] = std::pair<CF::Resource_ptr, CF::Properties>(comp, tempProp);
                 }
             }
-        } else if (!CORBA::is_nil(assemblyController)) {
+        } else if (_assemblyController) {
             // Properties that are not external get batched with assembly controller
             LOG_TRACE(Application_impl, "Calling configure on assembly controller for property: " << configProperties[i].id);
             int count = batch[acId].second.length();
@@ -411,7 +421,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
 
     // Creates a map from componentIdentifier -> (rsc_ptr, ConfigPropSet)
     // to allow for one batched query call per component
-    const std::string acId = ossie::corba::returnString(assemblyController->identifier());
+    const std::string acId = _assemblyController->getIdentifier();
     std::map<std::string, std::pair<CF::Resource_ptr, CF::Properties> > batch;
 
     // For queries of zero length, return all external properties
@@ -486,7 +496,8 @@ throw (CF::UnknownProperties, CORBA::SystemException)
         // Query Assembly Controller properties
         CF::Properties tempProp;
         try {
-            assemblyController->query(tempProp);
+            CF::Resource_var ac_resource = _assemblyController->getResourcePtr();
+            ac_resource->query(tempProp);
         } catch (CF::UnknownProperties e) {
             int count = invalidProperties.length();
             invalidProperties.length(count + e.invalidProperties.length());
@@ -510,7 +521,8 @@ throw (CF::UnknownProperties, CORBA::SystemException)
         // For queries of length > 0, return all requested pairs that are valid external properties
         // or are Assembly Controller Properties
         CF::Properties acProps;
-        batch[acId] = std::pair<CF::Resource_ptr, CF::Properties>(assemblyController, acProps);
+        CF::Resource_var ac_resource = _assemblyController->getResourcePtr();
+        batch[acId] = std::pair<CF::Resource_ptr, CF::Properties>(ac_resource, acProps);
 
         for (unsigned int i = 0; i < configProperties.length(); ++i) {
             // Gets external ID for property mapping
@@ -549,7 +561,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
                         batch[compId] = std::pair<CF::Resource_ptr, CF::Properties>(comp, tempProp);
                     }
                 }
-            } else if (!CORBA::is_nil(assemblyController)) {
+            } else if (_assemblyController) {
                 // Properties that are not external get batched with assembly controller
                 LOG_TRACE(Application_impl, "Calling query on assembly controller for property: "
                         << configProperties[i].id);
@@ -595,7 +607,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
                 compId = ossie::corba::returnString(_properties[extId].second->identifier());
             } else {
                 propId = extId;
-                compId = ossie::corba::returnString(assemblyController->identifier());
+                compId = _assemblyController->getIdentifier();
             }
 
             // Loops through batched query results finding requested property
@@ -641,8 +653,9 @@ char *Application_impl::registerPropertyListener( CORBA::Object_ptr listener, co
                 ossie::corba::returnString(comp->identifier()) << "/" << prop_id);
           comp_regs[ comp ].push_back( prop_id ); 
           
-        } else if (!CORBA::is_nil(assemblyController)) {
-          comp_regs[ assemblyController ].push_back( extId ) ;
+        } else if (_assemblyController) {
+            CF::Resource_var ac_resource = _assemblyController->getResourcePtr();
+            comp_regs[ac_resource].push_back(extId);
         }
   }
 
@@ -718,11 +731,14 @@ void Application_impl::unregisterPropertyListener( const char *reg_id )
 void Application_impl::initialize ()
 throw (CORBA::SystemException, CF::LifeCycle::InitializeError)
 {
-    if (CORBA::is_nil(assemblyController)) { return; }
+    if (!_assemblyController) {
+        return;
+    }
 
     try {
-        LOG_TRACE(Application_impl, "Calling initialize on assembly controller")
-        assemblyController->initialize ();
+        LOG_TRACE(Application_impl, "Calling initialize on assembly controller");
+        CF::Resource_var resource = _assemblyController->getResourcePtr();
+        resource->initialize();
     } catch( CF::LifeCycle::InitializeError& ie ) {
         LOG_ERROR(Application_impl, "Initialize failed with CF::LifeCycle::InitializeError")
         throw;
@@ -803,14 +819,15 @@ void Application_impl::runTest (CORBA::ULong _testId, CF::Properties& _props)
 throw (CORBA::SystemException, CF::UnknownProperties, CF::TestableObject::UnknownTest)
 
 {
-    if (CORBA::is_nil(assemblyController)) {
+    if (!_assemblyController) {
         LOG_ERROR(Application_impl, "Run test called with non SCA compliant assembly controller");
         throw CF::TestableObject::UnknownTest();
     }
 
     try {
-        LOG_TRACE(Application_impl, "Calling runTest on assembly controller")
-        assemblyController->runTest (_testId, _props);
+        LOG_TRACE(Application_impl, "Calling runTest on assembly controller");
+        CF::Resource_var resource = _assemblyController->getResourcePtr();
+        resource->runTest(_testId, _props);
     } catch( CF::UnknownProperties& up ) {
         std::ostringstream eout;
         eout << "Run test failed with CF::UnknownProperties for Test ID " << _testId << " for properties: ";
@@ -866,8 +883,6 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
         // error happened while stopping. Ignore the error and continue tear-down
         LOG_TRACE(Application_impl, "Error occurred while stopping the application during tear-down. Ignoring the error and continuing")
     }
-    
-    assemblyController = CF::Resource::_nil ();
     
     try {
       // Break all connections in the application
