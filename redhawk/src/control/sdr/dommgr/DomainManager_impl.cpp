@@ -2465,7 +2465,6 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
     LOG_TRACE(DomainManager_impl, "Restored " << node.connections.size() << " connections");
 
     application->populateApplication(node.componentDevices,
-                                     node.componentRefs,
                                      node.connections,
                                      node.allocationIDs);
 
@@ -2492,6 +2491,7 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
         application->_components.push_back(component);
     }
     application->setAssemblyController(node.assemblyControllerId);
+    application->setStartOrder(node.startOrder);
 
     // Add external ports
     for (std::map<std::string, CORBA::Object_var>::const_iterator it = node.ports.begin();
@@ -2534,11 +2534,18 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
         compNode.isContainer = component.isContainer;
         appNode.components.push_back(compNode);
     }
-    appNode.assemblyControllerId = application->getAssemblyController()->getIdentifier();
-    appNode.componentRefs.clear();
-    for (unsigned int i = 0; i < application->_appStartSeq.size(); ++i) {
-        appNode.componentRefs.push_back(CF::Resource::_duplicate(application->_appStartSeq[i]));
+
+    // If an assembly controller is set, store it by identifier
+    redhawk::ApplicationComponent* assembly_controller = application->getAssemblyController();
+    if (assembly_controller) {
+        appNode.assemblyControllerId = assembly_controller->getIdentifier();
     }
+
+    // Save the start order, storing just the component identifiers
+    BOOST_FOREACH(redhawk::ApplicationComponent* component, application->_startOrder) {
+        appNode.startOrder.push_back(component->getIdentifier());
+    }
+
     appNode.allocationIDs = application->_allocationIDs;
     appNode.connections = application->_connections;
     appNode.aware_application = application->_isAware;

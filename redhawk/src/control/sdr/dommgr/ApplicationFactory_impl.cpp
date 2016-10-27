@@ -913,9 +913,10 @@ CF::Application_ptr createHelper::create (
         }
     }
 
-    std::vector<CF::Resource_var> start_order = getStartOrder(app_deployment.getComponentDeployments());
+    std::vector<std::string> start_order = getStartOrder(app_deployment.getComponentDeployments());
+    _application->setStartOrder(start_order);
+
     _application->populateApplication(app_devices, 
-                                      start_order, 
                                       connections, 
                                       allocationIDs);
 
@@ -1994,7 +1995,7 @@ void createHelper::connectComponents(redhawk::ApplicationDeployment& appDeployme
     std::copy(establishedConnections.begin(), establishedConnections.end(), std::back_inserter(connections));
 }
 
-std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& deployments)
+std::vector<std::string> createHelper::getStartOrder(const DeploymentList& deployments)
 {
     LOG_TRACE(ApplicationFactory_impl, "Assigning start order");
 
@@ -2018,12 +2019,12 @@ std::vector<CF::Resource_var> createHelper::getStartOrder(const DeploymentList& 
     }
 
     // Build the start order vector in the right order
-    std::vector<CF::Resource_var> start_order;
+    std::vector<std::string> start_order;
     int index = 1;
     for (StartOrderMap::iterator ii = start_map.begin(); ii != start_map.end(); ++ii, ++index) {
         LOG_TRACE(ApplicationFactory_impl, index << ": "
                   << ii->second->getInstantiation()->getID());
-        start_order.push_back(ii->second->getResourcePtr());
+        start_order.push_back(ii->second->getIdentifier());
     }
     return start_order;
 }

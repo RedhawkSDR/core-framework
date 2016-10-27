@@ -175,7 +175,7 @@ private:
         std::string                         base_naming_context);
 
     std::string resolveLoggingConfiguration(redhawk::ComponentDeployment* deployment);
-    std::vector<CF::Resource_var> getStartOrder(const DeploymentList& deployments);
+    std::vector<std::string> getStartOrder(const DeploymentList& deployments);
 
     // Cleanup - used when create fails/doesn't succeed for some reason
     bool _isComplete;

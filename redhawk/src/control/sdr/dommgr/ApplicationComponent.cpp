@@ -134,6 +134,25 @@ void ApplicationComponent::setAssignedDevice(const boost::shared_ptr<ossie::Devi
     _assignedDevice = assignedDevice;
 }
 
+void ApplicationComponent::start()
+{
+    omniORB::setClientCallTimeout(_resource, 0);
+    _resource->start();
+}
+
+bool ApplicationComponent::stop()
+{
+    const unsigned long timeout = 3; // seconds
+    omniORB::setClientCallTimeout(_resource, timeout * 1000);
+    try {
+        _resource->stop();
+        return true;
+    } catch (const CF::Resource::StopError& error) {
+        LOG_ERROR(Application_impl, "Failed to stop " << _identifier << "; CF::Resource::StopError '" << error.msg << "'");
+    } CATCH_LOG_ERROR(Application_impl, "Failed to stop " << _identifier);
+    return false;
+}
+
 void ApplicationComponent::releaseObject()
 {
     if (!isRegistered()) {

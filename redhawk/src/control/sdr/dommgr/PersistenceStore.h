@@ -129,7 +129,7 @@ namespace ossie {
         std::string assemblyControllerId;
         std::vector<ConnectionNode> connections;
         std::vector<std::string> allocationIDs;
-        std::vector<CF::Resource_var> componentRefs;
+        std::vector<std::string> startOrder;
         std::map<std::string, CORBA::Object_var> ports;
         std::map<std::string, std::pair<std::string, CF::Resource_var> > properties;
         bool aware_application;
@@ -286,7 +286,7 @@ namespace boost {
             ar & (node.assemblyControllerId);
             ar & (node.allocationIDs);
             ar & (node.connections);
-            ar & (node.componentRefs);
+            ar & (node.startOrder);
             ar & (node.ports);
             ar & (node.properties);
         }

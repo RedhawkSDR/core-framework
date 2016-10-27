@@ -54,9 +54,10 @@ public:
                       CosNaming::NamingContext_ptr waveformContext, bool aware, CosNaming::NamingContext_ptr DomainContext);
     
     void populateApplication (const CF::DeviceAssignmentSequence& deviceAssignments,
-                              std::vector<CF::Resource_var> _startSeq,
                               std::vector<ossie::ConnectionNode>& connections,
                               std::vector<std::string> allocationIDs);
+
+    void setStartOrder(const std::vector<std::string>& startOrder);
 
     ~Application_impl ();
 
@@ -177,8 +178,6 @@ private:
 
     void registerComponent(CF::Resource_ptr resource);
 
-    bool stopComponent(CF::Resource_ptr component);
-
     bool _checkRegistrations(std::set<std::string>& identifiers);
 
     redhawk::ApplicationComponent* _assemblyController;
@@ -187,7 +186,7 @@ private:
     const std::string _appName;
     CF::DeviceAssignmentSequence _componentDevices;
     std::vector<ossie::ConnectionNode> _connections;
-    std::vector<CF::Resource_var> _appStartSeq;
+    std::vector<redhawk::ApplicationComponent*> _startOrder;
     std::vector<std::string> _allocationIDs;
     DomainManager_impl* _domainManager;
     const std::string _waveformContextName;

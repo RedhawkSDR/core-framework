@@ -22,6 +22,8 @@
 #include <string>
 #include <sstream>
 
+#include <boost/foreach.hpp>
+
 #include <ossie/debug.h>
 #include <ossie/CorbaUtils.h>
 #include <ossie/EventChannelSupport.h>
@@ -145,19 +147,30 @@ redhawk::ApplicationComponent* Application_impl::getAssemblyController()
 }
 
 void Application_impl::populateApplication(const CF::DeviceAssignmentSequence& assignedDevices,
-                                           std::vector<CF::Resource_var> _startSeq,
                                            std::vector<ConnectionNode>& connections,
                                            std::vector<std::string> allocationIDs)
 {
     TRACE_ENTER(Application_impl)
     _connections = connections;
     _componentDevices = assignedDevices;
-    _appStartSeq = _startSeq;
 
     LOG_DEBUG(Application_impl, "Creating allocation sequence");
     this->_allocationIDs = allocationIDs;
 
     TRACE_EXIT(Application_impl)
+}
+
+void Application_impl::setStartOrder(const std::vector<std::string>& startOrder)
+{
+    _startOrder.clear();
+    BOOST_FOREACH(const std::string& componentId, startOrder) {
+        redhawk::ApplicationComponent* component = findComponent(componentId);
+        if (component) {
+            _startOrder.push_back(component);
+        } else {
+            LOG_WARN(Application_impl, "Invalid component '" << componentId << "' in start order");
+        }
+    }
 }
 
 Application_impl::~Application_impl ()
@@ -203,24 +216,20 @@ CORBA::Boolean Application_impl::started () throw (CORBA::SystemException)
 void Application_impl::start ()
 throw (CORBA::SystemException, CF::Resource::StartError)
 {
-    if (!_assemblyController && _appStartSeq.empty()) {
+    if (!_assemblyController && _startOrder.empty()) {
         throw CF::Resource::StartError(CF::CF_ENOTSUP, "No assembly controller and no Components with startorder set");
     }
 
     try {
-        CF::Resource_var resource = _assemblyController->getResourcePtr();
-        omniORB::setClientCallTimeout(resource, 0);       
-        LOG_TRACE(Application_impl, "Calling start on assembly controller")
-        resource->start ();
+        if (_assemblyController) {
+            LOG_TRACE(Application_impl, "Calling start on assembly controller");
+            _assemblyController->start();
+        }
 
         // Start the rest of the components
-        for (unsigned int i = 0; i < _appStartSeq.size(); i++){
-            std::string msg = "Calling start for ";
-            msg = msg.append(ossie::corba::returnString(_appStartSeq[i]->identifier()));
-            LOG_TRACE(Application_impl, msg)
-
-            omniORB::setClientCallTimeout(_appStartSeq[i], 0);       
-            _appStartSeq[i]-> start();
+        BOOST_FOREACH(redhawk::ApplicationComponent* component, _startOrder) {
+            LOG_TRACE(Application_impl, "Calling start for " << component->getIdentifier());
+            component->start();
         }
     } catch( CF::Resource::StartError& se ) {
         LOG_ERROR(Application_impl, "Start failed with CF:Resource::StartError")
@@ -237,51 +246,29 @@ throw (CORBA::SystemException, CF::Resource::StartError)
     }
 }
 
-
-bool Application_impl::stopComponent (CF::Resource_ptr component)
-{
-    std::string identifier;
-    try {
-        identifier = ossie::corba::returnString(component->identifier());
-    } catch (const CORBA::SystemException& ex) {
-        LOG_ERROR(Application_impl, "CORBA::" << ex._name() << " getting component identifier");
-        return false;
-    } catch (...) {
-        LOG_ERROR(Application_impl, "Unknown exception getting component identifier");
-        return false;
-    }
-    LOG_TRACE(Application_impl, "Calling stop for " << identifier);
-    const unsigned long timeout = 3; // seconds
-    omniORB::setClientCallTimeout(component, timeout * 1000);
-    try {
-        component->stop();
-        return true;
-    } catch (const CF::Resource::StopError& error) {
-        LOG_ERROR(Application_impl, "Failed to stop " << identifier << "; CF::Resource::StopError '" << error.msg << "'");
-    } CATCH_LOG_ERROR(Application_impl, "Failed to stop " << identifier);
-    return false;
-}
-
 void Application_impl::stop ()
 throw (CORBA::SystemException, CF::Resource::StopError)
 {
-    if (!_assemblyController && _appStartSeq.empty()) {
+    if (!_assemblyController && _startOrder.empty()) {
         throw CF::Resource::StopError(CF::CF_ENOTSUP, "No assembly controller and no Components with startorder set");
     }
 
     int failures = 0;
     // Stop the components in the reverse order they were started
-    for (int i = (int)(_appStartSeq.size()-1); i >= 0; i--){
-        if (!stopComponent(_appStartSeq[i])) {
+    BOOST_REVERSE_FOREACH(redhawk::ApplicationComponent* component, _startOrder) {
+        LOG_TRACE(Application_impl, "Calling stop for " << component->getIdentifier());
+        if (!component->stop()) {
             failures++;
         }
     }
 
-    LOG_TRACE(Application_impl, "Calling stop on assembly controller");
-    CF::Resource_var ac_resource = _assemblyController->getResourcePtr();
-    if (!stopComponent(ac_resource)) {
-        failures++;
+    if (_assemblyController) {
+        LOG_TRACE(Application_impl, "Calling stop on assembly controller");
+        if (!_assemblyController->stop()) {
+            failures++;
+        }
     }
+
     if (failures > 0) {
         std::ostringstream oss;
         oss << failures << " component(s) failed to stop";

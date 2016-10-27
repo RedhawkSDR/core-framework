@@ -63,6 +63,9 @@ namespace redhawk {
 
         bool isContainer;
 
+        void start();
+        bool stop();
+
         void releaseObject();
         void terminate();
         void unloadFiles();
