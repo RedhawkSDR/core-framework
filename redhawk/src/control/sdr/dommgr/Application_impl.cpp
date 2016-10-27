@@ -1225,9 +1225,7 @@ void Application_impl::registerComponent (CF::Resource_ptr resource)
     if (!comp) {
         LOG_WARN(Application_impl, "Unexpected component '" << componentId
                  << "' registered with application '" << _appName << "'");
-        _components.push_back(redhawk::ApplicationComponent(componentId));
-        comp = &(_components.back());
-        comp->setSoftwareProfile(softwareProfile);
+        comp = addComponent(componentId, softwareProfile);
     } else if (softwareProfile != comp->getSoftwareProfile()) {
         // Mismatch between expected and reported SPD path
         LOG_WARN(Application_impl, "Component '" << componentId << "' software profile " << softwareProfile
@@ -1269,6 +1267,15 @@ redhawk::ApplicationComponent* Application_impl::findComponent(const std::string
     return 0;
 }
 
+redhawk::ApplicationComponent* Application_impl::addComponent(const std::string& componentId,
+                                                              const std::string& softwareProfile)
+{
+    _components.push_back(redhawk::ApplicationComponent(componentId));
+    redhawk::ApplicationComponent* component = &(_components.back());
+    component->setSoftwareProfile(softwareProfile);
+    return component;
+}
+
 redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::ContainerDeployment* container)
 {
     const std::string& identifier = container->getIdentifier();
@@ -1277,13 +1284,11 @@ redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::Con
     }
     const std::string& profile = container->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding container '" << identifier << "' with profile " << profile);
-    redhawk::ApplicationComponent component(identifier);
-    component.setSoftwareProfile(profile);
-    component.isContainer = true;
-    component.setImplementationId(container->getImplementation()->getID());
-    component.setAssignedDevice(container->getAssignedDevice());
-    _components.push_back(component);
-    return &(_components.back());
+    redhawk::ApplicationComponent* component = addComponent(identifier, profile);
+    component->isContainer = true;
+    component->setImplementationId(container->getImplementation()->getID());
+    component->setAssignedDevice(container->getAssignedDevice());
+    return component;
 }
 
 redhawk::ApplicationComponent* Application_impl::addComponent(const redhawk::ComponentDeployment* deployment)
@@ -1294,13 +1299,11 @@ redhawk::ApplicationComponent* Application_impl::addComponent(const redhawk::Com
     }
     const std::string& profile = deployment->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding component '" << identifier << "' with profile " << profile);
-    redhawk::ApplicationComponent component(identifier);
-    component.setSoftwareProfile(profile);
-    component.isContainer = false;
-    component.setImplementationId(deployment->getImplementation()->getID());
-    component.setAssignedDevice(deployment->getAssignedDevice());
-    _components.push_back(component);
-    return &(_components.back());
+    redhawk::ApplicationComponent* component = addComponent(identifier, profile);
+    component->isContainer = false;
+    component->setImplementationId(deployment->getImplementation()->getID());
+    component->setAssignedDevice(deployment->getAssignedDevice());
+    return component;
 }
 
 void Application_impl::componentTerminated(const std::string& componentId, const std::string& deviceId)

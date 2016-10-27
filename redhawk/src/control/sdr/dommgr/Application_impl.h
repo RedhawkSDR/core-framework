@@ -145,6 +145,7 @@ public:
     void _cleanupActivations();
 
     // Set component state
+    redhawk::ApplicationComponent* addComponent(const std::string& componentId, const std::string& softwareProfile);
     redhawk::ApplicationComponent* addComponent(const redhawk::ComponentDeployment* deployment);
     redhawk::ApplicationComponent* addContainer(const redhawk::ContainerDeployment* container);
 

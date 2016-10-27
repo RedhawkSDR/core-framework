@@ -2470,25 +2470,23 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
 
     // Restore various state about the components in the waveform
     BOOST_FOREACH(ossie::ComponentNode& compNode, node.components) {
-        redhawk::ApplicationComponent component(compNode.identifier);
-        component.setSoftwareProfile(compNode.softwareProfile);
-        component.setNamingContext(compNode.namingContext);
-        component.setImplementationId(compNode.implementationId);
+        redhawk::ApplicationComponent* component = application->addComponent(compNode.identifier, compNode.softwareProfile);
+        component->setNamingContext(compNode.namingContext);
+        component->setImplementationId(compNode.implementationId);
         BOOST_FOREACH(const std::string& filename, compNode.loadedFiles) {
-            component.addLoadedFile(filename);
+            component->addLoadedFile(filename);
         }
-        component.setProcessId(compNode.processId);
-        component.setComponentObject(compNode.componentObject);
+        component->setProcessId(compNode.processId);
+        component->setComponentObject(compNode.componentObject);
         ossie::DeviceList::iterator device = findDeviceById(compNode.assignedDeviceId);
         if (device == _registeredDevices.end()) {
             LOG_WARN(DomainManager_impl, "Could not find assigned device '" << compNode.assignedDeviceId
                      << "' for application '" << node.name
                      << "' component '" << compNode.identifier);
         } else {
-            component.setAssignedDevice(*device);
+            component->setAssignedDevice(*device);
         }
-        component.isContainer = compNode.isContainer;
-        application->_components.push_back(component);
+        component->isContainer = compNode.isContainer;
     }
     application->setAssemblyController(node.assemblyControllerId);
     application->setStartOrder(node.startOrder);
