@@ -1279,7 +1279,7 @@ redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::Con
     component.setSoftwareProfile(profile);
     component.isContainer = true;
     component.setImplementationId(container->getImplementation()->getID());
-    component.setAssignedDevice(container->getAssignedDevice()->device);
+    component.setAssignedDevice(container->getAssignedDevice());
     _components.push_back(component);
     return &(_components.back());
 }
@@ -1296,7 +1296,7 @@ redhawk::ApplicationComponent* Application_impl::addComponent(const redhawk::Com
     component.setSoftwareProfile(profile);
     component.isContainer = false;
     component.setImplementationId(deployment->getImplementation()->getID());
-    component.setAssignedDevice(deployment->getAssignedDevice()->device);
+    component.setAssignedDevice(deployment->getAssignedDevice());
     _components.push_back(component);
     return &(_components.back());
 }

@@ -25,6 +25,7 @@
 #include <vector>
 
 #include <ossie/CF/cf.h>
+#include <PersistenceStore.h>
 
 namespace redhawk {
     struct ApplicationComponent {
@@ -56,8 +57,8 @@ namespace redhawk {
 
         CF::Resource_ptr getResourcePtr() const;
 
-        CF::Device_ptr getAssignedDevice() const;
-        void setAssignedDevice(CF::Device_ptr assignedDevice);
+        const boost::shared_ptr<ossie::DeviceNode>& getAssignedDevice() const;
+        void setAssignedDevice(const boost::shared_ptr<ossie::DeviceNode>& assignedDevice);
 
         bool isContainer;
 
@@ -73,7 +74,7 @@ namespace redhawk {
         std::vector<std::string> _loadedFiles;
         unsigned long _processId;
         CORBA::Object_var _componentObject;
-        CF::Device_var _assignedDevice;
+        boost::shared_ptr<ossie::DeviceNode> _assignedDevice;
     };
 }
 

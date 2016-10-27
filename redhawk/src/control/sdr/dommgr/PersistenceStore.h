@@ -103,7 +103,7 @@ namespace ossie {
         std::vector<std::string> loadedFiles;
         unsigned long processId;
         CORBA::Object_var componentObject;
-        CF::Device_var assignedDevice;
+        std::string assignedDeviceId;
         bool isContainer;
     };
     typedef std::list<ComponentNode> ComponentList;
@@ -260,7 +260,7 @@ namespace boost {
             ar & node.loadedFiles;
             ar & node.processId;
             ar & node.componentObject;
-            ar & node.assignedDevice;
+            ar & node.assignedDeviceId;
             ar & node.isContainer;
         }
 

@@ -2481,7 +2481,14 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
         }
         component.setProcessId(compNode.processId);
         component.setComponentObject(compNode.componentObject);
-        component.setAssignedDevice(compNode.assignedDevice);
+        ossie::DeviceList::iterator device = findDeviceById(compNode.assignedDeviceId);
+        if (device == _registeredDevices.end()) {
+            LOG_WARN(DomainManager_impl, "Could not find assigned device '" << compNode.assignedDeviceId
+                     << "' for application '" << node.name
+                     << "' component '" << compNode.identifier);
+        } else {
+            component.setAssignedDevice(*device);
+        }
         component.isContainer = compNode.isContainer;
         application->_components.push_back(component);
     }
@@ -2523,7 +2530,7 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
         compNode.loadedFiles = component.getLoadedFiles();
         compNode.processId = component.getProcessId();
         compNode.componentObject = component.getComponentObject();
-        compNode.assignedDevice = component.getAssignedDevice();
+        compNode.assignedDeviceId = component.getAssignedDevice()->identifier;
         compNode.isContainer = component.isContainer;
         appNode.components.push_back(compNode);
     }
