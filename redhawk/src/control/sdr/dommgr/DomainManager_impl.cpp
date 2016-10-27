@@ -1340,8 +1340,8 @@ void DomainManager_impl::storeDeviceInDomainMgr (CF::Device_ptr registeringDevic
     newDeviceNode->softwareProfile = ossie::corba::returnString(registeringDevice->softwareProfile());
     newDeviceNode->identifier = ossie::corba::returnString(registeringDevice->identifier());
     newDeviceNode->implementationId = ossie::corba::returnString(registeredDeviceMgr->getComponentImplementationId(newDeviceNode->identifier.c_str()));
-    newDeviceNode->isLoadable = registeringDevice->_is_a(CF::LoadableDevice::_PD_repoId);
-    newDeviceNode->isExecutable = registeringDevice->_is_a(CF::ExecutableDevice::_PD_repoId);
+    newDeviceNode->loadableDevice = ossie::corba::_narrowSafe<CF::LoadableDevice>(registeringDevice);
+    newDeviceNode->executableDevice = ossie::corba::_narrowSafe<CF::ExecutableDevice>(registeringDevice);
 
     parseDeviceProfile(*newDeviceNode);
 

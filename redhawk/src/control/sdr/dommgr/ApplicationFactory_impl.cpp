@@ -781,7 +781,7 @@ CF::Application_ptr createHelper::create (
     _registeredDevices = _appFact._domainManager->getRegisteredDevices();
     _executableDevices.clear();
     for (DeviceList::iterator iter = _registeredDevices.begin(); iter != _registeredDevices.end(); ++iter) {
-        if ((*iter)->isExecutable) {
+        if ((*iter)->isExecutable()) {
             _executableDevices.push_back(*iter);
         }
     }

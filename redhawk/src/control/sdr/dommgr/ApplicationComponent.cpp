@@ -149,14 +149,10 @@ void ApplicationComponent::terminate()
         return;
     }
 
-    CF::ExecutableDevice_var exec_device;
-    if (_assignedDevice && _assignedDevice->isExecutable) {
-        exec_device = ossie::corba::_narrowSafe<CF::ExecutableDevice>(_assignedDevice->device);
-    }
-    if (CORBA::is_nil(exec_device)) {
+    if (!_assignedDevice || !_assignedDevice->isExecutable()) {
         LOG_WARN(Application_impl, "Cannot find device to terminate component " << _identifier);
     } else {
-        exec_device->terminate(_processId);
+        _assignedDevice->executableDevice->terminate(_processId);
     }
 }
 
@@ -169,11 +165,7 @@ void ApplicationComponent::unloadFiles()
     LOG_DEBUG(Application_impl, "Unloading " << _loadedFiles.size() << " file(s) for component '"
               << _identifier << "'");
 
-    CF::LoadableDevice_var loadable_device;
-    if (_assignedDevice && _assignedDevice->isExecutable) {
-        loadable_device = ossie::corba::_narrowSafe<CF::LoadableDevice>(_assignedDevice->device);
-    }
-    if (CORBA::is_nil(loadable_device)) {
+    if (!_assignedDevice || !_assignedDevice->isLoadable()) {
         LOG_WARN(Application_impl, "Cannot find device to unload files for component " << _identifier);
         return;
     }
@@ -181,7 +173,7 @@ void ApplicationComponent::unloadFiles()
     BOOST_FOREACH(const std::string& file, _loadedFiles) {
         LOG_TRACE(Application_impl, "Unloading file " << file);
         try {
-            loadable_device->unload(file.c_str());
+            _assignedDevice->loadableDevice->unload(file.c_str());
         } CATCH_LOG_WARN(Application_impl, "Unable to unload file " << file);
     }
 }

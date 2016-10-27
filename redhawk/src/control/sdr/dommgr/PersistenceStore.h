@@ -70,8 +70,18 @@ namespace ossie {
         ossie::SoftPkg spd;
         ossie::Properties prf;
         std::string implementationId;
-        bool isLoadable;
-        bool isExecutable;
+        CF::LoadableDevice_var loadableDevice;
+        CF::ExecutableDevice_var executableDevice;
+
+        bool isLoadable() const
+        {
+            return !CORBA::is_nil(loadableDevice);
+        }
+
+        bool isExecutable() const
+        {
+            return !CORBA::is_nil(executableDevice);
+        }
     };
 
     typedef std::list<boost::shared_ptr<DeviceNode> > DeviceList;
