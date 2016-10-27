@@ -177,7 +177,7 @@ CF::ExecutableDevice::ProcessID_Type ComponentHost::executeLinked(const char* na
     component->bundle.swap(bundle);
     component->servant = servant;
 
-    int thread_id = (++counter) | getpid() << 16;
+    int thread_id = ++counter;
     activeComponents[thread_id] = component;
     LOG_DEBUG(ComponentHost, "Assigning thread ID " << thread_id);
 

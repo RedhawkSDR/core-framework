@@ -43,6 +43,9 @@ namespace redhawk {
         const std::string& getImplementationId() const;
         void setImplementationId(const std::string& implementationId);
 
+        ApplicationComponent* getComponentHost();
+        void setComponentHost(ApplicationComponent* componentHost);
+
         unsigned long getProcessId() const;
         void setProcessId(unsigned long processId);
 
@@ -75,6 +78,7 @@ namespace redhawk {
         std::string _softwareProfile;
         std::string _namingContext;
         std::string _implementationId;
+        ApplicationComponent* _componentHost;
         std::vector<std::string> _loadedFiles;
         unsigned long _processId;
         CORBA::Object_var _componentObject;

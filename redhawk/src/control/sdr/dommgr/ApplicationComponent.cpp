@@ -29,6 +29,7 @@ using redhawk::ApplicationComponent;
 
 ApplicationComponent::ApplicationComponent(const std::string& identifier) :
     _identifier(identifier),
+    _componentHost(0),
     _processId(0)
 {
 }
@@ -73,8 +74,21 @@ void ApplicationComponent::setImplementationId(const std::string& implementation
     _implementationId = implementationId;
 }
 
+ApplicationComponent* ApplicationComponent::getComponentHost()
+{
+    return _componentHost;
+}
+
+void ApplicationComponent::setComponentHost(ApplicationComponent* componentHost)
+{
+    _componentHost = componentHost;
+}
+
 unsigned long ApplicationComponent::getProcessId() const
 {
+    if (_componentHost) {
+        return _componentHost->getProcessId();
+    }
     return _processId;
 }
 
@@ -170,9 +184,9 @@ void ApplicationComponent::releaseObject()
 
 void ApplicationComponent::terminate()
 {
-    // TODO: PIDs are not necessarily capped at 64K; the limit is system-
-    // dependent
-    if (_processId == 0 || _processId >= 65536) {
+    // If the process already terminated, or the component is running inside of
+    // a ComponentHost instance, skip termination
+    if (isTerminated() || _componentHost) {
         return;
     }
 

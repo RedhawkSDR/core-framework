@@ -2487,6 +2487,14 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
             component->setAssignedDevice(*device);
         }
         component->isContainer = compNode.isContainer;
+        if (!compNode.componentHostId.empty()) {
+            redhawk::ApplicationComponent* host = application->findComponent(compNode.componentHostId);
+            if (!host) {
+                LOG_WARN(DomainManager_impl, "Could not find component host " << compNode.componentHostId);
+            } else {
+                component->setComponentHost(host);
+            }
+        }
     }
     application->setAssemblyController(node.assemblyControllerId);
     application->setStartOrder(node.startOrder);
@@ -2530,6 +2538,9 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
         compNode.componentObject = component.getComponentObject();
         compNode.assignedDeviceId = component.getAssignedDevice()->identifier;
         compNode.isContainer = component.isContainer;
+        if (component.getComponentHost()) {
+            compNode.componentHostId = component.getComponentHost()->getIdentifier();
+        }
         appNode.components.push_back(compNode);
     }
 

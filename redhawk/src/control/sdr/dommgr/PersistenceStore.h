@@ -115,6 +115,7 @@ namespace ossie {
         CORBA::Object_var componentObject;
         std::string assignedDeviceId;
         bool isContainer;
+        std::string componentHostId;
     };
     typedef std::list<ComponentNode> ComponentList;
 
@@ -272,6 +273,7 @@ namespace boost {
             ar & node.componentObject;
             ar & node.assignedDeviceId;
             ar & node.isContainer;
+            ar & node.componentHostId;
         }
 
         template<class Archive>

@@ -1527,6 +1527,9 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         if (instantiation->isNamingService()) {
             app_component->setNamingContext(_baseNamingContext + "/" + instantiation->getFindByNamingServiceName());
         }
+        if (deployment->getContainer()) {
+            app_component->setComponentHost(deployment->getContainer()->getApplicationComponent());
+        }
         deployment->setApplicationComponent(app_component);
 
         // get the code.localfile
