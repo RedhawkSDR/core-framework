@@ -936,13 +936,11 @@ CF::Application_ptr createHelper::create (
     // so update the domain manager
     _appFact._domainManager->setLastDeviceUsedForDeployment(_executableDevices.front()->identifier);
 
-    if ( _appFact._domainManager ) {
-      _appFact._domainManager->sendAddEvent( _appFact._identifier.c_str(), 
-                                             app_deployment.getIdentifier().c_str(), 
-                                             name,
-                                             appObj,
-                                             StandardEvent::APPLICATION);
-    }
+    _appFact._domainManager->sendAddEvent(_appFact._identifier,
+                                          app_deployment.getIdentifier(),
+                                          name,
+                                          appObj,
+                                          StandardEvent::APPLICATION);
 
     LOG_INFO(ApplicationFactory_impl, "Done creating application " << app_deployment.getIdentifier() << " " << name);
     _isComplete = true;
@@ -1477,9 +1475,8 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
             throw redhawk::ComponentError(container, "empty localfile");
         }
 
-        // narrow to LoadableDevice interface
-        CF::LoadableDevice_var loadabledev = ossie::corba::_narrowSafe<CF::LoadableDevice>(device->device);
-        if (CORBA::is_nil(loadabledev)) {
+        // Check for LoadableDevice interface
+        if (!device->isLoadable()) {
             std::ostringstream message;
             message << "container " << container->getIdentifier() << " was assigned to non-loadable device "
                     << device->identifier;
@@ -1490,7 +1487,7 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
         LOG_TRACE(ApplicationFactory_impl, "Loading " << codeLocalFile << " and dependencies on device "
                   << device->label);
         try {
-            container->load(_appFact._fileMgr, loadabledev);
+            container->load(_appFact._fileMgr, device->loadableDevice);
         } catch (const std::exception& exc) {
             throw redhawk::ComponentError(container, exc.what());
         }
@@ -1543,9 +1540,8 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             throw redhawk::ComponentError(deployment, "empty localfile");
         }
 
-        // narrow to LoadableDevice interface
-        CF::LoadableDevice_var loadabledev = ossie::corba::_narrowSafe<CF::LoadableDevice>(device->device);
-        if (CORBA::is_nil(loadabledev)) {
+        // Check for LoadableDevice interface
+        if (!device->isLoadable()) {
             std::ostringstream message;
             message << "component " << component_id << " was assigned to non-loadable device "
                     << device->identifier;
@@ -1556,7 +1552,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         LOG_TRACE(ApplicationFactory_impl, "Loading " << codeLocalFile << " and dependencies on device "
                   << device->label);
         try {
-            deployment->load(_appFact._fileMgr, loadabledev);
+            deployment->load(_appFact._fileMgr, device->loadableDevice);
         } catch (const std::exception& exc) {
             throw redhawk::ComponentError(deployment, exc.what());
         }
@@ -1610,8 +1606,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
 {
     // Get executable device reference
     boost::shared_ptr<DeviceNode> device = deployment->getAssignedDevice();
-    CF::ExecutableDevice_var execdev = ossie::corba::_narrowSafe<CF::ExecutableDevice>(device->device);
-    if (CORBA::is_nil(execdev)){
+    if (!device->isExecutable()){
         std::ostringstream message;
         message << "component " << deployment->getIdentifier() << " was assigned to non-executable device "
                 << device->identifier;
@@ -1685,6 +1680,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     }
 
     // Attempt to execute the component
+    CF::ExecutableDevice_var execdev;
     if (deployment->getContainer()) {
         LOG_TRACE(ApplicationFactory_impl, "Executing " << entryPoint << " via container on device " << device->label);
         redhawk::ComponentDeployment* container = deployment->getContainer();
@@ -1692,6 +1688,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
         execdev = CF::ExecutableDevice::_narrow(resource);
     } else {
         LOG_TRACE(ApplicationFactory_impl, "Executing " << entryPoint << " on device " << device->label);
+        execdev = CF::ExecutableDevice::_duplicate(device->executableDevice);
     }
     for (redhawk::PropertyMap::iterator prop = execParameters.begin(); prop != execParameters.end(); ++prop) {
         LOG_TRACE(ApplicationFactory_impl, " exec param " << prop->getId() << " " << prop->getValue().toString());
