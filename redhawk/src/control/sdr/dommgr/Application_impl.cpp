@@ -79,7 +79,7 @@ namespace {
     void convert_sequence(Sequence& out, Iterator begin, const Iterator end, Function func)
     {
         for (; begin != end; ++begin) {
-            if (!begin->isContainer) {
+            if (begin->getChildren().empty()) {
                 ossie::corba::push_back(out, func(*begin));
             }
         }
@@ -95,7 +95,7 @@ namespace {
     void convert_sequence_if(Sequence& out, Iterator begin, const Iterator end, Function func, Predicate pred)
     {
         for (; begin != end; ++begin) {
-            if (!(begin->isContainer) && pred(*begin)) {
+            if (begin->getChildren().empty() && pred(*begin)) {
                 ossie::corba::push_back(out, func(*begin));
             }
         }
@@ -983,14 +983,14 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 void Application_impl::releaseComponents()
 {
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (!ii->isContainer) {
+        if (ii->getChildren().empty()) {
             // Release "real" components first
             ii->releaseObject();
         }
     }
 
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
-        if (ii->isContainer) {
+        if (!ii->getChildren().empty()) {
             // Release containers once all "real" components have been released
             ii->releaseObject();
         }
@@ -1285,7 +1285,6 @@ redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::Con
     const std::string& profile = container->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding container '" << identifier << "' with profile " << profile);
     redhawk::ApplicationComponent* component = addComponent(identifier, profile);
-    component->isContainer = true;
     component->setImplementationId(container->getImplementation()->getID());
     component->setAssignedDevice(container->getAssignedDevice());
     return component;
@@ -1300,7 +1299,6 @@ redhawk::ApplicationComponent* Application_impl::addComponent(const redhawk::Com
     const std::string& profile = deployment->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding component '" << identifier << "' with profile " << profile);
     redhawk::ApplicationComponent* component = addComponent(identifier, profile);
-    component->isContainer = false;
     component->setImplementationId(deployment->getImplementation()->getID());
     component->setAssignedDevice(deployment->getAssignedDevice());
     return component;
@@ -1315,7 +1313,7 @@ void Application_impl::componentTerminated(const std::string& componentId, const
                  << "' terminated abnormally on device " << deviceId);
         return;
     }
-    if (component->isContainer) {
+    if (!component->getChildren().empty()) {
         LOG_WARN(Application_impl, "Component host from application '" << _identifier
                  << "' terminated abnormally on device " << deviceId);
     } else {

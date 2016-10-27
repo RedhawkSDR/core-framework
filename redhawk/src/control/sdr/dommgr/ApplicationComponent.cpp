@@ -29,8 +29,8 @@ using redhawk::ApplicationComponent;
 
 ApplicationComponent::ApplicationComponent(const std::string& identifier) :
     _identifier(identifier),
-    _componentHost(0),
-    _processId(0)
+    _processId(0),
+    _componentHost(0)
 {
 }
 
@@ -82,6 +82,14 @@ ApplicationComponent* ApplicationComponent::getComponentHost()
 void ApplicationComponent::setComponentHost(ApplicationComponent* componentHost)
 {
     _componentHost = componentHost;
+    if (_componentHost) {
+        _componentHost->_children.push_back(this);
+    }
+}
+
+const std::vector<ApplicationComponent*>& ApplicationComponent::getChildren() const
+{
+    return _children;
 }
 
 unsigned long ApplicationComponent::getProcessId() const

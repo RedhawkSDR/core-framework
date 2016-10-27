@@ -64,7 +64,7 @@ namespace redhawk {
         const boost::shared_ptr<ossie::DeviceNode>& getAssignedDevice() const;
         void setAssignedDevice(const boost::shared_ptr<ossie::DeviceNode>& assignedDevice);
 
-        bool isContainer;
+        const std::vector<ApplicationComponent*>& getChildren() const;
 
         void start();
         bool stop();
@@ -78,12 +78,14 @@ namespace redhawk {
         std::string _softwareProfile;
         std::string _namingContext;
         std::string _implementationId;
-        ApplicationComponent* _componentHost;
         std::vector<std::string> _loadedFiles;
         unsigned long _processId;
         CORBA::Object_var _componentObject;
         CF::Resource_var _resource;
         boost::shared_ptr<ossie::DeviceNode> _assignedDevice;
+
+        ApplicationComponent* _componentHost;
+        std::vector<ApplicationComponent*> _children;
     };
 }
 

@@ -2486,7 +2486,6 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
         } else {
             component->setAssignedDevice(*device);
         }
-        component->isContainer = compNode.isContainer;
         if (!compNode.componentHostId.empty()) {
             redhawk::ApplicationComponent* host = application->findComponent(compNode.componentHostId);
             if (!host) {
@@ -2537,7 +2536,6 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
         compNode.processId = component.getProcessId();
         compNode.componentObject = component.getComponentObject();
         compNode.assignedDeviceId = component.getAssignedDevice()->identifier;
-        compNode.isContainer = component.isContainer;
         if (component.getComponentHost()) {
             compNode.componentHostId = component.getComponentHost()->getIdentifier();
         }
