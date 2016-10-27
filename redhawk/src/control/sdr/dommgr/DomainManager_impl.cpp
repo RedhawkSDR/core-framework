@@ -2476,7 +2476,9 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
         component.setSoftwareProfile(compNode.softwareProfile);
         component.setNamingContext(compNode.namingContext);
         component.setImplementationId(compNode.implementationId);
-        component.loadedFiles = compNode.loadedFiles;
+        BOOST_FOREACH(const std::string& filename, compNode.loadedFiles) {
+            component.addLoadedFile(filename);
+        }
         component.setProcessId(compNode.processId);
         component.setComponentObject(compNode.componentObject);
         component.setAssignedDevice(compNode.assignedDevice);
@@ -2518,7 +2520,7 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
         compNode.softwareProfile = component.getSoftwareProfile();
         compNode.namingContext = component.getNamingContext();
         compNode.implementationId = component.getImplementationId();
-        compNode.loadedFiles = component.loadedFiles;
+        compNode.loadedFiles = component.getLoadedFiles();
         compNode.processId = component.getProcessId();
         compNode.componentObject = component.getComponentObject();
         compNode.assignedDevice = component.getAssignedDevice();

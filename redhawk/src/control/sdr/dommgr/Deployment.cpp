@@ -185,7 +185,7 @@ void SoftPkgDeployment::load(redhawk::ApplicationComponent* appComponent, CF::Fi
         message += " loading " + fileName;
         throw DeploymentError(message);
     }
-    appComponent->loadedFiles.push_back(fileName);
+    appComponent->addLoadedFile(fileName);
 }
 
 std::string SoftPkgDeployment::getLocalFile()

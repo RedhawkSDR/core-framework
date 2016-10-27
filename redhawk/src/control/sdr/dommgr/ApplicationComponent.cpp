@@ -91,6 +91,16 @@ bool ApplicationComponent::isRegistered() const
     return !CORBA::is_nil(_componentObject);
 }
 
+const std::vector<std::string>& ApplicationComponent::getLoadedFiles() const
+{
+    return _loadedFiles;
+}
+
+void ApplicationComponent::addLoadedFile(const std::string& fileName)
+{
+    _loadedFiles.push_back(fileName);
+}
+
 CORBA::Object_ptr ApplicationComponent::getComponentObject() const
 {
     return CORBA::Object::_duplicate(_componentObject);
@@ -149,11 +159,11 @@ void ApplicationComponent::terminate()
 
 void ApplicationComponent::unloadFiles()
 {
-    if (loadedFiles.empty()) {
+    if (_loadedFiles.empty()) {
         return;
     }
 
-    LOG_DEBUG(Application_impl, "Unloading " << loadedFiles.size() << " file(s) for component '"
+    LOG_DEBUG(Application_impl, "Unloading " << _loadedFiles.size() << " file(s) for component '"
               << _identifier << "'");
         
     CF::LoadableDevice_var device = ossie::corba::_narrowSafe<CF::LoadableDevice>(_assignedDevice);
@@ -162,7 +172,7 @@ void ApplicationComponent::unloadFiles()
         return;
     }
 
-    BOOST_FOREACH(const std::string& file, loadedFiles) {
+    BOOST_FOREACH(const std::string& file, _loadedFiles) {
         LOG_TRACE(Application_impl, "Unloading file " << file);
         try {
             device->unload(file.c_str());

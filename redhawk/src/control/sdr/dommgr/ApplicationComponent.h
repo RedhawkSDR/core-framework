@@ -48,6 +48,9 @@ namespace redhawk {
         bool isTerminated() const;
         bool isRegistered() const;
 
+        const std::vector<std::string>& getLoadedFiles() const;
+        void addLoadedFile(const std::string& fileName);
+
         CORBA::Object_ptr getComponentObject() const;
         void setComponentObject(CORBA::Object_ptr object);
 
@@ -56,7 +59,6 @@ namespace redhawk {
         CF::Device_ptr getAssignedDevice() const;
         void setAssignedDevice(CF::Device_ptr assignedDevice);
 
-        std::vector<std::string> loadedFiles;
         bool isContainer;
 
         void releaseObject();
@@ -68,6 +70,7 @@ namespace redhawk {
         std::string _softwareProfile;
         std::string _namingContext;
         std::string _implementationId;
+        std::vector<std::string> _loadedFiles;
         unsigned long _processId;
         CORBA::Object_var _componentObject;
         CF::Device_var _assignedDevice;
