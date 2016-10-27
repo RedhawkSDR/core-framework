@@ -1763,7 +1763,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertEqual(nicCapacity.value._v, 100.0)
         self.assertEqual(fakeCapacity.value._v, 3)
 
-        for failurePos in ("constructor", "initializeProperties", "initialize", "configure"):
+        for failurePos in ("constructor", "initializeProperties", "initialize"):
             self.assertRaises(CF.ApplicationFactory.CreateApplicationError, appFact.create, appFact._get_name(), [CF.DataType(id="FAIL_AT", value=any.to_any(failurePos))], [])
             self.assertEqual(len(domMgr._get_applications()), 0)
             # Verify that capacity was not allocated
