@@ -80,7 +80,7 @@ namespace {
     void convert_sequence(Sequence& out, Iterator begin, const Iterator end, Function func)
     {
         for (; begin != end; ++begin) {
-            if (begin->getChildren().empty()) {
+            if (begin->isVisible()) {
                 ossie::corba::push_back(out, func(*begin));
             }
         }
@@ -96,7 +96,7 @@ namespace {
     void convert_sequence_if(Sequence& out, Iterator begin, const Iterator end, Function func, Predicate pred)
     {
         for (; begin != end; ++begin) {
-            if (begin->getChildren().empty() && pred(*begin)) {
+            if (begin->isVisible() && pred(*begin)) {
                 ossie::corba::push_back(out, func(*begin));
             }
         }
@@ -1243,6 +1243,8 @@ redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::Con
     redhawk::ApplicationComponent* component = addComponent(identifier, profile);
     component->setInstantiationId(container->getInstantiation()->getID());
     component->setImplementationId(container->getImplementation()->getID());
+    // Hide ComponentHost instances from the CORBA API
+    component->setVisible(false);
     component->setAssignedDevice(container->getAssignedDevice());
     return component;
 }

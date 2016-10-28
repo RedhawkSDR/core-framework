@@ -29,6 +29,7 @@ using redhawk::ApplicationComponent;
 
 ApplicationComponent::ApplicationComponent(const std::string& identifier) :
     _identifier(identifier),
+    _isVisible(true),
     _processId(0),
     _componentHost(0)
 {
@@ -82,6 +83,16 @@ const std::string& ApplicationComponent::getImplementationId() const
 void ApplicationComponent::setImplementationId(const std::string& implementationId)
 {
     _implementationId = implementationId;
+}
+
+bool ApplicationComponent::isVisible() const
+{
+    return _isVisible;
+}
+
+void ApplicationComponent::setVisible(bool visible)
+{
+    _isVisible = visible;
 }
 
 ApplicationComponent* ApplicationComponent::getComponentHost()

@@ -110,6 +110,7 @@ namespace ossie {
         std::string softwareProfile;
         std::string namingContext;
         std::string implementationId;
+        bool isVisible;
         std::vector<std::string> loadedFiles;
         unsigned long processId;
         CORBA::Object_var componentObject;
@@ -267,6 +268,7 @@ namespace boost {
             ar & node.softwareProfile;
             ar & node.namingContext;
             ar & node.implementationId;
+            ar & node.isVisible;
             ar & node.loadedFiles;
             ar & node.processId;
             ar & node.componentObject;
