@@ -181,6 +181,8 @@ private:
 
     bool _checkRegistrations(std::set<std::string>& identifiers);
 
+    void _checkComponentConnections(redhawk::ApplicationComponent* component);
+
     redhawk::ApplicationComponent* _assemblyController;
     const std::string _identifier;
     const std::string _sadProfile;

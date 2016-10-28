@@ -33,6 +33,9 @@ namespace redhawk {
 
         const std::string& getIdentifier() const;
 
+        const std::string& getInstantiationId() const;
+        void setInstantiationId(const std::string& instantiationId);
+
         const std::string& getSoftwareProfile() const;
         void setSoftwareProfile(const std::string& softwareProfile);
 
@@ -75,6 +78,7 @@ namespace redhawk {
 
     private:
         std::string _identifier;
+        std::string _instantiationId;
         std::string _softwareProfile;
         std::string _namingContext;
         std::string _implementationId;

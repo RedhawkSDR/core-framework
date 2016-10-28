@@ -39,6 +39,16 @@ const std::string& ApplicationComponent::getIdentifier() const
     return _identifier;
 }
 
+const std::string& ApplicationComponent::getInstantiationId() const
+{
+    return _instantiationId;
+}
+
+void ApplicationComponent::setInstantiationId(const std::string& instantiationId)
+{
+    _instantiationId = instantiationId;
+}
+
 const std::string& ApplicationComponent::getSoftwareProfile() const
 {
     return _softwareProfile;
@@ -187,7 +197,7 @@ bool ApplicationComponent::stop()
 
 void ApplicationComponent::releaseObject()
 {
-    if (!isRegistered()) {
+    if (!isResource()) {
         return;
     }
 
