@@ -68,6 +68,6 @@ dist_cfheader_HEADERS = LogInterfaces.h EventChannelManager.h cf.h DataType.h Po
 
 lib_LTLIBRARIES = libossieidl.la
 nodist_libossieidl_la_SOURCES = $(BUILT_SOURCES)
-libossieidl_la_CXXFLAGS = -Wall $(OMNIORB_CFLAGS) $(OMNICOS_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS) -I../../include
+libossieidl_la_CXXFLAGS = -Wall -Wno-switch $(OMNIORB_CFLAGS) $(OMNICOS_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS) -I../../include
 libossieidl_la_LIBADD = $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS)
 libossieidl_la_LDFLAGS = -Wall -version-info $(LIBOSSIECF_VERSION_INFO)
