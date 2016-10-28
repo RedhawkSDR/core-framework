@@ -112,7 +112,7 @@ bool ApplicationComponent::isResource() const
 
 bool ApplicationComponent::isTerminated() const
 {
-    return (_processId == 0);
+    return (getProcessId() == 0);
 }
 
 bool ApplicationComponent::isRegistered() const
@@ -171,7 +171,17 @@ bool ApplicationComponent::stop()
         return true;
     } catch (const CF::Resource::StopError& error) {
         LOG_ERROR(Application_impl, "Failed to stop " << _identifier << "; CF::Resource::StopError '" << error.msg << "'");
-    } CATCH_LOG_ERROR(Application_impl, "Failed to stop " << _identifier);
+    } catch (const CORBA::SystemException& exc) {
+        if (!isTerminated()) {
+            LOG_ERROR(Application_impl, "Failed to stop component '" << _identifier << "'; "
+                      << ossie::corba::describeException(exc));
+        } else {
+            LOG_DEBUG(Application_impl, "Ignoring CORBA exception stopping terminated component '"
+                      << _identifier << "'");
+        }
+    } catch (...) {
+        LOG_ERROR(Application_impl, "Failed to stop " << _identifier);
+    }
     return false;
 }
 
@@ -183,10 +193,17 @@ void ApplicationComponent::releaseObject()
 
     LOG_DEBUG(Application_impl, "Releasing component '" << _identifier << "'");
     try {
-        CF::Resource_var resource = CF::Resource::_narrow(_componentObject);
         unsigned long timeout = 3; // seconds;
-        omniORB::setClientCallTimeout(resource, timeout * 1000);
-        resource->releaseObject();
+        omniORB::setClientCallTimeout(_resource, timeout * 1000);
+        _resource->releaseObject();
+    } catch (const CORBA::SystemException& exc) {
+        if (!isTerminated()) {
+            LOG_ERROR(Application_impl, "Failed to release component '" << _identifier << "'; "
+                      << ossie::corba::describeException(exc));
+        } else {
+            LOG_DEBUG(Application_impl, "Ignoring CORBA exception releasing terminated component '"
+                      << _identifier << "'");
+        }
     } CATCH_LOG_WARN(Application_impl, "releaseObject failed for component '" << _identifier << "'");
 }
 
