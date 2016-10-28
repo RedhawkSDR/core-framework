@@ -1272,14 +1272,16 @@ void Application_impl::componentTerminated(const std::string& componentId, const
         return;
     }
     if (!component->getChildren().empty()) {
-        LOG_WARN(Application_impl, "Component host from application '" << _identifier
-                 << "' terminated abnormally on device " << deviceId);
+        LOG_ERROR(Application_impl, "Component host from application '" << _appName
+                  << "' containing " << component->getChildren().size()
+                  << " component(s) terminated abnormally on device " << deviceId);
         BOOST_FOREACH(redhawk::ApplicationComponent* child, component->getChildren()) {
             _checkComponentConnections(child);
         }
     } else {
-        LOG_WARN(Application_impl, "Component '" << componentId << "' from application '" << _identifier
-                 << "' terminated abnormally on device " << deviceId);
+        LOG_ERROR(Application_impl, "Component '" << component->getInstantiationId()
+                  << "' from application '" << _appName
+                  << "' terminated abnormally on device " << deviceId);
         _checkComponentConnections(component);
     }
     component->setProcessId(0);
@@ -1288,14 +1290,20 @@ void Application_impl::componentTerminated(const std::string& componentId, const
 
 void Application_impl::_checkComponentConnections(redhawk::ApplicationComponent* component)
 {
-    const std::string& component_id = component->getIdentifier();
-    const std::string& instantiation_id = component->getInstantiationId();
     LOG_DEBUG(Application_impl, "Checking for connections that depend on terminated component "
-              << component_id);
+              << component->getIdentifier());
+    const std::string& instantiation_id = component->getInstantiationId();
+    int connection_count = 0;
     BOOST_FOREACH(ConnectionNode& connection, _connections) {
-        if (connection.checkDependency(ossie::Endpoint::COMPONENT, instantiation_id)) {
-            LOG_WARN(Application_impl, "Connection '" << connection.identifier
-                     << "' depends on terminated component '" << component_id);
+        if (connection.dependencyTerminated(ossie::Endpoint::COMPONENT, instantiation_id)) {
+            LOG_TRACE(Application_impl, "Application '" << _appName << "' connection '"
+                      << connection.identifier << "' depends on terminated component '"
+                      << instantiation_id << "'");
+            connection_count++;
         }
+    }
+    if (connection_count > 0) {
+        LOG_DEBUG(Application_impl, "Application '" << _appName << "' has " << connection_count
+                 << " connection(s) depending on terminated component '" << instantiation_id << "'");
     }
 }

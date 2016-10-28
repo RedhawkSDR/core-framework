@@ -115,18 +115,26 @@ namespace ossie
             APPLICATION
         } DependencyType;
 
-        Endpoint() { }
+        Endpoint() :
+            terminated_(false)
+        {
+        }
+
         virtual ~Endpoint() { }
         CORBA::Object_ptr resolve(ConnectionManager& manager);
         CORBA::Object_ptr object();
         std::string getIdentifier();
         void setIdentifier(std::string identifier);
-        bool isResolved();
+
+        bool isResolved() const;
+        bool isTerminated() const;
 
         virtual CF::ConnectionManager::EndpointStatusType toEndpointStatusType() const;
 
         virtual bool allowDeferral() = 0;
         virtual bool checkDependency(DependencyType type, const std::string& identifier) const = 0;
+
+        void dependencyTerminated();
 
         void release();
 
@@ -139,7 +147,6 @@ namespace ossie
         static Endpoint* ParsePort(const Port* port);
         static Endpoint* ParseProvidesEndpoint(const ossie::Connection& connection);
         static Endpoint* ParseFindBy(const ossie::FindBy* findby);
-
     private:
         // Subclasses must implement their own resolution method.
         virtual CORBA::Object_ptr resolve_(ConnectionManager& manager) = 0;
@@ -154,10 +161,12 @@ namespace ossie
         void serialize(Archive& ar, const unsigned int version)
         {
             ar & object_;
+            ar & terminated_;
         }
 #endif
 
         CORBA::Object_var object_;
+        bool terminated_;
 
     protected:
         std::string identifier__;
@@ -179,6 +188,8 @@ namespace ossie
         bool allowDeferral();
         bool allowDeferral(Endpoint::DependencyType type, const std::string& identifier);
         bool checkDependency(Endpoint::DependencyType type, const std::string& identifier) const;
+
+        bool dependencyTerminated(Endpoint::DependencyType type, const std::string& identifier);
 
         // Default ctor and assignment exist only for deserialization support.
         ConnectionNode() { }

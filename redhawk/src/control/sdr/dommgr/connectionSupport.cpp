@@ -602,9 +602,14 @@ CF::ConnectionManager::EndpointStatusType Endpoint::toEndpointStatusType() const
     return status;
 }
 
-bool Endpoint::isResolved()
+bool Endpoint::isResolved() const
 {
     return !(CORBA::is_nil(object_));
+}
+
+bool Endpoint::isTerminated() const
+{
+    return terminated_;
 }
 
 CORBA::Object_ptr Endpoint::resolve(ConnectionManager& manager)
@@ -629,6 +634,11 @@ std::string Endpoint::getIdentifier()
 void Endpoint::setIdentifier(std::string identifier)
 {
     identifier__ = identifier;
+}
+
+void Endpoint::dependencyTerminated()
+{
+    terminated_ = true;
 }
 
 void Endpoint::release()
@@ -770,7 +780,11 @@ void ConnectionNode::disconnect(DomainLookup* domainLookup)
     uses->release();
     provides->release();
     if (CORBA::is_nil(usesPort)) {
-        LOG_ERROR(ConnectionNode, "Uses port is not a CF::Port");
+        if (uses->isTerminated()) {
+            LOG_DEBUG(ConnectionNode, "Uses port provider terminated");
+        } else {
+            LOG_ERROR(ConnectionNode, "Uses port is not a CF::Port");
+        }
         return;
     }
 
@@ -778,6 +792,14 @@ void ConnectionNode::disconnect(DomainLookup* domainLookup)
         unsigned long timeout = 500; // milliseconds
         omniORB::setClientCallTimeout(usesPort, timeout);
         usesPort->disconnectPort(identifier.c_str());
+    } catch (const CORBA::SystemException& exc) {
+        if (uses->isTerminated()) {
+            LOG_DEBUG(ConnectionNode, "Disconnecting port for connection " << identifier
+                      << " failed, but uses port provider terminated");
+        } else {
+            LOG_WARN(ConnectionNode, "Unable to disconnect port for connection " << identifier
+                     << ": " << ossie::corba::describeException(exc));
+        }
     } CATCH_LOG_WARN(ConnectionNode, "Unable to disconnect port for connection " << identifier);
 
     FindByDomainFinderEndpoint* endpoint = dynamic_cast<FindByDomainFinderEndpoint*>(provides.get());
@@ -821,6 +843,20 @@ bool ConnectionNode::checkDependency(Endpoint::DependencyType type, const std::s
     // Test the uses side first, then the provides side. If either side has the
     // given dependency, then so does this connection.
     return (uses->checkDependency(type, identifier) || provides->checkDependency(type, identifier));
+}
+
+bool ConnectionNode::dependencyTerminated(Endpoint::DependencyType type, const std::string& identifier)
+{
+    bool terminated = false;
+    if (uses->checkDependency(type, identifier)) {
+        uses->dependencyTerminated();
+        terminated = true;
+    }
+    if (provides->checkDependency(type, identifier)) {
+        provides->dependencyTerminated();
+        terminated = true;
+    }
+    return terminated;
 }
 
 CREATE_LOGGER(connectionSupport);
