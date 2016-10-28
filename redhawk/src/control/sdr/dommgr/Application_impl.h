@@ -221,7 +221,6 @@ private:
     // internal propId, returns empty string if no external prop exists
     std::string getExternalPropertyId(std::string compId, std::string propId);
 
-    friend class redhawk::ApplicationComponent; // for logger access
     friend class ApplicationRegistrar_impl;
 };
 

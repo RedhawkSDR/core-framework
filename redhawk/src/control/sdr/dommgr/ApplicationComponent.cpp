@@ -27,6 +27,10 @@
 
 using redhawk::ApplicationComponent;
 
+// TODO: Should probably use its own logger; using Application_impl's for
+// consistency with old code
+PREPARE_ALT_LOGGING(ApplicationComponent, "Application_impl");
+
 ApplicationComponent::ApplicationComponent(const std::string& identifier) :
     _identifier(identifier),
     _isVisible(true),
@@ -203,17 +207,17 @@ bool ApplicationComponent::stop()
         _resource->stop();
         return true;
     } catch (const CF::Resource::StopError& error) {
-        LOG_ERROR(Application_impl, "Failed to stop " << _identifier << "; CF::Resource::StopError '" << error.msg << "'");
+        LOG_ERROR(ApplicationComponent, "Failed to stop " << _identifier << "; CF::Resource::StopError '" << error.msg << "'");
     } catch (const CORBA::SystemException& exc) {
         if (!isTerminated()) {
-            LOG_ERROR(Application_impl, "Failed to stop component '" << _identifier << "'; "
+            LOG_ERROR(ApplicationComponent, "Failed to stop component '" << _identifier << "'; "
                       << ossie::corba::describeException(exc));
         } else {
-            LOG_DEBUG(Application_impl, "Ignoring CORBA exception stopping terminated component '"
+            LOG_DEBUG(ApplicationComponent, "Ignoring CORBA exception stopping terminated component '"
                       << _identifier << "'");
         }
     } catch (...) {
-        LOG_ERROR(Application_impl, "Failed to stop " << _identifier);
+        LOG_ERROR(ApplicationComponent, "Failed to stop " << _identifier);
     }
     return false;
 }
@@ -224,20 +228,20 @@ void ApplicationComponent::releaseObject()
         return;
     }
 
-    LOG_DEBUG(Application_impl, "Releasing component '" << _identifier << "'");
+    LOG_DEBUG(ApplicationComponent, "Releasing component '" << _identifier << "'");
     try {
         unsigned long timeout = 3; // seconds;
         omniORB::setClientCallTimeout(_resource, timeout * 1000);
         _resource->releaseObject();
     } catch (const CORBA::SystemException& exc) {
         if (!isTerminated()) {
-            LOG_ERROR(Application_impl, "Failed to release component '" << _identifier << "'; "
+            LOG_ERROR(ApplicationComponent, "Failed to release component '" << _identifier << "'; "
                       << ossie::corba::describeException(exc));
         } else {
-            LOG_DEBUG(Application_impl, "Ignoring CORBA exception releasing terminated component '"
+            LOG_DEBUG(ApplicationComponent, "Ignoring CORBA exception releasing terminated component '"
                       << _identifier << "'");
         }
-    } CATCH_LOG_WARN(Application_impl, "releaseObject failed for component '" << _identifier << "'");
+    } CATCH_LOG_WARN(ApplicationComponent, "releaseObject failed for component '" << _identifier << "'");
 }
 
 void ApplicationComponent::terminate()
@@ -249,7 +253,7 @@ void ApplicationComponent::terminate()
     }
 
     if (!_assignedDevice || !_assignedDevice->isExecutable()) {
-        LOG_WARN(Application_impl, "Cannot find device to terminate component " << _identifier);
+        LOG_WARN(ApplicationComponent, "Cannot find device to terminate component " << _identifier);
     } else {
         _assignedDevice->executableDevice->terminate(_processId);
     }
@@ -261,18 +265,18 @@ void ApplicationComponent::unloadFiles()
         return;
     }
 
-    LOG_DEBUG(Application_impl, "Unloading " << _loadedFiles.size() << " file(s) for component '"
+    LOG_DEBUG(ApplicationComponent, "Unloading " << _loadedFiles.size() << " file(s) for component '"
               << _identifier << "'");
 
     if (!_assignedDevice || !_assignedDevice->isLoadable()) {
-        LOG_WARN(Application_impl, "Cannot find device to unload files for component " << _identifier);
+        LOG_WARN(ApplicationComponent, "Cannot find device to unload files for component " << _identifier);
         return;
     }
 
     BOOST_FOREACH(const std::string& file, _loadedFiles) {
-        LOG_TRACE(Application_impl, "Unloading file " << file);
+        LOG_TRACE(ApplicationComponent, "Unloading file " << file);
         try {
             _assignedDevice->loadableDevice->unload(file.c_str());
-        } CATCH_LOG_WARN(Application_impl, "Unable to unload file " << file);
+        } CATCH_LOG_WARN(ApplicationComponent, "Unable to unload file " << file);
     }
 }

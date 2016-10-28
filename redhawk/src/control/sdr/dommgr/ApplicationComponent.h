@@ -25,10 +25,16 @@
 #include <vector>
 
 #include <ossie/CF/cf.h>
-#include <PersistenceStore.h>
+#include <ossie/debug.h>
+
+#include "PersistenceStore.h"
 
 namespace redhawk {
-    struct ApplicationComponent {
+    class ApplicationComponent {
+
+        ENABLE_LOGGING;
+
+    public:
         ApplicationComponent(const std::string& identifier);
 
         const std::string& getIdentifier() const;
