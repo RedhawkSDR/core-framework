@@ -29,7 +29,7 @@ using redhawk::ApplicationComponent;
 
 // TODO: Should probably use its own logger; using Application_impl's for
 // consistency with old code
-PREPARE_ALT_LOGGING(ApplicationComponent, "Application_impl");
+PREPARE_ALT_LOGGING(ApplicationComponent, Application_impl);
 
 ApplicationComponent::ApplicationComponent(const std::string& identifier) :
     _identifier(identifier),
@@ -255,8 +255,23 @@ void ApplicationComponent::terminate()
 
     if (!_assignedDevice || !_assignedDevice->isExecutable()) {
         LOG_WARN(ApplicationComponent, "Cannot find device to terminate component " << _identifier);
-    } else {
+        return;
+    }
+
+    LOG_DEBUG(ApplicationComponent, "Terminating component '" << _identifier
+              << "' on device '" << _assignedDevice->label
+              << "' (" << _assignedDevice->identifier << ")");
+    try {
         _assignedDevice->executableDevice->terminate(_processId);
+    } catch (const CF::ExecutableDevice::InvalidProcess& ip) {
+        LOG_ERROR(ApplicationComponent, "Failed to terminate process for component '" << _identifier
+                  << "': invalid process");
+    } catch (const CF::Device::InvalidState& state) {
+        LOG_ERROR(ApplicationComponent, "Failed to terminate process for component '" << _identifier
+                  << "': device '" << _assignedDevice->label << "' is in an invalid state");
+    } catch (const CORBA::SystemException& exc) {
+        LOG_ERROR(ApplicationComponent, "Failed to terminate process for component '" << _identifier
+                  << "': " << ossie::corba::describeException(exc));
     }
 }
 
