@@ -180,7 +180,19 @@ void ApplicationComponent::setAssignedDevice(const boost::shared_ptr<ossie::Devi
 void ApplicationComponent::start()
 {
     omniORB::setClientCallTimeout(_resource, 0);
-    _resource->start();
+    try {
+        _resource->start();
+    } catch (const CF::Resource::StartError& exc) {
+        std::ostringstream message;
+        message << "Component '" << _instantiationId << "' failed to start: ";
+        message << exc.msg;
+        throw CF::Resource::StartError(exc.errorNumber, message.str().c_str());
+    } catch (const CORBA::SystemException& exc) {
+        std::ostringstream message;
+        message << "Component '" << _instantiationId << "' failed to start: ";
+        message << ossie::corba::describeException(exc);
+        throw CF::Resource::StartError(CF::CF_EIO, message.str().c_str());
+    }
 }
 
 bool ApplicationComponent::stop()

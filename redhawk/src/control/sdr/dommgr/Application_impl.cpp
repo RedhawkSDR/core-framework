@@ -232,10 +232,11 @@ throw (CORBA::SystemException, CF::Resource::StartError)
             LOG_TRACE(Application_impl, "Calling start for " << component->getIdentifier());
             component->start();
         }
-    } catch( CF::Resource::StartError& se ) {
-        LOG_ERROR(Application_impl, "Start failed with CF:Resource::StartError")
+    } catch (const CF::Resource::StartError& se) {
+        LOG_ERROR(Application_impl, "Failed to start application '" << _appName << "': " << se.msg);
         throw;
-    } CATCH_THROW_LOG_ERROR(Application_impl, "Start failed", CF::Resource::StartError())
+    }
+
     if (!this->_started) {
         this->_started = true;
         if (_domainManager ) {
