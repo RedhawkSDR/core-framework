@@ -2471,6 +2471,7 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
     // Restore various state about the components in the waveform
     BOOST_FOREACH(ossie::ComponentNode& compNode, node.components) {
         redhawk::ApplicationComponent* component = application->addComponent(compNode.identifier, compNode.softwareProfile);
+        component->setName(compNode.name);
         component->setNamingContext(compNode.namingContext);
         component->setImplementationId(compNode.implementationId);
         component->setVisible(compNode.isVisible);
@@ -2530,6 +2531,7 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
     BOOST_FOREACH(redhawk::ApplicationComponent& component, application->_components) {
         ossie::ComponentNode compNode;
         compNode.identifier = component.getIdentifier();
+        compNode.name = component.getName();
         compNode.softwareProfile = component.getSoftwareProfile();
         compNode.namingContext = component.getNamingContext();
         compNode.implementationId = component.getImplementationId();

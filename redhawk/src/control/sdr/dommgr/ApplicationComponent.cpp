@@ -33,6 +33,7 @@ PREPARE_ALT_LOGGING(ApplicationComponent, "Application_impl");
 
 ApplicationComponent::ApplicationComponent(const std::string& identifier) :
     _identifier(identifier),
+    _name(identifier),
     _isVisible(true),
     _processId(0),
     _componentHost(0)
@@ -44,14 +45,14 @@ const std::string& ApplicationComponent::getIdentifier() const
     return _identifier;
 }
 
-const std::string& ApplicationComponent::getInstantiationId() const
+const std::string& ApplicationComponent::getName() const
 {
-    return _instantiationId;
+    return _name;
 }
 
-void ApplicationComponent::setInstantiationId(const std::string& instantiationId)
+void ApplicationComponent::setName(const std::string& name)
 {
-    _instantiationId = instantiationId;
+    _name = name;
 }
 
 const std::string& ApplicationComponent::getSoftwareProfile() const
@@ -188,12 +189,12 @@ void ApplicationComponent::start()
         _resource->start();
     } catch (const CF::Resource::StartError& exc) {
         std::ostringstream message;
-        message << "Component '" << _instantiationId << "' failed to start: ";
+        message << "Component '" << _name << "' failed to start: ";
         message << exc.msg;
         throw CF::Resource::StartError(exc.errorNumber, message.str().c_str());
     } catch (const CORBA::SystemException& exc) {
         std::ostringstream message;
-        message << "Component '" << _instantiationId << "' failed to start: ";
+        message << "Component '" << _name << "' failed to start: ";
         message << ossie::corba::describeException(exc);
         throw CF::Resource::StartError(CF::CF_EIO, message.str().c_str());
     }

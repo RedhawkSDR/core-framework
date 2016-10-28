@@ -1242,7 +1242,7 @@ redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::Con
     const std::string& profile = container->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding container '" << identifier << "' with profile " << profile);
     redhawk::ApplicationComponent* component = addComponent(identifier, profile);
-    component->setInstantiationId(container->getInstantiation()->getID());
+    component->setName(container->getInstantiation()->getID());
     component->setImplementationId(container->getImplementation()->getID());
     // Hide ComponentHost instances from the CORBA API
     component->setVisible(false);
@@ -1259,7 +1259,7 @@ redhawk::ApplicationComponent* Application_impl::addComponent(const redhawk::Com
     const std::string& profile = deployment->getSoftPkg()->getSPDFile();
     LOG_DEBUG(Application_impl, "Adding component '" << identifier << "' with profile " << profile);
     redhawk::ApplicationComponent* component = addComponent(identifier, profile);
-    component->setInstantiationId(deployment->getInstantiation()->getID());
+    component->setName(deployment->getInstantiation()->getID());
     component->setImplementationId(deployment->getImplementation()->getID());
     component->setAssignedDevice(deployment->getAssignedDevice());
     return component;
@@ -1282,7 +1282,7 @@ void Application_impl::componentTerminated(const std::string& componentId, const
             _checkComponentConnections(child);
         }
     } else {
-        LOG_ERROR(Application_impl, "Component '" << component->getInstantiationId()
+        LOG_ERROR(Application_impl, "Component '" << component->getName()
                   << "' from application '" << _appName
                   << "' terminated abnormally on device " << deviceId);
         _checkComponentConnections(component);
@@ -1295,18 +1295,18 @@ void Application_impl::_checkComponentConnections(redhawk::ApplicationComponent*
 {
     LOG_DEBUG(Application_impl, "Checking for connections that depend on terminated component "
               << component->getIdentifier());
-    const std::string& instantiation_id = component->getInstantiationId();
+    const std::string& name = component->getName();
     int connection_count = 0;
     BOOST_FOREACH(ConnectionNode& connection, _connections) {
-        if (connection.dependencyTerminated(ossie::Endpoint::COMPONENT, instantiation_id)) {
+        if (connection.dependencyTerminated(ossie::Endpoint::COMPONENT, name)) {
             LOG_TRACE(Application_impl, "Application '" << _appName << "' connection '"
                       << connection.identifier << "' depends on terminated component '"
-                      << instantiation_id << "'");
+                      << name << "'");
             connection_count++;
         }
     }
     if (connection_count > 0) {
         LOG_DEBUG(Application_impl, "Application '" << _appName << "' has " << connection_count
-                 << " connection(s) depending on terminated component '" << instantiation_id << "'");
+                 << " connection(s) depending on terminated component '" << name << "'");
     }
 }

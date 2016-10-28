@@ -107,6 +107,7 @@ namespace ossie {
 
     struct ComponentNode {
         std::string identifier;
+        std::string name;
         std::string softwareProfile;
         std::string namingContext;
         std::string implementationId;
@@ -265,6 +266,7 @@ namespace boost {
         template<class Archive>
         void serialize(Archive& ar, ossie::ComponentNode& node, const unsigned int version) {
             ar & node.identifier;
+            ar & node.name;
             ar & node.softwareProfile;
             ar & node.namingContext;
             ar & node.implementationId;
