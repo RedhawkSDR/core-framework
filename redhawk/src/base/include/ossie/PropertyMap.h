@@ -66,6 +66,8 @@ namespace redhawk {
 
         void push_back (const CF::DataType& dt);
 
+        void extend(const CF::Properties& properties);
+
         iterator begin();
         iterator end();
 

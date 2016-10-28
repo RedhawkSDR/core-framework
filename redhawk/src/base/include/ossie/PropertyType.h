@@ -42,7 +42,7 @@ namespace redhawk {
         explicit PropertyType(const CF::DataType& dt);
 
         PropertyType(const std::string& id, const CORBA::Any& value);
-        PropertyType(const std::string& id, const Value& value);
+        explicit PropertyType(const std::string& id, const Value& value=Value());
 
         PropertyType& operator=(const CF::DataType& dt);
 

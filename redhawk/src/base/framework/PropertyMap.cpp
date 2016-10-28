@@ -130,6 +130,11 @@ void PropertyMap::push_back(const CF::DataType& property)
     ossie::corba::push_back(*this, property);
 }
 
+void PropertyMap::extend(const CF::Properties& properties)
+{
+    ossie::corba::extend(*this, properties);
+}
+
 PropertyMap::iterator PropertyMap::begin()
 {
     return static_cast<iterator>(this->get_buffer());

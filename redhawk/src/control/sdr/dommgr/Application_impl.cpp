@@ -27,6 +27,7 @@
 #include <ossie/debug.h>
 #include <ossie/CorbaUtils.h>
 #include <ossie/EventChannelSupport.h>
+#include <ossie/PropertyMap.h>
 
 #include "Application_impl.h"
 #include "DomainManager_impl.h"
@@ -296,17 +297,14 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
 void Application_impl::configure (const CF::Properties& configProperties)
 throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfiguration, CORBA::SystemException)
 {
-    int validProperties = 0;
-    CF::Properties invalidProperties;
+    redhawk::PropertyMap invalidProperties;
 
     // Creates a map from componentIdentifier -> (rsc_ptr, ConfigPropSet)
     // to allow for one batched configure call per component
-
-    CF::Properties acProps;
-    const std::string acId = _assemblyController->getIdentifier();
+    const std::string& acId = _assemblyController->getIdentifier();
     CF::Resource_var ac_resource = _assemblyController->getResourcePtr();
     std::map<std::string, std::pair<CF::Resource_ptr, CF::Properties> > batch;
-    batch[acId] = std::pair<CF::Resource_ptr, CF::Properties>(ac_resource, acProps);
+    batch[acId] = std::pair<CF::Resource_ptr, CF::Properties>(ac_resource, CF::Properties());
 
     // Loop through each passed external property, mapping it with its respective resource
     for (unsigned int i = 0; i < configProperties.length(); ++i) {
@@ -320,10 +318,7 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
 
             if (CORBA::is_nil(comp)) {
                 LOG_ERROR(Application_impl, "Unable to retrieve component for external property: " << extId);
-                int count = invalidProperties.length();
-                invalidProperties.length(count + 1);
-                invalidProperties[count].id = CORBA::string_dup(extId.c_str());
-                invalidProperties[count].value = configProperties[i].value;
+                invalidProperties.push_back(configProperties[i]);
             } else {
                 // Key used for map
                 const std::string compId = ossie::corba::returnString(comp->identifier());
@@ -355,10 +350,7 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
             batch[acId].second[count].value = configProperties[i].value;
         } else {
             LOG_ERROR(Application_impl, "Unable to retrieve assembly controller for external property: " << extId);
-            int count = invalidProperties.length();
-            invalidProperties.length(count + 1);
-            invalidProperties[count].id = CORBA::string_dup(extId.c_str());
-            invalidProperties[count].value = configProperties[i].value;
+            invalidProperties.push_back(configProperties[i]);
         }
     }
 
@@ -366,33 +358,20 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
     // -Catch any errors
     for (std::map<std::string, std::pair<CF::Resource_ptr, CF::Properties> >::const_iterator comp = batch.begin();
             comp != batch.end(); ++comp) {
-        int propLength = comp->second.second.length();
         try {
             comp->second.first->configure(comp->second.second);
-            validProperties += propLength;
         } catch (CF::PropertySet::InvalidConfiguration e) {
             // Add invalid properties to return list
-            for (unsigned int i = 0; i < e.invalidProperties.length(); ++i) {
-                int count = invalidProperties.length();
-                invalidProperties.length(count + 1);
-                invalidProperties[count].id = CORBA::string_dup(e.invalidProperties[i].id);
-                invalidProperties[count].value = e.invalidProperties[i].value;
-            }
+            invalidProperties.extend(e.invalidProperties);
         } catch (CF::PropertySet::PartialConfiguration e) {
             // Add invalid properties to return list
-            for (unsigned int i = 0; i < e.invalidProperties.length(); ++i) {
-                int count = invalidProperties.length();
-                invalidProperties.length(count + 1);
-                invalidProperties[count].id = CORBA::string_dup(e.invalidProperties[i].id);
-                invalidProperties[count].value = e.invalidProperties[i].value;
-            }
-            validProperties += propLength - e.invalidProperties.length();
+            invalidProperties.extend(e.invalidProperties);
         }
     }
 
     // Throw appropriate exception if any configure errors were handled
-    if (invalidProperties.length () > 0) {
-        if (validProperties > 0) {
+    if (!invalidProperties.empty()) {
+        if (invalidProperties.size() < configProperties.length()) {
             throw CF::PropertySet::PartialConfiguration(invalidProperties);
         } else {
             throw CF::PropertySet::InvalidConfiguration("No matching external properties found", invalidProperties);
@@ -404,7 +383,7 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
 void Application_impl::query (CF::Properties& configProperties)
 throw (CF::UnknownProperties, CORBA::SystemException)
 {
-    CF::Properties invalidProperties;
+    redhawk::PropertyMap invalidProperties;
 
     // Creates a map from componentIdentifier -> (rsc_ptr, ConfigPropSet)
     // to allow for one batched query call per component
@@ -427,10 +406,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
 
             if (CORBA::is_nil(comp)) {
                 LOG_ERROR(Application_impl, "Unable to retrieve component for external property: " << extId);
-                int count = invalidProperties.length();
-                invalidProperties.length(count + 1);
-                invalidProperties[count].id = CORBA::string_dup(extId.c_str());
-                invalidProperties[count].value = CORBA::Any();
+                invalidProperties.push_back(redhawk::PropertyType(extId));
             } else {
                 // Key used for map
                 const std::string compId = ossie::corba::returnString(comp->identifier());
@@ -470,13 +446,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
                     configProperties[count].value = comp->second.second[i].value;
                 }
             } catch (CF::UnknownProperties e) {
-                for (unsigned int i = 0; i < e.invalidProperties.length(); ++i) {
-                    // Add invalid properties to return list
-                    int count = invalidProperties.length();
-                    invalidProperties.length(count + 1);
-                    invalidProperties[count].id = CORBA::string_dup(e.invalidProperties[i].id);
-                    invalidProperties[count].value = e.invalidProperties[i].value;
-                }
+                invalidProperties.extend(e.invalidProperties);
             }
         }
 
@@ -486,12 +456,10 @@ throw (CF::UnknownProperties, CORBA::SystemException)
             CF::Resource_var ac_resource = _assemblyController->getResourcePtr();
             ac_resource->query(tempProp);
         } catch (CF::UnknownProperties e) {
-            int count = invalidProperties.length();
-            invalidProperties.length(count + e.invalidProperties.length());
             for (unsigned int i = 0; i < e.invalidProperties.length(); ++i) {
                 LOG_ERROR(Application_impl, "Invalid assembly controller property name: " << e.invalidProperties[i].id);
-                invalidProperties[count + i] = e.invalidProperties[i];
             }
+            invalidProperties.extend(e.invalidProperties);
         }
 
         // Adds Assembly Controller properties
@@ -522,10 +490,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
 
                 if (CORBA::is_nil(comp)) {
                     LOG_ERROR(Application_impl, "Unable to retrieve component for external property: " << extId);
-                    int count = invalidProperties.length();
-                    invalidProperties.length(count + 1);
-                    invalidProperties[count].id = CORBA::string_dup(extId.c_str());
-                    invalidProperties[count].value = configProperties[i].value;
+                    invalidProperties.push_back(configProperties[i]);
                 } else {
                     // Key used for map
                     std::string compId = ossie::corba::returnString(comp->identifier());
@@ -558,10 +523,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
                 batch[acId].second[count].value = configProperties[i].value;
             } else {
                 LOG_ERROR(Application_impl, "Unable to retrieve assembly controller for external property: " << extId);
-                int count = invalidProperties.length();
-                invalidProperties.length(count + 1);
-                invalidProperties[count].id = CORBA::string_dup(extId.c_str());
-                invalidProperties[count].value = configProperties[i].value;
+                invalidProperties.push_back(configProperties[i]);
             }
         }
 
@@ -572,13 +534,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
             try {
                 comp->second.first->query(comp->second.second);
             } catch (CF::UnknownProperties e) {
-                for (unsigned int i = 0; i < e.invalidProperties.length(); ++i) {
-                    // Add invalid properties to return list
-                    int count = invalidProperties.length();
-                    invalidProperties.length(count + 1);
-                    invalidProperties[count].id = CORBA::string_dup(e.invalidProperties[i].id);
-                    invalidProperties[count].value = e.invalidProperties[i].value;
-                }
+                invalidProperties.extend(e.invalidProperties);
             }
         }
 
@@ -610,7 +566,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
         }
     }
 
-    if (invalidProperties.length () != 0) {
+    if (!invalidProperties.empty()) {
         throw CF::UnknownProperties(invalidProperties);
     }
 
