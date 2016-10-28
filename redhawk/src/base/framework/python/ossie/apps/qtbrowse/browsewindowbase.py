@@ -33,6 +33,7 @@ from PyQt4.QtCore import *
 from ossie.utils import sb
 import copy
 from ossie.utils import redhawk,prop_helpers,type_helpers
+from ossie.cf import CF
 import structdialog
 
 def createPlotMenu(parent):
@@ -460,9 +461,19 @@ class TreeWidget(QTreeWidget):
                 if resp == 'Release':
                     self.callbackObject.addRequest(('releaseApplication(QString)',appname))
                 elif resp == 'Start':
-                    contref.start()
+                    try:
+                        contref.start()
+                    except CF.Resource.StartError as err:
+                        QMessageBox.critical(self, 'Start error', err.msg, QMessageBox.Ok)
+                    except:
+                        QMessageBox.critical(self, 'Start error', 'Unable to start application', QMessageBox.Ok)
                 elif resp == 'Stop':
-                    contref.stop()
+                    try:
+                        contref.stop()
+                    except CF.Resource.StopError as err:
+                        QMessageBox.critical(self, 'Stop error', err.msg, QMessageBox.Ok)
+                    except:
+                        QMessageBox.critical(self, 'Stop error', 'Unable to stop application', QMessageBox.Ok)
                 elif plotResponse(resp):
                     plot = createPlot(resp)
                     plot.start()
