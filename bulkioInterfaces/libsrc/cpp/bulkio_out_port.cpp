@@ -232,9 +232,6 @@ namespace  bulkio {
 
           try {
             _pushPacketToPort(port->first, data, T, EOS, streamID.c_str());
-            if ( stats.count(port->second) == 0 ) {
-              stats.insert( std::make_pair(port->second, linkStatistics( name, sizeof(NativeType) ) ) );
-            }
             stats[port->second].update(length, 0, EOS, streamID);
           } catch(...) {
             LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
@@ -322,6 +319,9 @@ namespace  bulkio {
         throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
       outConnections.push_back(std::make_pair(port, connectionId));
+      if (stats.count(connectionId) == 0) {
+        stats.insert(std::make_pair(connectionId, linkStatistics(name, sizeof(NativeType))));
+      }
       active = true;
       recConnectionsRefresh = true;
 
