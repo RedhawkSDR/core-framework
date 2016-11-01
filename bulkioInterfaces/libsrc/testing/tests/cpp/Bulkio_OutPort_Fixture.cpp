@@ -151,6 +151,34 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
   port->setLogger(logger);
 }
 
+template <typename InPort, typename OutPort>
+void Bulkio_OutPort_Fixture::test_port_statistics(OutPort* outPort) {
+  InPort* in_port(new InPort("sink_1", logger));
+  CORBA::Object_var objref = in_port->_this();
+
+  const std::string connection_id = "test_port_statistics";
+  outPort->connectPort(objref, connection_id.c_str());
+
+  BULKIO::UsesPortStatisticsSequence_var uses_stats = outPort->statistics();
+  CPPUNIT_ASSERT_EQUAL((CORBA::ULong)1, uses_stats->length());
+  CPPUNIT_ASSERT_EQUAL(connection_id, std::string(uses_stats[0].connectionId));
+
+  BULKIO::StreamSRI sri = bulkio::sri::create("test_stream");
+  outPort->pushSRI(sri);
+
+  typename OutPort::NativeSequenceType data;
+  data.resize(1024);
+  BULKIO::PrecisionUTCTime time;
+  outPort->pushPacket(data, time, false, std::string(sri.streamID));
+
+  uses_stats = outPort->statistics();
+  CPPUNIT_ASSERT_EQUAL((CORBA::ULong)1, uses_stats->length());
+  const BULKIO::PortStatistics& stats = uses_stats[0].statistics;
+
+  CPPUNIT_ASSERT(stats.elementsPerSecond > 0.0);
+  size_t bits_per_element = round(stats.bitsPerSecond / stats.elementsPerSecond);
+  CPPUNIT_ASSERT_EQUAL(8 * sizeof(typename OutPort::NativeType), bits_per_element);
+}
 
 template< >
 void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutCharPort, bulkio::InCharPort  >( bulkio::OutCharPort *port  ) {
@@ -393,6 +421,8 @@ Bulkio_OutPort_Fixture::test_int8()
 
   test_port_api<bulkio::OutCharPort, bulkio::InCharPort>( port );
 
+  test_port_statistics<bulkio::InCharPort>(port);
+
   CPPUNIT_ASSERT_NO_THROW( port );
 }
 
@@ -413,6 +443,8 @@ Bulkio_OutPort_Fixture::test_int16()
 
   test_port_api<bulkio::OutInt16Port, bulkio::InInt16Port>( port );
 
+  test_port_statistics<bulkio::InInt16Port>(port);
+
   CPPUNIT_ASSERT_NO_THROW( port );
 }
 
@@ -431,6 +463,8 @@ Bulkio_OutPort_Fixture::test_int32()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api<bulkio::OutInt32Port,bulkio::InInt32Port>( port );
+
+  test_port_statistics<bulkio::InInt32Port>(port);
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -451,6 +485,8 @@ Bulkio_OutPort_Fixture::test_int64()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api<bulkio::OutInt64Port,bulkio::InInt64Port>( port );
+
+  test_port_statistics<bulkio::InInt64Port>(port);
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -479,6 +515,8 @@ Bulkio_OutPort_Fixture::test_uint16()
 
   test_port_api<bulkio::OutUInt16Port,bulkio::InUInt16Port>( port );
 
+  test_port_statistics<bulkio::InUInt16Port>(port);
+
   CPPUNIT_ASSERT_NO_THROW( port );
 }
 
@@ -497,6 +535,8 @@ Bulkio_OutPort_Fixture::test_uint32()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api<bulkio::OutUInt32Port, bulkio::InUInt32Port>( port );
+
+  test_port_statistics<bulkio::InUInt32Port>(port);
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -517,6 +557,8 @@ Bulkio_OutPort_Fixture::test_uint64()
 
   test_port_api<bulkio::OutUInt64Port,bulkio::InUInt64Port>( port );
 
+  test_port_statistics<bulkio::InUInt64Port>(port);
+
   CPPUNIT_ASSERT_NO_THROW( port );
 }
 
@@ -529,10 +571,37 @@ Bulkio_OutPort_Fixture::test_create_float()
 }
 
 void
+Bulkio_OutPort_Fixture::test_float()
+{
+  bulkio::OutFloatPort *port = new bulkio::OutFloatPort("test_api_float", logger );
+  CPPUNIT_ASSERT( port != NULL );
+
+  test_port_api<bulkio::OutFloatPort,bulkio::InFloatPort>( port );
+
+  test_port_statistics<bulkio::InFloatPort>(port);
+
+  CPPUNIT_ASSERT_NO_THROW( port );
+}
+
+
+void
 Bulkio_OutPort_Fixture::test_create_double()
 {
   bulkio::OutDoublePort *port = new bulkio::OutDoublePort("test_ctor_double", logger );
   CPPUNIT_ASSERT( port != NULL );
+}
+
+void
+Bulkio_OutPort_Fixture::test_double()
+{
+  bulkio::OutDoublePort *port = new bulkio::OutDoublePort("test_api_double", logger );
+  CPPUNIT_ASSERT( port != NULL );
+
+  test_port_api<bulkio::OutDoublePort,bulkio::InDoublePort>( port );
+
+  test_port_statistics<bulkio::InDoublePort>(port);
+
+  CPPUNIT_ASSERT_NO_THROW( port );
 }
 
 
