@@ -30,22 +30,27 @@ from py_comp_base import *
 
 class py_comp_i(py_comp_base):
     """<DESCRIPTION GOES HERE>"""
-    def initialize(self):
+    def constructor(self):
         """
-        This is called by the framework immediately after your component registers with the NameService.
+        This is called by the framework immediately after your component registers with the system.
         
         In general, you should add customization here and not in the __init__ constructor.  If you have 
         a custom port implementation you can override the specific implementation here with a statement
         similar to the following:
           self.some_port = MyPortImplementation()
+
         """
-        py_comp_base.initialize(self)
-        self.app_id = "foo"
-        self.dom_id = "foo"
-        self.nic_name = "foo"
-        self.number_components = -1
-        # TODO add customization here.
-        
+        try:
+            self.app_id = self.getApplication().ref._get_identifier()
+            self.number_components = len(self.getApplication().ref._get_registeredComponents())
+        except Exception, e:
+            self.app_id = ""
+            self.number_components = -2
+        try:
+            self.dom_id = self.getDomainManager().ref._get_identifier()
+        except Exception, e:
+            self.dom_id = ""
+        self.nic_name = self.getNetwork().getNic()
 
     def process(self):
         """
@@ -122,21 +127,7 @@ class py_comp_i(py_comp_base):
             return NORMAL
             
         """
-
-        # TODO fill in your code here
-        self._log.debug("process() example log message")
-        try:
-            self.app_id = self.getApplication().ref._get_identifier()
-            self.number_components = len(self.getApplication().ref._get_registeredComponents())
-        except Exception, e:
-            self.app_id = ""
-            self.number_components = -2
-        try:
-            self.dom_id = self.getDomainManager().ref._get_identifier()
-        except Exception, e:
-            self.dom_id = ""
-        self.nic_name = self.getNetwork().getNic()
-        return NOOP
+        return FINISH
         
   
 if __name__ == '__main__':

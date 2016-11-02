@@ -125,6 +125,11 @@ def execute(self, spd, impl, execparams, timeout=None):
     # Store the CORBA reference.
     ref = self.getReference()
 
+    # Simulate normal component initialization
+    ref.initializeProperties([])
+    ref.initialize()
+    ref.configure([])
+
     return process, ref
 
 class ApplicationRegistrarTest(scatest.CorbaTestCase):
@@ -170,8 +175,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         pid = process.pid()
         comp_id = ref._get_identifier()
         self.assertEquals(comp_id, 'some_id')
-        ref.start()
-        time.sleep(0.5)
         app_id = ref.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = ref.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = ref.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -186,8 +189,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         pid = process.pid()
         comp_id = ref._get_identifier()
         self.assertEquals(comp_id, 'some_id')
-        ref.start()
-        time.sleep(0.5)
         app_id = ref.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = ref.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = ref.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -203,8 +204,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         pid = process.pid()
         comp_id = ref._get_identifier()
         self.assertEquals(comp_id, 'some_id')
-        ref.start()
-        time.sleep(0.5)
         app_id = ref.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = ref.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = ref.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -225,8 +224,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), [], [])
         self.assertEqual(len(domMgr._get_applications()), 1)
-        app.start()
-        time.sleep(0.5)
         app_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -248,8 +245,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), [], [])
         self.assertEqual(len(domMgr._get_applications()), 1)
-        app.start()
-        time.sleep(0.5)
         app_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -272,8 +267,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), [], [])
         self.assertEqual(len(domMgr._get_applications()), 1)
-        app.start()
-        time.sleep(0.5)
         app_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -347,8 +340,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), initconfig, [])
         self.assertEqual(len(domMgr._get_applications()), 1)
-        app.start()
-        time.sleep(0.5)
         app_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -373,8 +364,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), initconfig, [])
         self.assertEqual(len(domMgr._get_applications()), 1)
-        app.start()
-        time.sleep(0.5)
         app_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -400,8 +389,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), initconfig, [])
         self.assertEqual(len(domMgr._get_applications()), 1)
-        app.start()
-        time.sleep(0.5)
         app_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -426,8 +413,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), initconfig, [])
         self.assertEqual(len(domMgr._get_applications()), 1)
-        app.start()
-        time.sleep(0.5)
         app_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         dom_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
         self.assertEqual(app_id, app._get_identifier())
@@ -450,8 +435,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), initconfig, [])
         self.assertEqual(len(domMgr._get_applications()), 1)
-        app.start()
-        time.sleep(0.5)
         app_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         dom_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
         self.assertEqual(app_id, app._get_identifier())
@@ -475,8 +458,6 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), initconfig, [])
         self.assertEqual(len(domMgr._get_applications()), 1)
-        app.start()
-        time.sleep(0.5)
         app_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         dom_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
         self.assertEqual(app_id, app._get_identifier())

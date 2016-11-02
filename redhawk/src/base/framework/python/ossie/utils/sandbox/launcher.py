@@ -125,6 +125,19 @@ class DebuggerProcess(object):
         self.__debugger.terminate()
         self.__child.terminate()
 
+    def requestTermination(self):
+        self.__child.requestTermination()
+
+    def command(self):
+        return self.__child.command()
+
+    def pid(self):
+        return self.__child.pid()
+
+    def isAlive(self):
+        return self.__child.isAlive()
+
+
 class LocalLauncher(object):
     def __init__(self, profile, identifier, name, sandbox):
         self._sandbox = sandbox
