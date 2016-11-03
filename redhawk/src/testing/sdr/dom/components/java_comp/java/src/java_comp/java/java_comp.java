@@ -68,10 +68,23 @@ public class java_comp extends java_comp_base {
      */
     public java_comp() {
         super();
-        this.app_id.setValue("foo");
-        this.number_components.setValue(-1);
-        this.dom_id.setValue("foo");
-        this.nic_name.setValue("foo");
+    }
+
+    public void constructor()
+    {
+        try {
+            this.app_id.setValue(this.getApplication().getRef().identifier());
+            this.number_components.setValue(this.getApplication().getRef().registeredComponents().length);
+        } catch (Exception e) {
+            this.app_id.setValue("");
+            this.number_components.setValue(-2);
+        }
+        try {
+            this.dom_id.setValue(this.getDomainManager().getRef().identifier());
+        } catch (Exception e) {
+            this.dom_id.setValue("");
+        }
+        this.nic_name.setValue(this.getNetwork().getNic());
     }
 
     /**
@@ -184,24 +197,7 @@ public class java_comp extends java_comp_base {
      *
      */
     protected int serviceFunction() {
-        logger.debug("serviceFunction() example log message");
-        
-        try {
-            this.app_id.setValue(this.getApplication().getRef().identifier());
-            this.number_components.setValue(this.getApplication().getRef().registeredComponents().length);
-        } catch (Exception e) {
-            this.app_id.setValue("");
-            this.number_components.setValue(-2);
-        }
-        try {
-            this.dom_id.setValue(this.getDomainManager().getRef().identifier());
-        } catch (Exception e) {
-            this.dom_id.setValue("");
-        }
-        this.nic_name.setValue(this.getNetwork().getNic());
-        
-
-        return NOOP;
+        return FINISH;
     }
 
     /**

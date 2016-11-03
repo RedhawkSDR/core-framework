@@ -28,6 +28,9 @@ class cpp_comp_i : public cpp_comp_base
     public:
         cpp_comp_i(const char *uuid, const char *label);
         ~cpp_comp_i();
+
+        void constructor();
+
         int serviceFunction();
 };
 
