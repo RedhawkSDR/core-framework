@@ -1386,6 +1386,8 @@ class BulkioTest(unittest.TestCase):
             raise ImportError('BULKIO is required for this test')
 
     def tearDown(self):
+        # Clean up sources and sinks
+        sb.release()
         try:
             os.unlink(self.TEMPFILE)
         except:
@@ -1631,6 +1633,36 @@ class BulkioTest(unittest.TestCase):
         recData = snk.getData(eos_block=True)
         self.assertEqual(len(recData),_frames/2)
         self.assertEqual(len(recData[0]),_subsize*2)
+
+    def test_DataSinkChar(self):
+        src=sb.DataSource(dataFormat='char')
+        snk=sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        indata = range(16)
+        src.push(indata, EOS=True)
+        start = time.time()
+        while not snk.eos() and (time.time() - start) < 2.0:
+            time.sleep(0.1)
+        outdata = snk.getData()
+        self.assertEquals(len(outdata), len(indata))
+        self.assertEquals(outdata, indata)
+
+    def test_DataSinkCharSubsize(self):
+        subsize = 8
+        frames = 4
+        src=sb.DataSource(dataFormat='char',subsize=subsize)
+        snk=sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        src.push(range(subsize*frames), EOS=True)
+        start = time.time()
+        while not snk.eos() and (time.time() - start) < 2.0:
+            time.sleep(0.1)
+        outdata = snk.getData()
+        self.assertEquals(len(outdata), frames)
+        for frame in outdata:
+            self.assertEquals(len(frame), subsize)
 
 #    def test_connections(self):
 #        a = sb.launch(self.test_comp)
