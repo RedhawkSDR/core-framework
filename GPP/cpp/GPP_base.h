@@ -85,7 +85,7 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         // ulimits for the GPP process
         ulimit_struct gpp_limits;
         // ulimits for the system as a whole
-        sys_limits_struct sys_limits;
+        ulimit_struct sys_limits;
         /// Property: memFree
         CORBA::LongLong memFree;
         /// Property: memCapacity
