@@ -46,6 +46,10 @@ namespace bulkio {
     if ( sriChangeCB ) {
       sriChangeCallback = *sriChangeCB;
     }
+    
+    std::string pname("redhawk.bulkio.inport.");
+    pname = pname + port_name;
+    logger = rh_logger::Logger::getLogger(pname);
   }
 
 
@@ -67,6 +71,12 @@ namespace bulkio {
       sriChangeCallback()
   {
       stats = new linkStatistics(port_name);
+
+      if ( !logger  ) {
+          std::string pname("redhawk.bulkio.inport.");
+          pname = pname + port_name;
+          logger = rh_logger::Logger::getLogger(pname);
+      }
       LOG_DEBUG( logger, "bulkio::InAttachablePort CTOR port:" << port_name );
 
       if ( newSriCB ) {
@@ -524,18 +534,55 @@ namespace bulkio {
                        const std::string& attach_id, 
                        typename PortType::_ptr_type input_port) :
           _connectionId(connection_id),
-          _attachId(attach_id)
+          _attachId(attach_id),
+          _port(NULL)
       {
           setInputPort(input_port);
+          std::string pname("redhawk.bulkio.outport.");
+          pname = pname + connection_id;
+          logger = rh_logger::Logger::getLogger(pname);
       }
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamAttachment::StreamAttachment(const std::string& connection_id, 
                        typename PortType::_ptr_type input_port) :
           _connectionId(connection_id),
-          _attachId("")
+          _attachId(""),
+          _port(NULL)
       {
+          std::string pname("redhawk.bulkio.outport.");
+          pname = pname + connection_id;
+          logger = rh_logger::Logger::getLogger(pname);
           setInputPort(input_port);
       }
+
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamAttachment::StreamAttachment(const std::string& connection_id, 
+                       const std::string& attach_id, 
+                       typename PortType::_ptr_type input_port,
+                       OutAttachablePort *p):
+          _connectionId(connection_id),
+          _attachId(attach_id),
+          _port(p)
+      {
+          setInputPort(input_port);
+          std::string pname("redhawk.bulkio.outport.");
+          pname = pname + connection_id;
+          logger = rh_logger::Logger::getLogger(pname);
+      }
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamAttachment::StreamAttachment(const std::string& connection_id, 
+                       typename PortType::_ptr_type input_port,
+                       OutAttachablePort *p) :
+          _connectionId(connection_id),
+          _attachId(""),
+          _port(p)
+      {
+          std::string pname("redhawk.bulkio.outport.");
+          pname = pname + connection_id;
+          logger = rh_logger::Logger::getLogger(pname);
+          setInputPort(input_port);
+      }
+
       
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamAttachment::setLogger(LOGGER_PTR newLogger) {
@@ -548,20 +595,37 @@ namespace bulkio {
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamAttachment::detach() {
           if (not _attachId.empty()){
+              std::string cid = _connectionId;
               try {
+                  LOG_TRACE(logger,  "Sending DETACH request to CONNECTION: " << _connectionId << " ATTACH ID:"  << _attachId );
                   _inputPort->detach(_attachId.c_str());
                   _attachId = "";
+                  if ( _port ) _port->updateStats(cid);
               } catch( typename PortType::DetachError& ex) { 
-                  std::cout << "A detach error occured - msg: " << ex.msg << std::endl; 
+                  LOG_ERROR(logger,  "A detach error occured - msg: " << ex.msg );
               } catch (std::exception& ex) {
-                  std::cout << "An unknown error occurred while attaching: " << ex.what() << std::endl;
-              } catch( CORBA::SystemException& ex ) {
-                  std::cout << "A CORBA::SystemException occurred: " << ex.NP_minorString() << " " << ex._name() << ex.completed() << std::endl;
-              } catch ( const CORBA::Exception& ex ) {
-                  std::cout << "A CORBA::Exception occurred: " << ex._name() << std::endl;
-              } catch (...) {
-                  std::cout << "An unknown error occurred while attaching" << std::endl;
+                  if ( _port && _port->reportConnectionErrors(cid) ) {
+                      LOG_ERROR( logger, "DEATTACH FAILED, CONNECTION: " << cid  << " msg:" << ex.what() );
+                  }
+              } catch( CORBA::TRANSIENT &ex ) {
+                  if ( _port && _port->reportConnectionErrors(cid) ) {
+                      LOG_ERROR( logger, "DEATTACH FAILED (Transient), CONNECTION: " << cid );
+                  }
+              } catch( CORBA::COMM_FAILURE &ex) {
+                  if ( _port && _port->reportConnectionErrors(cid) ) {
+                      LOG_ERROR( logger, "DEATTACH FAILED (CommFailure), CONNECTION: " << cid ); 
+                  }
+              } catch( CORBA::SystemException &ex) {
+                  if ( _port && _port->reportConnectionErrors(cid) ) {
+                      LOG_ERROR( logger, "DEATTACH FAILED (SystemException), CONNECTION: " << cid );
+                  }
+              } catch(...) {
+                  if ( _port && _port->reportConnectionErrors(cid) ) {
+                      LOG_ERROR( logger, "DEATTACH FAILED, (UnknownException) CONNECTION: " << cid );
+                  }
               }
+
+
           }
       }
 
@@ -613,18 +677,20 @@ namespace bulkio {
           _name(""),
           _streamId(""),
           _sri(bulkio::sri::create()),
-          _time(bulkio::time::utils::create())
+          _time(bulkio::time::utils::create()),
+          port(NULL)
       {
       }
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::Stream(const StreamDefinition& stream_def,
              const std::string name,
-             const std::string stream_id) :
+             const std::string stream_id):
           _streamDefinition(stream_def),
           _name(name),
           _streamId(stream_id),
           _sri(bulkio::sri::create()),
-          _time(bulkio::time::utils::create())
+          _time(bulkio::time::utils::create()),
+          port(NULL)
       {
       }
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
@@ -632,12 +698,13 @@ namespace bulkio {
              const std::string name,
              const std::string stream_id,
              BULKIO::StreamSRI sri,
-             BULKIO::PrecisionUTCTime time) :
+             BULKIO::PrecisionUTCTime time):
           _streamDefinition(stream_def),
           _name(name),
           _streamId(stream_id),
           _sri(sri),
-          _time(time)
+          _time(time),
+          port(NULL)
       {
       }
 
@@ -648,13 +715,23 @@ namespace bulkio {
          _streamId(obj._streamId),
          _streamAttachments(obj._streamAttachments),
          _sri(obj._sri),
-         _time(obj._time)
+         _time(obj._time),
+         port(obj.port)
       {
       }
       
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::setLogger(LOGGER_PTR newLogger) {
           logger = newLogger;
+          StreamAttachmentIter iter;
+          for (iter = _streamAttachments.begin(); iter != _streamAttachments.end(); iter++ ) {
+              iter->setLogger(newLogger);
+          }
+      }
+
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::setPort( OutAttachablePort *p ) {
+          port = p;
       }
       
       //
@@ -677,10 +754,11 @@ namespace bulkio {
           for (iter = _streamAttachments.begin(); iter != _streamAttachments.end(); /*NoIncrement*/) {
               if (iter->getConnectionId() == connectionId) {
                   iter->detach();
-                  _streamAttachments.erase(iter);
-              } else {
+                  iter=_streamAttachments.erase(iter);
+              }
+              else {
                   ++iter;
-              } 
+              }
           }
       }
       
@@ -691,7 +769,7 @@ namespace bulkio {
           for (iter = _streamAttachments.begin(); iter != _streamAttachments.end(); /*NoIncrement*/) {
               if (iter->getAttachId() == attachId) {
                   iter->detach();
-                  _streamAttachments.erase(iter);
+                  iter=_streamAttachments.erase(iter);
               } else {
                   ++iter;
               } 
@@ -705,7 +783,7 @@ namespace bulkio {
           for (iter = _streamAttachments.begin(); iter != _streamAttachments.end(); /*NoIncrement*/) {
               if ((iter->getAttachId() == attachId) && (iter->getConnectionId() == connectionId)) {
                   iter->detach();
-                  _streamAttachments.erase(iter);
+                  iter=_streamAttachments.erase(iter);
               } else {
                   ++iter;
               } 
@@ -780,25 +858,38 @@ namespace bulkio {
 
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::createNewAttachment(const std::string& connectionId, 
-                               typename PortType::_ptr_type port) {
+                               typename PortType::_ptr_type inPort) {
           boost::mutex::scoped_lock lock(attachmentsUpdateLock);
           try {
-              char* attachId = port->attach(_streamDefinition, _name.c_str()); 
-              StreamAttachment attachment(connectionId, std::string(attachId), port);
+              LOG_TRACE( logger, "Creating ATTACHMENT FOR CONNECTION: " << connectionId);
+              char* attachId = inPort->attach(_streamDefinition, _name.c_str()); 
+              LOG_TRACE( logger, "Created ATTACHMENT, CONNECTION  " << connectionId << " ATTACH ID" << attachId);
+              StreamAttachment attachment(connectionId, std::string(attachId), inPort, port);
+              attachment.setLogger(logger);
               _streamAttachments.push_back(attachment);
-              //port->pushSRI(_sri, _time);
+              if ( port ) { port->updateStats(connectionId);}
           } catch (typename PortType::AttachError& ex) {
-              std::cout << "AttachError occurred: " << ex.msg << std::endl;
+              LOG_ERROR(logger,  "AttachError occurred: " << ex.msg );
           } catch (typename PortType::StreamInputError& ex) {
-              std::cout << "StreamInputError occurred: " << ex.msg << std::endl;
+              LOG_ERROR(logger, "StreamInputError occurred: " << ex.msg );
           } catch (std::exception& ex) {
-              std::cout << "An unknown error occurred while attaching: " << ex.what() << std::endl;
-          } catch( CORBA::SystemException& ex ) {
-              std::cout << "A CORBA::SystemException occurred: " << ex.NP_minorString() << " " << ex._name() << ex.completed() << std::endl;
-          } catch ( const CORBA::Exception& ex ) {
-              std::cout << "A CORBA::Exception occurred: " << ex._name() << std::endl;
-          } catch (...) {
-              std::cout << "An unknown error occurred while attaching" << std::endl;
+              LOG_ERROR(logger,  "An unknown error occurred while attaching: " << ex.what() )
+          } catch( CORBA::TRANSIENT &ex ) {
+              if ( port and port->reportConnectionErrors(connectionId) ) {
+                  LOG_ERROR( logger, "ATTACH FAILED (Transient), CONNECTION: " << connectionId);
+              }
+          } catch( CORBA::COMM_FAILURE &ex) {
+              if ( port and port->reportConnectionErrors(connectionId) ) {
+                  LOG_ERROR( logger, "ATTACH FAILED (CommFailure), CONNECTION: " << connectionId); 
+              }
+          } catch( CORBA::SystemException &ex) {
+              if ( port and port->reportConnectionErrors(connectionId) ) {
+                  LOG_ERROR( logger, "ATTACH FAILED (SystemException), ONNECTION: " << connectionId );
+              }
+          } catch(...) {
+              if ( port and port->reportConnectionErrors(connectionId) ) {
+                  LOG_ERROR( logger, "ATTACH FAILED, (UnknownException) CONNECTION: " << connectionId );
+              }
           }
       }
       
@@ -923,12 +1014,18 @@ namespace bulkio {
       // Constructors
       //
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
-      OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::StreamContainer() {
+      OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::StreamContainer( OutAttachablePort &p ) :
+          port(p)
+      {
       }
 
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::setLogger(LOGGER_PTR newLogger) {
           logger = newLogger;
+          StreamIter iter;
+          for (iter = _streams.begin(); iter != _streams.end();iter++) {
+              iter->setLogger(newLogger);
+          }
       }
 
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
@@ -1192,11 +1289,17 @@ namespace bulkio {
                       ConnectionEventListener *connectCB,
                       ConnectionEventListener *disconnectCB ):
     Port_Uses_base_impl(port_name),
+    streamContainer(*this),
     _connectCB(),
     _disconnectCB()
   {
     recConnectionsRefresh = false;
     recConnections.length(0);
+    if ( !logger ) {
+        std::string pname("redhawk.bulkio.outport.");
+        pname = pname + port_name;
+        logger = rh_logger::Logger::getLogger(pname);
+    }
   }
 
   template <typename StreamDefinition, typename PortType, typename StreamSequence>
@@ -1205,6 +1308,7 @@ namespace bulkio {
                       ConnectionEventListener *connectCB,
                       ConnectionEventListener *disconnectCB ):
     Port_Uses_base_impl(port_name),
+    streamContainer(*this),
     logger(logger),
     _connectCB(),
     _disconnectCB()
@@ -1219,6 +1323,11 @@ namespace bulkio {
 
     recConnectionsRefresh = false;
     recConnections.length(0);
+    if ( !logger ) {
+        std::string pname("redhawk.bulkio.outport.");
+        pname = pname + port_name;
+        logger = rh_logger::Logger::getLogger(pname);
+    }
 
     LOG_DEBUG( logger, "bulkio::OutAttachablePort<StreamDefinition,PortType,StreamSequence>::CTOR port:" << this->name );
     this->streamContainer.setLogger(logger);
@@ -1290,6 +1399,28 @@ namespace bulkio {
     }
   }
 
+  template <typename StreamDefinition, typename PortType, typename StreamSequence>
+  void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::updateStats( const std::string &cid )
+  {
+      try {
+          stats[cid].resetConnectionErrors();
+          LOG_TRACE(logger,  "Reset connection error stats for: " << cid  );
+      }
+      catch(...){
+      }
+  }
+
+  template <typename StreamDefinition, typename PortType, typename StreamSequence>
+  bool OutAttachablePort<StreamDefinition,PortType,StreamSequence>::reportConnectionErrors( const std::string &cid, const uint64_t n )
+  {
+      try {
+          return (stats[cid].connectionErrors(n) < 10);
+      }
+      catch(...){
+      }
+      return false;
+  }
+
   //
   // Uses Port Interface
   //
@@ -1312,7 +1443,6 @@ namespace bulkio {
       }
 
       std::string connId(connectionId);
-      Stream foundStream;
       bool portListed = false;
       std::vector<connection_descriptor_struct >::iterator ftPtr;
 
@@ -1339,6 +1469,9 @@ namespace bulkio {
       }
 
       outConnections.push_back(std::make_pair(port, connectionId));
+      if ( stats.count(connectionId) == 0 ) {
+          stats.insert( std::make_pair(connectionId, linkStatistics( name ) ) );
+      }
       this->active = true;
       this->recConnectionsRefresh = true;
       this->refreshSRI = true;    
@@ -1357,10 +1490,11 @@ namespace bulkio {
   {
     {
       boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
-
+      LOG_DEBUG( logger, "Disconnect Port   PORT/CONNECTION_ID:" << this->name << "/" << connectionId );
       try {
         // Detach everything that's associated to connectionId
         std::string connId(connectionId);
+        LOG_DEBUG( logger, "DETACH By Connection Id ,  PORT/CONNECTION_ID:" << this->name << "/" << connectionId );
         this->streamContainer.detachByConnectionId(connId);
       }
       catch(...) {
@@ -1370,6 +1504,7 @@ namespace bulkio {
       for (unsigned int i = 0; i < outConnections.size(); i++) {
         if (outConnections[i].second == connectionId) {
           LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << this->name << "/" << connectionId );
+          stats.erase(connectionId);
           outConnections.erase(outConnections.begin() + i);
           break;
         }
@@ -1454,7 +1589,7 @@ namespace bulkio {
         streamsFound[ftPtr->stream_id] = true;
 
         // Create a temporary attachment that we'll use as a reference
-        StreamAttachment expectedAttachment(ftPtr->connection_id, connectedPort);
+        StreamAttachment expectedAttachment(ftPtr->connection_id, connectedPort, this);
         streamAttachmentsMap[ftPtr->stream_id].push_back(expectedAttachment);
       }
     }
@@ -1525,14 +1660,36 @@ namespace bulkio {
           if (currentSRIConnIds.find(*connIdIter) == currentSRIConnIds.end()) {
 
             // Grab the port
+            std::string connId = *connIdIter;
             typename PortType::_ptr_type connectedPort = this->getConnectedPort(*connIdIter);
             if (connectedPort->_is_nil()) {
                 LOG_DEBUG( logger, "Unable to find connected port with connectionId: " << (*connIdIter));
                 continue;
             }
-            // Push sri and update sriMap 
-            connectedPort->pushSRI(sriMapIter->second.sri, sriMapIter->second.time);
-            sriMapIter->second.connections.insert(*connIdIter);
+            
+            try{
+                // Push sri and update sriMap 
+                connectedPort->pushSRI(sriMapIter->second.sri, sriMapIter->second.time);
+                sriMapIter->second.connections.insert(*connIdIter);
+            } catch( CORBA::TRANSIENT &ex ) {
+                if ( reportConnectionErrors(connId) ) {
+                    LOG_ERROR( logger, "PUSH-SRI FAILED (Transient), PORT/CONNECTION: " << name << "/" << connId);
+                }
+            } catch( CORBA::COMM_FAILURE &ex) {
+                if ( reportConnectionErrors(connId) ) {
+                    LOG_ERROR( logger, "PUSH-SRI FAILED (CommFailure), PORT/CONNECTION: " << name << "/" << connId); 
+                }
+            } catch( CORBA::SystemException &ex) {
+                if ( reportConnectionErrors(connId) ) {
+                    LOG_ERROR( logger, "PUSH-SRI FAILED (SystemException), PORT/CONNECTION: " << name << "/" << connId );
+                }
+            } catch(...) {
+                if ( reportConnectionErrors(connId) ) {
+                    LOG_ERROR( logger, "PUSH-SRI FAILED, (UnknownException) PORT/CONNECTION: " << name << "/" << connId );
+                }
+            }
+
+
           }
         }
       }
@@ -1601,11 +1758,26 @@ namespace bulkio {
                (strcmp(ftPtr->stream_id.c_str(),H.streamID) == 0 ) ){
                LOG_DEBUG(logger,"pushSRI - PORT:" << this->name << " CONNECTION:" << ftPtr->connection_id << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
 
+               std::string connId = i->second;
                try {
                   i->first->pushSRI(H, T);
                   sri_iter->second.connections.insert( i->second );
+               } catch( CORBA::TRANSIENT &ex ) {
+                   if ( reportConnectionErrors(connId) ) {
+                       LOG_ERROR( logger, "PUSH-SRI FAILED (Transient), PORT/CONNECTION: " << name << "/" << connId);
+                   }
+               } catch( CORBA::COMM_FAILURE &ex) {
+                   if ( reportConnectionErrors(connId) ) {
+                       LOG_ERROR( logger, "PUSH-SRI FAILED (CommFailure), PORT/CONNECTION: " << name << "/" << connId); 
+                   }
+               } catch( CORBA::SystemException &ex) {
+                   if ( reportConnectionErrors(connId) ) {
+                       LOG_ERROR( logger, "PUSH-SRI FAILED (SystemException), PORT/CONNECTION: " << name << "/" << connId );
+                   }
                } catch(...) {
-                  LOG_ERROR( logger, "PUSH-SRI FAILED, PORT/CONNECTION: " << this->name << "/" << i->second );
+                  if ( reportConnectionErrors(connId) ) {
+                       LOG_ERROR( logger, "PUSH-SRI FAILED, (UnknownException) PORT/CONNECTION: " << name << "/" << connId );
+                   }
                }
             }
          }
@@ -1614,13 +1786,28 @@ namespace bulkio {
       if (!portListed) {
          for (ConnectionsIter i = outConnections.begin(); i != outConnections.end(); ++i) {
             LOG_DEBUG(logger,"pushSRI -2- PORT:" << this->name << " CONNECTION:" << i->second << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );
+            std::string connId  = i->second;
             try {
-               i->first->pushSRI(H, T);
-               sri_iter->second.connections.insert( i->second );
+                i->first->pushSRI(H, T);
+                sri_iter->second.connections.insert( i->second );
+            } catch( CORBA::TRANSIENT &ex ) {
+                if ( reportConnectionErrors(connId) ) {
+                    LOG_ERROR( logger, "PUSH-SRI FAILED (Transient), PORT/CONNECTION: " << name << "/" << connId);
+                }
+            } catch( CORBA::COMM_FAILURE &ex) {
+                if ( reportConnectionErrors(connId) ) {
+                    LOG_ERROR( logger, "PUSH-SRI FAILED (CommFailure), PORT/CONNECTION: " << name << "/" << connId); 
+                }
+            } catch( CORBA::SystemException &ex) {
+                if ( reportConnectionErrors(connId) ) {
+                    LOG_ERROR( logger, "PUSH-SRI FAILED (SystemException), PORT/CONNECTION: " << name << "/" << connId );
+                }
             } catch(...) {
-               LOG_ERROR( logger, "PUSH-SRI FAILED, PORT/CONNECTION: " << this->name << "/" << i->second );
-          }
-        }
+                if ( reportConnectionErrors(connId) ) {
+                    LOG_ERROR( logger, "PUSH-SRI FAILED, (UnknownException) PORT/CONNECTION: " << name << "/" << connId );
+                }
+            }
+         }
       }
     }
 
@@ -1806,7 +1993,9 @@ namespace bulkio {
     }
 
     // Create a new stream for attachment
-    Stream* newStream = new Stream(stream, std::string(user_id), std::string(stream.id));
+    Stream* newStream = new Stream(stream, std::string(user_id), std::string(stream.id) );
+    newStream->setPort(this);
+    newStream->setLogger(logger);
 
     // Iterate through connections and apply filterTable
     bool portListed = false;

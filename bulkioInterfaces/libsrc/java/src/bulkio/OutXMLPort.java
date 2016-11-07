@@ -139,10 +139,12 @@ public class OutXMLPort extends OutPortBase<dataXMLOperations> {
 				p.getValue().pushSRI(header);
                                 //Update entry in currentSRIs
                                 this.currentSRIs.get(header.streamID).connections.add(p.getKey());
-
+                                this.updateStats(p.getKey());
                             } catch(Exception e) {
-                                if ( logger != null ) {
-				    logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                if ( this.reportConnectionErrors( p.getKey() ) ) {
+                                    if ( logger != null ) {
+                                        logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                    }
                                 }
                             }
                         }
@@ -160,9 +162,12 @@ public class OutXMLPort extends OutPortBase<dataXMLOperations> {
 			    p.getValue().pushSRI(header);
                             //Update entry in currentSRIs
                             this.currentSRIs.get(header.streamID).connections.add(p.getKey());
+                            this.updateStats(p.getKey());
 			} catch(Exception e) {
-			    if ( logger != null ) {
-				logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                            if ( this.reportConnectionErrors( p.getKey() ) ) {
+                                if ( logger != null ) {
+                                    logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                }
 			    }
                         }
                     }
@@ -228,8 +233,10 @@ public class OutXMLPort extends OutPortBase<dataXMLOperations> {
 				p.getValue().pushPacket( odata, endOfStream, streamID);
 				this.stats.get(p.getKey()).update( odata.length(), (float)0.0, endOfStream, streamID, false);
 			    } catch(Exception e) {
-				if ( logger != null ) {
-				    logger.error("Call to pushPacket failed on port " + name + " connection " + p.getKey() );
+                                if ( this.reportConnectionErrors( p.getKey() ) ) {
+                                    if ( logger != null ) {
+                                        logger.error("Call to pushPacket failed on port " + name + " connection " + p.getKey() );
+                                    }
 				}
 			    }
 			}
@@ -247,8 +254,10 @@ public class OutXMLPort extends OutPortBase<dataXMLOperations> {
 			    p.getValue().pushPacket( odata, endOfStream, streamID);
 			    this.stats.get(p.getKey()).update( odata.length(), (float)0.0, endOfStream, streamID, false);
 			} catch(Exception e) {
-			    if ( logger != null ) {
-				logger.error("Call to pushPacket failed on port " + name + " connection " + p.getKey() );
+                            if ( this.reportConnectionErrors( p.getKey() ) ) {
+                                if ( logger != null ) {
+                                    logger.error("Call to pushPacket failed on port " + name + " connection " + p.getKey() );
+                                }
 			    }
 			}
 		    }
@@ -338,9 +347,12 @@ public class OutXMLPort extends OutPortBase<dataXMLOperations> {
 					 (ftPtr.stream_id.getValue().equals(streamID))) {
                                     try {
                                         port.pushPacket(odata,true,streamID);
+                                        this.updateStats(connectionId);
                                     } catch(Exception e) {
-                                        if ( logger != null ) {
-                                            logger.error("Call to pushPacket failed on port " + name + " connection " + connectionId );
+                                        if ( this.reportConnectionErrors(connectionId) ) {
+                                            if ( logger != null ) {
+                                                logger.error("Call to pushPacket failed on port " + name + " connection " + connectionId );
+                                            }
                                         }
                                     }
                                 }
@@ -348,9 +360,12 @@ public class OutXMLPort extends OutPortBase<dataXMLOperations> {
                         } else {
                             try {
                                 port.pushPacket(odata,true,streamID);
+                                this.updateStats(connectionId);
                             } catch(Exception e) {
-                                if ( logger != null ) {
-                                    logger.error("Call to pushPacket failed on port " + name + " connection " + connectionId );
+                                if ( this.reportConnectionErrors(connectionId) ) {
+                                    if ( logger != null ) {
+                                        logger.error("Call to pushPacket failed on port " + name + " connection " + connectionId );
+                                    }
                                 }
                             }
                         }

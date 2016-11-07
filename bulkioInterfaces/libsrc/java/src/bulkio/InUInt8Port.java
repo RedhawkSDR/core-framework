@@ -173,9 +173,10 @@ public class InUInt8Port extends BULKIO.jni.dataOctetPOA implements org.ossie.co
 	sri_cmp = compareSRI;	
 	sriCallback = sriCallback;
 
-	if ( this.logger != null ) {
-	    this.logger.debug( "bulkio::InPort CTOR port: " + portName ); 
-	}
+	if ( this.logger == null ) {
+            this.logger = Logger.getLogger("redhawk.bulkio.inport."+portName);
+        }
+        this.logger.debug( "bulkio::InPort CTOR port: " + portName ); 
 
     }
 

@@ -154,12 +154,11 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements org.ossie.comp
 	sri_cmp = sriCmp;
 	time_cmp = timeCmp;
 	sriCallback = null;
-	logger = logger;
-
-	if ( logger != null  ){
-	    logger.debug( "bulkio::InSDDSPort  CTOR port:" + name  );
-	}
-
+	this.logger = logger;
+	if ( this.logger == null ) {
+            this.logger = Logger.getLogger("redhawk.bulkio.inport."+portName);
+        }
+        this.logger.debug( "bulkio::InSDDSPort  CTOR port:" + name  );
     }
 
 

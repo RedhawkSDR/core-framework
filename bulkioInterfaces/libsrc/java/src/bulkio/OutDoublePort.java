@@ -39,9 +39,11 @@ public class OutDoublePort extends OutDataPort<dataDoubleOperations,double[]> {
 
     public OutDoublePort(String portName, Logger logger, ConnectionEventListener eventCB) {
         super(portName, logger, eventCB, new DoubleSize());
-        if (this.logger != null) {
+
+	if ( this.logger != null ) {
             this.logger.debug("bulkio.OutPort CTOR port: " + portName); 
         }
+
     }
 
     protected dataDoubleOperations narrow(final org.omg.CORBA.Object obj) {

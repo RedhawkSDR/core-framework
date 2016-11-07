@@ -22,28 +22,49 @@ package bulkio.vita49;
 import BULKIO.dataVITA49Operations;
 import BULKIO.dataVITA49Package.DetachError;
 import BULKIO.dataVITA49Package.StreamInputError;
+import bulkio.OutVITA49Port;
 
 //
 // Stream Attachment represents a single port attachment
 //
 public class VITA49StreamAttachment {
         public VITA49StreamAttachment() {
-            this(null, null, null);
+            this(null, null, null,null);
         }
 
-        public VITA49StreamAttachment(String connectionId, dataVITA49Operations inputPort) {
-            this(connectionId, null, inputPort);
+        public VITA49StreamAttachment(String connectionId, dataVITA49Operations inputPort ) {
+            this(connectionId, null, inputPort, null );
         }
 
-        public VITA49StreamAttachment(String connectionId, String attachId, dataVITA49Operations inputPort) {
+       public VITA49StreamAttachment(String connectionId, dataVITA49Operations inputPort, OutVITA49Port bport) {
+           this(connectionId, null, inputPort,bport );
+        }
+
+    public VITA49StreamAttachment(String connectionId, String attachId, dataVITA49Operations inputPort, OutVITA49Port bport ) {
             this.connectionId = connectionId;
             this.attachId = attachId;
             this.inputPort = inputPort;
+            this.bio_port = bport;
         }
 
         public void detach() throws DetachError,StreamInputError {
             if (this.attachId != null && !this.attachId.isEmpty()){
-                this.inputPort.detach(attachId);
+              try {
+                    this.inputPort.detach(attachId);
+                    if ( this.bio_port != null ) {
+                        this.bio_port.updateStats( connectionId );
+                    }
+
+                } catch( DetachError e ) {
+                    throw e;
+                } catch( StreamInputError e ) {
+                    throw e;
+                } catch( Exception e ) {
+                    String msg = " Unable to DEATTACH: " + attachId + " for CONNECTION: " + connectionId;
+                    if ( this.bio_port != null ) {
+                        this.bio_port.reportConnectionErrors( connectionId, msg );
+                    }
+                }
                 this.attachId = null;
             }
         }
@@ -75,4 +96,5 @@ public class VITA49StreamAttachment {
         protected String connectionId;
         protected String attachId;
         protected dataVITA49Operations inputPort;
+        protected OutVITA49Port bio_port = null;
 };

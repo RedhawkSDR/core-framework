@@ -24,6 +24,7 @@ import java.util.Map;
 import bulkio.vita49.VITA49Stream;
 import bulkio.vita49.VITA49StreamAttachment;
 import bulkio.SriMapStruct;
+import bulkio.OutVITA49Port;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,6 +44,7 @@ public class VITA49StreamContainer {
         public VITA49StreamContainer() {
             this.streamMap = new HashMap<String,VITA49Stream>();
             this.logger = null;
+            this.bio_port = null;
         }
 
         public VITA49StreamContainer(VITA49Stream[] streams) {
@@ -50,6 +52,13 @@ public class VITA49StreamContainer {
             for(VITA49Stream s : streams ){
                 this.streamMap.put(s.streamId, s);
             }
+            this.bio_port = null;
+        }
+
+        public VITA49StreamContainer(OutVITA49Port bport) {
+            this.streamMap = new HashMap<String,VITA49Stream>();
+            this.logger = null;
+            this.bio_port = bport;
         }
 
         public void printState(String title){
@@ -144,7 +153,7 @@ public class VITA49StreamContainer {
             for(Map.Entry<String, VITA49Stream > entry: this.streamMap.entrySet()) {
                 VITA49Stream stream = entry.getValue();
                 if (stream != null){
-                    stream.createNewAttachment(connectionId, inputPort);
+                    stream.createNewAttachment(connectionId, inputPort, this.bio_port );
                 }
             }
         }
@@ -342,7 +351,7 @@ public class VITA49StreamContainer {
                     if (logger != null){
                         logger.trace("VITA49StreamContainer:addConnectionToAllStreams() calling createNewAttachment for streamId  " + s.streamId);
                     }
-                    s.createNewAttachment(connectionId, inputPort);
+                    s.createNewAttachment(connectionId, inputPort, this.bio_port );
                 }
             }
         }
@@ -355,7 +364,7 @@ public class VITA49StreamContainer {
                 VITA49Stream s = entry.getValue();
                 if (s.streamId.equals(streamId)){
                     if (!s.hasConnectionId(connectionId)){
-                        s.createNewAttachment(connectionId, inputPort);
+                        s.createNewAttachment(connectionId, inputPort, this.bio_port);
                     }
                 }
             }
@@ -418,5 +427,6 @@ public class VITA49StreamContainer {
 
         protected Map<String, VITA49Stream> streamMap;
         protected Logger logger;
+        protected OutVITA49Port bio_port;
 
 };

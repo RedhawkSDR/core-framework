@@ -23,7 +23,7 @@ import threading
 import collections
 import copy
 import time
-
+import logging
 from ossie.utils import uuid
 from bulkio.statistics import InStats
 from bulkio import sri
@@ -63,6 +63,9 @@ class InPort:
         self.newSriCallback = newSriCallback
         self.sriChangeCallback = sriChangeCallback
         self.sriDict = {} # key=streamID, value=StreamSRI
+
+        if logger==None:
+            self.logger = logging.getLogger("redhawk.bulkio.input."+name)
 
         _cmpMsg  = "DEFAULT"
         _newSriMsg  = "EMPTY"

@@ -85,6 +85,9 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
         this.active = false;
         this.logger = logger;
         this.callback = connectionListener;
+	if ( this.logger == null ) {
+            this.logger = Logger.getLogger("redhawk.bulkio.outport."+portName);
+        }
     }
 
     /**
@@ -163,6 +166,32 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
         }
         return connList.toArray(new UsesConnection[connList.size()]);
     }
+
+    public void updateStats( String cid ) 
+    {
+        stats.get(cid).resetConnectionErrors();
+    }
+
+    public boolean reportConnectionErrors( String cid ) 
+    {
+        boolean retval = false;
+        if ( stats.get(cid).connectionErrors(1) < 11 ) {
+                retval=true;
+        }
+             
+       return retval;
+   }
+
+    public boolean reportConnectionErrors( String cid, String msg ) 
+    {
+        boolean retval=reportConnectionErrors(cid );
+        if ( retval ) {
+            if ( logger != null ) {
+                logger.error(msg);
+            }
+        }
+       return retval;
+   }
 
     /**
      * Enables tracking of statistics.

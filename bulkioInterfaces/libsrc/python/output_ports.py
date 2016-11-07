@@ -28,12 +28,13 @@ from ossie.cf    import ExtendedCF
 from ossie.cf.CF    import Port
 from ossie.utils import uuid
 from ossie.properties import simple_property
-
+import logging
 from bulkio.statistics import OutStats
 from bulkio import sri
 from bulkio import timestamp
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA 
 from bulkio.const import MAX_TRANSFER_BYTES
+import traceback
 
 class connection_descriptor_struct(object):
     connection_id = simple_property(id_="connectionTable::connection_id",
@@ -102,6 +103,8 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         if self.maxSamplesPerPush%2 != 0:
             self.maxSamplesPerPush = self.maxSamplesPerPush - 1
 
+        if self.logger == None:
+            self.logger = logging.getLogger("redhawk.bulkio.outport."+name)
         if self.logger:
             self.logger.debug('bulkio::OutPort CTOR port:' + str(self.name))
             
@@ -176,6 +179,12 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
 
     def setBitSize(self, bitSize):
         self.stats.setBitSize(bitSize)
+
+
+    def reportConnectionErrors(self, cid):
+        retval=False
+        if ( self.stats.connectionErrors(cid, 1) < 11 ): retval=True
+        return retval
         
     def _get_connections(self):
         currentConnections = []
@@ -244,9 +253,10 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                             if port != None:
                                 port.pushSRI(H)
                                 self.sriDict[H.streamID].connections.add(connId)
-                        except Exception:
-                            if self.logger:
-                                self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
+                        except Exception, e:
+                            if self.reportConnectionErrors(connId) :
+                                if self.logger:
+                                    self.logger.error("PUSH-SRI FAILED PORT/CONNECTION: %s/%s ", self.name, connId )
 
             if not portListed:
                 for connId, port in self.outConnections.items():
@@ -254,9 +264,10 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                         if port != None:
                             port.pushSRI(H)
                             self.sriDict[H.streamID].connections.add(connId)
-                    except Exception:
-                        if self.logger:
-                            self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
+                    except Exception, e:
+                        if self.reportConnectionErrors(connId)  :
+                            if self.logger:
+                                self.logger.error("PUSH-SRI FAILED PORT/CONNECTION: %s/%s ", self.name, connId )
 
         finally:
             self.port_lock.release()
@@ -317,7 +328,6 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
     def _pushPacket(self, data, T, EOS, streamID):
         
         portListed = False
-        
         for connId, port in self.outConnections.items():
             for ftPtr in self.filterTable:
 
@@ -333,8 +343,9 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                             port.pushPacket(data, T, EOS, streamID)
                             self.stats.update(len(data), 0, EOS, streamID, connId)
                     except Exception, e:
-                        if self.logger:
-                            self.logger.error("The call to pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+                        if self.reportConnectionErrors(connId)  :
+                            if self.logger:
+                                self.logger.error("PUSH-PACKET FAILED PORT/CONNECTION:  %s/%s", self.name, connId)
 
         if not portListed:
             for connId, port in self.outConnections.items():
@@ -346,14 +357,15 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                         port.pushPacket(data, T, EOS, streamID)
                         self.stats.update(len(data), 0, EOS, streamID, connId)
                 except Exception, e:
-                    if self.logger:
-                        self.logger.error("The call to pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+                    if self.reportConnectionErrors(connId)  :
+                        if self.logger:
+                            self.logger.error("PUSH-PACKET FAILED PORT/CONNECTION: %s/%s", self.name, connId)
         if EOS==True:
             if self.sriDict.has_key(streamID):
                 tmp = self.sriDict.pop(streamID)
  
     def pushPacket(self, data, T, EOS, streamID):
-
+        
         if self.logger:
             self.logger.trace('bulkio::OutPort  pushPacket ENTER ')
 
@@ -449,8 +461,9 @@ class OutFilePort(OutPort):
                                 port.pushPacket(URL, T, EOS, streamID)
                                 self.stats.update(1, 0, EOS, streamID, connId)
                         except Exception:
-                            if self.logger:
-                                self.logger.error("The call to OutFilePort::pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+                            if self.reportConnectionErrors(connId) :
+                                if self.logger:
+                                    self.logger.error("PUSH-PACKET (file port) FAILED PORT/CONNECTION: %s/%s", self.name, connId)
 
             if not portListed:
                 for connId, port in self.outConnections.items():
@@ -459,8 +472,9 @@ class OutFilePort(OutPort):
                             port.pushPacket(URL, T, EOS, streamID)
                             self.stats.update(1, 0, EOS, streamID, connId)
                     except Exception:
-                        if self.logger:
-                            self.logger.error("The call to OutFilePort::pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+                        if self.reportConnectionErrors(connId) :
+                            if self.logger :
+                                self.logger.error("PUSH-PACKET (file port) FAILED PORT/CONNECTION: %s/%s", self.name, connId)
             if EOS==True:
                 if self.sriDict.has_key(streamID):
                     tmp = self.sriDict.pop(streamID)
@@ -498,8 +512,9 @@ class OutXMLPort(OutPort):
                                 port.pushPacket(xml_string, EOS, streamID)
                                 self.stats.update(len(xml_string), 0, EOS, streamID, connId)
                         except Exception:
-                            if self.logger:
-                                self.logger.error("The call to OutXMLPort::pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+                            if self.reportConnectionErrors(connId) :
+                                if self.logger :
+                                    self.logger.error("PUSH-PACKET (xml port) FAILED PORT/CONNECTION: %s/%s", self.name, connId)
             if not portListed:
                 for connId, port in self.outConnections.items():
                     try:
@@ -507,8 +522,9 @@ class OutXMLPort(OutPort):
                             port.pushPacket(xml_string, EOS, streamID)
                             self.stats.update(len(xml_string), 0, EOS, streamID, connId)
                     except Exception:
-                        if self.logger:
-                            self.logger.error("The call to OutXMLPort::pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+                        if self.reportConnectionErrors(connId) :
+                            if self.logger :
+                                self.logger.error("PUSH-PACKET (xml port) FAILED PORT/CONNECTION: %s/%s", self.name, connId)
             if EOS==True:
                 if self.sriDict.has_key(streamID):
                     tmp = self.sriDict.pop(streamID)
@@ -557,23 +573,41 @@ class OutXMLPort(OutPort):
 
 class OutAttachablePort(OutPort):
     class StreamAttachment:
-        def __init__(self, connectionId, attachId, inputPort):
+        def __init__(self, connectionId, attachId, inputPort, inStream=None):
             self.connectionId=connectionId
             self.attachId=attachId
             self.inputPort=inputPort
+            self.stream=inStream
+            self.logger=None
+
+        def setLogger(self, inLogger ):
+            self.logger= inLogger
+
+        def setLogger(self, inLogger ):
+            self.logger= inLogger
 
         def detach(self):
-            self.inputPort.detach(self.attachId)
-            
+            p =  None
+            if self.stream:
+                p = self.stream.getPort()
+            try:
+                self.inputPort.detach(self.attachId)
+                if p : p.updateStats(self.connectionId)
+            except Exception, e:
+                if p and p.reportConnectionErrors(self.connectionId)  :
+                    if self.logger:
+                        self.logger.error("DETACH FAILURE, CONNECTION: " + self.connectionId )
 
     class Stream:
-        def __init__(self, streamDef, name, streamId=None, streamAttachments=[], sri=None, time=None):
+        def __init__(self, streamDef, name, streamId=None, streamAttachments=[], sri=None, time=None, port=None):
             self.streamDef=streamDef
             self.name = name
             self.streamId=streamId
             self.streamAttachments=streamAttachments[:]
             self.sri=sri
             self.time=time
+            self.port = port
+            self.logger=None
 
         def detachAll(self):
             for att in list(self.streamAttachments):
@@ -599,12 +633,14 @@ class OutAttachablePort(OutPort):
                     self.streamAttachments.remove(att)
 
         def createNewAttachment(self,connectionId, port):
-            newAttachment = OutAttachablePort.StreamAttachment(connectionId=connectionId, attachId=None, inputPort=port)
+            newAttachment = OutAttachablePort.StreamAttachment(connectionId=connectionId, attachId=None, inputPort=port, inStream=self)
+            newAttachment.setLogger(self.logger)
             try:
                 newAttachment.attachId = port.attach(self.streamDef, self.name)
                 self.streamAttachments.append(newAttachment)
             except Exception, e:
-                print "Stream: createNewAttachment() Exception while calling attach for connectionId %s streamId %s: %s" % (connectionId, self.streamDef.id, str(e))
+                if self.logger:
+                    self.logger.trace( "Stream: createNewAttachment() Exception while calling attach for connectionId %s streamId %s: %s" % (connectionId, self.streamDef.id, str(e)))
                 raise
  
         def hasConnectionId(self, connectionId):
@@ -612,6 +648,17 @@ class OutAttachablePort(OutPort):
                 if att.connectionId == connectionId:
                     return True 
             return False
+
+        def getPort(self):
+            return self.port
+
+        def setPort(self, inPort):
+            self.port = inPort
+
+        def setLogger(self, inlogger):
+            self.logger=inlogger
+            for att in self.streamAttachments:
+                att.setLogger(inLogger)
 
         def getConnectionIds(self):
             connectionIds = []
@@ -646,8 +693,9 @@ class OutAttachablePort(OutPort):
             
         def detachAll(self):
             for att in list(self.streamAttachments):
-                att.inputPort.detach(att.attachId)
+                att.detach()
                 self.streamAttachments.remove(att)
+
 
     class StreamContainer:
         def __init__(self, streams=[]):
@@ -746,29 +794,28 @@ class OutAttachablePort(OutPort):
             for stream in self.streams:
                 for atts in list(stream.streamAttachments):
                     if atts.connectionId == connectionId and atts.inputPort and atts.attachId and atts.attachId == attachId:
-                        atts.inputPort.detach(atts.attachId)
+                        atts.detach()
                         stream.streamAttachments.remove(atts)
 
         def detachAllStreams(self):
             for stream in self.streams:
                 for atts in list(stream.streamAttachments):
                     if atts.inputPort and atts.attachId:
-                        atts.inputPort.detach(atts.attachId)
+                        atts.detach()
                         stream.streamAttachments.remove(atts)
 
         def detachByConnectionId(self, connectionId=None):
             for stream in self.streams:
                 for atts in list(stream.streamAttachments):
                     if atts.connectionId == connectionId and atts.inputPort and atts.attachId:
-                        atts.inputPort.detach(atts.attachId)
+                        atts.detach()
                         stream.streamAttachments.remove(atts)
 
         def detachByAttachId(self, attachId=None):
             for stream in self.streams:
                 for atts in list(stream.streamAttachments):
                     if atts.attachId and atts.attachId == attachId and atts.inputPort:
-                        atts.inputPort.detach(atts.attachId)
-                        stream.streamAttachments.remove(atts)
+                        atts.detach()
 
         def findStreamAttachmentsByAttachId(self, attachId):
             attachList = []
@@ -778,8 +825,10 @@ class OutAttachablePort(OutPort):
                         attachList.append(att)    
             return attachList
 
-        def setLogger(self, logger):
-            self.logger = logger
+        def setLogger(self, inlogger):
+            self.logger = inlogger
+            for stream in self.streams:
+                stream.setLogger(inLogger)
 
 
     TRANSFER_TYPE = 'c'
@@ -794,7 +843,7 @@ class OutAttachablePort(OutPort):
                 self.logger.error("OutAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
             raise Port.InvalidPort(1, "OutAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
         self.interface=interface # BULKIO port interface (valid options are BULKIO.dataSDDS or BULKIO.dataVITA49)
-        self.setLogger(logger)
+        self.setLogger(self.logger)
     
     def setLogger(self, logger):
         self.logger = logger;
@@ -905,14 +954,15 @@ class OutAttachablePort(OutPort):
                 for stream in self.streamContainer.streams:
                     for atts in list(stream.streamAttachments):
                         if atts.attachId == attachId:
-                            atts.inputPort.detach(attachId)
+                            atts.detach(attachId)
                             stream.streamAttachments.pop(atts)
 
             if not attachId and not connectionId:
                 for stream in self.streamContainer.streams:
                     for atts in list(stream.streamAttachments):
-                        atts.inputPort.detach(attachId)
+                        atts.detach()
                 self.streamContainer = OutAttachablePort.StreamContainer()
+                self.streamContainer.setLogger(self.logger)
 
         finally:
             self.port_lock.release()
@@ -948,6 +998,8 @@ class OutAttachablePort(OutPort):
                 return False;
 
             stream = OutAttachablePort.Stream(streamDef=streamData, name="", streamId=streamData.id)
+            stream.setLogger(self.logger)
+                                           
 
             portListed = False
             for connId, port in self.outConnections.items():
@@ -965,8 +1017,9 @@ class OutAttachablePort(OutPort):
                               stream.time = sriMap.time
                            stream.createNewAttachment(connId,port)
                         except Exception, e:
-                            if self.logger:
-                                self.logger.error("bulkio.OutAttachablePort addStream() Unable to create attachment for port/connection %s/%s: %s" % (str(self.name),str(connId), str(e)))
+                           if  self.reportConnectionErrors(connId) :
+                               if self.logger:
+                                   self.logger.error("Unable to create attachment for port/connection %s/%s: %s" % (str(self.name),str(connId), str(e)))
 
             if not portListed: 
                 if self.sriDict.has_key(stream.streamId):
@@ -977,8 +1030,9 @@ class OutAttachablePort(OutPort):
                     try:
                        stream.createNewAttachment(connId,port)
                     except Exception, e:
-                        if self.logger:
-                            self.logger.error("bulkio.OutAttachablePort addStream() attachment failed for port/connection %s/%s: %s" % (str(self.name),str(connId), str(e)))
+                        if  self.reportConnectionErrors(connId) :
+                            if self.logger:
+                                self.logger.error("Unable to create attachment failed for port/connection %s/%s: %s" % (str(self.name),str(connId), str(e)))
 
             self.streamContainer.addStream(stream) 
         
@@ -1040,9 +1094,10 @@ class OutAttachablePort(OutPort):
                             if port != None:
                                 port.pushSRI(H, T)
                                 self.sriDict[H.streamID].connections.add(connId)
-                        except Exception:
-                            if self.logger:
-                                self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
+                        except Exception, e:
+                            if  self.reportConnectionErrors(connId) :
+                                if self.logger:
+                                    self.logger.error("PUSH-SRI (attachable) FAILED, PORT/CONNECTION  %s/%s", self.name, connId)
 
             if not portListed:
                 for connId, port in self.outConnections.items():
@@ -1050,9 +1105,10 @@ class OutAttachablePort(OutPort):
                         if port != None:
                             port.pushSRI(H, T)
                             self.sriDict[H.streamID].connections.add(connId)
-                    except Exception:
-                        if self.logger:
-                            self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
+                    except Exception, e:
+                        if  self.reportConnectionErrors(connId) :
+                            if self.logger:
+                                self.logger.error("PUSH-SRI (attachable) FAILED, PORT/CONNECTION  %s/%s", self.name, connId)
         finally:
             self.port_lock.release() 
 

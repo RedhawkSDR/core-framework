@@ -64,7 +64,7 @@ public class OutFilePort extends OutPortBase<dataFileOperations> {
 		       ConnectionEventListener  eventCB ) {
         super(portName, logger, eventCB);
         filterTable = null;
-        if ( this.logger != null ) {
+	if ( this.logger != null ) {
             this.logger.debug( "bulkio.OutPort CTOR port: " + portName ); 
         }
     }
@@ -141,10 +141,12 @@ public class OutFilePort extends OutPortBase<dataFileOperations> {
 				p.getValue().pushSRI(header);
                                 //Update entry in currentSRIs
                                 this.currentSRIs.get(header.streamID).connections.add(p.getKey());
-
+                                this.updateStats(p.getKey());
                             } catch(Exception e) {
-                                if ( logger != null ) {
-				    logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                if ( this.reportConnectionErrors(p.getKey()) ) {
+                                    if ( logger != null ) {
+                                        logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                    }
                                 }
                             }
                         }
@@ -162,9 +164,12 @@ public class OutFilePort extends OutPortBase<dataFileOperations> {
 			    p.getValue().pushSRI(header);
                             //Update entry in currentSRIs
                             this.currentSRIs.get(header.streamID).connections.add(p.getKey());
+                            this.updateStats(p.getKey());
 			} catch(Exception e) {
-			    if ( logger != null ) {
-				logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                            if ( this.reportConnectionErrors( p.getKey() ) ) {
+                                if ( logger != null ) {
+                                    logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                }
 			    }
                         }
                     }
@@ -226,8 +231,10 @@ public class OutFilePort extends OutPortBase<dataFileOperations> {
                                 p.getValue().pushPacket( odata, time, endOfStream, streamID);
                                 this.stats.get(p.getKey()).update( odata.length(), (float)0.0, endOfStream, streamID, false);
                             } catch(Exception e) {
-                                if ( logger != null ) {
-                                    logger.error("Call to pushPacket failed on port " + name + " connection " + p.getKey() );
+                                if ( this.reportConnectionErrors( p.getKey() ) ) {
+                                    if ( logger != null ) {
+                                        logger.error("Call to pushPacket failed on port " + name + " connection " + p.getKey() );
+                                    }
                                 }
                             }
                         }
@@ -245,8 +252,10 @@ public class OutFilePort extends OutPortBase<dataFileOperations> {
                             p.getValue().pushPacket( odata, time, endOfStream, streamID);
                             this.stats.get(p.getKey()).update( odata.length(), (float)0.0, endOfStream, streamID, false);
                         } catch(Exception e) {
-                            if ( logger != null ) {
-                                logger.error("Call to pushPacket failed on port " + name + " connection " + p.getKey() );
+                            if ( this.reportConnectionErrors( p.getKey() ) ) {
+                                if ( logger != null ) {
+                                    logger.error("Call to pushPacket failed on port " + name + " connection " + p.getKey() );
+                                }
                             }
                         }
                     }
@@ -337,9 +346,12 @@ public class OutFilePort extends OutPortBase<dataFileOperations> {
 					 (ftPtr.stream_id.getValue().equals(streamID))) {
                                     try {
                                         port.pushPacket(odata,tstamp,true,streamID);
+                                        this.updateStats(connectionId);
                                     } catch(Exception e) {
-                                        if ( logger != null ) {
-                                            logger.error("Call to pushPacket failed on port " + name + " connection " + connectionId );
+                                        if ( this.reportConnectionErrors( connectionId ) ) {
+                                            if ( logger != null ) {
+                                                logger.error("Call to pushPacket failed on port " + name + " connection " + connectionId );
+                                            }
                                         }
                                     }
                                 }
@@ -347,9 +359,13 @@ public class OutFilePort extends OutPortBase<dataFileOperations> {
                         } else {
                             try {
                                 port.pushPacket(odata,tstamp,true,streamID);
+                                this.updateStats(connectionId);
                             } catch(Exception e) {
-                                if ( logger != null ) {
-                                    logger.error("Call to pushPacket failed on port " + name + " connection " + connectionId );
+                                if ( this.reportConnectionErrors( connectionId ) ) {
+                                    if ( logger != null ) {
+                                        logger.error("Call to pushPacket failed on port " + name + " connection " + connectionId );
+                                    }
+                                    
                                 }
                             }
                         }

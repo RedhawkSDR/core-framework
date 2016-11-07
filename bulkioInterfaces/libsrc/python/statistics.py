@@ -131,15 +131,29 @@ class OutStats:
         self.name = name
         self.receivedStatistics_idx = {}
         self.activeStreamIDs = []
+        self.connection_errors={}
 
     def setEnabled(self, enableStats):
         self.enabled = enableStats
+
+    def connectionErrors(self, connection_id):
+        self.connection_errors.setdefault(connection_id,0)
+        return self.connection_errors[connection_id]
+
+    def connectionErrors(self, connection_id, n ):
+        self.connection_errors.setdefault(connection_id,0)
+        self.connection_errors[connection_id] = self.connection_errors[connection_id]+n
+        return self.connection_errors[connection_id]
     
     def remove(self, connectionId):
         if self.receivedStatistics.has_key(connectionId):
             self.receivedStatistics.pop(connectionId)
+        if self.connection_errors.has_key(connectionId):
+            self.connection_errors.pop(connectionId)
 
     def update(self, elementsReceived, queueSize, EOS, streamID, connectionId):
+        self.connection_errors.setdefault(connectionId,0)
+        self.connection_errors[connectionId]=0
         if not self.enabled:
             return
 

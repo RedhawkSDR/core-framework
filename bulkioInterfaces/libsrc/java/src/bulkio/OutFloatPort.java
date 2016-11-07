@@ -39,9 +39,10 @@ public class OutFloatPort extends OutDataPort<dataFloatOperations,float[]> {
 
     public OutFloatPort(String portName, Logger logger, ConnectionEventListener eventCB) {
         super(portName, logger, eventCB, new FloatSize());
-        if (this.logger != null) {
+	if ( this.logger != null ) {
             this.logger.debug("bulkio.OutPort CTOR port: " + portName); 
         }
+
     }
 
     protected dataFloatOperations narrow(final org.omg.CORBA.Object obj) {

@@ -169,9 +169,10 @@ public class InInt16Port extends BULKIO.jni.dataShortPOA implements org.ossie.co
 
 	sri_cmp = compareSRI;	
 	sriCallback = sriCallback;
-	if ( this.logger != null ) {
-	    this.logger.debug( "bulkio::InPort CTOR port: " + portName ); 
-	}	
+	if ( this.logger == null ) {
+            this.logger = Logger.getLogger("redhawk.bulkio.inport."+portName);
+        }
+        this.logger.debug( "bulkio::InPort CTOR port: " + portName ); 
     }
 
     public void setLogger( Logger newlogger ){
