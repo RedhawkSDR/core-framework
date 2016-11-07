@@ -51,6 +51,7 @@ class BlueFileHelpers(unittest.TestCase):
     def setUp(self):
         try:
             import bulkio
+            globals()['bulkio'] = bulkio
         except ImportError:
             raise ImportError('BULKIO is required for this test')
         self._tempfiles = []
@@ -61,7 +62,7 @@ class BlueFileHelpers(unittest.TestCase):
                 os.unlink(tempfile)
             except:
                 pass
-        sb.domainless._getSandbox().shutdown()
+        sb.release()
 
     def test_FileSink(self):
         self._test_FileSink('SB')
@@ -153,3 +154,80 @@ class BlueFileHelpers(unittest.TestCase):
         self._test_FileSource('CL')
         self._test_FileSource('CF')
         self._test_FileSource('CD')
+
+    def _test_FileSinkType2000(self, format, subsize):
+        filename = self._tempfileName('sink_2000_%s' % format)
+
+        complexData = format.startswith('C')
+        typecode = format[1]
+        dataFormat, dataType = self.TYPEMAP[typecode]
+
+        sink = sb.FileSink(filename, midasFile=True)
+        sb.start()
+
+        # Manually create our own SRI, because DataSource doesn't support
+        # setting the Y-axis fields
+        sri = bulkio.sri.create('test_stream')
+        if complexData:
+            sri.mode = 1
+        else:
+            sri.mode = 0
+        sri.subsize = subsize
+        sri.ystart = subsize / -2.0
+        sri.ydelta = 1.0
+        sri.yunits = 3
+
+        # Generate test data; unlike the type 1000 tests, we have to generate
+        # input data compatible with CORBA because we're bypassing DataSource
+        frames = 4
+        samples = subsize * frames
+        if complexData:
+            samples *= 2
+        if dataFormat == 'char':
+            indata = numpy.arange(samples, dtype=numpy.int8)
+            packet = indata.tostring()
+        else:
+            indata = [dataType(x) for x in xrange(samples)]
+            packet = indata
+
+        # Push the SRI and data directly to the sink's port
+        port = sink.getPort(dataFormat + 'In')
+        port.pushSRI(sri)
+        port.pushPacket(packet, bulkio.timestamp.now(), True, sri.streamID)
+
+        sink.waitForEOS()
+
+        hdr, outdata = bluefile.read(filename)
+        self.assertEqual(hdr['format'], format)
+        self.assertEqual(hdr['subsize'], subsize)
+        self.assertEqual(hdr['ystart'], sri.ystart)
+        self.assertEqual(hdr['ydelta'], sri.ydelta)
+        self.assertEqual(hdr['yunits'], sri.yunits)
+        self.assertEqual(len(outdata), frames)
+
+        if complexData:
+            if dataFormat == 'float':
+                indata = numpy.array(indata, dtype=numpy.float32).view(numpy.complex64)
+                indata = numpy.reshape(indata, (-1, subsize))
+            elif dataFormat == 'double':
+                indata = numpy.array(indata, dtype=numpy.float64).view(numpy.complex128)
+                indata = numpy.reshape(indata, (-1, subsize))
+            else:
+                indata = numpy.reshape(indata, (-1, subsize, 2))
+        else:
+            indata = numpy.reshape(indata, (-1, subsize))
+
+        self.assertTrue(numpy.array_equal(indata, outdata), msg="Format '%s' %s != %s" % (format, indata, outdata))
+
+    def test_FileSinkType2000(self):
+        self._test_FileSinkType2000('SB', 16)
+        self._test_FileSinkType2000('SI', 1024)
+        self._test_FileSinkType2000('SL', 1024)
+        self._test_FileSinkType2000('SF', 1024)
+        self._test_FileSinkType2000('SD', 1024)
+
+        self._test_FileSinkType2000('CB', 32)
+        self._test_FileSinkType2000('CI', 512)
+        self._test_FileSinkType2000('CL', 512)
+        self._test_FileSinkType2000('CF', 512)
+        self._test_FileSinkType2000('CD', 512)

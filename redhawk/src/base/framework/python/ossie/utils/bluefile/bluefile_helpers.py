@@ -125,6 +125,7 @@ def sri_to_hdr(sri, data_type, data_format):
     kwds['xdelta'] = sri.xdelta
     kwds['xunits'] = sri.xunits
     
+    kwds['subsize'] = sri.subsize
     kwds['ystart'] = sri.ystart
     kwds['ydelta'] = sri.ydelta
     kwds['yunits'] = sri.yunits
@@ -489,9 +490,19 @@ class BlueFileWriter(object):
                     data = bulkio_helpers.bulkioComplexToPythonComplexList(data)
                 # other data types are not handled by numpy
                 # each element is two value array representing real and imaginary values
-                else:
+                # if data is also framed, wait to reshape everything at once
+                elif self.header['subsize'] == 0:
                     # Need to rehape the data into complex value pairs
                     data = numpy.reshape(data,(-1,2))
+
+            # If framed data, need to frame the data according to subsize
+            if self.header and self.header['subsize'] != 0:
+                # If scalar or single complex values, just frame it
+                if self.header['format'][0] != 'C' or  self.header['format'][1] in ('F', 'D'):
+                    data = numpy.reshape(data,(-1, int(self.header['subsize'])))
+                # otherwise, frame and pair as complex values
+                else:
+                    data = numpy.reshape(data,(-1, int(self.header['subsize']), 2))
 
             bluefile.write(self.outFile, hdr=None, data=data, 
                        append=1)     
