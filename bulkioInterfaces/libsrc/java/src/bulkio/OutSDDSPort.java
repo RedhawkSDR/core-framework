@@ -82,8 +82,11 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
 		       Logger logger,
 		       ConnectionEventListener  eventCB ) {
         super(portName, logger, eventCB);
-        this.streamContainer = new SDDSStreamContainer();
+        this.streamContainer = new SDDSStreamContainer(this);
         this.userId = new String("defaultUserId");
+	if ( this.logger == null ) {
+            this.logger = Logger.getLogger("redhawk.bulkio.outport."+portName);
+        }
 	if ( this.logger != null ) {
 	    this.logger.debug( "bulkio::OutPort CTOR port: " + portName ); 
             this.streamContainer.setLogger(logger);
@@ -176,9 +179,12 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
                                 p.getValue().pushSRI(header, time);
                                 //Update entry in currentSRIs
                                 this.currentSRIs.get(header.streamID).connections.add(p.getKey());
+                                this.updateStats(p.getKey());
                             } catch(Exception e) {
-                                if ( logger != null ) {
-                                    logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                if (  this.reportConnectionErrors( p.getKey() ) ) {
+                                    if ( logger != null ) {
+                                        logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                    }
                                 }
                             }
                         }
@@ -196,9 +202,12 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
                             p.getValue().pushSRI(header, time);
                             //Update entry in currentSRIs
                             this.currentSRIs.get(header.streamID).connections.add(p.getKey());
+                            this.updateStats(p.getKey());
                         } catch(Exception e) {
-                            if ( logger != null ) {
-                                logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                            if (  this.reportConnectionErrors( p.getKey() ) ) {
+                                if ( logger != null ) {
+                                    logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                }
                             }
                         }
                     }
@@ -251,7 +260,7 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
             // Keep track of which attachments are supposed to exist
             if (this.streamContainer.hasStreamId(ftPtr.stream_id.getValue())){
                 streamsFound.put(ftPtr.stream_id.getValue(),Boolean.TRUE);
-                SDDSStreamAttachment expectedAttachment = new SDDSStreamAttachment(ftPtr.connection_id.getValue(),connectedPort);
+                SDDSStreamAttachment expectedAttachment = new SDDSStreamAttachment(ftPtr.connection_id.getValue(),connectedPort,this);
                 ArrayList<SDDSStreamAttachment> streamAttList;
                 if (streamAttMap.get(ftPtr.stream_id.getValue()) == null){
                     streamAttList = new ArrayList<SDDSStreamAttachment>();
@@ -621,7 +630,7 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
                 //if stream already exists return false
                 return false;
             }else{
-                stream = new SDDSStream(streamDef, this.userId, streamDef.id, null, null, null);
+                stream = new SDDSStream(streamDef, this.userId, streamDef.id, null, null, null, this);
                 this.streamContainer.addStream(stream);
             }
 
@@ -643,7 +652,8 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
                             stream.setSRI(sriMap.sri);
                             stream.setTime(sriMap.time);
                         }
-                        stream.createNewAttachment(p.getKey(), p.getValue());
+
+                        stream.createNewAttachment(p.getKey(), p.getValue(), this );
                     } 
                 }
             }
@@ -654,7 +664,7 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
                     stream.setTime(sriMap.time);
                 }
                 for (Entry<String, dataSDDSOperations> p : this.outConnections.entrySet()) {
-                    stream.createNewAttachment(p.getKey(),p.getValue());
+                    stream.createNewAttachment(p.getKey(),p.getValue(), this );
                 }
             }
         }

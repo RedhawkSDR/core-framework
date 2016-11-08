@@ -360,6 +360,10 @@ namespace bulkio {
     // different notions of size
     //
     size_t _dataLength(PushArgumentType data);
+
+
+    bool   reportConnectionErrors( const std::string &cid );
+
   };
 
   

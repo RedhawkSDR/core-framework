@@ -61,11 +61,13 @@ public class linkStatistics  {
     protected double flushTime;
     /** @generated */
     protected String portName;
+    protected int    connection_errors;
 
     public linkStatistics(String portName, int sizeof) {
 	this.sizeof = sizeof;
 	this.enabled = true;
 	this.bitSize = this.sizeof * 8.0;
+        this.connection_errors=0;
 	this.historyWindow = 10;
 	this.flushTime = 0.0;
 	this.receivedStatistics_idx = 0;
@@ -112,7 +114,23 @@ public class linkStatistics  {
     /**
      * @generated
      */
+    int   connectionErrors( int n ) {
+        connection_errors += n;
+        return connection_errors;
+    }
+
+    /**
+     * @generated
+     */
+    void  resetConnectionErrors() {
+          connection_errors =0;
+    }
+
+    /**
+     * @generated
+     */
     public void update(int elementsReceived, float queueSize, boolean EOS, String streamID, boolean flush) {
+        connection_errors=0;
 	if (!this.enabled) {
 	    return;
 	}

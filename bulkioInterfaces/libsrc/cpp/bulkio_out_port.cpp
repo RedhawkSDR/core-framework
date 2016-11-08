@@ -46,6 +46,12 @@ namespace  bulkio {
     logger(logger)
   {
 
+    if ( !logger ) {
+        std::string pname("redhawk.bulkio.outport.");
+        pname = pname + port_name;
+        logger = rh_logger::Logger::getLogger(pname);
+    }
+
     if ( connectCB ) {
       _connectCB = boost::shared_ptr< ConnectionEventListener >( connectCB, null_deleter() );
     }
@@ -67,10 +73,13 @@ namespace  bulkio {
   OutPortBase< PortTraits >::OutPortBase(std::string port_name,
                                          ConnectionEventListener *connectCB,
                                          ConnectionEventListener *disconnectCB ) :
-    Port_Uses_base_impl(port_name),
-    logger()
+      Port_Uses_base_impl(port_name),
+      logger()
   {
 
+    std::string pname("redhawk.bulkio.outport.");
+    pname = pname + port_name;
+    logger = rh_logger::Logger::getLogger(pname);
     if ( connectCB ) {
       _connectCB = boost::shared_ptr< ConnectionEventListener >( connectCB, null_deleter() );
     }
@@ -124,12 +133,27 @@ namespace  bulkio {
           continue;
         }
 
+        std::string cid = i->second;
         LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << i->second << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
         try {
           i->first->pushSRI(H);
           sri_iter->second.connections.insert( i->second );
+        } catch( CORBA::TRANSIENT &ex ) {
+            if ( reportConnectionErrors(cid) ) {
+                LOG_ERROR( logger, "PUSH-SRI FAILED (Transient), PORT/CONNECTION: " << name << "/" << cid );
+            }
+        } catch( CORBA::COMM_FAILURE &ex) {
+            if ( reportConnectionErrors(cid) ) {
+                LOG_ERROR( logger, "PUSH-SRI FAILED (CommFailure), PORT/CONNECTION: " << name << "/" << cid); 
+            }
+        } catch( CORBA::SystemException &ex) {
+            if ( reportConnectionErrors(cid) ) {
+                LOG_ERROR( logger, "PUSH-SRI FAILED (SystemException), PORT/CONNECTION: " << name << "/" << cid );
+            }
         } catch(...) {
-          LOG_ERROR( logger, "PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << i->second );
+            if ( reportConnectionErrors(cid) ) {
+                LOG_ERROR( logger, "PUSH-SRI FAILED, (UnknownException), PORT/CONNECTION: " << name << "/" << cid );
+            }
         }
       }
     }
@@ -233,8 +257,22 @@ namespace  bulkio {
           try {
             _pushPacketToPort(port->first, data, T, EOS, streamID.c_str());
             stats[port->second].update(length, 0, EOS, streamID);
+          } catch( CORBA::TRANSIENT &ex) {
+              if ( reportConnectionErrors(port->second) ) {
+                  LOG_ERROR( logger, "PUSH-PACKET FAILED (Transient), PORT/CONNECTION: " << name << "/" << port->second );
+              }
+          } catch( CORBA::COMM_FAILURE &ex) {
+              if ( reportConnectionErrors(port->second) ) {
+                  LOG_ERROR( logger, "PUSH-PACKET FAILED (CommFailure), PORT/CONNECTION: " << name << "/" << port->second );
+              }
+          } catch( CORBA::SystemException &ex) {
+              if ( reportConnectionErrors(port->second) ) {
+                  LOG_ERROR( logger, "PUSH-PACKET FAILED (SystemFailure), PORT/CONNECTION: " << name << "/" << port->second );
+              }
           } catch(...) {
-            LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
+              if ( reportConnectionErrors(port->second) ) {
+                  LOG_ERROR( logger, "PUSH-PACKET FAILED, (UnknownException), PORT/CONNECTION: " << name << "/" << port->second );
+              }
           }
         }
       }
@@ -358,8 +396,7 @@ namespace  bulkio {
             if (_isStreamRoutedToConnection(cSriSid, cid)) {
               try {
                 _sendEOS(ii->first, cSriSid);
-              } catch (...) {
-                // Ignore all exceptions; the receiver may be dead
+              } catch(...) {
               }
             }
           }
@@ -392,14 +429,29 @@ namespace  bulkio {
     // assume parent will lock us...
     if ( connPair != outConnections.end() ) {
 
+        std::string cid = connPair->second;
       // push SRI over port instance
       try {
-	connPair->first->pushSRI(sri_ctx.sri);
-	sri_ctx.connections.insert( connPair->second );
-	LOG_TRACE( logger, "_pushSRI()  connection_id/streamID " << connPair->second << "/" << sri_ctx.sri.streamID );
+          connPair->first->pushSRI(sri_ctx.sri);
+          sri_ctx.connections.insert( connPair->second );
+          LOG_TRACE( logger, "_pushSRI()  connection_id/streamID " << connPair->second << "/" << sri_ctx.sri.streamID );
+      } catch( CORBA::TRANSIENT &ex ) {
+          if ( reportConnectionErrors(cid) ) {
+              LOG_ERROR( logger, "PUSH-SRI FAILED (Transient), PORT/CONNECTION: " << name << "/" << cid );
+          }
+      } catch( CORBA::COMM_FAILURE &ex) {
+          if ( reportConnectionErrors(cid) ) {
+              LOG_ERROR( logger, "PUSH-SRI FAILED (CommFailure), PORT/CONNECTION: " << name << "/" << cid); 
+          }
+      } catch( CORBA::SystemException &ex) {
+          if ( reportConnectionErrors(cid) ) {
+              LOG_ERROR( logger, "PUSH-SRI FAILED (SystemException), PORT/CONNECTION: " << name << "/" << cid );
+          }
       } catch(...) {
-	LOG_ERROR( logger, "_pushSRI() PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << connPair->second );
-      }      
+          if ( reportConnectionErrors(cid) ) {
+              LOG_ERROR( logger, "PUSH-SRI FAILED, (UnknownException), PORT/CONNECTION: " << name << "/" << cid );
+          }
+      }
     }
 
     TRACE_EXIT(logger, "OutPort::_pushSRI" );
@@ -424,6 +476,19 @@ namespace  bulkio {
     return;
   }
 
+
+  template < typename PortTraits >
+  bool  OutPortBase< PortTraits >::reportConnectionErrors( const std::string &cid )
+  {
+    TRACE_ENTER(logger, "OutPort::reportConnectionErrors" );
+    bool retval=false;
+    try {
+        retval = stats[cid].connectionErrors(1) < 11;
+    }
+    catch(...)
+        {}
+    return retval;
+  }
 
   template < typename PortTraits >
   bulkio::SriMap  OutPortBase< PortTraits >::getCurrentSRI()

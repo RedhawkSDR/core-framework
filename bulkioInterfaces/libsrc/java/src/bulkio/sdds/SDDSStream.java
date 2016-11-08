@@ -23,6 +23,7 @@ import BULKIO.StreamSRI;
 import BULKIO.SDDSStreamDefinition;
 import BULKIO.dataSDDSOperations;
 import bulkio.sdds.SDDSStreamAttachment;
+import bulkio.OutSDDSPort;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.HashSet;
@@ -39,23 +40,23 @@ import org.apache.log4j.Logger;
 //
 public class SDDSStream {
         public SDDSStream()  {
-            this(null, null, null, null, null, null);
+            this(null, null, null, null, null, null,null);
         }
 
         public SDDSStream(BULKIO.SDDSStreamDefinition streamDef)  {
-            this(streamDef, null , streamDef.id, null, null, null);
+            this(streamDef, null , streamDef.id, null, null, null,null);
         }
 
         public SDDSStream(BULKIO.SDDSStreamDefinition streamDef, String name)  {
-            this(streamDef, name, streamDef.id, null, null, null);
+            this(streamDef, name, streamDef.id, null, null, null,null);
         }
 
         public SDDSStream(BULKIO.SDDSStreamDefinition streamDef, String name, String streamId)  {
-            this(streamDef, name, streamId, null, null, null);
+            this(streamDef, name, streamId, null, null, null,null);
             logger = null;
         }
 
-        public SDDSStream(BULKIO.SDDSStreamDefinition streamDef, String name, String streamId, SDDSStreamAttachment[] streamAttachments, StreamSRI sri, PrecisionUTCTime time)  {
+    public SDDSStream(BULKIO.SDDSStreamDefinition streamDef, String name, String streamId, SDDSStreamAttachment[] streamAttachments, StreamSRI sri, PrecisionUTCTime time, OutSDDSPort p)  {
             this.streamDef = streamDef;
             this.name = name;
             this.streamId = streamId;
@@ -66,6 +67,7 @@ public class SDDSStream {
             }
             this.sri = sri;
             this.time = time;
+            this.bio_port = p;
         }
 
         // detach all attachments with given attachId and connectionId for this stream
@@ -118,8 +120,45 @@ public class SDDSStream {
         }
 
         public void createNewAttachment(String connectionId, dataSDDSOperations inputPort) throws AttachError, StreamInputError {
-            SDDSStreamAttachment newAttachment = new SDDSStreamAttachment(connectionId, inputPort);
-            newAttachment.attachId = newAttachment.inputPort.attach(this.streamDef, this.name);
+            SDDSStreamAttachment newAttachment = new SDDSStreamAttachment(connectionId, inputPort, this.bio_port);
+            try {
+                newAttachment.attachId = newAttachment.inputPort.attach(this.streamDef, this.name);
+                if ( this.bio_port != null ) {
+                    this.bio_port.updateStats(connectionId);
+                }
+            } catch( AttachError e ) {
+                throw e;
+            } catch( StreamInputError e ) {
+                throw e;
+            } catch( Exception e ) {
+                String msg = " Unable to create attachment for CONNECTION: " + connectionId;
+                if ( this.bio_port != null ) {
+                    this.bio_port.reportConnectionErrors( connectionId, msg );
+                }
+           }
+            
+            this.streamAttachments.add(newAttachment);
+        }
+
+
+        public void createNewAttachment(String connectionId, dataSDDSOperations inputPort, OutSDDSPort bio_port ) throws AttachError, StreamInputError {
+            SDDSStreamAttachment newAttachment = new SDDSStreamAttachment(connectionId, inputPort, bio_port);
+            try {
+                newAttachment.attachId = newAttachment.inputPort.attach(this.streamDef, this.name);
+                if ( bio_port != null ) {
+                    bio_port.updateStats(connectionId);
+                }
+            } catch( AttachError e ) {
+                throw e;
+            } catch( StreamInputError e ) {
+                throw e;
+            } catch( Exception e ) {
+                String msg = " Unable to create attachment for CONNECTION: " + connectionId;
+                if ( bio_port != null ) {
+                    bio_port.reportConnectionErrors( connectionId, msg );
+                }
+           }
+            
             this.streamAttachments.add(newAttachment);
         }
 
@@ -247,7 +286,7 @@ public class SDDSStream {
             // Add new attachments that do not already exist
             for (SDDSStreamAttachment att: expectedAttachments){
                 if (!this.hasConnectionId(att.getConnectionId())){
-                    this.createNewAttachment(att.getConnectionId(), att.getInputPort());
+                    this.createNewAttachment(att.getConnectionId(), att.getInputPort(), this.bio_port );
                 }
                 expectedConnectionIds.add(att.getConnectionId());
             }
@@ -289,4 +328,5 @@ public class SDDSStream {
         protected StreamSRI sri;
         protected PrecisionUTCTime time; 
         protected Logger logger;
+        protected OutSDDSPort bio_port = null;
 };

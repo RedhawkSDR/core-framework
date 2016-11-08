@@ -178,6 +178,10 @@ namespace bulkio {
 
       virtual BULKIO::PortStatistics retrieve();
 
+      virtual uint64_t connectionErrors() { return connection_errors; };
+      virtual uint64_t connectionErrors( const uint64_t n );
+      virtual void     resetConnectionErrors() { connection_errors=0; };
+
      protected:
 
       struct statPoint {
@@ -196,6 +200,7 @@ namespace bulkio {
       StreamIDList activeStreamIDs;
       unsigned long historyWindow;
       int receivedStatistics_idx;
+      uint64_t connection_errors;
 
       double flush_sec;                   // track time since last queue flush happened
       double flush_usec;                  // track time since last queue flush happened

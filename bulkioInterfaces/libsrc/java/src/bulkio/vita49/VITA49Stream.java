@@ -23,6 +23,7 @@ import BULKIO.StreamSRI;
 import BULKIO.VITA49StreamDefinition;
 import BULKIO.dataVITA49Operations;
 import bulkio.vita49.VITA49StreamAttachment;
+import bulkio.OutVITA49Port;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.HashSet;
@@ -39,23 +40,23 @@ import org.apache.log4j.Logger;
 //
 public class VITA49Stream {
         public VITA49Stream()  {
-            this(null, null, null, null, null, null);
+            this(null, null, null, null, null, null, null);
         }
 
         public VITA49Stream(BULKIO.VITA49StreamDefinition streamDef)  {
-            this(streamDef, null , streamDef.id, null, null, null);
+            this(streamDef, null , streamDef.id, null, null, null, null);
         }
 
         public VITA49Stream(BULKIO.VITA49StreamDefinition streamDef, String name)  {
-            this(streamDef, name, streamDef.id, null, null, null);
+            this(streamDef, name, streamDef.id, null, null, null, null);
         }
 
         public VITA49Stream(BULKIO.VITA49StreamDefinition streamDef, String name, String streamId)  {
-            this(streamDef, name, streamId, null, null, null);
+            this(streamDef, name, streamId, null, null, null, null);
             logger = null;
         }
 
-        public VITA49Stream(BULKIO.VITA49StreamDefinition streamDef, String name, String streamId, VITA49StreamAttachment[] streamAttachments, StreamSRI sri, PrecisionUTCTime time)  {
+    public VITA49Stream(BULKIO.VITA49StreamDefinition streamDef, String name, String streamId, VITA49StreamAttachment[] streamAttachments, StreamSRI sri, PrecisionUTCTime time, OutVITA49Port bport )  {
             this.streamDef = streamDef;
             this.name = name;
             this.streamId = streamId;
@@ -66,6 +67,7 @@ public class VITA49Stream {
             }
             this.sri = sri;
             this.time = time;
+            this.bio_port = bport;
         }
 
         // detach all attachments with given attachId and connectionId for this stream
@@ -118,8 +120,44 @@ public class VITA49Stream {
         }
 
         public void createNewAttachment(String connectionId, dataVITA49Operations inputPort) throws AttachError, StreamInputError {
-            VITA49StreamAttachment newAttachment = new VITA49StreamAttachment(connectionId, inputPort);
-            newAttachment.attachId = newAttachment.inputPort.attach(this.streamDef, this.name);
+            VITA49StreamAttachment newAttachment = new VITA49StreamAttachment(connectionId, inputPort, this.bio_port);
+            try {
+                newAttachment.attachId = newAttachment.inputPort.attach(this.streamDef, this.name);
+                if ( this.bio_port != null ) {
+                    this.bio_port.updateStats( connectionId );
+                }
+
+            } catch( AttachError e ) {
+                throw e;
+            } catch( StreamInputError e ) {
+                throw e;
+            } catch( Exception e ) {
+                String msg = " Unable to create attachment for CONNECTION: " + connectionId;
+                if ( this.bio_port != null ) {
+                    this.bio_port.reportConnectionErrors( connectionId, msg );
+                }
+           }
+            this.streamAttachments.add(newAttachment);
+        }
+
+    public void createNewAttachment(String connectionId, dataVITA49Operations inputPort, OutVITA49Port bio_port ) throws AttachError, StreamInputError {
+            VITA49StreamAttachment newAttachment = new VITA49StreamAttachment(connectionId, inputPort, bio_port);
+            try {
+                newAttachment.attachId = newAttachment.inputPort.attach(this.streamDef, this.name);
+                if ( bio_port != null ) {
+                     bio_port.updateStats( connectionId );
+                }
+
+            } catch( AttachError e ) {
+                throw e;
+            } catch( StreamInputError e ) {
+                throw e;
+            } catch( Exception e ) {
+                String msg = " Unable to create attachment for CONNECTION: " + connectionId;
+                if ( bio_port != null ) {
+                   bio_port.reportConnectionErrors( connectionId, msg );
+                }
+           }
             this.streamAttachments.add(newAttachment);
         }
 
@@ -247,7 +285,7 @@ public class VITA49Stream {
             // Add new attachments that do not already exist
             for (VITA49StreamAttachment att: expectedAttachments){
                 if (!this.hasConnectionId(att.getConnectionId())){
-                    this.createNewAttachment(att.getConnectionId(), att.getInputPort());
+                    this.createNewAttachment(att.getConnectionId(), att.getInputPort(), this.bio_port );
                 }
                 expectedConnectionIds.add(att.getConnectionId());
             }
@@ -289,4 +327,5 @@ public class VITA49Stream {
         protected StreamSRI sri;
         protected PrecisionUTCTime time; 
         protected Logger logger;
+        protected OutVITA49Port  bio_port = null;
 };

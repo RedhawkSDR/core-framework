@@ -96,6 +96,7 @@ namespace  bulkio {
     runningStats.timeSinceLastCall = -1;
     flush_sec = 0;
     flush_usec = 0;
+    connection_errors=0;
   }
 
 
@@ -117,6 +118,7 @@ namespace  bulkio {
     runningStats.timeSinceLastCall = -1;
     flush_sec = 0;
     flush_usec = 0;
+    connection_errors=0;
   }
 
 
@@ -128,7 +130,16 @@ namespace  bulkio {
     bitSize = inBitSize;
   }
 
+  uint64_t linkStatistics::connectionErrors( const uint64_t n) {
+      connection_errors += n;
+      return connection_errors;
+  }
+
   void linkStatistics::update(unsigned int elementsReceived, float queueSize, bool EOS, const std::string &streamID, bool flush ) {
+
+    // reset error counter;
+    connection_errors=0;
+
     if (!enabled) {
       return;
     }

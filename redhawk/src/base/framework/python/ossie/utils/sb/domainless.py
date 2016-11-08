@@ -656,7 +656,7 @@ def loadSADFile(filename, props={}):
             componentPlacements.extend(hostCollocation.get_componentplacement())
 
 
-        log.debug("Creating start order for: ", filename )
+        log.debug("Creating start order for: %s", filename )
         startorder={}
         for c in componentPlacements:
             log.debug("COMPONENT PLACEMENT component instantiation id '%s'", c.get_componentinstantiation()[0].id_)
