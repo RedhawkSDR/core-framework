@@ -51,6 +51,7 @@ class BlueFileHelpers(unittest.TestCase):
     def setUp(self):
         try:
             import bulkio
+            globals()['bulkio'] = bulkio
         except ImportError:
             raise ImportError('BULKIO is required for this test')
         self._tempfiles = []
@@ -61,7 +62,7 @@ class BlueFileHelpers(unittest.TestCase):
                 os.unlink(tempfile)
             except:
                 pass
-        sb.domainless._getSandbox().shutdown()
+        sb.release()
 
     def test_FileSink(self):
         self._test_FileSink('SB')
@@ -110,6 +111,23 @@ class BlueFileHelpers(unittest.TestCase):
                 outdata = outdata.flatten()
         self.assertTrue(numpy.array_equal(indata, outdata), msg="Format '%s' %s != %s" % (format, indata, outdata))
 
+    def _generateSourceData(self, format, size):
+        if format in ('CF', 'CD'):
+            return [complex(x) for x in xrange(size)]
+
+        complexData = format.startswith('C')
+        typecode = format[1]
+        dataFormat, dataType = self.TYPEMAP[typecode]
+
+        samples = size
+        if complexData:
+            samples *= 2
+        data = [dataType(x) for x in xrange(samples)]
+        if complexData:
+            data = numpy.reshape(data, (size,2))
+
+        return data
+
     def _test_FileSource(self, format):
         filename = self._tempfileName('source_%s' % format)
 
@@ -117,12 +135,7 @@ class BlueFileHelpers(unittest.TestCase):
         typecode = format[1]
         dataFormat, dataType = self.TYPEMAP[typecode]
 
-        indata = [dataType(x) for x in xrange(16)]
-        if complexData:
-            if dataFormat in ('float', 'double'):
-                indata = [complex(x) for x in indata]
-            else:
-                indata = numpy.reshape(indata, (8,2))
+        indata = self._generateSourceData(format, 16)
         hdr = bluefile.header(1000, format)
         bluefile.write(filename, hdr, indata)
 
@@ -153,3 +166,125 @@ class BlueFileHelpers(unittest.TestCase):
         self._test_FileSource('CL')
         self._test_FileSource('CF')
         self._test_FileSource('CD')
+
+    def _test_FileSinkType2000(self, format, subsize):
+        filename = self._tempfileName('sink_2000_%s' % format)
+
+        complexData = format.startswith('C')
+        typecode = format[1]
+        dataFormat, dataType = self.TYPEMAP[typecode]
+
+        sink = sb.FileSink(filename, midasFile=True)
+        sb.start()
+
+        # Manually create our own SRI, because DataSource doesn't support
+        # setting the Y-axis fields
+        sri = bulkio.sri.create('test_stream')
+        if complexData:
+            sri.mode = 1
+        else:
+            sri.mode = 0
+        sri.subsize = subsize
+        sri.ystart = subsize / -2.0
+        sri.ydelta = 1.0
+        sri.yunits = 3
+
+        # Generate test data; unlike the type 1000 tests, we have to generate
+        # input data compatible with CORBA because we're bypassing DataSource
+        frames = 4
+        samples = subsize * frames
+        if complexData:
+            samples *= 2
+        if dataFormat == 'char':
+            indata = numpy.arange(samples, dtype=numpy.int8)
+            packet = indata.tostring()
+        else:
+            indata = [dataType(x) for x in xrange(samples)]
+            packet = indata
+
+        # Push the SRI and data directly to the sink's port
+        port = sink.getPort(dataFormat + 'In')
+        port.pushSRI(sri)
+        port.pushPacket(packet, bulkio.timestamp.now(), True, sri.streamID)
+
+        sink.waitForEOS()
+
+        hdr, outdata = bluefile.read(filename)
+        self.assertEqual(hdr['format'], format)
+        self.assertEqual(hdr['subsize'], subsize)
+        self.assertEqual(hdr['ystart'], sri.ystart)
+        self.assertEqual(hdr['ydelta'], sri.ydelta)
+        self.assertEqual(hdr['yunits'], sri.yunits)
+        self.assertEqual(len(outdata), frames)
+
+        if complexData:
+            if dataFormat == 'float':
+                indata = numpy.array(indata, dtype=numpy.float32).view(numpy.complex64)
+                indata = numpy.reshape(indata, (-1, subsize))
+            elif dataFormat == 'double':
+                indata = numpy.array(indata, dtype=numpy.float64).view(numpy.complex128)
+                indata = numpy.reshape(indata, (-1, subsize))
+            else:
+                indata = numpy.reshape(indata, (-1, subsize, 2))
+        else:
+            indata = numpy.reshape(indata, (-1, subsize))
+
+        self.assertTrue(numpy.array_equal(indata, outdata), msg="Format '%s' %s != %s" % (format, indata, outdata))
+
+    def test_FileSinkType2000(self):
+        self._test_FileSinkType2000('SB', 16)
+        self._test_FileSinkType2000('SI', 1024)
+        self._test_FileSinkType2000('SL', 1024)
+        self._test_FileSinkType2000('SF', 1024)
+        self._test_FileSinkType2000('SD', 1024)
+
+        self._test_FileSinkType2000('CB', 32)
+        self._test_FileSinkType2000('CI', 512)
+        self._test_FileSinkType2000('CL', 512)
+        self._test_FileSinkType2000('CF', 512)
+        self._test_FileSinkType2000('CD', 512)
+
+    def _test_FileSourceType2000(self, format, subsize):
+        filename = self._tempfileName('source_2000_%s' % format)
+
+        complexData = format.startswith('C')
+        typecode = format[1]
+        dataFormat, dataType = self.TYPEMAP[typecode]
+
+        frames = 4
+        indata = [self._generateSourceData(format, subsize) for x in xrange(frames)]
+        hdr = bluefile.header(2000, format, subsize=subsize)
+        bluefile.write(filename, hdr, indata)
+
+        source = sb.FileSource(filename, midasFile=True, dataFormat=dataFormat)
+        sink = sb.DataSink()
+        source.connect(sink)
+        sb.start()
+        outdata = sink.getData(eos_block=True)
+        if complexData:
+            if format == 'CF':
+                outdata = numpy.array(outdata, dtype=numpy.float32).view(numpy.complex64)
+                outdata = numpy.reshape(outdata, (-1, subsize))
+            elif format == 'CD':
+                outdata = numpy.array(outdata, dtype=numpy.float64).view(numpy.complex128)
+                outdata = numpy.reshape(outdata, (-1, subsize))
+            else:
+                outdata = numpy.reshape(outdata, (-1, subsize, 2))
+            self.assertEqual(sink.sri().mode, 1)
+        else:
+            self.assertEqual(sink.sri().mode, 0)
+
+        self.assertTrue(numpy.array_equal(indata, outdata), msg="Format '%s' %s != %s" % (format, indata, outdata))
+
+    def test_FileSourceType2000(self):
+        self._test_FileSourceType2000('SB', 16)
+        self._test_FileSourceType2000('SI', 1024)
+        self._test_FileSourceType2000('SL', 1024)
+        self._test_FileSourceType2000('SF', 1024)
+        self._test_FileSourceType2000('SD', 1024)
+
+        self._test_FileSourceType2000('CB', 16)
+        self._test_FileSourceType2000('CI', 512)
+        self._test_FileSourceType2000('CL', 512)
+        self._test_FileSourceType2000('CF', 512)
+        self._test_FileSourceType2000('CD', 512)

@@ -64,10 +64,12 @@ def hdr_to_sri(hdr, stream_id):
         subsize = 0
         ystart = 0
         ydelta = 0
+        yunits = BULKIO.UNITS_NONE
     else:
-        subsize = str(data_type)[0]
+        subsize = hdr['subsize']
         ystart = hdr['ystart']  
         ydelta = hdr['ydelta']  
+        yunits = hdr['yunits']
     
     # The mode is based on the data type: 0 if is Scalar or 1 if it is 
     # Complex.  Setting it to -1 for any other type
@@ -97,7 +99,7 @@ def hdr_to_sri(hdr, stream_id):
                     continue
             
     return BULKIO.StreamSRI(hversion, xstart, xdelta, xunits, 
-                            subsize, ystart, ydelta, BULKIO.UNITS_NONE, 
+                            subsize, ystart, ydelta, yunits,
                             mode, stream_id, True, kwds)
         
 
@@ -119,6 +121,7 @@ def sri_to_hdr(sri, data_type, data_format):
     kwds['xdelta'] = sri.xdelta
     kwds['xunits'] = sri.xunits
     
+    kwds['subsize'] = sri.subsize
     kwds['ystart'] = sri.ystart
     kwds['ydelta'] = sri.ydelta
     kwds['yunits'] = sri.yunits
@@ -306,12 +309,17 @@ class BlueFileReader(object):
         start = 0           # stores the start of the packet
         end = start         # stores the end of the packet
 
-        if hdr['format'].startswith('C'):
-            data = data.flatten()
-            if hdr['format'].endswith('F'):
-                data = data.view(numpy.float32)
-            elif hdr['format'].endswith('D'):
-                data = data.view(numpy.float64)
+        # Flatten framed (type 2000) and/or complex data (where each element
+        # may be a 2-tuple)
+        if hdr['format'].startswith('C') or hdr['class'] == 2:
+            data = numpy.reshape(data,(-1,))
+
+        # For complex float/double, get a view of the data as the scalar type
+        # instead of the complex type
+        if hdr['format'] == 'CF':
+            data = data.view(numpy.float32)
+        elif hdr['format'] == 'CD':
+            data = data.view(numpy.float64)
 
         sz = len(data)      
         self.done = False
@@ -483,9 +491,19 @@ class BlueFileWriter(object):
                     data = bulkio_helpers.bulkioComplexToPythonComplexList(data)
                 # other data types are not handled by numpy
                 # each element is two value array representing real and imaginary values
-                else:
+                # if data is also framed, wait to reshape everything at once
+                elif self.header['subsize'] == 0:
                     # Need to rehape the data into complex value pairs
                     data = numpy.reshape(data,(-1,2))
+
+            # If framed data, need to frame the data according to subsize
+            if self.header and self.header['subsize'] != 0:
+                # If scalar or single complex values, just frame it
+                if self.header['format'][0] != 'C' or  self.header['format'][1] in ('F', 'D'):
+                    data = numpy.reshape(data,(-1, int(self.header['subsize'])))
+                # otherwise, frame and pair as complex values
+                else:
+                    data = numpy.reshape(data,(-1, int(self.header['subsize']), 2))
 
             bluefile.write(self.outFile, hdr=None, data=data, 
                        append=1)     
