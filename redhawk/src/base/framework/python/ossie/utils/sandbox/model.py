@@ -114,8 +114,13 @@ class SandboxResource(ComponentBase, SandboxMixin):
         self._sandbox._breakConnections(self)
         self._sandbox._unregisterComponent(self)
 
-        # Call superclass release, which calls the CORBA method.
-        super(SandboxResource,self).releaseObject()
+        try:
+            # Call superclass release, which calls the CORBA method.
+            super(SandboxResource,self).releaseObject()
+        except:
+            # Tolerate exceptions (e.g., the object has already been released)
+            # and continue on to ensure that the process still gets terminated.
+            pass
 
         # Allow the launcher to peform any follow-up cleanup.
         SandboxMixin._terminate(self)
