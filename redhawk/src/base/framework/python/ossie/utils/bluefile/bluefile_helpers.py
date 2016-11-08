@@ -70,10 +70,12 @@ def hdr_to_sri(hdr, stream_id):
         subsize = 0
         ystart = 0
         ydelta = 0
+        yunits = BULKIO.UNITS_NONE
     else:
-        subsize = str(data_type)[0]
+        subsize = hdr['subsize']
         ystart = hdr['ystart']  
         ydelta = hdr['ydelta']  
+        yunits = hdr['yunits']
     
     # The mode is based on the data type: 0 if is Scalar or 1 if it is 
     # Complex.  Setting it to -1 for any other type
@@ -103,7 +105,7 @@ def hdr_to_sri(hdr, stream_id):
                     continue
             
     return BULKIO.StreamSRI(hversion, xstart, xdelta, xunits, 
-                            subsize, ystart, ydelta, BULKIO.UNITS_NONE, 
+                            subsize, ystart, ydelta, yunits,
                             mode, stream_id, True, kwds)
         
 
@@ -313,12 +315,17 @@ class BlueFileReader(object):
         start = 0           # stores the start of the packet
         end = start         # stores the end of the packet
 
-        if hdr['format'].startswith('C'):
-            data = data.flatten()
-            if hdr['format'].endswith('F'):
-                data = data.view(float32)
-            elif hdr['format'].endswith('D'):
-                data = data.view(float64)
+        # Flatten framed (type 2000) and/or complex data (where each element
+        # may be a 2-tuple)
+        if hdr['format'].startswith('C') or hdr['class'] == 2:
+            data = numpy.reshape(data,(-1,))
+
+        # For complex float/double, get a view of the data as the scalar type
+        # instead of the complex type
+        if hdr['format'] == 'CF':
+            data = data.view(float32)
+        elif hdr['format'] == 'CD':
+            data = data.view(float64)
 
         sz = len(data)      
         self.done = False

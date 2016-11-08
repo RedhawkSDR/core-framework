@@ -111,6 +111,23 @@ class BlueFileHelpers(unittest.TestCase):
                 outdata = outdata.flatten()
         self.assertTrue(numpy.array_equal(indata, outdata), msg="Format '%s' %s != %s" % (format, indata, outdata))
 
+    def _generateSourceData(self, format, size):
+        if format in ('CF', 'CD'):
+            return [complex(x) for x in xrange(size)]
+
+        complexData = format.startswith('C')
+        typecode = format[1]
+        dataFormat, dataType = self.TYPEMAP[typecode]
+
+        samples = size
+        if complexData:
+            samples *= 2
+        data = [dataType(x) for x in xrange(samples)]
+        if complexData:
+            data = numpy.reshape(data, (size,2))
+
+        return data
+
     def _test_FileSource(self, format):
         filename = self._tempfileName('source_%s' % format)
 
@@ -118,12 +135,7 @@ class BlueFileHelpers(unittest.TestCase):
         typecode = format[1]
         dataFormat, dataType = self.TYPEMAP[typecode]
 
-        indata = [dataType(x) for x in xrange(16)]
-        if complexData:
-            if dataFormat in ('float', 'double'):
-                indata = [complex(x) for x in indata]
-            else:
-                indata = numpy.reshape(indata, (8,2))
+        indata = self._generateSourceData(format, 16)
         hdr = bluefile.header(1000, format)
         bluefile.write(filename, hdr, indata)
 
@@ -231,3 +243,48 @@ class BlueFileHelpers(unittest.TestCase):
         self._test_FileSinkType2000('CL', 512)
         self._test_FileSinkType2000('CF', 512)
         self._test_FileSinkType2000('CD', 512)
+
+    def _test_FileSourceType2000(self, format, subsize):
+        filename = self._tempfileName('source_2000_%s' % format)
+
+        complexData = format.startswith('C')
+        typecode = format[1]
+        dataFormat, dataType = self.TYPEMAP[typecode]
+
+        frames = 4
+        indata = [self._generateSourceData(format, subsize) for x in xrange(frames)]
+        hdr = bluefile.header(2000, format, subsize=subsize)
+        bluefile.write(filename, hdr, indata)
+
+        source = sb.FileSource(filename, midasFile=True, dataFormat=dataFormat)
+        sink = sb.DataSink()
+        source.connect(sink)
+        sb.start()
+        outdata = sink.getData(eos_block=True)
+        if complexData:
+            if format == 'CF':
+                outdata = numpy.array(outdata, dtype=numpy.float32).view(numpy.complex64)
+                outdata = numpy.reshape(outdata, (-1, subsize))
+            elif format == 'CD':
+                outdata = numpy.array(outdata, dtype=numpy.float64).view(numpy.complex128)
+                outdata = numpy.reshape(outdata, (-1, subsize))
+            else:
+                outdata = numpy.reshape(outdata, (-1, subsize, 2))
+            self.assertEqual(sink.sri().mode, 1)
+        else:
+            self.assertEqual(sink.sri().mode, 0)
+
+        self.assertTrue(numpy.array_equal(indata, outdata), msg="Format '%s' %s != %s" % (format, indata, outdata))
+
+    def test_FileSourceType2000(self):
+        self._test_FileSourceType2000('SB', 16)
+        self._test_FileSourceType2000('SI', 1024)
+        self._test_FileSourceType2000('SL', 1024)
+        self._test_FileSourceType2000('SF', 1024)
+        self._test_FileSourceType2000('SD', 1024)
+
+        self._test_FileSourceType2000('CB', 16)
+        self._test_FileSourceType2000('CI', 512)
+        self._test_FileSourceType2000('CL', 512)
+        self._test_FileSourceType2000('CF', 512)
+        self._test_FileSourceType2000('CD', 512)
