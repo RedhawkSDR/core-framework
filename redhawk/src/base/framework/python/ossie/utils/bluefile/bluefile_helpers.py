@@ -44,6 +44,22 @@ log = logging.getLogger(__name__)
 
 arch = platform.machine()
 
+# BLUE files use an epoch of Jan 1, 1950, while REDHAWK uses the Unix epoch
+# (Jan 1, 1970); REDHAWK_EPOCH_J1950 is the Unix epoch as a J1950 time
+REDHAWK_EPOCH_J1950 = 631152000.0
+
+def unix_to_j1950(ts):
+    """
+    Converts seconds since the Unix epoch (Jan 1, 1970) to a J1950 time.
+    """
+    return ts + REDHAWK_EPOCH_J1950
+
+def j1950_to_unix(ts):
+    """
+    Converts a J1950 time to seconds since the Unix epoch (Jan 1, 1970).
+    """
+    return ts - REDHAWK_EPOCH_J1950
+
 def hdr_to_sri(hdr, stream_id):
     """
     Generates a StreamSRI object based on the information contained in the
@@ -134,6 +150,9 @@ def sri_to_hdr(sri, data_type, data_format):
     
     kwds['format'] = data_format
     kwds['type'] = data_type
+
+    # Default to REDHAWK epoch
+    kwds['timecode'] = unix_to_j1950(0.0)
     
     ext_hdr = sri.keywords
     if len(ext_hdr) > 0:
@@ -336,7 +355,7 @@ class BlueFileReader(object):
         currentSampleTime = 0.0
         if hdr.has_key('timecode'):
             # Set sample time to seconds since Jan. 1 1970 
-            currentSampleTime = hdr['timecode'] - long(631152000)
+            currentSampleTime = j1950_to_unix(hdr['timecode'])
             if currentSampleTime < 0:
                 currentSampleTime = 0.0
       
@@ -405,6 +424,7 @@ class BlueFileWriter(object):
         self.gotEOS = False
         self.header = None
         self.done = False
+        self._firstPacket = True
     
     def start(self):
         self.done = False
@@ -484,6 +504,13 @@ class BlueFileWriter(object):
         else:
             self.gotEOS = False
         try:
+            # If the header doesn't already have meaningful timecode, update it
+            # with the packet time and write it out to disk
+            if self._firstPacket and self.header and ts.tcstatus == BULKIO.TCS_VALID:
+                self.header['timecode'] = unix_to_j1950(ts.twsec + ts.tfsec)
+                bluefile.writeheader(self.outFile, self.header)
+            self._firstPacket = False
+
             if self.header and self.header['format'][1] == 'B':
                 # convert back from string to array of 8-bit integers
                 data = numpy.fromstring(data, numpy.int8)

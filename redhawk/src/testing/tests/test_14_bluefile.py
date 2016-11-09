@@ -23,9 +23,10 @@ import tempfile
 import shutil
 import os
 import numpy
+import time
 
 from ossie.utils import sb
-from ossie.utils.bluefile import bluefile
+from ossie.utils.bluefile import bluefile, bluefile_helpers
 from ossie.utils.bulkio import bulkio_helpers
 
 class BluefileTest(unittest.TestCase):
@@ -288,3 +289,54 @@ class BlueFileHelpers(unittest.TestCase):
         self._test_FileSourceType2000('CL', 512)
         self._test_FileSourceType2000('CF', 512)
         self._test_FileSourceType2000('CD', 512)
+
+    def test_FileSourceTimecode(self):
+        filename = self._tempfileName('source_timecode')
+
+        # Create a ramp file with a known timestamp
+        start = bulkio.timestamp.now()
+        xdelta = 0.25
+        hdr = bluefile.header(1000, 'SF', xdelta=xdelta)
+        hdr['timecode'] = bluefile_helpers.unix_to_j1950(start.twsec + start.tfsec)
+        bluefile.write(filename, hdr, numpy.arange(1024))
+
+        # Bytes per push is chosen specifically to require multiple packets
+        source = sb.FileSource(filename, bytesPerPush=2048, midasFile=True, dataFormat='float')
+        sink = sb.DataSink()
+        source.connect(sink)
+        sb.start()
+
+        # There should have been at least two push packets (plus one more for
+        # the end-of-stream, but that's not strictly required)
+        outdata, tstamps = sink.getData(eos_block=True, tstamps=True)
+        self.assertTrue(len(tstamps) >= 2)
+
+        # Check that the first timestamp (nearly) matches the timestamp created
+        # above
+        offset, ts = tstamps[0]
+        self.assertAlmostEqual(start - ts, 0.0)
+
+        # Check that the synthesized timestamps match our expectations
+        for index in xrange(1, len(tstamps)):
+            offset, tnext = tstamps[1]
+            self.assertAlmostEqual(tnext - ts, offset*xdelta)
+
+    def test_FileSinkTimecode(self):
+        filename = self._tempfileName('source_timecode')
+
+        # Create a source with a known start time
+        time_in = time.time()
+        source = sb.DataSource(dataFormat='float', startTime=time_in)
+        sink = sb.FileSink(filename, midasFile=True)
+        source.connect(sink)
+        sb.start()
+
+        # The data isn't important, other than to cause a pushPacket with the
+        # initial timestamp
+        source.push(range(16), EOS=True)
+        sink.waitForEOS()
+
+        # Read back the timecode from the output file
+        hdr = bluefile.readheader(filename)
+        time_out = bluefile_helpers.j1950_to_unix(hdr['timecode'])
+        self.assertAlmostEqual(time_in, time_out)
