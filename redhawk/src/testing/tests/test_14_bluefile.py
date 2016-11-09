@@ -24,6 +24,7 @@ import shutil
 import os
 import numpy
 import time
+import math
 
 from ossie.utils import sb
 from ossie.utils.bluefile import bluefile, bluefile_helpers
@@ -290,15 +291,12 @@ class BlueFileHelpers(unittest.TestCase):
         self._test_FileSourceType2000('CF', 512)
         self._test_FileSourceType2000('CD', 512)
 
-    def test_FileSourceTimecode(self):
-        filename = self._tempfileName('source_timecode')
-
-        # Create a ramp file with a known timestamp
+    def _check_FileSourceTimecode(self, hdr, data, framesize, delta):
+        # Put a known timecode value into the header and write out the data
         start = bulkio.timestamp.now()
-        xdelta = 0.25
-        hdr = bluefile.header(1000, 'SF', xdelta=xdelta)
         hdr['timecode'] = bluefile_helpers.unix_to_j1950(start.twsec + start.tfsec)
-        bluefile.write(filename, hdr, numpy.arange(1024))
+        filename = self._tempfileName('source_timecode_%d_%s' % (hdr['type'], hdr['format']))
+        bluefile.write(filename, hdr, data)
 
         # Bytes per push is chosen specifically to require multiple packets
         source = sb.FileSource(filename, bytesPerPush=2048, midasFile=True, dataFormat='float')
@@ -317,11 +315,58 @@ class BlueFileHelpers(unittest.TestCase):
         self.assertAlmostEqual(start - ts, 0.0)
 
         # Check that the synthesized timestamps match our expectations
-        last_offset = offset
         for offset, tnext in tstamps[1:]:
-            self.assertNotEqual(offset, last_offset)
-            self.assertAlmostEqual(tnext - ts, offset*xdelta)
-            last_offset = offset
+            # Offset is in samples, not frames (and/or complex pairs)
+            offset /= float(framesize)
+            self.assertAlmostEqual(tnext - ts, offset*delta)
+
+    def test_FileSourceTimecode(self):
+        # Create a ramp file
+        xdelta = 0.25
+        hdr = bluefile.header(1000, 'SF', xdelta=xdelta)
+        data = numpy.arange(1024)
+
+        self._check_FileSourceTimecode(hdr, data, 1, xdelta)
+
+    def test_FileSourceTimecodeComplex(self):
+        # Create a ramp file
+        xdelta = 1.0 / 2.5e6
+        hdr = bluefile.header(1000, 'CF', xdelta=xdelta)
+        data = numpy.arange(1024, dtype=numpy.complex64)
+
+        self._check_FileSourceTimecode(hdr, data, 2, xdelta)
+
+    def test_FileSourceTimecodeType2000(self):
+        # Create a test file with frequency on the X-axis and time on the
+        # Y-axis (as one might see from an FFT)
+        subsize = 256
+        xdelta = 1.0/subsize
+        ydelta = 0.25
+        hdr = bluefile.header(2000, 'SF', subsize=subsize)
+        hdr['xstart'] = 0
+        hdr['xdelta'] = xdelta
+        hdr['xunits'] = 3 # frequency
+        hdr['ydelta'] = ydelta
+        hdr['yunits'] = 1 # time
+        data = numpy.arange(1024, dtype=numpy.float32).reshape((-1,subsize))
+
+        self._check_FileSourceTimecode(hdr, data, subsize, ydelta)
+
+    def test_FileSourceTimecodeType2000Complex(self):
+        # Create a test file with frequency on the X-axis and time on the
+        # Y-axis (as one might see from an FFT)
+        subsize = 200
+        xdelta = 2.0*math.pi/subsize
+        ydelta = 0.125
+        hdr = bluefile.header(2000, 'CF', subsize=subsize)
+        hdr['xstart'] = -math.pi/2.0
+        hdr['xdelta'] = xdelta
+        hdr['xunits'] = 3 # frequency
+        hdr['ydelta'] = ydelta
+        hdr['yunits'] = 1 # time
+        data = numpy.arange(1000, dtype=numpy.complex64).reshape((-1,subsize))
+
+        self._check_FileSourceTimecode(hdr, data, subsize*2, ydelta)
 
     def test_FileSinkTimecode(self):
         filename = self._tempfileName('source_timecode')

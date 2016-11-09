@@ -35,6 +35,7 @@ import threading
 import time
 import logging
 try:
+    import bulkio
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
 except:
     pass
@@ -358,7 +359,17 @@ class BlueFileReader(object):
             currentSampleTime = j1950_to_unix(hdr['timecode'])
             if currentSampleTime < 0:
                 currentSampleTime = 0.0
-      
+
+        # Quantize packet size to match complex ("spa" is scalars per atom) and
+        # framing ("ape" is atoms per element), with a minimum of one frame per
+        # packet
+        spe = hdr['spa'] * hdr['ape']
+        pktsize = max(spe, int(pktsize/spe) * spe)
+
+        # Create a normalized timestamp from the initial sample time
+        T = bulkio.timestamp.create(currentSampleTime, 0.0)
+        bulkio.timestamp.normalize(T)
+
         while not self.done:
             chunk = start + pktsize
             # if the next chunk is greater than the file, then grab remaining
@@ -377,13 +388,23 @@ class BlueFileReader(object):
             else:
                 d = dataset.tolist()
             start = end
-            
-            T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(currentSampleTime), currentSampleTime - int(currentSampleTime))
+
             self.pushPacket(d, T, False, sri.streamID)
-            dataSize = len(d)
-            sampleRate = 1.0/sri.xdelta
-            currentSampleTime = currentSampleTime + dataSize/sampleRate
-        T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(currentSampleTime), currentSampleTime - int(currentSampleTime))
+
+            # Update the sample time to account for the packet; the data size
+            # should always be an integral number of elements (taking subsize
+            # and complex into account), but use a float just in case there's
+            # a partial packet at the end
+            dataSize = len(d) / float(spe)
+            # Make a best guess at the time axis, based on the whether it's
+            # framed data (and the Y-axis is in units of time), defaulting to
+            # the X-axis
+            if sri.subsize > 0 and sri.yunits == BULKIO.UNITS_TIME:
+                delta = sri.ydelta
+            else:
+                delta = sri.xdelta
+            T += dataSize * delta
+
         if hdr['format'].endswith('B'):
             self.pushPacket('', T, True, sri.streamID)
         else: 
