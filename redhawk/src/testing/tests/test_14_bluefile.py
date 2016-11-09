@@ -317,9 +317,11 @@ class BlueFileHelpers(unittest.TestCase):
         self.assertAlmostEqual(start - ts, 0.0)
 
         # Check that the synthesized timestamps match our expectations
-        for index in xrange(1, len(tstamps)):
-            offset, tnext = tstamps[1]
+        last_offset = offset
+        for offset, tnext in tstamps[1:]:
+            self.assertNotEqual(offset, last_offset)
             self.assertAlmostEqual(tnext - ts, offset*xdelta)
+            last_offset = offset
 
     def test_FileSinkTimecode(self):
         filename = self._tempfileName('source_timecode')

@@ -363,7 +363,7 @@ class BlueFileReader(object):
             chunk = start + pktsize
             # if the next chunk is greater than the file, then grab remaining
             # only, otherwise grab a whole packet size
-            if chunk > sz:
+            if chunk >= sz:
                 end = sz
                 self.done = True
             else:
