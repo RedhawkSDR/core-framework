@@ -152,7 +152,7 @@ def sri_to_hdr(sri, data_type, data_format):
     kwds['type'] = data_type
 
     # Default to REDHAWK epoch
-    kwds['timecode'] = unix_to_j1950(0.0)
+    kwds['timecode'] = REDHAWK_EPOCH_J1950
     
     ext_hdr = sri.keywords
     if len(ext_hdr) > 0:
