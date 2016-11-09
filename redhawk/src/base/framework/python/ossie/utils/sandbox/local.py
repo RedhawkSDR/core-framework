@@ -215,7 +215,7 @@ class LocalLauncher(SandboxLauncher):
             # CORBA.COMM_FAILURE exception even though the reference is valid.
             # In this case, a call to _non_existent() should cause omniORB to
             # clean up the stale socket, and subsequent calls behave normally.
-            comp.ref._non_existent()
+            ref._non_existent()
         except:
             pass
         return ref
