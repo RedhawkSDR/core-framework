@@ -1283,9 +1283,6 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         // long time (~300ms).
         orb.destroy();
 
-        // Shut down native ORB, if it's running
-        omnijni.ORB.shutdown();
-
         logger.debug("Goodbye!");
     }
 

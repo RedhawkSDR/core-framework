@@ -50,6 +50,11 @@ public abstract class ORB {
 
     static {
         System.loadLibrary("omnijni");
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                omnijni.ORB.shutdown();
+            }
+        });
     }
 
     private static native long string_to_object_ref (String ior);
