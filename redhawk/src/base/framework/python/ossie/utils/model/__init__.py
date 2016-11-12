@@ -684,7 +684,59 @@ class Resource(CorbaObject, PortSet, PropertyEmitter):
             return self.ref._get_started()
         else:
             return None
+
+    def _get_interface(self):
+        if self.ref:
+            return self.ref._get_interface()
+        else:
+            return None
+
+    def _get_interface(self):
+        if self.ref:
+            return self.ref._get_interface()
+        else:
+            return None
+
+    def _get_log_level(self):
+        if self.ref:
+            return self.ref._get_log_level()
+        else:
+            return 0
+
+    def _set_log_level(self):
+        if self.ref:
+            return self.ref._set_log_level()
+        
+    def _get_softwareProfile(self):
+        if self.ref:
+            return self.ref._get_softwareProfile()
+        else:
+            return None
+        
+    @property
+    def identifier(self):
+        return self._get_identifier()
     
+    @property
+    def started(self):
+        return self._get_started()
+    
+    @property
+    def softwareProfile(self):
+        return self._get_softwareProfile()
+    
+    def retrieve_records(self, number, starting):
+        if self.ref:
+            return self.ref.retrieve_records(number, starting)
+        
+    def retrieve_records_by_date(self, number, to_timestamp):
+        if self.ref:
+            return self.ref.retrieve_records(number, to_timestamp)
+        
+    def retrieve_records_from_date(self, number, from_timestamp):
+        if self.ref:
+            return self.ref.retrieve_records(number, from_timestamp)
+        
     def start(self):
         self.__log.trace("start()")
         if self.ref:
@@ -694,12 +746,6 @@ class Resource(CorbaObject, PortSet, PropertyEmitter):
         self.__log.trace("stop()")
         if self.ref:
             self.ref.stop()
-
-    def _get_softwareProfile(self):
-        if self.ref:
-            return self.ref._get_softwareProfile()
-        else:
-            return None
             
     def initialize(self):
         self.__log.trace("initialize()")
@@ -800,6 +846,14 @@ class Device(Resource):
             return self.ref._get_compositeDevice()
         else:
             return None
+    
+    @property
+    def compositeDevice(self):
+        return self._get_compositeDevice()
+    
+    @property
+    def label(self):
+        return self._get_label()
 
     def allocateCapacity(self, props):
         if not self.ref:
@@ -857,6 +911,12 @@ class ExecutableDevice(LoadableDevice):
     def execute(self, name, options, parameters):
         if self.ref:
             return self.ref.execute(name, options, parameters)
+        else:
+            return None
+        
+    def executeLinked(self, name, options, parameters, deps):
+        if self.ref:
+            return self.ref.execute(name, options, parameters, deps)
         else:
             return None
 
