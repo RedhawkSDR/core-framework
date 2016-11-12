@@ -307,21 +307,21 @@ void Logging_impl::log_level( const CF::LogLevel newLevel ) {
 CF::LogEventSequence *Logging_impl::retrieve_records( CORBA::ULong &howMany,
 					  CORBA::ULong startingRecord ) {
   howMany=0;
-  CF::LogEventSequence_var seq;
+  CF::LogEventSequence_var seq = new CF::LogEventSequence;
   return  seq._retn();
 };
 
 CF::LogEventSequence *Logging_impl::retrieve_records_by_date( CORBA::ULong &howMany,
 							      CORBA::ULongLong to_timeStamp ) {
   howMany=0;
-  CF::LogEventSequence_var seq;
+  CF::LogEventSequence_var seq = new CF::LogEventSequence;
   return  seq._retn();
 };
 
 CF::LogEventSequence *Logging_impl::retrieve_records_from_date( CORBA::ULong &howMany,
 								CORBA::ULongLong from_timeStamp ) {
   howMany=0;
-  CF::LogEventSequence_var seq;
+  CF::LogEventSequence_var seq = new CF::LogEventSequence;
   return  seq._retn();
 };
 
