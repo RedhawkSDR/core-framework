@@ -202,6 +202,15 @@ class App(_CF__POA.Application, Resource):
             except:
                 pass
         return retval
+        
+    def _get_aware(self):
+        retval = False
+        if self.ref:
+            try:
+                retval = self.ref._get_aware()
+            except:
+                pass
+        return retval
     
     def releaseObject(self):
         if self.ref:
@@ -209,6 +218,76 @@ class App(_CF__POA.Application, Resource):
                 self._domain.removeApplication(self)
             except:
                 raise
+            
+    @property
+    def aware(self):
+        retval = False
+        if self.ref:
+            try:
+                retval = self.ref._get_aware()
+            except:
+                pass
+        return retval
+    
+    @property
+    def componentDevices(self):
+        retval = []
+        if self.ref:
+            try:
+                retval = self.ref._get_componentDevices()
+            except:
+                pass
+        return retval
+    
+    @property
+    def componentImplementations(self):
+        retval = []
+        if self.ref:
+            try:
+                retval = self.ref._get_componentImplementations()
+            except:
+                pass
+        return retval
+    
+    @property
+    def registeredComponents(self):
+        retval = []
+        if self.ref:
+            try:
+                retval = self.ref._get_registeredComponents()
+            except:
+                pass
+        return retval
+    
+    @property
+    def componentNamingContexts(self):
+        retval = []
+        if self.ref:
+            try:
+                retval = self.ref._get_componentNamingContexts()
+            except:
+                pass
+        return retval
+    
+    @property
+    def componentProcessIds(self):
+        retval = []
+        if self.ref:
+            try:
+                retval = self.ref._get_componentProcessIds()
+            except:
+                pass
+        return retval
+    
+    @property
+    def profile(self):
+        retval = ''
+        if self.ref:
+            try:
+                retval = self.ref._get_profile()
+            except:
+                pass
+        return retval
     
     # End external Application API
     ########################################
@@ -718,6 +797,43 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
             except:
                 pass
         return retval
+    
+    def _get_domMgr(self):
+        retval = None
+        if self.ref:
+            try:
+                retval = self.ref._get_domMgr()
+            except:
+                pass
+        return retval
+    
+    @property
+    def domMgr(self):
+        return self._get_domMgr()
+    
+    @property
+    def registeredServices(self):
+        return self._get_registeredServices()
+    
+    @property
+    def registeredDevices(self):
+        return self._get_registeredDevices()
+    
+    @property
+    def label(self):
+        return self._get_label()
+    
+    @property
+    def identifier(self):
+        return self._get_identifier()
+    
+    @property
+    def fileSys(self):
+        return self._get_fileSys()
+    
+    @property
+    def deviceConfigurationProfile(self):
+        return self._get_deviceConfigurationProfile()
     
     def registerDevice(self, registeringDevice):
         if self.ref:
@@ -1325,7 +1441,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         if connectDomainEvents:
             self.__connectIDMChannel()
             self.__connectODMChannel()
-
+        
     def _populateApps(self):
         self.__setattr__('_waveformsUpdated', True)
         self._updateListAvailableSads()
@@ -1582,6 +1698,91 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
                 pass
         return retval
     
+    def _get_allocationMgr(self):
+        retval = None
+        if self.ref:
+            try:
+                retval = self.ref._get_allocationMgr()
+            except:
+                pass
+        return retval
+    
+    def _get_connectionMgr(self):
+        retval = None
+        if self.ref:
+            try:
+                retval = self.ref._get_connectionMgr()
+            except:
+                pass
+        return retval
+    
+    def _get_eventChannelMgr(self):
+        retval = None
+        if self.ref:
+            try:
+                retval = self.ref._get_eventChannelMgr()
+            except:
+                pass
+        return retval
+    
+    def _get_name(self):
+        retval = ''
+        if self.ref:
+            try:
+                retval = self.ref._get_name()
+            except:
+                pass
+        return retval
+    
+    def _get_remoteDomainManagers(self):
+        retval = []
+        if self.ref:
+            try:
+                retval = self.ref._get_remoteDomainManagers()
+            except:
+                pass
+        return retval
+    
+    @property
+    def remoteDomainManagers(self):
+        return self._get_remoteDomainManagers()
+    
+    @property
+    def identifier(self):
+        return self._get_identifier()
+    
+    @property
+    def fileMgr(self):
+        return self._get_fileMgr()
+    
+    @property
+    def eventChannelMgr(self):
+        return self._get_eventChannelMgr()
+    
+    @property
+    def domainManagerProfile(self):
+        return self._get_domainManagerProfile()
+    
+    @property
+    def deviceManagers(self):
+        return self._get_deviceManagers()
+    
+    @property
+    def connectionMgr(self):
+        return self._get_connectionMgr()
+    
+    @property
+    def applications(self):
+        return self._get_applications()
+    
+    @property
+    def applicationFactories(self):
+        return self._get_applicationFactories()
+    
+    @property
+    def allocationMgr(self):
+        return self._get_allocationMgr()
+    
     def configure(self, props):
         if self.ref:
             try:
@@ -1602,6 +1803,20 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         if self.ref:
             try:
                 self.ref.registerDevice(device, deviceManager)
+            except:
+                raise
+    
+    def registerRemoteDomainManager(self, domainManager):
+        if self.ref:
+            try:
+                self.ref.registerRemoteDomainManager(domainManager)
+            except:
+                raise
+    
+    def unregisterRemoteDomainManager(self, domainManager):
+        if self.ref:
+            try:
+                self.ref.unregisterRemoteDomainManager(domainManager)
             except:
                 raise
     
