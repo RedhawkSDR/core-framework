@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import ossie.utils.testing
 from ossie.utils import sb
 
@@ -43,11 +44,9 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
         self.comp.stop()
 
     def testSpecFile(self):
-        #######################################################################
-        # Make sure start and stop can be called without throwing exceptions
-        fp = open('../namespace.test.comp.spec','r')
-        text = fp.read()
-        fp.close()
+        specfile = os.path.join(os.path.dirname(__file__), '../namespace.test.comp.spec')
+        with open(specfile, 'r') as fp:
+            text = fp.read()
         self.assertNotEqual(text.find('%dir %{_sdrroot}/dom/components/namespace\n'), -1)
         self.assertNotEqual(text.find('%dir %{_sdrroot}/dom/components/namespace/test\n'), -1)
         self.assertNotEqual(text.find('%dir %{_sdrroot}/dom/components/namespace/test/comp\n'), -1)
