@@ -588,6 +588,7 @@ void GPP_i::update_grp_child_pids() {
 }
 
 std::vector<component_monitor_struct> GPP_i::get_component_monitor() {
+    ReadLock rlock(pidLock);
     std::vector<component_monitor_struct> retval;
     struct sysinfo info;
     sysinfo(&info);
