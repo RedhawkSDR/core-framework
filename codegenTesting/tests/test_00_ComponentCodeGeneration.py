@@ -10,7 +10,7 @@ class GeneratorTest(scatest.CodeGenTestCase):
     language = None
     output_dir = 'build'
     artifact_type = 'Component'
-    remove_list = [ 'test_spd_dep' ]
+    remove_list = [ 'test_spd_dep', 'octaveTest1', 'bintest1' ]
     comp_list = None
 
     def test_00_GenerateCode(self):

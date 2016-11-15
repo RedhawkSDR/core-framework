@@ -29,6 +29,7 @@ class CodeGenTestCase(OssieTestCase):
         self._poa._get_the_POAManager().activate()
         self._ns = self._orb.resolve_initial_references("NameService")
         self._root = self._ns._narrow(CosNaming.NamingContext)
+        self.octave_test_dir=False
 
     def __str__(self):
         try:
@@ -162,9 +163,19 @@ class CodeGenTestCase(OssieTestCase):
                 impl_id = impl['id']
                 impl_name = impl['name']
                 spd_file = os.path.join(self.build_dir, self.base_name+'.spd.xml')
+                if self.octave_test_dir:
+                    # setup octave components to run from their test directory
+                    start_dir = os.getcwd();
+                    spd_file = "../"+self.base_name+'.spd.xml'
+                    os.chdir(self.test_dir)
+
                 retval = ossie.utils.testing.ScaComponentTestProgram(spd_file,
                                                                      module='test_'+self.base_name,
                                                                      impl=impl_id)
+
+                if self.octave_test_dir:
+                    os.chdir(start_dir)
+
                 for result in retval.results:
                     if result.errors or result.failures:
                         if not lang in failures:
