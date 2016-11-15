@@ -86,7 +86,7 @@ class BinaryPackage(ResourcePackage):
         self.addUsesPort('datadataOctet_out', "IDL:BULKIO/dataOctet:1.0")
 
         for sharedLibrary in sharedLibraries:
-            self.addSoftPackageDependency(sharedLibrary)
+            self.addSoftPackageDependency(sharedLibrary, resolve_implref=True)
 
     def copyBinary(self):
         outputfile = self.outputDir+"/"+self.name+"/python/"+self.bFile
