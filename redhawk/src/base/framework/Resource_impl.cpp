@@ -251,10 +251,6 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
         CORBA::Object_var applicationRegistrarObject = ossie::corba::stringToObject(application_registrar_ior);
         CF::ApplicationRegistrar_var applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
         if (!CORBA::is_nil(applicationRegistrar)) {
-            LOG_TRACE(Resource_impl, "Registering with application using name '" << name_binding << "'");
-            // Register with the application
-            applicationRegistrar->registerComponent(name_binding.c_str(), resource_obj);
-
             // Set up the DomainManager container
             CF::DomainManager_var domainManager = applicationRegistrar->domMgr();
             resource->setDomainManager(domainManager);
@@ -266,6 +262,10 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
                 CF::Application_var application = applicationRegistrar->app();
                 component->setApplication(application);
             }
+
+            // Register with the application
+            LOG_TRACE(Resource_impl, "Registering with application using name '" << name_binding << "'");
+            applicationRegistrar->registerComponent(name_binding.c_str(), resource_obj);
         } else {
             LOG_TRACE(Resource_impl, "Binding component to naming context with name '" << name_binding << "'");
             // the registrar is not available (because the invoking infrastructure only uses the name service)
