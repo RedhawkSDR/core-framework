@@ -403,7 +403,7 @@ class DomainManager_ApplicationInstall(scatest.CorbaTestCase):
         self.dep_dir=dep_dir
         shutil.move(dep_dir, dep_dir+".XXX")
         # should work refers to code's localfile
-        self._domMgr.installApplication(sadfile)
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
 
         ## reset file
         shutil.move( dep_dir+".XXX", dep_dir)
@@ -456,7 +456,7 @@ class DomainManager_ApplicationInstall(scatest.CorbaTestCase):
         dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
         shutil.copy( dep_spd+".TEST.bad.dir", dep_spd)
         # code's localfile not checked during install
-        self._domMgr.installApplication(sadfile)
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, sadfile)
 
         ## reset file
         shutil.copy(dep_spd+".ORIG", dep_spd)
@@ -641,7 +641,7 @@ class DomainManager_CreateApplication(scatest.CorbaTestCase):
         dep_dir=scatest.getSdrPath()+"/dom/deps/cpp_dep1/cpp"
         self.dep_dir = dep_dir
         shutil.move(dep_dir, dep_dir+".XXX")
-        self.assertRaises( CF.ApplicationFactory.CreateApplicationError, self._domMgr.createApplication, sadfile, "", [], [])
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
 
         ## reset file
         shutil.move( dep_dir+".XXX", dep_dir)
@@ -693,7 +693,7 @@ class DomainManager_CreateApplication(scatest.CorbaTestCase):
 
         dep_spd=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp_dep2.spd.xml"
         shutil.copy( dep_spd+".TEST.bad.dir", dep_spd)
-        self.assertRaises( CF.ApplicationFactory.CreateApplicationError, self._domMgr.createApplication, sadfile, "", [], [])
+        self.assertRaises( CF.InvalidProfile, self._domMgr.createApplication, sadfile, "", [], [])
 
         ## reset file
         shutil.copy(dep_spd+".ORIG", dep_spd)
