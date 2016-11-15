@@ -758,7 +758,7 @@ class BrowseWindowBase(QMainWindow):
 
         self.resize(QSize(windowWidth,windowHeight).expandedTo(self.minimumSizeHint()))
         self.connect(self.refreshButton,SIGNAL("clicked()"),self.refreshView)
-        self.connect(self.objectListView,SIGNAL("itemRenamed(QListViewItem*,int)"),self.propertyChanged)
+        self.connect(self.objectListView,SIGNAL("itemRenamed(PyQt_PyObject,int)"),self.propertyChanged)
 
     def closeEvent(self, event):
         self.cleanupOnExit()

@@ -33,14 +33,30 @@ PREPARE_LOGGING(cpp_comp_i)
 cpp_comp_i::cpp_comp_i(const char *uuid, const char *label) :
     cpp_comp_base(uuid, label)
 {
-    this->app_id = "foo";
-    this->dom_id = "foo";
-    this->nic_name = "foo";
-    this->number_components = -1;
 }
 
 cpp_comp_i::~cpp_comp_i()
 {
+}
+
+void cpp_comp_i::constructor()
+{
+    /***********************************************************************************
+     This is the RH constructor. All properties are properly initialized before this function is called 
+    ***********************************************************************************/
+    if (!CORBA::is_nil(this->getApplication()->getRef())) {
+        this->app_id = ossie::corba::returnString(this->getApplication()->getRef()->identifier());
+        this->number_components = this->getApplication()->getRef()->registeredComponents()->length();
+    } else {
+        this->app_id = "";
+        this->number_components = -2;
+    }
+    if (!CORBA::is_nil(this->getDomainManager()->getRef())) {
+        this->dom_id = ossie::corba::returnString(this->getDomainManager()->getRef()->identifier());
+    } else {
+        this->dom_id = "";
+    }
+    this->nic_name = this->getNetwork()->getNic();
 }
 
 /***********************************************************************************************
@@ -181,22 +197,6 @@ cpp_comp_i::~cpp_comp_i()
 ************************************************************************************************/
 int cpp_comp_i::serviceFunction()
 {
-    LOG_DEBUG(cpp_comp_i, "serviceFunction() example log message");
-
-    if (!CORBA::is_nil(this->getApplication()->getRef())) {
-        this->app_id = ossie::corba::returnString(this->getApplication()->getRef()->identifier());
-        this->number_components = this->getApplication()->getRef()->registeredComponents()->length();
-    } else {
-        this->app_id = "";
-        this->number_components = -2;
-    }
-    if (!CORBA::is_nil(this->getDomainManager()->getRef())) {
-        this->dom_id = ossie::corba::returnString(this->getDomainManager()->getRef()->identifier());
-    } else {
-        this->dom_id = "";
-    }
-    this->nic_name = this->getNetwork()->getNic();
-
-    return NOOP;
+    return FINISH;
 }
 

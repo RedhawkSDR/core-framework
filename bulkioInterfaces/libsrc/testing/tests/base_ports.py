@@ -235,7 +235,7 @@ class BaseVectorPort(unittest.TestCase):
         self.assertAlmostEqual(sri.xdelta,in_sri.xdelta, 3, msg="PUSH PACKET CPLX FAILED....SRI SampleRate Mismatch")
 
 
-    def test_inport_using_componet(self):
+    def test_inport_using_component(self):
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
         print "Test Component:" + c_spd_xml
         test_comp=self.launch( c_spd_xml, execparams=self.execparams)
@@ -454,4 +454,5 @@ class BaseVectorPort(unittest.TestCase):
 
         bio.disconnectPort(connectionName)
         bio.disconnectPort(connectionName)
+        
 

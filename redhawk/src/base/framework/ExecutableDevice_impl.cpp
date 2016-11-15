@@ -439,7 +439,6 @@ ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId
 {
     std::vector< std::pair< int, float > > _signals;
     _signals.push_back(std::make_pair(SIGINT, 2));
-    _signals.push_back(std::make_pair(SIGQUIT, 2));
     _signals.push_back(std::make_pair(SIGTERM, 2));
     _signals.push_back(std::make_pair(SIGKILL, 0.5));
 // validate device state

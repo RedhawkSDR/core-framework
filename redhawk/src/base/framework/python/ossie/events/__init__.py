@@ -28,6 +28,7 @@ import atexit
 
 from omniORB import any, URI, CORBA
 from ossie.cf import CF, CF__POA
+from ossie.cf import ExtendedCF, ExtendedCF__POA
 from ossie.cf import ExtendedEvent, ExtendedEvent__POA
 from ossie.properties import struct_from_any, struct_to_any, props_to_any
 from ossie.properties import simple_property, simpleseq_property, struct_property, structseq_property
@@ -488,7 +489,7 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
                 else:
                     _time.sleep(self.thread_sleep)
 
-class MessageSupplierPort(CF__POA.Port):
+class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
     class Supplier_i(CosEventComm__POA.PushSupplier):
         def disconnect_push_supplier(self):
             pass
@@ -586,3 +587,6 @@ class MessageSupplierPort(CF__POA.Port):
 
     def disconnect_push_supplier(self):
         pass
+
+    def _get_connections(self):
+        return [ExtendedCF.UsesConnection(k, v['port']) for k, v in self._connections.iteritems()]

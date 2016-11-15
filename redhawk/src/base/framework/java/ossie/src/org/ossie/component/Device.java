@@ -459,9 +459,6 @@ public abstract class Device extends Resource implements DeviceOperations {
         } catch (InterruptedException e) {
             // PASS
         }
-
-        // Shut down native ORB, if it's running
-        omnijni.ORB.shutdown();
     }
 
 

@@ -101,8 +101,13 @@ AC_DEFUN([RH_SOFTPKG_CXX],
 
   # Test for the existence of the SPD first
   rh_softpkg_spd="${ossie_cv_sdr_root}/dom$1"
-  AS_IF([test ! -f $rh_softpkg_spd], [
-    AC_MSG_ERROR([required soft package library $1 not found])
+  AS_IF([test ! -r $rh_softpkg_spd], [
+    AS_IF([test -f $rh_softpkg_spd], [
+      _rh_softpkg_error="Permission denied"
+    ], [
+      _rh_softpkg_error="File not found"
+    ])
+    AC_MSG_ERROR([Failed to open required soft package library $1: ${_rh_softpkg_error}])
   ])
 
   rh_softpkg_name=`redhawk-softpkg --name $rh_softpkg_spd`
@@ -135,7 +140,7 @@ AC_DEFUN([RH_SOFTPKG_CXX],
   PKG_CHECK_EXISTS([$rh_softpkg_name $rh_softpkg_version_check],[
     AC_MSG_RESULT([yes])
   ],[
-    _rh_pkg_check_error=`$PKG_CONFIG --errors-to-stdout --print-errors "$rh_softpkg_name$rh_softpkg_version_check"`
+    _rh_pkg_check_error=`$PKG_CONFIG --exists --errors-to-stdout --print-errors "$rh_softpkg_name$rh_softpkg_version_check"`
     AC_MSG_ERROR([$_rh_pkg_check_error])
   ])
 

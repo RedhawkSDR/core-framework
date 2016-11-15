@@ -71,7 +71,7 @@ class CodeGenTestCase(OssieTestCase):
 
 
     def generateCode(self, impls=None):
-        spdfile = os.path.join(self.source_dir, self.artifact_name + '.spd.xml')
+        spdfile = os.path.join(self.source_dir, self.base_name + '.spd.xml')
         codegen = os.path.join(os.environ['OSSIEHOME'], 'bin', 'redhawk-codegen')
 
         #generate only for this language if a language was specified
@@ -119,7 +119,7 @@ class CodeGenTestCase(OssieTestCase):
             self.fail('No ' + self.artifact_type + ' named <' + str(self.artifact_name) + '> found')
 
         impl_dict = {}
-        spd_file_name = self.artifact_name + ".spd.xml"
+        spd_file_name = self.base_name + ".spd.xml"
 
         try:
             spd_dom = parse(spd_file_name)
@@ -161,9 +161,9 @@ class CodeGenTestCase(OssieTestCase):
             for impl in self.impl_dict[lang]:
                 impl_id = impl['id']
                 impl_name = impl['name']
-                spd_file = os.path.join(self.build_dir, self.artifact_name+'.spd.xml')
+                spd_file = os.path.join(self.build_dir, self.base_name+'.spd.xml')
                 retval = ossie.utils.testing.ScaComponentTestProgram(spd_file,
-                                                                     module='test_'+self.artifact_name,
+                                                                     module='test_'+self.base_name,
                                                                      impl=impl_id)
                 for result in retval.results:
                     if result.errors or result.failures:

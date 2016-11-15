@@ -198,7 +198,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
     public String attach(SDDSStreamDefinition stream, String userId) throws AttachError, StreamInputError {
 
         String attachID = java.util.UUID.randomUUID().toString();
-        logger.info( " ATTACH: " + attachID + " STREAM ID/ADDR/PORT:" + stream.id  + "/" + stream.multicastAddress + "/" + stream.port );
+        logger.debug( " ATTACH: " + attachID + " STREAM ID/ADDR/PORT:" + stream.id  + "/" + stream.multicastAddress + "/" + stream.port );
         try{
             port_dataSDDSOut.attach( stream, userId );
         }catch (DetachError e){
@@ -217,7 +217,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
          * @generated
          */
     public void detach(String attachId) throws DetachError, StreamInputError {
-        logger.info( "DETACH ATTACH: " + attachId  );
+        logger.debug( "DETACH ATTACH: " + attachId  );
     }
 
 
@@ -359,7 +359,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	       outPort.pushSRI( pkt.SRI );
 	   }
 
-	   logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+	   logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 	   outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
        }
    }
@@ -374,7 +374,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	       outPort.pushSRI( pkt.SRI );
 	   }
 
-	   logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+	   logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 	   outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
        }
 
@@ -389,7 +389,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 		outPort.pushSRI( pkt.SRI );
 	    }
 
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
 	}
@@ -405,7 +405,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 		outPort.pushSRI( pkt.SRI );
 	    }
 
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
 	}
@@ -422,7 +422,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 		outPort.pushSRI( pkt.SRI );
 	    }
 
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
 	}
@@ -438,7 +438,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 		outPort.pushSRI( pkt.SRI );
 	    }
 
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
 	}
@@ -456,7 +456,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 		outPort.pushSRI( pkt.SRI );
 	    }
 
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
 	}
@@ -472,7 +472,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 		outPort.pushSRI( pkt.SRI );
 	    }
 
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
 	}
@@ -489,7 +489,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 		outPort.pushSRI( pkt.SRI );
 	    }
 
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
 	}
@@ -505,7 +505,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 		outPort.pushSRI( pkt.SRI );
 	    }
 
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
 	}
@@ -524,7 +524,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 		outPort.pushSRI( pkt.SRI );
 	    }
 
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length() );
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length() );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
 	}
@@ -540,7 +540,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 		outPort.pushSRI( pkt.SRI );
 	    }
 
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length() );
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length() );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.EOS, pkt.streamID );
 	}

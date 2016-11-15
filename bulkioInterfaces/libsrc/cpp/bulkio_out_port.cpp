@@ -48,6 +48,12 @@ namespace bulkio {
     logger(logger)
   {
 
+    if ( !logger ) {
+        std::string pname("redhawk.bulkio.outport.");
+        pname = pname + port_name;
+        logger = rh_logger::Logger::getLogger(pname);
+    }
+
     if ( connectCB ) {
       _connectCB = boost::shared_ptr< ConnectionEventListener >( connectCB, null_deleter() );
     }
@@ -65,10 +71,13 @@ namespace bulkio {
   OutPortBase< PortTraits >::OutPortBase(std::string port_name,
                                          ConnectionEventListener *connectCB,
                                          ConnectionEventListener *disconnectCB ) :
-    Port_Uses_base_impl(port_name),
-    logger()
+      Port_Uses_base_impl(port_name),
+      logger()
   {
 
+    std::string pname("redhawk.bulkio.outport.");
+    pname = pname + port_name;
+    logger = rh_logger::Logger::getLogger(pname);
     if ( connectCB ) {
       _connectCB = boost::shared_ptr< ConnectionEventListener >( connectCB, null_deleter() );
     }
@@ -119,10 +128,13 @@ namespace bulkio {
         LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << port->first << " SRI streamID:"
                   << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta);
         try {
-          port->second->pushSRI(H);
-          sri_iter->second.connections.insert(port->first);
-        } catch(...) {
-          LOG_ERROR(logger, "PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << port->first);
+            port->second->pushSRI(H);
+            sri_iter->second.connections.insert(port->first);
+        } catch (const CORBA::SystemException& exc) {
+            if (port->second->reportConnectionErrors()) {
+                LOG_ERROR(logger, "PUSH-SRI FAILED " << ossie::corba::describeException(exc)
+                          << " PORT/CONNECTION: " << name << "/" << port->first);
+            }
         }
       }
     }
@@ -193,9 +205,12 @@ namespace bulkio {
         }
 
         try {
-          port->second->pushPacket(data, T, EOS, sri_iter->second.sri);
-        } catch(...) {
-          LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->first );
+            port->second->pushPacket(data, T, EOS, sri_iter->second.sri);
+        } catch (const CORBA::SystemException& exc) {
+            if (port->second->reportConnectionErrors()) {
+                LOG_ERROR(logger, "PUSH-PACKET FAILED " << ossie::corba::describeException(exc)
+                          << " PORT/CONNECTION: " << name << "/" << port->first);
+            }
         }
       }
     }
@@ -363,11 +378,14 @@ namespace bulkio {
     TRACE_ENTER(logger, "OutPort::_pushSRI");
     // push SRI over port instance
     try {
-      connPair->second->pushSRI(sri_ctx.sri);
-      sri_ctx.connections.insert(connPair->first);
-      LOG_TRACE(logger, "_pushSRI()  connection_id/streamID " << connPair->first << "/" << sri_ctx.sri.streamID);
-    } catch(...) {
-      LOG_ERROR(logger, "_pushSRI() PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << connPair->first);
+        connPair->second->pushSRI(sri_ctx.sri);
+        sri_ctx.connections.insert(connPair->first);
+        LOG_TRACE(logger, "_pushSRI()  connection_id/streamID " << connPair->first << "/" << sri_ctx.sri.streamID);
+    } catch (const CORBA::SystemException& exc) {
+        if (connPair->second->reportConnectionErrors()) {
+            LOG_ERROR(logger, "_pushSRI() PUSH-SRI FAILED " << ossie::corba::describeException(exc)
+                      << ", PORT/CONNECTION: " << name << "/" << connPair->first);
+        }
     }      
     TRACE_EXIT(logger, "OutPort::_pushSRI");
   }

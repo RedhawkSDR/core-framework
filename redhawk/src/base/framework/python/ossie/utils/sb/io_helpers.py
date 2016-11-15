@@ -1468,8 +1468,17 @@ class DataSink(_SinkBase):
             self._sink.waitEOS()
         (retval, timestamps) = self._sink.retrieveData(length=length)
         if isChar:
-            newretval = list(_struct.unpack(str(len(retval))+'b',''.join(retval)))
-            retval=newretval
+            # Converts char values into their numeric equivalents
+            def from_char(data):
+                return [ord(ch) for ch in data]
+
+            # If SRI is known, and the data is framed, apply conversion on a
+            # per-frame basis
+            sri = self.sri()
+            if sri and sri.subsize > 0:
+                retval = [from_char(frame) for frame in retval]
+            else:
+                retval = from_char(retval)
         if tstamps:
             return (retval,timestamps)
         else:

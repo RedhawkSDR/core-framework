@@ -1069,7 +1069,6 @@ class LoadableDevice(Device):
 class ExecutableDevice(LoadableDevice):
 
     STOP_SIGNALS = ((signal.SIGINT, 2),
-                    (signal.SIGQUIT, 2),
                     (signal.SIGTERM, 2),
                     (signal.SIGKILL, 0.5))
 

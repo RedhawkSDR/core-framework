@@ -313,6 +313,8 @@ namespace bulkio {
 
       typedef PT PortType;
 
+      class Stream;
+
 
       //
       // Stream Attachment represents a single port attachment
@@ -329,6 +331,13 @@ namespace bulkio {
                            typename PortType::_ptr_type input_port);
           StreamAttachment(const std::string& connection_id, 
                            typename PortType::_ptr_type input_port);
+          StreamAttachment(const std::string& connection_id, 
+                           const std::string& attach_id, 
+                           typename PortType::_ptr_type input_port,
+                           OutAttachablePort *p );
+          StreamAttachment(const std::string& connection_id, 
+                           typename PortType::_ptr_type input_port, 
+                           OutAttachablePort *p );
           
           void setLogger(LOGGER_PTR newLogger);
       
@@ -356,6 +365,7 @@ namespace bulkio {
           std::string _attachId;
           typename PortType::_var_type _inputPort;
           LOGGER_PTR logger;
+          OutAttachablePort *_port;
       };
   
       typedef StreamAttachment AttachmentType;
@@ -372,7 +382,7 @@ namespace bulkio {
           //
           // Constructors
           //
-          Stream();
+          Stream( );
           Stream(const StreamDefinition& stream_def,
                  const std::string name,
                  const std::string stream_id);
@@ -390,6 +400,7 @@ namespace bulkio {
             _streamAttachments = obj._streamAttachments;
             _sri = obj._sri;
             _time = obj._time;
+            port = obj.port;
             return *this;
           }
           
@@ -413,6 +424,7 @@ namespace bulkio {
           BULKIO::StreamSRI getSRI();
           BULKIO::PrecisionUTCTime getTime();
           std::set<std::string> getConnectionIds();
+          OutAttachablePort *getPort() { return port; };
           
           //
           // Setters
@@ -422,6 +434,7 @@ namespace bulkio {
           void setStreamId(const std::string& stream_id);
           void setSRI(BULKIO::StreamSRI sri);
           void setTime(BULKIO::PrecisionUTCTime time);
+          void setPort( OutAttachablePort *p );
           
           //
           // Creating Attachments
@@ -452,6 +465,7 @@ namespace bulkio {
           BULKIO::PrecisionUTCTime _time;
           MUTEX attachmentsUpdateLock;
           LOGGER_PTR logger;
+          OutAttachablePort  *port;
       };
       
       typedef typename std::vector<Stream> StreamList;
@@ -467,9 +481,12 @@ namespace bulkio {
           //
           // Constructors
           //
-          StreamContainer();
+          StreamContainer( OutAttachablePort &p);
 
           void setLogger(LOGGER_PTR newLogger);
+
+          // set the parent, used to log link statistics
+          const OutAttachablePort &getPort() { return port; };
  
           //
           // Add/remove streams
@@ -525,6 +542,7 @@ namespace bulkio {
         private:
           StreamList _streams;
           LOGGER_PTR logger;
+          OutAttachablePort  &port;
       };
       
   private:
@@ -568,6 +586,8 @@ namespace bulkio {
     virtual void enableStats(bool enable);
     virtual void setBitSize(double bitSize);
     virtual void updateStats(unsigned int elementsReceived, unsigned int queueSize, bool EOS, std::string streamID);
+    virtual void updateStats( const std::string &cid );
+    virtual bool reportConnectionErrors( const std::string &cid, const uint64_t n=1 );
 
     //
     // Uses Port Interface

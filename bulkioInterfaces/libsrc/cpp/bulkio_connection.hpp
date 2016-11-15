@@ -39,6 +39,11 @@ namespace bulkio {
 
     virtual PortPtrType objref() = 0;
 
+    bool reportConnectionErrors()
+    {
+      return stats.connectionErrors(1) < 11;
+    }
+
     linkStatistics stats;
 
   protected:

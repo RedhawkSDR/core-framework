@@ -31,12 +31,29 @@ from ossie.utils.log4py import logging
 
 import bluefile
 try:
+    import bulkio
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
 except:
     pass
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
+
+# BLUE files use an epoch of Jan 1, 1950, while REDHAWK uses the Unix epoch
+# (Jan 1, 1970); REDHAWK_EPOCH_J1950 is the Unix epoch as a J1950 time
+REDHAWK_EPOCH_J1950 = 631152000.0
+
+def unix_to_j1950(ts):
+    """
+    Converts seconds since the Unix epoch (Jan 1, 1970) to a J1950 time.
+    """
+    return ts + REDHAWK_EPOCH_J1950
+
+def j1950_to_unix(ts):
+    """
+    Converts a J1950 time to seconds since the Unix epoch (Jan 1, 1970).
+    """
+    return ts - REDHAWK_EPOCH_J1950
 
 def hdr_to_sri(hdr, stream_id):
     """
@@ -64,10 +81,12 @@ def hdr_to_sri(hdr, stream_id):
         subsize = 0
         ystart = 0
         ydelta = 0
+        yunits = BULKIO.UNITS_NONE
     else:
-        subsize = str(data_type)[0]
+        subsize = hdr['subsize']
         ystart = hdr['ystart']  
         ydelta = hdr['ydelta']  
+        yunits = hdr['yunits']
     
     # The mode is based on the data type: 0 if is Scalar or 1 if it is 
     # Complex.  Setting it to -1 for any other type
@@ -97,7 +116,7 @@ def hdr_to_sri(hdr, stream_id):
                     continue
             
     return BULKIO.StreamSRI(hversion, xstart, xdelta, xunits, 
-                            subsize, ystart, ydelta, BULKIO.UNITS_NONE, 
+                            subsize, ystart, ydelta, yunits,
                             mode, stream_id, True, kwds)
         
 
@@ -119,12 +138,16 @@ def sri_to_hdr(sri, data_type, data_format):
     kwds['xdelta'] = sri.xdelta
     kwds['xunits'] = sri.xunits
     
+    kwds['subsize'] = sri.subsize
     kwds['ystart'] = sri.ystart
     kwds['ydelta'] = sri.ydelta
     kwds['yunits'] = sri.yunits
     
     kwds['format'] = data_format
     kwds['type'] = data_type
+
+    # Default to REDHAWK epoch
+    kwds['timecode'] = REDHAWK_EPOCH_J1950
     
     ext_hdr = sri.keywords
     if len(ext_hdr) > 0:
@@ -306,12 +329,17 @@ class BlueFileReader(object):
         start = 0           # stores the start of the packet
         end = start         # stores the end of the packet
 
-        if hdr['format'].startswith('C'):
-            data = data.flatten()
-            if hdr['format'].endswith('F'):
-                data = data.view(numpy.float32)
-            elif hdr['format'].endswith('D'):
-                data = data.view(numpy.float64)
+        # Flatten framed (type 2000) and/or complex data (where each element
+        # may be a 2-tuple)
+        if hdr['format'].startswith('C') or hdr['class'] == 2:
+            data = numpy.reshape(data,(-1,))
+
+        # For complex float/double, get a view of the data as the scalar type
+        # instead of the complex type
+        if hdr['format'] == 'CF':
+            data = data.view(numpy.float32)
+        elif hdr['format'] == 'CD':
+            data = data.view(numpy.float64)
 
         sz = len(data)      
         self.done = False
@@ -322,15 +350,25 @@ class BlueFileReader(object):
         currentSampleTime = 0.0
         if hdr.has_key('timecode'):
             # Set sample time to seconds since Jan. 1 1970 
-            currentSampleTime = hdr['timecode'] - long(631152000)
+            currentSampleTime = j1950_to_unix(hdr['timecode'])
             if currentSampleTime < 0:
                 currentSampleTime = 0.0
-      
+
+        # Quantize packet size to match complex ("spa" is scalars per atom) and
+        # framing ("ape" is atoms per element), with a minimum of one frame per
+        # packet
+        spe = hdr['spa'] * hdr['ape']
+        pktsize = max(spe, int(pktsize/spe) * spe)
+
+        # Create a normalized timestamp from the initial sample time
+        T = bulkio.timestamp.create(currentSampleTime, 0.0)
+        bulkio.timestamp.normalize(T)
+
         while not self.done:
             chunk = start + pktsize
             # if the next chunk is greater than the file, then grab remaining
             # only, otherwise grab a whole packet size
-            if chunk > sz:
+            if chunk >= sz:
                 end = sz
                 self.done = True
             else:
@@ -344,13 +382,23 @@ class BlueFileReader(object):
             else:
                 d = dataset.tolist()
             start = end
-            
-            T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(currentSampleTime), currentSampleTime - int(currentSampleTime))
+
             self.pushPacket(d, T, False, sri.streamID)
-            dataSize = len(d)
-            sampleRate = 1.0/sri.xdelta
-            currentSampleTime = currentSampleTime + dataSize/sampleRate
-        T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(currentSampleTime), currentSampleTime - int(currentSampleTime))
+
+            # Update the sample time to account for the packet; the data size
+            # should always be an integral number of elements (taking subsize
+            # and complex into account), but use a float just in case there's
+            # a partial packet at the end
+            dataSize = len(d) / float(spe)
+            # Make a best guess at the time axis, based on the whether it's
+            # framed data (and the Y-axis is in units of time), defaulting to
+            # the X-axis
+            if sri.subsize > 0 and sri.yunits == BULKIO.UNITS_TIME:
+                delta = sri.ydelta
+            else:
+                delta = sri.xdelta
+            T += dataSize * delta
+
         if hdr['format'].endswith('B'):
             self.pushPacket('', T, True, sri.streamID)
         else: 
@@ -391,6 +439,7 @@ class BlueFileWriter(object):
         self.gotEOS = False
         self.header = None
         self.done = False
+        self._firstPacket = True
     
     def start(self):
         self.done = False
@@ -470,6 +519,13 @@ class BlueFileWriter(object):
         else:
             self.gotEOS = False
         try:
+            # If the header doesn't already have meaningful timecode, update it
+            # with the packet time and write it out to disk
+            if self._firstPacket and self.header and ts.tcstatus == BULKIO.TCS_VALID:
+                self.header['timecode'] = unix_to_j1950(ts.twsec + ts.tfsec)
+                bluefile.writeheader(self.outFile, self.header)
+            self._firstPacket = False
+
             if self.header and self.header['format'][1] == 'B':
                 # convert back from string to array of 8-bit integers
                 data = numpy.fromstring(data, numpy.int8)
@@ -483,9 +539,19 @@ class BlueFileWriter(object):
                     data = bulkio_helpers.bulkioComplexToPythonComplexList(data)
                 # other data types are not handled by numpy
                 # each element is two value array representing real and imaginary values
-                else:
+                # if data is also framed, wait to reshape everything at once
+                elif self.header['subsize'] == 0:
                     # Need to rehape the data into complex value pairs
                     data = numpy.reshape(data,(-1,2))
+
+            # If framed data, need to frame the data according to subsize
+            if self.header and self.header['subsize'] != 0:
+                # If scalar or single complex values, just frame it
+                if self.header['format'][0] != 'C' or  self.header['format'][1] in ('F', 'D'):
+                    data = numpy.reshape(data,(-1, int(self.header['subsize'])))
+                # otherwise, frame and pair as complex values
+                else:
+                    data = numpy.reshape(data,(-1, int(self.header['subsize']), 2))
 
             bluefile.write(self.outFile, hdr=None, data=data, 
                        append=1)     

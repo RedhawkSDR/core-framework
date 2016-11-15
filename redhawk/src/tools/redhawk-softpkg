@@ -60,7 +60,8 @@ def getImplementation(spd, implId):
     raise ValueError('%s has no implementation %s' % (spd.get_name(), implId))
 
 def walkDependencies(spdfile, implId, func):
-    spd = SPDParser.parse(spdfile)
+    with open(spdfile) as f:
+        spd = SPDParser.parse(f)
     impl = getImplementation(spd, implId)
 
     deps = []
@@ -74,9 +75,10 @@ def walkDependencies(spdfile, implId, func):
             depimplid = softpkgref.get_implref().get_refid()
         else:
             depimplid = None
-        if not os.path.exists(deppath):
-            raise ValueError('%s, required by %s, does not exist' % (depfile, spd.get_name()))
-        deps += walkDependencies(deppath, depimplid, func)
+        try:
+            deps += walkDependencies(deppath, depimplid, func)
+        except IOError as err:
+            raise ValueError('Failed to open %s, required by %s: %s' % (depfile, spd.get_name(), err.strerror))
 
     deps += func(spdfile, impl)
 

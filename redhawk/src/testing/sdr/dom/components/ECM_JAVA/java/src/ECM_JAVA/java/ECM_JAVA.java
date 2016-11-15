@@ -6,9 +6,10 @@ import org.omg.CORBA.TCKind;
 import org.ossie.events.Manager;
 import org.ossie.events.Publisher;
 import org.ossie.events.Subscriber;
+import org.ossie.events.Subscriber.DataArrivedListener;
 import org.ossie.properties.AnyUtils;
 import org.omg.CORBA.Any;
-
+import org.ossie.properties.PropertyListener;
 import CF.LifeCyclePackage.InitializeError;
 
 
@@ -62,12 +63,58 @@ public class ECM_JAVA extends ECM_JAVA_base {
 		private org.ossie.events.Publisher pub;
 		private org.ossie.events.Subscriber sub;
 
+    class MyMsgCB implements org.ossie.events.Subscriber.DataArrivedListener {
+
+        public ECM_JAVA parent=null;
+        public int msgin;
+
+        public MyMsgCB( ECM_JAVA pparent ){
+            parent = pparent;
+            msgin=1;
+        }
+
+        public void processData( Any data ) {
+            if ( parent != null ) {
+                int msgin  = data.extract_long();
+                logger.debug("Received (CB) MSG =" + msgin);
+                if ( msgin == (parent.msg_xmit.getValue()-1) ) {
+                    parent.msg_recv.setValue(parent.msg_recv.getValue()+1);
+                }
+                logger.debug("Received (CB) MSG =" + msgin + " msgrcv= " + parent.msg_recv.getValue());
+            }
+            else {
+                logger.debug("Received (CB) : When did my parent go !!!!!!!");
+            }
+        }
+
+
+    };
+
+    private MyMsgCB  mycb=null;
+
     public ECM_JAVA()
     {
         super();
+
+        //Add the following to the class constructor:
+        this.enablecb.addChangeListener(new PropertyListener<Boolean>() {
+                public void valueChanged(Boolean oldValue, Boolean newValue) {
+                   enablecbChanged(oldValue, newValue);
+                }
+            });
         
 
     }
+
+    private void enablecbChanged(Boolean oldValue, Boolean newValue)
+     {
+         enablecb.setValue(newValue);
+         if ( enablecb.getValue() == true ) {
+             mycb = new MyMsgCB(this);
+             this.sub.setDataArrivedListener( mycb  );
+         }
+
+     }
 
     
     public void initialize() {
@@ -89,6 +136,7 @@ public class ECM_JAVA extends ECM_JAVA_base {
             	if ( this.sub == null ) {
                 	this.sub  = ecm.Subscriber("test1");
             	}
+
             	}
                 catch( org.ossie.events.Manager.RegistrationFailed e) {
                 }
@@ -218,14 +266,13 @@ public class ECM_JAVA extends ECM_JAVA_base {
         if  ( this.ecm != null ) {
         		
         	if ( this.pub == null || this.sub == null ) {
-            	logger.info("Events channels not available ..");
-            	return NOOP;
-        	
+                    logger.error("Events channels not available ..");
+                    return NOOP;
         	}
         		// we are done
         	if ( this.msg_limit.getValue() == this.msg_xmit.getValue() ) return FINISH;
 
-        	logger.info("Generated MSG =" + this.msg_xmit);
+        	logger.debug("Generated MSG =" + this.msg_xmit);
         	Any any = this.orb.create_any();
         	any.insert_long(this.msg_xmit.getValue());
         	this.pub.push( any );
@@ -235,19 +282,29 @@ public class ECM_JAVA extends ECM_JAVA_base {
         	}
         	catch(InterruptedException e){
         	}
-            int msgin=0;
-        	this.sub.getData( any );
-        	msgin  = any.extract_long();
-        	logger.info("Received MSG =" + msgin);
-        	if ( msgin == (this.msg_xmit.getValue()-1) ) {
-            	this.msg_recv.setValue(this.msg_recv.getValue()+1);
-        	}
+                int msgin=0;
+        	if ( this.sub.getData( any ) == 0 )
+                    {
+                    	msgin  = any.extract_long();
+                 	logger.debug("Received MSG =" + msgin);
+                  	if ( msgin == (this.msg_xmit.getValue()-1) ) {
+                            this.msg_recv.setValue(this.msg_recv.getValue()+1);
+                        }
+                    }
         }
         else {
         	logger.info("mylogger - NO ECM ... ");
         }
 
         return NOOP;
+    }
+
+    public void do_it(  Any any ) {
+        int msgin  = any.extract_long();
+        logger.info(".......Received MSG =" + msgin);
+        if ( msgin == (this.msg_xmit.getValue()-1) ) {
+            this.msg_recv.setValue(this.msg_recv.getValue()+1);
+        }
     }
 
     /**

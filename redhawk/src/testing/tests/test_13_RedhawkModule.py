@@ -49,6 +49,62 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertNotEqual(self._domMgr, None, "DomainManager not available")
         self.assertNotEqual(self._devMgr, None, "DeviceManager not available")
 
+    def test_API_remap(self):
+        orig_api = dir(self._rhDom.ref)
+        remap_api = dir(self._rhDom)
+        not_remap = ['__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
+                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
+                     '_release','_unchecked_narrow']
+        for entry in orig_api:
+            if entry in not_remap:
+                continue
+            self.assertEquals(entry in remap_api, True)
+            
+        orig_api = dir(self._rhDom.devMgrs[0].ref)
+        remap_api = dir(self._rhDom.devMgrs[0])
+        not_remap = ['__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
+                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
+                     '_release','_unchecked_narrow']
+        for entry in orig_api:
+            if entry in not_remap:
+                continue
+            self.assertEquals(entry in remap_api, True)
+            
+        app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
+        self.assertNotEqual(app, None, "Application not created")
+        self.assertEquals(len(self._rhDom._get_applications()), 1)
+        self.assertEquals(len(self._rhDom.apps), 1)
+
+        orig_api = dir(self._rhDom.apps[0].comps[0].ref)
+        remap_api = dir(self._rhDom.apps[0].comps[0])
+        not_remap = ['_NP_RepositoryId','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
+                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
+                     '_release','_unchecked_narrow', '_non_existent']
+        for entry in orig_api:
+            if entry in not_remap:
+                continue
+            self.assertEquals(entry in remap_api, True)
+
+        orig_api = dir(self._rhDom.apps[0].ref)
+        remap_api = dir(self._rhDom.apps[0])
+        not_remap = ['_NP_RepositoryId','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
+                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
+                     '_release','_unchecked_narrow', '_non_existent']
+        for entry in orig_api:
+            if entry in not_remap:
+                continue
+            self.assertEquals(entry in remap_api, True)
+
+        orig_api = dir(self._rhDom.devMgrs[0].devs[0].ref)
+        remap_api = dir(self._rhDom.devMgrs[0].devs[0])
+        not_remap = ['_NP_RepositoryId','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
+                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
+                     '_release','_unchecked_narrow', '_non_existent']
+        for entry in orig_api:
+            if entry in not_remap:
+                continue
+            self.assertEquals(entry in remap_api, True)
+
     def test_createApplication1(self):
         # Automatically clean up
         redhawk.setTrackApps(True)

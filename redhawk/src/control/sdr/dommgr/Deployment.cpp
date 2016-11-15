@@ -712,6 +712,11 @@ void ComponentDeployment::configure()
 
     redhawk::PropertyMap config_props = getInitialConfigureProperties();
 
+    // Skip empty configure call
+    if (config_props.empty()) {
+        return;
+    }
+
     // Check and warn for partial structs
     CF::Properties partials = ossie::getPartialStructs(config_props);
     if (partials.length() > 0) {

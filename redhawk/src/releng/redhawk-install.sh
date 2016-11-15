@@ -119,10 +119,10 @@ sed -i s/@NAME@/REDHAWK_${USER}/g DomainManager.dmd.xml
 sed -i "s/@DESCRIPTION@/A REDHAWK Domain for ${USER}/g" DomainManager.dmd.xml
 
 . $OSSIEHOME/environment-setup
-$SDRROOT/dev/devices/GPP/cpp/create_node.py -v  \
+$SDRROOT/dev/devices/GPP/cpp/gpp_setup -v  \
+    --nodecfg \
     --sdrroot=$SDRROOT \
     --gpppath=/devices/GPP \
     --domainname=REDHAWK_${USER} \
-    --disableevents \
     --inplace \
     --clean

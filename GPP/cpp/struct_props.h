@@ -335,7 +335,6 @@ inline bool operator!= (const threshold_event_struct& s1, const threshold_event_
 struct thresholds_struct {
     thresholds_struct ()
     {
-        ignore=false;
         cpu_idle = 10;
         load_avg = 80;
         mem_free = 100LL;
@@ -348,7 +347,6 @@ struct thresholds_struct {
         return std::string("thresholds");
     };
 
-    bool  ignore;
     float cpu_idle;
     float load_avg;
     CORBA::LongLong mem_free;
@@ -361,9 +359,6 @@ inline bool operator>>= (const CORBA::Any& a, thresholds_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
     const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
-    if (props.contains("ignore")) {
-        if (!(props["ignore"] >>= s.ignore)) return false;
-    }
     if (props.contains("cpu_idle")) {
         if (!(props["cpu_idle"] >>= s.cpu_idle)) return false;
     }
@@ -388,8 +383,6 @@ inline bool operator>>= (const CORBA::Any& a, thresholds_struct& s) {
 inline void operator<<= (CORBA::Any& a, const thresholds_struct& s) {
     redhawk::PropertyMap props;
  
-    props["ignore"] = s.ignore;
-
     props["cpu_idle"] = s.cpu_idle;
  
     props["load_avg"] = s.load_avg;
@@ -405,8 +398,6 @@ inline void operator<<= (CORBA::Any& a, const thresholds_struct& s) {
 }
 
 inline bool operator== (const thresholds_struct& s1, const thresholds_struct& s2) {
-    if (s1.ignore!=s2.ignore)
-        return false;
     if (s1.cpu_idle!=s2.cpu_idle)
         return false;
     if (s1.load_avg!=s2.load_avg)

@@ -193,12 +193,13 @@ void CPP_Ports_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::Sys
         
 ************************************************************************************************/
 template < typename IPT, typename  OPT > 
-void  DoPort( IPT *iport, OPT *oport, const char *tname ) {
+void  DoPort( IPT *iport, OPT *oport, const char *tname , rh_logger::LoggerPtr logger ) {
 
     typename IPT::dataTransfer *p1 = iport->getPacket( bulkio::Const::NON_BLOCKING );
 
     if ( p1 ) {
-      std::cout << "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  << std::endl;
+        RH_DEBUG(logger, "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  );
+
       
       if ( oport ) {
 	if ( p1->sriChanged ) {
@@ -211,16 +212,19 @@ void  DoPort( IPT *iport, OPT *oport, const char *tname ) {
         delete p1;
       }
     }
+    else {
+        RH_TRACE(logger,  "CPP_PORTS::SVC_FUN   TYPE:" << tname << " NO DATA...." ) ;
+    }
 }
 
 
 template <> 
-void  DoPort< bulkio::InCharPort, bulkio::OutCharPort >( bulkio::InCharPort *iport, bulkio::OutCharPort *oport, const char *tname ) {
+void  DoPort< bulkio::InCharPort, bulkio::OutCharPort >( bulkio::InCharPort *iport, bulkio::OutCharPort *oport, const char *tname, rh_logger::LoggerPtr logger ) {
 
     bulkio::InCharPort::dataTransfer *p1 = iport->getPacket( bulkio::Const::NON_BLOCKING );
 
     if ( p1 ) {
-      std::cout << "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  << std::endl;
+        RH_DEBUG(logger, "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  );
       if ( oport ) {
 
 	if ( p1->sriChanged ) {
@@ -235,16 +239,19 @@ void  DoPort< bulkio::InCharPort, bulkio::OutCharPort >( bulkio::InCharPort *ipo
         delete p1;
       }
     }
+    else {
+        RH_TRACE(logger,  "CPP_PORTS::SVC_FUN   TYPE:" << tname << " NO DATA...." ) ;
+    }
 }
 
 
 template <> 
-void  DoPort< bulkio::InFilePort, bulkio::OutFilePort >( bulkio::InFilePort *iport, bulkio::OutFilePort *oport, const char *tname ) {
+void  DoPort< bulkio::InFilePort, bulkio::OutFilePort >( bulkio::InFilePort *iport, bulkio::OutFilePort *oport, const char *tname, rh_logger::LoggerPtr logger ) {
 
     bulkio::InFilePort::dataTransfer *p1 = iport->getPacket( bulkio::Const::NON_BLOCKING );
 
     if ( p1 ) {
-      std::cout << "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  << std::endl;
+        RH_DEBUG(logger, "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  );
       
       if ( oport ) {
 
@@ -260,16 +267,19 @@ void  DoPort< bulkio::InFilePort, bulkio::OutFilePort >( bulkio::InFilePort *ipo
         delete p1;
       }
     }
+    else {
+        RH_TRACE(logger,  "CPP_PORTS::SVC_FUN   TYPE:" << tname << " NO DATA...." ) ;
+    }
 }
 
 
 template <> 
-void  DoPort< bulkio::InXMLPort, bulkio::OutXMLPort >( bulkio::InXMLPort *iport, bulkio::OutXMLPort *oport, const char *tname ) {
+void  DoPort< bulkio::InXMLPort, bulkio::OutXMLPort >( bulkio::InXMLPort *iport, bulkio::OutXMLPort *oport, const char *tname, rh_logger::LoggerPtr logger ) {
 
     bulkio::InXMLPort::dataTransfer *p1 = iport->getPacket( bulkio::Const::NON_BLOCKING );
 
     if ( p1 ) {
-      std::cout << "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  << std::endl;
+        RH_DEBUG(logger, "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  );
       
       if ( oport ) {
 	if ( p1->sriChanged ) {
@@ -285,6 +295,9 @@ void  DoPort< bulkio::InXMLPort, bulkio::OutXMLPort >( bulkio::InXMLPort *iport,
         delete p1;
       }
     }
+    else {
+        RH_TRACE(logger,  "CPP_PORTS::SVC_FUN   TYPE:" << tname << " NO DATA...." ) ;
+    }
 }
 
 
@@ -292,26 +305,26 @@ int CPP_Ports_i::serviceFunction()
 {
     LOG_DEBUG(CPP_Ports_i, "serviceFunction() example log message");
     
-    DoPort( dataFloatIn, dataFloatOut, "FLOAT");
-    DoPort( dataDoubleIn, dataDoubleOut, "DOUBLE");
-    DoPort( dataCharIn, dataCharOut, "CHAR");
-    DoPort( dataOctetIn, dataOctetOut, "OCTET");
-    DoPort( dataShortIn, dataShortOut, "SHORT");
-    DoPort( dataUShortIn, dataUShortOut, "USHORT");
+    DoPort( dataFloatIn, dataFloatOut, "FLOAT", CPP_Ports_i::__logger);
+    DoPort( dataDoubleIn, dataDoubleOut, "DOUBLE", CPP_Ports_i::__logger);
+    DoPort( dataCharIn, dataCharOut, "CHAR", CPP_Ports_i::__logger);
+    DoPort( dataOctetIn, dataOctetOut, "OCTET", CPP_Ports_i::__logger);
+    DoPort( dataShortIn, dataShortOut, "SHORT", CPP_Ports_i::__logger);
+    DoPort( dataUShortIn, dataUShortOut, "USHORT", CPP_Ports_i::__logger);
 
-    DoPort( dataLongIn, dataLongOut, "LONG");
-    DoPort( dataULongIn, dataULongOut, "ULONG");
+    DoPort( dataLongIn, dataLongOut, "LONG", CPP_Ports_i::__logger);
+    DoPort( dataULongIn, dataULongOut, "ULONG", CPP_Ports_i::__logger);
 
-    DoPort( dataLongLongIn, dataLongLongOut, "LONGLONG");
-    DoPort( dataULongLongIn, dataULongLongOut, "ULONGLONG");
+    DoPort( dataLongLongIn, dataLongLongOut, "LONGLONG", CPP_Ports_i::__logger);
+    DoPort( dataULongLongIn, dataULongLongOut, "ULONGLONG", CPP_Ports_i::__logger);
 
 
-    DoPort( dataFileIn, dataFileOut, "URL");
-    DoPort( dataXMLIn, dataXMLOut, "XML");
+    DoPort( dataFileIn, dataFileOut, "URL", CPP_Ports_i::__logger);
+    DoPort( dataXMLIn, dataXMLOut, "XML", CPP_Ports_i::__logger);
 
     LOG_DEBUG(CPP_Ports_i, "CPP_Ports:SVC_FUNC END" );
     boost::this_thread::sleep( boost::posix_time::milliseconds(2));
 
-    return NORMAL;
+    return NOOP;
 
 }

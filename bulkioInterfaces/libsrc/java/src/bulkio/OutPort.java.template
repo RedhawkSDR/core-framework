@@ -48,6 +48,7 @@ public class Out@name@Port extends OutStreamPort<@idl@Operations,@type@[]> {
         if (this.logger != null) {
             this.logger.debug("bulkio.OutPort CTOR port: " + portName);
         }
+
     }
 
     protected @idl@Operations narrow(final org.omg.CORBA.Object obj) {

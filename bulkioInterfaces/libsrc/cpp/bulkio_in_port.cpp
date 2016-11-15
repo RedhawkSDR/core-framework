@@ -47,6 +47,13 @@ namespace  bulkio {
     std::string _cmpMsg("USER_DEFINED");
     std::string _sriMsg("EMPTY");
 
+    if ( !logger  ) {
+        std::string pname("redhawk.bulkio.inport.");
+        pname = pname + port_name;
+        logger = rh_logger::Logger::getLogger(pname);
+    }
+
+
     if (newStreamCB) {
       newStreamCallback = boost::ref(*newStreamCB);
       _sriMsg = "USER_DEFINED";

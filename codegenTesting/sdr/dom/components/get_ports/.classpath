@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<classpath>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="src" output="basic_java_impl1/bin" path="basic_java_impl1/src"/>
-	<classpathentry kind="con" path="gov.redhawk.ide.codegen.java.ossieLib"/>
-	<classpathentry kind="output" path="bin"/>
-</classpath>

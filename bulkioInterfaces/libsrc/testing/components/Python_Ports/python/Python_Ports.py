@@ -57,7 +57,7 @@ class Python_Ports_i(Python_Ports_base):
             ##self._log.debug(  "SF  TYPE:" + pname + " pkt:" +  str(p1) )
             ##print   "SF  TYPE:" + pname + " pkt:" +  str(p1) 
             if p1 and p1[inPort.DATA_BUFFER]:
-                self._log.info(  "SF  TYPE:" + pname + " DATALEN:" +  str(len(p1[inPort.DATA_BUFFER])) )
+                self._log.debug(  "SF  TYPE:" + pname + " DATALEN:" +  str(len(p1[inPort.DATA_BUFFER])) )
                 #print  "SF  TYPE:" + pname + " DATALEN:" +  str(len(p1[inPort.DATA_BUFFER])) 
                 outPort.pushPacket( p1[0], p1[1], p1[2], p1[3] )
 

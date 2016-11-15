@@ -24,6 +24,7 @@ import java.util.Map;
 import bulkio.sdds.SDDSStream;
 import bulkio.sdds.SDDSStreamAttachment;
 import bulkio.SriMapStruct;
+import bulkio.OutSDDSPort;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,16 +41,24 @@ import org.apache.log4j.Logger;
 // StreamContainer is a unique list of Stream objects
 //
 public class SDDSStreamContainer {
-        public SDDSStreamContainer() {
+    public SDDSStreamContainer( ) {
             this.streamMap = new HashMap<String,SDDSStream>();
             this.logger = null;
+            this.bio_port = null;
         }
 
-        public SDDSStreamContainer(SDDSStream[] streams) {
+    public SDDSStreamContainer( SDDSStream[] streams) {
             this.streamMap = new HashMap<String,SDDSStream>();
             for(SDDSStream s : streams ){
                 this.streamMap.put(s.streamId, s);
             }
+            this.bio_port = null;
+        }
+
+    public SDDSStreamContainer( OutSDDSPort port ) {
+            this.streamMap = new HashMap<String,SDDSStream>();
+            this.logger = null;
+            this.bio_port = port;
         }
 
         public void printState(String title){
@@ -144,7 +153,7 @@ public class SDDSStreamContainer {
             for(Map.Entry<String, SDDSStream > entry: this.streamMap.entrySet()) {
                 SDDSStream stream = entry.getValue();
                 if (stream != null){
-                    stream.createNewAttachment(connectionId, inputPort);
+                    stream.createNewAttachment(connectionId, inputPort, this.bio_port );
                 }
             }
         }
@@ -342,7 +351,7 @@ public class SDDSStreamContainer {
                     if (logger != null){
                         logger.trace("SDDSStreamContainer:addConnectionToAllStreams() calling createNewAttachment for streamId  " + s.streamId);
                     }
-                    s.createNewAttachment(connectionId, inputPort);
+                    s.createNewAttachment(connectionId, inputPort, bio_port );
                 }
             }
         }
@@ -355,7 +364,7 @@ public class SDDSStreamContainer {
                 SDDSStream s = entry.getValue();
                 if (s.streamId.equals(streamId)){
                     if (!s.hasConnectionId(connectionId)){
-                        s.createNewAttachment(connectionId, inputPort);
+                        s.createNewAttachment(connectionId, inputPort, this.bio_port);
                     }
                 }
             }
@@ -418,5 +427,6 @@ public class SDDSStreamContainer {
 
         protected Map<String, SDDSStream> streamMap;
         protected Logger logger;
+        protected OutSDDSPort bio_port;
 
 };

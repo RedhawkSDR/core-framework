@@ -22,28 +22,49 @@ package bulkio.sdds;
 import BULKIO.dataSDDSOperations;
 import BULKIO.dataSDDSPackage.DetachError;
 import BULKIO.dataSDDSPackage.StreamInputError;
+import bulkio.OutSDDSPort;
 
 //
 // Stream Attachment represents a single port attachment
 //
 public class SDDSStreamAttachment {
         public SDDSStreamAttachment() {
-            this(null, null, null);
+            this(null, null, null, null);
         }
 
-        public SDDSStreamAttachment(String connectionId, dataSDDSOperations inputPort) {
-            this(connectionId, null, inputPort);
+    public SDDSStreamAttachment(String connectionId, dataSDDSOperations inputPort ) {
+        this(connectionId, null, inputPort, null );
         }
 
-        public SDDSStreamAttachment(String connectionId, String attachId, dataSDDSOperations inputPort) {
+    public SDDSStreamAttachment(String connectionId, dataSDDSOperations inputPort, OutSDDSPort port) {
+        this(connectionId, null, inputPort, port);
+        }
+
+    public SDDSStreamAttachment(String connectionId, String attachId, dataSDDSOperations inputPort,
+                                OutSDDSPort bport) {
             this.connectionId = connectionId;
             this.attachId = attachId;
             this.inputPort = inputPort;
+            this.bio_port = bport;
         }
 
         public void detach() throws DetachError,StreamInputError {
             if (this.attachId != null && !this.attachId.isEmpty()){
-                this.inputPort.detach(attachId);
+                try {
+                    this.inputPort.detach(attachId);
+                    if ( this.bio_port != null ) {
+                        this.bio_port.updateStats(connectionId);
+                    }
+                } catch( DetachError e ) {
+                    throw e;
+                } catch( StreamInputError e ) {
+                    throw e;
+                } catch( Exception e ) {
+                    String msg = " Unable to DEATTACH: " + attachId + " for CONNECTION: " + connectionId;
+                    if ( this.bio_port != null ) {
+                        this.bio_port.reportConnectionErrors( connectionId, msg );
+                    }
+                }
                 this.attachId = null;
             }
         }
@@ -75,4 +96,5 @@ public class SDDSStreamAttachment {
         protected String connectionId;
         protected String attachId;
         protected dataSDDSOperations inputPort;
+        protected OutSDDSPort bio_port = null;
 };

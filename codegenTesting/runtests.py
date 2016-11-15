@@ -107,6 +107,8 @@ class TestCollector(unittest.TestSuite):
                             test_list = loader.loadTestsFromTestCase(candidate)
                             for subtest in test_list:
                                 subtest.artifact_name = curr
+                                # Strip namespace to get the base name
+                                subtest.base_name = curr.split('.')[-1]
                                 subtest.artifact_dir = artifact_dir
                                 subtest.artifact_module_directory = os.path.join(artifact_dir, '[NAME]/tests')
                             self.addTest(test_list)

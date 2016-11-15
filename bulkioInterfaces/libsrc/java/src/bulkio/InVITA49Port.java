@@ -154,11 +154,11 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
 	sri_cmp = sriCmp;
 	time_cmp = timeCmp;
 	sriCallback = null;
-	logger = logger;
-
-	if ( logger != null  ){
-	    logger.debug( "bulkio::InVITA49Port  CTOR port:" + name  );
-	}
+	this.logger = logger;
+	if ( this.logger == null ) {
+            this.logger = Logger.getLogger("redhawk.bulkio.inport."+portName);
+        }
+        this.logger.debug( "bulkio::InVITA49Port  CTOR port:" + name  );
 
     }
 

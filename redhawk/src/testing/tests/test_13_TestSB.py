@@ -507,6 +507,28 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.over_simple, "override")
         self.assertEquals(comp.over_struct_seq, [{'a_word': 'something', 'a_number': 1}])
 
+
+    def test_loadSADFile_startorder(self):
+        maxpid=32768
+        try:
+            out=subprocess.Popen(['cat', '/proc/sys/kernel/pid_max'], stdout=subprocess.PIPE)
+            res=out.communicate()
+            maxpid=int(res[0].strip())
+        except:
+            pass
+        retval = sb.loadSADFile('sdr/dom/waveforms/ticket_462_w/ticket_462_w.sad.xml')
+        self.assertEquals(retval, True)
+        comp_ac = sb.getComponent('ticket_462_ac_1')
+        self.assertNotEquals(comp_ac, None)
+        comp = sb.getComponent('ticket_462_1')
+        self.assertNotEquals(comp, None)
+        if comp_ac._pid <= maxpid-1:
+            isless= comp_ac._pid < comp._pid
+        else:
+            isless=comp._pid < comp_ac._pid 
+        self.assertTrue(isless)
+
+
     def test_SDDS_SRI(self):
         c = sb.launch('sdds_src')
         self.assertNotEquals(c, None)
@@ -1376,6 +1398,8 @@ class BulkioTest(unittest.TestCase):
             raise ImportError('BULKIO is required for this test')
 
     def tearDown(self):
+        # Clean up sources and sinks
+        sb.release()
         try:
             os.unlink(self.TEMPFILE)
         except:
@@ -1621,6 +1645,36 @@ class BulkioTest(unittest.TestCase):
         recData = snk.getData(eos_block=True)
         self.assertEqual(len(recData),_frames/2)
         self.assertEqual(len(recData[0]),_subsize*2)
+
+    def test_DataSinkChar(self):
+        src=sb.DataSource(dataFormat='char')
+        snk=sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        indata = range(16)
+        src.push(indata, EOS=True)
+        start = time.time()
+        while not snk.eos() and (time.time() - start) < 2.0:
+            time.sleep(0.1)
+        outdata = snk.getData()
+        self.assertEquals(len(outdata), len(indata))
+        self.assertEquals(outdata, indata)
+
+    def test_DataSinkCharSubsize(self):
+        subsize = 8
+        frames = 4
+        src=sb.DataSource(dataFormat='char',subsize=subsize)
+        snk=sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        src.push(range(subsize*frames), EOS=True)
+        start = time.time()
+        while not snk.eos() and (time.time() - start) < 2.0:
+            time.sleep(0.1)
+        outdata = snk.getData()
+        self.assertEquals(len(outdata), frames)
+        for frame in outdata:
+            self.assertEquals(len(frame), subsize)
 
 #    def test_connections(self):
 #        a = sb.launch(self.test_comp)

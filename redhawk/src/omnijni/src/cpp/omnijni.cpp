@@ -31,23 +31,26 @@ namespace {
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad (JavaVM* jvm, void* reserved)
 {
-    // Map to the JVM enviroment.
-    JNIEnv* env;
-    if (jvm->GetEnv((void**)&env, JNI_VERSION_1_2)) {
-        return false;
+    // Only initialize if the shared mutex doesn't exist
+    if (!sharedMutex_) {
+        // Map to the JVM enviroment.
+        JNIEnv* env;
+        if (jvm->GetEnv((void**)&env, JNI_VERSION_1_4)) {
+            return false;
+        }
+
+        // Must initialize the CORBA ORB before anything else happens.
+        omnijni::ORB::Init(env);
+
+        // Initialize the omniORB/JVM thread interface code.
+        omnijni::threading::Init(env);
+
+        // Create the shared mutex at JNI initialization time (rather than whenever
+        // static initializers are called)
+        sharedMutex_ = new omni_mutex();
     }
 
-    // Must initialize the CORBA ORB before anything else happens.
-    omnijni::ORB::Init(env);
-
-    // Initialize the omniORB/JVM thread interface code.
-    omnijni::threading::Init(env);
-
-    // Create the shared mutex at JNI initialization time (rather than whenever
-    // static initializers are called)
-    sharedMutex_ = new omni_mutex();
-
-    return JNI_VERSION_1_2;
+    return JNI_VERSION_1_4;
 }
 
 namespace omnijni {

@@ -235,7 +235,6 @@ def _install_loggers(props, handlers, filterCategory, disable_existing_loggers )
   clist = [ x[len("log4j.category."):] for x in tmp ]
   tmp = filter(lambda x: x.startswith("log4j.logger."), props.keys())
   llist = [ x[len("log4j.logger."):] for x in tmp ]
-
   # existing loggers
   existing = root.manager.loggerDict.keys()
   existing.sort(key=_encoded)
@@ -265,13 +264,6 @@ def _install_loggers(props, handlers, filterCategory, disable_existing_loggers )
 def _install_from_list( llist, props, filterCategory, additivities, handlers, existing, child_loggers):
 
   for log in llist:
-
-    # filter out any loggers that are not listed, old behavior...
-    if filterCategory:
-      if type(filterCategory) == list:
-        if log not in filterCategory: continue
-      if type(filterCategory) == str:
-        if log != filterCategory: continue
 
     # get a logger
     logger = logging.getLogger(log)
