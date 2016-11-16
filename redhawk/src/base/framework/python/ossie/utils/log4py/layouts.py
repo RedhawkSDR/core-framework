@@ -21,6 +21,7 @@
 
 # vim: sw=2: et:
 import logging, logging.handlers
+import re
 
 ##############################################################################
 # Map standard log4j layouts to logging formatters
@@ -41,6 +42,33 @@ _FORMATTER_TRANS = {"c": ("%(name)", "s"),            # Name of the logger (logg
                     "X": ("", ""),
                    }
 
+# not supported log4j formats..  with time.strftime
+#  W - week in month
+#  G - Era
+#  S  - millisecond..
+#
+#  Warning order of tuples matters... so be carefull if you change...
+#   for example. first entry (a)->%p,   day in weekname is a %a...
+_log4j_strftime= [
+                     ( '(a){1,}', '%p' ),                                               # AM or PM
+                     ( '(y){4,}', '%Y' ),  ( '(y){2,}', '%y' ),                         # year
+                     ( '(M){4,}', '%B' ),  ( '(M){3,}', '%b' ),                         # month names
+                     ( '(M){2,}', '%Q' ),  ( '(M){1,}', '%Q' ),                         # month numbers (stage 1...)
+                     ( '(d){2,}', '%X' ),  ( '(d){1,}', '%d' ),                         # day of month (stage 1)
+                     ( '(E){4,}', '%A' ),  ( '(E){3,}', '%a' ),                         # day in week name
+                     ( '(D){3,}', '%j' ),  ( '(D){1,}', '%j' ),                         # day in year
+                     ( '(F){1,}', '%R' ),                                               # day in week number (stage 1)
+                     ( '(w){1,}', '%U' ),                                               # week in year
+                     ( '(H){2,}', '%V' ), ( '(H){1,}', '%H' ),                          # hour (24)
+                     ( '(K){2,}', '%I' ), ( '(K){1,}', '%I' ),                          # hour (12)
+                     ( '(m){3,}', '%M' ), ( '(m){2,}', '%M' ),                          # minute
+                     ( '(s){2,}', '%S' ), ( '(2){1,}', '%@' ),                          # seconds
+                     ( '(z){4,}', '%Z' ), ( '(z){3,}', '%Z' ), ( '(z){1,}', '%Z' ),     # timezone
+                     ( '(%Q){1,}', '%m' ),                                              # month numbers (stage 2...)
+                     ( '(%X){1,}', '%d' ),                                              # day of month (stage 2 )
+                     ( '(%V){1,}', '%H' ),                                              # hour (24) (stage 2)
+                     ( '(%R){1,}', '%w' ),                                               # day in week number (stage 2)
+                     ]
 
 class PatternLayout(logging.Formatter,object):
   def setConversionPattern(self, pattern):
@@ -68,13 +96,19 @@ class PatternLayout(logging.Formatter,object):
           
           # If it's a date spec, see if there is a custom date format
           if char == "d" and pattern[i] == "{":
-            datefmt = []
-            i += 1
-            while pattern[i] != "}":
-              datefmt.append(pattern[i])
-              i += 1
-            i += 1
-            datefmt = "".join(datefmt)
+              dfmt=''
+              # grab format string
+              pat=re.compile(r'%d\{(.*?)\}')
+              try:
+                  m=pat.findall(pattern)
+                  dfmt = m[0]
+                  for x in _log4j_strftime:
+                      zz=re.sub(r''+x[0], r''+x[1],dfmt)
+                      dfmt=zz
+                  i=i+len(m[0])+2
+              except:
+                  pass
+              self.datefmt = "".join(dfmt)
 
           fmt.append(_FORMATTER_TRANS[char][0])
           fmt.append(modifier)
