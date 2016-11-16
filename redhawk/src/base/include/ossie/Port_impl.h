@@ -273,7 +273,7 @@ public:
 
     virtual void setDescription(const std::string& desc)
     {
-		description = desc;
+        description = desc;
     }
 
     virtual void startPort ()
@@ -297,13 +297,13 @@ public:
     // Return the Port description
     virtual std::string getDescription ()
     {
-		return description;
+        return description;
     }
 
     // Return the interface that this Port supports
     virtual std::string getRepid () const
     {
-		return "IDL:CORBA/Object:1.0";
+        return "IDL:CORBA/Object:1.0";
     }
 
     // Return the direction (uses/provides) for this Port
