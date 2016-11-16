@@ -21,8 +21,9 @@
 import os
 import sys
 import stat
+import tempfile
+import shutil
 
-from redhawk.codegen.lang.idl import IDLInterface
 from redhawk.codegen import utils
 from redhawk.codegen import versions
 
@@ -35,6 +36,7 @@ class Generator(object):
             overwrite=False,
             crcs={},
             variant="",
+            header=None,
             **options):
 
         self.outputdir = outputdir
@@ -72,6 +74,9 @@ class Generator(object):
                 self.md5sums[filename] = utils.fileMD5(pathname)
             else:
                 self.crcs[filename] = crcs[filename]
+
+        # Save the header (if given)
+        self.header = header
 
     def parseopts(self):
         """
@@ -145,6 +150,10 @@ class Generator(object):
 
         return files
 
+    def _addHeader(self, gen, header):
+        """
+        """
+
     def generate(self, softpkg, *filenames):
         loader = self.loader(softpkg)
 
@@ -189,8 +198,10 @@ class Generator(object):
             env = CodegenEnvironment(loader=loader, **template.options())
             env.filters.update(template.filters())
             tmpl = env.get_template(template.template)
-            outfile = open(filename, 'w')
-            try:
+
+            # Initially, write the output to a temporary file to avoid trashing
+            # the original file if the template is malformed
+            with tempfile.NamedTemporaryFile() as outfile:
                 # Start with the template-specific context, then add the mapped
                 # component and a reference to this generator with known names.
                 context = template.context()
@@ -199,18 +210,45 @@ class Generator(object):
                 context['versions'] = versions
 
                 # Evaluate the template in streaming mode (rather than all at
-                # once), dumping to the output file.
-                tmpl.stream(**context).dump(outfile)
+                # once)
+                gen = tmpl.generate(**context)
+                if self.header:
+                    # Define a generator function to insert the header at the
+                    # top of the file
+                    def generate(gen, header):
+                        first = True
+                        for chunk in gen:
+                            if first:
+                                # Take "shebang" into account for executable
+                                # scripts
+                                if chunk.startswith('#!'):
+                                    line, chunk = chunk.split('\n', 1)
+                                    yield line + '\n'
+                                yield header
+                            first = False
+                            yield chunk
+
+                    # Wrap the template's generator with the header insertion
+                    # generator
+                    gen = generate(gen, template.comment(self.header))
+
+                # Write the stream to the output file
+                for chunk in gen:
+                    outfile.write(chunk)
+
                 # Add a trailing newline to work around a Jinja bug.
                 outfile.write('\n')
 
+                # Now that generation has succeeded, flush the temporary file
+                # to ensure the contents are completer, and copy to the target
+                # location
+                outfile.file.flush()
+                shutil.copy(outfile.name, filename)
+
                 # Set the executable bit, if requested by the template.
                 if template.executable:
-                    fd = outfile.fileno()
-                    st = os.fstat(fd)
+                    st = os.stat(filename)
                     os.chmod(filename, st.st_mode|stat.S_IEXEC)
-            finally:
-                outfile.close()
 
             generated.append((template.filename, action))
 

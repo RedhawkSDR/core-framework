@@ -178,10 +178,86 @@ class SoftPackage(object):
         self.createOutputDirIfNeeded()
         self._writeXMLwithHeader(self.prf, "prf", "properties")
 
-    def addSoftPackageDependency(self, dep, arch="noarch"):
-        softpkgref = spd.softPkgRef(localfile=spd.localFile(name=dep),
-                                    implref=spd.implRef(refid=arch))
+    def addSoftPackageDependency(self, dep, arch="noarch", resolve_implref=False):
+        dep_impls=None
+        if resolve_implref:
+            dep_impls=self._get_impls_from_spd( dep )
+            if dep_impls is None:
+                warn_msg="Warning: Dependency ", dep, " contains no implementations, defaulting to ", arch
+        else:
+            warn_msg="Warning: No dependency implementation resolution, defaulting to ", arch
+
+        if dep_impls is None:
+            # no implementations found print out a warning and continue
+            print warn_msg
+            for index in range(len(self.spd.implementation)):
+                self.spd.implementation[index].add_dependency( self._make_dep_ref(dep, arch) )
+        else:
+            # for each new spd implementation, add the matching impl from the dep param
+            for index in range(len(self.spd.implementation)):
+                spd_impl = self.spd.implementation[index]
+                impl_ids = self._find_matching_impls( spd_impl, dep_impls )
+                if len(impl_ids) == 0 :
+                    print "Warning: No matching dependency implementations for implementation id: ", spd_impl.get_id(),  " defaulting to ", arch
+                    spd_impl.add_dependency( self._make_dep_ref(dep,arch) )
+                else:
+                    if len(impl_ids) > 1 :
+                        print "Warning: Multiple dependency implementations found, ", impl_ids, ", remove unwanted dependencies from SPD file"
+                    for impl_id in impl_ids:
+                        spd_impl.add_dependency(self._make_dep_ref(dep, impl_id) )
+
+    def _make_dep_ref(self, localfile, refid='noarch'):
+        softpkgref = spd.softPkgRef(localfile=spd.localFile(name=localfile),
+                                    implref=spd.implRef(refid=refid))
         dependency = spd.dependency(type_="runtime_requirements",
                                     softpkgref=softpkgref)
-        for index in range(len(self.spd.implementation)):
-            self.spd.implementation[index].add_dependency(dependency)
+        return dependency
+
+
+    def _find_matching_impls(self, s_impl, add_deps ):
+        # get spd's and deps matching implementation
+        m_impls=[]
+        spd_oss = [ o.get_name() for o in  s_impl.get_os() ]
+        spd_procs = [ p.get_name() for p in  s_impl.get_processor() ]
+
+        for k,dep in add_deps.iteritems():
+            d_oss = [ o.get_name() for o in  dep.get_os() ]
+            d_procs = [ p.get_name() for p in  dep.get_processor() ]
+
+            m_os= False if len(spd_oss) > 0 else True
+            m_proc= False if len(spd_procs) > 0 else True
+            # match dep os value is in new spd
+            for o in d_oss:
+                if o in spd_oss:
+                    m_os=True
+
+            # match proc value is in new spd
+            for p in d_procs:
+                if p in spd_procs:
+                    m_proc=True
+
+            if m_os and m_proc:
+                m_impls.append( k )
+        return m_impls
+
+    def _get_impls_from_spd(self, dep_file ):
+        # try and get dependency spd file
+        sdr_root='/var/redhawk/sdr'
+        if 'SDRROOT' in os.environ:
+            sdr_root= os.path.abspath(os.environ['SDRROOT'])
+        else:
+            print "Warning: SDRROOT undefined, defaulting to ", sdr_root
+
+        fname = os.path.join(sdr_root, 'dom', dep_file)
+        if dep_file.startswith('/'):
+            fname = os.path.join(sdr_root, 'dom', dep_file[1:])
+
+        impls={}
+        try:
+            parser = spd.parse( fname )
+        except:
+            print "Warning: Unable to open dependency file: ", fname
+            return None
+        for x in parser.get_implementation():
+            impls[x.get_id()] = x
+        return impls

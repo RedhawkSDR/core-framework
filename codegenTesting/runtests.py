@@ -87,15 +87,14 @@ class TestCollector(unittest.TestSuite):
                         else:
                             artifact_list = self.getTestNames(artifact_dir)
 
-                            # temporarily remove test_spd_dep test until it is fix
-                            artifact_list =removeAll(artifact_list, candidate.remove_list )
-
-                            if not self.__enableOctave:
-                                # If not testing octave, remove the octave test
-                                # from the list.
-                                #  TODO: intelligently get a list of all tests
-                                # beginning with "octave"
-                                artifact_list=removeAll(artifact_list, "octaveTest0")
+                        # temporarily remove test_spd_dep test until it is fix
+                        artifact_list =removeAll(artifact_list, candidate.remove_list )
+                        if not self.__enableOctave:
+                            # If not testing octave, remove the octave test
+                            # from the list.
+                            #  TODO: intelligently get a list of all tests
+                            # beginning with "octave"
+                            artifact_list=removeAll(artifact_list, [ "octaveTest0", "octaveTest1"] )
                         if self.__comp_name:
                             if not (self.__comp_name in artifact_list):
                                 artifact_list = []
@@ -111,6 +110,9 @@ class TestCollector(unittest.TestSuite):
                                 subtest.base_name = curr.split('.')[-1]
                                 subtest.artifact_dir = artifact_dir
                                 subtest.artifact_module_directory = os.path.join(artifact_dir, '[NAME]/tests')
+                                if self.__enableOctave:
+                                    if 'octaveTest' in subtest.artifact_name:
+                                        subtest.octave_test_dir=True
                             self.addTest(test_list)
                 except TypeError, e:
                     pass

@@ -156,7 +156,7 @@ class OctavePackage(ResourcePackage):
                 self.addUsesPort(output, "IDL:BULKIO/dataDouble:1.0")
 
         for sharedLibrary in sharedLibraries:
-            self.addSoftPackageDependency(sharedLibrary)
+            self.addSoftPackageDependency(sharedLibrary, resolve_implref=True)
 
     def _preCodegen(self):
         impldir = os.path.join(self.outputDir, self.name, self.implementation)
