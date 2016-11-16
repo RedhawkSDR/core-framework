@@ -122,7 +122,7 @@ ${className}::~${className}()
 {
 /*{% block destructorBody %}*/
 /*{% for port in component.ports %}*/
-    delete ${port.cppname};
+    ${port.cppname}->_remove_ref();
     ${port.cppname} = 0;
 /*{% endfor %}*/
 /*{% endblock %}*/
