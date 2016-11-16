@@ -34,12 +34,17 @@ public:
   typedef typename PortTraits::SharedBufferType SharedBufferType;
   typedef DataBlock<NativeType> DataBlockType;
 
+  enum EosState {
+    EOS_NONE,
+    EOS_RECEIVED,
+    EOS_REACHED,
+    EOS_REPORTED
+  };
+
   Impl(const BULKIO::StreamSRI& sri, InPortType* port) :
     _streamID(sri.streamID),
     _sri(sri),
-    _eosReceived(false),
-    _eosReached(false),
-    _eosReported(false),
+    _eosState(EOS_NONE),
     _port(port),
     _queue(),
     _pending(0),
@@ -73,14 +78,16 @@ public:
       // state again
       _fetchPacket(false);
     }
-    if (_eosReached && !_eosReported) {
+    if (_eosState == EOS_REACHED) {
       // This is the first time end-of-stream has been checked since it was
       // reached; remove the stream from the port now, since the caller knows
       // that the stream ended
       _port->removeStream(_streamID);
-      _eosReported = true;
+      _eosState = EOS_REPORTED;
     }
-    return _eosReached;
+    // At this point, if end-of-stream has been reached, the state is reported
+    // (it gets set above), so the checking for the latter is sufficient
+    return (_eosState == EOS_REPORTED);
   }
 
   size_t samplesAvailable()
@@ -130,13 +137,13 @@ public:
     if (!sri) {
       // No SRI retreived implies no data will be retrieved, either due to end-
       // of-stream or because it would block
-      if (_eosReached && !_eosReported) {
+      if (_eosState == EOS_REACHED) {
         // If this is the first time end-of-stream could be reported, remove
         // the stream from the port; since the returned data block is invalid,
         // that's a cue for the caller to check end-of-stream, but they don't
         // have to
         _port->removeStream(_streamID);
-        _eosReported = true;
+        _eosState = EOS_REPORTED;
       }
       return DataBlockType();
     }
@@ -172,7 +179,7 @@ public:
       // Non-blocking: return a null block if there's not currently a break in
       // the data, under the assumption that a future read might return the
       // full amount
-      if (!blocking && !_pending && !_eosReceived) {
+      if (!blocking && !_pending && (_eosState == EOS_NONE)) {
         return DataBlockType();
       }
       // Otherwise, consume all remaining data
@@ -247,14 +254,14 @@ public:
     // Unless end-of-stream has been received by the port (meaning any further
     // packets with this stream ID are for a different instance), purge any
     // packets for this stream from the port's queue
-    if (!_eosReceived) {
+    if (_eosState == EOS_NONE) {
       _port->discardPacketsForStream(_streamID);
     }
   }
 
   bool hasBufferedData() const
   {
-    if (_eosReached && !_eosReported) {
+    if (_eosState == EOS_REACHED) {
       // Technically, there is no data to report; however, to nudge the caller
       // to check end-of-stream, return true
       return true;
@@ -288,7 +295,9 @@ private:
   void _consumePacket()
   {
     // Acknowledge any end-of-stream flag and delete the packet
-    _eosReached = _queue.front().EOS;
+    if (_queue.front().EOS) {
+      _eosState = EOS_REACHED;
+    }
     _queue.pop_front();
 
     // If the queue is empty, move the pending packet onto the queue
@@ -407,7 +416,7 @@ private:
     }
 
     // Any future packets with this stream ID belong to another InputStream
-    if (_eosReceived) {
+    if (_eosState != EOS_NONE) {
       return false;
     }
 
@@ -417,7 +426,9 @@ private:
       return false;
     }
 
-    _eosReceived = packet->EOS;
+    if (packet->EOS) {
+      _eosState = EOS_RECEIVED;
+    }
     if (_queue.empty() || _canBridge(packet)) {
       _queuePacket(packet);
       return true;
@@ -434,7 +445,7 @@ private:
       // SRI changes, and queue flushes are irrelevant at this point)
       if (_queue.empty()) {
         // No queued packets, read pointer has reached end-of-stream
-        _eosReached = true;
+        _eosState = EOS_REACHED;
       } else {
         // Assign the end-of-stream flag to the last packet in the queue so
         // that it is handled on read
@@ -457,9 +468,7 @@ private:
 
   const std::string _streamID;
   BULKIO::StreamSRI _sri;
-  bool _eosReceived;
-  bool _eosReached;
-  bool _eosReported;
+  EosState _eosState;
   InPortType* _port;
   boost::ptr_deque<PacketType> _queue;
   PacketType* _pending;
