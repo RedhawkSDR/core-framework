@@ -282,7 +282,7 @@ if __name__ == '__main__':
             with open(headerFile, 'r') as fp:
                 header = fp.read().rstrip()
         except Exception as exc:
-            raise SystemExit("Unable to read license header file '%s': %s" % (header_file, exc.strerror))
+            raise SystemExit("Unable to read license header file '%s': %s" % (headerFile, exc.strerror))
 
     try:
         package = importTemplate(projectTemplate)
