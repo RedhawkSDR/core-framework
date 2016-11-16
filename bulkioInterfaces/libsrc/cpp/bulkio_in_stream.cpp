@@ -294,7 +294,8 @@ private:
 
   void _consumePacket()
   {
-    // Acknowledge any end-of-stream flag and delete the packet
+    // Acknowledge any end-of-stream flag and delete the packet (the queue will
+    // automatically delete it when it's removed)
     if (_queue.front().EOS) {
       _eosState = EOS_REACHED;
     }
