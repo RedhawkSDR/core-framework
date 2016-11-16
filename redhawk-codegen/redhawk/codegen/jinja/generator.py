@@ -21,8 +21,9 @@
 import os
 import sys
 import stat
+import tempfile
+import shutil
 
-from redhawk.codegen.lang.idl import IDLInterface
 from redhawk.codegen import utils
 from redhawk.codegen import versions
 
@@ -197,7 +198,10 @@ class Generator(object):
             env = CodegenEnvironment(loader=loader, **template.options())
             env.filters.update(template.filters())
             tmpl = env.get_template(template.template)
-            with open(filename, 'w') as outfile:
+
+            # Initially, write the output to a temporary file to avoid trashing
+            # the original file if the template is malformed
+            with tempfile.NamedTemporaryFile() as outfile:
                 # Start with the template-specific context, then add the mapped
                 # component and a reference to this generator with known names.
                 context = template.context()
@@ -235,10 +239,15 @@ class Generator(object):
                 # Add a trailing newline to work around a Jinja bug.
                 outfile.write('\n')
 
+                # Now that generation has succeeded, flush the temporary file
+                # to ensure the contents are completer, and copy to the target
+                # location
+                outfile.file.flush()
+                shutil.copy(outfile.name, filename)
+
                 # Set the executable bit, if requested by the template.
                 if template.executable:
-                    fd = outfile.fileno()
-                    st = os.fstat(fd)
+                    st = os.stat(filename)
                     os.chmod(filename, st.st_mode|stat.S_IEXEC)
 
             generated.append((template.filename, action))
