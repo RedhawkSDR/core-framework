@@ -145,20 +145,6 @@ namespace bulkio {
     //
     virtual ~OutPortBase();
 
-    //
-    //  Interface used by framework to connect/disconnect ports together and introspection of connection states
-    //
-
-    //
-    // connectPort - Called by the framework to connect this port to a Provides port object, the connection is established
-    // via the association and identified by the connectionId string, no formal "type capatablity" or "bukio interface support"
-    // is resolved at this time.  All data flow occurs from point A to B via the pushPacket/pushSRI interface.
-    //
-    // @param CORBA::Object_ptr pointer to an instance of a Provides port
-    // @param connectionsId identifer for this connection, allows for external users to reference the connection association
-    //
-    virtual void connectPort(CORBA::Object_ptr connection, const char* connectionId);
-
     void updateConnectionFilter(const std::vector<connection_descriptor_struct> &_filterTable) {
         SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
         filterTable = _filterTable;
@@ -289,17 +275,18 @@ namespace bulkio {
     typedef typename LocalTraits<PortTraits>::InPortType LocalPortType;
     typedef PortTransport<PortTraits> PortTransportType;
 
+    virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
     virtual PortTransportType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
     virtual PortTransportType* _createLocalConnection(PortPtrType port, LocalPortType* localPort,
                                                       const std::string& connectionId);
-
-    //typedef std::map<std::string,PortTransportType*> TransportMap;
-    //TransportMap _transportMap;
 
     LOGGER_PTR                                logger;
     std::vector<connection_descriptor_struct> filterTable;
     boost::shared_ptr< ConnectionEventListener >    _connectCB;
     boost::shared_ptr< ConnectionEventListener >    _disconnectCB;
+
+    void _connectListenerAdapter(const std::string& connectionId);
+    void _disconnectListenerAdapter(const std::string& connectionId);
 
     //
     // Returns true if the given connection should receive SRI updates and data

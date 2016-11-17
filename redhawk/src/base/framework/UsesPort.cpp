@@ -8,6 +8,49 @@ namespace redhawk {
     {
     }
 
+    void UsesPort::connectPort(CORBA::Object_ptr connection, const char* connectionId)
+    {
+        // Give a specific exception message for nil
+        if (CORBA::is_nil(connection)) {
+            throw CF::Port::InvalidPort(1, "Nil object reference");
+        }
+
+        // Attempt to check the type of the remote object to reject invalid
+        // types; note this does not require the lock
+        const std::string rep_id = getRepid();
+        bool valid;
+        try {
+            valid = connection->_is_a(rep_id.c_str());
+        } catch (...) {
+            // If _is_a throws an exception, assume the remote object is
+            // unreachable (e.g., dead)
+            throw CF::Port::InvalidPort(1, "Object unreachable");
+        }
+
+        if (!valid) {
+            std::string message = "Object does not support " + rep_id;
+            throw CF::Port::InvalidPort(1, message.c_str());
+        }
+
+        const std::string connection_id(connectionId);
+        {
+            // Acquire the state lock before modifying the container
+            boost::mutex::scoped_lock lock(updatingPortsLock);
+
+            transport_list::iterator entry = _findTransportEntry(connection_id);
+            if (entry == _transports.end()) {
+                BasicTransport* transport = _createTransport(connection, connection_id);
+                _addTransportEntry(connection_id, transport);
+            } else {
+                // TODO: Replace the object reference
+            }
+
+            active = true;
+        }
+
+        _portConnected(connectionId);
+    }
+
     void UsesPort::disconnectPort(const char* connectionId)
     {
         //TRACE_ENTER(logger, "OutPort::disconnectPort" );
@@ -27,9 +70,8 @@ namespace redhawk {
                 active = false;
             }
         }
-        //if (_disconnectCB) {
-        //    (*_disconnectCB)(connectionId);
-        //}
+
+        _portDisconnected(connectionId);
         //TRACE_EXIT(logger, "OutPort::disconnectPort" );
     }
 
@@ -60,6 +102,11 @@ namespace redhawk {
     void UsesPort::_addTransportEntry(const std::string& connectionId, BasicTransport* transport)
     {
         _transports.push_back(transport_entry(connectionId, transport));
+    }
+
+    BasicTransport* UsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
+    {
+        return new BasicTransport(object);
     }
 
     void UsesPort::_transportDisconnected(const std::string& connectionId, BasicTransport* transport)

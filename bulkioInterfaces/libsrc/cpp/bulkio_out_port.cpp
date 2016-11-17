@@ -57,10 +57,12 @@ namespace bulkio {
     if ( connectCB ) {
       _connectCB = boost::shared_ptr< ConnectionEventListener >( connectCB, null_deleter() );
     }
+    addConnectListener(this, &OutPortBase::_connectListenerAdapter);
 
     if ( disconnectCB ) {
       _disconnectCB = boost::shared_ptr< ConnectionEventListener >( disconnectCB, null_deleter() );
     }
+    addDisconnectListener(this, &OutPortBase::_disconnectListenerAdapter);
 
     LOG_DEBUG( logger, "bulkio::OutPort::CTOR port:" << name );
 
@@ -81,10 +83,12 @@ namespace bulkio {
     if ( connectCB ) {
       _connectCB = boost::shared_ptr< ConnectionEventListener >( connectCB, null_deleter() );
     }
+    addConnectListener(this, &OutPortBase::_connectListenerAdapter);
 
     if ( disconnectCB ) {
       _disconnectCB = boost::shared_ptr< ConnectionEventListener >( disconnectCB, null_deleter() );
     }
+    addDisconnectListener(this, &OutPortBase::_disconnectListenerAdapter);
 
   }
 
@@ -144,6 +148,21 @@ namespace bulkio {
     return;
   }
 
+  template < typename PortTraits >
+  void OutPortBase< PortTraits >::_connectListenerAdapter(const std::string& connectionId)
+  {
+      if (_connectCB) {
+          (*_connectCB)(connectionId.c_str());
+      }
+  }
+
+  template < typename PortTraits >
+  void OutPortBase< PortTraits >::_disconnectListenerAdapter(const std::string& connectionId)
+  {
+      if (_disconnectCB) {
+          (*_disconnectCB)(connectionId.c_str());
+      }
+  }
 
   template < typename PortTraits >
   bool OutPortBase< PortTraits >::_isStreamRoutedToConnection(
@@ -265,42 +284,28 @@ namespace bulkio {
 
 
   template < typename PortTraits >
-  void OutPortBase< PortTraits >::connectPort(CORBA::Object_ptr connection, const char* connectionId)
+  redhawk::BasicTransport*
+  OutPortBase< PortTraits >::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
   {
-    TRACE_ENTER(logger, "OutPort::connectPort" );
-    {
-      SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
       PortVarType port;
       try {
-        port = PortType::_narrow(connection);
-        if (CORBA::is_nil(port)) {
-            throw CF::Port::InvalidPort(1, "Unable to narrow");
-        }
-      }
-      catch(...) {
-        LOG_ERROR( logger, "CONNECT FAILED: UNABLE TO NARROW ENDPOINT,  USES PORT:" << name );
-        throw CF::Port::InvalidPort(1, "Unable to narrow");
+          port = PortType::_narrow(object);
+          if (CORBA::is_nil(port)) {
+              throw CF::Port::InvalidPort(1, "Unable to narrow");
+          }
+      } catch (const CORBA::SystemException&) {
+          LOG_ERROR( logger, "CONNECT FAILED: UNABLE TO NARROW ENDPOINT,  USES PORT:" << name );
+          throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
 
       LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
-      PortTransportType* transport;
       if (local_port) {
-        LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
-                  << " for connection " << connectionId);
-        transport = _createLocalConnection(port, local_port, connectionId);
+          LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
+                    << " for connection " << connectionId);
+          return _createLocalConnection(port, local_port, connectionId);
       } else {
-        transport = _createRemoteConnection(port, connectionId);
+          return _createRemoteConnection(port, connectionId);
       }
-      _addTransportEntry(connectionId, transport);
-
-      active = true;
-
-      LOG_DEBUG( logger, "CONNECTION ESTABLISHED,  PORT/CONNECTION_ID:" << name << "/" << connectionId );
-
-    }
-    if (_connectCB) (*_connectCB)(connectionId);
-
-    TRACE_EXIT(logger, "OutPort::connectPort" );
   }
 
 
