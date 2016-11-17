@@ -30,75 +30,12 @@
 #include <boost/ref.hpp>
 
 #include <ossie/CorbaUtils.h>
+#include <ossie/UsesPort.h>
 
 #include "bulkio_base.h"
 #include "bulkio_traits.h"
 #include "bulkio_callbacks.h"
 #include "bulkio_out_stream.h"
-
-namespace redhawk {
-    class BasicTransport
-    {
-    public:
-        BasicTransport(CORBA::Object_ptr objref) :
-            _objref(CORBA::Object::_duplicate(objref)),
-            _alive(true)
-        {
-        }
-
-        virtual ~BasicTransport()
-        {
-        }
-
-        bool isAlive() const
-        {
-            return _alive;
-        }
-
-        void setAlive(bool alive)
-        {
-            _alive = alive;
-        }
-
-        CORBA::Object_var objref()
-        {
-            if (isAlive()) {
-                return CORBA::Object::_duplicate(_objref);
-            } else {
-                return CORBA::Object::_nil();
-            }
-        }
-
-    private:
-        CORBA::Object_var _objref;
-        bool _alive;
-    };
-
-  class QueryableUsesPort : public Port_Uses_base_impl
-#ifdef BEGIN_AUTOCOMPLETE_IGNORE
-  , public virtual POA_BULKIO::UsesPortStatisticsProvider
-#endif
-  {
-  public:
-    QueryableUsesPort(const std::string& name);
-
-    //
-    // connections - Return a list of connection objects and identifiers for each connection made by connectPort
-    //
-    // @return ExtendedCF::UsesConnectionSequence* List of connection objects and identifiers
-    //
-    virtual ExtendedCF::UsesConnectionSequence* connections();
-
-  protected:
-    typedef std::pair<std::string,BasicTransport*> transport_entry;
-    typedef std::vector<transport_entry> transport_list;
-
-    transport_list::iterator _findTransportEntry(const std::string& connectionId);
-    void _addTransportEntry(const std::string& connectionId, BasicTransport* transport);
-
-    transport_list _transports;
-  };
-}
 
 namespace bulkio {
 
@@ -135,7 +72,10 @@ namespace bulkio {
   //
   //
   template < typename PortTraits >
-  class OutPortBase : public redhawk::QueryableUsesPort
+  class OutPortBase : public redhawk::UsesPort
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+                    , public virtual POA_BULKIO::UsesPortStatisticsProvider
+#endif
   {
 
   public:
@@ -218,13 +158,6 @@ namespace bulkio {
     // @param connectionsId identifer for this connection, allows for external users to reference the connection association
     //
     virtual void connectPort(CORBA::Object_ptr connection, const char* connectionId);
-
-    //
-    // disconnectPort - Called by the framework to disconnect this port from the Provides port object.  The port basicall removes
-    // the association to the provides port that was established with the connectionId.
-    //
-    // @param connectionsId identifer for this connection, allows for external users to reference the connection association
-    virtual void disconnectPort(const char* connectionId);
 
     void updateConnectionFilter(const std::vector<connection_descriptor_struct> &_filterTable) {
         SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
@@ -381,6 +314,8 @@ namespace bulkio {
                      const BULKIO::PrecisionUTCTime& T,
                      bool EOS,
                      const std::string& streamID);
+
+    virtual void _transportDisconnected(const std::string& connectionId, redhawk::BasicTransport* transport);
 
     virtual void addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
     virtual void removeStream(const std::string& streamID);

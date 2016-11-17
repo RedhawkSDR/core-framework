@@ -31,42 +31,6 @@
 // Suppress warnings for access to "deprecated" currentSRI member--it's the
 // public access that's deprecated, not the member itself
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-namespace redhawk {
-    QueryableUsesPort::QueryableUsesPort(const std::string& name) :
-        Port_Uses_base_impl(name)
-    {
-    }
-
-    ExtendedCF::UsesConnectionSequence* QueryableUsesPort::connections()
-    {
-        boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
-        ExtendedCF::UsesConnectionSequence_var retVal = new ExtendedCF::UsesConnectionSequence();
-        for (transport_list::iterator port = _transports.begin(); port != _transports.end(); ++port) {
-            ExtendedCF::UsesConnection conn;
-            conn.connectionId = port->first.c_str();
-            conn.port = port->second->objref();
-            ossie::corba::push_back(retVal, conn);
-        }
-        return retVal._retn();
-    }
-
-    QueryableUsesPort::transport_list::iterator QueryableUsesPort::_findTransportEntry(const std::string& connectionId)
-    {
-        transport_list::iterator entry = _transports.begin();
-        for (; entry != _transports.end(); ++entry) {
-            if (entry->first == connectionId) {
-                return entry;
-            }
-        }
-        return entry;
-    }
-
-    void QueryableUsesPort::_addTransportEntry(const std::string& connectionId, BasicTransport* transport)
-    {
-        _transports.push_back(transport_entry(connectionId, transport));
-    }
-}
-
 
 namespace bulkio {
   /*
@@ -80,7 +44,7 @@ namespace bulkio {
                                          LOGGER_PTR logger,
                                          ConnectionEventListener *connectCB,
                                          ConnectionEventListener *disconnectCB ) :
-    QueryableUsesPort(port_name),
+    redhawk::UsesPort(port_name),
     logger(logger)
   {
 
@@ -107,7 +71,7 @@ namespace bulkio {
   OutPortBase< PortTraits >::OutPortBase(std::string port_name,
                                          ConnectionEventListener *connectCB,
                                          ConnectionEventListener *disconnectCB ) :
-      QueryableUsesPort(port_name),
+      UsesPort(port_name),
       logger()
   {
 
@@ -358,50 +322,31 @@ namespace bulkio {
   
 
   template < typename PortTraits >
-  void OutPortBase< PortTraits >::disconnectPort(const char* connectionId)
+  void OutPortBase< PortTraits >::_transportDisconnected(const std::string& connectionId,
+                                                         redhawk::BasicTransport* transport)
   {
-    TRACE_ENTER(logger, "OutPort::disconnectPort" );
-    {
-        SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
+      TRACE_ENTER(logger, "OutPort::disconnectPort" );
+      PortTransportType* port = static_cast<PortTransportType*>(transport);
 
-        const std::string cid(connectionId);
-        transport_list::iterator iter = _findTransportEntry(connectionId);
-        if (iter != _transports.end()) {
-            PortTransportType* port = static_cast<PortTransportType*>(iter->second);
+      // Send an EOS for every connection that's listed for this SRI
+      for (typename OutPortSriMap::iterator cSRIs = currentSRIs.begin(); cSRIs!=currentSRIs.end(); cSRIs++) {
+          const std::string stream_id(cSRIs->second.sri.streamID);
 
-            // Send an EOS for every connection that's listed for this SRI
-            for (typename OutPortSriMap::iterator cSRIs = currentSRIs.begin(); cSRIs!=currentSRIs.end(); cSRIs++) {
-                const std::string stream_id(cSRIs->second.sri.streamID);
+          // Check if we have sent out sri/data to the connection
+          if (cSRIs->second.connections.count(connectionId) != 0) {
+              if (port->isAlive() && _isStreamRoutedToConnection(stream_id, connectionId)) {
+                  try {
+                      port->sendEOS(stream_id);
+                  } catch (...) {
+                      // Ignore all exceptions; the receiver may be dead
+                  }
+              }
+          }
 
-                // Check if we have sent out sri/data to the connection
-                if (cSRIs->second.connections.count( cid ) != 0) {
-                    if (_isStreamRoutedToConnection(stream_id, cid)) {
-                        try {
-                            port->sendEOS(stream_id);
-                        } catch (...) {
-                            // Ignore all exceptions; the receiver may be dead
-                        }
-                    }
-                }
-
-                // remove connection id from sri connections list
-                cSRIs->second.connections.erase(connectionId);
-            }
-
-            LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
-            delete port;
-            _transports.erase(iter);
-
-            if (_transports.empty()) {
-                active = false;
-            }
-        }
-    }
-    if (_disconnectCB) {
-      (*_disconnectCB)(connectionId);
-    }
-
-    TRACE_EXIT(logger, "OutPort::disconnectPort" );
+          // remove connection id from sri connections list
+          cSRIs->second.connections.erase(connectionId);
+      }
+      TRACE_EXIT(logger, "OutPort::disconnectPort" );
   }
 
   template < typename PortTraits >
