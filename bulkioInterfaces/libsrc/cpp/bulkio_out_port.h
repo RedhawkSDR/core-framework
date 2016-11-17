@@ -308,11 +308,6 @@ namespace bulkio {
     typedef std::map<std::string,PortConnectionType*> TransportMap;
     TransportMap _transportMap;
 
-    //
-    // _pushSRI - method to push given SRI to a specific connections
-    //
-    void _pushSRI(typename TransportMap::iterator connPair, SriMapStruct &sri_ctx);
-
     LOGGER_PTR                                logger;
     std::vector<connection_descriptor_struct> filterTable;
     boost::shared_ptr< ConnectionEventListener >    _connectCB;

@@ -130,9 +130,9 @@ namespace bulkio {
         try {
             port->second->pushSRI(H);
             sri_iter->second.connections.insert(port->first);
-        } catch (const CORBA::SystemException& exc) {
+        } catch (const redhawk::FatalTransportError& err) {
             if (port->second->reportConnectionErrors()) {
-                LOG_ERROR(logger, "PUSH-SRI FAILED " << ossie::corba::describeException(exc)
+                LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << port->first);
             }
         }
@@ -200,15 +200,16 @@ namespace bulkio {
           continue;
         }
 
-        if (sri_iter->second.connections.count(port->first) == 0) {
-          this->_pushSRI(port, sri_iter->second);
-        }
-
         try {
+            if (sri_iter->second.connections.count(port->first) == 0) {
+                port->second->pushSRI(sri_iter->second.sri);
+                sri_iter->second.connections.insert(port->first);
+            }
+
             port->second->pushPacket(data, T, EOS, sri_iter->second.sri);
-        } catch (const CORBA::SystemException& exc) {
+        } catch (const redhawk::FatalTransportError& err) {
             if (port->second->reportConnectionErrors()) {
-                LOG_ERROR(logger, "PUSH-PACKET FAILED " << ossie::corba::describeException(exc)
+                LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << port->first);
             }
         }
@@ -370,24 +371,6 @@ namespace bulkio {
     }
 
     TRACE_EXIT(logger, "OutPort::disconnectPort" );
-  }
-
-  template < typename PortTraits >
-  void  OutPortBase< PortTraits >::_pushSRI(typename TransportMap::iterator connPair, SriMapStruct &sri_ctx)
-  {
-    TRACE_ENTER(logger, "OutPort::_pushSRI");
-    // push SRI over port instance
-    try {
-        connPair->second->pushSRI(sri_ctx.sri);
-        sri_ctx.connections.insert(connPair->first);
-        LOG_TRACE(logger, "_pushSRI()  connection_id/streamID " << connPair->first << "/" << sri_ctx.sri.streamID);
-    } catch (const CORBA::SystemException& exc) {
-        if (connPair->second->reportConnectionErrors()) {
-            LOG_ERROR(logger, "_pushSRI() PUSH-SRI FAILED " << ossie::corba::describeException(exc)
-                      << ", PORT/CONNECTION: " << name << "/" << connPair->first);
-        }
-    }      
-    TRACE_EXIT(logger, "OutPort::_pushSRI");
   }
 
   template < typename PortTraits >

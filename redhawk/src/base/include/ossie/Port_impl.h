@@ -112,6 +112,26 @@ template<typename _Tp>
     }
 } // namespace _seqVector
 
+namespace redhawk {
+    class TransportError : public std::runtime_error
+    {
+    public:
+        TransportError(const std::string& message) :
+            std::runtime_error(message)
+        {
+        }
+    };
+
+    class FatalTransportError : public TransportError
+    {
+    public:
+        FatalTransportError(const std::string& message) :
+            TransportError(message)
+        {
+        }
+    };
+}
+
 
 class Port_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE

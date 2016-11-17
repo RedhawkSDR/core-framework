@@ -88,12 +88,28 @@ namespace bulkio {
 
         virtual void pushSRI(const BULKIO::StreamSRI& sri)
         {
-            _port->pushSRI(sri);
+            try {
+                _port->pushSRI(sri);
+            } catch (const CORBA::SystemException& exc) {
+                throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
+            }
         }
 
         virtual PortPtrType objref()
         {
             return PortType::_duplicate(_port);
+        }
+
+        virtual void pushPacket(const SharedBufferType& data,
+                                const BULKIO::PrecisionUTCTime& T,
+                                bool EOS,
+                                const BULKIO::StreamSRI& sri)
+        {
+            try {
+                PortConnection<PortTraits>::pushPacket(data, T, EOS, sri);
+            } catch (const CORBA::SystemException& exc) {
+                throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
+            }
         }
 
     protected:
