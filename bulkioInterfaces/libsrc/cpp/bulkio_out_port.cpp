@@ -118,25 +118,26 @@ namespace bulkio {
    }
 
     if (active) {
-      typename TransportMap::iterator port;
+        typedef typename TransportMap::iterator TransportIterator;
+        for (TransportIterator port = _transportMap.begin(); port != _transportMap.end(); ++port) {
+            // Skip ports known to be dead
+            if (!port->second->isAlive()) {
+                continue;
+            }
+            if (!_isStreamRoutedToConnection(sid, port->first)) {
+                continue;
+            }
 
-      for (port = _transportMap.begin(); port != _transportMap.end(); ++port) {
-        if (!_isStreamRoutedToConnection(sid, port->first)) {
-          continue;
-        }
-
-        LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << port->first << " SRI streamID:"
-                  << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta);
-        try {
-            port->second->pushSRI(H);
-            sri_iter->second.connections.insert(port->first);
-        } catch (const redhawk::FatalTransportError& err) {
-            if (port->second->reportConnectionErrors()) {
+            LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << port->first << " SRI streamID:"
+                      << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta);
+            try {
+                port->second->pushSRI(H);
+                sri_iter->second.connections.insert(port->first);
+            } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << port->first);
             }
         }
-      }
     }
 
     TRACE_EXIT(logger, "OutPort::pushSRI");
@@ -190,28 +191,32 @@ namespace bulkio {
     }
 
     if (active) {
-      typename TransportMap::iterator port;
-      for (port = _transportMap.begin(); port != _transportMap.end(); ++port) {
-        // Check whether filtering is enabled and if this connection should
-        // receive the stream
-        if (!_isStreamRoutedToConnection(streamID, port->first)) {
-          continue;
-        }
-
-        try {
-            if (sri_iter->second.connections.count(port->first) == 0) {
-                port->second->pushSRI(sri_iter->second.sri);
-                sri_iter->second.connections.insert(port->first);
+        typedef typename TransportMap::iterator TransportIterator;
+        for (TransportIterator port = _transportMap.begin(); port != _transportMap.end(); ++port) {
+            // Skip ports known to be dead
+            if (!port->second->isAlive()) {
+                continue;
             }
 
-            port->second->pushPacket(data, T, EOS, sri_iter->second.sri);
-        } catch (const redhawk::FatalTransportError& err) {
-            if (port->second->reportConnectionErrors()) {
+            // Check whether filtering is enabled and if this connection should
+            // receive the stream
+            if (!_isStreamRoutedToConnection(streamID, port->first)) {
+                continue;
+            }
+
+            try {
+                if (sri_iter->second.connections.count(port->first) == 0) {
+                    port->second->pushSRI(sri_iter->second.sri);
+                    sri_iter->second.connections.insert(port->first);
+                }
+
+                port->second->pushPacket(data, T, EOS, sri_iter->second.sri);
+            } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << port->first);
+                port->second->setAlive(false);
             }
         }
-      }
     }
 
     // if we have end of stream removed old sri
@@ -293,7 +298,7 @@ namespace bulkio {
       if (local_port) {
         LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
                   << " for connection " << connectionId);
-        _transportMap[connectionId] = _createLocalConnection(local_port, connectionId);
+        _transportMap[connectionId] = _createLocalConnection(port, local_port, connectionId);
       } else {
         _transportMap[connectionId] = _createRemoteConnection(port, connectionId);
       }
@@ -319,9 +324,10 @@ namespace bulkio {
 
   template < typename PortTraits >
   typename OutPortBase< PortTraits >::PortConnectionType*
-  OutPortBase< PortTraits >::_createLocalConnection(LocalPortType* port, const std::string& connectionId)
+  OutPortBase< PortTraits >::_createLocalConnection(PortPtrType port, LocalPortType* localPort,
+                                                    const std::string& connectionId)
   {
-    return new LocalConnection<PortTraits>(name, port);
+      return new LocalConnection<PortTraits>(name, localPort, port);
   }
   
 

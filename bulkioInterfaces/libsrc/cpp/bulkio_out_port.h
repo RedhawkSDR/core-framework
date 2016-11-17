@@ -303,7 +303,8 @@ namespace bulkio {
     typedef PortConnection<PortTraits> PortConnectionType;
 
     virtual PortConnectionType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
-    virtual PortConnectionType* _createLocalConnection(LocalPortType* port, const std::string& connectionId);
+    virtual PortConnectionType* _createLocalConnection(PortPtrType port, LocalPortType* localPort,
+                                                       const std::string& connectionId);
 
     typedef std::map<std::string,PortConnectionType*> TransportMap;
     TransportMap _transportMap;

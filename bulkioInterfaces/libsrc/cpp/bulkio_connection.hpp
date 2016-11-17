@@ -4,16 +4,30 @@ namespace bulkio {
     class PortConnection
     {
     public:
-        typedef typename PortTraits::PortType::_ptr_type PortPtrType;
+        typedef typename PortTraits::PortType PortType;
+        typedef typename PortType::_var_type PortVarType;
+        typedef typename PortType::_ptr_type PortPtrType;
         typedef typename PortTraits::NativeType NativeType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
-        PortConnection(const std::string& name) :
-            stats(name, sizeof(NativeType))
+        PortConnection(const std::string& name, PortPtrType objref) :
+            stats(name, sizeof(NativeType)),
+            _alive(true),
+            _port(PortType::_duplicate(objref))
         {
         }
 
         virtual ~PortConnection() { };
+
+        bool isAlive() const
+        {
+            return _alive;
+        }
+
+        void setAlive(bool alive)
+        {
+            _alive = alive;
+        }
 
         virtual void pushSRI(const BULKIO::StreamSRI& sri) = 0;
 
@@ -37,11 +51,13 @@ namespace bulkio {
             this->_pushPacket(SharedBufferType(), bulkio::time::utils::notSet(), true, streamID);
         }
 
-        virtual PortPtrType objref() = 0;
-
-        bool reportConnectionErrors()
+        PortPtrType objref()
         {
-            return stats.connectionErrors(1) < 11;
+            if (isAlive()) {
+                return PortType::_duplicate(_port);
+            } else {
+                return PortType::_nil();
+            }
         }
 
         linkStatistics stats;
@@ -61,6 +77,9 @@ namespace bulkio {
         {
             return data.size();
         }
+
+        bool _alive;
+        PortVarType _port;
     };
 
     template <>
@@ -73,7 +92,6 @@ namespace bulkio {
     class RemoteConnection : public PortConnection<PortTraits>
     {
     public:
-        typedef typename PortTraits::PortVarType PortVarType;
         typedef typename PortTraits::PortType PortType;
         typedef typename PortType::_ptr_type PortPtrType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
@@ -81,23 +99,17 @@ namespace bulkio {
         typedef typename PortTraits::TransportType TransportType;
 
         RemoteConnection(const std::string& name, PortPtrType port) :
-            PortConnection<PortTraits>(name),
-            _port(PortType::_duplicate(port))
+            PortConnection<PortTraits>(name, port)
         {
         }
 
         virtual void pushSRI(const BULKIO::StreamSRI& sri)
         {
             try {
-                _port->pushSRI(sri);
+                this->_port->pushSRI(sri);
             } catch (const CORBA::SystemException& exc) {
                 throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
             }
-        }
-
-        virtual PortPtrType objref()
-        {
-            return PortType::_duplicate(_port);
         }
 
         virtual void pushPacket(const SharedBufferType& data,
@@ -120,10 +132,8 @@ namespace bulkio {
         {
             const TransportType* ptr = reinterpret_cast<const TransportType*>(data.data());
             const PortSequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
-            _port->pushPacket(buffer, T, EOS, streamID.c_str());
+            this->_port->pushPacket(buffer, T, EOS, streamID.c_str());
         }
-
-        PortVarType _port;
     };
 
     template <>
@@ -231,26 +241,21 @@ namespace bulkio {
         typedef typename LocalTraits<PortTraits>::InPortType LocalPortType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
-        LocalConnection(const std::string& name, LocalPortType* port) :
-            PortConnection<PortTraits>(name),
-            _port(port)
+        LocalConnection(const std::string& name, LocalPortType* localPort, PortPtrType port) :
+            PortConnection<PortTraits>(name, port),
+            _localPort(localPort)
         {
-            _port->_add_ref();
+            _localPort->_add_ref();
         }
 
         ~LocalConnection()
         {
-            _port->_remove_ref();
+            _localPort->_remove_ref();
         }
 
         virtual void pushSRI(const BULKIO::StreamSRI& sri)
         {
-            _port->pushSRI(sri);
-        }
-
-        virtual PortPtrType objref()
-        {
-            return _port->_this();
+            _localPort->pushSRI(sri);
         }
 
     protected:
@@ -264,13 +269,13 @@ namespace bulkio {
                 // so we need to make a copy. This could be optimized for the fanout
                 // case by making the copy at a higher level, but only if there's at
                 // least one local connection.
-                _port->pushPacket(data.copy(), T, EOS, streamID);
+                _localPort->pushPacket(data.copy(), T, EOS, streamID);
             } else {
-                _port->pushPacket(data, T, EOS, streamID);
+                _localPort->pushPacket(data, T, EOS, streamID);
             }
         }
 
-        LocalPortType* _port;
+        LocalPortType* _localPort;
     };
 
     template <>
@@ -279,7 +284,7 @@ namespace bulkio {
                                                       bool EOS,
                                                       const std::string& streamID)
     {
-        _port->pushPacket(data, T, EOS, streamID);
+        _localPort->pushPacket(data, T, EOS, streamID);
     }
 
     template <>
@@ -288,7 +293,7 @@ namespace bulkio {
                                                      bool EOS,
                                                      const std::string& streamID)
     {
-        _port->pushPacket(data, EOS, streamID);
+        _localPort->pushPacket(data, EOS, streamID);
     }
 
 }
