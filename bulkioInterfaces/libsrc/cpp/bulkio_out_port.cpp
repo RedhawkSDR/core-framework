@@ -172,23 +172,21 @@ namespace bulkio {
           bool                            EOS,
           const std::string&              streamID)
   {
-    const std::string stream_id(streamID);
-
     // don't want to process while command information is coming in
     SCOPED_LOCK lock(this->updatingPortsLock);
 
     // grab SRI context 
-    typename OutPortSriMap::iterator sri_iter = currentSRIs.find(stream_id);
+    typename OutPortSriMap::iterator sri_iter = currentSRIs.find(streamID);
     if (sri_iter == currentSRIs.end()) {
-      LOG_TRACE(logger, "Creating new stream '" << stream_id << "' with default SRI");
+      LOG_TRACE(logger, "Creating new stream '" << streamID << "' with default SRI");
 
       // No SRI associated with the stream ID, create a default one and add
       // it to the list; it will get pushed to downstream connections below
-      SriMapStruct sri_ctx(bulkio::sri::create(stream_id));
+      SriMapStruct sri_ctx(bulkio::sri::create(streamID));
       // need to use insert since we do not have default CTOR for SriMapStruct
-      sri_iter = currentSRIs.insert(std::make_pair(stream_id, sri_ctx)).first;
+      sri_iter = currentSRIs.insert(std::make_pair(streamID, sri_ctx)).first;
 
-      addStream(stream_id, sri_iter->second.sri);
+      addStream(streamID, sri_iter->second.sri);
     }
 
     if (active) {
@@ -196,7 +194,7 @@ namespace bulkio {
       for (port = _transportMap.begin(); port != _transportMap.end(); ++port) {
         // Check whether filtering is enabled and if this connection should
         // receive the stream
-        if (!_isStreamRoutedToConnection(stream_id, port->first)) {
+        if (!_isStreamRoutedToConnection(streamID, port->first)) {
           continue;
         }
 
@@ -218,8 +216,8 @@ namespace bulkio {
 
     // if we have end of stream removed old sri
     if (EOS) {
-      currentSRIs.erase(stream_id);
-      removeStream(stream_id);
+      currentSRIs.erase(streamID);
+      removeStream(streamID);
     }
   }
 
