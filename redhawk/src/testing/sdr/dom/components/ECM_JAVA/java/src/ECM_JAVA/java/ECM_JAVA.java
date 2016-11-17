@@ -77,9 +77,10 @@ public class ECM_JAVA extends ECM_JAVA_base {
             if ( parent != null ) {
                 int msgin  = data.extract_long();
                 logger.debug("Received (CB) MSG =" + msgin);
-                if ( msgin == (parent.msg_xmit.getValue()-1) ) {
+                if ( msgin-1 == p_msgid ) {
                     parent.msg_recv.setValue(parent.msg_recv.getValue()+1);
                 }
+                p_msgid = msgin;
                 logger.debug("Received (CB) MSG =" + msgin + " msgrcv= " + parent.msg_recv.getValue());
             }
             else {
@@ -91,6 +92,7 @@ public class ECM_JAVA extends ECM_JAVA_base {
     };
 
     private MyMsgCB  mycb=null;
+    int      p_msgid = -1;
 
     public ECM_JAVA()
     {
@@ -272,11 +274,11 @@ public class ECM_JAVA extends ECM_JAVA_base {
         		// we are done
         	if ( this.msg_limit.getValue() == this.msg_xmit.getValue() ) return FINISH;
 
-        	logger.debug("Generated MSG =" + this.msg_xmit);
+        	logger.debug("Generated MSG id =" + this.msg_xmit.getValue() +  " mxmit = " + (this.msg_xmit.getValue()+1));
         	Any any = this.orb.create_any();
         	any.insert_long(this.msg_xmit.getValue());
-        	this.pub.push( any );
         	this.msg_xmit.setValue(this.msg_xmit.getValue() + 1);
+        	this.pub.push( any );
         	try {
         		Thread.sleep(100);
         	}
