@@ -1,7 +1,7 @@
 namespace bulkio {
 
     template <typename PortTraits>
-    class PortConnection
+    class PortTransport
     {
     public:
         typedef typename PortTraits::PortType PortType;
@@ -10,14 +10,14 @@ namespace bulkio {
         typedef typename PortTraits::NativeType NativeType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
-        PortConnection(const std::string& name, PortPtrType objref) :
+        PortTransport(const std::string& name, PortPtrType objref) :
             stats(name, sizeof(NativeType)),
             _alive(true),
             _port(PortType::_duplicate(objref))
         {
         }
 
-        virtual ~PortConnection() { };
+        virtual ~PortTransport() { };
 
         bool isAlive() const
         {
@@ -83,13 +83,13 @@ namespace bulkio {
     };
 
     template <>
-    size_t PortConnection<FilePortTraits>::_dataLength(const std::string& /*unused*/)
+    size_t PortTransport<FilePortTraits>::_dataLength(const std::string& /*unused*/)
     {
         return 1;
     }
 
     template <typename PortTraits>
-    class RemoteConnection : public PortConnection<PortTraits>
+    class RemoteTransport : public PortTransport<PortTraits>
     {
     public:
         typedef typename PortTraits::PortType PortType;
@@ -98,8 +98,8 @@ namespace bulkio {
         typedef typename PortTraits::SequenceType PortSequenceType;
         typedef typename PortTraits::TransportType TransportType;
 
-        RemoteConnection(const std::string& name, PortPtrType port) :
-            PortConnection<PortTraits>(name, port)
+        RemoteTransport(const std::string& name, PortPtrType port) :
+            PortTransport<PortTraits>(name, port)
         {
         }
 
@@ -118,7 +118,7 @@ namespace bulkio {
                                 const BULKIO::StreamSRI& sri)
         {
             try {
-                PortConnection<PortTraits>::pushPacket(data, T, EOS, sri);
+                PortTransport<PortTraits>::pushPacket(data, T, EOS, sri);
             } catch (const CORBA::SystemException& exc) {
                 throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
             }
@@ -137,25 +137,25 @@ namespace bulkio {
     };
 
     template <>
-    void RemoteConnection<FilePortTraits>::_pushPacket(const std::string& data,
-                                                       const BULKIO::PrecisionUTCTime& T,
-                                                       bool EOS,
-                                                       const std::string& streamID)
+    void RemoteTransport<FilePortTraits>::_pushPacket(const std::string& data,
+                                                      const BULKIO::PrecisionUTCTime& T,
+                                                      bool EOS,
+                                                      const std::string& streamID)
     {
         _port->pushPacket(data.c_str(), T, EOS, streamID.c_str());
     }
 
     template <>
-    void RemoteConnection<XMLPortTraits>::_pushPacket(const std::string& data,
-                                                      const BULKIO::PrecisionUTCTime& /* unused */,
-                                                      bool EOS,
-                                                      const std::string& streamID)
+    void RemoteTransport<XMLPortTraits>::_pushPacket(const std::string& data,
+                                                     const BULKIO::PrecisionUTCTime& /* unused */,
+                                                     bool EOS,
+                                                     const std::string& streamID)
     {
         _port->pushPacket(data.c_str(), EOS, streamID.c_str());
     }
 
     template <typename PortTraits>
-    class ChunkingConnection : public RemoteConnection<PortTraits>
+    class ChunkingTransport : public RemoteTransport<PortTraits>
     {
     public:
         typedef typename PortTraits::PortType PortType;
@@ -163,8 +163,8 @@ namespace bulkio {
         typedef typename PortTraits::TransportType TransportType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
-        ChunkingConnection(const std::string& name, PortPtrType port) :
-            RemoteConnection<PortTraits>(name, port)      
+        ChunkingTransport(const std::string& name, PortPtrType port) :
+            RemoteTransport<PortTraits>(name, port)      
         {
             // Multiply by some number < 1 to leave some margin for the CORBA header
             const size_t maxPayloadSize = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
@@ -215,7 +215,7 @@ namespace bulkio {
 
                 // Take the next slice of the input buffer.
                 SharedBufferType subPacket = data.slice(first, first + pushSize);
-                RemoteConnection<PortTraits>::pushPacket(subPacket, packetTime, packetEOS, sri);
+                RemoteTransport<PortTraits>::pushPacket(subPacket, packetTime, packetEOS, sri);
 
                 // Synthesize the next packet timestamp
                 if (packetTime.tcstatus == BULKIO::TCS_VALID) {
@@ -233,7 +233,7 @@ namespace bulkio {
 
 
     template <typename PortTraits>
-    class LocalConnection : public PortConnection<PortTraits>
+    class LocalTransport : public PortTransport<PortTraits>
     {
     public:
         typedef typename PortTraits::PortType PortType;
@@ -241,14 +241,14 @@ namespace bulkio {
         typedef typename LocalTraits<PortTraits>::InPortType LocalPortType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
-        LocalConnection(const std::string& name, LocalPortType* localPort, PortPtrType port) :
-            PortConnection<PortTraits>(name, port),
+        LocalTransport(const std::string& name, LocalPortType* localPort, PortPtrType port) :
+            PortTransport<PortTraits>(name, port),
             _localPort(localPort)
         {
             _localPort->_add_ref();
         }
 
-        ~LocalConnection()
+        ~LocalTransport()
         {
             _localPort->_remove_ref();
         }
@@ -279,19 +279,19 @@ namespace bulkio {
     };
 
     template <>
-    void LocalConnection<FilePortTraits>::_pushPacket(const std::string& data,
-                                                      const BULKIO::PrecisionUTCTime& T,
-                                                      bool EOS,
-                                                      const std::string& streamID)
+    void LocalTransport<FilePortTraits>::_pushPacket(const std::string& data,
+                                                     const BULKIO::PrecisionUTCTime& T,
+                                                     bool EOS,
+                                                     const std::string& streamID)
     {
         _localPort->pushPacket(data, T, EOS, streamID);
     }
 
     template <>
-    void LocalConnection<XMLPortTraits>::_pushPacket(const std::string& data,
-                                                     const BULKIO::PrecisionUTCTime& /*unused*/,
-                                                     bool EOS,
-                                                     const std::string& streamID)
+    void LocalTransport<XMLPortTraits>::_pushPacket(const std::string& data,
+                                                    const BULKIO::PrecisionUTCTime& /*unused*/,
+                                                    bool EOS,
+                                                    const std::string& streamID)
     {
         _localPort->pushPacket(data, EOS, streamID);
     }

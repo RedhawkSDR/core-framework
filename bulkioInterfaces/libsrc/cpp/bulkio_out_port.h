@@ -60,7 +60,7 @@ namespace bulkio {
     typedef InXMLPort InPortType;
   };
 
-  template <typename PortTraits> class PortConnection;
+  template <typename PortTraits> class PortTransport;
 
   //
   //  OutPortBase
@@ -300,13 +300,13 @@ namespace bulkio {
     // Lookup table for connections to input ports in the same process space
     //
     typedef typename LocalTraits<PortTraits>::InPortType LocalPortType;
-    typedef PortConnection<PortTraits> PortConnectionType;
+    typedef PortTransport<PortTraits> PortTransportType;
 
-    virtual PortConnectionType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
-    virtual PortConnectionType* _createLocalConnection(PortPtrType port, LocalPortType* localPort,
-                                                       const std::string& connectionId);
+    virtual PortTransportType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
+    virtual PortTransportType* _createLocalConnection(PortPtrType port, LocalPortType* localPort,
+                                                      const std::string& connectionId);
 
-    typedef std::map<std::string,PortConnectionType*> TransportMap;
+    typedef std::map<std::string,PortTransportType*> TransportMap;
     TransportMap _transportMap;
 
     LOGGER_PTR                                logger;
@@ -477,7 +477,7 @@ namespace bulkio {
   protected:
     using OutPortBase<PortTraits>::logger;
     typedef typename OutPortBase<PortTraits>::PortPtrType PortPtrType;
-    typedef typename OutPortBase<PortTraits>::PortConnectionType PortConnectionType;
+    typedef typename OutPortBase<PortTraits>::PortTransportType PortTransportType;
 
     virtual void addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
     virtual void removeStream(const std::string& streamID);
@@ -486,7 +486,7 @@ namespace bulkio {
     StreamMap streams;
     boost::mutex streamsMutex;
 
-    virtual PortConnectionType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
+    virtual PortTransportType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
   };
 
   //

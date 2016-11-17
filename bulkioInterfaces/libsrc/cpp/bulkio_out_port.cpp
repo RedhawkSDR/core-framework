@@ -315,19 +315,19 @@ namespace bulkio {
 
 
   template < typename PortTraits >
-  typename OutPortBase< PortTraits >::PortConnectionType*
+  typename OutPortBase< PortTraits >::PortTransportType*
   OutPortBase< PortTraits >::_createRemoteConnection(PortPtrType port, const std::string& connectionId)
   {
-    return new RemoteConnection<PortTraits>(name, port);
+    return new RemoteTransport<PortTraits>(name, port);
   }
 
 
   template < typename PortTraits >
-  typename OutPortBase< PortTraits >::PortConnectionType*
+  typename OutPortBase< PortTraits >::PortTransportType*
   OutPortBase< PortTraits >::_createLocalConnection(PortPtrType port, LocalPortType* localPort,
                                                     const std::string& connectionId)
   {
-      return new LocalConnection<PortTraits>(name, localPort, port);
+      return new LocalTransport<PortTraits>(name, localPort, port);
   }
   
 
@@ -494,10 +494,10 @@ namespace bulkio {
 
 
   template <typename PortTraits>
-  typename OutPort<PortTraits>::PortConnectionType*
+  typename OutPort<PortTraits>::PortTransportType*
   OutPort<PortTraits>::_createRemoteConnection(PortPtrType port, const std::string& connectionId)
   {
-    return new ChunkingConnection<PortTraits>(this->name, port);
+    return new ChunkingTransport<PortTraits>(this->name, port);
   }
 
 
