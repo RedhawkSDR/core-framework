@@ -52,9 +52,9 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
     def test_API_remap(self):
         orig_api = dir(self._rhDom.ref)
         remap_api = dir(self._rhDom)
-        not_remap = ['__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
-                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '_release','_unchecked_narrow']
+        not_remap = ['_NP_RepositoryId','_Object__release','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
+                     '__methods__','_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
+                     '__del__','__omni_obj','_release','_unchecked_narrow', '_non_existent']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -62,9 +62,6 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
             
         orig_api = dir(self._rhDom.devMgrs[0].ref)
         remap_api = dir(self._rhDom.devMgrs[0])
-        not_remap = ['__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
-                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '_release','_unchecked_narrow']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -77,9 +74,6 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
 
         orig_api = dir(self._rhDom.apps[0].comps[0].ref)
         remap_api = dir(self._rhDom.apps[0].comps[0])
-        not_remap = ['_NP_RepositoryId','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
-                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '_release','_unchecked_narrow', '_non_existent']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -87,9 +81,6 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
 
         orig_api = dir(self._rhDom.apps[0].ref)
         remap_api = dir(self._rhDom.apps[0])
-        not_remap = ['_NP_RepositoryId','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
-                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '_release','_unchecked_narrow', '_non_existent']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -97,9 +88,6 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
 
         orig_api = dir(self._rhDom.devMgrs[0].devs[0].ref)
         remap_api = dir(self._rhDom.devMgrs[0].devs[0])
-        not_remap = ['_NP_RepositoryId','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
-                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '_release','_unchecked_narrow', '_non_existent']
         for entry in orig_api:
             if entry in not_remap:
                 continue
