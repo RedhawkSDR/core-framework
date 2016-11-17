@@ -31,6 +31,42 @@
 // Suppress warnings for access to "deprecated" currentSRI member--it's the
 // public access that's deprecated, not the member itself
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+namespace redhawk {
+    QueryableUsesPort::QueryableUsesPort(const std::string& name) :
+        Port_Uses_base_impl(name)
+    {
+    }
+
+    ExtendedCF::UsesConnectionSequence* QueryableUsesPort::connections()
+    {
+        boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
+        ExtendedCF::UsesConnectionSequence_var retVal = new ExtendedCF::UsesConnectionSequence();
+        for (transport_list::iterator port = _transports.begin(); port != _transports.end(); ++port) {
+            ExtendedCF::UsesConnection conn;
+            conn.connectionId = port->first.c_str();
+            conn.port = port->second->objref();
+            ossie::corba::push_back(retVal, conn);
+        }
+        return retVal._retn();
+    }
+
+    QueryableUsesPort::transport_list::iterator QueryableUsesPort::_findTransportEntry(const std::string& connectionId)
+    {
+        transport_list::iterator entry = _transports.begin();
+        for (; entry != _transports.end(); ++entry) {
+            if (entry->first == connectionId) {
+                return entry;
+            }
+        }
+        return entry;
+    }
+
+    void QueryableUsesPort::_addTransportEntry(const std::string& connectionId, BasicTransport* transport)
+    {
+        _transports.push_back(transport_entry(connectionId, transport));
+    }
+}
+
 
 namespace bulkio {
   /*
@@ -44,7 +80,7 @@ namespace bulkio {
                                          LOGGER_PTR logger,
                                          ConnectionEventListener *connectCB,
                                          ConnectionEventListener *disconnectCB ) :
-    Port_Uses_base_impl(port_name),
+    QueryableUsesPort(port_name),
     logger(logger)
   {
 
@@ -71,7 +107,7 @@ namespace bulkio {
   OutPortBase< PortTraits >::OutPortBase(std::string port_name,
                                          ConnectionEventListener *connectCB,
                                          ConnectionEventListener *disconnectCB ) :
-      Port_Uses_base_impl(port_name),
+      QueryableUsesPort(port_name),
       logger()
   {
 
@@ -118,24 +154,24 @@ namespace bulkio {
    }
 
     if (active) {
-        typedef typename TransportMap::iterator TransportIterator;
-        for (TransportIterator port = _transportMap.begin(); port != _transportMap.end(); ++port) {
+        for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+            PortTransportType* port = static_cast<PortTransportType*>(iter->second);
             // Skip ports known to be dead
-            if (!port->second->isAlive()) {
+            if (!port->isAlive()) {
                 continue;
             }
-            if (!_isStreamRoutedToConnection(sid, port->first)) {
+            if (!_isStreamRoutedToConnection(sid, iter->first)) {
                 continue;
             }
 
-            LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << port->first << " SRI streamID:"
+            LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << iter->first << " SRI streamID:"
                       << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta);
             try {
-                port->second->pushSRI(H);
-                sri_iter->second.connections.insert(port->first);
+                port->pushSRI(H);
+                sri_iter->second.connections.insert(iter->first);
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
-                          << " PORT/CONNECTION: " << name << "/" << port->first);
+                          << " PORT/CONNECTION: " << name << "/" << iter->first);
             }
         }
     }
@@ -191,30 +227,30 @@ namespace bulkio {
     }
 
     if (active) {
-        typedef typename TransportMap::iterator TransportIterator;
-        for (TransportIterator port = _transportMap.begin(); port != _transportMap.end(); ++port) {
+        for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+            PortTransportType* port = static_cast<PortTransportType*>(iter->second);
             // Skip ports known to be dead
-            if (!port->second->isAlive()) {
+            if (!port->isAlive()) {
                 continue;
             }
 
             // Check whether filtering is enabled and if this connection should
             // receive the stream
-            if (!_isStreamRoutedToConnection(streamID, port->first)) {
+            if (!_isStreamRoutedToConnection(streamID, iter->first)) {
                 continue;
             }
 
             try {
-                if (sri_iter->second.connections.count(port->first) == 0) {
-                    port->second->pushSRI(sri_iter->second.sri);
-                    sri_iter->second.connections.insert(port->first);
+                if (sri_iter->second.connections.count(iter->first) == 0) {
+                    port->pushSRI(sri_iter->second.sri);
+                    sri_iter->second.connections.insert(iter->first);
                 }
 
-                port->second->pushPacket(data, T, EOS, sri_iter->second.sri);
+                port->pushPacket(data, T, EOS, sri_iter->second.sri);
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
-                          << " PORT/CONNECTION: " << name << "/" << port->first);
-                port->second->setAlive(false);
+                          << " PORT/CONNECTION: " << name << "/" << iter->first);
+                port->setAlive(false);
             }
         }
     }
@@ -230,22 +266,23 @@ namespace bulkio {
   template < typename PortTraits >
   BULKIO::UsesPortStatisticsSequence* OutPortBase< PortTraits >::statistics()
   {
-    SCOPED_LOCK   lock(updatingPortsLock);
-    BULKIO::UsesPortStatisticsSequence_var recStat = new BULKIO::UsesPortStatisticsSequence();
-    for (typename TransportMap::iterator port = _transportMap.begin(); port != _transportMap.end(); ++port) {
-      BULKIO::UsesPortStatistics stat;
-      stat.connectionId = port->first.c_str();
-      stat.statistics = port->second->stats.retrieve();
-      ossie::corba::push_back(recStat, stat);
-    }
-    return recStat._retn();
+      SCOPED_LOCK   lock(updatingPortsLock);
+      BULKIO::UsesPortStatisticsSequence_var recStat = new BULKIO::UsesPortStatisticsSequence();
+      for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+          PortTransportType* port = static_cast<PortTransportType*>(iter->second);
+          BULKIO::UsesPortStatistics stat;
+          stat.connectionId = iter->first.c_str();
+          stat.statistics = port->stats.retrieve();
+          ossie::corba::push_back(recStat, stat);
+      }
+      return recStat._retn();
   }
 
   template < typename PortTraits >
   BULKIO::PortUsageType OutPortBase< PortTraits >::state()
   {
     SCOPED_LOCK lock(updatingPortsLock);
-    if (_transportMap.empty()) {
+    if (_transports.empty()) {
       return BULKIO::IDLE;
     } else {
       return BULKIO::ACTIVE;
@@ -255,26 +292,13 @@ namespace bulkio {
   template < typename PortTraits >
   void OutPortBase< PortTraits >::enableStats(bool enable)
   {
-    SCOPED_LOCK lock(updatingPortsLock);
-    for (typename TransportMap::iterator port = _transportMap.begin(); port != _transportMap.end(); ++port) {
-      port->second->stats.setEnabled(enable);
-    }
+      SCOPED_LOCK lock(updatingPortsLock);
+      for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+          PortTransportType* port = static_cast<PortTransportType*>(iter->second);
+          port->stats.setEnabled(enable);
+      }
   }
 
-
-  template < typename PortTraits >
-  ExtendedCF::UsesConnectionSequence * OutPortBase< PortTraits >::connections()
-  {
-    SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
-    ExtendedCF::UsesConnectionSequence_var retVal = new ExtendedCF::UsesConnectionSequence();
-    for (typename TransportMap::iterator port = _transportMap.begin(); port != _transportMap.end(); ++port) {
-      ExtendedCF::UsesConnection conn;
-      conn.connectionId = port->first.c_str();
-      conn.port = port->second->objref();
-      ossie::corba::push_back(retVal, conn);
-    }
-    return retVal._retn();
-  }
 
   template < typename PortTraits >
   void OutPortBase< PortTraits >::connectPort(CORBA::Object_ptr connection, const char* connectionId)
@@ -295,13 +319,15 @@ namespace bulkio {
       }
 
       LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
+      PortTransportType* transport;
       if (local_port) {
         LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
                   << " for connection " << connectionId);
-        _transportMap[connectionId] = _createLocalConnection(port, local_port, connectionId);
+        transport = _createLocalConnection(port, local_port, connectionId);
       } else {
-        _transportMap[connectionId] = _createRemoteConnection(port, connectionId);
+        transport = _createRemoteConnection(port, connectionId);
       }
+      _addTransportEntry(connectionId, transport);
 
       active = true;
 
@@ -336,39 +362,40 @@ namespace bulkio {
   {
     TRACE_ENTER(logger, "OutPort::disconnectPort" );
     {
-      SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
+        SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
 
-      const std::string cid(connectionId);
-      typename TransportMap::iterator port = _transportMap.find(connectionId);
-      if (port != _transportMap.end()) {
-        // Send an EOS for every connection that's listed for this SRI
-        for (typename OutPortSriMap::iterator cSRIs = currentSRIs.begin(); cSRIs!=currentSRIs.end(); cSRIs++) {
-          const std::string stream_id(cSRIs->second.sri.streamID);
+        const std::string cid(connectionId);
+        transport_list::iterator iter = _findTransportEntry(connectionId);
+        if (iter != _transports.end()) {
+            PortTransportType* port = static_cast<PortTransportType*>(iter->second);
 
-          // Check if we have sent out sri/data to the connection
-          if (cSRIs->second.connections.count( cid ) != 0) {
-            if (_isStreamRoutedToConnection(stream_id, cid)) {
-              try {
-                port->second->sendEOS(stream_id);
-              } catch (...) {
-                // Ignore all exceptions; the receiver may be dead
-              }
+            // Send an EOS for every connection that's listed for this SRI
+            for (typename OutPortSriMap::iterator cSRIs = currentSRIs.begin(); cSRIs!=currentSRIs.end(); cSRIs++) {
+                const std::string stream_id(cSRIs->second.sri.streamID);
+
+                // Check if we have sent out sri/data to the connection
+                if (cSRIs->second.connections.count( cid ) != 0) {
+                    if (_isStreamRoutedToConnection(stream_id, cid)) {
+                        try {
+                            port->sendEOS(stream_id);
+                        } catch (...) {
+                            // Ignore all exceptions; the receiver may be dead
+                        }
+                    }
+                }
+
+                // remove connection id from sri connections list
+                cSRIs->second.connections.erase(connectionId);
             }
-          }
 
-          // remove connection id from sri connections list
-          cSRIs->second.connections.erase( cid );
+            LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
+            delete port;
+            _transports.erase(iter);
 
+            if (_transports.empty()) {
+                active = false;
+            }
         }
-
-        LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
-        delete port->second;
-        _transportMap.erase(port);
-
-        if (_transportMap.empty()) {
-          active = false;
-        }
-      }
     }
     if (_disconnectCB) {
       (*_disconnectCB)(connectionId);
@@ -408,8 +435,9 @@ namespace bulkio {
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
     ConnectionsList outConnections;
 
-    for (typename TransportMap::iterator port = _transportMap.begin(); port != _transportMap.end(); ++port) {
-      outConnections.push_back(std::make_pair(port->second->objref(), port->first));
+    for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+        PortTransportType* port = static_cast<PortTransportType*>(iter->second);
+        outConnections.push_back(std::make_pair(port->objref(), iter->first));
     }
 
     return outConnections;

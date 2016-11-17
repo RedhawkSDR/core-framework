@@ -1,7 +1,7 @@
 namespace bulkio {
 
     template <typename PortTraits>
-    class PortTransport
+    class PortTransport : public redhawk::BasicTransport
     {
     public:
         typedef typename PortTraits::PortType PortType;
@@ -11,23 +11,13 @@ namespace bulkio {
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
         PortTransport(const std::string& name, PortPtrType objref) :
+            redhawk::BasicTransport(objref),
             stats(name, sizeof(NativeType)),
-            _alive(true),
             _port(PortType::_duplicate(objref))
         {
         }
 
         virtual ~PortTransport() { };
-
-        bool isAlive() const
-        {
-            return _alive;
-        }
-
-        void setAlive(bool alive)
-        {
-            _alive = alive;
-        }
 
         virtual void pushSRI(const BULKIO::StreamSRI& sri) = 0;
 
@@ -78,7 +68,6 @@ namespace bulkio {
             return data.size();
         }
 
-        bool _alive;
         PortVarType _port;
     };
 
