@@ -73,13 +73,16 @@ namespace redhawk {
             boost::mutex::scoped_lock lock(updatingPortsLock);
 
             TransportList::iterator transport = _findTransportEntry(connectionId);
-            if (transport != _transports.end()) {
-                _disconnectTransport(*transport);
-
-                //LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
-                delete (*transport);
-                _transports.erase(transport);
+            if (transport == _transports.end()) {
+                std::string message = std::string("No connection ") + connectionId;
+                throw CF::Port::InvalidPort(2, message.c_str());
             }
+
+            _disconnectTransport(*transport);
+
+            //LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
+            delete (*transport);
+            _transports.erase(transport);
 
             if (_transports.empty()) {
                 active = false;
