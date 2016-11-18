@@ -425,8 +425,9 @@ void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType ty
         // for pending connections that have the given dependency, and attempt
         // to complete the connection.
         ConnectionList& connections = devMgr->second;
-        for (ConnectionList::iterator connection = connections.begin(); connection != connections.end(); ++connection) {
+        for (ConnectionList::iterator connection = connections.begin(); connection != connections.end(); ) {
             if (connection->connected || !connection->checkDependency(type, identifier)) {
+                connection++;
                 continue;
             }
             LOG_TRACE(DomainConnectionManager, "Resolving pending connection " << connection->identifier);
@@ -434,11 +435,14 @@ void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType ty
                 if (!connection->allowDeferral()) {
                     // This connection needs to be removed from the list
                     LOG_ERROR(DomainConnectionManager, "Connection " << connection->identifier << " cannot be resolved");
+                    connection = connections.erase(connection);
                 } else {
                     LOG_TRACE(DomainConnectionManager, "Connection " << connection->identifier << " still has pending dependencies");
+                    connection++;
                 }
             } else {
                 LOG_DEBUG(DomainConnectionManager, "Connection " << connection->identifier << " resolved");
+                connection++;
             }
         }
     }
