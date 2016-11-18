@@ -450,7 +450,7 @@ void MessageSupplierPort::_disconnectTransport(redhawk::BasicTransport* transpor
 void MessageSupplierPort::push(const CORBA::Any& data)
 {
     boost::mutex::scoped_lock lock(updatingPortsLock);
-    for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+    for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
         MessageTransport* transport = static_cast<MessageTransport*>(*iter);
         try {
             transport->push(data);
@@ -466,7 +466,7 @@ std::string MessageSupplierPort::getRepid() const
 
 void MessageSupplierPort::_beginMessageQueue(size_t count)
 {
-    for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+    for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
         MessageTransport* transport = static_cast<MessageTransport*>(*iter);
         transport->beginQueue(count);
     }
@@ -474,7 +474,7 @@ void MessageSupplierPort::_beginMessageQueue(size_t count)
 
 void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer)
 {
-    for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+    for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
         MessageTransport* transport = static_cast<MessageTransport*>(*iter);
         try {
             transport->queueMessage(msgId, format, msgData, serializer);
@@ -485,7 +485,7 @@ void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* fo
 
 void MessageSupplierPort::_sendMessageQueue()
 {
-    for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+    for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
         MessageTransport* transport = static_cast<MessageTransport*>(*iter);
         transport->sendMessages();
     }

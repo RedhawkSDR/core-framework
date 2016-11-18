@@ -122,7 +122,7 @@ namespace bulkio {
    }
 
     if (active) {
-        for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+        for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
             PortTransportType* port = static_cast<PortTransportType*>(*iter);
             const std::string& connection_id = port->connectionId();
             // Skip ports known to be dead
@@ -211,7 +211,7 @@ namespace bulkio {
     }
 
     if (active) {
-        for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+        for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
             PortTransportType* port = static_cast<PortTransportType*>(*iter);
             const std::string& connection_id = port->connectionId();
 
@@ -254,7 +254,7 @@ namespace bulkio {
   {
       SCOPED_LOCK   lock(updatingPortsLock);
       BULKIO::UsesPortStatisticsSequence_var recStat = new BULKIO::UsesPortStatisticsSequence();
-      for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+      for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
           PortTransportType* port = static_cast<PortTransportType*>(*iter);
           BULKIO::UsesPortStatistics stat;
           stat.connectionId = port->connectionId().c_str();
@@ -279,7 +279,7 @@ namespace bulkio {
   void OutPortBase< PortTraits >::enableStats(bool enable)
   {
       SCOPED_LOCK lock(updatingPortsLock);
-      for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+      for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
           PortTransportType* port = static_cast<PortTransportType*>(*iter);
           port->stats.setEnabled(enable);
       }
@@ -388,7 +388,7 @@ namespace bulkio {
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
     ConnectionsList outConnections;
 
-    for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+    for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
         PortTransportType* port = static_cast<PortTransportType*>(*iter);
         outConnections.push_back(std::make_pair(port->objref(), port->connectionId()));
     }

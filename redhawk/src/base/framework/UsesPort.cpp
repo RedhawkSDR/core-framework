@@ -52,7 +52,7 @@ namespace redhawk {
             // Acquire the state lock before modifying the container
             boost::mutex::scoped_lock lock(updatingPortsLock);
 
-            transport_list::iterator entry = _findTransportEntry(connection_id);
+            TransportList::iterator entry = _findTransportEntry(connection_id);
             if (entry == _transports.end()) {
                 BasicTransport* transport = _createTransport(connection, connection_id);
                 _addTransportEntry(transport);
@@ -72,7 +72,7 @@ namespace redhawk {
         {
             boost::mutex::scoped_lock lock(updatingPortsLock);
 
-            transport_list::iterator transport = _findTransportEntry(connectionId);
+            TransportList::iterator transport = _findTransportEntry(connectionId);
             if (transport != _transports.end()) {
                 _disconnectTransport(*transport);
 
@@ -94,7 +94,7 @@ namespace redhawk {
     {
         boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
         ExtendedCF::UsesConnectionSequence_var retVal = new ExtendedCF::UsesConnectionSequence();
-        for (transport_list::iterator port = _transports.begin(); port != _transports.end(); ++port) {
+        for (TransportList::iterator port = _transports.begin(); port != _transports.end(); ++port) {
             ExtendedCF::UsesConnection conn;
             conn.connectionId = (*port)->connectionId().c_str();
             if ((*port)->isAlive()) {
@@ -125,9 +125,9 @@ namespace redhawk {
         }
     }
 
-    UsesPort::transport_list::iterator UsesPort::_findTransportEntry(const std::string& connectionId)
+    UsesPort::TransportList::iterator UsesPort::_findTransportEntry(const std::string& connectionId)
     {
-        transport_list::iterator entry = _transports.begin();
+        TransportList::iterator entry = _transports.begin();
         for (; entry != _transports.end(); ++entry) {
             if ((*entry)->connectionId() == connectionId) {
                 return entry;

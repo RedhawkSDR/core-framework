@@ -88,17 +88,17 @@ namespace redhawk {
         virtual ExtendedCF::UsesConnectionSequence* connections();
 
     protected:
-        typedef std::vector<BasicTransport*> transport_list;
+        typedef std::vector<BasicTransport*> TransportList;
 
         virtual void _validatePort(CORBA::Object_ptr object);
 
-        transport_list::iterator _findTransportEntry(const std::string& connectionId);
+        TransportList::iterator _findTransportEntry(const std::string& connectionId);
         void _addTransportEntry(BasicTransport* transport);
 
         virtual BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
         virtual void _disconnectTransport(BasicTransport* transport);
 
-        transport_list _transports;
+        TransportList _transports;
 
     private:
         ossie::notification<void (const std::string&)> _portConnected;
