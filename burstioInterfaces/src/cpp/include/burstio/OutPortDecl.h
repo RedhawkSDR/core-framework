@@ -30,8 +30,8 @@
 #include <BULKIO/bio_runtimeStats.h>
 
 #include <ossie/ExecutorService.h>
+#include <ossie/UsesPort.h>
 
-#include "UsesPort.h"
 #include "BurstStatistics.h"
 #include "PortTraits.h"
 #include "utils.h"
@@ -57,16 +57,17 @@ namespace burstio {
     };
 
     template <typename Traits>
-    class BurstTransport : public BasicTransport<typename Traits::PortType>
+    class BurstTransport : public redhawk::BasicTransport
     {
     public:
-        typedef BasicTransport<typename Traits::PortType> super;
         typedef typename Traits::PortType PortType;
+        typedef typename PortType::_var_type VarType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
         typedef typename Traits::ElementType ElementType;
 
         BurstTransport(typename PortType::_ptr_type port, const std::string& connectionId, const std::string& name) :
-            super(port, connectionId),
+            redhawk::BasicTransport(connectionId, port),
+            port_(PortType::_duplicate(port)),
             stats_(name, sizeof(ElementType) * 8)
         {
         }
@@ -83,17 +84,16 @@ namespace burstio {
         virtual bool modifiesBursts () const = 0;
 
     protected:
+        VarType port_;
         SenderStatistics stats_;
     };
 
     template <class Traits>
-    class OutPort : public UsesPort<typename Traits::PortType, BurstTransport<Traits> >,
-                    public virtual POA_BULKIO::UsesPortStatisticsProvider
+    class OutPort : public redhawk::UsesPort, public virtual POA_BULKIO::UsesPortStatisticsProvider
     {
         ENABLE_INSTANCE_LOGGING;
 
     public:
-        typedef UsesPort<typename Traits::PortType, BurstTransport<Traits> > super;
         typedef typename Traits::PortType PortType;
         typedef typename Traits::BurstType BurstType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
@@ -265,8 +265,7 @@ namespace burstio {
 
         friend class Queue;
 
-        typedef typename super::ConnectionMap ConnectionMap;
-        typedef typename super::transport_type TransportType;
+        typedef BurstTransport<Traits> TransportType;
 
         typedef std::map<std::string,Queue*> QueueMap;
 
@@ -281,7 +280,7 @@ namespace burstio {
         void queueBurst (SequenceType& data, const BURSTIO::BurstSRI& sri,
                          const BULKIO::PrecisionUTCTime& timestamp, bool eos, bool isComplex);
 
-        virtual TransportType* _createConnection(typename PortType::_ptr_type port, const std::string& connectionId);
+        virtual redhawk::BasicTransport* _createTransport(const std::string& connectionId, CORBA::Object_ptr object);
 
         const Queue& getQueueForStream (const std::string& streamID) const;
         Queue& getQueueForStream (const std::string& streamID);
@@ -296,9 +295,6 @@ namespace burstio {
         RouteTable routes_;
 
         redhawk::ExecutorService monitor_;
-
-        using super::updatingPortsLock;
-        using super::connections_;
     };
 
     typedef OutPort<ByteTraits>      BurstByteOut;
