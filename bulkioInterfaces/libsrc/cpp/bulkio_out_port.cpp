@@ -123,23 +123,24 @@ namespace bulkio {
 
     if (active) {
         for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-            PortTransportType* port = static_cast<PortTransportType*>(iter->second);
+            PortTransportType* port = static_cast<PortTransportType*>(*iter);
+            const std::string& connection_id = port->connectionId();
             // Skip ports known to be dead
             if (!port->isAlive()) {
                 continue;
             }
-            if (!_isStreamRoutedToConnection(sid, iter->first)) {
+            if (!_isStreamRoutedToConnection(sid, connection_id)) {
                 continue;
             }
 
-            LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << iter->first << " SRI streamID:"
+            LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << connection_id << " SRI streamID:"
                       << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta);
             try {
                 port->pushSRI(H);
-                sri_iter->second.connections.insert(iter->first);
+                sri_iter->second.connections.insert(connection_id);
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
-                          << " PORT/CONNECTION: " << name << "/" << iter->first);
+                          << " PORT/CONNECTION: " << name << "/" << connection_id);
             }
         }
     }
@@ -211,7 +212,9 @@ namespace bulkio {
 
     if (active) {
         for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-            PortTransportType* port = static_cast<PortTransportType*>(iter->second);
+            PortTransportType* port = static_cast<PortTransportType*>(*iter);
+            const std::string& connection_id = port->connectionId();
+
             // Skip ports known to be dead
             if (!port->isAlive()) {
                 continue;
@@ -219,20 +222,20 @@ namespace bulkio {
 
             // Check whether filtering is enabled and if this connection should
             // receive the stream
-            if (!_isStreamRoutedToConnection(streamID, iter->first)) {
+            if (!_isStreamRoutedToConnection(streamID, connection_id)) {
                 continue;
             }
 
             try {
-                if (sri_iter->second.connections.count(iter->first) == 0) {
+                if (sri_iter->second.connections.count(connection_id) == 0) {
                     port->pushSRI(sri_iter->second.sri);
-                    sri_iter->second.connections.insert(iter->first);
+                    sri_iter->second.connections.insert(connection_id);
                 }
 
                 port->pushPacket(data, T, EOS, sri_iter->second.sri);
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
-                          << " PORT/CONNECTION: " << name << "/" << iter->first);
+                          << " PORT/CONNECTION: " << name << "/" << connection_id);
                 port->setAlive(false);
             }
         }
@@ -252,9 +255,9 @@ namespace bulkio {
       SCOPED_LOCK   lock(updatingPortsLock);
       BULKIO::UsesPortStatisticsSequence_var recStat = new BULKIO::UsesPortStatisticsSequence();
       for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-          PortTransportType* port = static_cast<PortTransportType*>(iter->second);
+          PortTransportType* port = static_cast<PortTransportType*>(*iter);
           BULKIO::UsesPortStatistics stat;
-          stat.connectionId = iter->first.c_str();
+          stat.connectionId = port->connectionId().c_str();
           stat.statistics = port->stats.retrieve();
           ossie::corba::push_back(recStat, stat);
       }
@@ -277,7 +280,7 @@ namespace bulkio {
   {
       SCOPED_LOCK lock(updatingPortsLock);
       for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-          PortTransportType* port = static_cast<PortTransportType*>(iter->second);
+          PortTransportType* port = static_cast<PortTransportType*>(*iter);
           port->stats.setEnabled(enable);
       }
   }
@@ -313,7 +316,7 @@ namespace bulkio {
   typename OutPortBase< PortTraits >::PortTransportType*
   OutPortBase< PortTraits >::_createRemoteConnection(PortPtrType port, const std::string& connectionId)
   {
-    return new RemoteTransport<PortTraits>(name, port);
+      return new RemoteTransport<PortTraits>(connectionId, name, port);
   }
 
 
@@ -322,24 +325,24 @@ namespace bulkio {
   OutPortBase< PortTraits >::_createLocalConnection(PortPtrType port, LocalPortType* localPort,
                                                     const std::string& connectionId)
   {
-      return new LocalTransport<PortTraits>(name, localPort, port);
+      return new LocalTransport<PortTraits>(connectionId, name, localPort, port);
   }
   
 
   template < typename PortTraits >
-  void OutPortBase< PortTraits >::_transportDisconnected(const std::string& connectionId,
-                                                         redhawk::BasicTransport* transport)
+  void OutPortBase< PortTraits >::_disconnectTransport(redhawk::BasicTransport* transport)
   {
       TRACE_ENTER(logger, "OutPort::disconnectPort" );
       PortTransportType* port = static_cast<PortTransportType*>(transport);
 
       // Send an EOS for every connection that's listed for this SRI
+      const std::string& connection_id = transport->connectionId();
       for (typename OutPortSriMap::iterator cSRIs = currentSRIs.begin(); cSRIs!=currentSRIs.end(); cSRIs++) {
-          const std::string stream_id(cSRIs->second.sri.streamID);
+          const std::string& stream_id = cSRIs->first;
 
           // Check if we have sent out sri/data to the connection
-          if (cSRIs->second.connections.count(connectionId) != 0) {
-              if (port->isAlive() && _isStreamRoutedToConnection(stream_id, connectionId)) {
+          if (cSRIs->second.connections.count(connection_id) != 0) {
+              if (port->isAlive() && _isStreamRoutedToConnection(stream_id, connection_id)) {
                   try {
                       port->sendEOS(stream_id);
                   } catch (...) {
@@ -349,7 +352,7 @@ namespace bulkio {
           }
 
           // remove connection id from sri connections list
-          cSRIs->second.connections.erase(connectionId);
+          cSRIs->second.connections.erase(connection_id);
       }
       TRACE_EXIT(logger, "OutPort::disconnectPort" );
   }
@@ -386,8 +389,8 @@ namespace bulkio {
     ConnectionsList outConnections;
 
     for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        PortTransportType* port = static_cast<PortTransportType*>(iter->second);
-        outConnections.push_back(std::make_pair(port->objref(), iter->first));
+        PortTransportType* port = static_cast<PortTransportType*>(*iter);
+        outConnections.push_back(std::make_pair(port->objref(), port->connectionId()));
     }
 
     return outConnections;
@@ -475,7 +478,7 @@ namespace bulkio {
   typename OutPort<PortTraits>::PortTransportType*
   OutPort<PortTraits>::_createRemoteConnection(PortPtrType port, const std::string& connectionId)
   {
-    return new ChunkingTransport<PortTraits>(this->name, port);
+      return new ChunkingTransport<PortTraits>(connectionId, this->name, port);
   }
 
 

@@ -3,10 +3,16 @@
 
 namespace redhawk {
     
-    BasicTransport::BasicTransport(CORBA::Object_ptr objref) :
+    BasicTransport::BasicTransport(const std::string& connectionId, CORBA::Object_ptr objref) :
+        _connectionId(connectionId),
         _objref(CORBA::Object::_duplicate(objref)),
         _alive(true)
     {
+    }
+
+    const std::string& BasicTransport::connectionId() const
+    {
+        return _connectionId;
     }
 
     bool BasicTransport::isAlive() const
@@ -49,7 +55,7 @@ namespace redhawk {
             transport_list::iterator entry = _findTransportEntry(connection_id);
             if (entry == _transports.end()) {
                 BasicTransport* transport = _createTransport(connection, connection_id);
-                _addTransportEntry(connection_id, transport);
+                _addTransportEntry(transport);
             } else {
                 // TODO: Replace the object reference
             }
@@ -66,14 +72,14 @@ namespace redhawk {
         {
             boost::mutex::scoped_lock lock(updatingPortsLock);
 
-            transport_list::iterator iter = _findTransportEntry(connectionId);
-            if (iter != _transports.end()) {
-                _transportDisconnected(iter->first, iter->second);
-            }
+            transport_list::iterator transport = _findTransportEntry(connectionId);
+            if (transport != _transports.end()) {
+                _disconnectTransport(*transport);
 
-            //LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
-            delete iter->second;
-            _transports.erase(iter);
+                //LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
+                delete (*transport);
+                _transports.erase(transport);
+            }
 
             if (_transports.empty()) {
                 active = false;
@@ -90,9 +96,9 @@ namespace redhawk {
         ExtendedCF::UsesConnectionSequence_var retVal = new ExtendedCF::UsesConnectionSequence();
         for (transport_list::iterator port = _transports.begin(); port != _transports.end(); ++port) {
             ExtendedCF::UsesConnection conn;
-            conn.connectionId = port->first.c_str();
-            if (port->second->isAlive()) {
-                conn.port = CORBA::Object::_duplicate(port->second->objref());
+            conn.connectionId = (*port)->connectionId().c_str();
+            if ((*port)->isAlive()) {
+                conn.port = CORBA::Object::_duplicate((*port)->objref());
             } else {
                 conn.port = CORBA::Object::_nil();
             }
@@ -123,24 +129,24 @@ namespace redhawk {
     {
         transport_list::iterator entry = _transports.begin();
         for (; entry != _transports.end(); ++entry) {
-            if (entry->first == connectionId) {
+            if ((*entry)->connectionId() == connectionId) {
                 return entry;
             }
         }
         return entry;
     }
 
-    void UsesPort::_addTransportEntry(const std::string& connectionId, BasicTransport* transport)
+    void UsesPort::_addTransportEntry(BasicTransport* transport)
     {
-        _transports.push_back(transport_entry(connectionId, transport));
+        _transports.push_back(transport);
     }
 
     BasicTransport* UsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
     {
-        return new BasicTransport(object);
+        return new BasicTransport(connectionId, object);
     }
 
-    void UsesPort::_transportDisconnected(const std::string& connectionId, BasicTransport* transport)
+    void UsesPort::_disconnectTransport(BasicTransport* transport)
     {
     }
 }

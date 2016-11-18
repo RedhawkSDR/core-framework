@@ -5,13 +5,13 @@ namespace bulkio {
     {
     public:
         typedef typename PortTraits::PortType PortType;
-        typedef typename PortType::_var_type PortVarType;
-        typedef typename PortType::_ptr_type PortPtrType;
+        typedef typename PortType::_var_type VarType;
+        typedef typename PortType::_ptr_type PtrType;
         typedef typename PortTraits::NativeType NativeType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
-        PortTransport(const std::string& name, PortPtrType objref) :
-            redhawk::BasicTransport(objref),
+        PortTransport(const std::string& connectionId, const std::string& name, PtrType objref) :
+            redhawk::BasicTransport(connectionId, objref),
             stats(name, sizeof(NativeType)),
             _port(PortType::_duplicate(objref))
         {
@@ -41,7 +41,7 @@ namespace bulkio {
             this->_pushPacket(SharedBufferType(), bulkio::time::utils::notSet(), true, streamID);
         }
 
-        PortPtrType objref()
+        PtrType objref()
         {
             if (isAlive()) {
                 return PortType::_duplicate(_port);
@@ -68,7 +68,7 @@ namespace bulkio {
             return data.size();
         }
 
-        PortVarType _port;
+        VarType _port;
     };
 
     template <>
@@ -82,13 +82,13 @@ namespace bulkio {
     {
     public:
         typedef typename PortTraits::PortType PortType;
-        typedef typename PortType::_ptr_type PortPtrType;
+        typedef typename PortType::_ptr_type PtrType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
         typedef typename PortTraits::SequenceType PortSequenceType;
         typedef typename PortTraits::TransportType TransportType;
 
-        RemoteTransport(const std::string& name, PortPtrType port) :
-            PortTransport<PortTraits>(name, port)
+        RemoteTransport(const std::string& connectionId, const std::string& name, PtrType port) :
+            PortTransport<PortTraits>(connectionId, name, port)
         {
         }
 
@@ -148,12 +148,12 @@ namespace bulkio {
     {
     public:
         typedef typename PortTraits::PortType PortType;
-        typedef typename PortType::_ptr_type PortPtrType;
+        typedef typename PortType::_ptr_type PtrType;
         typedef typename PortTraits::TransportType TransportType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
-        ChunkingTransport(const std::string& name, PortPtrType port) :
-            RemoteTransport<PortTraits>(name, port)      
+        ChunkingTransport(const std::string& connectionId, const std::string& name, PtrType port) :
+            RemoteTransport<PortTraits>(connectionId, name, port)      
         {
             // Multiply by some number < 1 to leave some margin for the CORBA header
             const size_t maxPayloadSize = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
@@ -226,12 +226,13 @@ namespace bulkio {
     {
     public:
         typedef typename PortTraits::PortType PortType;
-        typedef typename PortType::_ptr_type PortPtrType;
+        typedef typename PortType::_ptr_type PtrType;
         typedef typename LocalTraits<PortTraits>::InPortType LocalPortType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
-        LocalTransport(const std::string& name, LocalPortType* localPort, PortPtrType port) :
-            PortTransport<PortTraits>(name, port),
+        LocalTransport(const std::string& connectionId, const std::string& name,
+                       LocalPortType* localPort, PtrType port) :
+            PortTransport<PortTraits>(connectionId, name, port),
             _localPort(localPort)
         {
             _localPort->_add_ref();

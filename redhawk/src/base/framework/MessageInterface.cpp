@@ -225,8 +225,8 @@ std::string MessageConsumerPort::getDirection() const
 class MessageSupplierPort::MessageTransport : public redhawk::BasicTransport
 {
 public:
-    MessageTransport(CosEventChannelAdmin::EventChannel_ptr channel) :
-        redhawk::BasicTransport(channel),
+    MessageTransport(const std::string& connectionId, CosEventChannelAdmin::EventChannel_ptr channel) :
+        redhawk::BasicTransport(connectionId, channel),
         _channel(CosEventChannelAdmin::EventChannel::_duplicate(channel))
     {
     }
@@ -250,8 +250,8 @@ private:
 class MessageSupplierPort::RemoteTransport : public MessageSupplierPort::MessageTransport
 {
 public:
-    RemoteTransport(CosEventChannelAdmin::EventChannel_ptr channel) :
-        MessageTransport(channel)
+    RemoteTransport(const std::string& connectionId, CosEventChannelAdmin::EventChannel_ptr channel) :
+        MessageTransport(connectionId, channel)
     {
         CosEventChannelAdmin::SupplierAdmin_var supplier_admin = channel->for_suppliers();
         _consumer = supplier_admin->obtain_push_consumer();
@@ -306,8 +306,9 @@ private:
 class MessageSupplierPort::LocalTransport : public MessageSupplierPort::MessageTransport
 {
 public:
-    LocalTransport(MessageConsumerPort* consumer, CosEventChannelAdmin::EventChannel_ptr channel) :
-        MessageTransport(channel),
+    LocalTransport(const std::string& connectionId, MessageConsumerPort* consumer,
+                   CosEventChannelAdmin::EventChannel_ptr channel) :
+        MessageTransport(connectionId, channel),
         _consumer(consumer)
     {
     }
@@ -434,13 +435,13 @@ redhawk::BasicTransport* MessageSupplierPort::_createTransport(CORBA::Object_ptr
 
     MessageConsumerPort* local_port = ossie::corba::getLocalServant<MessageConsumerPort>(channel);
     if (local_port) {
-        return new LocalTransport(local_port, channel);
+        return new LocalTransport(connectionId, local_port, channel);
     } else {
-        return new RemoteTransport(channel);
+        return new RemoteTransport(connectionId, channel);
     }
 }
 
-void MessageSupplierPort::_transportDisconnected(redhawk::BasicTransport* transport)
+void MessageSupplierPort::_disconnectTransport(redhawk::BasicTransport* transport)
 {
     MessageTransport* message_transport = static_cast<MessageTransport*>(transport);
     message_transport->disconnect();
@@ -450,7 +451,7 @@ void MessageSupplierPort::push(const CORBA::Any& data)
 {
     boost::mutex::scoped_lock lock(updatingPortsLock);
     for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        MessageTransport* transport = static_cast<MessageTransport*>(iter->second);
+        MessageTransport* transport = static_cast<MessageTransport*>(*iter);
         try {
             transport->push(data);
         } catch ( ... ) {
@@ -466,7 +467,7 @@ std::string MessageSupplierPort::getRepid() const
 void MessageSupplierPort::_beginMessageQueue(size_t count)
 {
     for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        MessageTransport* transport = static_cast<MessageTransport*>(iter->second);
+        MessageTransport* transport = static_cast<MessageTransport*>(*iter);
         transport->beginQueue(count);
     }
 }
@@ -474,7 +475,7 @@ void MessageSupplierPort::_beginMessageQueue(size_t count)
 void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer)
 {
     for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        MessageTransport* transport = static_cast<MessageTransport*>(iter->second);
+        MessageTransport* transport = static_cast<MessageTransport*>(*iter);
         try {
             transport->queueMessage(msgId, format, msgData, serializer);
         } catch ( ... ) {
@@ -485,7 +486,7 @@ void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* fo
 void MessageSupplierPort::_sendMessageQueue()
 {
     for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        MessageTransport* transport = static_cast<MessageTransport*>(iter->second);
+        MessageTransport* transport = static_cast<MessageTransport*>(*iter);
         transport->sendMessages();
     }
 }

@@ -16,15 +16,17 @@ namespace redhawk {
     class BasicTransport
     {
     public:
-        BasicTransport(CORBA::Object_ptr objref);
+        BasicTransport(const std::string& connectionId, CORBA::Object_ptr objref);
         virtual ~BasicTransport() { }
+
+        const std::string& connectionId() const;
+        CORBA::Object_ptr objref() const;
 
         bool isAlive() const;
         void setAlive(bool alive);
 
-        CORBA::Object_ptr objref() const;
-
     private:
+        const std::string _connectionId;
         CORBA::Object_var _objref;
         bool _alive;
     };
@@ -86,16 +88,15 @@ namespace redhawk {
         virtual ExtendedCF::UsesConnectionSequence* connections();
 
     protected:
-        typedef std::pair<std::string,BasicTransport*> transport_entry;
-        typedef std::vector<transport_entry> transport_list;
+        typedef std::vector<BasicTransport*> transport_list;
 
         virtual void _validatePort(CORBA::Object_ptr object);
 
         transport_list::iterator _findTransportEntry(const std::string& connectionId);
-        void _addTransportEntry(const std::string& connectionId, BasicTransport* transport);
+        void _addTransportEntry(BasicTransport* transport);
 
         virtual BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
-        virtual void _transportDisconnected(const std::string& connectionId, BasicTransport* transport);
+        virtual void _disconnectTransport(BasicTransport* transport);
 
         transport_list _transports;
 
