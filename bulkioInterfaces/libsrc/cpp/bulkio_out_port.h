@@ -260,11 +260,6 @@ namespace bulkio {
 
   protected:
     //
-    //
-    //
-    bool                                     recConnectionsRefresh;
-
-    //
     // Lookup table for connections to input ports in the same process space
     //
     typedef typename LocalTraits<PortTraits>::InPortType LocalPortType;
