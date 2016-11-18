@@ -127,13 +127,10 @@ namespace bulkio {
     // OutPortBase Creates a uses port object for publishing data to the framework
     //
     // @param port_name name assigned to the port located in scd.xml file
+    // @param logger  logger to receive port logging output
     // @param connectionCB  callback that will be called when the connectPort method is called
     // @pararm disconnectDB callback that receives notification when a disconnectPort happens
     //
-    OutPortBase(std::string port_name, 
-                ConnectionEventListener *connectCB=NULL,
-                ConnectionEventListener *disconnectCB=NULL );
-
     OutPortBase(std::string port_name, 
                 LOGGER_PTR    logger,
                 ConnectionEventListener *connectCB=NULL,

@@ -67,29 +67,6 @@ namespace bulkio {
 
   }
 
-
-  template < typename PortTraits >
-  OutPortBase< PortTraits >::OutPortBase(std::string port_name,
-                                         ConnectionEventListener *connectCB,
-                                         ConnectionEventListener *disconnectCB ) :
-      UsesPort(port_name)
-  {
-
-    std::string pname("redhawk.bulkio.outport.");
-    pname = pname + port_name;
-    setLogger(rh_logger::Logger::getLogger(pname));
-    if ( connectCB ) {
-      _connectCB = boost::shared_ptr< ConnectionEventListener >( connectCB, null_deleter() );
-    }
-    addConnectListener(this, &OutPortBase::_connectListenerAdapter);
-
-    if ( disconnectCB ) {
-      _disconnectCB = boost::shared_ptr< ConnectionEventListener >( disconnectCB, null_deleter() );
-    }
-    addDisconnectListener(this, &OutPortBase::_disconnectListenerAdapter);
-
-  }
-
   template < typename PortTraits >
   OutPortBase< PortTraits >::~OutPortBase(){
 
@@ -455,7 +432,7 @@ namespace bulkio {
   OutPort< PortTraits >::OutPort(std::string port_name,
                                  ConnectionEventListener *connectCB,
                                  ConnectionEventListener *disconnectCB ) :
-    OutPortBase<PortTraits>(port_name)
+    OutPortBase<PortTraits>(port_name, LOGGER_PTR(), connectCB, disconnectCB)
   {
   }
 
@@ -634,7 +611,7 @@ namespace bulkio {
   OutFilePort::OutFilePort ( std::string name,
                              ConnectionEventListener *connectCB,
                              ConnectionEventListener *disconnectCB ) :
-    OutPortBase < FilePortTraits >(name,connectCB, disconnectCB )
+    OutPortBase < FilePortTraits >(name, LOGGER_PTR(), connectCB, disconnectCB )
   {
 
   }
@@ -673,7 +650,7 @@ namespace bulkio {
   OutXMLPort::OutXMLPort ( std::string name,
                              ConnectionEventListener *connectCB,
                              ConnectionEventListener *disconnectCB ) :
-    OutPortBase < XMLPortTraits >(name,connectCB, disconnectCB )
+    OutPortBase < XMLPortTraits >(name, LOGGER_PTR(), connectCB, disconnectCB )
   {
 
   }
