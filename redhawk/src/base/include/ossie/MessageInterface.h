@@ -267,23 +267,13 @@ protected:
 /************************************************************************************
   Message producer
 ************************************************************************************/
-
-class MessageSupplierPort : public Port_Uses_base_impl
-#ifdef BEGIN_AUTOCOMPLETE_IGNORE
-, public virtual POA_ExtendedCF::QueryablePort
-#endif
+#include "UsesPort.h"
+class MessageSupplierPort : public redhawk::UsesPort
 {
 
 public:
     MessageSupplierPort (std::string port_name);
     virtual ~MessageSupplierPort (void);
-
-    // CF::Port methods
-    void connectPort(CORBA::Object_ptr connection, const char* connectionId);
-    void disconnectPort(const char* connectionId);
-
-    // ExtendedCF::QueryablePort methods
-    ExtendedCF::UsesConnectionSequence* connections();
 
     void push(const CORBA::Any& data);
 
@@ -316,6 +306,10 @@ public:
     std::string getRepid() const;
 
 protected:
+    virtual void _validatePort(CORBA::Object_ptr object);
+    virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
+    virtual void _transportDisconnected(redhawk::BasicTransport* transport);
+
     template <class Message>
     inline void _queueMessage(const Message& message)
     {
@@ -341,8 +335,6 @@ protected:
     class MessageTransport;
     class RemoteTransport;
     class LocalTransport;
-    typedef std::map<std::string,MessageTransport*> TransportMap;
-    TransportMap _connections;
 };
 
 #endif // MESSAGEINTERFACE_H

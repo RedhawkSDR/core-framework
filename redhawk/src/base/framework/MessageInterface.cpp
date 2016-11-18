@@ -222,10 +222,11 @@ std::string MessageConsumerPort::getDirection() const
 }
 
 
-class MessageSupplierPort::MessageTransport
+class MessageSupplierPort::MessageTransport : public redhawk::BasicTransport
 {
 public:
     MessageTransport(CosEventChannelAdmin::EventChannel_ptr channel) :
+        redhawk::BasicTransport(channel),
         _channel(CosEventChannelAdmin::EventChannel::_duplicate(channel))
     {
     }
@@ -241,11 +242,6 @@ public:
     virtual void sendMessages() = 0;
 
     virtual void disconnect() = 0;
-
-    CosEventChannelAdmin::EventChannel_ptr objref()
-    {
-        return CosEventChannelAdmin::EventChannel::_narrow(_channel);
-    }
 
 private:
     CosEventChannelAdmin::EventChannel_var _channel;
@@ -403,69 +399,60 @@ private:
 };
 
 MessageSupplierPort::MessageSupplierPort (std::string port_name) :
-    Port_Uses_base_impl(port_name)
+    UsesPort(port_name)
 {
 }
 
 MessageSupplierPort::~MessageSupplierPort (void)
 {
-    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
-        delete connection->second;
+}
+
+void MessageSupplierPort::_validatePort(CORBA::Object_ptr object)
+{
+    const std::string rep_id(CosEventChannelAdmin::EventChannel::_PD_repoId);
+    bool valid;
+    try {
+        valid = object->_is_a(rep_id.c_str());
+    } catch (...) {
+        // If _is_a throws an exception, assume the remote object is
+        // unreachable (e.g., dead)
+        throw CF::Port::InvalidPort(1, "Object unreachable");
+    }
+
+    if (!valid) {
+        std::string message = "Object does not support " + rep_id;
+        throw CF::Port::InvalidPort(1, message.c_str());
     }
 }
 
-void MessageSupplierPort::connectPort(CORBA::Object_ptr connection, const char* connectionId)
+redhawk::BasicTransport* MessageSupplierPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
 {
-    CosEventChannelAdmin::EventChannel_var channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(connection);
+    CosEventChannelAdmin::EventChannel_var channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(object);
     if (CORBA::is_nil(channel)) {
         throw CF::Port::InvalidPort(0, "The object provided did not narrow to a CosEventChannelAdmin::EventChannel type");
     }
 
-    {
-        boost::mutex::scoped_lock lock(updatingPortsLock);
-        MessageTransport* transport;
-        MessageConsumerPort* local_port = ossie::corba::getLocalServant<MessageConsumerPort>(channel);
-        if (local_port) {
-            transport = new LocalTransport(local_port, channel);
-        } else {
-            transport = new RemoteTransport(channel);
-        }
-        _connections[connectionId] = transport;
+    MessageConsumerPort* local_port = ossie::corba::getLocalServant<MessageConsumerPort>(channel);
+    if (local_port) {
+        return new LocalTransport(local_port, channel);
+    } else {
+        return new RemoteTransport(channel);
     }
 }
 
-void MessageSupplierPort::disconnectPort(const char* connectionId)
+void MessageSupplierPort::_transportDisconnected(redhawk::BasicTransport* transport)
 {
-    boost::mutex::scoped_lock lock(updatingPortsLock);
-    TransportMap::iterator connection = _connections.find(connectionId);
-    if (connection == _connections.end()) {
-        return;
-    }
-    connection->second->disconnect();
-    delete connection->second;
-    _connections.erase(connection);
-}
-
-ExtendedCF::UsesConnectionSequence* MessageSupplierPort::connections()
-{
-    ExtendedCF::UsesConnectionSequence_var result = new ExtendedCF::UsesConnectionSequence();
-    boost::mutex::scoped_lock lock(updatingPortsLock);
-    result->length(_connections.size());
-    CORBA::ULong index = 0;
-    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
-        result[index].connectionId = connection->first.c_str();
-        result[index].port = connection->second->objref();
-        ++index;
-    }
-    return result._retn();
+    MessageTransport* message_transport = static_cast<MessageTransport*>(transport);
+    message_transport->disconnect();
 }
 
 void MessageSupplierPort::push(const CORBA::Any& data)
 {
     boost::mutex::scoped_lock lock(updatingPortsLock);
-    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+    for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+        MessageTransport* transport = static_cast<MessageTransport*>(iter->second);
         try {
-            connection->second->push(data);
+            transport->push(data);
         } catch ( ... ) {
         }
     }
@@ -478,16 +465,18 @@ std::string MessageSupplierPort::getRepid() const
 
 void MessageSupplierPort::_beginMessageQueue(size_t count)
 {
-    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
-        connection->second->beginQueue(count);
+    for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+        MessageTransport* transport = static_cast<MessageTransport*>(iter->second);
+        transport->beginQueue(count);
     }
 }
 
 void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer)
 {
-    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+    for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+        MessageTransport* transport = static_cast<MessageTransport*>(iter->second);
         try {
-            connection->second->queueMessage(msgId, format, msgData, serializer);
+            transport->queueMessage(msgId, format, msgData, serializer);
         } catch ( ... ) {
         }
     }
@@ -495,7 +484,8 @@ void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* fo
 
 void MessageSupplierPort::_sendMessageQueue()
 {
-    for (TransportMap::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
-        connection->second->sendMessages();
+    for (transport_list::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+        MessageTransport* transport = static_cast<MessageTransport*>(iter->second);
+        transport->sendMessages();
     }
 }

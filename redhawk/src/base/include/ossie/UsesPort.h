@@ -110,6 +110,8 @@ namespace redhawk {
         typedef std::pair<std::string,BasicTransport*> transport_entry;
         typedef std::vector<transport_entry> transport_list;
 
+        virtual void _validatePort(CORBA::Object_ptr object);
+
         transport_list::iterator _findTransportEntry(const std::string& connectionId);
         void _addTransportEntry(const std::string& connectionId, BasicTransport* transport);
 

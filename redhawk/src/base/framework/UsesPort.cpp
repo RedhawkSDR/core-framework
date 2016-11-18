@@ -17,20 +17,7 @@ namespace redhawk {
 
         // Attempt to check the type of the remote object to reject invalid
         // types; note this does not require the lock
-        const std::string rep_id = getRepid();
-        bool valid;
-        try {
-            valid = connection->_is_a(rep_id.c_str());
-        } catch (...) {
-            // If _is_a throws an exception, assume the remote object is
-            // unreachable (e.g., dead)
-            throw CF::Port::InvalidPort(1, "Object unreachable");
-        }
-
-        if (!valid) {
-            std::string message = "Object does not support " + rep_id;
-            throw CF::Port::InvalidPort(1, message.c_str());
-        }
+        _validatePort(connection);
 
         const std::string connection_id(connectionId);
         {
@@ -86,6 +73,24 @@ namespace redhawk {
             ossie::corba::push_back(retVal, conn);
         }
         return retVal._retn();
+    }
+
+    void UsesPort::_validatePort(CORBA::Object_ptr object)
+    {
+        const std::string rep_id = getRepid();
+        bool valid;
+        try {
+            valid = object->_is_a(rep_id.c_str());
+        } catch (...) {
+            // If _is_a throws an exception, assume the remote object is
+            // unreachable (e.g., dead)
+            throw CF::Port::InvalidPort(1, "Object unreachable");
+        }
+
+        if (!valid) {
+            std::string message = "Object does not support " + rep_id;
+            throw CF::Port::InvalidPort(1, message.c_str());
+        }
     }
 
     UsesPort::transport_list::iterator UsesPort::_findTransportEntry(const std::string& connectionId)
