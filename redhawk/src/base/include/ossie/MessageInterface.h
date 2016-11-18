@@ -37,8 +37,6 @@
 
 #include <COS/CosEventChannelAdmin.hh>
 
-
-
 /************************************************************************************
   Message consumer
 ************************************************************************************/
@@ -263,78 +261,6 @@ protected:
     SupplierTable suppliers_;
 };
 
-
-/************************************************************************************
-  Message producer
-************************************************************************************/
-#include "UsesPort.h"
-class MessageSupplierPort : public redhawk::UsesPort
-{
-
-public:
-    MessageSupplierPort (std::string port_name);
-    virtual ~MessageSupplierPort (void);
-
-    void push(const CORBA::Any& data);
-
-    // Send a single message
-    template <typename Message>
-    void sendMessage(const Message& message) {
-        const Message* begin(&message);
-        const Message* end(&begin[1]);
-        sendMessages(begin, end);
-    }
-
-    // Send a sequence of messages
-    template <class Sequence>
-    void sendMessages(const Sequence& messages) {
-        sendMessages(messages.begin(), messages.end());
-    }
-    
-    // Send a set of messages from an iterable set
-    template <typename Iterator>
-    void sendMessages(Iterator first, Iterator last)
-    {
-        boost::mutex::scoped_lock lock(updatingPortsLock);
-        _beginMessageQueue(std::distance(first, last));
-        for (; first != last; ++first) {
-            _queueMessage(*first);
-        }
-        _sendMessageQueue();
-    }
-
-    std::string getRepid() const;
-
-protected:
-    virtual void _validatePort(CORBA::Object_ptr object);
-    virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
-    virtual void _disconnectTransport(redhawk::BasicTransport* transport);
-
-    template <class Message>
-    inline void _queueMessage(const Message& message)
-    {
-        // Workaround for older components whose structs have a non-const,
-        // non-static member function getId(): const_cast the value
-        const std::string messageId = const_cast<Message&>(message).getId();
-        const char* format = ::internal::message_traits<Message>::format();
-        _queueMessage(messageId, format, &message, &MessageSupplierPort::_serializeMessage<Message>);
-    }
-
-    template <class Message>
-    static void _serializeMessage(CORBA::Any& any, const void* data)
-    {
-        any <<= *(reinterpret_cast<const Message*>(data));
-    }
-
-    typedef boost::function<void(CORBA::Any&,const void*)> SerializerFunc;
-
-    void _beginMessageQueue(size_t count);
-    void _queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer);
-    void _sendMessageQueue();
-
-    class MessageTransport;
-    class RemoteTransport;
-    class LocalTransport;
-};
+#include "MessageSupplier.h"
 
 #endif // MESSAGEINTERFACE_H

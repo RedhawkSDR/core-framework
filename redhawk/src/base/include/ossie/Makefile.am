@@ -44,6 +44,7 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              ComplexProperties.h \
              Service_impl.h \
              MessageInterface.h \
+             MessageSupplier.h \
              type_traits.h \
              AnyUtils.h \
              RedhawkDefs.h \

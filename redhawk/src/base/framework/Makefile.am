@@ -41,6 +41,7 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
                         CorbaUtils.cpp \
                         prop_helpers.cpp \
                         MessageInterface.cpp \
+                        MessageSupplier.cpp \
                         PropertyInterface.cpp \
                         Service_impl.cpp \
                         type_traits.cpp \
