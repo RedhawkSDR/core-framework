@@ -79,6 +79,7 @@ namespace redhawk {
             }
 
             RH_DEBUG(logger, "Disconnecting connection '" << connectionId << "'");
+            (*transport)->disconnect();
             _disconnectTransport(*transport);
 
             delete (*transport);

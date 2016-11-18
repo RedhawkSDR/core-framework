@@ -72,7 +72,6 @@ public:
 protected:
     virtual void _validatePort(CORBA::Object_ptr object);
     virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
-    virtual void _disconnectTransport(redhawk::BasicTransport* transport);
 
     template <class Message>
     inline void _queueMessage(const Message& message)

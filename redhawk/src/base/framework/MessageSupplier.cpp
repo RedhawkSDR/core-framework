@@ -40,8 +40,6 @@ public:
     virtual void queueMessage(const std::string& msgId, const char* format, const void* msgData, MessageSupplierPort::SerializerFunc serializer) = 0;
     virtual void sendMessages() = 0;
 
-    virtual void disconnect() = 0;
-
 private:
     CosEventChannelAdmin::EventChannel_var _channel;
 };
@@ -159,10 +157,6 @@ public:
     {
     }
 
-    void disconnect()
-    {
-    }
-
 private:
     struct CallbackEntry {
         MessageConsumerPort::MessageCallback* callback;
@@ -238,12 +232,6 @@ redhawk::BasicTransport* MessageSupplierPort::_createTransport(CORBA::Object_ptr
     } else {
         return new RemoteTransport(connectionId, channel);
     }
-}
-
-void MessageSupplierPort::_disconnectTransport(redhawk::BasicTransport* transport)
-{
-    MessageTransport* message_transport = static_cast<MessageTransport*>(transport);
-    message_transport->disconnect();
 }
 
 void MessageSupplierPort::push(const CORBA::Any& data)

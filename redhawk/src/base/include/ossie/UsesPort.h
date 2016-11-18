@@ -26,6 +26,8 @@ namespace redhawk {
         bool isAlive() const;
         void setAlive(bool alive);
 
+        virtual void disconnect() { }
+
     private:
         const std::string _connectionId;
         CORBA::Object_var _objref;
