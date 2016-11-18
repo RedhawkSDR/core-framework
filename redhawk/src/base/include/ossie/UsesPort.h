@@ -16,34 +16,13 @@ namespace redhawk {
     class BasicTransport
     {
     public:
-        BasicTransport(CORBA::Object_ptr objref) :
-            _objref(CORBA::Object::_duplicate(objref)),
-            _alive(true)
-        {
-        }
+        BasicTransport(CORBA::Object_ptr objref);
+        virtual ~BasicTransport() { }
 
-        virtual ~BasicTransport()
-        {
-        }
+        bool isAlive() const;
+        void setAlive(bool alive);
 
-        bool isAlive() const
-        {
-            return _alive;
-        }
-
-        void setAlive(bool alive)
-        {
-            _alive = alive;
-        }
-
-        CORBA::Object_var objref()
-        {
-            if (isAlive()) {
-                return CORBA::Object::_duplicate(_objref);
-            } else {
-                return CORBA::Object::_nil();
-            }
-        }
+        CORBA::Object_ptr objref() const;
 
     private:
         CORBA::Object_var _objref;

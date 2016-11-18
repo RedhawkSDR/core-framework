@@ -2,6 +2,28 @@
 #include <ossie/CorbaSequence.h>
 
 namespace redhawk {
+    
+    BasicTransport::BasicTransport(CORBA::Object_ptr objref) :
+        _objref(CORBA::Object::_duplicate(objref)),
+        _alive(true)
+    {
+    }
+
+    bool BasicTransport::isAlive() const
+    {
+        return _alive;
+    }
+
+    void BasicTransport::setAlive(bool alive)
+    {
+        _alive = alive;
+    }
+
+    CORBA::Object_ptr BasicTransport::objref() const
+    {
+        return _objref;
+    }
+
 
     UsesPort::UsesPort(const std::string& name) :
         Port_Uses_base_impl(name)
@@ -69,7 +91,11 @@ namespace redhawk {
         for (transport_list::iterator port = _transports.begin(); port != _transports.end(); ++port) {
             ExtendedCF::UsesConnection conn;
             conn.connectionId = port->first.c_str();
-            conn.port = port->second->objref();
+            if (port->second->isAlive()) {
+                conn.port = CORBA::Object::_duplicate(port->second->objref());
+            } else {
+                conn.port = CORBA::Object::_nil();
+            }
             ossie::corba::push_back(retVal, conn);
         }
         return retVal._retn();
