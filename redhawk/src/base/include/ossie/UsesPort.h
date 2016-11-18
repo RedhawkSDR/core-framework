@@ -11,6 +11,7 @@
 #include "Autocomplete.h"
 #include "Port_impl.h"
 #include "callback.h"
+#include "debug.h"
 
 namespace redhawk {
     class BasicTransport
@@ -87,6 +88,8 @@ namespace redhawk {
 
         virtual ExtendedCF::UsesConnectionSequence* connections();
 
+        void setLogger(LOGGER newLogger);
+
     protected:
         typedef std::vector<BasicTransport*> TransportList;
 
@@ -97,6 +100,8 @@ namespace redhawk {
 
         virtual BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
         virtual void _disconnectTransport(BasicTransport* transport);
+
+        LOGGER logger;
 
         TransportList _transports;
 

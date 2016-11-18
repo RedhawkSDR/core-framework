@@ -78,9 +78,9 @@ namespace redhawk {
                 throw CF::Port::InvalidPort(2, message.c_str());
             }
 
+            RH_DEBUG(logger, "Disconnecting connection '" << connectionId << "'");
             _disconnectTransport(*transport);
 
-            //LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
             delete (*transport);
             _transports.erase(transport);
 
@@ -108,6 +108,11 @@ namespace redhawk {
             ossie::corba::push_back(retVal, conn);
         }
         return retVal._retn();
+    }
+
+    void UsesPort::setLogger(LOGGER newLogger)
+    {
+        logger = newLogger;
     }
 
     void UsesPort::_validatePort(CORBA::Object_ptr object)

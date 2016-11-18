@@ -254,9 +254,7 @@ namespace bulkio {
       return getConnections();
     }
 
-    void setLogger( LOGGER_PTR newLogger );
-
-	std::string getRepid () const;
+    std::string getRepid () const;
 
     //
     // List of SRIs sent out by this port
@@ -280,7 +278,6 @@ namespace bulkio {
     virtual PortTransportType* _createLocalConnection(PortPtrType port, LocalPortType* localPort,
                                                       const std::string& connectionId);
 
-    LOGGER_PTR                                logger;
     std::vector<connection_descriptor_struct> filterTable;
     boost::shared_ptr< ConnectionEventListener >    _connectCB;
     boost::shared_ptr< ConnectionEventListener >    _disconnectCB;

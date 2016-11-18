@@ -60,16 +60,16 @@ namespace burstio {
                 if (bursts.length() > 1) {
                     partitionBursts(bursts, startTime, queueDepth);
                 } else {
-                    RH_ERROR(parent_->__logger, "pushBursts to " << this->connectionId() << " failed because the burst size is too long");
+                    RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed because the burst size is too long");
                 }
             } catch (const CORBA::Exception& ex) {
                 if (alive_) {
-                    RH_ERROR(parent_->__logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
+                    RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
                 }
                 alive_ = false;
             } catch (...) {
                 if (alive_) {
-                    RH_ERROR(parent_->__logger, "pushBursts to " << this->connectionId() << " failed");
+                    RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed");
                 }
                 alive_ = false;
             }
@@ -149,9 +149,9 @@ namespace burstio {
 
                 this->stats_.record(total_bursts, total_elements, queueDepth, delay.total_microseconds() * 1e-6);
             } catch (const CORBA::Exception& ex) {
-                RH_ERROR(parent_->__logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
+                RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
             } catch (...) {
-                RH_ERROR(parent_->__logger, "pushBursts to " << this->connectionId() << " failed");
+                RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed");
             }
         }
 
@@ -163,7 +163,7 @@ namespace burstio {
     template <class Traits>
     OutPort<Traits>::Queue::Queue(OutPort<Traits>* port, const std::string& streamID, size_t maxBursts, size_t thresholdBytes, long thresholdLatency) :
         port_(port),
-        __logger(port->__logger),
+        logger(port->logger),
         maxBursts_(maxBursts),
         thresholdBytes_(thresholdBytes),
         thresholdLatency_(boost::posix_time::microseconds(thresholdLatency)),
@@ -185,7 +185,7 @@ namespace burstio {
         boost::mutex::scoped_lock lock(mutex_);
         maxBursts_ = count;
         if (bursts_.length() >= maxBursts_) {
-            LOG_INSTANCE_DEBUG("New max bursts " << maxBursts_ << " triggering push");
+            RH_DEBUG(logger, "New max bursts " << maxBursts_ << " triggering push");
             executeThreadedFlush();
         }
     }
@@ -203,7 +203,7 @@ namespace burstio {
         boost::mutex::scoped_lock lock(mutex_);
         thresholdBytes_ = bytes;
         if (bytes_ >= thresholdBytes_) {
-            LOG_INSTANCE_DEBUG("New byte threshold " << thresholdBytes_ << " triggering push");
+            RH_DEBUG(logger, "New byte threshold " << thresholdBytes_ << " triggering push");
             executeThreadedFlush();
         }
     }
@@ -234,7 +234,7 @@ namespace burstio {
         // If this is the first burst, mark the time for latency guarantees
         if (bursts_.length() == 0) {
             startTime_ = boost::get_system_time();
-            LOG_INSTANCE_TRACE("Scheduling latency check on monitor thread after " << thresholdLatency_.total_microseconds() << " usec");
+            RH_TRACE(logger, "Scheduling latency check on monitor thread after " << thresholdLatency_.total_microseconds() << " usec");
             port_->scheduleCheck(startTime_ + thresholdLatency_);
         }
 
@@ -248,10 +248,10 @@ namespace burstio {
         burst.EOS = eos;
 
         bytes_ += burst.data.length() * sizeof(ElementType);
-        LOG_INSTANCE_TRACE("Queue size: " << bursts_.length() << " bursts / " << bytes_ << " bytes");
+        RH_TRACE(logger, "Queue size: " << bursts_.length() << " bursts / " << bytes_ << " bytes");
 
         if (shouldFlush()) {
-            LOG_INSTANCE_DEBUG("Queued burst exceeded threshold, flushing queue");
+            RH_DEBUG(logger, "Queued burst exceeded threshold, flushing queue");
             sendBursts_();
         }
     }
@@ -311,7 +311,6 @@ namespace burstio {
     template <class Traits>
     OutPort<Traits>::OutPort(std::string port_name) :
         UsesPort(port_name),
-        __logger(__classlogger),
         defaultQueue_(this, "(default)", DEFAULT_MAX_BURSTS, omniORB::giopMaxMsgSize() * 0.9, DEFAULT_LATENCY_THRESHOLD),
         streamQueues_(),
         routingMode_(ROUTE_ALL_INTERLEAVED)
@@ -327,12 +326,6 @@ namespace burstio {
                 delete queue->second;
             }
         }
-    }
-
-    template <class Traits>
-    void OutPort<Traits>::setLogger (LoggerPtr logger)
-    {
-        __logger = logger;
     }
 
     template <class Traits>
@@ -404,7 +397,7 @@ namespace burstio {
     template <class Traits>
     void OutPort<Traits>::addConnectionFilter (const std::string& streamID, const std::string& connectionID)
     {
-        LOG_INSTANCE_DEBUG("Routing stream " << streamID << " to connection " << connectionID);
+        RH_DEBUG(logger, "Routing stream " << streamID << " to connection " << connectionID);
         boost::mutex::scoped_lock lock(updatingPortsLock);
         routes_[streamID].insert(connectionID);
     }
@@ -412,7 +405,7 @@ namespace burstio {
     template <class Traits>
     void OutPort<Traits>::removeConnectionFilter (const std::string& streamID, const std::string& connectionID)
     {
-        LOG_INSTANCE_DEBUG("Unrouting stream " << streamID << " from connection " << connectionID);
+        RH_DEBUG(logger, "Unrouting stream " << streamID << " from connection " << connectionID);
         boost::mutex::scoped_lock lock(updatingPortsLock);
         RouteTable::iterator route = routes_.find(streamID);
         if (route != routes_.end()) {
@@ -494,7 +487,7 @@ namespace burstio {
     template <class Traits>
     void OutPort<Traits>::sendBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID)
     {
-        LOG_INSTANCE_TRACE("Sending " << bursts.length() << " bursts");
+        RH_TRACE(logger, "Sending " << bursts.length() << " bursts");
         std::vector<TransportType*> deferred_ports;
         boost::mutex::scoped_lock lock(updatingPortsLock);
         for (TransportList::iterator ii = _transports.begin(); ii != _transports.end(); ++ii) {
@@ -540,7 +533,7 @@ namespace burstio {
         queue.queueBurst(data, sri, timestamp, eos, isComplex);
         if (eos) {
             if (ROUTE_ALL_INTERLEAVED != routingMode_) {
-                LOG_INSTANCE_DEBUG("Flushing '" << streamID << " on EOS");
+                RH_DEBUG(logger, "Flushing '" << streamID << " on EOS");
                 queue.flush();
                 delete streamQueues_[streamID];
             }
@@ -575,10 +568,10 @@ namespace burstio {
     {
         boost::mutex::scoped_lock lock(queueMutex_);
         if (ROUTE_ALL_INTERLEAVED == routingMode_) {
-            LOG_INSTANCE_DEBUG("Forcing flush of default queue");
+            RH_DEBUG(logger, "Forcing flush of default queue");
             defaultQueue_.flush();
         } else {
-            LOG_INSTANCE_DEBUG("Forcing flush of all queues");
+            RH_DEBUG(logger, "Forcing flush of all queues");
             for (typename QueueMap::iterator queue = streamQueues_.begin(); queue != streamQueues_.end(); ++queue) {
                 queue->second->flush();
             }
@@ -593,8 +586,8 @@ namespace burstio {
         var_type port = ossie::corba::_narrowSafe<PortType>(object);
         InPort<Traits>* local_port = ossie::corba::getLocalServant<InPort<Traits> >(port);
         if (local_port) {
-            LOG_INSTANCE_DEBUG("Using local connection to port " << local_port->getName()
-                               << " for connection " << connectionId);
+            RH_DEBUG(logger, "Using local connection to port " << local_port->getName()
+                     << " for connection " << connectionId);
             return new LocalTransport(this, local_port, port, connectionId);
         } else {
             return new RemoteTransport(this, port, connectionId);
@@ -643,7 +636,7 @@ namespace burstio {
             streamQueues_[streamID] = &defaultQueue_;
             return defaultQueue_;
         } else {
-            LOG_INSTANCE_TRACE("Creating new queue for stream " << streamID);
+            RH_TRACE(logger, "Creating new queue for stream " << streamID);
             // Propagate the default queue's settings
             size_t max_bursts = defaultQueue_.getMaxBursts();
             size_t byte_threshold = defaultQueue_.getByteThreshold();
@@ -669,7 +662,6 @@ namespace burstio {
 }
 
 #define INSTANTIATE_TEMPLATE(traits, name) \
-    PREPARE_CLASS_LOGGING(name);           \
     template class OutPort<traits>;
 
 #endif

@@ -91,8 +91,6 @@ namespace burstio {
     template <class Traits>
     class OutPort : public redhawk::UsesPort, public virtual POA_BULKIO::UsesPortStatisticsProvider
     {
-        ENABLE_INSTANCE_LOGGING;
-
     public:
         typedef typename Traits::PortType PortType;
         typedef typename Traits::BurstType BurstType;
@@ -106,8 +104,6 @@ namespace burstio {
 
         OutPort(std::string port_name);
         ~OutPort();
-
-        void setLogger (LoggerPtr logger);
 
         // Sets how streams are routed to connections:
         //   ROUTE_ALL_INTERLEAVED    - All connections receive all streams;
@@ -245,7 +241,7 @@ namespace burstio {
             void sendBursts_ ();
 
             OutPort<Traits>* port_;
-            LoggerPtr& __logger;
+            LoggerPtr& logger;
 
             mutable boost::mutex mutex_;
 

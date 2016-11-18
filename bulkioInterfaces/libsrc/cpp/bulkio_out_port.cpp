@@ -44,14 +44,13 @@ namespace bulkio {
                                          LOGGER_PTR logger,
                                          ConnectionEventListener *connectCB,
                                          ConnectionEventListener *disconnectCB ) :
-    redhawk::UsesPort(port_name),
-    logger(logger)
+    redhawk::UsesPort(port_name)
   {
 
     if ( !logger ) {
         std::string pname("redhawk.bulkio.outport.");
         pname = pname + port_name;
-        logger = rh_logger::Logger::getLogger(pname);
+        setLogger(rh_logger::Logger::getLogger(pname));
     }
 
     if ( connectCB ) {
@@ -73,13 +72,12 @@ namespace bulkio {
   OutPortBase< PortTraits >::OutPortBase(std::string port_name,
                                          ConnectionEventListener *connectCB,
                                          ConnectionEventListener *disconnectCB ) :
-      UsesPort(port_name),
-      logger()
+      UsesPort(port_name)
   {
 
     std::string pname("redhawk.bulkio.outport.");
     pname = pname + port_name;
-    logger = rh_logger::Logger::getLogger(pname);
+    setLogger(rh_logger::Logger::getLogger(pname));
     if ( connectCB ) {
       _connectCB = boost::shared_ptr< ConnectionEventListener >( connectCB, null_deleter() );
     }
@@ -419,12 +417,6 @@ namespace bulkio {
   void OutPortBase< PortTraits >::setNewDisconnectListener(ConnectionEventCallbackFn newListener)
   {
     _disconnectCB =  boost::make_shared< StaticConnectionListener >( newListener );
-  }
-
-  template < typename PortTraits >
-  void OutPortBase< PortTraits >::setLogger(LOGGER_PTR newLogger)
-  {
-    logger = newLogger;
   }
 
   template < typename PortTraits >
