@@ -346,6 +346,20 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <action type="external"/>
   </simple>
 
+  <simple id="cacheDirectory" mode="readonly" name="cacheDirectory" type="string">
+    <description>Select a cache directory other than the default.</description>
+    <value></value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+
+  <simple id="workingDirectory" mode="readonly" name="workingDirectory" type="string">
+    <description>Select a working directory other than the default.</description>
+    <value></value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+
   <struct id="thresholds" mode="readwrite">
     <description>The thresholds that cause a failure for allocations</description>
     <simple id="cpu_idle" type="float">

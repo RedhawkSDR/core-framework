@@ -362,8 +362,22 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
         // The target file is a file
       LOG_DEBUG(LoadableDevice_impl, "Loading the file " << fileName);
 
+        std::fstream fileStream;
+        std::ios_base::openmode mode;
+        mode = std::ios::out;
+        std::string _relativeFileName = workingFileName;
+        if (workingFileName[0] == '/') {
+            _relativeFileName = workingFileName.substr(1);
+        }
+        relativeFileName = prependCacheIfAvailable(_relativeFileName);
+        
         // Create a local directory to copy the file to
-        fs::path parentDir = fs::path(workingFileName).parent_path().relative_path();
+        fs::path parentDir;
+        if (relativeFileName == _relativeFileName) {
+            parentDir = fs::path(relativeFileName).parent_path().relative_path();
+        } else {
+            parentDir = fs::path(relativeFileName).parent_path();
+        }
         try {
           if ( !parentDir.string().empty() && fs::create_directories(parentDir)) {
                 LOG_DEBUG(LoadableDevice_impl, "Created parent directory " << parentDir.string());
@@ -375,13 +389,6 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
 
         // copy the file
         LOG_DEBUG(LoadableDevice_impl, "Copying " << workingFileName << " to the device's cache")
-        std::fstream fileStream;
-        std::ios_base::openmode mode;
-        mode = std::ios::out;
-        relativeFileName = workingFileName;
-        if (workingFileName[0] == '/') {
-            relativeFileName = workingFileName.substr(1);
-        }
         fileStream.open(relativeFileName.c_str(), mode);
         bool text_file_busy = false;
         if (!fileStream.is_open()) {
@@ -580,12 +587,13 @@ void LoadableDevice_impl::_loadTree(CF::FileSystem_ptr fs, std::string remotePat
 {
 
     LOG_DEBUG(LoadableDevice_impl, "_loadTree " << remotePath << " " << localPath)
+    fs::path mod_localPath = prependCacheIfAvailable(localPath.string());
 
     CF::FileSystem::FileInformationSequence_var fis = fs->list(remotePath.c_str());
     for (unsigned int i = 0; i < fis->length(); i++) {
       if (fis[i].kind == CF::FileSystem::PLAIN) {
             std::string fileName(fis[i].name);
-            fs::path localFile(localPath / fileName);
+            fs::path localFile(mod_localPath / fileName);
             if (*(remotePath.end() - 1) == '/') {
                 LOG_DEBUG(LoadableDevice_impl, "_copyFile " << remotePath + fileName << " " << localFile)
                 _copyFile(fs, remotePath + fileName, localFile.string(), fileKey);
@@ -601,8 +609,8 @@ void LoadableDevice_impl::_loadTree(CF::FileSystem_ptr fs, std::string remotePat
             }
         } else if (fis[i].kind == CF::FileSystem::DIRECTORY) {
             std::string directoryName(fis[i].name);
-            fs::path localDirectory(localPath / directoryName);
-            LOG_DEBUG(LoadableDevice_impl, "Making directory " << directoryName << " in " << localPath)
+            fs::path localDirectory(mod_localPath / directoryName);
+            LOG_DEBUG(LoadableDevice_impl, "Making directory " << directoryName << " in " << mod_localPath)
             copiedFiles.insert(copiedFiles_type::value_type(fileKey, localDirectory.string()));
             bool dexists = false;
             try {
@@ -617,7 +625,7 @@ void LoadableDevice_impl::_loadTree(CF::FileSystem_ptr fs, std::string remotePat
             }
             if (*(remotePath.end() - 1) == '/') {
                 LOG_DEBUG(LoadableDevice_impl, "There")
-                _loadTree(fs, remotePath + std::string("/") + directoryName, localPath, fileKey);
+                _loadTree(fs, remotePath + std::string("/") + directoryName, mod_localPath, fileKey);
             } else {
                 LOG_DEBUG(LoadableDevice_impl, "Here")
                 _loadTree(fs, remotePath + std::string("/"), localDirectory, fileKey);
@@ -670,8 +678,26 @@ bool LoadableDevice_impl::_treeIntact(const std::string &fileKey)
     return true;
 }
 
+std::string LoadableDevice_impl::prependCacheIfAvailable(const std::string &localPath) {
+    std::string mod_localPath = localPath;
+    if (this->getPropertyFromId("cacheDirectory")) {
+        std::string cache_dir = ((StringProperty*)this->getPropertyFromId("cacheDirectory"))->getValue();
+        if (!cache_dir.empty()) {
+            if (localPath.find(cache_dir) == std::string::npos) {
+                if (!cache_dir.compare(cache_dir.length()-1, 1, "/")) {
+                    mod_localPath = cache_dir + mod_localPath;
+                } else {
+                    mod_localPath = cache_dir + std::string("/") + mod_localPath;
+                }
+            }
+        }
+    }
+    return mod_localPath;
+}
+
 void LoadableDevice_impl::_copyFile(CF::FileSystem_ptr fs, const std::string &remotePath, const std::string &localPath, const std::string &fileKey)
 {
+    std::string mod_localPath(prependCacheIfAvailable(localPath));
     CF::File_var fileToLoad = CF::File::_nil();
     try {
        fileToLoad= fs->open(remotePath.c_str(), true);
@@ -700,14 +726,14 @@ void LoadableDevice_impl::_copyFile(CF::FileSystem_ptr fs, const std::string &re
     std::fstream fileStream;
     std::ios_base::openmode mode;
     mode = std::ios::out | std::ios::trunc;
-    fileStream.open(localPath.c_str(), mode);
+    fileStream.open(mod_localPath.c_str(), mode);
     if (!fileStream.is_open()) {
-        LOG_ERROR(LoadableDevice_impl, "Local file " << localPath << " did not open succesfully.")
+        LOG_ERROR(LoadableDevice_impl, "Local file " << mod_localPath << " did not open succesfully.")
     } else {
-        LOG_DEBUG(LoadableDevice_impl, "Local file " << localPath << " opened succesfully.")
+        LOG_DEBUG(LoadableDevice_impl, "Local file " << mod_localPath << " opened succesfully.")
     }
 
-    copiedFiles.insert(copiedFiles_type::value_type(fileKey, localPath));
+    copiedFiles.insert(copiedFiles_type::value_type(fileKey, mod_localPath));
 
     std::size_t fileSize = fileToLoad->sizeOf();
     bool fe=false;
@@ -717,7 +743,7 @@ void LoadableDevice_impl::_copyFile(CF::FileSystem_ptr fs, const std::string &re
       toRead = std::min(fileSize, blockTransferSize);
       fileSize -= toRead;
 
-      //LOG_TRACE(LoadableDevice_impl, "READ Local file " << localPath << " length:" << toRead << " filesize/bts " << fileSize << "/" << blockTransferSize );
+      //LOG_TRACE(LoadableDevice_impl, "READ Local file " << mod_localPath << " length:" << toRead << " filesize/bts " << fileSize << "/" << blockTransferSize );
       try {
         fileToLoad->read(data, toRead);
         fileStream.write((const char*)data->get_buffer(), data->length());

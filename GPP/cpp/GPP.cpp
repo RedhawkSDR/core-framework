@@ -470,7 +470,12 @@ void GPP_i::_init() {
   cpu.subscribed = 0;
   cpu.maximum = 0;
   utilization.push_back(cpu);
-  
+    
+  char *cwd = getcwd(NULL, 1024);
+  if (cwd != NULL) {
+    free(cwd);
+  }
+
   setPropertyQueryImpl(this->component_monitor, this, &GPP_i::get_component_monitor);
 
   // tie allocation modifier callbacks to identifiers
@@ -1121,10 +1126,17 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
     }
 
     // retrieve current working directory
-    tmp = getcwd(NULL, 200);
-    if (tmp != NULL) {
-        path = std::string(tmp);
-        free(tmp);
+    if (this->cacheDirectory.empty()) {
+        tmp = getcwd(NULL, 200);
+        if (tmp != NULL) {
+            path = std::string(tmp);
+            free(tmp);
+        }
+    } else {
+        path = this->cacheDirectory;
+        if (!path.compare(path.length()-1, 1, "/")) {
+            path = path.erase(path.length()-1);
+        }
     }
 
     // append relative path of the executable

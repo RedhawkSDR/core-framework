@@ -356,6 +356,22 @@ void GPP_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(cacheDirectory,
+                "cacheDirectory",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(workingDirectory,
+                "workingDirectory",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
     addProperty(thresholds,
                 thresholds_struct(),
                 "thresholds",

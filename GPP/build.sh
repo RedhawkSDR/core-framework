@@ -45,4 +45,14 @@ else
         cp GPP ../tests/sdr/dev/devices/GPP/cpp/
         cd -
     done
+    cd tests/sdr/dom/components/check_cwd_cpp/cpp
+    if [ -e build.sh ]; then
+        ./build.sh $*
+    fi
+    cd -
+    cd tests/sdr/dom/components/check_cwd_java
+    if [ -e build.sh ]; then
+        ./build.sh $*
+    fi
+    cd -
 fi

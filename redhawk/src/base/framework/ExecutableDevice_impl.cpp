@@ -219,6 +219,8 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const ch
     CF::Properties invalidOptions;
     std::string path;
     char* tmp;
+    
+    std::string mod_localPath = prependCacheIfAvailable(name);
 
     // throw and error if name does not begin with a /
     if (strncmp(name, "/", 1) != 0)
