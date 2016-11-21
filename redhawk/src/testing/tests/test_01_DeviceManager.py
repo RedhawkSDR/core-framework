@@ -1098,7 +1098,10 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             else:
                 self.fail("Expected service to not exist in the naming service: " + str(name))
 
-        # Makes sure that all children are dead
+        # Makes sure that all children are dead; on slower systems, the service
+        # processes may take a while to exit, so wait for the DeviceManager to
+        # exit first
+        self.assert_(self.waitTermination(devmgr_nb), "DeviceManager did not exit after shutdown")
         self.assertEquals(len(getChildren(devmgr_nb.pid)), 0)
 
     def test_ServiceShutdown_DevMgr(self):
