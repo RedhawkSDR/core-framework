@@ -17,12 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-/* 
- * File:   Containers.h
- * Author: pmrobe3
- *
- * Created on December 29, 2014, 1:21 PM
- */
 
 #ifndef CONTAINERS_H
 #define	CONTAINERS_H
