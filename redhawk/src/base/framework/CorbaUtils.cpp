@@ -119,6 +119,40 @@ unsigned long giopMaxMsgSize ()
     return omni::orbParameters::giopMaxMsgSize;
 }
 
+
+    void setClientCallTimeOut( uint32_t timeOut ) {
+        omniORB::setClientCallTimeout( timeOut );
+    }
+
+    void setClientCallTimeOut( CORBA::Object_ptr obj, uint32_t timeOut ) {
+        omniORB::setClientCallTimeout(obj, timeOut );
+    }
+
+    void setNonBlockingClientCall( uint32_t timeOut ) {
+        omniORB::setClientCallTimeout( (uint32_t)getClientCallTimeOut( true, timeOut) );
+    }
+
+    void setNonBlockingClientCall( CORBA::Object_ptr obj, uint32_t timeOut ) {
+        omniORB::setClientCallTimeout(obj, (uint32_t)getClientCallTimeOut( true, timeOut) );
+    }
+
+
+    uint32_t getConfigurationClientCallTimeOut( )
+    {
+       uint32_t cfgopt = omni::orbParameters::clientConnectTimeOutPeriod.secs * 1000;
+       cfgopt = cfgopt + omni::orbParameters::clientConnectTimeOutPeriod.nanosecs / 1000000;
+       return cfgopt;
+    }
+
+
+    uint32_t getClientCallTimeOut(bool nonBlocking,  uint32_t timeOut )
+    {
+        uint32_t cfgopt = getConfigurationClientCallTimeOut();
+        if ( nonBlocking && cfgopt == 0 ) cfgopt=timeOut;
+        return cfgopt;
+    }
+
+
 CosNaming::NamingContext_ptr InitialNamingContext ()
 {
     if (CORBA::is_nil(inc) && !CORBA::is_nil(orb)) {

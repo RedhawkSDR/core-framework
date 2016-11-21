@@ -1151,6 +1151,7 @@ void createHelper::setUpExternalPorts(Application_impl* application)
         }
 
         if (port->type == SoftwareAssembly::Port::SUPPORTEDIDENTIFIER) {
+            ossie::corba::setNonBlockingClientCall(obj);
             if (!obj->_is_a(port->identifier.c_str())) {
                 LOG_ERROR(
                     ApplicationFactory_impl,
