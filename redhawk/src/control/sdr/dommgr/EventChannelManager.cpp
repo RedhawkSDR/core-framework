@@ -789,6 +789,7 @@ void EventChannelManager::_getEventChannelFactory ()
 
       if (!CORBA::is_nil(factoryObj)) {
 	try {
+            ossie::corba::setNonBlockingClientCall(factoryObj);
 	  if (!factoryObj->_non_existent()) {
 	    _event_channel_factory = CosLifeCycle::GenericFactory::_narrow(factoryObj);
             ECM_TRACE("_getEventChannelFactory", "Resolved EventChannelFactory in NameService");

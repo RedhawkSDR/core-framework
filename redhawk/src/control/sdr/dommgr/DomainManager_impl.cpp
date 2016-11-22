@@ -26,7 +26,8 @@
 #include <string>
 #include <vector>
 #include <signal.h>
-
+#include <omniORB4/CORBA.h>
+#include <omniORB4/internal/orbParameters.h>
 #include <ossie/debug.h>
 #include <ossie/exceptions.h>
 #include <ossie/FileManager_impl.h>
@@ -537,7 +538,7 @@ void DomainManager_impl::cleanupDomainNamingContext (CosNaming::NamingContext_pt
         if (bl[ii].binding_type == CosNaming::ncontext) {
             CORBA::Object_var obj = nc->resolve(bl[ii].binding_name);
             CosNaming::NamingContext_var new_context = CosNaming::NamingContext::_narrow(obj);
-
+            ossie::corba::setNonBlockingClientCall(obj);
             if (obj->_non_existent()) {
                 // If it no longer exists, unbind it
                 LOG_TRACE(DomainManager_impl, "Unbinding naming context which no longer exists; this is probably due to an omniNames bug")
@@ -558,6 +559,7 @@ void DomainManager_impl::cleanupDomainNamingContext (CosNaming::NamingContext_pt
             CORBA::Object_var obj = nc->resolve(bl[ii].binding_name);
             bool _unbind = false;
             try {
+                ossie::corba::setNonBlockingClientCall(obj);
                 if (obj->_non_existent()) {
                     _unbind = true;
                 }
@@ -1378,6 +1380,7 @@ void DomainManager_impl::storeDeviceInDomainMgr (CF::Device_ptr registeringDevic
     newDeviceNode->softwareProfile = ossie::corba::returnString(registeringDevice->softwareProfile());
     newDeviceNode->identifier = ossie::corba::returnString(registeringDevice->identifier());
     newDeviceNode->implementationId = ossie::corba::returnString(registeredDeviceMgr->getComponentImplementationId(newDeviceNode->identifier.c_str()));
+    ossie::corba::setNonBlockingClientCall(registeringDevice);
     newDeviceNode->isLoadable = registeringDevice->_is_a(CF::LoadableDevice::_PD_repoId);
     newDeviceNode->isExecutable = registeringDevice->_is_a(CF::ExecutableDevice::_PD_repoId);
 
@@ -2384,9 +2387,11 @@ ossie::ServiceList::iterator DomainManager_impl::findServiceByType (const std::s
     ServiceList::iterator node;
     for (node = _registeredServices.begin(); node != _registeredServices.end(); ++node) {
         try {
+            ossie::corba::setNonBlockingClientCall(node->service);
             if (node->service->_is_a(repId.c_str())) {
                 break;
             }
+
         } catch (...) {
             // Service is unreachable, just ignore it.
         }
