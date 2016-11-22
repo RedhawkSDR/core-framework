@@ -19,16 +19,18 @@ namespace bulkio {
 
         virtual ~PortTransport() { };
 
-        virtual void pushSRI(const BULKIO::StreamSRI& sri) = 0;
+        void pushSRI(const BULKIO::StreamSRI& sri)
+        {
+            this->_pushSRI(sri);
+        }
 
-        virtual void pushPacket(const SharedBufferType& data,
-                                const BULKIO::PrecisionUTCTime& T,
-                                bool EOS,
-                                const BULKIO::StreamSRI& sri)
+        void pushPacket(const SharedBufferType& data,
+                        const BULKIO::PrecisionUTCTime& T,
+                        bool EOS,
+                        const BULKIO::StreamSRI& sri)
         {
             const std::string streamID(sri.streamID);
-            this->_pushPacket(data, T, EOS, streamID);
-            stats.update(this->_dataLength(data), 0, EOS, streamID);
+            this->_sendPacket(data, T, EOS, streamID, sri);
         }
 
         //
@@ -53,6 +55,18 @@ namespace bulkio {
         linkStatistics stats;
 
     protected:
+        virtual void _pushSRI(const BULKIO::StreamSRI& sri) = 0;
+
+        virtual void _sendPacket(const SharedBufferType& data,
+                                 const BULKIO::PrecisionUTCTime& T,
+                                 bool EOS,
+                                 const std::string& streamID,
+                                 const BULKIO::StreamSRI& sri)
+        {
+            this->_pushPacket(data, T, EOS, streamID);
+            stats.update(this->_dataLength(data), 0, EOS, streamID);
+        }
+
         virtual void _pushPacket(const SharedBufferType& data,
                                  const BULKIO::PrecisionUTCTime& T,
                                  bool EOS,
@@ -92,7 +106,8 @@ namespace bulkio {
         {
         }
 
-        virtual void pushSRI(const BULKIO::StreamSRI& sri)
+    protected:
+        virtual void _pushSRI(const BULKIO::StreamSRI& sri)
         {
             try {
                 this->_port->pushSRI(sri);
@@ -101,46 +116,46 @@ namespace bulkio {
             }
         }
 
-        virtual void pushPacket(const SharedBufferType& data,
-                                const BULKIO::PrecisionUTCTime& T,
-                                bool EOS,
-                                const BULKIO::StreamSRI& sri)
-        {
-            try {
-                PortTransport<PortTraits>::pushPacket(data, T, EOS, sri);
-            } catch (const CORBA::SystemException& exc) {
-                throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
-            }
-        }
-
-    protected:
         virtual void _pushPacket(const SharedBufferType& data,
                                  const BULKIO::PrecisionUTCTime& T,
                                  bool EOS,
                                  const std::string& streamID)
         {
+            try {
+                _pushPacketImpl(data, T, EOS, streamID.c_str());
+            } catch (const CORBA::SystemException& exc) {
+                throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
+            }
+        }
+
+    private:
+        void _pushPacketImpl(const SharedBufferType& data,
+                             const BULKIO::PrecisionUTCTime& T,
+                             bool EOS,
+                             const char* streamID)
+        {
             const TransportType* ptr = reinterpret_cast<const TransportType*>(data.data());
             const PortSequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
-            this->_port->pushPacket(buffer, T, EOS, streamID.c_str());
+            this->_port->pushPacket(buffer, T, EOS, streamID);
         }
     };
 
     template <>
-    void RemoteTransport<FilePortTraits>::_pushPacket(const std::string& data,
-                                                      const BULKIO::PrecisionUTCTime& T,
-                                                      bool EOS,
-                                                      const std::string& streamID)
+    void RemoteTransport<FilePortTraits>::_pushPacketImpl(const std::string& data,
+                                                          const BULKIO::PrecisionUTCTime& T,
+                                                          bool EOS,
+                                                          const char* streamID)
     {
-        _port->pushPacket(data.c_str(), T, EOS, streamID.c_str());
+        _port->pushPacket(data.c_str(), T, EOS, streamID);
     }
 
     template <>
-    void RemoteTransport<XMLPortTraits>::_pushPacket(const std::string& data,
-                                                     const BULKIO::PrecisionUTCTime& /* unused */,
-                                                     bool EOS,
-                                                     const std::string& streamID)
+    void RemoteTransport<XMLPortTraits>::_pushPacketImpl(const std::string& data,
+                                                         const BULKIO::PrecisionUTCTime& /* unused */,
+                                                         bool EOS,
+                                                         const char* streamID)
     {
-        _port->pushPacket(data.c_str(), EOS, streamID.c_str());
+        _port->pushPacket(data.c_str(), EOS, streamID);
     }
 
     template <typename PortTraits>
@@ -166,10 +181,11 @@ namespace bulkio {
          * calls.  The EOS is set to false for all of the sub-packets, except for
          * the last sub-packet, which uses the input EOS argument.
          */
-        virtual void pushPacket(const SharedBufferType& data,
-                                const BULKIO::PrecisionUTCTime& T,
-                                bool EOS,
-                                const BULKIO::StreamSRI& sri)
+        virtual void _sendPacket(const SharedBufferType& data,
+                                 const BULKIO::PrecisionUTCTime& T,
+                                 bool EOS,
+                                 const std::string& streamID,
+                                 const BULKIO::StreamSRI& sri)
         {
             double xdelta = sri.xdelta;
             size_t itemSize = sri.mode?2:1;
@@ -204,7 +220,7 @@ namespace bulkio {
 
                 // Take the next slice of the input buffer.
                 SharedBufferType subPacket = data.slice(first, first + pushSize);
-                RemoteTransport<PortTraits>::pushPacket(subPacket, packetTime, packetEOS, sri);
+                RemoteTransport<PortTraits>::_sendPacket(subPacket, packetTime, packetEOS, streamID, sri);
 
                 // Synthesize the next packet timestamp
                 if (packetTime.tcstatus == BULKIO::TCS_VALID) {
@@ -243,12 +259,12 @@ namespace bulkio {
             _localPort->_remove_ref();
         }
 
-        virtual void pushSRI(const BULKIO::StreamSRI& sri)
+    protected:
+        virtual void _pushSRI(const BULKIO::StreamSRI& sri)
         {
             _localPort->pushSRI(sri);
         }
 
-    protected:
         virtual void _pushPacket(const SharedBufferType& data,
                                  const BULKIO::PrecisionUTCTime& T,
                                  bool EOS,
