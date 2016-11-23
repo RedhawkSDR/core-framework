@@ -139,8 +139,14 @@ unsigned long giopMaxMsgSize ()
 
     uint32_t getConfigurationClientCallTimeOut( )
     {
-       uint32_t cfgopt = omni::orbParameters::clientConnectTimeOutPeriod.secs * 1000;
+       uint32_t cfgopt=0;
+#ifndef OMNIORB4_2
+       cfgopt = omni::orbParameters::clientConnectTimeOutPeriod.secs * 1000;
        cfgopt = cfgopt + omni::orbParameters::clientConnectTimeOutPeriod.nanosecs / 1000000;
+#else
+       cfgopt = omni::orbParameters::clientConnectTimeOutPeriod.s * 1000;
+       cfgopt = cfgopt + omni::orbParameters::clientConnectTimeOutPeriod.ns / 1000000;
+#endif
        return cfgopt;
     }
 
