@@ -28,9 +28,9 @@
 #include "utils/Updateable.h"
 #include "utils/EventDispatcher.h"
 #include "Reporting.h"
+#include "utils/ConversionWrapper.h"
 #include "struct_props.h"
 
-//class ThresholdMonitor :  public Reporting, public EventDispatcherMixin<threshold_event_struct>
 class ThresholdMonitor :  public Updateable, public EventDispatcherMixin<threshold_event_struct>
 {
 public:

@@ -32,6 +32,7 @@
 #include "statistics/CpuUsageStats.h"
 #include "reports/SystemMonitorReporting.h"
 #include "reports/CpuThresholdMonitor.h"
+#include "reports/NicThroughputThresholdMonitor.h"
 #include "NicFacade.h"
 #include "ossie/Events.h"
 
@@ -70,7 +71,6 @@ class GPP_i : public GPP_base
         int serviceFunction();
         void initializeNetworkMonitor();
         void initializeResourceMonitors();
-        void addThresholdMonitor( ThresholdMonitor* threshold_monitor );
         void send_threshold_event(const threshold_event_struct& message);
         
         void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
@@ -235,6 +235,7 @@ class GPP_i : public GPP_base
 
           void updateUsageState();
 
+          typedef boost::shared_ptr<NicThroughputThresholdMonitor>   NicMonitorPtr;
           typedef boost::shared_ptr<ThresholdMonitor>           ThresholdMonitorPtr;
           typedef std::vector< uint32_t >                       CpuList;
           typedef std::vector< boost::shared_ptr<Updateable> >  UpdateableSequence;
@@ -242,6 +243,7 @@ class GPP_i : public GPP_base
           typedef std::vector<boost::shared_ptr<Statistics> >   StatisticsSequence;
           typedef std::vector<boost::shared_ptr<Reporting> >    ReportingSequence;
           typedef std::vector< ThresholdMonitorPtr >            MonitorSequence;
+          typedef std::vector< NicMonitorPtr >                  NicMonitorSequence;
           typedef boost::shared_ptr<SystemMonitor>              SystemMonitorPtr;
           typedef std::map<int, component_description >         ProcessMap;
           typedef std::deque< component_description >           ProcessList;
@@ -252,9 +254,10 @@ class GPP_i : public GPP_base
                       const std::string &identifier,
                       const float       req_reservation );
           void removeProcess(int pid );
-
+          void addThresholdMonitor( ThresholdMonitorPtr threshold_monitor );
           void reservedChanged(const float *oldValue, const float *newValue);
           void mcastnicThreshold_changed(const CORBA::Long *oldValue, const CORBA::Long *newValue);
+          void thresholds_changed(const thresholds_struct *oldValue, const thresholds_struct *newValue);
           void update();
 
           ProcessList                                         pids;
@@ -268,6 +271,7 @@ class GPP_i : public GPP_base
           Lock                                                nicLock;
           NicFacadePtr                                        nic_facade;
           MonitorSequence                                     threshold_monitors;
+          NicMonitorSequence                                  nic_monitors;
           SystemMonitorPtr                                    system_monitor;
           ProcessLimitsPtr                                    process_limits;
           ExecPartitionList                                   execPartitions;
@@ -280,6 +284,7 @@ class GPP_i : public GPP_base
           uint64_t                                            mem_cap_units;
           int64_t                                             memCapacityThreshold;
           double                                              memInitCapacityPercent;
+          uint64_t                                            memInitVirtFree;
           float                                               idle_capacity_modifier;
           CpuList                                             wl_cpus;            // list of allowable cpus to run on .... empty == all, derived from affnity blacklist property and host machine
           CpuList                                             bl_cpus;            // list of blacklist cpus to avoid
@@ -294,6 +299,7 @@ class GPP_i : public GPP_base
 
           std::string                                         _busy_reason;
           boost::posix_time::ptime                            _busy_timestamp;          // time when busy reason was initially set
+          boost::posix_time::ptime                            _busy_mark;               // track message output
 
         private:
 
@@ -368,6 +374,12 @@ class GPP_i : public GPP_base
           // check file and thread limits for the process and system
           //
           bool _check_limits( const thresholds_struct &threshold);
+
+          //
+          // check threshold limits for nic interfaces to determine busy state
+          //
+          bool _check_nic_thresholds();
+
           std::string user_id;
           int limit_check_count;
 

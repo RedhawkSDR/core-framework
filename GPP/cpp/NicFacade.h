@@ -58,6 +58,7 @@ public:
     void report();
     
     std::vector<std::string> get_devices() const;
+    std::vector<std::string> get_filtered_devices() const;
     float get_throughput_by_device( const std::string& device ) const;
     double get_throughput_by_device_bps( const std::string& device ) const;
 
