@@ -46,13 +46,9 @@ namespace bulkio {
             }
         }
 
-        PtrType objref()
+        PtrType port()
         {
-            if (isAlive()) {
-                return PortType::_duplicate(_port);
-            } else {
-                return PortType::_nil();
-            }
+            return _port;
         }
 
         linkStatistics stats;

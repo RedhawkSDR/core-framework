@@ -337,7 +337,7 @@ namespace bulkio {
 
     for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
         PortTransportType* port = static_cast<PortTransportType*>(*iter);
-        outConnections.push_back(std::make_pair(port->objref(), port->connectionId()));
+        outConnections.push_back(std::make_pair(PortType::_duplicate(port->port()), port->connectionId()));
     }
 
     return outConnections;
