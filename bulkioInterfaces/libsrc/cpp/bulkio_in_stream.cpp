@@ -41,8 +41,8 @@ public:
     EOS_REPORTED
   };
 
-  Impl(const BULKIO::StreamSRI& sri, InPortType* port) :
-    _streamID(sri.streamID),
+  Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
+    _streamID(sri->streamID),
     _sri(sri),
     _eosState(EOS_NONE),
     _port(port),
@@ -66,7 +66,7 @@ public:
 
   const BULKIO::StreamSRI& sri() const
   {
-    return _sri;
+    return *_sri;
   }
 
   bool eos()
@@ -96,7 +96,7 @@ public:
     size_t queued = _samplesQueued;
     if (queued > 0) {
       // Adjust number of samples to account for complex data, if necessary
-      const BULKIO::StreamSRI& sri = _queue.front().SRI;
+      const BULKIO::StreamSRI& sri = *(_queue.front().SRI);
       if (sri.mode) {
         queued /= 2;
       }
@@ -314,7 +314,7 @@ private:
     PacketType& front = _queue.front();
     int sriChangeFlags = bulkio::sri::NONE;
     if (front.sriChanged) {
-      sriChangeFlags = bulkio::sri::compareFields(_sri, front.SRI);
+      sriChangeFlags = bulkio::sri::compareFields(*_sri, *(front.SRI));
       front.sriChanged = false;
       _sri = front.SRI;
     }
@@ -406,7 +406,7 @@ private:
       }
     }
 
-    return &(_queue.front().SRI);
+    return _queue.front().SRI.get();
   }
 
   bool _fetchPacket(bool blocking)
@@ -468,7 +468,7 @@ private:
   }
 
   const std::string _streamID;
-  BULKIO::StreamSRI _sri;
+  boost::shared_ptr<BULKIO::StreamSRI> _sri;
   EosState _eosState;
   InPortType* _port;
   boost::ptr_deque<PacketType> _queue;
@@ -486,7 +486,7 @@ InputStream<PortTraits>::InputStream() :
 }
 
 template <class PortTraits>
-InputStream<PortTraits>::InputStream(const BULKIO::StreamSRI& sri, InPortType* port) :
+InputStream<PortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
   _impl(new Impl(sri, port))
 {
 }

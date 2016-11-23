@@ -238,21 +238,21 @@ namespace bulkio {
                SriListener *newStreamCB = NULL );
 
     struct Packet {
-      Packet(const SharedBufferType& buffer, const BULKIO::PrecisionUTCTime& T, bool EOS, const BULKIO::StreamSRI& SRI, bool sriChanged, bool inputQueueFlushed) :
+      Packet(const SharedBufferType& buffer, const BULKIO::PrecisionUTCTime& T, bool EOS, const boost::shared_ptr<BULKIO::StreamSRI>& SRI, bool sriChanged, bool inputQueueFlushed) :
         buffer(buffer),
         T(T),
         EOS(EOS),
         SRI(SRI),
         sriChanged(sriChanged),
         inputQueueFlushed(inputQueueFlushed),
-        streamID(SRI.streamID)
+        streamID(SRI->streamID)
       {
       }
 
       SharedBufferType buffer;
       BULKIO::PrecisionUTCTime T;
       bool EOS;
-      BULKIO::StreamSRI SRI;
+      boost::shared_ptr<BULKIO::StreamSRI> SRI;
       bool sriChanged;
       bool inputQueueFlushed;
       std::string streamID;
@@ -277,7 +277,8 @@ namespace bulkio {
     //
     //  List of SRI objects managed by StreamID
     //
-    SriMap                                         currentHs;
+    typedef std::map<std::string,std::pair<boost::shared_ptr<BULKIO::StreamSRI>,bool> > SriTable;
+    SriTable currentHs;
 
     //
     // synchronizes access to the workQueue member
@@ -332,7 +333,7 @@ namespace bulkio {
     //
     Packet* peekPacket(float timeout, boost::unique_lock<boost::mutex>& lock);
 
-    virtual void createStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
+    virtual void createStream(const std::string& streamID, const boost::shared_ptr<BULKIO::StreamSRI>& sri);
 
     Packet* fetchPacket(const std::string& streamID);
 
@@ -478,7 +479,7 @@ namespace bulkio {
     // Override of base class queuePacket to add stream-related behavior
     void queuePacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
 
-    virtual void createStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
+    virtual void createStream(const std::string& streamID, const boost::shared_ptr<BULKIO::StreamSRI>& sri);
     void removeStream(const std::string& streamID);
 
     bool isStreamActive(const std::string& streamID);

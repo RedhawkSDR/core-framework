@@ -56,6 +56,7 @@ namespace bulkio {
     typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
 
     DataBlock();
+    explicit DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, size_t size=0);
     DataBlock(const BULKIO::StreamSRI& sri, size_t size=0);
 
     DataBlock copy() const;

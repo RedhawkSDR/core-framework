@@ -33,8 +33,13 @@ using bulkio::DataBlock;
 template <class T>
 struct DataBlock<T>::Impl
 {
+  Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri) :
+    sri(sri)
+  {
+  }
+
   redhawk::shared_buffer<T> data;
-  BULKIO::StreamSRI sri;
+  boost::shared_ptr<BULKIO::StreamSRI> sri;
   std::list<SampleTimestamp> timestamps;
   int sriChangeFlags;
   bool inputQueueFlushed;
@@ -47,11 +52,17 @@ DataBlock<T>::DataBlock() :
 }
 
 template <class T>
-DataBlock<T>::DataBlock(const BULKIO::StreamSRI& sri, size_t size) :
-  _impl(boost::make_shared<Impl>())
+DataBlock<T>::DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, size_t size) :
+  _impl(boost::make_shared<Impl>(sri))
 {
   _impl->data = redhawk::buffer<T>(size);
-  _impl->sri = sri;
+}
+
+template <class T>
+DataBlock<T>::DataBlock(const BULKIO::StreamSRI& sri, size_t size) :
+  _impl(boost::make_shared<Impl>(boost::make_shared<BULKIO::StreamSRI>(sri)))
+{
+  _impl->data = redhawk::buffer<T>(size);
 }
 
 template <class T>
@@ -67,13 +78,13 @@ DataBlock<T> DataBlock<T>::copy() const
 template <class T>
 const BULKIO::StreamSRI& DataBlock<T>::sri() const
 {
-  return _impl->sri;
+  return *(_impl->sri);
 }
 
 template <class T>
 double DataBlock<T>::xdelta() const
 {
-  return _impl->sri.xdelta;
+  return _impl->sri->xdelta;
 }
 
 template <class T>
@@ -104,7 +115,7 @@ void DataBlock<T>::resize(size_t count)
 template <class T>
 bool DataBlock<T>::complex() const
 {
-  return (_impl->sri.mode != 0);
+  return (_impl->sri->mode != 0);
 }
 
 template <class T>
@@ -177,7 +188,7 @@ double DataBlock<T>::getNetTimeDrift() const
   const std::list<SampleTimestamp>& timestamps = _impl->timestamps;
   validate_timestamps(timestamps);
 
-  return get_drift(timestamps.front(), timestamps.back(), _impl->sri.xdelta);
+  return get_drift(timestamps.front(), timestamps.back(), _impl->sri->xdelta);
 }
 
 template <class T>
@@ -191,7 +202,7 @@ double DataBlock<T>::getMaxTimeDrift() const
   std::list<SampleTimestamp>::const_iterator next = current;
   ++next;
   for (; next != timestamps.end(); ++current, ++next) {
-    double drift = get_drift(*current, *next, _impl->sri.xdelta);
+    double drift = get_drift(*current, *next, _impl->sri->xdelta);
     if (std::abs(drift) > std::abs(max)) {
       max = drift;
     }
