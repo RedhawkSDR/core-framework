@@ -262,6 +262,7 @@ namespace burstio {
         friend class Queue;
 
         typedef BurstTransport<Traits> TransportType;
+        typedef redhawk::UsesPort::TransportIteratorAdapter<TransportType> TransportIterator;
 
         typedef std::map<std::string,Queue*> QueueMap;
 

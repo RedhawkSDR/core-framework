@@ -133,6 +133,52 @@ namespace redhawk {
     protected:
         typedef std::vector<BasicTransport*> TransportList;
 
+        template <class TransportType>
+        class TransportIteratorAdapter {
+        public:
+            typedef TransportList::iterator IteratorType;
+
+            TransportIteratorAdapter()
+            {
+            }
+
+            TransportIteratorAdapter(IteratorType iter) :
+                _iterator(iter)
+            {
+            }
+
+            inline TransportType* operator*()
+            {
+                return static_cast<TransportType*>(*_iterator);
+            }
+
+            inline TransportIteratorAdapter& operator++()
+            {
+                ++_iterator;
+                return *this;
+            }
+
+            inline TransportIteratorAdapter operator++(int)
+            {
+                TransportIteratorAdapter result(*this);
+                ++(*this);
+                return result;
+            }
+
+            inline bool operator==(const TransportIteratorAdapter& other) const
+            {
+                return (_iterator == other._iterator);
+            }
+
+            inline bool operator!=(const TransportIteratorAdapter& other) const
+            {
+                return (_iterator != other._iterator);
+            }
+
+        private:
+            IteratorType _iterator;
+        };
+
         virtual void _validatePort(CORBA::Object_ptr object);
 
         TransportList::iterator _findTransportEntry(const std::string& connectionId);

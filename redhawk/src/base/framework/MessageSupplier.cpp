@@ -237,10 +237,9 @@ redhawk::BasicTransport* MessageSupplierPort::_createTransport(CORBA::Object_ptr
 void MessageSupplierPort::push(const CORBA::Any& data)
 {
     boost::mutex::scoped_lock lock(updatingPortsLock);
-    for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        MessageTransport* transport = static_cast<MessageTransport*>(*iter);
+    for (TransportIterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
         try {
-            transport->push(data);
+            (*transport)->push(data);
         } catch ( ... ) {
         }
     }
@@ -253,18 +252,16 @@ std::string MessageSupplierPort::getRepid() const
 
 void MessageSupplierPort::_beginMessageQueue(size_t count)
 {
-    for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        MessageTransport* transport = static_cast<MessageTransport*>(*iter);
-        transport->beginQueue(count);
+    for (TransportIterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
+        (*transport)->beginQueue(count);
     }
 }
 
 void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer)
 {
-    for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        MessageTransport* transport = static_cast<MessageTransport*>(*iter);
+    for (TransportIterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
         try {
-            transport->queueMessage(msgId, format, msgData, serializer);
+            (*transport)->queueMessage(msgId, format, msgData, serializer);
         } catch ( ... ) {
         }
     }
@@ -272,8 +269,7 @@ void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* fo
 
 void MessageSupplierPort::_sendMessageQueue()
 {
-    for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        MessageTransport* transport = static_cast<MessageTransport*>(*iter);
-        transport->sendMessages();
+    for (TransportIterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
+        (*transport)->sendMessages();
     }
 }

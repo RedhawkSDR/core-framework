@@ -490,8 +490,8 @@ namespace burstio {
         RH_TRACE(logger, "Sending " << bursts.length() << " bursts");
         std::vector<TransportType*> deferred_ports;
         boost::mutex::scoped_lock lock(updatingPortsLock);
-        for (TransportList::iterator ii = _transports.begin(); ii != _transports.end(); ++ii) {
-            TransportType* connection = static_cast<TransportType*>(*ii);
+        for (TransportIterator ii = _transports.begin(); ii != _transports.end(); ++ii) {
+            TransportType* connection = *ii;
 
             if (!isStreamRoutedToConnection(streamID, connection->connectionId())) {
                 continue;
@@ -548,8 +548,8 @@ namespace burstio {
         BULKIO::UsesPortStatisticsSequence_var retval = new BULKIO::UsesPortStatisticsSequence();
         retval->length(_transports.size());
         CORBA::ULong index = 0;
-        for (TransportList::iterator ii = _transports.begin(); ii != _transports.end(); ++ii, ++index) {
-            TransportType* transport = static_cast<TransportType*>(*ii);
+        for (TransportIterator ii = _transports.begin(); ii != _transports.end(); ++ii, ++index) {
+            TransportType* transport = *ii;
             retval[index].connectionId = transport->connectionId().c_str();
             BULKIO::PortStatistics_var stats = transport->getStatistics();
             for (typename QueueMap::iterator jj = streamQueues_.begin(); jj != streamQueues_.end(); ++jj) {

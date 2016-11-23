@@ -97,8 +97,8 @@ namespace bulkio {
    }
 
     if (active) {
-        for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-            PortTransportType* port = static_cast<PortTransportType*>(*iter);
+        for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+            PortTransportType* port = *iter;
             const std::string& connection_id = port->connectionId();
             // Skip ports known to be dead
             if (!port->isAlive()) {
@@ -186,8 +186,8 @@ namespace bulkio {
     }
 
     if (active) {
-        for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-            PortTransportType* port = static_cast<PortTransportType*>(*iter);
+        for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+            PortTransportType* port = *iter;
             const std::string& connection_id = port->connectionId();
 
             // Skip ports known to be dead
@@ -229,8 +229,8 @@ namespace bulkio {
   {
       SCOPED_LOCK   lock(updatingPortsLock);
       BULKIO::UsesPortStatisticsSequence_var recStat = new BULKIO::UsesPortStatisticsSequence();
-      for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-          PortTransportType* port = static_cast<PortTransportType*>(*iter);
+      for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+          PortTransportType* port = *iter;
           BULKIO::UsesPortStatistics stat;
           stat.connectionId = port->connectionId().c_str();
           stat.statistics = port->stats.retrieve();
@@ -254,9 +254,8 @@ namespace bulkio {
   void OutPortBase< PortTraits >::enableStats(bool enable)
   {
       SCOPED_LOCK lock(updatingPortsLock);
-      for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-          PortTransportType* port = static_cast<PortTransportType*>(*iter);
-          port->stats.setEnabled(enable);
+      for (TransportIterator port = _transports.begin(); port != _transports.end(); ++port) {
+          (*port)->stats.setEnabled(enable);
       }
   }
 
@@ -335,8 +334,8 @@ namespace bulkio {
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
     ConnectionsList outConnections;
 
-    for (TransportList::iterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        PortTransportType* port = static_cast<PortTransportType*>(*iter);
+    for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+        PortTransportType* port = *iter;
         outConnections.push_back(std::make_pair(PortType::_duplicate(port->port()), port->connectionId()));
     }
 

@@ -270,6 +270,8 @@ namespace bulkio {
     virtual PortTransportType* _createLocalConnection(PortPtrType port, LocalPortType* localPort,
                                                       const std::string& connectionId);
 
+    typedef redhawk::UsesPort::TransportIteratorAdapter<PortTransportType> TransportIterator;
+
     std::vector<connection_descriptor_struct> filterTable;
     boost::shared_ptr< ConnectionEventListener >    _connectCB;
     boost::shared_ptr< ConnectionEventListener >    _disconnectCB;

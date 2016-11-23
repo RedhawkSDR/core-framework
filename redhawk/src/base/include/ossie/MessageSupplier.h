@@ -98,6 +98,8 @@ protected:
     class MessageTransport;
     class RemoteTransport;
     class LocalTransport;
+
+    typedef redhawk::UsesPort::TransportIteratorAdapter<MessageTransport> TransportIterator;
 };
 
 #endif // MESSAGESUPPLIER_H
