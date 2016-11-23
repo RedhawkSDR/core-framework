@@ -111,7 +111,7 @@ namespace bulkio {
             LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << connection_id << " SRI streamID:"
                       << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta);
             try {
-                port->pushSRI(H);
+                port->pushSRI(sid, H);
                 sri_iter->second.connections.insert(connection_id);
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
@@ -203,11 +203,11 @@ namespace bulkio {
 
             try {
                 if (sri_iter->second.connections.count(connection_id) == 0) {
-                    port->pushSRI(sri_iter->second.sri);
+                    port->pushSRI(streamID, sri_iter->second.sri);
                     sri_iter->second.connections.insert(connection_id);
                 }
 
-                port->pushPacket(data, T, EOS, sri_iter->second.sri);
+                port->pushPacket(data, T, EOS, streamID, sri_iter->second.sri);
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << connection_id);
@@ -303,34 +303,6 @@ namespace bulkio {
       return new LocalTransport<PortTraits>(connectionId, name, localPort, port);
   }
   
-
-  template < typename PortTraits >
-  void OutPortBase< PortTraits >::_disconnectTransport(redhawk::BasicTransport* transport)
-  {
-      TRACE_ENTER(logger, "OutPort::disconnectPort" );
-      PortTransportType* port = static_cast<PortTransportType*>(transport);
-
-      // Send an EOS for every connection that's listed for this SRI
-      const std::string& connection_id = transport->connectionId();
-      for (typename OutPortSriMap::iterator cSRIs = currentSRIs.begin(); cSRIs!=currentSRIs.end(); cSRIs++) {
-          const std::string& stream_id = cSRIs->first;
-
-          // Check if we have sent out sri/data to the connection
-          if (cSRIs->second.connections.count(connection_id) != 0) {
-              if (port->isAlive() && _isStreamRoutedToConnection(stream_id, connection_id)) {
-                  try {
-                      port->sendEOS(stream_id);
-                  } catch (...) {
-                      // Ignore all exceptions; the receiver may be dead
-                  }
-              }
-          }
-
-          // remove connection id from sri connections list
-          cSRIs->second.connections.erase(connection_id);
-      }
-      TRACE_EXIT(logger, "OutPort::disconnectPort" );
-  }
 
   template < typename PortTraits >
   bulkio::SriMap  OutPortBase< PortTraits >::getCurrentSRI()

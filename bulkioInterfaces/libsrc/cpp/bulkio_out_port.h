@@ -291,8 +291,6 @@ namespace bulkio {
                      bool EOS,
                      const std::string& streamID);
 
-    virtual void _disconnectTransport(redhawk::BasicTransport* transport);
-
     virtual void addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
     virtual void removeStream(const std::string& streamID);
   };

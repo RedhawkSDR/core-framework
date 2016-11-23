@@ -19,28 +19,31 @@ namespace bulkio {
 
         virtual ~PortTransport() { };
 
-        void pushSRI(const BULKIO::StreamSRI& sri)
+        virtual void disconnect()
         {
+            // Send an end-of-stream for all active streams
+            for (std::set<std::string>::iterator stream = _streams.begin(); stream != _streams.end(); ++stream) {
+                this->_pushPacket(SharedBufferType(), bulkio::time::utils::notSet(), true, *stream);
+            }
+            _streams.clear();
+        }
+
+        void pushSRI(const std::string& streamID, const BULKIO::StreamSRI& sri)
+        {
+            _streams.insert(streamID);
             this->_pushSRI(sri);
         }
 
         void pushPacket(const SharedBufferType& data,
                         const BULKIO::PrecisionUTCTime& T,
                         bool EOS,
+                        const std::string& streamID,
                         const BULKIO::StreamSRI& sri)
         {
-            const std::string streamID(sri.streamID);
             this->_sendPacket(data, T, EOS, streamID, sri);
-        }
-
-        //
-        // Sends an end-of-stream packet for the given stream to a particular port,
-        // for use when disconnecting; enables XML and File specialization for
-        // consistent end-of-stream behavior
-        //
-        void sendEOS(const std::string& streamID)
-        {
-            this->_pushPacket(SharedBufferType(), bulkio::time::utils::notSet(), true, streamID);
+            if (EOS) {
+                _streams.erase(streamID);
+            }
         }
 
         PtrType objref()
@@ -83,6 +86,7 @@ namespace bulkio {
         }
 
         VarType _port;
+        std::set<std::string> _streams;
     };
 
     template <>
