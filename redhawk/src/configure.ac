@@ -75,6 +75,7 @@ if test x"$HAVE_EXPAT" = xno ; then
 fi
 
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.0.0])
+PKG_CHECK_EXISTS([omniORB4 >= 4.2.0],[AC_DEFINE([OMNIORB4_2],[1],[])])
 PKG_CHECK_MODULES([OMNITHREAD], [omnithread3 >= 4.0.0])
 PKG_CHECK_MODULES([OMNIDYNAMIC], [omniDynamic4 >= 4.0.0])
 

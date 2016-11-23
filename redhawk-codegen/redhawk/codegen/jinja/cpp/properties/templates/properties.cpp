@@ -50,10 +50,9 @@ addProperty(${prop.cppname},
 /*{%- endmacro %}*/
 
 /*{% macro initializestructseq(prop) %}*/
-//% if prop.cppvalues
+/*{% for value in prop.cppvalues %}*/
     {
         ${prop.structdef.cpptype} __tmp;
-/*{% for value in prop.cppvalues %}*/
 /*{%   for key in value %}*/
 /*{%     for field in prop.structdef.fields %}*/
 /*{%       if field.identifier == key %}*/
@@ -68,27 +67,8 @@ addProperty(${prop.cppname},
 /*{%     endfor %}*/
 /*{%   endfor %}*/
         ${prop.cppname}.push_back(__tmp);
-/*{% endfor %}*/
     }
-//% endif
-/*{%- endmacro %}*/
-/*{% macro fooinitializestructseq(prop) %}*/
-//% if prop.cppvalues
-    ${prop.cpptype} __tmp;
-/*{% for value in prop.cppvalues %}*/
-/*{%   for field in prop.structdef.fields %}*/
-/*{%     if not field.inherited %}*/
-/*{%       if field is simple and field.cppvalue %}*/
-        __tmp.${field.cppname} = ${field.cppvalue};
-/*{%       elif field is simplesequence and field.cppvalues %}*/
-/*{%         for value in field.cppvalues %}*/
-        __tmp.${field.cppname}.push_back(${value});
-/*{%         endfor %}*/
-/*{%       endif %}*/
-/*{%     endif %}*/
-/*{%   endfor %}*/
 /*{% endfor %}*/
-//% endif
 /*{%- endmacro %}*/
 
 /*{% macro structdef(struct) %}*/

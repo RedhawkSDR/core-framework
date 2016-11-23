@@ -320,6 +320,18 @@ NicFacade::get_devices() const
     return devices;
 }
 
+std::vector<std::string>
+NicFacade::get_filtered_devices() const
+{
+    std::vector<std::string> devices;
+    NicStates::const_iterator i;
+    for( i=filtered_nic_states_.begin(); i!=filtered_nic_states_.end(); ++i )
+    {
+        devices.push_back(i->first);
+    }
+    return devices;
+}
+
 float 
 NicFacade::get_throughput_by_device( const std::string& device ) const
 {
