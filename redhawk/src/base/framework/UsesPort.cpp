@@ -38,6 +38,8 @@ namespace redhawk {
 
     void UsesPort::connectPort(CORBA::Object_ptr connection, const char* connectionId)
     {
+        RH_TRACE_ENTER(logger);
+
         // Give a specific exception message for nil
         if (CORBA::is_nil(connection)) {
             throw CF::Port::InvalidPort(1, "Nil object reference");
@@ -64,11 +66,12 @@ namespace redhawk {
         }
 
         _portConnected(connectionId);
+        RH_TRACE_EXIT(logger);
     }
 
     void UsesPort::disconnectPort(const char* connectionId)
     {
-        //TRACE_ENTER(logger, "OutPort::disconnectPort" );
+        RH_TRACE_ENTER(logger);
         {
             boost::mutex::scoped_lock lock(updatingPortsLock);
 
@@ -91,7 +94,7 @@ namespace redhawk {
         }
 
         _portDisconnected(connectionId);
-        //TRACE_EXIT(logger, "OutPort::disconnectPort" );
+        RH_TRACE_EXIT(logger);
     }
 
     ExtendedCF::UsesConnectionSequence* UsesPort::connections()
