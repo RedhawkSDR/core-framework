@@ -103,7 +103,6 @@ namespace redhawk {
 
             RH_DEBUG(logger, "Disconnecting connection '" << connectionId << "'");
             (*transport)->disconnect();
-            _disconnectTransport(*transport);
 
             delete (*transport);
             _transports.erase(transport);
@@ -176,9 +175,5 @@ namespace redhawk {
     BasicTransport* UsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
     {
         return new BasicTransport(connectionId, object);
-    }
-
-    void UsesPort::_disconnectTransport(BasicTransport* transport)
-    {
     }
 }

@@ -139,7 +139,6 @@ namespace redhawk {
         void _addTransportEntry(BasicTransport* transport);
 
         virtual BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
-        virtual void _disconnectTransport(BasicTransport* transport);
 
         LOGGER logger;
 
