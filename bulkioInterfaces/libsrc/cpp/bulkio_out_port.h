@@ -285,6 +285,8 @@ namespace bulkio {
     //
     bool _isStreamRoutedToConnection(const std::string& connectionID, const std::string& streamID);
 
+    SriMapStruct& _getSriMapStruct(const std::string& streamID);
+
     //
     // Sends data and metadata to all connections enabled for the given stream
     //

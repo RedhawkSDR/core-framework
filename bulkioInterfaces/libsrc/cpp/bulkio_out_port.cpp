@@ -162,17 +162,9 @@ namespace bulkio {
 
 
   template < typename PortTraits >
-  void OutPortBase< PortTraits >::_sendPacket(
-          const SharedBufferType&         data,
-          const BULKIO::PrecisionUTCTime& T,
-          bool                            EOS,
-          const std::string&              streamID)
+  SriMapStruct& OutPortBase< PortTraits >::_getSriMapStruct(const std::string& streamID)
   {
-    // don't want to process while command information is coming in
-    SCOPED_LOCK lock(this->updatingPortsLock);
-
-    // grab SRI context 
-    typename OutPortSriMap::iterator sri_iter = currentSRIs.find(streamID);
+    OutPortSriMap::iterator sri_iter = currentSRIs.find(streamID);
     if (sri_iter == currentSRIs.end()) {
       LOG_TRACE(logger, "Creating new stream '" << streamID << "' with default SRI");
 
@@ -184,6 +176,22 @@ namespace bulkio {
 
       addStream(streamID, sri_iter->second.sri);
     }
+    return sri_iter->second;
+  }
+
+
+  template < typename PortTraits >
+  void OutPortBase< PortTraits >::_sendPacket(
+          const SharedBufferType&         data,
+          const BULKIO::PrecisionUTCTime& T,
+          bool                            EOS,
+          const std::string&              streamID)
+  {
+    // don't want to process while command information is coming in
+    SCOPED_LOCK lock(this->updatingPortsLock);
+
+    // grab SRI context 
+    SriMapStruct& sri = _getSriMapStruct(streamID);
 
     if (active) {
         for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
@@ -202,12 +210,12 @@ namespace bulkio {
             }
 
             try {
-                if (sri_iter->second.connections.count(connection_id) == 0) {
-                    port->pushSRI(streamID, sri_iter->second.sri);
-                    sri_iter->second.connections.insert(connection_id);
+                if (sri.connections.count(connection_id) == 0) {
+                    port->pushSRI(streamID, sri.sri);
+                    sri.connections.insert(connection_id);
                 }
 
-                port->pushPacket(data, T, EOS, streamID, sri_iter->second.sri);
+                port->pushPacket(data, T, EOS, streamID, sri.sri);
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << connection_id);
