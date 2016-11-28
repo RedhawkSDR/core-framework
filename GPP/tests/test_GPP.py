@@ -782,6 +782,28 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(ustate, CF.Device.IDLE)
 
 
+        # set nic_usage
+        orig_thres = self.comp.thresholds.nic_usage.queryValue()
+        self.comp.thresholds.nic_usage=0.0
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.BUSY: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.BUSY)
+
+        # set nic_usage  back
+        self.comp.thresholds.nic_usage = orig_thres
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.IDLE: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.IDLE)
+
+
 
     def DeployWithAffinityOptions(self, options_list, numa_layout_test, bl_cpus ):
         self.runGPP()
