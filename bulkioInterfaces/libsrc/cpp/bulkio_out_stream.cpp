@@ -26,38 +26,24 @@
 using bulkio::OutputStream;
 
 template <class PortTraits>
-class OutputStream<PortTraits>::Impl {
+class OutputStream<PortTraits>::Impl : public bulkio::StreamDescriptor {
 public:
   typedef typename OutputStream<PortTraits>::ScalarBuffer ScalarBuffer;
   typedef typename OutputStream<PortTraits>::ComplexBuffer ComplexBuffer;
 
   Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
-    _streamID(sri.streamID),
+    bulkio::StreamDescriptor(sri),
     _port(port),
-    _sri(sri),
     _sriUpdated(true),
     _bufferSize(0),
     _bufferOffset(0)
   {
   }
 
-  const std::string& streamID() const
-  {
-    return _streamID;
-  }
-
-  const BULKIO::StreamSRI& sri() const
-  {
-    return _sri;
-  }
-
   void setSRI(const BULKIO::StreamSRI& sri)
   {
     _markDirtySRI();
-
-    // Copy the new SRI, except for the stream ID, which is immutable
-    _sri = sri;
-    _sri.streamID = _streamID.c_str();
+    bulkio::StreamDescriptor::setSRI(sri);
   }
 
   void setXDelta(double delta)
@@ -194,6 +180,11 @@ private:
   {
     // Flush buffered data still using the old SRI
     flush();
+
+    // Increment the SRI version if this is the first change
+    if (!_sriUpdated) {
+      ++_version;
+    }
     _sriUpdated = true;
   }
 

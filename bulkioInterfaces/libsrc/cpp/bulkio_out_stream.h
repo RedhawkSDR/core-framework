@@ -37,6 +37,8 @@ namespace bulkio {
   template <class PortTraits>
   class OutPort;
 
+  class StreamDescriptor;
+
   template <class PortTraits>
   class OutputStream {
   public:
@@ -159,6 +161,8 @@ namespace bulkio {
     friend class OutPort<PortTraits>;
     typedef OutPort<PortTraits> OutPortType;
     OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
+
+    boost::shared_ptr<bulkio::StreamDescriptor> getDescriptor();
 
     class Impl;
     boost::shared_ptr<Impl> _impl;

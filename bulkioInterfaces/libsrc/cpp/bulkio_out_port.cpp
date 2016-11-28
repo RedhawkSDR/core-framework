@@ -81,17 +81,17 @@ namespace bulkio {
 
       const std::string sid(H.streamID);
       SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
+      boost::shared_ptr<StreamDescriptor> stream;
       SriTable::iterator existing = _currentSRIs.find(sid);
       if (existing == _currentSRIs.end()) {
           // Insert new SRI
-          existing = _currentSRIs.insert(std::make_pair(sid, StreamDescriptor(H))).first;
-          addStream(sid, existing->second.sri);
+          stream = _addStream(sid, H);
       } else {
-          // Overwrite existing SRI 
-          existing->second.sri = H;
-          existing->second.version++;
+          // Overwrite existing SRI
+          stream = existing->second;
+          stream->setSRI(H);
       }
-      const StreamDescriptor& stream = existing->second;
+      const BULKIO::StreamSRI& sri = stream->sri();
 
       if (active) {
           for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
@@ -106,9 +106,9 @@ namespace bulkio {
               }
 
               LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << connection_id << " SRI streamID:"
-                        << stream.sri.streamID << " Mode:" << stream.sri.mode << " XDELTA:" << 1.0/stream.sri.xdelta);
+                        << stream->streamID() << " Mode:" << sri.mode << " XDELTA:" << 1.0/sri.xdelta);
               try {
-                  port->pushSRI(sid, stream.sri, stream.version);
+                  port->pushSRI(sid, sri, stream->version());
               } catch (const redhawk::FatalTransportError& err) {
                   LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
                             << " PORT/CONNECTION: " << name << "/" << connection_id);
@@ -157,18 +157,19 @@ namespace bulkio {
 
 
   template < typename PortTraits >
-  const StreamDescriptor& OutPortBase< PortTraits >::_getSRI(const std::string& streamID)
+  boost::shared_ptr<StreamDescriptor> OutPortBase< PortTraits >::_getStream(const std::string& streamID)
   {
-      SriTable::iterator sri_iter = _currentSRIs.find(streamID);
-      if (sri_iter == _currentSRIs.end()) {
+      SriTable::iterator existing = _currentSRIs.find(streamID);
+      if (existing == _currentSRIs.end()) {
           LOG_TRACE(logger, "Creating new stream '" << streamID << "' with default SRI");
 
           // No SRI associated with the stream ID, create a default one and add
           // it to the list; it will get pushed to downstream connections below
-          sri_iter = _currentSRIs.insert(std::make_pair(streamID, StreamDescriptor(streamID))).first;
-          addStream(streamID, sri_iter->second.sri);
+          _currentSRIs[streamID] = _addStream(streamID, bulkio::sri::create(streamID));
+          return _currentSRIs[streamID];
+      } else {
+          return existing->second;
       }
-      return sri_iter->second;
   }
 
 
@@ -183,7 +184,7 @@ namespace bulkio {
     SCOPED_LOCK lock(this->updatingPortsLock);
 
     // grab SRI context 
-    const StreamDescriptor& stream = _getSRI(streamID);
+    boost::shared_ptr<StreamDescriptor> stream = _getStream(streamID);
 
     if (active) {
         for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
@@ -202,8 +203,8 @@ namespace bulkio {
             }
 
             try {
-                port->pushSRI(streamID, stream.sri, stream.version);
-                port->pushPacket(data, T, EOS, streamID, stream.sri);
+                port->pushSRI(streamID, stream->sri(), stream->version());
+                port->pushPacket(data, T, EOS, streamID, stream->sri());
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << connection_id);
@@ -305,7 +306,7 @@ namespace bulkio {
     bulkio::SriMap ret;
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
     for (SriTable::iterator cSri = _currentSRIs.begin() ; cSri != _currentSRIs.end(); ++cSri) {
-      ret[cSri->first] = std::make_pair(cSri->second.sri, false);
+        ret[cSri->first] = std::make_pair(cSri->second->sri(), false);
     }
     return ret;
   }
@@ -316,7 +317,7 @@ namespace bulkio {
     bulkio::SriList ret;
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
     for (SriTable::iterator cSri = _currentSRIs.begin() ; cSri != _currentSRIs.end(); ++cSri) {
-      ret.push_back(cSri->second.sri);
+        ret.push_back(cSri->second->sri());
     }
     return ret;
   }
@@ -368,8 +369,9 @@ namespace bulkio {
   }
 
   template < typename PortTraits >
-  void OutPortBase< PortTraits >::addStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
+  boost::shared_ptr<StreamDescriptor> OutPortBase< PortTraits >::_addStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
   {
+      return boost::make_shared<StreamDescriptor>(sri);
   }
 
   template < typename PortTraits >
@@ -510,15 +512,17 @@ namespace bulkio {
   }
 
   template < typename PortTraits >
-  void OutPort< PortTraits >::addStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
+  boost::shared_ptr<StreamDescriptor> OutPort< PortTraits >::_addStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
   {
     boost::mutex::scoped_lock lock(streamsMutex);
-    if (streams.count(streamID) == 0) {
+    typename StreamMap::iterator existing = streams.find(streamID);
+    if (existing == streams.end()) {
         // Only create a new stream if one doesn't already exist; when a stream
         // is created via createStream (the preferred method), its first call
         // to pushSRI will end up calling this method
-        streams.insert(std::make_pair(streamID, StreamType(sri, this)));
+        existing = streams.insert(std::make_pair(streamID, StreamType(sri, this))).first;
     }
+    return existing->second.getDescriptor();
   }
 
   template < typename PortTraits >

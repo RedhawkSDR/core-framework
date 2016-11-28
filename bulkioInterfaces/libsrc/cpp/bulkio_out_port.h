@@ -65,19 +65,46 @@ namespace bulkio {
 
   struct StreamDescriptor {
     StreamDescriptor(const std::string& streamID) :
-      sri(bulkio::sri::create(streamID)),
-      version(1)
+      _streamID(streamID),
+      _sri(bulkio::sri::create(streamID)),
+      _version(1)
     {
     }
 
     StreamDescriptor(const BULKIO::StreamSRI& sri) :
-      sri(sri),
-      version(1)
+      _streamID(sri.streamID),
+      _sri(sri),
+      _version(1)
     {
     }
 
-    BULKIO::StreamSRI sri;
-    int version;
+    const std::string& streamID() const
+    {
+      return _streamID;
+    }
+
+    const BULKIO::StreamSRI& sri() const
+    {
+      return _sri;
+    }
+
+    void setSRI(const BULKIO::StreamSRI& sri)
+    {
+      // Copy the new SRI, except for the stream ID, which is immutable
+      _sri = sri;
+      _sri.streamID = _streamID.c_str();
+      ++_version;
+    }
+
+    int version() const
+    {
+      return _version;
+    }
+
+  protected:
+    const std::string _streamID;
+    BULKIO::StreamSRI _sri;
+    int _version;
   };
 
   //
@@ -276,7 +303,7 @@ namespace bulkio {
     OutPortSriMap                            currentSRIs __attribute__ ((deprecated));
 
   protected:
-    typedef std::map<std::string,StreamDescriptor> SriTable;
+    typedef std::map<std::string,boost::shared_ptr<StreamDescriptor> > SriTable;
     SriTable _currentSRIs;
 
     //
@@ -305,8 +332,7 @@ namespace bulkio {
     //
     bool _isStreamRoutedToConnection(const std::string& connectionID, const std::string& streamID);
 
-    const StreamDescriptor& _getSRI(const std::string& streamID);
-
+    
     //
     // Sends data and metadata to all connections enabled for the given stream
     //
@@ -315,7 +341,8 @@ namespace bulkio {
                      bool EOS,
                      const std::string& streamID);
 
-    virtual void addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
+    boost::shared_ptr<StreamDescriptor> _getStream(const std::string& streamID);
+    virtual boost::shared_ptr<StreamDescriptor> _addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
     virtual void removeStream(const std::string& streamID);
   };
 
@@ -466,7 +493,7 @@ namespace bulkio {
     typedef typename OutPortBase<PortTraits>::PortPtrType PortPtrType;
     typedef typename OutPortBase<PortTraits>::PortTransportType PortTransportType;
 
-    virtual void addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
+    virtual boost::shared_ptr<StreamDescriptor> _addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
     virtual void removeStream(const std::string& streamID);
 
     typedef std::map<std::string,StreamType> StreamMap;
