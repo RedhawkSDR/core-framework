@@ -1334,5 +1334,67 @@ inline bool operator== (const component_monitor_struct& s1, const component_moni
 inline bool operator!= (const component_monitor_struct& s1, const component_monitor_struct& s2) {
     return !(s1==s2);
 }
+struct sys_limits_struct {
+    sys_limits_struct ()
+    {
+    };
+
+    static std::string getId() {
+        return std::string("sys_limits");
+    };
+
+    CORBA::Long current_threads;
+    CORBA::Long max_threads;
+    CORBA::Long current_open_files;
+    CORBA::Long max_open_files;
+};
+
+inline bool operator>>= (const CORBA::Any& a, sys_limits_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("sys_limits::current_threads")) {
+        if (!(props["sys_limits::current_threads"] >>= s.current_threads)) return false;
+    }
+    if (props.contains("sys_limits::max_threads")) {
+        if (!(props["sys_limits::max_threads"] >>= s.max_threads)) return false;
+    }
+    if (props.contains("sys_limits::current_open_files")) {
+        if (!(props["sys_limits::current_open_files"] >>= s.current_open_files)) return false;
+    }
+    if (props.contains("sys_limits::max_open_files")) {
+        if (!(props["sys_limits::max_open_files"] >>= s.max_open_files)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const sys_limits_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["sys_limits::current_threads"] = s.current_threads;
+ 
+    props["sys_limits::max_threads"] = s.max_threads;
+ 
+    props["sys_limits::current_open_files"] = s.current_open_files;
+ 
+    props["sys_limits::max_open_files"] = s.max_open_files;
+    a <<= props;
+}
+
+inline bool operator== (const sys_limits_struct& s1, const sys_limits_struct& s2) {
+    if (s1.current_threads!=s2.current_threads)
+        return false;
+    if (s1.max_threads!=s2.max_threads)
+        return false;
+    if (s1.current_open_files!=s2.current_open_files)
+        return false;
+    if (s1.max_open_files!=s2.max_open_files)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const sys_limits_struct& s1, const sys_limits_struct& s2) {
+    return !(s1==s2);
+}
 
 #endif // STRUCTPROPS_H
