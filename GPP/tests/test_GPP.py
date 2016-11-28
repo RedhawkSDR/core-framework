@@ -711,6 +711,19 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity*2))]
         self.assertRaises( CF.Device.InsufficientCapacity, self.comp_obj.allocateCapacity, allocProps)
 
+    def test_sys_limits(self):
+
+        self.runGPP()
+        p=CF.DataType(id='sys_limits',value=any.to_any(None))
+        retval = self.comp.query([p])[0].value._v
+        ids = []
+        for item in retval:
+            ids.append(item.id)
+        self.assertTrue('sys_limits::current_threads')
+        self.assertTrue('sys_limits::max_threads')
+        self.assertTrue('sys_limits::current_open_files')
+        self.assertTrue('sys_limits::max_open_files')
+
     def test_threshold_usagestate(self):
 
         self.runGPP()
