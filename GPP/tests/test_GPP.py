@@ -662,7 +662,54 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals( cprops[1].value.value(), 90)
 
 
+    def test_loadCapacity(self):
 
+        self.runGPP()
+
+        # query current capcity 
+        cprops = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(None))]
+        cprops=self.comp_obj.query(cprops)
+
+        capacity=cprops[0].value.value()
+        req_cap = capacity/2;
+
+        # try allocation
+        allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(req_cap))]
+        self.comp_obj.allocateCapacity(allocProps)
+
+        cprops = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(None))]
+        cprops=self.comp_obj.query(cprops)
+
+        # make sure capacity was affected
+        remaining_cap = capacity-req_cap
+        self.assertEquals( cprops[0].value.value(), remaining_cap)
+
+        # now request more... result will be be  0..
+        allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity))]
+        self.comp_obj.allocateCapacity(allocProps)
+
+        cprops = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(None))]
+        cprops=self.comp_obj.query(cprops)
+
+        # make sure capacity is zero..
+        self.assertEquals( cprops[0].value.value(), 0.0)
+
+        # now dealloacte more than requests.. should go back to max.
+        allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity*2))]
+        self.comp_obj.deallocateCapacity(allocProps)
+
+        cprops = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(None))]
+        cprops=self.comp_obj.query(cprops)
+
+        # make sure capacity is original max.
+        self.assertEquals( cprops[0].value.value(), capacity)   
+
+        # now set reservation mode off 
+        self.comp.reserved_capacity_per_component=0.0
+
+        # now try to allocate capacity, should fail
+        allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity*2))]
+        self.assertRaises( CF.Device.InsufficientCapacity, self.comp_obj.allocateCapacity, allocProps)
 
 
 

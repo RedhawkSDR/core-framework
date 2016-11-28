@@ -2200,13 +2200,20 @@ bool GPP_i::allocate_loadCapacity(const double &value) {
     double load_threshold = modified_thresholds.load_avg;
     double sys_load = system_monitor->get_loadavg();
     if ( sys_load + value >  load_threshold   ) {
-      LOG_WARN(GPP_i, "Allocate load capacity would exceed measure system load, current loadavg: "  << sys_load );
+        LOG_WARN(GPP_i, "Allocate load capacity would exceed measured system load, current loadavg: "  << sys_load << " requested: " << value << " threshold: " << load_threshold );
     }
     
     // perform classic load capacity
     if ( value > loadCapacity ) {
-      LOG_DEBUG(GPP_i, "Allocate load capacity failed due to insufficent capacity, available capacity:" << loadCapacity );
-      return false;
+      std::ostringstream os;
+      os << " Allocate load capacity failed due to insufficient capacity, available capacity:" << loadCapacity << " requested capacity: " << value;
+      std::string msg = os.str();
+      LOG_DEBUG(GPP_i, msg );
+      CF::Properties errprops;
+      errprops.length(1);
+      errprops[0].id = "DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056 (loadCapacity)";
+      errprops[0].value <<= (CORBA::Long)value;
+      throw CF::Device::InsufficientCapacity(errprops, msg.c_str());
     }
 
     loadCapacity -= value;
