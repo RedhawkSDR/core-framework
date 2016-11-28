@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:4cf41bf1-d764-4b3d-8954-3de2ed26184d" name="struct_prop_check_w">
+  <componentfiles>
+    <componentfile id="struct_prop_check_16dcbe6e-60b1-4020-a685-a498bcd446db" type="SPD">
+      <localfile name="/components/struct_prop_check/struct_prop_check.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="struct_prop_check_16dcbe6e-60b1-4020-a685-a498bcd446db"/>
+      <componentinstantiation id="struct_prop_check_1" startorder="0">
+        <usagename>struct_prop_check_1</usagename>
+        <componentproperties>
+          <structref refid="some_struct">
+            <simpleref refid="a" value="foo"/>
+          </structref>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="struct_prop_check_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="struct_prop_check_1"/>
+  </assemblycontroller>
+</softwareassembly>
