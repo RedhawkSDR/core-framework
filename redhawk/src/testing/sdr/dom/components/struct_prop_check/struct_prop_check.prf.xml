@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <struct id="some_struct" mode="readwrite">
+    <simple id="a" type="string"/>
+    <simple id="b" type="string"/>
+    <configurationkind kindtype="property"/>
+  </struct>
+</properties>

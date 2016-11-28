@@ -332,6 +332,13 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
 
+    def test_PartialStructProp(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, domMgr.createApplication, "/waveforms/struct_prop_check_w/struct_prop_check_w.sad.xml", 'some_app', [], [], )
+
     def test_commandline_props(self):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
