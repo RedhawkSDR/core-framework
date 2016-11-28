@@ -22,15 +22,23 @@ namespace bulkio {
         virtual void disconnect()
         {
             // Send an end-of-stream for all active streams
-            for (std::set<std::string>::iterator stream = _streams.begin(); stream != _streams.end(); ++stream) {
-                this->_pushPacket(SharedBufferType(), bulkio::time::utils::notSet(), true, *stream);
+            for (VersionMap::iterator stream = _sriVersions.begin(); stream != _sriVersions.end(); ++stream) {
+                this->_pushPacket(SharedBufferType(), bulkio::time::utils::notSet(), true, stream->first);
             }
-            _streams.clear();
+            _sriVersions.clear();
         }
 
-        void pushSRI(const std::string& streamID, const BULKIO::StreamSRI& sri)
+        void pushSRI(const std::string& streamID, const BULKIO::StreamSRI& sri, int version)
         {
-            _streams.insert(streamID);
+            VersionMap::iterator existing = _sriVersions.find(streamID);
+            if (existing != _sriVersions.end()) {
+                if (version == existing->second) {
+                    return;
+                }
+                existing->second = version;
+            } else {
+                _sriVersions[streamID] = version;
+            }
             this->_pushSRI(sri);
         }
 
@@ -42,7 +50,7 @@ namespace bulkio {
         {
             this->_sendPacket(data, T, EOS, streamID, sri);
             if (EOS) {
-                _streams.erase(streamID);
+                _sriVersions.erase(streamID);
             }
         }
 
@@ -82,7 +90,8 @@ namespace bulkio {
         }
 
         VarType _port;
-        std::set<std::string> _streams;
+        typedef std::map<std::string,int> VersionMap;
+        VersionMap _sriVersions;
     };
 
     template <>

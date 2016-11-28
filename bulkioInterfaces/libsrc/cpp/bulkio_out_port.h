@@ -63,6 +63,23 @@ namespace bulkio {
 
   template <typename PortTraits> class PortTransport;
 
+  struct StreamDescriptor {
+    StreamDescriptor(const std::string& streamID) :
+      sri(bulkio::sri::create(streamID)),
+      version(1)
+    {
+    }
+
+    StreamDescriptor(const BULKIO::StreamSRI& sri) :
+      sri(sri),
+      version(1)
+    {
+    }
+
+    BULKIO::StreamSRI sri;
+    int version;
+  };
+
   //
   //  OutPortBase
   //
@@ -259,6 +276,9 @@ namespace bulkio {
     OutPortSriMap                            currentSRIs __attribute__ ((deprecated));
 
   protected:
+    typedef std::map<std::string,StreamDescriptor> SriTable;
+    SriTable _currentSRIs;
+
     //
     // Lookup table for connections to input ports in the same process space
     //
@@ -285,7 +305,7 @@ namespace bulkio {
     //
     bool _isStreamRoutedToConnection(const std::string& connectionID, const std::string& streamID);
 
-    SriMapStruct& _getSriMapStruct(const std::string& streamID);
+    const StreamDescriptor& _getSRI(const std::string& streamID);
 
     //
     // Sends data and metadata to all connections enabled for the given stream

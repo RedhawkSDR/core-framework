@@ -28,8 +28,9 @@
 
 #include "bulkio_connection.hpp"
 
-// Suppress warnings for access to "deprecated" currentSRI member--it's the
-// public access that's deprecated, not the member itself
+// Suppress warnings for access to deprecated currentSRI member (on gcc 4.4, at
+// least, the implicit destructor call from OutPortBase's destructor emits a
+// warning)
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 namespace bulkio {
@@ -74,54 +75,48 @@ namespace bulkio {
 
 
   template < typename PortTraits >
-  void OutPortBase< PortTraits >::pushSRI(const BULKIO::StreamSRI& H) {
+  void OutPortBase< PortTraits >::pushSRI(const BULKIO::StreamSRI& H)
+  {
+      TRACE_ENTER(logger, "OutPort::pushSRI" );
 
+      const std::string sid(H.streamID);
+      SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
+      SriTable::iterator existing = _currentSRIs.find(sid);
+      if (existing == _currentSRIs.end()) {
+          // Insert new SRI
+          existing = _currentSRIs.insert(std::make_pair(sid, StreamDescriptor(H))).first;
+          addStream(sid, existing->second.sri);
+      } else {
+          // Overwrite existing SRI 
+          existing->second.sri = H;
+          existing->second.version++;
+      }
+      const StreamDescriptor& stream = existing->second;
 
-    TRACE_ENTER(logger, "OutPort::pushSRI" );
+      if (active) {
+          for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
+              PortTransportType* port = *iter;
+              const std::string& connection_id = port->connectionId();
+              // Skip ports known to be dead
+              if (!port->isAlive()) {
+                  continue;
+              }
+              if (!_isStreamRoutedToConnection(sid, connection_id)) {
+                  continue;
+              }
 
+              LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << connection_id << " SRI streamID:"
+                        << stream.sri.streamID << " Mode:" << stream.sri.mode << " XDELTA:" << 1.0/stream.sri.xdelta);
+              try {
+                  port->pushSRI(sid, stream.sri, stream.version);
+              } catch (const redhawk::FatalTransportError& err) {
+                  LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
+                            << " PORT/CONNECTION: " << name << "/" << connection_id);
+              }
+          }
+      }
 
-    SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
-
-    const std::string sid(H.streamID);
-    typename OutPortSriMap::iterator sri_iter = currentSRIs.find(sid);
-    if (sri_iter == currentSRIs.end()) {
-      // need to use insert since we do not have default CTOR for SriMapStruct
-      sri_iter = currentSRIs.insert(OutPortSriMap::value_type(sid, SriMapStruct(H))).first;
-      addStream(sid, sri_iter->second.sri);
-    } else {
-      // overwrite the SRI 
-      sri_iter->second.sri = H;
-
-      // reset connections list to be empty
-      sri_iter->second.connections.clear();
-   }
-
-    if (active) {
-        for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-            PortTransportType* port = *iter;
-            const std::string& connection_id = port->connectionId();
-            // Skip ports known to be dead
-            if (!port->isAlive()) {
-                continue;
-            }
-            if (!_isStreamRoutedToConnection(sid, connection_id)) {
-                continue;
-            }
-
-            LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << connection_id << " SRI streamID:"
-                      << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta);
-            try {
-                port->pushSRI(sid, H);
-                sri_iter->second.connections.insert(connection_id);
-            } catch (const redhawk::FatalTransportError& err) {
-                LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
-                          << " PORT/CONNECTION: " << name << "/" << connection_id);
-            }
-        }
-    }
-
-    TRACE_EXIT(logger, "OutPort::pushSRI");
-    return;
+      TRACE_EXIT(logger, "OutPort::pushSRI");
   }
 
   template < typename PortTraits >
@@ -162,21 +157,18 @@ namespace bulkio {
 
 
   template < typename PortTraits >
-  SriMapStruct& OutPortBase< PortTraits >::_getSriMapStruct(const std::string& streamID)
+  const StreamDescriptor& OutPortBase< PortTraits >::_getSRI(const std::string& streamID)
   {
-    OutPortSriMap::iterator sri_iter = currentSRIs.find(streamID);
-    if (sri_iter == currentSRIs.end()) {
-      LOG_TRACE(logger, "Creating new stream '" << streamID << "' with default SRI");
+      SriTable::iterator sri_iter = _currentSRIs.find(streamID);
+      if (sri_iter == _currentSRIs.end()) {
+          LOG_TRACE(logger, "Creating new stream '" << streamID << "' with default SRI");
 
-      // No SRI associated with the stream ID, create a default one and add
-      // it to the list; it will get pushed to downstream connections below
-      SriMapStruct sri_ctx(bulkio::sri::create(streamID));
-      // need to use insert since we do not have default CTOR for SriMapStruct
-      sri_iter = currentSRIs.insert(std::make_pair(streamID, sri_ctx)).first;
-
-      addStream(streamID, sri_iter->second.sri);
-    }
-    return sri_iter->second;
+          // No SRI associated with the stream ID, create a default one and add
+          // it to the list; it will get pushed to downstream connections below
+          sri_iter = _currentSRIs.insert(std::make_pair(streamID, StreamDescriptor(streamID))).first;
+          addStream(streamID, sri_iter->second.sri);
+      }
+      return sri_iter->second;
   }
 
 
@@ -191,7 +183,7 @@ namespace bulkio {
     SCOPED_LOCK lock(this->updatingPortsLock);
 
     // grab SRI context 
-    SriMapStruct& sri = _getSriMapStruct(streamID);
+    const StreamDescriptor& stream = _getSRI(streamID);
 
     if (active) {
         for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
@@ -210,12 +202,8 @@ namespace bulkio {
             }
 
             try {
-                if (sri.connections.count(connection_id) == 0) {
-                    port->pushSRI(streamID, sri.sri);
-                    sri.connections.insert(connection_id);
-                }
-
-                port->pushPacket(data, T, EOS, streamID, sri.sri);
+                port->pushSRI(streamID, stream.sri, stream.version);
+                port->pushPacket(data, T, EOS, streamID, stream.sri);
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << connection_id);
@@ -226,7 +214,7 @@ namespace bulkio {
 
     // if we have end of stream removed old sri
     if (EOS) {
-      currentSRIs.erase(streamID);
+      _currentSRIs.erase(streamID);
       removeStream(streamID);
     }
   }
@@ -316,9 +304,8 @@ namespace bulkio {
   {
     bulkio::SriMap ret;
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
-    typename OutPortSriMap::iterator cSri = currentSRIs.begin();
-    for ( ; cSri != currentSRIs.end(); cSri++ ) {
-      ret[cSri->first] = std::make_pair<  BULKIO::StreamSRI, bool >( cSri->second.sri, false );
+    for (SriTable::iterator cSri = _currentSRIs.begin() ; cSri != _currentSRIs.end(); ++cSri) {
+      ret[cSri->first] = std::make_pair(cSri->second.sri, false);
     }
     return ret;
   }
@@ -328,9 +315,8 @@ namespace bulkio {
   {
     bulkio::SriList ret;
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
-    typename OutPortSriMap::iterator cSri = currentSRIs.begin();
-    for ( ; cSri != currentSRIs.end(); cSri++ ) {
-      ret.push_back( cSri->second.sri );
+    for (SriTable::iterator cSri = _currentSRIs.begin() ; cSri != _currentSRIs.end(); ++cSri) {
+      ret.push_back(cSri->second.sri);
     }
     return ret;
   }
