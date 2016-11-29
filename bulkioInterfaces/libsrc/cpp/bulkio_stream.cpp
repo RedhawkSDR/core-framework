@@ -89,3 +89,10 @@ void StreamBase::eraseKeyword(const std::string& name)
     _impl->flush();
     _impl->eraseKeyword(name);
 }
+
+void StreamBase::close()
+{
+    _impl->close();
+    _impl.reset();
+}
+

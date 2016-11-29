@@ -153,6 +153,13 @@ namespace bulkio {
         }
         void eraseKeyword(const std::string& name);
 
+        void close();
+
+        bool operator! () const
+        {
+            return !_impl;
+        }
+
     protected:
         class Impl;
 
@@ -175,7 +182,15 @@ namespace bulkio {
             {
             }
 
+            virtual ~Impl()
+            {
+            }
+
             virtual void flush()
+            {
+            }
+
+            virtual void close()
             {
             }
         };

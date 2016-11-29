@@ -121,13 +121,6 @@ namespace bulkio {
         void write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time);
         void write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
 
-        void close();
-
-        bool operator! () const
-        {
-            return !_impl;
-        }
-
     private:
         friend class OutPort<PortTraits>;
         typedef OutPort<PortTraits> OutPortType;
@@ -136,9 +129,66 @@ namespace bulkio {
         boost::shared_ptr<bulkio::StreamDescriptor> getDescriptor();
 
         class Impl;
-        boost::shared_ptr<Impl> _impl;
+        Impl& impl();
+        const Impl& impl() const;
 
-        typedef boost::shared_ptr<Impl> OutputStream::*unspecified_bool_type;
+        typedef const OutputStream::Impl& (OutputStream::*unspecified_bool_type)() const;
+
+    public:
+        operator unspecified_bool_type() const;
+    };
+
+
+    class OutXMLPort;
+
+    template <>
+    class OutputStream<XMLPortTraits> : public StreamBase {
+    public:
+        OutputStream();
+
+        /**
+         * @brief  Write XML data to the stream.
+         * @param xmlString  The XML string to write.
+         */
+        void write(const std::string& xmlString);
+
+    private:
+        OutputStream(const BULKIO::StreamSRI& sri, OutXMLPort* port);
+
+        boost::shared_ptr<bulkio::StreamDescriptor> getDescriptor();
+
+        class Impl;
+        Impl& impl();
+
+        typedef OutputStream::Impl& (OutputStream::*unspecified_bool_type)();
+
+    public:
+        operator unspecified_bool_type() const;
+    };
+
+
+    class OutFilePort;
+
+    template <>
+    class OutputStream<FilePortTraits> : public StreamBase {
+    public:
+        OutputStream();
+
+        /**
+         * @brief  Write a file URI to the stream.
+         * @param data  The file URI to write.
+         */
+        void write(const std::string& URL, const BULKIO::PrecisionUTCTime& time);
+
+    private:
+        OutputStream(const BULKIO::StreamSRI& sri, OutFilePort* port);
+
+        boost::shared_ptr<bulkio::StreamDescriptor> getDescriptor();
+
+        class Impl;
+        Impl& impl();
+
+        typedef OutputStream::Impl& (OutputStream::*unspecified_bool_type)();
 
     public:
         operator unspecified_bool_type() const;
@@ -154,6 +204,8 @@ namespace bulkio {
     typedef OutputStream<bulkio::ULongLongPortTraits> OutULongLongStream;
     typedef OutputStream<bulkio::FloatPortTraits>     OutFloatStream;
     typedef OutputStream<bulkio::DoublePortTraits>    OutDoubleStream;
+    typedef OutputStream<bulkio::XMLPortTraits>       OutXMLStream;
+    typedef OutputStream<bulkio::FilePortTraits>      OutFileStream;
 
 } // end of bulkio namespace
 

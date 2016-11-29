@@ -118,7 +118,7 @@ public:
     _flush(false);
   }
 
-  void close()
+  virtual void close()
   {
     if (_bufferOffset > 0) {
       // Add the end-of-stream marker to the buffered data and its timestamp
@@ -195,80 +195,203 @@ OutputStream<PortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType
 template <class PortTraits>
 size_t OutputStream<PortTraits>::bufferSize() const
 {
-  return _impl->bufferSize();
+  return impl().bufferSize();
 }
 
 template <class PortTraits>
 void OutputStream<PortTraits>::setBufferSize(size_t samples)
 {
-  _impl->setBufferSize(samples);
+  impl().setBufferSize(samples);
 }
 
 template <class PortTraits>
 void OutputStream<PortTraits>::flush()
 {
-  _impl->flush();
+  impl().flush();
 }
 
 template <class PortTraits>
 void OutputStream<PortTraits>::write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
 {
-  _impl->write(data, time);
+  impl().write(data, time);
 }
 
 template <class PortTraits>
 void OutputStream<PortTraits>::write(const ScalarBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
 {
-  _impl->write(data, times);
+  impl().write(data, times);
 }
 
 template <class PortTraits>
 void OutputStream<PortTraits>::write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
 {
-  _impl->write(data, time);
+  impl().write(data, time);
 }
 
 template <class PortTraits>
 void OutputStream<PortTraits>::write(const ComplexBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
 {
-  _impl->write(data, times);
+  impl().write(data, times);
 }
 
 template <class PortTraits>
 void OutputStream<PortTraits>::write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
 {
-  _impl->write(ScalarBuffer::make_transient(data, count), time);
+  impl().write(ScalarBuffer::make_transient(data, count), time);
 }
 
 template <class PortTraits>
 void OutputStream<PortTraits>::write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
 {
-  _impl->write(ScalarBuffer::make_transient(data, count), times);
+  impl().write(ScalarBuffer::make_transient(data, count), times);
 }
 
 template <class PortTraits>
 void OutputStream<PortTraits>::write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
 {
-  _impl->write(ComplexBuffer::make_transient(data, count), time);
+  impl().write(ComplexBuffer::make_transient(data, count), time);
 }
 
 template <class PortTraits>
 void OutputStream<PortTraits>::write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
 {
-  _impl->write(ComplexBuffer::make_transient(data, count), times);
+  impl().write(ComplexBuffer::make_transient(data, count), times);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::close()
+typename OutputStream<PortTraits>::Impl& OutputStream<PortTraits>::impl()
 {
-  _impl->close();
-  _impl.reset();
+    return static_cast<Impl&>(*_impl);
+}
+
+template <class PortTraits>
+const typename OutputStream<PortTraits>::Impl& OutputStream<PortTraits>::impl() const
+{
+    return static_cast<const Impl&>(*_impl);
 }
 
 template <class PortTraits>
 OutputStream<PortTraits>::operator unspecified_bool_type() const
 {
-  return _impl?&OutputStream::_impl:0;
+    return _impl?static_cast<unspecified_bool_type>(&OutputStream::impl):0;
+}
+
+
+//
+// XML
+//
+using bulkio::XMLPortTraits;
+
+class OutputStream<XMLPortTraits>::Impl : public bulkio::StreamBase::Impl {
+public:
+    Impl(const BULKIO::StreamSRI& sri, OutXMLPort* port) :
+        bulkio::StreamBase::Impl(sri),
+        _port(port)
+    {
+    }
+
+    void write(const std::string& data)
+    {
+        _send(data, false);
+    }
+
+    virtual void close()
+    {
+        // Send an empty packet with an end-of-stream marker
+        _send(std::string(), true);
+    }
+
+private:
+    void _send(const std::string& data, bool eos)
+    {
+        _port->pushPacket(data, true, _streamID);
+    }
+
+    OutXMLPort* _port;
+};
+
+OutputStream<XMLPortTraits>::OutputStream() :
+    StreamBase()
+{
+}
+
+OutputStream<XMLPortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutXMLPort* port) :
+    StreamBase(boost::make_shared<OutputStream::Impl>(sri, port))
+{
+}
+
+void OutputStream<XMLPortTraits>::write(const std::string& xmlString)
+{
+    impl().write(xmlString);
+}
+
+OutputStream<XMLPortTraits>::Impl& OutputStream<XMLPortTraits>::impl()
+{
+    return static_cast<OutputStream::Impl&>(*_impl);
+}
+
+OutputStream<XMLPortTraits>::operator unspecified_bool_type() const
+{
+    return _impl?&OutputStream::impl:0;
+}
+
+//
+// File
+//
+using bulkio::FilePortTraits;
+
+class OutputStream<FilePortTraits>::Impl : public bulkio::StreamBase::Impl {
+public:
+    Impl(const BULKIO::StreamSRI& sri, OutFilePort* port) :
+        bulkio::StreamBase::Impl(sri),
+        _port(port)
+    {
+    }
+
+    void write(const std::string& data, const BULKIO::PrecisionUTCTime& time)
+    {
+        _send(data, time, false);
+    }
+
+    virtual void close()
+    {
+        // Send an empty packet with an end-of-stream marker; since there is no
+        // sample data, the timestamp does not matter
+        _send(std::string(), bulkio::time::utils::notSet(), true);
+    }
+
+private:
+    void _send(const std::string& data, const BULKIO::PrecisionUTCTime& time, bool eos)
+    {
+        _port->pushPacket(data, time, true, _streamID);
+    }
+
+    OutFilePort* _port;
+};
+
+OutputStream<FilePortTraits>::OutputStream() :
+    StreamBase()
+{
+}
+
+OutputStream<FilePortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutFilePort* port) :
+    StreamBase(boost::make_shared<OutputStream::Impl>(sri, port))
+{
+}
+
+void OutputStream<FilePortTraits>::write(const std::string& URL, const BULKIO::PrecisionUTCTime& time)
+{
+    impl().write(URL, time);
+}
+
+OutputStream<FilePortTraits>::Impl& OutputStream<FilePortTraits>::impl()
+{
+    return static_cast<OutputStream::Impl&>(*_impl);
+}
+
+OutputStream<FilePortTraits>::operator unspecified_bool_type() const
+{
+    return _impl?&OutputStream::impl:0;
 }
 
 template class OutputStream<bulkio::CharPortTraits>;
