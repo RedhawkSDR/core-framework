@@ -63,50 +63,6 @@ namespace bulkio {
 
   template <typename PortTraits> class PortTransport;
 
-  struct StreamDescriptor {
-    StreamDescriptor(const std::string& streamID) :
-      _streamID(streamID),
-      _sri(bulkio::sri::create(streamID)),
-      _version(1)
-    {
-    }
-
-    StreamDescriptor(const BULKIO::StreamSRI& sri) :
-      _streamID(sri.streamID),
-      _sri(sri),
-      _version(1)
-    {
-    }
-
-    const std::string& streamID() const
-    {
-      return _streamID;
-    }
-
-    const BULKIO::StreamSRI& sri() const
-    {
-      return _sri;
-    }
-
-    void setSRI(const BULKIO::StreamSRI& sri)
-    {
-      // Copy the new SRI, except for the stream ID, which is immutable
-      _sri = sri;
-      _sri.streamID = _streamID.c_str();
-      ++_version;
-    }
-
-    int version() const
-    {
-      return _version;
-    }
-
-  protected:
-    const std::string _streamID;
-    BULKIO::StreamSRI _sri;
-    int _version;
-  };
-
   //
   //  OutPortBase
   //

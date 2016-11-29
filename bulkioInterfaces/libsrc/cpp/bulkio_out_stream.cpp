@@ -26,66 +26,21 @@
 using bulkio::OutputStream;
 
 template <class PortTraits>
-class OutputStream<PortTraits>::Impl : public bulkio::StreamDescriptor {
+class OutputStream<PortTraits>::Impl : public bulkio::StreamBase::Impl {
 public:
   typedef typename OutputStream<PortTraits>::ScalarBuffer ScalarBuffer;
   typedef typename OutputStream<PortTraits>::ComplexBuffer ComplexBuffer;
 
   Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
-    bulkio::StreamDescriptor(sri),
+    bulkio::StreamBase::Impl(sri),
     _port(port),
-    _sriUpdated(true),
     _bufferSize(0),
     _bufferOffset(0)
   {
   }
 
-  void setSRI(const BULKIO::StreamSRI& sri)
-  {
-    _markDirtySRI();
-    bulkio::StreamDescriptor::setSRI(sri);
-  }
-
-  void setXDelta(double delta)
-  {
-    _setStreamMetadata(_sri.xdelta, delta);
-  }
-
-  void setComplex(bool mode)
-  {
-    _setStreamMetadata(_sri.mode, mode?1:0);
-  }
-
-  void setBlocking(bool blocking)
-  {
-    _setStreamMetadata(_sri.blocking, blocking?1:0);
-  }
-
-  void setKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& properties)
-  {
-    _markDirtySRI();
-    _sri.keywords = properties;
-  }
-
-  void setKeyword(const std::string& name, const CORBA::Any& value)
-  {
-    _markDirtySRI();
-    redhawk::PropertyMap::cast(_sri.keywords)[name] = value;
-  }
-
-  void eraseKeyword(const std::string& name)
-  {
-    _markDirtySRI();
-    redhawk::PropertyMap::cast(_sri.keywords).erase(name);
-  }
-
   void write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
   {
-    if (_sriUpdated) {
-      _port->pushSRI(_sri);
-      _sriUpdated = false;
-    }
-
     // If buffering is disabled, or the buffer is empty and the input data is
     // large enough for a full buffer, send it immediately
     if ((_bufferSize == 0) || (_bufferOffset == 0 && (data.size() >= _bufferSize))) {
@@ -176,31 +131,9 @@ public:
   }
 
 private:
-  void _markDirtySRI()
-  {
-    // Flush buffered data still using the old SRI
-    flush();
-
-    // Increment the SRI version if this is the first change
-    if (!_sriUpdated) {
-      ++_version;
-    }
-    _sriUpdated = true;
-  }
-
   void _send(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time, bool eos)
   {
     _port->pushPacket(data, time, eos, _streamID);
-  }
-
-  template <typename Field, typename Value>
-  void _setStreamMetadata(Field& field, Value value)
-  {
-    _markDirtySRI();
-    if (field == value) {
-      return;
-    }
-    field = value;
   }
 
   void _flush(bool eos)
@@ -239,10 +172,7 @@ private:
     }
   }
 
-  const std::string _streamID;
   OutPortType* _port;
-  BULKIO::StreamSRI _sri;
-  bool _sriUpdated;
 
   redhawk::buffer<ScalarType> _buffer;
   BULKIO::PrecisionUTCTime _bufferTime;
@@ -252,68 +182,14 @@ private:
 
 template <class PortTraits>
 OutputStream<PortTraits>::OutputStream() :
-  _impl()
+  StreamBase()
 {
 }
 
 template <class PortTraits>
 OutputStream<PortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
-  _impl(new Impl(sri, port))
+  StreamBase(boost::make_shared<Impl>(sri, port))
 {
-}
-
-template <class PortTraits>
-const std::string& OutputStream<PortTraits>::streamID() const
-{
-  return _impl->streamID();
-}
-
-template <class PortTraits>
-const BULKIO::StreamSRI& OutputStream<PortTraits>::sri() const
-{
-  return _impl->sri();
-}
-
-template <class PortTraits>
-void OutputStream<PortTraits>::sri(const BULKIO::StreamSRI& sri)
-{
-  _impl->setSRI(sri);
-}
-
-template <class PortTraits>
-double OutputStream<PortTraits>::xdelta() const
-{
-  return _impl->sri().xdelta;
-}
-
-template <class PortTraits>
-void OutputStream<PortTraits>::xdelta(double delta)
-{
-  _impl->setXDelta(delta);
-}
-
-template <class PortTraits>
-bool OutputStream<PortTraits>::complex() const
-{
-  return (_impl->sri().mode != 0);
-}
-
-template <class PortTraits>
-void OutputStream<PortTraits>::complex(bool mode)
-{
-  _impl->setComplex(mode);
-}
-
-template <class PortTraits>
-bool OutputStream<PortTraits>::blocking() const
-{
-  return _impl->sri().blocking;
-}
-
-template <class PortTraits>
-void OutputStream<PortTraits>::blocking(bool mode)
-{
-  _impl->setBlocking(mode);
 }
 
 template <class PortTraits>
@@ -332,48 +208,6 @@ template <class PortTraits>
 void OutputStream<PortTraits>::flush()
 {
   _impl->flush();
-}
-
-template <class PortTraits>
-const redhawk::PropertyMap& OutputStream<PortTraits>::keywords() const
-{
-  return redhawk::PropertyMap::cast(_impl->sri().keywords);
-}
-
-template <class PortTraits>
-void OutputStream<PortTraits>::keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props)
-{
-  _impl->setKeywords(props);
-}
-
-template <class PortTraits>
-bool OutputStream<PortTraits>::hasKeyword(const std::string& name) const
-{
-  return keywords().contains(name);
-}
-
-template <class PortTraits>
-const redhawk::Value& OutputStream<PortTraits>::getKeyword(const std::string& name) const
-{
-  return keywords()[name];
-}
-
-template <class PortTraits>
-void OutputStream<PortTraits>::setKeyword(const std::string& name, const CORBA::Any& value)
-{
-    _impl->setKeyword(name, value);
-}
-
-template <class PortTraits>
-void OutputStream<PortTraits>::setKeyword(const std::string& name, const redhawk::Value& value)
-{
-    _impl->setKeyword(name, value);
-}
-
-template <class PortTraits>
-void OutputStream<PortTraits>::eraseKeyword(const std::string& name)
-{
-    _impl->eraseKeyword(name);
 }
 
 template <class PortTraits>

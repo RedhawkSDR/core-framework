@@ -31,158 +31,129 @@
 
 #include "bulkio_traits.h"
 #include "bulkio_datablock.h"
+#include "bulkio_stream.h"
 
 namespace bulkio {
 
-  template <class PortTraits>
-  class OutPort;
+    template <class PortTraits>
+    class OutPort;
 
-  class StreamDescriptor;
+    template <class PortTraits>
+    class OutputStream : public StreamBase {
+    public:
+        typedef typename PortTraits::DataTransferTraits::NativeDataType ScalarType;
+        typedef std::complex<ScalarType> ComplexType;
 
-  template <class PortTraits>
-  class OutputStream {
-  public:
-    typedef typename PortTraits::DataTransferTraits::NativeDataType ScalarType;
-    typedef std::complex<ScalarType> ComplexType;
+        typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
+        typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
+       
+        OutputStream();
 
-    typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
-    typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
-        
-    OutputStream();
+        /**
+         * @brief  Returns the internal buffer size.
+         *
+         * A buffer size of 0 indicates that buffering is disabled.
+         */
+        size_t bufferSize() const;
 
-    const std::string& streamID() const;
+        /**
+         * @brief  Sets the internal buffer size.
+         * @param samples  Number of samples to buffer (0 disables buffering).
+         */
+        void setBufferSize(size_t samples);
 
-    const BULKIO::StreamSRI& sri() const;
-    void sri(const BULKIO::StreamSRI& sri);
+        /**
+         * Send all currently buffered data.
+         */
+        void flush();
 
-    double xdelta() const;
-    void xdelta(double delta);
+        template <class T>
+        void write(const std::vector<T>& data, const BULKIO::PrecisionUTCTime& time)
+        {
+            write(&data[0], data.size(), time);
+        }
 
-    bool complex() const;
-    void complex(bool mode);
+        template <class T>
+        void write(const std::vector<T>& data, const std::list<bulkio::SampleTimestamp>& times)
+        {
+            write(&data[0], data.size(), times);
+        }
 
-    bool blocking() const;
-    void blocking(bool mode);
+        /**
+         * @brief  Write scalar data to the stream.
+         * @param data  The %read_buffer to write.
+         * @param time  The timestamp of the first sample.
+         */
+        void write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time);
 
-    const redhawk::PropertyMap& keywords() const;
-    void keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props);
+        /**
+         * @brief  Write scalar data to the stream.
+         * @param data  The %read_buffer to write.
+         * @param times  A list of sample timestamps. Sample offsets must be in
+         *               increasing order, starting at 0.
+         *
+         * Writes a buffer of data with multiple timestamps, breaking up the data
+         * into chunks at the SampleTimestamp offsets.
+         */
+        void write(const ScalarBuffer& data, const std::list<bulkio::SampleTimestamp>& times);
 
-    bool hasKeyword(const std::string& name) const;
-    const redhawk::Value& getKeyword(const std::string& name) const;
-    void setKeyword(const std::string& name, const CORBA::Any& value);
-    void setKeyword(const std::string& name, const redhawk::Value& value);
-    template <typename T>
-    void setKeyword(const std::string& name, const T& value)
-    {
-      setKeyword(name, redhawk::Value(value));
-    }
-    void eraseKeyword(const std::string& name);
+        /**
+         * @brief  Write complex data to the stream.
+         * @param data  The %read_buffer to write.
+         * @param time  The timestamp of the first sample.
+         */
+        void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time);
 
-    /**
-     * @brief  Returns the internal buffer size.
-     *
-     * A buffer size of 0 indicates that buffering is disabled.
-     */
-    size_t bufferSize() const;
+        /**
+         * @brief  Write complex data to the stream.
+         * @param data  The %read_buffer to write.
+         * @param times  A list of sample timestamps. Sample offsets must be in
+         *               increasing order, starting at 0.
+         *
+         * Writes a buffer of data with multiple timestamps, breaking up the data
+         * into chunks at the SampleTimestamp offsets.
+         */
+        void write(const ComplexBuffer& data, const std::list<bulkio::SampleTimestamp>& times);
 
-    /**
-     * @brief  Sets the internal buffer size.
-     * @param samples  Number of samples to buffer (0 disables buffering).
-     */
-    void setBufferSize(size_t samples);
+        void write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time);
+        void write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
 
-    /**
-     * Send all currently buffered data.
-     */
-    void flush();
+        void write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time);
+        void write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
 
-    template <class T>
-    void write(const std::vector<T>& data, const BULKIO::PrecisionUTCTime& time)
-    {
-      write(&data[0], data.size(), time);
-    }
+        void close();
 
-    template <class T>
-    void write(const std::vector<T>& data, const std::list<bulkio::SampleTimestamp>& times)
-    {
-      write(&data[0], data.size(), times);
-    }
+        bool operator! () const
+        {
+            return !_impl;
+        }
 
-    /**
-     * @brief  Write scalar data to the stream.
-     * @param data  The %read_buffer to write.
-     * @param time  The timestamp of the first sample.
-     */
-    void write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time);
+    private:
+        friend class OutPort<PortTraits>;
+        typedef OutPort<PortTraits> OutPortType;
+        OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
-    /**
-     * @brief  Write scalar data to the stream.
-     * @param data  The %read_buffer to write.
-     * @param times  A list of sample timestamps. Sample offsets must be in
-     *               increasing order, starting at 0.
-     *
-     * Writes a buffer of data with multiple timestamps, breaking up the data
-     * into chunks at the SampleTimestamp offsets.
-     */
-    void write(const ScalarBuffer& data, const std::list<bulkio::SampleTimestamp>& times);
+        boost::shared_ptr<bulkio::StreamDescriptor> getDescriptor();
 
-    /**
-     * @brief  Write complex data to the stream.
-     * @param data  The %read_buffer to write.
-     * @param time  The timestamp of the first sample.
-     */
-    void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time);
+        class Impl;
+        boost::shared_ptr<Impl> _impl;
 
-    /**
-     * @brief  Write complex data to the stream.
-     * @param data  The %read_buffer to write.
-     * @param times  A list of sample timestamps. Sample offsets must be in
-     *               increasing order, starting at 0.
-     *
-     * Writes a buffer of data with multiple timestamps, breaking up the data
-     * into chunks at the SampleTimestamp offsets.
-     */
-    void write(const ComplexBuffer& data, const std::list<bulkio::SampleTimestamp>& times);
+        typedef boost::shared_ptr<Impl> OutputStream::*unspecified_bool_type;
 
-    void write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time);
-    void write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
+    public:
+        operator unspecified_bool_type() const;
+    };
 
-    void write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time);
-    void write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
-
-    void close();
-
-    bool operator! () const
-    {
-      return !_impl;
-    }
-
-  private:
-    friend class OutPort<PortTraits>;
-    typedef OutPort<PortTraits> OutPortType;
-    OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
-
-    boost::shared_ptr<bulkio::StreamDescriptor> getDescriptor();
-
-    class Impl;
-    boost::shared_ptr<Impl> _impl;
-
-    typedef boost::shared_ptr<Impl> OutputStream::*unspecified_bool_type;
-
-  public:
-    operator unspecified_bool_type() const;
-  };
-
-  typedef OutputStream<bulkio::CharPortTraits>      OutCharStream;
-  typedef OutputStream<bulkio::OctetPortTraits>     OutOctetStream;
-  typedef OutputStream<bulkio::ShortPortTraits>     OutShortStream;
-  typedef OutputStream<bulkio::UShortPortTraits>    OutUShortStream;
-  typedef OutputStream<bulkio::LongPortTraits>      OutLongStream;
-  typedef OutputStream<bulkio::ULongPortTraits>     OutULongStream;
-  typedef OutputStream<bulkio::LongLongPortTraits>  OutLongLongStream;
-  typedef OutputStream<bulkio::ULongLongPortTraits> OutULongLongStream;
-  typedef OutputStream<bulkio::FloatPortTraits>     OutFloatStream;
-  typedef OutputStream<bulkio::DoublePortTraits>    OutDoubleStream;
+    typedef OutputStream<bulkio::CharPortTraits>      OutCharStream;
+    typedef OutputStream<bulkio::OctetPortTraits>     OutOctetStream;
+    typedef OutputStream<bulkio::ShortPortTraits>     OutShortStream;
+    typedef OutputStream<bulkio::UShortPortTraits>    OutUShortStream;
+    typedef OutputStream<bulkio::LongPortTraits>      OutLongStream;
+    typedef OutputStream<bulkio::ULongPortTraits>     OutULongStream;
+    typedef OutputStream<bulkio::LongLongPortTraits>  OutLongLongStream;
+    typedef OutputStream<bulkio::ULongLongPortTraits> OutULongLongStream;
+    typedef OutputStream<bulkio::FloatPortTraits>     OutFloatStream;
+    typedef OutputStream<bulkio::DoublePortTraits>    OutDoubleStream;
 
 } // end of bulkio namespace
 
