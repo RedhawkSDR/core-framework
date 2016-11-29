@@ -113,6 +113,11 @@ namespace bulkio {
     typedef typename Traits::NativeType       NativeType;
 
     //
+    // OutputStream class
+    //
+    typedef OutputStream<PortTraits> StreamType;
+
+    //
     // ConnectionList Definition
     //
     typedef typename  bulkio::Connections< PortVarType >::List        ConnectionsList;
@@ -217,6 +222,17 @@ namespace bulkio {
     //
     virtual BULKIO::PortUsageType state();
 
+    typedef std::list<StreamType> StreamList;
+    StreamList getStreams();
+
+    StreamType getStream(const std::string& streamID);
+
+    // Create a new stream based on a stream ID
+    StreamType createStream(const std::string& streamID);
+
+    // Create a new stream based on an SRI instance
+    StreamType createStream(const BULKIO::StreamSRI& sri);
+
     //
     // turn on/off the port monitoring capability
     //
@@ -259,9 +275,6 @@ namespace bulkio {
     OutPortSriMap                            currentSRIs __attribute__ ((deprecated));
 
   protected:
-    typedef std::map<std::string,boost::shared_ptr<StreamDescriptor> > SriTable;
-    SriTable _currentSRIs;
-
     //
     // Lookup table for connections to input ports in the same process space
     //
@@ -274,6 +287,9 @@ namespace bulkio {
                                                       const std::string& connectionId);
 
     typedef redhawk::UsesPort::TransportIteratorAdapter<PortTransportType> TransportIterator;
+
+    typedef std::map<std::string,StreamType> StreamMap;
+    StreamMap streams;
 
     std::vector<connection_descriptor_struct> filterTable;
     boost::shared_ptr< ConnectionEventListener >    _connectCB;
@@ -297,9 +313,7 @@ namespace bulkio {
                      bool EOS,
                      const std::string& streamID);
 
-    boost::shared_ptr<StreamDescriptor> _getStream(const std::string& streamID);
-    virtual boost::shared_ptr<StreamDescriptor> _addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
-    virtual void removeStream(const std::string& streamID);
+    StreamType _getStream(const std::string& streamID);
   };
 
   
@@ -353,11 +367,6 @@ namespace bulkio {
     // Mapping of Stream IDs to SRI Map/Refresh objects
     //
     typedef std::map< std::string, SriMapStruct >                    OutPortSriMap;
-
-    //
-    // OutputStream class
-    //
-    typedef OutputStream<PortTraits> StreamType;
 
     typedef typename Traits::SharedBufferType SharedBufferType;
 
@@ -433,28 +442,12 @@ namespace bulkio {
 
     void pushPacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
-    // Create a new stream based on a stream ID
-    StreamType createStream(const std::string& streamID);
-    // Create a new stream based on an SRI instance
-    StreamType createStream(const BULKIO::StreamSRI& sri);
     using OutPortBase<PortTraits>::currentSRIs;
-
-    StreamType getStream(const std::string& streamID);
-
-    typedef std::list<StreamType> StreamList;
-    StreamList getStreams();
 
   protected:
     using OutPortBase<PortTraits>::logger;
     typedef typename OutPortBase<PortTraits>::PortPtrType PortPtrType;
     typedef typename OutPortBase<PortTraits>::PortTransportType PortTransportType;
-
-    virtual boost::shared_ptr<StreamDescriptor> _addStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
-    virtual void removeStream(const std::string& streamID);
-
-    typedef std::map<std::string,StreamType> StreamMap;
-    StreamMap streams;
-    boost::mutex streamsMutex;
 
     virtual PortTransportType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
   };
@@ -475,9 +468,6 @@ namespace bulkio {
 		LOGGER_PTR logger,
 		ConnectionEventListener *connectCB=NULL,
 		ConnectionEventListener *disconnectCB=NULL );
-
-
-    virtual ~OutCharPort() {};
 
     // Push a vector of Int8 data
     void pushPacket(const std::vector< Int8 >& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
@@ -500,7 +490,8 @@ namespace bulkio {
   // This class defines the pushPacket interface for file URL data.
   //
   //
-  class OutFilePort : public OutPortBase < FilePortTraits > {
+  template <>
+  class OutPort<FilePortTraits> : public OutPortBase<FilePortTraits> {
 
   public:
 
@@ -537,19 +528,15 @@ namespace bulkio {
     typedef Traits::NativeType       NativeType;
 
 
-    OutFilePort( std::string pname, 
-                 ConnectionEventListener *connectCB=NULL,
-                 ConnectionEventListener *disconnectCB=NULL );
+    OutPort(const std::string& name, 
+            ConnectionEventListener *connectCB=NULL,
+            ConnectionEventListener *disconnectCB=NULL );
 
 
-    OutFilePort( std::string port_name, 
-                 LOGGER_PTR logger, 
-                 ConnectionEventListener *connectCB=NULL,
-                 ConnectionEventListener *disconnectCB=NULL );
-
-
-
-    virtual ~OutFilePort() {};
+    OutPort(const std::string& name, 
+            LOGGER_PTR logger, 
+            ConnectionEventListener *connectCB=NULL,
+            ConnectionEventListener *disconnectCB=NULL );
 
     /*
      * pushPacket
@@ -597,7 +584,8 @@ namespace bulkio {
   // This class defines the pushPacket interface for XML data.
   //
   //
-  class OutXMLPort : public OutPortBase < XMLPortTraits > {
+  template <>
+  class OutPort<XMLPortTraits> : public OutPortBase<XMLPortTraits> {
 
   public:
 
@@ -636,19 +624,15 @@ namespace bulkio {
     typedef Traits::NativeType       NativeType;
 
 
-    OutXMLPort( std::string pname, 
-		ConnectionEventListener *connectCB=NULL,
-		ConnectionEventListener *disconnectCB=NULL );
+    OutPort(const std::string& name, 
+            ConnectionEventListener *connectCB=NULL,
+            ConnectionEventListener *disconnectCB=NULL);
 
 
-    OutXMLPort( std::string port_name, 
-                LOGGER_PTR logger, 
-                ConnectionEventListener *connectCB=NULL,
-                ConnectionEventListener *disconnectCB=NULL );
-
-
-
-    virtual ~OutXMLPort() {};
+    OutPort(const std::string& name, 
+            LOGGER_PTR logger, 
+            ConnectionEventListener *connectCB=NULL,
+            ConnectionEventListener *disconnectCB=NULL);
 
     /*
      * DEPRECATED: maps to dataFile BULKIO method call for passing strings of data 
@@ -715,7 +699,10 @@ namespace bulkio {
   // Bulkio double output
   typedef OutPort<  DoublePortTraits >       OutDoublePort;
   // Bulkio URL output
+  typedef OutPort<FilePortTraits> OutFilePort;
   typedef OutFilePort                        OutURLPort;
+  // Bulkio XML output
+  typedef OutPort<XMLPortTraits> OutXMLPort;
 
 }  // end of bulkio namespace
 

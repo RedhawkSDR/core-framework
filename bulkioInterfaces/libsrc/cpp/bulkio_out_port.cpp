@@ -81,17 +81,18 @@ namespace bulkio {
 
       const std::string sid(H.streamID);
       SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
-      boost::shared_ptr<StreamDescriptor> stream;
-      SriTable::iterator existing = _currentSRIs.find(sid);
-      if (existing == _currentSRIs.end()) {
+      StreamType stream;
+      typename StreamMap::iterator existing = streams.find(sid);
+      if (existing == streams.end()) {
           // Insert new SRI
-          stream = _addStream(sid, H);
+          stream = StreamType(H, static_cast<OutPort<PortTraits>*>(this));
+          streams[sid] = stream;
       } else {
           // Overwrite existing SRI
           stream = existing->second;
-          stream->setSRI(H);
+          stream.sri(H);
       }
-      const BULKIO::StreamSRI& sri = stream->sri();
+      const BULKIO::StreamSRI& sri = stream.sri();
 
       if (active) {
           for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
@@ -106,9 +107,9 @@ namespace bulkio {
               }
 
               LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << connection_id << " SRI streamID:"
-                        << stream->streamID() << " Mode:" << sri.mode << " XDELTA:" << 1.0/sri.xdelta);
+                        << stream.streamID() << " Mode:" << sri.mode << " XDELTA:" << 1.0/sri.xdelta);
               try {
-                  port->pushSRI(sid, sri, stream->version());
+                  port->pushSRI(sid, sri, stream.modcount());
               } catch (const redhawk::FatalTransportError& err) {
                   LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
                             << " PORT/CONNECTION: " << name << "/" << connection_id);
@@ -157,16 +158,17 @@ namespace bulkio {
 
 
   template < typename PortTraits >
-  boost::shared_ptr<StreamDescriptor> OutPortBase< PortTraits >::_getStream(const std::string& streamID)
+  typename OutPortBase<PortTraits>::StreamType OutPortBase< PortTraits >::_getStream(const std::string& streamID)
   {
-      SriTable::iterator existing = _currentSRIs.find(streamID);
-      if (existing == _currentSRIs.end()) {
+      typename StreamMap::iterator existing = streams.find(streamID);
+      if (existing == streams.end()) {
           LOG_TRACE(logger, "Creating new stream '" << streamID << "' with default SRI");
 
           // No SRI associated with the stream ID, create a default one and add
           // it to the list; it will get pushed to downstream connections below
-          _currentSRIs[streamID] = _addStream(streamID, bulkio::sri::create(streamID));
-          return _currentSRIs[streamID];
+          StreamType stream(bulkio::sri::create(streamID), static_cast<OutPort<PortTraits>*>(this));
+          streams[streamID] = stream;
+          return stream;
       } else {
           return existing->second;
       }
@@ -184,7 +186,7 @@ namespace bulkio {
     SCOPED_LOCK lock(this->updatingPortsLock);
 
     // grab SRI context 
-    boost::shared_ptr<StreamDescriptor> stream = _getStream(streamID);
+    StreamType stream = _getStream(streamID);
 
     if (active) {
         for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
@@ -203,8 +205,8 @@ namespace bulkio {
             }
 
             try {
-                port->pushSRI(streamID, stream->sri(), stream->version());
-                port->pushPacket(data, T, EOS, streamID, stream->sri());
+                port->pushSRI(streamID, stream.sri(), stream.modcount());
+                port->pushPacket(data, T, EOS, streamID, stream.sri());
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << connection_id);
@@ -215,8 +217,7 @@ namespace bulkio {
 
     // if we have end of stream removed old sri
     if (EOS) {
-      _currentSRIs.erase(streamID);
-      removeStream(streamID);
+      streams.erase(streamID);
     }
   }
 
@@ -300,13 +301,65 @@ namespace bulkio {
   }
   
 
+  template <typename PortTraits>
+  typename OutPortBase<PortTraits>::StreamType OutPortBase<PortTraits>::getStream(const std::string& streamID)
+  {
+      boost::mutex::scoped_lock lock(updatingPortsLock);
+      typename StreamMap::iterator stream = streams.find(streamID);
+      if (stream != streams.end()) {
+          return stream->second;
+      } else {
+          return StreamType();
+      }
+  }
+
+  template <typename PortTraits>
+  typename OutPortBase<PortTraits>::StreamList OutPortBase<PortTraits>::getStreams()
+  {
+      StreamList result;
+      boost::mutex::scoped_lock lock(updatingPortsLock);
+      for (typename StreamMap::const_iterator stream = streams.begin(); stream != streams.end(); ++stream) {
+          result.push_back(stream->second);
+      }
+      return result;
+  }
+
+  template < typename PortTraits >
+  typename OutPortBase< PortTraits >::StreamType OutPortBase< PortTraits >::createStream(const std::string& streamID)
+  {
+    boost::mutex::scoped_lock lock(updatingPortsLock);
+    typename StreamMap::iterator existing = streams.find(streamID);
+    if (existing != streams.end()) {
+      return existing->second;
+    }
+    StreamType stream(bulkio::sri::create(streamID), static_cast<OutPort<PortTraits>*>(this));
+    streams[streamID] = stream;
+    return stream;
+  }
+
+  template < typename PortTraits >
+  typename OutPortBase< PortTraits >::StreamType OutPortBase< PortTraits >::createStream(const BULKIO::StreamSRI& sri)
+  {
+    boost::mutex::scoped_lock lock(updatingPortsLock);
+    const std::string streamID(sri.streamID);
+    typename StreamMap::iterator existing = streams.find(streamID);
+    if (existing != streams.end()) {
+      // Update the stream's SRI from the argument
+      existing->second.sri(sri);
+      return existing->second;
+    }
+    StreamType stream(sri, static_cast<OutPort<PortTraits>*>(this));
+    streams[streamID] = stream;
+    return stream;
+  }
+
   template < typename PortTraits >
   bulkio::SriMap  OutPortBase< PortTraits >::getCurrentSRI()
   {
     bulkio::SriMap ret;
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
-    for (SriTable::iterator cSri = _currentSRIs.begin() ; cSri != _currentSRIs.end(); ++cSri) {
-        ret[cSri->first] = std::make_pair(cSri->second->sri(), false);
+    for (typename StreamMap::iterator stream = streams.begin() ; stream != streams.end(); ++stream) {
+        ret[stream->first] = std::make_pair(stream->second.sri(), false);
     }
     return ret;
   }
@@ -316,8 +369,8 @@ namespace bulkio {
   {
     bulkio::SriList ret;
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
-    for (SriTable::iterator cSri = _currentSRIs.begin() ; cSri != _currentSRIs.end(); ++cSri) {
-        ret.push_back(cSri->second->sri());
+    for (typename StreamMap::iterator stream = streams.begin() ; stream != streams.end(); ++stream) {
+        ret.push_back(stream->second.sri());
     }
     return ret;
   }
@@ -366,17 +419,6 @@ namespace bulkio {
   std::string   OutPortBase< PortTraits >::getRepid() const {
 	return PortType::_PD_repoId;
     //return "IDL:CORBA/Object:1.0";
-  }
-
-  template < typename PortTraits >
-  boost::shared_ptr<StreamDescriptor> OutPortBase< PortTraits >::_addStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
-  {
-      return boost::make_shared<StreamDescriptor>(sri);
-  }
-
-  template < typename PortTraits >
-  void OutPortBase< PortTraits >::removeStream(const std::string& streamID)
-  {
   }
 
   /*
@@ -459,80 +501,6 @@ namespace bulkio {
     this->_sendPacket(data, T, EOS, streamID);
   }
 
-  template < typename PortTraits >
-  typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::createStream(const std::string& streamID)
-  {
-    boost::mutex::scoped_lock lock(streamsMutex);
-    typename StreamMap::iterator existing = streams.find(streamID);
-    if (existing != streams.end()) {
-      return existing->second;
-    }
-    StreamType stream(bulkio::sri::create(streamID), this);
-    streams[streamID] = stream;
-    return stream;
-  }
-
-  template < typename PortTraits >
-  typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::createStream(const BULKIO::StreamSRI& sri)
-  {
-    boost::mutex::scoped_lock lock(streamsMutex);
-    const std::string streamID(sri.streamID);
-    typename StreamMap::iterator existing = streams.find(streamID);
-    if (existing != streams.end()) {
-      // Update the stream's SRI from the argument
-      existing->second.sri(sri);
-      return existing->second;
-    }
-    StreamType stream(sri, this);
-    streams[streamID] = stream;
-    return stream;
-  }
-
-  template < typename PortTraits >
-  typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::getStream(const std::string& streamID)
-  {
-    boost::mutex::scoped_lock lock(streamsMutex);
-    typename StreamMap::iterator stream = streams.find(streamID);
-    if (stream != streams.end()) {
-      return stream->second;
-    } else {
-      return StreamType();
-    }
-  }
-
-  template < typename PortTraits >
-  typename OutPort< PortTraits >::StreamList OutPort< PortTraits >::getStreams()
-  {
-    StreamList result;
-    boost::mutex::scoped_lock lock(streamsMutex);
-    for (typename StreamMap::const_iterator stream = streams.begin(); stream != streams.end(); ++stream) {
-      result.push_back(stream->second);
-    }
-    return result;
-  }
-
-  template < typename PortTraits >
-  boost::shared_ptr<StreamDescriptor> OutPort< PortTraits >::_addStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
-  {
-    boost::mutex::scoped_lock lock(streamsMutex);
-    typename StreamMap::iterator existing = streams.find(streamID);
-    if (existing == streams.end()) {
-        // Only create a new stream if one doesn't already exist; when a stream
-        // is created via createStream (the preferred method), its first call
-        // to pushSRI will end up calling this method
-        existing = streams.insert(std::make_pair(streamID, StreamType(sri, this))).first;
-    }
-    return existing->second.getDescriptor();
-  }
-
-  template < typename PortTraits >
-  void OutPort< PortTraits >::removeStream(const std::string& streamID)
-  {
-    boost::mutex::scoped_lock lock(streamsMutex);
-    streams.erase(streamID);
-  }
-
-
   OutCharPort::OutCharPort( std::string name,
                             ConnectionEventListener *connectCB,
                             ConnectionEventListener *disconnectCB ):
@@ -577,31 +545,29 @@ namespace bulkio {
   }
 
 
-  OutFilePort::OutFilePort ( std::string name,
-                             ConnectionEventListener *connectCB,
-                             ConnectionEventListener *disconnectCB ) :
-    OutPortBase < FilePortTraits >(name, LOGGER_PTR(), connectCB, disconnectCB )
+  OutPort<FilePortTraits>::OutPort (const std::string& name,
+                                    ConnectionEventListener *connectCB,
+                                    ConnectionEventListener *disconnectCB) :
+    OutPortBase <FilePortTraits>(name, LOGGER_PTR(), connectCB, disconnectCB)
   {
-
   }
 
 
-  OutFilePort::OutFilePort( std::string name,
-                            LOGGER_PTR logger,
-                            ConnectionEventListener *connectCB,
-                            ConnectionEventListener *disconnectCB ) :
-    OutPortBase < FilePortTraits >(name,logger,connectCB, disconnectCB )
+  OutPort<FilePortTraits>::OutPort (const std::string& name,
+                                    LOGGER_PTR logger,
+                                    ConnectionEventListener *connectCB,
+                                    ConnectionEventListener *disconnectCB) :
+    OutPortBase<FilePortTraits>(name,logger, connectCB, disconnectCB)
   {
-
   }
 
 
-  void OutFilePort::pushPacket(const std::string& URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
+  void OutPort<FilePortTraits>::pushPacket(const std::string& URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
     _sendPacket(URL, T, EOS, streamID);
   }
 
-  void OutFilePort::pushPacket(const char* URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
+  void OutPort<FilePortTraits>::pushPacket(const char* URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
     std::string url_out;
     if (URL) {
@@ -610,32 +576,30 @@ namespace bulkio {
     this->pushPacket(url_out, T, EOS, streamID);
   }
 
-  void OutFilePort::pushPacket(const char *data, bool EOS, const std::string& streamID)
+  void OutPort<FilePortTraits>::pushPacket(const char *data, bool EOS, const std::string& streamID)
   {
     this->pushPacket(data, bulkio::time::utils::now(), EOS, streamID);
   }
 
 
-  OutXMLPort::OutXMLPort ( std::string name,
-                             ConnectionEventListener *connectCB,
-                             ConnectionEventListener *disconnectCB ) :
-    OutPortBase < XMLPortTraits >(name, LOGGER_PTR(), connectCB, disconnectCB )
+  OutPort<XMLPortTraits>::OutPort (const std::string& name,
+                                   ConnectionEventListener *connectCB,
+                                   ConnectionEventListener *disconnectCB) :
+    OutPortBase<XMLPortTraits>(name, LOGGER_PTR(), connectCB, disconnectCB)
   {
-
   }
 
 
-  OutXMLPort::OutXMLPort( std::string name,
-                            LOGGER_PTR logger,
-                            ConnectionEventListener *connectCB,
-                            ConnectionEventListener *disconnectCB ) :
-    OutPortBase < XMLPortTraits >(name,logger,connectCB, disconnectCB )
+  OutPort<XMLPortTraits>::OutPort(const std::string& name,
+                                  LOGGER_PTR logger,
+                                  ConnectionEventListener *connectCB,
+                                  ConnectionEventListener *disconnectCB) :
+    OutPortBase<XMLPortTraits>(name,logger,connectCB, disconnectCB)
   {
-
   }
 
 
-  void OutXMLPort::pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
+  void OutPort<XMLPortTraits>::pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
     std::string data_out;
     if (data) {
@@ -645,7 +609,7 @@ namespace bulkio {
   }
 
 
-  void OutXMLPort::pushPacket(const std::string& data, bool EOS, const std::string& streamID)
+  void OutPort<XMLPortTraits>::pushPacket(const std::string& data, bool EOS, const std::string& streamID)
   {
     // The time argument is never dereferenced for dataXML, so it is safe to
     // pass a null
@@ -653,7 +617,7 @@ namespace bulkio {
     _sendPacket(data, *time, EOS, streamID);
   }
 
-  void OutXMLPort::pushPacket(const char* data, bool EOS, const std::string& streamID)
+  void OutPort<XMLPortTraits>::pushPacket(const char* data, bool EOS, const std::string& streamID)
   {
     std::string data_out;
     if (data) {

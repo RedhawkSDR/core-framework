@@ -160,6 +160,11 @@ namespace bulkio {
             return !_impl;
         }
 
+        int modcount() const
+        {
+            return _impl->version();
+        }
+
     protected:
         class Impl;
 

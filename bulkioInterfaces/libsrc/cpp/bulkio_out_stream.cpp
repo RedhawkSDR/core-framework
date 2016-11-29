@@ -284,7 +284,7 @@ using bulkio::XMLPortTraits;
 
 class OutputStream<XMLPortTraits>::Impl : public bulkio::StreamBase::Impl {
 public:
-    Impl(const BULKIO::StreamSRI& sri, OutXMLPort* port) :
+    Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
         bulkio::StreamBase::Impl(sri),
         _port(port)
     {
@@ -307,7 +307,7 @@ private:
         _port->pushPacket(data, true, _streamID);
     }
 
-    OutXMLPort* _port;
+    OutPortType* _port;
 };
 
 OutputStream<XMLPortTraits>::OutputStream() :
@@ -315,7 +315,7 @@ OutputStream<XMLPortTraits>::OutputStream() :
 {
 }
 
-OutputStream<XMLPortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutXMLPort* port) :
+OutputStream<XMLPortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
     StreamBase(boost::make_shared<OutputStream::Impl>(sri, port))
 {
 }
@@ -342,7 +342,7 @@ using bulkio::FilePortTraits;
 
 class OutputStream<FilePortTraits>::Impl : public bulkio::StreamBase::Impl {
 public:
-    Impl(const BULKIO::StreamSRI& sri, OutFilePort* port) :
+    Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
         bulkio::StreamBase::Impl(sri),
         _port(port)
     {
@@ -366,7 +366,7 @@ private:
         _port->pushPacket(data, time, true, _streamID);
     }
 
-    OutFilePort* _port;
+    OutPortType* _port;
 };
 
 OutputStream<FilePortTraits>::OutputStream() :
@@ -374,7 +374,7 @@ OutputStream<FilePortTraits>::OutputStream() :
 {
 }
 
-OutputStream<FilePortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutFilePort* port) :
+OutputStream<FilePortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
     StreamBase(boost::make_shared<OutputStream::Impl>(sri, port))
 {
 }
