@@ -74,13 +74,13 @@ namespace bulkio {
             return !_impl;
         }
 
-        int modcount() const;
-
     protected:
         class Impl;
 
         OutputStreamBase();
         OutputStreamBase(boost::shared_ptr<Impl> impl);
+
+        int modcount() const;
 
         boost::shared_ptr<Impl> _impl;
     };
