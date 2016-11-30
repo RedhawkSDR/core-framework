@@ -38,10 +38,6 @@ public:
     {
     }
 
-    virtual void flush()
-    {
-    }
-
     virtual void close()
     {
     }
@@ -73,29 +69,28 @@ public:
 
     void setKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& properties)
     {
+        _modifyingStreamMetadata();
         _sri.keywords = properties;
         ++_modcount;
     }
 
     void setKeyword(const std::string& name, const CORBA::Any& value)
     {
+        _modifyingStreamMetadata();
         redhawk::PropertyMap::cast(_sri.keywords)[name] = value;
         ++_modcount;
     }
 
-    void setKeyword(const std::string& name, const redhawk::Value& value)
-    {
-        setKeyword(name, static_cast<const CORBA::Any&>(value));
-    }
-
     void eraseKeyword(const std::string& name)
     {
+        _modifyingStreamMetadata();
         redhawk::PropertyMap::cast(_sri.keywords).erase(name);
         ++_modcount;
     }
 
     void setSRI(const BULKIO::StreamSRI& sri)
     {
+        _modifyingStreamMetadata();
         // Copy the new SRI, except for the stream ID, which is immutable
         _sri = sri;
         _sri.streamID = _streamID.c_str();
@@ -108,10 +103,16 @@ public:
     }
 
 protected:
+    virtual void _modifyingStreamMetadata()
+    {
+        // By default, do nothing
+    }
+
     template <typename Field, typename Value>
     void _setStreamMetadata(Field& field, Value value)
     {
         if (field != value) {
+            _modifyingStreamMetadata();
             field = value;
             ++_modcount;
         }
@@ -144,7 +145,6 @@ const BULKIO::StreamSRI& OutputStreamBase::sri() const
 
 void OutputStreamBase::sri(const BULKIO::StreamSRI& sri)
 {
-    _impl->flush();
     _impl->setSRI(sri);
 }
 
@@ -155,7 +155,6 @@ double OutputStreamBase::xdelta() const
 
 void OutputStreamBase::xdelta(double delta)
 {
-    _impl->flush();
     _impl->setXDelta(delta);
 }
 
@@ -166,7 +165,6 @@ bool OutputStreamBase::complex() const
 
 void OutputStreamBase::complex(bool mode)
 {
-    _impl->flush();
     _impl->setComplex(mode);
 }
 
@@ -177,7 +175,6 @@ bool OutputStreamBase::blocking() const
 
 void OutputStreamBase::blocking(bool mode)
 {
-    _impl->flush();
     _impl->setBlocking(mode);
 }
 
@@ -198,25 +195,21 @@ const redhawk::Value& OutputStreamBase::getKeyword(const std::string& name) cons
 
 void OutputStreamBase::keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props)
 {
-    _impl->flush();
     _impl->setKeywords(props);
 }
 
 void OutputStreamBase::setKeyword(const std::string& name, const CORBA::Any& value)
 {
-    _impl->flush();
     _impl->setKeyword(name, value);
 }
 
 void OutputStreamBase::setKeyword(const std::string& name, const redhawk::Value& value)
 {
-    _impl->flush();
     _impl->setKeyword(name, value);
 }
 
 void OutputStreamBase::eraseKeyword(const std::string& name)
 {
-    _impl->flush();
     _impl->eraseKeyword(name);
 }
 
@@ -343,6 +336,12 @@ private:
   void _send(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time, bool eos)
   {
     _port->_sendPacket(data, time, eos, _streamID);
+  }
+
+  virtual void _modifyingStreamMetadata()
+  {
+    // Flush any data queued with the old SRI
+    flush();
   }
 
   void _flush(bool eos)
