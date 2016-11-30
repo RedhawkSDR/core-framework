@@ -270,7 +270,7 @@ void GPP_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "configure,property");
 
     addProperty(available_nic_interfaces,
                 "available_nic_interfaces",
