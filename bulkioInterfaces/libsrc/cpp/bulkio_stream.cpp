@@ -20,40 +20,40 @@ void StreamBase::sri(const BULKIO::StreamSRI& sri)
 
 double StreamBase::xdelta() const
 {
-    return _impl->xdelta();
+    return sri().xdelta;
 }
 
 void StreamBase::xdelta(double delta)
 {
     _impl->flush();
-    _impl->xdelta(delta);
+    _impl->setXDelta(delta);
 }
 
 bool StreamBase::complex() const
 {
-    return _impl->complex();
+    return (sri().mode != 0);
 }
 
 void StreamBase::complex(bool mode)
 {
     _impl->flush();
-    _impl->complex(mode);
+    _impl->setComplex(mode);
 }
 
 bool StreamBase::blocking() const
 {
-    return _impl->sri().blocking;
+    return sri().blocking;
 }
 
 void StreamBase::blocking(bool mode)
 {
     _impl->flush();
-    _impl->blocking(mode);
+    _impl->setBlocking(mode);
 }
 
 const redhawk::PropertyMap& StreamBase::keywords() const
 {
-    return _impl->keywords();
+    return redhawk::PropertyMap::cast(sri().keywords);
 }
 
 bool StreamBase::hasKeyword(const std::string& name) const
@@ -69,7 +69,7 @@ const redhawk::Value& StreamBase::getKeyword(const std::string& name) const
 void StreamBase::keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props)
 {
     _impl->flush();
-    _impl->keywords(props);
+    _impl->setKeywords(props);
 }
 
 void StreamBase::setKeyword(const std::string& name, const CORBA::Any& value)
