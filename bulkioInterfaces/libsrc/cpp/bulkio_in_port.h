@@ -37,14 +37,14 @@
 namespace bulkio {
 
   //
-  //  InPortBase
+  //  InPort
   //  Base template for data transfers between BULKIO ports.  This class is defined by 2 trait classes
   //    DataTransferTraits:  This template trait defines the DataTranfer object that is returned by the getPacket method
   //    PortTraits - This template provides the context for the port's middleware transport classes and they base data types
   //                 passed between port objects
   //
   template < typename PortTraits >
-  class InPortBase : public PortTraits::POAPortType, public Port_Provides_base_impl
+  class InPort : public PortTraits::POAPortType, public Port_Provides_base_impl
   {
 
   public:
@@ -67,11 +67,17 @@ namespace bulkio {
     typedef DataTransfer< typename Traits::DataTransferTraits > DataTransferType;
 
     typedef typename Traits::SharedBufferType SharedBufferType;
+    
+    // Input stream interface used by this port
+    typedef InputStream<PortTraits> StreamType;
+
+    // List type for input streams provided by this port
+    typedef std::list<StreamType> StreamList;
 
     //
-    // ~InPortBase - call the virtual destructor to remove all allocated memebers
+    // ~InPort - call the virtual destructor to remove all allocated memebers
     //
-    virtual ~InPortBase();
+    virtual ~InPort();
 
     /*
      * getPacket - interface used by components to grab data from the port's internal queue object for processing.  The timeout parameter allows
@@ -200,7 +206,25 @@ namespace bulkio {
      * @return bool returns state of breakBlock variable used to release any upstream blocking pushPacket calls
      */
     virtual bool blocked();
-    
+
+    template <class Target, class Func>
+    void addStreamListener(Target target, Func func) {
+      streamAdded.add(target, func);
+    }
+
+    template <class Target, class Func>
+    void removeStreamListener(Target target, Func func) {
+      streamAdded.remove(target, func);
+    }
+
+    // Returns the stream that should be used for the next basic read
+    StreamType getCurrentStream(float timeout=bulkio::Const::BLOCKING);
+
+    // Returns the current stream with the given stream ID, if available
+    StreamType getStream(const std::string& streamID);
+
+    StreamList getStreams();
+
     /*
      * Assign a callback for notification when a new SRI StreamId is received
      */
@@ -226,13 +250,13 @@ namespace bulkio {
 
   protected:
     //
-    // InPortBase  - creates a provides port that can accept data vectors from a source
+    // InPort  - creates a provides port that can accept data vectors from a source
     //
     // @param port_name  name of the port taken from .scd.xml file
     // @param sriCmp comparator function that accepts to StreamSRI objects and compares their contents,
     //                       if all members match then return true, otherwise false.  This is used during the pushSRI method
     // @param newStreamCB interface that is called when new SRI.streamID is received
-    InPortBase(std::string port_name, 
+    InPort(std::string port_name, 
                LOGGER_PTR   logger,
                bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
                SriListener *newStreamCB = NULL );
@@ -316,6 +340,22 @@ namespace bulkio {
     redhawk::signal<std::string> packetWaiters;
 
     //
+    // Notification for new stream creation
+    //
+    ossie::notification<void (StreamType)> streamAdded;
+
+    //
+    // Streams that are currently active
+    //
+    typedef std::map<std::string,StreamType> StreamMap;
+    StreamMap streams;
+    boost::mutex streamsMutex;
+
+    // Streams that have the same stream ID as an active stream, when an
+    // end-of-stream has been queued but not yet read 
+    std::multimap<std::string,StreamType> pendingStreams;
+
+    //
     // Queues a packet received via pushPacket; in most cases, this method maps
     // exactly to pushPacket, except for dataFile
     //
@@ -333,8 +373,6 @@ namespace bulkio {
     //
     Packet* peekPacket(float timeout, boost::unique_lock<boost::mutex>& lock);
 
-    virtual void createStream(const std::string& streamID, const boost::shared_ptr<BULKIO::StreamSRI>& sri);
-
     Packet* fetchPacket(const std::string& streamID);
 
     // Discard currently queued packets for the given stream ID, up to the
@@ -343,6 +381,12 @@ namespace bulkio {
 
     friend class InputStream<PortTraits>;
     size_t samplesAvailable(const std::string& streamID, bool firstPacket);
+
+    void createStream(const std::string& streamID, const boost::shared_ptr<BULKIO::StreamSRI>& sri);
+    void removeStream(const std::string& streamID);
+
+    bool isStreamActive(const std::string& streamID);
+    bool isStreamEnabled(const std::string& streamID);
 
     //
     // Returns the total number of elements of data in a pushPacket call, for
@@ -353,7 +397,7 @@ namespace bulkio {
   };
 
   template < typename PortTraits >
-  class InPort : public InPortBase<PortTraits>
+  class InNumericPort : public InPort<PortTraits>
   {
   public:
     typedef PortTraits  Traits;
@@ -385,29 +429,27 @@ namespace bulkio {
     // backwards compatible definition
     typedef DataTransferType dataTransfer;
 
-    // Input stream interface used by this port
-    typedef InputStream<PortTraits> StreamType;
+    typedef typename InPort<PortTraits>::StreamType StreamType;
 
-    // List type for input streams provided by this port
-    typedef std::list<StreamType> StreamList;
+    typedef typename InPort<PortTraits>::StreamList StreamList;
 
     //
-    // InPort - creates a provides port that can accept data vectors from a source
+    // InNumericPort - creates a provides port that can accept data vectors from a source
     //
     // @param port_name  name of the port taken from .scd.xml file
     // @param sriCmp comparator function that accepts to StreamSRI objects and compares their contents,
     //                       if all members match then return true, otherwise false.  This is used during the pushSRI method
     // @param newStreamCB interface that is called when new SRI.streamID is received
-    InPort(std::string port_name, 
-               LOGGER_PTR   logger,
-               bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
-               SriListener *newStreamCB = NULL );
+    InNumericPort(std::string port_name, 
+                  LOGGER_PTR logger,
+                  bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
+                  SriListener *newStreamCB = NULL);
 
-    InPort(std::string port_name, 
-           bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
-           SriListener *newStreamCB = NULL );
+    InNumericPort(std::string port_name, 
+                  bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
+                  SriListener *newStreamCB = NULL);
        
-    InPort(std::string port_name, void *);
+    InNumericPort(std::string port_name, void *);
 
     //
     // pushPacket called by the source component when pushing a vector of data into a component.  This method will save off the data
@@ -426,64 +468,20 @@ namespace bulkio {
     // Stream-based input API
     //
 
-    // Returns the stream that should be used for the next basic read
-    StreamType getCurrentStream(float timeout=bulkio::Const::BLOCKING);
-
-    // Returns the current stream with the given stream ID, if available
-    StreamType getStream(const std::string& streamID);
-
-    StreamList getStreams();
-
     StreamList pollStreams(float timeout);
     StreamList pollStreams(StreamList& pollset, float timeout);
 
     StreamList pollStreams(size_t samples, float timeout);
     StreamList pollStreams(StreamList& pollset, size_t samples, float timeout);
 
-    template <class Target, class Func>
-    void addStreamListener(Target target, Func func) {
-      streamAdded.add(target, func);
-    }
-
-    template <class Target, class Func>
-    void removeStreamListener(Target target, Func func) {
-      streamAdded.remove(target, func);
-    }
-
   protected:
-    typedef InPortBase<PortTraits> super;
+    typedef InPort<PortTraits> super;
     using super::packetWaiters;
     using super::logger;
+    typedef typename super::StreamMap StreamMap;
+    using super::streams;
+    using super::streamsMutex;
     typedef typename super::Packet Packet;
-
-    // Allow the input stream type friend access so it can call removeStream()
-    // when it acknowledges an end-of-stream
-    friend class InputStream<PortTraits>;
-
-    //
-    // Notification for new stream creation
-    //
-    ossie::notification<void (StreamType)> streamAdded;
-
-    //
-    // Streams that are currently active
-    //
-    typedef std::map<std::string,StreamType> StreamMap;
-    StreamMap streams;
-    boost::mutex streamsMutex;
-
-    // Streams that have the same stream ID as an active stream, when an
-    // end-of-stream has been queued but not yet read 
-    std::multimap<std::string,StreamType> pendingStreams;
-
-    // Override of base class queuePacket to add stream-related behavior
-    void queuePacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
-
-    virtual void createStream(const std::string& streamID, const boost::shared_ptr<BULKIO::StreamSRI>& sri);
-    void removeStream(const std::string& streamID);
-
-    bool isStreamActive(const std::string& streamID);
-    bool isStreamEnabled(const std::string& streamID);
 
     StreamList getReadyStreams(size_t samples);
   };
@@ -500,10 +498,10 @@ namespace bulkio {
   //
 
 
-  class InFilePort : public InPortBase<FilePortTraits>
+  class InFilePort : public InPort<FilePortTraits>
   {
   public:
-    typedef InPortBase<FilePortTraits>::DataTransferType DataTransferType;
+    typedef InPort<FilePortTraits>::DataTransferType DataTransferType;
     typedef DataTransferType dataTransfer;
 
     //
@@ -540,10 +538,10 @@ namespace bulkio {
   };
 
 
-  class InXMLPort : public InPortBase<XMLPortTraits>
+  class InXMLPort : public InPort<XMLPortTraits>
   {
   public:
-    typedef InPortBase<XMLPortTraits>::DataTransferType DataTransferType;
+    typedef InPort<XMLPortTraits>::DataTransferType DataTransferType;
     typedef DataTransferType dataTransfer;
 
     InXMLPort(std::string port_name, LOGGER_PTR logger,
@@ -577,41 +575,41 @@ namespace bulkio {
      *
      */
   // Bulkio char (Int8) input
-  typedef InPort< CharPortTraits >                 InCharPort;
+  typedef InNumericPort<CharPortTraits>      InCharPort;
   // Bulkio octet (UInt8) input
-  typedef InPort< OctetPortTraits >                InOctetPort;
+  typedef InNumericPort<OctetPortTraits>     InOctetPort;
   // Bulkio Int8 input
-  typedef InCharPort                               InInt8Port;
+  typedef InCharPort                         InInt8Port;
   // Bulkio UInt8 input
-  typedef InOctetPort                              InUInt8Port;
+  typedef InOctetPort                        InUInt8Port;
   // Bulkio short (Int16) input
-  typedef InPort< ShortPortTraits >                InShortPort;
+  typedef InNumericPort<ShortPortTraits>     InShortPort;
   // Bulkio unsigned short (UInt16) input
-  typedef InPort< UShortPortTraits >               InUShortPort;
+  typedef InNumericPort<UShortPortTraits>    InUShortPort;
   // Bulkio Int16 input
-  typedef InShortPort                              InInt16Port;
+  typedef InShortPort                        InInt16Port;
   // Bulkio UInt16 input
-  typedef InUShortPort                             InUInt16Port;
+  typedef InUShortPort                       InUInt16Port;
   // Bulkio long (Int32) input
-  typedef InPort< LongPortTraits >                 InLongPort;
+  typedef InNumericPort<LongPortTraits>      InLongPort;
   // Bulkio unsigned long (UInt32) input
-  typedef InPort< ULongPortTraits >                InULongPort;
+  typedef InNumericPort<ULongPortTraits>     InULongPort;
   // Bulkio Int32 input
-  typedef InLongPort                               InInt32Port;
+  typedef InLongPort                         InInt32Port;
   // Bulkio UInt32 input
-  typedef InULongPort                              InUInt32Port;
+  typedef InULongPort                        InUInt32Port;
   // Bulkio long long (Int64) input
-  typedef InPort< LongLongPortTraits >             InLongLongPort;
+  typedef InNumericPort<LongLongPortTraits>  InLongLongPort;
   // Bulkio unsigned long long (UInt64) input
-  typedef InPort< ULongLongPortTraits >            InULongLongPort;
+  typedef InNumericPort<ULongLongPortTraits> InULongLongPort;
   // Bulkio Int64 input
-  typedef InLongLongPort                           InInt64Port;
+  typedef InLongLongPort                     InInt64Port;
   // Bulkio UInt64 input
-  typedef InULongLongPort                          InUInt64Port;
+  typedef InULongLongPort                    InUInt64Port;
   // Bulkio float input
-  typedef InPort< FloatPortTraits >                InFloatPort;
+  typedef InNumericPort<FloatPortTraits>     InFloatPort;
   // Bulkio double input
-  typedef InPort< DoublePortTraits >               InDoublePort;
+  typedef InNumericPort<DoublePortTraits>    InDoublePort;
   // Maintained for backwards compatibility
   typedef InFilePort InURLPort;
 

@@ -39,14 +39,14 @@
 
 namespace bulkio {
 
-  template <typename PortTraits> class InPort;
+  template <typename PortTraits> class InNumericPort;
   class InFilePort;
   class InXMLPort;
 
   template <typename PortTraits>
   struct LocalTraits
   {
-    typedef InPort<PortTraits> InPortType;
+    typedef InNumericPort<PortTraits> InPortType;
   };
 
   template <>
