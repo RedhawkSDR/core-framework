@@ -795,8 +795,9 @@ GPP_i::initializeResourceMonitors()
                                                                     *(system_monitor->getCpuStats()), false )));
 
   // add available memory monitor, mem_free defaults to MB
-  addThresholdMonitor( ThresholdMonitorPtr( new FreeMemoryThresholdMonitor(_identifier, MakeCref<CORBA::LongLong, float>(modified_thresholds.mem_free),
-                                                                           ConversionWrapper<CORBA::LongLong, float>(memCapacity, mem_cap_units, std::multiplies<float>() ) )));
+  addThresholdMonitor( ThresholdMonitorPtr( new FreeMemoryThresholdMonitor(_identifier,
+                      MakeCref<CORBA::LongLong, float>(modified_thresholds.mem_free),
+                      ConversionWrapper<CORBA::LongLong, int64_t>(memCapacity, mem_cap_units, std::multiplies<int64_t>() ) )));
 }
 
 void
@@ -898,9 +899,11 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   // memory capacity tracking attributes
   //
   memInitVirtFree=rpt.virtual_memory_free;  // assume current state to be total available
-  memInitCapacityPercent  =  double( memInitVirtFree - (thresholds.mem_free*thresh_mem_free_units) )/ (double)memInitVirtFree;
-  memFree =  memInitVirtFree / mem_free_units;
-  memCapacity = ((int64_t)( memInitVirtFree * memInitCapacityPercent)) / mem_cap_units ;
+  int64_t init_mem_free = (int64_t) memInitVirtFree;
+  memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(thresholds.mem_free*thresh_mem_free_units) )/ (double)init_mem_free;
+  if ( memInitCapacityPercent < 0.0 )  memInitCapacityPercent = 100.0;
+  memFree =  init_mem_free / mem_free_units;
+  memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent)) / mem_cap_units ;
   memCapacityThreshold = memCapacity;
 
   //
@@ -966,8 +969,11 @@ void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_str
     if ( ov->mem_free != nv->mem_free ) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov->mem_free << "/" << nv->mem_free );
         WriteLock wlock(pidLock);
-        memInitCapacityPercent  =  double( memInitVirtFree - (nv->mem_free*thresh_mem_free_units) )/ (double)memInitVirtFree;
-        memCapacity = ((int64_t)( memInitVirtFree * memInitCapacityPercent)) / mem_cap_units ;
+	int64_t init_mem_free = (int64_t) memInitVirtFree;
+        // type cast required for correct calc on 32bit os
+        memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(nv->mem_free*thresh_mem_free_units) )/ (double) init_mem_free;
+        if ( memInitCapacityPercent < 0.0 )  memInitCapacityPercent = 100.0;
+        memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent) ) / mem_cap_units ;
         memCapacityThreshold = memCapacity;
         modified_thresholds.mem_free = nv->mem_free*thresh_mem_free_units;
     }
@@ -1512,7 +1518,7 @@ void GPP_i::updateUsageState()
   double sys_idle = system_monitor->get_idle_percent();
   double sys_idle_avg = system_monitor->get_idle_average();
   double sys_load = system_monitor->get_loadavg();
-  uint64_t mem_free = system_monitor->get_mem_free();
+  int64_t mem_free = system_monitor->get_mem_free();
   
   // get reservation state
   double max_allowable_load =  utilization[0].maximum;
@@ -1550,7 +1556,7 @@ void GPP_i::updateUsageState()
     }
   }
 
-  if ( mem_free < (unsigned long)modified_thresholds.mem_free) {
+  if ( mem_free < modified_thresholds.mem_free) {
         std::ostringstream oss;
         oss << "Threshold: " <<  modified_thresholds.mem_free << " Actual: " << mem_free;
         _setReason( "FREE MEMORY", oss.str() );

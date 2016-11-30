@@ -174,7 +174,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         return
 
         
-    def runGPP(self, execparam_overrides={}, initialize=True):
+    def runGPP(self, execparam_overrides={}, initialize=True, configure={}):
         #######################################################################
         # Launch the component with the default execparams
         execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
@@ -183,7 +183,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
         #execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
         #self.launch(execparams, debugger='valgrind')
-        self.launch(execparams, initialize=initialize )
+        self.launch(execparams, initialize=initialize,configure=configure )
         
         #######################################################################
         # Verify the basic state of the component
@@ -725,9 +725,31 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertTrue('sys_limits::current_open_files')
         self.assertTrue('sys_limits::max_open_files')
 
+    def get_single_nic_interface(self):
+        import commands
+        (exitstatus, ifconfig_info) = commands.getstatusoutput('/sbin/ifconfig -a')
+        if exitstatus != 0:
+            self._log.debug("Proplem running '/sbin/ifconfig'")
+            return
+
+        self.nic_list = []
+        # add vlans
+        for i in ifconfig_info.splitlines():
+            i = i.strip()
+            if i.startswith('e') == False or i.find('Link encap') < 0:
+                continue
+
+            if len(i.split()) > 0  :
+               self.nic_list.append( i.split()[0] )
+
+
     def test_threshold_usagestate(self):
 
-        self.runGPP()
+        self.get_single_nic_interface()
+        if len(self.nic_list)> 1:
+            self.runGPP(configure={'nic_interfaces' : [ self.nic_list[0] ]})
+        else:
+            self.runGPP()
 
         # set cpu to be 100.00 ... the check busy state..
         orig_thres = self.comp.thresholds.cpu_idle.queryValue()
