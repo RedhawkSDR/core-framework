@@ -40,7 +40,6 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/bulkio_in_stream.cpp \
     cpp/bulkio_out_port.cpp \
     cpp/bulkio_out_stream.cpp \
-    cpp/bulkio_stream.cpp \
 	cpp/bulkio_attachable_port.cpp \
     cpp/bulkio_sri_helpers.cpp \
     cpp/bulkio_time_helpers.cpp \
@@ -60,7 +59,6 @@ library_include_HEADERS = cpp/bulkio.h \
 	cpp/bulkio_in_stream.h \
 	cpp/bulkio_out_port.h \
 	cpp/bulkio_out_stream.h \
-	cpp/bulkio_stream.h \
 	cpp/bulkio_attachable_base.h \
 	cpp/bulkio_time_operators.h \
 	cpp/bulkio_datablock.h \

@@ -31,15 +31,62 @@
 
 #include "bulkio_traits.h"
 #include "bulkio_datablock.h"
-#include "bulkio_stream.h"
 
 namespace bulkio {
 
     template <class PortTraits>
     class OutPortBase;
 
+    class OutputStreamBase {
+    public:
+        const std::string& streamID() const;
+
+        const BULKIO::StreamSRI& sri() const;
+        void sri(const BULKIO::StreamSRI& sri);
+
+        double xdelta() const;
+        void xdelta(double xdelta);
+
+        bool complex() const;
+        void complex(bool mode);
+
+        bool blocking() const;
+        void blocking(bool mode);
+
+        const redhawk::PropertyMap& keywords() const;
+        bool hasKeyword(const std::string& name) const;
+        const redhawk::Value& getKeyword(const std::string& name) const;
+
+        void keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props);
+        void setKeyword(const std::string& name, const CORBA::Any& value);
+        void setKeyword(const std::string& name, const redhawk::Value& value);
+        template <typename T>
+        void setKeyword(const std::string& name, const T& value)
+        {
+            setKeyword(name, redhawk::Value(value));
+        }
+        void eraseKeyword(const std::string& name);
+
+        void close();
+
+        bool operator! () const
+        {
+            return !_impl;
+        }
+
+        int modcount() const;
+
+    protected:
+        class Impl;
+
+        OutputStreamBase();
+        OutputStreamBase(boost::shared_ptr<Impl> impl);
+
+        boost::shared_ptr<Impl> _impl;
+    };
+
     template <class PortTraits>
-    class OutputStream : public StreamBase {
+    class OutputStream : public OutputStreamBase {
     public:
         typedef typename PortTraits::DataTransferTraits::NativeDataType ScalarType;
         typedef std::complex<ScalarType> ComplexType;
@@ -138,7 +185,7 @@ namespace bulkio {
 
 
     template <>
-    class OutputStream<XMLPortTraits> : public StreamBase {
+    class OutputStream<XMLPortTraits> : public OutputStreamBase {
     public:
         OutputStream();
 
@@ -164,7 +211,7 @@ namespace bulkio {
 
 
     template <>
-    class OutputStream<FilePortTraits> : public StreamBase {
+    class OutputStream<FilePortTraits> : public OutputStreamBase {
     public:
         OutputStream();
 

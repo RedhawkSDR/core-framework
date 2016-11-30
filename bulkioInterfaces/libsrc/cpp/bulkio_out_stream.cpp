@@ -23,16 +23,225 @@
 #include "bulkio_time_operators.h"
 #include "bulkio_p.h"
 
+using bulkio::OutputStreamBase;
+
+class OutputStreamBase::Impl {
+public:
+    Impl(const BULKIO::StreamSRI& sri) :
+        _streamID(sri.streamID),
+        _sri(sri),
+        _modcount(0)
+    {
+    }
+
+    virtual ~Impl()
+    {
+    }
+
+    virtual void flush()
+    {
+    }
+
+    virtual void close()
+    {
+    }
+
+    const std::string& streamID() const
+    {
+        return _streamID;
+    }
+
+    const BULKIO::StreamSRI& sri() const
+    {
+        return _sri;
+    }
+
+    void setXDelta(double delta)
+    {
+        _setStreamMetadata(_sri.xdelta, delta);
+    }
+
+    void setComplex(bool mode)
+    {
+        _setStreamMetadata(_sri.mode, mode?1:0);
+    }
+
+    void setBlocking(bool mode)
+    {
+        _setStreamMetadata(_sri.blocking, mode?1:0);
+    }
+
+    void setKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& properties)
+    {
+        _sri.keywords = properties;
+        ++_modcount;
+    }
+
+    void setKeyword(const std::string& name, const CORBA::Any& value)
+    {
+        redhawk::PropertyMap::cast(_sri.keywords)[name] = value;
+        ++_modcount;
+    }
+
+    void setKeyword(const std::string& name, const redhawk::Value& value)
+    {
+        setKeyword(name, static_cast<const CORBA::Any&>(value));
+    }
+
+    void eraseKeyword(const std::string& name)
+    {
+        redhawk::PropertyMap::cast(_sri.keywords).erase(name);
+        ++_modcount;
+    }
+
+    void setSRI(const BULKIO::StreamSRI& sri)
+    {
+        // Copy the new SRI, except for the stream ID, which is immutable
+        _sri = sri;
+        _sri.streamID = _streamID.c_str();
+        ++_modcount;
+    }
+
+    int modcount() const
+    {
+        return _modcount;
+    }
+
+protected:
+    template <typename Field, typename Value>
+    void _setStreamMetadata(Field& field, Value value)
+    {
+        if (field != value) {
+            field = value;
+            ++_modcount;
+        }
+    }
+
+    const std::string _streamID;
+    BULKIO::StreamSRI _sri;
+    int _modcount;
+};
+
+OutputStreamBase::OutputStreamBase() :
+    _impl()
+{
+}
+
+OutputStreamBase::OutputStreamBase(boost::shared_ptr<Impl> impl) :
+    _impl(impl)
+{
+}
+
+const std::string& OutputStreamBase::streamID() const
+{
+    return _impl->streamID();
+}
+
+const BULKIO::StreamSRI& OutputStreamBase::sri() const
+{
+    return _impl->sri();
+}
+
+void OutputStreamBase::sri(const BULKIO::StreamSRI& sri)
+{
+    _impl->flush();
+    _impl->setSRI(sri);
+}
+
+double OutputStreamBase::xdelta() const
+{
+    return sri().xdelta;
+}
+
+void OutputStreamBase::xdelta(double delta)
+{
+    _impl->flush();
+    _impl->setXDelta(delta);
+}
+
+bool OutputStreamBase::complex() const
+{
+    return (sri().mode != 0);
+}
+
+void OutputStreamBase::complex(bool mode)
+{
+    _impl->flush();
+    _impl->setComplex(mode);
+}
+
+bool OutputStreamBase::blocking() const
+{
+    return sri().blocking;
+}
+
+void OutputStreamBase::blocking(bool mode)
+{
+    _impl->flush();
+    _impl->setBlocking(mode);
+}
+
+const redhawk::PropertyMap& OutputStreamBase::keywords() const
+{
+    return redhawk::PropertyMap::cast(sri().keywords);
+}
+
+bool OutputStreamBase::hasKeyword(const std::string& name) const
+{
+    return keywords().contains(name);
+}
+
+const redhawk::Value& OutputStreamBase::getKeyword(const std::string& name) const
+{
+    return keywords()[name];
+}
+
+void OutputStreamBase::keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props)
+{
+    _impl->flush();
+    _impl->setKeywords(props);
+}
+
+void OutputStreamBase::setKeyword(const std::string& name, const CORBA::Any& value)
+{
+    _impl->flush();
+    _impl->setKeyword(name, value);
+}
+
+void OutputStreamBase::setKeyword(const std::string& name, const redhawk::Value& value)
+{
+    _impl->flush();
+    _impl->setKeyword(name, value);
+}
+
+void OutputStreamBase::eraseKeyword(const std::string& name)
+{
+    _impl->flush();
+    _impl->eraseKeyword(name);
+}
+
+void OutputStreamBase::close()
+{
+    _impl->close();
+    _impl.reset();
+}
+
+int OutputStreamBase::modcount() const
+{
+    return _impl->modcount();
+}
+
+
 using bulkio::OutputStream;
 
 template <class PortTraits>
-class OutputStream<PortTraits>::Impl : public bulkio::StreamBase::Impl {
+class OutputStream<PortTraits>::Impl : public OutputStreamBase::Impl {
 public:
   typedef typename OutputStream<PortTraits>::ScalarBuffer ScalarBuffer;
   typedef typename OutputStream<PortTraits>::ComplexBuffer ComplexBuffer;
 
   Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
-    bulkio::StreamBase::Impl(sri),
+    OutputStreamBase::Impl(sri),
     _port(port),
     _bufferSize(0),
     _bufferOffset(0)
@@ -182,13 +391,13 @@ private:
 
 template <class PortTraits>
 OutputStream<PortTraits>::OutputStream() :
-  StreamBase()
+  OutputStreamBase()
 {
 }
 
 template <class PortTraits>
 OutputStream<PortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
-  StreamBase(boost::make_shared<Impl>(sri, port))
+  OutputStreamBase(boost::make_shared<Impl>(sri, port))
 {
 }
 
@@ -282,10 +491,10 @@ OutputStream<PortTraits>::operator unspecified_bool_type() const
 //
 using bulkio::XMLPortTraits;
 
-class OutputStream<XMLPortTraits>::Impl : public bulkio::StreamBase::Impl {
+class OutputStream<XMLPortTraits>::Impl : public OutputStreamBase::Impl {
 public:
     Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
-        bulkio::StreamBase::Impl(sri),
+        OutputStreamBase::Impl(sri),
         _port(port)
     {
     }
@@ -315,12 +524,12 @@ private:
 };
 
 OutputStream<XMLPortTraits>::OutputStream() :
-    StreamBase()
+    OutputStreamBase()
 {
 }
 
 OutputStream<XMLPortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
-    StreamBase(boost::make_shared<OutputStream::Impl>(sri, port))
+    OutputStreamBase(boost::make_shared<OutputStream::Impl>(sri, port))
 {
 }
 
@@ -344,10 +553,10 @@ OutputStream<XMLPortTraits>::operator unspecified_bool_type() const
 //
 using bulkio::FilePortTraits;
 
-class OutputStream<FilePortTraits>::Impl : public bulkio::StreamBase::Impl {
+class OutputStream<FilePortTraits>::Impl : public OutputStreamBase::Impl {
 public:
     Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
-        bulkio::StreamBase::Impl(sri),
+        OutputStreamBase::Impl(sri),
         _port(port)
     {
     }
@@ -374,12 +583,12 @@ private:
 };
 
 OutputStream<FilePortTraits>::OutputStream() :
-    StreamBase()
+    OutputStreamBase()
 {
 }
 
 OutputStream<FilePortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
-    StreamBase(boost::make_shared<OutputStream::Impl>(sri, port))
+    OutputStreamBase(boost::make_shared<OutputStream::Impl>(sri, port))
 {
 }
 
