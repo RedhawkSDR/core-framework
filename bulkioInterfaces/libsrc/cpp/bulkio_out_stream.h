@@ -35,7 +35,7 @@
 namespace bulkio {
 
     template <class PortTraits>
-    class OutPortBase;
+    class OutPort;
 
     class OutputStreamBase {
     public:
@@ -169,8 +169,8 @@ namespace bulkio {
         void write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
 
     private:
-        friend class OutPortBase<PortTraits>;
-        typedef OutPortBase<PortTraits> OutPortType;
+        friend class OutPort<PortTraits>;
+        typedef OutPort<PortTraits> OutPortType;
         OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
         class Impl;
@@ -196,8 +196,8 @@ namespace bulkio {
         void write(const std::string& xmlString);
 
     private:
-        friend class OutPortBase<XMLPortTraits>;
-        typedef OutPortBase<XMLPortTraits> OutPortType;
+        friend class OutPort<XMLPortTraits>;
+        typedef OutPort<XMLPortTraits> OutPortType;
         OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
         class Impl;
@@ -222,8 +222,8 @@ namespace bulkio {
         void write(const std::string& URL, const BULKIO::PrecisionUTCTime& time);
 
     private:
-        friend class OutPortBase<FilePortTraits>;
-        typedef OutPortBase<FilePortTraits> OutPortType;
+        friend class OutPort<FilePortTraits>;
+        typedef OutPort<FilePortTraits> OutPortType;
         OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
         class Impl;

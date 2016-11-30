@@ -64,7 +64,7 @@ namespace bulkio {
   template <typename PortTraits> class PortTransport;
 
   //
-  //  OutPortBase
+  //  OutPort
   //
   //  Base template for data transfers between BULKIO ports.  This class is defined by 2 trait classes
   //    PortTraits - This template provides the context for the port's middleware transport classes and they base data types
@@ -72,7 +72,7 @@ namespace bulkio {
   //
   //
   template < typename PortTraits >
-  class OutPortBase : public redhawk::UsesPort
+  class OutPort : public redhawk::UsesPort
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
                     , public virtual POA_BULKIO::UsesPortStatisticsProvider
 #endif
@@ -129,23 +129,23 @@ namespace bulkio {
 
 
     //
-    // OutPortBase Creates a uses port object for publishing data to the framework
+    // OutPort Creates a uses port object for publishing data to the framework
     //
-    // @param port_name name assigned to the port located in scd.xml file
+    // @param name  name assigned to the port located in scd.xml file
     // @param logger  logger to receive port logging output
     // @param connectionCB  callback that will be called when the connectPort method is called
     // @pararm disconnectDB callback that receives notification when a disconnectPort happens
     //
-    OutPortBase(std::string port_name, 
-                LOGGER_PTR    logger,
-                ConnectionEventListener *connectCB=NULL,
-                ConnectionEventListener *disconnectCB=NULL );
+    OutPort(const std::string& name, 
+            LOGGER_PTR logger,
+            ConnectionEventListener *connectCB=NULL,
+            ConnectionEventListener *disconnectCB=NULL);
 
     
     //
     // virtual destructor to clean up resources
     //
-    virtual ~OutPortBase();
+    virtual ~OutPort();
 
     void updateConnectionFilter(const std::vector<connection_descriptor_struct> &_filterTable) {
         SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
@@ -319,7 +319,7 @@ namespace bulkio {
 
   
   template < typename PortTraits >
-  class OutPort : public OutPortBase< PortTraits > {
+  class OutNumericPort : public OutPort< PortTraits > {
   public:
 
     typedef PortTraits                        Traits;
@@ -372,25 +372,25 @@ namespace bulkio {
     typedef typename Traits::SharedBufferType SharedBufferType;
 
     //
-    // OutPort Creates a uses port object for publishing data to the framework
+    // OutNumericPort Creates a uses port object for publishing data to the framework
     //
     // @param port_name name assigned to the port located in scd.xml file
     // @param connectionCB  callback that will be called when the connectPort method is called
     // @pararm disconnectDB callback that receives notification when a disconnectPort happens
     //
-    OutPort(std::string port_name, 
-            ConnectionEventListener *connectCB=NULL,
-            ConnectionEventListener *disconnectCB=NULL );
+    OutNumericPort(const std::string& name, 
+                   ConnectionEventListener *connectCB=NULL,
+                   ConnectionEventListener *disconnectCB=NULL);
 
-    OutPort(std::string port_name, 
-            LOGGER_PTR    logger,
-            ConnectionEventListener *connectCB=NULL,
-            ConnectionEventListener *disconnectCB=NULL );
+    OutNumericPort(const std::string& name, 
+                   LOGGER_PTR logger,
+                   ConnectionEventListener *connectCB=NULL,
+                   ConnectionEventListener *disconnectCB=NULL);
 
     //
     // virtual destructor to clean up resources
     //
-    virtual ~OutPort();
+    virtual ~OutNumericPort();
 
     /*
      * pushPacket
@@ -441,12 +441,10 @@ namespace bulkio {
      */
     void pushPacket( const DataBufferType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
-    using OutPortBase<PortTraits>::currentSRIs;
-
   protected:
-    using OutPortBase<PortTraits>::logger;
-    typedef typename OutPortBase<PortTraits>::PortPtrType PortPtrType;
-    typedef typename OutPortBase<PortTraits>::PortTransportType PortTransportType;
+    using OutPort<PortTraits>::logger;
+    typedef typename OutPort<PortTraits>::PortPtrType PortPtrType;
+    typedef typename OutPort<PortTraits>::PortTransportType PortTransportType;
 
     virtual PortTransportType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
   };
@@ -457,13 +455,13 @@ namespace bulkio {
   // This class overrides the pushPacket method to support Int8 and char data types
   //
   // Output port for Int8 and char data types
-  class OutCharPort : public OutPort < CharPortTraits > {
+  class OutCharPort : public OutNumericPort < CharPortTraits > {
   public:
-    OutCharPort(std::string port_name,
+    OutCharPort(const std::string& name,
 		ConnectionEventListener *connectCB=NULL,
 		ConnectionEventListener *disconnectCB=NULL );
 
-    OutCharPort(std::string port_name, 
+    OutCharPort(const std::string& name, 
 		LOGGER_PTR logger,
 		ConnectionEventListener *connectCB=NULL,
 		ConnectionEventListener *disconnectCB=NULL );
@@ -489,8 +487,7 @@ namespace bulkio {
   // This class defines the pushPacket interface for file URL data.
   //
   //
-  template <>
-  class OutPort<FilePortTraits> : public OutPortBase<FilePortTraits> {
+  class OutFilePort : public OutPort<FilePortTraits> {
 
   public:
 
@@ -527,15 +524,15 @@ namespace bulkio {
     typedef Traits::NativeType       NativeType;
 
 
-    OutPort(const std::string& name, 
-            ConnectionEventListener *connectCB=NULL,
-            ConnectionEventListener *disconnectCB=NULL );
+    OutFilePort(const std::string& name, 
+                ConnectionEventListener *connectCB=NULL,
+                ConnectionEventListener *disconnectCB=NULL);
 
 
-    OutPort(const std::string& name, 
-            LOGGER_PTR logger, 
-            ConnectionEventListener *connectCB=NULL,
-            ConnectionEventListener *disconnectCB=NULL );
+    OutFilePort(const std::string& name, 
+                LOGGER_PTR logger, 
+                ConnectionEventListener *connectCB=NULL,
+                ConnectionEventListener *disconnectCB=NULL);
 
     /*
      * pushPacket
@@ -583,14 +580,13 @@ namespace bulkio {
   // This class defines the pushPacket interface for XML data.
   //
   //
-  template <>
-  class OutPort<XMLPortTraits> : public OutPortBase<XMLPortTraits> {
+  class OutXMLPort : public OutPort<XMLPortTraits> {
 
   public:
 
     typedef XMLPortTraits            Traits;
 
-    typedef OutPortBase<XMLPortTraits> Base;
+    typedef OutPort<XMLPortTraits> Base;
 
     //
     // Port Variable Definition
@@ -623,15 +619,15 @@ namespace bulkio {
     typedef Traits::NativeType       NativeType;
 
 
-    OutPort(const std::string& name, 
-            ConnectionEventListener *connectCB=NULL,
-            ConnectionEventListener *disconnectCB=NULL);
+    OutXMLPort(const std::string& name, 
+               ConnectionEventListener *connectCB=NULL,
+               ConnectionEventListener *disconnectCB=NULL);
 
 
-    OutPort(const std::string& name, 
-            LOGGER_PTR logger, 
-            ConnectionEventListener *connectCB=NULL,
-            ConnectionEventListener *disconnectCB=NULL);
+    OutXMLPort(const std::string& name, 
+               LOGGER_PTR logger, 
+               ConnectionEventListener *connectCB=NULL,
+               ConnectionEventListener *disconnectCB=NULL);
 
     /*
      * DEPRECATED: maps to dataFile BULKIO method call for passing strings of data 
@@ -666,43 +662,39 @@ namespace bulkio {
      *
      */
   // Bulkio octet (UInt8) output
-  typedef OutPort< OctetPortTraits >         OutOctetPort;
+  typedef OutNumericPort<OctetPortTraits>     OutOctetPort;
   // Bulkio UInt8 output
-  typedef OutOctetPort                       OutUInt8Port;
+  typedef OutOctetPort                        OutUInt8Port;
   // Bulkio short output
-  typedef OutPort<  ShortPortTraits >        OutShortPort;
+  typedef OutNumericPort<ShortPortTraits>     OutShortPort;
   // Bulkio unsigned short output
-  typedef OutPort<  UShortPortTraits >       OutUShortPort;
+  typedef OutNumericPort<UShortPortTraits>    OutUShortPort;
   // Bulkio Int16 output
-  typedef OutShortPort                       OutInt16Port;
+  typedef OutShortPort                        OutInt16Port;
   // Bulkio UInt16 output
-  typedef OutUShortPort                      OutUInt16Port;
+  typedef OutUShortPort                       OutUInt16Port;
   // Bulkio long output
-  typedef OutPort<  LongPortTraits >         OutLongPort;
+  typedef OutNumericPort<LongPortTraits>      OutLongPort;
   // Bulkio unsigned long output
-  typedef OutPort< ULongPortTraits >         OutULongPort;
+  typedef OutNumericPort<ULongPortTraits>     OutULongPort;
   // Bulkio Int32 output
-  typedef OutLongPort                        OutInt32Port;
+  typedef OutLongPort                         OutInt32Port;
   // Bulkio UInt32 output
-  typedef OutULongPort                       OutUInt32Port;
+  typedef OutULongPort                        OutUInt32Port;
   // Bulkio long long output
-  typedef OutPort<  LongLongPortTraits >     OutLongLongPort;
+  typedef OutNumericPort<LongLongPortTraits>  OutLongLongPort;
   // Bulkio unsigned long long output
-  typedef OutPort<  ULongLongPortTraits >    OutULongLongPort;
+  typedef OutNumericPort<ULongLongPortTraits> OutULongLongPort;
   // Bulkio Int64 output
-  typedef OutLongLongPort                    OutInt64Port;
+  typedef OutLongLongPort                     OutInt64Port;
   // Bulkio UInt64 output
-  typedef OutULongLongPort                   OutUInt64Port;
+  typedef OutULongLongPort                    OutUInt64Port;
   // Bulkio float output
-  typedef OutPort<  FloatPortTraits >        OutFloatPort;
+  typedef OutNumericPort<FloatPortTraits>     OutFloatPort;
   // Bulkio double output
-  typedef OutPort<  DoublePortTraits >       OutDoublePort;
+  typedef OutNumericPort<DoublePortTraits>    OutDoublePort;
   // Bulkio URL output
-  typedef OutPort<FilePortTraits> OutFilePort;
-  typedef OutFilePort                        OutURLPort;
-  // Bulkio XML output
-  typedef OutPort<XMLPortTraits> OutXMLPort;
-
+  typedef OutFilePort                         OutURLPort;
 }  // end of bulkio namespace
 
 inline bool operator>>= (const CORBA::Any& a, bulkio::connection_descriptor_struct& s) {
