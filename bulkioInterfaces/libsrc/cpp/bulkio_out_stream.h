@@ -37,8 +37,6 @@ namespace bulkio {
 
     template <class PortTraits>
     class OutPortBase;
-    template <class PortTraits>
-    class OutPort;
 
     template <class PortTraits>
     class OutputStream : public StreamBase {
@@ -125,7 +123,7 @@ namespace bulkio {
 
     private:
         friend class OutPortBase<PortTraits>;
-        typedef OutPort<PortTraits> OutPortType;
+        typedef OutPortBase<PortTraits> OutPortType;
         OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
         class Impl;
@@ -152,7 +150,7 @@ namespace bulkio {
 
     private:
         friend class OutPortBase<XMLPortTraits>;
-        typedef OutPort<XMLPortTraits> OutPortType;
+        typedef OutPortBase<XMLPortTraits> OutPortType;
         OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
         class Impl;
@@ -178,7 +176,7 @@ namespace bulkio {
 
     private:
         friend class OutPortBase<FilePortTraits>;
-        typedef OutPort<FilePortTraits> OutPortType;
+        typedef OutPortBase<FilePortTraits> OutPortType;
         OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
         class Impl;

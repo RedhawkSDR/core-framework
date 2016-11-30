@@ -133,7 +133,7 @@ public:
 private:
   void _send(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time, bool eos)
   {
-    _port->pushPacket(data, time, eos, _streamID);
+    _port->_sendPacket(data, time, eos, _streamID);
   }
 
   void _flush(bool eos)
@@ -304,7 +304,11 @@ public:
 private:
     void _send(const std::string& data, bool eos)
     {
-        _port->pushPacket(data, true, _streamID);
+        // Because it's templatized, the port's interface requires a timestamp;
+        // however, since it's not used for XML ports, creating a method-static
+        // instance is sufficient
+        static BULKIO::PrecisionUTCTime unused;
+        _port->_sendPacket(data, unused, true, _streamID);
     }
 
     OutPortType* _port;
@@ -363,7 +367,7 @@ public:
 private:
     void _send(const std::string& data, const BULKIO::PrecisionUTCTime& time, bool eos)
     {
-        _port->pushPacket(data, time, true, _streamID);
+        _port->_sendPacket(data, time, true, _streamID);
     }
 
     OutPortType* _port;

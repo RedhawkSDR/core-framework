@@ -85,7 +85,7 @@ namespace bulkio {
       typename StreamMap::iterator existing = streams.find(sid);
       if (existing == streams.end()) {
           // Insert new SRI
-          stream = StreamType(H, static_cast<OutPort<PortTraits>*>(this));
+          stream = StreamType(H, this);
           streams[sid] = stream;
       } else {
           // Overwrite existing SRI
@@ -166,7 +166,7 @@ namespace bulkio {
 
           // No SRI associated with the stream ID, create a default one and add
           // it to the list; it will get pushed to downstream connections below
-          StreamType stream(bulkio::sri::create(streamID), static_cast<OutPort<PortTraits>*>(this));
+          StreamType stream(bulkio::sri::create(streamID), this);
           streams[streamID] = stream;
           return stream;
       } else {
@@ -332,7 +332,7 @@ namespace bulkio {
     if (existing != streams.end()) {
       return existing->second;
     }
-    StreamType stream(bulkio::sri::create(streamID), static_cast<OutPort<PortTraits>*>(this));
+    StreamType stream(bulkio::sri::create(streamID), this);
     streams[streamID] = stream;
     return stream;
   }
@@ -348,7 +348,7 @@ namespace bulkio {
       existing->second.sri(sri);
       return existing->second;
     }
-    StreamType stream(sri, static_cast<OutPort<PortTraits>*>(this));
+    StreamType stream(sri, this);
     streams[streamID] = stream;
     return stream;
   }
@@ -490,15 +490,6 @@ namespace bulkio {
   {
     const NativeType* ptr = reinterpret_cast<const NativeType*>(data);
     this->_sendPacket(SharedBufferType::make_transient(ptr, size), T, EOS, streamID);
-  }
-
-  template < typename PortTraits >
-  void OutPort< PortTraits >::pushPacket(const SharedBufferType& data,
-                                         const BULKIO::PrecisionUTCTime& T,
-                                         bool EOS,
-                                         const std::string& streamID)
-  {
-    this->_sendPacket(data, T, EOS, streamID);
   }
 
   OutCharPort::OutCharPort( std::string name,

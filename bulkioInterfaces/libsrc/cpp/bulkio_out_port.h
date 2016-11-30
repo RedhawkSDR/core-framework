@@ -308,6 +308,7 @@ namespace bulkio {
     //
     // Sends data and metadata to all connections enabled for the given stream
     //
+    friend class OutputStream<PortTraits>;
     void _sendPacket(const SharedBufferType& data,
                      const BULKIO::PrecisionUTCTime& T,
                      bool EOS,
@@ -439,8 +440,6 @@ namespace bulkio {
      *  streamID: stream identifier
      */
     void pushPacket( const DataBufferType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-
-    void pushPacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
     using OutPortBase<PortTraits>::currentSRIs;
 
