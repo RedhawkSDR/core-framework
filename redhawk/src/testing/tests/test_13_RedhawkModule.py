@@ -122,6 +122,33 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEquals(len(self._rhDom.apps), 0)
         self.assertEquals(len(self._rhDom._get_applications()), 0)
 
+
+    def test_createApplication_namespaced(self):
+        # Automatically clean up
+        redhawk.setTrackApps(True)
+        # Create Application from $SDRROOT path
+        app = self._rhDom.createApplication("simple_ns.c2_comp")
+        self.assertNotEqual(app, None, "Application not created")
+        self.assertEquals(len(self._rhDom._get_applications()), 1)
+        self.assertEquals(len(self._rhDom.apps), 1)
+
+
+        app2 = self._rhDom.createApplication("c2_comp")
+        self.assertNotEqual(app2, None, "Application not created")
+        self.assertEquals(len(self._rhDom._get_applications()), 2)
+        self.assertEquals(len(self._rhDom.apps), 2)
+
+        app.releaseObject()
+        self.assertEquals(len(self._rhDom._get_applications()), 1)
+        self.assertEquals(len(self._rhDom.apps), 1)
+
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError,self._rhDom.createApplication, "this.should.fail.c2_comp")
+
+        # Use exit functions from module to release other launched app
+        redhawk.core._cleanUpLaunchedApps()
+        self.assertEquals(len(self._rhDom.apps), 0)
+        self.assertEquals(len(self._rhDom._get_applications()), 0)
+
     def test_createApplicationNoCleanup(self):
         # Create Application from $SDRROOT path
         app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
