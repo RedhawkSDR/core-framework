@@ -69,7 +69,7 @@ namespace bulkio {
     typedef typename Traits::SharedBufferType SharedBufferType;
     
     // Input stream interface used by this port
-    typedef InputStream<PortTraits> StreamType;
+    typedef typename StreamTraits<PortTraits>::InStreamType StreamType;
 
     // List type for input streams provided by this port
     typedef std::list<StreamType> StreamList;

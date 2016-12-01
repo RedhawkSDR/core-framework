@@ -78,6 +78,10 @@ namespace bulkio {
     InputStreamBase();
     InputStreamBase(const boost::shared_ptr<Impl>& impl);
 
+    // Allow matching InPort class to create instances of this stream type
+    friend class InPort<PortTraits>;
+    InputStreamBase(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port);
+
     bool hasBufferedData();
 
     boost::shared_ptr<Impl> _impl;
@@ -123,36 +127,6 @@ namespace bulkio {
     const Impl& impl() const;
   };
 
-  template <>
-  class InputStream<XMLPortTraits> : public InputStreamBase<XMLPortTraits> {
-  public:
-    typedef XMLDataBlock DataBlockType;
-
-    InputStream();
-
-  private:
-    typedef InputStreamBase<XMLPortTraits> Base;
-
-    friend class InPort<XMLPortTraits>;
-    typedef InPort<XMLPortTraits> InPortType;
-    InputStream(const boost::shared_ptr<BULKIO::StreamSRI>&, InPortType*);
-  };
-
-  template <>
-  class InputStream<FilePortTraits> : public InputStreamBase<FilePortTraits> {
-  public:
-    typedef FileDataBlock DataBlockType;
-
-    InputStream();
-
-  private:
-    typedef InputStreamBase<FilePortTraits> Base;
-
-    friend class InPort<FilePortTraits>;
-    typedef InPort<FilePortTraits> InPortType;
-    InputStream(const boost::shared_ptr<BULKIO::StreamSRI>&, InPortType*);
-  };
-
   typedef InputStream<bulkio::CharPortTraits>      InCharStream;
   typedef InputStream<bulkio::OctetPortTraits>     InOctetStream;
   typedef InputStream<bulkio::ShortPortTraits>     InShortStream;
@@ -163,8 +137,23 @@ namespace bulkio {
   typedef InputStream<bulkio::ULongLongPortTraits> InULongLongStream;
   typedef InputStream<bulkio::FloatPortTraits>     InFloatStream;
   typedef InputStream<bulkio::DoublePortTraits>    InDoubleStream;
-  typedef InputStream<bulkio::XMLPortTraits>       InXMLStream;
-  typedef InputStream<bulkio::FilePortTraits>      InFileStream;
+  typedef InputStreamBase<bulkio::XMLPortTraits>   InXMLStream;
+  typedef InputStreamBase<bulkio::FilePortTraits>  InFileStream;
+
+  template <class PortTraits>
+  struct StreamTraits {
+    typedef InputStream<PortTraits> InStreamType;
+  };
+
+  template <>
+  struct StreamTraits<XMLPortTraits> {
+    typedef InXMLStream InStreamType;
+  };
+
+  template <>
+  struct StreamTraits<FilePortTraits> {
+    typedef InFileStream InStreamType;
+  };
 
 } // end of bulkio namespace
 

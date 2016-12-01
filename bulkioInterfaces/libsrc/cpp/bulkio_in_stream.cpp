@@ -175,6 +175,13 @@ InputStreamBase<PortTraits>::InputStreamBase() :
 }
 
 template <class PortTraits>
+InputStreamBase<PortTraits>::InputStreamBase(const boost::shared_ptr<BULKIO::StreamSRI>& sri,
+                                             InPortType* port) :
+    _impl(boost::make_shared<Impl>(sri, port))
+{
+}
+
+template <class PortTraits>
 InputStreamBase<PortTraits>::InputStreamBase(const boost::shared_ptr<Impl>& impl) :
     _impl(impl)
 {
@@ -719,37 +726,6 @@ template <class PortTraits>
 const typename InputStream<PortTraits>::Impl& InputStream<PortTraits>::impl() const
 {
     return static_cast<const Impl&>(*_impl);
-}
-
-
-//
-// XML
-//
-using bulkio::XMLPortTraits;
-
-InputStream<XMLPortTraits>::InputStream() :
-    Base()
-{
-}
-
-InputStream<XMLPortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-    Base(boost::make_shared<Impl>(sri, port))
-{
-}
-
-//
-// File
-//
-using bulkio::FilePortTraits;
-
-InputStream<FilePortTraits>::InputStream() :
-    Base()
-{
-}
-
-InputStream<FilePortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-    Base(boost::make_shared<Impl>(sri, port))
-{
 }
 
 #define INSTANTIATE_TEMPLATE(x) \
