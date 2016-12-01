@@ -34,7 +34,18 @@ template <class T>
 struct DataBlock<T>::Impl
 {
   Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri) :
-    sri(sri)
+    data(),
+    sri(sri),
+    sriChangeFlags(bulkio::sri::NONE),
+    inputQueueFlushed(false)
+  {
+  }
+
+  Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const ScalarBuffer& buffer) :
+    data(buffer),
+    sri(sri),
+    sriChangeFlags(bulkio::sri::NONE),
+    inputQueueFlushed(false)
   {
   }
 
@@ -53,16 +64,20 @@ DataBlock<T>::DataBlock() :
 
 template <class T>
 DataBlock<T>::DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, size_t size) :
-  _impl(boost::make_shared<Impl>(sri))
+    _impl(boost::make_shared<Impl>(sri, redhawk::buffer<T>(size)))
 {
-  _impl->data = redhawk::buffer<T>(size);
+}
+
+template <class T>
+DataBlock<T>::DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const ScalarBuffer& buffer) :
+    _impl(boost::make_shared<Impl>(sri, buffer))
+{
 }
 
 template <class T>
 DataBlock<T>::DataBlock(const BULKIO::StreamSRI& sri, size_t size) :
-  _impl(boost::make_shared<Impl>(boost::make_shared<BULKIO::StreamSRI>(sri)))
+    _impl(boost::make_shared<Impl>(boost::make_shared<BULKIO::StreamSRI>(sri), redhawk::buffer<T>(size)))
 {
-  _impl->data = redhawk::buffer<T>(size);
 }
 
 template <class T>
@@ -295,7 +310,9 @@ using bulkio::XMLDataBlock;
 
 struct XMLDataBlock::Impl {
     Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri) :
-        sri(sri)
+        sri(sri),
+        sriChangeFlags(bulkio::sri::NONE),
+        inputQueueFlushed(false)
     {
     }
 
@@ -327,6 +344,31 @@ const std::string& XMLDataBlock::data() const
     return _impl->data;
 }
 
+bool XMLDataBlock::sriChanged() const
+{
+    return sriChangeFlags() != bulkio::sri::NONE;
+}
+
+int XMLDataBlock::sriChangeFlags() const
+{
+    return _impl->sriChangeFlags;
+}
+
+void XMLDataBlock::sriChangeFlags(int flags)
+{
+    _impl->sriChangeFlags = flags;
+}
+
+bool XMLDataBlock::inputQueueFlushed() const
+{
+    return _impl->inputQueueFlushed;
+}
+
+void XMLDataBlock::inputQueueFlushed(bool flushed)
+{
+    _impl->inputQueueFlushed = flushed;
+}
+
 bool XMLDataBlock::operator! () const
 {
     return !_impl;
@@ -345,7 +387,9 @@ using bulkio::FileDataBlock;
 
 struct FileDataBlock::Impl {
     Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri) :
-        sri(sri)
+        sri(sri),
+        sriChangeFlags(bulkio::sri::NONE),
+        inputQueueFlushed(false)
     {
     }
 
@@ -375,6 +419,31 @@ const BULKIO::StreamSRI& FileDataBlock::sri() const
 const std::string& FileDataBlock::data() const
 {
     return _impl->data;
+}
+
+bool FileDataBlock::sriChanged() const
+{
+    return sriChangeFlags() != bulkio::sri::NONE;
+}
+
+int FileDataBlock::sriChangeFlags() const
+{
+    return _impl->sriChangeFlags;
+}
+
+void FileDataBlock::sriChangeFlags(int flags)
+{
+    _impl->sriChangeFlags = flags;
+}
+
+bool FileDataBlock::inputQueueFlushed() const
+{
+    return _impl->inputQueueFlushed;
+}
+
+void FileDataBlock::inputQueueFlushed(bool flushed)
+{
+    _impl->inputQueueFlushed = flushed;
 }
 
 bool FileDataBlock::operator! () const

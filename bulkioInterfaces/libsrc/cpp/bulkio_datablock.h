@@ -57,6 +57,7 @@ namespace bulkio {
 
     DataBlock();
     explicit DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, size_t size=0);
+    DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const ScalarBuffer& buffer);
     DataBlock(const BULKIO::StreamSRI& sri, size_t size=0);
 
     DataBlock copy() const;
@@ -116,6 +117,13 @@ namespace bulkio {
     const BULKIO::StreamSRI& sri() const;
     const std::string& data() const;
 
+    bool sriChanged() const;
+    int sriChangeFlags() const;
+    void sriChangeFlags(int flags);
+
+    bool inputQueueFlushed() const;
+    void inputQueueFlushed(bool flush);
+
     bool operator! () const;
 
   private:
@@ -135,6 +143,13 @@ namespace bulkio {
 
     const BULKIO::StreamSRI& sri() const;
     const std::string& data() const;
+
+    bool sriChanged() const;
+    int sriChangeFlags() const;
+    void sriChangeFlags(int flags);
+
+    bool inputQueueFlushed() const;
+    void inputQueueFlushed(bool flush);
 
     bool operator! () const;
 

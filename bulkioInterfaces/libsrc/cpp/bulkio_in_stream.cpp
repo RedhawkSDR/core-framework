@@ -59,6 +59,24 @@ public:
         return *_sri;
     }
 
+    DataBlockType readPacket(bool blocking)
+    {
+        boost::scoped_ptr<PacketType> packet(_fetchPacket(blocking));
+        if (_eosState == EOS_RECEIVED) {
+            _eosState = EOS_REACHED;
+        }
+        if (!packet) {
+            if (_eosState == EOS_REACHED) {
+                _reportEOS();
+            }
+            return DataBlockType();
+        }
+        DataBlockType block(packet->SRI, packet->buffer);
+        _setBlockFlags(block, *packet);
+        _sri = packet->SRI;
+        return block;
+    }
+
     bool enabled() const
     {
         return _enabled;
@@ -130,6 +148,19 @@ protected:
         return _port->samplesAvailable(_streamID, first);
     }
 
+    void _setBlockFlags(DataBlockType& block, PacketType& packet)
+    {
+        // Allocate empty data block and propagate the SRI change and input
+        // queue flush flags
+        if (packet.sriChanged) {
+            int flags = bulkio::sri::compareFields(*_sri, *(packet.SRI));
+            block.sriChangeFlags(flags);
+        }
+        if (packet.inputQueueFlushed) {
+            block.inputQueueFlushed(true);
+        }
+    }
+
     const std::string _streamID;
     boost::shared_ptr<BULKIO::StreamSRI> _sri;
     InPortType* _port;
@@ -159,6 +190,18 @@ template <class PortTraits>
 const BULKIO::StreamSRI& InputStreamBase<PortTraits>::sri() const
 {
     return _impl->sri();
+}
+
+template <class PortTraits>
+typename InputStreamBase<PortTraits>::DataBlockType InputStreamBase<PortTraits>::read()
+{
+    return _impl->readPacket(true);
+}
+
+template <class PortTraits>
+typename InputStreamBase<PortTraits>::DataBlockType InputStreamBase<PortTraits>::tryread()
+{
+    return _impl->readPacket(false);
 }
 
 template <class PortTraits>
@@ -447,21 +490,15 @@ private:
   {
     // Acknowledge pending SRI change
     PacketType& front = _queue.front();
-    int sriChangeFlags = bulkio::sri::NONE;
-    if (front.sriChanged) {
-      sriChangeFlags = bulkio::sri::compareFields(*_sri, *(front.SRI));
-      front.sriChanged = false;
-      _sri = front.SRI;
-    }
 
     // Allocate empty data block and propagate the SRI change and input queue
     // flush flags
     DataBlockType data(_sri);
-    data.sriChangeFlags(sriChangeFlags);
-    if (front.inputQueueFlushed) {
-      data.inputQueueFlushed(true);
-      front.inputQueueFlushed = false;
-    }
+    this->_setBlockFlags(data, front);
+
+    // Clear flags from packet, since they've been reported
+    front.sriChanged = false;
+    front.inputQueueFlushed = false;
 
     size_t last_offset = _sampleOffset + count;
     if (last_offset <= front.buffer.size()) {
@@ -689,31 +726,6 @@ const typename InputStream<PortTraits>::Impl& InputStream<PortTraits>::impl() co
 // XML
 //
 using bulkio::XMLPortTraits;
-class InputStream<XMLPortTraits>::Impl : public Base::Impl {
-public:
-    typedef Base::Impl BaseImpl;
-    typedef BaseImpl::PacketType PacketType;
-
-    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-        InputStreamBase<XMLPortTraits>::Impl(sri, port)
-    {
-    }
-
-    XMLDataBlock read()
-    {
-        boost::scoped_ptr<PacketType> packet(_fetchPacket(true));
-        if (_eosState == EOS_RECEIVED) {
-            _eosState = EOS_REACHED;
-        }
-        if (!packet) {
-            if (_eosState == EOS_REACHED) {
-                _reportEOS();
-            }
-            return XMLDataBlock();
-        }
-        return XMLDataBlock(packet->SRI, packet->buffer);
-    }
-};
 
 InputStream<XMLPortTraits>::InputStream() :
     Base()
@@ -725,52 +737,10 @@ InputStream<XMLPortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSR
 {
 }
 
-bulkio::XMLDataBlock InputStream<XMLPortTraits>::read()
-{
-    return impl().read();
-}
-
-InputStream<XMLPortTraits>::Impl& InputStream<XMLPortTraits>::impl()
-{
-    return static_cast<Impl&>(*_impl);
-}
-
-const InputStream<XMLPortTraits>::Impl& InputStream<XMLPortTraits>::impl() const
-{
-    return static_cast<const Impl&>(*_impl);
-}
-
 //
 // File
 //
 using bulkio::FilePortTraits;
-class InputStream<FilePortTraits>::Impl : public Base::Impl {
-public:
-    typedef Base::Impl BaseImpl;
-    typedef BaseImpl::PacketType PacketType;
-
-    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-        BaseImpl(sri, port)
-    {
-    }
-
-    FileDataBlock read()
-    {
-        boost::scoped_ptr<PacketType> packet(_fetchPacket(true));
-        if (_eosState == EOS_RECEIVED) {
-            _eosState = EOS_REACHED;
-        }
-        if (!packet) {
-            if (_eosState == EOS_REACHED) {
-                _reportEOS();
-            }
-            return FileDataBlock();
-        }
-        FileDataBlock block(packet->SRI, packet->buffer);
-        // TODO: Add timestamp
-        return block;
-    }
-};
 
 InputStream<FilePortTraits>::InputStream() :
     Base()
@@ -780,21 +750,6 @@ InputStream<FilePortTraits>::InputStream() :
 InputStream<FilePortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
     Base(boost::make_shared<Impl>(sri, port))
 {
-}
-
-bulkio::FileDataBlock InputStream<FilePortTraits>::read()
-{
-    return impl().read();
-}
-
-InputStream<FilePortTraits>::Impl& InputStream<FilePortTraits>::impl()
-{
-    return static_cast<Impl&>(*this->_impl);
-}
-
-const InputStream<FilePortTraits>::Impl& InputStream<FilePortTraits>::impl() const
-{
-    return static_cast<const Impl&>(*this->_impl);
 }
 
 #define INSTANTIATE_TEMPLATE(x) \

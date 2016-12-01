@@ -35,10 +35,31 @@ namespace bulkio {
   class InPort;
 
   template <class PortTraits>
+  struct BlockTraits {
+    typedef DataBlock<typename PortTraits::DataTransferTraits::NativeDataType> DataBlockType;
+  };
+
+  template <>
+  struct BlockTraits<XMLPortTraits> {
+    typedef XMLDataBlock DataBlockType;
+  };
+
+  template <>
+  struct BlockTraits<FilePortTraits> {
+    typedef FileDataBlock DataBlockType;
+  };
+
+  template <class PortTraits>
   class InputStreamBase {
   public:
+    typedef typename BlockTraits<PortTraits>::DataBlockType DataBlockType;
+
     const std::string& streamID() const;
     const BULKIO::StreamSRI& sri() const;
+
+    DataBlockType read();
+
+    DataBlockType tryread();
 
     bool enabled() const;
     void enable();
@@ -71,8 +92,7 @@ namespace bulkio {
   public:
     InputStream();
 
-    typedef typename PortTraits::DataTransferTraits::NativeDataType NativeType;
-    typedef DataBlock<NativeType> DataBlockType;
+    typedef typename InputStreamBase<PortTraits>::DataBlockType DataBlockType;
 
     DataBlockType read();
     DataBlockType read(size_t count);
@@ -110,18 +130,12 @@ namespace bulkio {
 
     InputStream();
 
-    XMLDataBlock read();
-
   private:
     typedef InputStreamBase<XMLPortTraits> Base;
 
     friend class InPort<XMLPortTraits>;
     typedef InPort<XMLPortTraits> InPortType;
     InputStream(const boost::shared_ptr<BULKIO::StreamSRI>&, InPortType*);
-
-    class Impl;
-    Impl& impl();
-    const Impl& impl() const;
   };
 
   template <>
@@ -131,18 +145,12 @@ namespace bulkio {
 
     InputStream();
 
-    FileDataBlock read();
-
   private:
     typedef InputStreamBase<FilePortTraits> Base;
 
     friend class InPort<FilePortTraits>;
     typedef InPort<FilePortTraits> InPortType;
     InputStream(const boost::shared_ptr<BULKIO::StreamSRI>&, InPortType*);
-
-    class Impl;
-    Impl& impl();
-    const Impl& impl() const;
   };
 
   typedef InputStream<bulkio::CharPortTraits>      InCharStream;
