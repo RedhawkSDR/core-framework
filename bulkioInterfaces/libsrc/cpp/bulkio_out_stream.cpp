@@ -516,7 +516,7 @@ private:
         // however, since it's not used for XML ports, creating a method-static
         // instance is sufficient
         static BULKIO::PrecisionUTCTime unused;
-        _port->_sendPacket(data, unused, true, _streamID);
+        _port->_sendPacket(data, unused, eos, _streamID);
     }
 
     OutPortType* _port;
@@ -575,7 +575,7 @@ public:
 private:
     void _send(const std::string& data, const BULKIO::PrecisionUTCTime& time, bool eos)
     {
-        _port->_sendPacket(data, time, true, _streamID);
+        _port->_sendPacket(data, time, eos, _streamID);
     }
 
     OutPortType* _port;
