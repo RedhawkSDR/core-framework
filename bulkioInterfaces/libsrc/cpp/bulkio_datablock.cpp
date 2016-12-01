@@ -286,3 +286,103 @@ template class DataBlock<CORBA::LongLong>;
 template class DataBlock<CORBA::ULongLong>;
 template class DataBlock<CORBA::Float>;
 template class DataBlock<CORBA::Double>;
+
+
+//
+// XML
+//
+using bulkio::XMLDataBlock;
+
+struct XMLDataBlock::Impl {
+    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri) :
+        sri(sri)
+    {
+    }
+
+    std::string data;
+    boost::shared_ptr<BULKIO::StreamSRI> sri;
+    int sriChangeFlags;
+    bool inputQueueFlushed;
+};
+
+
+XMLDataBlock::XMLDataBlock() :
+    _impl()
+{
+}
+
+XMLDataBlock::XMLDataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const std::string& data) :
+    _impl(boost::make_shared<Impl>(sri))
+{
+    _impl->data = data;
+}
+
+const BULKIO::StreamSRI& XMLDataBlock::sri() const
+{
+    return *(_impl->sri);
+}
+
+const std::string& XMLDataBlock::data() const
+{
+    return _impl->data;
+}
+
+bool XMLDataBlock::operator! () const
+{
+    return !_impl;
+}
+
+XMLDataBlock::operator unspecified_bool_type() const
+{
+    return _impl?&XMLDataBlock::_impl:0;
+}
+
+
+//
+// File
+//
+using bulkio::FileDataBlock;
+
+struct FileDataBlock::Impl {
+    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri) :
+        sri(sri)
+    {
+    }
+
+    std::string data;
+    boost::shared_ptr<BULKIO::StreamSRI> sri;
+    int sriChangeFlags;
+    bool inputQueueFlushed;
+};
+
+
+FileDataBlock::FileDataBlock() :
+    _impl()
+{
+}
+
+FileDataBlock::FileDataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const std::string& data) :
+    _impl(boost::make_shared<Impl>(sri))
+{
+    _impl->data = data;
+}
+
+const BULKIO::StreamSRI& FileDataBlock::sri() const
+{
+    return *(_impl->sri);
+}
+
+const std::string& FileDataBlock::data() const
+{
+    return _impl->data;
+}
+
+bool FileDataBlock::operator! () const
+{
+    return !_impl;
+}
+
+FileDataBlock::operator unspecified_bool_type() const
+{
+    return _impl?&FileDataBlock::_impl:0;
+}

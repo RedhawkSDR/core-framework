@@ -108,6 +108,46 @@ namespace bulkio {
     operator unspecified_bool_type() const;
   };
 
+  class XMLDataBlock {
+  public:
+    XMLDataBlock();
+    XMLDataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const std::string& data);
+
+    const BULKIO::StreamSRI& sri() const;
+    const std::string& data() const;
+
+    bool operator! () const;
+
+  private:
+    struct Impl;
+    boost::shared_ptr<Impl> _impl;
+
+    typedef boost::shared_ptr<Impl> XMLDataBlock::*unspecified_bool_type;
+
+  public:
+    operator unspecified_bool_type() const;
+  };
+
+  class FileDataBlock {
+  public:
+    FileDataBlock();
+    FileDataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const std::string& data);
+
+    const BULKIO::StreamSRI& sri() const;
+    const std::string& data() const;
+
+    bool operator! () const;
+
+  private:
+    struct Impl;
+    boost::shared_ptr<Impl> _impl;
+
+    typedef boost::shared_ptr<Impl> FileDataBlock::*unspecified_bool_type;
+
+  public:
+    operator unspecified_bool_type() const;
+  };
+
   typedef DataBlock<int8_t>           CharDataBlock;
   typedef DataBlock<CORBA::Octet>     OctetDataBlock;
   typedef DataBlock<CORBA::Short>     ShortDataBlock;

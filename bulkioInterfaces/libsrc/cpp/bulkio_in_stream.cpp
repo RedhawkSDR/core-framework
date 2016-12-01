@@ -22,51 +22,115 @@
 #include "bulkio_time_operators.h"
 #include "bulkio_in_port.h"
 
+#include <boost/make_shared.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/ptr_container/ptr_deque.hpp>
+
+using bulkio::InputStreamBase;
+
+class InputStreamBase::Impl {
+public:
+    enum EosState {
+        EOS_NONE,
+        EOS_RECEIVED,
+        EOS_REACHED,
+        EOS_REPORTED
+    };
+
+    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri) :
+        _streamID(sri->streamID),
+        _sri(sri),
+        _eosState(EOS_NONE),
+        _enabled(true)
+    {
+    }
+
+    const std::string& streamID() const
+    {
+        return _streamID;
+    }
+
+    const BULKIO::StreamSRI& sri() const
+    {
+        return *_sri;
+    }
+
+    bool enabled() const
+    {
+        return _enabled;
+    }
+
+    void enable()
+    {
+        _enabled = true;
+    }
+
+protected:
+    const std::string _streamID;
+    boost::shared_ptr<BULKIO::StreamSRI> _sri;
+    EosState _eosState;
+    bool _enabled;
+};
+
+InputStreamBase::InputStreamBase() :
+    _impl()
+{
+}
+
+InputStreamBase::InputStreamBase(const boost::shared_ptr<Impl>& impl) :
+    _impl(impl)
+{
+}
+
+const std::string& InputStreamBase::streamID() const
+{
+    return _impl->streamID();
+}
+
+const BULKIO::StreamSRI& InputStreamBase::sri() const
+{
+    return _impl->sri();
+}
+
+bool InputStreamBase::enabled() const
+{
+    return _impl->enabled();
+}
+
+void InputStreamBase::enable()
+{
+    _impl->enable();
+}
+
+bool InputStreamBase::operator!() const
+{
+  return !_impl;
+}
+
 
 using bulkio::InputStream;
 
 template <class PortTraits>
-class InputStream<PortTraits>::Impl {
+class InputStream<PortTraits>::Impl : public InputStreamBase::Impl {
 public:
-  typedef typename InPortType::Packet PacketType;
-  typedef typename PortTraits::NativeType NativeType;
-  typedef typename PortTraits::SharedBufferType SharedBufferType;
-  typedef DataBlock<NativeType> DataBlockType;
+    typedef typename InPortType::Packet PacketType;
+    typedef typename PortTraits::NativeType NativeType;
+    typedef typename PortTraits::SharedBufferType SharedBufferType;
+    typedef DataBlock<NativeType> DataBlockType;
 
-  enum EosState {
-    EOS_NONE,
-    EOS_RECEIVED,
-    EOS_REACHED,
-    EOS_REPORTED
-  };
-
-  Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-    _streamID(sri->streamID),
-    _sri(sri),
-    _eosState(EOS_NONE),
-    _port(port),
-    _queue(),
-    _pending(0),
-    _samplesQueued(0),
-    _sampleOffset(0),
-    _enabled(true)
-  {
-  }
+     Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
+        InputStreamBase::Impl(sri),
+        _port(port),
+        _queue(),
+        _pending(0),
+        _samplesQueued(0),
+        _sampleOffset(0)
+    {
+    }
 
   ~Impl()
   {
     delete _pending;
-  }
-
-  const std::string& streamID() const
-  {
-    return _streamID;
-  }
-
-  const BULKIO::StreamSRI& sri() const
-  {
-    return *_sri;
   }
 
   bool eos()
@@ -226,16 +290,6 @@ public:
     } else {
       return samplesAvailable() > 0;
     }
-  }
-
-  bool enabled() const
-  {
-    return _enabled;
-  }
-
-  void enable()
-  {
-    _enabled = true;
   }
 
   void disable()
@@ -467,124 +521,91 @@ private:
     return !(packet->sriChanged || packet->inputQueueFlushed);
   }
 
-  const std::string _streamID;
-  boost::shared_ptr<BULKIO::StreamSRI> _sri;
-  EosState _eosState;
   InPortType* _port;
   boost::ptr_deque<PacketType> _queue;
   PacketType* _pending;
   size_t _samplesQueued;
   size_t _sampleOffset;
-  bool _enabled;
 };
 
 
 template <class PortTraits>
 InputStream<PortTraits>::InputStream() :
-  _impl()
+    InputStreamBase()
 {
 }
 
 template <class PortTraits>
 InputStream<PortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-  _impl(new Impl(sri, port))
+    InputStreamBase(boost::make_shared<Impl>(sri, port))
 {
-}
-
-template <class PortTraits>
-const std::string& InputStream<PortTraits>::streamID() const
-{
-  return _impl->streamID();
-}
-
-template <class PortTraits>
-const BULKIO::StreamSRI& InputStream<PortTraits>::sri() const
-{
-  return _impl->sri();
 }
 
 template <class PortTraits>
 bool InputStream<PortTraits>::eos()
 {
-  return _impl->eos();
+  return impl().eos();
 }
 
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::read()
 {
-  return _impl->readPacket(true);
+  return impl().readPacket(true);
 }
 
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::read(size_t count)
 {
-  return _impl->read(count, count, true);
+  return impl().read(count, count, true);
 }
 
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::read(size_t count, size_t consume)
 {
-  return _impl->read(count, consume, true);
+  return impl().read(count, consume, true);
 }
 
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::tryread()
 {
-  return _impl->readPacket(false);
+  return impl().readPacket(false);
 }
 
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::tryread(size_t count)
 {
-  return _impl->read(count, count, false);
+  return impl().read(count, count, false);
 }
 
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::tryread(size_t count, size_t consume)
 {
-  return _impl->read(count, consume, false);
+  return impl().read(count, consume, false);
 }
 
 template <class PortTraits>
 size_t InputStream<PortTraits>::skip(size_t count)
 {
-  return _impl->skip(count);
-}
-
-template <class PortTraits>
-bool InputStream<PortTraits>::enabled() const
-{
-  return _impl->enabled();
-}
-
-template <class PortTraits>
-void InputStream<PortTraits>::enable()
-{
-  _impl->enable();
+  return impl().skip(count);
 }
 
 template <class PortTraits>
 void InputStream<PortTraits>::disable()
 {
-  _impl->disable();
+  impl().disable();
 }
 
 template <class PortTraits>
 size_t InputStream<PortTraits>::samplesAvailable()
 {
-  return _impl->samplesAvailable();
+  return impl().samplesAvailable();
 }
 
 template <class PortTraits>
 InputStream<PortTraits>::operator unspecified_bool_type() const
 {
-  return _impl?&InputStream::_impl:0;
-}
-
-template <class PortTraits>
-bool InputStream<PortTraits>::operator!() const
-{
-  return !_impl;
+    //return _impl?&InputStream::_impl:0;
+    return 0;
 }
 
 template <class PortTraits>
@@ -596,13 +617,141 @@ bool InputStream<PortTraits>::operator==(const InputStream& other) const
 template <class PortTraits>
 bool InputStream<PortTraits>::ready()
 {
-  return _impl->ready();
+  return impl().ready();
 }
 
 template <class PortTraits>
 bool InputStream<PortTraits>::hasBufferedData()
 {
-  return _impl->hasBufferedData();
+  return impl().hasBufferedData();
+}
+
+template <class PortTraits>
+typename InputStream<PortTraits>::Impl& InputStream<PortTraits>::impl()
+{
+    return static_cast<Impl&>(*_impl);
+}
+
+template <class PortTraits>
+const typename InputStream<PortTraits>::Impl& InputStream<PortTraits>::impl() const
+{
+    return static_cast<const Impl&>(*_impl);
+}
+
+
+//
+// XML
+//
+using bulkio::XMLPortTraits;
+class InputStream<XMLPortTraits>::Impl : public InputStreamBase::Impl {
+public:
+    typedef InPortType::Packet PacketType;
+
+    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
+        InputStreamBase::Impl(sri),
+        _port(port)
+    {
+    }
+
+    XMLDataBlock read()
+    {
+        boost::scoped_ptr<PacketType> packet(_port->nextPacket(bulkio::Const::BLOCKING, _streamID));
+        if (!packet) {
+            return XMLDataBlock();
+        }
+        return XMLDataBlock(packet->SRI, packet->buffer);
+    }
+
+private:
+    InPortType* _port;
+};
+
+InputStream<XMLPortTraits>::InputStream() :
+    InputStreamBase()
+{
+}
+
+InputStream<XMLPortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
+    InputStreamBase(boost::make_shared<Impl>(sri, port))
+{
+}
+
+bulkio::XMLDataBlock InputStream<XMLPortTraits>::read()
+{
+    return impl().read();
+}
+
+bool InputStream<XMLPortTraits>::hasBufferedData()
+{
+    return false;
+}
+
+InputStream<XMLPortTraits>::Impl& InputStream<XMLPortTraits>::impl()
+{
+    return static_cast<Impl&>(*_impl);
+}
+
+const InputStream<XMLPortTraits>::Impl& InputStream<XMLPortTraits>::impl() const
+{
+    return static_cast<const Impl&>(*_impl);
+}
+
+//
+// File
+//
+using bulkio::FilePortTraits;
+class InputStream<FilePortTraits>::Impl : public InputStreamBase::Impl {
+public:
+    typedef InPortType::Packet PacketType;
+
+    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
+        InputStreamBase::Impl(sri),
+        _port(port)
+    {
+    }
+
+    FileDataBlock read()
+    {
+        boost::scoped_ptr<PacketType> packet(_port->nextPacket(bulkio::Const::BLOCKING, _streamID));
+        if (!packet) {
+            return FileDataBlock();
+        }
+        FileDataBlock block(packet->SRI, packet->buffer);
+        return block;
+    }
+
+private:
+    InPortType* _port;
+};
+
+InputStream<FilePortTraits>::InputStream() :
+    InputStreamBase()
+{
+}
+
+InputStream<FilePortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
+    InputStreamBase(boost::make_shared<Impl>(sri, port))
+{
+}
+
+bulkio::FileDataBlock InputStream<FilePortTraits>::read()
+{
+    return impl().read();
+}
+
+bool InputStream<FilePortTraits>::hasBufferedData()
+{
+    return false;
+}
+
+InputStream<FilePortTraits>::Impl& InputStream<FilePortTraits>::impl()
+{
+    return static_cast<Impl&>(*_impl);
+}
+
+const InputStream<FilePortTraits>::Impl& InputStream<FilePortTraits>::impl() const
+{
+    return static_cast<const Impl&>(*_impl);
 }
 
 template class InputStream<bulkio::CharPortTraits>;
