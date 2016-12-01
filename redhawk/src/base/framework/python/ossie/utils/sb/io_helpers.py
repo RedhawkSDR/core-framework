@@ -843,7 +843,7 @@ class FileSource(_SourceBase):
         if self.supportedPorts.has_key(dataFormat):
             self._srcPortType = self.supportedPorts[dataFormat]["portType"]
         else:
-            raise Exception, "ERROR: FileSource does not supporte data type " + dataFormat
+            raise Exception, "ERROR: FileSource does not support data type " + dataFormat
 
         self._srcPortObject = None
         self.setupFileReader()
