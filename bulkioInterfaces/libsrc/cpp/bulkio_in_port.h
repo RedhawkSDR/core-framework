@@ -467,9 +467,6 @@ namespace bulkio {
     // @param streamID - name of the stream the vector and stream context data are associated with
     virtual void pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
 
-    // Local non-copying transfer
-    void pushPacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-
     //
     // Stream-based input API
     //
@@ -538,9 +535,6 @@ namespace bulkio {
     // @param EOS  - indicator that the stream has ended, (stream is identified by streamID)
     // @param streamID - name of the stream the vector and stream context data are associated with
     virtual void pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
-
-    // Local push version
-    void pushPacket(const std::string& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
   };
 
 
@@ -570,9 +564,6 @@ namespace bulkio {
     virtual void pushPacket(const char *data, CORBA::Boolean EOS, const char* streamID);
 
     void pushPacket(const char* data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID) __attribute__ ((deprecated));
-
-    // Local push version
-    void pushPacket(const std::string& data, CORBA::Boolean EOS, const std::string& streamID);
   };
 
 

@@ -736,12 +736,6 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
-  void InNumericPort< PortTraits >::pushPacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
-  {
-    this->queuePacket(data, T, EOS, streamID);
-  }
-
-  template < typename PortTraits >
   typename InNumericPort< PortTraits >::StreamList InNumericPort< PortTraits >::pollStreams(float timeout)
   {
     return pollStreams(0, timeout);
@@ -844,11 +838,6 @@ namespace  bulkio {
     }
   }
 
-  void InFilePort::pushPacket(const std::string& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID)
-  {
-    this->queuePacket(data, T, EOS, streamID);
-  }
-
 
   InXMLPort::InXMLPort(std::string name,
                        LOGGER_PTR  logger,
@@ -877,7 +866,7 @@ namespace  bulkio {
     if (data) {
       buffer = data;
     }
-    this->pushPacket(buffer, EOS, streamID);
+    this->queuePacket(buffer, BULKIO::PrecisionUTCTime(), EOS, streamID);
   }
 
   void InXMLPort::pushPacket(const char* data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
@@ -889,10 +878,6 @@ namespace  bulkio {
     this->queuePacket(buffer, T, EOS, streamID);
   }
 
-  void InXMLPort::pushPacket(const std::string& data, CORBA::Boolean EOS, const std::string& streamID)
-  {
-    this->queuePacket(data, BULKIO::PrecisionUTCTime(), EOS, streamID);
-  }
 
   //
   // Required for Template Instantion for the compilation unit.
