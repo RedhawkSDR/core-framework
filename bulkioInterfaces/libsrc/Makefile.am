@@ -40,13 +40,14 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/bulkio_in_stream.cpp \
     cpp/bulkio_out_port.cpp \
     cpp/bulkio_out_stream.cpp \
-	cpp/bulkio_attachable_port.cpp \
+    cpp/bulkio_attachable_port.cpp \
     cpp/bulkio_sri_helpers.cpp \
     cpp/bulkio_time_helpers.cpp \
     cpp/bulkio_time_operators.cpp \
     cpp/bulkio_datablock.cpp \
     cpp/bulkio_p.h \
-    cpp/bulkio_connection.hpp
+    cpp/bulkio_transport.h \
+    cpp/bulkio_transport.cpp
 
 ## Define the list of public header files and their install location.
 library_includedir = $(includedir)/bulkio

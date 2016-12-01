@@ -39,7 +39,6 @@
 
 namespace bulkio {
 
-  template <typename PortTraits> class InPort;
   template <typename PortTraits> class PortTransport;
 
   //
@@ -257,13 +256,9 @@ namespace bulkio {
     //
     // Lookup table for connections to input ports in the same process space
     //
-    typedef InPort<PortTraits> LocalPortType;
     typedef PortTransport<PortTraits> PortTransportType;
 
     virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
-    virtual PortTransportType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
-    virtual PortTransportType* _createLocalConnection(PortPtrType port, LocalPortType* localPort,
-                                                      const std::string& connectionId);
 
     typedef redhawk::UsesPort::TransportIteratorAdapter<PortTransportType> TransportIterator;
 
@@ -419,13 +414,6 @@ namespace bulkio {
      *  streamID: stream identifier
      */
     void pushPacket( const DataBufferType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-
-  protected:
-    using OutPort<PortTraits>::logger;
-    typedef typename OutPort<PortTraits>::PortPtrType PortPtrType;
-    typedef typename OutPort<PortTraits>::PortTransportType PortTransportType;
-
-    virtual PortTransportType* _createRemoteConnection(PortPtrType port, const std::string& connectionId);
   };
 
   //

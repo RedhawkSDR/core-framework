@@ -1,98 +1,131 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file
+ * distributed with this source distribution.
+ *
+ * This file is part of REDHAWK bulkioInterfaces.
+ *
+ * REDHAWK bulkioInterfaces is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * REDHAWK bulkioInterfaces is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#include "bulkio_transport.h"
+#include "bulkio_traits.h"
+#include "bulkio_time_operators.h"
+#include "bulkio_in_port.h"
+
 namespace bulkio {
+    template <typename PortTraits>
+    class LocalTransport;
 
     template <typename PortTraits>
-    class PortTransport : public redhawk::BasicTransport
+    class RemoteTransport;
+
+    template <typename PortTraits>
+    class ChunkingTransport;
+
+    template <typename PortTraits>
+    PortTransport<PortTraits>* PortTransport<PortTraits>::Factory(const std::string& connectionId,
+                                                                  const std::string& name,
+                                                                  PtrType port)
     {
-    public:
-        typedef typename PortTraits::PortType PortType;
-        typedef typename PortType::_var_type VarType;
-        typedef typename PortType::_ptr_type PtrType;
-        typedef typename PortTraits::NativeType NativeType;
-        typedef typename PortTraits::SharedBufferType SharedBufferType;
-
-        PortTransport(const std::string& connectionId, const std::string& name, PtrType objref) :
-            redhawk::BasicTransport(connectionId, objref),
-            stats(name, sizeof(NativeType)),
-            _port(PortType::_duplicate(objref))
-        {
+        typedef InPort<PortTraits> LocalPortType;
+        LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
+        if (local_port) {
+            return LocalTransport<PortTraits>::Factory(connectionId, name, local_port, port);
+        } else {
+            return RemoteTransport<PortTraits>::Factory(connectionId, name, port);
         }
+    }
 
-        virtual ~PortTransport() { };
+    template <typename PortTraits>
+    PortTransport<PortTraits>::PortTransport(const std::string& connectionId, const std::string& name, PtrType objref) :
+        redhawk::BasicTransport(connectionId, objref),
+        stats(name, sizeof(NativeType)),
+        _port(PortType::_duplicate(objref))
+    {
+    }
 
-        virtual void disconnect()
-        {
-            // Send an end-of-stream for all active streams
-            for (VersionMap::iterator stream = _sriVersions.begin(); stream != _sriVersions.end(); ++stream) {
-                this->_pushPacket(SharedBufferType(), bulkio::time::utils::notSet(), true, stream->first);
+    template <typename PortTraits>
+    PortTransport<PortTraits>::~PortTransport()
+    {
+    }
+
+    template <typename PortTraits>
+    void PortTransport<PortTraits>::disconnect()
+    {
+        // Send an end-of-stream for all active streams
+        for (VersionMap::iterator stream = _sriVersions.begin(); stream != _sriVersions.end(); ++stream) {
+            this->_pushPacket(SharedBufferType(), bulkio::time::utils::notSet(), true, stream->first);
+        }
+        _sriVersions.clear();
+    }
+
+    template <typename PortTraits>
+    void PortTransport<PortTraits>::pushSRI(const std::string& streamID, const BULKIO::StreamSRI& sri, int version)
+    {
+        VersionMap::iterator existing = _sriVersions.find(streamID);
+        if (existing != _sriVersions.end()) {
+            if (version == existing->second) {
+                return;
             }
-            _sriVersions.clear();
+            existing->second = version;
+        } else {
+            _sriVersions[streamID] = version;
         }
+        this->_pushSRI(sri);
+    }
 
-        void pushSRI(const std::string& streamID, const BULKIO::StreamSRI& sri, int version)
-        {
-            VersionMap::iterator existing = _sriVersions.find(streamID);
-            if (existing != _sriVersions.end()) {
-                if (version == existing->second) {
-                    return;
-                }
-                existing->second = version;
-            } else {
-                _sriVersions[streamID] = version;
-            }
-            this->_pushSRI(sri);
+    template <typename PortTraits>
+    void PortTransport<PortTraits>::pushPacket(const SharedBufferType& data,
+                                               const BULKIO::PrecisionUTCTime& T,
+                                               bool EOS,
+                                               const std::string& streamID,
+                                               const BULKIO::StreamSRI& sri)
+    {
+        this->_sendPacket(data, T, EOS, streamID, sri);
+        if (EOS) {
+            _sriVersions.erase(streamID);
         }
+    }
 
-        void pushPacket(const SharedBufferType& data,
-                        const BULKIO::PrecisionUTCTime& T,
-                        bool EOS,
-                        const std::string& streamID,
-                        const BULKIO::StreamSRI& sri)
-        {
-            this->_sendPacket(data, T, EOS, streamID, sri);
-            if (EOS) {
-                _sriVersions.erase(streamID);
-            }
-        }
+    template <typename PortTraits>
+    typename PortTransport<PortTraits>::PtrType PortTransport<PortTraits>::port()
+    {
+        return _port;
+    }
 
-        PtrType port()
-        {
-            return _port;
-        }
+    template <typename PortTraits>
+    bool PortTransport<PortTraits>::isLocal() const
+    {
+        return false;
+    }
 
-        linkStatistics stats;
+    template <typename PortTraits>
+    void PortTransport<PortTraits>::_sendPacket(const SharedBufferType& data,
+                                                const BULKIO::PrecisionUTCTime& T,
+                                                bool EOS,
+                                                const std::string& streamID,
+                                                const BULKIO::StreamSRI& sri)
+    {
+        this->_pushPacket(data, T, EOS, streamID);
+        stats.update(this->_dataLength(data), 0, EOS, streamID);
+    }
 
-    protected:
-        virtual void _pushSRI(const BULKIO::StreamSRI& sri) = 0;
-
-        virtual void _sendPacket(const SharedBufferType& data,
-                                 const BULKIO::PrecisionUTCTime& T,
-                                 bool EOS,
-                                 const std::string& streamID,
-                                 const BULKIO::StreamSRI& sri)
-        {
-            this->_pushPacket(data, T, EOS, streamID);
-            stats.update(this->_dataLength(data), 0, EOS, streamID);
-        }
-
-        virtual void _pushPacket(const SharedBufferType& data,
-                                 const BULKIO::PrecisionUTCTime& T,
-                                 bool EOS,
-                                 const std::string& streamID) = 0;
-
-        //
-        // Returns the total number of elements of data in a pushPacket call, for
-        // statistical tracking; enables XML and File specialization, which have
-        // different notions of size
-        //
-        size_t _dataLength(const SharedBufferType& data)
-        {
-            return data.size();
-        }
-
-        VarType _port;
-        typedef std::map<std::string,int> VersionMap;
-        VersionMap _sriVersions;
-    };
+    template <typename PortTraits>
+    size_t PortTransport<PortTraits>::_dataLength(const SharedBufferType& data)
+    {
+        return data.size();
+    }
 
     template <>
     size_t PortTransport<FilePortTraits>::_dataLength(const std::string& /*unused*/)
@@ -109,6 +142,11 @@ namespace bulkio {
         typedef typename PortTraits::SharedBufferType SharedBufferType;
         typedef typename PortTraits::SequenceType PortSequenceType;
         typedef typename PortTraits::TransportType TransportType;
+
+        static RemoteTransport* Factory(const std::string& connectionId, const std::string& name, PtrType port)
+        {
+            return new ChunkingTransport<PortTraits>(connectionId, name, port);
+        }
 
         RemoteTransport(const std::string& connectionId, const std::string& name, PtrType port) :
             PortTransport<PortTraits>(connectionId, name, port)
@@ -150,12 +188,28 @@ namespace bulkio {
     };
 
     template <>
+    RemoteTransport<FilePortTraits>* RemoteTransport<FilePortTraits>::Factory(const std::string& connectionId,
+                                                                              const std::string& name,
+                                                                              PtrType port)
+    {
+        return new RemoteTransport<FilePortTraits>(connectionId, name, port);
+    }
+
+    template <>
     void RemoteTransport<FilePortTraits>::_pushPacketImpl(const std::string& data,
                                                           const BULKIO::PrecisionUTCTime& T,
                                                           bool EOS,
                                                           const char* streamID)
     {
         _port->pushPacket(data.c_str(), T, EOS, streamID);
+    }
+
+    template <>
+    RemoteTransport<XMLPortTraits>* RemoteTransport<XMLPortTraits>::Factory(const std::string& connectionId,
+                                                                            const std::string& name,
+                                                                            PtrType port)
+    {
+        return new RemoteTransport<XMLPortTraits>(connectionId, name, port);
     }
 
     template <>
@@ -255,6 +309,12 @@ namespace bulkio {
         typedef InPort<PortTraits> LocalPortType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
+        static LocalTransport* Factory(const std::string& connectionId, const std::string& name,
+                                       LocalPortType* localPort, PtrType port)
+        {
+            return new LocalTransport(connectionId, name, localPort, port);
+        }
+
         LocalTransport(const std::string& connectionId, const std::string& name,
                        LocalPortType* localPort, PtrType port) :
             PortTransport<PortTraits>(connectionId, name, port),
@@ -266,6 +326,11 @@ namespace bulkio {
         ~LocalTransport()
         {
             _localPort->_remove_ref();
+        }
+
+        virtual bool isLocal() const
+        {
+            return true;
         }
 
     protected:
@@ -311,4 +376,25 @@ namespace bulkio {
         _localPort->queuePacket(data, T, EOS, streamID);
     }
 
+#define INSTANTIATE_TEMPLATE(x)         \
+    template class PortTransport<x>;    \
+    template class LocalTransport<x>;   \
+    template class RemoteTransport<x>;  \
+
+#define INSTANTIATE_NUMERIC_TEMPLATE(x) \
+    INSTANTIATE_TEMPLATE(x); template class ChunkingTransport<x>;
+
+    INSTANTIATE_NUMERIC_TEMPLATE(CharPortTraits);
+    INSTANTIATE_NUMERIC_TEMPLATE(OctetPortTraits);
+    INSTANTIATE_NUMERIC_TEMPLATE(ShortPortTraits);
+    INSTANTIATE_NUMERIC_TEMPLATE(UShortPortTraits);
+    INSTANTIATE_NUMERIC_TEMPLATE(LongPortTraits);
+    INSTANTIATE_NUMERIC_TEMPLATE(ULongPortTraits);
+    INSTANTIATE_NUMERIC_TEMPLATE(LongLongPortTraits);
+    INSTANTIATE_NUMERIC_TEMPLATE(ULongLongPortTraits);
+    INSTANTIATE_NUMERIC_TEMPLATE(FloatPortTraits);
+    INSTANTIATE_NUMERIC_TEMPLATE(DoublePortTraits);
+
+    INSTANTIATE_TEMPLATE(FilePortTraits);
+    INSTANTIATE_TEMPLATE(XMLPortTraits);
 }

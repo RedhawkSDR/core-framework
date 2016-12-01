@@ -23,10 +23,7 @@
  *******************************************************************************************/
 #include "bulkio_out_port.h"
 #include "bulkio_p.h"
-#include "bulkio_time_operators.h"
-#include "bulkio_in_port.h"
-
-#include "bulkio_connection.hpp"
+#include "bulkio_transport.h"
 
 // Suppress warnings for access to deprecated currentSRI member (on gcc 4.4, at
 // least, the implicit destructor call from OutPort's destructor emits a
@@ -273,33 +270,15 @@ namespace bulkio {
           throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
 
-      LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
-      if (local_port) {
+      PortTransportType* transport = PortTransportType::Factory(connectionId, name, port);
+      if (transport->isLocal()) {
+          PortBase* local_port = ossie::corba::getLocalServant<PortBase>(port);
           LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
                     << " for connection " << connectionId);
-          return _createLocalConnection(port, local_port, connectionId);
-      } else {
-          return _createRemoteConnection(port, connectionId);
       }
+      return transport;
   }
 
-
-  template < typename PortTraits >
-  typename OutPort< PortTraits >::PortTransportType*
-  OutPort< PortTraits >::_createRemoteConnection(PortPtrType port, const std::string& connectionId)
-  {
-      return new RemoteTransport<PortTraits>(connectionId, name, port);
-  }
-
-
-  template < typename PortTraits >
-  typename OutPort< PortTraits >::PortTransportType*
-  OutPort< PortTraits >::_createLocalConnection(PortPtrType port, LocalPortType* localPort,
-                                                    const std::string& connectionId)
-  {
-      return new LocalTransport<PortTraits>(connectionId, name, localPort, port);
-  }
-  
 
   template <typename PortTraits>
   typename OutPort<PortTraits>::StreamType OutPort<PortTraits>::getStream(const std::string& streamID)
@@ -450,15 +429,6 @@ namespace bulkio {
   OutNumericPort< PortTraits >::~OutNumericPort()
   {
   }
-
-
-  template <typename PortTraits>
-  typename OutNumericPort<PortTraits>::PortTransportType*
-  OutNumericPort<PortTraits>::_createRemoteConnection(PortPtrType port, const std::string& connectionId)
-  {
-      return new ChunkingTransport<PortTraits>(connectionId, this->name, port);
-  }
-
 
   template < typename PortTraits >
   void OutNumericPort< PortTraits >::pushPacket(
