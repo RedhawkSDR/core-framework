@@ -39,28 +39,7 @@
 
 namespace bulkio {
 
-  template <typename PortTraits> class InNumericPort;
-  class InFilePort;
-  class InXMLPort;
-
-  template <typename PortTraits>
-  struct LocalTraits
-  {
-    typedef InNumericPort<PortTraits> InPortType;
-  };
-
-  template <>
-  struct LocalTraits<FilePortTraits>
-  {
-    typedef InFilePort InPortType;
-  };
-
-  template <>
-  struct LocalTraits<XMLPortTraits>
-  {
-    typedef InXMLPort InPortType;
-  };
-
+  template <typename PortTraits> class InPort;
   template <typename PortTraits> class PortTransport;
 
   //
@@ -278,7 +257,7 @@ namespace bulkio {
     //
     // Lookup table for connections to input ports in the same process space
     //
-    typedef typename LocalTraits<PortTraits>::InPortType LocalPortType;
+    typedef InPort<PortTraits> LocalPortType;
     typedef PortTransport<PortTraits> PortTransportType;
 
     virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);

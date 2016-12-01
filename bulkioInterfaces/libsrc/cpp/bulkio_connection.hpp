@@ -252,7 +252,7 @@ namespace bulkio {
     public:
         typedef typename PortTraits::PortType PortType;
         typedef typename PortType::_ptr_type PtrType;
-        typedef typename LocalTraits<PortTraits>::InPortType LocalPortType;
+        typedef InPort<PortTraits> LocalPortType;
         typedef typename PortTraits::SharedBufferType SharedBufferType;
 
         LocalTransport(const std::string& connectionId, const std::string& name,
@@ -284,9 +284,9 @@ namespace bulkio {
                 // so we need to make a copy. This could be optimized for the fanout
                 // case by making the copy at a higher level, but only if there's at
                 // least one local connection.
-                _localPort->pushPacket(data.copy(), T, EOS, streamID);
+                _localPort->queuePacket(data.copy(), T, EOS, streamID);
             } else {
-                _localPort->pushPacket(data, T, EOS, streamID);
+                _localPort->queuePacket(data, T, EOS, streamID);
             }
         }
 
@@ -299,16 +299,16 @@ namespace bulkio {
                                                      bool EOS,
                                                      const std::string& streamID)
     {
-        _localPort->pushPacket(data, T, EOS, streamID);
+        _localPort->queuePacket(data, T, EOS, streamID);
     }
 
     template <>
     void LocalTransport<XMLPortTraits>::_pushPacket(const std::string& data,
-                                                    const BULKIO::PrecisionUTCTime& /*unused*/,
+                                                    const BULKIO::PrecisionUTCTime& T,
                                                     bool EOS,
                                                     const std::string& streamID)
     {
-        _localPort->pushPacket(data, EOS, streamID);
+        _localPort->queuePacket(data, T, EOS, streamID);
     }
 
 }

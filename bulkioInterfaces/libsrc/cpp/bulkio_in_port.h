@@ -36,6 +36,9 @@
 
 namespace bulkio {
 
+  template <class PortTraits>
+  class LocalTransport;
+
   //
   //  InPort
   //  Base template for data transfers between BULKIO ports.  This class is defined by 2 trait classes
@@ -360,6 +363,9 @@ namespace bulkio {
     // exactly to pushPacket, except for dataFile
     //
     void queuePacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
+
+    // Allow local transport classes to directly queue packets
+    friend class LocalTransport<PortTraits>;
 
     //
     // Fetches the next packet for the given stream ID, blocking for up to

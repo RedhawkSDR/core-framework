@@ -602,10 +602,11 @@ namespace bulkio {
 
   void OutXMLPort::pushPacket(const std::string& data, bool EOS, const std::string& streamID)
   {
-    // The time argument is never dereferenced for dataXML, so it is safe to
-    // pass a null
-    BULKIO::PrecisionUTCTime* time = 0;
-    _sendPacket(data, *time, EOS, streamID);
+    // Because it's templatized, the port's interface requires a timestamp;
+    // however, since it's not used for XML ports, creating a method-static
+    // instance is sufficient
+    static BULKIO::PrecisionUTCTime time;
+    _sendPacket(data, time, EOS, streamID);
   }
 
   void OutXMLPort::pushPacket(const char* data, bool EOS, const std::string& streamID)
