@@ -125,6 +125,11 @@ protected:
         _eosState = EOS_REPORTED;
     }
 
+    size_t _samplesAvailable(bool first)
+    {
+        return _port->samplesAvailable(_streamID, first);
+    }
+
     const std::string _streamID;
     boost::shared_ptr<BULKIO::StreamSRI> _sri;
     InPortType* _port;
@@ -206,7 +211,7 @@ class InputStream<PortTraits>::Impl : public Base::Impl {
 public:
     typedef typename Base::Impl ImplBase;
 
-    typedef typename InPortType::Packet PacketType;
+    typedef typename ImplBase::PacketType PacketType;
     typedef typename PortTraits::NativeType NativeType;
     typedef typename PortTraits::SharedBufferType SharedBufferType;
     typedef DataBlock<NativeType> DataBlockType;
@@ -266,7 +271,7 @@ public:
       // search can go past the first packet if the SRI change or queue flush
       // flag is set)
       bool first = _queue.empty();
-      queued += _port->samplesAvailable(_streamID, first);
+      queued += ImplBase::_samplesAvailable(first);
     }
 
     return queued;
@@ -684,9 +689,10 @@ const typename InputStream<PortTraits>::Impl& InputStream<PortTraits>::impl() co
 // XML
 //
 using bulkio::XMLPortTraits;
-class InputStream<XMLPortTraits>::Impl : public InputStreamBase<XMLPortTraits>::Impl {
+class InputStream<XMLPortTraits>::Impl : public Base::Impl {
 public:
-    typedef InPortType::Packet PacketType;
+    typedef Base::Impl BaseImpl;
+    typedef BaseImpl::PacketType PacketType;
 
     Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
         InputStreamBase<XMLPortTraits>::Impl(sri, port)
@@ -710,12 +716,12 @@ public:
 };
 
 InputStream<XMLPortTraits>::InputStream() :
-    InputStreamBase<XMLPortTraits>()
+    Base()
 {
 }
 
 InputStream<XMLPortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-    InputStreamBase<XMLPortTraits>(boost::make_shared<Impl>(sri, port))
+    Base(boost::make_shared<Impl>(sri, port))
 {
 }
 
@@ -738,12 +744,13 @@ const InputStream<XMLPortTraits>::Impl& InputStream<XMLPortTraits>::impl() const
 // File
 //
 using bulkio::FilePortTraits;
-class InputStream<FilePortTraits>::Impl : public InputStreamBase<FilePortTraits>::Impl {
+class InputStream<FilePortTraits>::Impl : public Base::Impl {
 public:
-    typedef InPortType::Packet PacketType;
+    typedef Base::Impl BaseImpl;
+    typedef BaseImpl::PacketType PacketType;
 
     Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-        InputStreamBase<FilePortTraits>::Impl(sri, port)
+        BaseImpl(sri, port)
     {
     }
 
@@ -766,12 +773,12 @@ public:
 };
 
 InputStream<FilePortTraits>::InputStream() :
-    InputStreamBase<FilePortTraits>()
+    Base()
 {
 }
 
 InputStream<FilePortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-    InputStreamBase<FilePortTraits>(boost::make_shared<Impl>(sri, port))
+    Base(boost::make_shared<Impl>(sri, port))
 {
 }
 

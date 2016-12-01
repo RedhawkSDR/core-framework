@@ -113,6 +113,8 @@ namespace bulkio {
     XMLDataBlock read();
 
   private:
+    typedef InputStreamBase<XMLPortTraits> Base;
+
     friend class InPort<XMLPortTraits>;
     typedef InPort<XMLPortTraits> InPortType;
     InputStream(const boost::shared_ptr<BULKIO::StreamSRI>&, InPortType*);
@@ -132,6 +134,8 @@ namespace bulkio {
     FileDataBlock read();
 
   private:
+    typedef InputStreamBase<FilePortTraits> Base;
+
     friend class InPort<FilePortTraits>;
     typedef InPort<FilePortTraits> InPortType;
     InputStream(const boost::shared_ptr<BULKIO::StreamSRI>&, InPortType*);

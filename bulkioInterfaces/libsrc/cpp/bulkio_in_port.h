@@ -380,7 +380,6 @@ namespace bulkio {
     void discardPacketsForStream(const std::string& streamID);
 
     friend class InputStreamBase<PortTraits>;
-    friend class InputStream<PortTraits>;
     size_t samplesAvailable(const std::string& streamID, bool firstPacket);
 
     void createStream(const std::string& streamID, const boost::shared_ptr<BULKIO::StreamSRI>& sri);
