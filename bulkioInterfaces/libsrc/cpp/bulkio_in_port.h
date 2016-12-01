@@ -92,7 +92,7 @@ namespace bulkio {
      * @return dataTranfer *  pointer to a data transfer object from the port's work queue
      * @return NULL - no data available
      */
-    virtual DataTransferType *getPacket(float timeout);
+    DataTransferType *getPacket(float timeout);
 
     /*
      * getPacket - interface used by components to grab data from the port's internal queue object for a specified streamID
@@ -104,7 +104,7 @@ namespace bulkio {
      * @return dataTranfer *  pointer to a data transfer object from the port's work queue
      * @return NULL - no data available
      */
-    virtual DataTransferType *getPacket(float timeout, const std::string &streamID);
+    DataTransferType *getPacket(float timeout, const std::string& streamID);
 
     //
     // BULKIO IDL interface for pushing Floating Point vectors between components
@@ -125,7 +125,7 @@ namespace bulkio {
     /*
      * turn on/off the port monitoring capability
      */
-    virtual void enableStats(bool enable);
+    void enableStats(bool enable);
 
     //
     // state - returns the current state of the port as follows:
@@ -167,31 +167,31 @@ namespace bulkio {
      *
      * @return int  - number of items in the queue
      */
-    virtual int getCurrentQueueDepth();
+    int getCurrentQueueDepth();
 
     /*
      *  getMaxQueueDepth - returns the maximum size of the queue , if this water mark is reached the queue will be purged, and the
      *                     component of the port will be notified in getPacket method
      * @return int - maximum size the queue can reach before purging occurs
      */
-    virtual int getMaxQueueDepth();
+    int getMaxQueueDepth();
 
     /*
      * setMaxQueueDepth - allow users of this port to modify the maximum number of allowable vectors on the queue.
      */
-    virtual void setMaxQueueDepth(int newDepth);
+    void setMaxQueueDepth(int newDepth);
 
     //
     // Allow the component to control the flow of data from the port to the component.  Block will restrict the flow of data back into the
     // component.  Call in component's stop method
     //
-    virtual void block();
+    void block();
 
     //
     // Allow the component to control the flow of data from the port to the component.  Unblock will release the flow of data back into the
     // component. Called in component's start method.
     //
-    virtual void unblock();
+    void unblock();
 
     //
     // Support function for automatic component-managed start.  Calls unblock.
@@ -208,7 +208,7 @@ namespace bulkio {
      *
      * @return bool returns state of breakBlock variable used to release any upstream blocking pushPacket calls
      */
-    virtual bool blocked();
+    bool blocked();
 
     template <class Target, class Func>
     void addStreamListener(Target target, Func func) {

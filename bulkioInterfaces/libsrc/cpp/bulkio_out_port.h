@@ -215,22 +215,22 @@ namespace bulkio {
     //
     // turn on/off the port monitoring capability
     //
-    virtual void enableStats(bool enable);
+    void enableStats(bool enable);
 
     //
     // Return map of streamID/SRI objects 
     //
-    virtual bulkio::SriMap getCurrentSRI();
+    bulkio::SriMap getCurrentSRI();
 
     //
     // Return list of SRI objects
     //
-    virtual bulkio::SriList getActiveSRIs();
+    bulkio::SriList getActiveSRIs();
 
     //
     // Return a ConnectionsList for the current ports and connections ids establish via connectPort method
     //
-    virtual ConnectionsList getConnections();
+    ConnectionsList getConnections();
 
     //
     // Deprecation Warning
@@ -242,7 +242,7 @@ namespace bulkio {
     //
     // Allow access to the port's connection list
     //
-    virtual ConnectionsList __attribute__ ((deprecated)) _getConnections() {
+    ConnectionsList __attribute__ ((deprecated)) _getConnections() {
       return getConnections();
     }
 
