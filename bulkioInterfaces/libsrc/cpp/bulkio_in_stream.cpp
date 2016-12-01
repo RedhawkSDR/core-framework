@@ -65,7 +65,7 @@ public:
         if (_eosState == EOS_RECEIVED) {
             _eosState = EOS_REACHED;
         }
-        if (!packet) {
+        if (!packet || (packet->EOS && packet->buffer.empty())) {
             if (_eosState == EOS_REACHED) {
                 _reportEOS();
             }
