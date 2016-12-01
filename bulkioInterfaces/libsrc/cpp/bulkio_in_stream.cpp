@@ -28,8 +28,11 @@
 
 using bulkio::InputStreamBase;
 
-class InputStreamBase::Impl {
+template <class PortTraits>
+class InputStreamBase<PortTraits>::Impl {
 public:
+    typedef typename InPortType::Packet PacketType;
+
     enum EosState {
         EOS_NONE,
         EOS_RECEIVED,
@@ -37,9 +40,10 @@ public:
         EOS_REPORTED
     };
 
-    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri) :
+    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
         _streamID(sri->streamID),
         _sri(sri),
+        _port(port),
         _eosState(EOS_NONE),
         _enabled(true)
     {
@@ -65,62 +69,160 @@ public:
         _enabled = true;
     }
 
+    virtual void disable()
+    {
+        _enabled = false;
+
+        // Unless end-of-stream has been received by the port (meaning any further
+        // packets with this stream ID are for a different instance), purge any
+        // packets for this stream from the port's queue
+        if (_eosState == EOS_NONE) {
+            _port->discardPacketsForStream(_streamID);
+        }
+    }
+
+    virtual bool eos()
+    {
+        if (_eosState == EOS_REACHED) {
+            // This is the first time end-of-stream has been checked since it
+            // was reached; remove the stream from the port now, since the
+            // caller knows that the stream ended
+            _reportEOS();
+        }
+        // At this point, if end-of-stream has been reached, the state is
+        // reported (it gets set above), so the checking for the latter is
+        // sufficient
+        return (_eosState == EOS_REPORTED);
+    }
+
+    virtual bool hasBufferedData() const
+    {
+        // For the base class, there is no data to report; however, to nudge
+        // the check end-of-stream, return true if it has been reached but not
+        // reported
+        return (_eosState == EOS_REACHED);
+    }
+
 protected:
+    PacketType* _fetchPacket(bool blocking)
+    {
+        // Any future packets with this stream ID belong to another InputStream
+        if (_eosState != EOS_NONE) {
+            return 0;
+        }
+
+        float timeout = blocking?bulkio::Const::BLOCKING:bulkio::Const::NON_BLOCKING;
+        PacketType* packet = _port->nextPacket(timeout, _streamID);
+        if (packet && packet->EOS) {
+            _eosState = EOS_RECEIVED;
+        }
+        return packet;
+    }
+
+    void _reportEOS()
+    {
+        _port->removeStream(_streamID);
+        _eosState = EOS_REPORTED;
+    }
+
     const std::string _streamID;
     boost::shared_ptr<BULKIO::StreamSRI> _sri;
+    InPortType* _port;
     EosState _eosState;
     bool _enabled;
 };
 
-InputStreamBase::InputStreamBase() :
+template <class PortTraits>
+InputStreamBase<PortTraits>::InputStreamBase() :
     _impl()
 {
 }
 
-InputStreamBase::InputStreamBase(const boost::shared_ptr<Impl>& impl) :
+template <class PortTraits>
+InputStreamBase<PortTraits>::InputStreamBase(const boost::shared_ptr<Impl>& impl) :
     _impl(impl)
 {
 }
 
-const std::string& InputStreamBase::streamID() const
+template <class PortTraits>
+const std::string& InputStreamBase<PortTraits>::streamID() const
 {
     return _impl->streamID();
 }
 
-const BULKIO::StreamSRI& InputStreamBase::sri() const
+template <class PortTraits>
+const BULKIO::StreamSRI& InputStreamBase<PortTraits>::sri() const
 {
     return _impl->sri();
 }
 
-bool InputStreamBase::enabled() const
+template <class PortTraits>
+bool InputStreamBase<PortTraits>::enabled() const
 {
     return _impl->enabled();
 }
 
-void InputStreamBase::enable()
+template <class PortTraits>
+void InputStreamBase<PortTraits>::enable()
 {
     _impl->enable();
 }
 
-bool InputStreamBase::operator!() const
+template <class PortTraits>
+void InputStreamBase<PortTraits>::disable()
 {
-  return !_impl;
+    _impl->disable();
+}
+
+template <class PortTraits>
+bool InputStreamBase<PortTraits>::eos()
+{
+    return _impl->eos();
+}
+
+template <class PortTraits>
+bool InputStreamBase<PortTraits>::operator!() const
+{
+    return !_impl;
+}
+
+template <class PortTraits>
+InputStreamBase<PortTraits>::operator unspecified_bool_type() const
+{
+    return _impl?&InputStreamBase::_impl:0;
+}
+
+template <class PortTraits>
+bool InputStreamBase<PortTraits>::hasBufferedData()
+{
+  return _impl->hasBufferedData();
 }
 
 
 using bulkio::InputStream;
 
 template <class PortTraits>
-class InputStream<PortTraits>::Impl : public InputStreamBase::Impl {
+class InputStream<PortTraits>::Impl : public Base::Impl {
 public:
+    typedef typename Base::Impl ImplBase;
+
     typedef typename InPortType::Packet PacketType;
     typedef typename PortTraits::NativeType NativeType;
     typedef typename PortTraits::SharedBufferType SharedBufferType;
     typedef DataBlock<NativeType> DataBlockType;
 
-     Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-        InputStreamBase::Impl(sri),
-        _port(port),
+    using ImplBase::EOS_NONE;
+    using ImplBase::EOS_RECEIVED;
+    using ImplBase::EOS_REACHED;
+    using ImplBase::EOS_REPORTED;
+    using ImplBase::_eosState;
+    using ImplBase::_enabled;
+    using ImplBase::_port;
+    using ImplBase::_streamID;
+    using ImplBase::_sri;
+
+    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
+        ImplBase(sri, port),
         _queue(),
         _pending(0),
         _samplesQueued(0),
@@ -133,7 +235,7 @@ public:
     delete _pending;
   }
 
-  bool eos()
+  virtual bool eos()
   {
     if (_queue.empty()) {
       // Try a non-blocking fetch to see if there's an empty end-of-stream
@@ -142,16 +244,7 @@ public:
       // state again
       _fetchPacket(false);
     }
-    if (_eosState == EOS_REACHED) {
-      // This is the first time end-of-stream has been checked since it was
-      // reached; remove the stream from the port now, since the caller knows
-      // that the stream ended
-      _port->removeStream(_streamID);
-      _eosState = EOS_REPORTED;
-    }
-    // At this point, if end-of-stream has been reached, the state is reported
-    // (it gets set above), so the checking for the latter is sufficient
-    return (_eosState == EOS_REPORTED);
+    return ImplBase::eos();
   }
 
   size_t samplesAvailable()
@@ -206,8 +299,7 @@ public:
         // the stream from the port; since the returned data block is invalid,
         // that's a cue for the caller to check end-of-stream, but they don't
         // have to
-        _port->removeStream(_streamID);
-        _eosState = EOS_REPORTED;
+        this->_reportEOS();
       }
       return DataBlockType();
     }
@@ -292,37 +384,21 @@ public:
     }
   }
 
-  void disable()
+  virtual void disable()
   {
-    _enabled = false;
+      ImplBase::disable();
 
-    // Clear queued packets, which implicitly deletes them
-    _queue.clear();
-
-    // Explicitly delete pending packet
-    if (_pending) {
-      delete _pending;
-      _pending = 0;
-    }
-
-    // Unless end-of-stream has been received by the port (meaning any further
-    // packets with this stream ID are for a different instance), purge any
-    // packets for this stream from the port's queue
-    if (_eosState == EOS_NONE) {
-      _port->discardPacketsForStream(_streamID);
-    }
+      // Clear queued packets, which implicitly deletes them
+      _queue.clear();
   }
 
   bool hasBufferedData() const
   {
-    if (_eosState == EOS_REACHED) {
-      // Technically, there is no data to report; however, to nudge the caller
-      // to check end-of-stream, return true
-      return true;
-    } else {
-      // Return true if either there are queued or pending packets
-      return !_queue.empty() || _pending;
-    }
+      if (!_queue.empty() || _pending) {
+          // Return true if either there are queued or pending packets
+          return true;
+      }
+      return ImplBase::hasBufferedData();
   }
 
 private:
@@ -470,20 +546,11 @@ private:
       return false;
     }
 
-    // Any future packets with this stream ID belong to another InputStream
-    if (_eosState != EOS_NONE) {
-      return false;
-    }
-
-    float timeout = blocking?bulkio::Const::BLOCKING:bulkio::Const::NON_BLOCKING;
-    PacketType* packet = _port->nextPacket(timeout, _streamID);
+    PacketType* packet = ImplBase::_fetchPacket(blocking);
     if (!packet) {
       return false;
     }
 
-    if (packet->EOS) {
-      _eosState = EOS_RECEIVED;
-    }
     if (_queue.empty() || _canBridge(packet)) {
       _queuePacket(packet);
       return true;
@@ -521,7 +588,6 @@ private:
     return !(packet->sriChanged || packet->inputQueueFlushed);
   }
 
-  InPortType* _port;
   boost::ptr_deque<PacketType> _queue;
   PacketType* _pending;
   size_t _samplesQueued;
@@ -531,20 +597,14 @@ private:
 
 template <class PortTraits>
 InputStream<PortTraits>::InputStream() :
-    InputStreamBase()
+    Base()
 {
 }
 
 template <class PortTraits>
 InputStream<PortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-    InputStreamBase(boost::make_shared<Impl>(sri, port))
+    Base(boost::make_shared<Impl>(sri, port))
 {
-}
-
-template <class PortTraits>
-bool InputStream<PortTraits>::eos()
-{
-  return impl().eos();
 }
 
 template <class PortTraits>
@@ -590,22 +650,9 @@ size_t InputStream<PortTraits>::skip(size_t count)
 }
 
 template <class PortTraits>
-void InputStream<PortTraits>::disable()
-{
-  impl().disable();
-}
-
-template <class PortTraits>
 size_t InputStream<PortTraits>::samplesAvailable()
 {
   return impl().samplesAvailable();
-}
-
-template <class PortTraits>
-InputStream<PortTraits>::operator unspecified_bool_type() const
-{
-    //return _impl?&InputStream::_impl:0;
-    return 0;
 }
 
 template <class PortTraits>
@@ -618,12 +665,6 @@ template <class PortTraits>
 bool InputStream<PortTraits>::ready()
 {
   return impl().ready();
-}
-
-template <class PortTraits>
-bool InputStream<PortTraits>::hasBufferedData()
-{
-  return impl().hasBufferedData();
 }
 
 template <class PortTraits>
@@ -643,47 +684,44 @@ const typename InputStream<PortTraits>::Impl& InputStream<PortTraits>::impl() co
 // XML
 //
 using bulkio::XMLPortTraits;
-class InputStream<XMLPortTraits>::Impl : public InputStreamBase::Impl {
+class InputStream<XMLPortTraits>::Impl : public InputStreamBase<XMLPortTraits>::Impl {
 public:
     typedef InPortType::Packet PacketType;
 
     Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-        InputStreamBase::Impl(sri),
-        _port(port)
+        InputStreamBase<XMLPortTraits>::Impl(sri, port)
     {
     }
 
     XMLDataBlock read()
     {
-        boost::scoped_ptr<PacketType> packet(_port->nextPacket(bulkio::Const::BLOCKING, _streamID));
+        boost::scoped_ptr<PacketType> packet(_fetchPacket(true));
+        if (_eosState == EOS_RECEIVED) {
+            _eosState = EOS_REACHED;
+        }
         if (!packet) {
+            if (_eosState == EOS_REACHED) {
+                _reportEOS();
+            }
             return XMLDataBlock();
         }
         return XMLDataBlock(packet->SRI, packet->buffer);
     }
-
-private:
-    InPortType* _port;
 };
 
 InputStream<XMLPortTraits>::InputStream() :
-    InputStreamBase()
+    InputStreamBase<XMLPortTraits>()
 {
 }
 
 InputStream<XMLPortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-    InputStreamBase(boost::make_shared<Impl>(sri, port))
+    InputStreamBase<XMLPortTraits>(boost::make_shared<Impl>(sri, port))
 {
 }
 
 bulkio::XMLDataBlock InputStream<XMLPortTraits>::read()
 {
     return impl().read();
-}
-
-bool InputStream<XMLPortTraits>::hasBufferedData()
-{
-    return false;
 }
 
 InputStream<XMLPortTraits>::Impl& InputStream<XMLPortTraits>::impl()
@@ -700,37 +738,40 @@ const InputStream<XMLPortTraits>::Impl& InputStream<XMLPortTraits>::impl() const
 // File
 //
 using bulkio::FilePortTraits;
-class InputStream<FilePortTraits>::Impl : public InputStreamBase::Impl {
+class InputStream<FilePortTraits>::Impl : public InputStreamBase<FilePortTraits>::Impl {
 public:
     typedef InPortType::Packet PacketType;
 
     Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-        InputStreamBase::Impl(sri),
-        _port(port)
+        InputStreamBase<FilePortTraits>::Impl(sri, port)
     {
     }
 
     FileDataBlock read()
     {
-        boost::scoped_ptr<PacketType> packet(_port->nextPacket(bulkio::Const::BLOCKING, _streamID));
+        boost::scoped_ptr<PacketType> packet(_fetchPacket(true));
+        if (_eosState == EOS_RECEIVED) {
+            _eosState = EOS_REACHED;
+        }
         if (!packet) {
+            if (_eosState == EOS_REACHED) {
+                _reportEOS();
+            }
             return FileDataBlock();
         }
         FileDataBlock block(packet->SRI, packet->buffer);
+        // TODO: Add timestamp
         return block;
     }
-
-private:
-    InPortType* _port;
 };
 
 InputStream<FilePortTraits>::InputStream() :
-    InputStreamBase()
+    InputStreamBase<FilePortTraits>()
 {
 }
 
 InputStream<FilePortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
-    InputStreamBase(boost::make_shared<Impl>(sri, port))
+    InputStreamBase<FilePortTraits>(boost::make_shared<Impl>(sri, port))
 {
 }
 
@@ -739,28 +780,31 @@ bulkio::FileDataBlock InputStream<FilePortTraits>::read()
     return impl().read();
 }
 
-bool InputStream<FilePortTraits>::hasBufferedData()
-{
-    return false;
-}
-
 InputStream<FilePortTraits>::Impl& InputStream<FilePortTraits>::impl()
 {
-    return static_cast<Impl&>(*_impl);
+    return static_cast<Impl&>(*this->_impl);
 }
 
 const InputStream<FilePortTraits>::Impl& InputStream<FilePortTraits>::impl() const
 {
-    return static_cast<const Impl&>(*_impl);
+    return static_cast<const Impl&>(*this->_impl);
 }
 
-template class InputStream<bulkio::CharPortTraits>;
-template class InputStream<bulkio::OctetPortTraits>;
-template class InputStream<bulkio::ShortPortTraits>;
-template class InputStream<bulkio::UShortPortTraits>;
-template class InputStream<bulkio::LongPortTraits>;
-template class InputStream<bulkio::ULongPortTraits>;
-template class InputStream<bulkio::LongLongPortTraits>;
-template class InputStream<bulkio::ULongLongPortTraits>;
-template class InputStream<bulkio::FloatPortTraits>;
-template class InputStream<bulkio::DoublePortTraits>;
+#define INSTANTIATE_TEMPLATE(x) \
+  template class InputStreamBase<x>;
+
+#define INSTANTIATE_NUMERIC_TEMPLATE(x) \
+  INSTANTIATE_TEMPLATE(x); template class InputStream<x>;
+
+INSTANTIATE_NUMERIC_TEMPLATE(bulkio::CharPortTraits);
+INSTANTIATE_NUMERIC_TEMPLATE(bulkio::OctetPortTraits);
+INSTANTIATE_NUMERIC_TEMPLATE(bulkio::ShortPortTraits);
+INSTANTIATE_NUMERIC_TEMPLATE(bulkio::UShortPortTraits);
+INSTANTIATE_NUMERIC_TEMPLATE(bulkio::LongPortTraits);
+INSTANTIATE_NUMERIC_TEMPLATE(bulkio::ULongPortTraits);
+INSTANTIATE_NUMERIC_TEMPLATE(bulkio::LongLongPortTraits);
+INSTANTIATE_NUMERIC_TEMPLATE(bulkio::ULongLongPortTraits);
+INSTANTIATE_NUMERIC_TEMPLATE(bulkio::FloatPortTraits);
+INSTANTIATE_NUMERIC_TEMPLATE(bulkio::DoublePortTraits);
+INSTANTIATE_TEMPLATE(bulkio::XMLPortTraits);
+INSTANTIATE_TEMPLATE(bulkio::FilePortTraits);

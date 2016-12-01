@@ -379,6 +379,7 @@ namespace bulkio {
     // first end-of-stream
     void discardPacketsForStream(const std::string& streamID);
 
+    friend class InputStreamBase<PortTraits>;
     friend class InputStream<PortTraits>;
     size_t samplesAvailable(const std::string& streamID, bool firstPacket);
 
