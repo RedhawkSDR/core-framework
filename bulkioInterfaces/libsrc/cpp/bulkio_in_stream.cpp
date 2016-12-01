@@ -264,17 +264,6 @@ public:
     typedef typename ImplBase::PacketType PacketType;
     typedef typename PortTraits::NativeType NativeType;
     typedef typename PortTraits::SharedBufferType SharedBufferType;
-    typedef DataBlock<NativeType> DataBlockType;
-
-    using ImplBase::EOS_NONE;
-    using ImplBase::EOS_RECEIVED;
-    using ImplBase::EOS_REACHED;
-    using ImplBase::EOS_REPORTED;
-    using ImplBase::_eosState;
-    using ImplBase::_enabled;
-    using ImplBase::_port;
-    using ImplBase::_streamID;
-    using ImplBase::_sri;
 
     Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
         ImplBase(sri, port),
@@ -349,7 +338,7 @@ public:
     if (!sri) {
       // No SRI retreived implies no data will be retrieved, either due to end-
       // of-stream or because it would block
-      if (_eosState == EOS_REACHED) {
+      if (this->_eosState == ImplBase::EOS_REACHED) {
         // If this is the first time end-of-stream could be reported, remove
         // the stream from the port; since the returned data block is invalid,
         // that's a cue for the caller to check end-of-stream, but they don't
@@ -390,7 +379,7 @@ public:
       // Non-blocking: return a null block if there's not currently a break in
       // the data, under the assumption that a future read might return the
       // full amount
-      if (!blocking && !_pending && (_eosState == EOS_NONE)) {
+      if (!blocking && !_pending && (this->_eosState == ImplBase::EOS_NONE)) {
         return DataBlockType();
       }
       // Otherwise, consume all remaining data
@@ -430,7 +419,7 @@ public:
 
   bool ready()
   {
-    if (!_enabled) {
+    if (!this->_enabled) {
       return false;
     } else if (_samplesQueued) {
       return true;
@@ -482,7 +471,7 @@ private:
     // Acknowledge any end-of-stream flag and delete the packet (the queue will
     // automatically delete it when it's removed)
     if (_queue.front().EOS) {
-      _eosState = EOS_REACHED;
+      this->_eosState = ImplBase::EOS_REACHED;
     }
     _queue.pop_front();
 
@@ -500,7 +489,7 @@ private:
 
     // Allocate empty data block and propagate the SRI change and input queue
     // flush flags
-    DataBlockType data(_sri);
+    DataBlockType data(this->_sri);
     this->_setBlockFlags(data, front);
 
     // Clear flags from packet, since they've been reported
@@ -616,7 +605,7 @@ private:
       // SRI changes, and queue flushes are irrelevant at this point)
       if (_queue.empty()) {
         // No queued packets, read pointer has reached end-of-stream
-        _eosState = EOS_REACHED;
+        this->_eosState = ImplBase::EOS_REACHED;
       } else {
         // Assign the end-of-stream flag to the last packet in the queue so
         // that it is handled on read
