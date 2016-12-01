@@ -31,129 +31,129 @@
 
 namespace bulkio {
 
-  template <class PortTraits>
-  class InPort;
+    template <class PortTraits>
+    class InPort;
 
-  template <class PortTraits>
-  struct BlockTraits {
-    typedef DataBlock<typename PortTraits::DataTransferTraits::NativeDataType> DataBlockType;
-  };
+    template <class PortTraits>
+    struct BlockTraits {
+        typedef DataBlock<typename PortTraits::DataTransferTraits::NativeDataType> DataBlockType;
+    };
 
-  template <>
-  struct BlockTraits<XMLPortTraits> {
-    typedef XMLDataBlock DataBlockType;
-  };
+    template <>
+    struct BlockTraits<XMLPortTraits> {
+        typedef XMLDataBlock DataBlockType;
+    };
 
-  template <>
-  struct BlockTraits<FilePortTraits> {
-    typedef FileDataBlock DataBlockType;
-  };
+    template <>
+    struct BlockTraits<FilePortTraits> {
+        typedef FileDataBlock DataBlockType;
+    };
 
-  template <class PortTraits>
-  class InputStreamBase {
-  public:
-    typedef typename BlockTraits<PortTraits>::DataBlockType DataBlockType;
+    template <class PortTraits>
+    class InputStream {
+    public:
+        typedef typename BlockTraits<PortTraits>::DataBlockType DataBlockType;
 
-    const std::string& streamID() const;
-    const BULKIO::StreamSRI& sri() const;
+        const std::string& streamID() const;
+        const BULKIO::StreamSRI& sri() const;
 
-    DataBlockType read();
+        DataBlockType read();
 
-    DataBlockType tryread();
+        DataBlockType tryread();
 
-    bool enabled() const;
-    void enable();
-    void disable();
+        bool enabled() const;
+        void enable();
+        void disable();
 
-    bool eos();
+        bool eos();
 
-    bool operator! () const;
+        bool operator! () const;
 
-  protected:
-    typedef InPort<PortTraits> InPortType;
+    protected:
+        typedef InPort<PortTraits> InPortType;
 
-    class Impl;
-    typedef boost::shared_ptr<Impl> InputStreamBase::*unspecified_bool_type;
+        class Impl;
+        typedef boost::shared_ptr<Impl> InputStream::*unspecified_bool_type;
 
-    InputStreamBase();
-    InputStreamBase(const boost::shared_ptr<Impl>& impl);
+        InputStream();
+        InputStream(const boost::shared_ptr<Impl>& impl);
 
-    // Allow matching InPort class to create instances of this stream type
-    friend class InPort<PortTraits>;
-    InputStreamBase(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port);
+        // Allow matching InPort class to create instances of this stream type
+        friend class InPort<PortTraits>;
+        InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port);
 
-    bool hasBufferedData();
+        bool hasBufferedData();
 
-    boost::shared_ptr<Impl> _impl;
+        boost::shared_ptr<Impl> _impl;
 
-  public:
-    operator unspecified_bool_type() const;
-  };
+    public:
+        operator unspecified_bool_type() const;
+    };
 
 
-  template <class PortTraits>
-  class InputStream : public InputStreamBase<PortTraits> {
-  public:
-    InputStream();
+    template <class PortTraits>
+    class BufferedInputStream : public InputStream<PortTraits> {
+    public:
+        BufferedInputStream();
 
-    typedef typename InputStreamBase<PortTraits>::DataBlockType DataBlockType;
+        typedef typename InputStream<PortTraits>::DataBlockType DataBlockType;
 
-    DataBlockType read();
-    DataBlockType read(size_t count);
-    DataBlockType read(size_t count, size_t consume);
+        DataBlockType read();
+        DataBlockType read(size_t count);
+        DataBlockType read(size_t count, size_t consume);
 
-    DataBlockType tryread();
-    DataBlockType tryread(size_t count);
-    DataBlockType tryread(size_t count, size_t consume);
+        DataBlockType tryread();
+        DataBlockType tryread(size_t count);
+        DataBlockType tryread(size_t count, size_t consume);
 
-    size_t skip(size_t count);
+        size_t skip(size_t count);
 
-    size_t samplesAvailable();
+        size_t samplesAvailable();
 
-    bool operator== (const InputStream& other) const;
+        bool operator== (const BufferedInputStream& other) const;
 
-    bool ready();
+        bool ready();
 
-  private:
-    typedef InputStreamBase<PortTraits> Base;
-    using Base::_impl;
+    private:
+        typedef InputStream<PortTraits> Base;
+        using Base::_impl;
 
-    friend class InPort<PortTraits>;
-    typedef InPort<PortTraits> InPortType;
-    InputStream(const boost::shared_ptr<BULKIO::StreamSRI>&, InPortType*);
+        friend class InPort<PortTraits>;
+        typedef InPort<PortTraits> InPortType;
+        BufferedInputStream(const boost::shared_ptr<BULKIO::StreamSRI>&, InPortType*);
 
-    class Impl;
-    Impl& impl();
-    const Impl& impl() const;
-  };
+        class Impl;
+        Impl& impl();
+        const Impl& impl() const;
+    };
 
-  typedef InputStream<bulkio::CharPortTraits>      InCharStream;
-  typedef InputStream<bulkio::OctetPortTraits>     InOctetStream;
-  typedef InputStream<bulkio::ShortPortTraits>     InShortStream;
-  typedef InputStream<bulkio::UShortPortTraits>    InUShortStream;
-  typedef InputStream<bulkio::LongPortTraits>      InLongStream;
-  typedef InputStream<bulkio::ULongPortTraits>     InULongStream;
-  typedef InputStream<bulkio::LongLongPortTraits>  InLongLongStream;
-  typedef InputStream<bulkio::ULongLongPortTraits> InULongLongStream;
-  typedef InputStream<bulkio::FloatPortTraits>     InFloatStream;
-  typedef InputStream<bulkio::DoublePortTraits>    InDoubleStream;
-  typedef InputStreamBase<bulkio::XMLPortTraits>   InXMLStream;
-  typedef InputStreamBase<bulkio::FilePortTraits>  InFileStream;
+    typedef BufferedInputStream<bulkio::CharPortTraits>      InCharStream;
+    typedef BufferedInputStream<bulkio::OctetPortTraits>     InOctetStream;
+    typedef BufferedInputStream<bulkio::ShortPortTraits>     InShortStream;
+    typedef BufferedInputStream<bulkio::UShortPortTraits>    InUShortStream;
+    typedef BufferedInputStream<bulkio::LongPortTraits>      InLongStream;
+    typedef BufferedInputStream<bulkio::ULongPortTraits>     InULongStream;
+    typedef BufferedInputStream<bulkio::LongLongPortTraits>  InLongLongStream;
+    typedef BufferedInputStream<bulkio::ULongLongPortTraits> InULongLongStream;
+    typedef BufferedInputStream<bulkio::FloatPortTraits>     InFloatStream;
+    typedef BufferedInputStream<bulkio::DoublePortTraits>    InDoubleStream;
+    typedef InputStream<bulkio::XMLPortTraits>               InXMLStream;
+    typedef InputStream<bulkio::FilePortTraits>              InFileStream;
 
-  template <class PortTraits>
-  struct StreamTraits {
-    typedef InputStream<PortTraits> InStreamType;
-  };
+    template <class PortTraits>
+    struct StreamTraits {
+        typedef BufferedInputStream<PortTraits> InStreamType;
+    };
 
-  template <>
-  struct StreamTraits<XMLPortTraits> {
-    typedef InXMLStream InStreamType;
-  };
+    template <>
+    struct StreamTraits<XMLPortTraits> {
+        typedef InXMLStream InStreamType;
+    };
 
-  template <>
-  struct StreamTraits<FilePortTraits> {
-    typedef InFileStream InStreamType;
-  };
+    template <>
+    struct StreamTraits<FilePortTraits> {
+        typedef InFileStream InStreamType;
+    };
 
 } // end of bulkio namespace
 
