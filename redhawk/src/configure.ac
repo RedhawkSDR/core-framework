@@ -345,6 +345,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/TestCppsoftpkgDeps/Makefile \
                 testing/sdr/dom/components/javaDep/javaDep/Makefile \
                 testing/sdr/dom/components/java_comp/java/Makefile \
+                testing/sdr/dom/components/msg_through_java/java/Makefile \
                 testing/sdr/dom/components/HardLimit/HardLimit_java_impl1/Makefile \
                 testing/sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1/Makefile \
                 testing/sdr/dom/components/BasicAC/basicac_java_impl1/Makefile \
@@ -372,6 +373,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/PropertyChange_C1/cpp/Makefile \
                 testing/sdr/dom/components/PropertyChange_J1/java/Makefile \
                 testing/sdr/dom/components/Property_CPP/cpp/Makefile \
+                testing/sdr/dom/components/msg_through_cpp/cpp/Makefile \
                 testing/sdr/dom/components/commandline_prop/cpp/Makefile \
                 testing/sdr/dom/components/nocommandline_prop/cpp/Makefile \
                 testing/sdr/dom/components/Property_JAVA/java/Makefile \

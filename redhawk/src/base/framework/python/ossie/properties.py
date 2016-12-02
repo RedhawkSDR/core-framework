@@ -317,7 +317,7 @@ def struct_to_props(value, fields=None):
 def struct_to_any(value, fields=None):
     return props_to_any(struct_to_props(value, fields))
 
-def struct_from_props(value, structdef):
+def struct_from_props(value, structdef, strictComplete=True):
     # Create an uninitialized struct definition
     structval = structdef()
 
@@ -334,15 +334,18 @@ def struct_from_props(value, structdef):
         try:
             value = newvalues[attr.id_]
         except: 
-            raise ValueError, "provided value is missing element " + attr.id_
+            if strictComplete:
+                raise ValueError, "provided value is missing element " + attr.id_
+            else:
+                continue
         else:
             attr.set(structval, value)
 
     return structval
 
-def struct_from_any(value, structdef):
+def struct_from_any(value, structdef, strictComplete = True):
     value = any.from_any(value)
-    return struct_from_props(value, structdef)
+    return struct_from_props(value, structdef, strictComplete)
 
 def struct_from_prop(prop, structdef):
     return struct_from_any(prop.value, structdef)
