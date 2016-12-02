@@ -24,8 +24,174 @@ from omniORB import URI, any
 from ossie.cf import CF
 import threading
 import time
+from ossie.utils import sb
+from ossie.properties import simple_property, simpleseq_property
+import os
+globalsdrRoot = os.environ['SDRROOT']
 
 import CosEventChannelAdmin
+
+class Foo(object):
+    a = simple_property(id_="a",type_="string")
+    b = simple_property(id_="b",type_="string")
+    c = simple_property(id_="c",type_="string")
+
+    def __init__(self, **kw):
+        """Construct an initialized instance of this struct definition"""
+        for classattr in type(self).__dict__.itervalues():
+            if isinstance(classattr, (simple_property, simpleseq_property)):
+                classattr.initialize(self)
+        for k,v in kw.items():
+            setattr(self,k,v)
+
+    def __str__(self):
+        """Return a string representation of this structure"""
+        d = {}
+        d["a"] = self.a
+        d["b"] = self.b
+        d["c"] = self.c
+        return str(d)
+
+    @classmethod
+    def getId(cls):
+        return "foo"
+
+    @classmethod
+    def isStruct(cls):
+        return True
+
+    def getMembers(self):
+        return [("a",self.a),("b",self.b),("c",self.c)]
+
+class MessagingCompatibilityTest(scatest.CorbaTestCase):
+    def setUp(self):
+        sb.setDEBUG(False)
+        self.test_comp = "Sandbox"
+        # Flagrant violation of sandbox API: if the sandbox singleton exists,
+        # clean up previous state and dispose of it.
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+        self.rcv_msg = None
+
+    def tearDown(self):
+        sb.domainless._getSandbox().shutdown()
+        sb.setDEBUG(False)
+        os.environ['SDRROOT'] = globalsdrRoot
+
+    def callback(self, _id, _data):
+        self.rcv_msg = _data
+
+    def test_MessagingPython(self):
+        src=sb.MessageSource('foo')
+        c=sb.launch('msg_through')
+        src.connect(c)
+        snk=sb.MessageSink('foo',Foo, self.callback)
+        c.connect(snk)
+        sb.start()
+        src.sendMessage({'a':'A','b':'B','c':'C', 'd':'D'})
+        _begin = time.time()
+        _now = time.time()
+        while _now - _begin < 5:
+            if self.rcv_msg != None:
+                break
+            _now = time.time()
+        self.assertEquals(self.rcv_msg.a, 'A')
+        self.assertEquals(self.rcv_msg.b, 'B')
+        self.assertEquals(self.rcv_msg.c, 'C')
+        self.rcv_msg = None
+        src.sendMessage({'a':'A','b':'B','c':'C'})
+        while _now - _begin < 5:
+            if self.rcv_msg != None:
+                break
+            _now = time.time()
+        self.assertEquals(self.rcv_msg.a, 'A')
+        self.assertEquals(self.rcv_msg.b, 'B')
+        self.assertEquals(self.rcv_msg.c, 'C')
+        self.rcv_msg = None
+        src.sendMessage({'a':'A','c':'C'})
+        while _now - _begin < 5:
+            if self.rcv_msg != None:
+                break
+            _now = time.time()
+        self.assertEquals(self.rcv_msg.a, 'A')
+        self.assertEquals(self.rcv_msg.b, None)
+        self.assertEquals(self.rcv_msg.c, 'C')
+        self.rcv_msg = None
+
+    def test_MessagingCpp(self):
+        src=sb.MessageSource('foo')
+        c=sb.launch('msg_through_cpp')
+        src.connect(c)
+        snk=sb.MessageSink('foo',Foo, self.callback)
+        c.connect(snk)
+        sb.start()
+        src.sendMessage({'a':'A','b':'B','c':'C', 'd':'D'})
+        _begin = time.time()
+        _now = time.time()
+        while _now - _begin < 5:
+            if self.rcv_msg != None:
+                break
+            _now = time.time()
+        self.assertEquals(self.rcv_msg.a, 'A')
+        self.assertEquals(self.rcv_msg.b, 'B')
+        self.assertEquals(self.rcv_msg.c, 'C')
+        self.rcv_msg = None
+        src.sendMessage({'a':'A','b':'B','c':'C'})
+        while _now - _begin < 5:
+            if self.rcv_msg != None:
+                break
+            _now = time.time()
+        self.assertEquals(self.rcv_msg.a, 'A')
+        self.assertEquals(self.rcv_msg.b, 'B')
+        self.assertEquals(self.rcv_msg.c, 'C')
+        self.rcv_msg = None
+        src.sendMessage({'a':'A','c':'C'})
+        while _now - _begin < 5:
+            if self.rcv_msg != None:
+                break
+            _now = time.time()
+        self.assertEquals(self.rcv_msg.a, 'A')
+        self.assertEquals(self.rcv_msg.b, '')
+        self.assertEquals(self.rcv_msg.c, 'C')
+        self.rcv_msg = None
+
+    def test_MessagingJava(self):
+        src=sb.MessageSource('foo')
+        c=sb.launch('msg_through_java')
+        src.connect(c)
+        snk=sb.MessageSink('foo',Foo, self.callback)
+        c.connect(snk)
+        sb.start()
+        src.sendMessage({'a':'A','b':'B','c':'C', 'd':'D'})
+        _begin = time.time()
+        _now = time.time()
+        while _now - _begin < 5:
+            if self.rcv_msg != None:
+                break
+            _now = time.time()
+        self.assertEquals(self.rcv_msg.a, 'A')
+        self.assertEquals(self.rcv_msg.b, 'B')
+        self.assertEquals(self.rcv_msg.c, 'C')
+        self.rcv_msg = None
+        src.sendMessage({'a':'A','b':'B','c':'C'})
+        while _now - _begin < 5:
+            if self.rcv_msg != None:
+                break
+            _now = time.time()
+        self.assertEquals(self.rcv_msg.a, 'A')
+        self.assertEquals(self.rcv_msg.b, 'B')
+        self.assertEquals(self.rcv_msg.c, 'C')
+        self.rcv_msg = None
+        src.sendMessage({'a':'A','c':'C'})
+        while _now - _begin < 5:
+            if self.rcv_msg != None:
+                break
+            _now = time.time()
+        self.assertEquals(self.rcv_msg.a, 'A')
+        self.assertEquals(self.rcv_msg.b, None)
+        self.assertEquals(self.rcv_msg.c, 'C')
+        self.rcv_msg = None
 
 class EventPortConnectionsTest(scatest.CorbaTestCase):
     def setUp(self):
