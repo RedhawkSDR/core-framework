@@ -1619,7 +1619,7 @@ class Plot(OutputBase, _OutputBase):
         if self._dataType == None:
             raise AssertionError, "Plot:plot() ERROR - dataType not set ... must call connect() on this object from another component"
 
-        plotCommand = str(self._eclipsePath) + "/bin/plotter.sh -portname " + str(self._usesPortName) + " -repid " + str(self._dataType) + " -handler gov.redhawk.ui.port.nxmplot -ior " + str(self.usesPortIORString)
+        plotCommand = str(self._eclipsePath) + "/bin/plotter.sh -portname " + str(self._usesPortName) + " -repid " + str(self._dataType) + " -ior " + str(self.usesPortIORString)
         if _domainless._DEBUG == True:
             print "Plot:plotCommand " + str(plotCommand)
         args = _shlex.split(plotCommand)
