@@ -572,11 +572,10 @@ namespace bulkio {
 
   void OutXMLPort::pushPacket(const std::string& data, bool EOS, const std::string& streamID)
   {
-    // Because it's templatized, the port's interface requires a timestamp;
-    // however, since it's not used for XML ports, creating a method-static
-    // instance is sufficient
-    static BULKIO::PrecisionUTCTime time;
-    _sendPacket(data, time, EOS, streamID);
+    // XML ports do not officially support timestamps, although the port
+    // implementation includes it (because it's templatized); always pass
+    // "not set" for consistency
+    _sendPacket(data, bulkio::time::utils::notSet(), EOS, streamID);
   }
 
   void OutXMLPort::pushPacket(const char* data, bool EOS, const std::string& streamID)

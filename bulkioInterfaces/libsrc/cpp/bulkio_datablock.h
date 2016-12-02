@@ -32,147 +32,111 @@
 
 namespace bulkio {
 
-  struct SampleTimestamp
-  {
-    SampleTimestamp(const BULKIO::PrecisionUTCTime& time, size_t offset=0, bool synthetic=false) :
-      time(time),
-      offset(offset),
-      synthetic(synthetic)
+    struct SampleTimestamp
     {
-    }
+        SampleTimestamp(const BULKIO::PrecisionUTCTime& time, size_t offset=0, bool synthetic=false) :
+            time(time),
+            offset(offset),
+            synthetic(synthetic)
+        {
+        }
 
-    BULKIO::PrecisionUTCTime time;
-    size_t offset;
-    bool synthetic;
-  };
+        BULKIO::PrecisionUTCTime time;
+        size_t offset;
+        bool synthetic;
+    };
 
-  template <class T>
-  class DataBlock
-  {
-  public:
-    typedef T ScalarType;
-    typedef std::complex<T> ComplexType;
-    typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
-    typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
-
-    DataBlock();
-    explicit DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, size_t size=0);
-    DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const ScalarBuffer& buffer);
-    DataBlock(const BULKIO::StreamSRI& sri, size_t size=0);
-
-    DataBlock copy() const;
-
-    const BULKIO::StreamSRI& sri() const;
-    double xdelta() const;
-
-    ScalarType* data();
-    const ScalarType* data() const;
-    size_t size() const;
-    void resize(size_t count);
-
-    bool complex() const;
-    ComplexType* cxdata();
-    const ComplexType* cxdata() const;
-    size_t cxsize() const;
-
-    bool sriChanged() const;
-    int sriChangeFlags() const;
-    void sriChangeFlags(int flags);
-
-    bool inputQueueFlushed() const;
-    void inputQueueFlushed(bool flush);
-
-    void addTimestamp(const SampleTimestamp& timestamp);
-    const BULKIO::PrecisionUTCTime& getStartTime() const;
-    std::list<SampleTimestamp> getTimestamps() const;
-    double getNetTimeDrift() const;
-    double getMaxTimeDrift() const;
-
-    bool operator! () const
+    template <class T>
+    class DataBlock
     {
-      return !_impl;
-    }
+    public:
+        DataBlock();
+        DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const T& buffer);
+      
+        DataBlock copy() const;
 
-    void swap(std::vector<ScalarType>& other);
+        const BULKIO::StreamSRI& sri() const;
+        double xdelta() const;
 
-    ScalarBuffer buffer() const;
-    ComplexBuffer cxbuffer() const;
+        const T& data() const;
 
-    void buffer(const ScalarBuffer& other);
-  private:
-    struct Impl;
-    boost::shared_ptr<Impl> _impl;
+        bool sriChanged() const;
+        int sriChangeFlags() const;
+        void sriChangeFlags(int flags);
 
-    typedef boost::shared_ptr<Impl> DataBlock::*unspecified_bool_type;
+        bool inputQueueFlushed() const;
+        void inputQueueFlushed(bool flush);
 
-  public:
-    operator unspecified_bool_type() const;
-  };
+        void addTimestamp(const SampleTimestamp& timestamp);
+        const BULKIO::PrecisionUTCTime& getStartTime() const;
+        std::list<SampleTimestamp> getTimestamps() const;
+        double getNetTimeDrift() const;
+        double getMaxTimeDrift() const;
 
-  class XMLDataBlock {
-  public:
-    XMLDataBlock();
-    XMLDataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const std::string& data);
+        bool operator! () const
+        {
+            return !_impl;
+        }
 
-    const BULKIO::StreamSRI& sri() const;
-    const std::string& data() const;
+    protected:
+        struct Impl;
+        boost::shared_ptr<Impl> _impl;
 
-    bool sriChanged() const;
-    int sriChangeFlags() const;
-    void sriChangeFlags(int flags);
+        typedef boost::shared_ptr<Impl> DataBlock::*unspecified_bool_type;
 
-    bool inputQueueFlushed() const;
-    void inputQueueFlushed(bool flush);
+    public:
+        operator unspecified_bool_type() const;
+    };
 
-    bool operator! () const;
+    template <class T>
+    class SampleDataBlock : public DataBlock<redhawk::shared_buffer<T> >
+    {
+    public:
+        typedef T ScalarType;
+        typedef std::complex<T> ComplexType;
+        typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
+        typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
 
-  private:
-    struct Impl;
-    boost::shared_ptr<Impl> _impl;
+        SampleDataBlock();
+        explicit SampleDataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri,
+                                 const ScalarBuffer& buffer=ScalarBuffer());
+        SampleDataBlock(const BULKIO::StreamSRI& sri, size_t size=0);
 
-    typedef boost::shared_ptr<Impl> XMLDataBlock::*unspecified_bool_type;
+        SampleDataBlock copy() const;
 
-  public:
-    operator unspecified_bool_type() const;
-  };
+        ScalarType* data();
+        const ScalarType* data() const;
+        size_t size() const;
+        void resize(size_t count);
 
-  class FileDataBlock {
-  public:
-    FileDataBlock();
-    FileDataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const std::string& data);
+        bool complex() const;
+        ComplexType* cxdata();
+        const ComplexType* cxdata() const;
+        size_t cxsize() const;
 
-    const BULKIO::StreamSRI& sri() const;
-    const std::string& data() const;
+        void swap(std::vector<ScalarType>& other);
 
-    bool sriChanged() const;
-    int sriChangeFlags() const;
-    void sriChangeFlags(int flags);
+        ScalarBuffer buffer() const;
+        ComplexBuffer cxbuffer() const;
 
-    bool inputQueueFlushed() const;
-    void inputQueueFlushed(bool flush);
+        void buffer(const ScalarBuffer& other);
 
-    bool operator! () const;
+    private:
+        typedef DataBlock<ScalarBuffer> Base;
+        using Base::_impl;
+    };
 
-  private:
-    struct Impl;
-    boost::shared_ptr<Impl> _impl;
-
-    typedef boost::shared_ptr<Impl> FileDataBlock::*unspecified_bool_type;
-
-  public:
-    operator unspecified_bool_type() const;
-  };
-
-  typedef DataBlock<int8_t>           CharDataBlock;
-  typedef DataBlock<CORBA::Octet>     OctetDataBlock;
-  typedef DataBlock<CORBA::Short>     ShortDataBlock;
-  typedef DataBlock<CORBA::UShort>    UShortDataBlock;
-  typedef DataBlock<CORBA::Long>      LongDataBlock;
-  typedef DataBlock<CORBA::ULong>     ULongDataBlock;
-  typedef DataBlock<CORBA::LongLong>  LongLongDataBlock;
-  typedef DataBlock<CORBA::ULongLong> ULongLongDataBlock;
-  typedef DataBlock<CORBA::Float>     FloatDataBlock;
-  typedef DataBlock<CORBA::Double>    DoubleDataBlock;
+    typedef SampleDataBlock<int8_t>           CharDataBlock;
+    typedef SampleDataBlock<CORBA::Octet>     OctetDataBlock;
+    typedef SampleDataBlock<CORBA::Short>     ShortDataBlock;
+    typedef SampleDataBlock<CORBA::UShort>    UShortDataBlock;
+    typedef SampleDataBlock<CORBA::Long>      LongDataBlock;
+    typedef SampleDataBlock<CORBA::ULong>     ULongDataBlock;
+    typedef SampleDataBlock<CORBA::LongLong>  LongLongDataBlock;
+    typedef SampleDataBlock<CORBA::ULongLong> ULongLongDataBlock;
+    typedef SampleDataBlock<CORBA::Float>     FloatDataBlock;
+    typedef SampleDataBlock<CORBA::Double>    DoubleDataBlock;
+    typedef DataBlock<std::string>            StringDataBlock;
 
 }  // end of bulkio namespace
 

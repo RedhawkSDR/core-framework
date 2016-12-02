@@ -512,11 +512,10 @@ public:
 private:
     void _send(const std::string& data, bool eos)
     {
-        // Because it's templatized, the port's interface requires a timestamp;
-        // however, since it's not used for XML ports, creating a method-static
-        // instance is sufficient
-        static BULKIO::PrecisionUTCTime unused;
-        _port->_sendPacket(data, unused, eos, _streamID);
+        // XML ports do not officially support timestamps, although the port
+        // implementation includes it (because it's templatized); always pass
+        // "not set" for consistency
+        _port->_sendPacket(data, bulkio::time::utils::notSet(), eos, _streamID);
     }
 
     OutPortType* _port;

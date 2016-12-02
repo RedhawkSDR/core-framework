@@ -36,17 +36,17 @@ namespace bulkio {
 
     template <class PortTraits>
     struct BlockTraits {
-        typedef DataBlock<typename PortTraits::DataTransferTraits::NativeDataType> DataBlockType;
+        typedef SampleDataBlock<typename PortTraits::DataTransferTraits::NativeDataType> DataBlockType;
     };
 
     template <>
     struct BlockTraits<XMLPortTraits> {
-        typedef XMLDataBlock DataBlockType;
+        typedef StringDataBlock DataBlockType;
     };
 
     template <>
     struct BlockTraits<FilePortTraits> {
-        typedef FileDataBlock DataBlockType;
+        typedef StringDataBlock DataBlockType;
     };
 
     template <class PortTraits>

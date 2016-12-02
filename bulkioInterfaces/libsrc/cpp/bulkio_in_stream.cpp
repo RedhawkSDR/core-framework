@@ -72,6 +72,7 @@ public:
             return DataBlockType();
         }
         DataBlockType block(packet->SRI, packet->buffer);
+        block.addTimestamp(packet->T);
         _setBlockFlags(block, *packet);
         _sri = packet->SRI;
         return block;

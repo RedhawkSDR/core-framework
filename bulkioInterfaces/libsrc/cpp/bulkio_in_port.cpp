@@ -866,7 +866,8 @@ namespace  bulkio {
     if (data) {
       buffer = data;
     }
-    this->queuePacket(buffer, BULKIO::PrecisionUTCTime(), EOS, streamID);
+    // Use a default timestamp of "not set" for XML
+    this->queuePacket(buffer, bulkio::time::utils::notSet(), EOS, streamID);
   }
 
   void InXMLPort::pushPacket(const char* data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
