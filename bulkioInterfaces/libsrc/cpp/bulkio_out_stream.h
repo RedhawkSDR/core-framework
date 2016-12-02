@@ -37,6 +37,7 @@ namespace bulkio {
     template <class PortTraits>
     class OutPort;
 
+    template <class PortTraits>
     class OutputStreamBase {
     public:
         const std::string& streamID() const;
@@ -75,18 +76,27 @@ namespace bulkio {
         }
 
     protected:
+        typedef OutPort<PortTraits> OutPortType;
+
         class Impl;
 
         OutputStreamBase();
+        OutputStreamBase(const BULKIO::StreamSRI& sri, OutPortType* port);
         OutputStreamBase(boost::shared_ptr<Impl> impl);
 
         int modcount() const;
 
         boost::shared_ptr<Impl> _impl;
+
+        typedef boost::shared_ptr<Impl> OutputStreamBase::*unspecified_bool_type;
+
+    public:
+        operator unspecified_bool_type() const;
     };
 
+
     template <class PortTraits>
-    class OutputStream : public OutputStreamBase {
+    class OutputStream : public OutputStreamBase<PortTraits> {
     public:
         typedef typename PortTraits::DataTransferTraits::NativeDataType ScalarType;
         typedef std::complex<ScalarType> ComplexType;
@@ -169,6 +179,8 @@ namespace bulkio {
         void write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
 
     private:
+        typedef OutputStreamBase<PortTraits> Base;
+
         friend class OutPort<PortTraits>;
         typedef OutPort<PortTraits> OutPortType;
         OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
@@ -176,18 +188,12 @@ namespace bulkio {
         class Impl;
         Impl& impl();
         const Impl& impl() const;
-
-        typedef const OutputStream::Impl& (OutputStream::*unspecified_bool_type)() const;
-
-    public:
-        operator unspecified_bool_type() const;
     };
 
 
-    template <>
-    class OutputStream<XMLPortTraits> : public OutputStreamBase {
+    class OutXMLStream : public OutputStreamBase<XMLPortTraits> {
     public:
-        OutputStream();
+        OutXMLStream();
 
         /**
          * @brief  Write XML data to the stream.
@@ -196,24 +202,17 @@ namespace bulkio {
         void write(const std::string& xmlString);
 
     private:
+        typedef OutputStreamBase<XMLPortTraits> Base;
+
         friend class OutPort<XMLPortTraits>;
         typedef OutPort<XMLPortTraits> OutPortType;
-        OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
-
-        class Impl;
-        Impl& impl();
-
-        typedef OutputStream::Impl& (OutputStream::*unspecified_bool_type)();
-
-    public:
-        operator unspecified_bool_type() const;
+        OutXMLStream(const BULKIO::StreamSRI& sri, OutPortType* port);
     };
 
 
-    template <>
-    class OutputStream<FilePortTraits> : public OutputStreamBase {
+    class OutFileStream : public OutputStreamBase<FilePortTraits> {
     public:
-        OutputStream();
+        OutFileStream();
 
         /**
          * @brief  Write a file URI to the stream.
@@ -222,17 +221,11 @@ namespace bulkio {
         void write(const std::string& URL, const BULKIO::PrecisionUTCTime& time);
 
     private:
+        typedef OutputStreamBase<FilePortTraits> Base;
+
         friend class OutPort<FilePortTraits>;
         typedef OutPort<FilePortTraits> OutPortType;
-        OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
-
-        class Impl;
-        Impl& impl();
-
-        typedef OutputStream::Impl& (OutputStream::*unspecified_bool_type)();
-
-    public:
-        operator unspecified_bool_type() const;
+        OutFileStream(const BULKIO::StreamSRI& sri, OutPortType* port);
     };
 
     typedef OutputStream<bulkio::CharPortTraits>      OutCharStream;
@@ -245,8 +238,22 @@ namespace bulkio {
     typedef OutputStream<bulkio::ULongLongPortTraits> OutULongLongStream;
     typedef OutputStream<bulkio::FloatPortTraits>     OutFloatStream;
     typedef OutputStream<bulkio::DoublePortTraits>    OutDoubleStream;
-    typedef OutputStream<bulkio::XMLPortTraits>       OutXMLStream;
-    typedef OutputStream<bulkio::FilePortTraits>      OutFileStream;
+
+    template <class PortTraits>
+    struct OutStreamTraits
+    {
+        typedef OutputStream<PortTraits> OutStreamType;
+    };
+
+    template <>
+    struct OutStreamTraits<XMLPortTraits> {
+        typedef OutXMLStream OutStreamType;
+    };
+
+    template <>
+    struct OutStreamTraits<FilePortTraits> {
+        typedef OutFileStream OutStreamType;
+    };
 
 } // end of bulkio namespace
 
