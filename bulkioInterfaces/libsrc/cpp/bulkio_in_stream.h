@@ -80,7 +80,7 @@ namespace bulkio {
 
         // Allow matching InPort class to create instances of this stream type
         friend class InPort<PortTraits>;
-        InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port);
+        InputStream(const SharedSRI& sri, InPortType* port);
 
         bool hasBufferedData();
 
@@ -120,7 +120,7 @@ namespace bulkio {
 
         friend class InPort<PortTraits>;
         typedef InPort<PortTraits> InPortType;
-        BufferedInputStream(const boost::shared_ptr<BULKIO::StreamSRI>&, InPortType*);
+        BufferedInputStream(const SharedSRI&, InPortType*);
 
         class Impl;
         Impl& impl();

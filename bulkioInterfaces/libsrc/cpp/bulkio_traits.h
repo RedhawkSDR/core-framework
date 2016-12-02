@@ -103,7 +103,7 @@ struct DataTransfer {
   //
   // Construct a DataTransfer object to be returned from an InPort's getPacket method
   // 
-  DataTransfer(const PortSequenceType& data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed);
+  DataTransfer(const PortSequenceType& data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, const BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed);
 
   DataBufferType   dataBuffer;
   BULKIO::PrecisionUTCTime T;
@@ -132,7 +132,7 @@ struct DataTransfer< StringDataTransferTraits >
     typedef Traits::PortSequenceType PortSequenceType;
     typedef Traits::DataBufferType   DataBufferType;
 
- DataTransfer(const char *data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
+ DataTransfer(const char *data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, const BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
     {
       if ( data != NULL )  dataBuffer = data;
         T = _T;
@@ -142,7 +142,7 @@ struct DataTransfer< StringDataTransferTraits >
         sriChanged = _sriChanged;
         inputQueueFlushed = _inputQueueFlushed;
     }
- DataTransfer(const char * data, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
+ DataTransfer(const char * data, bool _EOS, const char* _streamID, const BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
     {
        if ( data != NULL )  dataBuffer = data;
         EOS = _EOS;

@@ -172,9 +172,10 @@ namespace  bulkio {
     SriTable::iterator currH = currentHs.find(streamID);
     if (currH == currentHs.end()) {
       LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
-      boost::shared_ptr<BULKIO::StreamSRI> sri = boost::make_shared<BULKIO::StreamSRI>(H);
+      SharedSRI sri(H);
       if (newStreamCallback) {
-        newStreamCallback(*sri);
+        // The callback takes a non-const SRI, so allow access via const_cast
+        newStreamCallback(const_cast<SRI&>(*sri));
       }
       currentHs[streamID] = std::make_pair(sri, true);
       lock.unlock();
@@ -183,7 +184,7 @@ namespace  bulkio {
     } else {
       if (sri_cmp && !sri_cmp(H, *(currH->second.first))) {
         LOG_DEBUG(logger,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
-        currH->second.first = boost::make_shared<BULKIO::StreamSRI>(H);
+        currH->second.first = SharedSRI(H);
         currH->second.second = true;
       }
     }
@@ -210,7 +211,7 @@ namespace  bulkio {
       return;
     }
 
-    boost::shared_ptr<BULKIO::StreamSRI> sri;
+    SharedSRI sri;
     bool sriChanged = false;
 
     {
@@ -226,9 +227,10 @@ namespace  bulkio {
         // and set the SRI changed flag
         LOG_WARN(logger, "InPort::pushPacket received data for stream '" << streamID << "' with no SRI");
         sriChanged = true;
-        sri = boost::make_shared<BULKIO::StreamSRI>(bulkio::sri::create(streamID));
+        sri = SharedSRI(bulkio::sri::create(streamID));
         if (newStreamCallback) {
-          newStreamCallback(*sri);
+          // The callback takes a non-const SRI, so allow access via const_cast
+          newStreamCallback(const_cast<SRI&>(*sri));
         }
         currentHs[streamID] = std::make_pair(sri, false);
         lock.unlock();
@@ -528,7 +530,7 @@ namespace  bulkio {
 
   template < typename PortTraits >
   void InPort< PortTraits >::createStream(const std::string& streamID,
-                                              const boost::shared_ptr<BULKIO::StreamSRI>& sri)
+                                          const bulkio::SharedSRI& sri)
   {
     StreamType stream(sri, this);
     boost::mutex::scoped_lock lock(streamsMutex);
@@ -614,7 +616,7 @@ namespace  bulkio {
         if (!firstPacket) break;
       }
       firstPacket = false;
-      if (packet->SRI->mode) {
+      if (packet->SRI->complex()) {
           item_size = 2;
       }
       samples += packet->buffer.size();

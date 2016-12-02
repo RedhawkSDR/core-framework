@@ -25,6 +25,7 @@
 
 #include "bulkio_base.h"
 #include "bulkio_datablock.h"
+#include "bulkio_sri.h"
 #include "bulkio_time_operators.h"
 
 namespace bulkio {
@@ -54,15 +55,7 @@ using bulkio::DataBlock;
 template <class T>
 struct DataBlock<T>::Impl
 {
-    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri) :
-        data(),
-        sri(sri),
-        sriChangeFlags(bulkio::sri::NONE),
-        inputQueueFlushed(false)
-    {
-    }
-
-    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const T& data) :
+    Impl(const bulkio::SharedSRI& sri, const T& data) :
         data(data),
         sri(sri),
         sriChangeFlags(bulkio::sri::NONE),
@@ -71,7 +64,7 @@ struct DataBlock<T>::Impl
     }
 
     T data;
-    boost::shared_ptr<BULKIO::StreamSRI> sri;
+    bulkio::SharedSRI sri;
     std::list<SampleTimestamp> timestamps;
     int sriChangeFlags;
     bool inputQueueFlushed;
@@ -84,7 +77,7 @@ DataBlock<T>::DataBlock() :
 }
 
 template <class T>
-DataBlock<T>::DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const T& data) :
+DataBlock<T>::DataBlock(const bulkio::SharedSRI& sri, const T& data) :
     _impl(boost::make_shared<Impl>(sri, data))
 {
 }
@@ -100,7 +93,7 @@ DataBlock<T> DataBlock<T>::copy() const
 }
 
 template <class T>
-const BULKIO::StreamSRI& DataBlock<T>::sri() const
+const bulkio::SRI& DataBlock<T>::sri() const
 {
     return *(_impl->sri);
 }
@@ -108,7 +101,7 @@ const BULKIO::StreamSRI& DataBlock<T>::sri() const
 template <class T>
 double DataBlock<T>::xdelta() const
 {
-    return _impl->sri->xdelta;
+    return sri().xdelta;
 }
 
 template <class T>
@@ -150,7 +143,7 @@ double DataBlock<T>::getNetTimeDrift() const
     const std::list<SampleTimestamp>& timestamps = _impl->timestamps;
     validate_timestamps(timestamps);
 
-    return get_drift(timestamps.front(), timestamps.back(), _impl->sri->xdelta);
+    return get_drift(timestamps.front(), timestamps.back(), xdelta());
 }
 
 template <class T>
@@ -164,7 +157,7 @@ double DataBlock<T>::getMaxTimeDrift() const
     std::list<SampleTimestamp>::const_iterator next = current;
     ++next;
     for (; next != timestamps.end(); ++current, ++next) {
-        double drift = get_drift(*current, *next, _impl->sri->xdelta);
+        double drift = get_drift(*current, *next, xdelta());
         if (std::abs(drift) > std::abs(max)) {
             max = drift;
         }
@@ -217,7 +210,7 @@ SampleDataBlock<T>::SampleDataBlock() :
 }
 
 template <class T>
-SampleDataBlock<T>::SampleDataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri,
+SampleDataBlock<T>::SampleDataBlock(const bulkio::SharedSRI& sri,
                                     const ScalarBuffer& buffer) :
     Base(sri, buffer)
 {
@@ -225,7 +218,7 @@ SampleDataBlock<T>::SampleDataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& 
 
 template <class T>
 SampleDataBlock<T>::SampleDataBlock(const BULKIO::StreamSRI& sri, size_t size) :
-    Base(boost::make_shared<BULKIO::StreamSRI>(sri), redhawk::buffer<T>(size))
+    Base(bulkio::SharedSRI(sri), redhawk::buffer<T>(size))
 {
 }
 
@@ -257,7 +250,7 @@ void SampleDataBlock<T>::resize(size_t count)
 template <class T>
 bool SampleDataBlock<T>::complex() const
 {
-    return (_impl->sri->mode != 0);
+    return this->sri().complex();
 }
 
 template <class T>

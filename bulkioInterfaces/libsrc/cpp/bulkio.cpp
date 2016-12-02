@@ -247,7 +247,7 @@ namespace  bulkio {
 
 
   template < typename DataTransferTraits >
-  DataTransfer< DataTransferTraits >::DataTransfer(const PortSequenceType& data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed) :
+  DataTransfer< DataTransferTraits >::DataTransfer(const PortSequenceType& data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, const BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed) :
     T(_T),
     EOS(_EOS),
     streamID(_streamID),

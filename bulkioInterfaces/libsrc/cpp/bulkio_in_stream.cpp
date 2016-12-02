@@ -40,7 +40,7 @@ public:
         EOS_REPORTED
     };
 
-    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
+    Impl(const bulkio::SharedSRI& sri, InPortType* port) :
         _streamID(sri->streamID),
         _sri(sri),
         _port(port),
@@ -163,7 +163,7 @@ protected:
     }
 
     const std::string _streamID;
-    boost::shared_ptr<BULKIO::StreamSRI> _sri;
+    bulkio::SharedSRI _sri;
     InPortType* _port;
     EosState _eosState;
     bool _enabled;
@@ -176,8 +176,7 @@ InputStream<PortTraits>::InputStream() :
 }
 
 template <class PortTraits>
-InputStream<PortTraits>::InputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri,
-                                     InPortType* port) :
+InputStream<PortTraits>::InputStream(const SharedSRI& sri, InPortType* port) :
     _impl(boost::make_shared<Impl>(sri, port))
 {
 }
@@ -266,7 +265,7 @@ public:
     typedef typename PortTraits::NativeType NativeType;
     typedef typename PortTraits::SharedBufferType SharedBufferType;
 
-    Impl(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
+    Impl(const bulkio::SharedSRI& sri, InPortType* port) :
         ImplBase(sri, port),
         _queue(),
         _pending(0),
@@ -298,8 +297,7 @@ public:
         size_t queued = _samplesQueued;
         if (queued > 0) {
             // Adjust number of samples to account for complex data, if necessary
-            const BULKIO::StreamSRI& sri = *(_queue.front().SRI);
-            if (sri.mode) {
+            if (_queue.front().SRI->complex()) {
                 queued /= 2;
             }
         }
@@ -335,7 +333,7 @@ public:
     {
         // Try to get the SRI for the upcoming block of data, fetching it from the
         // port's input queue if necessary
-        const BULKIO::StreamSRI* sri = _nextSRI(blocking);
+        const SRI* sri = _nextSRI(blocking);
         if (!sri) {
             // No SRI retreived implies no data will be retrieved, either due to end-
             // of-stream or because it would block
@@ -352,7 +350,7 @@ public:
         // If the next block of data is complex, double the read and consume size
         // (which the lower-level I/O handles in terms of scalars) so that the
         // returned block has the right number of samples
-        if (sri->mode == 1) {
+        if (sri->complex()) {
             count *= 2;
             consume *= 2;
         }
@@ -395,12 +393,12 @@ public:
         // If the next block of data is complex, double the skip size (which the
         // lower-level I/O handles in terms of scalars) so that the right number of
         // samples is skipped
-        const BULKIO::StreamSRI* sri = _nextSRI(true);
+        const SRI* sri = _nextSRI(true);
         if (!sri) {
             return 0;
         }
 
-        size_t item_size = sri->mode?2:1;
+        size_t item_size = sri->complex()?2:1;
         count *= item_size;
 
         // Queue up packets from the port until we have enough data to satisfy the
@@ -567,7 +565,7 @@ private:
         data.addTimestamp(bulkio::SampleTimestamp(time, output_offset, synthetic));
     }
 
-    const BULKIO::StreamSRI* _nextSRI(bool blocking)
+    const SRI* _nextSRI(bool blocking)
     {
         if (_queue.empty()) {
             if (!_fetchPacket(blocking)) {
@@ -641,7 +639,7 @@ BufferedInputStream<PortTraits>::BufferedInputStream() :
 }
 
 template <class PortTraits>
-BufferedInputStream<PortTraits>::BufferedInputStream(const boost::shared_ptr<BULKIO::StreamSRI>& sri, InPortType* port) :
+BufferedInputStream<PortTraits>::BufferedInputStream(const bulkio::SharedSRI& sri, InPortType* port) :
     Base(boost::make_shared<Impl>(sri, port))
 {
 }

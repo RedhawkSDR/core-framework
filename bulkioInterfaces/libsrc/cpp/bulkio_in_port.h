@@ -32,6 +32,7 @@
 #include "bulkio_base.h"
 #include "bulkio_traits.h"
 #include "bulkio_in_stream.h"
+#include "bulkio_sri.h"
 #include "bulkio_callbacks.h"
 
 namespace bulkio {
@@ -265,7 +266,7 @@ namespace bulkio {
                SriListener *newStreamCB = NULL );
 
     struct Packet {
-      Packet(const SharedBufferType& buffer, const BULKIO::PrecisionUTCTime& T, bool EOS, const boost::shared_ptr<BULKIO::StreamSRI>& SRI, bool sriChanged, bool inputQueueFlushed) :
+      Packet(const SharedBufferType& buffer, const BULKIO::PrecisionUTCTime& T, bool EOS, const SharedSRI& SRI, bool sriChanged, bool inputQueueFlushed) :
         buffer(buffer),
         T(T),
         EOS(EOS),
@@ -279,7 +280,7 @@ namespace bulkio {
       SharedBufferType buffer;
       BULKIO::PrecisionUTCTime T;
       bool EOS;
-      boost::shared_ptr<BULKIO::StreamSRI> SRI;
+      SharedSRI SRI;
       bool sriChanged;
       bool inputQueueFlushed;
       std::string streamID;
@@ -304,7 +305,7 @@ namespace bulkio {
     //
     //  List of SRI objects managed by StreamID
     //
-    typedef std::map<std::string,std::pair<boost::shared_ptr<BULKIO::StreamSRI>,bool> > SriTable;
+    typedef std::map<std::string,std::pair<SharedSRI,bool> > SriTable;
     SriTable currentHs;
 
     //
@@ -388,7 +389,7 @@ namespace bulkio {
     friend class InputStream<PortTraits>;
     size_t samplesAvailable(const std::string& streamID, bool firstPacket);
 
-    void createStream(const std::string& streamID, const boost::shared_ptr<BULKIO::StreamSRI>& sri);
+    void createStream(const std::string& streamID, const SharedSRI& sri);
     void removeStream(const std::string& streamID);
 
     bool isStreamActive(const std::string& streamID);

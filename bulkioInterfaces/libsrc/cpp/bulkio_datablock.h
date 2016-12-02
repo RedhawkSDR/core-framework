@@ -30,7 +30,11 @@
 
 #include <BULKIO/bulkioDataTypes.h>
 
+
 namespace bulkio {
+
+    class SRI;
+    class SharedSRI;
 
     struct SampleTimestamp
     {
@@ -51,11 +55,11 @@ namespace bulkio {
     {
     public:
         DataBlock();
-        DataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri, const T& buffer);
+        DataBlock(const SharedSRI& sri, const T& buffer);
       
         DataBlock copy() const;
 
-        const BULKIO::StreamSRI& sri() const;
+        const SRI& sri() const;
         double xdelta() const;
 
         const T& data() const;
@@ -98,8 +102,7 @@ namespace bulkio {
         typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
 
         SampleDataBlock();
-        explicit SampleDataBlock(const boost::shared_ptr<BULKIO::StreamSRI>& sri,
-                                 const ScalarBuffer& buffer=ScalarBuffer());
+        explicit SampleDataBlock(const SharedSRI& sri, const ScalarBuffer& buffer=ScalarBuffer());
         SampleDataBlock(const BULKIO::StreamSRI& sri, size_t size=0);
 
         SampleDataBlock copy() const;
