@@ -1604,7 +1604,106 @@ class BulkioTest(unittest.TestCase):
         # 1 with multiple good connections
         # 1 with no good connections
         # 1 with a good connection
-     
+
+    def test_DataSourceTimeStamp(self):
+        """
+        Verify that DataSource sends EOS properly for pushes that exceed
+        bytesPerPush.
+        """
+        _timeout = 1
+        _startTime = 10
+        source = sb.DataSource(startTime=_startTime)
+        sink = sb.DataSink()
+        source.connect(sink, usesPortName='floatOut')
+        sb.start()
+        
+        # test default sample rate
+        _srcData = [1,2,3,4]
+        source.push(_srcData)
+        source.push(_srcData)
+        estimate = sink.getDataEstimate()
+        begin_time = time.time()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1)
+        self.assertEquals(_tstamps[0][1].twsec, _startTime)
+        self.assertEquals(_tstamps[1][1].twsec, _startTime+len(_srcData))
+        
+        toffset = _startTime+len(_data)
+        
+        # test modified sample rate
+        _sampleRate = 10.0
+        source.push(_srcData,sampleRate=_sampleRate)
+        source.push(_srcData)
+        begin_time = time.time()
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1/_sampleRate)
+        _orig_time = _tstamps[0][1].twsec+_tstamps[0][1].tfsec
+        _round_time = int(round(_orig_time*10))/10.0
+        self.assertEquals(_round_time, toffset)
+        _orig_time = _tstamps[1][1].twsec+_tstamps[1][1].tfsec
+        _round_time = int(round(_orig_time*10))/10.0
+        self.assertEquals(_round_time, toffset+len(_srcData)/_sampleRate)
+        
+        toffset = toffset+len(_data)/_sampleRate
+        
+        # revert sample rate
+        _sampleRate = 1.0
+        source.push(_srcData,sampleRate=_sampleRate)
+        source.push(_srcData)
+        begin_time = time.time()
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1/_sampleRate)
+        _orig_time = _tstamps[0][1].twsec+_tstamps[0][1].tfsec
+        _round_time = int(round(_orig_time*10))/10.0
+        self.assertEquals(_round_time, toffset)
+        _orig_time = _tstamps[1][1].twsec+_tstamps[1][1].tfsec
+        _round_time = int(round(_orig_time*10))/10.0
+        self.assertEquals(_round_time, toffset+len(_srcData)/_sampleRate)
+        
+        toffset = toffset+len(_data)/_sampleRate
+        
+        # test complex data
+        _sampleRate = 1.0
+        _srcData = [complex(1),complex(2),complex(3),complex(4)]
+        source.push(_srcData,sampleRate=_sampleRate)
+        source.push(_srcData)
+        begin_time = time.time()
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*4)
+        self.assertEquals(sink.sri().xdelta, 1/_sampleRate)
+        _orig_time = _tstamps[0][1].twsec+_tstamps[0][1].tfsec
+        _round_time = int(round(_orig_time*10))/10.0
+        self.assertEquals(_round_time, toffset)
+        _orig_time = _tstamps[1][1].twsec+_tstamps[1][1].tfsec
+        _round_time = int(round(_orig_time*10))/10.0
+        self.assertEquals(_round_time, toffset+len(_srcData)/_sampleRate)
+
     def test_DataSinkSubsize(self):
         src=sb.DataSource(dataFormat='short',subsize=5)
         snk=sb.DataSink()
