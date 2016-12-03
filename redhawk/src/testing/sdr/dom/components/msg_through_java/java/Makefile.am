@@ -30,7 +30,7 @@ msg_through_java.jar:
 clean-local:
 	rm -rf bin 
 
-msg_through_jar_SOURCES := $(shell find ./src -name "*.java")
+msg_through_java_jar_SOURCES := $(shell find ./src -name "*.java")
 
 ossieName = msg_through_java
 noinst_PROGRAMS = msg_through_java.jar
