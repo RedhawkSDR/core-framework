@@ -44,8 +44,22 @@ namespace bulkio {
         using StreamBase::sri;
         void sri(const BULKIO::StreamSRI& sri);
 
+        using StreamBase::xstart;
+        void xstart(double start);
         using StreamBase::xdelta;
-        void xdelta(double xdelta);
+        void xdelta(double delta);
+        using StreamBase::xunits;
+        void xunits(short units);
+
+        using StreamBase::subsize;
+        void subsize(int size);
+
+        using StreamBase::ystart;
+        void ystart(double start);
+        using StreamBase::ydelta;
+        void ydelta(double delta);
+        using StreamBase::yunits;
+        void yunits(short units);
 
         using StreamBase::complex;
         void complex(bool mode);

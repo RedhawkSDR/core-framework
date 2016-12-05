@@ -42,9 +42,39 @@ const BULKIO::StreamSRI& StreamBase::sri() const
     return _impl->sri();
 }
 
+double StreamBase::xstart() const
+{
+    return sri().xstart;
+}
+
 double StreamBase::xdelta() const
 {
     return sri().xdelta;
+}
+
+short StreamBase::xunits() const
+{
+    return sri().xunits;
+}
+
+int StreamBase::subsize() const
+{
+    return sri().subsize;
+}
+
+double StreamBase::ystart() const
+{
+    return sri().ystart;
+}
+
+double StreamBase::ydelta() const
+{
+    return sri().ydelta;
+}
+
+short StreamBase::yunits() const
+{
+    return sri().yunits;
 }
 
 bool StreamBase::complex() const

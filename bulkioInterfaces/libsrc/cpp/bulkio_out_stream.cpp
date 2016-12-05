@@ -49,9 +49,39 @@ public:
         _send(SharedBufferType(), bulkio::time::utils::notSet(), true);
     }
 
+    void setXStart(double start)
+    {
+        _setStreamMetadata(_sri->xstart, start);
+    }
+
     void setXDelta(double delta)
     {
         _setStreamMetadata(_sri->xdelta, delta);
+    }
+
+    void setXUnits(short units)
+    {
+        _setStreamMetadata(_sri->xunits, units);
+    }
+
+    void setSubsize(int size)
+    {
+        _setStreamMetadata(_sri->subsize, size);
+    }
+
+    void setYStart(double start)
+    {
+        _setStreamMetadata(_sri->ystart, start);
+    }
+
+    void setYDelta(double delta)
+    {
+        _setStreamMetadata(_sri->ydelta, delta);
+    }
+
+    void setYUnits(short units)
+    {
+        _setStreamMetadata(_sri->yunits, units);
     }
 
     void setComplex(bool mode)
@@ -154,9 +184,45 @@ void OutputStreamBase<PortTraits>::sri(const BULKIO::StreamSRI& sri)
 }
 
 template <class PortTraits>
+void OutputStreamBase<PortTraits>::xstart(double start)
+{
+    impl().setXStart(start);
+}
+
+template <class PortTraits>
 void OutputStreamBase<PortTraits>::xdelta(double delta)
 {
     impl().setXDelta(delta);
+}
+
+template <class PortTraits>
+void OutputStreamBase<PortTraits>::xunits(short units)
+{
+    impl().setXUnits(units);
+}
+
+template <class PortTraits>
+void OutputStreamBase<PortTraits>::subsize(int size)
+{
+    impl().setSubsize(size);
+}
+
+template <class PortTraits>
+void OutputStreamBase<PortTraits>::ystart(double start)
+{
+    impl().setYStart(start);
+}
+
+template <class PortTraits>
+void OutputStreamBase<PortTraits>::ydelta(double delta)
+{
+    impl().setYDelta(delta);
+}
+
+template <class PortTraits>
+void OutputStreamBase<PortTraits>::yunits(short units)
+{
+    impl().setYUnits(units);
 }
 
 template <class PortTraits>
