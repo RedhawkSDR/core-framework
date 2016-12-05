@@ -76,6 +76,8 @@ namespace bulkio {
         const std::string& streamID() const;
         const BULKIO::StreamSRI& sri() const;
 
+        operator const BULKIO::StreamSRI& () const;
+
         double xstart() const;
         double xdelta() const;
         short xunits() const;

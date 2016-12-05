@@ -42,6 +42,11 @@ const BULKIO::StreamSRI& StreamBase::sri() const
     return _impl->sri();
 }
 
+StreamBase::operator const BULKIO::StreamSRI& () const
+{
+    return sri();
+}
+
 double StreamBase::xstart() const
 {
     return sri().xstart;
