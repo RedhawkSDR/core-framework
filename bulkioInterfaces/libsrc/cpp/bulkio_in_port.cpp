@@ -127,7 +127,7 @@ namespace  bulkio {
     SCOPED_LOCK lock(sriUpdateLock);
     BULKIO::StreamSRISequence_var retSRI = new BULKIO::StreamSRISequence();
     for (SriTable::iterator currH = currentHs.begin(); currH != currentHs.end(); ++currH) {
-      ossie::corba::push_back(retSRI, *(currH->second.first));
+      ossie::corba::push_back(retSRI, currH->second.first.sri());
     }
 
     // NOTE: You must delete the object that this function returns!
@@ -172,19 +172,19 @@ namespace  bulkio {
     SriTable::iterator currH = currentHs.find(streamID);
     if (currH == currentHs.end()) {
       LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
-      SharedSRI sri(H);
+      StreamDescriptor sri(H);
       if (newStreamCallback) {
         // The callback takes a non-const SRI, so allow access via const_cast
-        newStreamCallback(const_cast<BULKIO::StreamSRI&>(*sri));
+        newStreamCallback(const_cast<BULKIO::StreamSRI&>(sri.sri()));
       }
       currentHs[streamID] = std::make_pair(sri, true);
       lock.unlock();
       
       createStream(streamID, sri);
     } else {
-      if (sri_cmp && !sri_cmp(H, *(currH->second.first))) {
+      if (sri_cmp && !sri_cmp(H, currH->second.first.sri())) {
         LOG_DEBUG(logger,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
-        currH->second.first = SharedSRI(H);
+        currH->second.first = StreamDescriptor(H);
         currH->second.second = true;
       }
     }
@@ -211,7 +211,7 @@ namespace  bulkio {
       return;
     }
 
-    SharedSRI sri;
+    StreamDescriptor sri;
     bool sriChanged = false;
 
     {
@@ -227,10 +227,10 @@ namespace  bulkio {
         // and set the SRI changed flag
         LOG_WARN(logger, "InPort::pushPacket received data for stream '" << streamID << "' with no SRI");
         sriChanged = true;
-        sri = SharedSRI(bulkio::sri::create(streamID));
+        sri = StreamDescriptor(bulkio::sri::create(streamID));
         if (newStreamCallback) {
           // The callback takes a non-const SRI, so allow access via const_cast
-          newStreamCallback(const_cast<BULKIO::StreamSRI&>(*sri));
+          newStreamCallback(const_cast<BULKIO::StreamSRI&>(sri.sri()));
         }
         currentHs[streamID] = std::make_pair(sri, false);
         lock.unlock();
@@ -423,7 +423,7 @@ namespace  bulkio {
     DataTransferType* transfer = 0;
     boost::scoped_ptr<Packet> packet(nextPacket(timeout, streamID));
     if (packet) {
-      transfer = new DataTransferType(PortSequenceType(), packet->T, packet->EOS, packet->streamID.c_str(), *(packet->SRI), packet->sriChanged, packet->inputQueueFlushed);
+      transfer = new DataTransferType(PortSequenceType(), packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI.sri(), packet->sriChanged, packet->inputQueueFlushed);
       transfer->dataBuffer.assign(packet->buffer.begin(), packet->buffer.end());
     }
     return transfer;
@@ -530,7 +530,7 @@ namespace  bulkio {
 
   template < typename PortTraits >
   void InPort< PortTraits >::createStream(const std::string& streamID,
-                                          const bulkio::SharedSRI& sri)
+                                          const bulkio::StreamDescriptor& sri)
   {
     StreamType stream(sri, this);
     boost::mutex::scoped_lock lock(streamsMutex);

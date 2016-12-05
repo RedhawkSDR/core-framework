@@ -18,8 +18,8 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef __bulkio_sri_h
-#define __bulkio_sri_h
+#ifndef __bulkio_stream_h
+#define __bulkio_stream_h
 
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -30,14 +30,14 @@
 
 namespace bulkio {
 
-    class SharedSRI {
+    class StreamDescriptor {
     public:
-        SharedSRI() :
+        StreamDescriptor() :
             _sri()
         {
         }
 
-        SharedSRI(const BULKIO::StreamSRI& sri) :
+        StreamDescriptor(const BULKIO::StreamSRI& sri) :
             _sri(boost::make_shared<BULKIO::StreamSRI>(sri))
         {
         }
@@ -58,11 +58,6 @@ namespace bulkio {
         }
 
         const BULKIO::StreamSRI& sri()
-        {
-            return *_sri;
-        }
-
-        const BULKIO::StreamSRI& operator* () const
         {
             return *_sri;
         }
@@ -92,10 +87,10 @@ namespace bulkio {
         bool operator! () const;
 
     protected:
-        class Impl : public SharedSRI {
+        class Impl : public StreamDescriptor {
         public:
-            Impl(const SharedSRI& sri) :
-                SharedSRI(sri),
+            Impl(const StreamDescriptor& sri) :
+                StreamDescriptor(sri),
                 _streamID(sri.streamID())
             {
             }
@@ -118,4 +113,4 @@ namespace bulkio {
     };
 }
 
-#endif // __bulkio_sri_h
+#endif // __bulkio_stream_h

@@ -34,7 +34,7 @@
 namespace bulkio {
 
     class SRI;
-    class SharedSRI;
+    class StreamDescriptor;
 
     struct SampleTimestamp
     {
@@ -55,7 +55,7 @@ namespace bulkio {
     {
     public:
         DataBlock();
-        DataBlock(const SharedSRI& sri, const T& buffer);
+        DataBlock(const StreamDescriptor& sri, const T& buffer);
       
         DataBlock copy() const;
 
@@ -102,7 +102,7 @@ namespace bulkio {
         typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
 
         SampleDataBlock();
-        explicit SampleDataBlock(const SharedSRI& sri, const ScalarBuffer& buffer=ScalarBuffer());
+        explicit SampleDataBlock(const StreamDescriptor& sri, const ScalarBuffer& buffer=ScalarBuffer());
         SampleDataBlock(const BULKIO::StreamSRI& sri, size_t size=0);
 
         SampleDataBlock copy() const;

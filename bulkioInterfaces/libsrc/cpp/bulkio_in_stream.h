@@ -28,7 +28,7 @@
 
 #include "bulkio_traits.h"
 #include "bulkio_datablock.h"
-#include "bulkio_sri.h"
+#include "bulkio_stream.h"
 
 namespace bulkio {
 
@@ -79,7 +79,7 @@ namespace bulkio {
 
         // Allow matching InPort class to create instances of this stream type
         friend class InPort<PortTraits>;
-        InputStream(const SharedSRI& sri, InPortType* port);
+        InputStream(const StreamDescriptor& sri, InPortType* port);
 
         bool hasBufferedData();
 
@@ -117,7 +117,7 @@ namespace bulkio {
 
         friend class InPort<PortTraits>;
         typedef InPort<PortTraits> InPortType;
-        BufferedInputStream(const SharedSRI&, InPortType*);
+        BufferedInputStream(const StreamDescriptor&, InPortType*);
 
         class Impl;
         Impl& impl();

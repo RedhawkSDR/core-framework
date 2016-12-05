@@ -42,7 +42,7 @@ public:
         EOS_REPORTED
     };
 
-    Impl(const bulkio::SharedSRI& sri, InPortType* port) :
+    Impl(const bulkio::StreamDescriptor& sri, InPortType* port) :
         ImplBase(sri),
         _port(port),
         _eosState(EOS_NONE),
@@ -66,7 +66,7 @@ public:
         block.addTimestamp(packet->T);
         _setBlockFlags(block, *packet);
         // Update local SRI from packet
-        SharedSRI::operator=(packet->SRI);
+        StreamDescriptor::operator=(packet->SRI);
         return block;
     }
 
@@ -146,7 +146,7 @@ protected:
         // Allocate empty data block and propagate the SRI change and input
         // queue flush flags
         if (packet.sriChanged) {
-            int flags = bulkio::sri::compareFields(*_sri, *(packet.SRI));
+            int flags = bulkio::sri::compareFields(this->sri(), packet.SRI.sri());
             block.sriChangeFlags(flags);
         }
         if (packet.inputQueueFlushed) {
@@ -166,7 +166,7 @@ InputStream<PortTraits>::InputStream() :
 }
 
 template <class PortTraits>
-InputStream<PortTraits>::InputStream(const SharedSRI& sri, InPortType* port) :
+InputStream<PortTraits>::InputStream(const StreamDescriptor& sri, InPortType* port) :
     StreamBase(boost::make_shared<Impl>(sri, port))
 {
 }
@@ -249,7 +249,7 @@ public:
     typedef typename PortTraits::NativeType NativeType;
     typedef typename PortTraits::SharedBufferType SharedBufferType;
 
-    Impl(const bulkio::SharedSRI& sri, InPortType* port) :
+    Impl(const bulkio::StreamDescriptor& sri, InPortType* port) :
         ImplBase(sri, port),
         _queue(),
         _pending(0),
@@ -317,7 +317,7 @@ public:
     {
         // Try to get the SRI for the upcoming block of data, fetching it from the
         // port's input queue if necessary
-        const SharedSRI* sri = _nextSRI(blocking);
+        const StreamDescriptor* sri = _nextSRI(blocking);
         if (!sri) {
             // No SRI retreived implies no data will be retrieved, either due to end-
             // of-stream or because it would block
@@ -377,7 +377,7 @@ public:
         // If the next block of data is complex, double the skip size (which the
         // lower-level I/O handles in terms of scalars) so that the right number of
         // samples is skipped
-        const SharedSRI* sri = _nextSRI(true);
+        const StreamDescriptor* sri = _nextSRI(true);
         if (!sri) {
             return 0;
         }
@@ -549,7 +549,7 @@ private:
         data.addTimestamp(bulkio::SampleTimestamp(time, output_offset, synthetic));
     }
 
-    const SharedSRI* _nextSRI(bool blocking)
+    const StreamDescriptor* _nextSRI(bool blocking)
     {
         if (_queue.empty()) {
             if (!_fetchPacket(blocking)) {
@@ -623,7 +623,7 @@ BufferedInputStream<PortTraits>::BufferedInputStream() :
 }
 
 template <class PortTraits>
-BufferedInputStream<PortTraits>::BufferedInputStream(const bulkio::SharedSRI& sri, InPortType* port) :
+BufferedInputStream<PortTraits>::BufferedInputStream(const bulkio::StreamDescriptor& sri, InPortType* port) :
     Base(boost::make_shared<Impl>(sri, port))
 {
 }

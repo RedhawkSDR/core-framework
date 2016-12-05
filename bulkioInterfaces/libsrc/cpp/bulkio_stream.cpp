@@ -18,7 +18,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#include "bulkio_sri.h"
+#include "bulkio_stream.h"
 
 using bulkio::StreamBase;
 

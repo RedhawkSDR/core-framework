@@ -62,7 +62,7 @@ library_include_HEADERS = cpp/bulkio.h \
 	cpp/bulkio_out_port.h \
 	cpp/bulkio_out_stream.h \
 	cpp/bulkio_attachable_base.h \
-	cpp/bulkio_sri.h \
+	cpp/bulkio_stream.h \
 	cpp/bulkio_time_operators.h \
 	cpp/bulkio_datablock.h \
 	cpp/bulkio_compat.h

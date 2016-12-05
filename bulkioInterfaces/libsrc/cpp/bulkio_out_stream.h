@@ -31,7 +31,7 @@
 
 #include "bulkio_traits.h"
 #include "bulkio_datablock.h"
-#include "bulkio_sri.h"
+#include "bulkio_stream.h"
 
 namespace bulkio {
 

@@ -25,7 +25,7 @@
 
 #include "bulkio_base.h"
 #include "bulkio_datablock.h"
-#include "bulkio_sri.h"
+#include "bulkio_stream.h"
 #include "bulkio_time_operators.h"
 
 namespace bulkio {
@@ -53,10 +53,10 @@ using bulkio::SampleTimestamp;
 using bulkio::DataBlock;
 
 template <class T>
-struct DataBlock<T>::Impl : public SharedSRI
+struct DataBlock<T>::Impl : public StreamDescriptor
 {
-    Impl(const bulkio::SharedSRI& sri, const T& data) :
-        SharedSRI(sri),
+    Impl(const bulkio::StreamDescriptor& sri, const T& data) :
+        StreamDescriptor(sri),
         data(data),
         sriChangeFlags(bulkio::sri::NONE),
         inputQueueFlushed(false)
@@ -76,7 +76,7 @@ DataBlock<T>::DataBlock() :
 }
 
 template <class T>
-DataBlock<T>::DataBlock(const bulkio::SharedSRI& sri, const T& data) :
+DataBlock<T>::DataBlock(const bulkio::StreamDescriptor& sri, const T& data) :
     _impl(boost::make_shared<Impl>(sri, data))
 {
 }
@@ -209,7 +209,7 @@ SampleDataBlock<T>::SampleDataBlock() :
 }
 
 template <class T>
-SampleDataBlock<T>::SampleDataBlock(const bulkio::SharedSRI& sri,
+SampleDataBlock<T>::SampleDataBlock(const bulkio::StreamDescriptor& sri,
                                     const ScalarBuffer& buffer) :
     Base(sri, buffer)
 {
@@ -217,7 +217,7 @@ SampleDataBlock<T>::SampleDataBlock(const bulkio::SharedSRI& sri,
 
 template <class T>
 SampleDataBlock<T>::SampleDataBlock(const BULKIO::StreamSRI& sri, size_t size) :
-    Base(bulkio::SharedSRI(sri), redhawk::buffer<T>(size))
+    Base(bulkio::StreamDescriptor(sri), redhawk::buffer<T>(size))
 {
 }
 
