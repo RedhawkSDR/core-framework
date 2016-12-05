@@ -27,7 +27,7 @@ Prefix:         %{_sysconfdir}
 
 Name:           redhawk
 Version:        2.0.4
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        REDHAWK is a Software Defined Radio framework
 
 Group:          Applications/Engineering
@@ -42,8 +42,10 @@ Requires:       util-linux-ng
 
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
 Requires:       java >= 1.7
+Requires:       python-matplotlib-qt4
 %else
 Requires:       java7 >= 1.7
+Requires:       python-matplotlib
 %endif
 
 Requires:       python
@@ -124,6 +126,7 @@ Requires:       log4cxx-devel >= 0.10
 
 # omniORB / omniORBpy
 Requires:       omniORB-devel >= 4.1.0
+Requires:       omniORB-doc
 Requires:       omniORBpy-devel >= 3.0
 
 # Languages
@@ -273,6 +276,10 @@ fi
 
 
 %changelog
+* Mon Dec 5 2016 - 2.0.4-6
+- Add python-matplotlib packages as explicit requires
+- Add omniORB-doc to devel package
+
 * Wed Sep 9 2015 - 2.0.0-2
 - Add qt-tools package
 - Remove el5 support
