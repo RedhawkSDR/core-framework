@@ -49,12 +49,12 @@ double StreamBase::xdelta() const
 
 bool StreamBase::complex() const
 {
-    return (sri().mode != 0);
+    return _impl->complex();
 }
 
 bool StreamBase::blocking() const
 {
-    return sri().blocking;
+    return _impl->blocking();
 }
 
 bool StreamBase::operator!() const

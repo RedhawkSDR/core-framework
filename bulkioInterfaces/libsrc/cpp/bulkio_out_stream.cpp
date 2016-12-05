@@ -49,44 +49,39 @@ public:
         _send(SharedBufferType(), bulkio::time::utils::notSet(), true);
     }
 
-    BULKIO::StreamSRI& sri()
-    {
-        return const_cast<bulkio::SRI&>(*_sri);
-    }
-
     void setXDelta(double delta)
     {
-        _setStreamMetadata(sri().xdelta, delta);
+        _setStreamMetadata(_sri->xdelta, delta);
     }
 
     void setComplex(bool mode)
     {
-        _setStreamMetadata(sri().mode, mode?1:0);
+        _setStreamMetadata(_sri->mode, mode?1:0);
     }
 
     void setBlocking(bool mode)
     {
-        _setStreamMetadata(sri().blocking, mode?1:0);
+        _setStreamMetadata(_sri->blocking, mode?1:0);
     }
 
     void setKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& properties)
     {
         _modifyingStreamMetadata();
-        sri().keywords = properties;
+        _sri->keywords = properties;
         ++_modcount;
     }
 
     void setKeyword(const std::string& name, const CORBA::Any& value)
     {
         _modifyingStreamMetadata();
-        redhawk::PropertyMap::cast(sri().keywords)[name] = value;
+        redhawk::PropertyMap::cast(_sri->keywords)[name] = value;
         ++_modcount;
     }
 
     void eraseKeyword(const std::string& name)
     {
         _modifyingStreamMetadata();
-        redhawk::PropertyMap::cast(sri().keywords).erase(name);
+        redhawk::PropertyMap::cast(_sri->keywords).erase(name);
         ++_modcount;
     }
 
@@ -94,8 +89,8 @@ public:
     {
         _modifyingStreamMetadata();
         // Copy the new SRI, except for the stream ID, which is immutable
-        this->sri() = sri;
-        this->sri().streamID = _streamID.c_str();
+        *_sri = sri;
+        _sri->streamID = _streamID.c_str();
         ++_modcount;
     }
 

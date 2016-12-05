@@ -273,7 +273,7 @@ namespace bulkio {
         SRI(SRI),
         sriChanged(sriChanged),
         inputQueueFlushed(inputQueueFlushed),
-        streamID(SRI->streamID)
+        streamID(SRI.streamID())
       {
       }
 

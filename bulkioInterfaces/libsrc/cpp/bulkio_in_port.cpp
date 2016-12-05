@@ -175,7 +175,7 @@ namespace  bulkio {
       SharedSRI sri(H);
       if (newStreamCallback) {
         // The callback takes a non-const SRI, so allow access via const_cast
-        newStreamCallback(const_cast<SRI&>(*sri));
+        newStreamCallback(const_cast<BULKIO::StreamSRI&>(*sri));
       }
       currentHs[streamID] = std::make_pair(sri, true);
       lock.unlock();
@@ -230,7 +230,7 @@ namespace  bulkio {
         sri = SharedSRI(bulkio::sri::create(streamID));
         if (newStreamCallback) {
           // The callback takes a non-const SRI, so allow access via const_cast
-          newStreamCallback(const_cast<SRI&>(*sri));
+          newStreamCallback(const_cast<BULKIO::StreamSRI&>(*sri));
         }
         currentHs[streamID] = std::make_pair(sri, false);
         lock.unlock();
@@ -479,13 +479,13 @@ namespace  bulkio {
       SCOPED_LOCK lock2(sriUpdateLock);
       SriTable::iterator target = currentHs.find(packet->streamID);
       if (target != currentHs.end()) {
-        bool sriBlocking = target->second.first->blocking;
+        bool sriBlocking = target->second.first.blocking();
         currentHs.erase(target);
         if (sriBlocking) {
           turnOffBlocking = true;
           SriTable::iterator currH;
           for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-            if (currH->second.first->blocking) {
+            if (currH->second.first.blocking()) {
               turnOffBlocking = false;
               break;
             }
@@ -616,7 +616,7 @@ namespace  bulkio {
         if (!firstPacket) break;
       }
       firstPacket = false;
-      if (packet->SRI->complex()) {
+      if (packet->SRI.complex()) {
           item_size = 2;
       }
       samples += packet->buffer.size();

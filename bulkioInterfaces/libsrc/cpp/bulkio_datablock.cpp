@@ -53,18 +53,17 @@ using bulkio::SampleTimestamp;
 using bulkio::DataBlock;
 
 template <class T>
-struct DataBlock<T>::Impl
+struct DataBlock<T>::Impl : public SharedSRI
 {
     Impl(const bulkio::SharedSRI& sri, const T& data) :
+        SharedSRI(sri),
         data(data),
-        sri(sri),
         sriChangeFlags(bulkio::sri::NONE),
         inputQueueFlushed(false)
     {
     }
 
     T data;
-    bulkio::SharedSRI sri;
     std::list<SampleTimestamp> timestamps;
     int sriChangeFlags;
     bool inputQueueFlushed;
@@ -93,9 +92,9 @@ DataBlock<T> DataBlock<T>::copy() const
 }
 
 template <class T>
-const bulkio::SRI& DataBlock<T>::sri() const
+const BULKIO::StreamSRI& DataBlock<T>::sri() const
 {
-    return *(_impl->sri);
+    return _impl->sri();
 }
 
 template <class T>
@@ -250,7 +249,7 @@ void SampleDataBlock<T>::resize(size_t count)
 template <class T>
 bool SampleDataBlock<T>::complex() const
 {
-    return this->sri().complex();
+    return _impl->complex();
 }
 
 template <class T>

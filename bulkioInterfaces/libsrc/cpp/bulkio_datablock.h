@@ -59,7 +59,7 @@ namespace bulkio {
       
         DataBlock copy() const;
 
-        const SRI& sri() const;
+        const BULKIO::StreamSRI& sri() const;
         double xdelta() const;
 
         const T& data() const;

@@ -65,7 +65,8 @@ public:
         DataBlockType block(packet->SRI, packet->buffer);
         block.addTimestamp(packet->T);
         _setBlockFlags(block, *packet);
-        _sri = packet->SRI;
+        // Update local SRI from packet
+        SharedSRI::operator=(packet->SRI);
         return block;
     }
 
@@ -280,7 +281,7 @@ public:
         size_t queued = _samplesQueued;
         if (queued > 0) {
             // Adjust number of samples to account for complex data, if necessary
-            if (_queue.front().SRI->complex()) {
+            if (_queue.front().SRI.complex()) {
                 queued /= 2;
             }
         }
@@ -316,7 +317,7 @@ public:
     {
         // Try to get the SRI for the upcoming block of data, fetching it from the
         // port's input queue if necessary
-        const SRI* sri = _nextSRI(blocking);
+        const SharedSRI* sri = _nextSRI(blocking);
         if (!sri) {
             // No SRI retreived implies no data will be retrieved, either due to end-
             // of-stream or because it would block
@@ -376,7 +377,7 @@ public:
         // If the next block of data is complex, double the skip size (which the
         // lower-level I/O handles in terms of scalars) so that the right number of
         // samples is skipped
-        const SRI* sri = _nextSRI(true);
+        const SharedSRI* sri = _nextSRI(true);
         if (!sri) {
             return 0;
         }
@@ -471,7 +472,7 @@ private:
 
         // Allocate empty data block and propagate the SRI change and input queue
         // flush flags
-        DataBlockType data(this->_sri);
+        DataBlockType data(*this);
         this->_setBlockFlags(data, front);
 
         // Clear flags from packet, since they've been reported
@@ -548,7 +549,7 @@ private:
         data.addTimestamp(bulkio::SampleTimestamp(time, output_offset, synthetic));
     }
 
-    const SRI* _nextSRI(bool blocking)
+    const SharedSRI* _nextSRI(bool blocking)
     {
         if (_queue.empty()) {
             if (!_fetchPacket(blocking)) {
@@ -556,7 +557,7 @@ private:
             }
         }
 
-        return _queue.front().SRI.get();
+        return &(_queue.front().SRI);
     }
 
     bool _fetchPacket(bool blocking)

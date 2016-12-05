@@ -30,39 +30,6 @@
 
 namespace bulkio {
 
-    class SRI : public BULKIO::StreamSRI {
-    public:
-        static SRI& cast(BULKIO::StreamSRI& sri)
-        {
-            return static_cast<SRI&>(sri);
-        }
-
-        static const SRI& cast(const BULKIO::StreamSRI& sri)
-        {
-            return static_cast<const SRI&>(sri);
-        }
-
-        explicit SRI(const BULKIO::StreamSRI& sri) :
-            BULKIO::StreamSRI(sri)
-        {
-        }
-
-        std::string getStreamID() const
-        {
-            return std::string(this->streamID);
-        }
-
-        bool complex() const
-        {
-            return (this->mode != 0);
-        }
-
-        const redhawk::PropertyMap& getKeywords() const
-        {
-            return redhawk::PropertyMap::cast(this->keywords);
-        }
-    };
-
     class SharedSRI {
     public:
         SharedSRI() :
@@ -71,23 +38,33 @@ namespace bulkio {
         }
 
         SharedSRI(const BULKIO::StreamSRI& sri) :
-            _sri(boost::make_shared<SRI>(sri))
+            _sri(boost::make_shared<BULKIO::StreamSRI>(sri))
         {
         }
 
-        const SRI* get() const
+        std::string streamID() const
         {
-            return _sri.get();
+            return std::string(_sri->streamID);
         }
 
-        const SRI& operator* () const
+        bool blocking() const
+        {
+            return _sri->blocking;
+        }
+
+        bool complex() const
+        {
+            return (_sri->mode != 0);
+        }
+
+        const BULKIO::StreamSRI& sri()
         {
             return *_sri;
         }
 
-        const SRI* operator-> () const
+        const BULKIO::StreamSRI& operator* () const
         {
-            return _sri.get();
+            return *_sri;
         }
 
         bool operator! () const
@@ -95,8 +72,8 @@ namespace bulkio {
             return !_sri;
         }
 
-    private:
-        boost::shared_ptr<SRI> _sri;
+    protected:
+        boost::shared_ptr<BULKIO::StreamSRI> _sri;
     };
 
     class StreamBase {
@@ -115,11 +92,11 @@ namespace bulkio {
         bool operator! () const;
 
     protected:
-        class Impl {
+        class Impl : public SharedSRI {
         public:
             Impl(const SharedSRI& sri) :
-                _streamID(sri->streamID),
-                _sri(sri)
+                SharedSRI(sri),
+                _streamID(sri.streamID())
             {
             }
 
@@ -128,16 +105,10 @@ namespace bulkio {
                 return _streamID;
             }
 
-            const BULKIO::StreamSRI& sri() const
-            {
-                return *_sri;
-            }
-
             virtual ~Impl() { }
 
         protected:
             const std::string _streamID;
-            SharedSRI _sri;
         };
 
         StreamBase();
