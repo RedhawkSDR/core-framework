@@ -35,7 +35,7 @@ Prefix: %{_prefix}
 Summary:        The frontend library for REDHAWK
 Name:           frontendInterfaces
 Version:        2.3.4
-Release:        5%{?dist}
+Release:        6%{?dist}
 License:        LGPLv3+
 Group:          REDHAWK/Interfaces
 Source:         %{name}-%{version}.tar.gz
