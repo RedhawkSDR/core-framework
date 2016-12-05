@@ -31,6 +31,7 @@
 
 #include "bulkio_traits.h"
 #include "bulkio_datablock.h"
+#include "bulkio_sri.h"
 
 namespace bulkio {
 
@@ -38,26 +39,21 @@ namespace bulkio {
     class OutPort;
 
     template <class PortTraits>
-    class OutputStreamBase {
+    class OutputStreamBase : public StreamBase {
     public:
-        const std::string& streamID() const;
-
-        const BULKIO::StreamSRI& sri() const;
+        using StreamBase::sri;
         void sri(const BULKIO::StreamSRI& sri);
 
-        double xdelta() const;
+        using StreamBase::xdelta;
         void xdelta(double xdelta);
 
-        bool complex() const;
+        using StreamBase::complex;
         void complex(bool mode);
 
-        bool blocking() const;
+        using StreamBase::blocking;
         void blocking(bool mode);
 
-        const redhawk::PropertyMap& keywords() const;
-        bool hasKeyword(const std::string& name) const;
-        const redhawk::Value& getKeyword(const std::string& name) const;
-
+        using StreamBase::keywords;
         void keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props);
         void setKeyword(const std::string& name, const CORBA::Any& value);
         void setKeyword(const std::string& name, const redhawk::Value& value);
@@ -70,15 +66,12 @@ namespace bulkio {
 
         void close();
 
-        bool operator! () const
-        {
-            return !_impl;
-        }
-
     protected:
         typedef OutPort<PortTraits> OutPortType;
 
         class Impl;
+        Impl& impl();
+        const Impl& impl() const;
 
         OutputStreamBase();
         OutputStreamBase(const BULKIO::StreamSRI& sri, OutPortType* port);
@@ -86,9 +79,7 @@ namespace bulkio {
 
         int modcount() const;
 
-        boost::shared_ptr<Impl> _impl;
-
-        typedef boost::shared_ptr<Impl> OutputStreamBase::*unspecified_bool_type;
+        typedef const Impl& (OutputStreamBase::*unspecified_bool_type)() const;
 
     public:
         operator unspecified_bool_type() const;

@@ -26,13 +26,13 @@
 using bulkio::OutputStreamBase;
 
 template <class PortTraits>
-class OutputStreamBase<PortTraits>::Impl {
+class OutputStreamBase<PortTraits>::Impl : public StreamBase::Impl {
 public:
+    typedef StreamBase::Impl ImplBase;
     typedef typename PortTraits::SharedBufferType SharedBufferType;
 
     Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
-        _streamID(sri.streamID),
-        _sri(sri),
+        ImplBase(sri),
         _modcount(0),
         _port(port)
     {
@@ -49,49 +49,44 @@ public:
         _send(SharedBufferType(), bulkio::time::utils::notSet(), true);
     }
 
-    const std::string& streamID() const
+    BULKIO::StreamSRI& sri()
     {
-        return _streamID;
-    }
-
-    const BULKIO::StreamSRI& sri() const
-    {
-        return _sri;
+        return const_cast<bulkio::SRI&>(*_sri);
     }
 
     void setXDelta(double delta)
     {
-        _setStreamMetadata(_sri.xdelta, delta);
+        _setStreamMetadata(sri().xdelta, delta);
     }
 
     void setComplex(bool mode)
     {
-        _setStreamMetadata(_sri.mode, mode?1:0);
+        _setStreamMetadata(sri().mode, mode?1:0);
     }
 
     void setBlocking(bool mode)
     {
-        _setStreamMetadata(_sri.blocking, mode?1:0);
+        _setStreamMetadata(sri().blocking, mode?1:0);
     }
 
     void setKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& properties)
     {
         _modifyingStreamMetadata();
-        _sri.keywords = properties;
+        sri().keywords = properties;
         ++_modcount;
     }
 
     void setKeyword(const std::string& name, const CORBA::Any& value)
     {
         _modifyingStreamMetadata();
-        redhawk::PropertyMap::cast(_sri.keywords)[name] = value;
+        redhawk::PropertyMap::cast(sri().keywords)[name] = value;
         ++_modcount;
     }
 
     void eraseKeyword(const std::string& name)
     {
         _modifyingStreamMetadata();
-        redhawk::PropertyMap::cast(_sri.keywords).erase(name);
+        redhawk::PropertyMap::cast(sri().keywords).erase(name);
         ++_modcount;
     }
 
@@ -99,8 +94,8 @@ public:
     {
         _modifyingStreamMetadata();
         // Copy the new SRI, except for the stream ID, which is immutable
-        _sri = sri;
-        _sri.streamID = _streamID.c_str();
+        this->sri() = sri;
+        this->sri().streamID = _streamID.c_str();
         ++_modcount;
     }
 
@@ -135,137 +130,105 @@ protected:
         _port->_sendPacket(data, time, eos, _streamID);
     }
 
-    const std::string _streamID;
-    BULKIO::StreamSRI _sri;
     int _modcount;
     OutPortType* _port;
 };
 
 template <class PortTraits>
 OutputStreamBase<PortTraits>::OutputStreamBase() :
-    _impl()
+    StreamBase()
+{
+}
+
+template <class PortTraits>
+OutputStreamBase<PortTraits>::OutputStreamBase(const BULKIO::StreamSRI& sri, OutPortType* port) :
+    StreamBase(boost::make_shared<Impl>(sri, port))
 {
 }
 
 template <class PortTraits>
 OutputStreamBase<PortTraits>::OutputStreamBase(boost::shared_ptr<Impl> impl) :
-    _impl(impl)
+    StreamBase(impl)
 {
-}
-
-template <class PortTraits>
-const std::string& OutputStreamBase<PortTraits>::streamID() const
-{
-    return _impl->streamID();
-}
-
-template <class PortTraits>
-const BULKIO::StreamSRI& OutputStreamBase<PortTraits>::sri() const
-{
-    return _impl->sri();
 }
 
 template <class PortTraits>
 void OutputStreamBase<PortTraits>::sri(const BULKIO::StreamSRI& sri)
 {
-    _impl->setSRI(sri);
-}
-
-template <class PortTraits>
-double OutputStreamBase<PortTraits>::xdelta() const
-{
-    return sri().xdelta;
+    impl().setSRI(sri);
 }
 
 template <class PortTraits>
 void OutputStreamBase<PortTraits>::xdelta(double delta)
 {
-    _impl->setXDelta(delta);
-}
-
-template <class PortTraits>
-bool OutputStreamBase<PortTraits>::complex() const
-{
-    return (sri().mode != 0);
+    impl().setXDelta(delta);
 }
 
 template <class PortTraits>
 void OutputStreamBase<PortTraits>::complex(bool mode)
 {
-    _impl->setComplex(mode);
-}
-
-template <class PortTraits>
-bool OutputStreamBase<PortTraits>::blocking() const
-{
-    return sri().blocking;
+    impl().setComplex(mode);
 }
 
 template <class PortTraits>
 void OutputStreamBase<PortTraits>::blocking(bool mode)
 {
-    _impl->setBlocking(mode);
-}
-
-template <class PortTraits>
-const redhawk::PropertyMap& OutputStreamBase<PortTraits>::keywords() const
-{
-    return redhawk::PropertyMap::cast(sri().keywords);
-}
-
-template <class PortTraits>
-bool OutputStreamBase<PortTraits>::hasKeyword(const std::string& name) const
-{
-    return keywords().contains(name);
-}
-
-template <class PortTraits>
-const redhawk::Value& OutputStreamBase<PortTraits>::getKeyword(const std::string& name) const
-{
-    return keywords()[name];
+    impl().setBlocking(mode);
 }
 
 template <class PortTraits>
 void OutputStreamBase<PortTraits>::keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props)
 {
-    _impl->setKeywords(props);
+    impl().setKeywords(props);
 }
 
 template <class PortTraits>
 void OutputStreamBase<PortTraits>::setKeyword(const std::string& name, const CORBA::Any& value)
 {
-    _impl->setKeyword(name, value);
+    impl().setKeyword(name, value);
 }
 
 template <class PortTraits>
 void OutputStreamBase<PortTraits>::setKeyword(const std::string& name, const redhawk::Value& value)
 {
-    _impl->setKeyword(name, value);
+    impl().setKeyword(name, value);
 }
 
 template <class PortTraits>
 void OutputStreamBase<PortTraits>::eraseKeyword(const std::string& name)
 {
-    _impl->eraseKeyword(name);
+    impl().eraseKeyword(name);
 }
 
 template <class PortTraits>
 void OutputStreamBase<PortTraits>::close()
 {
-    _impl->close();
+    impl().close();
     _impl.reset();
 }
 
 template <class PortTraits>
 OutputStreamBase<PortTraits>::operator unspecified_bool_type() const
 {
-    return _impl?&OutputStreamBase::_impl:0;
+    return _impl?static_cast<unspecified_bool_type>(&OutputStreamBase::impl):0;
+}
+
+template <class PortTraits>
+typename OutputStreamBase<PortTraits>::Impl& OutputStreamBase<PortTraits>::impl()
+{
+    return static_cast<Impl&>(*this->_impl);
+}
+
+template <class PortTraits>
+const typename OutputStreamBase<PortTraits>::Impl& OutputStreamBase<PortTraits>::impl() const
+{
+    return static_cast<const Impl&>(*this->_impl);
 }
 
 template <class PortTraits>
 int OutputStreamBase<PortTraits>::modcount() const
 {
-    return _impl->modcount();
+    return impl().modcount();
 }
 
 
@@ -281,7 +244,6 @@ public:
 
     using ImplBase::_sri;
     using ImplBase::_streamID;
-    using ImplBase::_port;
 
     Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
         ImplBase::Impl(sri, port),
@@ -303,7 +265,7 @@ public:
 
     void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
     {
-        if (_sri.mode == 0) {
+        if (_sri->mode == 0) {
             throw std::logic_error("stream mode is not complex");
         }
         write(ScalarBuffer::recast(data), time);
@@ -417,7 +379,7 @@ private:
 
         // Handle remaining data
         if (count < data.size()) {
-            BULKIO::PrecisionUTCTime next = time + (_sri.xdelta * count);
+            BULKIO::PrecisionUTCTime next = time + (_sri->xdelta * count);
             _doBuffer(data.slice(count), next);
         }
     }
@@ -539,7 +501,7 @@ void OutXMLStream::write(const std::string& xmlString)
     // XML ports do not officially support timestamps, although the port
     // implementation includes it (because it's templatized); always pass
     // "not set" for consistency
-    _impl->write(xmlString, bulkio::time::utils::notSet());
+    impl().write(xmlString, bulkio::time::utils::notSet());
 }
 
 //
@@ -559,7 +521,7 @@ OutFileStream::OutFileStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
 
 void OutFileStream::write(const std::string& URL, const BULKIO::PrecisionUTCTime& time)
 {
-    _impl->write(URL, time);
+    impl().write(URL, time);
 }
 
 #define INSTANTIATE_TEMPLATE(x)                 \

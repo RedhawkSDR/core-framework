@@ -98,6 +98,53 @@ namespace bulkio {
     private:
         boost::shared_ptr<SRI> _sri;
     };
+
+    class StreamBase {
+    public:
+        const std::string& streamID() const;
+        const BULKIO::StreamSRI& sri() const;
+
+        double xdelta() const;
+        bool complex() const;
+        bool blocking() const;
+
+        const redhawk::PropertyMap& keywords() const;
+        bool hasKeyword(const std::string& name) const;
+        const redhawk::Value& getKeyword(const std::string& name) const;
+
+        bool operator! () const;
+
+    protected:
+        class Impl {
+        public:
+            Impl(const SharedSRI& sri) :
+                _streamID(sri->streamID),
+                _sri(sri)
+            {
+            }
+
+            const std::string& streamID() const
+            {
+                return _streamID;
+            }
+
+            const BULKIO::StreamSRI& sri() const
+            {
+                return *_sri;
+            }
+
+            virtual ~Impl() { }
+
+        protected:
+            const std::string _streamID;
+            SharedSRI _sri;
+        };
+
+        StreamBase();
+        StreamBase(const boost::shared_ptr<Impl>& impl);
+
+        boost::shared_ptr<Impl> _impl;
+    };
 }
 
 #endif // __bulkio_sri_h

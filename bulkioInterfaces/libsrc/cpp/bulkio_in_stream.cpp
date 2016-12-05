@@ -29,8 +29,10 @@
 using bulkio::InputStream;
 
 template <class PortTraits>
-class InputStream<PortTraits>::Impl {
+class InputStream<PortTraits>::Impl : public StreamBase::Impl {
 public:
+    typedef StreamBase::Impl ImplBase;
+
     typedef typename InPortType::Packet PacketType;
 
     enum EosState {
@@ -41,22 +43,11 @@ public:
     };
 
     Impl(const bulkio::SharedSRI& sri, InPortType* port) :
-        _streamID(sri->streamID),
-        _sri(sri),
+        ImplBase(sri),
         _port(port),
         _eosState(EOS_NONE),
         _enabled(true)
     {
-    }
-
-    const std::string& streamID() const
-    {
-        return _streamID;
-    }
-
-    const BULKIO::StreamSRI& sri() const
-    {
-        return *_sri;
     }
 
     DataBlockType readPacket(bool blocking)
@@ -162,8 +153,6 @@ protected:
         }
     }
 
-    const std::string _streamID;
-    bulkio::SharedSRI _sri;
     InPortType* _port;
     EosState _eosState;
     bool _enabled;
@@ -171,86 +160,80 @@ protected:
 
 template <class PortTraits>
 InputStream<PortTraits>::InputStream() :
-    _impl()
+    StreamBase()
 {
 }
 
 template <class PortTraits>
 InputStream<PortTraits>::InputStream(const SharedSRI& sri, InPortType* port) :
-    _impl(boost::make_shared<Impl>(sri, port))
+    StreamBase(boost::make_shared<Impl>(sri, port))
 {
 }
 
 template <class PortTraits>
 InputStream<PortTraits>::InputStream(const boost::shared_ptr<Impl>& impl) :
-    _impl(impl)
+    StreamBase(impl)
 {
-}
-
-template <class PortTraits>
-const std::string& InputStream<PortTraits>::streamID() const
-{
-    return _impl->streamID();
-}
-
-template <class PortTraits>
-const BULKIO::StreamSRI& InputStream<PortTraits>::sri() const
-{
-    return _impl->sri();
 }
 
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::read()
 {
-    return _impl->readPacket(true);
+    return impl().readPacket(true);
 }
 
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::tryread()
 {
-    return _impl->readPacket(false);
+    return impl().readPacket(false);
 }
 
 template <class PortTraits>
 bool InputStream<PortTraits>::enabled() const
 {
-    return _impl->enabled();
+    return impl().enabled();
 }
 
 template <class PortTraits>
 void InputStream<PortTraits>::enable()
 {
-    _impl->enable();
+    impl().enable();
 }
 
 template <class PortTraits>
 void InputStream<PortTraits>::disable()
 {
-    _impl->disable();
+    impl().disable();
 }
 
 template <class PortTraits>
 bool InputStream<PortTraits>::eos()
 {
-    return _impl->eos();
-}
-
-template <class PortTraits>
-bool InputStream<PortTraits>::operator!() const
-{
-    return !_impl;
+    return impl().eos();
 }
 
 template <class PortTraits>
 InputStream<PortTraits>::operator unspecified_bool_type() const
 {
-    return _impl?&InputStream::_impl:0;
+    return _impl?static_cast<unspecified_bool_type>(&InputStream::impl):0;
+}
+
+template <class PortTraits>
+typename InputStream<PortTraits>::Impl& InputStream<PortTraits>::impl()
+{
+    return static_cast<Impl&>(*this->_impl);
+}
+
+template <class PortTraits>
+const typename InputStream<PortTraits>::Impl& InputStream<PortTraits>::impl() const
+{
+    return static_cast<const Impl&>(*this->_impl);
 }
 
 template <class PortTraits>
 bool InputStream<PortTraits>::hasBufferedData()
 {
-    return _impl->hasBufferedData();
+    return impl().hasBufferedData();
 }
 
 
@@ -707,13 +690,13 @@ bool BufferedInputStream<PortTraits>::ready()
 template <class PortTraits>
 typename BufferedInputStream<PortTraits>::Impl& BufferedInputStream<PortTraits>::impl()
 {
-    return static_cast<Impl&>(*_impl);
+    return static_cast<Impl&>(Base::impl());
 }
 
 template <class PortTraits>
 const typename BufferedInputStream<PortTraits>::Impl& BufferedInputStream<PortTraits>::impl() const
 {
-    return static_cast<const Impl&>(*_impl);
+    return static_cast<const Impl&>(Base::impl());
 }
 
 #define INSTANTIATE_TEMPLATE(x) \

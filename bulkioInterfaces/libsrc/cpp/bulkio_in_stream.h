@@ -28,6 +28,7 @@
 
 #include "bulkio_traits.h"
 #include "bulkio_datablock.h"
+#include "bulkio_sri.h"
 
 namespace bulkio {
 
@@ -50,12 +51,9 @@ namespace bulkio {
     };
 
     template <class PortTraits>
-    class InputStream {
+    class InputStream : public StreamBase {
     public:
         typedef typename BlockTraits<PortTraits>::DataBlockType DataBlockType;
-
-        const std::string& streamID() const;
-        const BULKIO::StreamSRI& sri() const;
 
         DataBlockType read();
 
@@ -67,13 +65,14 @@ namespace bulkio {
 
         bool eos();
 
-        bool operator! () const;
-
     protected:
         typedef InPort<PortTraits> InPortType;
 
         class Impl;
-        typedef boost::shared_ptr<Impl> InputStream::*unspecified_bool_type;
+        Impl& impl();
+        const Impl& impl() const;
+
+        typedef const Impl& (InputStream::*unspecified_bool_type)() const;
 
         InputStream();
         InputStream(const boost::shared_ptr<Impl>& impl);
@@ -83,8 +82,6 @@ namespace bulkio {
         InputStream(const SharedSRI& sri, InPortType* port);
 
         bool hasBufferedData();
-
-        boost::shared_ptr<Impl> _impl;
 
     public:
         operator unspecified_bool_type() const;
