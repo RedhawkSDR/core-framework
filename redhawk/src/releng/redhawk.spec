@@ -40,6 +40,13 @@ Vendor:         REDHAWK
 
 Requires:       util-linux-ng
 Requires:       java >= 1:1.8.0
+
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+Requires:       python-matplotlib-qt4
+%else
+Requires:       python-matplotlib
+%endif
+
 Requires:       python
 Requires:       numpy
 Requires:       python-omniORB >= 3.0
@@ -113,6 +120,7 @@ Requires:       log4cxx-devel >= 0.10
 
 # omniORB / omniORBpy
 Requires:       omniORB-devel >= 4.1.0
+Requires:       omniORB-doc
 Requires:       omniORBpy-devel >= 3.0
 
 # Languages
@@ -257,6 +265,10 @@ fi
 
 
 %changelog
+* Mon Dec 5 2016 - 2.0.4-6
+- Add python-matplotlib packages as explicit requires
+- Add omniORB-doc to devel package
+
 * Fri Sep 16 2016 - 2.0.3-1
 - Update for dependency on Java 8
 
