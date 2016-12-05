@@ -282,7 +282,7 @@ namespace bulkio {
     //
     // Sends data and metadata to all connections enabled for the given stream
     //
-    friend class OutputStreamBase<PortTraits>;
+    friend class OutputStream<PortTraits>;
     void _sendPacket(const SharedBufferType& data,
                      const BULKIO::PrecisionUTCTime& T,
                      bool EOS,

@@ -23,10 +23,10 @@
 #include "bulkio_time_operators.h"
 #include "bulkio_p.h"
 
-using bulkio::OutputStreamBase;
+using bulkio::OutputStream;
 
 template <class PortTraits>
-class OutputStreamBase<PortTraits>::Impl : public StreamBase::Impl {
+class OutputStream<PortTraits>::Impl : public StreamBase::Impl {
 public:
     typedef StreamBase::Impl ImplBase;
     typedef typename PortTraits::SharedBufferType SharedBufferType;
@@ -160,148 +160,148 @@ protected:
 };
 
 template <class PortTraits>
-OutputStreamBase<PortTraits>::OutputStreamBase() :
+OutputStream<PortTraits>::OutputStream() :
     StreamBase()
 {
 }
 
 template <class PortTraits>
-OutputStreamBase<PortTraits>::OutputStreamBase(const BULKIO::StreamSRI& sri, OutPortType* port) :
+OutputStream<PortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
     StreamBase(boost::make_shared<Impl>(sri, port))
 {
 }
 
 template <class PortTraits>
-OutputStreamBase<PortTraits>::OutputStreamBase(boost::shared_ptr<Impl> impl) :
+OutputStream<PortTraits>::OutputStream(boost::shared_ptr<Impl> impl) :
     StreamBase(impl)
 {
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::sri(const BULKIO::StreamSRI& sri)
+void OutputStream<PortTraits>::sri(const BULKIO::StreamSRI& sri)
 {
     impl().setSRI(sri);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::xstart(double start)
+void OutputStream<PortTraits>::xstart(double start)
 {
     impl().setXStart(start);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::xdelta(double delta)
+void OutputStream<PortTraits>::xdelta(double delta)
 {
     impl().setXDelta(delta);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::xunits(short units)
+void OutputStream<PortTraits>::xunits(short units)
 {
     impl().setXUnits(units);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::subsize(int size)
+void OutputStream<PortTraits>::subsize(int size)
 {
     impl().setSubsize(size);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::ystart(double start)
+void OutputStream<PortTraits>::ystart(double start)
 {
     impl().setYStart(start);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::ydelta(double delta)
+void OutputStream<PortTraits>::ydelta(double delta)
 {
     impl().setYDelta(delta);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::yunits(short units)
+void OutputStream<PortTraits>::yunits(short units)
 {
     impl().setYUnits(units);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::complex(bool mode)
+void OutputStream<PortTraits>::complex(bool mode)
 {
     impl().setComplex(mode);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::blocking(bool mode)
+void OutputStream<PortTraits>::blocking(bool mode)
 {
     impl().setBlocking(mode);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props)
+void OutputStream<PortTraits>::keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props)
 {
     impl().setKeywords(props);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::setKeyword(const std::string& name, const CORBA::Any& value)
+void OutputStream<PortTraits>::setKeyword(const std::string& name, const CORBA::Any& value)
 {
     impl().setKeyword(name, value);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::setKeyword(const std::string& name, const redhawk::Value& value)
+void OutputStream<PortTraits>::setKeyword(const std::string& name, const redhawk::Value& value)
 {
     impl().setKeyword(name, value);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::eraseKeyword(const std::string& name)
+void OutputStream<PortTraits>::eraseKeyword(const std::string& name)
 {
     impl().eraseKeyword(name);
 }
 
 template <class PortTraits>
-void OutputStreamBase<PortTraits>::close()
+void OutputStream<PortTraits>::close()
 {
     impl().close();
     _impl.reset();
 }
 
 template <class PortTraits>
-OutputStreamBase<PortTraits>::operator unspecified_bool_type() const
+OutputStream<PortTraits>::operator unspecified_bool_type() const
 {
-    return _impl?static_cast<unspecified_bool_type>(&OutputStreamBase::impl):0;
+    return _impl?static_cast<unspecified_bool_type>(&OutputStream::impl):0;
 }
 
 template <class PortTraits>
-typename OutputStreamBase<PortTraits>::Impl& OutputStreamBase<PortTraits>::impl()
+typename OutputStream<PortTraits>::Impl& OutputStream<PortTraits>::impl()
 {
     return static_cast<Impl&>(*this->_impl);
 }
 
 template <class PortTraits>
-const typename OutputStreamBase<PortTraits>::Impl& OutputStreamBase<PortTraits>::impl() const
+const typename OutputStream<PortTraits>::Impl& OutputStream<PortTraits>::impl() const
 {
     return static_cast<const Impl&>(*this->_impl);
 }
 
 template <class PortTraits>
-int OutputStreamBase<PortTraits>::modcount() const
+int OutputStream<PortTraits>::modcount() const
 {
     return impl().modcount();
 }
 
 
-using bulkio::OutputStream;
+using bulkio::BufferedOutputStream;
 
 template <class PortTraits>
-class OutputStream<PortTraits>::Impl : public Base::Impl {
+class BufferedOutputStream<PortTraits>::Impl : public Base::Impl {
 public:
     typedef typename Base::Impl ImplBase;
 
-    typedef typename OutputStream<PortTraits>::ScalarBuffer ScalarBuffer;
-    typedef typename OutputStream<PortTraits>::ComplexBuffer ComplexBuffer;
+    typedef typename BufferedOutputStream<PortTraits>::ScalarBuffer ScalarBuffer;
+    typedef typename BufferedOutputStream<PortTraits>::ComplexBuffer ComplexBuffer;
 
     using ImplBase::_sri;
     using ImplBase::_streamID;
@@ -452,91 +452,91 @@ private:
 };
 
 template <class PortTraits>
-OutputStream<PortTraits>::OutputStream() :
+BufferedOutputStream<PortTraits>::BufferedOutputStream() :
     Base()
 {
 }
 
 template <class PortTraits>
-OutputStream<PortTraits>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
+BufferedOutputStream<PortTraits>::BufferedOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
     Base(boost::make_shared<Impl>(sri, port))
 {
 }
 
 template <class PortTraits>
-size_t OutputStream<PortTraits>::bufferSize() const
+size_t BufferedOutputStream<PortTraits>::bufferSize() const
 {
     return impl().bufferSize();
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::setBufferSize(size_t samples)
+void BufferedOutputStream<PortTraits>::setBufferSize(size_t samples)
 {
     impl().setBufferSize(samples);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::flush()
+void BufferedOutputStream<PortTraits>::flush()
 {
     impl().flush();
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
+void BufferedOutputStream<PortTraits>::write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
 {
     impl().write(data, time);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const ScalarBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
+void BufferedOutputStream<PortTraits>::write(const ScalarBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
 {
     impl().write(data, times);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
+void BufferedOutputStream<PortTraits>::write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
 {
     impl().write(data, time);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const ComplexBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
+void BufferedOutputStream<PortTraits>::write(const ComplexBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
 {
     impl().write(data, times);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
+void BufferedOutputStream<PortTraits>::write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
 {
     impl().write(ScalarBuffer::make_transient(data, count), time);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
+void BufferedOutputStream<PortTraits>::write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
 {
     impl().write(ScalarBuffer::make_transient(data, count), times);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
+void BufferedOutputStream<PortTraits>::write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
 {
     impl().write(ComplexBuffer::make_transient(data, count), time);
 }
 
 template <class PortTraits>
-void OutputStream<PortTraits>::write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
+void BufferedOutputStream<PortTraits>::write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
 {
     impl().write(ComplexBuffer::make_transient(data, count), times);
 }
 
 template <class PortTraits>
-typename OutputStream<PortTraits>::Impl& OutputStream<PortTraits>::impl()
+typename BufferedOutputStream<PortTraits>::Impl& BufferedOutputStream<PortTraits>::impl()
 {
     return static_cast<Impl&>(*this->_impl);
 }
 
 template <class PortTraits>
-const typename OutputStream<PortTraits>::Impl& OutputStream<PortTraits>::impl() const
+const typename BufferedOutputStream<PortTraits>::Impl& BufferedOutputStream<PortTraits>::impl() const
 {
     return static_cast<const Impl&>(*this->_impl);
 }
@@ -585,11 +585,11 @@ void OutFileStream::write(const std::string& URL, const BULKIO::PrecisionUTCTime
     impl().write(URL, time);
 }
 
-#define INSTANTIATE_TEMPLATE(x)                 \
-    template class OutputStreamBase<x>;
+#define INSTANTIATE_TEMPLATE(x) \
+    template class OutputStream<x>;
 
-#define INSTANTIATE_NUMERIC_TEMPLATE(x)                         \
-    INSTANTIATE_TEMPLATE(x); template class OutputStream<x>;
+#define INSTANTIATE_NUMERIC_TEMPLATE(x) \
+    INSTANTIATE_TEMPLATE(x); template class BufferedOutputStream<x>;
 
 INSTANTIATE_NUMERIC_TEMPLATE(bulkio::CharPortTraits);
 INSTANTIATE_NUMERIC_TEMPLATE(bulkio::OctetPortTraits);
