@@ -33,13 +33,30 @@
 #include <ossie/UsesPort.h>
 
 #include "bulkio_base.h"
-#include "bulkio_traits.h"
+#include "bulkio_typetraits.h"
 #include "bulkio_callbacks.h"
 #include "bulkio_out_stream.h"
 
 namespace bulkio {
 
-  template <typename PortTraits> class PortTransport;
+  template <typename PortType>
+  class PortTransport;
+
+  template <class PortType>
+  struct OutStreamTraits
+  {
+      typedef BufferedOutputStream<PortType> OutStreamType;
+  };
+
+  template <>
+  struct OutStreamTraits<BULKIO::dataXML> {
+      typedef OutXMLStream OutStreamType;
+  };
+
+  template <>
+  struct OutStreamTraits<BULKIO::dataFile> {
+      typedef OutFileStream OutStreamType;
+  };
 
   //
   //  OutPort
@@ -49,7 +66,7 @@ namespace bulkio {
   //                 passed between port objects
   //
   //
-  template < typename PortTraits >
+  template <typename PortType>
   class OutPort : public redhawk::UsesPort
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
                     , public virtual POA_BULKIO::UsesPortStatisticsProvider
@@ -57,43 +74,20 @@ namespace bulkio {
   {
 
   public:
- 
-    typedef PortTraits                        Traits;
-
     //
     // Port Variable Definition
     //
-    typedef typename Traits::PortVarType      PortVarType;
-
-    //
-    // BULKIO Interface Type
-    //
-    typedef typename Traits::PortType         PortType;
-
-    //
-    // Port pointer type
-    //
-    typedef typename PortType::_ptr_type      PortPtrType;
+    typedef typename PortType::_var_type PortVarType;
 
     //
     // Sequence container used during actual pushPacket call
     //
-    typedef typename Traits::SequenceType     PortSequenceType;
-
-    //
-    // Shared buffer type used to transfer data without copies, where possible
-    //
-    typedef typename Traits::SharedBufferType SharedBufferType;
-
-    //
-    // Data type of items passed into the pushPacket method
-    //
-    typedef typename Traits::NativeType       NativeType;
+    typedef typename CorbaTraits<PortType>::SequenceType PortSequenceType;
 
     //
     // OutputStream class
     //
-    typedef typename OutStreamTraits<PortTraits>::OutStreamType StreamType;
+    typedef typename OutStreamTraits<PortType>::OutStreamType StreamType;
 
     //
     // ConnectionList Definition
@@ -254,9 +248,14 @@ namespace bulkio {
 
   protected:
     //
+    // Shared buffer type used to transfer data without copies, where possible
+    //
+    typedef typename BufferTraits<PortType>::BufferType BufferType;
+
+    //
     // Lookup table for connections to input ports in the same process space
     //
-    typedef PortTransport<PortTraits> PortTransportType;
+    typedef PortTransport<PortType> PortTransportType;
 
     virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
@@ -282,8 +281,8 @@ namespace bulkio {
     //
     // Sends data and metadata to all connections enabled for the given stream
     //
-    friend class OutputStream<PortTraits>;
-    void _sendPacket(const SharedBufferType& data,
+    friend class OutputStream<PortType>;
+    void _sendPacket(const BufferType& data,
                      const BULKIO::PrecisionUTCTime& T,
                      bool EOS,
                      const std::string& streamID);
@@ -292,58 +291,23 @@ namespace bulkio {
   };
 
   
-  template < typename PortTraits >
-  class OutNumericPort : public OutPort< PortTraits > {
+  template <typename PortType>
+  class OutNumericPort : public OutPort<PortType> {
   public:
-
-    typedef PortTraits                        Traits;
-
-    //
-    // Port Variable Definition
-    //
-    typedef typename Traits::PortVarType      PortVarType;
-
-    //
-    // BULKIO Interface Type
-    //
-    typedef typename Traits::PortType         PortType;
-
-    //
-    // Sequence container used during actual pushPacket call
-    //
-    typedef typename Traits::SequenceType     PortSequenceType;
-
     //
     // Data type contained in sequence container
     //
-    typedef typename Traits::TransportType    TransportType;
+    typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
     //
     // Data type of items passed into the pushPacket method
     //
-    typedef typename Traits::NativeType       NativeType;
+    typedef typename NativeTraits<PortType>::NativeType NativeType;
 
     // 
     // Data type of the container for passing data into the pushPacket method
     //
-    typedef std::vector< NativeType >         NativeSequenceType;
-
-    //
-    // Sequence of data returned from an input port and can be passed to the output port
-    //
-    typedef typename Traits::DataBufferType   DataBufferType;
-
-    //
-    // ConnectionList Definition
-    //
-    typedef typename  bulkio::Connections< PortVarType >::List        ConnectionsList;
-
-    //
-    // Mapping of Stream IDs to SRI Map/Refresh objects
-    //
-    typedef std::map< std::string, SriMapStruct >                    OutPortSriMap;
-
-    typedef typename Traits::SharedBufferType SharedBufferType;
+    typedef std::vector<NativeType> VectorType;
 
     //
     // OutNumericPort Creates a uses port object for publishing data to the framework
@@ -366,22 +330,6 @@ namespace bulkio {
     //
     virtual ~OutNumericPort();
 
-    /*
-     * pushPacket
-     *     maps to data<Type> BULKIO method call for passing vectors of data
-     *
-     *  data: sequence structure containing the payload to send out
-     *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
-     *    tcmode: timecode mode
-     *    tcstatus: timecode status
-     *    toff: fractional sample offset
-     *    twsec: J1970 GMT
-     *    tfsec: fractional seconds: 0.0 to 1.0
-     *  EOS: end-of-stream flag
-     *  streamID: stream identifier
-     */
-    void pushPacket( NativeSequenceType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-    
     /*
      * pushPacket
      *     maps to data<Type> BULKIO method call for passing a limited amount of data from a source vector
@@ -413,7 +361,10 @@ namespace bulkio {
      *  EOS: end-of-stream flag
      *  streamID: stream identifier
      */
-    void pushPacket( const DataBufferType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+    void pushPacket(const VectorType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+
+  protected:
+    typedef typename OutPort<PortType>::BufferType BufferType;
   };
 
   //
@@ -422,7 +373,7 @@ namespace bulkio {
   // This class overrides the pushPacket method to support Int8 and char data types
   //
   // Output port for Int8 and char data types
-  class OutCharPort : public OutNumericPort < CharPortTraits > {
+  class OutCharPort : public OutNumericPort<BULKIO::dataChar> {
   public:
     OutCharPort(const std::string& name,
 		ConnectionEventListener *connectCB=NULL,
@@ -454,43 +405,8 @@ namespace bulkio {
   // This class defines the pushPacket interface for file URL data.
   //
   //
-  class OutFilePort : public OutPort<FilePortTraits> {
-
+  class OutFilePort : public OutPort<BULKIO::dataFile> {
   public:
-
-    typedef FilePortTraits                    Traits;
-
-    //
-    // Port Variable Definition
-    //
-    typedef Traits::PortVarType      PortVarType;
-
-    //
-    // BULKIO Interface Type
-    //
-    typedef Traits::PortType         PortType;
-
-    //
-    // Sequence container used during actual pushPacket call
-    //
-    typedef Traits::SequenceType     PortSequenceType;
-
-    //
-    // Data type contained in sequence container
-    //
-    typedef Traits::TransportType    TransportType;
-
-    // 
-    // Data type of the container for passing data into the pushPacket method
-    //
-    typedef char*                    NativeSequenceType;
-
-    //
-    // Data type of items passed into the pushPacket method
-    //
-    typedef Traits::NativeType       NativeType;
-
-
     OutFilePort(const std::string& name, 
                 ConnectionEventListener *connectCB=NULL,
                 ConnectionEventListener *disconnectCB=NULL);
@@ -547,45 +463,8 @@ namespace bulkio {
   // This class defines the pushPacket interface for XML data.
   //
   //
-  class OutXMLPort : public OutPort<XMLPortTraits> {
-
+  class OutXMLPort : public OutPort<BULKIO::dataXML> {
   public:
-
-    typedef XMLPortTraits            Traits;
-
-    typedef OutPort<XMLPortTraits> Base;
-
-    //
-    // Port Variable Definition
-    //
-    typedef Traits::PortVarType      PortVarType;
-
-    //
-    // BULKIO Interface Type
-    //
-    typedef Traits::PortType         PortType;
-
-    //
-    // Sequence container used during actual pushPacket call
-    //
-    typedef Traits::SequenceType     PortSequenceType;
-
-    //
-    // Data type contained in sequence container
-    //
-    typedef Traits::TransportType    TransportType;
-
-    // 
-    // Data type of the container for passing data into the pushPacket method
-    //
-    typedef char*                    NativeSequenceType;
-
-    //
-    // Data type of items passed into the pushPacket method
-    //
-    typedef Traits::NativeType       NativeType;
-
-
     OutXMLPort(const std::string& name, 
                ConnectionEventListener *connectCB=NULL,
                ConnectionEventListener *disconnectCB=NULL);
@@ -629,39 +508,39 @@ namespace bulkio {
      *
      */
   // Bulkio octet (UInt8) output
-  typedef OutNumericPort<OctetPortTraits>     OutOctetPort;
+  typedef OutNumericPort<BULKIO::dataOctet>     OutOctetPort;
   // Bulkio UInt8 output
-  typedef OutOctetPort                        OutUInt8Port;
+  typedef OutOctetPort                          OutUInt8Port;
   // Bulkio short output
-  typedef OutNumericPort<ShortPortTraits>     OutShortPort;
+  typedef OutNumericPort<BULKIO::dataShort>     OutShortPort;
   // Bulkio unsigned short output
-  typedef OutNumericPort<UShortPortTraits>    OutUShortPort;
+  typedef OutNumericPort<BULKIO::dataUshort>    OutUShortPort;
   // Bulkio Int16 output
-  typedef OutShortPort                        OutInt16Port;
+  typedef OutShortPort                          OutInt16Port;
   // Bulkio UInt16 output
-  typedef OutUShortPort                       OutUInt16Port;
+  typedef OutUShortPort                         OutUInt16Port;
   // Bulkio long output
-  typedef OutNumericPort<LongPortTraits>      OutLongPort;
+  typedef OutNumericPort<BULKIO::dataLong>      OutLongPort;
   // Bulkio unsigned long output
-  typedef OutNumericPort<ULongPortTraits>     OutULongPort;
+  typedef OutNumericPort<BULKIO::dataUlong>     OutULongPort;
   // Bulkio Int32 output
-  typedef OutLongPort                         OutInt32Port;
+  typedef OutLongPort                           OutInt32Port;
   // Bulkio UInt32 output
-  typedef OutULongPort                        OutUInt32Port;
+  typedef OutULongPort                          OutUInt32Port;
   // Bulkio long long output
-  typedef OutNumericPort<LongLongPortTraits>  OutLongLongPort;
+  typedef OutNumericPort<BULKIO::dataLongLong>  OutLongLongPort;
   // Bulkio unsigned long long output
-  typedef OutNumericPort<ULongLongPortTraits> OutULongLongPort;
+  typedef OutNumericPort<BULKIO::dataUlongLong> OutULongLongPort;
   // Bulkio Int64 output
-  typedef OutLongLongPort                     OutInt64Port;
+  typedef OutLongLongPort                       OutInt64Port;
   // Bulkio UInt64 output
-  typedef OutULongLongPort                    OutUInt64Port;
+  typedef OutULongLongPort                      OutUInt64Port;
   // Bulkio float output
-  typedef OutNumericPort<FloatPortTraits>     OutFloatPort;
+  typedef OutNumericPort<BULKIO::dataFloat>     OutFloatPort;
   // Bulkio double output
-  typedef OutNumericPort<DoublePortTraits>    OutDoublePort;
+  typedef OutNumericPort<BULKIO::dataDouble>    OutDoublePort;
   // Bulkio URL output
-  typedef OutFilePort                         OutURLPort;
+  typedef OutFilePort                           OutURLPort;
 }  // end of bulkio namespace
 
 inline bool operator>>= (const CORBA::Any& a, bulkio::connection_descriptor_struct& s) {

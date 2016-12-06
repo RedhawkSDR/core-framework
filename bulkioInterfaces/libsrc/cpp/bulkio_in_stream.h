@@ -26,34 +26,34 @@
 
 #include <BULKIO/bulkioDataTypes.h>
 
-#include "bulkio_traits.h"
+#include "bulkio_typetraits.h"
 #include "bulkio_datablock.h"
 #include "bulkio_stream.h"
 
 namespace bulkio {
 
-    template <class PortTraits>
+    template <class PortType>
     class InPort;
 
-    template <class PortTraits>
+    template <class PortType>
     struct BlockTraits {
-        typedef SampleDataBlock<typename PortTraits::DataTransferTraits::NativeDataType> DataBlockType;
+        typedef SampleDataBlock<typename NativeTraits<PortType>::NativeType> DataBlockType;
     };
 
     template <>
-    struct BlockTraits<XMLPortTraits> {
+    struct BlockTraits<BULKIO::dataXML> {
         typedef StringDataBlock DataBlockType;
     };
 
     template <>
-    struct BlockTraits<FilePortTraits> {
+    struct BlockTraits<BULKIO::dataFile> {
         typedef StringDataBlock DataBlockType;
     };
 
-    template <class PortTraits>
+    template <class PortType>
     class InputStream : public StreamBase {
     public:
-        typedef typename BlockTraits<PortTraits>::DataBlockType DataBlockType;
+        typedef typename BlockTraits<PortType>::DataBlockType DataBlockType;
 
         DataBlockType read();
 
@@ -66,7 +66,7 @@ namespace bulkio {
         bool eos();
 
     protected:
-        typedef InPort<PortTraits> InPortType;
+        typedef InPort<PortType> InPortType;
 
         class Impl;
         Impl& impl();
@@ -78,7 +78,7 @@ namespace bulkio {
         InputStream(const boost::shared_ptr<Impl>& impl);
 
         // Allow matching InPort class to create instances of this stream type
-        friend class InPort<PortTraits>;
+        friend class InPort<PortType>;
         InputStream(const StreamDescriptor& sri, InPortType* port);
 
         bool hasBufferedData();
@@ -88,12 +88,12 @@ namespace bulkio {
     };
 
 
-    template <class PortTraits>
-    class BufferedInputStream : public InputStream<PortTraits> {
+    template <class PortType>
+    class BufferedInputStream : public InputStream<PortType> {
     public:
         BufferedInputStream();
 
-        typedef typename InputStream<PortTraits>::DataBlockType DataBlockType;
+        typedef typename InputStream<PortType>::DataBlockType DataBlockType;
 
         DataBlockType read();
         DataBlockType read(size_t count);
@@ -112,11 +112,11 @@ namespace bulkio {
         bool ready();
 
     private:
-        typedef InputStream<PortTraits> Base;
+        typedef InputStream<PortType> Base;
         using Base::_impl;
 
-        friend class InPort<PortTraits>;
-        typedef InPort<PortTraits> InPortType;
+        friend class InPort<PortType>;
+        typedef InPort<PortType> InPortType;
         BufferedInputStream(const StreamDescriptor&, InPortType*);
 
         class Impl;
@@ -124,33 +124,18 @@ namespace bulkio {
         const Impl& impl() const;
     };
 
-    typedef BufferedInputStream<bulkio::CharPortTraits>      InCharStream;
-    typedef BufferedInputStream<bulkio::OctetPortTraits>     InOctetStream;
-    typedef BufferedInputStream<bulkio::ShortPortTraits>     InShortStream;
-    typedef BufferedInputStream<bulkio::UShortPortTraits>    InUShortStream;
-    typedef BufferedInputStream<bulkio::LongPortTraits>      InLongStream;
-    typedef BufferedInputStream<bulkio::ULongPortTraits>     InULongStream;
-    typedef BufferedInputStream<bulkio::LongLongPortTraits>  InLongLongStream;
-    typedef BufferedInputStream<bulkio::ULongLongPortTraits> InULongLongStream;
-    typedef BufferedInputStream<bulkio::FloatPortTraits>     InFloatStream;
-    typedef BufferedInputStream<bulkio::DoublePortTraits>    InDoubleStream;
-    typedef InputStream<bulkio::XMLPortTraits>               InXMLStream;
-    typedef InputStream<bulkio::FilePortTraits>              InFileStream;
-
-    template <class PortTraits>
-    struct StreamTraits {
-        typedef BufferedInputStream<PortTraits> InStreamType;
-    };
-
-    template <>
-    struct StreamTraits<XMLPortTraits> {
-        typedef InXMLStream InStreamType;
-    };
-
-    template <>
-    struct StreamTraits<FilePortTraits> {
-        typedef InFileStream InStreamType;
-    };
+    typedef BufferedInputStream<BULKIO::dataChar>      InCharStream;
+    typedef BufferedInputStream<BULKIO::dataOctet>     InOctetStream;
+    typedef BufferedInputStream<BULKIO::dataShort>     InShortStream;
+    typedef BufferedInputStream<BULKIO::dataUshort>    InUShortStream;
+    typedef BufferedInputStream<BULKIO::dataLong>      InLongStream;
+    typedef BufferedInputStream<BULKIO::dataUlong>     InULongStream;
+    typedef BufferedInputStream<BULKIO::dataLongLong>  InLongLongStream;
+    typedef BufferedInputStream<BULKIO::dataUlongLong> InULongLongStream;
+    typedef BufferedInputStream<BULKIO::dataFloat>     InFloatStream;
+    typedef BufferedInputStream<BULKIO::dataDouble>    InDoubleStream;
+    typedef InputStream<BULKIO::dataXML>               InXMLStream;
+    typedef InputStream<BULKIO::dataFile>              InFileStream;
 
 } // end of bulkio namespace
 

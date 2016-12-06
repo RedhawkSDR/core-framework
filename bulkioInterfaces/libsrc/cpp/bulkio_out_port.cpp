@@ -37,8 +37,8 @@ namespace bulkio {
      Accepts connect/disconnect interfaces for notification when these events occur
   */
 
-  template < typename PortTraits >
-  OutPort< PortTraits >::OutPort(const std::string& name,
+  template <typename PortType>
+  OutPort<PortType>::OutPort(const std::string& name,
                                  LOGGER_PTR logger,
                                  ConnectionEventListener *connectCB,
                                  ConnectionEventListener *disconnectCB) :
@@ -65,14 +65,14 @@ namespace bulkio {
 
   }
 
-  template < typename PortTraits >
-  OutPort< PortTraits >::~OutPort(){
+  template <typename PortType>
+  OutPort<PortType>::~OutPort(){
 
   }
 
 
-  template < typename PortTraits >
-  void OutPort< PortTraits >::pushSRI(const BULKIO::StreamSRI& H)
+  template <typename PortType>
+  void OutPort<PortType>::pushSRI(const BULKIO::StreamSRI& H)
   {
       TRACE_ENTER(logger, "OutPort::pushSRI" );
 
@@ -117,24 +117,24 @@ namespace bulkio {
       TRACE_EXIT(logger, "OutPort::pushSRI");
   }
 
-  template < typename PortTraits >
-  void OutPort< PortTraits >::_connectListenerAdapter(const std::string& connectionId)
+  template <typename PortType>
+  void OutPort<PortType>::_connectListenerAdapter(const std::string& connectionId)
   {
       if (_connectCB) {
           (*_connectCB)(connectionId.c_str());
       }
   }
 
-  template < typename PortTraits >
-  void OutPort< PortTraits >::_disconnectListenerAdapter(const std::string& connectionId)
+  template <typename PortType>
+  void OutPort<PortType>::_disconnectListenerAdapter(const std::string& connectionId)
   {
       if (_disconnectCB) {
           (*_disconnectCB)(connectionId.c_str());
       }
   }
 
-  template < typename PortTraits >
-  bool OutPort< PortTraits >::_isStreamRoutedToConnection(
+  template <typename PortType>
+  bool OutPort<PortType>::_isStreamRoutedToConnection(
           const std::string& streamID,
           const std::string& connectionID)
   {
@@ -154,8 +154,8 @@ namespace bulkio {
   }
 
 
-  template < typename PortTraits >
-  typename OutPort<PortTraits>::StreamType OutPort< PortTraits >::_getStream(const std::string& streamID)
+  template <typename PortType>
+  typename OutPort<PortType>::StreamType OutPort<PortType>::_getStream(const std::string& streamID)
   {
       typename StreamMap::iterator existing = streams.find(streamID);
       if (existing == streams.end()) {
@@ -172,9 +172,9 @@ namespace bulkio {
   }
 
 
-  template < typename PortTraits >
-  void OutPort< PortTraits >::_sendPacket(
-          const SharedBufferType&         data,
+  template <typename PortType>
+  void OutPort<PortType>::_sendPacket(
+          const BufferType&         data,
           const BULKIO::PrecisionUTCTime& T,
           bool                            EOS,
           const std::string&              streamID)
@@ -219,8 +219,8 @@ namespace bulkio {
   }
 
 
-  template < typename PortTraits >
-  BULKIO::UsesPortStatisticsSequence* OutPort< PortTraits >::statistics()
+  template <typename PortType>
+  BULKIO::UsesPortStatisticsSequence* OutPort<PortType>::statistics()
   {
       SCOPED_LOCK   lock(updatingPortsLock);
       BULKIO::UsesPortStatisticsSequence_var recStat = new BULKIO::UsesPortStatisticsSequence();
@@ -234,8 +234,8 @@ namespace bulkio {
       return recStat._retn();
   }
 
-  template < typename PortTraits >
-  BULKIO::PortUsageType OutPort< PortTraits >::state()
+  template <typename PortType>
+  BULKIO::PortUsageType OutPort<PortType>::state()
   {
     SCOPED_LOCK lock(updatingPortsLock);
     if (_transports.empty()) {
@@ -245,8 +245,8 @@ namespace bulkio {
     }
   }
 
-  template < typename PortTraits >
-  void OutPort< PortTraits >::enableStats(bool enable)
+  template <typename PortType>
+  void OutPort<PortType>::enableStats(bool enable)
   {
       SCOPED_LOCK lock(updatingPortsLock);
       for (TransportIterator port = _transports.begin(); port != _transports.end(); ++port) {
@@ -255,9 +255,9 @@ namespace bulkio {
   }
 
 
-  template < typename PortTraits >
+  template <typename PortType>
   redhawk::BasicTransport*
-  OutPort< PortTraits >::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
+  OutPort<PortType>::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
   {
       PortVarType port;
       try {
@@ -280,8 +280,8 @@ namespace bulkio {
   }
 
 
-  template <typename PortTraits>
-  typename OutPort<PortTraits>::StreamType OutPort<PortTraits>::getStream(const std::string& streamID)
+  template <typename PortType>
+  typename OutPort<PortType>::StreamType OutPort<PortType>::getStream(const std::string& streamID)
   {
       boost::mutex::scoped_lock lock(updatingPortsLock);
       typename StreamMap::iterator stream = streams.find(streamID);
@@ -292,8 +292,8 @@ namespace bulkio {
       }
   }
 
-  template <typename PortTraits>
-  typename OutPort<PortTraits>::StreamList OutPort<PortTraits>::getStreams()
+  template <typename PortType>
+  typename OutPort<PortType>::StreamList OutPort<PortType>::getStreams()
   {
       StreamList result;
       boost::mutex::scoped_lock lock(updatingPortsLock);
@@ -303,8 +303,8 @@ namespace bulkio {
       return result;
   }
 
-  template < typename PortTraits >
-  typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::createStream(const std::string& streamID)
+  template <typename PortType>
+  typename OutPort<PortType>::StreamType OutPort<PortType>::createStream(const std::string& streamID)
   {
     boost::mutex::scoped_lock lock(updatingPortsLock);
     typename StreamMap::iterator existing = streams.find(streamID);
@@ -316,8 +316,8 @@ namespace bulkio {
     return stream;
   }
 
-  template < typename PortTraits >
-  typename OutPort< PortTraits >::StreamType OutPort< PortTraits >::createStream(const BULKIO::StreamSRI& sri)
+  template <typename PortType>
+  typename OutPort<PortType>::StreamType OutPort<PortType>::createStream(const BULKIO::StreamSRI& sri)
   {
     boost::mutex::scoped_lock lock(updatingPortsLock);
     const std::string streamID(sri.streamID);
@@ -332,8 +332,8 @@ namespace bulkio {
     return stream;
   }
 
-  template < typename PortTraits >
-  bulkio::SriMap  OutPort< PortTraits >::getCurrentSRI()
+  template <typename PortType>
+  bulkio::SriMap  OutPort<PortType>::getCurrentSRI()
   {
     bulkio::SriMap ret;
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
@@ -343,8 +343,8 @@ namespace bulkio {
     return ret;
   }
 
-  template < typename PortTraits >
-  bulkio::SriList  OutPort< PortTraits >::getActiveSRIs()
+  template <typename PortType>
+  bulkio::SriList  OutPort<PortType>::getActiveSRIs()
   {
     bulkio::SriList ret;
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
@@ -355,8 +355,8 @@ namespace bulkio {
   }
 
 
-  template < typename PortTraits >
-  typename OutPort< PortTraits >::ConnectionsList  OutPort< PortTraits >::getConnections()
+  template <typename PortType>
+  typename OutPort<PortType>::ConnectionsList  OutPort<PortType>::getConnections()
   {
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
     ConnectionsList outConnections;
@@ -370,32 +370,32 @@ namespace bulkio {
   }
 
 
-  template < typename PortTraits >
-  void OutPort< PortTraits >::setNewConnectListener(ConnectionEventListener *newListener)
+  template <typename PortType>
+  void OutPort<PortType>::setNewConnectListener(ConnectionEventListener *newListener)
   {
     _connectCB =  boost::shared_ptr< ConnectionEventListener >(newListener, null_deleter());
   }
 
-  template < typename PortTraits >
-  void OutPort< PortTraits >::setNewConnectListener(ConnectionEventCallbackFn  newListener)
+  template <typename PortType>
+  void OutPort<PortType>::setNewConnectListener(ConnectionEventCallbackFn  newListener)
   {
     _connectCB =  boost::make_shared< StaticConnectionListener >( newListener );
   }
 
-  template < typename PortTraits >
-  void OutPort< PortTraits >::setNewDisconnectListener(ConnectionEventListener *newListener)
+  template <typename PortType>
+  void OutPort<PortType>::setNewDisconnectListener(ConnectionEventListener *newListener)
   {
     _disconnectCB =  boost::shared_ptr< ConnectionEventListener >(newListener, null_deleter());
   }
 
-  template < typename PortTraits >
-  void OutPort< PortTraits >::setNewDisconnectListener(ConnectionEventCallbackFn newListener)
+  template <typename PortType>
+  void OutPort<PortType>::setNewDisconnectListener(ConnectionEventCallbackFn newListener)
   {
     _disconnectCB =  boost::make_shared< StaticConnectionListener >( newListener );
   }
 
-  template < typename PortTraits >
-  std::string   OutPort< PortTraits >::getRepid() const {
+  template <typename PortType>
+  std::string   OutPort<PortType>::getRepid() const {
 	return PortType::_PD_repoId;
     //return "IDL:CORBA/Object:1.0";
   }
@@ -406,52 +406,42 @@ namespace bulkio {
      Accepts connect/disconnect interfaces for notification when these events occur
   */
 
-  template < typename PortTraits >
-  OutNumericPort< PortTraits >::OutNumericPort(const std::string& name,
+  template <typename PortType>
+  OutNumericPort<PortType>::OutNumericPort(const std::string& name,
                                                LOGGER_PTR logger,
                                                ConnectionEventListener *connectCB,
                                                ConnectionEventListener *disconnectCB ) :
-    OutPort<PortTraits>(name, logger, connectCB, disconnectCB)
+    OutPort<PortType>(name, logger, connectCB, disconnectCB)
   {
   }
 
 
-  template < typename PortTraits >
-  OutNumericPort< PortTraits >::OutNumericPort(const std::string& name,
+  template <typename PortType>
+  OutNumericPort<PortType>::OutNumericPort(const std::string& name,
                                                ConnectionEventListener *connectCB,
                                                ConnectionEventListener *disconnectCB) :
-    OutPort<PortTraits>(name, LOGGER_PTR(), connectCB, disconnectCB)
+    OutPort<PortType>(name, LOGGER_PTR(), connectCB, disconnectCB)
   {
   }
 
 
-  template < typename PortTraits >
-  OutNumericPort< PortTraits >::~OutNumericPort()
+  template <typename PortType>
+  OutNumericPort<PortType>::~OutNumericPort()
   {
   }
 
-  template < typename PortTraits >
-  void OutNumericPort< PortTraits >::pushPacket(
-          NativeSequenceType &      data,
+  template <typename PortType>
+  void OutNumericPort<PortType>::pushPacket(
+          const VectorType& data,
           const BULKIO::PrecisionUTCTime& T,
           bool                      EOS,
           const std::string&        streamID)
   {
-    this->_sendPacket(SharedBufferType::make_transient(&data[0], data.size()), T, EOS, streamID);
-  }
-  
-  template < typename PortTraits >
-  void OutNumericPort< PortTraits >::pushPacket(
-          const DataBufferType &    data,
-          const BULKIO::PrecisionUTCTime& T,
-          bool                      EOS,
-          const std::string&        streamID)
-  {
-    this->_sendPacket(SharedBufferType::make_transient(&data[0], data.size()), T, EOS, streamID);
+    this->_sendPacket(BufferType::make_transient(&data[0], data.size()), T, EOS, streamID);
   }
 
-  template < typename PortTraits >
-  void OutNumericPort< PortTraits >::pushPacket(
+  template <typename PortType>
+  void OutNumericPort<PortType>::pushPacket(
           const TransportType*      data,
           size_t                    size,
           const BULKIO::PrecisionUTCTime& T,
@@ -459,13 +449,13 @@ namespace bulkio {
           const std::string&        streamID)
   {
     const NativeType* ptr = reinterpret_cast<const NativeType*>(data);
-    this->_sendPacket(SharedBufferType::make_transient(ptr, size), T, EOS, streamID);
+    this->_sendPacket(BufferType::make_transient(ptr, size), T, EOS, streamID);
   }
 
   OutCharPort::OutCharPort(const std::string& name,
                            ConnectionEventListener *connectCB,
                            ConnectionEventListener *disconnectCB):
-    OutNumericPort<CharPortTraits>(name,connectCB, disconnectCB)
+    OutNumericPort<BULKIO::dataChar>(name,connectCB, disconnectCB)
   {
 
   }
@@ -475,7 +465,7 @@ namespace bulkio {
                            LOGGER_PTR logger,
                            ConnectionEventListener *connectCB,
                            ConnectionEventListener *disconnectCB) :
-    OutNumericPort<CharPortTraits>(name, logger, connectCB, disconnectCB)
+    OutNumericPort<BULKIO::dataChar>(name, logger, connectCB, disconnectCB)
   {
 
   }
@@ -483,33 +473,33 @@ namespace bulkio {
   void OutCharPort::pushPacket(const Int8* buffer, size_t size, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
     const TransportType* data = reinterpret_cast<const TransportType*>(buffer);
-    OutNumericPort<CharPortTraits>::pushPacket(data, size, T, EOS, streamID);
+    OutNumericPort<BULKIO::dataChar>::pushPacket(data, size, T, EOS, streamID);
   }
   
   void OutCharPort::pushPacket(const char* buffer, size_t size, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
     const TransportType* data = reinterpret_cast<const TransportType*>(buffer);
-    OutNumericPort<CharPortTraits>::pushPacket(data, size, T, EOS, streamID);
+    OutNumericPort<BULKIO::dataChar>::pushPacket(data, size, T, EOS, streamID);
   }
   
 
   void OutCharPort::pushPacket(const std::vector< Int8 >& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
     const TransportType* buffer = reinterpret_cast<const TransportType*>(&data[0]);
-    OutNumericPort<CharPortTraits>::pushPacket(buffer, data.size(), T, EOS, streamID);
+    OutNumericPort<BULKIO::dataChar>::pushPacket(buffer, data.size(), T, EOS, streamID);
   }
 
   void OutCharPort::pushPacket(const std::vector< Char >& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
     const TransportType* buffer = reinterpret_cast<const TransportType*>(&data[0]);
-    OutNumericPort<CharPortTraits>::pushPacket(buffer, data.size(), T, EOS, streamID);
+    OutNumericPort<BULKIO::dataChar>::pushPacket(buffer, data.size(), T, EOS, streamID);
   }
 
 
   OutFilePort::OutFilePort(const std::string& name,
                            ConnectionEventListener *connectCB,
                            ConnectionEventListener *disconnectCB) :
-    OutPort<FilePortTraits>(name, LOGGER_PTR(), connectCB, disconnectCB)
+    OutPort<BULKIO::dataFile>(name, LOGGER_PTR(), connectCB, disconnectCB)
   {
   }
 
@@ -518,7 +508,7 @@ namespace bulkio {
                            LOGGER_PTR logger,
                            ConnectionEventListener *connectCB,
                            ConnectionEventListener *disconnectCB) :
-    OutPort<FilePortTraits>(name,logger, connectCB, disconnectCB)
+    OutPort<BULKIO::dataFile>(name,logger, connectCB, disconnectCB)
   {
   }
 
@@ -546,7 +536,7 @@ namespace bulkio {
   OutXMLPort::OutXMLPort(const std::string& name,
                          ConnectionEventListener *connectCB,
                          ConnectionEventListener *disconnectCB) :
-    OutPort<XMLPortTraits>(name, LOGGER_PTR(), connectCB, disconnectCB)
+    OutPort<BULKIO::dataXML>(name, LOGGER_PTR(), connectCB, disconnectCB)
   {
   }
 
@@ -555,7 +545,7 @@ namespace bulkio {
                          LOGGER_PTR logger,
                          ConnectionEventListener *connectCB,
                          ConnectionEventListener *disconnectCB) :
-    OutPort<XMLPortTraits>(name,logger,connectCB, disconnectCB)
+    OutPort<BULKIO::dataXML>(name,logger,connectCB, disconnectCB)
   {
   }
 
@@ -601,18 +591,18 @@ namespace bulkio {
 #define INSTANTIATE_NUMERIC_TEMPLATE(x) \
   INSTANTIATE_TEMPLATE(x); template class OutNumericPort<x>;
 
-  INSTANTIATE_NUMERIC_TEMPLATE(CharPortTraits);
-  INSTANTIATE_NUMERIC_TEMPLATE(OctetPortTraits);
-  INSTANTIATE_NUMERIC_TEMPLATE(ShortPortTraits);
-  INSTANTIATE_NUMERIC_TEMPLATE(UShortPortTraits);
-  INSTANTIATE_NUMERIC_TEMPLATE(LongPortTraits);
-  INSTANTIATE_NUMERIC_TEMPLATE(ULongPortTraits);
-  INSTANTIATE_NUMERIC_TEMPLATE(LongLongPortTraits);
-  INSTANTIATE_NUMERIC_TEMPLATE(ULongLongPortTraits);
-  INSTANTIATE_NUMERIC_TEMPLATE(FloatPortTraits);
-  INSTANTIATE_NUMERIC_TEMPLATE(DoublePortTraits);
+  INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataChar);
+  INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataOctet);
+  INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataShort);
+  INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUshort);
+  INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataLong);
+  INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUlong);
+  INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataLongLong);
+  INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUlongLong);
+  INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataFloat);
+  INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataDouble);
 
-  INSTANTIATE_TEMPLATE(FilePortTraits);
-  INSTANTIATE_TEMPLATE(XMLPortTraits);
+  INSTANTIATE_TEMPLATE(BULKIO::dataFile);
+  INSTANTIATE_TEMPLATE(BULKIO::dataXML);
 
 } // end of bulkio namespace

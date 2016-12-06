@@ -24,11 +24,10 @@
 #include <vector>
 
 #include <ossie/Port_impl.h> // for _seqVector
-#include <ossie/PropertyMap.h>
-#include <ossie/shared_buffer.h>
 
 #include "BULKIO_Interfaces.h"
 #include "bulkio_base.h"
+#include "bulkio_datatransfer.h"
 
 namespace bulkio {
 
@@ -50,14 +49,12 @@ template < typename TT, typename AT=_seqVector::seqVectorAllocator< TT > >
 // Traits template definition used to define input and output types used the port
 // classes
 //
-template < typename PST, typename TT, typename NDT=TT, class DBT=std::vector< NDT >,
-           class SBT=redhawk::shared_buffer<NDT> >
+template < typename PST, typename TT, typename NDT=TT, class DBT=std::vector< NDT > >
 struct DataTransferTraits {
   typedef PST   PortSequenceType;                           // Port Sequence type used by middleware
   typedef TT    TransportType;                              // Transport Type contained in the Port Sequence container
   typedef NDT   NativeDataType;                             // Native c++ mapping of Transport Type
   typedef DBT   DataBufferType;                             // Container defintion to hold data from Input port
-  typedef SBT   SharedBufferType;
   typedef typename DBT::allocator_type AllocatorType;
 };
 
@@ -72,106 +69,7 @@ typedef DataTransferTraits< PortTypes::LongLongSequence, CORBA::LongLong >    Lo
 typedef DataTransferTraits< PortTypes::UlongLongSequence, CORBA::ULongLong >  ULongLongDataTransferTraits;
 typedef DataTransferTraits< PortTypes::FloatSequence, CORBA::Float >          FloatDataTransferTraits;
 typedef DataTransferTraits< PortTypes::DoubleSequence, CORBA::Double >        DoubleDataTransferTraits;
-typedef DataTransferTraits< Char *, Char, Char, std::string, std::string >    StringDataTransferTraits;
-
-
-//
-// DataTransfer
-//
-// This is the packet of information returned from an InPort's getPacket method.  The DataTransferTraits class
-// defines the type context for this structure. 
-//
-// This class tries to implement as efficient as possible data movement from the supplied PortSequenceType object.
-// The supplied PortSequenceType's data buffer is used to set the start/end/length attributes of the dataBuffer object that will
-// be used by the component.  This class takes ownership of the PortSequenceType's memory buffer and assigns it the
-// the dataBuffer's start address. The DataBufferType allows developers to use standard 
-// stl iterators and algorithms against the data in this buffer.
-//
-// All remaining member variables use each type's assignment/copy methods. It is assumed the
-// PrecisionUTCTime and StreamSRI object will perform a "deep" copy.
-// 
-//
-template < typename DataTransferTraits >
-struct DataTransfer {
-
-  typedef DataTransferTraits                Traits;
-  typedef typename Traits::PortSequenceType PortSequenceType;
-  typedef typename Traits::TransportType    TransportType;
-  typedef typename Traits::NativeDataType   NativeDataType;
-  typedef typename Traits::DataBufferType   DataBufferType;
-  
-  //
-  // Construct a DataTransfer object to be returned from an InPort's getPacket method
-  // 
-  DataTransfer(const PortSequenceType& data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, const BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed);
-
-  DataBufferType   dataBuffer;
-  BULKIO::PrecisionUTCTime T;
-  bool EOS;
-  std::string streamID;
-  BULKIO::StreamSRI SRI;
-  bool sriChanged;
-  bool inputQueueFlushed;
-
-  redhawk::PropertyMap& getKeywords()
-  {
-    return redhawk::PropertyMap::cast(SRI.keywords);
-  }
-
-  const redhawk::PropertyMap& getKeywords() const
-  {
-    return redhawk::PropertyMap::cast(SRI.keywords);
-  }
-};
-
-
-template < >
-struct DataTransfer< StringDataTransferTraits >
-{
-    typedef StringDataTransferTraits                Traits;
-    typedef Traits::PortSequenceType PortSequenceType;
-    typedef Traits::DataBufferType   DataBufferType;
-
- DataTransfer(const char *data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, const BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
-    {
-      if ( data != NULL )  dataBuffer = data;
-        T = _T;
-        EOS = _EOS;
-        streamID = _streamID;
-        SRI = _H;
-        sriChanged = _sriChanged;
-        inputQueueFlushed = _inputQueueFlushed;
-    }
- DataTransfer(const char * data, bool _EOS, const char* _streamID, const BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
-    {
-       if ( data != NULL )  dataBuffer = data;
-        EOS = _EOS;
-        streamID = _streamID;
-        SRI = _H;
-        sriChanged = _sriChanged;
-        inputQueueFlushed = _inputQueueFlushed;
-    }
-    DataBufferType   dataBuffer;
-    BULKIO::PrecisionUTCTime T;
-    bool EOS;
-    std::string streamID;
-    BULKIO::StreamSRI SRI;
-    bool sriChanged;
-    bool inputQueueFlushed;
-
-};
-
-typedef DataTransfer< CharDataTransferTraits >       CharDataTransfer;
-typedef DataTransfer< OctetDataTransferTraits >      OctetDataTransfer;
-typedef DataTransfer< ShortDataTransferTraits >      ShortDataTransfer;
-typedef DataTransfer< UShortDataTransferTraits >     UShortDataTransfer;
-typedef DataTransfer< LongDataTransferTraits >       LongDataTransfer;
-typedef DataTransfer< ULongDataTransferTraits >      ULongDataTransfer;
-typedef DataTransfer< LongLongDataTransferTraits >   LongLongDataTransfer;
-typedef DataTransfer< ULongLongDataTransferTraits >  ULongLongDataTransfer;
-typedef DataTransfer< FloatDataTransferTraits >      FloatDataTransfer;
-typedef DataTransfer< DoubleDataTransferTraits >     DoubleDataTransfer;
-typedef DataTransfer< StringDataTransferTraits >     StringDataTransfer;
+typedef DataTransferTraits< Char *, Char, Char, std::string >                 StringDataTransferTraits;
 
 //
 // PortTraits
@@ -196,7 +94,6 @@ struct PortTraits {
   typedef typename DTT::NativeDataType      NativeType;
   typedef typename DTT::PortSequenceType    SequenceType;
   typedef typename DTT::DataBufferType      DataBufferType;
-  typedef typename DTT::SharedBufferType    SharedBufferType;
 };
 
 
@@ -224,7 +121,6 @@ typedef LongPortTraits     Int32PortTraits;
 typedef ULongPortTraits    Unt32PortTraits;
 typedef LongLongPortTraits     Int64PortTraits;
 typedef ULongLongPortTraits    Unt64PortTraits;
-
 
 }  // end of bulkio namespace
 

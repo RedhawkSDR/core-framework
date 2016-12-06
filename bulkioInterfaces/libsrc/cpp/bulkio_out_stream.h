@@ -29,16 +29,16 @@
 #include <ossie/shared_buffer.h>
 #include <BULKIO/bulkioDataTypes.h>
 
-#include "bulkio_traits.h"
+#include "bulkio_typetraits.h"
 #include "bulkio_datablock.h"
 #include "bulkio_stream.h"
 
 namespace bulkio {
 
-    template <class PortTraits>
+    template <class PortType>
     class OutPort;
 
-    template <class PortTraits>
+    template <class PortType>
     class OutputStream : public StreamBase {
     public:
         using StreamBase::sri;
@@ -81,7 +81,7 @@ namespace bulkio {
         void close();
 
     protected:
-        typedef OutPort<PortTraits> OutPortType;
+        typedef OutPort<PortType> OutPortType;
 
         class Impl;
         Impl& impl();
@@ -100,10 +100,10 @@ namespace bulkio {
     };
 
 
-    template <class PortTraits>
-    class BufferedOutputStream : public OutputStream<PortTraits> {
+    template <class PortType>
+    class BufferedOutputStream : public OutputStream<PortType> {
     public:
-        typedef typename PortTraits::DataTransferTraits::NativeDataType ScalarType;
+        typedef typename NativeTraits<PortType>::NativeType ScalarType;
         typedef std::complex<ScalarType> ComplexType;
 
         typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
@@ -184,10 +184,10 @@ namespace bulkio {
         void write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
 
     private:
-        typedef OutputStream<PortTraits> Base;
+        typedef OutputStream<PortType> Base;
 
-        friend class OutPort<PortTraits>;
-        typedef OutPort<PortTraits> OutPortType;
+        friend class OutPort<PortType>;
+        typedef OutPort<PortType> OutPortType;
         BufferedOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
         class Impl;
@@ -196,7 +196,7 @@ namespace bulkio {
     };
 
 
-    class OutXMLStream : public OutputStream<XMLPortTraits> {
+    class OutXMLStream : public OutputStream<BULKIO::dataXML> {
     public:
         OutXMLStream();
 
@@ -207,15 +207,15 @@ namespace bulkio {
         void write(const std::string& xmlString);
 
     private:
-        typedef OutputStream<XMLPortTraits> Base;
+        typedef OutputStream<BULKIO::dataXML> Base;
 
-        friend class OutPort<XMLPortTraits>;
-        typedef OutPort<XMLPortTraits> OutPortType;
+        friend class OutPort<BULKIO::dataXML>;
+        typedef OutPort<BULKIO::dataXML> OutPortType;
         OutXMLStream(const BULKIO::StreamSRI& sri, OutPortType* port);
     };
 
 
-    class OutFileStream : public OutputStream<FilePortTraits> {
+    class OutFileStream : public OutputStream<BULKIO::dataFile> {
     public:
         OutFileStream();
 
@@ -226,39 +226,23 @@ namespace bulkio {
         void write(const std::string& URL, const BULKIO::PrecisionUTCTime& time);
 
     private:
-        typedef OutputStream<FilePortTraits> Base;
+        typedef OutputStream<BULKIO::dataFile> Base;
 
-        friend class OutPort<FilePortTraits>;
-        typedef OutPort<FilePortTraits> OutPortType;
+        friend class OutPort<BULKIO::dataFile>;
+        typedef OutPort<BULKIO::dataFile> OutPortType;
         OutFileStream(const BULKIO::StreamSRI& sri, OutPortType* port);
     };
 
-    typedef BufferedOutputStream<bulkio::CharPortTraits>      OutCharStream;
-    typedef BufferedOutputStream<bulkio::OctetPortTraits>     OutOctetStream;
-    typedef BufferedOutputStream<bulkio::ShortPortTraits>     OutShortStream;
-    typedef BufferedOutputStream<bulkio::UShortPortTraits>    OutUShortStream;
-    typedef BufferedOutputStream<bulkio::LongPortTraits>      OutLongStream;
-    typedef BufferedOutputStream<bulkio::ULongPortTraits>     OutULongStream;
-    typedef BufferedOutputStream<bulkio::LongLongPortTraits>  OutLongLongStream;
-    typedef BufferedOutputStream<bulkio::ULongLongPortTraits> OutULongLongStream;
-    typedef BufferedOutputStream<bulkio::FloatPortTraits>     OutFloatStream;
-    typedef BufferedOutputStream<bulkio::DoublePortTraits>    OutDoubleStream;
-
-    template <class PortTraits>
-    struct OutStreamTraits
-    {
-        typedef BufferedOutputStream<PortTraits> OutStreamType;
-    };
-
-    template <>
-    struct OutStreamTraits<XMLPortTraits> {
-        typedef OutXMLStream OutStreamType;
-    };
-
-    template <>
-    struct OutStreamTraits<FilePortTraits> {
-        typedef OutFileStream OutStreamType;
-    };
+    typedef BufferedOutputStream<BULKIO::dataChar>      OutCharStream;
+    typedef BufferedOutputStream<BULKIO::dataOctet>     OutOctetStream;
+    typedef BufferedOutputStream<BULKIO::dataShort>     OutShortStream;
+    typedef BufferedOutputStream<BULKIO::dataUshort>    OutUShortStream;
+    typedef BufferedOutputStream<BULKIO::dataLong>      OutLongStream;
+    typedef BufferedOutputStream<BULKIO::dataUlong>     OutULongStream;
+    typedef BufferedOutputStream<BULKIO::dataLongLong>  OutLongLongStream;
+    typedef BufferedOutputStream<BULKIO::dataUlongLong> OutULongLongStream;
+    typedef BufferedOutputStream<BULKIO::dataFloat>     OutFloatStream;
+    typedef BufferedOutputStream<BULKIO::dataDouble>    OutDoubleStream;
 
 } // end of bulkio namespace
 

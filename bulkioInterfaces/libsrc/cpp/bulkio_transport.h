@@ -23,18 +23,18 @@
 #include <ossie/UsesPort.h>
 
 #include "bulkio_base.h"
+#include "bulkio_typetraits.h"
 
 namespace bulkio {
 
-    template <typename PortTraits>
+    template <typename PortType>
     class PortTransport : public redhawk::BasicTransport
     {
     public:
-        typedef typename PortTraits::PortType PortType;
         typedef typename PortType::_var_type VarType;
         typedef typename PortType::_ptr_type PtrType;
-        typedef typename PortTraits::NativeType NativeType;
-        typedef typename PortTraits::SharedBufferType SharedBufferType;
+        typedef typename NativeTraits<PortType>::NativeType NativeType;
+        typedef typename BufferTraits<PortType>::BufferType BufferType;
 
         static PortTransport* Factory(const std::string& connectionId, const std::string& name, PtrType port);
 
@@ -46,7 +46,7 @@ namespace bulkio {
 
         void pushSRI(const std::string& streamID, const BULKIO::StreamSRI& sri, int version);
 
-        void pushPacket(const SharedBufferType& data,
+        void pushPacket(const BufferType& data,
                         const BULKIO::PrecisionUTCTime& T,
                         bool EOS,
                         const std::string& streamID,
@@ -61,13 +61,13 @@ namespace bulkio {
     protected:
         virtual void _pushSRI(const BULKIO::StreamSRI& sri) = 0;
 
-        virtual void _sendPacket(const SharedBufferType& data,
+        virtual void _sendPacket(const BufferType& data,
                                  const BULKIO::PrecisionUTCTime& T,
                                  bool EOS,
                                  const std::string& streamID,
                                  const BULKIO::StreamSRI& sri);
 
-        virtual void _pushPacket(const SharedBufferType& data,
+        virtual void _pushPacket(const BufferType& data,
                                  const BULKIO::PrecisionUTCTime& T,
                                  bool EOS,
                                  const std::string& streamID) = 0;
@@ -77,7 +77,7 @@ namespace bulkio {
         // statistical tracking; enables XML and File specialization, which have
         // different notions of size
         //
-        size_t _dataLength(const SharedBufferType& data);
+        size_t _dataLength(const BufferType& data);
 
         VarType _port;
         typedef std::map<std::string,int> VersionMap;

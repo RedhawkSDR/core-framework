@@ -65,6 +65,8 @@ library_include_HEADERS = cpp/bulkio.h \
 	cpp/bulkio_stream.h \
 	cpp/bulkio_time_operators.h \
 	cpp/bulkio_datablock.h \
+	cpp/bulkio_datatransfer.h \
+	cpp/bulkio_typetraits.h \
 	cpp/bulkio_compat.h
 
 ## The generated configuration header is installed in its own subdirectory of

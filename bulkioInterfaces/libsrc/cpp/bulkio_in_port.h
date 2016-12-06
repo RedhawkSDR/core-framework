@@ -30,14 +30,30 @@
 #include <ossie/signalling.h>
 
 #include "bulkio_base.h"
-#include "bulkio_traits.h"
+#include "bulkio_typetraits.h"
+#include "bulkio_datatransfer.h"
 #include "bulkio_in_stream.h"
 #include "bulkio_callbacks.h"
 
 namespace bulkio {
 
-  template <class PortTraits>
+  template <class PortType>
   class LocalTransport;
+
+  template <class PortType>
+  struct InStreamTraits {
+      typedef BufferedInputStream<PortType> InStreamType;
+  };
+
+  template <>
+  struct InStreamTraits<BULKIO::dataXML> {
+      typedef InXMLStream InStreamType;
+  };
+
+  template <>
+  struct InStreamTraits<BULKIO::dataFile> {
+      typedef InFileStream InStreamType;
+  };
 
   //
   //  InPort
@@ -46,33 +62,29 @@ namespace bulkio {
   //    PortTraits - This template provides the context for the port's middleware transport classes and they base data types
   //                 passed between port objects
   //
-  template < typename PortTraits >
-  class InPort : public PortTraits::POAPortType, public Port_Provides_base_impl
+  template <typename PortType>
+  class InPort : public CorbaTraits<PortType>::POAType, public Port_Provides_base_impl
   {
-
   public:
-
-    typedef PortTraits Traits;
-
     // Transport Sequence Type use to during push packet
-    typedef typename Traits::SequenceType PortSequenceType;
+    typedef typename CorbaTraits<PortType>::SequenceType PortSequenceType;
 
     //
     // Transport type used by this port
     //
-    typedef typename Traits::TransportType TransportType;
-
-    typedef typename Traits::PortType PortType;
+    typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
     //
     // Declaration of DataTransfer class from TransportType trait and DataBuffer type trait
     //
-    typedef DataTransfer< typename Traits::DataTransferTraits > DataTransferType;
+    typedef typename BufferTraits<PortType>::VectorType VectorType;
+    typedef DataTransfer<VectorType> DataTransferType;
 
-    typedef typename Traits::SharedBufferType SharedBufferType;
-    
+    // backwards compatible definition
+    typedef DataTransferType dataTransfer;
+
     // Input stream interface used by this port
-    typedef typename StreamTraits<PortTraits>::InStreamType StreamType;
+    typedef typename InStreamTraits<PortType>::InStreamType StreamType;
 
     // List type for input streams provided by this port
     typedef std::list<StreamType> StreamList;
@@ -260,12 +272,14 @@ namespace bulkio {
     //                       if all members match then return true, otherwise false.  This is used during the pushSRI method
     // @param newStreamCB interface that is called when new SRI.streamID is received
     InPort(std::string port_name, 
-               LOGGER_PTR   logger,
-               bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
-               SriListener *newStreamCB = NULL );
+           LOGGER_PTR   logger,
+           bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
+           SriListener *newStreamCB = NULL );
 
+    typedef typename BufferTraits<PortType>::BufferType BufferType;
+    
     struct Packet {
-      Packet(const SharedBufferType& buffer, const BULKIO::PrecisionUTCTime& T, bool EOS, const StreamDescriptor& SRI, bool sriChanged, bool inputQueueFlushed) :
+      Packet(const BufferType& buffer, const BULKIO::PrecisionUTCTime& T, bool EOS, const StreamDescriptor& SRI, bool sriChanged, bool inputQueueFlushed) :
         buffer(buffer),
         T(T),
         EOS(EOS),
@@ -276,7 +290,7 @@ namespace bulkio {
       {
       }
 
-      SharedBufferType buffer;
+      BufferType buffer;
       BULKIO::PrecisionUTCTime T;
       bool EOS;
       StreamDescriptor SRI;
@@ -362,10 +376,10 @@ namespace bulkio {
     // Queues a packet received via pushPacket; in most cases, this method maps
     // exactly to pushPacket, except for dataFile
     //
-    void queuePacket(const SharedBufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
+    void queuePacket(const BufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID);
 
     // Allow local transport classes to directly queue packets
-    friend class LocalTransport<PortTraits>;
+    friend class LocalTransport<PortType>;
 
     //
     // Fetches the next packet for the given stream ID, blocking for up to
@@ -385,7 +399,7 @@ namespace bulkio {
     // first end-of-stream
     void discardPacketsForStream(const std::string& streamID);
 
-    friend class InputStream<PortTraits>;
+    friend class InputStream<PortType>;
     size_t samplesAvailable(const std::string& streamID, bool firstPacket);
 
     void createStream(const std::string& streamID, const StreamDescriptor& sri);
@@ -399,45 +413,29 @@ namespace bulkio {
     // statistical tracking; enables XML and File specialization, which have
     // different notions of size
     //
-    int _getElementLength(const SharedBufferType& data);
+    int _getElementLength(const BufferType& data);
   };
 
-  template < typename PortTraits >
-  class InNumericPort : public InPort<PortTraits>
+  template <typename PortType>
+  class InNumericPort : public InPort<PortType>
   {
   public:
-    typedef PortTraits  Traits;
-
-    //  Interface Type
-    typedef typename  Traits::PortType      PortType;
-
     // Transport Sequence Type use to during push packet
-    typedef typename Traits::SequenceType    PortSequenceType;
-
-    // Shared buffer type used for local transfers
-    typedef typename Traits::SharedBufferType SharedBufferType;
+    typedef typename InPort<PortType>::PortSequenceType    PortSequenceType;
 
     //
     // Transport type used by this port
     //
-    typedef typename Traits::TransportType  TransportType;
+    typedef typename InPort<PortType>::TransportType  TransportType;
 
     //
     // Native type mapping of TransportType
     //
-    typedef typename Traits::NativeType      NativeType;
+    typedef typename NativeTraits<PortType>::NativeType NativeType;
 
-    //
-    // Declaration of DataTransfer class from TransportType trait and DataBuffer type trait
-    //
-    typedef DataTransfer< typename Traits::DataTransferTraits > DataTransferType;
+    typedef typename InPort<PortType>::StreamType StreamType;
 
-    // backwards compatible definition
-    typedef DataTransferType dataTransfer;
-
-    typedef typename InPort<PortTraits>::StreamType StreamType;
-
-    typedef typename InPort<PortTraits>::StreamList StreamList;
+    typedef typename InPort<PortType>::StreamList StreamList;
 
     //
     // InNumericPort - creates a provides port that can accept data vectors from a source
@@ -478,7 +476,10 @@ namespace bulkio {
     StreamList pollStreams(StreamList& pollset, size_t samples, float timeout);
 
   protected:
-    typedef InPort<PortTraits> super;
+    // Shared buffer type used for local transfers
+    typedef typename InPort<PortType>::BufferType BufferType;
+
+    typedef InPort<PortType> super;
     using super::packetWaiters;
     using super::logger;
     typedef typename super::StreamMap StreamMap;
@@ -501,12 +502,9 @@ namespace bulkio {
   //
 
 
-  class InFilePort : public InPort<FilePortTraits>
+  class InFilePort : public InPort<BULKIO::dataFile>
   {
   public:
-    typedef InPort<FilePortTraits>::DataTransferType DataTransferType;
-    typedef DataTransferType dataTransfer;
-
     //
     // InStringPort  - creates a provides port that can accept floating point vectors from a source
     //
@@ -538,12 +536,9 @@ namespace bulkio {
   };
 
 
-  class InXMLPort : public InPort<XMLPortTraits>
+  class InXMLPort : public InPort<BULKIO::dataXML>
   {
   public:
-    typedef InPort<XMLPortTraits>::DataTransferType DataTransferType;
-    typedef DataTransferType dataTransfer;
-
     InXMLPort(std::string port_name, LOGGER_PTR logger,
               bulkio::sri::Compare=bulkio::sri::DefaultComparator,
               SriListener* newStreamCB=NULL);
@@ -572,41 +567,41 @@ namespace bulkio {
      *
      */
   // Bulkio char (Int8) input
-  typedef InNumericPort<CharPortTraits>      InCharPort;
+  typedef InNumericPort<BULKIO::dataChar>      InCharPort;
   // Bulkio octet (UInt8) input
-  typedef InNumericPort<OctetPortTraits>     InOctetPort;
+  typedef InNumericPort<BULKIO::dataOctet>     InOctetPort;
   // Bulkio Int8 input
-  typedef InCharPort                         InInt8Port;
+  typedef InCharPort                           InInt8Port;
   // Bulkio UInt8 input
-  typedef InOctetPort                        InUInt8Port;
+  typedef InOctetPort                          InUInt8Port;
   // Bulkio short (Int16) input
-  typedef InNumericPort<ShortPortTraits>     InShortPort;
+  typedef InNumericPort<BULKIO::dataShort>     InShortPort;
   // Bulkio unsigned short (UInt16) input
-  typedef InNumericPort<UShortPortTraits>    InUShortPort;
+  typedef InNumericPort<BULKIO::dataUshort>    InUShortPort;
   // Bulkio Int16 input
-  typedef InShortPort                        InInt16Port;
+  typedef InShortPort                          InInt16Port;
   // Bulkio UInt16 input
-  typedef InUShortPort                       InUInt16Port;
+  typedef InUShortPort                         InUInt16Port;
   // Bulkio long (Int32) input
-  typedef InNumericPort<LongPortTraits>      InLongPort;
+  typedef InNumericPort<BULKIO::dataLong>      InLongPort;
   // Bulkio unsigned long (UInt32) input
-  typedef InNumericPort<ULongPortTraits>     InULongPort;
+  typedef InNumericPort<BULKIO::dataUlong>     InULongPort;
   // Bulkio Int32 input
-  typedef InLongPort                         InInt32Port;
+  typedef InLongPort                           InInt32Port;
   // Bulkio UInt32 input
-  typedef InULongPort                        InUInt32Port;
+  typedef InULongPort                          InUInt32Port;
   // Bulkio long long (Int64) input
-  typedef InNumericPort<LongLongPortTraits>  InLongLongPort;
+  typedef InNumericPort<BULKIO::dataLongLong>  InLongLongPort;
   // Bulkio unsigned long long (UInt64) input
-  typedef InNumericPort<ULongLongPortTraits> InULongLongPort;
+  typedef InNumericPort<BULKIO::dataUlongLong> InULongLongPort;
   // Bulkio Int64 input
-  typedef InLongLongPort                     InInt64Port;
+  typedef InLongLongPort                       InInt64Port;
   // Bulkio UInt64 input
-  typedef InULongLongPort                    InUInt64Port;
+  typedef InULongLongPort                      InUInt64Port;
   // Bulkio float input
-  typedef InNumericPort<FloatPortTraits>     InFloatPort;
+  typedef InNumericPort<BULKIO::dataFloat>     InFloatPort;
   // Bulkio double input
-  typedef InNumericPort<DoublePortTraits>    InDoublePort;
+  typedef InNumericPort<BULKIO::dataDouble>    InDoublePort;
   // Maintained for backwards compatibility
   typedef InFilePort InURLPort;
 

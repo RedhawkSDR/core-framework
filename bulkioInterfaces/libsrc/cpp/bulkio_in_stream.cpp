@@ -28,8 +28,8 @@
 
 using bulkio::InputStream;
 
-template <class PortTraits>
-class InputStream<PortTraits>::Impl : public StreamBase::Impl {
+template <class PortType>
+class InputStream<PortType>::Impl : public StreamBase::Impl {
 public:
     typedef StreamBase::Impl ImplBase;
 
@@ -159,80 +159,80 @@ protected:
     bool _enabled;
 };
 
-template <class PortTraits>
-InputStream<PortTraits>::InputStream() :
+template <class PortType>
+InputStream<PortType>::InputStream() :
     StreamBase()
 {
 }
 
-template <class PortTraits>
-InputStream<PortTraits>::InputStream(const StreamDescriptor& sri, InPortType* port) :
+template <class PortType>
+InputStream<PortType>::InputStream(const StreamDescriptor& sri, InPortType* port) :
     StreamBase(boost::make_shared<Impl>(sri, port))
 {
 }
 
-template <class PortTraits>
-InputStream<PortTraits>::InputStream(const boost::shared_ptr<Impl>& impl) :
+template <class PortType>
+InputStream<PortType>::InputStream(const boost::shared_ptr<Impl>& impl) :
     StreamBase(impl)
 {
 }
 
-template <class PortTraits>
-typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::read()
+template <class PortType>
+typename InputStream<PortType>::DataBlockType InputStream<PortType>::read()
 {
     return impl().readPacket(true);
 }
 
-template <class PortTraits>
-typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::tryread()
+template <class PortType>
+typename InputStream<PortType>::DataBlockType InputStream<PortType>::tryread()
 {
     return impl().readPacket(false);
 }
 
-template <class PortTraits>
-bool InputStream<PortTraits>::enabled() const
+template <class PortType>
+bool InputStream<PortType>::enabled() const
 {
     return impl().enabled();
 }
 
-template <class PortTraits>
-void InputStream<PortTraits>::enable()
+template <class PortType>
+void InputStream<PortType>::enable()
 {
     impl().enable();
 }
 
-template <class PortTraits>
-void InputStream<PortTraits>::disable()
+template <class PortType>
+void InputStream<PortType>::disable()
 {
     impl().disable();
 }
 
-template <class PortTraits>
-bool InputStream<PortTraits>::eos()
+template <class PortType>
+bool InputStream<PortType>::eos()
 {
     return impl().eos();
 }
 
-template <class PortTraits>
-InputStream<PortTraits>::operator unspecified_bool_type() const
+template <class PortType>
+InputStream<PortType>::operator unspecified_bool_type() const
 {
     return _impl?static_cast<unspecified_bool_type>(&InputStream::impl):0;
 }
 
-template <class PortTraits>
-typename InputStream<PortTraits>::Impl& InputStream<PortTraits>::impl()
+template <class PortType>
+typename InputStream<PortType>::Impl& InputStream<PortType>::impl()
 {
     return static_cast<Impl&>(*this->_impl);
 }
 
-template <class PortTraits>
-const typename InputStream<PortTraits>::Impl& InputStream<PortTraits>::impl() const
+template <class PortType>
+const typename InputStream<PortType>::Impl& InputStream<PortType>::impl() const
 {
     return static_cast<const Impl&>(*this->_impl);
 }
 
-template <class PortTraits>
-bool InputStream<PortTraits>::hasBufferedData()
+template <class PortType>
+bool InputStream<PortType>::hasBufferedData()
 {
     return impl().hasBufferedData();
 }
@@ -240,14 +240,14 @@ bool InputStream<PortTraits>::hasBufferedData()
 
 using bulkio::BufferedInputStream;
 
-template <class PortTraits>
-class BufferedInputStream<PortTraits>::Impl : public Base::Impl {
+template <class PortType>
+class BufferedInputStream<PortType>::Impl : public Base::Impl {
 public:
     typedef typename Base::Impl ImplBase;
 
     typedef typename ImplBase::PacketType PacketType;
-    typedef typename PortTraits::NativeType NativeType;
-    typedef typename PortTraits::SharedBufferType SharedBufferType;
+    typedef typename NativeTraits<PortType>::NativeType NativeType;
+    typedef typename BufferTraits<PortType>::BufferType BufferType;
 
     Impl(const bulkio::StreamDescriptor& sri, InPortType* port) :
         ImplBase(sri, port),
@@ -432,7 +432,7 @@ private:
     void _consumeData(size_t count)
     {
         while (count > 0) {
-            const SharedBufferType& data = _queue.front().buffer;
+            const BufferType& data = _queue.front().buffer;
 
             const size_t available = data.size() - _sampleOffset;
             const size_t pass = std::min(available, count);
@@ -495,7 +495,7 @@ private:
             size_t packet_offset = _sampleOffset;
             while (count > 0) {
                 PacketType& packet = _queue[packet_index];
-                const SharedBufferType& input_data = packet.buffer;
+                const BufferType& input_data = packet.buffer;
 
                 // Add the timestamp for this pass
                 _addTimestamp(data, packet_offset, data_offset, packet.T);
@@ -616,86 +616,86 @@ private:
 };
 
 
-template <class PortTraits>
-BufferedInputStream<PortTraits>::BufferedInputStream() :
+template <class PortType>
+BufferedInputStream<PortType>::BufferedInputStream() :
     Base()
 {
 }
 
-template <class PortTraits>
-BufferedInputStream<PortTraits>::BufferedInputStream(const bulkio::StreamDescriptor& sri, InPortType* port) :
+template <class PortType>
+BufferedInputStream<PortType>::BufferedInputStream(const bulkio::StreamDescriptor& sri, InPortType* port) :
     Base(boost::make_shared<Impl>(sri, port))
 {
 }
 
-template <class PortTraits>
-typename BufferedInputStream<PortTraits>::DataBlockType BufferedInputStream<PortTraits>::read()
+template <class PortType>
+typename BufferedInputStream<PortType>::DataBlockType BufferedInputStream<PortType>::read()
 {
     return impl().readPacket(true);
 }
 
-template <class PortTraits>
-typename BufferedInputStream<PortTraits>::DataBlockType BufferedInputStream<PortTraits>::read(size_t count)
+template <class PortType>
+typename BufferedInputStream<PortType>::DataBlockType BufferedInputStream<PortType>::read(size_t count)
 {
     return impl().read(count, count, true);
 }
 
-template <class PortTraits>
-typename BufferedInputStream<PortTraits>::DataBlockType BufferedInputStream<PortTraits>::read(size_t count, size_t consume)
+template <class PortType>
+typename BufferedInputStream<PortType>::DataBlockType BufferedInputStream<PortType>::read(size_t count, size_t consume)
 {
     return impl().read(count, consume, true);
 }
 
-template <class PortTraits>
-typename BufferedInputStream<PortTraits>::DataBlockType BufferedInputStream<PortTraits>::tryread()
+template <class PortType>
+typename BufferedInputStream<PortType>::DataBlockType BufferedInputStream<PortType>::tryread()
 {
     return impl().readPacket(false);
 }
 
-template <class PortTraits>
-typename BufferedInputStream<PortTraits>::DataBlockType BufferedInputStream<PortTraits>::tryread(size_t count)
+template <class PortType>
+typename BufferedInputStream<PortType>::DataBlockType BufferedInputStream<PortType>::tryread(size_t count)
 {
     return impl().read(count, count, false);
 }
 
-template <class PortTraits>
-typename BufferedInputStream<PortTraits>::DataBlockType BufferedInputStream<PortTraits>::tryread(size_t count, size_t consume)
+template <class PortType>
+typename BufferedInputStream<PortType>::DataBlockType BufferedInputStream<PortType>::tryread(size_t count, size_t consume)
 {
     return impl().read(count, consume, false);
 }
 
-template <class PortTraits>
-size_t BufferedInputStream<PortTraits>::skip(size_t count)
+template <class PortType>
+size_t BufferedInputStream<PortType>::skip(size_t count)
 {
     return impl().skip(count);
 }
 
-template <class PortTraits>
-size_t BufferedInputStream<PortTraits>::samplesAvailable()
+template <class PortType>
+size_t BufferedInputStream<PortType>::samplesAvailable()
 {
     return impl().samplesAvailable();
 }
 
-template <class PortTraits>
-bool BufferedInputStream<PortTraits>::operator==(const BufferedInputStream& other) const
+template <class PortType>
+bool BufferedInputStream<PortType>::operator==(const BufferedInputStream& other) const
 {
     return _impl.get() == other._impl.get();
 }
 
-template <class PortTraits>
-bool BufferedInputStream<PortTraits>::ready()
+template <class PortType>
+bool BufferedInputStream<PortType>::ready()
 {
     return impl().ready();
 }
 
-template <class PortTraits>
-typename BufferedInputStream<PortTraits>::Impl& BufferedInputStream<PortTraits>::impl()
+template <class PortType>
+typename BufferedInputStream<PortType>::Impl& BufferedInputStream<PortType>::impl()
 {
     return static_cast<Impl&>(Base::impl());
 }
 
-template <class PortTraits>
-const typename BufferedInputStream<PortTraits>::Impl& BufferedInputStream<PortTraits>::impl() const
+template <class PortType>
+const typename BufferedInputStream<PortType>::Impl& BufferedInputStream<PortType>::impl() const
 {
     return static_cast<const Impl&>(Base::impl());
 }
@@ -706,15 +706,15 @@ const typename BufferedInputStream<PortTraits>::Impl& BufferedInputStream<PortTr
 #define INSTANTIATE_NUMERIC_TEMPLATE(x) \
     INSTANTIATE_TEMPLATE(x); template class BufferedInputStream<x>;
 
-INSTANTIATE_NUMERIC_TEMPLATE(bulkio::CharPortTraits);
-INSTANTIATE_NUMERIC_TEMPLATE(bulkio::OctetPortTraits);
-INSTANTIATE_NUMERIC_TEMPLATE(bulkio::ShortPortTraits);
-INSTANTIATE_NUMERIC_TEMPLATE(bulkio::UShortPortTraits);
-INSTANTIATE_NUMERIC_TEMPLATE(bulkio::LongPortTraits);
-INSTANTIATE_NUMERIC_TEMPLATE(bulkio::ULongPortTraits);
-INSTANTIATE_NUMERIC_TEMPLATE(bulkio::LongLongPortTraits);
-INSTANTIATE_NUMERIC_TEMPLATE(bulkio::ULongLongPortTraits);
-INSTANTIATE_NUMERIC_TEMPLATE(bulkio::FloatPortTraits);
-INSTANTIATE_NUMERIC_TEMPLATE(bulkio::DoublePortTraits);
-INSTANTIATE_TEMPLATE(bulkio::XMLPortTraits);
-INSTANTIATE_TEMPLATE(bulkio::FilePortTraits);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataChar);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataOctet);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataShort);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUshort);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataLong);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUlong);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataLongLong);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUlongLong);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataFloat);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataDouble);
+INSTANTIATE_TEMPLATE(BULKIO::dataXML);
+INSTANTIATE_TEMPLATE(BULKIO::dataFile);
