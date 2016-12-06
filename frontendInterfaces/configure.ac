@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(frontendInterfaces, 2.3.4)
+AC_INIT(frontendInterfaces, 2.3.5)
 
 AM_INIT_AUTOMAKE(nostdinc)
 AC_PROG_CC
