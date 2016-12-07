@@ -58,3 +58,6 @@ sdr/dom/deps/cpp_dep1/cpp/cpp_dep1.pc
 sdr/dom/deps/cpp_dep2/cpp/cpp_dep2.pc
 sdr/dom/deps/cpp_dep1/cpp_dep1.spd.xml
 sdr/dom/deps/cpp_dep2/cpp_dep2.spd.xml
+sdr/dev/devices/LongDevice/cpp/LongDevice
+sdr/dev/nodes/LongDeviceCalls/DeviceManager.dcd.xml
+

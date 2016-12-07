@@ -890,7 +890,6 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         import re
         if dest == None: dest = src.replace(".GOLD","")
         dest_f = open(dest,'w')
-        print "src ",  src
         lines = [line.rstrip() for line in open(src)]
         for l in lines:
             newline=l
