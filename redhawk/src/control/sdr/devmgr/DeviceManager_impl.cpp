@@ -1893,7 +1893,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   // the mutex lock, which would prevent shutdown from killing
   // this).
   boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
- 
+  ossie::corba::overrideBlockingCall(registeringDevice);
     
   //Get properties from SPD
   std::string spdFile = ossie::corba::returnString(registeringDevice->softwareProfile());
@@ -2272,6 +2272,8 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     if (CORBA::is_nil (registeringService)) {
         throw (CF::InvalidObjectReference("Cannot register service, registeringService is a nil reference."));
     }
+
+    ossie::corba::overrideBlockingCall(registeringService);
 
     // Register the service with the Device manager, unless it is already
     // registered
@@ -2851,8 +2853,8 @@ void DeviceManager_impl::clean_registeredDevices()
         LOG_INFO(DeviceManager_impl, "Releasing device " << label);
         lock.unlock();
         try {
-            unsigned long timeout = 3; // seconds
-            omniORB::setClientCallTimeout(deviceRef, timeout * 1000);
+            // 3 seconds or use cfg option
+            ossie::corba::overrideBlockingCall(deviceRef, 3000 );
             deviceRef->releaseObject();
         } catch ( ... ) {
         }

@@ -128,12 +128,23 @@ unsigned long giopMaxMsgSize ()
         omniORB::setClientCallTimeout(obj, timeOut );
     }
 
-    void setNonBlockingClientCall( uint32_t timeOut ) {
-        omniORB::setClientCallTimeout( (uint32_t)getClientCallTimeOut( true, timeOut) );
+    void overideBlockingCall( uint32_t timeOut ) {
+        uint32_t cfgopt = getConfigurationClientCallTimeOut();
+        if (cfgopt == 0 ) {
+            omniORB::setClientCallTimeout( timeOut);
+        }
     }
 
-    void setNonBlockingClientCall( CORBA::Object_ptr obj, uint32_t timeOut ) {
-        omniORB::setClientCallTimeout(obj, (uint32_t)getClientCallTimeOut( true, timeOut) );
+    void overrideBlockingCall( CORBA::Object_ptr obj, uint32_t timeOut ) {
+        uint32_t cfgopt = getConfigurationClientCallTimeOut();
+        if ( cfgopt == 0 ) {
+           omniORB::setClientCallTimeout(obj, timeOut );
+        }
+    }
+
+    void resetClientCallTimeOut( CORBA::Object_ptr obj ) {
+        // for timeout to 0. will use orb config setting
+        omniORB::setClientCallTimeout(obj, 0);
     }
 
 
@@ -141,21 +152,13 @@ unsigned long giopMaxMsgSize ()
     {
        uint32_t cfgopt=0;
 #ifndef OMNIORB4_2
-       cfgopt = omni::orbParameters::clientConnectTimeOutPeriod.secs * 1000;
-       cfgopt = cfgopt + omni::orbParameters::clientConnectTimeOutPeriod.nanosecs / 1000000;
+       cfgopt = omni::orbParameters::clientCallTimeOutPeriod.secs * 1000;
+       cfgopt = cfgopt + omni::orbParameters::clientCallTimeOutPeriod.nanosecs / 1000000;
 #else
-       cfgopt = omni::orbParameters::clientConnectTimeOutPeriod.s * 1000;
-       cfgopt = cfgopt + omni::orbParameters::clientConnectTimeOutPeriod.ns / 1000000;
+       cfgopt = omni::orbParameters::clientCallTimeOutPeriod.s * 1000;
+       cfgopt = cfgopt + omni::orbParameters::clientCallTimeOutPeriod.ns / 1000000;
 #endif
        return cfgopt;
-    }
-
-
-    uint32_t getClientCallTimeOut(bool nonBlocking,  uint32_t timeOut )
-    {
-        uint32_t cfgopt = getConfigurationClientCallTimeOut();
-        if ( nonBlocking && cfgopt == 0 ) cfgopt=timeOut;
-        return cfgopt;
     }
 
 

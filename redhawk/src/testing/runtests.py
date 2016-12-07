@@ -43,6 +43,11 @@ def appendPath(varname, path):
     varpath.append(os.path.abspath(path))
     os.environ[varname] = ':'.join(varpath)
 
+def prependPath(varname, path):
+    varpath = os.environ.get(varname, '').split(':')
+    varpath = [ os.path.abspath(path) ] + varpath
+    os.environ[varname] = ':'.join(varpath)
+
 def appendClassPath(path):
     appendPath('CLASSPATH', path)
 
@@ -64,7 +69,9 @@ def configureTestPaths():
     for jarfile in jarfiles:
         appendClassPath(os.path.join(topdir, 'base/framework/java', jarfile))
 
-    # Add path to libomnijni.so to LD_LIBRARY_PATH for Java components
+    #  Add path to libomnijni.so to LD_LIBRARY_PATH for Java components
+    prependPath('LD_LIBRARY_PATH', os.path.join(topdir, 'base/framework/idl/.libs'))
+    prependPath('LD_LIBRARY_PATH', os.path.join(topdir, 'base/framework/.libs'))
     appendPath('LD_LIBRARY_PATH', os.path.join(topdir, 'omnijni/src/cpp/.libs'))
     appendPath('LD_LIBRARY_PATH', os.path.join(topdir, 'base/plugin/logcfg/.libs'))
 

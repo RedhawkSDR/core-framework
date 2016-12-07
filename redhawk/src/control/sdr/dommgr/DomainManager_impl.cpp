@@ -78,7 +78,8 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
   _connectionManager(this, this, domainName),
   _useLogConfigUriResolver(useLogCfgResolver),
   _strict_spd_validation(false),
-  _bindToDomain(bindToDomain)
+  _bindToDomain(bindToDomain),
+  _override_blocking_timeout(4000)
 {
     TRACE_ENTER(DomainManager_impl)
 
@@ -538,7 +539,7 @@ void DomainManager_impl::cleanupDomainNamingContext (CosNaming::NamingContext_pt
         if (bl[ii].binding_type == CosNaming::ncontext) {
             CORBA::Object_var obj = nc->resolve(bl[ii].binding_name);
             CosNaming::NamingContext_var new_context = CosNaming::NamingContext::_narrow(obj);
-            ossie::corba::setNonBlockingClientCall(obj);
+            ossie::corba::overrideBlockingCall(obj,getOverrideBlockingTimeOut());
             if (obj->_non_existent()) {
                 // If it no longer exists, unbind it
                 LOG_TRACE(DomainManager_impl, "Unbinding naming context which no longer exists; this is probably due to an omniNames bug")
@@ -559,7 +560,7 @@ void DomainManager_impl::cleanupDomainNamingContext (CosNaming::NamingContext_pt
             CORBA::Object_var obj = nc->resolve(bl[ii].binding_name);
             bool _unbind = false;
             try {
-                ossie::corba::setNonBlockingClientCall(obj);
+                ossie::corba::overrideBlockingCall(obj,getOverrideBlockingTimeOut());
                 if (obj->_non_existent()) {
                     _unbind = true;
                 }
@@ -609,15 +610,29 @@ void DomainManager_impl::shutdownAllDeviceManagers()
     while (_registeredDeviceManagers.size() > 0) {
         unsigned int lenRegDevMgr = _registeredDeviceManagers.size();
         CF::DeviceManager_var devMgr = (*_registeredDeviceManagers.begin()).deviceManager;
+        std::string dm_label = (*_registeredDeviceManagers.begin()).label;
         try {
-            devMgr->shutdown();
-        } catch ( ... ) {
-            std::string message("Error shutting down Device Manager ");
-            message += (*_registeredDeviceManagers.begin()).label;
+            if ( !CORBA::is_nil(devMgr)  ) {
+                devMgr->shutdown();
+            }
+            else {
+                LOG_WARN(DomainManager_impl, "A DeviceManager: " << dm_label << ",  reference is empty, possible lingering process after shutdown completes.");
+            }
+        } catch ( std::exception& ex ) {
+            LOG_ERROR(DomainManager_impl, "The following standard exception occurred: "<<ex.what()<<" while attempting to shutdown a DeviceManager : " << dm_label << ", continuing shutdown process.");
             if (lenRegDevMgr == _registeredDeviceManagers.size()) {
                 _registeredDeviceManagers.erase(_registeredDeviceManagers.begin());
             }
-            LOG_TRACE(DomainManager_impl, message)
+        } catch( const CORBA::Exception& e ) {
+            LOG_ERROR(DomainManager_impl, "DeviceManager: " << dm_label << " failed shutdown, continuing shutdown process. Exception: " << e._name());
+            if (lenRegDevMgr == _registeredDeviceManagers.size()) {
+                _registeredDeviceManagers.erase(_registeredDeviceManagers.begin());
+            }
+        } catch ( ... ) {
+            if (lenRegDevMgr == _registeredDeviceManagers.size()) {
+                _registeredDeviceManagers.erase(_registeredDeviceManagers.begin());
+            }
+            LOG_ERROR(DomainManager_impl, "Error shutting down Device Manager: " << dm_label << ", an unknown exception occurred." );
         }
     }
 }
@@ -901,6 +916,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     try {
+        ossie::corba::overrideBlockingCall(domainMgr, getOverrideBlockingTimeOut()*2);
         std::string identifier = ossie::corba::returnString(domainMgr->identifier());
         DomainManagerList::iterator node = findDomainManagerById(identifier);
         if (node != _registeredDomainManagers.end()) {
@@ -970,6 +986,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
        CF::DomainManager::RegisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
+    ossie::corba::overrideBlockingCall(deviceMgr,getOverrideBlockingTimeOut());
     _local_registerDeviceManager(deviceMgr);
 
     std::string identifier = ossie::corba::returnString(deviceMgr->identifier());
@@ -1276,6 +1293,8 @@ throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
        CF::DomainManager::RegisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
+    ossie::corba::overrideBlockingCall(registeringDevice,getOverrideBlockingTimeOut());
+    ossie::corba::overrideBlockingCall(registeredDeviceMgr,getOverrideBlockingTimeOut());
     _local_registerDevice(registeringDevice, registeredDeviceMgr);
 
     std::string identifier = ossie::corba::returnString(registeringDevice->identifier());
@@ -1380,7 +1399,6 @@ void DomainManager_impl::storeDeviceInDomainMgr (CF::Device_ptr registeringDevic
     newDeviceNode->softwareProfile = ossie::corba::returnString(registeringDevice->softwareProfile());
     newDeviceNode->identifier = ossie::corba::returnString(registeringDevice->identifier());
     newDeviceNode->implementationId = ossie::corba::returnString(registeredDeviceMgr->getComponentImplementationId(newDeviceNode->identifier.c_str()));
-    ossie::corba::setNonBlockingClientCall(registeringDevice);
     newDeviceNode->isLoadable = registeringDevice->_is_a(CF::LoadableDevice::_PD_repoId);
     newDeviceNode->isExecutable = registeringDevice->_is_a(CF::ExecutableDevice::_PD_repoId);
 
@@ -1967,6 +1985,8 @@ void DomainManager_impl::registerService (CORBA::Object_ptr registeringService, 
     throw (CF::DomainManager::RegisterError, CF::DomainManager::DeviceManagerNotRegistered, CF::InvalidObjectReference, CORBA::SystemException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
+    ossie::corba::overrideBlockingCall(registeringService,getOverrideBlockingTimeOut());
+    ossie::corba::overrideBlockingCall(registeredDeviceMgr,getOverrideBlockingTimeOut());
     _local_registerService(registeringService, registeredDeviceMgr, name);
 }
 
@@ -2297,7 +2317,6 @@ ossie::DeviceList::iterator DomainManager_impl::findDeviceByObject (CF::Device_p
     } catch (...) {
         // Device is not reachable for some reason, try checking by object.
     }
-
     DeviceList::iterator node;
     for (node = _registeredDevices.begin(); node != _registeredDevices.end(); ++node) {
         if (device->_is_equivalent((*node)->device)) {
@@ -2387,7 +2406,6 @@ ossie::ServiceList::iterator DomainManager_impl::findServiceByType (const std::s
     ServiceList::iterator node;
     for (node = _registeredServices.begin(); node != _registeredServices.end(); ++node) {
         try {
-            ossie::corba::setNonBlockingClientCall(node->service);
             if (node->service->_is_a(repId.c_str())) {
                 break;
             }
