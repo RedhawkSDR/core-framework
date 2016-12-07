@@ -330,6 +330,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dev/devices/dev_kill_devmgr/cpp/Makefile \
                 testing/sdr/dev/devices/GPP/cpp/Makefile \
                 testing/sdr/dev/devices/java_dev/java/Makefile \
+                testing/sdr/dev/devices/LongDevice/cpp/Makefile \
                 testing/sdr/dev/services/BasicService_java/java/Makefile \
                 testing/sdr/dom/deps/cpp_dep1/cpp/Makefile \
                 testing/sdr/dom/deps/cpp_dep1/cpp/cpp_dep1.pc \

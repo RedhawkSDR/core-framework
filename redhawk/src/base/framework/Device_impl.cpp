@@ -1145,6 +1145,9 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
     }
     catch( CF::InvalidObjectReference &ex ) {
       LOG_FATAL(Device_impl, "Device " << label << ", Failed initialization and registration, terminating execution");
+      if ( device ) device->_remove_ref();
+      ossie::logging::Terminate();
+      ossie::corba::OrbShutdown(true);
       exit(EXIT_FAILURE);
     } catch ( CORBA::SystemException &ex ) {
         std::ostringstream eout;
@@ -1168,9 +1171,15 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
         }
         eout << ")";
         LOG_FATAL(Device_impl, "Unable to complete Device construction: "<<eout.str());
+        if ( device ) device->_remove_ref();
+        ossie::logging::Terminate();
+        ossie::corba::OrbShutdown(true);
         exit(EXIT_FAILURE);
     } catch ( ... ) {
         LOG_FATAL(Device_impl, "device fatal failure");
+        if ( device ) device->_remove_ref();
+        ossie::logging::Terminate();
+        ossie::corba::OrbShutdown(true);
         exit(EXIT_FAILURE);
     }
 

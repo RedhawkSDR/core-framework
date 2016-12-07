@@ -237,6 +237,8 @@ public:
 
     bool  strictSPDValidation() {  return _strict_spd_validation;  };
 
+    uint32_t  getOverrideBlockingTimeOut( ) { return _override_blocking_timeout; }
+
 /////////////////////////////
 // Internal Helper Functions
 /////////////////////////////
@@ -364,6 +366,8 @@ private:
     FileManager_impl* fileMgr_servant;
 
     bool             _bindToDomain;
+
+    uint32_t        _override_blocking_timeout;
 };                                            /* END CLASS DEFINITION DomainManager */
 
 

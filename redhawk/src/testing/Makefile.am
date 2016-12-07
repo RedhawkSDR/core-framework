@@ -39,6 +39,7 @@ SUBDIRS = sdr/dev/devices/ExecutableDevice \
           sdr/dev/devices/dev_kill_devmgr/cpp \
           sdr/dev/devices/GPP/cpp \
           sdr/dev/devices/java_dev/java \
+          sdr/dev/devices/LongDevice/cpp \
           sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/deps/cpp_dep2/cpp \
           sdr/dom/components/TestCppProps \

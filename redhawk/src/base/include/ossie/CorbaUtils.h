@@ -68,21 +68,23 @@ namespace ossie {
 
         //
         // Set timeout period for a specific client object when making a call to that object
-        void setNonBlockingClientCall(CORBA::Object_ptr obj, uint32_t timeOut=3000);
+        // prefer config setting if non zero, override if zero
+        void overrideBlockingCall(CORBA::Object_ptr obj, uint32_t timeOut=3000);
 
         //
-        // Set timeout period for a specific client object when making a call to that object
-        void setNonBlockingClientCall( uint32_t timeOut=3000);
+        // Set timeout period for a specific client object when making a client call
+        // prefer config setting if non zero, override if zero
+        void overrideBlockingCall( uint32_t timeOut=3000);
+
+        //
+        // reset client call timeout to use configuration options
+        void resetClientCallTimeOut( CORBA::Object_ptr obj );
 
         //
         // Get the client call configuration parameter for this process
         uint32_t  getConfigurationClientCallTimeOut();
 
         //
-        // Get the client call configuration parameter for this process, override to specified timeout
-        // to be non blocking if configuration parameter is set to zero.
-        uint32_t  getClientCallTimeOut(bool nonBlocking=true, uint32_t defaultTimeOut=3000);
-
         // Get the root naming context. If it has not yet been resolved, it
         // will be looked up from the ORB's initial references.
         CosNaming::NamingContext_ptr InitialNamingContext ();
@@ -233,8 +235,10 @@ namespace ossie {
 
         inline bool objectExists(CORBA::Object_ptr obj) {
             try {
-                setNonBlockingClientCall(obj);
-                return (!CORBA::is_nil(obj) && !obj->_non_existent());
+                overrideBlockingCall(obj);
+                bool ret = (!CORBA::is_nil(obj) && !obj->_non_existent());
+                resetClientCallTimeOut(obj);
+                return ret;
             } catch ( CORBA::Exception& e ) {
                 return false;
             }
