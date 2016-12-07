@@ -22,6 +22,7 @@
 #include "bulkio_typetraits.h"
 #include "bulkio_time_operators.h"
 #include "bulkio_in_port.h"
+#include "bulkio_p.h"
 
 namespace bulkio {
     template <typename PortType>
@@ -378,20 +379,9 @@ namespace bulkio {
     template class LocalTransport<x>;           \
     template class RemoteTransport<x>;          \
 
-#define INSTANTIATE_NUMERIC_TEMPLATE(x)                                 \
-    INSTANTIATE_TEMPLATE(x); template class ChunkingTransport<x>;
+#define INSTANTIATE_NUMERIC_TEMPLATE(x)         \
+    template class ChunkingTransport<x>;
 
-    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataChar);
-    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataOctet);
-    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataShort);
-    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUshort);
-    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataLong);
-    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUlong);
-    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataLongLong);
-    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUlongLong);
-    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataFloat);
-    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataDouble);
-
-    INSTANTIATE_TEMPLATE(BULKIO::dataFile);
-    INSTANTIATE_TEMPLATE(BULKIO::dataXML);
+    FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
+    FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
 }

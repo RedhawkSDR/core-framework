@@ -92,6 +92,22 @@ namespace bulkio    {
 
 }   // end of namespace
 
+#define FOREACH_NUMERIC_PORT_TYPE(x) \
+    x(BULKIO::dataChar);             \
+    x(BULKIO::dataOctet);            \
+    x(BULKIO::dataShort);            \
+    x(BULKIO::dataUshort);           \
+    x(BULKIO::dataLong);             \
+    x(BULKIO::dataUlong);            \
+    x(BULKIO::dataLongLong);         \
+    x(BULKIO::dataUlongLong);        \
+    x(BULKIO::dataFloat);            \
+    x(BULKIO::dataDouble);
+
+#define FOREACH_PORT_TYPE(x)     \
+    FOREACH_NUMERIC_PORT_TYPE(x) \
+    x(BULKIO::dataFile);         \
+    x(BULKIO::dataXML);
 
 #endif  // __bulkio_p_h__
 

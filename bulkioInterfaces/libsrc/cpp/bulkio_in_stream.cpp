@@ -21,6 +21,7 @@
 #include "bulkio_in_stream.h"
 #include "bulkio_time_operators.h"
 #include "bulkio_in_port.h"
+#include "bulkio_p.h"
 
 #include <boost/make_shared.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -704,17 +705,7 @@ const typename BufferedInputStream<PortType>::Impl& BufferedInputStream<PortType
     template class InputStream<x>;
 
 #define INSTANTIATE_NUMERIC_TEMPLATE(x) \
-    INSTANTIATE_TEMPLATE(x); template class BufferedInputStream<x>;
+    template class BufferedInputStream<x>;
 
-INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataChar);
-INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataOctet);
-INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataShort);
-INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUshort);
-INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataLong);
-INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUlong);
-INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataLongLong);
-INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataUlongLong);
-INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataFloat);
-INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataDouble);
-INSTANTIATE_TEMPLATE(BULKIO::dataXML);
-INSTANTIATE_TEMPLATE(BULKIO::dataFile);
+    FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
+    FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
