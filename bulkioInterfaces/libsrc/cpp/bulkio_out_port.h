@@ -99,7 +99,6 @@ namespace bulkio {
     //
     typedef std::map< std::string, SriMapStruct >                    OutPortSriMap;
 
-
     //
     // OutPort Creates a uses port object for publishing data to the framework
     //
@@ -307,7 +306,8 @@ namespace bulkio {
     // 
     // Data type of the container for passing data into the pushPacket method
     //
-    typedef std::vector<NativeType> VectorType;
+    typedef typename BufferTraits<PortType>::VectorType VectorType;
+    typedef VectorType NativeSequenceType;
 
     //
     // OutNumericPort Creates a uses port object for publishing data to the framework
@@ -407,6 +407,8 @@ namespace bulkio {
   //
   class OutFilePort : public OutPort<BULKIO::dataFile> {
   public:
+    typedef char* NativeSequenceType;
+
     OutFilePort(const std::string& name, 
                 ConnectionEventListener *connectCB=NULL,
                 ConnectionEventListener *disconnectCB=NULL);
@@ -465,6 +467,8 @@ namespace bulkio {
   //
   class OutXMLPort : public OutPort<BULKIO::dataXML> {
   public:
+    typedef char* NativeSequenceType;
+
     OutXMLPort(const std::string& name, 
                ConnectionEventListener *connectCB=NULL,
                ConnectionEventListener *disconnectCB=NULL);
