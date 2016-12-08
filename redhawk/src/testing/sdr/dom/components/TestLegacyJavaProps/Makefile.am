@@ -22,8 +22,10 @@ all-local: TestLegacyJavaProps.jar
 
 TestLegacyJavaProps.jar$(EXEEXT): TestLegacyJavaProps.java
 	mkdir -p bin
-	$(JAVAC) -source 1.5 -cp $(OSSIE_CLASSPATH) -d bin TestLegacyJavaProps.java
-	$(JAR) cf TestLegacyJavaProps.jar -C bin .
+	find . -name "*.java" > fileList.txt
+	$(JAVAC) -cp $(OSSIE_CLASSPATH) -d bin @fileList.txt
+	$(JAR) cf ./TestLegacyJavaProps.jar -C bin .
+	rm fileList.txt
 
 clean-local:
 	rm -rf bin
