@@ -275,7 +275,7 @@ namespace  bulkio {
       }
 
       LOG_TRACE(logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << packetQueue.size()+1 << ")");
-      stats->update(length, (float)(packetQueue.size()+1)/(float)maxQueue, EOS, streamID, false);
+      stats->update(length, (float)(packetQueue.size()+1)/(float)maxQueue, EOS, streamID, flushToReport);
       Packet *tmpIn = new Packet(data, T, EOS, sri, sriChanged, flushToReport);
       packetQueue.push_back(tmpIn);
       dataAvailable.notify_all();
