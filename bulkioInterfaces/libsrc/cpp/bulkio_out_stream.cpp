@@ -413,7 +413,7 @@ private:
     {
         // Push out all buffered data, which must be less than the full allocated
         // size otherwise it would have already been sent
-        _send(_buffer.slice(0, _bufferOffset), _bufferTime, eos);
+        this->_send(_buffer.slice(0, _bufferOffset), _bufferTime, eos);
 
         // Allocate a new buffer and reset the offset index
         _buffer = redhawk::buffer<ScalarType>(_bufferSize);
