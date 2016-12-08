@@ -153,8 +153,14 @@ namespace burstio {
         // Add bursts to queue, if there are any
         if (total_bursts > 0) {
             LOG_INSTANCE_TRACE("Queueing " << total_bursts << " bursts");
-            queue_.push_back(new BurstSequenceType());
-            ossie::corba::move(queue_.back(), const_cast<BurstSequenceType&>(bursts));
+            if (bursts.release()) {
+                // Steal the bursts
+                queue_.push_back(new BurstSequenceType());
+                ossie::corba::move(queue_.back(), const_cast<BurstSequenceType&>(bursts));
+            } else {
+                // Someone else owns the bursts, make a copy
+                queue_.push_back(new BurstSequenceType(bursts));
+            }
             queuedBursts_ += total_bursts;
             queueNotEmpty_.notify_all();
         } else {
