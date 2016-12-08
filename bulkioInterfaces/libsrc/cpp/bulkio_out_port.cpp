@@ -270,13 +270,7 @@ namespace bulkio {
           throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
 
-      PortTransportType* transport = PortTransportType::Factory(connectionId, name, port);
-      if (transport->isLocal()) {
-          PortBase* local_port = ossie::corba::getLocalServant<PortBase>(port);
-          LOG_DEBUG(logger, "Using local connection to port " << local_port->getName()
-                    << " for connection " << connectionId);
-      }
-      return transport;
+      return PortTransportType::Factory(connectionId, name, port);
   }
 
 

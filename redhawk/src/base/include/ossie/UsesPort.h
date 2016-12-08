@@ -61,6 +61,8 @@ namespace redhawk {
         const std::string& connectionId() const;
         CORBA::Object_ptr objref() const;
 
+        virtual std::string getDescription() const;
+
         bool isAlive() const;
         void setAlive(bool alive);
 

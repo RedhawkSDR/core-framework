@@ -55,6 +55,11 @@ public:
         _consumer->connect_push_supplier(CosEventComm::PushSupplier::_nil());
     }
 
+    virtual std::string getDescription() const
+    {
+        return "CORBA messaging transport";
+    }
+
     void push(const CORBA::Any& data)
     {
         _consumer->push(data);
@@ -108,6 +113,11 @@ public:
         MessageTransport(connectionId, channel),
         _consumer(consumer)
     {
+    }
+
+    virtual std::string getDescription() const
+    {
+        return "local messaging connection to " + _consumer->getName();
     }
 
     void push(const CORBA::Any& data)

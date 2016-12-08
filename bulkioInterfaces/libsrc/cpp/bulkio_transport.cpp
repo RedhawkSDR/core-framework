@@ -106,12 +106,6 @@ namespace bulkio {
     }
 
     template <typename PortType>
-    bool PortTransport<PortType>::isLocal() const
-    {
-        return false;
-    }
-
-    template <typename PortType>
     void PortTransport<PortType>::_sendPacket(const BufferType& data,
                                               const BULKIO::PrecisionUTCTime& T,
                                               bool EOS,
@@ -151,6 +145,11 @@ namespace bulkio {
         RemoteTransport(const std::string& connectionId, const std::string& name, PtrType port) :
             PortTransport<PortType>(connectionId, name, port)
         {
+        }
+
+        virtual std::string getDescription() const
+        {
+            return "CORBA BulkIO transport";
         }
 
     protected:
@@ -326,9 +325,9 @@ namespace bulkio {
             _localPort->_remove_ref();
         }
 
-        virtual bool isLocal() const
+        virtual std::string getDescription() const
         {
-            return true;
+            return "local BulkIO connection to " + _localPort->getName();
         }
 
     protected:

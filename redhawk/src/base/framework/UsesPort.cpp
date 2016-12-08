@@ -36,6 +36,11 @@ namespace redhawk {
         return _connectionId;
     }
 
+    std::string BasicTransport::getDescription() const
+    {
+        return "basic transport";
+    }
+
     bool BasicTransport::isAlive() const
     {
         return _alive;
@@ -79,6 +84,8 @@ namespace redhawk {
             if (entry == _transports.end()) {
                 BasicTransport* transport = _createTransport(connection, connection_id);
                 _addTransportEntry(transport);
+                RH_DEBUG(logger, "Using " << transport->getDescription()
+                         << " for connection '" << connection_id << "'");
             } else {
                 // TODO: Replace the object reference
             }

@@ -74,6 +74,11 @@ namespace burstio {
         {
         }
 
+        virtual std::string getDescription() const
+        {
+            return "CORBA BurstIO transport";
+        }
+
         void pushBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth)
         {
             try {
@@ -146,6 +151,11 @@ namespace burstio {
             parent_(parent),
             localPort_(localPort)
         {
+        }
+
+        virtual std::string getDescription() const
+        {
+            return "local BurstIO connection to " + localPort_->getName();
         }
 
         void pushBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth)
@@ -586,11 +596,8 @@ namespace burstio {
         var_type port = ossie::corba::_narrowSafe<PortType>(object);
         InPort<Traits>* local_port = ossie::corba::getLocalServant<InPort<Traits> >(port);
         if (local_port) {
-            RH_DEBUG(logger, "Using local transport to port " << local_port->getName()
-                     << " for connection " << connectionId);
             return new LocalTransport(this, local_port, port, connectionId);
         } else {
-            RH_DEBUG(logger, "Using CORBA transport for connection " << connectionId);
             return new RemoteTransport(this, port, connectionId);
         }
     }

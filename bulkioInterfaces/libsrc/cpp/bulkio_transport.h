@@ -54,8 +54,6 @@ namespace bulkio {
 
         PtrType port();
 
-        virtual bool isLocal() const;
-
         linkStatistics stats;
 
     protected:
