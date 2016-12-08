@@ -579,17 +579,18 @@ namespace burstio {
     }
 
     template <class Traits>
-    redhawk::BasicTransport* OutPort<Traits>::_createTransport (const std::string& connectionId,
-                                                                CORBA::Object_ptr object)
+    redhawk::BasicTransport* OutPort<Traits>::_createTransport (CORBA::Object_ptr object,
+                                                                const std::string& connectionId)
     {
         typedef typename PortType::_var_type var_type;
         var_type port = ossie::corba::_narrowSafe<PortType>(object);
         InPort<Traits>* local_port = ossie::corba::getLocalServant<InPort<Traits> >(port);
         if (local_port) {
-            RH_DEBUG(logger, "Using local connection to port " << local_port->getName()
+            RH_DEBUG(logger, "Using local transport to port " << local_port->getName()
                      << " for connection " << connectionId);
             return new LocalTransport(this, local_port, port, connectionId);
         } else {
+            RH_DEBUG(logger, "Using CORBA transport for connection " << connectionId);
             return new RemoteTransport(this, port, connectionId);
         }
     }

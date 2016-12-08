@@ -248,7 +248,7 @@ namespace burstio {
         void queueBurst (SequenceType& data, const BURSTIO::BurstSRI& sri,
                          const BULKIO::PrecisionUTCTime& timestamp, bool eos, bool isComplex);
 
-        virtual redhawk::BasicTransport* _createTransport(const std::string& connectionId, CORBA::Object_ptr object);
+        virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
         const Queue& getQueueForStream (const std::string& streamID) const;
         Queue& getQueueForStream (const std::string& streamID);
