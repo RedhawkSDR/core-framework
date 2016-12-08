@@ -32,7 +32,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <partitioning>
     <componentplacement>
         <componentfileref refid="MessageReceiverCppFile"/>
-        <componentinstantiation id="DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8">
+        <componentinstantiation id="MessageReceiverCpp_1">
             <usagename>MessageReceiverCpp_1</usagename>
             <findcomponent>
                 <namingservice name="MessageReceiverCpp_1"/>
@@ -41,7 +41,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </componentplacement>
     <componentplacement>
         <componentfileref refid="MessageSenderCppFile"/>
-        <componentinstantiation id="DCE:f7e0ac7c-5d4c-45b2-910f-a937bf7625b5">
+        <componentinstantiation id="MessageSenderCpp_1">
             <usagename>MessageSenderCpp_1</usagename>
             <findcomponent>
                 <namingservice name="MessageSenderCpp_1"/>
@@ -50,32 +50,32 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </componentplacement>
   </partitioning>
   <assemblycontroller>
-      <componentinstantiationref refid="DCE:f7e0ac7c-5d4c-45b2-910f-a937bf7625b5"/>
+      <componentinstantiationref refid="MessageSenderCpp_1"/>
   </assemblycontroller>
   <connections>
-      <connectinterface>
+      <connectinterface id="direct">
           <usesport>
               <usesidentifier>message_out</usesidentifier>
-              <componentinstantiationref refid="DCE:f7e0ac7c-5d4c-45b2-910f-a937bf7625b5"/>
+              <componentinstantiationref refid="MessageSenderCpp_1"/>
           </usesport>
           <providesport>
               <providesidentifier>message_in</providesidentifier>
-              <componentinstantiationref refid="DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8"/>
+              <componentinstantiationref refid="MessageReceiverCpp_1"/>
           </providesport>
       </connectinterface>
-      <connectinterface>
+      <connectinterface id="channel_receiver">
           <usesport>
               <usesidentifier>message_in</usesidentifier>
-              <componentinstantiationref refid="DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8"/>
+              <componentinstantiationref refid="MessageReceiverCpp_1"/>
           </usesport>
           <findby>
               <domainfinder type="eventchannel" name="message_two"/>
           </findby>
       </connectinterface>
-      <connectinterface>
+      <connectinterface id="channel_sender">
           <usesport>
               <usesidentifier>message_out</usesidentifier>
-              <componentinstantiationref refid="DCE:f7e0ac7c-5d4c-45b2-910f-a937bf7625b5"/>
+              <componentinstantiationref refid="MessageSenderCpp_1"/>
           </usesport>
           <findby>
               <domainfinder type="eventchannel" name="message_two"/>
