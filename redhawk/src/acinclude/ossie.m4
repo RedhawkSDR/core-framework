@@ -109,7 +109,7 @@ AC_DEFUN([OSSIE_SDRROOT],
       elif test "x${prefix}" != "xNONE"; then
         ossie_cv_sdr_root=${prefix}
       else
-        ossie_cv_sdr_root=$ac_default_prefix
+        ossie_cv_sdr_root=/var/redhawk/sdr
       fi
     )
   ])

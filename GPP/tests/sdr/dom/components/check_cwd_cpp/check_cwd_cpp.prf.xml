@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="cwd" mode="readonly" type="string">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+</properties>

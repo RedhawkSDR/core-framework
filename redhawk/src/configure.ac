@@ -77,6 +77,7 @@ fi
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.0.0])
 OMNIORB_INCLUDEDIR=`pkg-config --variable=includedir omniORB4`
 AC_SUBST(OMNIORB_INCLUDEDIR)
+PKG_CHECK_EXISTS([omniORB4 >= 4.2.0],[AC_DEFINE([OMNIORB4_2],[1],[])])
 PKG_CHECK_MODULES([OMNITHREAD], [omnithread3 >= 4.0.0])
 PKG_CHECK_MODULES([OMNIDYNAMIC], [omniDynamic4 >= 4.0.0])
 
@@ -336,6 +337,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dev/devices/dev_kill_devmgr/cpp/Makefile \
                 testing/sdr/dev/devices/GPP/cpp/Makefile \
                 testing/sdr/dev/devices/java_dev/java/Makefile \
+                testing/sdr/dev/devices/LongDevice/cpp/Makefile \
                 testing/sdr/dev/services/BasicService_java/java/Makefile \
                 testing/sdr/dom/deps/cpp_dep1/cpp/Makefile \
                 testing/sdr/dom/deps/cpp_dep1/cpp/cpp_dep1.pc \
@@ -351,6 +353,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/TestCppsoftpkgDeps/Makefile \
                 testing/sdr/dom/components/javaDep/javaDep/Makefile \
                 testing/sdr/dom/components/java_comp/java/Makefile \
+                testing/sdr/dom/components/msg_through_java/java/Makefile \
                 testing/sdr/dom/components/HardLimit/HardLimit_java_impl1/Makefile \
                 testing/sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1/Makefile \
                 testing/sdr/dom/components/BasicAC/basicac_java_impl1/Makefile \
@@ -378,6 +381,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/PropertyChange_C1/cpp/Makefile \
                 testing/sdr/dom/components/PropertyChange_J1/java/Makefile \
                 testing/sdr/dom/components/Property_CPP/cpp/Makefile \
+                testing/sdr/dom/components/msg_through_cpp/cpp/Makefile \
                 testing/sdr/dom/components/commandline_prop/cpp/Makefile \
                 testing/sdr/dom/components/nocommandline_prop/cpp/Makefile \
                 testing/sdr/dom/components/Property_JAVA/java/Makefile \

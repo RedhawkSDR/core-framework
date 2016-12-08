@@ -556,6 +556,7 @@ void createHelper::setUpExternalPorts(redhawk::ApplicationDeployment& appDeploym
         CORBA::Object_var obj;
 
         if (port.type == SoftwareAssembly::Port::SUPPORTEDIDENTIFIER) {
+            ossie::corba::overrideBlockingCall(resource);
             if (!resource->_is_a(port.identifier.c_str())) {
                 throw redhawk::BadExternalPort(port, "component does not support interface " + port.identifier);
             }

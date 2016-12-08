@@ -475,7 +475,7 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
                             id = value.id
                             if id in self._messages:
                                 msgstruct, callback = self._messages[id]
-                                value = struct_from_any(value.value, msgstruct)
+                                value = struct_from_any(value.value, msgstruct, strictComplete=False)
                                 try:
                                     callback(id, value)
                                 except Exception, e:

@@ -80,6 +80,10 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         thresholds_struct thresholds;
         /// Property  to annotate why the system is busy 
         std::string busy_reason;
+        /// Property  to select a cache directory other than the default
+        std::string cacheDirectory;
+        /// Property  to select a working directory other than the default
+        std::string workingDirectory;
         // time between cycles to refresh threshold metrics
         CORBA::ULong threshold_cycle_time;
         // ulimits for the GPP process

@@ -177,6 +177,7 @@ namespace ossie
       typedef ossie::ComponentInstantiation::LoggingConfig  LoggingConfig;
 
         ResourceInfo (const std::string& spdFileName);
+        ResourceInfo (const ResourceInfo&);
         ~ResourceInfo ();
         ResourceInfo &operator=( const ResourceInfo&);
 

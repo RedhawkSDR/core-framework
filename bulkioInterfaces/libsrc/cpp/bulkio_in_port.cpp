@@ -456,7 +456,10 @@ namespace  bulkio {
             return NULL;
           }
         } else {
-          dataAvailable.wait(lock);
+            to_time  = boost::get_system_time() + boost::posix_time::seconds(1);
+            while ((not breakBlock) and (not dataAvailable.timed_wait(lock, to_time))) {
+                to_time  = boost::get_system_time() + boost::posix_time::seconds(1);
+            }
         }
         if (breakBlock) {
           TRACE_EXIT(logger, "InPort::nextPacket");

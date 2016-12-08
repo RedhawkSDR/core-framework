@@ -270,7 +270,7 @@ void GPP_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "configure,property");
 
     addProperty(available_nic_interfaces,
                 "available_nic_interfaces",
@@ -350,6 +350,22 @@ void GPP_base::loadProperties()
 
     addProperty(busy_reason,
                 "busy_reason",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(cacheDirectory,
+                "cacheDirectory",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(workingDirectory,
+                "workingDirectory",
                 "",
                 "readonly",
                 "",

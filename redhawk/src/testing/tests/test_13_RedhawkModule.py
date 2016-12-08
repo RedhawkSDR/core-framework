@@ -52,9 +52,9 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
     def test_API_remap(self):
         orig_api = dir(self._rhDom.ref)
         remap_api = dir(self._rhDom)
-        not_remap = ['__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
-                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '_release','_unchecked_narrow']
+        not_remap = ['_NP_RepositoryId','_Object__release','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
+                     '__methods__','_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
+                     '__del__','__omni_obj','_release','_unchecked_narrow', '_non_existent']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -62,9 +62,6 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
             
         orig_api = dir(self._rhDom.devMgrs[0].ref)
         remap_api = dir(self._rhDom.devMgrs[0])
-        not_remap = ['__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
-                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '_release','_unchecked_narrow']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -77,9 +74,6 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
 
         orig_api = dir(self._rhDom.apps[0].comps[0].ref)
         remap_api = dir(self._rhDom.apps[0].comps[0])
-        not_remap = ['_NP_RepositoryId','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
-                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '_release','_unchecked_narrow', '_non_existent']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -87,9 +81,6 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
 
         orig_api = dir(self._rhDom.apps[0].ref)
         remap_api = dir(self._rhDom.apps[0])
-        not_remap = ['_NP_RepositoryId','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
-                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '_release','_unchecked_narrow', '_non_existent']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -97,9 +88,6 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
 
         orig_api = dir(self._rhDom.devMgrs[0].devs[0].ref)
         remap_api = dir(self._rhDom.devMgrs[0].devs[0])
-        not_remap = ['_NP_RepositoryId','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
-                     '_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '_release','_unchecked_narrow', '_non_existent']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -128,6 +116,33 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         app.releaseObject()
         self.assertEquals(len(self._rhDom._get_applications()), 1)
         self.assertEquals(len(self._rhDom.apps), 1)
+
+        # Use exit functions from module to release other launched app
+        redhawk.core._cleanUpLaunchedApps()
+        self.assertEquals(len(self._rhDom.apps), 0)
+        self.assertEquals(len(self._rhDom._get_applications()), 0)
+
+
+    def test_createApplication_namespaced(self):
+        # Automatically clean up
+        redhawk.setTrackApps(True)
+        # Create Application from $SDRROOT path
+        app = self._rhDom.createApplication("simple_ns.c2_comp")
+        self.assertNotEqual(app, None, "Application not created")
+        self.assertEquals(len(self._rhDom._get_applications()), 1)
+        self.assertEquals(len(self._rhDom.apps), 1)
+
+
+        app2 = self._rhDom.createApplication("c2_comp")
+        self.assertNotEqual(app2, None, "Application not created")
+        self.assertEquals(len(self._rhDom._get_applications()), 2)
+        self.assertEquals(len(self._rhDom.apps), 2)
+
+        app.releaseObject()
+        self.assertEquals(len(self._rhDom._get_applications()), 1)
+        self.assertEquals(len(self._rhDom.apps), 1)
+
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError,self._rhDom.createApplication, "this.should.fail.c2_comp")
 
         # Use exit functions from module to release other launched app
         redhawk.core._cleanUpLaunchedApps()

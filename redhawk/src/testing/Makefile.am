@@ -39,6 +39,7 @@ SUBDIRS = sdr/dev/devices/ExecutableDevice \
           sdr/dev/devices/dev_kill_devmgr/cpp \
           sdr/dev/devices/GPP/cpp \
           sdr/dev/devices/java_dev/java \
+          sdr/dev/devices/LongDevice/cpp \
           sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/deps/cpp_dep2/cpp \
           sdr/dom/components/TestCppProps \
@@ -68,7 +69,8 @@ SUBDIRS = sdr/dev/devices/ExecutableDevice \
           sdr/dom/components/nocommandline_prop/cpp \
           sdr/dom/components/foo/bar/comp/cpp \
           sdr/dom/components/TestCppOptionalProps/cpp \
-          sdr/dom/components/cpp_with_deps/cpp
+          sdr/dom/components/cpp_with_deps/cpp \
+          sdr/dom/components/msg_through_cpp/cpp
 
 if HAVE_JAVASUPPORT
 SUBDIRS += sdr/dev/devices/BasicTestDevice_java/java \
@@ -80,6 +82,7 @@ SUBDIRS += sdr/dev/devices/BasicTestDevice_java/java \
            sdr/dom/components/EventReceive/EventReceive_java_impl1 \
            sdr/dom/components/javaDep/javaDep \
            sdr/dom/components/java_comp/java \
+           sdr/dom/components/msg_through_java/java \
            sdr/dom/components/HardLimit/HardLimit_java_impl1 \
            sdr/dom/components/PropertyChangeEventsJava/PropertyChangeEventsJava_java_impl1 \
            sdr/dom/components/TestJavaProps \

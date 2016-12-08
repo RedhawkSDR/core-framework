@@ -671,25 +671,43 @@ bool DeviceManager_impl::getDeviceOrService(
 
 void DeviceManager_impl::createDeviceCacheLocation(
         std::string& devcache,
+        std::string& devcwd,
         std::string& usageName, 
-        const ossie::ComponentInstantiation& instantiation)
+        const ossie::ComponentInstantiation& instantiation,
+        std::string spdFile)
 {
-    // No log messages within this method as it is called between exec and fork
-
-    // create device cache location
-    std::string baseDevCache = _cacheroot + "/." + _label;
     if (instantiation.getUsageName().empty()) {
         // no usage name was given, so create one. By definition, the instantiation id must be unique
         usageName = instantiation.instantiationId;
     } else {
         usageName = instantiation.getUsageName();
     }
+    
+    cacheAndCwdStruct cacheCwd = getOverloadCacheAndCwd(spdFile, instantiation);
+    
+    if (cacheCwd.cache.empty()) {
+        std::string baseDevCache = _cacheroot + "/." + _label;
+        devcache = baseDevCache + "/" + usageName;
+    } else {
+        devcache = cacheCwd.cache;
+    }
+    
+    devcwd = cacheCwd.cwd;
 
-    devcache = baseDevCache + "/" + usageName;
+    // create device cache location
     bool retval = this->makeDirectory(devcache);
     if (not retval) {
         LOG_ERROR(DeviceManager_impl, "Unable to create the Device cache: " << devcache)
         exit(-1);
+    }
+
+    // create device cwd location if needed
+    if (not devcwd.empty()) {
+        retval = this->makeDirectory(devcwd);
+        if (not retval) {
+            LOG_ERROR(DeviceManager_impl, "Unable to create the Device working directory: " << devcwd)
+            exit(-1);
+        }
     }
 }
 
@@ -709,9 +727,6 @@ void DeviceManager_impl::createDeviceExecStatement(
         const std::vector<ossie::DevicePlacement>&    componentPlacements,
         const std::string&                            compositeDeviceIOR,
         const ossie::ComponentPropertyList&          instanceprops) {
-    
-    // DO not put any LOG calls in this method, as it is called beteen
-    // fork() and execv().
         
     ossie::ComponentPropertyList::const_iterator iprops_iter;
 
@@ -954,8 +969,9 @@ void DeviceManager_impl::createDeviceThreadAndHandleExceptions(
 
     try {
         std::string devcache; 
-        std::string usageName; 
-        createDeviceCacheLocation(devcache, usageName, instantiation);
+        std::string devcwd; 
+        std::string usageName;
+        createDeviceCacheLocation(devcache, devcwd, usageName, instantiation, SPDParser.getSPDFile());
         createDeviceThread(componentPlacement,
                            componentType,
                            pOverloadprops,
@@ -964,6 +980,7 @@ void DeviceManager_impl::createDeviceThreadAndHandleExceptions(
                            DCDParser,
                            instantiation,
                            devcache,
+                           devcwd,
                            usageName,
                            componentPlacements,
                            compositeDeviceIOR,
@@ -996,6 +1013,7 @@ void DeviceManager_impl::createDeviceThread(
         ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            devcache,
+        const std::string&                            devcwd,
         const std::string&                            usageName,
         const std::vector<ossie::DevicePlacement>&    componentPlacements,
         const std::string&                            compositeDeviceIOR,
@@ -1152,7 +1170,14 @@ void DeviceManager_impl::createDeviceThread(
           //////////////////////////////////////////////////////////////
 
           // switch to working directory
-          chdir(devcache.c_str());
+          if (not devcwd.empty()) {
+            int retval = chdir(devcwd.c_str());
+            if (retval) {
+                LOG_ERROR(DeviceManager_impl, "Unable to change the current working directory to : " << devcwd);
+            }
+          } else {
+              chdir(devcache.c_str());
+          }
 
           // honor affinity requests
           try {
@@ -1858,6 +1883,91 @@ DeviceManager_impl::registeredServices ()throw (CORBA::SystemException)
 }
 
 
+DeviceManager_impl::cacheAndCwdStruct DeviceManager_impl::getOverloadCacheAndCwd(std::string spdFile, const ossie::ComponentInstantiation& instantiation)
+{
+    ossie::SpdSupport::ResourceInfo spdinfo = this->buildSpdinfo(spdFile, instantiation.instantiationId);
+    const CF::Properties cprops = spdinfo.getNonNilConstructProperties();
+    redhawk::PropertyMap tmpProps = redhawk::PropertyMap::cast(cprops);
+    cacheAndCwdStruct cacheCwd;
+    if (tmpProps.find("cacheDirectory")!=tmpProps.end()) {
+        cacheCwd.cache = tmpProps["cacheDirectory"].toString();
+    }
+    if (tmpProps.find("workingDirectory")!=tmpProps.end()) {
+        cacheCwd.cwd = tmpProps["workingDirectory"].toString();
+    }
+    return cacheCwd;    
+}
+
+ossie::SpdSupport::ResourceInfo DeviceManager_impl::buildSpdinfo(std::string spdFile, std::string device_id)
+{
+    ossie::SpdSupport::ResourceInfo spdinfo(spdFile);
+    try  {
+        spdinfo.load(_fileSys);
+    } catch(...) {
+        std::ostringstream eout;
+        eout << "Loading Device's SPD failed, device:" <<  device_id;
+        LOG_ERROR(DeviceManager_impl, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    }
+    std::string spd_name = spdinfo.getName();
+    std::string spd_id = spdinfo.getID();
+    LOG_INFO(DeviceManager_impl, "Device ID: " << device_id << "  SPD loaded: " << spd_name << "' - '" << spd_id );
+
+    CF::Properties componentProperties;
+    DeviceManagerConfiguration DCDParser;
+    try {
+        File_stream _dcd(this->_fileSys, _deviceConfigurationProfile.c_str());
+        DCDParser.load(_dcd);
+        _dcd.close();
+    } catch ( std::exception& ex ) {
+        std::ostringstream eout;
+        eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to parse "<<_deviceConfigurationProfile;
+        LOG_ERROR(DeviceManager_impl, eout.str())
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    } catch ( const CORBA::Exception& ex ) {
+        std::ostringstream eout;
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to parse "<<_deviceConfigurationProfile;
+        LOG_ERROR(DeviceManager_impl, eout.str())
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    } catch ( ... ) {
+        std::ostringstream eout;
+        eout << "[DeviceManager::registerDevice] Failed to parse DCD";
+        LOG_ERROR(DeviceManager_impl, eout.str())
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    }
+
+    try {
+        const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(device_id);
+        if (!instantiation.getUsageName().empty())
+            std::string tmp_name = instantiation.getUsageName(); // this is here to get rid of a warning
+    } catch (std::out_of_range& e) {
+        std::ostringstream eout;
+        eout << "[DeviceManager::registerDevice] Failed to parse DCD";
+        LOG_ERROR(DeviceManager_impl, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    } catch ( std::exception& ex ) {
+        std::ostringstream eout;
+        eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to parse "<<_deviceConfigurationProfile;
+        LOG_ERROR(DeviceManager_impl, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    } catch ( const CORBA::Exception& ex ) {
+        std::ostringstream eout;
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to parse "<<_deviceConfigurationProfile;
+        LOG_ERROR(DeviceManager_impl, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    }
+
+    // override device properties in DCD file
+    const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(device_id);
+    const ossie::ComponentPropertyList& overrideProps = instantiation.getProperties();
+    // Check for any overrides from DCD componentproperites
+    for (unsigned int j = 0; j < overrideProps.size (); j++) {
+        LOG_TRACE(DeviceManager_impl, "Override  Properties prop id " << overrideProps[j].getID());
+        spdinfo.overrideProperty( overrideProps[j] );
+    }
+    return spdinfo;
+}
+
 void
 DeviceManager_impl::registerDevice (CF::Device_ptr registeringDevice)
 throw (CORBA::SystemException, CF::InvalidObjectReference)
@@ -1870,9 +1980,9 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   if (*_internalShutdown) // do not service a registration request if the Device Manager is shutting down
     return;
     
-  LOG_INFO(DeviceManager_impl, "Registering device " << ossie::corba::returnString(registeringDevice->label()) << " on Device Manager " << _label);
-
-  CORBA::String_var deviceLabel = registeringDevice->label();
+  std::string deviceLabel = ossie::corba::returnString(registeringDevice->label());
+  std::string device_id = ossie::corba::returnString(registeringDevice->identifier());
+  LOG_INFO(DeviceManager_impl, "Registering device " << deviceLabel << " on Device Manager " << _label);
 
   if ( deviceIsRegistered( registeringDevice ) == true ) {
     std::ostringstream eout;
@@ -1893,81 +2003,14 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   // the mutex lock, which would prevent shutdown from killing
   // this).
   boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
- 
+  ossie::corba::overrideBlockingCall(registeringDevice);
     
   //Get properties from SPD
   std::string spdFile = ossie::corba::returnString(registeringDevice->softwareProfile());
 
   // Open the SPD file using the SCA FileSystem
   LOG_TRACE(DeviceManager_impl, "Building Device Info From SPD File");
-  ossie::SpdSupport::ResourceInfo spdinfo(spdFile);
-  try  {
-    spdinfo.load(_fileSys);
-  }
-  catch(...) {
-    std::ostringstream eout;
-    eout << "Loading Device's SPD failed, device:" <<  ossie::corba::returnString(registeringDevice->label());
-    LOG_ERROR(DeviceManager_impl, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
-  }
-  std::string spd_name = spdinfo.getName();
-  std::string spd_id = spdinfo.getID();
-  LOG_INFO(DeviceManager_impl, "Device LABEL: " << deviceLabel << "  SPD loaded: " << spd_name << "' - '" << spd_id );
-
-  CF::Properties componentProperties;
-  DeviceManagerConfiguration DCDParser;
-  try {
-    File_stream _dcd(_fileSys, _deviceConfigurationProfile.c_str());
-    DCDParser.load(_dcd);
-    _dcd.close();
-  } catch ( std::exception& ex ) {
-    std::ostringstream eout;
-    eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to parse "<<_deviceConfigurationProfile;
-    LOG_ERROR(DeviceManager_impl, eout.str())
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
-  } catch ( const CORBA::Exception& ex ) {
-    std::ostringstream eout;
-    eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to parse "<<_deviceConfigurationProfile;
-    LOG_ERROR(DeviceManager_impl, eout.str())
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
-  } catch ( ... ) {
-    std::ostringstream eout;
-    eout << "[DeviceManager::registerDevice] Failed to parse DCD";
-    LOG_ERROR(DeviceManager_impl, eout.str())
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
-  }
-
-  // get properties from device PRF that matches the registering device
-  std::string deviceid = ossie::corba::returnString(registeringDevice->identifier());
-  try {
-    const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(deviceid);
-    if (!instantiation.getUsageName().empty())
-      std::string tmp_name = instantiation.getUsageName(); // this is here to get rid of a warning
-  } catch (std::out_of_range& e) {
-    std::ostringstream eout;
-    eout << "[DeviceManager::registerDevice] Failed to parse DCD";
-    LOG_ERROR(DeviceManager_impl, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
-  } catch ( std::exception& ex ) {
-    std::ostringstream eout;
-    eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to parse "<<_deviceConfigurationProfile;
-    LOG_ERROR(DeviceManager_impl, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
-  } catch ( const CORBA::Exception& ex ) {
-    std::ostringstream eout;
-    eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to parse "<<_deviceConfigurationProfile;
-    LOG_ERROR(DeviceManager_impl, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
-  }
-
-  // override device properties in DCD file
-  const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(deviceid);
-  const ossie::ComponentPropertyList& overrideProps = instantiation.getProperties();
-  // Check for any overrides from DCD componentproperites
-  for (unsigned int j = 0; j < overrideProps.size (); j++) {
-    LOG_TRACE(DeviceManager_impl, "Override  Properties prop id " << overrideProps[j].getID());
-    spdinfo.overrideProperty( overrideProps[j] );
-  }
+  ossie::SpdSupport::ResourceInfo spdinfo = this->buildSpdinfo(spdFile, device_id);
 
   //
   // call resource's initializeProperties method to handle any properties required for construction
@@ -1975,7 +2018,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   if (spdinfo.isConfigurable ()) {
     try {
       //
-      LOG_DEBUG(DeviceManager_impl, "Initialize properties for spd/device label: " << spd_name << "/" << deviceLabel);
+      LOG_DEBUG(DeviceManager_impl, "Initialize properties for spd/device label: " << spdinfo.getName() << "/" << deviceLabel);
       const CF::Properties cprops = spdinfo.getNonNilConstructProperties();
       for (unsigned int j = 0; j < cprops.length (); j++) {
         LOG_DEBUG(DeviceManager_impl, "initializeProperties prop id " << cprops[j].id );
@@ -1984,13 +2027,13 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
       registeringDevice->initializeProperties(cprops);
     } catch(CF::PropertySet::InvalidConfiguration& e) {
       std::ostringstream eout;
-      eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been initialized correctly; "
+      eout << "Device '" << deviceLabel << "' - '" << spdinfo.getID() << "' may not have been initialized correctly; "
            << "Call to initializeProperties() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
       LOG_ERROR(DeviceManager_impl, eout.str());
       throw(CF::InvalidObjectReference(eout.str().c_str()));
     } catch(CF::PropertySet::PartialConfiguration& e) {
       std::ostringstream eout;
-      eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
+      eout << "Device '" << deviceLabel << "' - '" << spdinfo.getID() << "' may not have been configured correctly; "
            << "Call to initializeProperties() resulted in PartialConfiguration exception.";
       LOG_ERROR(DeviceManager_impl, eout.str());
       throw(CF::InvalidObjectReference(eout.str().c_str()));
@@ -2007,7 +2050,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     } catch( ... ) {
       std::ostringstream eout;
       eout << "Failed to initialize device properties: '";
-      eout << deviceLabel << "' with device id: '" << spd_id;
+      eout << deviceLabel << "' with device id: '" << spdinfo.getID();
       eout << "'initializeProperties' failed with Unknown Exception" << "Device registration with Device Manager failed ";
       LOG_ERROR(DeviceManager_impl, eout.str());
       throw(CF::InvalidObjectReference(eout.str().c_str()));
@@ -2046,13 +2089,13 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
         registeringDevice->configure (cprops);
   } catch (CF::PropertySet::PartialConfiguration& ex) {
     std::ostringstream eout;
-    eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
+    eout << "Device '" << deviceLabel << "' - '" << spdinfo.getID() << "' may not have been configured correctly; "
          << "Call to configure() resulted in PartialConfiguration exception.";
     LOG_ERROR(DeviceManager_impl, eout.str())
       throw(CF::InvalidObjectReference(eout.str().c_str()));
   } catch (CF::PropertySet::InvalidConfiguration& ex) {
     std::ostringstream eout;
-    eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
+    eout << "Device '" << deviceLabel << "' - '" << spdinfo.getID() << "' may not have been configured correctly; "
          << "Call to configure() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
     LOG_ERROR(DeviceManager_impl, eout.str());
     throw(CF::InvalidObjectReference(eout.str().c_str()));
@@ -2073,7 +2116,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   if (!deviceIsRegistered (registeringDevice)) {
     // if the device is not registered, then add it to the naming context
     LOG_TRACE(DeviceManager_impl, "Binding device to name " << deviceLabel)
-      CosNaming::Name_var device_name = ossie::corba::stringToName(static_cast<char*>(deviceLabel));
+      CosNaming::Name_var device_name = ossie::corba::stringToName(deviceLabel.c_str());
     try {
       devMgrContext->bind(device_name, registeringDevice);
     } catch ( ... ) {
@@ -2112,8 +2155,6 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   //DomainManagers Log, upon unsuccessful registration of a Device to the DeviceManagers
   //registeredDevices.
 }
-
-
 
 
 //This function returns TRUE if the input serviceName is contained in the _registeredServices list attribute
@@ -2272,6 +2313,8 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     if (CORBA::is_nil (registeringService)) {
         throw (CF::InvalidObjectReference("Cannot register service, registeringService is a nil reference."));
     }
+
+    ossie::corba::overrideBlockingCall(registeringService);
 
     // Register the service with the Device manager, unless it is already
     // registered
@@ -2851,8 +2894,8 @@ void DeviceManager_impl::clean_registeredDevices()
         LOG_INFO(DeviceManager_impl, "Releasing device " << label);
         lock.unlock();
         try {
-            unsigned long timeout = 3; // seconds
-            omniORB::setClientCallTimeout(deviceRef, timeout * 1000);
+            // 3 seconds or use cfg option
+            ossie::corba::overrideBlockingCall(deviceRef, 3000 );
             deviceRef->releaseObject();
         } catch ( ... ) {
         }

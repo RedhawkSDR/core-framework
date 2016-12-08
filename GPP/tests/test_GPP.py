@@ -41,6 +41,7 @@ from ossie.cf import CF, CF__POA
 import ossie.utils.testing
 from shutil import copyfile
 import os
+import shutil
 
 # numa layout: node 0 cpus, node 1 cpus, node 0 cpus sans cpuid=0
 
@@ -173,7 +174,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         return
 
         
-    def runGPP(self, execparam_overrides={}, initialize=True):
+    def runGPP(self, execparam_overrides={}, initialize=True, configure={}):
         #######################################################################
         # Launch the component with the default execparams
         execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
@@ -182,7 +183,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
         #execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
         #self.launch(execparams, debugger='valgrind')
-        self.launch(execparams, initialize=initialize )
+        self.launch(execparams, initialize=initialize,configure=configure )
         
         #######################################################################
         # Verify the basic state of the component
@@ -662,7 +663,180 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals( cprops[1].value.value(), 90)
 
 
+    def test_loadCapacity(self):
 
+        self.runGPP()
+
+        # query current capcity 
+        cprops = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(None))]
+        cprops=self.comp_obj.query(cprops)
+
+        capacity=cprops[0].value.value()
+        req_cap = capacity/2;
+
+        # try allocation
+        allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(req_cap))]
+        self.comp_obj.allocateCapacity(allocProps)
+
+        cprops = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(None))]
+        cprops=self.comp_obj.query(cprops)
+
+        # make sure capacity was affected
+        remaining_cap = capacity-req_cap
+        self.assertEquals( cprops[0].value.value(), remaining_cap)
+
+        # now request more... result will be be  0..
+        allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity))]
+        self.comp_obj.allocateCapacity(allocProps)
+
+        cprops = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(None))]
+        cprops=self.comp_obj.query(cprops)
+
+        # make sure capacity is zero..
+        self.assertEquals( cprops[0].value.value(), 0.0)
+
+        # now dealloacte more than requests.. should go back to max.
+        allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity*2))]
+        self.comp_obj.deallocateCapacity(allocProps)
+
+        cprops = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(None))]
+        cprops=self.comp_obj.query(cprops)
+
+        # make sure capacity is original max.
+        self.assertEquals( cprops[0].value.value(), capacity)   
+
+        # now set reservation mode off 
+        self.comp.reserved_capacity_per_component=0.0
+
+        # now try to allocate capacity, should fail
+        allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity*2))]
+        self.assertRaises( CF.Device.InsufficientCapacity, self.comp_obj.allocateCapacity, allocProps)
+
+    def test_sys_limits(self):
+
+        self.runGPP()
+        p=CF.DataType(id='sys_limits',value=any.to_any(None))
+        retval = self.comp.query([p])[0].value._v
+        ids = []
+        for item in retval:
+            ids.append(item.id)
+        self.assertTrue('sys_limits::current_threads')
+        self.assertTrue('sys_limits::max_threads')
+        self.assertTrue('sys_limits::current_open_files')
+        self.assertTrue('sys_limits::max_open_files')
+
+    def get_single_nic_interface(self):
+        import commands
+        (exitstatus, ifconfig_info) = commands.getstatusoutput('/sbin/ifconfig -a')
+        if exitstatus != 0:
+            self._log.debug("Proplem running '/sbin/ifconfig'")
+            return
+
+        self.nic_list = []
+        # add vlans
+        for i in ifconfig_info.splitlines():
+            i = i.strip()
+            if i.startswith('e') == False or i.find('Link encap') < 0:
+                continue
+
+            if len(i.split()) > 0  :
+               self.nic_list.append( i.split()[0] )
+
+
+    def test_threshold_usagestate(self):
+
+        self.get_single_nic_interface()
+        if len(self.nic_list)> 1:
+            self.runGPP(configure={'nic_interfaces' : [ self.nic_list[0] ]})
+        else:
+            self.runGPP()
+
+        # set cpu to be 100.00 ... the check busy state..
+        orig_thres = self.comp.thresholds.cpu_idle.queryValue()
+        self.comp.thresholds.cpu_idle = 100.00
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.BUSY: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.BUSY)
+
+        # set cpu idle  back
+        self.comp.thresholds.cpu_idle = orig_thres
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.IDLE: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.IDLE)
+
+        # set mem_free 
+        orig_thres = self.comp.thresholds.mem_free.queryValue()
+        mem_free = self.comp.memFree.queryValue()
+        self.comp.thresholds.mem_free = mem_free+2000
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.BUSY: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.BUSY)
+
+        # set mem_free  back
+        self.comp.thresholds.mem_free = orig_thres
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.IDLE: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.IDLE)
+
+
+        # set load_avg
+        orig_thres = self.comp.thresholds.load_avg.queryValue()
+        self.comp.thresholds.load_avg=0.0
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.BUSY: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.BUSY)
+
+        # set load_avg  back
+        self.comp.thresholds.load_avg = orig_thres
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.IDLE: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.IDLE)
+
+
+        # set nic_usage
+        orig_thres = self.comp.thresholds.nic_usage.queryValue()
+        self.comp.thresholds.nic_usage=0.0
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.BUSY: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.BUSY)
+
+        # set nic_usage  back
+        self.comp.thresholds.nic_usage = orig_thres
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.IDLE: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.IDLE)
 
 
 
@@ -904,8 +1078,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(2)
         self.assertEquals(self.comp._get_usageState(),CF.Device.BUSY)
 
-
-class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase):
+class DomainSupport(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in test"""
     child_pids = []
     dom = None
@@ -915,6 +1088,7 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
     _deviceLock = threading.Lock()
     _deviceBooters = []
     _deviceManagers = []
+    sdrroot = ''
     
     def _getDeviceManager(self, domMgr, id):
         for devMgr in domMgr._get_deviceManagers():
@@ -946,14 +1120,15 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
         finally:
             pass
 
-    def launchDomainManager(self, dmdFile="", domain_name = '', *args, **kwargs):
+    def launchDomainManager(self, dmdFile="", domain_name = '', sdrroot=os.getcwd()+'/sdr', *args, **kwargs):
         # Only allow one DomainManager, although this isn't a hard requirement.
         # If it has exited, allow a relaunch.
         if self._domainBooter and self._domainBooter.poll() == None:
             return (self._domainBooter, self._domainManager)
+        self.sdrroot = sdrroot
 
         # Launch the nodebooter.
-        self._domainBooter = spawnNodeBooter(dmdFile=dmdFile, domainname = domain_name, *args, **kwargs)
+        self._domainBooter = spawnNodeBooter(dmdFile=dmdFile, domainname = domain_name, sdrroot=sdrroot, *args, **kwargs)
         number_attempts = 0
         while self._domainBooter.poll() == None:
             try:
@@ -987,17 +1162,18 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
         finally:
             self._deviceLock.release()
 
-    def launchDeviceManager(self, dcdFile, domainManager=None, wait=True, *args, **kwargs):
-        if not os.path.isfile(os.getcwd()+'/'+dcdFile):
+    def launchDeviceManager(self, dcdFile, domainManager=None, wait=True, sdrroot=os.getcwd()+'/sdr', *args, **kwargs):
+        if not os.path.isfile(sdrroot+'/dev'+dcdFile):
             print "ERROR: Invalid DCD path provided to launchDeviceManager ", dcdFile
             return (None, None)
+        self.sdrroot = sdrroot
 
         # Launch the nodebooter.
         if domainManager == None:
             name = None
         else:
             name = domainManager._get_name()
-        devBooter = spawnNodeBooter(dcdFile=os.getcwd()+'/'+dcdFile, domainname=name, *args, **kwargs)
+        devBooter = spawnNodeBooter(dcdFile=sdrroot+'/dev'+dcdFile, domainname=name, sdrroot=sdrroot, *args, **kwargs)
         self._addDeviceBooter(devBooter)
 
         if wait:
@@ -1009,7 +1185,7 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
 
     def waitDeviceManager(self, devBooter, dcdFile, domainManager=None):
         try:
-            dcdPath = os.getcwd()+'/'+dcdFile
+            dcdPath = self.sdrroot+'/dev'+dcdFile
         except IOError:
             print "ERROR: Invalid DCD path provided to waitDeviceManager", dcdFile
             return None
@@ -1054,7 +1230,7 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
         return False
 
     def setUp(self):
-        super(ComponentTests_SystemReservations,self).setUp()
+        super(DomainSupport,self).setUp()
         self.child_pids=[]
         self._domainBooter = None
         self._domainManager = None
@@ -1072,10 +1248,10 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
             os.makedirs('sdr/dev/devices/GPP/cpp')
         copyfile('../cpp/GPP', 'sdr/dev/devices/GPP/cpp/GPP')
         os.chmod('sdr/dev/devices/GPP/cpp/GPP',0777)
-
+        print 'done staging DomainManager'
 
     def tearDown(self):
-        super(ComponentTests_SystemReservations, self).tearDown()
+        super(DomainSupport, self).tearDown()
         try:
             # kill all busy.py just in case
             os.system('pkill -9 -f busy.py')
@@ -1098,7 +1274,13 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
             self.terminateChild(self._deviceBooter)
         os.putenv('SDRROOT', self.orig_sdrroot)
 
-        
+class ComponentTests_SystemReservations(DomainSupport):
+    def setUp(self):
+        super(ComponentTests_SystemReservations,self).setUp()
+
+    def tearDown(self):
+        super(ComponentTests_SystemReservations, self).tearDown()
+
     def runGPP(self, execparam_overrides={}, initialize=True):
         #######################################################################
         # Launch the component with the default execparams
@@ -1131,7 +1313,7 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("sdr/dev/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
         self.assertNotEquals(devMgr,None)
         app_1=self.dom.createApplication('/waveforms/load_comp_w/load_comp_w.sad.xml','load_comp_w',[])
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 6
@@ -1158,7 +1340,7 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("sdr/dev/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
         self.assertNotEquals(devMgr,None)
         self.dom.devMgrs[0].devs[0].threshold_cycle_time = 50
         count = 0
@@ -1176,7 +1358,7 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("sdr/dev/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1258,6 +1440,174 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
         self.assertEquals(self.close(sub_now, extra_reservation+res_per_comp ), True)
         self.assertEquals(self.float_eq(sub_now_pre, sub_now, eps=.01), True)
 
+
+class LoadableDeviceVariableDirectoriesTest(DomainSupport):
+    def setUp(self):
+        super(LoadableDeviceVariableDirectoriesTest,self).setUp()
+        self._domainName = 'REDHAWK_TEST_'+str(os.getpid())
+        self._domainBooter, self._domMgr = self.launchDomainManager(domain_name=self._domainName)
+        self._testFiles = []
+        self._rhDom = redhawk.attach(self._domainName)
+
+        fp = open('sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml', 'r')
+        self.original = fp.read()
+        fp.close()
+
+        cwd = os.getcwd()
+        self.base_dir = cwd + '/LoadableDeviceVariableDirectoriesTest'
+        self.cache_dir = self.base_dir+'/cache'
+        self.cwd_dir = self.base_dir+'/cwd'
+        modified = self.original.replace('@@@CACHE_DIRECTORY@@@', self.cache_dir)
+        modified = modified.replace('@@@CURRENT_WORKING_DIRECTORY@@@', self.cwd_dir)
+
+        fp = open('sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml', 'w')
+        fp.write(modified)
+        fp.close()
+
+    def tearDown(self):
+        fp = open('sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml', 'w')
+        fp.write(self.original)
+        fp.close()
+
+        super(LoadableDeviceVariableDirectoriesTest, self).tearDown()
+        for file in self._testFiles:
+            os.unlink(file)
+
+        shutil.rmtree(self.base_dir)
+
+    def test_PyCompConfigCacheCWD(self):
+        self.assertNotEqual(self._domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(devMgr, None)
+        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
+        self.assertNotEqual(app, None)
+        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
+        found_dir = False
+        for root, dirs, files in os.walk(self.base_dir):
+            if 'check_cwd.py' in files:
+                if 'cache/components/check_cwd/python' in root:
+                    found_dir = True
+                    break
+        self.assertEquals(found_dir, True)
+        
+    def test_CppCompConfigCacheCWD(self):
+        self.assertNotEqual(self._domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(devMgr, None)
+        app = self._rhDom.createApplication('/waveforms/check_cwd_cpp_w/check_cwd_cpp_w.sad.xml')
+        self.assertNotEqual(app, None)
+        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
+        found_dir = False
+        for root, dirs, files in os.walk(self.base_dir):
+            if 'check_cwd_cpp' in files:
+                if 'cache/components/check_cwd_cpp/cpp' in root:
+                    found_dir = True
+                    break
+        self.assertEquals(found_dir, True)
+        
+    def test_JavaCompConfigCacheCWD(self):
+        self.assertNotEqual(self._domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(devMgr, None)
+        app = self._rhDom.createApplication('/waveforms/check_cwd_java_w/check_cwd_java_w.sad.xml')
+        self.assertNotEqual(app, None)
+        self.assertEquals(app.comps[0].cwd[:-1], self.cwd_dir)
+        found_dir = False
+        for root, dirs, files in os.walk(self.base_dir):
+            if 'check_cwd_java.class' in files:
+                if 'cache/components/check_cwd_java/java/bin/check_cwd_java/java' in root:
+                    found_dir = True
+                    break
+        self.assertEquals(found_dir, True)
+
+class LoadableDeviceVariableCacheDirTest(DomainSupport):
+    def setUp(self):
+        super(LoadableDeviceVariableCacheDirTest,self).setUp()
+        self._domainName = 'REDHAWK_TEST_'+str(os.getpid())
+        self._domainBooter, self._domMgr = self.launchDomainManager(domain_name=self._domainName)
+        self._testFiles = []
+        self._rhDom = redhawk.attach(self._domainName)
+        
+        fp = open('sdr/dev/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml', 'r')
+        self.original = fp.read()
+        fp.close()
+        
+        cwd = os.getcwd()
+        self.base_dir = cwd + '/LoadableDeviceVariableDirectoriesTest'
+        self.cache_dir = self.base_dir+'/cache'
+        self.cwd_dir = self.cache_dir
+        modified = self.original.replace('@@@CACHE_DIRECTORY@@@', self.cache_dir)
+        
+        fp = open('sdr/dev/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml', 'w')
+        fp.write(modified)
+        fp.close()
+
+    def tearDown(self):
+        fp = open('sdr/dev/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml', 'w')
+        fp.write(self.original)
+        fp.close()
+        
+        super(LoadableDeviceVariableCacheDirTest, self).tearDown()
+        
+        shutil.rmtree(self.base_dir)
+            
+    def test_CompConfigCache(self):
+        self.assertNotEqual(self._domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(devMgr, None)
+        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
+        self.assertNotEqual(app, None)
+        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
+        found_dir = False
+        for root, dirs, files in os.walk(self.base_dir):
+            if 'check_cwd.py' in files:
+                if 'cache/components/check_cwd/python' in root:
+                    found_dir = True
+        self.assertEquals(found_dir, True)
+
+class LoadableDeviceVariableCWDTest(DomainSupport):
+    def setUp(self):
+        super(LoadableDeviceVariableCWDTest,self).setUp()
+        self._domainName = 'REDHAWK_TEST_'+str(os.getpid())
+        self._domainBooter, self._domMgr = self.launchDomainManager(domain_name=self._domainName)
+        self._testFiles = []
+        self._rhDom = redhawk.attach(self._domainName)
+        
+        fp = open('sdr/dev/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml', 'r')
+        self.original = fp.read()
+        fp.close()
+        
+        cwd = os.getcwd()
+        self.base_dir = cwd + '/LoadableDeviceVariableDirectoriesTest'
+        self.cwd_dir = self.base_dir+'/cwd'
+        modified = self.original.replace('@@@CURRENT_WORKING_DIRECTORY@@@', self.cwd_dir)
+        
+        fp = open('sdr/dev/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml', 'w')
+        fp.write(modified)
+        fp.close()
+
+    def tearDown(self):
+        fp = open('sdr/dev/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml', 'w')
+        fp.write(self.original)
+        fp.close()
+        
+        super(LoadableDeviceVariableCWDTest, self).tearDown()
+        
+        shutil.rmtree(self.base_dir)
+            
+    def test_CompConfigCWD(self):
+        self.assertNotEqual(self._domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(devMgr, None)
+        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
+        self.assertNotEqual(app, None)
+        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
+        found_dir = False
+        for root, dirs, files in os.walk(self.base_dir):
+            if 'check_cwd.py' in files:
+                if 'cwd/components/check_cwd/python' in root:
+                    found_dir = True
+        self.assertEquals(found_dir, True)
 
 
     # TODO Add additional tests here

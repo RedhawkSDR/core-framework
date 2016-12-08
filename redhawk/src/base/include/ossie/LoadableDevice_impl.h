@@ -223,6 +223,7 @@ protected:
     void update_selected_paths(std::vector<sharedLibraryStorage> &paths);
     // Transfer size when loading files
     CORBA::LongLong           transferSize;          // block transfer size when loading files
+    std::string prependCacheIfAvailable(const std::string &localPath);
 
     // Returns the base directory in use for the file cache
     const std::string& getCacheDirectory() const;
@@ -239,9 +240,6 @@ protected:
     void _deleteTree(const std::string &fileKey);
     bool _treeIntact(const std::string &fileKey);
     void _copyFile(CF::FileSystem_ptr fs, const std::string &remotePath, const std::string &localPath, const std::string &fileKey);
-
-
-
 };
 
 #endif

@@ -886,6 +886,70 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         if name_found:
             self.fail("Expected service to not exist in the naming service")
 
+    def setDelayTimeOut(self, src,  disableDelay=False, timeo=5000, dest=None ):
+        import re
+        if dest == None: dest = src.replace(".GOLD","")
+        dest_f = open(dest,'w')
+        lines = [line.rstrip() for line in open(src)]
+        for l in lines:
+            newline=l
+            newline = re.sub(r'XXX', r''+str(disableDelay), newline )
+            newline = re.sub(r'YYY', r''+str(timeo), newline )
+            dest_f.write(newline+'\n')
+
+
+    def test_blockStartupResponseDevice(self):
+        from ossie.utils import redhawk
+        d=redhawk.attach(self._domainManager._get_name())
+        self.setDelayTimeOut("./sdr/dev/nodes/LongDeviceCalls/DeviceManager.dcd.xml.GOLD", False, 0)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/LongDeviceCalls/DeviceManager.dcd.xml")
+        dev_devices= len(devMgr._get_registeredDevices())
+        self.assertEqual(dev_devices, 0)
+
+        # now clean up the test....
+        devMgr.shutdown()
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+    def test_longStartupResponseDevice(self):
+        from ossie.utils import redhawk
+        d=redhawk.attach(self._domainManager._get_name())
+        self.setDelayTimeOut("./sdr/dev/nodes/LongDeviceCalls/DeviceManager.dcd.xml.GOLD", False, 5000)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/LongDeviceCalls/DeviceManager.dcd.xml")
+        dev_devices= len(devMgr._get_registeredDevices())
+        self.assertEqual(dev_devices, 0)
+
+        # now clean up the test....
+        devMgr.shutdown()
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+
+    def test_blockResponseDevice(self):
+        from ossie.utils import redhawk
+        d=redhawk.attach(self._domainManager._get_name())
+        self.setDelayTimeOut("./sdr/dev/nodes/LongDeviceCalls/DeviceManager.dcd.xml.GOLD", True, 3000)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/LongDeviceCalls/DeviceManager.dcd.xml")
+        dev_devices= len(devMgr._get_registeredDevices())
+        self.assertEqual(dev_devices, 1)
+        ld=d.devices[0]
+        # have device block on corba calls used during shutdown
+        ld.disable_delay=False
+        ld.delay=0
+        # now clean up the test....
+        devMgr.shutdown()
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+    def test_normalResponseDevice(self):
+        from ossie.utils import redhawk
+        d=redhawk.attach(self._domainManager._get_name())
+        self.setDelayTimeOut("./sdr/dev/nodes/LongDeviceCalls/DeviceManager.dcd.xml.GOLD", True, 3000)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/LongDeviceCalls/DeviceManager.dcd.xml")
+        dev_devices= len(devMgr._get_registeredDevices())
+        self.assertEqual(dev_devices, 1)
+
+        # now clean up the test....
+        devMgr.shutdown()
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
     def test_ExternalServices(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleService_node/DeviceManager.dcd.xml")
         import ossie.utils.popen as _popen
@@ -1098,7 +1162,10 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             else:
                 self.fail("Expected service to not exist in the naming service: " + str(name))
 
-        # Makes sure that all children are dead
+        # Makes sure that all children are dead; on slower systems, the service
+        # processes may take a while to exit, so wait for the DeviceManager to
+        # exit first
+        self.assert_(self.waitTermination(devmgr_nb), "DeviceManager did not exit after shutdown")
         self.assertEquals(len(getChildren(devmgr_nb.pid)), 0)
 
     def test_ServiceShutdown_DevMgr(self):

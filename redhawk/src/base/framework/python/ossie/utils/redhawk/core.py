@@ -1970,7 +1970,11 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         uninstallAppWhenDone = True
         # If only an application name is given, format it properly
         if application_sad[0] != "/" and not ".sad.xml" in application_sad:
-            application_sad = "/waveforms/" + application_sad + "/" + application_sad + ".sad.xml"
+            # adjust path components incase of namespaced application names
+            ns_path=application_sad.replace('.','/')
+            app_name=application_sad.split('.')[-1]
+            # get ns path and sad file name
+            application_sad = "/waveforms/" + ns_path + "/" + app_name + ".sad.xml"
         
         try:
             self.ref.installApplication(application_sad)

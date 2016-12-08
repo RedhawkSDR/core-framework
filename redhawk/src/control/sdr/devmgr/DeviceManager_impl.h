@@ -38,6 +38,7 @@
 #include <ossie/Properties.h>
 #include <ossie/SoftPkg.h>
 #include <ossie/Events.h>
+#include "spdSupport.h"
 #include <ossie/affinity.h>
 
 #include <dirent.h>
@@ -163,6 +164,15 @@ private:
     CF::FileSystem_var _fileSys;
     CF::DeviceManager_var myObj;
     bool checkWriteAccess(std::string &path);
+    
+    struct cacheAndCwdStruct{
+        std::string cache;
+        std::string cwd;
+    };
+    
+    cacheAndCwdStruct getOverloadCacheAndCwd(std::string profile, const ossie::ComponentInstantiation& instantiation);
+    
+    ossie::SpdSupport::ResourceInfo buildSpdinfo(std::string spdFile, std::string device_id);
 
     enum DevMgrAdmnType {
         DEVMGR_REGISTERED,
@@ -251,8 +261,10 @@ private:
 
     void createDeviceCacheLocation(
         std::string&                         devcache,
+        std::string&                         devcwd,
         std::string&                         usageName, 
-        const ossie::ComponentInstantiation& instantiation);
+        const ossie::ComponentInstantiation& instantiation, 
+        std::string                          spdFile);
 
     void createDeviceExecStatement(
         std::vector< std::string >&                   new_argv,
@@ -288,6 +300,7 @@ private:
         ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            devcache,
+        const std::string&                            devcwd,
         const std::string&                            usageName,
         const std::vector<ossie::DevicePlacement>&    componentPlacements,
         const std::string&                            compositeDeviceIOR,

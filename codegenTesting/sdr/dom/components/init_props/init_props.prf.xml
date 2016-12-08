@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <structsequence id="initseq" mode="readwrite">
+    <struct id="initseq::structdef" name="initseq">
+      <simple id="initseq::floatval" name="floatval" type="float"/>
+      <simple id="initseq::longval" name="longval" type="long"/>
+      <simple id="initseq::stringval" name="stringval" type="string"/>
+      <simplesequence id="initseq::doubleseq" name="doubleseq" type="double"/>
+      <simplesequence id="initseq::stringseq" name="stringseq" type="string"/>
+    </struct>
+    <structvalue>
+      <simpleref refid="initseq::floatval" value="1"/>
+      <simpleref refid="initseq::longval" value="-1"/>
+      <simpleref refid="initseq::stringval" value="first"/>
+      <simplesequenceref refid="initseq::doubleseq">
+        <values>
+          <value>1.0</value>
+          <value>1.0</value>
+          <value>1.0</value>
+        </values>
+      </simplesequenceref>
+      <simplesequenceref refid="initseq::stringseq">
+        <values>
+          <value>a</value>
+          <value>b</value>
+          <value>c</value>
+        </values>
+      </simplesequenceref>
+    </structvalue>
+    <structvalue>
+      <simpleref refid="initseq::floatval" value="2"/>
+      <simpleref refid="initseq::longval" value="-2"/>
+      <simpleref refid="initseq::stringval" value="second"/>
+      <simplesequenceref refid="initseq::doubleseq">
+        <values>
+          <value>2.0</value>
+          <value>2.0</value>
+        </values>
+      </simplesequenceref>
+      <simplesequenceref refid="initseq::stringseq">
+        <values>
+          <value>d</value>
+          <value>e</value>
+        </values>
+      </simplesequenceref>
+    </structvalue>
+    <configurationkind kindtype="property"/>
+  </structsequence>
+</properties>

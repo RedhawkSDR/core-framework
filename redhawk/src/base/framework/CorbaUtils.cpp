@@ -127,6 +127,49 @@ unsigned long giopMaxMsgSize ()
     return omni::orbParameters::giopMaxMsgSize;
 }
 
+
+    void setClientCallTimeOut( uint32_t timeOut ) {
+        omniORB::setClientCallTimeout( timeOut );
+    }
+
+    void setClientCallTimeOut( CORBA::Object_ptr obj, uint32_t timeOut ) {
+        omniORB::setClientCallTimeout(obj, timeOut );
+    }
+
+    void overideBlockingCall( uint32_t timeOut ) {
+        uint32_t cfgopt = getConfigurationClientCallTimeOut();
+        if (cfgopt == 0 ) {
+            omniORB::setClientCallTimeout( timeOut);
+        }
+    }
+
+    void overrideBlockingCall( CORBA::Object_ptr obj, uint32_t timeOut ) {
+        uint32_t cfgopt = getConfigurationClientCallTimeOut();
+        if ( cfgopt == 0 ) {
+           omniORB::setClientCallTimeout(obj, timeOut );
+        }
+    }
+
+    void resetClientCallTimeOut( CORBA::Object_ptr obj ) {
+        // for timeout to 0. will use orb config setting
+        omniORB::setClientCallTimeout(obj, 0);
+    }
+
+
+    uint32_t getConfigurationClientCallTimeOut( )
+    {
+       uint32_t cfgopt=0;
+#ifndef OMNIORB4_2
+       cfgopt = omni::orbParameters::clientCallTimeOutPeriod.secs * 1000;
+       cfgopt = cfgopt + omni::orbParameters::clientCallTimeOutPeriod.nanosecs / 1000000;
+#else
+       cfgopt = omni::orbParameters::clientCallTimeOutPeriod.s * 1000;
+       cfgopt = cfgopt + omni::orbParameters::clientCallTimeOutPeriod.ns / 1000000;
+#endif
+       return cfgopt;
+    }
+
+
 CosNaming::NamingContext_ptr InitialNamingContext ()
 {
     if (CORBA::is_nil(inc) && !CORBA::is_nil(orb)) {

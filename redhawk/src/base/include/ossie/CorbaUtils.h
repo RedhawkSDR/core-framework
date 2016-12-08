@@ -58,6 +58,33 @@ namespace ossie {
         // be looked up from the ORB's initial references.
         unsigned long giopMaxMsgSize ();
 
+        //
+        // Set timeout period when making a client call
+        void setClientCallTimeOut(uint32_t timeOut);
+
+        //
+        // Set timeout period for a specific client object when making a call to that object
+        void setClientCallTimeOut(CORBA::Object_ptr obj, uint32_t timeOut);
+
+        //
+        // Set timeout period for a specific client object when making a call to that object
+        // prefer config setting if non zero, override if zero
+        void overrideBlockingCall(CORBA::Object_ptr obj, uint32_t timeOut=3000);
+
+        //
+        // Set timeout period for a specific client object when making a client call
+        // prefer config setting if non zero, override if zero
+        void overrideBlockingCall( uint32_t timeOut=3000);
+
+        //
+        // reset client call timeout to use configuration options
+        void resetClientCallTimeOut( CORBA::Object_ptr obj );
+
+        //
+        // Get the client call configuration parameter for this process
+        uint32_t  getConfigurationClientCallTimeOut();
+
+        //
         // Get the root naming context. If it has not yet been resolved, it
         // will be looked up from the ORB's initial references.
         CosNaming::NamingContext_ptr InitialNamingContext ();
@@ -210,7 +237,10 @@ namespace ossie {
 
         inline bool objectExists(CORBA::Object_ptr obj) {
             try {
-                return (!CORBA::is_nil(obj) && !obj->_non_existent());
+                overrideBlockingCall(obj);
+                bool ret = (!CORBA::is_nil(obj) && !obj->_non_existent());
+                resetClientCallTimeOut(obj);
+                return ret;
             } catch ( CORBA::Exception& e ) {
                 return false;
             }

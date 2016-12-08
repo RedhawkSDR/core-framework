@@ -843,7 +843,7 @@ class FileSource(_SourceBase):
         if self.supportedPorts.has_key(dataFormat):
             self._srcPortType = self.supportedPorts[dataFormat]["portType"]
         else:
-            raise Exception, "ERROR: FileSource does not supporte data type " + dataFormat
+            raise Exception, "ERROR: FileSource does not support data type " + dataFormat
 
         self._srcPortObject = None
         self.setupFileReader()
@@ -1099,10 +1099,12 @@ class DataSource(_SourceBase):
                              subsize      = subsize)
 
         self._sampleRate  = None
+        self._onPushSampleRate  = None
         self._complexData = None
         self._SRIKeywords = []
         self._sri         = None
         self._startTime   = startTime
+        self._timePush    = None
         self._blocking    = blocking
         self._loop        = loop
         self._runThread   = None
@@ -1139,7 +1141,7 @@ class DataSource(_SourceBase):
              data,
              EOS         = False,
              streamID    = "defaultStreamID",
-             sampleRate  = 1.0,
+             sampleRate  = None,
              complexData = False,
              SRIKeywords = [],
              loop        = None):
@@ -1161,6 +1163,14 @@ class DataSource(_SourceBase):
                 itemType = float
             data = _bulkio_helpers.pythonComplexListToBulkioComplex(data, itemType)
             complexData = True
+
+        if sampleRate == None and self._onPushSampleRate != None:
+            sampleRate = self._onPushSampleRate
+        elif sampleRate == None and self._onPushSampleRate == None:
+            sampleRate = 1.0
+            self._onPushSampleRate = sampleRate
+        else:
+            self._onPushSampleRate = sampleRate
 
         self._dataQueue.put((data,
                              EOS,
@@ -1192,7 +1202,7 @@ class DataSource(_SourceBase):
         self.threadExited = False
         # Make sure data passed in is within min/max bounds on port type
         # and is a valid type
-        currentSampleTime = self._startTime
+        self._currentSampleTime = self._startTime
         while not self._exitThread:
             exitInputLoop = False
             while not exitInputLoop:
@@ -1206,7 +1216,7 @@ class DataSource(_SourceBase):
             if self._exitThread:
                 if self.settingsAcquired:
                     self._pushPacketAllConnectedPorts([],
-                                                      currentSampleTime,
+                                                      self._currentSampleTime,
                                                       EOS,
                                                       streamID)
                     self._packetSent()
@@ -1264,19 +1274,19 @@ class DataSource(_SourceBase):
                 # pushPacket
                 if len(data) > 0:
                     self._pushPacketsAllConnectedPorts(data,
-                                                       currentSampleTime,
+                                                       self._currentSampleTime,
                                                        EOS,
                                                        streamID)
                     # If loop is set to True, continue pushing data until loop
                     # is set to False or stop() is called
                     while self._loop:
                         self._pushPacketsAllConnectedPorts(data,
-                                                           currentSampleTime,
+                                                           self._currentSampleTime,
                                                            EOS,
                                                            streamID)
                 else:
                     self._pushPacketAllConnectedPorts(data,
-                                                      currentSampleTime,
+                                                      self._currentSampleTime,
                                                       EOS,
                                                       streamID)
                 self._packetSent()
@@ -1324,23 +1334,24 @@ class DataSource(_SourceBase):
 
         # If necessary, break data into chunks of pktSize for each pushPacket
         if isinstance(data, list):
-            # Pre-calculate the time offset per packet
-            sampleTimePerPush = pktSize / self._sampleRate
-            if self._sri and self._sri.mode == 1:
-                sampleTimePerPush /= 2.0
-
             # Stride through the data by packet size
             for startIdx in xrange(0, len(data), pktSize):
+                # Calculate the time offset per packet
+                _data = data[startIdx:startIdx+pktSize]
+                sampleTimeForPush = len(_data) / self._sampleRate
+                if self._sri and self._sri.mode == 1:
+                    sampleTimeForPush /= 2.0
+                    
                 # Only send an EOS with the packet if EOS was given and this is
                 # the last packet
                 packetEOS = EOS and (startIdx + pktSize) >= len(data)
                 self._pushPacket(arraySrcInst,
-                                 data[startIdx:startIdx+pktSize],
+                                 _data,
                                  currentSampleTime,
                                  packetEOS,
                                  streamID,
                                  srcPortType)
-                currentSampleTime += sampleTimePerPush
+                self._currentSampleTime += sampleTimeForPush
         else:
             self._pushPacket(arraySrcInst,
                              data,
@@ -1446,6 +1457,15 @@ class DataSink(_SinkBase):
         except Exception, e:
             log.error(self.className + ":getPort(): failed " + str(e))
         return None
+
+    def getDataEstimate(self):
+        '''
+        Returns a structure with the total amount of data available and the 
+        number of corresponding timestamps
+        '''
+        if not self._sink:
+            return None
+        return self._sink.estimateData()
 
     def getData(self, length=None, eos_block=False, tstamps=False):
         '''
@@ -1619,7 +1639,7 @@ class Plot(OutputBase, _OutputBase):
         if self._dataType == None:
             raise AssertionError, "Plot:plot() ERROR - dataType not set ... must call connect() on this object from another component"
 
-        plotCommand = str(self._eclipsePath) + "/bin/plotter.sh -portname " + str(self._usesPortName) + " -repid " + str(self._dataType) + " -handler gov.redhawk.ui.port.nxmplot -ior " + str(self.usesPortIORString)
+        plotCommand = str(self._eclipsePath) + "/bin/plotter.sh -portname " + str(self._usesPortName) + " -repid " + str(self._dataType) + " -ior " + str(self.usesPortIORString)
         if _domainless._DEBUG == True:
             print "Plot:plotCommand " + str(plotCommand)
         args = _shlex.split(plotCommand)

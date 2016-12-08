@@ -533,6 +533,30 @@ ResourceInfo::ResourceInfo(const std::string& spdFileName) :
 
 }
 
+ResourceInfo::ResourceInfo(const ResourceInfo& other) :
+    SoftpkgInfo(other),
+    scd(other.scd),
+    _isAssemblyController(other._isAssemblyController),
+    _isConfigurable(other._isConfigurable),
+    isNamingService(other.isNamingService),
+    usageName(other.usageName),
+    identifier(other.identifier),
+    instantiationId(other.instantiationId),
+    namingServiceName(other.namingServiceName),
+    loggingConfig(other.loggingConfig),
+    configureProperties(other.configureProperties),
+    ctorProperties(other.ctorProperties),
+    options(other.options),
+    factoryParameters(other.factoryParameters),
+    execParameters(other.execParameters),
+    affinityOptions(other.affinityOptions),
+    resolved_softpkg_dependencies(other.resolved_softpkg_dependencies)
+{
+    // The copy constructor for Properties is inaccessible, but assignment is
+    // allowed
+    prf = other.prf;
+}
+
 ResourceInfo::~ResourceInfo ()
 {
 }

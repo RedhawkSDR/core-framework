@@ -224,6 +224,13 @@ class ArraySink(object):
         self.breakBlock = False
         self.port_lock = threading.Lock()
         self.port_cond = threading.Condition(self.port_lock)
+    
+    class estimateStruct():
+        len_data=0
+        num_timestamps=0
+        def __init__(self, data=[], timestamps=[]):
+            self.len_data = len(data)
+            self.num_timestamps = len(timestamps)
 
     def _isActive(self):
         return not self.gotEOS and not self.breakBlock
@@ -284,6 +291,15 @@ class ArraySink(object):
         finally:
             self.port_cond.release()
 
+    def estimateData(self):
+        self.port_cond.acquire()
+        estimate = self.estimateStruct()
+        try:
+            estimate = self.estimateStruct(self.data, self.timestamps)
+        finally:
+            self.port_cond.release()
+        return estimate
+        
     def retrieveData(self, length=None):
         self.port_cond.acquire()
         try:

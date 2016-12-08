@@ -279,6 +279,7 @@ Optional</description>
       <value>e.*</value>
     </values>
     <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simplesequence>
   <simplesequence id="available_nic_interfaces" mode="readonly" type="string">
@@ -341,6 +342,20 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
 
   <simple id="busy_reason" mode="readonly" name="busy_reason" type="string">
     <description>Report reason why the GPP had it's usage state set to BUSY.</description>
+    <value></value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+
+  <simple id="cacheDirectory" mode="readonly" name="cacheDirectory" type="string">
+    <description>Select a cache directory other than the default.</description>
+    <value></value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+
+  <simple id="workingDirectory" mode="readonly" name="workingDirectory" type="string">
+    <description>Select a working directory other than the default.</description>
     <value></value>
     <kind kindtype="property"/>
     <action type="external"/>
