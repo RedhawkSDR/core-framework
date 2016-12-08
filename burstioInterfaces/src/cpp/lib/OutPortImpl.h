@@ -42,8 +42,7 @@ namespace burstio {
 
         RemoteTransport(OutPort<Traits>* parent, typename PortType::_ptr_type port, const std::string& connectionId) :
             super(port, connectionId, parent->name),
-            parent_(parent),
-            alive_(true)
+            parent_(parent)
         {
         }
 
@@ -63,15 +62,15 @@ namespace burstio {
                     RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed because the burst size is too long");
                 }
             } catch (const CORBA::Exception& ex) {
-                if (alive_) {
+                if (this->isAlive()) {
                     RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
                 }
-                alive_ = false;
+                this->setAlive(false);
             } catch (...) {
-                if (alive_) {
+                if (this->isAlive()) {
                     RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed");
                 }
-                alive_ = false;
+                this->setAlive(false);
             }
         }
 
@@ -82,7 +81,7 @@ namespace burstio {
             boost::posix_time::time_duration delay = boost::get_system_time() - startTime;
 
             this->port_->pushBursts(bursts);
-            alive_ = true;
+            this->setAlive(true);
 
             // Count up total elements
             size_t total_elements = 0;
@@ -108,7 +107,6 @@ namespace burstio {
         }
 
         OutPort<Traits>* parent_;
-        bool alive_;
     };
 
     template <class Traits>
