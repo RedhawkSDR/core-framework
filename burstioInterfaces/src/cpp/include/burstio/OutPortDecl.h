@@ -57,32 +57,7 @@ namespace burstio {
     };
 
     template <typename Traits>
-    class BurstTransport : public redhawk::BasicTransport
-    {
-    public:
-        typedef typename Traits::PortType PortType;
-        typedef typename PortType::_var_type VarType;
-        typedef typename Traits::BurstSequenceType BurstSequenceType;
-        typedef typename Traits::ElementType ElementType;
-
-        BurstTransport(typename PortType::_ptr_type port, const std::string& connectionId, const std::string& name) :
-            redhawk::BasicTransport(connectionId, port),
-            port_(PortType::_duplicate(port)),
-            stats_(name, sizeof(ElementType) * 8)
-        {
-        }
-
-        virtual void pushBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth) = 0;
-
-        BULKIO::PortStatistics* getStatistics() const
-        {
-            return stats_.retrieve();
-        }
-
-    protected:
-        VarType port_;
-        SenderStatistics stats_;
-    };
+    class BurstTransport;
 
     template <class Traits>
     class OutPort : public redhawk::UsesPort, public virtual POA_BULKIO::UsesPortStatisticsProvider
