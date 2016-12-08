@@ -19,6 +19,7 @@
  */
 
 #include <ossie/UsesPort.h>
+#include <ossie/CorbaUtils.h>
 #include <ossie/CorbaSequence.h>
 
 namespace redhawk {
@@ -102,7 +103,19 @@ namespace redhawk {
             }
 
             RH_DEBUG(logger, "Disconnecting connection '" << connectionId << "'");
-            (*transport)->disconnect();
+            try {
+                (*transport)->disconnect();
+            } catch (const std::exception& exc) {
+                if ((*transport)->isAlive()) {
+                    RH_WARN(logger, "Exception disconnecting '" << connectionId << "': "
+                            << exc.what());
+                }
+            } catch (const CORBA::Exception& exc) {
+                if ((*transport)->isAlive()) {
+                    RH_WARN(logger, "Exception disconnecting '" << connectionId << "': "
+                            << ossie::corba::describeException(exc));
+                }
+            }
 
             delete (*transport);
             _transports.erase(transport);
