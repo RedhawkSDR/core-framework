@@ -93,7 +93,7 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
   port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
-  port->disconnectPort( "connection_1");
+  CPPUNIT_ASSERT_THROW(port->disconnectPort("connection_1"), CF::Port::InvalidPort);
   //ossie::corba::RootPOA()->deactivate_object(p_oid);
 
   BULKIO::StreamSRI sri;
@@ -180,7 +180,7 @@ void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutCharPort, bulkio::InChar
   port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
-  port->disconnectPort( "connection_1");
+  CPPUNIT_ASSERT_THROW(port->disconnectPort("connection_1"), CF::Port::InvalidPort);
   ossie::corba::RootPOA()->deactivate_object(p_oid);
 
   BULKIO::StreamSRI sri;
@@ -232,7 +232,7 @@ void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutFilePort, bulkio::InFile
   port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
-  port->disconnectPort( "connection_1");
+  CPPUNIT_ASSERT_THROW(port->disconnectPort("connection_1"), CF::Port::InvalidPort);
   ossie::corba::RootPOA()->deactivate_object(p_oid);
 
   BULKIO::StreamSRI sri;
@@ -273,7 +273,7 @@ void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutXMLPort, bulkio::InXMLPo
   port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
-  port->disconnectPort( "connection_1");
+  CPPUNIT_ASSERT_THROW(port->disconnectPort("connection_1"), CF::Port::InvalidPort);
   ossie::corba::RootPOA()->deactivate_object(p_oid);
 
   BULKIO::StreamSRI sri;
