@@ -286,24 +286,43 @@ static void setOwners(const std::string& user, const std::string& group)
 
     // Checks for command line specified group
     if (!group.empty()){
-        const struct group *gr = getgrnam(group.c_str());
-
-        if (gr == NULL){
-            throw std::runtime_error("Invalid group '" + group + "' specified");
-        }
-
-        gid_t gid = gr->gr_gid;
-
-        if (getgid() != gid){
-            if (setgid(gid)){
-                std::ostringstream err;
-                err << "Cannot set group ID to " << gid << ": " << strerror(errno);
-                throw std::runtime_error(err.str());
+        std::vector<std::string> groups;
+        if (group.find(',') == std::string::npos) {
+            groups.push_back(group);
+        } else {
+            size_t current_pos = 0;
+            while (group.find(',', current_pos) != std::string::npos) {
+                std::string _group = group.substr(current_pos, (group.find(',', current_pos))-current_pos);
+                groups.push_back(_group);
+                current_pos = group.find(',', current_pos) + 1;
             }
-
-            std::cout << "Running as group: " << group <<  "(gid=" << gid << ")" << std::endl;
-            group_set = true;
+            groups.push_back(group.substr(current_pos, group.find(',', current_pos)-current_pos));
         }
+        gid_t gids[groups.size()];
+        for (unsigned int i=0; i<groups.size(); i++) {
+            const struct group *gr = getgrnam(groups[i].c_str());
+            if (gr == NULL){
+                std::cout<<"... error: "<<errno<<" "<<strerror(errno)<<std::endl;
+                throw std::runtime_error("Invalid group '" + group + "' specified");
+            }
+            gids[i] = gr->gr_gid;
+        }
+        if (setgroups(groups.size(), gids)){
+            std::ostringstream err;
+            err << "Cannot set group ID to one of [ ";
+            for (unsigned int gr_idx=0; gr_idx < groups.size(); gr_idx++) {
+                err << gids[gr_idx] << " ";
+            }
+            err << "]: " << strerror(errno);
+            throw std::runtime_error(err.str());
+        }
+
+        std::cout << "Running as group: [ ";
+        for (unsigned int gr_idx=0; gr_idx < groups.size(); gr_idx++) {
+            std::cout << groups[gr_idx] <<  "(gid=" << gids[gr_idx] << ") ";
+        }
+        std::cout << "]" << std::endl;
+        group_set = true;
     }
 
     // Checks for command line specified user
@@ -315,15 +334,27 @@ static void setOwners(const std::string& user, const std::string& group)
         }
 
         // Use the users primary group if another group is specified in command line
-        gid_t gid = group_set ? getgid() : pwent->pw_gid;
         uid_t uid = pwent->pw_uid;
 
         if (getuid() != uid) {
             // Only set the group if another group hasn't already been specified
-            if (!group_set && setgid(gid)) {
-                std::ostringstream err;
-                err << "Cannot set group ID to " << gid << ": " << strerror(errno);
-                throw std::runtime_error(err.str());
+            if (not group_set) { // when root sets the user id, group id's are not set
+                int ngroups = 1024;
+                gid_t groups[ngroups];
+                struct passwd *pw;
+                pw = getpwnam(user.c_str());
+                if (getgrouplist(user.c_str(), pw->pw_gid, &groups[0], &ngroups) == -1) {
+                    std::ostringstream err;
+                    err << "Cannot retrieve group list for user ID " << uid << ": " << strerror(errno);
+                    throw std::runtime_error(err.str());
+                } else {
+                    setgroups(ngroups, groups);
+                }
+                std::cout << "Running as group: [ ";
+                for (unsigned int gr_idx=0; gr_idx < ngroups; gr_idx++) {
+                    std::cout << getgrgid(groups[gr_idx])->gr_name <<  "(gid=" << groups[gr_idx] << ") ";
+                }
+                std::cout << "]" << std::endl;
             }
 
             if (setuid(uid)) {
@@ -332,7 +363,7 @@ static void setOwners(const std::string& user, const std::string& group)
                 throw std::runtime_error(err.str());
             }
 
-            std::cout << "Running as user: " << user << "(uid=" << uid << ", gid=" << gid << ")" << std::endl;
+            std::cout << "Running as user: " << user << "(uid=" << uid << ")" << std::endl;
         }
     }
 }
