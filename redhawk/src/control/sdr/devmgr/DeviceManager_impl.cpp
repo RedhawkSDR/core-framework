@@ -1327,10 +1327,6 @@ void DeviceManager_impl::postConstructor (
     DeviceManagerConfiguration DCDParser;
     parseDCDProfile(DCDParser, overrideDomainName);
 
-    resolveNamingContext();
-
-    bindNamingContext();
-
     SoftPkg devmgrspdparser;
     parseSpd(DCDParser, devmgrspdparser);
 
@@ -1340,7 +1336,11 @@ void DeviceManager_impl::postConstructor (
     getDomainManagerReferenceAndCheckExceptions();
 
     registerDeviceManagerWithDomainManager(myObj);
-
+    
+    resolveNamingContext();
+    
+    bindNamingContext();
+    
     // Now that we've successfully communicated with the DomainManager, allow
     // for 1 retry in the event that it crashes and recovers, leaving us with a
     // valid reference but a stale connection.

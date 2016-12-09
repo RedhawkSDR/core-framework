@@ -545,6 +545,31 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         devMgrs = domMgr._get_deviceManagers()
         self.assertEqual(len(devMgrs), 0)
 
+    def test_DeviceManagerSurprise(self):
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
+        
+        # Kill the domainMgr
+        os.kill(self._nb_domMgr.pid, signal.SIGKILL)
+        if not self.waitTermination(self._nb_domMgr):
+            self.fail("Domain Manager Failed to Die")
+            
+        self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", wait=False)
+        # this sleep is needed to allow the Device Manager to figure out that the Domain Manager is not available
+        time.sleep(0.5)
+
+        # Start the domainMgr again
+        self._nb_domMgr, newDomMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        time.sleep(0.5) # sleep needed to make sure that the Device Manager has registered with the Domain Manager
+        
+        node_name = 'BasicTestDevice_node'
+        domainName = scatest.getTestDomainName()
+        devMgrURI = URI.stringToName("%s/%s/BasicTestDevice1" % (domainName, node_name))
+        dev = self._root.resolve(devMgrURI)
+        self.assertNotEqual(dev, None)
+        
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
+
     def test_DeviceManagerDisappear(self):
         self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
         self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
