@@ -18,10 +18,6 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-CFDIR = $(top_srcdir)/base
-PROJECTDEPS_CFLAGS = -I$(CFDIR)/include -I$(CFDIR)/include/ossie
-PROJECTDEPS_LIBS = $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
-
 ossieName = BasicShared
 libdir = $(prefix)/dom/components/BasicShared/cpp
 lib_LTLIBRARIES = BasicShared.la

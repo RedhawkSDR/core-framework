@@ -244,6 +244,10 @@ AC_SUBST(OSSIE_CFLAGS, '-I$(top_srcdir)/base/include')
 AC_SUBST(OSSIE_IDLDIR, '$(top_srcdir)/idl')
 AC_SUBST(OSSIEIDL_LIBS, '$(top_builddir)/base/framework/idl/libossieidl.la')
 
+# For test components with a generated Makefile.am, set the expected flags
+AC_SUBST(PROJECTDEPS_CFLAGS, '$(OSSIE_CFLAGS) -I$(top_srcdir)/base/include/ossie')
+AC_SUBST(PROJECTDEPS_LIBS, '$(top_builddir)/base/framework/libossiecf.la $(OSSIEIDL_LIBS)')
+
 if test "$HAVE_JAVASUPPORT" = yes; then
   AC_SUBST(OSSIE_CLASSPATH, '$(top_srcdir)/base/framework/java/CFInterfaces.jar:$(top_srcdir)/base/framework/java/log4j-1.2.15.jar:$(top_srcdir)/base/framework/java/ossie/ossie.jar')
 
