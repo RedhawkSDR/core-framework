@@ -358,6 +358,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1/Makefile \
                 testing/sdr/dom/components/BasicAC/basicac_java_impl1/Makefile \
                 testing/sdr/dom/components/BasicAC/BasicAC_cpp_impl1/Makefile \
+                testing/sdr/dom/components/BasicShared/cpp/Makefile \
                 testing/sdr/dom/components/MessageReceiverCpp/Makefile \
                 testing/sdr/dom/components/MessageSenderCpp/Makefile \
                 testing/sdr/dom/components/EventSend/EventSend_java_impl1/Makefile \

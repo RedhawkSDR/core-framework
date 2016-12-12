@@ -127,6 +127,18 @@ def setupDeviceAndDomainMgrPackage():
     for xmlFile in glob.glob(os.path.join(domMgrSrc, '*.xml')):
         updateLink(xmlFile, os.path.join(domMgrDest, os.path.basename(xmlFile)))
 
+    # "Install" the ComponentHost softpkg
+    compHostSrc = os.path.join(sdrSrc, 'ComponentHost')
+    compHostDest = os.path.join(getSdrPath(), "dom/mgr/rh/ComponentHost")
+    try:
+        os.makedirs(compHostDest)
+    except OSError:
+        # Assume it failed because the directory already exists
+        pass
+    updateLink(os.path.join(compHostSrc, 'ComponentHost'), os.path.join(compHostDest, 'ComponentHost'))
+    for xmlFile in glob.glob(os.path.join(compHostSrc, '*.xml')):
+        updateLink(xmlFile, os.path.join(compHostDest, os.path.basename(xmlFile)))
+
     # "Install" the DeviceManager softpkg.
     devMgrSrc = os.path.join(sdrSrc, 'devmgr')
     devMgrDest = os.path.join(getSdrPath(), "dev", "mgr")
