@@ -682,7 +682,6 @@ void DeviceManager_impl::createDeviceCacheLocation(
     } else {
         usageName = instantiation.getUsageName();
     }
-    
     cacheAndCwdStruct cacheCwd = getOverloadCacheAndCwd(spdFile, instantiation);
     
     if (cacheCwd.cache.empty()) {
@@ -1324,7 +1323,6 @@ void DeviceManager_impl::postConstructor (
 
     checkDeviceConfigurationProfile();
 
-    DeviceManagerConfiguration DCDParser;
     parseDCDProfile(DCDParser, overrideDomainName);
 
     SoftPkg devmgrspdparser;
@@ -1885,6 +1883,7 @@ DeviceManager_impl::registeredServices ()throw (CORBA::SystemException)
 
 DeviceManager_impl::cacheAndCwdStruct DeviceManager_impl::getOverloadCacheAndCwd(std::string spdFile, const ossie::ComponentInstantiation& instantiation)
 {
+    LOG_DEBUG(DeviceManager_impl, "Getting Cache/Working Directories for: " << instantiation.instantiationId );
     ossie::SpdSupport::ResourceInfo spdinfo = this->buildSpdinfo(spdFile, instantiation.instantiationId);
     const CF::Properties cprops = spdinfo.getNonNilConstructProperties();
     redhawk::PropertyMap tmpProps = redhawk::PropertyMap::cast(cprops);
@@ -1911,38 +1910,16 @@ ossie::SpdSupport::ResourceInfo DeviceManager_impl::buildSpdinfo(std::string spd
     }
     std::string spd_name = spdinfo.getName();
     std::string spd_id = spdinfo.getID();
-    LOG_INFO(DeviceManager_impl, "Device ID: " << device_id << "  SPD loaded: " << spd_name << "' - '" << spd_id );
+    LOG_INFO(DeviceManager_impl, "ID: " << device_id << "  SPD loaded: " << spd_name << "' - '" << spd_id );
 
     CF::Properties componentProperties;
-    DeviceManagerConfiguration DCDParser;
-    try {
-        File_stream _dcd(this->_fileSys, _deviceConfigurationProfile.c_str());
-        DCDParser.load(_dcd);
-        _dcd.close();
-    } catch ( std::exception& ex ) {
-        std::ostringstream eout;
-        eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to parse "<<_deviceConfigurationProfile;
-        LOG_ERROR(DeviceManager_impl, eout.str())
-        throw(CF::InvalidObjectReference(eout.str().c_str()));
-    } catch ( const CORBA::Exception& ex ) {
-        std::ostringstream eout;
-        eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to parse "<<_deviceConfigurationProfile;
-        LOG_ERROR(DeviceManager_impl, eout.str())
-        throw(CF::InvalidObjectReference(eout.str().c_str()));
-    } catch ( ... ) {
-        std::ostringstream eout;
-        eout << "[DeviceManager::registerDevice] Failed to parse DCD";
-        LOG_ERROR(DeviceManager_impl, eout.str())
-        throw(CF::InvalidObjectReference(eout.str().c_str()));
-    }
-
     try {
         const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(device_id);
         if (!instantiation.getUsageName().empty())
             std::string tmp_name = instantiation.getUsageName(); // this is here to get rid of a warning
     } catch (std::out_of_range& e) {
         std::ostringstream eout;
-        eout << "[DeviceManager::registerDevice] Failed to parse DCD";
+        eout << "DCD file does not contain component instantiation information for resource: " << device_id ;
         LOG_ERROR(DeviceManager_impl, eout.str());
         throw(CF::InvalidObjectReference(eout.str().c_str()));
     } catch ( std::exception& ex ) {
@@ -2318,28 +2295,32 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
 
     // Register the service with the Device manager, unless it is already
     // registered
-    if (!serviceIsRegistered(name)) {
-        // Per the specification, service usagenames are not optional and *MUST* be
-        // unique per each service type.  Therefore, a domain cannot have two
-        // services of the same usagename.
-        LOG_TRACE(DeviceManager_impl, "Binding service to name " << name);
-        CosNaming::Name_var service_name = ossie::corba::stringToName(name);
-        try {
-             rootContext->rebind(service_name, registeringService);
-        } catch ( ... ) {
-            // there is already something bound to that name
-            // from the perspective of this framework implementation, the multiple names are not acceptable
-            // consider this a registered device
-            LOG_WARN(DeviceManager_impl, "Service is already registered")
-            return;
-        }
-
-        increment_registeredServices(registeringService, name);
-
-    } else {
-        LOG_WARN(DeviceManager_impl, "Service is already registered")
+    if (serviceIsRegistered(name) == true ) {
+        LOG_WARN(DeviceManager_impl, "Service: " << name << ", is already registered")
         return;
     }
+    // Per the specification, service usagenames are not optional and *MUST* be
+    // unique per each service type.  Therefore, a domain cannot have two
+    // services of the same usagename.
+    LOG_TRACE(DeviceManager_impl, "Binding service to name " << name);
+    CosNaming::Name_var service_name = ossie::corba::stringToName(name);
+    try {
+        rootContext->rebind(service_name, registeringService);
+    } catch ( ... ) {
+        // there is already something bound to that name
+        // from the perspective of this framework implementation, the multiple names are not acceptable
+        // consider this a registered device
+        LOG_WARN(DeviceManager_impl, "Service is already registered")
+            return;
+    }
+
+    //
+    // If the service support's any of the redhawk resource startup interfaces.
+    //
+    tryResourceStartup( registeringService, name );
+
+    increment_registeredServices(registeringService, name);
+
 
     //The registerService operation shall register the registeringService with the DomainManager
     //when the DeviceManager has already registered to the DomainManager and the
@@ -3036,3 +3017,187 @@ bool DeviceManager_impl::allChildrenExited ()
 
     return false;
 }
+
+
+void DeviceManager_impl::tryResourceStartup( CORBA::Object_ptr registeringService,
+                                             const std::string &svc_name )
+{
+    ossie::SpdSupport::ResourceInfo spdinfo;
+    try {
+        spdinfo = buildServiceSpd(svc_name);
+    }
+    catch(...){
+        LOG_WARN(DeviceManager_impl, "Error processing SoftwareProfile for Service: " << svc_name << ", continue with normal registration.");
+        return;
+    }
+
+    //
+    // Try standard Redhawk resource startup...
+    //    initializeProperties, initialized, configure
+    //
+    CF::LifeCycle_var    svc_lc = ossie::corba::_narrowSafe<CF::LifeCycle> (registeringService);
+    CF::PropertySet_var  svc_ps = ossie::corba::_narrowSafe<CF::PropertySet> (registeringService);
+    CF::PropertyEmitter_var  svc_em = ossie::corba::_narrowSafe<CF::PropertyEmitter> (registeringService);
+    std::ostringstream   eout;
+    std::string          emsg;
+    try {
+        LOG_DEBUG(DeviceManager_impl, "Initialize properties for spd/service: " << spdinfo.getName() << "/" << svc_name);
+        const CF::Properties cprops = spdinfo.getNonNilConstructProperties();
+        for (unsigned int j = 0; j < cprops.length (); j++) {
+            LOG_DEBUG(DeviceManager_impl, "initializeProperties prop id " << cprops[j].id );
+        }
+
+        if ( !CORBA::is_nil(svc_em)) {
+            // Try to set the initial values for the resource
+            LOG_DEBUG(DeviceManager_impl, "Calling Service: " << svc_name << " initializeProperties props: " << cprops.length());
+            svc_em->initializeProperties(cprops);
+        }
+        else {
+            if ( cprops.length() > 0 ) {
+                LOG_WARN(DeviceManager_impl,"Service: " << svc_name << " has configuration properties but does not implement PropertEmitter interface.");
+            }
+        }
+
+    }catch(CF::PropertySet::InvalidConfiguration& e) {
+            eout << "Invalid Configuration exception occurred, service '" << svc_name <<".";
+    } catch(CF::PropertySet::PartialConfiguration& e) {
+            eout << "Partial configuration exception for Service '" << svc_name << ".";
+    } catch ( std::exception& ex ) {
+        eout << "Standard exception occurred: "<<ex.what()<<" while attempting to initalizeProperties for service: "<<svc_name<<".";
+    } catch ( const CORBA::Exception& ex ) {
+    eout << "CORBA exception occurred: "<<ex._name()<<" while attempting to initializeProperties for service: "<<svc_name<<".";
+    } catch( ... ) {
+        eout << "Unknown exception occurred. Failed to initialize service properties for service:" << svc_name;
+    }
+
+    // handle error conditions
+    emsg = eout.str();
+    if ( emsg.size() > 0 ) {
+        LOG_WARN(DeviceManager_impl, eout.str() <<  " Continuing with normal service registration.");
+        return;
+    }
+
+    LOG_DEBUG(DeviceManager_impl, "Initializing Service " << svc_name << " on DeviceManager: " << _label);
+    eout.clear(); eout.str("");
+    try {
+        if ( !CORBA::is_nil(svc_lc)) {
+            LOG_DEBUG(DeviceManager_impl, "Calling Service " << svc_name << " initialize method.");
+            svc_lc->initialize();
+        }
+        else {
+            LOG_DEBUG(DeviceManager_impl, "Service does not implement LifeCycle interface.");
+        }
+
+    } catch (CF::LifeCycle::InitializeError& ex) {
+        eout << "Service: "<< svc_name << " threw a CF::LifeCycle::InitializeError exception.";
+    } catch ( std::exception& ex ) {
+        eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to initialize the service: " << svc_name<<".";
+    } catch ( const CORBA::Exception& ex ) {
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to initialize the service: " << svc_name <<".";
+    }
+
+    // handle error conditions
+    emsg = eout.str();
+    if ( emsg.size() > 0 ) {
+        LOG_WARN(DeviceManager_impl, eout.str() << " Continuing with normal service registration.");
+        return;
+    }
+
+    eout.clear(); eout.str("");
+    //configure properties
+    try {
+        LOG_DEBUG(DeviceManager_impl, "Configuring service " << svc_name << " on Device Manager " << _label);
+        const CF::Properties cprops  = spdinfo.getNonNilConfigureProperties();
+        LOG_TRACE(DeviceManager_impl, "Listing configuration properties");
+        for (unsigned int j=0; j<cprops.length(); j++) {
+            LOG_TRACE(DeviceManager_impl, "Prop id " << cprops[j].id );
+        }
+        if (cprops.length() != 0) {
+            if ( !CORBA::is_nil(svc_ps) ) {
+                LOG_DEBUG(DeviceManager_impl, "Calling Service's configure method with properties: " << cprops.length());
+                svc_ps->configure (cprops);
+            }
+            else {
+                eout << "Service has configuration properties but does not implement PropertSet interface. Continuing with normal service registration.";
+            }
+        }
+
+    } catch (CF::PropertySet::PartialConfiguration& ex) {
+        eout << "Partial configuration exception for Service '" << svc_name << ".";
+    } catch (CF::PropertySet::InvalidConfiguration& ex) {
+        eout << "Invalid Configuration exception occurred, service '" << svc_name <<".";
+    } catch ( std::exception& ex ) {
+        eout << "Standard exception occurred: "<<ex.what()<<" while attempting to configure the service: "<<svc_name<<".";
+    } catch ( const CORBA::Exception& ex ) {
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to configure the Service: " << svc_name <<".";
+    }
+
+    // handle error conditions
+    emsg = eout.str();
+    if ( emsg.size() > 0 ) {
+        LOG_WARN(DeviceManager_impl, eout.str() <<  " Continuing with normal service registration.");
+        return;
+    }
+
+}
+
+ossie::SpdSupport::ResourceInfo DeviceManager_impl::buildServiceSpd( const std::string &svc_name)
+{
+    CF::Properties componentProperties;
+    std::ostringstream eout;
+    std::string cname;
+    ossie::SpdSupport::ResourceInfo spdinfo;
+    try  {
+        // get service's spd from DeviceManager's DCD file
+        const std::vector<ossie::ComponentPlacement>& components = DCDParser.getComponentPlacements();
+        LOG_TRACE(DeviceManager_impl, "Getting ComponentPlacements,  size is " << components.size());
+        for ( std::vector< ossie::ComponentPlacement >::const_iterator comp = components.begin();
+              comp != components.end(); comp++) {
+
+            for (unsigned int i = 0; i < comp->instantiations.size(); i++) {
+                cname =  comp->instantiations[i].getID();
+                if ( cname == svc_name ) {
+                    LOG_TRACE(DeviceManager_impl, "Getting file name for refid " << comp->getFileRefId());
+                    const char* spdFile = DCDParser.getFileNameFromRefId(comp->getFileRefId());
+                    if (spdFile == 0) {
+                        eout << "Service: " << svc_name << " missing fileRefId: " << comp->getFileRefId();
+                        LOG_WARN(DeviceManager_impl, eout.str());
+                        throw(CF::InvalidObjectReference(eout.str().c_str()));
+                    }
+
+                    // loads in service's spd file
+                    ossie::SpdSupport::ResourceInfo::LoadResource(this->_fileSys, spdFile, spdinfo);
+                }
+            }
+        }
+    }
+    catch(...){
+        eout << "Loading Services's SPD failed, device:" <<  svc_name;
+        LOG_WARN(DeviceManager_impl, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    }
+
+    std::string spd_name = spdinfo.getName();
+    std::string spd_id = spdinfo.getID();
+    LOG_INFO(DeviceManager_impl, "Service: " << svc_name << "  SPD loaded: " << spd_name << "' - '" << spd_id );
+
+    try {
+        const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(svc_name);
+        if (instantiation.getUsageName() != NULL)
+            std::string tmp_name = instantiation.getUsageName(); // this is here to get rid of a warning
+    } catch (...) {
+        eout << "ComponentInstantiation is invalid for Service:" << svc_name;
+        LOG_WARN(DeviceManager_impl, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    }
+
+    // override device properties in DCD file
+    const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(svc_name);
+    const ossie::ComponentPropertyList& overrideProps = instantiation.getProperties();
+    // Check for any overrides from DCD componentproperites
+    for (unsigned int j = 0; j < overrideProps.size (); j++) {
+        LOG_DEBUG(DeviceManager_impl, "Service:" << svc_name << " Override Properties - ID: " << overrideProps[j].getID());
+        spdinfo.overrideProperty( overrideProps[j] );
+    }
+    return spdinfo;
+ }

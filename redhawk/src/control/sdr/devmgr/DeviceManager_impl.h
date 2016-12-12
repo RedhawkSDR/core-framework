@@ -163,6 +163,8 @@ private:
     CosNaming::NamingContext_var devMgrContext;
     CF::FileSystem_var _fileSys;
     CF::DeviceManager_var myObj;
+    ossie::DeviceManagerConfiguration  DCDParser;
+
     bool checkWriteAccess(std::string &path);
     
     struct cacheAndCwdStruct{
@@ -173,6 +175,15 @@ private:
     cacheAndCwdStruct getOverloadCacheAndCwd(std::string profile, const ossie::ComponentInstantiation& instantiation);
     
     ossie::SpdSupport::ResourceInfo buildSpdinfo(std::string spdFile, std::string device_id);
+
+    //
+    // tryResourceStartup - try the following interfaces initializeproperties, initialize, configure
+    //
+    void   tryResourceStartup( CORBA::Object_ptr registeringService,
+                               const std::string &svc_name );
+
+    ossie::SpdSupport::ResourceInfo buildServiceSpd(const std::string &svc_name);
+
 
     enum DevMgrAdmnType {
         DEVMGR_REGISTERED,

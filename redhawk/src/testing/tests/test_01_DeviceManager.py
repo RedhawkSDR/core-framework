@@ -22,6 +22,7 @@ import unittest, os, signal, time, platform
 from _unitTestHelpers import scatest
 from omniORB import URI, any, CORBA
 from ossie.cf import CF
+from ossie import properties
 import commands
 import CosNaming
 import tempfile
@@ -1286,3 +1287,24 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             if ub_patch:
                 os.unlink(altpath+'.bin')
 
+
+    def test_Service_Startup(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_service_startup_node/DeviceManager.dcd.xml")
+        from ossie.utils import redhawk
+        d=redhawk.attach(self._domainManager._get_name())
+
+        svc=None
+        for s in d.services:
+            if s._id == 'S2_1':
+                svc = s
+        self.assertNotEqual(svc, None)
+
+        # get p1 from service
+        res=s.query([CF.DataType(id='p1', value=any.to_any(None))])
+        p1=properties.props_to_dict(res)
+        self.assertEqual(p1['p1'],'p1 set by DCD file')
+
+        # get p2 from service
+        res=s.query([CF.DataType(id='p2', value=any.to_any(None))])
+        p1=properties.props_to_dict(res)
+        self.assertEqual(p1['p2'],123456)
