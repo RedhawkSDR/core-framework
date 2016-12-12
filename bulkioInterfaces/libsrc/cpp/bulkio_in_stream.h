@@ -53,6 +53,7 @@ namespace bulkio {
     template <class PortType>
     class InputStream : public StreamBase {
     public:
+        typedef typename NativeTraits<PortType>::NativeType NativeType;
         typedef typename BlockTraits<PortType>::DataBlockType DataBlockType;
 
         DataBlockType read();

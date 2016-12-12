@@ -45,8 +45,10 @@ namespace bulkio {
     // PrecisionUTCTime and StreamSRI object will perform a "deep" copy.
     // 
     //
-    template <typename DataBufferType>
+    template <typename BufferType>
     struct DataTransfer {
+        typedef BufferType DataBufferType;
+
         //
         // Construct a DataTransfer object to be returned from an InPort's getPacket method
         // 
