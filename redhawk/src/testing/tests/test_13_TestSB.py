@@ -1383,6 +1383,24 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEqual(len(comp.received_messages), 1)
         self.assertEqual(comp.received_messages[0], "test_message,0.0,'first'")
 
+    def test_BasicSharedComponent(self):
+        """
+        Test that two shared library components launched from the sandbox have
+        the same process ID.
+        """
+        comp1 = sb.launch('BasicShared')
+        comp2 = sb.launch('BasicShared')
+        self.assertEqual(int(comp1.pid), int(comp2.pid))
+
+    def test_NotSharedComponent(self):
+        """
+        Test that forcing a shared library component to run in a non-shared
+        context reports a different process ID.
+        """
+        comp1 = sb.launch('BasicShared')
+        comp2 = sb.launch('BasicShared', shared=False)
+        self.assertNotEqual(int(comp1.pid), int(comp2.pid))
+
 
 class BulkioTest(unittest.TestCase):
     XMLDATA = """<body>
