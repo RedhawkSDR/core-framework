@@ -1415,7 +1415,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         try:
             self.fileManager = self.ref._get_fileMgr()
         except:
-            raise RuntimeError('Domain Manager '+self.name+' is not available')
+            raise StandardError('Domain Manager '+self.name+' is not available')
         
         self.id = self.ref._get_identifier()
         try:
