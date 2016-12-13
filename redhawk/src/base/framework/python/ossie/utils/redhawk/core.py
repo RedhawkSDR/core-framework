@@ -1412,7 +1412,11 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             raise StandardError, "Did not find domain "+name
                 
         self.ref = obj._narrow(_CF.DomainManager)
-        self.fileManager = self.ref._get_fileMgr()
+        try:
+            self.fileManager = self.ref._get_fileMgr()
+        except:
+            raise RuntimeError('Domain Manager '+self.name+' is not available')
+        
         self.id = self.ref._get_identifier()
         try:
             spd, scd, prf = _readProfile("/mgr/DomainManager.spd.xml", self.fileManager)
