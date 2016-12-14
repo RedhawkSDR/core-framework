@@ -910,10 +910,22 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devMgr.shutdown()
         self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
-    def test_longStartupResponseDevice(self):
+    def test_longStartup1ResponseDevice(self):
         from ossie.utils import redhawk
         d=redhawk.attach(self._domainManager._get_name())
         self.setDelayTimeOut("./sdr/dev/nodes/LongDeviceCalls/DeviceManager.dcd.xml.GOLD", False, 5000)
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/LongDeviceCalls/DeviceManager.dcd.xml")
+        dev_devices= len(devMgr._get_registeredDevices())
+        self.assertEqual(dev_devices, 1)
+
+        # now clean up the test....
+        devMgr.shutdown()
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+    def test_longStartup2ResponseDevice(self):
+        from ossie.utils import redhawk
+        d=redhawk.attach(self._domainManager._get_name())
+        self.setDelayTimeOut("./sdr/dev/nodes/LongDeviceCalls/DeviceManager.dcd.xml.GOLD", False, 12000)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/LongDeviceCalls/DeviceManager.dcd.xml")
         dev_devices= len(devMgr._get_registeredDevices())
         self.assertEqual(dev_devices, 0)

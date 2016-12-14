@@ -107,6 +107,8 @@ public:
 
     bool isShutdown() { return  _adminState == DEVMGR_SHUTDOWN; };
 
+    uint32_t  getClientWaitTime( ) { return CLIENT_WAIT_TIME; }
+
 private:
     DeviceManager_impl ();   // No default constructor
     DeviceManager_impl(DeviceManager_impl&);  // No copying
@@ -143,8 +145,9 @@ private:
     std::string     logging_config_uri;
     StringProperty* logging_config_prop;
     std::string     HOSTNAME;
-    std::string logging_uri;
-    float       DEVICE_FORCE_QUIT_TIME;
+    std::string     logging_uri;
+    float           DEVICE_FORCE_QUIT_TIME;
+    uint32_t        CLIENT_WAIT_TIME;
     
 // read only attributes
     struct utsname _uname;

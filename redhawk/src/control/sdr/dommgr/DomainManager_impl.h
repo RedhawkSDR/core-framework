@@ -42,6 +42,7 @@
 #include "connectionSupport.h"
 #include "DomainManager_EventSupport.h"
 #include "EventChannelManager.h"
+#include "struct_props.h"
 
 
 class Application_impl;
@@ -237,7 +238,9 @@ public:
 
     bool  strictSPDValidation() {  return _strict_spd_validation;  };
 
-    uint32_t  getOverrideBlockingTimeOut( ) { return _override_blocking_timeout; }
+    uint32_t  getManagerWaitTime();
+    uint32_t  getDeviceWaitTime();
+    uint32_t  getServiceWaitTime();
 
 /////////////////////////////
 // Internal Helper Functions
@@ -364,10 +367,9 @@ private:
         exit(__status);
     };
     FileManager_impl* fileMgr_servant;
+    client_wait_times_struct   client_wait_times;
 
     bool             _bindToDomain;
-
-    uint32_t        _override_blocking_timeout;
 };                                            /* END CLASS DEFINITION DomainManager */
 
 
