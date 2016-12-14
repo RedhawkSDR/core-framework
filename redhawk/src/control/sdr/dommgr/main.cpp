@@ -396,7 +396,8 @@ int old_main(int argc, char* argv[])
                                                        (db_uri.empty()) ? NULL : db_uri.c_str(),
                                                        (logfile_uri.empty()) ? NULL : logfile_uri.c_str(),
                                                        useLogCfgResolver,
-                                                       bindToDomain
+                                                       bindToDomain,
+                                                       enablePersistence
                                                        );
 
         // set logging level for the DomainManager's logger

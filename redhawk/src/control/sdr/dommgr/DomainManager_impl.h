@@ -60,7 +60,7 @@ class DomainManager_impl: public virtual POA_CF::DomainManager, public PropertyS
 ///////////////////////////
 public:
 
-      DomainManager_impl (const char*, const char*, const char*, const char *, const char*, bool, bool );
+      DomainManager_impl (const char*, const char*, const char*, const char *, const char*, bool, bool, bool);
     ~DomainManager_impl ();
 
     friend class ODM_Channel_Supplier_i;
@@ -330,6 +330,7 @@ protected:
 
     DOM_Publisher_ptr                    _odm_publisher;
     redhawk::events::DomainEventReader   _idm_reader;
+    bool PERSISTENCE;
 
 ///////////////////////
 // Private Domain State

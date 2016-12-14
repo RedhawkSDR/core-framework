@@ -75,7 +75,7 @@ PREPARE_CF_LOGGING(DomainManager_impl)
 // If _overrideDomainName == NULL read the domain name from the DMD file
 DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpath, const char* domainName, 
 					const char *db_uri,
-					const char* _logconfig_uri, bool useLogCfgResolver, bool bindToDomain ) :
+					const char* _logconfig_uri, bool useLogCfgResolver, bool bindToDomain, bool _persistence) :
   _eventChannelMgr(NULL),
   _domainName(domainName),
   _domainManagerProfile(dmdFile),
@@ -101,6 +101,16 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
 
     addProperty(redhawk_version, VERSION, "REDHAWK_VERSION", "redhawk_version",
                 "readonly", "", "external", "configure");
+    
+    addProperty(PERSISTENCE,
+                "PERSISTENCE",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+    
+    PERSISTENCE = _persistence;
 
     addProperty(client_wait_times,
                 client_wait_times_struct(),

@@ -161,6 +161,22 @@ void loadPRFExecParams (const std::string& prfFile, ExecParams& execParams)
         }
         execParams[simpleProp->getID()] =  simpleProp->getValue();
     }
+
+    const std::vector<const ossie::Property*>& propertyProps = prf.getConstructProperties();
+
+    for ( prop = propertyProps.begin(); prop != propertyProps.end(); ++prop) {
+        const ossie::SimpleProperty* simpleProp;
+        simpleProp = dynamic_cast<const ossie::SimpleProperty*>(*prop);
+        if (!simpleProp) {
+            LOG_WARN(nodebooter, "Only execparams of type \"simple\" supported");
+            continue;
+        } else if (!simpleProp->getValue()) {
+            continue;
+        }
+        if (not simpleProp->isCommandLine())
+            continue;
+        execParams[simpleProp->getID()] =  simpleProp->getValue();
+    }
 }
 
 
