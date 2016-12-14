@@ -82,8 +82,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
   _connectionManager(this, this, domainName),
   _useLogConfigUriResolver(useLogCfgResolver),
   _strict_spd_validation(false),
-  _bindToDomain(bindToDomain),
-  _override_blocking_timeout(4000)
+  _bindToDomain(bindToDomain)
 {
     TRACE_ENTER(DomainManager_impl)
 
@@ -102,6 +101,16 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
 
     addProperty(redhawk_version, VERSION, "REDHAWK_VERSION", "redhawk_version",
                 "readonly", "", "external", "configure");
+
+    addProperty(client_wait_times,
+                client_wait_times_struct(),
+                "client_wait_times",
+                "client_wait_times",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
 
     // Create file manager and register with the parent POA.
     fileMgr_servant = new FileManager_impl (_rootpath);
@@ -502,7 +511,7 @@ void DomainManager_impl::cleanupDomainNamingContext (CosNaming::NamingContext_pt
         if (bl[ii].binding_type == CosNaming::ncontext) {
             CORBA::Object_var obj = nc->resolve(bl[ii].binding_name);
             CosNaming::NamingContext_var new_context = CosNaming::NamingContext::_narrow(obj);
-            ossie::corba::overrideBlockingCall(obj,getOverrideBlockingTimeOut());
+            ossie::corba::overrideBlockingCall(obj);
             if (obj->_non_existent()) {
                 // If it no longer exists, unbind it
                 LOG_TRACE(DomainManager_impl, "Unbinding naming context which no longer exists; this is probably due to an omniNames bug")
@@ -523,7 +532,7 @@ void DomainManager_impl::cleanupDomainNamingContext (CosNaming::NamingContext_pt
             CORBA::Object_var obj = nc->resolve(bl[ii].binding_name);
             bool _unbind = false;
             try {
-                ossie::corba::overrideBlockingCall(obj,getOverrideBlockingTimeOut());
+                ossie::corba::overrideBlockingCall(obj);
                 if (obj->_non_existent()) {
                     _unbind = true;
                 }
@@ -685,6 +694,16 @@ DomainManager_impl::~DomainManager_impl ()
      **************************************************/
 
     TRACE_EXIT(DomainManager_impl)
+}
+
+uint32_t  DomainManager_impl::getManagerWaitTime() {
+    return client_wait_times.managers;
+}
+uint32_t  DomainManager_impl::getDeviceWaitTime() {
+    return client_wait_times.devices;
+}
+uint32_t  DomainManager_impl::getServiceWaitTime() {
+    return client_wait_times.services;
 }
 
 char *
@@ -879,7 +898,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     try {
-        ossie::corba::overrideBlockingCall(domainMgr, getOverrideBlockingTimeOut()*2);
+        ossie::corba::overrideBlockingCall(domainMgr, getManagerWaitTime());
         std::string identifier = ossie::corba::returnString(domainMgr->identifier());
         DomainManagerList::iterator node = findDomainManagerById(identifier);
         if (node != _registeredDomainManagers.end()) {
@@ -949,7 +968,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
        CF::DomainManager::RegisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
-    ossie::corba::overrideBlockingCall(deviceMgr,getOverrideBlockingTimeOut());
+    ossie::corba::overrideBlockingCall(deviceMgr,getManagerWaitTime());
     _local_registerDeviceManager(deviceMgr);
 
     std::string identifier = ossie::corba::returnString(deviceMgr->identifier());
@@ -1256,8 +1275,8 @@ throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
        CF::DomainManager::RegisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
-    ossie::corba::overrideBlockingCall(registeringDevice,getOverrideBlockingTimeOut());
-    ossie::corba::overrideBlockingCall(registeredDeviceMgr,getOverrideBlockingTimeOut());
+    ossie::corba::overrideBlockingCall(registeringDevice,getDeviceWaitTime());
+    ossie::corba::overrideBlockingCall(registeredDeviceMgr,getManagerWaitTime());
     _local_registerDevice(registeringDevice, registeredDeviceMgr);
 
     std::string identifier = ossie::corba::returnString(registeringDevice->identifier());
@@ -1947,8 +1966,8 @@ void DomainManager_impl::registerService (CORBA::Object_ptr registeringService, 
     throw (CF::DomainManager::RegisterError, CF::DomainManager::DeviceManagerNotRegistered, CF::InvalidObjectReference, CORBA::SystemException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
-    ossie::corba::overrideBlockingCall(registeringService,getOverrideBlockingTimeOut());
-    ossie::corba::overrideBlockingCall(registeredDeviceMgr,getOverrideBlockingTimeOut());
+    ossie::corba::overrideBlockingCall(registeringService,getServiceWaitTime());
+    ossie::corba::overrideBlockingCall(registeredDeviceMgr,getManagerWaitTime());
     _local_registerService(registeringService, registeredDeviceMgr, name);
 }
 

@@ -1244,7 +1244,7 @@ DeviceManager_impl::DeviceManager_impl(
     _deviceConfigurationProfile = DCDInput;
     _uname                      = uname;
     _internalShutdown           = internalShutdown;
-    _useLogConfigUriResolver    = useLogCfgResolver,
+    _useLogConfigUriResolver    = useLogCfgResolver;
 
     // Initialize properties
     logging_config_prop = (StringProperty*)addProperty(logging_config_uri, 
@@ -1274,6 +1274,15 @@ DeviceManager_impl::DeviceManager_impl(
                "external",
                "configure");
 
+    addProperty(CLIENT_WAIT_TIME,
+                10000,
+               "CLIENT_WAIT_TIME",
+               "CLIENT_WAIT_TIME",
+               "readwrite",
+               "millisec",
+               "external",
+               "property");
+ 
     // translate cpuBlackList to cpu ids 
     try {
       cpu_blacklist = redhawk::affinity::get_cpu_list("cpu", cpuBlackList );
@@ -1281,8 +1290,7 @@ DeviceManager_impl::DeviceManager_impl(
     catch(...){
       std::cerr << " Error processing cpu blacklist for this manager." << std::endl;
     }
-    
-    
+
     // this is hard-coded here because 1.10 and earlier Device Managers do not
     //  have this property in their prf
     this->DEVICE_FORCE_QUIT_TIME = 0.5;
@@ -1980,7 +1988,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   // the mutex lock, which would prevent shutdown from killing
   // this).
   boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
-  ossie::corba::overrideBlockingCall(registeringDevice);
+  ossie::corba::overrideBlockingCall(registeringDevice,getClientWaitTime());
     
   //Get properties from SPD
   std::string spdFile = ossie::corba::returnString(registeringDevice->softwareProfile());
@@ -2291,7 +2299,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
         throw (CF::InvalidObjectReference("Cannot register service, registeringService is a nil reference."));
     }
 
-    ossie::corba::overrideBlockingCall(registeringService);
+    ossie::corba::overrideBlockingCall(registeringService,getClientWaitTime());
 
     // Register the service with the Device manager, unless it is already
     // registered

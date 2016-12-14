@@ -77,6 +77,27 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <kind kindtype="configure"/>
         <action type="external"/>
     </simple>
+
+    <struct id="client_wait_times" mode="readwrite" name="client_wait_times">
+      <simple id="client_wait_times::devices" name="devices" type="ulong">
+        <value>10000</value>
+        <units>milliseconds</units>
+      </simple>
+      <simple id="client_wait_times::services" mode="readwrite" name="services" type="ulong">
+        <value>10000</value>
+        <units>milliseconds</units>
+        <kind kindtype="property"/>
+        <action type="external"/>
+      </simple>
+      <simple id="client_wait_times::managers" mode="readwrite" name="managers" type="ulong">
+        <value>10000</value>
+        <units>milliseconds</units>
+        <kind kindtype="property"/>
+        <action type="external"/>
+      </simple>
+      <configurationkind kindtype="property"/>
+    </struct>
+
     <simple id="REDHAWK_VERSION" mode="readonly" name="REDHAWK_VERSION" type="string">
         <description>
             Current version of REDHAWK that this Domain Manager is running

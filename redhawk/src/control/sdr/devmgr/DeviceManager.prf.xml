@@ -53,6 +53,14 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <value>0.5</value>
         <kind kindtype="configure"/>
     </simple>
+    <simple id="CLIENT_WAIT_TIME" mode="readwrite" name="CLIENT_WAIT_TIME" type="ulong" commandline="true" >
+        <description>
+        The maximum amount of time (in milliseconds) that the Device Manager will wait on a client call.
+        </description>
+        <value>10000</value>
+        <units>milliseconds</units>
+        <kind kindtype="property"/>
+    </simple>
     <simple id="SDRCACHE" mode="readwrite" name="SDRCACHE" type="string">
         <description>
             The location where files from remote SCA filesystems will be cached.
