@@ -187,6 +187,7 @@ int main(int argc, char* argv[])
     // parse command line options
     std::string dcdFile;
     std::string sdrRoot;
+    std::string spdFile;
     std::string sdrCache;
     std::string logfile_uri;
     std::string domainName;
@@ -217,12 +218,17 @@ int main(int argc, char* argv[])
             dcdFile = argv[ii];
         } else if (param == "SDRROOT") {
             sdrRoot = argv[ii];
+        } else if (param == "SPD") {
+            spdFile = argv[ii];
         } else if (param == "SDRCACHE") {
             sdrCache = argv[ii];
+            execparams[param] = argv[ii];
         } else if (param == "DOMAIN_NAME") {
             domainName = argv[ii];
+            execparams[param] = argv[ii];
         } else if (param == "LOGGING_CONFIG_URI") {
             logfile_uri = argv[ii];
+            execparams[param] = argv[ii];
         } else if (pupper == "NOLOGCFG") {
           useLogCfgResolver=false;
         } else if (pupper == "CPUBLACKLIST") {
@@ -448,7 +454,8 @@ int main(int argc, char* argv[])
                                                        un,
                                                        useLogCfgResolver,
                                                        cpuBlackList.c_str(),
-                                                       &internalShutdown_devMgr
+                                                       &internalShutdown_devMgr,
+                                                       spdFile
                                                        );
         DeviceManager_servant->setExecparamProperties(execparams);
         pstage=0;
@@ -460,7 +467,9 @@ int main(int argc, char* argv[])
         // for its deletion.
         PortableServer::POA_var devmgr_poa = root_poa->find_POA("DeviceManager", 1);
         PortableServer::ObjectId_var oid = devmgr_poa->activate_object(DeviceManager_servant);
-
+        
+        
+        
         // finish initializing the Device Manager
         try {
           pstage++;

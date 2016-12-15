@@ -51,7 +51,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         The amount of time (in seconds) that the Device Manager will wait for a Device to exit before issuing a kill signal
         </description>
         <value>0.5</value>
-        <kind kindtype="configure"/>
+        <kind kindtype="property"/>
     </simple>
     <simple id="CLIENT_WAIT_TIME" mode="readwrite" name="CLIENT_WAIT_TIME" type="ulong" commandline="true" >
         <description>
@@ -72,6 +72,13 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <description>
             Name of the host where this device manager is running
         </description>
-        <kind kindtype="configure"/>
+        <kind kindtype="property"/>
+    </simple>
+    <simple id="DOMAIN_REFRESH" mode="readwrite" name="DOMAIN_REFRESH" type="float">
+        <description>
+            How often the Device Manager should check to see if the Domain contains a reference to this Device Manager (in seconds). This applies to persistence only
+        </description>
+        <value>10</value>
+        <kind kindtype="property"/>
     </simple>
 </properties>

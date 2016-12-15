@@ -1235,7 +1235,8 @@ DeviceManager_impl::DeviceManager_impl(
         struct utsname uname, 
         bool           useLogCfgResolver,
         const char     *cpuBlackList,
-        bool*          internalShutdown) :
+        bool*          internalShutdown,
+        std::string&   spdFile) :
     _registeredDevices()
 {
     // These should probably be execparams at some point
@@ -1246,6 +1247,8 @@ DeviceManager_impl::DeviceManager_impl(
     _internalShutdown           = internalShutdown;
     _useLogConfigUriResolver    = useLogCfgResolver;
 
+    _spdFile = spdFile;
+    
     // Initialize properties
     logging_config_prop = (StringProperty*)addProperty(logging_config_uri, 
                                                        "LOGGING_CONFIG_URI", 
@@ -1264,15 +1267,25 @@ DeviceManager_impl::DeviceManager_impl(
                "readonly",
                "",
                "external",
-               "configure");
+               "property");
+
+    addProperty(DOMAIN_REFRESH,
+               10.0,
+               "DOMAIN_REFRESH",
+               "DOMAIN_REFRESH",
+               "readwrite",
+               "",
+               "external",
+               "property");
 
     addProperty(DEVICE_FORCE_QUIT_TIME,
+               0.5,
                "DEVICE_FORCE_QUIT_TIME",
                "DEVICE_FORCE_QUIT_TIME",
                "readwrite",
                "",
                "external",
-               "configure");
+               "property");
 
     addProperty(CLIENT_WAIT_TIME,
                 10000,
@@ -1290,16 +1303,89 @@ DeviceManager_impl::DeviceManager_impl(
     catch(...){
       std::cerr << " Error processing cpu blacklist for this manager." << std::endl;
     }
-
-    // this is hard-coded here because 1.10 and earlier Device Managers do not
-    //  have this property in their prf
-    this->DEVICE_FORCE_QUIT_TIME = 0.5;
     
     char _hostname[1024];
     gethostname(_hostname, 1024);
     std::string hostname(_hostname);
     HOSTNAME = hostname;
     this->_dmnMgr = CF::DomainManager::_nil();
+    domain_persistence = false;
+    this->DOMAIN_REFRESH = 0;
+}
+
+int DeviceManager_impl::checkDomain()
+{
+    CF::DomainManager::DeviceManagerSequence_var devMgrs;
+    try {
+        devMgrs = this->_dmnMgr->deviceManagers();
+    } catch ( ... ) {
+        if ((this->startDomainWarn.tv_sec == 0) and (this->startDomainWarn.tv_usec == 0)) {
+            LOG_WARN(DeviceManager_impl, "Unable to contact the Domain Manager");
+            gettimeofday(&startDomainWarn, NULL);
+            return DomainCheckThread::NOOP;
+        }
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        float minutes = 15;
+        if ((now.tv_sec - startDomainWarn.tv_sec) >= (minutes * 60)) {
+            LOG_WARN(DeviceManager_impl, "Unable to contact the Domain Manager");
+            gettimeofday(&startDomainWarn, NULL);
+            return DomainCheckThread::NOOP;
+        }
+        return DomainCheckThread::NOOP;
+    }
+
+    for (unsigned int i=0; i<devMgrs->length(); i++) {
+        if (devMgrs[i]->_is_equivalent(this->_this())) {
+            return DomainCheckThread::NOOP;
+        }
+    }
+    
+    this->reset();
+    
+    return DomainCheckThread::NOOP;
+}
+
+void DeviceManager_impl::domainRefreshChanged(float oldValue, float newValue)
+{
+    if ((not this->domain_persistence) and (newValue != 0)) {
+        this->DOMAIN_REFRESH = 0;
+        std::string message("DOMAIN_REFRESH can only be set when the Domain Manager persistence is enabled");
+        redhawk::PropertyMap query_props;
+        query_props["DOMAIN_REFRESH"] = redhawk::Value(newValue);
+        throw(CF::PropertySet::InvalidConfiguration(message.c_str(), query_props));
+    }
+    this->DOMAIN_REFRESH = newValue;
+    this->DomainWatchThread->updateDelay(this->DOMAIN_REFRESH);
+}
+
+void DeviceManager_impl::reset()
+{
+    if (_adminState == DEVMGR_SHUTTING_DOWN)
+        return;
+    
+    // release all devices and services
+    clean_registeredServices();
+    clean_externalServices();
+    clean_registeredDevices();
+
+    try {
+        deleteFileSystems();
+    } catch ( ... ) {
+    }
+    
+    // try to get the reference
+    bool done = false;
+    while (not done) {
+        try {
+            getDomainManagerReference (_domainName.c_str());
+            usleep(500);
+            done = true;
+        } catch ( ... ) {
+        }
+    }
+    // call postContructor
+    postConstructor(_domainName.c_str());
 }
 
 /*
@@ -1639,6 +1725,56 @@ void DeviceManager_impl::postConstructor (
                 instanceprops);
         }
     }
+
+    File_stream devMgrSpdStream(_fileSys, _spdFile.c_str());
+    ossie::SoftPkg parsedSpd;
+    ossie::Properties parsedPrf;
+    parsedSpd.load(devMgrSpdStream, _spdFile);
+    
+    if (parsedSpd.getPRFFile()) {
+        File_stream prf(_fileSys, parsedSpd.getPRFFile());
+        parsedPrf.load(prf);
+    }
+    
+    redhawk::PropertyMap query_props;
+    query_props["PERSISTENCE"] = redhawk::Value();
+    this->_dmnMgr->query(query_props);
+    domain_persistence = query_props["PERSISTENCE"].toBoolean();
+    
+    redhawk::PropertyMap set_props;
+    std::vector<const Property*> props = parsedPrf.getConstructProperties();
+    for (unsigned int i=0; i<props.size(); i++) {
+        if (props[i]->isCommandLine())
+            continue;
+        if (props[i]->getMode() == ossie::Property::MODE_READONLY)
+            continue;
+        std::string prop_id(props[i]->getID());
+        if ((prop_id == "DOMAIN_REFRESH") and (not this->domain_persistence))
+            continue;
+        set_props[props[i]->getID()] = convertPropertyToDataType(props[i]).value;
+    }
+    
+    props = parsedPrf.getConfigureProperties();
+    for (unsigned int i=0; i<props.size(); i++) {
+        if (props[i]->getMode() == ossie::Property::MODE_READONLY)
+            continue;
+        set_props[props[i]->getID()] = convertPropertyToDataType(props[i]).value;
+    }
+    
+    if (set_props.size() != 0) {
+        this->configure(set_props);
+    }
+
+    if (domain_persistence) {
+        DomainWatchThread = new DomainCheckThread(this);
+        DomainWatchThread->updateDelay(this->DOMAIN_REFRESH);
+        this->startDomainWarn.tv_sec = 0;
+        this->startDomainWarn.tv_usec = 0;
+        DomainWatchThread->start();
+    } else {
+        DomainWatchThread = NULL;
+    }
+    addPropertyListener(DOMAIN_REFRESH, this, &DeviceManager_impl::domainRefreshChanged);
 }
 
 const SPD::Implementation* DeviceManager_impl::locateMatchingDeviceImpl(const SoftPkg& devSpd, const SPD::Implementation* deployOnImpl)
@@ -2215,6 +2351,9 @@ void
 DeviceManager_impl::shutdown ()
 throw (CORBA::SystemException)
 {
+    if (DomainWatchThread)
+        this->DomainWatchThread->stop();
+    
     *_internalShutdown = true;
     LOG_DEBUG(DeviceManager_impl, "SHUTDOWN START........." << *_internalShutdown)
 

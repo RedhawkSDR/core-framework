@@ -43,15 +43,19 @@
 
 #include <dirent.h>
 
+class DomainCheckThread;
+
 class DeviceManager_impl: 
     public virtual POA_CF::DeviceManager,
     public PropertySet_impl,
     public PortSet_impl
 {
     ENABLE_LOGGING
+    
+    friend DomainCheckThread;
 
 public:
-  DeviceManager_impl (const char*, const char*, const char*, const char*, struct utsname uname, bool, const char *, bool *);
+  DeviceManager_impl (const char*, const char*, const char*, const char*, struct utsname uname, bool, const char *, bool *, std::string&);
 
     ~DeviceManager_impl ();
     char* deviceConfigurationProfile ()
@@ -77,6 +81,9 @@ public:
 
     // Run this after the constructor
     void postConstructor( const char*) throw (CORBA::SystemException, std::runtime_error);
+
+    // Re-start all devices and services, and re-associate with the Domain
+    void reset();
 
     void registerDevice (CF::Device_ptr registeringDevice)
         throw (CF::InvalidObjectReference, CORBA::SystemException);
@@ -129,6 +136,12 @@ private:
         CORBA::Object_ptr service;
         pid_t pid;
     };
+    
+    DomainCheckThread *DomainWatchThread;
+    void domainRefreshChanged(float oldValue, float newValue);
+    int checkDomain();
+    struct timeval startDomainWarn;
+    bool domain_persistence;
 
     typedef std::vector<DeviceNode*> DeviceList;
     typedef std::vector<ServiceNode*> ServiceList;
@@ -149,12 +162,14 @@ private:
     std::string     logging_uri;
     float           DEVICE_FORCE_QUIT_TIME;
     CORBA::ULong    CLIENT_WAIT_TIME;
+    float           DOMAIN_REFRESH;
     
 // read only attributes
     struct utsname _uname;
     std::string _identifier;
     std::string _label;
     std::string _deviceConfigurationProfile;
+    std::string _spdFile;
     std::string _fsroot;
     std::string _cacheroot;
     redhawk::affinity::CpuList cpu_blacklist;
@@ -389,6 +404,102 @@ private:
     std::string                          IDM_IOR;
 
 };
+
+class DomainCheckThread {
+
+public:
+
+  enum {
+    NOOP   = 0,
+    FINISH = -1,
+  };
+
+private:
+  boost::thread* _thread;
+  volatile bool _running;
+  DeviceManager_impl * _target;
+  struct timespec _delay;
+
+public: 
+  boost::thread*& _mythread;
+
+public:
+  DomainCheckThread( DeviceManager_impl *target, float delay=0.5) :
+    _thread(0),
+    _running(false),
+    _target(target),
+    _mythread(_thread)
+  {
+    updateDelay(delay);
+  }
+
+  void start() {
+    if (!_thread) {
+      _running = true;
+      _thread = new boost::thread(&DomainCheckThread::run, this);
+    }
+  }
+
+  void run()
+  {
+    while (_running) {
+      int state = _target->checkDomain();
+      if (state == FINISH) {
+        return;
+      } else if (state == NOOP) {
+        nanosleep(&_delay, NULL);
+      }
+      else {
+        boost::this_thread::yield();
+      }
+    }
+  }
+
+  bool release(unsigned long secs=0, unsigned long usecs=0) {
+
+    _running = false;
+    if (_thread)  {
+      if ((secs == 0) && (usecs == 0)){
+        _thread->join();
+      } else {
+        boost::system_time waitime = boost::get_system_time() + boost::posix_time::seconds(secs) +  boost::posix_time::microseconds(usecs);
+        if (!_thread->timed_join(waitime)) {
+          return false;
+        }
+      }
+      delete _thread;
+      _thread = 0;
+    }
+    
+    return true;
+  }
+
+  void stop() {
+    _running = false;
+    if ( _thread ) _thread->interrupt();
+  }
+
+  ~DomainCheckThread()
+  {
+    if (_thread) {
+      release(0);
+      _thread = 0;
+    }
+  }
+
+  void updateDelay(float delay)
+  {
+    _delay.tv_sec = (time_t)delay;
+    _delay.tv_nsec = (delay-_delay.tv_sec)*1e9;
+  }
+
+  bool threadRunning()
+  {
+    return _running;
+  }
+
+};
+
 
 #endif                                            /* __DEVICEMANAGER_IMPL__ */
 

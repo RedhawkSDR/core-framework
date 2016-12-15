@@ -240,6 +240,8 @@ static pid_t launchSPD (
         LOG_TRACE(nodebooter, "Loading implementation-specific PRF: " << prfFile);
         loadPRFExecParams(prfFile, execParams);
     }
+    
+    execParams["SPD"] = spdFile;
 
     // Update the execparams with the user-supplied overrides.
     for (ExecParams::const_iterator param = overrideExecParams.begin(); param != overrideExecParams.end(); ++param) {
