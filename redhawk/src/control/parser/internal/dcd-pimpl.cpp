@@ -416,6 +416,13 @@ const ::ossie::ComponentFile &componentfile_pimpl::
     componentInstantiation.loggingConfig = log_cfg;
   }
 
+  void componentinstantiation_pimpl::deployerrequires (const ossie::ComponentPropertyList& deployerrequires)
+  {
+    LOG_TRACE(dcd_parser, "deployer requires");
+    componentInstantiation.deployerrequires = deployerrequires;
+  }
+
+
 
 const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   post_componentinstantiation ()
@@ -487,6 +494,30 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
     info.first = this->post_string();
     return info;
   }
+
+
+  // deployerrequires_pimpl
+  //
+
+  void deployerrequires_pimpl::
+  pre ()
+  {
+    deployerrequires.clear();
+  }
+
+  void deployerrequires_pimpl::
+  simpleref (const ossie::SimplePropertyRef& simpleref)
+  {
+    LOG_TRACE(dcd_parser, "Adding simpleref ");
+    deployerrequires.push_back(simpleref.clone());
+  }
+
+  const ossie::ComponentPropertyList& deployerrequires_pimpl::
+  post_deployerrequires ()
+  {
+    return deployerrequires;
+  }
+
 
 
   // componentproperties_pimpl

@@ -65,6 +65,7 @@ ossie::internalparser::parseDCD(std::istream& input) throw (ossie::parser_error)
         ::dcd::filesystemname_pimpl filesystemname_p;
         ::dcd::affinity_pimpl affinity_p;
         ::dcd::loggingconfig_pimpl loggingconfig_p;
+        ::dcd::deployerrequires_pimpl deployerrequires_p;
               
 
         // Connect the parsers together.
@@ -110,6 +111,7 @@ ossie::internalparser::parseDCD(std::istream& input) throw (ossie::parser_error)
                                           componentproperties_p,
                                           affinity_p,
                                           loggingconfig_p,
+                                          deployerrequires_p,
                                           string_p);
 
         affinity_p.parsers (simpleref_p,
@@ -118,6 +120,8 @@ ossie::internalparser::parseDCD(std::istream& input) throw (ossie::parser_error)
                             structsequenceref_p);
 
         loggingconfig_p.parsers(string_p);
+
+        deployerrequires_p.parsers(simpleref_p);
 
         componentproperties_p.parsers (simpleref_p,
                                        simplesequenceref_p,

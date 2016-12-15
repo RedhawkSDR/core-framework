@@ -65,5 +65,6 @@ namespace urn:mil:jpeojtrs:sca:sad {
     propertyref "ossie::PropertyRef";
     affinity "ossie::ComponentInstantiation::AffinityProperties&";
     loggingconfig  "const ossie::ComponentInstantiation::LoggingConfig&"  "const ossie::ComponentInstantiation::LoggingConfig&";
+    devicerequires "ossie::ComponentPropertyList &" "ossie::ComponentPropertyList &";
 }
 

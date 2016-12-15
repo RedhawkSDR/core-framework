@@ -271,6 +271,9 @@ namespace dcd
     virtual void
       loggingconfig (const ossie::ComponentInstantiation::LoggingConfig& );
 
+    virtual void
+      deployerrequires (const ossie::ComponentPropertyList& );
+
     virtual const ::ossie::ComponentInstantiation&
     post_componentinstantiation ();
 
@@ -317,6 +320,24 @@ namespace dcd
     private:
     ossie::ComponentInstantiation::LoggingConfig  info;
   };
+
+
+  class deployerrequires_pimpl: public virtual deployerrequires_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    simpleref (const ossie::SimplePropertyRef&);
+
+    virtual const ossie::ComponentPropertyList&
+    post_deployerrequires ();
+
+    private:
+    ossie::ComponentPropertyList deployerrequires;
+  };
+
 
 
   class componentproperties_pimpl: public virtual componentproperties_pskel

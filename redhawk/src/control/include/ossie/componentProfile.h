@@ -179,6 +179,9 @@ namespace ossie {
         ossie::optional_value<int> startOrder;
         AffinityProperties affinityProperties;
         LoggingConfig loggingConfig;
+        ossie::ComponentPropertyList       deployerrequires;
+        ossie::ComponentPropertyList       devicerequires;
+
 
     public:
         ComponentInstantiation();
@@ -198,6 +201,10 @@ namespace ossie {
         const LoggingConfig &getLoggingConfig() const;
 
         const AffinityProperties &getAffinity() const;
+
+        const ossie::ComponentPropertyList & getDeployerRequires() const;
+
+        const ossie::ComponentPropertyList & getDeviceRequires() const;
 
         bool isNamingService() const;
 

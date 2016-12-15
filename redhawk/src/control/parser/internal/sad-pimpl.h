@@ -209,6 +209,9 @@ namespace sad
     virtual void
       loggingconfig (const ossie::ComponentInstantiation::LoggingConfig&);
 
+    virtual void
+    devicerequires (ossie::ComponentPropertyList&);
+
     virtual const ::ossie::ComponentInstantiation&
     post_componentinstantiation ();
     
@@ -256,6 +259,24 @@ namespace sad
     private:
     ossie::ComponentInstantiation::LoggingConfig  info;
   };
+
+  class devicerequires_pimpl: public virtual devicerequires_pskel
+  {
+    public:
+
+    virtual void
+    pre ();
+
+    virtual void
+    simpleref (const ossie::SimplePropertyRef&);
+
+    virtual ossie::ComponentPropertyList&
+    post_devicerequires ();
+
+    private:
+    ossie::ComponentPropertyList  devicerequires;
+  };
+
 
 
   class componentproperties_pimpl: public virtual componentproperties_pskel

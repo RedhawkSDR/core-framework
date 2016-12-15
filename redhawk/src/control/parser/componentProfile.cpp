@@ -168,6 +168,14 @@ const ComponentInstantiation::LoggingConfig &ComponentInstantiation::getLoggingC
   return loggingConfig;
 }
 
+const ossie::ComponentPropertyList & ComponentInstantiation::getDeployerRequires() const {
+    return deployerrequires;
+}
+
+const ossie::ComponentPropertyList & ComponentInstantiation::getDeviceRequires() const {
+    return devicerequires;
+}
+
 //
 // ComponentPlacement
 //

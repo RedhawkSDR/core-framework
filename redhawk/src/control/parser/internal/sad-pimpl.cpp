@@ -320,6 +320,12 @@ namespace sad
     componentInstantiation.loggingConfig = log_cfg;
   }
 
+  void componentinstantiation_pimpl::devicerequires (ossie::ComponentPropertyList& requiresproperties)
+  {
+    componentInstantiation.devicerequires.swap(requiresproperties);
+  }
+
+
 
   const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   post_componentinstantiation ()
@@ -384,6 +390,29 @@ namespace sad
     info.first = this->post_string();
     return info;
   }
+
+  // devicerequires_pimpl
+  //
+
+  void devicerequires_pimpl::
+  pre ()
+  {
+    devicerequires.clear();
+  }
+
+  void devicerequires_pimpl::
+  simpleref (const ossie::SimplePropertyRef& simpleref)
+  {
+    devicerequires.push_back(simpleref.clone());
+  }
+
+  ossie::ComponentPropertyList& devicerequires_pimpl::
+  post_devicerequires ()
+  {
+    return devicerequires;
+  }
+
+
 
   // componentproperties_pimpl
   //

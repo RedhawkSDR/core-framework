@@ -87,6 +87,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	 ,componentproperties?
          ,affinity?
          ,loggingconfig?
+         ,deployerrequires?
 	)>
 <!ATTLIST componentinstantiation
 	id	ID 	#REQUIRED>
@@ -102,6 +103,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	| simplesequenceref
 	| structref
 	| structsequenceref
+	)+ >
+
+<!ELEMENT deployerrequires
+	( simpleref
 	)+ >
 
 <!ELEMENT componentproperties 

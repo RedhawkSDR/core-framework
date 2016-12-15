@@ -192,6 +192,7 @@ usagename element needs to be unique for each service type.</xs:documentation>
           </xs:element>
 	  <xs:element name="affinity" minOccurs="0" maxOccurs="1" type="affinity"/>
 	  <xs:element name="loggingconfig" minOccurs="0" maxOccurs="1" type="loggingconfig"/>
+	  <xs:element name="deployerrequires" minOccurs="0" type="deployerrequires"/>
 	</xs:sequence>
 	<xs:attribute name="id" use="required" type="xs:string">
 	  <xs:annotation>
@@ -220,6 +221,13 @@ usagename element needs to be unique for each service type.</xs:documentation>
 	    <xs:element ref="structsequenceref" ecore:name="structSequenceRef"/>
 	  </xs:choice>
 	</xs:complexType>
+
+	<xs:complexType name="deployerrequires">
+	  <xs:sequence maxOccurs="unbounded" minOccurs="1" >
+	    <xs:element ref="simpleref" ecore:name="simpleRef" />
+	  </xs:sequence>
+	</xs:complexType>
+
 
 	<xs:complexType name="componentproperties" ecore:name="ComponentProperties">
 		<xs:choice maxOccurs="unbounded">

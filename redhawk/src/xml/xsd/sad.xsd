@@ -79,6 +79,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 		        <xs:element name="affinity" minOccurs="0" maxOccurs="1"  type="affinity"/>
 		        <xs:element name="loggingconfig" maxOccurs="1" minOccurs="0" type="loggingconfig"/>
 			<xs:element name="findcomponent" type="findcomponent" minOccurs="0" ecore:name="findComponent"/>
+	                <xs:element name="devicerequires" minOccurs="0" type="devicerequires"/>
 		</xs:sequence>
 
 		<xs:attribute name="id" use="required" type="xs:string"/>
@@ -100,6 +101,12 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	    <xs:element  name="structref" type="structref" ecore:name="structRef"/>
 	    <xs:element name="structsequenceref" type="structsequenceref" ecore:name="structSequenceRef"/>
 	  </xs:choice>
+	</xs:complexType>
+
+	<xs:complexType name="devicerequires">
+	  <xs:sequence maxOccurs="unbounded" minOccurs="1" >
+	    <xs:element name="simpleref" type="simpleref" ecore:name="simpleRef"/>
+	  </xs:sequence>
 	</xs:complexType>
 
 	<xs:complexType name="componentproperties">
