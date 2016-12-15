@@ -556,11 +556,11 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
             
         self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", wait=False)
         # this sleep is needed to allow the Device Manager to figure out that the Domain Manager is not available
-        time.sleep(0.5)
+        time.sleep(1)
 
         # Start the domainMgr again
         self._nb_domMgr, newDomMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
-        time.sleep(0.5) # sleep needed to make sure that the Device Manager has registered with the Domain Manager
+        time.sleep(1) # sleep needed to make sure that the Device Manager has registered with the Domain Manager
         
         node_name = 'BasicTestDevice_node'
         domainName = scatest.getTestDomainName()
