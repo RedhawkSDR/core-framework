@@ -148,7 +148,7 @@ private:
     std::string     HOSTNAME;
     std::string     logging_uri;
     float           DEVICE_FORCE_QUIT_TIME;
-    uint32_t        CLIENT_WAIT_TIME;
+    CORBA::ULong    CLIENT_WAIT_TIME;
     
 // read only attributes
     struct utsname _uname;
