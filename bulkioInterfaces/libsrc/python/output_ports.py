@@ -140,7 +140,7 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
             self.logger.trace('bulkio::OutPort  disconnectPort ENTER ')
         if not self.outConnections.has_key(connectionId):
             if self.logger:
-                self.logger.warn("bulkio::OutPort  disconnectPort() - connectionId " + str(connectionId) + " is not contained in list of outConnections")
+                self.logger.debug("bulkio::OutPort  disconnectPort() - connectionId " + str(connectionId) + " is not contained in list of outConnections")
             return
         self.port_lock.acquire()
         try:
