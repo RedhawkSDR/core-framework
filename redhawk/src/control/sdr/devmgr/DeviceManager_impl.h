@@ -52,7 +52,7 @@ class DeviceManager_impl:
 {
     ENABLE_LOGGING
     
-    friend DomainCheckThread;
+    friend class DomainCheckThread;
 
 public:
   DeviceManager_impl (const char*, const char*, const char*, const char*, struct utsname uname, bool, const char *, bool *, std::string&);
