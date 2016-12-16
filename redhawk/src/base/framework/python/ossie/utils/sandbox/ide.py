@@ -190,7 +190,7 @@ class IDESandbox(Sandbox):
         return True
 
     def _launch(self, profile, spd, scd, prf, instanceName, refid, impl, execparams,
-                initProps, initialize, configProps, debugger, window, timeout):
+                initProps, initialize, configProps, debugger, window, timeout, stdout=None):
         # Determine the class for the component type and create a new instance.
         clazz = self.__comptypes__[scd.get_componenttype()]
         comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, execparams, initProps, configProps)

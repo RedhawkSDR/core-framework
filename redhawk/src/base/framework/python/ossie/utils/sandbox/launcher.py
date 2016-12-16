@@ -168,7 +168,7 @@ class LocalLauncher(object):
     def _getDomainPath(self):
         return {"DOM_PATH" : "/dom/sandbox/"}
 
-    def execute(self, spd, impl, execparams, debugger, window, timeout=None):
+    def execute(self, spd, impl, execparams, debugger, window, timeout=None, stdout=None):
         # Find a suitable implementation.
         if impl:
             implementation = self._getImplementation(spd, impl)
@@ -243,7 +243,6 @@ class LocalLauncher(object):
         if timeout is None:
             timeout = default_timeout
 
-        stdout = None
         if window_mode == 'monitor':
             # Open up a window for component output.
             try:

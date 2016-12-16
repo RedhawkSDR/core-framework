@@ -220,7 +220,7 @@ class Sandbox(object):
 
     def launch(self, descriptor, instanceName=None, refid=None, impl=None,
                debugger=None, window=None, execparams={}, configure={},
-               initialize=True, timeout=None, objType=None):
+               initialize=True, timeout=None, objType=None, stdout=None):
         sdrRoot = self.getSdrRoot()
 
         # Parse the component XML profile.
@@ -254,7 +254,7 @@ class Sandbox(object):
 
         # Determine the class for the component type and create a new instance.
         return self._launch(profile, spd, scd, prf, instanceName, refid, impl, execparams,
-                            initProps, initialize, configure, debugger, window, timeout)
+                            initProps, initialize, configure, debugger, window, timeout, stdout)
 
     def shutdown(self):
         # Clean up any event channels created by this sandbox instance.

@@ -1156,7 +1156,7 @@ def release():
 
 def launch(descriptor, instanceName=None, refid=None, impl=None,
            debugger=None, window=None, execparams={}, configure={},
-           initialize=True, timeout=None, objType=None):
+           initialize=True, timeout=None, objType=None, stdout=None):
     """
     Execute a softpkg, returning a proxy object. This is a factory function
     that may return a component, device or service depending on the SPD.
@@ -1193,9 +1193,10 @@ def launch(descriptor, instanceName=None, refid=None, impl=None,
       objType      - The type that you would like to launch. Options are
                      component, device, or service.  If not given, all 
                      types will be searched for with the descriptor given.
+      stdout       - File object to send stdout/stderr to.
    """
     return _getSandbox().launch(descriptor, instanceName, refid, impl, debugger,
-                                window, execparams, configure, initialize, timeout, objType)
+                                window, execparams, configure, initialize, timeout, objType, stdout)
 
 def createEventChannel(name, exclusive=False):
     """

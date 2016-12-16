@@ -95,18 +95,19 @@ class LocalSdrRoot(SdrRoot):
 
 
 class LocalMixin(object):
-    def __init__(self, execparams, debugger, window, timeout):
+    def __init__(self, execparams, debugger, window, timeout, stdout=None):
         self._process = None
         self._execparams = execparams
         self._debugger = debugger
         self._window = window
         self._timeout = timeout
+        self._stdout = stdout
 
     def _launch(self):
         launchFactory = self.__launcher__(self._profile, self._refid, self._instanceName, self._sandbox)
         execparams = self._getExecparams()
         execparams.update(self._execparams)
-        proc, ref = launchFactory.execute(self._spd, self._impl, execparams, self._debugger, self._window, self._timeout)
+        proc, ref = launchFactory.execute(self._spd, self._impl, execparams, self._debugger, self._window, self._timeout, self._stdout)
         self._process = proc
         self._pid = self._process.pid()
         return ref
@@ -131,9 +132,9 @@ class LocalMixin(object):
 
 class LocalSandboxComponent(SandboxComponent, LocalMixin):
     def __init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl,
-                 execparams, debugger, window, timeout):
+                 execparams, debugger, window, timeout, stdout=None):
         SandboxComponent.__init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl)
-        LocalMixin.__init__(self, execparams, debugger, window, timeout)
+        LocalMixin.__init__(self, execparams, debugger, window, timeout, stdout)
 
         self._kick()
 
@@ -273,11 +274,11 @@ class LocalSandbox(Sandbox):
         return True
 
     def _launch(self, profile, spd, scd, prf, instanceName, refid, impl, execparams,
-                initProps, initialize, configProps, debugger, window, timeout):
+                initProps, initialize, configProps, debugger, window, timeout, stdout=None):
         # Determine the class for the component type and create a new instance.
         comptype = scd.get_componenttype()
         clazz = self.__comptypes__[comptype]
-        comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, execparams, debugger, window, timeout)
+        comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl, execparams, debugger, window, timeout, stdout)
 
         try:
             # Occasionally, when a lot of components are launched from the
