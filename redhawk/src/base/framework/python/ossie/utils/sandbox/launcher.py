@@ -172,7 +172,7 @@ class VirtualDevice(object):
                 return impl
         raise RuntimeError, "Softpkg '%s' has no usable implementation" % spd.get_name()
 
-    def execute(self, entryPoint, deps, execparams, debugger, window):
+    def execute(self, entryPoint, deps, execparams, debugger, window, stdout=None):
         # Make sure the entry point exists and can be run.
         if not os.path.exists(entryPoint):
             raise RuntimeError, "Entry point '%s' does not exist" % entryPoint
@@ -207,7 +207,6 @@ class VirtualDevice(object):
             # Run the command directly.
             command = entryPoint
 
-        stdout = None
         if window_mode == 'monitor':
             # Open up a window for component output.
             try:

@@ -1534,7 +1534,7 @@ void GPP_i::updateUsageState()
           oss <<  "   Nic: " << m->get_resource_id() << " exceeded " << m->is_threshold_exceeded() << " threshold=" << m->get_threshold() << " measured=" << m->get_measured() << std::endl;
       }
 
-      LOG_DEBUG(GPP_i,  "USAGE STATE: " << std::endl <<
+      LOG_TRACE(GPP_i,  "USAGE STATE: " << std::endl <<
                 " CPU:  threshold " <<  modified_thresholds.cpu_idle << " Actual: " << sys_idle  << " Avg: " << sys_idle_avg  << std::endl <<
                 " MEM:  threshold " <<  modified_thresholds.mem_free << " Actual: " << mem_free  << std::endl <<
                 " LOAD: threshold " <<  modified_thresholds.load_avg << " Actual: " << sys_load  << std::endl <<
@@ -1749,13 +1749,13 @@ int GPP_i::serviceFunction()
     ExecPartitionList::iterator iter =  execPartitions.begin();
     std::ostringstream ss;
     ss  << boost::format("%-6s %-4s %-7s %-7s %-7s ") % "SOCKET" % "CPUS" % "USER"  % "SYSTEM"  % "IDLE";
-    LOG_DEBUG(GPP_i, ss.str()  );
+    LOG_TRACE(GPP_i, ss.str()  );
     ss.clear();
     ss.str("");
     for ( ; iter != execPartitions.end(); iter++ ) {
     
       ss  << boost::format("%-6d %-4d %-7.2f %-7.2f %-7.2f ") % iter->id % iter->stats.get_ncpus() % iter->stats.get_user_percent()  % iter->stats.get_system_percent()  % iter->stats.get_idle_percent() ;
-      LOG_DEBUG(GPP_i, ss.str()  );    
+      LOG_TRACE(GPP_i, ss.str()  );    
       ss.clear();
       ss.str("");
     }
@@ -2421,7 +2421,7 @@ void GPP_i::update()
   utilization[0].subscribed = (reservation_set * (float)processor_cores) / 100.0 + utilization[0].component_load;
   utilization[0].maximum = processor_cores-(thresholds.cpu_idle/100.0) * processor_cores;
 
-  LOG_DEBUG(GPP_i, __FUNCTION__ << " LOAD aand IDLE : " << std::endl << 
+  LOG_TRACE(GPP_i, __FUNCTION__ << " LOAD aand IDLE : " << std::endl << 
            " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
            " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
            "         idle avg: " << system_monitor->get_idle_average() << std::endl << 
@@ -2434,7 +2434,7 @@ void GPP_i::update()
            " loadTotal: " << loadTotal  << std::endl <<
            " loadFree(Modified): " << loadFree <<std::endl );
 
-  LOG_DEBUG(GPP_i, __FUNCTION__ << "  Reservation : " << std::endl << 
+  LOG_TRACE(GPP_i, __FUNCTION__ << "  Reservation : " << std::endl << 
            "  total sys usage: " << f_end_total << std::endl << 
            "  total user usage: " << f_use_end_total << std::endl << 
            "  reservation_set: " << reservation_set << std::endl << 
@@ -2447,7 +2447,7 @@ void GPP_i::update()
            "  maximum: " << utilization[0].maximum << std::endl );
 
   const SystemMonitor::Report &rpt = system_monitor->getReport();
-  LOG_DEBUG(GPP_i, __FUNCTION__ << " SysInfo Load : " << std::endl << 
+  LOG_TRACE(GPP_i, __FUNCTION__ << " SysInfo Load : " << std::endl << 
            "  one: " << rpt.load.one_min << std::endl << 
            "  five: " << rpt.load.five_min << std::endl << 
            "  fifteen: " << rpt.load.fifteen_min << std::endl );
@@ -2457,7 +2457,7 @@ void GPP_i::update()
   loadAverage.fifteenmin = rpt.load.fifteen_min;
 
   memFree = rpt.virtual_memory_free / mem_free_units;
-  LOG_DEBUG(GPP_i, __FUNCTION__ << "Memory : " << std::endl << 
+  LOG_TRACE(GPP_i, __FUNCTION__ << "Memory : " << std::endl << 
            " sys_monitor.vit_total: " << rpt.virtual_memory_total  << std::endl << 
            " sys_monitor.vit_free: " << rpt.virtual_memory_free  << std::endl << 
            " sys_monitor.mem_total: " << rpt.physical_memory_total  << std::endl << 

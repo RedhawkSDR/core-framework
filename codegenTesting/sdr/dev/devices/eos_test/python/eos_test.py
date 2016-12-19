@@ -197,7 +197,7 @@ class eos_test_i(eos_test_base):
 
         if self.frontend_tuner_status[0].enabled:
             data = range(1000)
-            self.port_dataFloat_out.pushPacket(data, bulkio.timestamp.now, False, "hello")
+            self.port_dataFloat_out.pushPacket(data, bulkio.timestamp.now(), False, "hello")
                                                 
         return NOOP
 

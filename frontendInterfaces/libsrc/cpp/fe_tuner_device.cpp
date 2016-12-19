@@ -746,6 +746,9 @@ namespace frontend {
             std::string repid = std::string(ports[port_idx].repid);
             if (repid.find("BULKIO") != std::string::npos) {
                 ExtendedCF::QueryablePort_ptr prt = ExtendedCF::QueryablePort::_narrow(ports[port_idx].obj_ptr);
+                if (prt->_is_nil()) {
+                    continue;
+                }
                 try {
                     prt->disconnectPort(allocation_id.c_str());
                 } catch ( ... ) {

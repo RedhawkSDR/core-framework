@@ -1202,9 +1202,12 @@ class ConnectionManager(CorbaObject):
         return retval
 
     def disconnect( self, connectionRecordId ):
+        print 'core disconnect'
         if self.ref:
             try:
+                print 'begin core disconnect'
                 self.ref.disconnect( connectionRecordId )
+                print 'done core disconnect'
             except:
                 raise
 

@@ -928,6 +928,8 @@ class FrontendTunerDevice(Device):
             repid = str(port.repid)
             if 'BULKIO' in repid:
                 prt = port.obj_ptr._narrow(ExtendedCF.QueryablePort)
+                if prt is None:
+                    continue
                 try:
                     prt.disconnectPort(allocation_id)
                 except:

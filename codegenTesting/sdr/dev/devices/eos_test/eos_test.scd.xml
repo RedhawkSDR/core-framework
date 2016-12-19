@@ -45,6 +45,9 @@ with this program.  If not, see http://www.gnu.org/licenses/.
       <uses repid="IDL:BULKIO/dataFloat:1.0" usesname="dataFloat_out">
         <porttype type="data"/>
       </uses>
+      <provides repid="IDL:BULKIO/dataFloat:1.0" providesname="dataFloat_in">
+        <porttype type="data"/>
+      </provides>
     </ports>
   </componentfeatures>
   <interfaces>

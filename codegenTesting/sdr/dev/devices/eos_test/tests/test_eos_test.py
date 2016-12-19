@@ -21,7 +21,7 @@
 
 import ossie.utils.testing
 from ossie.utils import sb
-import frontend, time
+import frontend, time, os
 
 class DeviceTests(ossie.utils.testing.RHTestCase):
     # Path to the SPD file, relative to this file. This must be set in order to
@@ -50,11 +50,25 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
 
     def setUp(self):
         # Launch the device, using the selected implementation
-        self.comp = sb.launch(self.spd_file, impl=self.impl)
+        self.filename = 'somefile.tst'
+        try:
+            os.remove(self.filename)
+        except:
+            pass
+        self.fp = open(self.filename,'w')
+        self.comp = sb.launch(self.spd_file, impl=self.impl, stdout=self.fp)
     
     def tearDown(self):
         # Clean up all sandbox artifacts created during test
         sb.release()
+        try:
+            self.fp.close()
+        except:
+            pass
+        try:
+            os.remove(self.filename)
+        except:
+            pass
 
     def testBasicBehavior(self):
         #######################################################################
@@ -84,6 +98,12 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertEquals(master.eos(),True)
         self.assertEquals(slave.eos(),True)
         self.assertEquals(another_slave.eos(),True)
+        sb.release()
+        self.fp.close()
+        self.fp = open(self.filename,'r')
+        stuff = self.fp.read()
+        self.fp.close()
+        self.assertEquals(stuff.find('the application attempted to invoke an operation on a nil reference'), -1)
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations

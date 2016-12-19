@@ -697,7 +697,12 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
         for (int port_idx=0; port_idx<ports.length; port_idx++) {
             String repid = ports[port_idx].repid;
             if (repid.indexOf("BULKIO") != -1) {
-                ExtendedCF.QueryablePort prt = ExtendedCF.QueryablePortHelper.narrow(ports[port_idx].obj_ptr);
+                ExtendedCF.QueryablePort prt = null;
+                try {
+                    prt = ExtendedCF.QueryablePortHelper.narrow(ports[port_idx].obj_ptr);
+                } catch (final Throwable t) {
+                    continue;
+                }
                 try {
                     prt.disconnectPort(allocation_id);
                 } catch (final Throwable t) {

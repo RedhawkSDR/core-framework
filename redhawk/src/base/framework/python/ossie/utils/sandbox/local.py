@@ -119,7 +119,7 @@ class LocalSdrRoot(SdrRoot):
 
 
 class LocalLauncher(SandboxLauncher):
-    def __init__(self, execparams, initProps, initialize, configProps, debugger, window, timeout, shared):
+    def __init__(self, execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout=None):
         self._execparams = execparams
         self._debugger = debugger
         self._window = window
@@ -128,6 +128,7 @@ class LocalLauncher(SandboxLauncher):
         self._configProps = configProps
         self._timeout = timeout
         self._shared = shared
+        self._stdout = stdout
 
     def _getImplementation(self, spd, identifier):
         for implementation in spd.get_implementation():
@@ -227,7 +228,7 @@ class LocalLauncher(SandboxLauncher):
             container.executeLinked(entry_point, [], execparams, deps)
             process = container._process
         else:
-            process = device.execute(entry_point, deps, execparams, debugger, window)
+            process = device.execute(entry_point, deps, execparams, debugger, window, self._stdout)
 
             # Set up a callback to notify when the component exits abnormally.
             name = comp._instanceName
@@ -474,7 +475,7 @@ class LocalSandbox(Sandbox):
         return True
 
     def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger,
-                        window, timeout, shared):
+                        window, timeout, shared, stdout):
         if comptype == 'resource':
             clazz = LocalComponentLauncher
         elif comptype in ('device', 'loadabledevice', 'executabledevice'):
@@ -483,7 +484,7 @@ class LocalSandbox(Sandbox):
             clazz = LocalServiceLauncher 
         else:
             return None
-        return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout, shared)
+        return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout)
 
     def getComponents(self):
         return self.__components.values()

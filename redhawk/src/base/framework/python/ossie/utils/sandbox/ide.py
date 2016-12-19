@@ -150,7 +150,7 @@ class IDESandbox(Sandbox):
         return True
 
     def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger,
-                        window, timeout, shared):
+                        window, timeout, shared, stdout=None):
         if comptype in ('resource', 'device', 'loadabledevice', 'executabledevice'):
             return IDELauncher(execparams, initProps, configProps)
         return None
