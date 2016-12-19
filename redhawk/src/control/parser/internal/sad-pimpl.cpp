@@ -401,9 +401,9 @@ namespace sad
   }
 
   void devicerequires_pimpl::
-  simpleref (const ossie::SimplePropertyRef& simpleref)
+  requires (const ossie::IdValue& idvalue)
   {
-    devicerequires.push_back(simpleref.clone());
+    devicerequires.push_back(idvalue.clone());
   }
 
   ossie::ComponentPropertyList& devicerequires_pimpl::
@@ -613,6 +613,39 @@ namespace sad
   void resourcefactoryproperties_pimpl::
   post_resourcefactoryproperties ()
   {
+  }
+
+
+
+  // idvalueref_pimpl
+  //
+
+  void idvalue_pimpl::
+  pre ()
+  {
+    LOG_TRACE(sad_parser, "pre idvalue");
+    simple = ossie::IdValue();
+  }
+
+  void idvalue_pimpl::
+  id (const ::std::string& id)
+  {
+    LOG_TRACE(sad_parser, "idvalue id: " << id);
+    simple._id = id;
+  }
+
+  void idvalue_pimpl::
+  value (const ::std::string& value)
+  {
+    LOG_TRACE(sad_parser, "idvalue value: " << value);
+    simple._value = value;
+  }
+
+  const ossie::IdValue& idvalue_pimpl::
+  post_idvalue ()
+  {
+    LOG_TRACE(sad_parser, "post idvalue");
+    return simple;
   }
 
   // simpleref_pimpl

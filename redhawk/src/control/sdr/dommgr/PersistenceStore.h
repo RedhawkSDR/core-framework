@@ -27,6 +27,8 @@
 #include <ossie/exceptions.h>
 #include <ossie/SoftPkg.h>
 #include <ossie/Properties.h>
+#include <ossie/PropertyMap.h>
+#include <ossie/DeviceManagerConfiguration.h>
 
 #include "connectionSupport.h"
 
@@ -44,6 +46,7 @@ namespace ossie {
             std::string identifier;
             std::string label;
             CF::DeviceManager_var deviceManager;
+            DeviceManagerConfiguration dcd;
     };
 
     class DomainManagerNode {
@@ -70,6 +73,7 @@ namespace ossie {
         ossie::SoftPkg spd;
         ossie::Properties prf;
         std::string implementationId;
+        redhawk::PropertyMap    requiresProps;
         CF::LoadableDevice_var loadableDevice;
         CF::ExecutableDevice_var executableDevice;
 

@@ -20,7 +20,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 
 <!DOCTYPE deviceconfiguration PUBLIC '-//JTRS//DTD SCA V2.2.2 DCD//EN' 'deviceconfiguration.dtd'>
-<deviceconfiguration name="test_GPP_node" id="DCE:65f84ea9-cbe9-42cc-bc2e-6807f7ff9b8d">
+<deviceconfiguration name="test_GPP_green" id="test_GPP_green">
     <devicemanagersoftpkg>
         <localfile name="/mgr/DeviceManager.spd.xml"/>
     </devicemanagersoftpkg>
@@ -32,10 +32,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <partitioning>
         <componentplacement>
             <componentfileref refid="GPP1_c6e250b8-5223-11db-9fc4-000d56d8556e"/>
-            <componentinstantiation id="GPP_1">
-                <usagename>GPP_1</usagename>
+            <componentinstantiation id="test_GPP_green::GPP_1">
+                <usagename>test_GPP_green::GPP_1</usagename>
                 <deployerrequires>
-                  <simpleref refid="color" value="GREEN"/>
+                  <requires id="color" value="GREEN"/>
                 </deployerrequires>
             </componentinstantiation>
         </componentplacement>

@@ -1237,6 +1237,7 @@ DeviceManager_impl::DeviceManager_impl(
         const char     *cpuBlackList,
         bool*          internalShutdown,
         std::string&   spdFile) :
+    DomainWatchThread(NULL),
     _registeredDevices()
 {
     // These should probably be execparams at some point
@@ -1725,6 +1726,9 @@ void DeviceManager_impl::postConstructor (
                 instanceprops);
         }
     }
+
+
+   if ( _spdFile.empty() ) return;
 
     File_stream devMgrSpdStream(_fileSys, _spdFile.c_str());
     ossie::SoftPkg parsedSpd;

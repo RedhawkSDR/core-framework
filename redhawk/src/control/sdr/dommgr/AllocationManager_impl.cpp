@@ -208,7 +208,12 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
             }
         }
 
-        std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> result = allocateRequest(requestID, request.allocationProperties, requestedDevices, sourceID, std::vector<std::string>(), std::vector<ossie::SPD::NameVersionPair>(), domainName);
+        std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> result = allocateRequest(requestID,
+                                                                                               request.allocationProperties,
+                                                                                               requestedDevices,
+                                                                                               sourceID, std::vector<std::string>(),
+                                                                                               std::vector<ossie::SPD::NameVersionPair>(),
+                                                                                               domainName);
         if (result.first) {
             local_allocations.push_back(result.first);
             ossie::AllocationType* allocation(result.first);
@@ -230,12 +235,18 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
     return response._retn();
 }
 
-std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> AllocationManager_impl::allocateRequest(const std::string& requestID, const CF::Properties& dependencyProperties, ossie::DeviceList& devices, const std::string& sourceID,  const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps, const std::string& domainName)
+std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> AllocationManager_impl::allocateRequest(const std::string& requestID,
+                                                                                                      const CF::Properties& dependencyProperties,
+                                                                                                      ossie::DeviceList& devices, const std::string& sourceID,
+                                                                                                      const std::vector<std::string>& processorDeps,
+                                                                                                      const std::vector<ossie::SPD::NameVersionPair>& osDeps,
+                                                                                                      const std::string& domainName,
+                                                                                                      const CF::Properties &deviceRequires )
 {
     for (ossie::DeviceList::iterator iter = devices.begin(); iter != devices.end(); ++iter) {
         boost::shared_ptr<ossie::DeviceNode> node = *iter;
         CF::Properties allocatedProperties;
-        if (allocateDevice(dependencyProperties, *node, allocatedProperties, processorDeps, osDeps)) {
+        if (allocateDevice(dependencyProperties, *node, allocatedProperties, processorDeps, osDeps, deviceRequires)) {
             ossie::AllocationType* allocation = new ossie::AllocationType();
             allocation->allocationID = ossie::generateUUID();
             allocation->sourceID = sourceID;
@@ -249,10 +260,16 @@ std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> AllocationManager_
     return std::make_pair((ossie::AllocationType*)0, devices.end());
 }
 
-ossie::AllocationResult AllocationManager_impl::allocateDeployment(const std::string& requestID, const CF::Properties& allocationProperties, ossie::DeviceList& devices, const std::string& sourceID, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps)
+ossie::AllocationResult AllocationManager_impl::allocateDeployment(const std::string& requestID,
+                                                                   const CF::Properties& allocationProperties,
+                                                                   ossie::DeviceList& devices,
+                                                                   const std::string& sourceID,
+                                                                   const std::vector<std::string>& processorDeps,
+                                                                   const std::vector<ossie::SPD::NameVersionPair>& osDeps,
+                                                                   const CF::Properties& deviceRequires )
 {
     const std::string domainName = this->_domainManager->getDomainManagerName();
-    std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> result = allocateRequest(requestID, allocationProperties, devices, sourceID, processorDeps, osDeps, domainName);
+    std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> result = allocateRequest(requestID, allocationProperties, devices, sourceID, processorDeps, osDeps, domainName, deviceRequires);
     if (result.first) {
         // Update the allocation table, including the persistence store
         const std::string allocationID = result.first->allocationID;
@@ -281,7 +298,12 @@ bool AllocationManager_impl::hasListenerAllocation(const CF::Properties& request
     return false;
 }
 
-bool AllocationManager_impl::allocateDevice(const CF::Properties& requestedProperties, ossie::DeviceNode& node, CF::Properties& allocatedProperties, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps)
+bool AllocationManager_impl::allocateDevice(const CF::Properties& requestedProperties,
+                                            ossie::DeviceNode& node,
+                                            CF::Properties& allocatedProperties,
+                                            const std::vector<std::string>& processorDeps,
+                                            const std::vector<ossie::SPD::NameVersionPair>& osDeps,
+                                            const CF::Properties& devicerequires)
 {
     if (!ossie::corba::objectExists(node.device)) {
         LOG_WARN(AllocationManager_impl, "Not using device for uses_device allocation " << node.identifier << " because it no longer exists");
@@ -303,6 +325,12 @@ bool AllocationManager_impl::allocateDevice(const CF::Properties& requestedPrope
     CF::Properties allocProps;
     if (!checkDeviceMatching(node.prf, allocProps, requestedProperties, processorDeps, osDeps)) {
         LOG_TRACE(AllocationManager_impl, "Matching failed");
+        return false;
+    }
+
+    LOG_INFO(AllocationManager_impl, "allocateDevice::PartitionMatching " << node.requiresProps );
+    if ( !checkPartitionMatching( node, devicerequires ))  {
+        LOG_TRACE(AllocationManager_impl, "Partition Matching failed");
         return false;
     }
 
@@ -464,6 +492,51 @@ bool AllocationManager_impl::checkDeviceMatching(ossie::Properties& prf, CF::Pro
     LOG_TRACE(AllocationManager_impl, "Matched " << matches << " properties");
     return true;
 }
+
+bool AllocationManager_impl::checkPartitionMatching( ossie::DeviceNode& node,
+                                                     const CF::Properties& devicerequires )
+{
+    //
+    // perform matching of a device's deployrequires property set against a componentplacment's devicerequires list
+    //
+
+
+    // Check if the device has a required property set for deployment
+    if ( node.requiresProps.size() == 0 ) {
+        LOG_DEBUG(AllocationManager_impl, "Device: " << node.label << " has no required properties to filter deployments against.");
+        return true;
+    }
+
+    // Check if the device has a required property set for deployment
+    if ( devicerequires.length() == 0 ) {
+        LOG_DEBUG(AllocationManager_impl, "Device: " << node.label << " has required properties for deployment, component does not provide any properties.");
+        return false;
+    }
+
+    const redhawk::PropertyMap &provided_props = redhawk::PropertyMap::cast( devicerequires );
+    redhawk::PropertyMap::iterator iter = node.requiresProps.begin();
+    for (  ; iter != node.requiresProps.end(); ++iter) {
+        std::string pid(iter->getId());
+        LOG_TRACE(AllocationManager_impl, "checkPartitionMatching source device requires:  " << pid );
+        redhawk::PropertyMap::const_iterator provided_prop = provided_props.find( pid );
+        if ( provided_prop == provided_props.end() ) {
+            LOG_INFO(AllocationManager_impl, "Device: " << node.label << ", Missing REQUIRES property: " << pid << " from component for deployment");
+            return false;
+        }
+
+        // Convert the input Any to the property's data type via string; if it came
+        // from the ApplicationFactory, it's already a string, but a remote request
+        // could be of any type
+        std::string action("eq");
+        if (  !ossie::compare_anys(iter->getValue(), provided_prop->getValue(), action)  ) {
+            return false;
+        }
+    }
+
+    LOG_TRACE(AllocationManager_impl, "checkPartitionMatch PASSED for device: " << node.label );
+    return true;
+}
+
 
 /* Deallocates a set of allocations */
 void AllocationManager_impl::deallocate(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId)

@@ -329,7 +329,7 @@ namespace dcd
     pre ();
 
     virtual void
-    simpleref (const ossie::SimplePropertyRef&);
+    requires (const ossie::IdValue &);
 
     virtual const ossie::ComponentPropertyList&
     post_deployerrequires ();
@@ -399,6 +399,27 @@ namespace dcd
     private:
     std::pair<std::string, std::string> info;
   };
+
+
+  class idvalue_pimpl: public virtual idvalue_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    id (const ::std::string&);
+
+    virtual void
+    value (const ::std::string&);
+
+    virtual const ossie::IdValue&
+    post_idvalue ();
+
+    private:
+    ossie::IdValue simple;
+  };
+
 
   class simpleref_pimpl: public virtual simpleref_pskel
   {

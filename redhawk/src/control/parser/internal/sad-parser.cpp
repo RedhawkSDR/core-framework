@@ -72,6 +72,7 @@ ossie::internalparser::parseSAD(std::istream& input) throw (ossie::parser_error)
         ::sad::affinity_pimpl affinity_p;
         ::sad::loggingconfig_pimpl loggingconfig_p;
         ::sad::devicerequires_pimpl devicerequires_p;
+        ::sad::idvalue_pimpl idvalue_p;
 
 
         // Connect the parsers together.
@@ -120,12 +121,15 @@ ossie::internalparser::parseSAD(std::istream& input) throw (ossie::parser_error)
 
         loggingconfig_p.parsers(string_p);
 
-        devicerequires_p.parsers (simpleref_p);
+        devicerequires_p.parsers (idvalue_p);
 
         componentproperties_p.parsers (simpleref_p,
                                        simplesequenceref_p,
                                        structref_p,
                                        structsequenceref_p);
+
+        idvalue_p.parsers (string_p,
+                           string_p);
 
         simpleref_p.parsers (string_p,
                              string_p);

@@ -159,6 +159,8 @@ namespace redhawk {
 
         std::string getLoggingConfiguration() const;
 
+        redhawk::PropertyMap getDeviceRequires() const;
+
         redhawk::ApplicationComponent* getApplicationComponent();
         void setApplicationComponent(redhawk::ApplicationComponent* appComponent);
 
@@ -214,6 +216,7 @@ namespace redhawk {
         std::string nicAssignment;
         ossie::optional_value<float> cpuReservation;
         redhawk::PropertyMap affinityOptions;
+        redhawk::PropertyMap deviceRequires;
     };
 
 }

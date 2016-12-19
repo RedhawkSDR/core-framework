@@ -98,6 +98,7 @@ namespace ossie {
         return out;
     }
 
+
     /*
      *
      */
@@ -113,6 +114,12 @@ namespace ossie {
         
         const std::string _asString() const;
     };
+
+
+    class IdValue : public SimplePropertyRef {
+
+    };
+
 
     /*
      *

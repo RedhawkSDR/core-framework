@@ -506,10 +506,10 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   }
 
   void deployerrequires_pimpl::
-  simpleref (const ossie::SimplePropertyRef& simpleref)
+  requires (const ossie::IdValue& idvalue)
   {
-    LOG_TRACE(dcd_parser, "Adding simpleref ");
-    deployerrequires.push_back(simpleref.clone());
+    LOG_TRACE(dcd_parser, "Adding idvalue " << idvalue._id << " value " << idvalue._value );
+    deployerrequires.push_back(idvalue.clone());
   }
 
   const ossie::ComponentPropertyList& deployerrequires_pimpl::
@@ -610,6 +610,38 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   {
       return info;
   }
+
+  // idvalueref_pimpl
+  //
+
+  void idvalue_pimpl::
+  pre ()
+  {
+    LOG_TRACE(dcd_parser, "pre idvalue");
+    simple = ossie::IdValue();
+  }
+
+  void idvalue_pimpl::
+  id (const ::std::string& id)
+  {
+    LOG_TRACE(dcd_parser, "idvalue id: " << id);
+    simple._id = id;
+  }
+
+  void idvalue_pimpl::
+  value (const ::std::string& value)
+  {
+    LOG_TRACE(dcd_parser, "idvalue value: " << value);
+    simple._value = value;
+  }
+
+  const ossie::IdValue& idvalue_pimpl::
+  post_idvalue ()
+  {
+    LOG_TRACE(dcd_parser, "post idvalue");
+    return simple;
+  }
+
 
   // simpleref_pimpl
   //

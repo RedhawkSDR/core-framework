@@ -1028,18 +1028,26 @@ void DomainManager_impl::_local_registerDeviceManager (CF::DeviceManager_ptr dev
     }
 
     addDeviceMgr (deviceMgr);
-
+    node = findDeviceManagerById(identifier);
     CORBA::String_var devMgrLabel;
     try {
         mountDeviceMgrFileSys(deviceMgr);
 
         LOG_TRACE(DomainManager_impl, "Getting connections from DeviceManager DCD");
-        DeviceManagerConfiguration dcdParser;
+        DeviceManagerConfiguration *dcdParser;
+        DeviceManagerConfiguration _dcdParser;
         try {
             CF::FileSystem_var devMgrFileSys = deviceMgr->fileSys();
             CORBA::String_var profile = deviceMgr->deviceConfigurationProfile();
             File_stream dcd(devMgrFileSys, profile);
-            dcdParser.load(dcd);
+            if ( node != _registeredDeviceManagers.end() ) {
+                node->dcd.load(dcd);
+                dcdParser = &(node->dcd);
+            }
+            else {
+                _dcdParser.load(dcd);
+                dcdParser = &_dcdParser;
+            }
             dcd.close();
         } catch ( ossie::parser_error& e ) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
@@ -1047,11 +1055,11 @@ void DomainManager_impl::_local_registerDeviceManager (CF::DeviceManager_ptr dev
             throw(CF::DomainManager::RegisterError());
         }
 
-        const std::vector<Connection>& connections = dcdParser.getConnections();
+        const std::vector<Connection>& connections = dcdParser->getConnections();
 
         for (size_t ii = 0; ii < connections.size(); ++ii) {
             try {
-                _connectionManager.addConnection(dcdParser.getName(), connections[ii]);
+                _connectionManager.addConnection(dcdParser->getName(), connections[ii]);
             } catch (const ossie::InvalidConnection& ex) {
                 LOG_ERROR(DomainManager_impl, "Ignoring unresolvable connection: " << ex.what());
             }
@@ -2484,22 +2492,12 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
 
     // Override with values from the DCD
     LOG_TRACE(DomainManager_impl, "Parsing DCD overrides for device " << node.identifier);
-    ossie::DeviceManagerConfiguration dcd;
     const std::string deviceManagerProfile = ossie::corba::returnString(node.devMgr.deviceManager->deviceConfigurationProfile());
-    try {
-        File_stream dcd_file(devMgrFS, deviceManagerProfile.c_str());
-        dcd.load(dcd_file);
-    } catch (const ossie::parser_error& error) {
-        std::string parser_error_line = ossie::retrieveParserErrorLineNumber(error.what());
-        LOG_WARN(DomainManager_impl, "Error parsing DCD: " << deviceManagerProfile << " overrides for Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
-    } catch (...) {
-        LOG_WARN(DomainManager_impl, "Unable to cache DCD overrides for Device: " << node.identifier);
-    }
-
-
-    const ComponentInstantiation* instantiation = findComponentInstantiation(dcd.getComponentPlacements(), node.identifier);
+    const ComponentInstantiation* instantiation = findComponentInstantiation(node.devMgr.dcd.getComponentPlacements(), node.identifier);
     if (instantiation) {
         node.prf.override(instantiation->properties);
+        ossie::convertComponentProperties( instantiation->getDeployerRequires(),
+                                           node.requiresProps );
     } else {
         LOG_WARN(DomainManager_impl, "Unable to find device " << node.identifier << " in DCD");
     }

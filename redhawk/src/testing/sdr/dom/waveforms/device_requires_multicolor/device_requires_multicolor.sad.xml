@@ -19,7 +19,7 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 <!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
-<softwareassembly id="device_requires_wf_1" name="device_requires">
+<softwareassembly id="device_requires_mulitcolor" name="device_requires_multicolor">
   <componentfiles>
     <componentfile id="SimpleComponent_SPD_1" type="SPD">
       <localfile name="/components/SimpleComponent/SimpleComponent.spd.xml"/>
@@ -28,31 +28,31 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <partitioning>
     <componentplacement>
       <componentfileref refid="SimpleComponent_SPD_1"/>
-      <componentinstantiation id="SimpleComponent_1" startorder="0">
-        <usagename>SimpleComponent_1</usagename>
+      <componentinstantiation id="SimpleComponent_Red" startorder="0">
+        <usagename>SimpleComponent_Red</usagename>
         <findcomponent>
-          <namingservice name="SimpleComponent_1"/>
+          <namingservice name="SimpleComponent_Red"/>
         </findcomponent>
         <devicerequires>
-            <simpleref refid="color" value="RED"/>
-            <simpleref refid="rank" value="15"/>
+            <requires id="color" value="RED"/>
+            <requires id="rank" value="15"/>
         </devicerequires>
       </componentinstantiation>
     </componentplacement>
     <componentplacement>
       <componentfileref refid="SimpleComponent_SPD_1"/>
-      <componentinstantiation id="SimpleComponent_2" startorder="1">
-        <usagename>SimpleComponent_2</usagename>
+      <componentinstantiation id="SimpleComponent_Green" startorder="1">
+        <usagename>SimpleComponent_Green</usagename>
         <findcomponent>
-          <namingservice name="SimpleComponent_2"/>
+          <namingservice name="SimpleComponent_Green"/>
         </findcomponent>
         <devicerequires>
-            <simpleref refid="color" value="GREEN"/>
+            <requires id="color" value="GREEN"/>
         </devicerequires>
       </componentinstantiation>
     </componentplacement>
   </partitioning>
   <assemblycontroller>
-    <componentinstantiationref refid="SimpleComponent_1"/>
+    <componentinstantiationref refid="SimpleComponent_Green"/>
   </assemblycontroller>
 </softwareassembly>

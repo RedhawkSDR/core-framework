@@ -276,6 +276,11 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
         RH_NL_TRACE("ApplicationFactory_impl", "Setting affinity options");
         affinityOptions = ossie::getAffinityOptions(instantiation->getAffinity());
     }
+
+    if (!instantiation->getDeviceRequires().empty()) {
+        RH_NL_TRACE("ApplicationFactory_impl", "Getting devicerequires property set");
+        ossie::convertComponentProperties(instantiation->getDeviceRequires(),deviceRequires);
+    }
 }
 
 const std::string& ComponentDeployment::getIdentifier() const
@@ -412,6 +417,10 @@ bool ComponentDeployment::hasCpuReservation() const
 float ComponentDeployment::getCpuReservation() const
 {
     return *cpuReservation;
+}
+
+redhawk::PropertyMap ComponentDeployment::getDeviceRequires() const {
+    return deviceRequires;
 }
 
 redhawk::PropertyMap ComponentDeployment::getAllocationContext() const

@@ -647,6 +647,17 @@ void ossie::convertComponentProperties( const ossie::ComponentPropertyList &cp_p
     cf_props[cf_props.length()-1] = dt;
   }
 }
+
+void ossie::convertComponentProperties( const ossie::ComponentPropertyList &cp_props,
+                                        redhawk::PropertyMap &cf_props )
+{
+  ossie::ComponentPropertyList::const_iterator piter = cp_props.begin();
+  for ( ; piter != cp_props.end(); piter++ ) {
+    CF::DataType dt = ossie::convertPropertyRefToDataType( *piter );
+    cf_props.push_back(dt);
+  }
+}
+
     
 std::string ossie::retrieveParserErrorLineNumber(std::string message) {
     size_t begin_n_line = message.find_first_of(':');

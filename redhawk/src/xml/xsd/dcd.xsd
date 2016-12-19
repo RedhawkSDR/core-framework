@@ -223,11 +223,15 @@ usagename element needs to be unique for each service type.</xs:documentation>
 	</xs:complexType>
 
 	<xs:complexType name="deployerrequires">
-	  <xs:sequence maxOccurs="unbounded" minOccurs="1" >
-	    <xs:element ref="simpleref" ecore:name="simpleRef" />
+	  <xs:sequence>
+	    <xs:element name="requires" type="idvalue" ecore:name="idValue" maxOccurs="unbounded"/>
 	  </xs:sequence>
 	</xs:complexType>
 
+	<xs:complexType name="idvalue" ecore:name="idValue">
+		<xs:attribute name="id" use="required" type="xs:string"/>
+		<xs:attribute name="value" use="required" type="xs:string"/>
+	</xs:complexType>
 
 	<xs:complexType name="componentproperties" ecore:name="ComponentProperties">
 		<xs:choice maxOccurs="unbounded">

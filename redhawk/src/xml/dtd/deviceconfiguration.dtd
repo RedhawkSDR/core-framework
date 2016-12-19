@@ -106,7 +106,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	)+ >
 
 <!ELEMENT deployerrequires
-	( simpleref
+	( requires
 	)+ >
 
 <!ELEMENT componentproperties 
@@ -124,6 +124,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 <!ATTLIST deviceusedbythiscomponentref 
 	refid		CDATA	#REQUIRED
 	usesrefid	CDATA	#REQUIRED>
+
+<!ELEMENT requires EMPTY>
+<!ATTLIST requires
+	id		CDATA	#REQUIRED
+	value		CDATA	#REQUIRED>
 
 <!ELEMENT simpleref EMPTY>
 <!ATTLIST simpleref

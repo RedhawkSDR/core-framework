@@ -27,6 +27,7 @@
 #include <ossie/prop_helpers.h>
 
 #include "ossie/Properties.h"
+#include "ossie/PropertyMap.h"
 #include "ossie/SoftPkg.h"
 #include "ossie/componentProfile.h"
 
@@ -73,6 +74,9 @@ namespace ossie
 
     void convertComponentProperties( const ossie::ComponentPropertyList &cp_props,
                                      CF::Properties &cf_props );
+
+    void convertComponentProperties( const ossie::ComponentPropertyList &cp_props,
+                                     redhawk::PropertyMap &cf_props );
     
     std::string retrieveParserErrorLineNumber(std::string message);
 

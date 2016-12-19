@@ -336,12 +336,13 @@ bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeplo
                                         DeploymentList::const_iterator current,
                                         ossie::DeviceList& deploymentDevices,
                                         const ProcessorList& processorDeps,
-                                        const OSList& osDeps)
+                                        const OSList& osDeps,
+                                        const CF::Properties& deviceRequires)
 {
     if (current == components.end()) {
         // Reached the end of the component deployments; all implementations
         // should be set, so give it a try
-        return allocateHostCollocation(appDeployment, components, deploymentDevices, processorDeps, osDeps);
+        return allocateHostCollocation(appDeployment, components, deploymentDevices, processorDeps, osDeps, deviceRequires);
     }
 
     // Try all of the implementations from the current component for matches
@@ -373,9 +374,11 @@ bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeplo
             continue;
         }
 
+        redhawk::PropertyMap devRequires(deviceRequires);
+        devRequires.update(deployment->getDeviceRequires());
         // Set this implementation for deployment and recurse one more level
         deployment->setImplementation(implementation);
-        if (placeHostCollocation(appDeployment, components, current, deploymentDevices, proc_list, os_list)) {
+        if (placeHostCollocation(appDeployment, components, current, deploymentDevices, proc_list, os_list, devRequires)) {
             return true;
         }
     }
@@ -387,7 +390,8 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
                                            const DeploymentList& components,
                                            ossie::DeviceList& deploymentDevices,
                                            const ProcessorList& processorDeps,
-                                           const OSList& osDeps)
+                                           const OSList& osDeps,
+                                           const CF::Properties& deviceRequires )
 {
     // Consolidate the allocation properties into a single list
     CF::Properties allocationProperties = _consolidateAllocations(components);
@@ -400,7 +404,7 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
     }
 
     const std::string requestid = ossie::generateUUID();
-    ossie::AllocationResult response = _allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appDeployment.getIdentifier(), processorDeps, osDeps);
+    ossie::AllocationResult response = _allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appDeployment.getIdentifier(), processorDeps, osDeps, deviceRequires);
     if (!response.first.empty()) {
         // Ensure that all capacities get cleaned up, keeping ownership local
         // to this scope until it's clear that the device can support all of
@@ -1298,8 +1302,14 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
           substr["nic_allocation::identifier"] = alloc_id;
         }
     }
-    
-    ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid, allocationProperties, devices, appIdentifier, implementation->getProcessors(), implementation->getOsDeps());
+
+    ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid,
+                                                                                allocationProperties,
+                                                                                devices,
+                                                                                appIdentifier,
+                                                                                implementation->getProcessors(),
+                                                                                implementation->getOsDeps(),
+                                                                                deployment->getDeviceRequires());
     if (allocationProperties.contains("nic_allocation")) {
         if (!response.first.empty()) {
             redhawk::PropertyMap query_props;

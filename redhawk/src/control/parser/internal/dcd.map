@@ -57,4 +57,5 @@ namespace urn:mil:jpeojtrs:sca:dcd {
     affinity "const ossie::ComponentInstantiation::AffinityProperties&" "const ossie::ComponentInstantiation::AffinityProperties&";
     loggingconfig  "const ossie::ComponentInstantiation::LoggingConfig&" "const ossie::ComponentInstantiation::LoggingConfig&";
     deployerrequires "const ossie::ComponentPropertyList&" "const ossie::ComponentPropertyList&";
+    idvalue "const ossie::IdValue&" "const ossie::IdValue&";
 }

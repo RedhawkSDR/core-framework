@@ -268,7 +268,7 @@ namespace sad
     pre ();
 
     virtual void
-    simpleref (const ossie::SimplePropertyRef&);
+    requires (const ossie::IdValue&);
 
     virtual ossie::ComponentPropertyList&
     post_devicerequires ();
@@ -414,6 +414,26 @@ namespace sad
     virtual void
     post_resourcefactoryproperties ();
   };
+
+  class idvalue_pimpl: public virtual idvalue_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    id (const ::std::string&);
+
+    virtual void
+    value (const ::std::string&);
+
+    virtual const ossie::IdValue&
+    post_idvalue ();
+
+    private:
+    ossie::IdValue simple;
+  };
+
 
   class simpleref_pimpl: public virtual simpleref_pskel
   {

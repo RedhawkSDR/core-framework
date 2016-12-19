@@ -23,6 +23,7 @@
 
 #include <sstream>
 #include <istream>
+#include <memory>
 #include <vector>
 #include <string>
 #include <stdexcept>
@@ -30,6 +31,7 @@
 #include "ossie/exceptions.h"
 #include "ossie/ossieparser.h"
 #include "ossie/componentProfile.h"
+#include <boost/shared_ptr.hpp>
 
 namespace ossie {
 
@@ -76,7 +78,7 @@ namespace ossie {
          * information from a DCD file.  You must call load() before calling any
          * other functions on this class.
          */
-        DeviceManagerConfiguration() : _dcd(0) {}
+        DeviceManagerConfiguration() : _dcd() {}
 
         /*
          * Create a DeviceManagerConfiguration, parsing the DCD information provided by input.
@@ -114,7 +116,7 @@ namespace ossie {
         const ComponentInstantiation& getComponentInstantiationById(std::string id) throw(std::out_of_range);
 
     private:
-        std::auto_ptr<DCD> _dcd;
+        boost::shared_ptr<DCD > _dcd;
 
     };
 }

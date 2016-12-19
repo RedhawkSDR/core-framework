@@ -90,7 +90,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	)+ >
 
 <!ELEMENT devicerequires
-	( simpleref
+	( requires
 	)+ >
 
 <!ELEMENT componentproperties 
@@ -130,6 +130,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	| structref
 	| structsequenceref
 	)+ >
+
+<!ELEMENT requires EMPTY>
+<!ATTLIST requires
+	id		CDATA	#REQUIRED
+	value		CDATA	#REQUIRED>
 
 <!ELEMENT simpleref EMPTY>
 <!ATTLIST simpleref
