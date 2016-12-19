@@ -10,13 +10,13 @@ stages:
   - deploy
   - deploy-test
 
-.rpmbuild: &rpmbuild 
+.rpmbuild: &rpmbuild
   image: redhawk/buildenv:$PLATFORM
   script:
     - cd $PROJECT
     - tar --transform "s,^,$PROJECT-$REDHAWK_VERSION/,S" -czf /root/rpmbuild/SOURCES/$PROJECT-$REDHAWK_VERSION.tar.gz *
     - yum install -y ../*.rpm || true
-    - yum-builddep -y $PROJECT.spec 
+    - yum-builddep -y $PROJECT.spec
     - bash -lc 'rpmbuild -bb $PROJECT.spec'
     - cp -rv /root/rpmbuild/RPMS/*/*.rpm ..
 
@@ -40,7 +40,7 @@ stages:
     - cd $PROJECT
     - tar --transform "s,^,$PROJECT-$FRONTEND_VERSION/,S" -czf /root/rpmbuild/SOURCES/$PROJECT-$FRONTEND_VERSION.tar.gz *
     - yum install -y ../*.rpm || true
-    - yum-builddep -y $PROJECT.spec 
+    - yum-builddep -y $PROJECT.spec
     - bash -lc 'rpmbuild -bb $PROJECT.spec'
     - cp -rv /root/rpmbuild/RPMS/*/*.rpm ..
   artifacts:
@@ -199,7 +199,7 @@ deploy:el6:
     - frontend-el6
     - codegen-el6
   script:
-    - mkdir output 
+    - mkdir output
     - cp *.rpm output
     - cd output
     - createrepo .
@@ -214,7 +214,7 @@ deploy:el6:
 test:deployed:el6:
   image: centos:6
   stage: deploy-test
-  dependencies: 
+  dependencies:
     - deploy:el6
   script:
     - printf "[redhawk-deps]\nname=redhawk-deps\nbaseurl=$REDHAWK_DEPS_URL/el6/x86_64\nenabled=1\ngpgcheck=0" > /etc/yum.repos.d/redhawk-deps.repo
