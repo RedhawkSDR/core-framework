@@ -1588,19 +1588,11 @@ CF::Application_ptr DomainManager_impl::createApplication(const char* profileFil
 {
     TRACE_ENTER(DomainManager_impl);
 
-    try {
-       ApplicationFactory_impl factory(profileFileName, _domainName, this);
-       CF::Application_var application = factory.create(name, initConfiguration, deviceAssignments);
-       TRACE_EXIT(DomainManager_impl);
-       return application._retn();
-    }
-    catch( CF::DomainManager::ApplicationInstallationError& ex ) {
-      LOG_ERROR(DomainManager_impl, "Create application FAILED, reason: " << ex.msg );
-      // rethrow as invalid profile... 
-      throw CF::InvalidProfile();
-    }
+    ApplicationFactory_impl factory(profileFileName, _domainName, this);
+    CF::Application_var application = factory.create(name, initConfiguration, deviceAssignments);
 
     TRACE_EXIT(DomainManager_impl);
+    return application._retn();
 }
 
 

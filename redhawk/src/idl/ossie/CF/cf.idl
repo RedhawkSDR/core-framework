@@ -805,6 +805,7 @@ module CF {
                                          in CF::DeviceAssignmentSequence deviceAssignments
                                          )
         raises (CF::InvalidProfile,CF::InvalidFileName,
+                CF::DomainManager::ApplicationInstallationError,
                 CF::ApplicationFactory::CreateApplicationError,
                 CF::ApplicationFactory::CreateApplicationRequestError,
                 CF::ApplicationFactory::CreateApplicationInsufficientCapacityError,

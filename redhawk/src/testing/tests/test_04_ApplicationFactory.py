@@ -407,6 +407,13 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertTrue(end_time-begin_time >= 9.5)
         app.releaseObject()
 
+    def test_InvalidFile(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError, domMgr.createApplication, "AppDoesNotExist", 'my_application', [], [])
+
     def test_NonScaCompliant(self):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
