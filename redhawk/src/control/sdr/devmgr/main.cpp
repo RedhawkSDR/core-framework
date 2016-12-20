@@ -228,7 +228,6 @@ int main(int argc, char* argv[])
             execparams[param] = argv[ii];
         } else if (param == "LOGGING_CONFIG_URI") {
             logfile_uri = argv[ii];
-            execparams[param] = argv[ii];
         } else if (pupper == "NOLOGCFG") {
           useLogCfgResolver=false;
         } else if (pupper == "CPUBLACKLIST") {
@@ -330,10 +329,12 @@ int main(int argc, char* argv[])
         }
     }
 
+
     //
     // apply logging settings to the library
     //
     ossie::logging::Configure(logcfg_uri, debugLevel, ctx);
+    execparams["LOGGING_CONFIG_URI"] = const_cast<char *>(logfile_uri.c_str());
 
     ///////////////////////////////////////////////////////////////////////////
     // NO LOG_ STATEMENTS ABOVE THIS POINT
