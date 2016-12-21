@@ -114,8 +114,8 @@ public:
     }
 
     // Only search the port's queue if there is no SRI change or input queue
-    // flush pending
-    if (!_pending) {
+    // flush pending, and an end-of-stream has not been received
+    if (!_pending && !_eosReceived) {
       // If the queue is empty, this is the first read of a segment (i.e.,
       // search can go past the first packet if the SRI change or queue flush
       // flag is set)
@@ -221,9 +221,7 @@ public:
 
   bool ready()
   {
-    if (!_enabled) {
-      return false;
-    } else if (_samplesQueued) {
+    if (_samplesQueued) {
       return true;
     } else {
       return samplesAvailable() > 0;
@@ -237,13 +235,63 @@ public:
 
   void enable()
   {
+    // Changing the enabled flag requires holding the port's dataBufferLock
+    // (that controls access to its queue) to ensure that the change is atomic
+    // with respect to handling end-of-stream packets. Otherwise, there is a
+    // race condition between the port's IO thread and the thread that enables
+    // the stream--it could be re-enabled and start reading in between the
+    // port checking whether to discard the packet and closing the stream.
+    // Because it is assumed that the same thread that calls enable is the one
+    // doing the reading, it is not necessary to apply mutual exclusion across
+    // the entire public stream API, just enable/disable.
+    boost::mutex::scoped_lock lock(_port->dataBufferLock);
     _enabled = true;
   }
 
   void disable()
   {
-    _enabled = false;
-    // TODO: purge queue
+    {
+      // See above re: locking
+      boost::mutex::scoped_lock lock(_port->dataBufferLock);
+      _enabled = false;
+
+      // Discard any packets queued on the port (unless end-of-stream has been
+      // received--then they belong to another stream)
+      if (!_eosReceived) {
+        _port->discardPacketsForStream(_streamID);
+      }
+    }
+    // NB: The lock is not required to modify the internal stream queue state,
+    // because it should only be accessed by the thread that is reading from
+    // the stream
+
+    // Purge the packet queue...
+    for (typename QueueType::iterator packet = _queue.begin(); packet != _queue.end(); ++packet) {
+      _deletePacket(*packet);
+    }
+    _queue.clear();
+    _sampleOffset = 0;
+    _samplesQueued = 0;
+
+    // ...and the pending packet
+    if (_pending) {
+      _deletePacket(_pending);
+    }
+  }
+
+  void close()
+  {
+    // NB: This method is always called by the port with dataBufferLock held
+
+    // If this stream is enabled, close() is in response to the stream calling
+    // removeStream() on the port, so there's nothing left to do
+    if (_enabled) {
+      return;
+    }
+
+    // Otherwise, inject an end-of-stream marker into the end of the stream
+    _eosReceived = true;
+    _eosReached = true;
   }
 
   bool hasBufferedData() const
@@ -272,6 +320,14 @@ private:
     }
   }
 
+  void _deletePacket(DataTransferType* packet)
+  {
+    // The packet buffer was allocated with new[] by the CORBA layer, while
+    // vector will use non-array delete, so explicitly delete the buffer
+    delete[] steal_buffer(packet->dataBuffer);
+    delete packet;
+  }
+
   void _consumePacket()
   {
     // Acknowledge any end-of-stream flag and delete the packet
@@ -283,8 +339,7 @@ private:
 
     // The packet buffer was allocated with new[] by the CORBA layer, while
     // vector will use non-array delete, so explicitly delete the buffer
-    delete[] steal_buffer(packet->dataBuffer);
-    delete packet;
+    _deletePacket(packet);
     _queue.erase(_queue.begin());
 
     // If the queue is empty, move the pending packet onto the queue
@@ -396,6 +451,11 @@ private:
 
   bool _fetchPacket(bool blocking)
   {
+    // Don't fetch a packet from the port if stream is disabled
+    if (!_enabled) {
+      return false;
+    }
+
     if (_pending) {
       // Cannot read another packet until non-bridging packet is acknowledged
       return false;
@@ -453,7 +513,8 @@ private:
   bool _eosReceived;
   bool _eosReached;
   InPort<PortTraits>* _port;
-  std::vector<DataTransferType*> _queue;
+  typedef std::vector<DataTransferType*> QueueType;
+  QueueType _queue;
   DataTransferType* _pending;
   size_t _samplesQueued;
   size_t _sampleOffset;
@@ -579,6 +640,12 @@ template <class PortTraits>
 bool InputStream<PortTraits>::hasBufferedData()
 {
   return _impl->hasBufferedData();
+}
+
+template <class PortTraits>
+void InputStream<PortTraits>::close()
+{
+  return _impl->close();
 }
 
 template class InputStream<bulkio::CharPortTraits>;

@@ -341,8 +341,21 @@ namespace bulkio {
     DataTransferType* fetchPacket(const std::string& streamID);
     void packetReceived(const std::string& streamID);
 
+    // Discard currently queued packets for the given stream ID, up to the
+    // first end-of-stream; requires caller to hold dataBufferLock
+    void discardPacketsForStream(const std::string& streamID);
+
     friend class InputStream<PortTraits>;
     size_t samplesAvailable(const std::string& streamID, bool firstPacket);
+
+    // Checks whether the packet should be queued or discarded; also handles
+    // end-of-stream if the packet is being discarded
+    bool _acceptPacket(const std::string& streamID, bool EOS);
+
+    // Stops tracking the SRI for streamID, returning true if the stream was
+    // the last blocking stream, indicating that blocking can be turned off
+    // for the work queue
+    bool _handleEOS(const std::string& streamID);
 
     //
     // Returns the total number of elements of data in a pushPacket call, for

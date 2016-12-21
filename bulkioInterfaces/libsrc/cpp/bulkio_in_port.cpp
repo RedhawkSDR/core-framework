@@ -226,7 +226,7 @@ namespace  bulkio {
       return;
     }
 
-    if (!isStreamEnabled(streamID)) {
+    if (!_acceptPacket(streamID, EOS)) {
       return;
     }
 
@@ -338,6 +338,30 @@ namespace  bulkio {
   bool InPortBase< PortTraits >::isStreamActive(const std::string& streamID)
   {
     return true;
+  }
+
+  template < typename PortTraits >
+  bool InPortBase< PortTraits >::_acceptPacket(const std::string& streamID, bool EOS)
+  {
+    // Acquire dataBufferLock for the duration of this call to ensure that end-
+    // of-stream is handled atomically for disabled streams
+    SCOPED_LOCK(dataBufferLock);
+    if (isStreamEnabled(streamID)) {
+      return true;
+    }
+    if (EOS) {
+      // Acknowledge the end-of-stream by removing the disabled stream before
+      // discarding the packet
+      removeStream(streamID);
+
+      // If this was the only blocking stream, turn off blocking
+      bool turnOffBlocking = _handleEOS(streamID);
+      if (turnOffBlocking) {
+        queueSem->setCurrValue(0);
+        blocking = false;
+      }
+    }
+    return false;
   }
 
   template < typename PortTraits >
@@ -462,22 +486,7 @@ namespace  bulkio {
 
     bool turnOffBlocking = false;
     if (tmp->EOS) {
-      SCOPED_LOCK lock2(sriUpdateLock);
-      SriMap::iterator target = currentHs.find(std::string(tmp->streamID));
-      if (target != currentHs.end()) {
-        bool sriBlocking = target->second.first.blocking;
-        currentHs.erase(target);
-        if (sriBlocking) {
-          turnOffBlocking = true;
-          SriMap::iterator currH;
-          for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-            if (currH->second.first.blocking) {
-              turnOffBlocking = false;
-              break;
-            }
-          }
-        }
-      }
+      turnOffBlocking = _handleEOS(tmp->streamID);
     }
 
     {
@@ -496,6 +505,27 @@ namespace  bulkio {
     return tmp;
   }
 
+  namespace {
+    template <class T>
+    inline typename std::deque<T>::iterator do_erase(std::deque<T>& container, typename std::deque<T>::iterator pos)
+    {
+      if (pos == container.begin()) {
+        // PERFORMANCE NOTE:
+        // In a 1-item deque, erase will end up calling pop_back(); however,
+        // this can lead to greatly reduced performance (observed as 1/4 the
+        // data rate on some systems). In the case where the deque alternates
+        // between 0 and 1 packets (i.e., data is consumed as fast as it is
+        // produced), alternating calls to push_back() and pop_back() will
+        // always cause allocation and deallocation. Explicitly calling
+        // pop_front() if it's the first element prevents this worst case
+        // scenario.
+        container.pop_front();
+        return container.begin();
+      } else {
+        return container.erase(pos);
+      }
+    }
+  }
 
   template < typename PortTraits >
   typename InPortBase< PortTraits >::DataTransferType * InPortBase< PortTraits >::fetchPacket(const std::string &streamID)
@@ -512,24 +542,55 @@ namespace  bulkio {
     for (typename WorkQueue::iterator ii = workQueue.begin(); ii != workQueue.end(); ++ii) {
       if ((*ii)->streamID == streamID) {
         DataTransferType* packet = *ii;
-        if (ii == workQueue.begin()) {
-          // PERFORMANCE NOTE:
-          // In a 1-item deque, erase will end up calling pop_back(); however,
-          // this can lead to greatly reduced performance (observed as 1/4 the
-          // data rate on some systems). In the case where the deque alternates
-          // between 0 and 1 packets (i.e., data is consumed as fast as it is
-          // produced), alternating calls to push_back() and pop_back() will
-          // always cause allocation and deallocation. Explicitly calling
-          // pop_front() if it's the first element prevents this worst case
-          // scenario.
-          workQueue.pop_front();
-        } else {
-          workQueue.erase(ii);
-        }
+        bulkio::do_erase(workQueue, ii);
         return packet;
       }
     }
     return 0;
+  }
+
+  template <typename PortType>
+  void InPortBase<PortType>::discardPacketsForStream(const std::string& streamID)
+  {
+    // Caller must hold dataBufferLock
+    for (typename WorkQueue::iterator ii = workQueue.begin(); ii != workQueue.end();) {
+      if ((*ii)->streamID == streamID) {
+        bool eos = (*ii)->EOS;
+        delete *ii;
+        ii = bulkio::do_erase(workQueue, ii);
+        if (blocking) {
+          queueSem->decr();
+        }
+        if (eos) {
+          break;
+        }
+      } else {
+        ++ii;
+      }
+    }
+  }
+
+  template < typename PortTraits >
+  bool InPortBase< PortTraits >::_handleEOS(const std::string& streamID)
+  {
+    bool turnOffBlocking = false;
+    SCOPED_LOCK lock2(sriUpdateLock);
+    SriMap::iterator target = currentHs.find(streamID);
+    if (target != currentHs.end()) {
+      bool sriBlocking = target->second.first.blocking;
+      currentHs.erase(target);
+      if (sriBlocking) {
+        turnOffBlocking = true;
+        SriMap::iterator currH;
+        for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
+          if (currH->second.first.blocking) {
+            turnOffBlocking = false;
+            break;
+          }
+        }
+      }
+    }
+    return turnOffBlocking;
   }
 
   template < typename PortTraits >
@@ -796,8 +857,13 @@ namespace  bulkio {
   void InPort< PortTraits >::removeStream(const std::string& streamID)
   {
     LOG_DEBUG(logger, "Removing stream " << streamID);
+
     boost::mutex::scoped_lock lock(streamsMutex);
-    streams.erase(streamID);
+    typename StreamMap::iterator current = streams.find(streamID);
+    current->second.close();
+    streams.erase(current);
+
+    // If there's a pending stream waiting, move it to the active list
     typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
     if (next != pendingStreams.end()) {
       LOG_DEBUG(logger, "Moving pending stream " << streamID << " to active");
