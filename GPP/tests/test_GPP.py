@@ -839,6 +839,82 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(ustate, CF.Device.IDLE)
 
 
+    def test_threshold_usagestate_ignored(self):
+
+        self.get_single_nic_interface()
+        if len(self.nic_list)> 1:
+            self.runGPP(configure={'nic_interfaces' : [ self.nic_list[0] ]})
+        else:
+            self.runGPP()
+
+        self.comp.thresholds.ignore = True
+
+        # set cpu to be 100.00 ... the check busy state..
+        orig_thres = self.comp.thresholds.cpu_idle.queryValue()
+        self.comp.thresholds.cpu_idle = 100.00
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.BUSY: break
+           time.sleep(.5)
+
+        self.assertNotEquals(ustate, CF.Device.BUSY)
+
+        # set cpu idle  back
+        self.comp.thresholds.cpu_idle = orig_thres
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.IDLE: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.IDLE)
+
+        # set mem_free 
+        orig_thres = self.comp.thresholds.mem_free.queryValue()
+        mem_free = self.comp.memFree.queryValue()
+        self.comp.thresholds.mem_free = mem_free+2000
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.BUSY: break
+           time.sleep(.5)
+
+        self.assertNotEquals(ustate, CF.Device.BUSY)
+
+        # set mem_free  back
+        self.comp.thresholds.mem_free = orig_thres
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.IDLE: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.IDLE)
+
+
+        # set load_avg
+        orig_thres = self.comp.thresholds.load_avg.queryValue()
+        self.comp.thresholds.load_avg=0.0
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.BUSY: break
+           time.sleep(.5)
+
+        self.assertNotEquals(ustate, CF.Device.BUSY)
+
+        # set load_avg  back
+        self.comp.thresholds.load_avg = orig_thres
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.IDLE: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.IDLE)
+
+
 
     def DeployWithAffinityOptions(self, options_list, numa_layout_test, bl_cpus ):
         self.runGPP()

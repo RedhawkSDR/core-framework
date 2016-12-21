@@ -444,6 +444,7 @@ void GPP_i::_init() {
 
   // default cycle time setting for updating data model, metrics and state
   threshold_cycle_time = 500;
+  thresholds.ignore = false;
 
   //
   // Add property change listeners and allocation modifiers
@@ -1515,6 +1516,22 @@ bool GPP_i::_check_limits( const thresholds_struct &thresholds)
 
 void GPP_i::updateUsageState()
 {
+    // allow for global ignore of thresholds
+    if ( thresholds.ignore == true  ) {
+        LOG_TRACE(GPP_i, "Ignoring threshold checks ");
+        if (getPids().size() == 0) {
+            LOG_TRACE(GPP_i, "Usage State IDLE (trigger) pids === 0...  ");
+            _resetReason();
+            setUsageState(CF::Device::IDLE);
+        }
+        else {
+            LOG_TRACE(GPP_i, "Usage State ACTIVE.....  ");
+            _resetReason();
+            setUsageState(CF::Device::ACTIVE);
+        }
+        return;
+    }
+
   double sys_idle = system_monitor->get_idle_percent();
   double sys_idle_avg = system_monitor->get_idle_average();
   double sys_load = system_monitor->get_loadavg();

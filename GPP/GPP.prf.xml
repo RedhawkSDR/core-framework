@@ -363,6 +363,11 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
 
   <struct id="thresholds" mode="readwrite">
     <description>The thresholds that cause a failure for allocations</description>
+    <simple id="ignore" type="boolean">
+      <value>false</value>
+      <kind kindtype="property"/>
+      <action type="external"/>
+    </simple>
     <simple id="cpu_idle" type="float">
       <value>10</value>
       <units>%</units>
