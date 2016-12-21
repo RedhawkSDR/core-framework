@@ -78,11 +78,24 @@ public:
 
     void enable()
     {
+        // Changing the enabled flag requires holding the port's dataBufferLock
+        // (that controls access to its queue) to ensure that the change is
+        // atomic with respect to handling end-of-stream packets. Otherwise,
+        // there is a race condition between the port's IO thread and the
+        // thread that enables the stream--it could be re-enabled and start
+        // reading in between the port checking whether to discard the packet
+        // and closing the stream. Because it is assumed that the same thread
+        // that calls enable is the one doing the reading, it is not necessary
+        // to apply mutual exclusion across the entire public stream API, just
+        // enable/disable.
+        boost::mutex::scoped_lock lock(_port->dataBufferLock);
         _enabled = true;
     }
 
     virtual void disable()
     {
+        // See above re: locking
+        boost::mutex::scoped_lock lock(_port->dataBufferLock);
         _enabled = false;
 
         // Unless end-of-stream has been received by the port (meaning any further
@@ -90,6 +103,18 @@ public:
         // packets for this stream from the port's queue
         if (_eosState == EOS_NONE) {
             _port->discardPacketsForStream(_streamID);
+        }
+    }
+
+    void close()
+    {
+        // NB: This method is always called by the port with dataBufferLock held
+
+        // If this stream is disabled, consider end-of-stream reported, since
+        // the stream has already been removed from the port; otherwise, there's
+        // nothing to do
+        if (!_enabled) {
+            _eosState = EOS_REPORTED;
         }
     }
 
@@ -118,6 +143,11 @@ public:
 protected:
     PacketType* _fetchPacket(bool blocking)
     {
+        // Don't fetch a packet from the port if stream is disabled
+        if (!_enabled) {
+            return 0;
+        }
+
         // Any future packets with this stream ID belong to another InputStream
         if (_eosState != EOS_NONE) {
             return 0;
@@ -139,7 +169,11 @@ protected:
 
     size_t _samplesAvailable(bool first)
     {
-        return _port->samplesAvailable(_streamID, first);
+        if (_eosState == EOS_NONE) {
+            return _port->samplesAvailable(_streamID, first);
+        } else {
+            return 0;
+        }
     }
 
     void _setBlockFlags(DataBlockType& block, PacketType& packet)
@@ -236,6 +270,12 @@ template <class PortType>
 bool InputStream<PortType>::hasBufferedData()
 {
     return impl().hasBufferedData();
+}
+
+template <class PortType>
+void InputStream<PortType>::close()
+{
+    impl().close();
 }
 
 
@@ -403,9 +443,7 @@ public:
 
     bool ready()
     {
-        if (!this->_enabled) {
-            return false;
-        } else if (_samplesQueued) {
+        if (_samplesQueued) {
             return true;
         } else {
             return samplesAvailable() > 0;
@@ -415,9 +453,17 @@ public:
     virtual void disable()
     {
         ImplBase::disable();
+        // NB: The lock is not required to modify the internal stream queue
+        // state, because it should only be accessed by the thread that is
+        // reading from the stream
 
         // Clear queued packets, which implicitly deletes them
         _queue.clear();
+        _sampleOffset = 0;
+        _samplesQueued = 0;
+
+        // Delete pending packet (it's safe to delete null pointers)
+        delete _pending;
     }
 
     bool hasBufferedData() const

@@ -84,6 +84,8 @@ namespace bulkio {
 
         bool hasBufferedData();
 
+        void close();
+
     public:
         operator unspecified_bool_type() const;
     };

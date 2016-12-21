@@ -156,6 +156,15 @@ namespace  bulkio {
   }
 
   template <typename PortType>
+  void InPort<PortType>::setNewStreamListener(SriListener* newListener) {
+      if (newListener) {
+          newStreamCallback = boost::ref(*newListener);
+      } else {
+          newStreamCallback.clear();
+      }
+  }
+
+  template <typename PortType>
   void InPort<PortType>::pushSRI(const BULKIO::StreamSRI& H)
   {
     TRACE_ENTER( logger, "InPort::pushSRI"  );
@@ -196,13 +205,9 @@ namespace  bulkio {
   void  InPort<PortType>::queuePacket(const BufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID)
   {
     TRACE_ENTER( logger, "InPort::pushPacket"  );
+
     // Discard packets for disabled streams
-    if (!isStreamEnabled(streamID)) {
-        if (EOS) {
-            // Acknowledge the end-of-stream by removing the disabled stream
-            // before discarding the packet
-            removeStream(streamID);
-        }
+    if (!_acceptPacket(streamID, EOS)) {
         return;
     }
 
@@ -479,22 +484,7 @@ namespace  bulkio {
 
     bool turnOffBlocking = false;
     if (packet->EOS) {
-      SCOPED_LOCK lock2(sriUpdateLock);
-      SriTable::iterator target = currentHs.find(packet->streamID);
-      if (target != currentHs.end()) {
-        bool sriBlocking = target->second.first.blocking();
-        currentHs.erase(target);
-        if (sriBlocking) {
-          turnOffBlocking = true;
-          SriTable::iterator currH;
-          for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-            if (currH->second.first.blocking()) {
-              turnOffBlocking = false;
-              break;
-            }
-          }
-        }
-      }
+      turnOffBlocking = _handleEOS(packet->streamID);
     }
 
     {
@@ -577,7 +567,7 @@ namespace  bulkio {
   template <typename PortType>
   void InPort<PortType>::discardPacketsForStream(const std::string& streamID)
   {
-    SCOPED_LOCK lock(dataBufferLock);
+    // Caller must hold dataBufferLock
     for (typename PacketQueue::iterator ii = packetQueue.begin(); ii != packetQueue.end();) {
       if ((*ii)->streamID == streamID) {
         bool eos = (*ii)->EOS;
@@ -591,6 +581,29 @@ namespace  bulkio {
         ++ii;
       }
     }
+  }
+
+  template <typename PortType>
+  bool InPort<PortType>::_handleEOS(const std::string& streamID)
+  {
+      bool turnOffBlocking = false;
+      SCOPED_LOCK lock(sriUpdateLock);
+      SriTable::iterator target = currentHs.find(streamID);
+      if (target != currentHs.end()) {
+          bool sriBlocking = target->second.first.blocking();
+          currentHs.erase(target);
+          if (sriBlocking) {
+              turnOffBlocking = true;
+              SriTable::iterator currH;
+              for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
+                  if (currH->second.first.blocking()) {
+                      turnOffBlocking = false;
+                      break;
+                  }
+              }
+          }
+      }
+      return turnOffBlocking;
   }
 
   template <typename PortType>
@@ -632,7 +645,11 @@ namespace  bulkio {
   {
     LOG_DEBUG(logger, "Removing stream " << streamID);
     boost::mutex::scoped_lock lock(streamsMutex);
+
+    typename StreamMap::iterator stream = streams.find(streamID);
+    stream->second.close();
     streams.erase(streamID);
+
     typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
     if (next != pendingStreams.end()) {
       LOG_DEBUG(logger, "Moving pending stream " << streamID << " to active");
@@ -657,6 +674,29 @@ namespace  bulkio {
       return false;
     }
     return true;
+  }
+
+  template <typename PortType>
+  bool InPort<PortType>::_acceptPacket(const std::string& streamID, bool EOS)
+  {
+      // Acquire dataBufferLock for the duration of this call to ensure that
+      // end-of-stream is handled atomically for disabled streams
+      SCOPED_LOCK(dataBufferLock);
+      if (isStreamEnabled(streamID)) {
+          return true;
+      }
+      if (EOS) {
+          // Acknowledge the end-of-stream by removing the disabled stream before
+          // discarding the packet
+          removeStream(streamID);
+
+          // If this was the only blocking stream, turn off blocking
+          bool turnOffBlocking = _handleEOS(streamID);
+          if (turnOffBlocking) {
+              blocking = false;
+          }
+      }
+      return false;
   }
 
   template <typename PortType>
