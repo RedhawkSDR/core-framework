@@ -78,9 +78,9 @@ public:
 
     void enable()
     {
-        // Changing the enabled flag requires holding the port's dataBufferLock
-        // (that controls access to its queue) to ensure that the change is
-        // atomic with respect to handling end-of-stream packets. Otherwise,
+        // Changing the enabled flag requires holding the port's streamsMutex
+        // (that controls access to the stream map) to ensure that the change
+        // is atomic with respect to handling end-of-stream packets. Otherwise,
         // there is a race condition between the port's IO thread and the
         // thread that enables the stream--it could be re-enabled and start
         // reading in between the port checking whether to discard the packet
@@ -88,14 +88,14 @@ public:
         // that calls enable is the one doing the reading, it is not necessary
         // to apply mutual exclusion across the entire public stream API, just
         // enable/disable.
-        boost::mutex::scoped_lock lock(_port->dataBufferLock);
+        boost::mutex::scoped_lock lock(_port->streamsMutex);
         _enabled = true;
     }
 
     virtual void disable()
     {
         // See above re: locking
-        boost::mutex::scoped_lock lock(_port->dataBufferLock);
+        boost::mutex::scoped_lock lock(_port->streamsMutex);
         _enabled = false;
 
         // Unless end-of-stream has been received by the port (meaning any further
@@ -108,14 +108,11 @@ public:
 
     void close()
     {
-        // NB: This method is always called by the port with dataBufferLock held
+        // NB: This method is always called by the port with streamsMutex held
 
-        // If this stream is disabled, consider end-of-stream reported, since
-        // the stream has already been removed from the port; otherwise, there's
-        // nothing to do
-        if (!_enabled) {
-            _eosState = EOS_REPORTED;
-        }
+        // Consider end-of-stream reported, since the stream has already been
+        // removed from the port; otherwise, there's nothing to do
+        _eosState = EOS_REPORTED;
     }
 
     virtual bool eos()

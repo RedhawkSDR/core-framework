@@ -208,6 +208,14 @@ namespace  bulkio {
 
     // Discard packets for disabled streams
     if (!_acceptPacket(streamID, EOS)) {
+        if (EOS) {
+            // If this was the only blocking stream, turn off blocking
+            bool turnOffBlocking = _handleEOS(streamID);
+            if (turnOffBlocking) {
+                SCOPED_LOCK lock(dataBufferLock);
+                blocking = false;
+            }
+        }
         return;
     }
 
@@ -567,7 +575,7 @@ namespace  bulkio {
   template <typename PortType>
   void InPort<PortType>::discardPacketsForStream(const std::string& streamID)
   {
-    // Caller must hold dataBufferLock
+    SCOPED_LOCK lock(dataBufferLock);
     for (typename PacketQueue::iterator ii = packetQueue.begin(); ii != packetQueue.end();) {
       if ((*ii)->streamID == streamID) {
         bool eos = (*ii)->EOS;
@@ -646,10 +654,9 @@ namespace  bulkio {
     LOG_DEBUG(logger, "Removing stream " << streamID);
     boost::mutex::scoped_lock lock(streamsMutex);
 
-    typename StreamMap::iterator stream = streams.find(streamID);
-    stream->second.close();
+    // Remove the current stream, and if there's a pending stream with the same
+    // stream ID, move it to the active list
     streams.erase(streamID);
-
     typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
     if (next != pendingStreams.end()) {
       LOG_DEBUG(logger, "Moving pending stream " << streamID << " to active");
@@ -679,21 +686,38 @@ namespace  bulkio {
   template <typename PortType>
   bool InPort<PortType>::_acceptPacket(const std::string& streamID, bool EOS)
   {
-      // Acquire dataBufferLock for the duration of this call to ensure that
+      // Acquire streamsMutex for the duration of this call to ensure that
       // end-of-stream is handled atomically for disabled streams
-      SCOPED_LOCK(dataBufferLock);
-      if (isStreamEnabled(streamID)) {
+      boost::mutex::scoped_lock lock(streamsMutex);
+
+      // Find the current stream for the stream ID and check whether it's
+      // enabled
+      typename StreamMap::iterator stream = streams.find(streamID);
+      if (stream == streams.end() || stream->second.enabled()) {
           return true;
       }
-      if (EOS) {
-          // Acknowledge the end-of-stream by removing the disabled stream before
-          // discarding the packet
-          removeStream(streamID);
 
-          // If this was the only blocking stream, turn off blocking
-          bool turnOffBlocking = _handleEOS(streamID);
-          if (turnOffBlocking) {
-              blocking = false;
+      // If there's a pending stream, the packet is designated for that
+      if (pendingStreams.find(streamID) != pendingStreams.end()) {
+          return true;
+      }
+
+      if (EOS) {
+          // Acknowledge the end-of-stream by removing the disabled stream
+          // before discarding the packet
+          LOG_DEBUG(logger, "Removing stream " << streamID);
+          stream->second.close();
+          streams.erase(stream);
+
+          typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
+          if (next != pendingStreams.end()) {
+              LOG_DEBUG(logger, "Moving pending stream " << streamID << " to active");
+              StreamType stream = next->second;
+              streams.insert(*next);
+              pendingStreams.erase(next);
+              lock.unlock();
+
+              streamAdded(stream);
           }
       }
       return false;

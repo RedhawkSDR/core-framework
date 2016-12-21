@@ -396,7 +396,7 @@ namespace bulkio {
     Packet* fetchPacket(const std::string& streamID);
 
     // Discard currently queued packets for the given stream ID, up to the
-    // first end-of-stream; requires caller to hold dataBufferLock
+    // first end-of-stream
     void discardPacketsForStream(const std::string& streamID);
 
     friend class InputStream<PortType>;
@@ -409,7 +409,8 @@ namespace bulkio {
     bool isStreamEnabled(const std::string& streamID);
 
     // Checks whether the packet should be queued or discarded; also handles
-    // end-of-stream if the packet is being discarded
+    // notifying disabled streams of end-of-stream if the packet is being
+    // discarded
     bool _acceptPacket(const std::string& streamID, bool EOS);
 
     // Stops tracking the SRI for streamID, returning true if the stream was
