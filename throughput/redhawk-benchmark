@@ -75,7 +75,7 @@ class TextDisplay(TestMonitor):
 
 
 class BarGraph(TestMonitor):
-    def __init__(self, bins):
+    def __init__(self, series, bins):
         # Quiet the warning about GTK Tooltip deprecation
         import warnings
         with warnings.catch_warnings():
@@ -89,7 +89,7 @@ class BarGraph(TestMonitor):
         self.bar_plot.set_xlabel('Transfer size (B)')
         self.bar_plot.set_ylabel('Throughput (Bps)')
 
-        self.width = 1.0/3.0
+        self.width = 1.0/series
         self.colors = itertools.cycle('bgrcmyk')
 
         self.bins = dict((bin, index) for index, bin in enumerate(bins))
@@ -335,6 +335,16 @@ if __name__ == '__main__':
         elif key == '--no-gui':
             nogui = True
 
+    interface_list = ('raw', 'corba', 'bulkio')
+    interfaces = []
+    for arg in args:
+        if not arg.lower() in interface_list:
+            raise SystemExit("unknown interface '%s'" % arg)
+        else:
+            interfaces.append(arg.lower())
+    if not interfaces:
+        interfaces = interface_list
+
     # Try powers of two from 16K to 32M
     transfer_sizes = [2**x for x in xrange(14, 26)]
     test = TransferSizeTest(transfer_sizes, poll_time, window_size, tolerance)
@@ -343,7 +353,7 @@ if __name__ == '__main__':
         display = TextDisplay()
     else:
         from matplotlib import pyplot
-        display = BarGraph(transfer_sizes)
+        display = BarGraph(len(interfaces), transfer_sizes)
         test.add_idle_task(display.update)
     test.add_monitor(display)
 
@@ -381,19 +391,22 @@ if __name__ == '__main__':
         print 'No NUMA support'
         numa_distance = None
 
-    for interface in ('Raw', 'CORBA', 'BulkIO'):
-        if interface == 'Raw':
+    for interface in interfaces:
+        if interface == 'raw':
+            name = 'Raw'
             factory = raw.factory(transport)
-        elif interface == 'CORBA':
+        elif interface == 'corba':
+            name = 'CORBA'
             factory = corba.factory(transport)
-        elif interface == 'BulkIO':
+        elif interface == 'bulkio':
+            name = 'BulkIO'
             factory = bulkio.factory(transport)
 
         numa_policy = numa.NumaPolicy(numa_distance)
 
         stream = factory.create('octet', numa_policy.next())
         try:
-            test.run(interface, stream)
+            test.run(name, stream)
         finally:
             stream.terminate()
 
