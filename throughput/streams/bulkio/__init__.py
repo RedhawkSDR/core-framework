@@ -18,6 +18,10 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 import os
+try:
+    from ossie.utils import sb
+except ImportError:
+    sb = None
 
 __all__ = ('factory')
 
@@ -42,11 +46,12 @@ class NumaLauncher(object):
 
 
 class BulkioStream(object):
-    def __init__(self, format, numa_policy):
+    def __init__(self, format, numa_policy, shared):
         # TODO: Use NUMA launcher when supported in sandbox for .so components
         launcher = NumaLauncher(numa_policy)
-        self.writer = sb.launch(os.path.join(PATH, 'writer/writer.spd.xml'))
-        self.reader = sb.launch(os.path.join(PATH, 'reader/reader.spd.xml'))
+        self.shared = shared
+        self.writer = sb.launch(os.path.join(PATH, 'writer/writer.spd.xml'), shared=self.shared)
+        self.reader = sb.launch(os.path.join(PATH, 'reader/reader.spd.xml'), shared=self.shared)
         self.writer.connect(self.reader)
         self.container = sb.domainless._getSandbox()._getComponentHost()
 
@@ -57,10 +62,16 @@ class BulkioStream(object):
         sb.stop()
 
     def get_reader(self):
-        return self.container._process.pid()
+        if self.shared:
+            return self.container._process.pid()
+        else:
+            return self.reader._process.pid()
 
     def get_writer(self):
-        return self.container._process.pid()
+        if self.shared:
+            return self.container._process.pid()
+        else:
+            return self.writer._process.pid()
 
     def transfer_size(self, size):
         self.writer.transfer_length = int(size)
@@ -78,18 +89,25 @@ class BulkioStream(object):
         self.writer.releaseObject()
         self.reader.releaseObject()
 
-class BulkioStreamFactory(object):
+class BulkioCorbaFactory(object):
     def __init__(self, transport):
         configfile = 'config/omniORB-%s.cfg' % transport
         os.environ['OMNIORB_CONFIG'] = os.path.join(PATH, configfile)
-        from ossie.utils import sb
-        globals()['sb'] = sb
 
     def create(self, format, numa_policy):
-        return BulkioStream(format, numa_policy)
+        return BulkioStream(format, numa_policy, False)
 
     def cleanup(self):
         pass
 
-def factory(transport):
-    return BulkioStreamFactory(transport)
+class BulkioLocalFactory(object):
+    def create(self, format, numa_policy):
+        return BulkioStream(format, numa_policy, True)
+
+def factory(transport, local):
+    if sb is None:
+        raise ImportError('BulkIO is not available')
+    if local:
+        return BulkioLocalFactory()
+    else:
+        return BulkioCorbaFactory(transport)

@@ -338,13 +338,16 @@ if __name__ == '__main__':
         elif key == '--no-gui':
             nogui = True
 
-    interface_list = ('raw', 'corba', 'bulkio')
+    interface_list = ('raw', 'corba', 'bulkio-corba', 'bulkio-local')
     interfaces = []
     for arg in args:
-        if not arg.lower() in interface_list:
+        name = arg.lower()
+        if name == 'bulkio':
+            interfaces.extend(('bulkio-corba', 'bulkio-local'))
+        elif not name in interface_list:
             raise SystemExit("unknown interface '%s'" % arg)
         else:
-            interfaces.append(arg.lower())
+            interfaces.append(name)
     if not interfaces:
         interfaces = interface_list
 
@@ -403,9 +406,12 @@ if __name__ == '__main__':
         elif interface == 'corba':
             name = 'CORBA'
             factory = corba.factory(transport)
-        elif interface == 'bulkio':
-            name = 'BulkIO'
-            factory = bulkio.factory(transport)
+        elif interface == 'bulkio-corba':
+            name = 'BulkIO (CORBA)'
+            factory = bulkio.factory(transport, local=False)
+        elif interface == 'bulkio-local':
+            name = 'BulkIO (local)'
+            factory = bulkio.factory(transport, local=True)
 
         numa_policy = numa.NumaPolicy(numa_distance)
 
