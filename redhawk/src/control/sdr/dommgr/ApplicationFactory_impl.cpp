@@ -482,17 +482,63 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
         }
     }
 
+    //
+    // if there are any collocated device requires, get the actual resolved usesdevice
+    //
+    std::vector< CF::Device_var > req_usesDevices;
+    BOOST_FOREACH(const UsesDeviceRef& devref, collocation.getUsesDeviceRefs()) {
+        std::string refid= devref.getID();
+        CF::Device_var dev=appDeployment.lookupDeviceUsedByApplication(refid);
+        LOG_DEBUG(ApplicationFactory_impl, "UsesDevice for collocation: " << dev->label() );
+        if ( !CORBA::is_nil(dev) ) {
+            req_usesDevices.push_back(dev);
+        }
+    }
+
     // Get the executable devices for the domain; if there were any devices
     // assigned, filter out all other devices
     ossie::DeviceList deploymentDevices = _executableDevices;
     if (!assignedDevices.empty()) {
-        for (ossie::DeviceList::iterator node = deploymentDevices.begin(); node != deploymentDevices.end(); ++node) {
+        for (ossie::DeviceList::iterator node = deploymentDevices.begin(); node != deploymentDevices.end(); ) {
             if (std::find(assignedDevices.begin(), assignedDevices.end(), (*node)->identifier) == assignedDevices.end()) {
                 node = deploymentDevices.erase(node);
+            }
+            else {
+                node++;
             }
         }
     }
     
+    // if there is a usesdevice in the collocation that filter out the GPPs that we can use.
+    if ( req_usesDevices.size() > 0 ) {
+        // from the remaining list of deploymentDevices filter out those that not on the same host
+        for ( std::vector< CF::Device_var >::iterator dev = req_usesDevices.begin(); dev != req_usesDevices.end(); ++dev) {
+            LOG_TRACE(ApplicationFactory_impl, "Find GPP for device collocation, device: " << (*dev)->label()  << " Number available GPPs:" << deploymentDevices.size() );
+            for (ossie::DeviceList::iterator node = deploymentDevices.begin(); node != deploymentDevices.end(); ) {
+                bool retval = ossie::sameHost( *dev, (*node)->device );
+                LOG_TRACE(ApplicationFactory_impl, "Check Collocation, Device: " << (*dev)->label()  << " Executable Device: " << (*node)->device->label() << "  --> RESULTS:" << retval );
+                if ( retval == false )  {
+                    node = deploymentDevices.erase(node);
+                }
+                else {
+                    node++;
+                }
+            }
+        }
+
+        if ( deploymentDevices.size() == 0 ) {
+            ostringstream os;
+            os << "No Collocated ExecutableDevices for Device: ";
+            for ( std::vector< CF::Device_var >::iterator dev = req_usesDevices.begin(); dev != req_usesDevices.end(); ++dev) {
+                os << (*dev)->label();
+                if (dev+1 != req_usesDevices.end()) os << ", ";
+            }
+            LOG_DEBUG(ApplicationFactory_impl, os.str() );
+            throw redhawk::PlacementFailure(collocation, os.str() );
+        }
+
+    }
+
     LOG_TRACE(ApplicationFactory_impl, "Placing " << deployments.size() << " components");
     if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices)) {
         if (_allDevicesBusy(deploymentDevices)) {
@@ -814,13 +860,13 @@ CF::Application_ptr createHelper::create (
     // Catch invalid device assignments
     _validateDAS(app_deployment, deviceAssignments);
 
-    // Assign all components to devices
-    assignPlacementsToDevices(app_deployment, deviceAssignments);
-
     // Allocate any usesdevice capacities specified in the SAD file; at this
     // point, the complete set of component deployments is known, including any
     // property overrides for allocation context
     _handleUsesDevices(app_deployment, name);
+
+    // Assign all components to devices
+    assignPlacementsToDevices(app_deployment, deviceAssignments);
 
     // Assign CPU reservations to components
     app_deployment.applyCpuReservations(specialized_reservations);

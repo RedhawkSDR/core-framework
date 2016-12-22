@@ -67,5 +67,6 @@ namespace urn:mil:jpeojtrs:sca:sad {
     loggingconfig  "const ossie::ComponentInstantiation::LoggingConfig&"  "const ossie::ComponentInstantiation::LoggingConfig&";
     devicerequires "ossie::ComponentPropertyList &" "ossie::ComponentPropertyList &";
     idvalue "const ossie::IdValue&" "const ossie::IdValue&";
+    usesdeviceref "const ossie::UsesDeviceRef&" "const ossie::UsesDeviceRef&";
 }
 

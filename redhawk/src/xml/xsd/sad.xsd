@@ -208,12 +208,18 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 		<xs:attribute name="name" type="xs:string"/>
 	</xs:complexType>
 	<xs:complexType name="hostcollocation">
-		<xs:sequence>
-			<xs:element name="componentplacement" type="componentplacement" maxOccurs="unbounded" ecore:name="componentplacement"/>
-		</xs:sequence>
+		<xs:choice  maxOccurs="unbounded">
+                    <xs:element name="componentplacement" type="componentplacement" ecore:name="componentplacement"/>
+                    <xs:element name="usesdeviceref" type="usesdeviceref" ecore:name="usesdeviceref"/>
+		</xs:choice>
 		<xs:attribute name="id" type="xs:string"/>
 		<xs:attribute name="name" type="xs:string"/>
 	</xs:complexType>
+
+	<xs:complexType name="usesdeviceref">
+		<xs:attribute name="refid" use="required" type="xs:string" ecore:name="refId"/>
+	</xs:complexType>
+
 	<xs:complexType name="assemblycontroller">
 		<xs:sequence>
 			<xs:element name="componentinstantiationref" type="componentinstantiationref" ecore:name="componentInstantiationRef"/>

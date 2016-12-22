@@ -632,6 +632,9 @@ namespace sad
     componentplacement (const ::ossie::ComponentPlacement&);
 
     virtual void
+    usesdeviceref (const ::ossie::UsesDeviceRef&);
+
+    virtual void
     id (const ::std::string&);
 
     virtual void
@@ -643,6 +646,23 @@ namespace sad
     private:
     std::auto_ptr<ossie::SoftwareAssembly::HostCollocation> hostcollocation; 
   };
+
+  class usesdeviceref_pimpl: public virtual usesdeviceref_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    refid (const ::std::string&);
+
+    virtual const ossie::UsesDeviceRef&
+    post_usesdeviceref ();
+
+    private:
+    ossie::UsesDeviceRef udevref;
+  };
+
 
   class assemblycontroller_pimpl: public virtual assemblycontroller_pskel
   {

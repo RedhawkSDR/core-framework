@@ -38,6 +38,7 @@ namespace ossie {
                 std::string id;
                 std::string name;
                 std::vector<ComponentPlacement> placements;
+                std::vector<UsesDeviceRef>      usesdevicerefs;
 
                 const std::string& getID() const {
                     return id;
@@ -49,6 +50,10 @@ namespace ossie {
 
                 const std::vector<ComponentPlacement>& getComponents() const {
                     return placements;
+                }
+
+                const std::vector<UsesDeviceRef>& getUsesDeviceRefs() const {
+                    return usesdevicerefs;
                 }
 
                 const ComponentInstantiation* getInstantiation(const std::string& refid) const;

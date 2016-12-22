@@ -931,6 +931,13 @@ namespace sad
     hostcollocation->placements.push_back(componentplacement);
   }
 
+
+  void hostcollocation_pimpl::
+  usesdeviceref (const ::ossie::UsesDeviceRef& usesdeviceref)
+  {
+      hostcollocation->usesdevicerefs.push_back(usesdeviceref);
+  }
+
   void hostcollocation_pimpl::
   id (const ::std::string& id)
   {
@@ -948,6 +955,29 @@ namespace sad
   {
       return *hostcollocation;
   }
+
+
+  // usesdeviceref_pimpl
+  //
+
+  void usesdeviceref_pimpl::
+  pre ()
+  {
+    udevref = ossie::UsesDeviceRef();
+  }
+
+  void usesdeviceref_pimpl::
+  refid (const ::std::string& refid)
+  {
+    udevref.id = refid;
+  }
+
+  const ossie::UsesDeviceRef& usesdeviceref_pimpl::
+  post_usesdeviceref ()
+  {
+    return udevref;
+  }
+
 
   // assemblycontroller_pimpl
   //

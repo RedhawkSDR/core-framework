@@ -191,11 +191,16 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	name		CDATA	#IMPLIED>
 
 <!ELEMENT hostcollocation
-	( componentplacement
+	( componentplacement,
+        | usesdeviceref,
 	)+>
 <!ATTLIST hostcollocation
 	id		ID	#IMPLIED
 	name		CDATA	#IMPLIED>
+
+<!ELEMENT usesdeviceref EMPTY>
+<!ATTLIST usesdeviceref
+	refid		CDATA	#REQUIRED>
 
 <!ELEMENT assemblycontroller
 	( componentinstantiationref

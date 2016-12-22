@@ -27,6 +27,24 @@
 #include "PropertyRef.h"
 
 namespace ossie {
+
+    class UsesDeviceRef {
+    public:
+        std::string id;
+
+        const std::string& getID() const {
+            return id;
+        }
+
+    };
+
+    inline std::ostream& operator<<(std::ostream& out, const UsesDeviceRef& usesdev)
+    {
+        out << "UsesDeviceRef id: " << usesdev.id;
+        return out;
+    }
+
+
     class UsesDevice {
     public:
         std::string id;
