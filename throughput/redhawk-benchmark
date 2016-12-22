@@ -338,8 +338,15 @@ if __name__ == '__main__':
         elif key == '--no-gui':
             nogui = True
 
-    if args:
-        interfaces = args
+    interface_list = ('raw', 'corba', 'bulkio')
+    interfaces = []
+    for arg in args:
+        if not arg.lower() in interface_list:
+            raise SystemExit("unknown interface '%s'" % arg)
+        else:
+            interfaces.append(arg.lower())
+    if not interfaces:
+        interfaces = interface_list
 
     # Try powers of two from 16K to 32M
     transfer_sizes = [2**x for x in xrange(14, 26)]
@@ -390,18 +397,21 @@ if __name__ == '__main__':
         numa_distance = None
 
     for interface in interfaces:
-        if interface == 'Raw':
+        if interface == 'raw':
+            name = 'Raw'
             factory = raw.factory(transport)
-        elif interface == 'CORBA':
+        elif interface == 'corba':
+            name = 'CORBA'
             factory = corba.factory(transport)
-        elif interface == 'BulkIO':
+        elif interface == 'bulkio':
+            name = 'BulkIO'
             factory = bulkio.factory(transport)
 
         numa_policy = numa.NumaPolicy(numa_distance)
 
         stream = factory.create('octet', numa_policy.next())
         try:
-            test.run(interface, stream)
+            test.run(name, stream)
         finally:
             stream.terminate()
 
