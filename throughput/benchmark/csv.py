@@ -31,7 +31,7 @@ class CSVOutput(TestMonitor):
         self.fields.append((key, header))
 
     def test_started(self, name, **kw):
-        filename = '%s-%d.csv' % (name.lower(), os.getpid())
+        filename = '%s-%d.csv' % (self.make_filename(name), os.getpid())
         self.file = open(filename, 'w')
         print >>self.file, ','.join(title for name, title in self.fields)
 
@@ -40,3 +40,8 @@ class CSVOutput(TestMonitor):
 
     def test_complete(self, **kw):
         self.file.close()
+
+    def make_filename(self, name):
+        name = name.lower()
+        name = name.replace('(', '').replace(')', '')
+        return '-'.join(name.split())
