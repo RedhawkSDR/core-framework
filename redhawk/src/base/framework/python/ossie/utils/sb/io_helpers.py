@@ -1352,6 +1352,7 @@ class DataSource(_SourceBase):
                                  streamID,
                                  srcPortType)
                 self._currentSampleTime += sampleTimeForPush
+                currentSampleTime += sampleTimeForPush
         else:
             self._pushPacket(arraySrcInst,
                              data,
