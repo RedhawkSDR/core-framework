@@ -198,10 +198,10 @@ class LocalService(Service, LocalMixin):
     __launcher__ = launcher.ServiceLauncher
     
     def __init__(self, sdrroot, profile, spd, scd, prf, instanceName, refid, impl,
-                 execparams, debugger, window, timeout):
+                 execparams, debugger, window, timeout, stdout=None):
         self._sandbox = sdrroot
         Service.__init__(self, None, profile, spd, scd, prf, instanceName, refid, impl)
-        LocalMixin.__init__(self, execparams, debugger, window, timeout)
+        LocalMixin.__init__(self, execparams, debugger, window, timeout, stdout)
         self.ref = self._launch()
         self.populateMemberFunctions()
         
