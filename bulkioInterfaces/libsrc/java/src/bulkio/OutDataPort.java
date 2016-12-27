@@ -95,9 +95,6 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
                 final BULKIO.PrecisionUTCTime tstamp = bulkio.time.utils.notSet();
                 for (Map.Entry<String, SriMapStruct> entry: this.currentSRIs.entrySet()) {
                     final String streamID = entry.getKey();
-                    if (!isStreamRoutedToConnection(streamID, connectionId)) {
-                        continue;
-                    }
 
                     final SriMapStruct sriMap = entry.getValue();
                     if (sriMap.connections.contains(connectionId)) {

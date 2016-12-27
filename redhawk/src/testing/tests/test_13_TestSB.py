@@ -1635,10 +1635,40 @@ class BulkioTest(unittest.TestCase):
         # 1 with no good connections
         # 1 with a good connection
 
+    def test_DataSourceChunkedTimeStamp(self):
+        """
+        Verify that DataSource sends timestamp properly for pushes that exceed
+        bytesPerPush.
+        """
+        _timeout = 1
+        _startTime = 10
+        _sampleRate = 100
+        _xdelta = 1/_sampleRate
+        source = sb.DataSource(startTime=_startTime)
+        sink = sb.DataSink()
+        source.connect(sink, usesPortName='floatOut')
+        sb.start()
+        
+        # test default sample rate
+        _srcData = range(500000)
+        source.push(_srcData, sampleRate=_sampleRate)
+        estimate = sink.getDataEstimate()
+        begin_time = time.time()
+        while estimate.num_timestamps != 4:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        xdelta = sink.sri().xdelta
+        self.assertEquals(_tstamps[0][1].twsec, _startTime)
+        self.assertEquals(_tstamps[1][1].twsec, _tstamps[1][0]*sink.sri().xdelta+_startTime)
+        self.assertEquals(_tstamps[2][1].twsec, _tstamps[2][0]*sink.sri().xdelta+_startTime)
+        self.assertEquals(_tstamps[3][1].twsec, _tstamps[3][0]*sink.sri().xdelta+_startTime)
+
     def test_DataSourceTimeStamp(self):
         """
-        Verify that DataSource sends EOS properly for pushes that exceed
-        bytesPerPush.
+        Verify that timestamps are correct across multiple pushes.
         """
         _timeout = 1
         _startTime = 10
