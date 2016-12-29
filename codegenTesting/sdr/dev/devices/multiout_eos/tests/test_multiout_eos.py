@@ -3,6 +3,7 @@
 import ossie.utils.testing
 from ossie.utils import sb
 import frontend, time
+from ossie.cf import CF
 
 class DeviceTests(ossie.utils.testing.RHTestCase):
     # Path to the SPD file, relative to this file. This must be set in order to
@@ -54,6 +55,9 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.comp.connect(slave,connectionId='slave')
         self.comp.connect(another_slave,connectionId='another_slave')
         time.sleep(3)
+        fake_master_alloc = frontend.createTunerListenerAllocation('master','master')
+        self.assertRaises(CF.Device.InvalidCapacity, self.comp.deallocateCapacity, fake_master_alloc)
+        self.assertEquals(self.comp.frontend_tuner_status[0].allocation_id_csv[:6],'master')
         self.assertEquals(master.eos(),False)
         self.assertEquals(slave.eos(),False)
         self.assertEquals(another_slave.eos(),False)

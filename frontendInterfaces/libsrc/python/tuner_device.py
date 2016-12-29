@@ -848,7 +848,14 @@ class FrontendTunerDevice(Device):
         tuner_id = self.getTunerMapping(frontend_listener_allocation.listener_allocation_id)
         if tuner_id < 0:
             self._log.debug("ALLOCATION_ID NOT FOUND: [" + str(frontend_listener_allocation.listener_allocation_id) + "]")
-            raise CF.Device.InvalidCapacity("ALLOCATION_ID NOT FOUND", frontend_listener_allocation)
+            retval_struct = [CF.DataType(id='FRONTEND::listener_allocation::existing_allocation_id',value=any.to_any(frontend_listener_allocation.existing_allocation_id)),CF.DataType(id='FRONTEND::listener_allocation::listener_allocation_id',value=any.to_any(frontend_listener_allocation.existing_allocation_id))]
+            retval = CF.DataType(id='FRONTEND::listener_allocation',value=any.to_any(retval_struct))
+            raise CF.Device.InvalidCapacity("ALLOCATION_ID NOT FOUND", [retval])
+        if self.tuner_allocation_ids[tuner_id].control_allocation_id == frontend_listener_allocation.listener_allocation_id:
+            self._log.debug("Controlling allocation id cannot be used as a listener id in a deallocation: [" + str(frontend_listener_allocation.listener_allocation_id) + "]")
+            retval_struct = [CF.DataType(id='FRONTEND::listener_allocation::existing_allocation_id',value=any.to_any(frontend_listener_allocation.existing_allocation_id)),CF.DataType(id='FRONTEND::listener_allocation::listener_allocation_id',value=any.to_any(frontend_listener_allocation.existing_allocation_id))]
+            retval = CF.DataType(id='FRONTEND::listener_allocation',value=any.to_any(retval_struct))
+            raise CF.Device.InvalidCapacity("Controlling allocation id cannot be used as a listener id", [retval])
         # send EOS to listener connection only
         self.removeTunerMappingByAllocationId(frontend_listener_allocation.listener_allocation_id)
         self.removeListenerId(tuner_id, frontend_listener_allocation.listener_allocation_id)
