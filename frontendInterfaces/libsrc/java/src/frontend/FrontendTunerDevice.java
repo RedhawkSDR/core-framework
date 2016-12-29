@@ -305,7 +305,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
                 }
                 return status;
             }
-            public void deallocate(frontend.FETypes.frontend_listener_allocation_struct capacity){
+            public void deallocate(frontend.FETypes.frontend_listener_allocation_struct capacity) throws CF.DevicePackage.InvalidCapacity {
                 deallocateListener(capacity);
             }
         });
@@ -589,16 +589,22 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
         }
     }
 
-    public void deallocateListener(frontend.FETypes.frontend_listener_allocation_struct frontend_listener_allocation){
+    public void deallocateListener(frontend.FETypes.frontend_listener_allocation_struct frontend_listener_allocation) throws CF.DevicePackage.InvalidCapacity {
         try{
             int tuner_id = getTunerMapping(frontend_listener_allocation.listener_allocation_id.getValue());
             if (tuner_id < 0){
                 logger.debug("ALLOCATION_ID NOT FOUND: [" + frontend_listener_allocation.listener_allocation_id.getValue() + "]");
                 throw new CF.DevicePackage.InvalidCapacity("ALLOCATION_ID NOT FOUND", new CF.DataType[]{new DataType("frontend_listener_allocation", frontend_listener_allocation.toAny())});
             }
+            if (tuner_allocation_ids.get(tuner_id).control_allocation_id.equals(frontend_listener_allocation.listener_allocation_id.getValue())) {
+                logger.debug("Controlling allocation id cannot be used as a listener id: [" + frontend_listener_allocation.listener_allocation_id.getValue() + "]");
+                throw new CF.DevicePackage.InvalidCapacity("Controlling allocation id cannot be used as a listener id", new CF.DataType[]{new DataType("frontend_listener_allocation", frontend_listener_allocation.toAny())});
+            }
             // send EOS to listener connection only
             removeTunerMapping(tuner_id, frontend_listener_allocation.listener_allocation_id.getValue());
             frontend_tuner_status.getValue().get(tuner_id).allocation_id_csv.setValue(removeListenerId(tuner_id, frontend_listener_allocation.listener_allocation_id.getValue()));
+        } catch (CF.DevicePackage.InvalidCapacity invalidcap){
+            throw invalidcap;
         } catch (Exception e){
             logger.debug("deallocateListener: ERROR WHEN DEALLOCATING.  SKIPPING...");
         }

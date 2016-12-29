@@ -639,6 +639,10 @@ namespace frontend {
                         LOG_DEBUG(FrontendTunerDevice<TunerStatusStructType>, "ALLOCATION_ID NOT FOUND: [" << frontend_listener_allocation.listener_allocation_id <<"]");
                         throw CF::Device::InvalidCapacity("ALLOCATION_ID NOT FOUND", capacities);
                     }
+                    if (this->tuner_allocation_ids[tuner_id].control_allocation_id == frontend_listener_allocation.listener_allocation_id) {
+                        LOG_DEBUG(FrontendTunerDevice<TunerStatusStructType>, "Controlling allocation id cannot be used as a listener id: [" << frontend_listener_allocation.listener_allocation_id <<"]");
+                        throw CF::Device::InvalidCapacity("Controlling allocation id cannot be used as a listener id", capacities);
+                    }
                     //LOG_DEBUG(FrontendTunerDevice<TunerStatusStructType>,std::string(__PRETTY_FUNCTION__)+" tuner_id = " << tuner_id);
                     // send EOS to listener connection only
                     removeTunerMapping(tuner_id,frontend_listener_allocation.listener_allocation_id);
@@ -647,6 +651,9 @@ namespace frontend {
                 else {
                     LOG_TRACE(FrontendTunerDevice<TunerStatusStructType>,"WARNING: UNKNOWN ALLOCATION PROPERTY \""+ std::string(property->name) + "\". IGNORING!");
                 }
+            }
+            catch(CF::Device::InvalidCapacity &e){
+                throw;
             }
             catch(...){
                 LOG_DEBUG(FrontendTunerDevice<TunerStatusStructType>,"ERROR WHEN DEALLOCATING. SKIPPING...");
