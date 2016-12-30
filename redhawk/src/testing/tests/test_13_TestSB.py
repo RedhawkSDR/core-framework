@@ -1239,6 +1239,32 @@ class SBTestTest(scatest.CorbaTestCase):
             self.fail('Could not assign real sequence to complex sequence property')
         self.assertEqual(value, comp.complexFloatSequence)
 
+    def _callback(self, _id, _data):
+        self.message = _id, _data
+
+    def test_MessageFormat(self):
+        src = sb.MessageSource(messageId='foo',messageFormat={'val':'short','seq':'[float]'})
+        snk = sb.MessageSink(messageCallback = self._callback)
+        sb.start()
+        src.connect(snk)
+        self.assertRaises(Exception, src.sendMessage, {'val':5,'seq':'[1,2]'})
+        self.message = None
+        begin = time.time()
+        src.sendMessage({'val':5,'seq':[1,2]})
+        while not self.message and time.time()-begin < 1:
+            time.sleep(0.1)
+        self.assertEquals(self.message[1].id, 'foo')
+        msg = None
+        for _msg in self.message[1].value._v:
+            if _msg.id == 'seq':
+                msg = _msg.value
+        self.assertEquals(msg._t.content_type(), CORBA.TC_float)
+        msg = None
+        for _msg in self.message[1].value._v:
+            if _msg.id == 'val':
+                msg = _msg.value
+        self.assertEquals(msg._t, CORBA.TC_short)
+
     def test_DeviceAllocation(self):
         """
         Tests device allocation/deallocation using both dictionaries and lists
