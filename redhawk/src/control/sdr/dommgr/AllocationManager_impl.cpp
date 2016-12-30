@@ -402,6 +402,7 @@ bool AllocationManager_impl::completeAllocations(CF::Device_ptr device, const st
         bool warned = false;
         for (size_t undo = ii; undo > 0; --undo) {
             try {
+                ossie::corba::overrideBlockingCall(device,_domainManager->getDeviceWaitTime());
                 device->deallocateCapacity(allocations[undo-1]);
             } catch (...) {
                 if (!warned) {
@@ -830,6 +831,7 @@ bool AllocationManager_impl::deallocateLocal(const std::string& allocationID)
         bool warned = false;
         for (size_t index = 0; index < allocations.size(); ++index) {
             try {
+                ossie::corba::overrideBlockingCall(localAlloc.allocatedDevice,_domainManager->getDeviceWaitTime());
                 localAlloc.allocatedDevice->deallocateCapacity(allocations[index]);
             } catch (...) {
                 if (!warned) {
