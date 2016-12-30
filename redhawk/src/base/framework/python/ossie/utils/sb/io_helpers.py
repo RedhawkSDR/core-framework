@@ -193,6 +193,18 @@ class MessageSink(helperBase, PortSupplier):
 
 class MessageSource(helperBase, PortSupplier):
     def __init__(self, messageId = None, messageFormat = None):
+        '''
+        messageId: id for the message (string)
+        messageForms: dictionary for the message member types
+                key: element id (string)
+                value: element type (string)
+                
+                valid types:
+                    boolean, char, double, float, short, long, longlong,
+                    octet, string, ulong, ushort, longlong, ulonglong, 
+                    [boolean], [char], [double], [float], [short], [long], [longlong],
+                    [octet], [string], [ulong], [ushort], [longlong], [ulonglong]
+        '''
         helperBase.__init__(self)
         PortSupplier.__init__(self)
         self._flowOn = False
@@ -213,6 +225,20 @@ class MessageSource(helperBase, PortSupplier):
         else:
             # Assume it's something that can be mapped to an any
             props = [_CF.DataType('sb', _any.to_any(data))]
+        if self._messageFormat:
+            for _key in self._messageFormat:
+                found_prop = False
+                for _prop in props:
+                    if _prop.id == _key:
+                        found_prop = True
+                        if _prop.value._t != _CORBA.TC_null:
+                            if '[' in self._messageFormat[_key]:
+                                base_type = _properties.getTypeCode(self._messageFormat[_key].replace('[','').replace(']',''))
+                                if _prop.value._t.content_type() != base_type:
+                                    expectedTypeCode = omniORB.tcInternal.createTypeCode((omniORB.tcInternal.tv_sequence, base_type._d, 0))
+                                    _prop.value = _CORBA.Any(expectedTypeCode, [_properties.to_pyvalue(item, self.type_) for item in value])
+                            else:
+                                _prop.value._t = _properties.getTypeCode(self._messageFormat[_key])
         return _properties.props_to_any(props)
 
     def sendMessage(self, msg):

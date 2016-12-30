@@ -445,48 +445,40 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
             _consumers.remove(self)
 
     def _run(self):
-         while not self._terminateMe:
-              if self._pauseMe:
-                   try:
-                     self.state.acquire()
-                     self.state.wait() 
-                   finally:
-                     self.state.release()
-
-              while not self._pauseMe and not self._terminateMe :
-                while not self.actionQueue.empty():
-                    action, payload = self.actionQueue.get()
-                    if action == 'destroy':
-                        self.consumer_lock.acquire()
-                        for consumer in self.consumers:
-                            if consumer == payload:
-                                consumer = self.consumers.pop(consumer)
-                                consumer.existence_lock.acquire()
-                                consumer.existence_lock.release()
-                                del consumer
-                                break
-                        self.consumer_lock.release()
-                    elif action == 'message':
-                        values = payload.value(CF._tc_Properties)
-                        if values is None:
-                            print 'WARNING: Unrecognized message type', payload.typecode()
-                        for value in values:
-                            id = value.id
-                            if id in self._messages:
-                                msgstruct, callback = self._messages[id]
-                                value = struct_from_any(value.value, msgstruct, strictComplete=False)
-                                try:
-                                    callback(id, value)
-                                except Exception, e:
-                                    print "Callback for message "+str(id)+" failed with exception: "+str(e)
-                            for allMsg in self._allMsg:
-                                callback = allMsg[1]
-                                try:
-                                    callback(id, value)
-                                except Exception, e:
-                                    print "Callback for message "+str(id)+" failed with exception: "+str(e)
-                else:
-                    _time.sleep(self.thread_sleep)
+        while not self._terminateMe:
+            while not self.actionQueue.empty():
+                action, payload = self.actionQueue.get()
+                if action == 'destroy':
+                    self.consumer_lock.acquire()
+                    for consumer in self.consumers:
+                        if consumer == payload:
+                            consumer = self.consumers.pop(consumer)
+                            consumer.existence_lock.acquire()
+                            consumer.existence_lock.release()
+                            del consumer
+                            break
+                    self.consumer_lock.release()
+                elif action == 'message':
+                    values = payload.value(CF._tc_Properties)
+                    if values is None:
+                        print 'WARNING: Unrecognized message type', payload.typecode()
+                    for value in values:
+                        id = value.id
+                        if id in self._messages:
+                            msgstruct, callback = self._messages[id]
+                            value = struct_from_any(value.value, msgstruct, strictComplete=False)
+                            try:
+                                callback(id, value)
+                            except Exception, e:
+                                print "Callback for message "+str(id)+" failed with exception: "+str(e)
+                        for allMsg in self._allMsg:
+                            callback = allMsg[1]
+                            try:
+                                callback(id, value)
+                            except Exception, e:
+                                print "Callback for message "+str(id)+" failed with exception: "+str(e)
+            else:
+                _time.sleep(self.thread_sleep)
 
 class MessageSupplierPort(CF__POA.Port):
     class Supplier_i(CosEventComm__POA.PushSupplier):

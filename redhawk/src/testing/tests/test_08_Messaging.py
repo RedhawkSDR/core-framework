@@ -191,6 +191,64 @@ class MessagingCompatibilityTest(scatest.CorbaTestCase):
         self.assertEquals(self.rcv_msg.c, 'C')
         self.rcv_msg = None
 
+    def __MessageCycle(self, comp):
+        source = sb.MessageSource(messageId='test_message',messageFormat={'item_float':'float','item_string':'string'})
+
+        source.connect(comp)
+        source.start()
+
+        # As a pre-condition, there should have been no messages yet
+        self.assertEqual(comp._get_started(), False)
+        self.assertEqual(comp.received_messages, [])
+
+        source.sendMessage({'item_float':0.0, 'item_string':'first'})
+
+        # Wait until the component has time to process the message
+        timeout = time.time() + 1.0
+        while len(comp.received_messages) == 0 and time.time() < timeout:
+            time.sleep(0.1)
+
+        self.assertEqual(len(comp.received_messages), 1)
+        self.assertEqual(comp.received_messages[0][:14], "test_message,0")
+
+        comp.start()
+        self.assertEqual(comp._get_started(), True)
+        self.assertEqual(len(comp.received_messages), 1)
+        source.sendMessage({'item_float':1.0, 'item_string':'first'})
+
+        # Wait until the component has time to process the message
+        timeout = time.time() + 1.0
+        while len(comp.received_messages) == 1 and time.time() < timeout:
+            time.sleep(0.1)
+
+        self.assertEqual(len(comp.received_messages), 2)
+        self.assertEqual(comp.received_messages[1][:14], "test_message,1")
+
+        comp.stop()
+        self.assertEqual(comp._get_started(), False)
+        self.assertEqual(len(comp.received_messages), 2)
+        source.sendMessage({'item_float':2.0, 'item_string':'first'})
+
+        # Wait until the component has time to process the message
+        timeout = time.time() + 1.0
+        while len(comp.received_messages) == 2 and time.time() < timeout:
+            time.sleep(0.1)
+
+        self.assertEqual(len(comp.received_messages), 3)
+        self.assertEqual(comp.received_messages[2][:14], "test_message,2")
+
+    def test_MessageCyclePython(self):
+        comp = sb.launch('MessageReceiverPy')
+        self.__MessageCycle(comp)
+
+    def test_MessageCycleJava(self):
+        comp = sb.launch('EventReceive')
+        self.__MessageCycle(comp)
+
+    def test_MessageCycleCpp(self):
+        comp = sb.launch('MessageReceiverCpp')
+        self.__MessageCycle(comp)
+
 class EventPortConnectionsTest(scatest.CorbaTestCase):
     def setUp(self):
         self._domBooter, self._domMgr = self.launchDomainManager()

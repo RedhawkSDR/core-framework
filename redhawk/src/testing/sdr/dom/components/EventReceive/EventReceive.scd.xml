@@ -32,6 +32,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <supportsinterface repid="IDL:CF/TestableObject:1.0" supportsname="TestableObject"/>
     <ports>
       <uses repid="IDL:omg.org/CosEventChannelAdmin/EventChannel:1.0" usesname="message_in"/>
+      <provides repid="IDL:ExtendedEvent/MessageEvent:1.0" providesname="message_in"/>
     </ports>
   </componentfeatures>
   <interfaces>
