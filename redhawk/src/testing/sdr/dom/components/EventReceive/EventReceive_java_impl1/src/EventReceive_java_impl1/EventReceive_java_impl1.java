@@ -189,7 +189,7 @@ public class EventReceive_java_impl1 extends Resource implements Runnable {
 
         public void messageReceived(String id, test_message_struct msg) {
             synchronized (this.handlingMessagesLock) {
-                String msg_out = id+","+msg.item_string.getValue()+","+msg.item_float.getValue();
+                String msg_out = id+","+msg.item_float.getValue()+","+msg.item_string.getValue();
                 this.parent.received_messages.getValue().add(msg_out);
             }
         }
