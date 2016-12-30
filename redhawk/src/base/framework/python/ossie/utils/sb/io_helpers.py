@@ -46,6 +46,7 @@ import logging as _logging
 import socket as _socket
 from omniORB import any as _any
 from omniORB import CORBA as _CORBA
+import omniORB as _omniORB
 import CosEventComm__POA
 import warnings as _warnings
 
@@ -233,12 +234,17 @@ class MessageSource(helperBase, PortSupplier):
                         found_prop = True
                         if _prop.value._t != _CORBA.TC_null:
                             if '[' in self._messageFormat[_key]:
-                                base_type = _properties.getTypeCode(self._messageFormat[_key].replace('[','').replace(']',''))
+                                base_type_txt = self._messageFormat[_key].replace('[','').replace(']','')
+                                base_type = _properties.getTypeCode(base_type_txt)
+                                if _prop.value._t._k != _CORBA.tk_sequence:
+                                    raise Exception('Data for item '+_key+' must be a list')
                                 if _prop.value._t.content_type() != base_type:
-                                    expectedTypeCode = omniORB.tcInternal.createTypeCode((omniORB.tcInternal.tv_sequence, base_type._d, 0))
-                                    _prop.value = _CORBA.Any(expectedTypeCode, [_properties.to_pyvalue(item, self.type_) for item in value])
+                                    expectedTypeCode = _omniORB.tcInternal.createTypeCode((_omniORB.tcInternal.tv_sequence, base_type._d, 0))
+                                    _prop.value = _CORBA.Any(expectedTypeCode, [_properties.to_pyvalue(item, base_type_txt) for item in _prop.value._v])
                             else:
                                 _prop.value._t = _properties.getTypeCode(self._messageFormat[_key])
+                if not found_prop:
+                    raise Exception('Unable to find item '+_key+' in '+str(data))
         return _properties.props_to_any(props)
 
     def sendMessage(self, msg):
