@@ -60,7 +60,7 @@ public:
   typedef std::vector<NativeType> VectorType;
   typedef DataBlock<NativeType> DataBlockType;
 
-  Impl(const BULKIO::StreamSRI& sri, bulkio::InPort<PortTraits>* port) :
+    Impl(const BULKIO::StreamSRI& sri, bulkio::InPort<PortTraits>* port) :
     _streamID(sri.streamID),
     _sri(sri),
     _eosReceived(false),
@@ -70,7 +70,8 @@ public:
     _pending(0),
     _samplesQueued(0),
     _sampleOffset(0),
-    _enabled(true)
+    _enabled(true),
+    _newstream(true)
   {
   }
 
@@ -360,6 +361,12 @@ private:
       _sri = front->SRI;
     }
 
+    if ( _newstream ) {
+        // seed sri change flags for new stream
+        sriChangeFlags |= bulkio::sri::STREAMID |bulkio::sri::XDELTA | bulkio::sri::YDELTA | bulkio::sri::KEYWORDS | bulkio::sri::MODE;
+        _newstream=false;
+    }
+
     // Allocate empty data block and propagate the SRI change and input queue
     // flush flags
     DataBlockType data(_sri);
@@ -519,6 +526,7 @@ private:
   size_t _samplesQueued;
   size_t _sampleOffset;
   bool _enabled;
+  bool _newstream;
 };
 
 

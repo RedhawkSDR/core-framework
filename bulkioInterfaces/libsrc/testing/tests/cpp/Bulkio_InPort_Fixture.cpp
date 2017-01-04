@@ -371,6 +371,67 @@ void Bulkio_InPort_Fixture::test_stream_disable(T* port)
   CPPUNIT_ASSERT(stream.eos());
 }
 
+
+template <typename T>
+void Bulkio_InPort_Fixture::test_stream_sri_changed(T* port)
+{
+  typedef typename T::PortSequenceType PortSequenceType;
+  typedef typename T::StreamType StreamType;
+  typedef typename StreamType::DataBlockType DataBlockType;
+
+  // Create a new stream and push some data to it
+  BULKIO::StreamSRI sri = bulkio::sri::create("test_stream_sri_changed");
+  // push sri , data seqeunce
+  port->pushSRI(sri);
+  PortSequenceType data;
+  data.length(1024);
+  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
+
+  // Get the input stream and read the first packet
+  StreamType stream = port->getStream("test_stream_sri_changed");
+  CPPUNIT_ASSERT_EQUAL(!stream, false);
+
+  DataBlockType block = stream.read();
+  CPPUNIT_ASSERT_EQUAL(!block, false);
+
+  CPPUNIT_ASSERT_EQUAL(true, block.sriChanged());
+
+  data.length(1024);
+  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
+  block = stream.read();
+  CPPUNIT_ASSERT_EQUAL(!block, false);
+  CPPUNIT_ASSERT_EQUAL(false, block.sriChanged());
+
+  // push sri , data seqeunce
+  sri.mode = 1;
+  port->pushSRI(sri);
+  data.length(1024);
+  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
+
+  block = stream.read();
+  CPPUNIT_ASSERT_EQUAL(true, block.sriChanged());
+  int srichangedflags = block.sriChangeFlags();
+  bool modeset = srichangedflags == bulkio::sri::MODE;
+  CPPUNIT_ASSERT_EQUAL(true, modeset);
+
+  data.length(1024);
+  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
+  block = stream.read();
+  CPPUNIT_ASSERT_EQUAL(!block, false);
+  CPPUNIT_ASSERT_EQUAL(false, block.sriChanged());
+
+  data.length(1024);
+  port->pushPacket(data, bulkio::time::utils::now(), true, sri.streamID);
+  block = stream.read();
+  CPPUNIT_ASSERT_EQUAL(!block, false);
+  CPPUNIT_ASSERT_EQUAL(false, block.sriChanged());
+  CPPUNIT_ASSERT_EQUAL(true, stream.eos());
+
+}
+
+
+
+
 template<>
 void  Bulkio_InPort_Fixture::test_port_api( bulkio::InSDDSPort *port  ) {
 
@@ -453,6 +514,7 @@ Bulkio_InPort_Fixture::test_int8()
 
   test_port_api( port );
   test_stream_disable( port );
+  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -476,6 +538,7 @@ Bulkio_InPort_Fixture::test_int16()
 
   test_port_api( port );
   test_stream_disable( port );
+  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -496,6 +559,7 @@ Bulkio_InPort_Fixture::test_int32()
 
   test_port_api( port );
   test_stream_disable( port );
+  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -518,6 +582,7 @@ Bulkio_InPort_Fixture::test_int64()
 
   test_port_api( port );
   test_stream_disable( port );
+  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -539,6 +604,7 @@ Bulkio_InPort_Fixture::test_uint8()
 
   test_port_api( port );
   test_stream_disable( port );
+  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -559,6 +625,8 @@ Bulkio_InPort_Fixture::test_uint16()
 
   test_port_api( port );
   test_stream_disable( port );
+  test_stream_sri_changed( port );
+
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -580,6 +648,7 @@ Bulkio_InPort_Fixture::test_uint32()
 
   test_port_api( port );
   test_stream_disable( port );
+  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -601,6 +670,7 @@ Bulkio_InPort_Fixture::test_uint64()
 
   test_port_api( port );
   test_stream_disable( port );
+  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
