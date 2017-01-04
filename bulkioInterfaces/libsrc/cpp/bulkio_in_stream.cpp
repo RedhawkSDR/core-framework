@@ -47,7 +47,8 @@ public:
         ImplBase(sri),
         _port(port),
         _eosState(EOS_NONE),
-        _enabled(true)
+        _enabled(true),
+        _newstream(true)
     {
     }
 
@@ -177,8 +178,14 @@ protected:
     {
         // Allocate empty data block and propagate the SRI change and input
         // queue flush flags
+        int flags=0;
         if (packet.sriChanged) {
-            int flags = bulkio::sri::compareFields(this->sri(), packet.SRI.sri());
+            flags = bulkio::sri::compareFields(this->sri(), packet.SRI.sri());
+            block.sriChangeFlags(flags);
+        }
+        if (_newstream) {
+            _newstream=false;
+            flags |= bulkio::sri::STREAMID |bulkio::sri::XDELTA | bulkio::sri::YDELTA | bulkio::sri::KEYWORDS | bulkio::sri::MODE;
             block.sriChangeFlags(flags);
         }
         if (packet.inputQueueFlushed) {
@@ -189,6 +196,7 @@ protected:
     InPortType* _port;
     EosState _eosState;
     bool _enabled;
+    bool _newstream;
 };
 
 template <class PortType>
