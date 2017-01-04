@@ -43,6 +43,7 @@ Requires:       util-linux-ng
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
 Requires:       java >= 1.7
 Requires:       python-matplotlib-qt4
+Requires:       gstreamer-python
 %else
 Requires:       java7 >= 1.7
 Requires:       python-matplotlib
