@@ -2,7 +2,7 @@
 #
 # AUTO-GENERATED
 #
-# Source: S2.spd.xml
+# Source: S2_pre.spd.xml
 
 import sys, signal, copy, os
 import logging
@@ -16,14 +16,14 @@ from ossie.cf import CF__POA
 from ossie import properties;
 
 
-class S2(CF__POA.PropertyEmitter):
+class S2_pre(CF__POA.PropertySet):
 
-    def __init__(self, name="S2", execparams={}):
+    def __init__(self, name="S2_pre", execparams={}):
         self.name = name
         self._log = logging.getLogger(self.name)
         self._props = properties.PropertyStorage(self, (), execparams)
-        self._props._addProperty( S2.p1 )
-        self._props._addProperty( S2.p2)
+        self._props._addProperty( S2_pre.p1 )
+        self._props._addProperty( S2_pre.p2)
         self._props.initialize()
 
     def terminateService(self):
@@ -55,6 +55,7 @@ class S2(CF__POA.PropertyEmitter):
             self._log.warning("Configure failed with invalid configuration, %s", notSet)
             raise CF.PropertySet.InvalidConfiguration("Failure: "+error_message, notSet)
         self._log.trace("configure(%s)", configProperties)
+
 
     def query(self, configProperties):
         if configProperties == []:
@@ -145,7 +146,6 @@ class S2(CF__POA.PropertyEmitter):
                 self._log.exception("Unexpected exception.")
                 notSet.append(prop)
 
-
     def registerPropertyListener(self, obj, prop_ids, interval):
         # TODO
         pass
@@ -159,7 +159,7 @@ class S2(CF__POA.PropertyEmitter):
                              type_="string",
                              mode="readwrite",
                              action="external",
-                             kinds=("property",),
+                             kinds=("configure",),
                              description=""" """)
 
 
@@ -168,8 +168,8 @@ class S2(CF__POA.PropertyEmitter):
                              type_="long",
                              mode="readwrite",
                              action="external",
-                             kinds=("property",))
+                             kinds=("configure",))
 
 
 if __name__ == '__main__':
-    start_service(S2, thread_policy=PortableServer.SINGLE_THREAD_MODEL)
+    start_service(S2_pre, thread_policy=PortableServer.SINGLE_THREAD_MODEL)

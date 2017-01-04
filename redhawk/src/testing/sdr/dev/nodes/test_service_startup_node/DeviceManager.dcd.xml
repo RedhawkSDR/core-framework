@@ -11,6 +11,9 @@
     <componentfile id="S2_c4e6f783-864a-4263-a433-f1cc495cb844" type="SPD">
       <localfile name="/services/S2/S2.spd.xml"/>
     </componentfile>
+    <componentfile id="S2_pre_c4e6f783-864a-4263-a433-f1cc495cb844" type="SPD">
+      <localfile name="/services/S2_pre/S2_pre.spd.xml"/>
+    </componentfile>
   </componentfiles>
   <partitioning>
     <componentplacement>
@@ -26,6 +29,16 @@
         <componentproperties>
           <simpleref refid="p1" value="p1 set by DCD file"/>
           <simpleref refid="p2" value="123456"/>
+        </componentproperties>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="S2_pre_c4e6f783-864a-4263-a433-f1cc495cb844"/>
+      <componentinstantiation id="S2_pre_1">
+        <usagename>S2_pre_1</usagename>
+        <componentproperties>
+          <simpleref refid="p1" value="pre p1 set by DCD file"/>
+          <simpleref refid="p2" value="654321"/>
         </componentproperties>
       </componentinstantiation>
     </componentplacement>

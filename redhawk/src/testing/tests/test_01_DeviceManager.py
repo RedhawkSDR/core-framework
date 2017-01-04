@@ -1306,17 +1306,36 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         d=redhawk.attach(self._domainManager._get_name())
 
         svc=None
+        svc_pre=None
         for s in d.services:
             if s._id == 'S2_1':
                 svc = s
+            if s._id == 'S2_pre_1':
+                svc_pre = s
         self.assertNotEqual(svc, None)
+        self.assertNotEqual(svc_pre, None)
 
         # get p1 from service
-        res=s.query([CF.DataType(id='p1', value=any.to_any(None))])
+        res=svc.query([CF.DataType(id='p1', value=any.to_any(None))])
         p1=properties.props_to_dict(res)
         self.assertEqual(p1['p1'],'p1 set by DCD file')
 
         # get p2 from service
-        res=s.query([CF.DataType(id='p2', value=any.to_any(None))])
+        res=svc.query([CF.DataType(id='p2', value=any.to_any(None))])
         p1=properties.props_to_dict(res)
         self.assertEqual(p1['p2'],123456)
+
+
+        # get p1 from service
+        res=svc_pre.query([CF.DataType(id='p1', value=any.to_any(None))])
+        p1=properties.props_to_dict(res)
+        self.assertEqual(p1['p1'],'pre p1 set by DCD file')
+
+        # get p2 from service
+        res=svc_pre.query([CF.DataType(id='p2', value=any.to_any(None))])
+        p1=properties.props_to_dict(res)
+        self.assertEqual(p1['p2'],654321)
+
+        self.assertRaises(CF.PropertySet.InvalidConfiguration, svc.configure, [CF.DataType(id='fake', value=any.to_any(None))] )
+
+        self.assertRaises(CF.PropertySet.InvalidConfiguration, svc_pre.configure, [CF.DataType(id='fake', value=any.to_any(None))] )
