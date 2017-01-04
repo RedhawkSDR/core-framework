@@ -59,6 +59,7 @@ using namespace log4cxx::helpers;
 
 
 namespace log4cxx {
+
   // 
   // Allows for same naming reference to LogEvent Appender class
   //

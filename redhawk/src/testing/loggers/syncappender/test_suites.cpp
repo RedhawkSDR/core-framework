@@ -19,8 +19,6 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( test_suite_one, "test_one" );
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( test_suite_two, "test_two" );
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( test_suite_three, "test_three" );
 
-
-
 void 
 test_suite_one::setUp()
 {

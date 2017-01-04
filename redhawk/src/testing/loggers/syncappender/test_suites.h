@@ -19,7 +19,6 @@ public:
   void test_two();
 
   log4cxx::LoggerPtr logger;
-
 };
 
 

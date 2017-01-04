@@ -108,7 +108,6 @@ namespace log4cxx
     ipc::shared_memory_object  shm;
     ipc::mapped_region         region;
 
-
   };
 	 
 }; // end of namespace
