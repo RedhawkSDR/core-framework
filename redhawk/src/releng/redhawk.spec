@@ -43,6 +43,7 @@ Requires:       java >= 1:1.8.0
 
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
 Requires:       python-matplotlib-qt4
+Requires:       gstreamer-python
 %else
 Requires:       python-matplotlib
 %endif
