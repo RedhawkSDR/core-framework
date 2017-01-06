@@ -1819,6 +1819,39 @@ class BulkioTest(unittest.TestCase):
         for frame in outdata:
             self.assertEquals(len(frame), subsize)
 
+    def test_DataSinkCharSignedData(self):
+        src=sb.DataSource(dataFormat='char')
+        snk=sb.DataSink()
+        src.connect(snk,usesPortName='charOut', providesPortName='charIn')
+        sb.start()
+        data=[0, 1, 2, 3, 4, 5, -1, -2, -3, -4, -5]
+        src.push(data,EOS=True)
+        start = time.time()
+        while not snk.eos() and (time.time() - start) < 2.0:
+            time.sleep(0.1)
+        outdata = snk.getData()
+        self.assertEquals(data,outdata)
+
+    def test_DataSinkOctetSignedData(self):
+        src=sb.DataSource(dataFormat='octet')
+        snk=sb.DataSink()
+        src.connect(snk,usesPortName='octetOut', providesPortName='octetIn')
+        sb.start()
+        data=[0, 1, 2, 3, 4, 5, -1, -2, -3, -4, -5]
+        data1=[0, 1, 2, 3, 4, 5, 255,254,253,252,251]
+        src.push(data,EOS=True)
+        start = time.time()
+        while not snk.eos() and (time.time() - start) < 2.0:
+            time.sleep(0.1)
+        outdata = snk.getData()
+        self.assertEquals([],outdata)
+        src.push(data1,EOS=True)
+        start = time.time()
+        while not snk.eos() and (time.time() - start) < 2.0:
+            time.sleep(0.1)
+        outdata = snk.getData()
+        self.assertEquals(data1,outdata)
+
 #    def test_connections(self):
 #        a = sb.launch(self.test_comp)
 #        b = sb.launch("SandBoxTest2")
