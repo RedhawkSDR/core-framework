@@ -93,6 +93,7 @@ PREPARE_CF_LOGGING(PropertySet_impl);
 
 PropertySet_impl::PropertySet_impl ():
   propertyChangePort(0),
+  _propertyQueryTimestamp("QUERY_TIMESTAMP"),
   _propChangeThread( new PropertyChangeThread(*this), 0.1 ),
   _propertiesInitialized(false)
 {
@@ -316,6 +317,9 @@ throw (CORBA::SystemException, CF::UnknownProperties)
             }
             ++jj;
         }
+        configProperties.length(configProperties.length() + 1);
+        configProperties[configProperties.length()-1].id = CORBA::string_dup(_propertyQueryTimestamp.c_str());
+        configProperties[configProperties.length()-1].value <<= _makeTime(-1,0,0);
     } else {
         // For queries of length > 0, return all requested pairs in propertySet
         CF::Properties invalidProperties;
@@ -324,6 +328,10 @@ throw (CORBA::SystemException, CF::UnknownProperties)
         for (CORBA::ULong ii = 0; ii < configProperties.length (); ++ii) {
             const std::string id = (const char*)configProperties[ii].id;
             LOG_TRACE(PropertySet_impl, "Query property " << id);
+            if (id == _propertyQueryTimestamp) {
+                configProperties[ii].value <<= _makeTime(-1,0,0);
+                continue;
+            }
             PropertyInterface* property = getPropertyFromId(id);
             if (property && property->isQueryable()) {
                 if (property->isNilEnabled()) {
@@ -748,6 +756,7 @@ int  PropertySet_impl::EC_PropertyChangeListener::notify( PropertyChangeRec *rec
   evt.reg_id = CORBA::string_dup( rec->regId.c_str());
   evt.resource_id = CORBA::string_dup( rec->rscId.c_str() );
   evt.properties = changes;
+  evt.timestamp = _makeTime(-1,0,0);
   try {
     RH_NL_DEBUG("EC_PropertyChangeListener", "Send change event reg/id:" << rec->regId << "/" << uuid );
     pub->push( evt );
@@ -781,6 +790,7 @@ int PropertySet_impl::INF_PropertyChangeListener::notify( PropertyChangeRec *rec
   evt.reg_id = CORBA::string_dup( rec->regId.c_str());
   evt.resource_id = CORBA::string_dup( rec->rscId.c_str() );
   evt.properties = changes;
+  evt.timestamp = _makeTime(-1,0,0);
   try {
     RH_NL_DEBUG("INF_PropertyChangeListener", "Send change event reg/id:" << rec->regId << "/" << uuid );
     listener->propertyChange( evt );

@@ -91,6 +91,22 @@ public:
    //
    void   startPropertyChangeMonitor( const std::string &rsc_id);
    void   stopPropertyChangeMonitor();
+   
+   static CF::UTCTime _makeTime(short status, double wsec, double fsec) {
+       CF::UTCTime _time;
+       struct timeval tv;
+       gettimeofday(&tv, NULL);
+       if (status == -1) {
+           _time.tcstatus = 1;
+           _time.twsec = tv.tv_sec;
+           _time.tfsec = tv.tv_usec/1e6;
+       } else {
+           _time.tcstatus = status;
+           _time.twsec = wsec;
+           _time.tfsec = fsec;
+       }
+       return _time;
+   };
 
 protected:
 
@@ -324,6 +340,8 @@ protected:
     // Preferred new-style properties.
     typedef std::map<std::string, PropertyInterface*> PropertyMap;
     PropertyMap propTable;
+    
+    std::string _propertyQueryTimestamp;
 
 private:
     template <typename T>

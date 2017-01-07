@@ -413,6 +413,7 @@ module CF {
       string          reg_id;
       string          resource_id;
       CF::Properties  properties;
+      CF::UTCTime     timestamp;
     };
 
     void propertyChange( in PropertyChangeEvent prop_event );
