@@ -640,6 +640,19 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         }
     }
 
+    String _propertyQueryTimestamp = "QUERY_TIMESTAMP";
+    
+    public CF.UTCTime _makeTime(final short status, final double wsec, final double fsec) {
+        CF.UTCTime _time = new CF.UTCTime(status, wsec, fsec);
+        if (status == -1) {
+            long tmp_time = System.currentTimeMillis();
+            _time.tcstatus = 1;
+            _time.twsec = tmp_time /1000;
+            _time.tfsec = (tmp_time % 1000)/1000.0;
+        }
+        return _time;
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -647,7 +660,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         logger.trace("query()");
         // For queries of zero length, return all id/value pairs in propertySet
         if (configProperties.value.length == 0) {
-            final ArrayList<DataType> props = new ArrayList<DataType>(this.propSet.size());
+            final ArrayList<DataType> props = new ArrayList<DataType>(this.propSet.size()+1);
             for (final IProperty prop : this.propSet.values()) {
                 logger.trace("Querying property: " + prop);
                 if (prop.isQueryable()) {
@@ -667,6 +680,10 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
                     }
                 }
             }
+            
+            final Any anytime = ORB.init().create_any();
+            CF.UTCTimeHelper.insert(anytime, this._makeTime((short)-1,0,0));
+            props.add(new DataType(_propertyQueryTimestamp, anytime));
 
             configProperties.value = props.toArray(new DataType[props.size()]);
             return;
@@ -679,6 +696,12 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         // Return values for valid queries in the same order as requested
         for (final DataType dt : configProperties.value) {
             // Look up the property and ensure it is queryable
+            if (dt.id.equals(_propertyQueryTimestamp)) {
+                final Any anytime = ORB.init().create_any();
+                CF.UTCTimeHelper.insert(anytime, this._makeTime((short)-1,0,0));
+                validProperties.add(new DataType(_propertyQueryTimestamp, anytime));
+                continue;
+            }
             final IProperty prop = this.propSet.get(dt.id);
             if ((prop != null) && prop.isQueryable()) {
                 if (prop instanceof StructProperty) {
