@@ -57,6 +57,15 @@ def _getCallback(obj, methodName):
         else:
             return None
 
+    
+def _makeTime(status=-1, wsec=0, fsec=0):
+    _time = CF.UTCTime(status, wsec, fsec)
+    if status == -1:
+        _time.tcstatus = 1
+        ts = time.time()
+        _time.twsec = int(ts)
+        _time.tfsec = ts-int(ts)
+    return _time
 
 class PropertyAttributeMixIn:
     """Include this MixIn with your Device if you want your properties to
@@ -175,7 +184,8 @@ class _EC_PropertyChangeListener(object):
             evt = CF.PropertyChangeListener.PropertyChangeEvent( str(uuid.uuid1()),
                                                                  prec.regId,
                                                                  prec.rscId,
-                                                                 props)
+                                                                 props,
+                                                                 _makeTime())
             if self.pub:
                 self.pub.push( evt )
         except:
@@ -204,7 +214,8 @@ class _INF_PropertyChangeListener(object):
             evt = CF.PropertyChangeListener.PropertyChangeEvent( str(uuid.uuid1()),
                                                                  prec.regId,
                                                                  prec.rscId,
-                                                                 props)
+                                                                 props,
+                                                                 _makeTime())
             if self.listener:
                 self.listener.propertyChange( evt )
         except:
@@ -685,6 +696,8 @@ class Resource(object):
         """Override this function to provide the desired behavior."""
         self._log.trace("runTest()")
         raise CF.Device.UnknownTest("unknown test: %s" % str(testid))
+    
+    _propertyQueryTimestamp = 'QUERY_TIMESTAMP'
 
     #########################################
     # CF::PropertySet
@@ -721,6 +734,7 @@ class Resource(object):
             except:
                 self.propertySetAccess.release()
                 raise
+            rv.append(CF.DataType(self._propertyQueryTimestamp, any.to_any(_makeTime())))
 
         # otherwise get only the requested ones
         else:
@@ -728,6 +742,9 @@ class Resource(object):
             try:
                 unknownProperties = []
                 for prop in configProperties:
+                    if prop.id == self._propertyQueryTimestamp:
+                        prop.value = any.to_any(_makeTime())
+                        continue
                     if self._props.has_id(prop.id) and self._props.isQueryable(prop.id):
                         try:
                             prop.value = self._props.query(prop.id)
