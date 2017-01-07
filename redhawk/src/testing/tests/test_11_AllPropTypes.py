@@ -21,9 +21,80 @@
 from omniORB import any
 import unittest
 from _unitTestHelpers import scatest
-from ossie.cf import CF
+from ossie.cf import CF, CF__POA
 from omniORB import CORBA
-import struct
+from ossie.utils import sb
+import struct, time, os
+
+globalsdrRoot = os.environ['SDRROOT']
+
+class PropertyChangeListener_Receiver(CF__POA.PropertyChangeListener):
+    def __init__(self):
+        self.rcv_event = None
+
+    def propertyChange( self, pce ) :
+        self.rcv_event = pce
+
+class TimeTest(scatest.CorbaTestCase):
+    def setUp(self):
+        sb.setDEBUG(False)
+        self.test_comp = "Sandbox"
+        # Flagrant violation of sandbox API: if the sandbox singleton exists,
+        # clean up previous state and dispose of it.
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+
+    def tearDown(self):
+        sb.release()
+        sb.setDEBUG(False)
+        os.environ['SDRROOT'] = globalsdrRoot
+    
+    def basetest_getTime(self, comp_name):
+        _timeprop = CF.DataType(id='QUERY_TIMESTAMP',value=any.to_any(None))
+        comp = sb.launch(comp_name)
+        _prop=CF.DataType(id='prop',value=any.to_any(None))
+        _retval = comp.query([_prop])
+        self.assertEqual(_retval[0].value._v, 'value')
+        self.assertEqual(len(_retval), 1)
+        
+        _retval = comp.query([])
+        self.assertEqual(_retval[0].value._v, 'value')
+        self.assertEqual(len(_retval), 1)
+        
+        _retval = comp.query([_prop, _timeprop])
+        self.assertEqual(_retval[0].value._v, 'value')
+        self.assertEqual(len(_retval), 2)
+        
+        myl = PropertyChangeListener_Receiver()
+        t=float(0.5)
+        regid=comp.registerPropertyListener( myl._this(), ['prop'],t)
+        
+        comp.prop = 'hello'
+        time.sleep(1)
+        
+        _retval = comp.query([_prop])
+        self.assertEqual(_retval[0].value._v, 'hello')
+        self.assertEqual(myl.rcv_event.properties[0].value._v, 'hello')
+        
+        _retval = comp.query([_timeprop])
+        self.assertEqual(len(_retval), 1)
+        self.assertEqual(_retval[0].value._v.tcstatus, 1)
+        _time1 = myl.rcv_event.timestamp.twsec + myl.rcv_event.timestamp.tfsec
+        _time2 = _retval[0].value._v.twsec + _retval[0].value._v.tfsec
+        between = True
+        if _time2 - _time1 < 0.25 or _time2 - _time1 > 0.75:
+            between = False
+        self.assertEqual(between, True)
+        
+    def test_getTimeCpp(self):
+        self.basetest_getTime('timeprop_cpp')
+
+    def test_getTimePython(self):
+        self.basetest_getTime('timeprop_py')
+        
+    def test_getTimeJava(self):
+        self.basetest_getTime('timeprop_java')
 
 class TestAllTypes(scatest.CorbaTestCase):
     def setUp(self):

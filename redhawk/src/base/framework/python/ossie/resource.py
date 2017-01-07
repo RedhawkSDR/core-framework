@@ -734,7 +734,7 @@ class Resource(object):
             except:
                 self.propertySetAccess.release()
                 raise
-            rv.append(CF.DataType(self._propertyQueryTimestamp, any.to_any(_makeTime())))
+            #rv.append(CF.DataType(self._propertyQueryTimestamp, any.to_any(_makeTime())))
 
         # otherwise get only the requested ones
         else:

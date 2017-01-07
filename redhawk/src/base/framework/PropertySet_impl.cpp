@@ -317,9 +317,9 @@ throw (CORBA::SystemException, CF::UnknownProperties)
             }
             ++jj;
         }
-        configProperties.length(configProperties.length() + 1);
+        /*configProperties.length(configProperties.length() + 1);
         configProperties[configProperties.length()-1].id = CORBA::string_dup(_propertyQueryTimestamp.c_str());
-        configProperties[configProperties.length()-1].value <<= _makeTime(-1,0,0);
+        configProperties[configProperties.length()-1].value <<= _makeTime(-1,0,0);*/
     } else {
         // For queries of length > 0, return all requested pairs in propertySet
         CF::Properties invalidProperties;

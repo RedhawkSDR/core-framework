@@ -660,7 +660,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         logger.trace("query()");
         // For queries of zero length, return all id/value pairs in propertySet
         if (configProperties.value.length == 0) {
-            final ArrayList<DataType> props = new ArrayList<DataType>(this.propSet.size()+1);
+            final ArrayList<DataType> props = new ArrayList<DataType>(this.propSet.size());
             for (final IProperty prop : this.propSet.values()) {
                 logger.trace("Querying property: " + prop);
                 if (prop.isQueryable()) {
@@ -681,9 +681,9 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
                 }
             }
             
-            final Any anytime = ORB.init().create_any();
+            /*final Any anytime = ORB.init().create_any();
             CF.UTCTimeHelper.insert(anytime, this._makeTime((short)-1,0,0));
-            props.add(new DataType(_propertyQueryTimestamp, anytime));
+            props.add(new DataType(_propertyQueryTimestamp, anytime));*/
 
             configProperties.value = props.toArray(new DataType[props.size()]);
             return;
