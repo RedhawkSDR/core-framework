@@ -25,6 +25,7 @@
 #include <memory>
 
 #include <boost/shared_array.hpp>
+#include "BufferManager.h"
 
 #ifdef _RH_SHARED_BUFFER_DEBUG
 #include "debug/check.h"
@@ -483,8 +484,10 @@ namespace redhawk {
         /// @brief  The default allocator class.
 #ifdef _RH_SHARED_BUFFER_DEBUG
         typedef ::redhawk::debug::checked_allocator<T> default_allocator;
-#else
+#elif defined(_RH_SHARED_BUFFER_USE_STD_ALLOC)
         typedef std::allocator<T> default_allocator;
+#else
+        typedef ::redhawk::BufferManager::Allocator<T> default_allocator;
 #endif
 
         /**

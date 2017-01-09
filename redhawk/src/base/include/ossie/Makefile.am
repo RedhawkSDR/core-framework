@@ -65,7 +65,8 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              Versions.h \
              shared_buffer.h \
              ExecutorService.h \
-             UsesPort.h
+             UsesPort.h \
+             BufferManager.h
 
 nobase_pkginclude_HEADERS = internal/equals.h \
 	     logging/rh_logger.h \

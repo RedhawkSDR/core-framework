@@ -22,6 +22,7 @@
 
 #include <complex>
 
+#define _RH_SHARED_BUFFER_USE_STD_ALLOC
 #include <ossie/shared_buffer.h>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(SharedBufferTest);
