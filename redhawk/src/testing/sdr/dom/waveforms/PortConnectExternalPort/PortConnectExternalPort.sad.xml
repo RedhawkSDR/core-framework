@@ -45,6 +45,15 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         </findcomponent>
       </componentinstantiation>
     </componentplacement>
+    <componentplacement>
+      <componentfileref refid="PortTest_74fce942-ce9d-48a0-bc18-47093ee04997"/>
+      <componentinstantiation id="DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74-1">
+        <usagename>PortTest2-1</usagename>
+        <findcomponent>
+          <namingservice name="PortTest2-1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
   </partitioning>
   <assemblycontroller>
     <componentinstantiationref refid="DCE:5faf296f-3193-49cc-8751-f8a64b315fdf"/>
@@ -53,6 +62,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <port>
       <usesidentifier>resource_out</usesidentifier>
       <componentinstantiationref refid="DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74"/>
+    </port>
+    <port  externalname="PortTest2-1::resource_out">
+      <usesidentifier>resource_out</usesidentifier>
+      <componentinstantiationref refid="DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74-1"/>
     </port>
     <port>
       <providesidentifier>resource_in</providesidentifier>

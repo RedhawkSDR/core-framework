@@ -768,7 +768,7 @@ CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
                     if (_port_val->second->_is_equivalent((*comp_portset)[i].obj_ptr)) {
                         CF::PortSet::PortInfoType info;
                         info.obj_ptr = (*comp_portset)[i].obj_ptr;
-                        info.name = (*comp_portset)[i].name;
+                        info.name = _port_val->first.c_str();
                         info.repid =(*comp_portset)[i].repid;
                         info.description = (*comp_portset)[i].description;
                         info.direction = (*comp_portset)[i].direction;
