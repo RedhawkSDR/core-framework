@@ -30,6 +30,7 @@ from omniORB import any
 from ossie.cf import CF
 import CosEventChannelAdmin
 import ossie.logger
+import exceptions
 
 # Override base logging.Handler handleError method to give better stack trace
 #  if string passed to log message is malformed
@@ -99,15 +100,19 @@ class FileAppender(logging.FileHandler,object):
   def setFile(self, filename):
     self.filename = filename
     if self.filename.count('/') > 0:
-        aggregate = os.getcwd()+'/'
+        aggregate = os.path.join('/')
+        if self.filename.startswith('/') == False :
+            aggregate = os.path.join(os.getcwd()+'/')
         dirs = self.filename.split('/')
         for _dir in dirs[:-1]:
             if _dir == '':
                 continue
-            aggregate += '/'+_dir
-            try:
+            aggregate = os.path.join(aggregate,_dir)
+            try: 
                 os.mkdir(aggregate)
-            except:
+            except Exception, e:
+                if type(e) == exceptions.OSError and e.errno == 13:
+                    print e
                 pass
             
     self.baseFilename = os.path.abspath(filename)

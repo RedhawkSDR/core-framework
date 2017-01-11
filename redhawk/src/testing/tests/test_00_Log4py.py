@@ -136,4 +136,76 @@ class Test_Log4py_DateFormat(unittest.TestCase):
     def test_ap1(self):
         self._run_test('ap1')
 
+class Log4PyAppenders(unittest.TestCase):
+    def setUp(self):
+        pass
+
+        
+    def tearDown(self):
+        pass
+
+    def test_fileappender_abs_path(self):
+        import ossie.utils.log4py.config
+        fname="/tmp/foo/bar/test.log"
+        cfg = "log4j.rootLogger=ERROR,FILE\n" + \
+            "log4j.appender.FILE=org.apache.log4j.FileAppender\n" + \
+            "log4j.appender.FILE.File="+fname+"\n"
+
+        ossie.utils.log4py.config.strConfig(cfg,None)
+
+        fp = None
+        fp = open(fname,'r')
+        self.assertNotEquals(fp,None)
+        try:
+            os.remove(fname)
+        except:
+            pass
+        
+        # make sure rel directory not created
+        floc = './'.join(fname.split('/')[:-1])
+        self.assertRaises( OSError, os.stat, floc )
+
+        try:
+            os.rmdir('/tmp/foo/bar')
+        except:
+            pass
+
+        try:
+            os.rmdir('/tmp/foo')
+        except:
+            pass
+
+
+    def test_fileappender_rel_path(self):
+        import ossie.utils.log4py.config
+        fname="tmp/foo/bar/test.log"
+        cfg = "log4j.rootLogger=ERROR,FILE\n" + \
+            "log4j.appender.FILE=org.apache.log4j.FileAppender\n" + \
+            "log4j.appender.FILE.File="+fname+"\n"
+
+        ossie.utils.log4py.config.strConfig(cfg,None)
+
+        floc = os.getcwd()
+        fp = None
+        fp = open(fname,'r')
+        self.assertNotEquals(fp,None)
+        try:
+            os.remove(fname)
+        except Exception, e:
+            pass
+
+        try:
+            os
+            os.rmdir('tmp/foo/bar')
+        except Exception, e:
+            pass
+        try:
+            os.rmdir('tmp/foo')
+        except:
+            pass
+        try:
+            os.rmdir('tmp')
+        except:
+            pass
+
         
