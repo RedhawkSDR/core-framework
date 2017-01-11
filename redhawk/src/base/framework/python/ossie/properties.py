@@ -34,6 +34,26 @@ import types
 import struct
 import inspect
 
+# numpy types to Corba Type codes
+__NP_ALT_MAP = {
+    'int8':   (str,   CORBA.TC_char),
+    'uint8':  (int,   CORBA.TC_octet),
+    'int16':  (int,   CORBA.TC_short),
+    'uint16': (int,   CORBA.TC_ushort),
+    'int':    (int,   CORBA.TC_long),
+    'int32':  (int,   CORBA.TC_long),
+    'uint32': (long,  CORBA.TC_ulong),
+    'long':   (long,  CORBA.TC_longlong),
+    'int64':  (long,  CORBA.TC_longlong),
+    'uint64': (long,  CORBA.TC_ulonglong),
+    'float':  (float, CORBA.TC_float),
+    'float32': (float,  CORBA.TC_float),
+    'float64': (float,  CORBA.TC_double),
+    'double':  (float,  CORBA.TC_double),
+    'longdouble': (float,  CORBA.TC_longdouble),
+}
+
+
 # From section 1.3 of the CORBA Python language mapping
 __TYPE_MAP = {
     'boolean':    (int,   CORBA.TC_boolean), 
@@ -119,8 +139,16 @@ _SCA_TYPES = [
     'complexLong', 'complexLongLong', 'complexULongLong' 
 ]
 
-def getPyType(type_):
-    return __TYPE_MAP[type_][0]
+def getPyType(type_, alt_map=None):
+    if alt_map:
+        try: 
+            if alt_map.has_key(type_):
+                return  alt_map[type_][0]
+        except:
+            pass
+    if __TYPE_MAP.has_key(type_):
+       return __TYPE_MAP[type_][0]
+    return None
 
 def getTypeCode(type_):
     return __TYPE_MAP[type_][1]
@@ -159,12 +187,13 @@ def _toPyComplex(data, type_):
         newdata = complex(real, imag)
     return newdata
 
-def to_pyvalue(data, type_):
+def to_pyvalue(data, type_,alt_py_tc=None):
     """Given a data value in any python type and the desired SCA type_, attempt
     to return a python value of the correct type."""
     if data == None:
         return None
-    pytype = getPyType(type_)
+
+    pytype = getPyType(type_,alt_py_tc)
 
     if type(data) != pytype:
         # Handle boolean strings as a special case
@@ -237,7 +266,7 @@ def _convertComplexToCFComplex(data, type_):
  
     return data
 
-def to_tc_value(data, type_):
+def to_tc_value(data, type_, alt_map=None):
     ''' Returns an AnyType. '''
     if data is None:
         return any.to_any(None)
@@ -249,9 +278,32 @@ def to_tc_value(data, type_):
         # get the CF typecode
         tc = getTypeCode(type_)
         return CORBA.Any(tc, data)
+    elif alt_map and alt_map.has_key(type_):
+        pytype, tc = alt_map[type_]
+        if tc == None:
+            # Unknown type, let omniORB decide
+            return any.to_any(data)
+
+        # If the value is already an Any, check its type; if it's already the
+        # right type, nothing needs to happen, otherwise extract the value and
+        # convert
+        if isinstance(data, CORBA.Any):
+            if data.typecode().equal(tc):
+                return data
+            else:
+                data = data.value()
+
+        # Convert to the correct Python using alternate mapping
+        data = to_pyvalue(data, type_, alt_map)
+        return CORBA.Any(tc, data)
+
     elif __TYPE_MAP.has_key(type_):
         # If the typecode is known, use that
         pytype, tc = __TYPE_MAP[type_]
+
+        if tc == None:
+            # Unknown type, let omniORB decide
+            return any.to_any(data)
 
         # If the value is already an Any, check its type; if it's already the
         # right type, nothing needs to happen, otherwise extract the value and
@@ -269,6 +321,10 @@ def to_tc_value(data, type_):
     else:
         # Unknown type, let omniORB decide
         return any.to_any(data)
+
+def numpy_to_tc_value(data, type_):
+    return to_tc_value(data, type_, __NP_ALT_MAP)
+
 
 def struct_fields(value):
     if isinstance(value, types.ClassType) or hasattr(value, '__bases__'):

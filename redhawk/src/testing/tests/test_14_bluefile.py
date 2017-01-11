@@ -29,6 +29,7 @@ import math
 from ossie.utils import sb
 from ossie.utils.bluefile import bluefile, bluefile_helpers
 from ossie.utils.bulkio import bulkio_helpers
+from ossie.properties import *
 
 class BluefileTest(unittest.TestCase):
 
@@ -387,3 +388,57 @@ class BlueFileHelpers(unittest.TestCase):
         hdr = bluefile.readheader(filename)
         time_out = bluefile_helpers.j1950_to_unix(hdr['timecode'])
         self.assertAlmostEqual(time_in, time_out)
+
+
+class BlueFileHelpersKW(BlueFileHelpers):
+
+    def test_keywords_retrieval_int(self):
+        filename='bf-kw-test.out'
+        self._tempfiles.append(filename)
+        bf=bluefile_helpers.BlueFileWriter(filename,'dataLong')
+        kdata=2147483647
+        kws = props_from_dict({'TEST_KW': kdata})
+        sid='streamID'
+        srate=5e6
+        sri = bulkio.sri.create('test_stream',srate)
+        sri.mode = False
+        sri.blocking=False
+        sri.keywords=kws
+        bf.start()
+        bf.pushSRI(sri)
+        tmpData = range(0, 1024)
+        bf.pushPacket(tmpData, bulkio.timestamp.now(), True, sid)
+
+        # Read back the timecode from the output file
+        hdr, data = bluefile.read(filename,ext_header_type=list)
+        sri=bluefile_helpers.hdr_to_sri(hdr, sid)
+
+        srid=ossie.properties.props_to_dict(sri.keywords)
+        self.assertEqual(kdata, srid['TEST_KW'])
+        self.assertEqual(type(kdata), type(srid['TEST_KW']))
+
+    def test_keywords_retrieval_long(self):
+        filename='bf-kw-test.out'
+        self._tempfiles.append(filename)
+        bf=bluefile_helpers.BlueFileWriter(filename,'dataLong')
+        kdata=2147483648L
+        kws = props_from_dict({'TEST_KW': kdata})
+        sid='streamID'
+        srate=5e6
+        sri = bulkio.sri.create('test_stream',srate)
+        sri.mode = False
+        sri.blocking=False
+        sri.keywords=kws
+        bf.start()
+        bf.pushSRI(sri)
+        tmpData = range(0, 1024)
+        bf.pushPacket(tmpData, bulkio.timestamp.now(), True, sid)
+
+        # Read back the timecode from the output file
+        hdr, data = bluefile.read(filename,ext_header_type=list)
+        sri=bluefile_helpers.hdr_to_sri(hdr, sid)
+
+        srid=ossie.properties.props_to_dict(sri.keywords)
+
+        self.assertEqual(kdata, srid['TEST_KW'])
+        self.assertEqual(type(kdata), type(srid['TEST_KW']))

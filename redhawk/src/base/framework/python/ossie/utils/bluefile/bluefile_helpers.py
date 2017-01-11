@@ -98,21 +98,32 @@ def hdr_to_sri(hdr, stream_id):
         mode = -1            
     
     kwds = []        
-    
+
     # Getting all the items in the extended header
     if hdr.has_key('ext_header'):
         ext_hdr = hdr['ext_header']
         if isinstance(ext_hdr, dict):            
             for key, value in ext_hdr.iteritems():
-                # WARNING: CORBA types are hard-coded through here
-                dt = CF.DataType(key, ossie.properties.to_tc_value(item[1], 'long'))
-                kwds.append(dt)
+                try:
+                    data=item[1]
+                    if isinstance(item[1], numpy.generic):
+                        data=item[1].item()
+                    dt = CF.DataType(key, ossie.properties.numpy_to_tc_value(data, type(item[1]).__name__))
+                    #print "DEBUG (dict) AFTER dt.value:", dt.value, dt.value.value(), type(dt.value.value())
+                    kwds.append(dt)
+                except:
+                    continue
         elif isinstance(ext_hdr, list):
             for item in ext_hdr:
                 try:
-                    dt = CF.DataType(item[0], ossie.properties.to_tc_value(item[1], 'long'))
+                    data=item[1]
+                    if isinstance(item[1], numpy.generic):
+                        data=item[1].item()
+                    dtv=ossie.properties.numpy_to_tc_value(data, type(item[1]).__name__)
+                    dt = CF.DataType(item[0], dtv )
+                    #print "DEBUG (list) AFTER dt.value:", dt.value, dt.value.value(), type(dt.value.value())
                     kwds.append(dt)
-                except:
+                except Exception, e:
                     continue
             
     return BULKIO.StreamSRI(hversion, xstart, xdelta, xunits, 
@@ -528,7 +539,10 @@ class BlueFileWriter(object):
 
             if self.header and self.header['format'][1] == 'B':
                 # convert back from string to array of 8-bit integers
-                data = numpy.fromstring(data, numpy.int8)
+                try:
+                    data = numpy.fromstring(data, numpy.int8)
+                except TypeError:
+                    data = numpy.array(data, numpy.int8)
 
             # If complex data, need to convert data back from array of scalar values
             # to some form of complex values
