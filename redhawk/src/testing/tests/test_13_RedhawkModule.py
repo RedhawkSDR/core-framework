@@ -681,7 +681,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         for comp in app1.comps + app2.comps:
             pre.extend(comp.runTest(0, []))
 
-        app1.connect(app2)
+        app1.connect(app2, usesPortName="resource_out")
 
         # Tally up the connections to check that a new one has been made
         post = []
