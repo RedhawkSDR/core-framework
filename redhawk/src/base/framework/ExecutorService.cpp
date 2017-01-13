@@ -28,6 +28,11 @@ ExecutorService::ExecutorService() :
 {
 }
 
+ExecutorService::~ExecutorService()
+{
+    stop();
+}
+
 void ExecutorService::start ()
 {
     boost::mutex::scoped_lock lock(_mutex);
@@ -72,31 +77,24 @@ void ExecutorService::_run ()
 {
     boost::mutex::scoped_lock lock(_mutex);
     while (_running) {
-        while (!_queue.empty()) {
-            // Start at the front of the queue every time--a task may
-            // have been added while the lock was released to service
-            // the last task
-            task_queue::iterator task = _queue.begin();
-            if (task->first > boost::get_system_time()) {
-                // Head of queue is scheduled in the future
-                break;
-            }
-
-            // Copy the task's function and remove it from the queue
-            func_type func = task->second;
-            _queue.erase(task);
-
-            // Run task with the lock released
-            lock.unlock();
-            func();
-            lock.lock();
-        }
-
         if (_queue.empty()) {
             _cond.wait(lock);
         } else {
-            boost::system_time when = _queue.front().first;
-            _cond.timed_wait(lock, when);
+            task_queue::iterator task = _queue.begin();
+            if (task->first > boost::get_system_time()) {
+                // Head of queue is scheduled in the future
+                boost::system_time when = task->first;
+                _cond.timed_wait(lock, when);
+            } else {
+                // Copy the task's function and remove it from the queue
+                func_type func = task->second;
+                _queue.erase(task);
+
+                // Run task with the lock released
+                lock.unlock();
+                func();
+                lock.lock();
+            }
         }
     }
 }

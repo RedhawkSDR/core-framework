@@ -49,6 +49,13 @@ namespace redhawk {
         ExecutorService();
 
         /**
+         * @brief  Destroys the %ExecutorService.
+         *
+         * The executor thread is stopped and all queued functions are purged.
+         */
+        ~ExecutorService();
+
+        /**
          * @brief  Starts executing scheduled functions.
          *
          * If the executor thread is not running, it is started. Any functions
