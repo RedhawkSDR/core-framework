@@ -25,6 +25,7 @@ from ossie.cf import CF, CF__POA
 from ossie.resource import Resource, start_component
 from ossie.properties import simple_property, simpleseq_property, struct_property, structseq_property
 from omniORB.any import from_any
+import redhawk.time.utils
 
 
 class TestPythonProps (CF__POA.Resource, Resource):
@@ -64,6 +65,29 @@ class TestPythonProps (CF__POA.Resource, Resource):
                                action="external",
                                kinds=("property",))
 
+    simple_utctime = simple_property(id_="simple_utctime",
+                               name="simple_utctime",
+                               type_="utctime",
+                               defvalue="2017:2:1::14:01:00.123",
+                               mode="readwrite",
+                               action="external",
+                               kinds=("property",))
+    
+    reset_utctime = simple_property(id_="reset_utctime",
+                               name="reset_utctime",
+                               type_="boolean",
+                               defvalue=False,
+                               mode="readwrite",
+                               action="external",
+                               kinds=("property",))
+    
+    seq_utctime = simpleseq_property(id_="seq_utctime",
+                               name="seq_utctime",
+                               type_="utctime",
+                               mode="readwrite",
+                               action="external",
+                               kinds=("property",))
+
     class SomeStruct(object):
         field1 = simple_property(id_="item1",
                 type_="string",
@@ -90,6 +114,8 @@ class TestPythonProps (CF__POA.Resource, Resource):
             self.ip_address = ip_address
             self.port = port
 
+    def reset_utcCallback(self, id, old_value, new_value):
+        self.simple_utctime = redhawk.time.utils.now()
 
     multicasts = structseq_property(id_="DCE:897a5489-f680-46a8-a698-e36fd8bbae80[]",
                                     name="multicasts",
@@ -98,6 +124,7 @@ class TestPythonProps (CF__POA.Resource, Resource):
 
     def __init__(self, identifier, execparams):
         Resource.__init__(self, identifier, execparams)
+        self.addPropertyChangeListener('reset_utctime', self.reset_utcCallback)
 
     def runTest(self, test, props):
         if test == 0:

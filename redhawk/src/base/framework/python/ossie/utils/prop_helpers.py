@@ -719,7 +719,7 @@ class simpleProperty(Property):
           structRef, structSeqRef, structSeqIdx
         """
         if valueType not in SCA_TYPES:
-            raise('"' + str(valueType) + '"' + ' is not a valid valueType, choose from\n ' + str(SCA_TYPES))
+            raise(Exception('"' + str(valueType) + '"' + ' is not a valid valueType, choose from\n ' + str(SCA_TYPES)))
         
         # Initialize the parent
         Property.__init__(self, id, type=valueType, kinds=kinds,compRef=compRef, mode=mode, action=action, parent=parent,

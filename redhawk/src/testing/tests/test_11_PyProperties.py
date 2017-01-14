@@ -1156,3 +1156,46 @@ class PyPropertiesReadOnly(scatest.CorbaTestCase):
         self.assertNotEqual(comp,None)
         readonly_prop=CF.DataType("readOnly", any.to_any("try_again"))
         self.assertRaises(CF.PropertySet.InvalidConfiguration, comp.configure, [ readonly_prop ] )
+
+class PythonUTCTimeTest(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self._app = None
+        if self._domMgr:
+            try:
+                sadpath = "/waveforms/TestPythonProps/TestPythonProps.sad.xml"
+                self._domMgr.installApplication(sadpath)
+                appFact = self._domMgr._get_applicationFactories()[0]
+                self._app = appFact.create(appFact._get_name(), [], [])
+            except:
+                pass
+
+    def tearDown(self):
+        if self._app:
+            self._app.stop()
+            self._app.releaseObject()
+
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+
+    def preconditions(self):
+        self.assertNotEqual(self._domMgr, None, "DomainManager not available")
+        self.assertNotEqual(self._devMgr, None, "DeviceManager not available")
+        self.assertNotEqual(self._app, None, "Application not created")
+
+    def test_UTCTimePython(self):
+        prop = self._app.query([CF.DataType('simple_utctime', any.to_any(None))])
+        datetime = time.localtime(prop[0].value.value().twsec)
+        self.assertEquals(datetime.tm_year,2017)
+        self.assertEquals(datetime.tm_mon,2)
+        self.assertEquals(datetime.tm_mday,1)
+        self.assertEquals(datetime.tm_hour,10)
+        self.assertEquals(datetime.tm_min,1)
+        self.assertEquals(datetime.tm_sec,0)
+        self.assertEquals(prop[0].value.value().tfsec,0.123)
+        self._app.configure([CF.DataType('reset_utctime', any.to_any(True))])
+        prop = self._app.query([CF.DataType('simple_utctime', any.to_any(None))])
+        now = time.time()
+        self.assertEquals(abs(now-(prop[0].value.value().twsec+prop[0].value.value().tfsec))<0.1,True)

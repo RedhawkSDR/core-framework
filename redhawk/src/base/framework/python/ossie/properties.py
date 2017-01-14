@@ -33,6 +33,7 @@ import StringIO
 import types
 import struct
 import inspect
+import redhawk.time.utils
 
 # numpy types to Corba Type codes
 __NP_ALT_MAP = {
@@ -128,7 +129,12 @@ __TYPE_MAP = {
                          CF._tc_complexULongLong,
                          CF.complexULongLong,
                          long,
-                         CF._tc_complexULongLongSeq)
+                         CF._tc_complexULongLongSeq),
+    'utctime': (CF.UTCTime,
+                         CF._tc_UTCTime,
+                         CF.UTCTime,
+                         CF.UTCTime,
+                         CF._tc_UTCTimeSequence)
 }
 
 _SCA_TYPES = [
@@ -136,7 +142,7 @@ _SCA_TYPES = [
     'objref', 'octet', 'string', 'ulong', 'ushort', 'longlong', 'ulonglong', 
     'complexFloat', 'complexBoolean', 'complexULong', 'complexShort', 
     'complexOctet', 'complexChar', 'complexUShort', 'complexDouble', 
-    'complexLong', 'complexLongLong', 'complexULongLong' 
+    'complexLong', 'complexLongLong', 'complexULongLong', 'utctime'
 ]
 
 def getPyType(type_, alt_map=None):
@@ -209,6 +215,8 @@ def to_pyvalue(data, type_,alt_py_tc=None):
                       data = pytype(data,0)
                   else:
                       data = pytype(data)
+               elif pytype == CF.UTCTime:
+                   data = pytype(data['tcstatus'], data['twsec'], data['tfsec'])
                else:
                   data = pytype(data)
     return data
@@ -246,6 +254,8 @@ def to_xmlvalue(data, type_):
                 v=retval
     elif type_ == "boolean":
         v = str(bool(data)).lower()
+    elif type_ == "utctime":
+        v = redhawk.time.utils.toString(data)
     elif type_ == "string": # Remove quotes added by repr
         v = v[1:-1]
     return v
@@ -278,6 +288,10 @@ def to_tc_value(data, type_, alt_map=None):
         # get the CF typecode
         tc = getTypeCode(type_)
         return CORBA.Any(tc, data)
+    elif type_.find('utctime') == 0:
+        tc = getTypeCode(type_)
+        _any = CORBA.Any(tc, data)
+        return CORBA.Any(tc, data)
     elif alt_map and alt_map.has_key(type_):
         pytype, tc = alt_map[type_]
         if tc == None:
@@ -296,7 +310,6 @@ def to_tc_value(data, type_, alt_map=None):
         # Convert to the correct Python using alternate mapping
         data = to_pyvalue(data, type_, alt_map)
         return CORBA.Any(tc, data)
-
     elif __TYPE_MAP.has_key(type_):
         # If the typecode is known, use that
         pytype, tc = __TYPE_MAP[type_]
