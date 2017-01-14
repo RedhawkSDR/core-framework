@@ -443,6 +443,8 @@ public final class AnyUtils {
                     return complexLongSeqHelper.extract(theAny);
                 } else if (complexULongLongHelper.type().equivalent(contentType)) {
                     return complexULongLongSeqHelper.extract(theAny);
+                } else if (UTCTimeHelper.type().equivalent(contentType)) {
+                    return UTCTimeSequenceHelper.extract(theAny);
                 } else {
                     throw new IllegalArgumentException("Unsupported struct content type: " + contentType);
                 }
@@ -1129,7 +1131,7 @@ public final class AnyUtils {
                         }
                         return false;
                     }
-                    
+
                     // Here is the test to determine if we have a struct sequence
                     if(tmpA.getClass() == Any[].class) {
                         Any[] anysA = (Any[])tmpA;

@@ -43,6 +43,9 @@ def boolLiteral(value):
 def floatLiteral(value):
     return repr(float(value))
 
+def UTCTimeLiteral(value):
+    return '"%s"' % (value,)
+
 def intLiteral(value):
     return repr(int(value))
 
@@ -69,6 +72,7 @@ _typeMap = {
     CorbaTypes.ULONGLONG: longLiteral,
     CorbaTypes.FLOAT:     floatLiteral,
     CorbaTypes.DOUBLE:    floatLiteral,
+    CorbaTypes.UTCTIME:   UTCTimeLiteral,
     CorbaTypes.STRING:    stringLiteral,
     CorbaTypes.OBJREF:    stringLiteral,
 }

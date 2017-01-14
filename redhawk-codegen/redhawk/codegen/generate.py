@@ -36,7 +36,11 @@ def importTemplate(template):
     """
     Imports a code generation module from the given fully-qualified name.
     """
-    package = __import__(template)
+    try:
+        package = __import__(template)
+    except Exception, e:
+        print e
+        raise
 
     # Since the module name probably has dots, get the most specific module
     # (e.g. 'component' from 'template.cpp.component').

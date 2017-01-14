@@ -28,8 +28,8 @@ NULL = 'null'
 TRUE = 'true'
 FALSE = 'false'
 
-Types = strenum('boolean', 'char', 'byte', 'short', 'int', 'long', 'float', 'double')
-BoxTypes = strenum('Boolean', 'Character', 'Byte', 'Short', 'Integer', 'Long', 'Float', 'Double')
+Types = strenum('boolean', 'char', 'byte', 'short', 'int', 'long', 'float', 'double', 'utctime')
+BoxTypes = strenum('Boolean', 'Character', 'Byte', 'Short', 'Integer', 'Long', 'Float', 'Double', 'UTCTime')
 
 _reservedKeywords = set(("abstract", "assert", "boolean", "break", "byte", "case",
                          "catch", "char", "class", "const", "continue", "default",
@@ -49,7 +49,8 @@ _boxMap = {
     Types.INT:     BoxTypes.INTEGER,
     Types.LONG:    BoxTypes.LONG,
     Types.FLOAT:   BoxTypes.FLOAT,
-    Types.DOUBLE:  BoxTypes.DOUBLE
+    Types.DOUBLE:  BoxTypes.DOUBLE,
+    Types.UTCTIME:  BoxTypes.UTCTIME
 }
 
 _typeSize = {
@@ -124,6 +125,8 @@ def _complexLiteral(value, typename):
 def literal(value, typename, complex=False):
     if complex:
         return _complexLiteral(value, typename)
+    elif typename == 'utctime':
+        return stringLiteral(value)
     elif typename == 'String':
         return stringLiteral(value)
     elif typename == 'Object':

@@ -112,6 +112,10 @@ def checkValidValue(value, dataType):
         return value
     elif dataType == 'boolean':
         return bool(value)
+    elif dataType == 'utctime':
+        if type(value) == str:
+            return redhawk.time.utils.convert(value)
+        return value
     #this is used for structs
     #datatype is a list of (ID, propType) pairs, value is a dict mapping an ID to a value for validation
     elif isinstance(dataType, list):

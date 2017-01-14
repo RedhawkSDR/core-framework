@@ -38,6 +38,7 @@ _propertyType = {
     CorbaTypes.ULONGLONG: java.Types.LONG,
     CorbaTypes.FLOAT:     java.Types.FLOAT,
     CorbaTypes.DOUBLE:    java.Types.DOUBLE,
+    CorbaTypes.UTCTIME:   java.Types.UTCTIME,
     CorbaTypes.STRING:    'String',
     CorbaTypes.OBJREF:    'String'
 }
@@ -55,6 +56,7 @@ _propertyClass = {
     CorbaTypes.ULONGLONG: 'ULongLong',
     CorbaTypes.FLOAT:     'Float',
     CorbaTypes.DOUBLE:    'Double',
+    CorbaTypes.UTCTIME:    'UTCTime',
     CorbaTypes.STRING:    'String',
     CorbaTypes.OBJREF:    'Objref'
 }
@@ -107,13 +109,13 @@ class JavaPropertyMapper(PropertyMapper):
 
     def mapSimpleSequenceProperty(self, prop):
         javaprop, javatype = self._createComplexJavaProp(prop)
-	values = []
+        values = []
         if prop.hasValue():
-            for value in prop.value(): 
+            for value in prop.value():
                 values.append(java.literal(value,
                                            javatype,
                                            complex = prop.isComplex()))
-	javaprop['javavalues'] = values
+        javaprop['javavalues'] = values
         javaprop['isOptional'] = prop.isOptional()
         return javaprop
 

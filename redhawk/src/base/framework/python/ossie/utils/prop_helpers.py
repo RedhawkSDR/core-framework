@@ -904,6 +904,8 @@ class sequenceProperty(Property):
                 # to determine complexity, as in the case of a struct sequence,
                 # the value of self.valueType may not be a string.
                 self.complex = True
+            elif self.valueType == 'utctime':
+                self.typecode = getCFSeqType(self.valueType)
 
     def _getItemKey(self):
         return self.id

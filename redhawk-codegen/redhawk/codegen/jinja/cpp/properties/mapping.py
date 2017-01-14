@@ -37,6 +37,7 @@ _formats = {
     CorbaTypes.DOUBLE    : 'd',
     CorbaTypes.STRING    : 's',
     CorbaTypes.OBJREF    : 's',
+    CorbaTypes.UTCTIME   : 'u',
 }
 
 class CppPropertyMapper(PropertyMapper):
@@ -65,9 +66,14 @@ class CppPropertyMapper(PropertyMapper):
         cppprop['isOptional'] = prop.isOptional()
         cppprop['cpptype'] = cpp.cppType(prop.type(), prop.isComplex())
         if prop.hasValue():
-            cppprop['cppvalue'] = cpp.literal(prop.value(), 
+            _prepend = ''
+            _append = ''
+            if prop.type() == 'utctime':
+                _prepend = '"'
+                _append = '"'
+            cppprop['cppvalue'] = _prepend+cpp.literal(prop.value(), 
                                               prop.type(),
-                                              prop.isComplex())
+                                              prop.isComplex())+_append
         cppprop['format'] = self._getSimpleFormat(prop, False)
         return cppprop
 
@@ -76,9 +82,14 @@ class CppPropertyMapper(PropertyMapper):
         cppprop['cpptype'] = cpp.sequenceType(prop.type(), prop.isComplex())
         cppprop['isOptional'] = prop.isOptional()
         if prop.hasValue():
-            cppprop['cppvalues'] = [cpp.literal(v, 
+            _prepend = ''
+            _append = ''
+            if prop.type() == 'utctime':
+                _prepend = 'redhawk::time::utils::convert("'
+                _append = '")'
+            cppprop['cppvalues'] = [_prepend+cpp.literal(v, 
                                                 prop.type(), 
-                                                prop.isComplex()) 
+                                                prop.isComplex())+_append
                                     for v in prop.value()]
         cppprop['format'] = self._getSimpleFormat(prop, True)
         return cppprop
