@@ -144,6 +144,8 @@ ossie_jar_SOURCE = src/org/ossie/component/AllocCapacity.java \
 		   src/org/ossie/properties/PrimitiveArrayUtils.java \
 		   src/org/ossie/properties/Property.java \
 		   src/org/ossie/properties/PropertyListener.java \
+                   src/org/ossie/properties/UTCTimeProperty.java \
+                   src/org/ossie/properties/UTCTimeSequenceProperty.java \
 		   src/org/ossie/properties/StringProperty.java \
 		   src/org/ossie/properties/StringSequenceProperty.java \
 		   src/org/ossie/properties/StructDef.java \
@@ -153,7 +155,11 @@ ossie_jar_SOURCE = src/org/ossie/component/AllocCapacity.java \
                    src/org/ossie/redhawk/ApplicationContainer.java \
                    src/org/ossie/redhawk/DomainManagerContainer.java \
                    src/org/ossie/redhawk/NetworkContainer.java \
-                   src/org/ossie/redhawk/DeviceManagerContainer.java
+                   src/org/ossie/redhawk/DeviceManagerContainer.java \
+                   src/org/ossie/redhawk/NetworkContainer.java \
+                   src/org/ossie/redhawk/time/DefaultComparator.java \
+                   src/org/ossie/redhawk/time/Comparator.java \
+                   src/org/ossie/redhawk/time/utils.java
 
 # Deprecated generic property classes, replaced by strongly-typed classes but
 # maintained for source compatibility.
