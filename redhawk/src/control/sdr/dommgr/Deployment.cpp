@@ -28,6 +28,7 @@
 #include "PersistenceStore.h"
 #include "Deployment.h"
 #include "DeploymentExceptions.h"
+#include <ossie/CF/DataType.h>
 
 using namespace redhawk;
 using namespace ossie;
