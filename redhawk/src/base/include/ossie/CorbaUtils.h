@@ -25,6 +25,7 @@
 #include <vector>
 #include <list>
 #include <omniORB4/CORBA.h>
+#include <ossie/CF/DataType.h>
 #include "CorbaSequence.h"
 #include "ossie/debug.h"
 
@@ -352,6 +353,12 @@ namespace ossie {
         {
             return CORBA::_tc_string;
         }
+        
+        template<>
+        inline CORBA::TypeCode_ptr TypeCode<CF::UTCTime> (void)
+        {
+            return CORBA::_tc_TypeCode;
+        }
 
         // Instantiates POAs on demand
         class POACreator : public virtual POA_PortableServer::AdapterActivator
@@ -512,6 +519,7 @@ ANY_VECTOR_OPERATORS(CORBA::LongLong, CORBA::LongLongSeq);
 ANY_VECTOR_OPERATORS(CORBA::ULongLong, CORBA::ULongLongSeq);
 ANY_VECTOR_OPERATORS(CORBA::Float, CORBA::FloatSeq);
 ANY_VECTOR_OPERATORS(CORBA::Double, CORBA::DoubleSeq);
+ANY_VECTOR_OPERATORS(CF::UTCTime, CF::UTCTimeSequence);
 #undef ANY_VECTOR_OPERATORS
 
 #define ANY_VECTOR_CONVERT_OPERATORS(T,SEQ)                         \

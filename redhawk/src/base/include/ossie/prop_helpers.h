@@ -31,6 +31,33 @@
 
 #include "CF/cf.h"
 
+namespace redhawk {
+  namespace time {
+    namespace utils {
+        CF::UTCTime create( const double wholeSecs=-1.0, const double fractionalSecs=-1.0 );
+        
+        // year:month:day::hour:minute:second
+        CF::UTCTime convert( const std::string formatted );
+
+        /*
+         * Create a time stamp object from the current time of day reported by the system
+         */
+        CF::UTCTime now();
+      
+        /*
+         * Create a time stamp object from the current time of day reported by the system
+         */
+        CF::UTCTime notSet();
+
+        /*
+         * Adjust the whole and fractional portions of a time stamp object to
+         * ensure there is no fraction in the whole seconds, and vice-versa
+         */
+        void normalize(CF::UTCTime& time);
+    }
+  }
+}
+
 namespace ossie
 {
     template<class T>

@@ -72,6 +72,21 @@ class CppPropertiesTest(scatest.CorbaTestCase):
         for result in self._app.runTest(1, props):
             self.assert_(result.value._v)
 
+    def test_UTCTime(self):
+        prop = self._app.query([CF.DataType('simple_utctime', any.to_any(None))])
+        datetime = time.localtime(prop[0].value.value().twsec)
+        self.assertEquals(datetime.tm_year,2017)
+        self.assertEquals(datetime.tm_mon,2)
+        self.assertEquals(datetime.tm_mday,1)
+        self.assertEquals(datetime.tm_hour,10)
+        self.assertEquals(datetime.tm_min,1)
+        self.assertEquals(datetime.tm_sec,0)
+        self.assertEquals(prop[0].value.value().tfsec,0.123)
+        self._app.configure([CF.DataType('reset_utctime', any.to_any(True))])
+        prop = self._app.query([CF.DataType('simple_utctime', any.to_any(None))])
+        now = time.time()
+        self.assertEquals(abs(now-(prop[0].value.value().twsec+prop[0].value.value().tfsec))<0.1,True)
+
     def test_NilProperty(self):
         self.preconditions()
 

@@ -136,6 +136,7 @@ class TestAllPropTypes_base : public Resource_impl
         CORBA::Long simple_long;
         CORBA::LongLong simple_longlong;
         CORBA::ULongLong simple_ulonglong;
+        CF::UTCTime simple_utctime;
         std::vector<std::string> simple_sequence_string;
         std::vector<bool> simple_sequence_boolean;
         std::vector<CORBA::ULong> simple_sequence_ulong;
@@ -149,6 +150,7 @@ class TestAllPropTypes_base : public Resource_impl
         std::vector<CORBA::Long> simple_sequence_long;
         std::vector<CORBA::LongLong> simple_sequence_longlong;
         std::vector<CORBA::ULongLong> simple_sequence_ulonglong;
+        std::vector<CF::UTCTime> simple_sequence_utctime;
         struct_vars_struct struct_vars;
         std::vector<struct_seq_vars_struct> struct_seq;
     

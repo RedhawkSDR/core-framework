@@ -23,6 +23,7 @@
 #include <vector>
 #include <cstdlib>
 #include <sstream>
+#include <iomanip>
 #if HAVE_OMNIORB4
 #include "omniORB4/CORBA.h"
 #endif
@@ -367,6 +368,111 @@ CORBA::Any ossie::stringToComplexAny(std::string value, std::string structName) 
     return result;
 }
 
+namespace redhawk {
+  namespace time {
+    namespace utils {
+        CF::UTCTime create( const double wholeSecs, const double fractionalSecs ) {
+            double wsec = wholeSecs;
+            double fsec = fractionalSecs;
+            if ( wsec < 0.0 || fsec < 0.0 ) {
+                struct timeval tmp_time;
+                struct timezone tmp_tz;
+                gettimeofday(&tmp_time, &tmp_tz);
+                wsec = tmp_time.tv_sec;
+                fsec = tmp_time.tv_usec / 1e6;
+            }
+            CF::UTCTime tstamp = CF::UTCTime();
+            tstamp.tcstatus = 1;
+            struct tm t = {0};
+            tstamp.twsec = wsec + t.tm_gmtoff;
+            tstamp.tfsec = fsec;
+            return tstamp;
+        }
+        
+        CF::UTCTime convert( const std::string formatted ) {
+            unsigned int year;
+            unsigned int month;
+            unsigned int day;
+            unsigned int hour;
+            unsigned int minute;
+            double second;
+            int retval = sscanf(formatted.c_str(), "%d:%d:%d::%d:%d:%lf",&year,&month,&day,&hour,&minute,&second);
+            CF::UTCTime utctime;
+            if (retval != 6) {
+                utctime.tcstatus=0;
+                return utctime;
+            }
+            utctime.tcstatus=1;
+            struct tm t = {0};
+            t.tm_year = year - 1900;
+            t.tm_mon = month - 1;
+            t.tm_mday = day;
+            t.tm_hour = hour;
+            t.tm_min = minute;
+            t.tm_sec = (int)second;
+            utctime.twsec = mktime(&t);
+            utctime.tfsec = second - (int)second;
+            return utctime;
+        }
+        
+        std::string toString( const CF::UTCTime utc ) {
+            struct tm time;
+            time_t seconds = utc.twsec;
+            std::ostringstream stream;
+            gmtime_r(&seconds, &time);
+            stream << (1900+time.tm_year) << ':';
+            stream << std::setw(2) << std::setfill('0') << (time.tm_mon+1) << ':';
+            stream << std::setw(2) << time.tm_mday << "::";
+            stream << std::setw(2) << time.tm_hour << ":";
+            stream << std::setw(2) << time.tm_min << ":";
+            stream << std::setw(2) << time.tm_sec;
+            int usec = round(utc.tfsec * 1000000.0);
+            stream << "." << std::setw(6) << usec;
+            return stream.str();
+        }
+
+        /*
+         * Create a time stamp object from the current time of day reported by the system
+         */
+        CF::UTCTime now() {
+            return create();
+        }
+      
+        /*
+         * Create a time stamp object from the current time of day reported by the system
+         */
+        CF::UTCTime notSet() {
+            CF::UTCTime tstamp = CF::UTCTime();
+            tstamp.tcstatus = 0;
+            tstamp.twsec = 0.0;
+            tstamp.tfsec = 0.0;
+            return tstamp;
+        }
+
+        /*
+         * Adjust the whole and fractional portions of a time stamp object to
+         * ensure there is no fraction in the whole seconds, and vice-versa
+         */
+        void normalize(CF::UTCTime& time) {
+            // Get fractional adjustment from whole seconds
+            double fadj = std::modf(time.twsec, &time.twsec);
+
+            // Adjust fractional seconds and get whole seconds adjustment
+            double wadj = 0;
+            time.tfsec = std::modf(time.tfsec + fadj, &wadj);
+
+            // If fractional seconds are negative, borrow a second from the whole
+            // seconds to make it positive, normalizing to [0,1)
+            if (time.tfsec < 0.0) {
+                time.tfsec += 1.0;
+                wadj -= 1.0;
+            }
+            time.twsec += wadj;
+        }
+    }
+  }
+}
+
 /*
  * Convert from a string to a simple CORBA::Any.
  *
@@ -426,7 +532,11 @@ CORBA::Any ossie::string_to_any(std::string value, CORBA::TypeCode_ptr type)
         // that are not explicitly supported will cause the function to
         // return a new, empty CORBA::Any.
         std::string structName = any_to_string(*(type->parameter(0)));
-        result = stringToComplexAny(value, structName);
+        if (structName == std::string("UTCTime")) {
+            result <<= redhawk::time::utils::convert(value);
+        } else {
+            result = stringToComplexAny(value, structName);
+        }
     }
     else {
         result = stringToSimpleAny(value, type->kind());
@@ -1002,6 +1112,8 @@ CORBA::TypeCode_ptr ossie::getTypeCode(std::string type) {
         kind = CORBA::_tc_ulonglong;
     } else if (type == "string"){
         kind = CORBA::_tc_string;
+    } else if (type == "utctime"){
+        kind = CF::_tc_UTCTime;
     } else if (type == "complexDouble") {
         kind = CF::_tc_complexDouble;
     } else if (type == "complexFloat") {

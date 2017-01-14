@@ -20,6 +20,122 @@
 
 #include "ossie/PropertyInterface.h"
 
+namespace CF {
+
+  CF::UTCTime operator+(const CF::UTCTime& lhs, double seconds)
+  {
+    CF::UTCTime result = lhs;
+    result += seconds;
+    return result;
+  }
+
+  CF::UTCTime& operator+=(CF::UTCTime& lhs, double seconds)
+  {
+    // Split fractional and whole seconds to preserve precision
+    lhs.tfsec += std::modf(seconds, &seconds);
+    lhs.twsec += seconds;
+    redhawk::time::utils::normalize(lhs);
+    return lhs;
+  }
+
+  CF::UTCTime operator-(const CF::UTCTime& lhs, double seconds)
+  {
+    CF::UTCTime result = lhs;
+    result -= seconds;
+    return result;
+  }
+
+  double operator-(const CF::UTCTime& lhs, const CF::UTCTime& rhs)
+  {
+    return (lhs.twsec - rhs.twsec) + (lhs.tfsec - rhs.tfsec);
+  }
+
+  CF::UTCTime& operator-=(CF::UTCTime& lhs, double seconds)
+  {
+    // Split fractional and whole seconds to preserve precision
+    lhs.tfsec -= std::modf(seconds, &seconds);
+    lhs.twsec -= seconds;
+    redhawk::time::utils::normalize(lhs);
+    return lhs;
+  }
+
+  bool operator==(const CF::UTCTime& lhs, const CF::UTCTime& rhs)
+  {
+    if (lhs.tcstatus != rhs.tcstatus) {
+      return false;
+    } else if (lhs.twsec != rhs.twsec) {
+      return false;
+    } else if (lhs.tfsec != rhs.tfsec) {
+      return false;
+    }
+    return true;
+  }
+
+  bool operator!=(const CF::UTCTime& lhs, const CF::UTCTime& rhs)
+  {
+    if (lhs.tcstatus != rhs.tcstatus) {
+      return true;
+    } else if (lhs.twsec != rhs.twsec) {
+      return true;
+    } else if (lhs.tfsec != rhs.tfsec) {
+      return true;
+    }
+    return false;
+  }
+
+  bool operator<(const CF::UTCTime& lhs, const CF::UTCTime& rhs)
+  {
+    if (lhs.twsec == rhs.twsec) {
+      return lhs.tfsec < rhs.tfsec;
+    } else {
+      return lhs.twsec < rhs.twsec;
+    }
+  }
+
+  bool operator<=(const CF::UTCTime& lhs, const CF::UTCTime& rhs)
+  {
+    if (lhs.twsec == rhs.twsec) {
+      return lhs.tfsec <= rhs.tfsec;
+    } else {
+      return lhs.twsec <= rhs.twsec;
+    }
+  }
+
+  bool operator>(const CF::UTCTime& lhs, const CF::UTCTime& rhs)
+  {
+    if (lhs.twsec == rhs.twsec) {
+      return lhs.tfsec > rhs.tfsec;
+    } else {
+      return lhs.twsec > rhs.twsec;
+    }
+  }
+
+  bool operator>=(const CF::UTCTime& lhs, const CF::UTCTime& rhs)
+  {
+    if (lhs.twsec == rhs.twsec) {
+      return lhs.tfsec >= rhs.tfsec;
+    } else {
+      return lhs.twsec >= rhs.twsec;
+    }
+  }
+
+  std::ostream& operator<<(std::ostream& stream, const CF::UTCTime& utc)
+  {
+    struct tm time;
+    time_t seconds = utc.twsec;
+    gmtime_r(&seconds, &time);
+    stream << (1900+time.tm_year) << ':';
+    stream << std::setw(2) << std::setfill('0') << (time.tm_mon+1) << ':';
+    stream << std::setw(2) << time.tm_mday << "::";
+    stream << std::setw(2) << time.tm_hour << ":";
+    stream << std::setw(2) << time.tm_min << ":";
+    stream << std::setw(2) << time.tm_sec;
+    int usec = round(utc.tfsec * 1000000.0);
+    stream << "." << std::setw(6) << usec;
+    return stream;
+  }
+  
+}
 
 PropertyInterface::PropertyInterface (CORBA::TypeCode_ptr _type) :
     id(),
@@ -179,6 +295,16 @@ inline void SimplePropertyWrapper<char>::toAny (const char& v, CORBA::Any& a)
 
 
 template <>
+inline bool SimplePropertyWrapper<CF::UTCTime>::fromAny (const CORBA::Any& a, CF::UTCTime& v)
+{
+    CF::UTCTime *tmp;
+    if (not (a >>= tmp))
+        return false;
+    v = *tmp;
+    return true;
+}
+
+template <>
 inline bool SimplePropertyWrapper<unsigned char>::fromAny (const CORBA::Any& a, CORBA::Octet& v)
 {
     return (a >>= CORBA::Any::to_octet(v));
@@ -324,7 +450,14 @@ N##Property* PropertyWrapperFactory::Create (T& value) \
     return new SimplePropertyWrapper< T >(value);      \
 }
 
+#define SIMPLE_STRUCT_FACTORY_CREATE(N,T)                     \
+N##Property* PropertyWrapperFactory::Create (T& value) \
+{                                                      \
+    return new PropertyWrapper< T >(value);      \
+}
+
 SIMPLE_FACTORY_CREATE(String, std::string);
+SIMPLE_FACTORY_CREATE(UTCTime, CF::UTCTime);
 SIMPLE_FACTORY_CREATE(Boolean, bool);
 SIMPLE_FACTORY_CREATE(Char, char);
 
@@ -366,6 +499,7 @@ N##SeqProperty* PropertyWrapperFactory::Create (std::vector<T>& value) \
 }
 
 SIMPLE_SEQUENCE_FACTORY_CREATE(String, std::string);
+SIMPLE_SEQUENCE_FACTORY_CREATE(UTCTime, CF::UTCTime);
 SIMPLE_SEQUENCE_FACTORY_CREATE(Boolean, bool);
 SIMPLE_SEQUENCE_FACTORY_CREATE(Char, char);
 SIMPLE_SEQUENCE_FACTORY_CREATE(Octet, CORBA::Octet);
@@ -403,6 +537,7 @@ N##Property* MonitorFactory::Create (T& value) \
 }
 
 SIMPLEMONITOR_FACTORY_CREATE(String, std::string);
+SIMPLEMONITOR_FACTORY_CREATE(UTCTime, CF::UTCTime);
 SIMPLEMONITOR_FACTORY_CREATE(Boolean, bool);
 SIMPLEMONITOR_FACTORY_CREATE(Char, char);
 
@@ -438,6 +573,7 @@ N##SeqProperty* MonitorFactory::Create (std::vector<T>& value) \
 }
 
 SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(String, std::string);
+SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(UTCTime, CF::UTCTime);
 SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Boolean, bool);
 SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Char, char);
 SIMPLEMONITOR_SEQUENCE_FACTORY_CREATE(Octet, CORBA::Octet);

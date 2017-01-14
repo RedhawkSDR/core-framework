@@ -31,6 +31,7 @@
 #include "ossie/AnyUtils.h"
 #include "ossie/CorbaUtils.h"
 #include "CF/cf.h"
+#include "CF/DataType.h"
 #include "ossie/Port_impl.h"
 
 #include "ossie/ComplexProperties.h"
@@ -42,6 +43,8 @@
 #include "CF/ExtendedEvent.h"
 #include <COS/CosEventChannelAdmin.hh>
 #include "PropertyMonitor.h"
+
+#include <iomanip>
 
 
 /*
@@ -475,6 +478,7 @@ typedef PropertyWrapper<CORBA::ULongLong> ULongLongProperty;
 typedef PropertyWrapper<CORBA::LongLong> LongLongProperty;
 typedef PropertyWrapper<CORBA::Float> FloatProperty;
 typedef PropertyWrapper<CORBA::Double> DoubleProperty;
+typedef PropertyWrapper<CF::UTCTime> UTCTimeProperty;
 
 typedef PropertyWrapper<std::complex<float> >            ComplexFloatProperty;
 typedef PropertyWrapper<std::complex<bool> >             ComplexBooleanProperty;
@@ -521,6 +525,27 @@ protected:
     }
 };
 
+namespace CF {
+
+  CF::UTCTime operator+(const CF::UTCTime& lhs, double seconds);
+
+  CF::UTCTime& operator+=(CF::UTCTime& lhs, double seconds);
+
+  double operator-(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  CF::UTCTime operator-(const CF::UTCTime& lhs, double seconds);
+
+  CF::UTCTime& operator-=(CF::UTCTime& lhs, double seconds);
+
+  bool operator==(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  bool operator!=(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  bool operator<(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  bool operator<=(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  bool operator>(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  bool operator>=(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+
+  std::ostream& operator<<(std::ostream&, const CF::UTCTime&);
+}
+
 typedef SequenceProperty<std::string>      StringSeqProperty;
 typedef SequenceProperty<char>             CharSeqProperty;
 typedef SequenceProperty<bool>             BooleanSeqProperty;
@@ -533,6 +558,7 @@ typedef SequenceProperty<CORBA::LongLong>  LongLongSeqProperty;
 typedef SequenceProperty<CORBA::ULongLong> ULongLongSeqProperty;
 typedef SequenceProperty<CORBA::Float>     FloatSeqProperty;
 typedef SequenceProperty<CORBA::Double>    DoubleSeqProperty;
+typedef SequenceProperty<CF::UTCTime>    UTCTimeSeqProperty;
 
 typedef SequenceProperty<std::complex<float> >            ComplexFloatSeqProperty;
 typedef SequenceProperty<std::complex<double> >           ComplexDoubleSeqProperty;
@@ -658,6 +684,7 @@ public:
     static ULongLongProperty* Create (CORBA::ULongLong&);
     static FloatProperty* Create (CORBA::Float&);
     static DoubleProperty* Create (CORBA::Double&);
+    static UTCTimeProperty* Create (CF::UTCTime&);
 
     static ComplexBooleanProperty* Create (std::complex<bool>&);
     static ComplexCharProperty* Create (std::complex<char>&);
@@ -683,6 +710,7 @@ public:
     static ULongLongSeqProperty* Create (std::vector<CORBA::ULongLong>&);
     static FloatSeqProperty* Create (std::vector<CORBA::Float>&);
     static DoubleSeqProperty* Create (std::vector<CORBA::Double>&);
+    static UTCTimeSeqProperty* Create (std::vector<CF::UTCTime>&);
 
     static ComplexBooleanSeqProperty* Create (std::vector<std::complex<bool> >&);
     static ComplexCharSeqProperty* Create (std::vector<std::complex<char> >&);

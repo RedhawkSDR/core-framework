@@ -30,6 +30,24 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
+  <simple id="simple_utctime" mode="readwrite" type="utctime">
+    <value>2017:2:1::12:01:00.123</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="reset_utctime" mode="readwrite" type="boolean">
+    <value>false</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="seq_utctime" mode="readwrite" type="utctime">
+      <values>
+        <value>2010:2:1::12:01:00.123</value>
+        <value>2011:2:1::12:01:00.123</value>
+      </values>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
   <simplesequence id="DCE:f877b9ee-a682-43a6-ba21-5ea980167f55" mode="readwrite" name="seq_oct" type="short">
     <kind kindtype="configure"/>
     <action type="external"/>

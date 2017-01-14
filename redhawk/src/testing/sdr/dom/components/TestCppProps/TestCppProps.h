@@ -53,6 +53,7 @@ protected:
     void testMemberCallbacks (CF::Properties& values);
     void testStaticCallbacks (CF::Properties& values);
     void testCallbacks (CF::Properties& values);
+    void resetUTCtime(bool oldValue, bool newValue);
 
     void testEnableNil (CF::Properties& values);
     void testSetNil (CF::Properties& values);
@@ -60,6 +61,9 @@ protected:
     // Member variables exposed as properties
     CORBA::Long prop_long;
     std::string prop_str;
+    CF::UTCTime simple_utctime;
+    bool reset_utctime;
+    std::vector<CF::UTCTime> seq_utctime;
     std::vector<CORBA::Short> seq_oct;
     std::vector<prop_foo_struct> seq_foo;
 

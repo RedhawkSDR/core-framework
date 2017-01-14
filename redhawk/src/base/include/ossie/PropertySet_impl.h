@@ -159,6 +159,22 @@ protected:
         wrapper->isNil(false);
         return wrapper;
     }
+    
+    template <typename T2>
+    PropertyInterface* addProperty (CF::UTCTime& value, 
+                                    const T2& initial_value, 
+                                    const std::string& id, 
+                                    const std::string& name,
+                                    const std::string& mode, 
+                                    const std::string& units, 
+                                    const std::string& action,
+                                    const std::string& kinds)
+    {
+        PropertyInterface* wrapper = addProperty(value, id, name, mode, units, action, kinds);
+        value = redhawk::time::utils::convert(initial_value);
+        wrapper->isNil(false);
+        return wrapper;
+    }
 
     template <class C, typename T>
     void addPropertyChangeListener (const std::string& id, C* target, void (C::*func)(const T*, const T*))
