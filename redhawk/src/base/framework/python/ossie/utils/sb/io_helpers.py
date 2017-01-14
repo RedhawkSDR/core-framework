@@ -1141,6 +1141,7 @@ class DataSource(_SourceBase):
         self._loop        = loop
         self._runThread   = None
         self._dataQueue   = _Queue.Queue()
+        self._currentSampleTime = self._startTime
 
         # Track unsent packets so that callers can monitor for when all packets
         # have really been sent; checking for an empty queue only tells whether
@@ -1234,7 +1235,6 @@ class DataSource(_SourceBase):
         self.threadExited = False
         # Make sure data passed in is within min/max bounds on port type
         # and is a valid type
-        self._currentSampleTime = self._startTime
         while not self._exitThread:
             exitInputLoop = False
             while not exitInputLoop:
