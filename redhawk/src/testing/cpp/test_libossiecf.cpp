@@ -19,7 +19,10 @@
  */
 
 #include <cppunit/CompilerOutputter.h>
+#include <cppunit/XmlOutputter.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
+#include <cppunit/TestResult.h>
+#include <cppunit/TestResultCollector.h>
 #include <cppunit/ui/text/TestRunner.h>
 
 #include <ossie/CorbaUtils.h>
@@ -33,15 +36,25 @@ int main(int argc, char* argv[])
     // Get the top level suite from the registry
     CppUnit::Test* suite = CppUnit::TestFactoryRegistry::getRegistry().makeTest();
 
-    // Adds the test to the list of test to run
+    // Create the event manager and test controller
+    CppUnit::TestResult controller;
+
+    // Add a listener that collects test result
+    CppUnit::TestResultCollector result;
+    controller.addListener(&result);
+
+    // Create XML and stderr output
+    std::ofstream xmlout("../cppunit-results.xml");
+    CppUnit::XmlOutputter xmlOutputter(&result, xmlout);
+    CppUnit::CompilerOutputter compilerOutputter(&result, std::cerr);
+
+    // Run the tests
     CppUnit::TextUi::TestRunner runner;
     runner.addTest(suite);
+    runner.run(controller);
+    xmlOutputter.write();
+    compilerOutputter.write();
 
-    // Change the default outputter to a compiler error format outputter
-    runner.setOutputter(new CppUnit::CompilerOutputter(&runner.result(), std::cerr));
-    // Run the tests.
-    bool wasSucessful = runner.run();
-
-    // Return error code 1 if the one of test failed.
-    return wasSucessful ? 0 : 1;
+    // Return error code 1 if any of the tests failed
+    return result.wasSuccessful() ? 0 : 1;
 }
