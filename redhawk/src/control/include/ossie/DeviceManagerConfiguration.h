@@ -97,6 +97,8 @@ namespace ossie {
     public:
         void load(std::istream& input) throw (ossie::parser_error);
 
+        const bool isLoaded() const;
+
         const char* getID() const;
 
         const char* getName() const;

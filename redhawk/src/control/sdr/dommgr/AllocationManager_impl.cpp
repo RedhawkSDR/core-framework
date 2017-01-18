@@ -328,7 +328,7 @@ bool AllocationManager_impl::allocateDevice(const CF::Properties& requestedPrope
         return false;
     }
 
-    LOG_INFO(AllocationManager_impl, "allocateDevice::PartitionMatching " << node.requiresProps );
+    LOG_DEBUG(AllocationManager_impl, "allocateDevice::PartitionMatching " << node.requiresProps );
     if ( !checkPartitionMatching( node, devicerequires ))  {
         LOG_TRACE(AllocationManager_impl, "Partition Matching failed");
         return false;

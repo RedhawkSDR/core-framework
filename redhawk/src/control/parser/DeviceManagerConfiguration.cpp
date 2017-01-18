@@ -35,6 +35,10 @@ void DeviceManagerConfiguration::load(std::istream& input) throw (ossie::parser_
     _dcd = ossie::internalparser::parseDCD(input);
 }
 
+const bool DeviceManagerConfiguration::isLoaded() const {
+    return _dcd.get() != 0;
+}
+
 const char* DeviceManagerConfiguration::getID() const {
     assert(_dcd.get() != 0);
     return _dcd->id.c_str();

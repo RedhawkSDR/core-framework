@@ -40,7 +40,7 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
 
     def test_EmptyQuery (self):
         results = self.comp.query([])
-        self.assertEqual(len(results), 6)
+        self.assertEqual(len(results), 9)
 
         ids = set(r.id for r in results)
         expected = ("ulong_prop",

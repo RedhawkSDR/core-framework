@@ -98,7 +98,7 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         to_find = 2
         if java_support:
             props.append(javaProp)
-            number_props = 7
+            number_props = 10
             to_find = 3
         self._app.configure(props)
         # Make sure all were set

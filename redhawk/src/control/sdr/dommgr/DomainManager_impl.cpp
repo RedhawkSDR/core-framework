@@ -1039,16 +1039,20 @@ void DomainManager_impl::_local_registerDeviceManager (CF::DeviceManager_ptr dev
         try {
             CF::FileSystem_var devMgrFileSys = deviceMgr->fileSys();
             CORBA::String_var profile = deviceMgr->deviceConfigurationProfile();
-            File_stream dcd(devMgrFileSys, profile);
             if ( node != _registeredDeviceManagers.end() ) {
-                node->dcd.load(dcd);
+                if ( node->dcd.isLoaded() == false ) {
+                    File_stream dcd(devMgrFileSys, profile);
+                    node->dcd.load(dcd);
+                    dcd.close();            
+                }
                 dcdParser = &(node->dcd);
             }
             else {
+                File_stream dcd(devMgrFileSys, profile);
                 _dcdParser.load(dcd);
                 dcdParser = &_dcdParser;
+                dcd.close();
             }
-            dcd.close();
         } catch ( ossie::parser_error& e ) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
             LOG_ERROR(DomainManager_impl, "Failed device manager registration; error parsing device manager DCD: " << deviceMgr->deviceConfigurationProfile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what())
@@ -1105,6 +1109,16 @@ DomainManager_impl::addDeviceMgr (CF::DeviceManager_ptr deviceMgr)
         tmp_devMgr.deviceManager = CF::DeviceManager::_duplicate(deviceMgr);
         tmp_devMgr.identifier = static_cast<char*>(identifier);
         tmp_devMgr.label = static_cast<char*>(label);
+        try{
+            // preload DCD
+            CF::FileSystem_var devMgrFileSys = tmp_devMgr.deviceManager->fileSys();
+            CORBA::String_var profile = tmp_devMgr.deviceManager->deviceConfigurationProfile();
+            File_stream dcd(devMgrFileSys, profile);
+            tmp_devMgr.dcd.load(dcd);
+            dcd.close();            
+        }
+        catch(...){
+        }
         _registeredDeviceManagers.push_back(tmp_devMgr);
 
         try {
@@ -2002,21 +2016,34 @@ void DomainManager_impl::_local_registerService (CORBA::Object_ptr registeringSe
         throw CF::DomainManager::DeviceManagerNotRegistered();
     }
     
-    DeviceManagerConfiguration _DCDParser;
+    DeviceManagerConfiguration *_DCDParser=0;
+    DeviceManagerConfiguration _dcdParser;
     bool readDCD = true;
     std::string serviceId("");
     std::string inputUsageName(name);
     try {
         CF::FileSystem_var devMgrFileSys = registeredDeviceMgr->fileSys();
         CORBA::String_var profile = registeredDeviceMgr->deviceConfigurationProfile();
-        File_stream _dcd(devMgrFileSys, profile);
-        _DCDParser.load(_dcd);
-        _dcd.close();
+         DeviceManagerList::iterator node = findDeviceManagerByObject(registeredDeviceMgr);
+          if ( node != _registeredDeviceManagers.end() ) {
+                if ( node->dcd.isLoaded() == false ) {
+                    File_stream dcd(devMgrFileSys, profile);
+                    node->dcd.load(dcd);
+                    dcd.close();            
+                }
+                _DCDParser = &(node->dcd);
+          }
+          else {
+              File_stream dcd(devMgrFileSys, profile);
+              _dcdParser.load(dcd);
+              _DCDParser = &_dcdParser;
+              dcd.close();
+          }
     } catch ( ... ) {
         readDCD = false;
     }
     if (readDCD) {
-        const std::vector<ossie::DevicePlacement>& componentPlacements = _DCDParser.getComponentPlacements();
+        const std::vector<ossie::DevicePlacement>& componentPlacements = _DCDParser->getComponentPlacements();
         bool foundId = false;
         for (unsigned int i = 0; i < componentPlacements.size(); i++) {
             for (unsigned int j=0; j<componentPlacements[i].getInstantiations().size(); j++) {
@@ -2485,13 +2512,18 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
     // Override with values from the DCD
     LOG_TRACE(DomainManager_impl, "Parsing DCD overrides for device " << node.identifier);
     const std::string deviceManagerProfile = ossie::corba::returnString(node.devMgr.deviceManager->deviceConfigurationProfile());
-    const ComponentInstantiation* instantiation = findComponentInstantiation(node.devMgr.dcd.getComponentPlacements(), node.identifier);
-    if (instantiation) {
-        node.prf.override(instantiation->properties);
-        ossie::convertComponentProperties( instantiation->getDeployerRequires(),
-                                           node.requiresProps );
-    } else {
-        LOG_WARN(DomainManager_impl, "Unable to find device " << node.identifier << " in DCD");
+    if ( node.devMgr.dcd.isLoaded() == false ) {
+        LOG_WARN(DomainManager_impl, "DCD file was not loaded for node: " << node.identifier  );
+    }
+    else {
+        const ComponentInstantiation* instantiation = findComponentInstantiation(node.devMgr.dcd.getComponentPlacements(), node.identifier); 
+        if (instantiation) {
+            node.prf.override(instantiation->properties);
+            ossie::convertComponentProperties( instantiation->getDeployerRequires(),
+                                               node.requiresProps );
+        } else {
+            LOG_WARN(DomainManager_impl, "Unable to find device " << node.identifier << " in DCD");
+        }
     }
 }
 
