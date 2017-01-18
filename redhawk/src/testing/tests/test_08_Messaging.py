@@ -156,6 +156,7 @@ class MessagingCompatibilityTest(scatest.CorbaTestCase):
         self.assertEquals(self.rcv_msg.c, 'C')
         self.rcv_msg = None
 
+    @scatest.requireJava
     def test_MessagingJava(self):
         src=sb.MessageSource('foo')
         c=sb.launch('msg_through_java')
@@ -243,6 +244,7 @@ class MessagingCompatibilityTest(scatest.CorbaTestCase):
         comp = sb.launch('MessageReceiverPy')
         self.__MessageCycle(comp)
 
+    @scatest.requireJava
     def test_MessageCycleJava(self):
         comp = sb.launch('EventReceive')
         self.__MessageCycle(comp)

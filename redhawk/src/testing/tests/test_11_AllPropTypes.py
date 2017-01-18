@@ -92,7 +92,8 @@ class TimeTest(scatest.CorbaTestCase):
 
     def test_getTimePython(self):
         self.basetest_getTime('timeprop_py')
-        
+
+    @scatest.requireJava
     def test_getTimeJava(self):
         self.basetest_getTime('timeprop_java')
 
