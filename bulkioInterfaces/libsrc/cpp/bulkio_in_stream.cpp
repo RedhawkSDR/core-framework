@@ -60,11 +60,17 @@ public:
   typedef std::vector<NativeType> VectorType;
   typedef DataBlock<NativeType> DataBlockType;
 
-    Impl(const BULKIO::StreamSRI& sri, bulkio::InPort<PortTraits>* port) :
+  enum EosState {
+    EOS_NONE,
+    EOS_RECEIVED,
+    EOS_REACHED,
+    EOS_REPORTED
+  };
+
+  Impl(const BULKIO::StreamSRI& sri, bulkio::InPort<PortTraits>* port) :
     _streamID(sri.streamID),
     _sri(sri),
-    _eosReceived(false),
-    _eosReached(false),
+    _eosState(EOS_NONE),
     _port(port),
     _queue(),
     _pending(0),
@@ -99,7 +105,10 @@ public:
       // state again
       _fetchPacket(false);
     }
-    return _eosReached;
+    // At this point, if end-of-stream has been reached, make sure it's been
+    // reported
+    _reportIfEosReached();
+    return (_eosState == EOS_REPORTED);
   }
 
   size_t samplesAvailable()
@@ -116,7 +125,7 @@ public:
 
     // Only search the port's queue if there is no SRI change or input queue
     // flush pending, and an end-of-stream has not been received
-    if (!_pending && !_eosReceived) {
+    if (!_pending && (_eosState == EOS_NONE)) {
       // If the queue is empty, this is the first read of a segment (i.e.,
       // search can go past the first packet if the SRI change or queue flush
       // flag is set)
@@ -134,6 +143,10 @@ public:
     }
 
     if (_samplesQueued == 0) {
+      // It's possible that there are no samples queued because of an end-of-
+      // stream; if so, report it so that this stream can be dissociated from
+      // the port
+      _reportIfEosReached();
       return DataBlockType();
     }
     const size_t samples = _queue.front()->dataBuffer.size() - _sampleOffset;
@@ -148,6 +161,7 @@ public:
     if (!sri) {
       // No SRI retreived implies no data will be retrieved, either due to end-
       // of-stream or because it would block
+      _reportIfEosReached();
       return DataBlockType();
     }
 
@@ -168,6 +182,9 @@ public:
     }
 
     if (_samplesQueued == 0) {
+      // As above, it's possible that there are no samples due to an end-of-
+      // stream
+      _reportIfEosReached();
       return DataBlockType();
     }
 
@@ -182,7 +199,7 @@ public:
       // Non-blocking: return a null block if there's not currently a break in
       // the data, under the assumption that a future read might return the
       // full amount
-      if (!blocking && !_pending && !_eosReceived) {
+      if (!blocking && !_pending && (_eosState == EOS_NONE)) {
         return DataBlockType();
       }
       // Otherwise, consume all remaining data
@@ -256,9 +273,10 @@ public:
       boost::mutex::scoped_lock lock(_port->dataBufferLock);
       _enabled = false;
 
-      // Discard any packets queued on the port (unless end-of-stream has been
-      // received--then they belong to another stream)
-      if (!_eosReceived) {
+      // Unless end-of-stream has been received by the port (meaning any further
+      // packets with this stream ID are for a different instance), purge any
+      // packets for this stream from the port's queue
+      if (_eosState == EOS_NONE) {
         _port->discardPacketsForStream(_streamID);
       }
     }
@@ -290,17 +308,33 @@ public:
       return;
     }
 
-    // Otherwise, inject an end-of-stream marker into the end of the stream
-    _eosReceived = true;
-    _eosReached = true;
+    // Consider end-of-stream reported, since the stream has already been
+    // removed from the port; otherwise, there's nothing to do
+    _eosState = EOS_REPORTED;
   }
 
   bool hasBufferedData() const
   {
+    // To nudge the caller to check end-of-stream, return true if it has been
+    // reached but not reported
+    if (_eosState == EOS_REACHED) {
+      return true;
+    }
     return !_queue.empty() || _pending;
   }
 
 private:
+  void _reportIfEosReached()
+  {
+    if (_eosState == EOS_REACHED) {
+      // This is the first time end-of-stream has been checked since it
+      // was reached; remove the stream from the port now, since the
+      // caller knows that the stream ended
+      _port->removeStream(_streamID);
+      _eosState = EOS_REPORTED;
+    }
+  }
+
   void _consumeData(size_t count)
   {
     while (count > 0) {
@@ -333,9 +367,8 @@ private:
   {
     // Acknowledge any end-of-stream flag and delete the packet
     DataTransferType* packet = _queue.front();
-    _eosReached = packet->EOS;
-    if (_eosReached) {
-      _port->removeStream(_streamID);
+    if (packet->EOS) {
+      _eosState = EOS_REACHED;
     }
 
     // The packet buffer was allocated with new[] by the CORBA layer, while
@@ -469,7 +502,7 @@ private:
     }
 
     // Any future packets with this stream ID belong to another InputStream
-    if (_eosReceived) {
+    if (_eosState != EOS_NONE) {
       return false;
     }
 
@@ -479,7 +512,9 @@ private:
       return false;
     }
 
-    _eosReceived = packet->EOS;
+    if (packet->EOS) {
+      _eosState = EOS_RECEIVED;
+    }
     if (_queue.empty() || _canBridge(packet)) {
       _queuePacket(packet);
       return true;
@@ -496,8 +531,7 @@ private:
       // SRI changes, and queue flushes are irrelevant at this point)
       if (_queue.empty()) {
         // No queued packets, read pointer has reached end-of-stream
-        _eosReached = true;
-        _port->removeStream(_streamID);
+        _eosState = EOS_REACHED;
       } else {
         // Assign the end-of-stream flag to the last packet in the queue so
         // that it is handled on read
@@ -517,8 +551,7 @@ private:
 
   const std::string _streamID;
   BULKIO::StreamSRI _sri;
-  bool _eosReceived;
-  bool _eosReached;
+  EosState _eosState;
   InPort<PortTraits>* _port;
   typedef std::vector<DataTransferType*> QueueType;
   QueueType _queue;
