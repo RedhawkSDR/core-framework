@@ -136,12 +136,18 @@ AC_MSG_RESULT($HAVE_JAVASUPPORT)
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 # End optional java support
 
+# C++ unit testing support. May want to conditionally enable/disable this.
+AM_PATH_CPPUNIT(1.12.1)
+AC_SUBST(BULKIO_CFLAGS, "-I \$(top_srcdir)/src/cpp -I \$(top_srcdir)/libsrc/cpp")
+AC_SUBST(BULKIO_LIBS, "-L\$(top_srcdir)/libsrc -lbulkio-${BULKIO_API_VERSION} -L\$(top_srcdir) -lbulkioInterfaces")
+
 AC_CONFIG_FILES([bulkioInterfaces.pc setup.py Makefile jni/Makefile])
 if test "$enable_base_classes" != "no"; then
   if test "$HAVE_JAVASUPPORT = yes"; then
     AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF])
   fi
   AC_CONFIG_FILES([libsrc/Makefile libsrc/bulkio.pc])
+  AC_CONFIG_FILES([libsrc/testing/tests/cpp/Makefile])
 fi
 
 AC_OUTPUT

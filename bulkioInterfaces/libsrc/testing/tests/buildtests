@@ -58,7 +58,3 @@ cd -
 cd ../devices/dev_snk/java
 ./reconf; ./configure; make
 cd -
-
-cd cpp
-./reconf; ./configure;
-cd -
