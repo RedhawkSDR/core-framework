@@ -59,9 +59,7 @@ public:
             _eosState = EOS_REACHED;
         }
         if (!packet || (packet->EOS && packet->buffer.empty())) {
-            if (_eosState == EOS_REACHED) {
-                _reportEOS();
-            }
+            _reportIfEosReached();
             return DataBlockType();
         }
         DataBlockType block(packet->SRI, packet->buffer);
@@ -118,12 +116,7 @@ public:
 
     virtual bool eos()
     {
-        if (_eosState == EOS_REACHED) {
-            // This is the first time end-of-stream has been checked since it
-            // was reached; remove the stream from the port now, since the
-            // caller knows that the stream ended
-            _reportEOS();
-        }
+        _reportIfEosReached();
         // At this point, if end-of-stream has been reached, the state is
         // reported (it gets set above), so the checking for the latter is
         // sufficient
@@ -159,10 +152,15 @@ protected:
         return packet;
     }
 
-    void _reportEOS()
+    void _reportIfEosReached()
     {
-        _port->removeStream(_streamID);
-        _eosState = EOS_REPORTED;
+        if (_eosState == EOS_REACHED) {
+            // This is the first time end-of-stream has been checked since it
+            // was reached; remove the stream from the port now, since the
+            // caller knows that the stream ended
+            _port->removeStream(_streamID);
+            _eosState = EOS_REPORTED;
+        }
     }
 
     size_t _samplesAvailable(bool first)
@@ -352,6 +350,10 @@ public:
         }
 
         if (_samplesQueued == 0) {
+            // It's possible that there are no samples queued because of an
+            // end-of-stream; if so, report it so that this stream can be
+            // dissociated from the port
+            this->_reportIfEosReached();
             return DataBlockType();
         }
         // Only read up to the end of the first packet in the queue
@@ -365,15 +367,9 @@ public:
         // port's input queue if necessary
         const StreamDescriptor* sri = _nextSRI(blocking);
         if (!sri) {
-            // No SRI retreived implies no data will be retrieved, either due to end-
-            // of-stream or because it would block
-            if (this->_eosState == ImplBase::EOS_REACHED) {
-                // If this is the first time end-of-stream could be reported, remove
-                // the stream from the port; since the returned data block is invalid,
-                // that's a cue for the caller to check end-of-stream, but they don't
-                // have to
-                this->_reportEOS();
-            }
+            // No SRI retreived implies no data will be retrieved, either due
+            // to end-of-stream or because it would block
+            this->_reportIfEosReached();
             return DataBlockType();
         }
 
@@ -394,6 +390,9 @@ public:
         }
 
         if (_samplesQueued == 0) {
+            // As above, it's possible that there are no samples due to an end-
+            // of-stream
+            this->_reportIfEosReached();
             return DataBlockType();
         }
 
