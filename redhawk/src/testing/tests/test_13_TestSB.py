@@ -35,6 +35,7 @@ import commands
 import cStringIO
 import time
 import copy
+import struct
 import ossie.utils.bulkio.bulkio_helpers as _bulkio_helpers
 
 def _initSourceAndSink(dataFormat):
@@ -1803,6 +1804,23 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(len(outdata), len(indata))
         self.assertEquals(outdata, indata)
 
+    def _formatOctet(self, data):
+        return list(struct.pack('%dB' % len(data), *data))
+
+    def test_DataSinkOctet(self):
+        src=sb.DataSource(dataFormat='octet')
+        snk=sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        indata = range(16)
+        src.push(indata, EOS=True)
+        start = time.time()
+        while not snk.eos() and (time.time() - start) < 2.0:
+            time.sleep(0.1)
+        outdata = snk.getData()
+        self.assertEquals(len(outdata), len(indata))
+        self.assertEquals(outdata, self._formatOctet(indata))
+
     def test_DataSinkCharSubsize(self):
         subsize = 8
         frames = 4
@@ -1850,7 +1868,7 @@ class BulkioTest(unittest.TestCase):
         while not snk.eos() and (time.time() - start) < 2.0:
             time.sleep(0.1)
         outdata = snk.getData()
-        self.assertEquals(data1,outdata)
+        self.assertEquals(self._formatOctet(data1), outdata)
 
 #    def test_connections(self):
 #        a = sb.launch(self.test_comp)

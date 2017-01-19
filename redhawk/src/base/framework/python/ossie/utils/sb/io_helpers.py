@@ -1514,20 +1514,16 @@ class DataSink(_SinkBase):
             containing the element index number of and timestamp
         '''
         isChar = self._sink.port_type == _BULKIO__POA.dataChar
-        isOctet = self._sink.port_type == _BULKIO__POA.dataOctet
 
         if not self._sink:
             return None
         if eos_block:
             self._sink.waitEOS()
         (retval, timestamps) = self._sink.retrieveData(length=length)
-        if isChar or isOctet:
+        if isChar:
             # Converts char values into their numeric equivalents
             def from_char(data):
-                if isChar:
-                    return [_struct.unpack('b',ch)[0] for ch in data]
-                else:
-                    return [_struct.unpack('B',ch)[0] for ch in data]
+                return [_struct.unpack('b',ch)[0] for ch in data]
 
             # If SRI is known, and the data is framed, apply conversion on a
             # per-frame basis
