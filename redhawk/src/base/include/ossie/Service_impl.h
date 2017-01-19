@@ -52,6 +52,12 @@ public:
 	std::string dpath("");
 	std::string sname("");
         
+        for (int index = 1; index < argc; ++index) {
+            if (std::string(argv[index]) == std::string("-i")) {
+                std::cout<<"Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"<<std::endl;
+                exit(-1);
+            }
+        }
         std::map<std::string, char*> execparams;
                 
         for (int i = 0; i < argc; i++) {

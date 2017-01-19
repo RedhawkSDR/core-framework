@@ -1230,6 +1230,9 @@ def parseCommandLineArgs(componentclass):
 
 def start_component(componentclass, interactive_callback=None, thread_policy=None, loggerName=None):   
     execparams, interactive = parseCommandLineArgs(componentclass)
+    if interactive:
+        print "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+        sys.exit(-1)
     name_binding="NOT SET"
     setupSignalHandlers()
     orb = None

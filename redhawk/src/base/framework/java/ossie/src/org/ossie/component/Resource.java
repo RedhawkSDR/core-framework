@@ -1164,6 +1164,12 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
     public static void start_component(final Class<? extends Resource> clazz,  final String[] args, final Properties props) 
 	throws InstantiationException, IllegalAccessException, InvalidObjectReference, NotFound, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, ServantNotActive, WrongPolicy 
     {
+        if (args.length == 1) {
+            if (args[0].equals("-i")) {
+                System.out.println("Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain");
+                System.exit(-1);
+            }
+        }
         // initialize library's ORB reference 
         final org.omg.CORBA.ORB orb = org.ossie.corba.utils.Init( args, props );
 

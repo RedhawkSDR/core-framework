@@ -28,6 +28,8 @@ import time
 import copy
 import threading
 import warnings
+import subprocess
+import commands
 
 from omniORB import CORBA, any
 
@@ -58,6 +60,70 @@ def _initSourceAndSink(dataFormat):
     sink.start()
 
     return source, sink
+
+@scatest.requireJava
+class InteractiveTestJava(scatest.CorbaTestCase):
+    def setUp(self):
+        self.message = "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+
+    def tearDown(self):
+        pass
+
+    def test_NoInteractiveJavaService(self):
+        status, output=commands.getstatusoutput('sdr/dev/services/BasicService_java/java/startJava.sh -i')
+        self.assertEquals(output,self.message)
+
+    def test_NoInteractiveJavaDevice(self):
+        print os.getcwd()
+        status, output=commands.getstatusoutput('sdr/dev/devices/BasicTestDevice_java/java/startJava.sh -i')
+        self.assertEquals(output,self.message)
+
+    def test_NoInteractiveJavaComponent(self):
+        print os.getcwd()
+        status, output=commands.getstatusoutput('sdr/dom/components/ECM_JAVA/java/startJava.sh -i')
+        self.assertEquals(output,self.message)
+
+class InteractiveTestPython(scatest.CorbaTestCase):
+    def setUp(self):
+        self.message = "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+
+    def tearDown(self):
+        pass
+
+    def test_NoInteractivePythonService(self):
+        status, output=commands.getstatusoutput('sdr/dev/services/S1/python/S1.py -i')
+        self.assertEquals(output,self.message)
+
+    def test_NoInteractivePythonDevice(self):
+        print os.getcwd()
+        status, output=commands.getstatusoutput('sdr/dev/devices/BasicTestDevice/BasicTestDevice.py -i')
+        self.assertEquals(output,"DEBUG:root:Starting Device\n"+self.message)
+
+    def test_NoInteractivePythonComponent(self):
+        print os.getcwd()
+        status, output=commands.getstatusoutput('sdr/dom/components/ECM_PY/python/ECM_PY.py -i')
+        self.assertEquals(output,self.message)
+
+class InteractiveTestCpp(scatest.CorbaTestCase):
+    def setUp(self):
+        self.message = "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+
+    def tearDown(self):
+        pass
+
+    def test_NoInteractiveCppService(self):
+        status, output=commands.getstatusoutput('sdr/dev/services/BasicService_cpp/cpp/BasicService_cpp -i')
+        self.assertEquals(output,self.message)
+
+    def test_NoInteractiveCppDevice(self):
+        print os.getcwd()
+        status, output=commands.getstatusoutput('sdr/dev/devices/cpp_dev/cpp/cpp_dev -i')
+        self.assertEquals(output,self.message)
+
+    def test_NoInteractiveCppComponent(self):
+        print os.getcwd()
+        status, output=commands.getstatusoutput('sdr/dom/components/ECM_CPP/cpp/ECM_CPP -i')
+        self.assertEquals(output,self.message)
 
 class SBTestTest(scatest.CorbaTestCase):
     def setUp(self):

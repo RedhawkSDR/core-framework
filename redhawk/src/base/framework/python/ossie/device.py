@@ -1328,6 +1328,11 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
     start_device(MyDeviceImpl)
     """
     execparams, interactive = resource.parseCommandLineArgs(deviceclass)
+
+    if interactive:
+        print "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+        sys.exit(-1)
+
     if not skip_run:
         resource.setupSignalHandlers()
         signal.signal(signal.SIGINT, signal.SIG_IGN)

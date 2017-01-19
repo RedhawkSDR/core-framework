@@ -285,6 +285,12 @@ static void sigint_handler(int signum)
 
 void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, char* argv[])
 {
+    for (int index = 1; index < argc; ++index) {
+        if (std::string(argv[index]) == std::string("-i")) {
+            std::cout<<"Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"<<std::endl;
+            exit(-1);
+        }
+    }
     // Scan the arguments for NAME_BINDING, setting the thread/process name
     // based on the name. If this isn't done prior to initializing CORBA, the
     // ORB creates some threads that will get the original process name, and
