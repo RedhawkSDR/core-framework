@@ -860,9 +860,11 @@ CF::Application_ptr createHelper::create (
     // Catch invalid device assignments
     _validateDAS(app_deployment, deviceAssignments);
 
-    // Allocate any usesdevice capacities specified in the SAD file; at this
-    // point, the complete set of component deployments is known, including any
-    // property overrides for allocation context
+    // resolve assembly controller to assist with usesdevices that
+    // require matching properties
+    _resolveAssemblyController(app_deployment);
+
+    // Allocate any usesdevice capacities specified in the SAD file
     _handleUsesDevices(app_deployment, name);
 
     // Assign all components to devices
@@ -996,6 +998,25 @@ CF::Application_ptr createHelper::create (
     LOG_INFO(ApplicationFactory_impl, "Done creating application " << app_deployment.getIdentifier() << " " << name);
     _isComplete = true;
     return appObj._retn();
+}
+
+
+void  createHelper::_resolveAssemblyController( redhawk::ApplicationDeployment& appDeployment  ) {
+
+    // Place the remaining components one-by-one
+    std::string asm_refid = _appFact._sadParser.getAssemblyControllerRefId();
+    const ComponentPlacement *asm_placement = _appFact._sadParser.getAssemblyControllerPlacement();
+    if ( asm_placement && asm_refid != "" and asm_refid.size() > 0 ) {
+        const SoftPkg* softpkg = _profileCache.loadProfile(asm_placement->filename);
+        const ComponentInstantiation *asm_inst = asm_placement->getInstantiation(asm_refid);
+        if ( asm_inst ) {
+            std::string inst_id = asm_inst->getID();
+            LOG_DEBUG(ApplicationFactory_impl, "Resolved ASSEMBLY CONTROLLER: " << asm_refid );
+            redhawk::ComponentDeployment *cp  __attribute__((unused));
+            cp = appDeployment.createComponentDeployment(softpkg, asm_inst);
+            return;
+        }
+    }
 }
 
 CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDeviceProperties(const std::vector<UsesDevice>& usesDevices, const CF::Properties& configureProperties)

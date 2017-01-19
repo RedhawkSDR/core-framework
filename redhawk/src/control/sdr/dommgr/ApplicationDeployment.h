@@ -109,6 +109,7 @@ namespace redhawk {
         redhawk::PropertyMap initConfiguration;
         ComponentList components;
         ContainerList containers;
+        ComponentDeployment *ac;
     };
 }
 

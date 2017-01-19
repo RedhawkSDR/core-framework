@@ -142,6 +142,8 @@ namespace ossie {
 
         const std::string& getAssemblyControllerRefId() const;
 
+        const ComponentPlacement* getAssemblyControllerPlacement() const;
+
         const std::vector<SoftwareAssembly::Port>& getExternalPorts() const;
 
         const std::vector<SoftwareAssembly::Property>& getExternalProperties() const;

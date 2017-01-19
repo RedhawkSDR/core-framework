@@ -104,6 +104,7 @@ private:
     // createHelper helper methods
     void assignPlacementsToDevices(redhawk::ApplicationDeployment& appDeployment,
                                    const DeviceAssignmentMap& devices);
+    void _resolveAssemblyController(redhawk::ApplicationDeployment& appDeployment);
     void _validateDAS(redhawk::ApplicationDeployment& appDeployment, const DeviceAssignmentMap& deviceAssignments);
     void setUpExternalPorts(redhawk::ApplicationDeployment& appDeployment, Application_impl* application);
     void setUpExternalProperties(redhawk::ApplicationDeployment& appDeployment, Application_impl* application);

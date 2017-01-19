@@ -51,12 +51,14 @@ ApplicationDeployment::ApplicationDeployment(const SoftwareAssembly& sad,
     // (e.g. "Application_1").
     identifier(sad.getID() + ":" + instanceName),
     instanceName(instanceName),
-    initConfiguration(initConfiguration)
+    initConfiguration(initConfiguration),
+    ac(0)
 {
 }
 
 ApplicationDeployment::~ApplicationDeployment()
 {
+    ac=NULL;
     BOOST_FOREACH(ComponentDeployment* component, components) {
         delete component;
     }
@@ -64,6 +66,7 @@ ApplicationDeployment::~ApplicationDeployment()
         delete container;
     }
 }
+
 
 const std::string& ApplicationDeployment::getIdentifier() const
 {
@@ -104,11 +107,17 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(const Soft
                  << softpkg->getName() << " is SCA-compliant");
     }
 
+    if  ( (instantiation->getID() == sad.getAssemblyControllerRefId() ) && ac ) {
+        LOG_TRACE(ApplicationDeployment, " Requesting AssemblyController "  << instantiation->getID() );
+        return ac;
+    }
+
     ComponentDeployment* deployment = new ComponentDeployment(softpkg, instantiation, component_id);
     components.push_back(deployment);
 
     // Override properties from initial configuration
     if (instantiation->getID() == sad.getAssemblyControllerRefId()) {
+        ac = deployment;
         deployment->setIsAssemblyController(true);
         overrideAssemblyControllerProperties(deployment);
     } else {

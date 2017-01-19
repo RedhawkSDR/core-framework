@@ -184,6 +184,22 @@ const std::vector<UsesDevice>& SoftwareAssembly::getUsesDevices() const {
     return _sad->usesdevice;
 }
 
+const ComponentPlacement * SoftwareAssembly::getAssemblyControllerPlacement() const
+{
+   BOOST_FOREACH(const ComponentPlacement& placement, _sad->partitioning.placements) {
+        const ComponentInstantiation* instantiation = placement.getInstantiation(_sad->assemblycontroller);
+        if (instantiation) return &(placement);
+    }
+
+    BOOST_FOREACH(HostCollocation& collocation, _sad->partitioning.collocations) {
+        BOOST_FOREACH(const ComponentPlacement& placement, collocation.getComponents()) {
+            const ComponentInstantiation* instantiation = placement.getInstantiation(_sad->assemblycontroller);
+            if (instantiation) return &(placement);
+        }
+    }
+   return NULL;
+}
+
 const ComponentInstantiation* SoftwareAssembly::getComponentInstantiation(const std::string& refid) const
 {
     BOOST_FOREACH(HostCollocation& collocation, _sad->partitioning.collocations) {
