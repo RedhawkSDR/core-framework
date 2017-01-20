@@ -926,7 +926,7 @@ class FrontendTunerDevice(Device):
                 if key == _allocation_id:
                     return self.allocation_id_to_tuner_id[_allocation_id]
         finally:
-            self.allocation_id_mapping_lock.acquire()
+            self.allocation_id_mapping_lock.release()
         return NO_VALID_TUNER
 
     def sendEOS(self, allocation_id):
@@ -968,7 +968,7 @@ class FrontendTunerDevice(Device):
         try:
             self.tuner_allocation_ids[tuner_id].reset()
         finally:
-            self.allocation_id_mapping_lock.acquire()
+            self.allocation_id_mapping_lock.release()
         return True
 
     def assignListener(self, listen_alloc_id, alloc_id):

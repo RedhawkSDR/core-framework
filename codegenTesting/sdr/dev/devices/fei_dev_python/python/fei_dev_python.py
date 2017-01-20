@@ -29,6 +29,7 @@ import logging
 from fei_dev_python_base import *
 
 import frontend.sri
+import time
 
 class fei_dev_python_i(fei_dev_python_base):
     """<DESCRIPTION GOES HERE>"""
@@ -310,6 +311,7 @@ class fei_dev_python_i(fei_dev_python_base):
         self.frontend_tuner_status[idx].bandwidth = bw
 
     def getTunerBandwidth(self,allocation_id):
+        time.sleep(1)
         idx = self.getTunerMapping(allocation_id)
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         return self.frontend_tuner_status[idx].bandwidth
