@@ -25,6 +25,7 @@ import frontend
 import redhawk.frontendInterfaces
 from omniORB import any as _any
 from ossie.cf import CF
+import time, threading
 
 
 class DeviceTests(ossie.utils.testing.RHTestCase):
@@ -59,6 +60,25 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
     def tearDown(self):
         # Clean up all sandbox artifacts created during test
         sb.release()
+
+    def threadedFunction(self, port):
+        self.sample_rate_1 = port.ref.getTunerBandwidth('hello')
+
+    def testReentrant(self):
+        #######################################################################
+        # Make sure start and stop can be called without throwing exceptions
+        for _port in self.comp.ports:
+            if _port.name == 'DigitalTuner_in':
+                port = _port
+                break
+        alloc = frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='hello',center_frequency=100)
+        retval = self.comp.allocateCapacity(alloc)
+        thread = threading.Thread(target=self.threadedFunction, args = (port, ))
+        thread.start()
+        self.sample_rate_2 = port.ref.getTunerBandwidth('hello')
+        time.sleep(1)
+        thread.join()
+        self.assertEquals(self.sample_rate_1, self.sample_rate_2)
 
     def testBasicBehavior(self):
         #######################################################################
