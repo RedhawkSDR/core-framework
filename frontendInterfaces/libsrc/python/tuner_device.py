@@ -754,7 +754,7 @@ class FrontendTunerDevice(Device):
                         self.removeTunerMappingByAllocationId(split_id[idx])
                         self.removeListenerId(tuner_id, split_id[idx])
                     break
-        except:
+        finally:
             self.allocation_id_mapping_lock.release()
         
         self.allocation_id_mapping_lock.acquire()
