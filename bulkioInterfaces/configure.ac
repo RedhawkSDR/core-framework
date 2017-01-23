@@ -146,8 +146,27 @@ if test "$enable_base_classes" != "no"; then
   if test "$HAVE_JAVASUPPORT = yes"; then
     AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF])
   fi
-  AC_CONFIG_FILES([libsrc/Makefile libsrc/bulkio.pc])
-  AC_CONFIG_FILES([libsrc/testing/tests/cpp/Makefile])
+  AC_SUBST(PROJECTDEPS_CFLAGS, "\$(OSSIE_CFLAGS)")
+  AC_SUBST(PROJECTDEPS_LIBS, "\$(OSSIE_LIBS)")
+  AC_SUBST(INTERFACEDEPS_CFLAGS, "\$(BULKIO_CFLAGS)")
+  AC_SUBST(INTERFACEDEPS_LIBS, "\$(BULKIO_LIBS)")
+  AC_SUBST(REDHAWK_CLASSPATH, "\$(OSSIE_CLASSPATH)")
+  AC_SUBST(BULKIO_CLASSPATH, "\$(top_srcdir)/libsrc/bulkio.jar:\$(top_srcdir)/BULKIOInterfaces.jar")
+  AC_CONFIG_FILES([libsrc/Makefile \
+                   libsrc/bulkio.pc \
+                   libsrc/testing/Makefile \
+                   libsrc/testing/tests/cpp/Makefile \
+                   libsrc/testing/components/CPP_Ports/cpp/Makefile \
+                   libsrc/testing/components/Java_Ports/java/Makefile \
+                   libsrc/testing/components/Oversized_framedata/cpp/Makefile \
+                   libsrc/testing/components/Oversized_framedata/java/Makefile \
+                   libsrc/testing/components/TestLargePush/cpp/Makefile \
+                   libsrc/testing/components/TestLargePush/java/Makefile \
+                   libsrc/testing/components/multiout_attachable/cpp/Makefile \
+                   libsrc/testing/components/multiout_attachable/java/Makefile \
+                   libsrc/testing/components/sri_changed_cpp/cpp/Makefile \
+                   libsrc/testing/devices/dev_snk/java/Makefile \
+                   libsrc/testing/devices/dev_src/java/Makefile])
 fi
 
 AC_OUTPUT

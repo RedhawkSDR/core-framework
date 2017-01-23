@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -19,7 +18,9 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-rm -f config.cache
-[ -d m4 ] || mkdir m4
-autoreconf -i
-
+SUBDIRS = components/CPP_Ports/cpp components/sri_changed_cpp/cpp components/Java_Ports/java
+SUBDIRS += components/TestLargePush/cpp components/TestLargePush/java
+SUBDIRS += components/multiout_attachable/cpp components/multiout_attachable/java
+SUBDIRS += components/Oversized_framedata/cpp components/Oversized_framedata/java
+SUBDIRS += devices/dev_src/java devices/dev_snk/java
+SUBDIRS += tests/cpp
