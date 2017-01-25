@@ -97,6 +97,8 @@ namespace bulkio {
 
     public:
         operator unspecified_bool_type() const;
+        bool operator==(const OutputStream& other) const;
+        bool operator!=(const OutputStream& other) const;
     };
 
 
