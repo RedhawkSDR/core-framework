@@ -138,7 +138,14 @@ AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 
 # C++ unit testing support. May want to conditionally enable/disable this.
 AM_PATH_CPPUNIT(1.12.1)
-AC_SUBST(BULKIO_CFLAGS, "-I \$(top_srcdir)/src/cpp -I \$(top_srcdir)/libsrc/cpp")
+
+# For C++ test components, provide BULKIO_CFLAGS and BULKIO_LIBS so they build
+# without modifying their Makefile.am to change the paths. In order to pick up
+# the uninstalled headers, we need to provide the path to the BULKIO headers,
+# the top-level include directory ("bulkio/bulkio.h") and the bulkio
+# directory inside of include ("bulkio.h").
+bulkio_includedir="\$(top_srcdir)/libsrc/cpp/include"
+AC_SUBST(BULKIO_CFLAGS, "-I \$(top_srcdir)/src/cpp -I ${bulkio_includedir} -I ${bulkio_includedir}/bulkio")
 AC_SUBST(BULKIO_LIBS, "-L\$(top_srcdir)/libsrc -lbulkio-${BULKIO_API_VERSION} -L\$(top_srcdir) -lbulkioInterfaces")
 
 AC_CONFIG_FILES([bulkioInterfaces.pc setup.py Makefile jni/Makefile])
