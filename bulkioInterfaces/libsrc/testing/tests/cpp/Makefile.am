@@ -23,5 +23,6 @@ check_PROGRAMS = $(TESTS)
 
 Bulkio_SOURCES = Bulkio.cpp Bulkio_Helper_Fixture.cpp Bulkio_InPort_Fixture.cpp Bulkio_OutPort_Fixture.cpp Bulkio_MultiOut_Port.cpp
 Bulkio_SOURCES += InStreamTest.h InStreamTest.cpp
+Bulkio_SOURCES += OutStreamTest.h OutStreamTest.cpp
 Bulkio_CXXFLAGS = $(BULKIO_CFLAGS) $(BOOST_CPPFLAGS) $(OSSIE_CFLAGS) $(CPPUNIT_CFLAGS)
 Bulkio_LDADD = $(BULKIO_LIBS) $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(OSSIE_LIBS) $(CPPUNIT_LIBS) $(LOG4CXX_LIBS)
