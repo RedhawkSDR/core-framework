@@ -36,7 +36,7 @@ void BasicService_cpp_i::move(const char* sourceFileName, const char* destinatio
 
 CORBA::Boolean BasicService_cpp_i::exists(const char* fileName)
 {
-    CORBA::Boolean tmpVal;
+    CORBA::Boolean tmpVal = false;
     // TODO: Fill in this function
     
     return tmpVal;
@@ -44,7 +44,7 @@ CORBA::Boolean BasicService_cpp_i::exists(const char* fileName)
 
 CF::FileSystem::FileInformationSequence* BasicService_cpp_i::list(const char* pattern)
 {
-    CF::FileSystem::FileInformationSequence* tmpVal;
+    CF::FileSystem::FileInformationSequence* tmpVal = new CF::FileSystem::FileInformationSequence();
     // TODO: Fill in this function
     
     return tmpVal;
@@ -52,7 +52,7 @@ CF::FileSystem::FileInformationSequence* BasicService_cpp_i::list(const char* pa
 
 CF::File_ptr BasicService_cpp_i::create(const char* fileName)
 {
-    CF::File_ptr tmpVal;
+    CF::File_ptr tmpVal = CF::File::_nil();
     // TODO: Fill in this function
     
     return tmpVal;
@@ -60,7 +60,7 @@ CF::File_ptr BasicService_cpp_i::create(const char* fileName)
 
 CF::File_ptr BasicService_cpp_i::open(const char* fileName, CORBA::Boolean read_Only)
 {
-    CF::File_ptr tmpVal;
+    CF::File_ptr tmpVal = CF::File::_nil();
     // TODO: Fill in this function
     
     return tmpVal;
@@ -93,7 +93,7 @@ void BasicService_cpp_i::unmount(const char* mountPoint)
 
 CF::FileManager::MountSequence* BasicService_cpp_i::getMounts()
 {
-    CF::FileManager::MountSequence* tmpVal;
+    CF::FileManager::MountSequence* tmpVal = new CF::FileManager::MountSequence();
     // TODO: Fill in this function
     
     return tmpVal;

@@ -38,6 +38,7 @@ from ossie import properties
 from ossie.cf import CF, StandardEvent
 from ossie.utils import sb, type_helpers
 from ossie.utils.bulkio import bulkio_helpers
+from ossie.events import ChannelManager, Subscriber, Publisher
 
 from _unitTestHelpers import scatest, runtestHelpers
 
@@ -125,6 +126,61 @@ class InteractiveTestCpp(scatest.CorbaTestCase):
         print os.getcwd()
         status, output=commands.getstatusoutput('sdr/dom/components/ECM_CPP/cpp/ECM_CPP -i')
         self.assertEquals(output,self.message)
+
+class SBEventChannelTest(scatest.CorbaTestCase):
+    def setUp(self):
+        orb = CORBA.ORB_init()
+        self.chanMgr = ChannelManager(orb)
+        self._app=None
+        self.rec_data = None
+        # Force creation
+        self.channel = self.chanMgr.createEventChannel("TestChan", force=True)
+        sb.setDEBUG(False)
+        self.test_comp = "Sandbox"
+        # Flagrant violation of sandbox API: if the sandbox singleton exists,
+        # clean up previous state and dispose of it.
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+
+    def assertComponentCount(self, count):
+        self.assertEquals(len(sb.domainless._getSandbox().getComponents()), count)
+
+    def tearDown(self):
+        try:
+            if self.channel:
+                self.chanMgr.destroyEventChannel("TestChan")                           
+        except:
+            pass
+        sb.release()
+        sb.setDEBUG(False)
+        os.environ['SDRROOT'] = globalsdrRoot
+        
+    def test_PublishSubscribePull(self):
+        sub = Subscriber( self.channel )
+        pub = Publisher( self.channel )
+        payload = 'hello'
+        data = any.to_any(payload)
+        pub.push(data)
+        time.sleep(1)
+        self.rec_data = sub.getData()
+        self.assertEquals(self.rec_data, payload)
+        pub.terminate()
+        sub.terminate()
+        
+    def callback(self, data):
+        self.rec_data = data
+        
+    def test_PublishSubscribeCB(self):
+        sub = Subscriber(self.channel, dataArrivedCB=self.callback)
+        pub = Publisher(self.channel)
+        payload = 'hello'
+        data = any.to_any(payload)
+        pub.push(data)
+        time.sleep(1)
+        self.assertEquals(self.rec_data, payload)
+        pub.terminate()
+        sub.terminate()
 
 class SBTestTest(scatest.CorbaTestCase):
     def setUp(self):

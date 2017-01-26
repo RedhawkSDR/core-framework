@@ -230,6 +230,39 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
   }
 
 
+  void EventChannelManager::forceRelease( const char *channel_name) 
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+	    CF::EventChannelManager::OperationFailed, 
+	    CF::EventChannelManager::OperationNotAllowed,
+	    CF::EventChannelManager::ServiceUnavailable ) {
+      
+    SCOPED_LOCK(_mgrlock);
+    // get the event channel factory... throws ServiceUnavailable if factory is not resolved
+    _getEventChannelFactory();
+
+    ECM_DEBUG( "release", " Delete event channel: " << channel_name );    
+    std::string cname(channel_name);
+
+    ECM_DEBUG( "release", " Check registration for event channel: " << channel_name );    
+    ChannelRegistrationPtr reg = _getChannelRegistration( cname );
+
+    // channel registration entry does not exists 
+    if ( reg == NULL ) {
+      ECM_DEBUG( "release", " Registration DOES NOT EXISTS event channel: " << channel_name );    
+      throw (CF::EventChannelManager::ChannelDoesNotExist());
+    }
+
+    // check if anyone is still registered
+    CF::EventChannelManager::EventRegistration_var tmp_evt = new CF::EventChannelManager::EventRegistration();
+    tmp_evt->channel_name = channel_name;
+    while ( reg->nregistrants() > 0 ) {
+        tmp_evt->reg_id = reg->registrants.begin()->first.c_str();
+        _unregister(tmp_evt);
+    }
+    _release(channel_name);
+    
+  }
+
   void EventChannelManager::release( const std::string &channel_name) 
     throw ( CF::EventChannelManager::ChannelDoesNotExist, 
             CF::EventChannelManager::RegistrationsExists, 
@@ -337,6 +370,30 @@ ossie::events::EventChannel_ptr EventChannelManager::create( const std::string &
     
   }
 
+ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &channel_name) 
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+	    CF::EventChannelManager::OperationFailed, 
+	    CF::EventChannelManager::OperationNotAllowed,
+	    CF::EventChannelManager::ServiceUnavailable )
+  {
+    SCOPED_LOCK(_mgrlock);
+    return _get( channel_name );
+    
+  }
+
+
+
+  ossie::events::EventChannel_ptr EventChannelManager::get( const char *channel_name) 
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+	    CF::EventChannelManager::OperationFailed, 
+	    CF::EventChannelManager::OperationNotAllowed,
+	    CF::EventChannelManager::ServiceUnavailable )
+  {
+    SCOPED_LOCK(_mgrlock);
+    return _get( channel_name );
+    
+  }
+
 
   ossie::events::EventChannel_ptr EventChannelManager::createForRegistrations( const char *channel_name) 
     throw ( CF::EventChannelManager::ChannelAlreadyExists, 
@@ -438,6 +495,67 @@ ossie::events::EventChannel_ptr EventChannelManager::create( const std::string &
     //
     ECM_TRACE("create", "Completed create Event Channel: "<< channel_name );
     return event_channel._retn();
+  }
+
+  ossie::events::EventChannel_ptr EventChannelManager::_get( const std::string &channel_name ) 
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+	    CF::EventChannelManager::OperationFailed, 
+	    CF::EventChannelManager::OperationNotAllowed,
+	    CF::EventChannelManager::ServiceUnavailable )
+  {
+    //
+    // validate channel name...
+    //
+    if ( _validateChannelName( channel_name ) == false ) {
+      throw ( CF::EventChannelManager::InvalidChannelName());
+    }
+
+    //
+    // check if channel name is already registered
+    //
+    if ( _channelExists( channel_name ) ) {
+      ChannelRegistrationPtr cr_ptr = _getChannelRegistration( channel_name );
+      return(ossie::events::EventChannel::_duplicate(cr_ptr->channel));
+    }
+
+    //
+    // check if channel name is already exists in the event service
+    //
+    ossie::events::EventChannel_var event_channel = ossie::events::EventChannel::_nil();
+    std::string   cname(channel_name);
+    std::string   fqn = _getFQN(cname);
+    bool          require_ns = false;           // if channel exists and use_nameing_service is enabled
+    event_channel = _resolve_es( cname, fqn );
+
+    // if we found a matching channel
+    if ( !CORBA::is_nil(event_channel) ) {
+
+      // if naming service disabled then throw
+      if ( _use_naming_service == false && _allow_es_resolve == false ) {
+          return(ossie::events::EventChannel::_duplicate(event_channel));
+      }
+      else {
+        if ( _allow_es_resolve == false ) {
+          // set next search method to require use of NS
+          require_ns=true;
+        }
+      }
+    }
+    
+    //
+    // try and resolve with naming service (if enabled)
+    //
+    if ( require_ns ) {
+      ECM_TRACE( "_createChannel", " Checking NamingService for:" << fqn );
+      event_channel = _resolve_ns( cname, fqn, _domain_context );
+      // if NamingService is enable and we require its use, but channel evaluation failed
+      if ( CORBA::is_nil(event_channel) && require_ns) {
+        throw (CF::EventChannelManager::OperationFailed());
+      }        
+      return(ossie::events::EventChannel::_duplicate(event_channel));
+    }
+    ECM_DEBUG("get", "Event channel: "<< channel_name << " does not exist in the local domain");
+    throw (CF::EventChannelManager::ChannelDoesNotExist());
   }
 
 
@@ -598,6 +716,152 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
     //
     return reg;
   }
+  
+  ossie::events::EventChannelReg_ptr EventChannelManager::registerConsumer( CosEventComm::PushConsumer_ptr consumer, const ossie::events::EventRegistration &req)  
+    throw ( CF::EventChannelManager::InvalidChannelName, 
+            CF::EventChannelManager::RegistrationAlreadyExists,
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable ) {
+      int retries = 10;
+      int retry_wait = 10;
+      int tries = retries;
+      CosEventChannelAdmin::ConsumerAdmin_var consumer_admin;
+      ossie::events::EventChannel_var channel = get(req.channel_name);
+      do
+      {
+          try {
+              consumer_admin = channel->for_consumers ();
+              break;
+          }
+          catch (CORBA::COMM_FAILURE& ex) {
+          }
+          if ( retry_wait > 0 ) {
+              boost::this_thread::sleep( boost::posix_time::microseconds( retry_wait*1000 ) );
+          } else {
+              boost::this_thread::yield();
+          }
+          tries--;
+      } while ( tries );
+        
+      ossie::events::EventSubscriber_var _proxy;
+        
+      if ( CORBA::is_nil(consumer_admin) )
+          throw (CF::EventChannelManager::OperationFailed());
+      tries=retries;
+      do {
+          try {
+              _proxy = consumer_admin->obtain_push_supplier ();
+              break;
+          }
+          catch (CORBA::COMM_FAILURE& ex) {
+          }
+          if ( retry_wait > 0 ) {
+              boost::this_thread::sleep( boost::posix_time::microseconds( retry_wait*1000 ) );
+          } else {
+              boost::this_thread::yield();
+          }
+          tries--;
+      } while ( tries );
+      if ( CORBA::is_nil(_proxy) )
+          throw (CF::EventChannelManager::OperationFailed());
+      tries=retries;
+      do {
+          try {
+              _proxy->connect_push_consumer(consumer);
+          }
+          catch (CORBA::BAD_PARAM& ex) {
+              ECM_DEBUG("registerConsumer", "Unable to connect consumer to the Event channel" );
+              throw (CF::EventChannelManager::OperationFailed());
+          }
+          catch (CosEventChannelAdmin::AlreadyConnected& ex) {
+              break;
+          }
+          catch (CORBA::COMM_FAILURE& ex) {
+          }
+          if ( retry_wait > 0 ) {
+              boost::this_thread::sleep( boost::posix_time::microseconds( retry_wait*1000 ) );
+          } else {
+              boost::this_thread::yield();
+          }
+          tries--;
+      } while ( tries );
+      ossie::events::EventChannelReg_ptr ret_reg;
+      try {
+          ret_reg = registerResource(req);
+      } catch ( ... ) {
+          try {
+              _proxy->disconnect_push_supplier();
+          } catch ( ... ) {
+          }
+          throw;
+      }
+      std::string _reg_id(ret_reg->reg.reg_id);
+      _subProxies[_reg_id] = ossie::events::EventSubscriber::_duplicate(_proxy);
+      return ret_reg;
+  }
+  
+  ossie::events::PublisherReg_ptr EventChannelManager::registerPublisher( const ossie::events::EventRegistration &req, CosEventComm::PushSupplier_ptr disconnectReceiver)  
+    throw ( CF::EventChannelManager::InvalidChannelName, 
+            CF::EventChannelManager::RegistrationAlreadyExists,
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable ) {
+        
+      int retries = 10;
+      int retry_wait = 10;
+      int tries = retries;
+        
+      CosEventChannelAdmin::SupplierAdmin_var supplier_admin;
+      ossie::events::PublisherReg_ptr reg = new ossie::events::PublisherReg();
+      ossie::events::EventChannel_var channel = get(req.channel_name);
+      do
+      {
+          try {
+              supplier_admin = channel->for_suppliers ();
+              break;
+          } catch (CORBA::COMM_FAILURE& ex) {}
+          if ( retry_wait > 0 ) {
+              boost::this_thread::sleep( boost::posix_time::microseconds( retry_wait*1000 ) );
+          } else {
+              boost::this_thread::yield();
+          }
+          tries--;
+      } while ( tries );
+
+      if ( CORBA::is_nil(supplier_admin) )
+          throw (CF::EventChannelManager::OperationFailed());;
+
+      tries=retries;
+      do {
+          try {
+              reg->proxy_consumer = supplier_admin->obtain_push_consumer ();
+              break;
+          } catch (CORBA::COMM_FAILURE& ex) {}
+          if ( retry_wait > 0 ) {
+              boost::this_thread::sleep( boost::posix_time::microseconds( retry_wait*1000 ) );
+          } else {
+              boost::this_thread::yield();
+          }
+          tries--;
+      } while ( tries );
+        
+      ossie::events::EventChannelReg_var ret_reg;
+      try {
+          ret_reg = registerResource(req);
+      } catch ( ... ) {
+          throw;
+      }
+      reg->proxy_consumer->connect_push_supplier( disconnectReceiver );
+        
+      reg->reg.channel_name = CORBA::string_dup(req.channel_name);
+      reg->reg.reg_id = CORBA::string_dup(ret_reg->reg.reg_id);
+      reg->channel = ossie::events::EventChannel::_duplicate(ret_reg->channel);
+        
+      std::string _reg_id(ret_reg->reg.reg_id);
+      _pubProxies[_reg_id] = CF::EventPublisher::_duplicate(reg->proxy_consumer);
+      return reg;
+  }
 
 
 
@@ -636,7 +900,43 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
     //
     std::string regid(reg.reg_id);
     std::string cname(reg.channel_name);
-
+    
+    if (_subProxies.find(regid) != _subProxies.end()) {
+        try {
+            _subProxies[regid]->disconnect_push_supplier();
+        } catch ( ... ) {
+        }
+        _subProxies.erase(regid);
+    }
+    
+    int retries = 10;
+    int retry_wait = 10;
+    if (_pubProxies.find(regid) != _pubProxies.end()) {
+        int tries = retries;
+        do {
+            try {
+                _pubProxies[regid]->disconnect_push_consumer();
+                break;
+            }
+            catch (CORBA::COMM_FAILURE& ex) {
+                if ( tries == retries )   {
+                    RH_NL_WARN("Publisher",  "::disconnect, Caught COMM_FAILURE Exception " << "disconnecting Push Consumer! Retrying..." );
+                }
+            } catch (...) {
+                if ( tries == retries )  {
+                    RH_NL_WARN("Publisher",  "::disconnect, UNKNOWN Exception " << "disconnecting Push Consumer! Retrying..." );
+                }
+            }
+            if ( retry_wait > 0 ) {
+                boost::this_thread::sleep( boost::posix_time::microseconds( retry_wait*1000 ) );
+            } else {
+                boost::this_thread::yield();
+            }
+            tries--;
+        } while(tries);
+        _pubProxies.erase(regid);
+    }
+    
     ECM_DEBUG("unregister", "CHECK REGISTRATION,  ID:" << regid<< " CHANNEL:" << cname);
     _regExists( cname, regid );
 

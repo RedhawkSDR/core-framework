@@ -559,8 +559,11 @@ class PropertyEmitter(PropertySet):
     
     def registerPropertyListener( self, obj, prop_ids=[], interval=1.0):
         self.__log.trace("registerPropertyListener('%s')", str(prop_ids))
+        _obj = obj
+        if hasattr(obj, '_this'):
+            _obj = obj._this()
         if self.ref:
-            return self.ref.registerPropertyListener(obj, prop_ids, interval )
+            return self.ref.registerPropertyListener(_obj, prop_ids, interval )
         return None
 
     def unregisterPropertyListener( self, reg_id ):

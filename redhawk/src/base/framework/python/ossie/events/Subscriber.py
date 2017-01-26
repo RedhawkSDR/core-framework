@@ -86,17 +86,37 @@ class DefaultConsumer(Receiver):
         Receiver.__init__(self)
 
     def push(self, data):
+        _data = any.from_any(data)
         if self.parent.dataArrivedCB != None:
             self.parent.logger.trace('Received (callback) DATA: ' + str(data))
-            self.parent.dataArrivedCB( data )
+            self.parent.dataArrivedCB(_data)
         else:
             self.parent.logger.trace('Received (queue) DATA: ' + str(data))
-            self.parent.events.put(data)
+            self.parent.events.put(_data)
         
 
 class Subscriber:
-    def __init__(self, channel, dataArrivedCB=None):
-        self.channel = channel
+    def __init__(self, remote_obj, channel_name='', dataArrivedCB=None):
+        '''
+          remote_obj is either an Event Channel or a Domain Manager
+          if remote_obj is a Domain Manager, a channel_name must be supplied
+        '''
+        self.channel = None
+        self.domain = None
+        self.channel_name = channel_name
+        self.registration = CF.EventChannelManager.EventRegistration( channel_name = self.channel_name, reg_id = "")
+        self.reg_resp = None
+        if hasattr(remote_obj, 'ref'):
+            if remote_obj.ref._narrow(CF.DomainManager) != None:
+                self.domain = remote_obj.ref
+        elif remote_obj._narrow(CosEventChannelAdmin.EventChannel) != None:
+            self.channel = remote_obj._narrow(CosEventChannelAdmin.EventChannel)
+        elif remote_obj._narrow(CF.DomainManager) != None:
+            self.domain = remote_obj._narrow(CF.DomainManager)
+        if self.channel == None and self.domain == None:
+            raise Exception("Error. remote_obj must either be an Event Channel or a Domain Manager")
+        if self.domain != None and channel_name == '':
+            raise Exception("Error. When passing a Domain Manager as an argument, channel_name must have a valid Event Channel name")
         self.proxy = None
         self.logger = logging.getLogger('ossie.events.Subscriber')
         self.dataArrivedCB=dataArrivedCB
@@ -105,10 +125,9 @@ class Subscriber:
         self.consumer = DefaultConsumer(self)
         self.connect()
 
-
     def __del__(self):
         self.logger.debug("Subscriber  DTOR START")
-        if self.consumer and self.consumer.get_disconnect() == False:
+        if self.consumer:
             self.logger.debug("Subscriber::DTOR  DISCONNECT")
             self.disconnect()
 
@@ -124,7 +143,7 @@ class Subscriber:
 
     def terminate(self):
         self.logger.debug("Subscriber::terminate START")
-        if self.consumer and self.consumer.get_disconnect() == False:
+        if self.consumer:
             self.logger.debug("Subscriber::terminate DISCONNECT")
             self.disconnect()
 
@@ -141,17 +160,24 @@ class Subscriber:
             return retval;
         
         try:
-            tmp = self.events.get(False,.01)
-            self.logger.debug('getData: ' + str(tmp))
-            retval = any.from_any(tmp)
+            retval = self.events.get(False,.01)
+            self.logger.debug('getData: ' + str(retval))
         except:
-            #print traceback.print_exc()
             retval=None
         
         return retval
 
 
     def disconnect(self, retries=10, retry_wait=.01):
+        if self.channel != None:
+            self.disconnectEvtChan(retries, retry_wait)
+        else:
+            self.disconnectDomMgr()
+
+    def disconnectDomMgr(self):
+        self.ecm.unregister(self.reg_resp.reg)
+
+    def disconnectEvtChan(self, retries=10, retry_wait=.01):
         if self.channel == None:
             return -1
 
@@ -177,7 +203,16 @@ class Subscriber:
 
 
     def connect(self, retries=10, retry_wait=.01):
+        if self.channel != None:
+            self.connectEvtChan(retries, retry_wait)
+        else:
+            self.connectDomMgr()
         
+    def connectDomMgr(self):
+        self.ecm = self.domain._get_eventChannelMgr()
+        self.reg_resp = self.ecm.registerConsumer(self.consumer._this(), self.registration)
+
+    def connectEvtChan(self, retries=10, retry_wait=.01):
         if self.channel == None:
             return -1
 

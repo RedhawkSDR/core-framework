@@ -83,6 +83,18 @@ class EventChannelManager: public virtual EventChannelManagerBase {
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );
 
+  ossie::events::EventChannel_ptr get( const char *channel_name  )  
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
+
+  ossie::events::EventChannel_ptr get( const std::string &channel_name  )  
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
+
   /*
      Return an Event Channel in the Domain associated with the Manager from the specified channel_name parameter.
      
@@ -106,6 +118,15 @@ class EventChannelManager: public virtual EventChannelManagerBase {
             CF::EventChannelManager::OperationFailed, 
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );    
+
+  /*
+     Force the removal of the event channel from the Domain
+  */
+  void forceRelease( const char *channel_name  ) 
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
 
   /*
      Remove the event channel from the Domain
@@ -153,6 +174,19 @@ class EventChannelManager: public virtual EventChannelManagerBase {
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );
 
+  ossie::events::EventChannelReg_ptr registerConsumer( CosEventComm::PushConsumer_ptr consumer, const ossie::events::EventRegistration &req)  
+    throw ( CF::EventChannelManager::InvalidChannelName, 
+            CF::EventChannelManager::RegistrationAlreadyExists,
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
+  ossie::events::PublisherReg_ptr registerPublisher( const ossie::events::EventRegistration &req, CosEventComm::PushSupplier_ptr disconnectReceiver)  
+    throw ( CF::EventChannelManager::InvalidChannelName, 
+            CF::EventChannelManager::RegistrationAlreadyExists,
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
+  
   /*
      Unregister a publisher or subcriber from an event channel and invalidates the context
   */
@@ -184,6 +218,9 @@ class EventChannelManager: public virtual EventChannelManagerBase {
 
   typedef  std::pair< std::string, std::string >  RegRecord;
   typedef  std::map< std::string, std::string >   RegIdList;
+  
+  std::map<std::string, ossie::events::EventSubscriber_var> _subProxies;
+  std::map<std::string, ossie::events::EventPublisher_var> _pubProxies;
 
   struct ChannelRegistration {
     std::string                      channel_name;
@@ -226,6 +263,11 @@ class EventChannelManager: public virtual EventChannelManagerBase {
 	    CF::EventChannelManager::OperationNotAllowed,
 	    CF::EventChannelManager::ServiceUnavailable );
 
+  ossie::events::EventChannel_ptr _get( const std::string &channel_name )
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+	    CF::EventChannelManager::OperationFailed, 
+	    CF::EventChannelManager::OperationNotAllowed,
+	    CF::EventChannelManager::ServiceUnavailable );
 
   ossie::events::EventChannel_ptr _create( const std::string &channel_name, const bool autoRelease=false )  
     throw ( CF::EventChannelManager::ChannelAlreadyExists, 

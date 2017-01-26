@@ -22,11 +22,70 @@ import unittest
 from _unitTestHelpers import scatest
 import time
 from omniORB import CORBA
+from omniORB import any as _any
 from xml.dom import minidom
 import os as _os
 from ossie.cf import CF
 from ossie.utils import redhawk
 from ossie.utils import type_helpers
+from ossie.events import Subscriber, Publisher
+from ossie.cf import CF
+
+class RedhawkModuleEventChannelTest(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        self.ecm = self._domMgr._get_eventChannelMgr()
+        self.channelName = 'TestChan'
+        try:
+            self.channel = self.ecm.create(self.channelName)
+        except CF.EventChannelManager.ChannelAlreadyExists:
+            pass
+        self.channel = self.ecm.get(self.channelName)
+
+    def tearDown(self):
+        try:
+            self.ecm.release(self.channelName)
+        except CF.EventChannelManager.ChannelDoesNotExist:
+            pass
+        scatest.CorbaTestCase.tearDown(self)
+
+    def test_eventChannelPull(self):
+        sub = Subscriber(self._domMgr, self.channelName)
+        pub = Publisher(self._domMgr, self.channelName)
+        payload = 'hello'
+        data = _any.to_any(payload)
+        pub.push(data)
+        time.sleep(1)
+        self.rec_data = sub.getData()
+        self.assertEquals(self.rec_data, payload)
+        pub.terminate()
+        sub.terminate()
+
+    def test_eventChannelForceDelete(self):
+        sub = Subscriber(self._domMgr, self.channelName)
+        pub = Publisher(self._domMgr, self.channelName)
+        payload = 'hello'
+        data = _any.to_any(payload)
+        pub.push(data)
+        time.sleep(1)
+        self.rec_data = sub.getData()
+        self.assertEquals(self.rec_data, payload)
+        self.ecm.forceRelease(self.channelName)
+        self.assertRaises(CF.EventChannelManager.ChannelDoesNotExist, self.ecm.release, self.channelName)
+        
+    def callback(self, data):
+        self.rec_data = data
+        
+    def test_eventChannelCB(self):
+        sub = Subscriber(self._domMgr, self.channelName, dataArrivedCB=self.callback)
+        pub = Publisher(self._domMgr, self.channelName)
+        payload = 'hello'
+        data = _any.to_any(payload)
+        pub.push(data)
+        time.sleep(1)
+        self.assertEquals(self.rec_data, payload)
+        pub.terminate()
+        sub.terminate()
 
 class RedhawkModuleTest(scatest.CorbaTestCase):
     def setUp(self):

@@ -62,6 +62,8 @@ Helpers are provided to manage data
       Push data from a file into components and back.
   - MessageSource(), MessageSink():
       Push messages from Python to components and back.
+  - PropertyChangeListener:
+      Container to receive asynchronous property change events
   - SoundSink():
       Playback audio data from BULKIO streams
   - compareSRI():
@@ -116,7 +118,9 @@ General usage examples:
 """
 from domainless import *
 from io_helpers import *
+from prop_change_helpers import *
 from block_process import *
+
 try:
     from bulkio.bulkioInterfaces import BULKIO
 except:

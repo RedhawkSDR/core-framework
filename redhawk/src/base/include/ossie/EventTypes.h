@@ -69,6 +69,9 @@ namespace ossie {
     typedef  CF::EventChannelManager::EventChannelReg          EventChannelReg;
     typedef  CF::EventChannelManager::EventChannelReg_var      EventChannelReg_var;
     typedef  CF::EventChannelManager::EventChannelReg*         EventChannelReg_ptr;
+    typedef  CF::EventChannelManager::PublisherReg             PublisherReg;
+    typedef  CF::EventChannelManager::PublisherReg_var         PublisherReg_var;
+    typedef  CF::EventChannelManager::PublisherReg*            PublisherReg_ptr;
 
   };  // end of event namespace
 
