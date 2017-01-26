@@ -1300,7 +1300,15 @@ class EventChannelManager(CorbaObject):
                 raise
         return retval
 
+    def registerConsumer(self, consumer, req):
+        if hassattr(consumer, '_this'):
+            return self.ref.registerConsumer(consumer._this(), req)
+        return self.ref.registerConsumer(consumer, req)
 
+    def registerPublisher(self, req, disconnectReceiver):
+        #if hassattr(disconnectReceiver, '_this'):
+        #    return self.ref.registerPublisher(req, disconnectReceiver._this())
+        return self.ref.registerPublisher(req, disconnectReceiver)
 
 class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
     """The Domain is a descriptor for a Domain Manager.
@@ -1704,34 +1712,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             except:
                 pass
         return retval
-    
-    def _get_allocationMgr(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_allocationMgr()
-            except:
-                pass
-        return retval
-    
-    def _get_connectionMgr(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_connectionMgr()
-            except:
-                pass
-        return retval
-    
-    def _get_eventChannelMgr(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_eventChannelMgr()
-            except:
-                pass
-        return retval
-    
+
     def _get_name(self):
         retval = ''
         if self.ref:
@@ -1907,6 +1888,30 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         return self.__connectionMgr
 
     def getEventChannelMgr(self):
+        if self.ref and self.__eventChannelMgr == None :
+            try:
+                self.__eventChannelMgr = EventChannelManager(self.ref._get_eventChannelMgr())
+            except:
+                raise
+        return self.__eventChannelMgr
+    
+    def _get_allocationMgr(self):
+        if self.ref and self.__allocationMgr == None :
+            try:
+                self.__allocationMgr = AllocationManager(self.ref._get_allocationMgr())
+            except:
+                raise
+        return self.__allocationMgr
+
+    def _get_connectionMgr(self):
+        if self.ref and self.__connectionMgr == None :
+            try:
+                self.__connectionMgr = ConnectionManager(self.ref._get_connectionMgr())
+            except:
+                raise
+        return self.__connectionMgr
+
+    def _get_eventChannelMgr(self):
         if self.ref and self.__eventChannelMgr == None :
             try:
                 self.__eventChannelMgr = EventChannelManager(self.ref._get_eventChannelMgr())
