@@ -1183,9 +1183,6 @@ def _getOptions(classtype):
             print "They are provided as arguments pairs ID VALUE, for example:"
             print "     %s INT_PARAM 5 STR_PARAM ABCDED" % sys.argv[0]
             print
-            print "Options:"
-            print "     -i,--interactive           Run the component in interactive test mode"
-            print
             print classtype.__doc__
             sys.exit(2)
     except getopt.GetoptError:
@@ -1194,9 +1191,6 @@ def _getOptions(classtype):
         print "The set of execparams is defined in the .prf for the component"
         print "They are provided as arguments pairs ID VALUE, for example:"
         print "     %s INT_PARAM 5 STR_PARAM ABCDED" % sys.argv[0]
-        print
-        print "Options:"
-        print "     -i,--interactive           Run the component in interactive test mode"
         print
         print classtype.__doc__
         sys.exit(2)
@@ -1208,16 +1202,7 @@ def setupSignalHandlers():
     signal.signal(signal.SIGTERM, __exit_handler)
 
 def _getInteractive(opts):
-    """
-    If opts contains '-1' or '--interactive', return True, otherwise 
-    return False. 
-    """
-
-    interactive = False
-    for opt, unused in opts:
-        if opt == "-i" or opt == "--interactive":
-            interactive = True
-    return interactive
+    return False
 
 def parseCommandLineArgs(componentclass):
     opts, args = _getOptions(componentclass)

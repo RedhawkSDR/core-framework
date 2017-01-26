@@ -1240,15 +1240,11 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         }
 
         if ((nameContext == null) || (nameBinding == null)) {
-            if ((!Arrays.toString(args).contains("-i")) && (!Arrays.toString(args).contains("--interactive"))) {
-                System.out.println("usage: "+clazz+" [options] [execparams]\n");
-                System.out.println("The set of execparams is defined in the .prf for the component");
-                System.out.println("They are provided as arguments pairs ID VALUE, for example:");
-                System.out.println("     "+clazz+" INT_PARAM 5 STR_PARAM ABCDED\n");
-                System.out.println("Options:");
-                System.out.println("     -i,--interactive           Run the component in interactive test mode\n");
-                System.exit(-1);
-            }
+            System.out.println("usage: "+clazz+" [options] [execparams]\n");
+            System.out.println("The set of execparams is defined in the .prf for the component");
+            System.out.println("They are provided as arguments pairs ID VALUE, for example:");
+            System.out.println("     "+clazz+" INT_PARAM 5 STR_PARAM ABCDED\n");
+            System.exit(-1);
         }
 
 	logging.ComponentCtx ctx = new	logging.ComponentCtx( nameBinding, identifier, dom_path );
