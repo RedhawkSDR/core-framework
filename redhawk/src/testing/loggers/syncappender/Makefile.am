@@ -1,5 +1,5 @@
 # Rules for the test code (use `make check` to execute)
-ACLOCAL_AMFLAGS = -I m4 -I ${OSSIEHOME}/share/aclocal/ossie
+ACLOCAL_AMFLAGS = -I m4 -I ../../../acinclude
 TESTS = appender_test 
 noinst_PROGRAMS = cleanmem proc_log
 check_PROGRAMS = $(TESTS)

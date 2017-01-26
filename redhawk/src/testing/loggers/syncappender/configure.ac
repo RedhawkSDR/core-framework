@@ -1,10 +1,5 @@
 
 
-dnl Process this file with autoconf to produce a configure script.
-dnl AC_INIT(Makefile.am)
-dnl AC_CONFIG_MACRO_DIR([m4])
-dnl AM_INIT_AUTOMAKE(Logging_Test,0.1)
-
 AC_INIT(Logging_Test,0.1)
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign])
@@ -13,14 +8,11 @@ AM_PATH_CPPUNIT(1.9.6)
 AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_INSTALL
-AC_PREFIX_DEFAULT(${OSSIEHOME})
 
-OSSIE_CHECK_OSSIE
-OSSIE_OSSIEHOME_AS_PREFIX
-PKG_CHECK_MODULES([OMNI_DEPS], [ omniORB4 >= 4.0 omniEvents >= 2.0 omniDynamic4 >= 4.0.0 ])
-PKG_CHECK_MODULES([OSSIE_DEPS], [ossie >= 1.8 ] )
+AC_SEARCH_LIBS([shm_unlink], [rt])
+
+PKG_CHECK_MODULES([LOG4CXX], [liblog4cxx >= 0.10.0]) 
 
 AX_BOOST_BASE([1.41])
 AX_BOOST_SYSTEM
-AC_CORBA_ORB
 AC_OUTPUT(Makefile)
