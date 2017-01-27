@@ -236,6 +236,7 @@ fi
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dev/devices
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dev/mgr
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dev/nodes
+%attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dev/services
 %attr(775,redhawk,redhawk) %{_sdrroot}/dev/mgr/DeviceManager
 %{_sdrroot}/dev/mgr/DeviceManager.*
 %attr(644,root,root) %{_sysconfdir}/profile.d/redhawk-sdrroot.csh
@@ -269,9 +270,8 @@ fi
 
 
 %changelog
-* Mon Dec 5 2016 - 2.0.4-6
-- Add python-matplotlib packages as explicit requires
-- Add omniORB-doc to devel package
+* Sat Nov 26 2016 - 2.0.4
+- Added service directory in redhawk-sdrroot-dev-mgr
 
 * Fri Sep 16 2016 - 2.0.3-1
 - Update for dependency on Java 8
