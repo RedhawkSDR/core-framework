@@ -145,6 +145,9 @@ _SCA_TYPES = [
     'complexLong', 'complexLongLong', 'complexULongLong', 'utctime'
 ]
 
+def getTypeMap():
+    return __TYPE_MAP
+
 def getPyType(type_, alt_map=None):
     if alt_map:
         try: 

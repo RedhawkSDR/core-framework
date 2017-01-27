@@ -41,6 +41,7 @@ from ossie.utils.bulkio import bulkio_helpers
 from ossie.events import ChannelManager, Subscriber, Publisher
 
 from _unitTestHelpers import scatest, runtestHelpers
+import traceback
 
 globalsdrRoot = os.environ['SDRROOT']
 java_support = runtestHelpers.haveJavaSupport('../Makefile')
@@ -62,6 +63,17 @@ def _initSourceAndSink(dataFormat):
     sink.start()
 
     return source, sink
+
+
+def compareKeywordLists( a, b ):
+    for keyA, keyB in zip(a, b):
+        if keyA.id  != keyB.id:
+            return False
+        if keyA.value._t != keyB.value._t:
+            return False
+        if keyA.value._v != keyB.value._v:
+            return False
+    return True
 
 @scatest.requireJava
 class InteractiveTestJava(scatest.CorbaTestCase):
@@ -1825,7 +1837,7 @@ class BulkioTest(unittest.TestCase):
         sink = sb.DataSink()
         source.connect(sink, usesPortName='floatOut')
         sb.start()
-        
+
         # test default sample rate
         _srcData = [1,2,3,4]
         source.push(_srcData)
@@ -1912,6 +1924,198 @@ class BulkioTest(unittest.TestCase):
         _orig_time = _tstamps[1][1].twsec+_tstamps[1][1].tfsec
         _round_time = int(round(_orig_time*10))/10.0
         self.assertEquals(_round_time, toffset+len(_srcData)/_sampleRate)
+
+
+    def test_DataSourceTimeStampParam(self):
+        """
+        Verify that the time stamp param is honored
+        """
+        _timeout = 1
+        _startTime = 10
+        _sampleRate = 1.0
+        source = sb.DataSource(startTime=_startTime)
+        sink = sb.DataSink()
+        source.connect(sink, usesPortName='floatOut')
+        sb.start()
+
+        # test default sample rate
+        _srcData = [1,2,3,4]
+        source.push(_srcData)
+        source.push(_srcData)
+        estimate = sink.getDataEstimate()
+        begin_time = time.time()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1)
+        self.assertEquals(_tstamps[0][1].twsec, _startTime)
+        self.assertEquals(_tstamps[1][1].twsec, _startTime+len(_srcData))
+        
+        _ts = sb.createTimeStamp()
+        begin_time = _ts.twsec+_ts.tfsec
+        _toffset =begin_time
+        source.push(_srcData, ts=_ts)
+        source.push(_srcData)
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1/_sampleRate)
+        _pkt_time = _tstamps[0][1].twsec+_tstamps[0][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round(_toffset*10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+        _pkt_time = _tstamps[1][1].twsec+_tstamps[1][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round( (_toffset+len(_srcData)/_sampleRate) *10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+
+
+        # test modified sample rate
+        _sampleRate = 10.0
+        _ts = sb.createTimeStamp()
+        begin_time = _ts.twsec+_ts.tfsec
+        _toffset =begin_time
+        source.push(_srcData,sampleRate=_sampleRate, ts=_ts)
+        source.push(_srcData)
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1/_sampleRate)
+        _pkt_time = _tstamps[0][1].twsec+_tstamps[0][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round(_toffset*10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+        _pkt_time = _tstamps[1][1].twsec+_tstamps[1][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round( (_toffset+len(_srcData)/_sampleRate) *10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+
+
+        # test modified sample rate
+        _sampleRate=5.0
+        _sri=source.sri()
+        _sri.xdelta = 1.0/_sampleRate
+        _ts = sb.createTimeStamp()
+        begin_time = _ts.twsec+_ts.tfsec
+        _toffset =begin_time
+        source.push(_srcData,sri=_sri, ts=_ts)
+        source.push(_srcData)
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1/_sampleRate)
+        _pkt_time = _tstamps[0][1].twsec+_tstamps[0][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round(_toffset*10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+        _pkt_time = _tstamps[1][1].twsec+_tstamps[1][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round( (_toffset+len(_srcData)/_sampleRate) *10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+
+
+    def test_DataSourceSRI(self):
+        """
+        Verify that provide SRI is handled
+        """
+        _timeout = 1
+        _startTime = 10
+        source = sb.DataSource(startTime=_startTime)
+        sink = sb.DataSink()
+        source.connect(sink, usesPortName='floatOut')
+        sb.start()
+
+        # get an sri
+        _sri = source.sri()
+        
+        sid = 'test-sri-1'
+        _sri.streamID=sid
+        _sri.xdelta = 0.1234
+
+        # push samples down stream, with custom sri
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        begin_time = time.time()
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 1:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.streamID, sid )
+        self.assertAlmostEquals(rsri.xdelta, 0.1234)
+
+        # add keywords as a param
+        kws=[]
+        kws.append(sb.SRIKeyword('kw1',1000,'long'))
+        kws.append(sb.SRIKeyword('kw2',12456.0,'float'))
+        kws.append(sb.SRIKeyword('kw3',16,'short'))
+        kws.append(sb.SRIKeyword('kw4', 200,'octet'))
+        kws.append(sb.SRIKeyword('kw5','this is a test','string'))
+        matchkws=[ CF.DataType(id='kw1', value=CORBA.Any(CORBA.TC_long, 1000)), 
+                   CF.DataType(id='kw2', value=CORBA.Any(CORBA.TC_float, 12456.0)), 
+                   CF.DataType(id='kw3', value=CORBA.Any(CORBA.TC_short, 16)), 
+                   CF.DataType(id='kw4', value=CORBA.Any(CORBA.TC_octet, 200)), 
+                   CF.DataType(id='kw5', value=CORBA.Any(CORBA.TC_string, 'this is a test'))
+                   ]
+        _srcData = [1,2,3,4]
+        source.push(_srcData, SRIKeywords=kws )
+        begin_time = time.time()
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 1:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.streamID, sid )
+        self.assertAlmostEquals(rsri.xdelta, 0.1234)
+        self.assertEqual(True, compareKeywordLists( rsri.keywords, matchkws) )
+
+        # add new keywords to sri
+        matchkws=[ CF.DataType(id='kw1-1', value=CORBA.Any(CORBA.TC_long, 1000)), 
+                   CF.DataType(id='kw2-1', value=CORBA.Any(CORBA.TC_float, 12456.0)), 
+                   CF.DataType(id='kw3-1', value=CORBA.Any(CORBA.TC_short, 16)), 
+                   CF.DataType(id='kw4-1', value=CORBA.Any(CORBA.TC_octet, 200)), 
+                   CF.DataType(id='kw5-1', value=CORBA.Any(CORBA.TC_string, 'this is a test'))
+                   ]
+        _sri.keywords=copy.copy(matchkws)
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        begin_time = time.time()
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 1:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.streamID, sid )
+        self.assertAlmostEquals(rsri.xdelta, 0.1234)
+        self.assertEqual(True, compareKeywordLists( rsri.keywords, matchkws) )
 
     def test_DataSinkSubsize(self):
         src=sb.DataSource(dataFormat='short',subsize=5)

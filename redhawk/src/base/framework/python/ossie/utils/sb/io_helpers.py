@@ -46,6 +46,7 @@ import logging as _logging
 import socket as _socket
 from omniORB import any as _any
 from omniORB import CORBA as _CORBA
+import copy as _copy
 import omniORB as _omniORB
 import CosEventComm__POA
 import warnings as _warnings
@@ -62,7 +63,7 @@ log = _logging.getLogger(__name__)
 __all__ = ('DataSink', 'DataSource', 'FileSink', 'FileSource', 'MessageSink',
            'MessageSource','MsgSupplierHelper', 'Plot', 'SRIKeyword', 'compareSRI', 'helperBase',
            'probeBULKIO','createSDDSStreamDefinition', 'DataSourceSDDS',
-           'DataSinkSDDS')
+           'DataSinkSDDS', 'createTimeStamp', 'createSRI', 'compareKeywordLists')
 
 def compareSRI(a, b):
     '''
@@ -93,11 +94,24 @@ def compareSRI(a, b):
     if len(a.keywords) != len(b.keywords):
         return False
     for keyA, keyB in zip(a.keywords, b.keywords):
+        if keyA.id  != keyB.id:
+            return False
         if keyA.value._t != keyB.value._t:
             return False
         if keyA.value._v != keyB.value._v:
             return False
     return True
+
+def compareKeywordLists( a, b ):
+    for keyA, keyB in zip(a, b):
+        if keyA.id  != keyB.id:
+            return False
+        if keyA.value._t != keyB.value._t:
+            return False
+        if keyA.value._v != keyB.value._v:
+            return False
+    return True
+
 
 def _checkComplex(data):
     for item in data:
@@ -1120,7 +1134,8 @@ class DataSource(_SourceBase):
                  bytesPerPush = 512000,
                  startTime    = 0.0,
                  blocking     = True,
-                 subsize      = 0):
+                 subsize      = 0,
+                 sri          = None):
 
         self.threadExited = None
 
@@ -1133,8 +1148,9 @@ class DataSource(_SourceBase):
         self._sampleRate  = None
         self._onPushSampleRate  = None
         self._complexData = None
+        self._streamID = None
         self._SRIKeywords = []
-        self._sri         = None
+        self._sri         = sri
         self._startTime   = startTime
         self._timePush    = None
         self._blocking    = blocking
@@ -1170,14 +1186,50 @@ class DataSource(_SourceBase):
             self._runThread.setDaemon(True)
             self._runThread.start()
 
+
+    def sri(self):
+        if self._sri != None:
+            return _copy.copy(self._sri)
+        else:
+            # make a default sri from the current state
+            keywords = []
+            try:
+                for key in self._SRIKeywords:
+                    keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
+            except:
+                pass
+            candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
+                                             "defaultStreamID", self._blocking, keywords)
+            if self._sampleRate > 0.0:
+                candidateSri.xdelta = 1.0/float(self._sampleRate)
+
+            if self._complexData and self._complexData == True:
+                candidateSri.mode = 1
+
+            if self._startTime >= 0.0:
+                candidateSri.xstart = self._startTime
+            return candidateSri
+
+    def sendEOS(self, streamID=None):
+        if streamID:
+            self.push([],EOS=True, streamID=streamID )
+        else:
+            if self._sri:
+                self.push([],EOS=True, streamID=self._sri.streamID )
+            else:
+                self.push([],EOS=True )
+
+
     def push(self,
              data,
              EOS         = False,
-             streamID    = "defaultStreamID",
+             streamID    = None,
              sampleRate  = None,
              complexData = False,
              SRIKeywords = [],
-             loop        = None):
+             loop        = None,
+             sri         = None,
+             ts          = None ):
         """
         Push an arbitrary data vector
       
@@ -1189,7 +1241,7 @@ class DataSource(_SourceBase):
 
         # If complex values are present, interleave the data as scalar values
         # and set the complex flag
-        if _complexData:
+        if _complexData or ( self._sri and self._sri.mode == 1):
             if self._dataFormat in ('octet', 'short', 'ushort', 'long', 'ulong', 'longlong', 'ulonglong'):
                 itemType = int
             else:
@@ -1197,13 +1249,32 @@ class DataSource(_SourceBase):
             data = _bulkio_helpers.pythonComplexListToBulkioComplex(data, itemType)
             complexData = True
 
-        if sampleRate == None and self._onPushSampleRate != None:
-            sampleRate = self._onPushSampleRate
-        elif sampleRate == None and self._onPushSampleRate == None:
-            sampleRate = 1.0
-            self._onPushSampleRate = sampleRate
+        # if no stream id is provided then try and use prior stream id
+        if streamID == None:
+            if self._sri == None and sri == None:
+                if self._streamID != None:
+                   streamID = self._streamID
+            elif sri != None:
+                streamID = sri.streamID
+            elif self._sri != None:
+                streamID = self._sri.streamID
+
+        # if no stream id is provided then use default
+        if streamID == None:
+            streamID = "defaultStreamID"
+
+        if sampleRate == None:
+            # if no sample rate provide and no sri provide then use prior sample rate if available
+            if sri != None:
+                if sri.xdelta > 0.0:
+                    self._onPushSampleRate = 1.0/sri.xdelta
+            if self._onPushSampleRate != None:
+                sampleRate = self._onPushSampleRate
         else:
-            self._onPushSampleRate = sampleRate
+            # if we are given a new sample rate then save this off
+            if self._onPushSampleRate == None or ( self._onPushSampleRate != sampleRate ):
+                # save off, data consumer thread can be slower so we can use sri
+                self._onPushSampleRate = sampleRate
 
         self._dataQueue.put((data,
                              EOS,
@@ -1211,7 +1282,9 @@ class DataSource(_SourceBase):
                              sampleRate,
                              complexData,
                              SRIKeywords,
-                             loop))
+                             loop,
+                             sri,
+                             ts))
         self._packetQueued()
 
     def _packetQueued(self):
@@ -1262,44 +1335,101 @@ class DataSource(_SourceBase):
             complexData = dataset[4]
             SRIKeywords = dataset[5]
             loop        = dataset[6]
+            sri         = dataset[7]
+            ts          = dataset[8]
 
             # If loop is set in method call, override class attribute
             if loop != None:
                 self._loop = loop
             try:
-                self._sampleRate  = sampleRate
-                self._complexData = complexData
-                self._SRIKeywords = SRIKeywords
-                self._streamID    = streamID
-                candidateSri      = None
-                # If any SRI info is set, call pushSRI
-                if streamID != None or \
-                  sampleRate != None or \
-                  complexData != None or \
-                  len(SRIKeywords) > 0:
-                    keywords = []
-                    for key in self._SRIKeywords:
-                        keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
-                    candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
-                                                     streamID, self._blocking, keywords)
+                if sri == None and self._sri == None :
+                    if sampleRate == None : sampleRate=1.0
+                    self._sampleRate  = sampleRate
+                    self._complexData = complexData
+                    self._SRIKeywords = SRIKeywords
+                    self._streamID    = streamID
+                    candidateSri      = None
+                    # If any SRI info is set, call pushSRI
+                    if streamID != None or \
+                      sampleRate != None or \
+                      complexData != None or \
+                      len(SRIKeywords) > 0:
+                        keywords = []
+                        for key in self._SRIKeywords:
+                            keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
+                        candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
+                                                         streamID, self._blocking, keywords)
 
-                    if sampleRate > 0.0:
-                        candidateSri.xdelta = 1.0/float(sampleRate)
+                        if sampleRate > 0.0:
+                            candidateSri.xdelta = 1.0/float(sampleRate)
+                        self._onPushSampleRate = sampleRate
+
+                        if complexData == True:
+                            candidateSri.mode = 1
+                        else:
+                            candidateSri.mode = 0
+
+                        if self._startTime >= 0.0:
+                            candidateSri.xstart = self._startTime
+
+                    else:
+                        candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
+                                                         "defaultStreamID", self._blocking, [])
+                else:
+                    candidateSri = _copy.copy(self._sri)
+                    if sri != None:
+                        # user supplied sri
+                       candidateSri = sri
+
+                    if streamID and streamID != candidateSri.streamID:
+                        candidateSri.streamID = streamID
+                        self._streamID = streamID
+
+                    if sampleRate == None:
+                        sampleRate = 1.0/candidateSri.xdelta
+                        self._sampleRate = sampleRate
+                        self._onPushSampleRate = sampleRate
+                    else:
+                        if sampleRate > 0.0:
+                            candidateSri.xdelta = 1.0/float(sampleRate)
+                        self._sampleRate = sampleRate
+                        self._onPushSampleRate = sampleRate
 
                     if complexData == True:
                         candidateSri.mode = 1
+                        self._complexData = 1
                     else:
                         candidateSri.mode = 0
+                        self._complexData = 0
 
                     if self._startTime >= 0.0:
                         candidateSri.xstart = self._startTime
-                else:
-                    candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
-                                                     "defaultStreamID", self._blocking, [])
+
+                    # handle keywords
+                    if len(SRIKeywords) > 0 :
+                        self._SRIKeywords = SRIKeywords
+                        # need to keep order for compareSRI
+                        ckeys = [ x.name for x in candidateSri.keywords ]
+                        keywords = candidateSri.keywords[:]
+                        for key in self._SRIKeywords:
+                            # if current sri contains they keyword then overwrite else append
+                            kw=_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format)))
+                            if key._name in ckeys:
+                                # replace that keyword
+                                for x in range(len(keywords)):
+                                    if keywords[x].id == kw.id :
+                                        keywords[x] = kw
+                            else:
+                                keywords.append(kw)
+                        candidateSri.keywords = keywords
 
                 if self._sri==None or not compareSRI(candidateSri, self._sri):
                     self._sri = candidateSri
                     self._pushSRIAllConnectedPorts(sri = self._sri)
+
+                # if we are give a timestamp then use it as is
+                if ts != None:
+                    self._currentSampleTime = ts
 
                 # Call pushPacket
                 # If necessary, break data into chunks of pktSize for each
@@ -1383,6 +1513,11 @@ class DataSource(_SourceBase):
                                  packetEOS,
                                  streamID,
                                  srcPortType)
+                # covert time stamp if necessary
+                if isinstance(currentSampleTime,_BULKIO.PrecisionUTCTime):
+                    self._currentSampleTime = currentSampleTime.twsec +  currentSampleTime.tfsec
+                    currentSampleTime = self._currentSampleTime
+
                 self._currentSampleTime += sampleTimeForPush
                 currentSampleTime += sampleTimeForPush
         else:
@@ -1413,11 +1548,14 @@ class DataSource(_SourceBase):
                 data = _bulkio_helpers.formatData(data,
                                                   BULKIOtype=eval(srcPortType))
 
-        T = _BULKIO.PrecisionUTCTime(_BULKIO.TCM_CPU,
-                                     _BULKIO.TCS_VALID,
-                                     0.0,
-                                     int(currentSampleTime),
-                                     currentSampleTime - int(currentSampleTime))
+        if isinstance(currentSampleTime,_BULKIO.PrecisionUTCTime):
+            T= currentSampleTime
+        else:
+            T = _BULKIO.PrecisionUTCTime(_BULKIO.TCM_CPU,
+                                         _BULKIO.TCS_VALID,
+                                         0.0,
+                                         int(currentSampleTime),
+                                         currentSampleTime - int(currentSampleTime))
         if srcPortType != "_BULKIO__POA.dataXML":
             _bulkio_data_helpers.ArraySource.pushPacket(arraySrcInst,
                                                         data     = data,
@@ -1438,6 +1576,7 @@ class DataSource(_SourceBase):
 
     def _pushSRI(self, arraySrcInst, srcPortType, sri):
         if srcPortType != "_BULKIO__POA.dataXML":
+            #print "_pushSRI ", sri
             _bulkio_data_helpers.ArraySource.pushSRI(arraySrcInst, sri)
         else:
             _bulkio_data_helpers.XmlArraySource.pushSRI(arraySrcInst, sri)
@@ -1711,6 +1850,22 @@ class SRIKeyword(object):
       - boolean
     '''
     def __init__(self, name, value, format):
-        self._name   = name
-        self._value  = value
-        self._format = format
+        # validate format is legal type to convert to
+        if format in _properties.getTypeMap().keys():
+            self._name   = name
+            self._value  = value
+            self._format = format
+        else:
+            raise RuntimeError("Unsupported format type: " + format)
+
+def createTimeStamp():
+    return _bulkio_helpers.createCPUTimestamp()
+
+def createSRI(streamID='defaultStreamID', sampleRate=1.0, mode=0, blocking=True ):
+    xd=1.0
+    if sampleRate and sampleRate > 0.0:
+        xd = 1.0/float(sampleRate)
+
+    return _BULKIO_.StreamSRI(hversion=1, xstart=0.0, xdelta=xd,
+                              xunits=1, subsize=0, ystart=0.0, ydelta=0.0,
+                              yunits=0, mode=mode, streamID=streamID, blocking=blocking, keywords=[])
