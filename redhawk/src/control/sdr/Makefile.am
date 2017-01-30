@@ -27,6 +27,7 @@ waveformsdir = $(domdir)/waveforms
 devdir = $(SDR_ROOT)/dev
 devicesdir = $(devdir)/devices
 nodesdir = $(devdir)/nodes
+servicesdir = $(devdir)/services
 
 dist_domain_DATA = domain/DomainManager.dmd.xml \
   domain/DomainManager.dmd.xml.template
@@ -40,3 +41,4 @@ install-exec-hook:
 	$(mkdir_p) $(DESTDIR)$(waveformsdir)
 	$(mkdir_p) $(DESTDIR)$(devicesdir)
 	$(mkdir_p) $(DESTDIR)$(nodesdir)
+	$(mkdir_p) $(DESTDIR)$(servicesdir)
