@@ -1385,11 +1385,19 @@ class EventChannelManager(CorbaObject):
         return retval
 
     def registerConsumer(self, consumer, req):
+        '''
+           consumer is an event consumer (i.e.: ossie.events.Receiver)
+           req is an EventRegistration (i.e.: CF.EventRegistration)
+        '''
         if hassattr(consumer, '_this'):
             return self.ref.registerConsumer(consumer._this(), req)
         return self.ref.registerConsumer(consumer, req)
 
     def registerPublisher(self, req, disconnectReceiver):
+        '''
+           req is an EventRegistration (i.e.: CF.EventRegistration)
+           disconnectReceiver is an optional event consumer (i.e.: ossie.events.Receiver)
+        '''
         #if hassattr(disconnectReceiver, '_this'):
         #    return self.ref.registerPublisher(req, disconnectReceiver._this())
         return self.ref.registerPublisher(req, disconnectReceiver)
