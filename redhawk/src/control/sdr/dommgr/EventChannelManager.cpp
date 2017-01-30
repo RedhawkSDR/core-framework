@@ -340,7 +340,8 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
       throw (CF::EventChannelManager::OperationFailed());
     }
     
-
+    _domainManager->sendRemoveEvent(channel_name.c_str(), channel_name.c_str(), channel_name.c_str(), StandardEvent::EVENT_CHANNEL);
+    
     ECM_DEBUG( "release", " Released EventChannel: " << cname );
 
   }
@@ -489,6 +490,8 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
     ECM_TRACE("create", 
             "ADD Channel Registration, Event Channel: "<< channel_name << " fqn:" << fqn );
     ChannelRegistrationPtr reg  __attribute__((unused)) = _addChannelRegistration( channel_name, fqn, event_channel, autoRelease ); 
+
+    this->_domainManager->sendAddEvent(cname, cname, cname, event_channel, StandardEvent::EVENT_CHANNEL);
 
     //
     // return pointer the channel... we maintain a separate copy

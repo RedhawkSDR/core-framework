@@ -1190,8 +1190,7 @@ class ConnectionManager(CorbaObject):
     def objectRefEndPoint( self, obj_ref, port_name ) :
         restype = _CF.ConnectionManager.EndpointResolutionType(objectRef=obj_ref)
         return _CF.ConnectionManager.EndpointRequest(restype, port_name)
-
-
+    
     def connect( self, usesEndPoint, providesEndPoint, requesterId, connectionId ):
         retval=None
         if self.ref:
@@ -1223,17 +1222,102 @@ class ConnectionManager(CorbaObject):
         return retval
 
 
+class EventChannel(CorbaObject):
+    def __init__(self, ref, name):
+        CorbaObject.__init__(self, ref)
+        self.name = name
+
 class EventChannelManager(CorbaObject):
 
-    def __init__(self, ref=None):
+    def __init__(self, ref=None, odmListener=None):
         CorbaObject.__init__(self, ref)
+        
+        self.__evtChannels = DomainObjectList(weakobj.boundmethod(self.__getEventChannels),
+                                               weakobj.boundmethod(self.__newEventChannel),
+                                               lambda x: x.name)
+        
+        self.__evtChannels.itemAdded.addListener(weakobj.boundmethod(self.eventChannelAdded))
+        self.__evtChannels.itemRemoved.addListener(weakobj.boundmethod(self.eventChannelRemoved))
+        
+        if odmListener:
+            weakobj.addListener(odmListener.eventChannelAdded, self.__eventChannelAddedEvent)
+            weakobj.addListener(odmListener.eventChannelRemoved, self.__eventChannelRemovedEvent)
+        self.__odmListener = odmListener
 
+    def __inspectEventChannelManager(self, unique=None):
+        if type(unique) == EventChannel:
+            return [unique]
+        channels, _iter = self.ref.listChannels(0)
+        _retval = []
+        status = True
+        while status:
+            status, _chans = _iter.next_n(100)
+            for _chan in _chans:
+                _chanref = self.ref.get(_chan.channel_name)
+                if not unique:
+                    _retval.append(EventChannel(_chanref, _chan.channel_name))
+                else:
+                    if _chanref._is_equivalent(unique):
+                        return [EventChannel(unique, _chan.channel_name)]
+        return _retval
+        
+        
+    def __getEventChannels(self):
+        # If the ODM channel is not connected, force an update to the list.
+        chans = self.__inspectEventChannelManager()
+        return chans
+    
+    def __newEventChannel(self, evtChannel):
+        retval = self.__inspectEventChannelManager(evtChannel)
+        if len(retval) == 1:
+            return retval[0]
+        return EventChannel(evtChannel, '')
+
+    def __eventChannelAddedEvent(self, event):
+        try:
+            self.__evtChannels.add(event.sourceId, event.sourceIOR)
+        except Exception as e:
+            # The event channel is already gone or otherwise unavailable.
+            pass
+
+    def __eventChannelRemovedEvent(self, event):
+        self.__evtChannels.remove(event.sourceId)
+        
+    @property
+    def eventChannels(self):
+        if not self.__odmListener:
+            self.__evtChannels.sync()
+        return self.__evtChannels.values()
+
+    @notification
+    def eventChannelAdded(self, evtChannel):
+        """
+        The device manager 'deviceManager' was added to the system.
+        """
+        pass
+        
+    @notification
+    def eventChannelRemoved(self, evtChannel):
+        """
+        The device manager 'deviceManager' was added to the system.
+        """
+        pass
+    
     def release( self, channelName ):
         if self.ref:
             try:
                 retval = self.ref.release(channelName)
             except:
                 raise
+
+    def get( self, channelName ):
+        retval=None
+        if self.ref:
+            try:
+                retval = self.ref.get(channelName)
+            except:
+                raise
+        return retval
 
     def create( self, channelName ):
         retval=None
@@ -1434,7 +1518,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             super(Domain, self).__init__(prf, self.id)
         except Exception, e:
             pass
-
+        
         self._buildAPI()
 
         self.__deviceManagers = DomainObjectList(weakobj.boundmethod(self._get_deviceManagers),
@@ -1456,6 +1540,8 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         if connectDomainEvents:
             self.__connectIDMChannel()
             self.__connectODMChannel()
+
+        self.__eventChannelMgr = self.getEventChannelMgr()
         
     def _populateApps(self):
         self.__setattr__('_waveformsUpdated', True)
@@ -1511,6 +1597,10 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         if not self.__odmListener:
             self.__applications.sync()
         return self.__applications.values()
+
+    @property
+    def eventChannels(self):
+        return self.__eventChannelMgr.eventChannels
 
     @property
     def devices(self):
@@ -1890,7 +1980,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
     def getEventChannelMgr(self):
         if self.ref and self.__eventChannelMgr == None :
             try:
-                self.__eventChannelMgr = EventChannelManager(self.ref._get_eventChannelMgr())
+                self.__eventChannelMgr = EventChannelManager(self.ref._get_eventChannelMgr(), odmListener=self.__odmListener)
             except:
                 raise
         return self.__eventChannelMgr
@@ -1914,7 +2004,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
     def _get_eventChannelMgr(self):
         if self.ref and self.__eventChannelMgr == None :
             try:
-                self.__eventChannelMgr = EventChannelManager(self.ref._get_eventChannelMgr())
+                self.__eventChannelMgr = EventChannelManager(self.ref._get_eventChannelMgr(), odmListener=self.__odmListener)
             except:
                 raise
         return self.__eventChannelMgr

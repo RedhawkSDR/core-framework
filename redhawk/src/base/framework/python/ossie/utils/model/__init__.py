@@ -614,6 +614,7 @@ class Service(CorbaObject):
         self._prf = prf
         self._impl = impl
         self._instanceName = instanceName
+        self.name = instanceName
         
          # Add mapping of services operations and attributes
         found = False

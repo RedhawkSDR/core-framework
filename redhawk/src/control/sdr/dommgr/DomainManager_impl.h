@@ -322,6 +322,7 @@ protected:
     //
     // Handle to EventChannelManager for the Domain
     //
+    friend class EventChannelManager;
     EventChannelManager*                 _eventChannelMgr;
 
 
