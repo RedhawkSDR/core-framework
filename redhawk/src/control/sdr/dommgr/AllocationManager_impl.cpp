@@ -329,7 +329,8 @@ bool AllocationManager_impl::allocateDevice(const CF::Properties& requestedPrope
     }
 
     LOG_DEBUG(AllocationManager_impl, "allocateDevice::PartitionMatching " << node.requiresProps );
-    if ( !checkPartitionMatching( node, devicerequires ))  {
+    const redhawk::PropertyMap &devReqs = redhawk::PropertyMap::cast(devicerequires);
+    if ( !checkPartitionMatching( node, devReqs ))  {
         LOG_TRACE(AllocationManager_impl, "Partition Matching failed");
         return false;
     }
@@ -494,25 +495,37 @@ bool AllocationManager_impl::checkDeviceMatching(ossie::Properties& prf, CF::Pro
     return true;
 }
 
+
 bool AllocationManager_impl::checkPartitionMatching( ossie::DeviceNode& node,
-                                                     const CF::Properties& devicerequires )
+                                                     const redhawk::PropertyMap& devicerequires )
 {
     //
     // perform matching of a device's deployrequires property set against a componentplacment's devicerequires list
     //
 
-
     // Check if the device has a required property set for deployment
-    if ( node.requiresProps.size() == 0 ) {
-        LOG_DEBUG(AllocationManager_impl, "Device: " << node.label << " has no required properties to filter deployments against.");
+    if ( node.requiresProps.size() == 0 and devicerequires.size() == 0 ) {
+        LOG_TRACE(AllocationManager_impl, "Device: " << node.label << " has no required properties to filter deployments against.");
         return true;
     }
 
     // Check if the device has a required property set for deployment
-    if ( devicerequires.length() == 0 ) {
-        LOG_DEBUG(AllocationManager_impl, "Device: " << node.label << " has required properties for deployment, component does not provide any properties.");
+    if ( devicerequires.size() == 0 and node.requiresProps.size() > 0 ) {
+        LOG_TRACE(AllocationManager_impl, "Device: " << node.label << " has required properties for deployment, component does not provide any properties.");
         return false;
     }
+
+    // Check if the component provides a property set for deployment
+    if ( devicerequires.size() > 0 and node.requiresProps.size() == 0 ) {
+        LOG_TRACE(AllocationManager_impl, "Device: " << node.label << " has no required properties for deployment, component's contains deviicerequires properties.");
+        return false;
+    }
+
+    if ( node.requiresProps.size() != devicerequires.length()) {
+        LOG_TRACE(AllocationManager_impl, "Device: " << node.label << " has required properties for deployment, number of properties does not match.");
+        return false;
+    }
+
 
     const redhawk::PropertyMap &provided_props = redhawk::PropertyMap::cast( devicerequires );
     redhawk::PropertyMap::iterator iter = node.requiresProps.begin();

@@ -62,6 +62,9 @@ namespace redhawk {
 
         const Value& get(const std::string& id, const Value& def=Value()) const;
 
+        bool operator==( const redhawk::PropertyMap &other ) const;
+        bool operator!=( const redhawk::PropertyMap &other ) const;
+
         void update(const CF::Properties& properties);
 
         void push_back (const CF::DataType& dt);

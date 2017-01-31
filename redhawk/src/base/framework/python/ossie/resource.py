@@ -499,11 +499,14 @@ class Resource(object):
     #  Common resource logging API
 
     # return logger assigned to resource
-    def getLogger(self):
-        return self._log
+    def getLogger(self, logid=None):
+        if logid != None:
+            return self._log
+        else:
+            return logging.getLogger(logid)
 
     # return a named logger
-    def getLogger(self, logid, assignToResource=False):
+    def getNamedLogger(self, logid, assignToResource=False):
         newLogger=logging.getLogger(logid)
         if assignToResource:
             self._logid = logid
@@ -521,21 +524,6 @@ class Resource(object):
         if rscCtx:
             rscCtx.apply(self.loggingMacros )
             self.loggingCtx = rscCtx
-
-    def setLoggingContext(self, rscCtx ):
-        # apply resource context to macro definitions
-        if rscCtx:
-            rscCtx.apply(self.loggingMacros )
-            self.loggingCtx = rscCtx
-
-        elif self.loggingCtx :
-            self.loggingCtx.apply(self.loggingMacros )
-
-        # load logging configuration url to resource
-        self.setLogConfigURL( self.loggingURL )
-
-        # apply logging level 
-        self.setLogLevel( self._logid, self.loglevel )
 
     #
     # set the logging context for the resouce. Use the contents of 

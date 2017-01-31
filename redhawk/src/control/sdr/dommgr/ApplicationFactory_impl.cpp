@@ -1,3 +1,4 @@
+
 /*
  * This file is protected by Copyright. Please refer to the COPYRIGHT file 
  * distributed with this source distribution.
@@ -335,14 +336,18 @@ bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeplo
                                         const DeploymentList& components,
                                         DeploymentList::const_iterator current,
                                         ossie::DeviceList& deploymentDevices,
+                                        const redhawk::PropertyMap& deviceRequires,
                                         const ProcessorList& processorDeps,
-                                        const OSList& osDeps,
-                                        const CF::Properties& deviceRequires)
+                                        const OSList& osDeps)
+
 {
     if (current == components.end()) {
         // Reached the end of the component deployments; all implementations
         // should be set, so give it a try
-        return allocateHostCollocation(appDeployment, components, deploymentDevices, processorDeps, osDeps, deviceRequires);
+        if ( !deviceRequires.empty() ) {
+            LOG_TRACE(ApplicationFactory_impl, "Collocation has devicerequires: " << deviceRequires );
+        }
+        return allocateHostCollocation(appDeployment, components, deploymentDevices, processorDeps, osDeps, deviceRequires );
     }
 
     // Try all of the implementations from the current component for matches
@@ -374,11 +379,9 @@ bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeplo
             continue;
         }
 
-        redhawk::PropertyMap devRequires(deviceRequires);
-        devRequires.update(deployment->getDeviceRequires());
         // Set this implementation for deployment and recurse one more level
         deployment->setImplementation(implementation);
-        if (placeHostCollocation(appDeployment, components, current, deploymentDevices, proc_list, os_list, devRequires)) {
+        if (placeHostCollocation(appDeployment, components, current, deploymentDevices, deviceRequires, proc_list, os_list)) {
             return true;
         }
     }
@@ -391,7 +394,7 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
                                            ossie::DeviceList& deploymentDevices,
                                            const ProcessorList& processorDeps,
                                            const OSList& osDeps,
-                                           const CF::Properties& deviceRequires )
+                                           const redhawk::PropertyMap& deviceRequires )
 {
     // Consolidate the allocation properties into a single list
     CF::Properties allocationProperties = _consolidateAllocations(components);
@@ -401,6 +404,10 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
     for (DeploymentList::const_iterator depl = components.begin(); depl != components.end(); ++depl) {
         LOG_TRACE(ApplicationFactory_impl, "Component " << (*depl)->getInstantiation()->getID()
                   << " implementation " << (*depl)->getImplementation()->getID());
+    }
+
+    if ( !deviceRequires.empty() ) {
+        LOG_TRACE(ApplicationFactory_impl, "Collocation has devicerequires:  " << deviceRequires );
     }
 
     const std::string requestid = ossie::generateUUID();
@@ -462,6 +469,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
     LOG_TRACE(ApplicationFactory_impl, "Placing host collocation " << collocation.getID()
               << " " << collocation.getName());
 
+    std::pair < std::string, redhawk::PropertyMap > devReq(std::string(""), redhawk::PropertyMap());
     // Keep track of devices to which some of the components have
     // been assigned.
     DeviceIDList assignedDevices;
@@ -478,6 +486,13 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
             DeviceAssignmentMap::const_iterator device = devices.find(instantiation.getID());
             if (device != devices.end()) {
                 assignedDevices.push_back(device->second);
+            }
+
+            // check if collocation contains a devicerequires set
+            if ( !deployment->getDeviceRequires().empty() ) {
+                devReq.first = deployment->getIdentifier();
+                devReq.second = deployment->getDeviceRequires();
+                LOG_DEBUG(ApplicationFactory_impl, "Collocation contains devicerequires instance: " << devReq.first << " props :"  << devReq.second);
             }
         }
     }
@@ -508,6 +523,24 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
             }
         }
     }
+
+    // if the collocation contains a deviceRequires then filter down the deployment list
+    if ( !devReq.first.empty() ) {
+        for (ossie::DeviceList::iterator node = deploymentDevices.begin(); node != deploymentDevices.end(); ) {
+            if ( (*node)->requiresProps != devReq.second ) {
+                node = deploymentDevices.erase(node);
+            }
+            node++;
+        }
+    }
+
+    // no deployment devices available so we can stop
+    if ( deploymentDevices.size() == 0 ) {
+        ostringstream os;
+        os << "No ExecutableDevices available to satisfy collocation.";
+        throw redhawk::PlacementFailure(collocation, os.str() );
+    }
+
     
     // if there is a usesdevice in the collocation that filter out the GPPs that we can use.
     if ( req_usesDevices.size() > 0 ) {
@@ -539,8 +572,9 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
 
     }
 
+
     LOG_TRACE(ApplicationFactory_impl, "Placing " << deployments.size() << " components");
-    if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices)) {
+    if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices, devReq.second )) {
         if (_allDevicesBusy(deploymentDevices)) {
             throw redhawk::PlacementFailure(collocation, "all executable devices (GPPs) in the Domain are busy");
         }
@@ -1307,7 +1341,8 @@ void createHelper::_evaluateMATHinRequest(CF::Properties &request, const CF::Pro
 }
 
 /* Perform allocation/assignment of a particular component to the device.
- *  - First do allocation/assignment based on user provided DAS
+ *  - Check if deployment has required device properties.. 
+ *  - next,  do allocation/assignment based on user provided DAS
  *  - If not specified in DAS, then iterate through devices looking for a device that satisfies
  *    the allocation properties
  */
@@ -1317,6 +1352,28 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
 {
     const ossie::SPD::Implementation* implementation = deployment->getImplementation();
     ossie::DeviceList devices = _registeredDevices;
+    const CF::Properties& deviceRequires = deployment->getDeviceRequires();
+
+    if ( deviceRequires.length() > 0 ) {
+        LOG_TRACE(ApplicationFactory_impl, "Compnent: '" << deployment->getSoftPkg()->getName() << "' has device requires");
+        // filter out devices that only match devicerequires property set
+        ossie::DeviceList::iterator device;
+        for (device = devices.begin(); device != devices.end(); ) {
+            boost::shared_ptr<ossie::DeviceNode> devnode = *device;
+            LOG_DEBUG(ApplicationFactory_impl, "allocateDevice::PartitionMatching required props: " << devnode->requiresProps );
+            if ( !checkPartitionMatching( *devnode, deviceRequires ))  {
+                LOG_TRACE(ApplicationFactory_impl, "Partition Matching failed");
+                device=devices.erase(device);
+                continue;
+            }
+            device++;
+        }
+
+        if ( devices.size() == 0 ) {
+            throw redhawk::PlacementFailure(deployment->getInstantiation(), "failed to satisfy devicerequires specification.");
+        }
+    }
+
 
     // First check to see if the component was assigned in the user provided DAS
     // See if a device was assigned in the DAS
@@ -1376,7 +1433,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
                                                                                 appIdentifier,
                                                                                 implementation->getProcessors(),
                                                                                 implementation->getOsDeps(),
-                                                                                deployment->getDeviceRequires());
+                                                                                deviceRequires );
     if (allocationProperties.contains("nic_allocation")) {
         if (!response.first.empty()) {
             redhawk::PropertyMap query_props;
@@ -1397,6 +1454,49 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
     TRACE_EXIT(ApplicationFactory_impl);
     return response;
 }
+
+
+bool createHelper::checkPartitionMatching( ossie::DeviceNode& devnode,
+                                           const CF::Properties& devicerequires )
+{
+    //
+    // perform matching of a device's deployrequires property set against a componentplacment's devicerequires list
+    //
+
+    if ( devnode.requiresProps.size() != devicerequires.length()) {
+        LOG_TRACE(ApplicationFactory_impl, "Number of devicerequired properties for deployment does not match, Device: " << devnode.label );
+        return false;
+    }
+
+    // Check if the device has a required property set for deployment
+    if ( devicerequires.length() == 0 ) {
+        LOG_TRACE(ApplicationFactory_impl, "Component and Device have no devicerequires/deployerrequires property sets.");
+        return true;
+    }
+
+    const redhawk::PropertyMap &devReqs = redhawk::PropertyMap::cast( devicerequires );
+    for ( redhawk::PropertyMap::const_iterator iter=devReqs.begin(); iter != devReqs.end(); ++iter) {
+        std::string pid(iter->getId());
+        LOG_TRACE(ApplicationFactory_impl, "checkPartitionMatching source devicerequires id:  " << pid );
+        redhawk::PropertyMap::const_iterator dev_prop = devnode.requiresProps.find( pid );
+        if ( dev_prop == devnode.requiresProps.end() ) {
+            LOG_DEBUG(ApplicationFactory_impl, "Missing devicerequires property: " << pid << " for deployment from Device: " << devnode.label );
+            return false;
+        }
+
+        // Convert the input Any to the property's data type via string; if it came
+        // from the ApplicationFactory, it's already a string, but a remote request
+        // could be of any type
+        std::string action("eq");
+        if (  !ossie::compare_anys(iter->getValue(), dev_prop->getValue(), action)  ) {
+            return false;
+        }
+    }
+
+    LOG_TRACE(ApplicationFactory_impl, "checkPartitionMatch PASSED, found match with device: " << devnode.label );
+    return true;
+}
+
 
 void createHelper::_castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::PropertyRef> &prop_refs, unsigned int offset)
 {

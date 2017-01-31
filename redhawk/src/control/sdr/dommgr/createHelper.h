@@ -115,9 +115,10 @@ private:
                               const DeploymentList& components,
                               DeploymentList::const_iterator current,
                               ossie::DeviceList& deploymentDevices,
+                              const redhawk::PropertyMap& deviceRequires=redhawk::PropertyMap(),
                               const ProcessorList& processorDeps=ProcessorList(),
-                              const OSList& osDeps=OSList(),
-                              const CF::Properties& deviceRequires=CF::Properties());
+                              const OSList& osDeps=OSList());
+
     void _handleUsesDevices(redhawk::ApplicationDeployment& appDeployment,
                             const std::string& appName);
     std::vector<std::string> _getFailedUsesDevices(const std::vector<ossie::UsesDevice>& usesDevices,
@@ -144,12 +145,15 @@ private:
                                                       const std::string& assignedDeviceId,
                                                       const std::string& appIdentifier);
 
+    bool checkPartitionMatching( ossie::DeviceNode& node,
+                                 const CF::Properties& devicerequires );
+
     bool allocateHostCollocation(redhawk::ApplicationDeployment& appDeployment,
                                  const DeploymentList& components,
                                  ossie::DeviceList& deploymentDevices,
                                  const ProcessorList& processorDeps,
                                  const OSList& osDeps,
-                                 const CF::Properties& = CF::Properties() );
+                                 const redhawk::PropertyMap &);
 
     bool resolveSoftpkgDependencies(redhawk::ApplicationDeployment& appDeployment,
                                     redhawk::SoftPkgDeployment* deployment,

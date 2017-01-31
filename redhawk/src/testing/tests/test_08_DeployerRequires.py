@@ -23,6 +23,7 @@ from _unitTestHelpers import scatest
 from ossie.cf import CF, ExtendedCF
 from omniORB import any, CORBA
 from ossie import properties
+import traceback
 
 class DeviceRequires(scatest.CorbaTestCase):
     def setUp(self):
@@ -47,12 +48,12 @@ class DeviceRequires(scatest.CorbaTestCase):
         # or failures will probably occur.
         scatest.CorbaTestCase.tearDown(self)
 
-    def _createApp(self, appName, exc=None):
+    def _createApp(self, appName, exc=None, appdir='device_requires'):
         self.assertNotEqual(self._domMgr, None)
         app=None
 
         try:
-            sadpath = '/waveforms/'+appName+'/'+appName+'.sad.xml'
+            sadpath = '/waveforms/'+ appdir + '/'+appName+'/'+appName+'.sad.xml'
             self._domMgr.installApplication(sadpath)
         except Exception, e:
             return app
@@ -72,44 +73,91 @@ class DeviceRequires(scatest.CorbaTestCase):
                 self.fail("Did not create application ")
         return app
 
-    def test_norequired_nocolor(self):
+    def test_nocolors_redprovided(self):
         domBooter, self._domMgr = self.launchDomainManager()
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
 
         self.assertNotEqual(self._domMgr, None)
-        self.assertNotEqual(self._devMgr, None)
+        self.assertNotEqual(self._rednode, None)
 
-        self._app = self._createApp('device_requires_multicolor')
+        self._app = self._createApp('device_requires_nocolor', CF.ApplicationFactory.CreateApplicationError)
+
+        self.assertEqual(self._app, None)
+
+    def test_nocolors_greenprovided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._greennode, None)
+
+        self._app = self._createApp('device_requires_nocolor', CF.ApplicationFactory.CreateApplicationError)
+
+        self.assertEqual(self._app, None)
+
+    def test_nocolors_redmix(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._rednode, None)
+        self.assertNotEqual(self._plainnode, None)
+
+        self._app = self._createApp('device_requires_nocolor')
 
         self.assertNotEqual(self._app, None)
         xx=self._app.query([])
 
-
-    def test_norequired_redprovided(self):
+    def test_nocolors_greenmix(self):
         domBooter, self._domMgr = self.launchDomainManager()
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
 
         self.assertNotEqual(self._domMgr, None)
-        self.assertNotEqual(self._devMgr, None)
+        self.assertNotEqual(self._greennode, None)
+        self.assertNotEqual(self._plainnode, None)
 
-        self._app = self._createApp('device_requires_red')
+        self._app = self._createApp('device_requires_nocolor')
 
         self.assertNotEqual(self._app, None)
         xx=self._app.query([])
 
-    def test_norequired_greeprovided(self):
+    def test_mixdevrequires_nocolor(self):
         domBooter, self._domMgr = self.launchDomainManager()
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
 
         self.assertNotEqual(self._domMgr, None)
-        self.assertNotEqual(self._devMgr, None)
+        self.assertNotEqual(self._plainnode, None)
 
-        self._app = self._createApp('device_requires_green')
+        self._app = self._createApp('device_requires_multicolor', CF.ApplicationFactory.CreateApplicationError)
 
-        self.assertNotEqual(self._app, None)
-        xx=self._app.query([])
+        self.assertEqual(self._app, None)
 
-    def test_redrequired_redprovided(self):
+
+    def test_reddevrequires_nocolors(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._plainnode, None)
+
+        self._app = self._createApp('device_requires_red', CF.ApplicationFactory.CreateApplicationError)
+
+        self.assertEqual(self._app, None)
+
+    def test_greendevrequires_nocolors(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._plainnode, None)
+
+        self._app = self._createApp('device_requires_green', CF.ApplicationFactory.CreateApplicationError)
+
+        self.assertEqual(self._app, None)
+
+    def test_reddevrequires_redprovided(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
 
@@ -121,7 +169,7 @@ class DeviceRequires(scatest.CorbaTestCase):
         self.assertNotEqual(self._app, None)
         xx=self._app.query([])
 
-    def test_redrequired_colormismatch(self):
+    def test_greendevrequires_colormismatch(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
 
@@ -132,7 +180,7 @@ class DeviceRequires(scatest.CorbaTestCase):
 
         self.assertEqual(self._app, None)
 
-    def test_redrequired_nonocolors(self):
+    def test_mixdevrequires_redprovided(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
 
@@ -143,7 +191,7 @@ class DeviceRequires(scatest.CorbaTestCase):
         self.assertEqual(self._app, None)
 
 
-    def test_greenrequired_nonocolors(self):
+    def test_mixdevrequires_greenprovided(self):
         domBooter, self._domMgr = self.launchDomainManager()
         greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
 
@@ -153,7 +201,7 @@ class DeviceRequires(scatest.CorbaTestCase):
         self._app = self._createApp('device_requires_multicolor', CF.ApplicationFactory.CreateApplicationError)
         self.assertEqual(self._app, None)
 
-    def test_greenrequired_redprovided(self):
+    def test_reddevrequires_greenprovided(self):
         domBooter, self._domMgr = self.launchDomainManager()
         greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
 
@@ -163,17 +211,7 @@ class DeviceRequires(scatest.CorbaTestCase):
         self._app = self._createApp('device_requires_red', CF.ApplicationFactory.CreateApplicationError)
         self.assertEqual(self._app, None)
 
-    def test_greenrequired_greenprovided(self):
-        domBooter, self._domMgr = self.launchDomainManager()
-        greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
-
-        self.assertNotEqual(self._domMgr, None)
-        self.assertNotEqual(self._greennode, None)
-
-        self._app = self._createApp('device_requires_red', CF.ApplicationFactory.CreateApplicationError)
-        self.assertEqual(self._app, None)
-
-    def test_redmulti_redprovided(self):
+    def test_reddevrequires_redmulti(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
         plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
@@ -187,7 +225,7 @@ class DeviceRequires(scatest.CorbaTestCase):
         self.assertNotEqual(self._app, None)
         xx=self._app.query([])
 
-    def test_redmulti_greenprovided(self):
+    def test_greendevrequires_redmulti(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
         plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
@@ -196,13 +234,12 @@ class DeviceRequires(scatest.CorbaTestCase):
         self.assertNotEqual(self._rednode, None)
         self.assertNotEqual(self._plainnode, None)
 
-        self._app = self._createApp('device_requires_green')
+        self._app = self._createApp('device_requires_green', CF.ApplicationFactory.CreateApplicationError)
 
-        self.assertNotEqual(self._app, None)
-        xx=self._app.query([])
+        self.assertEqual(self._app, None)
 
 
-    def test_redmulti_nocolors(self):
+    def test_mixdevrequires_redmulti(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
         plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
@@ -211,12 +248,10 @@ class DeviceRequires(scatest.CorbaTestCase):
         self.assertNotEqual(self._rednode, None)
         self.assertNotEqual(self._plainnode, None)
 
-        self._app = self._createApp('device_requires_multicolor')
+        self._app = self._createApp('device_requires_multicolor', CF.ApplicationFactory.CreateApplicationError)
+        self.assertEqual(self._app, None)
 
-        self.assertNotEqual(self._app, None)
-        xx=self._app.query([])
-
-    def test_multidevices_nocolors(self):
+    def test_mixcolor_mixdevices(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
         greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
@@ -233,7 +268,7 @@ class DeviceRequires(scatest.CorbaTestCase):
         xx=self._app.query([])
 
 
-    def test_multidevices_redprovided(self):
+    def test_reddevrequires_mixcolors(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
         greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
@@ -247,7 +282,7 @@ class DeviceRequires(scatest.CorbaTestCase):
         self.assertNotEqual(self._app, None)
         xx=self._app.query([])
 
-    def test_multidevices_greenprovided(self):
+    def test_greendevrequires_mixcolors(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
         greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
@@ -262,7 +297,7 @@ class DeviceRequires(scatest.CorbaTestCase):
         xx=self._app.query([])
 
 
-    def test_multidevices_redgreenprovided(self):
+    def test_redgreendevrequires_mixcolors(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
         greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
@@ -278,7 +313,7 @@ class DeviceRequires(scatest.CorbaTestCase):
         self.assertNotEqual(self._red_app, None)
 
 
-    def test_multidevices_mixedcolors(self):
+    def test_mixcolors_multidevices(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
         greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
@@ -298,7 +333,141 @@ class DeviceRequires(scatest.CorbaTestCase):
         self._red_app = self._createApp('device_requires_red')
         self.assertNotEqual(self._red_app, None)
 
+    def test_collocation_multidevicerequires_greenprovided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
 
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._greennode, None)
+
+        self._app = self._createApp('device_requires_multicolor_colloc', CF.ApplicationFactory.CreateApplicationError)
+        self.assertEqual(self._app, None)
+
+    def test_collocation_multidevicerequires_nonprovided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._plainnode, None)
+
+        self._app = self._createApp('device_requires_multicolor_colloc', CF.ApplicationFactory.CreateApplicationError)
+        self.assertEqual(self._app, None)
+
+    def test_collocation_multidevicerequires_mixedcolors(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
+        greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._rednode, None)
+        self.assertNotEqual(self._greennode, None)
+        self.assertNotEqual(self._plainnode, None)
+
+        self._app = self._createApp('device_requires_multicolor_colloc', CF.ApplicationFactory.CreateApplicationError)
+        self.assertEqual(self._app, None)
+
+    def test_collocation_requiresred_redprovided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._rednode, None)
+
+        self._app = self._createApp('device_requires_red_colloc')
+        self.assertNotEqual(self._app, None)
+        xx=self._app.query([])
+
+    def test_collocation_requiresred_nocolloc_nocolors_redprovided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._rednode, None)
+
+        self._app = self._createApp('device_requires_red_colloc_and_nocolloc', CF.ApplicationFactory.CreateApplicationError)
+        self.assertEqual(self._app, None)
+
+    def test_collocation_requiresred_nocolloc_nocolors_mixprovided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._rednode, None)
+        self.assertNotEqual(self._plainnode, None)
+
+        self._app = self._createApp('device_requires_red_colloc_and_nocolloc')
+        self.assertNotEqual(self._app, None)
+        xx=self._app.query([])
+
+    def test_collocation_requiresred_nocolloc_redrequired_redprovided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._rednode, None)
+
+        self._app = self._createApp('device_requires_red_colloc_and_nocolloc_red')
+        self.assertNotEqual(self._app, None)
+        xx=self._app.query([])
+
+    def test_collocation_requiresred_nocolloc_redrequired_greenprovided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._greennode, None)
+
+        self._app = self._createApp('device_requires_red_colloc_and_nocolloc_red',  CF.ApplicationFactory.CreateApplicationError)
+        self.assertEqual(self._app, None)
+
+    def test_collocation_requiresred_nocolloc_redrequired_nocolors(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._plainnode, None)
+
+        self._app = self._createApp('device_requires_red_colloc_and_nocolloc_red',  CF.ApplicationFactory.CreateApplicationError)
+        self.assertEqual(self._app, None)
+
+    def test_collocation_requiresred_nocolloc_greenrequired_redprovided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._rednode, None)
+
+        self._app = self._createApp('device_requires_red_colloc_and_nocolloc_green',  CF.ApplicationFactory.CreateApplicationError)
+        self.assertEqual(self._app, None)
+
+    def test_collocation_requiresred_nocolloc_greenrequired_mixprovided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
+        greenBooter, self._greennode = self.launchDeviceManager("/nodes/test_GPP_green/DeviceManager.dcd.xml")
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._rednode, None)
+        self.assertNotEqual(self._greennode, None)
+        self.assertNotEqual(self._plainnode, None)
+
+        self._app = self._createApp('device_requires_red_colloc_and_nocolloc_green')
+        self.assertNotEqual(self._app, None)
+        xx=self._app.query([])
+
+    def test_collocation_requiresred_nocolloc_greenrequired_mix1provided(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
+        plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._rednode, None)
+        self.assertNotEqual(self._plainnode, None)
+
+        self._app = self._createApp('device_requires_red_colloc_and_nocolloc_green',  CF.ApplicationFactory.CreateApplicationError)
+        self.assertEqual(self._app, None)
 
 class DeployerRequiresTest(scatest.CorbaTestCase):
     def setUp(self):

@@ -127,7 +127,7 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
 
         bool checkMatchingProperty(const ossie::Property* property, const CF::DataType& dependency);
         bool checkPartitionMatching( ossie::DeviceNode& node,
-                                     const CF::Properties& devicerequires );
+                                     const redhawk::PropertyMap& devicerequires );
 
         redhawk::PropertyMap getDeviceRequiredProperties( ossie::DeviceNode& node );
 

@@ -24,7 +24,8 @@
 #include <boost/filesystem.hpp>
 
 #include <ossie/Properties.h>
-
+#include <ossie/PropertyMap.h>
+#include <ossie/prop_utils.h>
 #include "ApplicationValidator.h"
 
 using namespace redhawk;
@@ -203,8 +204,31 @@ void ApplicationValidator::validateImplementation(const SoftPkg* softpkg,
 
 void ApplicationValidator::validateHostCollocation(const SoftwareAssembly::HostCollocation& collocation)
 {
+    std::pair< std::string, redhawk::PropertyMap > devReq(std::string(""),redhawk::PropertyMap());
     BOOST_FOREACH(const ComponentPlacement& placement, collocation.getComponents()) {
         validateComponentPlacement(placement);
+
+        // check if placement has deviceRequires, if so there can only be one or all must match
+        BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
+            redhawk::PropertyMap deviceRequires;
+            ossie::convertComponentProperties(instantiation.getDeviceRequires(),deviceRequires);
+            if (!deviceRequires.empty() ) {
+                if ( !devReq.first.empty() ) {
+                    if ( devReq.first == instantiation.getID() ) {
+                        throw validation_error("hostcollocation contains multiple devicerequires, componentinstantiation: " +instantiation.getID() );
+                    }
+
+                    if ( devReq.second != deviceRequires ) {
+                        throw validation_error("hostcollocation contains multiple devicerequires that are different, componentinstantiation: " + instantiation.getID() );
+                    }
+                }
+                else {
+                    devReq.first = instantiation.getID();
+                    devReq.second = deviceRequires;
+                    LOG_TRACE(ApplicationValidator, "devicerequires collocation: " << collocation.getName() << " instantiation :" << devReq.first << " devicerequires: " << devReq.second);
+                }
+            }
+        }
     }
 }
 

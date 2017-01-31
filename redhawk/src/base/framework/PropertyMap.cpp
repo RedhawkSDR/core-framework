@@ -117,6 +117,41 @@ const Value& PropertyMap::get(const std::string& id, const Value& def) const
     }
 }
 
+bool PropertyMap::operator==( const redhawk::PropertyMap &other ) const
+{
+    //
+    // perform simple matching of a property map against another map
+    //
+    if ( size() != other.size() ) {
+        return false;
+    }
+
+    if ( size() == 0 ) {
+        return true;
+    }
+
+    for ( const_iterator iter = begin(); iter != end(); ++iter) {
+        std::string pid(iter->getId());
+        const_iterator other_prop = other.find( pid );
+        if ( other_prop == other.end() ) {
+            return false;
+        }
+        // perform  equal match values
+        std::string action("eq");
+        if (  !ossie::compare_anys(iter->getValue(), other_prop->getValue(), action)  ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+bool PropertyMap::operator!=( const redhawk::PropertyMap &other ) const
+{
+    return !(*this == other);
+}
+
 void PropertyMap::update(const CF::Properties& properties)
 {
     const PropertyMap& other = cast(properties);
