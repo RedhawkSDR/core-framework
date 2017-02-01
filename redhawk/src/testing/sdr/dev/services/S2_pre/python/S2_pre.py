@@ -22,8 +22,13 @@ class S2_pre(CF__POA.PropertySet):
         self.name = name
         self._log = logging.getLogger(self.name)
         self._props = properties.PropertyStorage(self, (), execparams)
-        self._props._addProperty( S2_pre.p1 )
-        self._props._addProperty( S2_pre.p2)
+        try:
+            self._props._addProperty( S2_pre.p1 )
+            self._props._addProperty( S2_pre.p2)
+        except KeyError, e:
+            pass
+        except Exceptiopn, e:
+            raise e
         self._props.initialize()
 
     def terminateService(self):
