@@ -64,4 +64,4 @@ sdr/dom/deps/cpp_dep1/cpp_dep1.spd.xml
 sdr/dom/deps/cpp_dep2/cpp_dep2.spd.xml
 sdr/dev/devices/LongDevice/cpp/LongDevice
 sdr/dev/nodes/LongDeviceCalls/DeviceManager.dcd.xml
-
+sdr/dev/services/BasicService_cpp/cpp/BasicService_cpp
