@@ -535,6 +535,8 @@ if __name__ == "__main__":
                       help="run setup to setup GPP xml profile")
     parser.add_option("--location", dest="location", default=None,
                       help="location to store XML profile files")
+    parser.add_option("--fqn", dest="fqn", default=False, action="store_true",
+                      help="allow fully qualified domain name for node and GPP name")
     parser.add_option("--nodename", dest="nodename", default="DevMgr_%s" % socket.gethostname(),
                       help="desired nodename, if none is given DevMgr_${HOST} is used")
     parser.add_option("--gppname", dest="gppname", default="GPP_%s" % socket.gethostname(),
@@ -571,6 +573,19 @@ if __name__ == "__main__":
     for i in range(len(args)):
         if i % 2 == 0:
             cmdlineProps[args[i]] = args[i + 1]
+
+    if options.fqn == False:
+        # remove fully qualified dns domain names
+        try:
+            options.gppname = options.gppname.split('.')[0]
+            options.nodename = options.nodename.split('.')[0]
+        except:
+            pass
+    try:
+        options.gppname = options.gppname.replace('.','_')
+        options.nodename = options.nodename.replace('.','_')
+    except:
+        pass
 
     try:
        configurator=None
