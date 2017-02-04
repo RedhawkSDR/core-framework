@@ -1190,7 +1190,11 @@ def setupSignalHandlers():
     signal.signal(signal.SIGTERM, __exit_handler)
 
 def _getInteractive(opts):
-    return False
+    interactive = False
+    for opt, unused in opts:
+        if opt == '-i' or opt == '--interactive':
+            interactive = True
+    return interactive
 
 def parseCommandLineArgs(componentclass):
     opts, args = _getOptions(componentclass)
