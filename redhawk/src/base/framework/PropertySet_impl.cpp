@@ -263,6 +263,8 @@ throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration,
                 invalidProperties.length(count + 1);
                 invalidProperties[count].id = CORBA::string_dup(configProperties[ii].id);
                 invalidProperties[count].value = configProperties[ii].value;
+            } catch (CF::PropertySet::InvalidConfiguration& e) {
+                throw;
             } catch (CORBA::Exception& e) {
                 LOG_ERROR(PropertySet_impl, "Setting property " << property->id << " failed.  Cause: " << e._name());
                 CORBA::ULong count = invalidProperties.length();
