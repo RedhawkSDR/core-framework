@@ -32,10 +32,13 @@ class ECM_CPP_i : public ECM_CPP_base
         void initialize() throw  (CF::LifeCycle::InitializeError, CORBA::SystemException);
         void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
 
+        void dataArrived( const CORBA::Any &data );
+        void enableChanged( const bool *ov, bool const *nv );
+
         redhawk::events::ManagerPtr ecm;
         redhawk::events::PublisherPtr pub;
         redhawk::events::SubscriberPtr sub;
-        int msg_id;
+        int p_msgid;
 };
 
 #endif // ECM_CPP_IMPL_H

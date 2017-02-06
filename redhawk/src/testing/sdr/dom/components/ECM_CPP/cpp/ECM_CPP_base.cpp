@@ -99,6 +99,14 @@ void ECM_CPP_base::loadProperties()
                 "external",
                 "configure");
 
+    addProperty(enablecb,
+                false,
+                "enablecb",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
 }
 
 

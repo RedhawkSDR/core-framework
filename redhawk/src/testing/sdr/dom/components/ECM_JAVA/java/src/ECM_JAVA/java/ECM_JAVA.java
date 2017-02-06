@@ -95,12 +95,11 @@ public class ECM_JAVA extends ECM_JAVA_base {
         public void processData( Any data ) {
             if ( parent != null ) {
                 int msgin  = data.extract_long();
-                logger.debug("Received (CB) MSG =" + msgin);
-                if ( msgin-1 == p_msgid ) {
+                if ( msgin == p_msgid ) {
                     parent.msg_recv.setValue(parent.msg_recv.getValue()+1);
                 }
-                p_msgid = msgin;
-                logger.debug("Received (CB) MSG =" + msgin + " msgrcv= " + parent.msg_recv.getValue());
+                p_msgid++;
+                logger.info("Received (CB) MSG msgid: " + msgin + " msg_recv: " + parent.msg_recv.getValue());
             }
             else {
                 logger.debug("Received (CB) : When did my parent go !!!!!!!");
@@ -111,7 +110,7 @@ public class ECM_JAVA extends ECM_JAVA_base {
     };
 
     private MyMsgCB  mycb=null;
-    int      p_msgid = -1;
+    int      p_msgid = 0;
 
     public ECM_JAVA()
     {
@@ -283,7 +282,8 @@ public class ECM_JAVA extends ECM_JAVA_base {
     protected int serviceFunction() {
         logger.debug("serviceFunction() example log message");
         
-
+        Any any = this.orb.create_any();
+        Any inany = this.orb.create_any();
         if  ( this.ecm != null ) {
         		
         	if ( this.pub == null || this.sub == null ) {
@@ -291,41 +291,36 @@ public class ECM_JAVA extends ECM_JAVA_base {
                     return NOOP;
         	}
         		// we are done
-        	if ( this.msg_limit.getValue() == this.msg_xmit.getValue() ) return FINISH;
+		if ( this.msg_limit.getValue() > this.msg_xmit.getValue() ){
+                    logger.info("Generated MSG msgid =" + this.msg_xmit.getValue() );
+                    any.insert_long(this.msg_xmit.getValue());
+                    this.pub.push( any );
+                    this.msg_xmit.setValue(this.msg_xmit.getValue() + 1);
 
-        	logger.debug("Generated MSG id =" + this.msg_xmit.getValue() +  " mxmit = " + (this.msg_xmit.getValue()+1));
-        	Any any = this.orb.create_any();
-        	any.insert_long(this.msg_xmit.getValue());
-        	this.msg_xmit.setValue(this.msg_xmit.getValue() + 1);
-        	this.pub.push( any );
-        	try {
-        		Thread.sleep(100);
-        	}
-        	catch(InterruptedException e){
-        	}
-                int msgin=0;
-        	if ( this.sub.getData( any ) == 0 )
-                    {
-                    	msgin  = any.extract_long();
-                 	logger.debug("Received MSG =" + msgin);
-                  	if ( msgin == (this.msg_xmit.getValue()-1) ) {
-                            this.msg_recv.setValue(this.msg_recv.getValue()+1);
-                        }
+                    try {
+			Thread.sleep(300);
                     }
+                    catch(InterruptedException e){
+                    }
+                }
+		if ( this.msg_limit.getValue() > this.msg_recv.getValue() ){
+                    inany = this.sub.getData();
+                    if ( inany != null )
+                        {
+                            int msgin = inany.extract_long();
+                            logger.info("Received MSG msgid =" + msgin);
+                            if ( msgin == this.p_msgid ) {
+                                this.msg_recv.setValue(this.msg_recv.getValue()+1);
+                            }
+                            this.p_msgid++;
+                        }
+                }
         }
         else {
         	logger.info("mylogger - NO ECM ... ");
         }
 
         return NOOP;
-    }
-
-    public void do_it(  Any any ) {
-        int msgin  = any.extract_long();
-        logger.info(".......Received MSG =" + msgin);
-        if ( msgin == (this.msg_xmit.getValue()-1) ) {
-            this.msg_recv.setValue(this.msg_recv.getValue()+1);
-        }
     }
 
     /**

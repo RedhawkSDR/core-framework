@@ -171,9 +171,27 @@ public class  Subscriber  {
         if ( events.size() < 1 ) return retval;
           
         Any  rawdata =  events.remove();
-          
         ret = rawdata;
         retval=0;
+      }
+      catch( Throwable e) {
+      }
+
+      return retval;
+    }
+
+    public Any getData()  {
+
+      Any  retval=null;
+      try{
+
+        // check if callback method is enable.. it so then return
+        if ( dataArrivedCB != null ) return retval;
+
+        // check if data is available
+        if ( events.size() < 1 ) return retval;
+
+        return events.remove();
       }
       catch( Throwable e) {
       }

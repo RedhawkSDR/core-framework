@@ -36,10 +36,8 @@ PREPARE_LOGGING(ECM_CPP_i)
 ECM_CPP_i::ECM_CPP_i(const char *uuid, const char *label) :
     ECM_CPP_base(uuid, label)
 {
-
-    msg_id=0;
-
-
+    p_msgid=0;
+    addPropertyChangeListener("enablecb", this, &ECM_CPP_i::enableChanged);
 }
 
 ECM_CPP_i::~ECM_CPP_i()
@@ -52,7 +50,6 @@ throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
     ecm = redhawk::events::Manager::GetManager( this );
     pub = ecm->Publisher("test1");
     sub  = ecm->Subscriber("test1");
-    //getLogger()->setLevel( rh_logger::Level::getTrace());
 }
 
 void ECM_CPP_i::releaseObject() 
@@ -62,6 +59,29 @@ throw (CF::LifeCycle::ReleaseError, CORBA::SystemException)
   sub.reset();
   ECM_CPP_base::releaseObject();
 }
+
+void ECM_CPP_i::dataArrived( const CORBA::Any &data )  {
+
+    CORBA::Long msgin;
+    if ( data >>= msgin ) {
+        if ( msgin == p_msgid ) {
+            msg_recv=msg_recv+1;
+        }
+        p_msgid++;
+        LOG_INFO(ECM_CPP_i, " Received (CB) msgid : " << msgin  << " msg_recv:" << msg_recv);
+    }
+
+}
+
+
+void ECM_CPP_i::enableChanged(  const bool *ov, bool const *nv ) {
+
+    if ( nv and *nv  ){
+        LOG_DEBUG(ECM_CPP_i, " Enable ECM Callbacks ");
+        sub->setDataArrivedListener( this, &ECM_CPP_i::dataArrived );
+    }
+}
+
 
 
 /***********************************************************************************************
@@ -204,25 +224,26 @@ int ECM_CPP_i::serviceFunction()
     LOG_DEBUG(ECM_CPP_i, "serviceFunction() example log message");
 
     if  ( ecm  ) {
+	if ( msg_limit > msg_xmit ) {
+            LOG_INFO(ECM_CPP_i, "Generated MSG msgid =" << msg_xmit);
 
-    		// we are done
-    	if ( msg_limit == msg_xmit ) return FINISH;
-
-    	RH_NL_INFO("mylogger", "Generated MSG =" << msg_xmit);
-
-    	pub->push( msg_xmit );
-    	msg_xmit++;
-    	boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-        //int32_t msgin=0;
-        CORBA::Long msgin=0;
-    	sub->getData( msgin );
-    	RH_NL_INFO("mylogger", "Received MSG =" << msgin);
-    	if ( msgin == (msg_xmit-1) ) {
-        	msg_recv++;
-    	}
+            pub->push( msg_xmit );
+            msg_xmit++;
+            boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+        }
+        if ( msg_limit > msg_recv ) {
+            CORBA::Long msgin=0;
+            if ( sub->getData( msgin ) == 0 ) {
+                LOG_INFO(ECM_CPP_i, "Received MSG msgid =" << msgin);
+                if ( msgin == p_msgid ) {
+                    msg_recv++;
+                }
+                p_msgid++;
+            }
+        }
     }
     else {
-    	RH_NL_INFO("mylogger", "NO ECM ... ");
+	RH_NL_INFO("ECM_CPP", "NO ECM ... ");
     }
 
     
