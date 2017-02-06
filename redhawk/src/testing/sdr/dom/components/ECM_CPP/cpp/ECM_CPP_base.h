@@ -44,6 +44,7 @@ class ECM_CPP_base : public Component, protected ThreadedComponent
         CORBA::Long msg_recv;
         CORBA::Long msg_xmit;
         CORBA::Long msg_limit;
+        bool enablecb;
 
     private:
 };

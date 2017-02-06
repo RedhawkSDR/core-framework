@@ -100,6 +100,14 @@ class ECM_PY_base(CF__POA.Resource, Component, ThreadedComponent):
                                    mode="readwrite",
                                    action="external",
                                    kinds=("configure",))
+
+        enablecb = simple_property(id_="enablecb",
+                                   name="enablecb",
+                                   type_="boolean",
+                                   defvalue=False,
+                                   mode="readwrite",
+                                   action="external",
+                                   kinds=("property",))
         
 
 

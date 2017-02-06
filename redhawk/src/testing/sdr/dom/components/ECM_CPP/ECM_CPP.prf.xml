@@ -35,4 +35,9 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
+  <simple id="enablecb" mode="readwrite" name="enablecb" type="boolean">
+    <value>false</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
 </properties>

@@ -56,6 +56,51 @@ class EventChannelManager(scatest.CorbaTestCase):
         # class tearDown, or failures will occur.
         scatest.CorbaTestCase.tearDown(self)
 
+
+    def _process_results( self, app, comp_name='ECM', delay=1, wait_int=1.5, enablecb=False):
+        components = app._get_registeredComponents()
+        comp = None
+        for component in components:
+            if comp_name in component.componentObject._get_identifier():
+                comp = component.componentObject
+                if enablecb :
+                    component.componentObject.configure([CF.DataType( id='enablecb', value=any.to_any(True)) ])
+                break
+
+        app.start()
+        time.sleep(delay)
+        mlimit=None
+        mxmit = None
+        mrecv=None
+        self.assertNotEqual(comp,None)
+        stuff = comp.query([])
+        self.assertNotEqual(stuff,None)
+        pdict = props_to_dict(stuff)
+        mlimit = pdict['msg_limit']
+
+        gotmrecv=False
+        pcnt=0
+        while gotmrecv == False :
+            stuff = comp.query([] )
+            stuff = comp.query([ CF.DataType( id='msg_xmit', value=any.to_any(None)) ] )
+            self.assertNotEqual(stuff,None)
+            pdict = props_to_dict(stuff)
+            mxmit = pdict['msg_xmit']
+
+
+            stuff = comp.query([ CF.DataType(id='msg_recv', value=any.to_any(None)) ] )
+            self.assertNotEqual(stuff,None)
+            pdict = props_to_dict(stuff)
+            mrecv = pdict['msg_recv']
+            if ( mlimit == mrecv and mlimit == mxmit) or pcnt == 5:
+                gotmrecv=True
+                continue
+
+            pcnt+=1
+            time.sleep(wait_int)
+
+        return (mlimit, mxmit, mrecv)
+
     def test_ECM_RegId(self):
         self.localEvent = threading.Event()
         self.eventFlag = False
@@ -76,27 +121,32 @@ class EventChannelManager(scatest.CorbaTestCase):
         self._domMgr.installApplication("/waveforms/ECM1/ECM1.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
-        app = appFact.create(appFact._get_name(), [], [])
-        self.assertNotEqual(app, None)
-        app.start()
-        time.sleep(5)
-        components = app._get_registeredComponents()
-        for component in components:
-            #print component.componentObject._get_identifier()
-            if 'ECM' in component.componentObject._get_identifier():
-                stuff = component.componentObject.query([])
-        
-        if stuff:
-            pdict = props_to_dict(stuff)
-            mlimit = pdict['msg_limit']
-            mxmit = pdict['msg_xmit']
-            mrecv = pdict['msg_recv']
-            self.assertEquals(mlimit, mxmit )
-            self.assertEquals(mlimit, mrecv )
+        self.app = appFact.create(appFact._get_name(), [], [])
+        self.assertNotEqual(self.app, None)
+        mlimit, mxmit, mrecv = self._process_results( self.app )
+        self.assertNotEquals(mlimit, None )
+        self.assertNotEquals(mxmit, None )
+        self.assertNotEquals(mrecv, None )
+        self.assertEquals(mlimit, mxmit )
+        self.assertEquals(mlimit, mrecv )
 
+    def test_ECM_CppComponent_Callbacks(self):
+        self.localEvent = threading.Event()
+        self.eventFlag = False
 
-
-        app.releaseObject()
+        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr)
+        self.assertNotEqual(self._devBooter, None)
+        self._domMgr.installApplication("/waveforms/ECM1/ECM1.sad.xml")
+        appFact = self._domMgr._get_applicationFactories()[0]
+        self.assertNotEqual(appFact, None)
+        self.app = appFact.create(appFact._get_name(), [], [])
+        self.assertNotEqual(self.app, None)
+        mlimit, mxmit, mrecv = self._process_results( self.app , enablecb=True)
+        self.assertNotEquals(mlimit, None )
+        self.assertNotEquals(mxmit, None )
+        self.assertNotEquals(mrecv, None )
+        self.assertEquals(mlimit, mxmit )
+        self.assertEquals(mlimit, mrecv )
 
 
     def test_ECM_PythonComponent(self):
@@ -108,28 +158,31 @@ class EventChannelManager(scatest.CorbaTestCase):
         self._domMgr.installApplication("/waveforms/ECM2/ECM2.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
-        app = appFact.create(appFact._get_name(), [], [])
-        self.assertNotEqual(app, None)
-        app.start()
-        time.sleep(5)
-        components = app._get_registeredComponents()
-        for component in components:
-            #print component.componentObject._get_identifier()
-            if 'ECM' in component.componentObject._get_identifier():
-                stuff = component.componentObject.query([])
-        
-        if stuff:
-            pdict = props_to_dict(stuff)
-            mlimit = pdict['msg_limit']
-            mxmit = pdict['msg_xmit']
-            mrecv = pdict['msg_recv']
-            self.assertEquals(mlimit, mxmit )
-            self.assertEquals(mlimit, mrecv )
+        self.app = appFact.create(appFact._get_name(), [], [])
+        mlimit, mxmit, mrecv = self._process_results( self.app )
+        self.assertNotEquals(mlimit, None )
+        self.assertNotEquals(mxmit, None )
+        self.assertNotEquals(mrecv, None )
+        self.assertEquals(mlimit, mxmit )
+        self.assertEquals(mlimit, mrecv )
 
+    def test_ECM_PythonComponent_Callbacks(self):
+        self.localEvent = threading.Event()
+        self.eventFlag = False
 
-
-        app.releaseObject()
-
+        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr)
+        self.assertNotEqual(self._devBooter, None)
+        self._domMgr.installApplication("/waveforms/ECM2/ECM2.sad.xml")
+        appFact = self._domMgr._get_applicationFactories()[0]
+        self.assertNotEqual(appFact, None)
+        self.app = appFact.create(appFact._get_name(), [], [])
+        self.assertNotEqual(self.app, None)
+        mlimit, mxmit, mrecv = self._process_results( self.app , enablecb=True)
+        self.assertNotEquals(mlimit, None )
+        self.assertNotEquals(mxmit, None )
+        self.assertNotEquals(mrecv, None )
+        self.assertEquals(mlimit, mxmit )
+        self.assertEquals(mlimit, mrecv )
 
     @scatest.requireJava
     def test_ECM_JavaComponent(self):
@@ -141,24 +194,14 @@ class EventChannelManager(scatest.CorbaTestCase):
         self._domMgr.installApplication("/waveforms/ECM3/ECM3.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
-        app = appFact.create(appFact._get_name(), [], [])
-        self.assertNotEqual(app, None)
-        app.start()
-        time.sleep(5)
-        components = app._get_registeredComponents()
-        for component in components:
-            #print component.componentObject._get_identifier()
-            if 'ECM' in component.componentObject._get_identifier():
-                stuff = component.componentObject.query([])
-        
-        if stuff:
-            pdict = props_to_dict(stuff)
-            mlimit = pdict['msg_limit']
-            mxmit = pdict['msg_xmit']
-            mrecv = pdict['msg_recv']
-            self.assertEquals(mlimit, mxmit )
-            self.assertEquals(mlimit, mrecv )
-
+        self.app = appFact.create(appFact._get_name(), [], [])
+        self.assertNotEqual(self.app, None)
+        mlimit, mxmit, mrecv = self._process_results( self.app )
+        self.assertNotEquals(mlimit, None )
+        self.assertNotEquals(mxmit, None )
+        self.assertNotEquals(mrecv, None )
+        self.assertEquals(mlimit, mxmit )
+        self.assertEquals(mlimit, mrecv )
 
 
     @scatest.requireJava
@@ -171,30 +214,14 @@ class EventChannelManager(scatest.CorbaTestCase):
         self._domMgr.installApplication("/waveforms/ECM3/ECM3.sad.xml")
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
-        app = appFact.create(appFact._get_name(), [], [])
-        self.assertNotEqual(app, None)
-        components = app._get_registeredComponents()
-        for component in components:
-            if 'ECM' in component.componentObject._get_identifier():
-                component.componentObject.configure([CF.DataType( id='enablecb', value=any.to_any(True)) ])
-        app.start()
-        time.sleep(5)
-        components = app._get_registeredComponents()
-        for component in components:
-            if 'ECM' in component.componentObject._get_identifier():
-                stuff = component.componentObject.query([])
-        
-        if stuff:
-            pdict = props_to_dict(stuff)
-            mlimit = pdict['msg_limit']
-            mxmit = pdict['msg_xmit']
-            mrecv = pdict['msg_recv']
-            self.assertEquals(mlimit, mxmit )
-            self.assertEquals(mlimit, mrecv )
-
-
-
-        app.releaseObject()
+        self.app = appFact.create(appFact._get_name(), [], [])
+        self.assertNotEqual(self.app, None)
+        mlimit, mxmit, mrecv = self._process_results( self.app, enablecb=True )
+        self.assertNotEquals(mlimit, None )
+        self.assertNotEquals(mxmit, None )
+        self.assertNotEquals(mrecv, None )
+        self.assertEquals(mlimit, mxmit )
+        self.assertEquals(mlimit, mrecv )
 
 class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
     def setUp(self):

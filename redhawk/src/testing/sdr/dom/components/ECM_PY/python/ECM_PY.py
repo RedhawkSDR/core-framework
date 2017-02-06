@@ -25,8 +25,9 @@
 # Source: ECM_PY.spd.xml
 from ossie.resource import start_component
 from ossie.events import *
+from omniORB import any, CORBA
 import logging
-
+import traceback
 from ECM_PY_base import *
 
 class ECM_PY_i(ECM_PY_base):
@@ -42,10 +43,35 @@ class ECM_PY_i(ECM_PY_base):
         """
         ECM_PY_base.initialize(self)
         # TODO add customization here.
+        self.p_msgid = 0
+        self.ecm=None
+        self.pub= None
+        self.sub = None
+        try:
+            self.ecm = Manager.GetManager( self )
+            self.pub = self.ecm.Publisher("test1")
+            self.sub  = self.ecm.Subscriber("test1")
+        except:
+            self._log.error(" Unable to get EventChannel Manager or Pub/Sub ")
+
+        self.addPropertyChangeListener('enablecb', self.enablecb_changed)
+
+    def enablecb_changed(self, id, ov, nv):
+        if nv and nv == True:
+            self.sub.setDataArrivedCB(self.dataArrived)
+
+    def dataArrived(self, inany ):
+        if inany != None:
+            try:
+                msgin = any.from_any(inany)
+                if msgin == self.p_msgid:
+                    self.msg_recv += 1
+                self.p_msgid += 1
+                self._log.info(" Received (CB) msgid :" + str(msgin) + " msg_recv: "  + str(self.msg_recv) )
+            except:
+                self._log.error(" Error for dataArrived CB")
+
         
-        self.ecm = Manager.GetManager( self );
-        self.pub = self.ecm.Publisher("test1");
-        self.sub  = self.ecm.Subscriber("test1");
     def process(self):
         """
         Basic functionality:
@@ -127,21 +153,21 @@ class ECM_PY_i(ECM_PY_base):
         self._log.debug("process() example log message")
         
         if  self.ecm:
+            if not self.pub or not self.sub: return NOOP
 
-            if self.msg_limit == self.msg_xmit:
-                return FINISH
-
-            self._log.info( "Generated MSG =" + str(self.msg_xmit) )
-
-
-            self.pub.push( self.msg_xmit )
-            self.msg_xmit =self.msg_xmit + 1
-            time.sleep(.10)
-            msgin=0;
-            msgin = self.sub.getData();
-            self._log.info("Received MSG =" +str(msgin))
-            if msgin == (self.msg_xmit-1) :  
-                    self.msg_recv = self.msg_recv + 1
+            if self.msg_limit > self.msg_xmit:
+                self._log.info( "Generated MSG msgid =" + str(self.msg_xmit) )
+                self.pub.push( self.msg_xmit )
+                self.msg_xmit =self.msg_xmit + 1
+                time.sleep(.10)
+            if self.msg_limit > self.msg_recv:
+                msgin=0;
+                msgin = self.sub.getData()
+                if msgin != None:
+                    self._log.info("Received MSG msgid =" +str(msgin))
+                    if msgin == self.p_msgid :
+                        self.msg_recv = self.msg_recv + 1
+                    self.p_msgid +=1
         else:
             self._log.info("mylogger" + "NO ECM ... ");
 
