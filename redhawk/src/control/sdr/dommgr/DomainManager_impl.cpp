@@ -2201,11 +2201,27 @@ CF::Resource_ptr DomainManager_impl::lookupComponentByInstantiationId(const std:
     // Search for a Component matching this id
     //  This needs to reconcile the fact that the application id is <softwareassembly id>:<app name>, the component id is <componentinstantiation id>:<app name>
     //   and the unambiguous endpoint for a component is <componentinstantiation id>:<softwareassembly id>:<app name>
-    std::size_t pos = identifier.find(":");
+    std::size_t begin_pos = 0;
+    if (identifier.size() > 4) {
+        if (identifier.substr(0,3) == "DCE") {
+            begin_pos = 4;
+        }
+    }
+    std::size_t pos = identifier.find(":", begin_pos);
     if (pos != std::string::npos) {
         std::string appid = identifier.substr(pos+1);
         if (_applications.find(appid) == _applications.end()) {
-            return CF::Resource::_nil();
+            // search by id substr instead of id
+            ApplicationTable::iterator it = _applications.begin();
+            while (it != _applications.end()) {
+                if (appid == it->first.substr(it->first.size()-appid.size(),appid.size())) {
+                    appid = it->first;
+                    break;
+                }
+                it++;
+            }
+            if (it == _applications.end())
+                return CF::Resource::_nil();
         }
         std::string normalized_comp_id = identifier.substr(0,pos)+std::string(":")+appid.substr(appid.rfind(":")+1);
         for (Application_impl::ComponentList::iterator _comp=_applications[appid]->_components.begin(); _comp!=_applications[appid]->_components.end(); _comp++) {\

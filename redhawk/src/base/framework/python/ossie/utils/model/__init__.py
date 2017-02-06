@@ -40,7 +40,7 @@ from ossie.properties import getMemberType
 from ossie.cf import ExtendedCF as _ExtendedCF
 from ossie.utils.formatting import TablePrinter
 from ossie.utils import prop_helpers
-import redhawk.time.utils
+from ossie.utils import rhtime
 import warnings as _warnings
 from connect import *
 
@@ -108,7 +108,7 @@ def _convertType(propType, val):
         newValue = complex(real, imag)
     elif propType == 'utctime':
         if type(val) == str:
-            newValue = redhawk.time.utils.convert(val)
+            newValue = rhtime.convert(val)
         else:
             newValue = val
     else:

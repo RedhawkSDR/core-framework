@@ -28,6 +28,8 @@
 # Version:M.1.8.2
 # Build id: v201211021737RC2
 from ossie.cf import CF, CF__POA
+from ossie.cf import ExtendedCF
+from ossie.cf import ExtendedCF__POA
 from ossie.utils import uuid
 
 from ossie.resource import Resource
@@ -166,7 +168,7 @@ class ServiceComponent_base(CF__POA.Resource, Resource):
 
 
         # 'CF/PropertySet' port
-        class PortCFPropertySetOut(CF__POA.Port):
+        class PortCFPropertySetOut(ExtendedCF__POA.QueryablePort):
             """This class is a port template for the output port and
             should not be instantiated nor modified.
             
@@ -209,16 +211,25 @@ class PortCFPropertySetOut_i(ServiceComponent_base.PortCFPropertySetOut):
             self.outConnections.pop(str(connectionId), None)
         finally:
             self.port_lock.release()
-        
+
+    def _get_connections(self):
+        self.port_lock.acquire()
+        try:
+            return [ExtendedCF.UsesConnection(name, port) for name, port in self.outConnections.iteritems()]
+        finally:
+            self.port_lock.release()
+
     def configure(self, configProperties):
         self.port_lock.acquire()
 
-        try:    
-            try:
-                for connId, port in self.outConnections.items():
-                    if port != None: port.configure(configProperties)
-            except Exception:
-                self.parent._log.exception("The call to configure failed on port %s connection %s instance %s", self.name, connId, port)
+        try:
+            for connId, port in self.outConnections.items():
+                if port != None:
+                    try:
+                        port.configure(configProperties)
+                    except Exception:
+                        self.parent._log.exception("The call to configure failed on port %s connection %s instance %s", self.name, connId, port)
+                        raise
         finally:
             self.port_lock.release()
 
@@ -226,14 +237,18 @@ class PortCFPropertySetOut_i(ServiceComponent_base.PortCFPropertySetOut):
         retVal = None
         self.port_lock.acquire()
 
-        try:    
-            try:
-                for connId, port in self.outConnections.items():
-                    if port != None:retVal = port.query(configProperties)
-            except Exception:
-                self.parent._log.exception("The call to query failed on port %s connection %s instance %s", self.name, connId, port)
+        try:
+            for connId, port in self.outConnections.items():
+                if port != None:
+                    try:
+                        retVal = port.query(configProperties)
+                    except Exception:
+                        self.parent._log.exception("The call to query failed on port %s connection %s instance %s", self.name, connId, port)
+                        raise
         finally:
             self.port_lock.release()
 
         return retVal
-  
+
+
+

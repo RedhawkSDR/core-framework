@@ -26,6 +26,7 @@ from ossie.cf import CF as _CF
 from ossie.cf import CF__POA as _CF__POA
 from ossie.cf import ExtendedCF as _ExtendedCF
 from ossie.cf import StandardEvent
+import CosEventChannelAdmin
 from omniORB import CORBA as _CORBA
 import CosNaming as _CosNaming
 import sys as _sys
@@ -698,6 +699,7 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
         self.name = name
         self.ref = devMgr
         self.id = self.ref._get_identifier()
+        self._id = self.id
         self._domain = domain
         self._dcd = dcd
         self.fs = self.ref._get_fileSys()
@@ -1191,7 +1193,7 @@ class ConnectionManager(CorbaObject):
         restype = _CF.ConnectionManager.EndpointResolutionType(objectRef=obj_ref)
         return _CF.ConnectionManager.EndpointRequest(restype, port_name)
     
-    def connect( self, usesEndPoint, providesEndPoint, requesterId, connectionId ):
+    def connect(self, usesEndPoint, providesEndPoint, requesterId='default', connectionId=''):
         retval=None
         if self.ref:
             try:
@@ -1201,12 +1203,9 @@ class ConnectionManager(CorbaObject):
         return retval
 
     def disconnect( self, connectionRecordId ):
-        print 'core disconnect'
         if self.ref:
             try:
-                print 'begin core disconnect'
                 self.ref.disconnect( connectionRecordId )
-                print 'done core disconnect'
             except:
                 raise
 
@@ -1226,6 +1225,7 @@ class EventChannel(CorbaObject):
     def __init__(self, ref, name):
         CorbaObject.__init__(self, ref)
         self.name = name
+        self.ref = self.ref._narrow(CosEventChannelAdmin.EventChannel)
 
 class EventChannelManager(CorbaObject):
 
@@ -1521,6 +1521,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             raise StandardError('Domain Manager '+self.name+' is not available')
         
         self.id = self.ref._get_identifier()
+        self._id = self.id
         try:
             spd, scd, prf = _readProfile("/mgr/DomainManager.spd.xml", self.fileManager)
             super(Domain, self).__init__(prf, self.id)

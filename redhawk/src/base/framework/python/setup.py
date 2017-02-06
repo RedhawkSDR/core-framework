@@ -74,8 +74,8 @@ ossiepy = ['ossie',
            'ossie/utils/sca',
            'ossie/utils/testing',
            'ossie/utils/tools',
-           'redhawk',
-           'redhawk/time']
+           'ossie/utils/rhtime',
+           'ossie/utils/rhconnection']
 
 exec(open('ossie/version.py').read())
 

@@ -25,7 +25,7 @@ from ossie.cf import CF, CF__POA
 from ossie.resource import Resource, start_component
 from ossie.properties import simple_property, simpleseq_property, struct_property, structseq_property
 from omniORB.any import from_any
-import redhawk.time.utils
+from ossie.utils import rhtime
 
 
 class TestPythonProps (CF__POA.Resource, Resource):
@@ -115,7 +115,7 @@ class TestPythonProps (CF__POA.Resource, Resource):
             self.port = port
 
     def reset_utcCallback(self, id, old_value, new_value):
-        self.simple_utctime = redhawk.time.utils.now()
+        self.simple_utctime = rhtime.now()
 
     multicasts = structseq_property(id_="DCE:897a5489-f680-46a8-a698-e36fd8bbae80[]",
                                     name="multicasts",

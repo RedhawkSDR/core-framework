@@ -33,7 +33,7 @@ import StringIO
 import types
 import struct
 import inspect
-import redhawk.time.utils
+from ossie.utils import rhtime
 
 # numpy types to Corba Type codes
 __NP_ALT_MAP = {
@@ -258,7 +258,7 @@ def to_xmlvalue(data, type_):
     elif type_ == "boolean":
         v = str(bool(data)).lower()
     elif type_ == "utctime":
-        v = redhawk.time.utils.toString(data)
+        v = rhtime.toString(data)
     elif type_ == "string": # Remove quotes added by repr
         v = v[1:-1]
     return v

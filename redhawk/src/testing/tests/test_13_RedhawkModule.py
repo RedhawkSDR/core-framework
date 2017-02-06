@@ -28,6 +28,7 @@ import os as _os
 from ossie.cf import CF
 from ossie.utils import redhawk
 from ossie.utils import type_helpers
+from ossie.utils import rhconnection
 from ossie.events import Subscriber, Publisher
 from ossie.cf import CF
 
@@ -748,3 +749,60 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
             post.extend(comp.runTest(0, []))
 
         self.assertTrue(len(post) > len(pre))
+
+    def test_connectionMgrApp(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        self.launchDeviceManager('/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml')
+
+        app1 = self._rhDom.createApplication('/waveforms/PortConnectExternalPort/PortConnectExternalPort.sad.xml')
+        app2 = self._rhDom.createApplication('/waveforms/PortConnectExternalPort/PortConnectExternalPort.sad.xml')
+
+        # Tally up the connections prior to making an app-to-app connection;
+        # the PortTest component's runTest method returns the identifiers of
+        # any connected Resources
+        pre = []
+        for comp in app1.comps + app2.comps:
+            pre.extend(comp.runTest(0, []))
+        
+        ep1=rhconnection.makeEndPoint(app1, 'resource_out')
+        ep2=rhconnection.makeEndPoint(app2, '')
+        cMgr = self._rhDom._get_connectionMgr()
+        cMgr.connect(ep1,ep2)
+
+        # Tally up the connections to check that a new one has been made
+        post = []
+        for comp in app1.comps + app2.comps:
+            post.extend(comp.runTest(0, []))
+
+        self.assertTrue(len(post) > len(pre))
+
+    def test_connectionMgrComp(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        self.launchDeviceManager('/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml')
+
+        app1 = self._rhDom.createApplication('/waveforms/PortConnectExternalPort/PortConnectExternalPort.sad.xml')
+        app2 = self._rhDom.createApplication('/waveforms/PortConnectExternalPort/PortConnectExternalPort.sad.xml')
+
+        for _comp in app1.comps:
+            print 'searching: ',_comp.name, _comp._id
+            if _comp._id[:50] == 'DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74:PortConne':
+                break
+
+        for _port in _comp.ports:
+            if _port.name == 'resource_out':
+                break
+
+        self.assertEquals(len(_port._get_connections()), 0)
+
+        ep1=rhconnection.makeEndPoint(_comp, 'resource_out')
+        print ep1
+        ep2=rhconnection.makeEndPoint(app2, '')
+        print ep2
+        cMgr = self._rhDom._get_connectionMgr()
+        cMgr.connect(ep1,ep2)
+
+        self.assertEquals(len(_port._get_connections()), 1)
