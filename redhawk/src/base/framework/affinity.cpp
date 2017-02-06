@@ -78,6 +78,15 @@ namespace  redhawk {
 
   namespace affinity {
 
+    bool check_numa() { 
+#ifdef HAVE_LIBNUMA
+      return (numa_available() != -1); 
+#else
+      return false;
+#endif
+    }
+
+
     //
     // promote nic affinity to a socket if all associated cpus for the interface are blacklisted
     //
@@ -93,7 +102,7 @@ namespace  redhawk {
     //
     static   SetAffinityFunc     _affinity_override_func = NULL;
 
-    static  rh_logger::LoggerPtr  _affinity_logger = rh_logger::Logger::getLogger("redhawk::affinity");
+    static  rh_logger::LoggerPtr  _affinity_logger = rh_logger::Logger::getLogger("redhawk.affinity");
 
 
     //
@@ -130,7 +139,7 @@ namespace  redhawk {
     //
     bool is_disabled() {
       bool retval=false;
-      if ( !_affinity_enabled  || std::getenv("REDHAWK_DISABLE_AFFINITY") != NULL ) {
+      if ( !_affinity_enabled  || std::getenv("REDHAWK_DISABLE_AFFINITY") != NULL || check_numa() == false ) {
         //RH_DEBUG(_affinity_logger, "Affinity processing is disabled.");
         retval=true;
       }
@@ -226,24 +235,29 @@ namespace  redhawk {
       // Determine cpu list by interrupts assigned for the specified NIC
       CpuList cpulist = identify_cpus(iface);
       if ( cpulist.size() > 0 ) {
-        int psoc=-1;
+        if ( check_numa() ) {
+            int psoc=-1;
 #if HAVE_LIBNUMA
-        int soc=-1;
-        for( int i=0; i < (int)cpulist.size();i++ ) {
-          RH_DEBUG(_affinity_logger, "Finding (processor socket) for NIC:" << iface << " socket :" << numa_node_of_cpu(cpulist[i]) );
-          if ( std::count( bl.begin(), bl.end(), cpulist[i] ) != 0 ) continue;
+            int soc=-1;
+            for( int i=0; i < (int)cpulist.size();i++ ) {
+                RH_DEBUG(_affinity_logger, "Finding (processor socket) for NIC:" << iface << " socket :" << numa_node_of_cpu(cpulist[i]) );
+                if ( std::count( bl.begin(), bl.end(), cpulist[i] ) != 0 ) continue;
 
-          soc = numa_node_of_cpu(cpulist[i]);
-          if ( soc != psoc && psoc != -1 && !findFirst ) {
-            RH_WARN(_affinity_logger, "More than 1 socket servicing NIC:" << iface);
-            psoc=-1;
-            break;
-          }
-          psoc=soc;
-          if( findFirst ) break;
-        }
+                soc = numa_node_of_cpu(cpulist[i]);
+                if ( soc != psoc && psoc != -1 && !findFirst ) {
+                    RH_WARN(_affinity_logger, "More than 1 socket servicing NIC:" << iface);
+                    psoc=-1;
+                    break;
+                }
+                psoc=soc;
+                if( findFirst ) break;
+            }
 #endif
-        retval=psoc;
+            retval=psoc;
+        }
+        else {
+            retval=0;
+        }
       }
       
 
