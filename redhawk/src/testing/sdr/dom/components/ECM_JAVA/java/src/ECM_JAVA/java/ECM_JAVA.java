@@ -304,16 +304,14 @@ public class ECM_JAVA extends ECM_JAVA_base {
                     }
                 }
 		if ( this.msg_limit.getValue() > this.msg_recv.getValue() ){
-                    inany = this.sub.getData();
-                    if ( inany != null )
-                        {
-                            int msgin = inany.extract_long();
-                            logger.info("Received MSG msgid =" + msgin);
-                            if ( msgin == this.p_msgid ) {
-                                this.msg_recv.setValue(this.msg_recv.getValue()+1);
-                            }
-                            this.p_msgid++;
+                    if ( this.sub.getData(inany) == 0 ) {
+                        int msgin = inany.extract_long();
+                        logger.info("Received MSG msgid =" + msgin);
+                        if ( msgin == this.p_msgid ) {
+                            this.msg_recv.setValue(this.msg_recv.getValue()+1);
                         }
+                        this.p_msgid++;
+                    }
                 }
         }
         else {
