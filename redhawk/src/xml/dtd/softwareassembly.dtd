@@ -191,8 +191,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	name		CDATA	#IMPLIED>
 
 <!ELEMENT hostcollocation
-	( componentplacement
-        | usesdeviceref
+	( componentplacement+
+        | usesdeviceref*
 	)+>
 
 <!ATTLIST hostcollocation
