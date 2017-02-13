@@ -13,7 +13,7 @@
   </descriptor>
   <implementation id="cpp">
     <description>The implementation contains descriptive information about the template for a software resource.</description>
-    <code type="SharedLibrary">
+    <code type="Executable">
       <localfile name="cpp/check_cwd_cpp"/>
       <entrypoint>cpp/check_cwd_cpp</entrypoint>
     </code>
