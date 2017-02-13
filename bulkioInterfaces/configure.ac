@@ -63,9 +63,8 @@ if test "$enable_base_classes" != "no"; then
   OSSIE_ENABLE_LOG4CXX
   CHECK_VECTOR_IMPL
 
-  AC_SUBST(BULKIO_INF_INCLUDES, "-I../src/cpp -I../src/cpp/ossie")
-  AC_SUBST(BULKIO_INF_CFLAGS, )
-  AC_SUBST(BULKIO_INF_LIBS, )
+  AC_SUBST(BULKIOINTERFACES_CFLAGS, "-I \$(top_srcdir)/src/cpp -I \$(top_srcdir)/src/cpp/ossie")
+  AC_SUBST(BULKIOINTERFACES_LIBS, "-L\$(top_srcdir) -lbulkioInterfaces")
 fi
 
 # Optionally include java support
@@ -145,8 +144,8 @@ AM_PATH_CPPUNIT(1.12.1)
 # the top-level include directory ("bulkio/bulkio.h") and the bulkio
 # directory inside of include ("bulkio.h").
 bulkio_includedir="\$(top_srcdir)/libsrc/cpp/include"
-AC_SUBST(BULKIO_CFLAGS, "-I \$(top_srcdir)/src/cpp -I ${bulkio_includedir} -I ${bulkio_includedir}/bulkio")
-AC_SUBST(BULKIO_LIBS, "-L\$(top_srcdir)/libsrc -lbulkio-${BULKIO_API_VERSION} -L\$(top_srcdir) -lbulkioInterfaces")
+AC_SUBST(BULKIO_CFLAGS, "-I ${bulkio_includedir} -I ${bulkio_includedir}/bulkio ${BULKIOINTERFACES_CFLAGS}")
+AC_SUBST(BULKIO_LIBS, "-L\$(top_srcdir)/libsrc -lbulkio-${BULKIO_API_VERSION} ${BULKIOINTERFACES_LIBS}")
 
 AC_CONFIG_FILES([bulkioInterfaces.pc setup.py Makefile jni/Makefile])
 if test "$enable_base_classes" != "no"; then
