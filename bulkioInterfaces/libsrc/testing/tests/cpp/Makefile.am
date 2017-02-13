@@ -20,9 +20,10 @@
 # Rules for the test code (use `make check` to execute)
 TESTS = Bulkio
 check_PROGRAMS = $(TESTS)
-bulkio_top=../../../../
-bulkio_libsrc_top=$(bulkio_top)/libsrc
+
 Bulkio_SOURCES = Bulkio.cpp Bulkio_Helper_Fixture.cpp Bulkio_InPort_Fixture.cpp Bulkio_OutPort_Fixture.cpp Bulkio_MultiOut_Port.cpp
 Bulkio_SOURCES += InStreamTest.h InStreamTest.cpp
-Bulkio_CXXFLAGS = $(CPPUNIT_CFLAGS) -I$(bulkio_libsrc_top)/cpp  -I$(bulkio_top)/src/cpp -I$(bulkio_top)/src/cpp/ossie  $(BOOST_CPPFLAGS) $(RH_DEPS_CFLAGS)
-Bulkio_LDADD = -L$(bulkio_libsrc_top)/.libs -L$(bulkio_top)/.libs -lbulkio-2.1 -lbulkioInterfaces $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(RH_DEPS_LIBS) $(CPPUNIT_LIBS) -llog4cxx 
+Bulkio_SOURCES += OutStreamTest.h OutStreamTest.cpp
+Bulkio_SOURCES += LocalTest.h LocalTest.cpp
+Bulkio_CXXFLAGS = $(BULKIO_CFLAGS) $(BOOST_CPPFLAGS) $(OSSIE_CFLAGS) $(CPPUNIT_CFLAGS)
+Bulkio_LDADD = $(BULKIO_LIBS) $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(OSSIE_LIBS) $(CPPUNIT_LIBS) $(LOG4CXX_LIBS)

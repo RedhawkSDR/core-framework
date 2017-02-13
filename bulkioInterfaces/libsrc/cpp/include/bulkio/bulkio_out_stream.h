@@ -97,6 +97,8 @@ namespace bulkio {
 
     public:
         operator unspecified_bool_type() const;
+        bool operator==(const OutputStream& other) const;
+        bool operator!=(const OutputStream& other) const;
     };
 
 
@@ -143,14 +145,14 @@ namespace bulkio {
 
         /**
          * @brief  Write scalar data to the stream.
-         * @param data  The %read_buffer to write.
+         * @param data  The %shared_buffer to write.
          * @param time  The timestamp of the first sample.
          */
         void write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time);
 
         /**
          * @brief  Write scalar data to the stream.
-         * @param data  The %read_buffer to write.
+         * @param data  The %shared_buffer to write.
          * @param times  A list of sample timestamps. Sample offsets must be in
          *               increasing order, starting at 0.
          *
@@ -161,14 +163,14 @@ namespace bulkio {
 
         /**
          * @brief  Write complex data to the stream.
-         * @param data  The %read_buffer to write.
+         * @param data  The %shared_buffer to write.
          * @param time  The timestamp of the first sample.
          */
         void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time);
 
         /**
          * @brief  Write complex data to the stream.
-         * @param data  The %read_buffer to write.
+         * @param data  The %shared_buffer to write.
          * @param times  A list of sample timestamps. Sample offsets must be in
          *               increasing order, starting at 0.
          *

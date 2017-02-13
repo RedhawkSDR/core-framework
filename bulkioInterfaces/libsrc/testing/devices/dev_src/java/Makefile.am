@@ -20,7 +20,7 @@
 ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
 AUTOMAKE_OPTIONS = subdir-objects
 
-dev_src_jar_CLASSPATH = $(SOFTPKG_CLASSPATH):$(REDHAWK_CLASSPATH):$(OSSIE_HOME)/lib/bulkio.jar:$(OSSIE_HOME)/lib/BULKIOInterfaces.jar
+dev_src_jar_CLASSPATH = $(SOFTPKG_CLASSPATH):$(REDHAWK_CLASSPATH):$(BULKIO_CLASSPATH)
 
 dev_src.jar$(EXEEXT): $(dev_src_jar_SOURCES)
 	mkdir -p bin

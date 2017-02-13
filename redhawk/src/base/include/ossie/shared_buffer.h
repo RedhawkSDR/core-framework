@@ -465,8 +465,8 @@ namespace redhawk {
     class buffer : public shared_buffer<T>
     {
     public:
-        /// @brief  The read-only buffer type.
-        typedef shared_buffer<T> read_type;
+        /// @brief  The equivalent shared buffer type.
+        typedef shared_buffer<T> shared_type;
         /// @brief  The element type (T).
         typedef T value_type;
         /// @brief  A random access iterator to value_type.
@@ -494,7 +494,7 @@ namespace redhawk {
          * @brief  Construct an empty %buffer.
          */
         buffer() :
-            read_type()
+            shared_type()
         {
         }
 
@@ -506,7 +506,7 @@ namespace redhawk {
          * initialization is performed.
          */
         buffer(size_t size) :
-            read_type(this->_M_allocate(size, default_allocator()))
+            shared_type(this->_M_allocate(size, default_allocator()))
         {
         }
 
@@ -521,7 +521,7 @@ namespace redhawk {
          */
         template <class Alloc>
         buffer(size_t size, const Alloc& allocator) :
-            read_type(this->_M_allocate(size, allocator))
+            shared_type(this->_M_allocate(size, allocator))
         {
         }
 
@@ -535,7 +535,7 @@ namespace redhawk {
          * with delete[].
          */
         buffer(value_type* data, size_t size) :
-            read_type(data, size)
+            shared_type(data, size)
         {
         }
 
@@ -552,7 +552,7 @@ namespace redhawk {
          */
         template <class D>
         buffer(value_type* data, size_t size, D deleter) :
-            read_type(data, size, deleter)
+            shared_type(data, size, deleter)
         {
         }
 
@@ -625,7 +625,7 @@ namespace redhawk {
          */
         size_t size() const
         {
-            return read_type::size();
+            return shared_type::size();
         }
 
         /**
@@ -633,7 +633,7 @@ namespace redhawk {
          */
         bool empty() const
         {
-            return read_type::empty();
+            return shared_type::empty();
         }
 
         /**
@@ -658,9 +658,9 @@ namespace redhawk {
          * @param end  Index of last element, exclusive (default end).
          * @return  The new %shared_buffer.
          */
-        read_type slice(size_t start, size_t end=size_t(-1)) const
+        shared_type slice(size_t start, size_t end=size_t(-1)) const
         {
-            return read_type::slice(start, end);
+            return shared_type::slice(start, end);
         }
 
         /**
@@ -683,7 +683,7 @@ namespace redhawk {
          */
         void trim(size_t start, size_t end=size_t(-1))
         {
-            read_type::trim(start, end);
+            shared_type::trim(start, end);
         }
 
         /**
@@ -712,7 +712,7 @@ namespace redhawk {
          */
         buffer copy() const
         {
-            return read_type::copy();
+            return shared_type::copy();
         }
 
         /**
@@ -725,7 +725,7 @@ namespace redhawk {
         template <class Alloc>
         buffer copy(const Alloc& allocator) const
         {
-            return read_type::copy(allocator);
+            return shared_type::copy(allocator);
         }
 
         /**
@@ -752,7 +752,7 @@ namespace redhawk {
             // Use the base class' template method implementation, with this
             // type as the first template parameter (the second is deduced from
             // the argument).
-            return read_type::template _M_recast<buffer>(other);
+            return shared_type::template _M_recast<buffer>(other);
         }
 
     protected:
@@ -781,10 +781,10 @@ namespace redhawk {
 
         // Implementation of allocate.
         template <class Alloc>
-        static read_type _M_allocate(size_t size, const Alloc& allocator)
+        static shared_type _M_allocate(size_t size, const Alloc& allocator)
         {
             allocator_deleter<Alloc> deleter(size, allocator);
-            return read_type(deleter.allocate(size), size, deleter);
+            return shared_type(deleter.allocate(size), size, deleter);
         }
 
         /// @endcond

@@ -52,22 +52,22 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
 
 ## Define the list of public header files and their install location.
 library_includedir = $(includedir)/bulkio
-library_include_HEADERS = cpp/bulkio.h \
-	cpp/BULKIO_Interfaces.h \
-	cpp/bulkio_base.h \
-	cpp/bulkio_callbacks.h \
-	cpp/bulkio_traits.h \
-	cpp/bulkio_in_port.h \
-	cpp/bulkio_in_stream.h \
-	cpp/bulkio_out_port.h \
-	cpp/bulkio_out_stream.h \
-	cpp/bulkio_attachable_base.h \
-	cpp/bulkio_stream.h \
-	cpp/bulkio_time_operators.h \
-	cpp/bulkio_datablock.h \
-	cpp/bulkio_datatransfer.h \
-	cpp/bulkio_typetraits.h \
-	cpp/bulkio_compat.h
+library_include_HEADERS = cpp/include/bulkio/bulkio.h \
+	cpp/include/bulkio/BULKIO_Interfaces.h \
+	cpp/include/bulkio/bulkio_base.h \
+	cpp/include/bulkio/bulkio_callbacks.h \
+	cpp/include/bulkio/bulkio_traits.h \
+	cpp/include/bulkio/bulkio_in_port.h \
+	cpp/include/bulkio/bulkio_in_stream.h \
+	cpp/include/bulkio/bulkio_out_port.h \
+	cpp/include/bulkio/bulkio_out_stream.h \
+	cpp/include/bulkio/bulkio_attachable_base.h \
+	cpp/include/bulkio/bulkio_stream.h \
+	cpp/include/bulkio/bulkio_time_operators.h \
+	cpp/include/bulkio/bulkio_datablock.h \
+	cpp/include/bulkio/bulkio_datatransfer.h \
+	cpp/include/bulkio/bulkio_typetraits.h \
+	cpp/include/bulkio/bulkio_compat.h
 
 ## The generated configuration header is installed in its own subdirectory of
 ## $(libdir).  The reason for this is that the configuration information put
@@ -82,7 +82,7 @@ library_include_HEADERS = cpp/bulkio.h \
 ## shipped with the source tarball.
 #bulkio_libincludedir = $(libdir)/bulkio-$(BULKIO_API_VERSION)/include
 
-libbulkio_@BULKIO_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(BULKIO_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
+libbulkio_@BULKIO_API_VERSION@_la_CXXFLAGS = -Wall -I $(srcdir)/cpp -I $(srcdir)/cpp/include/bulkio -DLOGGING $(BULKIO_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
 
 ###############################################################################
 # Python

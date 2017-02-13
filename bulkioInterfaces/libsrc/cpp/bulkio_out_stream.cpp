@@ -275,6 +275,18 @@ OutputStream<PortType>::operator unspecified_bool_type() const
 }
 
 template <class PortType>
+bool OutputStream<PortType>::operator==(const OutputStream& other) const
+{
+    return _impl == other._impl;
+}
+
+template <class PortType>
+bool OutputStream<PortType>::operator!=(const OutputStream& other) const
+{
+    return !(*this == other);
+}
+
+template <class PortType>
 typename OutputStream<PortType>::Impl& OutputStream<PortType>::impl()
 {
     return static_cast<Impl&>(*this->_impl);
@@ -367,12 +379,13 @@ public:
         }
         _bufferSize = samples;
 
-        // If the new buffer size is less than the currently buffered data, flush
-        if (_bufferSize < _bufferOffset) {
+        // If the new buffer size is less than (or exactly equal to) the
+        // currently buffered data size, flush
+        if (_bufferSize <= _bufferOffset) {
             flush();
         } else if (_bufferSize > _buffer.size()) {
-            // The buffer size is increasing beyond the existing allocation; allocate
-            // a new buffer of the desired size and copy existing data
+            // The buffer size is increasing beyond the existing allocation;
+            // allocate a new buffer of the desired size and copy existing data
             redhawk::buffer<ScalarType> new_buffer(_bufferSize);
             if (_bufferOffset > 0) {
                 std::copy(&_buffer[0], &_buffer[_bufferOffset], &new_buffer[0]);

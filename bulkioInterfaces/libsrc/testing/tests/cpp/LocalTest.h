@@ -17,31 +17,40 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-AC_INIT(multiout_attachable, 1.0.0)
-AM_INIT_AUTOMAKE(nostdinc)
+#ifndef BULKIO_LOCALTEST_H
+#define BULKIO_LOCALTEST_H
 
-AC_PROG_CC
-AC_PROG_CXX
-AC_PROG_INSTALL
+#include <cppunit/extensions/HelperMacros.h>
+#include <ossie/debug.h>
 
-AC_CORBA_ORB
-OSSIE_CHECK_OSSIE
-OSSIE_SDRROOT_AS_PREFIX
+template <class OutPort, class InPort>
+class LocalTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(LocalTest);
+    CPPUNIT_TEST(testBasicWrite);
+    CPPUNIT_TEST(testLargeWrite);
+    CPPUNIT_TEST(testReadSlice);
+    CPPUNIT_TEST_SUITE_END();
 
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+public:
+    void setUp();
+    void tearDown();
 
-# Dependencies
-export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
-PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 1.10 omniORB4 >= 4.1.0  ])
-OSSIE_ENABLE_LOG4CXX
-AX_BOOST_BASE([1.41])
-AX_BOOST_SYSTEM
-AX_BOOST_THREAD
-AX_BOOST_REGEX
+    void testBasicWrite();
+    void testLargeWrite();
 
-export PKG_CONFIG_PATH="../../../..:../../..":$PKG_CONFIG_PATH
-PKG_CHECK_MODULES([BIO], [bulkio >= 1.10])
+    void testReadSlice();
 
-AC_CONFIG_FILES([Makefile])
-AC_OUTPUT
+protected:
+    typedef typename OutPort::StreamType OutStreamType;
+    typedef typename InPort::StreamType InStreamType;
+    typedef typename OutStreamType::ScalarType ScalarType;
+    typedef typename InStreamType::DataBlockType DataBlockType;
 
+    virtual std::string getPortName() const = 0;
+
+    OutPort* outPort;
+    InPort* inPort;
+};
+
+#endif // BULKIO_LOCALTEST_H
