@@ -86,13 +86,12 @@ class DefaultConsumer(Receiver):
         Receiver.__init__(self)
 
     def push(self, data):
-        _data = any.from_any(data)
         if self.parent.dataArrivedCB != None:
             self.parent.logger.trace('Received (callback) DATA: ' + str(data))
-            self.parent.dataArrivedCB(_data)
+            self.parent.dataArrivedCB(data)
         else:
             self.parent.logger.trace('Received (queue) DATA: ' + str(data))
-            self.parent.events.put(_data)
+            self.parent.events.put(data)
         
 
 class Subscriber:
