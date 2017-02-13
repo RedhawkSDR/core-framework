@@ -27,6 +27,7 @@ from ossie.device import Device
 from ossie.properties import simple_property
 from ossie.properties import struct_property
 from ossie.properties import structseq_property
+from ossie.properties import struct_to_props
 from ossie.utils import model
 
 import threading
@@ -603,12 +604,12 @@ class FrontendTunerDevice(Device):
             # Check allocation_id
             if not frontend_tuner_allocation.allocation_id:
                 self._log.info("allocate_frontend_tuner_allocation: MISSING ALLOCATION_ID")
-                raise CF.Device.InvalidCapacity("MISSING ALLOCATION_ID", frontend_tuner_allocation)
+                raise CF.Device.InvalidCapacity("MISSING ALLOCATION_ID", struct_to_props(frontend_tuner_allocation))
             
             # Check if allocation ID has already been used
             if  self.getTunerMapping(frontend_tuner_allocation.allocation_id) >= 0:
                 self._log.info("allocate_frontend_tuner_allocation: ALLOCATION_ID "+frontend_tuner_allocation.allocation_id+" ALREADY IN USE")
-                raise CF.Device.InvalidCapacity("ALLOCATION_ID "+frontend_tuner_allocation.allocation_id+" ALREADY IN USE", frontend_tuner_allocation)
+                raise CF.Device.InvalidCapacity("ALLOCATION_ID "+frontend_tuner_allocation.allocation_id+" ALREADY IN USE", struct_to_props(frontend_tuner_allocation))
 
             self.allocation_id_mapping_lock.acquire()
             # Next, try to allocate a new tuner
@@ -661,7 +662,7 @@ class FrontendTunerDevice(Device):
                         if frontend_tuner_allocation.tuner_type == "CHANNELIZER" or frontend_tuner_allocation.tuner_type == "TX":
                             eout = str(frontend_tuner_allocation.tuner_type) + " allocation with device_control=false is invalid."
                             self._log.debug(eout)
-                            raise CF.Device.InvalidCapacity(eout, frontend_tuner_allocation)
+                            raise CF.Device.InvalidCapacity(eout, struct_to_props(frontend_tuner_allocation))
                         # listener
                         if len(self.tuner_allocation_ids[tuner_id].control_allocation_id) == 0 or not listenerRequestValidation(frontend_tuner_allocation, tuner_id):
                             # either not allocated or can't support listener request
@@ -741,7 +742,7 @@ class FrontendTunerDevice(Device):
         tuner_id = self.getTunerMapping(frontend_tuner_allocation.allocation_id)
         if tuner_id < 0:
             self._log.debug("deallocate_frontend_tuner_allocation: ALLOCATION_ID NOT FOUND: [" + str(frontend_tuner_allocation.allocation_id) + "]")
-            raise CF.Device.InvalidCapacity("ALLOCATION_ID NOT FOUND: [" + str(frontend_tuner_allocation.allocation_id) + "]",frontend_tuner_allocation)
+            raise CF.Device.InvalidCapacity("ALLOCATION_ID NOT FOUND: [" + str(frontend_tuner_allocation.allocation_id) + "]",struct_to_props(frontend_tuner_allocation))
         
         self.allocation_id_mapping_lock.acquire()
         try:
@@ -777,16 +778,16 @@ class FrontendTunerDevice(Device):
             # Check validity of allocation_id's
             if not frontend_listener_allocation.existing_allocation_id:
                 self._log.info("allocate_frontend_listener_allocation: MISSING EXISTING ALLOCATION ID")
-                raise CF.Device.InvalidCapacity("MISSING EXISTING ALLOCATION ID", frontend_listener_allocation)
+                raise CF.Device.InvalidCapacity("MISSING EXISTING ALLOCATION ID", struct_to_props(frontend_listener_allocation))
             
             if not frontend_listener_allocation.listener_allocation_id:
                 self._log.info("allocate_frontend_listener_allocation: MISSING LISTENER ALLOCATION ID")
-                raise CF.Device.InvalidCapacity("MISSING LISTENER ALLOCATION ID", frontend_listener_allocation)
+                raise CF.Device.InvalidCapacity("MISSING LISTENER ALLOCATION ID", struct_to_props(frontend_listener_allocation))
 
             # Check if listener allocation ID has already been used
             if self.getTunerMapping(frontend_listener_allocation.listener_allocation_id) >= 0:
                 self._log.info("allocate_frontend_listener_allocation: LISTENER ALLOCATION ID ALREADY IN USE")
-                raise CF.Device.InvalidCapacity("LISTENER ALLOCATION ID ALREADY IN USE", frontend_listener_allocation)
+                raise CF.Device.InvalidCapacity("LISTENER ALLOCATION ID ALREADY IN USE", struct_to_props(frontend_listener_allocation))
             
             #self.tuner_allocation_ids[tuner_id].lock.acquire()
             # Check if listener allocation ID has already been used
@@ -804,7 +805,7 @@ class FrontendTunerDevice(Device):
             if self.frontend_tuner_status[tuner_id].tuner_type == "CHANNELIZER" or self.frontend_tuner_status[tuner_id].tuner_type == "TX":
                 eout = "allocate_frontend_listener_allocation: listener allocations are not permitted for " + str(self.frontend_tuner_status[tuner_id].tuner_type) + " tuner type"
                 self._log.debug(eout)
-                raise CF.Device.InvalidCapacity(eout, frontend_listener_allocation)
+                raise CF.Device.InvalidCapacity(eout, struct_to_props(frontend_listener_allocation))
 
             self.allocation_id_mapping_lock.acquire()
             try:
