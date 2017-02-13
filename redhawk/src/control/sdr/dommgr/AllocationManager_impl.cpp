@@ -177,7 +177,7 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
 
     typedef std::list<ossie::AllocationType*> LocalAllocationList;
     LocalAllocationList local_allocations;
-
+    
     for (unsigned int request_idx=0; request_idx<requests.length(); request_idx++) {
         const CF::AllocationManager::AllocationRequestType& request = requests[request_idx];
         const std::string requestID(request.requestID);
@@ -480,7 +480,7 @@ bool AllocationManager_impl::checkDeviceMatching(ossie::Properties& prf, CF::Pro
             // Collect properties with an action of "external" for a later
             // allocateCapacity() call
             LOG_TRACE(AllocationManager_impl, "Adding external property " << propId);
-            ossie::corba::push_back(externalProperties, ossie::convertDataTypeToPropertyType(dependency, property));
+            ossie::corba::push_back(externalProperties, dependency);
         } else {
             // Evaluate matching properties right now
             if (!checkMatchingProperty(property, dependency)) {

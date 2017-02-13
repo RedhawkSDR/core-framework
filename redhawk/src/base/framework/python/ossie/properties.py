@@ -148,6 +148,12 @@ _SCA_TYPES = [
 def getTypeMap():
     return __TYPE_MAP
 
+def getTypeNameFromTC(_tc):
+    for _key in __TYPE_MAP:
+        if __TYPE_MAP[_key][1] == _tc:
+            return _key
+    return None
+
 def getPyType(type_, alt_map=None):
     if alt_map:
         try: 

@@ -29,6 +29,7 @@ from ossie.cf import CF
 from ossie.utils import redhawk
 from ossie.utils import type_helpers
 from ossie.utils import rhconnection
+from ossie.utils import allocations
 from ossie.events import Subscriber, Publisher
 from ossie.cf import CF
 
@@ -806,3 +807,77 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         cMgr.connect(ep1,ep2)
 
         self.assertEquals(len(_port._get_connections()), 1)
+
+class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/dev_alloc_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.am=self._rhDom._get_allocationMgr()
+        self.assertEquals(len(self._rhDom._get_applications()), 0)
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        # need to let event service clean up event channels...... 
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+        redhawk.setTrackApps(False)
+
+    def test_allocMgrSimple(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        prop = allocations.createProps({'si_prop':3})
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.am.deallocate([resp[0].allocationID])
+
+    def test_allocMgrSimSeq(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        prop = allocations.createProps({'se_prop':[1.0,2.0]})
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),0)
+        prop = allocations.createProps({'se_prop':[1.0,2.0]}, prf='sdr/dev/devices/dev_alloc_cpp/dev_alloc_cpp.prf.xml')
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.am.deallocate([resp[0].allocationID])
+
+    def test_allocMgrStruct(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        prop = allocations.createProps({'s_prop':{'s_prop::a':'hello','s_prop::b':5}})
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),0)
+        prop = allocations.createProps({'s_prop':{'s_prop::a':'hello','s_prop::b':5}}, prf='sdr/dev/devices/dev_alloc_cpp/dev_alloc_cpp.prf.xml')
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.am.deallocate([resp[0].allocationID])
+
+    def test_allocMgrStrSeq(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        prop = allocations.createProps({'sq_prop':[{'sq_prop::b':'hello','sq_prop::a':5},{'sq_prop::b':'another','sq_prop::a':7}]})
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),0)
+        prop = allocations.createProps({'sq_prop':[{'sq_prop::b':'hello','sq_prop::a':5},{'sq_prop::b':'another','sq_prop::a':7}]}, prf='sdr/dev/devices/dev_alloc_cpp/dev_alloc_cpp.prf.xml')
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.am.deallocate([resp[0].allocationID])
