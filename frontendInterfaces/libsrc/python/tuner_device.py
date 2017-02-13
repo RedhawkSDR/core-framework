@@ -86,7 +86,7 @@ def floatingPointCompare(lhs, rhs, places = 1):
      true if the value requested_val falls within the range [available_min:available_max]
      False is returned if min > max
 '''
-def validateRequest(available_min, available_max, requested_val):
+def validateRequestSingle(available_min, available_max, requested_val):
     if floatingPointCompare(requested_val,available_min) < 0: return False
     if floatingPointCompare(requested_val,available_max) > 0: return False
     if floatingPointCompare(available_min,available_max) > 0: return False
@@ -165,7 +165,7 @@ def validateRequestVsSRI(request,upstream_sri,output_mode):
       If the CHAN_RF and FRONTEND.BANDWIDTH keywords are not found in the sri,
       FRONTEND.BadParameterException is thrown.
 '''
-def validateRequestVsDevice(request, upstream_sri, output_mode, min_device_center_freq, max_device_center_freq, max_device_bandwidth, max_device_sample_rate):
+def validateRequestVsDeviceStream(request, upstream_sri, output_mode, min_device_center_freq, max_device_center_freq, max_device_bandwidth, max_device_sample_rate):
 
     # check if request can be satisfied using the available upstream data
     if not validateRequestVsSRI(request,upstream_sri, output_mode):
