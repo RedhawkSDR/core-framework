@@ -1409,7 +1409,7 @@ class DataSource(_SourceBase):
                     if len(SRIKeywords) > 0 :
                         self._SRIKeywords = SRIKeywords
                         # need to keep order for compareSRI
-                        ckeys = [ x.name for x in candidateSri.keywords ]
+                        ckeys = [ x.id for x in candidateSri.keywords ]
                         keywords = candidateSri.keywords[:]
                         for key in self._SRIKeywords:
                             # if current sri contains they keyword then overwrite else append

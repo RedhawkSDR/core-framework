@@ -2094,6 +2094,18 @@ class BulkioTest(unittest.TestCase):
         self.assertAlmostEquals(rsri.xdelta, 0.1234)
         self.assertEqual(True, compareKeywordLists( rsri.keywords, matchkws) )
 
+        # Repeat, making sure that a second push with keywords does not fail
+        source.push(_srcData, SRIKeywords=kws)
+        begin_time = time.time()
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 1:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        data=sink.getData()
+        self.assertTrue(data)
+
         # add new keywords to sri
         matchkws=[ CF.DataType(id='kw1-1', value=CORBA.Any(CORBA.TC_long, 1000)), 
                    CF.DataType(id='kw2-1', value=CORBA.Any(CORBA.TC_float, 12456.0)), 
