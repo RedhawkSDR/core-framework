@@ -235,7 +235,12 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
             this.consumers.remove(consumer);
         }
         consumer.disconnect();
-        this.deactivateChild(consumer);
+        try {
+            this.deactivateChild(consumer);
+        }
+        catch( Exception e ) {
+            // pass
+        }
     }
 
     public org.omg.CosEventChannelAdmin.SupplierAdmin for_suppliers() 
@@ -257,7 +262,7 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
         } catch (final ServantNotActive sna) {
             throw new AssertionError("Servant not active");
         } catch (final WrongPolicy wp) {
-            throw new AssertionError("Wrong POA policy");
+            throw new AssertionError("Wrong POA policy (for_suppliers)");
         }
         return SupplierAdminHelper.narrow(object);
     }
@@ -297,8 +302,9 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
     private org.omg.CORBA.Object activateChild(org.omg.PortableServer.Servant servant)
     {
         try {
-            byte[] oid = this._poa().activate_object(servant);
-            return this._poa().id_to_reference(oid);
+            org.omg.PortableServer.POA poa = this._default_POA();
+            byte[] oid = poa.activate_object(servant);
+            return poa.id_to_reference(oid);
         } catch (final ServantAlreadyActive exc) {
             throw new AssertionError("Servant already active");
         } catch (final ObjectNotActive exc) {
@@ -306,6 +312,7 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
         } catch (final WrongPolicy exc) {
             throw new AssertionError("Wrong policy");
         }
+        
     }
 
     private void deactivateChild(org.omg.PortableServer.Servant servant)
@@ -319,7 +326,7 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
         } catch (final ObjectNotActive exc) {
             throw new AssertionError("Object not active");
         } catch (final WrongPolicy exc) {
-            throw new AssertionError("Wrong policy");
+            throw new AssertionError("Wrong POA policy (deactivate)");
         }
     }
 
@@ -328,7 +335,11 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
         synchronized (this.updatingPortsLock) {
             this.consumers.remove(consumer);
         }
-        this.deactivateChild(consumer);
+        try {
+            this.deactivateChild(consumer);
+        }
+        catch( Exception e ) {
+        }
     }
 
     private void messagesReceived(final org.omg.CORBA.Any data)

@@ -148,6 +148,15 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
                 try {
                     consumer.push(data);
                 } catch (final org.omg.CosEventComm.Disconnected ex) {
+                    removeConnection( consumer );
+                    continue;
+                } catch( final org.omg.CORBA.COMM_FAILURE ex ) {
+                    removeConnection( consumer );
+                    continue;
+                } catch( final org.omg.CORBA.OBJECT_NOT_EXIST ex ) {
+                    removeConnection( consumer );
+                    continue;
+                } catch (final Exception e) {
                     continue;
                 }
             }
@@ -175,6 +184,24 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         return EventChannelHelper.narrow(connection);
     }
 
+    private void removeConnection(PushConsumer consumer )
+    {
+        String connectionId=null;
+        synchronized (this.updatingPortsLock) {
+            for(Map.Entry<String,PushConsumer> entry: this.consumers.entrySet()){
+                if( entry.getValue() == consumer ){
+                    connectionId = entry.getKey();
+                    break; //breaking because its one to one map
+                }
+            }
+        }
+        
+        if ( connectionId != null && connectionId.isEmpty() == false ) {
+            removeConnection( connectionId, false );
+        }
+    }
+
+
     private void removeConnection(String connectionId, boolean notifyConsumer)
     {
         SupplierAdapter supplier = null;
@@ -193,14 +220,23 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         if (notifyConsumer) {
             proxy_consumer.disconnect_push_consumer();
         }
-        this.deactivateChild(supplier);
+        
+        if (supplier != null ) {
+            try {
+                this.deactivateChild(supplier);
+            }
+            catch( Exception e ) {
+                // pass
+            }
+        }
     } 
 
     private org.omg.CORBA.Object activateChild(org.omg.PortableServer.Servant servant)
     {
         try {
-            byte[] oid = this._poa().activate_object(servant);
-            return this._poa().id_to_reference(oid);
+            org.omg.PortableServer.POA poa = this._default_POA();
+            byte[] oid = poa.activate_object(servant);
+            return poa.id_to_reference(oid);
         } catch (final ServantAlreadyActive exc) {
             throw new AssertionError("Servant already active");
         } catch (final ObjectNotActive exc) {
