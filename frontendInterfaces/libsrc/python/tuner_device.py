@@ -227,9 +227,9 @@ def validateRequestVsRFInfo(request, rfinfo, mode):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- analog freq range (RFinfo) cannot support freq/bw request")
 
     # check sample rate
-    scaling_factor = 2
-    if mode == 1:
-        scaling_factor = 4 # adjust for complex data
+    scaling_factor = 4
+    if mode:
+        scaling_factor = 2 # adjust for complex data
     min_requested_freq = request.center_frequency-(request.sample_rate/scaling_factor)
     max_requested_freq = request.center_frequency+(request.sample_rate/scaling_factor)
 
