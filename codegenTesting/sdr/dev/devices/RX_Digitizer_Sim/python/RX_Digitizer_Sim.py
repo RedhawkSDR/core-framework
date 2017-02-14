@@ -169,7 +169,6 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         
         self._log.debug( "deviceDeleteTuning(): Deallocate an allocated tuner  *********")
         self.datagenerators[tuner_id].stop()
-        print dir(fts)
         controlAllocationID =  fts.allocation_id_csv.split(',')[0]
         self.removeStreamIdRouting(controlAllocationID, controlAllocationID)
         return True

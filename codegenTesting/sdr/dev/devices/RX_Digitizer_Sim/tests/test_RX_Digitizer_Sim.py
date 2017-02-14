@@ -11,6 +11,7 @@ from ossie.utils import uuid
 from ossie import properties
 import time
 from ossie.utils.bluefile.bluefile_helpers import sri_to_hdr
+import frontend
 
 DEBUG_LEVEL = 2
 
@@ -351,11 +352,18 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertRaises(CF.Device.InvalidCapacity, self.comp.allocateCapacity,alloc)
 
     def testFalseControl(self):
-        alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6)
-        for _prop in alloc[0].value._v:
-            if _prop.id == 'FRONTEND::tuner_allocation::device_control':
-                _prop.value._v = False
+        center_frequency = 110e6
+        sample_rate = 2.5e6
+        bandwidth = 2e6
+        alloc = self._generateAlloc(cf=center_frequency,sr=sample_rate,bw=2e6)
         retval = self.comp.allocateCapacity(alloc)
+        self.assertEquals(retval, True)
+        _type = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::tuner_type']
+        _alloc_id = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
+        listen_alloc = [frontend.createTunerGenericListenerAllocation(_type, allocation_id='foo', center_frequency=center_frequency, bandwidth=bandwidth, sample_rate=sample_rate,returnDict=False)]
+        retval = self.comp.allocateCapacity(listen_alloc)
+        self.assertEquals(retval, True)
+        self.comp.deallocateCapacity(listen_alloc)
         self.comp.deallocateCapacity(alloc)
 
     def _generateAlloc(self,cf=100e6,sr=25e6,bw=20e6,rf_flow_id=''):
