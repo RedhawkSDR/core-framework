@@ -46,6 +46,8 @@ BuildRequires:  redhawk-devel >= 2.0
 Requires:       bulkioInterfaces >= 2.0
 BuildRequires:  bulkioInterfaces >= 2.0
 
+BuildRequires:  cppunit-devel
+
 %description
 BURSTIO interfaces for REDHAWK
  * Commit: __REVISION__

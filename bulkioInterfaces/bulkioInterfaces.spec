@@ -42,6 +42,7 @@ BuildRoot: 	    %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 Requires: 	    redhawk >= 2.0
 BuildRequires: 	redhawk-devel >= 2.0
+BuildRequires: 	cppunit-devel
 
 %description
 Libraries and interface definitions for bulkio interfaces.
