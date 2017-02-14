@@ -164,7 +164,7 @@ BOOLEAN_VALUE_HERE=False
             tmp = bulkio.connection_descriptor_struct()
 #{%   for port in component.ports if port.multiout %}
             tmp.connection_id = allocation_id
-            tmp.port_name = "${port.pyname}"
+            tmp.port_name = "${port.portname}"
             tmp.stream_id = stream_id
             self.connectionTable.append(tmp)
 #{%   endfor %}
