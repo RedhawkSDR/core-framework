@@ -691,7 +691,7 @@ class FrontendTunerDevice(Device):
                     if floatingPointCompare(frontend_tuner_allocation.bandwidth,0)!=0 and \
                         (floatingPointCompare(self.frontend_tuner_status[tuner_id].bandwidth,frontend_tuner_allocation.bandwidth)<0 or \
                         floatingPointCompare(self.frontend_tuner_status[tuner_id].bandwidth,frontend_tuner_allocation.bandwidth+frontend_tuner_allocation.bandwidth * frontend_tuner_allocation.bandwidth_tolerance/100.0)>0 ):
-                        eout = "allocate_frontend_tuner_allocation("<<str(int(tuner_id))+"): returned bw "+str(self.frontend_tuner_status[tuner_id].bandwidth)+" does not meet tolerance criteria of "+str(frontend_tuner_allocation.bandwidth_tolerance)+" percent"
+                        eout = "allocate_frontend_tuner_allocation("+str(int(tuner_id))+"): returned bw "+str(self.frontend_tuner_status[tuner_id].bandwidth)+" does not meet tolerance criteria of "+str(frontend_tuner_allocation.bandwidth_tolerance)+" percent"
                         self._log.info(eout)
                         raise allocationException(eout)
 
@@ -795,16 +795,10 @@ class FrontendTunerDevice(Device):
             if not frontend_listener_allocation.listener_allocation_id:
                 self._log.info("allocate_frontend_listener_allocation: MISSING LISTENER ALLOCATION ID")
                 raise CF.Device.InvalidCapacity("MISSING LISTENER ALLOCATION ID", struct_to_props(frontend_listener_allocation))
-
-            # Check if listener allocation ID has already been used
-            if self.getTunerMapping(frontend_listener_allocation.listener_allocation_id) >= 0:
-                self._log.info("allocate_frontend_listener_allocation: LISTENER ALLOCATION ID ALREADY IN USE")
-                raise CF.Device.InvalidCapacity("LISTENER ALLOCATION ID ALREADY IN USE", struct_to_props(frontend_listener_allocation))
             
-            #self.tuner_allocation_ids[tuner_id].lock.acquire()
             # Check if listener allocation ID has already been used
             if self.getTunerMapping(frontend_listener_allocation.listener_allocation_id) >= 0:
-                self._log.info("allocate_frontend_listener_allocation: LISTENER ALLOCATION ID ALREADY IN USE: [" + str(frontend_listener_allocation.listener_allocation_id << "]"))
+                self._log.info("allocate_frontend_listener_allocation: LISTENER ALLOCATION ID ALREADY IN USE: [" + str(frontend_listener_allocation.listener_allocation_id + "]"))
                 raise AllocationAlreadyExists("LISTENER ALLOCATION ID ALREADY IN USE", frontend_listener_allocation)
 
             # Do not allocate if existing allocation ID does not exist
@@ -835,7 +829,7 @@ class FrontendTunerDevice(Device):
         except AllocationAlreadyExists, e:
             # Don't call deallocateCapacity if the allocationId already exists
             #   - Would end up deallocating a valid tuner/listener
-            raise CF.Device.InvalidCapacity(e)
+            raise CF.Device.InvalidCapacity(e.message, struct_to_props(frontend_listener_allocation))
         
         except CF.Device.InvalidCapacity, e:
             raise e
@@ -1053,7 +1047,7 @@ class FrontendTunerDevice(Device):
         print "\tmode:",  sri.mode
         print "\tstreamID:",  sri.streamID
         for keyword in sri.keywords:
-            print "\t KEYWORD KEY/VAL ::",  keywords.id << ":",  any.from_any(keywords.value)
+            print "\t KEYWORD KEY/VAL ::",  keywords.id + ":",  any.from_any(keywords.value)
             
     ######################################################################
     # PROPERTIES

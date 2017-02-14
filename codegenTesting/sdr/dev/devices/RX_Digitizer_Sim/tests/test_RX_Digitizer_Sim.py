@@ -359,6 +359,22 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         alloc = self._generateAlloc(cf=112e6,sr=2.5e6,bw=2e6)
         self.assertEquals(self.comp.allocateCapacity(alloc), True)
 
+    def testTypoErrorAllocation(self):
+        center_frequency = 110e6
+        sample_rate = 2.5e6
+        bandwidth = 2e6
+        alloc = self._generateAlloc(cf=center_frequency,sr=sample_rate,bw=bandwidth)
+        retval = self.comp.allocateCapacity(alloc)
+        self.assertEquals(retval, True)
+        _type = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::tuner_type']
+        _alloc_id = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
+        listen_alloc = [frontend.createTunerListenerAllocation(_alloc_id, listener_allocation_id='foo',returnDict=False)]
+        retval = self.comp.allocateCapacity(listen_alloc)
+        self.assertEquals(retval, True)
+        self.assertRaises(CF.Device.InvalidCapacity, self.comp.allocateCapacity, listen_alloc)
+        self.comp.deallocateCapacity(listen_alloc)
+        self.comp.deallocateCapacity(alloc)
+
     def testFalseControl(self):
         center_frequency = 110e6
         sample_rate = 2.5e6
