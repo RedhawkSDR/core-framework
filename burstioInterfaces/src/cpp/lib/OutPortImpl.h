@@ -524,11 +524,13 @@ namespace burstio {
         boost::mutex::scoped_lock lock(updatingPortsLock);
         for (TransportIterator ii = _transports.begin(); ii != _transports.end(); ++ii) {
             TransportType* connection = *ii;
-
-            if (!isStreamRoutedToConnection(streamID, connection->connectionId())) {
+            const std::string& connection_id = connection->connectionId();
+            if (!isStreamRoutedToConnection(streamID, connection_id)) {
+                RH_TRACE(logger, "Stream " << streamID << " is not routed to connection " << connection_id);
                 continue;
             }
 
+            RH_TRACE(logger, "Pushing " << const_bursts.length() << " bursts to connection " << connection_id);
             connection->pushBursts(const_bursts, startTime, queueDepth);
         }
     }
