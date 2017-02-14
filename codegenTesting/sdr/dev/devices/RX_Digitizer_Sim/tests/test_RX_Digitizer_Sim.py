@@ -350,6 +350,14 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         retval = self.comp.allocateCapacity(alloc)
         self.assertRaises(CF.Device.InvalidCapacity, self.comp.allocateCapacity,alloc)
 
+    def testFalseControl(self):
+        alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6)
+        for _prop in alloc[0].value._v:
+            if _prop.id == 'FRONTEND::tuner_allocation::device_control':
+                _prop.value._v = False
+        retval = self.comp.allocateCapacity(alloc)
+        self.comp.deallocateCapacity(alloc)
+
     def _generateAlloc(self,cf=100e6,sr=25e6,bw=20e6,rf_flow_id=''):
         
         value = {}
