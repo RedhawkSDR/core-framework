@@ -78,8 +78,9 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         except Exception, e:
             self._log.exception("Got exception % s" %str(e))
             return False
-            
-        #print self.getTunerStatus(fts.allocation_id_csv)
+
+        if fts.center_frequency == 112e6:
+            print self.getTunerStatus(fts.allocation_id_csv)
 
         return True
 

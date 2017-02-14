@@ -22,6 +22,7 @@
 import frontend
 #{% if 'FrontendTuner' in component.implements %}
 from frontend import FRONTEND
+from ossie.properties import struct_to_props
 BOOLEAN_VALUE_HERE=False
 #{% endif %}
 #{% endblock %}
@@ -40,7 +41,7 @@ BOOLEAN_VALUE_HERE=False
             tuner_id = self.getTunerMapping(allocation_id)
             if tuner_id < 0:
                 raise FRONTEND.FrontendException(("ERROR: ID: " + str(allocation_id) + " IS NOT ASSOCIATED WITH ANY TUNER!"))
-            return [CF.DataType(id=self.frontend_tuner_status[tuner_id].getId(),value=self.frontend_tuner_status[tuner_id]._toAny())]
+            return struct_to_props(self.frontend_tuner_status[tuner_id])
 
         def assignListener(self,listen_alloc_id, allocation_id):
             # find control allocation_id

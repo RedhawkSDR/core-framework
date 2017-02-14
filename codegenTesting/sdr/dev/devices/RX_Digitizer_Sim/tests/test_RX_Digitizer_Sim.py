@@ -355,6 +355,10 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         alloc = self._generateAlloc(cf=111e6,sr=2.5e6,bw=2e6)
         self.assertEquals(self.comp.allocateCapacity(alloc), False)
 
+    def testBasicOkAllocation(self):
+        alloc = self._generateAlloc(cf=112e6,sr=2.5e6,bw=2e6)
+        self.assertEquals(self.comp.allocateCapacity(alloc), True)
+
     def testFalseControl(self):
         center_frequency = 110e6
         sample_rate = 2.5e6
