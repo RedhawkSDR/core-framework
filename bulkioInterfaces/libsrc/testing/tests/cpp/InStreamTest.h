@@ -38,10 +38,29 @@ public:
     void testGetCurrentStreamEmptyEos();
     void testGetCurrentStreamDataEos();
 
-private:
+protected:
     virtual std::string getPortName() const = 0;
 
     Port* port;
+};
+
+template <class Port>
+class BufferedInStreamTest : public InStreamTest<Port>
+{
+    typedef InStreamTest<Port> TestBase;
+    CPPUNIT_TEST_SUB_SUITE(BufferedInStreamTest, TestBase);
+    CPPUNIT_TEST(testReadSizeEos);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void testReadSizeEos();
+
+private:
+    typedef typename Port::PortSequenceType PortSequenceType;
+    typedef typename Port::StreamType StreamType;
+    typedef typename StreamType::DataBlockType DataBlockType;
+
+    using TestBase::port;
 };
 
 #endif  // BULKIO_INSTREAMTEST_H

@@ -120,10 +120,28 @@ void InStreamTest<Port>::testGetCurrentStreamDataEos()
     CPPUNIT_ASSERT(stream.eos());
 }
 
+template <class Port>
+void BufferedInStreamTest<Port>::testReadSizeEos()
+{
+    // Create a new stream and push an end-of-stream packet with no data
+    BULKIO::StreamSRI sri = bulkio::sri::create("empty_eos");
+    port->pushSRI(sri);
+    PortSequenceType data;
+    data.length(0);
+    port->pushPacket(data, bulkio::time::utils::notSet(), true, sri.streamID);
+
+    // Try to read a single element; this should return a null block
+    StreamType stream = port->getStream("empty_eos");
+    CPPUNIT_ASSERT(stream);
+    DataBlockType block = stream.read(1);
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(stream.eos());
+}
+
 #define CREATE_TEST(x)                                                  \
-    class In##x##StreamTest : public InStreamTest<bulkio::In##x##Port>  \
+    class In##x##StreamTest : public BufferedInStreamTest<bulkio::In##x##Port>  \
     {                                                                   \
-        CPPUNIT_TEST_SUB_SUITE(In##x##StreamTest, InStreamTest<bulkio::In##x##Port>); \
+        CPPUNIT_TEST_SUB_SUITE(In##x##StreamTest, BufferedInStreamTest<bulkio::In##x##Port>); \
         CPPUNIT_TEST_SUITE_END();                                       \
         virtual std::string getPortName() const { return #x; };         \
     };                                                                  \

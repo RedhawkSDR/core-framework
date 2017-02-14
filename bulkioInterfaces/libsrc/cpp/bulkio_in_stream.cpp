@@ -625,7 +625,10 @@ private:
 
         if (_queue.empty() || _canBridge(packet)) {
             _queuePacket(packet);
-            return true;
+            // The packet may not have actually extended the queue, if it was
+            // an emtpy end-of-stream packet; if the queue is empty, return
+            // false to indicate that the fetch effectively failed
+            return !_queue.empty();
         } else {
             _pending = packet;
             return false;
