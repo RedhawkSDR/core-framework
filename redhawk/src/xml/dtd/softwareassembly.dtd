@@ -192,8 +192,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 
 <!ELEMENT hostcollocation
 	( componentplacement+
-        | usesdeviceref*
-	)+>
+        , usesdeviceref*
+	)>
 
 <!ATTLIST hostcollocation
 	id		ID	#IMPLIED
