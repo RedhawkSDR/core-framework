@@ -28,6 +28,9 @@ J1950 = 1
 J1970 = 2
 JCY = 3
     
+class allocationException(Exception):
+    pass
+
 class tuner_allocation_ids_struct(object):
     def __init__(self):
         self.reset()

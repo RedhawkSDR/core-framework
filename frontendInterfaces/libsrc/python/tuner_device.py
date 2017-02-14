@@ -600,6 +600,7 @@ class FrontendTunerDevice(Device):
 
     """ Allocation handlers """
     def allocate_frontend_tuner_allocation(self, frontend_tuner_allocation):
+        exception_raised = False
         try:
             # Check allocation_id
             if not frontend_tuner_allocation.allocation_id:
@@ -683,7 +684,7 @@ class FrontendTunerDevice(Device):
                          floatingPointCompare(self.frontend_tuner_status[tuner_id].sample_rate,frontend_tuner_allocation.sample_rate+frontend_tuner_allocation.sample_rate * frontend_tuner_allocation.sample_rate_tolerance/100.0)>0 ):
                         eout = "allocate_frontend_tuner_allocation(" + str(int(tuner_id)) +"): returned sr "+str(self.frontend_tuner_status[tuner_id].sample_rate)+" does not meet tolerance criteria of "+str(frontend_tuner_allocation.sample_rate_tolerance)+" percent"
                         self._log.info(eout)
-                        raise RuntimeError(eout)
+                        raise allocationException(eout)
 
                     self._log.debug(" allocate_frontend_tuner_allocation - BW requested: " + str(frontend_tuner_allocation.bandwidth) + "  BW got: " +str(self.frontend_tuner_status[tuner_id].bandwidth))
                     # Only check when bandwidth was not set to don't care
@@ -692,31 +693,29 @@ class FrontendTunerDevice(Device):
                         floatingPointCompare(self.frontend_tuner_status[tuner_id].bandwidth,frontend_tuner_allocation.bandwidth+frontend_tuner_allocation.bandwidth * frontend_tuner_allocation.bandwidth_tolerance/100.0)>0 ):
                         eout = "allocate_frontend_tuner_allocation("<<str(int(tuner_id))+"): returned bw "+str(self.frontend_tuner_status[tuner_id].bandwidth)+" does not meet tolerance criteria of "+str(frontend_tuner_allocation.bandwidth_tolerance)+" percent"
                         self._log.info(eout)
-                        raise RuntimeError(eout)
+                        raise allocationException(eout)
 
                     if frontend_tuner_allocation.device_control:
                         # enable tuner after successful allocation
-                        try:
-                            self.enableTuner(tuner_id,True)
-                        except Exception, e:
-                            self._log.info('The following error occurred on allocation:',e)
-                            eout = "allocate_frontend_tuner_allocation: Failed to enable tuner after allocation"
-                            self._log.info(eout)
-                            raise RuntimeError(eout)
+                        self.enableTuner(tuner_id,True)
 
                     self._usageState = self.updateUsageState()
                     return True
             
-            except:
+            except allocationException as e:
                 # if we made it here, we failed to find an available tuner
-                eout = "allocate_frontend_tuner_allocation: NO AVAILABLE TUNER. Make sure that the device has an initialized frontend_tuner_status"
-                self._log.info(eout)
-                raise RuntimeError(eout)
+                self._log.info(e.message)
+                raise
+            except Exception as e:
+                self._log.exception(e.message)
+                raise allocationException(e)
             finally:
                 self.allocation_id_mapping_lock.release()
                     
-        except RuntimeError, e:
-            self.deallocate_frontend_tuner_allocation(frontend_tuner_allocation)
+        except allocationException as e:
+            tuner_id = self.getTunerMapping(frontend_tuner_allocation.allocation_id)
+            if tuner_id >= 0:
+                self.deallocate_frontend_tuner_allocation(frontend_tuner_allocation)
             return False
 
         except AllocationAlreadyExists, e:
@@ -732,7 +731,7 @@ class FrontendTunerDevice(Device):
             return False
         
         except Exception, e:
-            self._log.info('The following error occurred on allocation:',e)
+            self._log.exception('The following error occurred on allocation:',e)
             #self.deallocateCapacity([frontend_tuner_allocation.getProp()])
             raise e
 
@@ -934,7 +933,6 @@ class FrontendTunerDevice(Device):
 
     def getTunerMapping(self, _allocation_id):
         NO_VALID_TUNER = -1
-        print 'self.allocation_id_to_tuner_id:',self.allocation_id_to_tuner_id
         self.allocation_id_mapping_lock.acquire()
         try:
             for key in self.allocation_id_to_tuner_id:

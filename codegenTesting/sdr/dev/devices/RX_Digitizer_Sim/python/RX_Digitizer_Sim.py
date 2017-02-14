@@ -54,7 +54,6 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
             datagenerator.keyword_dict['FRONTEND::DEVICE_ID'] = self._get_identifier()
             datagenerator.keyword_dict['FRONTEND::RF_FLOW_ID'] = self.rfinfo.rf_flow_id
             datagenerator.waveform_type = "Sine"
-
         
     def process(self):
         # TODO fill in your code here
@@ -80,6 +79,8 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
             self._log.exception("Got exception % s" %str(e))
             return False
             
+        #print self.getTunerStatus(fts.allocation_id_csv)
+
         return True
 
     def deviceDisable(self,fts, tuner_id):
@@ -112,6 +113,9 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         self._log.debug( "deviceSetTuning(): Evaluate whether or not a tuner is added  *********")
         
         self._log.debug(  "allocating tuner_id %s" % tuner_id)
+        
+        if fts.center_frequency == 111e6:
+            raise Exception('bad center frequency')
         
         # Check that allocation can be satisfied
         if self.rfinfo.rf_flow_id !="":
