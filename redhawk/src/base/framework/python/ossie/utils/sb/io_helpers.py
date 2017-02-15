@@ -1241,7 +1241,7 @@ class DataSource(_SourceBase):
 
         # If complex values are present, interleave the data as scalar values
         # and set the complex flag
-        if _complexData or ( self._sri and self._sri.mode == 1):
+        if _complexData:
             if self._dataFormat in ('octet', 'short', 'ushort', 'long', 'ulong', 'longlong', 'ulonglong'):
                 itemType = int
             else:
