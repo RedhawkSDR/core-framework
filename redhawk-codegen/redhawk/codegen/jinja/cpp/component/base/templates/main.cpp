@@ -40,7 +40,7 @@ void signal_catcher(int sig)
     }
 }
 /*{% endif %}*/
-/*{% if component.impl.module %}*/
+/*{% if not component is device and component.impl.module %}*/
 extern "C" {
     Resource_impl* make_component(const std::string& uuid, const std::string& identifier)
     {
