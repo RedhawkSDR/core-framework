@@ -18,9 +18,15 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-SUBDIRS = components/CPP_Ports/cpp components/sri_changed_cpp/cpp components/Java_Ports/java
-SUBDIRS += components/TestLargePush/cpp components/TestLargePush/java
-SUBDIRS += components/multiout_attachable/cpp components/multiout_attachable/java
-SUBDIRS += components/Oversized_framedata/cpp components/Oversized_framedata/java
+SUBDIRS = components/CPP_Ports/cpp components/sri_changed_cpp/cpp
+SUBDIRS += components/TestLargePush/cpp
+SUBDIRS += components/multiout_attachable/cpp
+SUBDIRS += components/Oversized_framedata/cpp
+if HAVE_JAVASUPPORT
+SUBDIRS += components/TestLargePush/java
+SUBDIRS += components/Java_Ports/java
+SUBDIRS += components/multiout_attachable/java
+SUBDIRS += components/Oversized_framedata/java
 SUBDIRS += devices/dev_src/java devices/dev_snk/java
+endif
 SUBDIRS += tests/cpp
