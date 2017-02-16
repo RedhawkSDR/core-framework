@@ -632,7 +632,17 @@ CORBA::Any ossie::convertAnyToPropertyType(const CORBA::Any& value, const Struct
 
 CORBA::Any ossie::convertAnyToPropertyType(const CORBA::Any& value, const StructSequenceProperty* property)
 {
-    return CORBA::Any();
+    CORBA::Any result;
+    const CORBA::AnySeq* seq;
+    if (value >>= seq) {
+        CORBA::AnySeq tmp_seq;
+        const StructProperty& structdef = property->getStruct();
+        for (CORBA::ULong index = 0; index < seq->length(); ++index) {
+            ossie::corba::push_back(tmp_seq, convertAnyToPropertyType((*seq)[index], &structdef));
+        }
+        result <<= tmp_seq;
+    }
+    return result;
 }
 
 

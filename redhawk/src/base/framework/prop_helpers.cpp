@@ -668,6 +668,10 @@ std::string ossie::simpleAnyToString(const CORBA::Any& value)
     CORBA::TypeCode_var typeValue = value.type();
 
     switch (typeValue->kind()) {
+    case CORBA::tk_null:
+        result << "(null)";
+        break;
+
     case CORBA::tk_boolean: {
         CORBA::Boolean tmp;
         value >>= CORBA::Any::to_boolean(tmp);

@@ -480,7 +480,7 @@ bool AllocationManager_impl::checkDeviceMatching(ossie::Properties& prf, CF::Pro
             // Collect properties with an action of "external" for a later
             // allocateCapacity() call
             LOG_TRACE(AllocationManager_impl, "Adding external property " << propId);
-            ossie::corba::push_back(externalProperties, dependency);
+            ossie::corba::push_back(externalProperties, ossie::convertDataTypeToPropertyType(dependency, property));
         } else {
             // Evaluate matching properties right now
             if (!checkMatchingProperty(property, dependency)) {
