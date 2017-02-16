@@ -44,7 +44,6 @@ from _unitTestHelpers import scatest, runtestHelpers
 import traceback
 
 globalsdrRoot = os.environ['SDRROOT']
-java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
 def _initSourceAndSink(dataFormat):
 
@@ -143,20 +142,9 @@ class SBEventChannelTest(scatest.CorbaTestCase):
     def setUp(self):
         orb = CORBA.ORB_init()
         self.chanMgr = ChannelManager(orb)
-        self._app=None
-        self.rec_data = None
         # Force creation
         self.channel = self.chanMgr.createEventChannel("TestChan", force=True)
         sb.setDEBUG(False)
-        self.test_comp = "Sandbox"
-        # Flagrant violation of sandbox API: if the sandbox singleton exists,
-        # clean up previous state and dispose of it.
-        if sb.domainless._sandbox:
-            sb.domainless._sandbox.shutdown()
-            sb.domainless._sandbox = None
-
-    def assertComponentCount(self, count):
-        self.assertEquals(len(sb.domainless._getSandbox().getComponents()), count)
 
     def tearDown(self):
         try:
@@ -168,29 +156,34 @@ class SBEventChannelTest(scatest.CorbaTestCase):
         sb.setDEBUG(False)
         os.environ['SDRROOT'] = globalsdrRoot
         
+    def _waitData(self, sub, timeout):
+        end = time.time() + timeout
+        while time.time() < end:
+            data = sub.getData()
+            if data:
+                return data._v
+        return None
+
     def test_PublishSubscribePull(self):
         sub = Subscriber( self.channel )
         pub = Publisher( self.channel )
         payload = 'hello'
         data = any.to_any(payload)
         pub.push(data)
-        time.sleep(1)
-        self.rec_data = sub.getData()
-        self.assertEquals(self.rec_data, payload)
+        rec_data = self._waitData(sub, 1.0)
+        self.assertEquals(rec_data, payload)
         pub.terminate()
         sub.terminate()
         
-    def callback(self, data):
-        self.rec_data = data
-        
     def test_PublishSubscribeCB(self):
-        sub = Subscriber(self.channel, dataArrivedCB=self.callback)
+        queue = Queue.Queue()
+        sub = Subscriber(self.channel, dataArrivedCB=queue.put)
         pub = Publisher(self.channel)
         payload = 'hello'
         data = any.to_any(payload)
         pub.push(data)
-        time.sleep(1)
-        self.assertEquals(self.rec_data, payload)
+        rec_data = queue.get(timeout=1.0)
+        self.assertEquals(rec_data._v, payload)
         pub.terminate()
         sub.terminate()
 
@@ -2297,15 +2290,9 @@ class BulkioTest(unittest.TestCase):
 class MessagePortTest(scatest.CorbaTestCase):
     def setUp(self):
         sb.setDEBUG(True)
-        self.test_comp = "Sandbox"
-        # Flagrant violation of sandbox API: if the sandbox singleton exists,
-        # clean up previous state and dispose of it.
-        if sb.domainless._sandbox:
-            sb.domainless._sandbox.shutdown()
-            sb.domainless._sandbox = None
 
     def tearDown(self):
-        sb.domainless._getSandbox().shutdown()
+        sb.release()
         sb.setDEBUG(False)
         os.environ['SDRROOT'] = globalsdrRoot
 

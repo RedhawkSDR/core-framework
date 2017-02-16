@@ -25,6 +25,7 @@ from omniORB import CORBA
 from omniORB import any as _any
 from xml.dom import minidom
 import os as _os
+import Queue
 from ossie.cf import CF
 from ossie.utils import redhawk
 from ossie.utils import type_helpers
@@ -51,15 +52,22 @@ class RedhawkModuleEventChannelTest(scatest.CorbaTestCase):
             pass
         scatest.CorbaTestCase.tearDown(self)
 
+    def _waitData(self, sub, timeout):
+        end = time.time() + timeout
+        while time.time() < end:
+            data = sub.getData()
+            if data:
+                return data._v
+        return None
+
     def test_eventChannelPull(self):
         sub = Subscriber(self._domMgr, self.channelName)
         pub = Publisher(self._domMgr, self.channelName)
         payload = 'hello'
         data = _any.to_any(payload)
         pub.push(data)
-        time.sleep(1)
-        self.rec_data = sub.getData()
-        self.assertEquals(self.rec_data, payload)
+        rec_data = self._waitData(sub, 1.0)
+        self.assertEquals(rec_data, payload)
         pub.terminate()
         sub.terminate()
 
@@ -69,23 +77,20 @@ class RedhawkModuleEventChannelTest(scatest.CorbaTestCase):
         payload = 'hello'
         data = _any.to_any(payload)
         pub.push(data)
-        time.sleep(1)
-        self.rec_data = sub.getData()
-        self.assertEquals(self.rec_data, payload)
+        rec_data = self._waitData(sub, 1.0)
+        self.assertEquals(rec_data, payload)
         self.ecm.forceRelease(self.channelName)
         self.assertRaises(CF.EventChannelManager.ChannelDoesNotExist, self.ecm.release, self.channelName)
         
-    def callback(self, data):
-        self.rec_data = data
-        
     def test_eventChannelCB(self):
-        sub = Subscriber(self._domMgr, self.channelName, dataArrivedCB=self.callback)
+        queue = Queue.Queue()
+        sub = Subscriber(self._domMgr, self.channelName, dataArrivedCB=queue.put)
         pub = Publisher(self._domMgr, self.channelName)
         payload = 'hello'
         data = _any.to_any(payload)
         pub.push(data)
-        time.sleep(1)
-        self.assertEquals(self.rec_data, payload)
+        rec_data = queue.get(timeout=1.0)
+        self.assertEquals(rec_data._v, payload)
         pub.terminate()
         sub.terminate()
 
