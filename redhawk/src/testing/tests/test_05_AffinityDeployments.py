@@ -20,34 +20,48 @@
 
 import unittest, os
 from _unitTestHelpers import scatest
-from _unitTestHelpers import buildconfig
 from ossie.cf import CF
 from ossie.utils import redhawk
 from omniORB import any
 import time
 
+
 maxcpus=32
 maxnodes=2
+all_cpus='0-'+str(maxcpus-1)
+all_cpus_sans0='1-'+str(maxcpus-1)
 numa_match={ "all" : "0-31",
              "sock0": "0-7,16-23",
              "sock1": "8-15,24-31", 
              "sock0sans0": "1-7,16-23", 
+             "sock1sans0": "8-15,24-31", 
              "5" : "5",
              "8-10" : "8-10" }
+
+numa_match_node={ "all" : "0-31",
+             "sock0": "0-7,16-23",
+             "sock1": "8-15,24-31", 
+             "sock0sans0": "1-7,16-23", 
+             "sock1sans0": "8-15,24-31", 
+             "5" : "5",
+             "8-10" : "8-10" }
+
 numa_layout=[ "0-7,16-23", "8-15,24-31" ]
 
-numa_xml_src={ "all" : "0-31",
+dev_affinity_ctx={}
+affinity_test_src={ "all" : "0-31",
                  "sock0": "0",
-                 "sock1": "1", 
+                 "sock1": "1",
                  "sock0sans0": "0", 
                  "5" : "5",
                  "8-10" : "8,9,10",
                  "eface" : "em1" }
 
-def get_match( key="all" ):
-    if key and  key in numa_match:
-        return numa_match[key]
-    return numa_match["all"]
+def get_match( key="all", match_ctx=None ):
+    if not match_ctx : match_ctx=numa_match
+    if key and  key in match_ctx:
+        return match_ctx[key]
+    return match_ctx["all"]
 
 
 
@@ -58,8 +72,8 @@ def  setXmlSource( src, dest=None ):
     lines = [line.rstrip() for line in open(src)]
     for l in lines:
         newline=l
-        for k in numa_xml_src.keys():
-            newline = re.sub(r'XXX'+k+'XXX', r''+numa_xml_src[k], newline )
+        for k in affinity_test_src.keys():
+            newline = re.sub(r'XXX'+k+'XXX', r''+affinity_test_src[k], newline )
         dest_f.write(newline+'\n')
     
 
@@ -92,6 +106,7 @@ class TestNodeAffinity(scatest.CorbaTestCase):
         self.assertEqual(cpus_allowed[1],affinity_match)
         return
         
+
     @scatest.requireJava
     def test_NodeDeployment(self):
         nodebooter, domMgr = self.launchDomainManager()
@@ -109,11 +124,11 @@ class TestNodeAffinity(scatest.CorbaTestCase):
                 break
 
         # check java device to be 8,9,10
-        self.check_affinity( 'JavaTestDevice', get_match("8-10"), False)
+        self.check_affinity( 'JavaTestDevice', get_match("8-10", dev_affinity_ctx ), False)
 
-        self.check_affinity( 'S1', get_match("sock1"), False)
+        self.check_affinity( 'S1', get_match("sock1", dev_affinity_ctx), False)
 
-        self.check_affinity( 'GPP', get_match("sock0") , False )
+        self.check_affinity( 'GPP', get_match("sock0", dev_affinity_ctx ) , False )
 
         devMgr.shutdown()
 
@@ -128,7 +143,7 @@ class TestWaveformAffinity(scatest.CorbaTestCase):
 
     def check_affinity(self, pname, affinity_match="0-31", use_pidof=True):
         cpus_allowed = check_affinity(pname, affinity_match, use_pidof )
-        #print pname, cpus_allowed
+        #print pname, cpus_allowed, affinity_match
         self.assertEqual(cpus_allowed[1],affinity_match)
         return
 
@@ -161,7 +176,7 @@ class TestWaveformAffinity(scatest.CorbaTestCase):
            app=rhdom.createApplication('affinity_test2')
 
            if app != None:
-               self.check_affinity( 'C2', get_match("sock1") , False )
+               self.check_affinity( 'C2', get_match("sock1sans0") , False )
                if app: app.releaseObject()
         except CF.ApplicationFactory.CreateApplicationError as e:
             if ( "busy" in e.msg ) == False:
@@ -303,7 +318,7 @@ class TestWaveformAffinity(scatest.CorbaTestCase):
             app=rhdom.createApplication('affinity_test2')
 
             if app != None:
-                self.check_affinity( 'C2', get_match("sock1"), False )
+                self.check_affinity( 'C2', get_match("sock1sans0"), False )
                 if app: app.releaseObject()
         except CF.ApplicationFactory.CreateApplicationError as e:
             if ( "busy" in e.msg ) == False:
@@ -317,25 +332,8 @@ class TestWaveformAffinity(scatest.CorbaTestCase):
 
 
 import sys,os
-print buildconfig.DEFS.find("HAVE_LIBNUMA")
-all_cpus="0"
-maxcpus=1
-maxnodes=1
-eface="em1"
 
-#
-# Figure out ethernet interface to use
-#
-eface="em1"
-lines = [line.rstrip() for line in os.popen('cat /proc/net/dev')]
-import re
-for l in lines[2:]:
-    t1=l.split(':')[0].lstrip()
-    if re.match('e.*', t1 ) :
-        eface=t1
-        break
-
-if buildconfig.DEFS.find("HAVE_LIBNUMA") == -1:
+def get_nonnuma_affinity_ctx( affinity_ctx ):
     # test should run but affinity will be ignored
     import multiprocessing
     maxcpus=multiprocessing.cpu_count()
@@ -349,105 +347,161 @@ if buildconfig.DEFS.find("HAVE_LIBNUMA") == -1:
         all_cpus_sans0=''
 
     numa_layout=[ all_cpus ]
-    numa_match={ "all" :  all_cpus,
+    affinity_match={ "all" :  all_cpus,
              "sock0":  all_cpus,
              "sock1": all_cpus,
              "sock0sans0":  all_cpus_sans0,
+             "sock1sans0":  all_cpus_sans0,
              "5" : all_cpus,
              "8-10" : all_cpus }
 
-#    if maxcpus < 10:
-#        del TestNodeAffinity
-#        del TestWaveformAffinity.test_WaveformAffinityPolicy
-#        del TestWaveformAffinity.test_NicDeploymentPolicySocketUnlocked
-#        del TestWaveformAffinity.test_NicDeploymentPolicySocketLocked
+    affinity_ctx['maxcpus']=maxcpus
+    affinity_ctx['maxnodes']=maxnodes
+    affinity_ctx['all_cpus']=all_cpus
+    affinity_ctx['all_cpus_sans0']=all_cpus_sans0
+    affinity_ctx['numa_layout']=numa_layout
+    affinity_ctx['affinity_match']=affinity_match
 
-else:
+
+def get_numa_affinity_ctx( affinity_ctx ):
     # test numaclt --show .. look for cpu bind of 0,1 and cpu id atleast 31
-    import os
     maxnode=0
     maxcpu=1
-    try:
-        lines = [line.rstrip() for line in os.popen('numactl --show')]
-        for l in lines:
-            if l.startswith('nodebind'):
-                maxnode=int(l.split()[-1])
-            if l.startswith('physcpubind'):
-                maxcpu=int(l.split()[-1])
+    lines = [line.rstrip() for line in os.popen('numactl --show')]
+    for l in lines:
+        if l.startswith('nodebind'):
+            maxnode=int(l.split()[-1])
+        if l.startswith('physcpubind'):
+            maxcpu=int(l.split()[-1])
 
-        maxcpus=maxcpu+1
-        maxnodes=maxnode+1
-        numa_layout=[]
-        for i in range(maxnodes):
-            xx = [line.rstrip() for line in open('/sys/devices/system/node/node'+str(i)+'/cpulist')]
-            numa_layout.append(xx[0])
+    maxcpus=maxcpu+1
+    maxnodes=maxnode+1
+    numa_layout=[]
+    for i in range(maxnodes):
+        xx = [line.rstrip() for line in open('/sys/devices/system/node/node'+str(i)+'/cpulist')]
+        numa_layout.append(xx[0])
 
-        all_cpus='0-'+str(maxcpus-1)
-        all_cpus_sans0='1-'+str(maxcpus-1)
-        if maxcpus == 2:
-            all_cpus_sans0='1'
-        elif maxcpus == 1 :
-            all_cpus="0"
-            all_cpus_sans0=''
+    all_cpus='0-'+str(maxcpus-1)
+    all_cpus_sans0='1-'+str(maxcpus-1)
+    if maxcpus == 2:
+        all_cpus_sans0='1'
+    elif maxcpus == 1 :
+        all_cpus="0"
+        all_cpus_sans0=''
 
-        numa_match = { "all":all_cpus,
+    affinity_match = { "all":all_cpus,
                        "sock0":  all_cpus,
                        "sock1": all_cpus,
                        "sock0sans0":  all_cpus_sans0,
+                       "sock1sans0":  all_cpus_sans0,
                        "5" : all_cpus,
                        "8-10" : all_cpus }
 
-        if len(numa_layout) > 0:
-            numa_match["sock0"]=numa_layout[0]
-            aa=numa_layout[0]
-            if maxcpus > 2:
-               numa_match["sock0sans0"] = str(int(aa[0])+1)+aa[1:]
+    if len(numa_layout) > 0:
+        affinity_match["sock0"]=numa_layout[0]
+        aa=numa_layout[0]
+        if maxcpus > 2:
+            affinity_match["sock0sans0"] = str(int(aa[0])+1)+aa[1:]
 
-        if len(numa_layout) > 1:
-            numa_match["sock1"]=numa_layout[1]
+    if len(numa_layout) > 1:
+        affinity_match["sock1"]=numa_layout[1]
+        affinity_match["sock1sans0"]=numa_layout[1]
 
-        if maxcpus > 5:
-            numa_match["5"]="5"
+    if maxcpus > 5:
+        affinity_match["5"]="5"
 
-        if maxcpus > 11:
-            numa_match["8-10"]="8-10"
+    if maxcpus > 11:
+        affinity_match["8-10"]="8-10"
 
-        if maxcpus == 2:
-            numa_match["5"] = all_cpus_sans0
-            numa_match["8-10"]= all_cpus_sans0
+    if maxcpus == 2:
+        affinity_match["5"] = all_cpus_sans0
+        affinity_match["8-10"]= all_cpus_sans0
 
-    except:
-        pass
-        #del TestNodeAffinity
-        #del TestWaveformAffinity.test_WaveformAffinityPolicy
-        #del TestWaveformAffinity.test_NicDeploymentPolicySocketUnlocked
+    affinity_ctx['maxcpus']=maxcpus
+    affinity_ctx['maxnodes']=maxnodes
+    affinity_ctx['all_cpus']=all_cpus
+    affinity_ctx['all_cpus_sans0']=all_cpus_sans0
+    affinity_ctx['numa_layout']=numa_layout
+    affinity_ctx['affinity_match']=affinity_match
 
 
+def hasNumaSupport( exec_path):
+    # figure out if exec has numa library dependency
+    have_numa=False
+    lines = [ line.rstrip() for line in os.popen( 'ldd ' + exec_path ) ]
+    for l in lines:
+        if "libnuma" in l:
+            have_numa=True
 
-numa_xml_src={ "all" :  all_cpus,
-               "sock0": "0",
-               "sock1": "1",
-               "sock0sans0": "0",
-               "5" : "5",
-               "8-10" : "8,9,10",
-               "eface" : eface }
+    return have_numa
+
+
+## Set default to minimal system
+all_cpus="0"
+maxcpus=1
+maxnodes=1
+eface="eth0"
+
+#
+# Figure out ethernet interface to use
+#
+lines = [line.rstrip() for line in os.popen('cat /proc/net/dev')]
+import re
+for l in lines[2:]:
+    t1=l.split(':')[0].lstrip()
+    if re.match('e.*', t1 ) :
+        eface=t1
+        break
+affinity_test_src['eface']=eface
+
+nonnuma_affinity_ctx={}
+get_nonnuma_affinity_ctx(nonnuma_affinity_ctx)
+numa_affinity_ctx={}
+get_numa_affinity_ctx(numa_affinity_ctx)
+
+#
+# Figure out GPP numa context
+# figure out if exec has numa library dependency
+#
+n1=hasNumaSupport( scatest.getSdrPath()+'/dev/devices/GPP/cpp/GPP')
+n2=hasNumaSupport( scatest.getSdrPath()+'/dev/devices/GPP/cpp/.libs/GPP')
+if n1 or n2:
+   maxcpus = numa_affinity_ctx['maxcpus']
+   maxnodes = numa_affinity_ctx['maxnodes']
+   all_cpus = numa_affinity_ctx['all_cpus']
+   all_cpus_sans0 = numa_affinity_ctx['all_cpus_sans0']
+   numa_layout=numa_affinity_ctx['numa_layout']
+   numa_match=numa_affinity_ctx['affinity_match']
+else:
+   print "NonNumaSupport ", nonnuma_affinity_ctx
+   maxcpus = nonnuma_affinity_ctx['maxcpus']
+   maxnodes = nonnuma_affinity_ctx['maxnodes']
+   all_cpus = nonnuma_affinity_ctx['all_cpus']
+   all_cpus_sans0 = nonnuma_affinity_ctx['all_cpus_sans0']
+   numa_layout=nonnuma_affinity_ctx['numa_layout']
+   numa_match=nonnuma_affinity_ctx['affinity_match']
+
+if hasNumaSupport( scatest.getSdrPath()+'/dev/mgr/DeviceManager') :
+    dev_affinity_ctx=numa_affinity_ctx['affinity_match']
+else:
+    dev_affinity_ctx=nonnuma_affinity_ctx['affinity_match']
+
 if maxnodes < 2 :
-    numa_xml_src["sock1"] = "0"
+    affinity_test_src["sock1"] = "0"
 
-if maxcpus < 9 or maxcpus < 11 :
-    numa_xml_src["8-10"] = all_cpus
-    if maxcpus == 2:
-       numa_xml_src["8-10"] = all_cpus_sans0
+if maxcpus == 2:
+    affinity_test_src["8-10"] = all_cpus_sans0
+    affinity_test_src["5"] = all_cpus_sans0
+else:
+    if maxcpus < 9 or maxcpus < 11 :
+        affinity_test_src["8-10"] = all_cpus
+        affinity_test_src["5"] = all_cpus
 
-if maxcpus < 9 or maxcpus < 11 :
-    numa_xml_src["5"] = all_cpus
-    if maxcpus == 2:
-       numa_xml_src["5"] = all_cpus_sans0
-
-#print numa_layout
-#print maxcpus
-#print numa_xml_src
-#print numa_match
+print "numa_layout:", numa_layout
+print "maxcpus:", maxcpus
+print "maxnodes:", maxnodes
+print "affinity_test_src:", affinity_test_src
+print "numa_match:", numa_match
 
 setXmlSource( "./sdr/dev/nodes/test_affinity_node_socket/DeviceManager.dcd.xml.GOLD")
 setXmlSource( "./sdr/dev/nodes/test_affinity_node_unlocked/DeviceManager.dcd.xml.GOLD")
