@@ -338,16 +338,16 @@ class ConnectionManagerTestRedhawkUtils(scatest.CorbaTestCase):
     def test_redhawkutils_ComponentConnections(self):
         app_src = self._domMgr.createApplication('/waveforms/comp_src_w/comp_src_w.sad.xml', 'src_app', [], [])
         app_snk = self._domMgr.createApplication('/waveforms/comp_snk_w/comp_snk_w.sad.xml', 'snk_app', [], [])
-        uses = self.cm.componentEndPoint( 'comp_src_1:'+app_src._get_identifier(), 'dataFloat_out')
-        provides = self.cm.componentEndPoint( 'comp_snk_1:'+app_snk._get_identifier(), 'dataFloat_in')
+        uses = self.cm.componentEndPoint( 'comp_src_1:'+app_src._get_identifier(), 'output')
+        provides = self.cm.componentEndPoint( 'comp_snk_1:'+app_snk._get_identifier(), 'input')
         connectionReportId = self.cm.connect(uses, provides, 'test_environment', 'test_connection')
         connections = self.cm.connections
         self.assertEqual(len(connections), 2)
         connection = self._findConnection(connections,'test_connection')
         self.assertFalse(connection is None)
         self.assertTrue(connection.connected)
-        self.assertEqual(connection.usesEndpoint.portName, 'dataFloat_out')
-        self.assertEqual(connection.providesEndpoint.portName, 'dataFloat_in')
+        self.assertEqual(connection.usesEndpoint.portName, 'output')
+        self.assertEqual(connection.providesEndpoint.portName, 'input')
         connections = connection.usesEndpoint.endpointObject._narrow(ExtendedCF.QueryablePort)._get_connections()
         self.assertTrue(len(connections) == 1)
         self.assertEqual(connections[0].connectionId, 'test_connection')
@@ -358,16 +358,16 @@ class ConnectionManagerTestRedhawkUtils(scatest.CorbaTestCase):
         comp_src = app_src.comps[0]
         comp_snk = app_snk.comps[0]
 
-        uses = rhconnection.makeEndPoint( comp_src, 'dataFloat_out')
-        provides = rhconnection.makeEndPoint( comp_snk, 'dataFloat_in')
+        uses = rhconnection.makeEndPoint( comp_src, 'output')
+        provides = rhconnection.makeEndPoint( comp_snk, 'input')
         connectionReportId = self.cm.connect(uses, provides, 'test_environment', 'test_connection')
         connections = self.cm.connections
         self.assertEqual(len(connections), 2)
         connection = self._findConnection(connections,'test_connection')
         self.assertFalse(connection is None)
         self.assertTrue(connection.connected)
-        self.assertEqual(connection.usesEndpoint.portName, 'dataFloat_out')
-        self.assertEqual(connection.providesEndpoint.portName, 'dataFloat_in')
+        self.assertEqual(connection.usesEndpoint.portName, 'output')
+        self.assertEqual(connection.providesEndpoint.portName, 'input')
         connections = connection.usesEndpoint.endpointObject._narrow(ExtendedCF.QueryablePort)._get_connections()
         out_connections = comp_src.ports[0].ref._get_connections()
         self.assertTrue(connections[0].port._is_equivalent(out_connections[0].port))

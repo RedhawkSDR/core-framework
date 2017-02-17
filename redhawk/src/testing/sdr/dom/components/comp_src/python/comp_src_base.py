@@ -1,24 +1,5 @@
 #!/usr/bin/env python
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file
-# distributed with this source distribution.
-#
-# This file is part of REDHAWK core.
-#
-# REDHAWK core is free software: you can redistribute it and/or modify it under
-# the terms of the GNU Lesser General Public License as published by the Free
-# Software Foundation, either version 3 of the License, or (at your option) any
-# later version.
-#
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
-# details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see http://www.gnu.org/licenses/.
-#
-#
 # AUTO-GENERATED CODE.  DO NOT MODIFY!
 #
 # Source: comp_src.spd.xml
@@ -31,7 +12,7 @@ from ossie.threadedcomponent import *
 
 import Queue, copy, time, threading
 from ossie.resource import usesport, providesport
-import bulkio
+from ossie.events import MessageSupplierPort
 
 class comp_src_base(CF__POA.Resource, Component, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class
@@ -50,7 +31,7 @@ class comp_src_base(CF__POA.Resource, Component, ThreadedComponent):
             # in future releases
             self.auto_start = False
             # Instantiate the default implementations for all ports on this component
-            self.port_dataFloat_out = bulkio.OutFloatPort("dataFloat_out")
+            self.port_output = MessageSupplierPort()
 
         def start(self):
             Component.start(self)
@@ -74,9 +55,9 @@ class comp_src_base(CF__POA.Resource, Component, ThreadedComponent):
         # DO NOT ADD NEW PORTS HERE.  You can add ports in your derived class, in the SCD xml file, 
         # or via the IDE.
 
-        port_dataFloat_out = usesport(name="dataFloat_out",
-                                      repid="IDL:BULKIO/dataFloat:1.0",
-                                      type_="control")
+        port_output = usesport(name="output",
+                               repid="IDL:ExtendedEvent/MessageEvent:1.0",
+                               type_="control")
 
         ######################################################################
         # PROPERTIES
