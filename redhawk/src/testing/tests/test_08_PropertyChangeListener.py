@@ -71,7 +71,7 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         # class tearDown, or failures will occur.
         scatest.CorbaTestCase.tearDown(self)
 
-    def baseline_test_PropertyChangeListener(self, app_name, comp_name):
+    def _test_PropertyChangeListener(self, app_name, comp_name):
         self.localEvent = threading.Event()
         self.eventFlag = False
 
@@ -131,14 +131,14 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         self._app=None
         
     def test_PropertyChangeListener_CPP(self):
-        self.baseline_test_PropertyChangeListener("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_C1')
+        self._test_PropertyChangeListener("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_C1')
 
     def test_PropertyChangeListener_PYTHON(self):
-        self.baseline_test_PropertyChangeListener("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_P1')
+        self._test_PropertyChangeListener("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_P1')
 
     @scatest.requireJava
     def test_PropertyChangeListener_JAVA(self):
-        self.baseline_test_PropertyChangeListener("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml", 'PropertyChange_J1')
+        self._test_PropertyChangeListener("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml", 'PropertyChange_J1')
 
     def test_PropertyChangeListener_APP(self):
         self.localEvent = threading.Event()
@@ -257,7 +257,7 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         scatest.CorbaTestCase.tearDown(self)
 
 
-    def base_test_PropertyChangeListener_EC_Comps(self, app_name, comp_name):
+    def _test_PropertyChangeListener_EC_Comps(self, app_name, comp_name):
         self.localEvent = threading.Event()
         self.eventFlag = False
 
@@ -309,14 +309,14 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         self._app=None
 
     def test_PropertyChangeListener_EC_CPP(self):
-        self.base_test_PropertyChangeListener_EC_Comps("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_C1')
+        self._test_PropertyChangeListener_EC_Comps("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_C1')
 
     def test_PropertyChangeListener_EC_PYTHON(self):
-        self.base_test_PropertyChangeListener_EC_Comps("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_P1')
+        self._test_PropertyChangeListener_EC_Comps("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_P1')
 
     @scatest.requireJava
     def test_PropertyChangeListener_EC_JAVA(self):
-        self.base_test_PropertyChangeListener_EC_Comps("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml", 'PropertyChange_J1')
+        self._test_PropertyChangeListener_EC_Comps("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml", 'PropertyChange_J1')
 
     def test_PropertyChangeListener_EC_APP(self):
         self.localEvent = threading.Event()
