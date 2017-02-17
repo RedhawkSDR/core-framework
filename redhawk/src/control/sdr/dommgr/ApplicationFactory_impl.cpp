@@ -298,6 +298,9 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
                           << " is a shared library");
                 redhawk::ContainerDeployment* container = appDeployment.createContainer(_profileCache, deployment->getAssignedDevice());
                 if (!container->getAssignedDevice()) {
+
+                    const redhawk::PropertyMap& devReqs = deployment->getDeviceRequires();
+                    if ( devReqs.size() ) container->setDeviceRequires(devReqs);
                     // Use whether the device is assigned as a sentinel to check
                     // whether the container was already created, and if not,
                     // allocate it to the device

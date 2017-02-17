@@ -169,6 +169,18 @@ class DeviceRequires(scatest.CorbaTestCase):
         self.assertNotEqual(self._app, None)
         xx=self._app.query([])
 
+    def test_reddevrequires_redprovided_so(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")
+
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._rednode, None)
+
+        self._app = self._createApp('device_requires_red_so')
+
+        self.assertNotEqual(self._app, None)
+        xx=self._app.query([])
+
     def test_greendevrequires_colormismatch(self):
         domBooter, self._domMgr = self.launchDomainManager()
         redBooter, self._rednode = self.launchDeviceManager("/nodes/test_GPP_red/DeviceManager.dcd.xml")

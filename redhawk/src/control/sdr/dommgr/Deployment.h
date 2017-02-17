@@ -160,6 +160,7 @@ namespace redhawk {
         std::string getLoggingConfiguration() const;
 
         redhawk::PropertyMap getDeviceRequires() const;
+        void  setDeviceRequires( const redhawk::PropertyMap &devRequires );
 
         redhawk::ApplicationComponent* getApplicationComponent();
         void setApplicationComponent(redhawk::ApplicationComponent* appComponent);

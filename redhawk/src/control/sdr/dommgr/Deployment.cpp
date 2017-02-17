@@ -424,6 +424,11 @@ redhawk::PropertyMap ComponentDeployment::getDeviceRequires() const {
     return deviceRequires;
 }
 
+void ComponentDeployment::setDeviceRequires( const redhawk::PropertyMap &devReqs ) {
+    deviceRequires = devReqs;
+}
+
+
 redhawk::PropertyMap ComponentDeployment::getAllocationContext() const
 {
     redhawk::PropertyMap properties;
