@@ -188,16 +188,20 @@ class CodeGenTestCase(OssieTestCase):
                     spd_file = "../"+self.base_name+'.spd.xml'
                     os.chdir(self.test_dir)
 
-                retval = ossie.utils.testing.ScaComponentTestProgram(spd_file,
-                                                                     module='test_'+self.base_name,
+                _files = os.listdir(self.build_dir+'/tests')
+                for _file in _files:
+                    if len(_file) > 8:
+                        if _file[-3:] == '.py' and _file[:5] == 'test_':
+                            retval = ossie.utils.testing.ScaComponentTestProgram(spd_file,
+                                                                     module=_file[:-3],
                                                                      impl=impl_id)
 
-                if self.octave_test_dir:
-                    os.chdir(start_dir)
+                            if self.octave_test_dir:
+                                os.chdir(start_dir)
 
-                for result in retval.results:
-                    if result.errors or result.failures:
-                        if not lang in failures:
-                            failures.append(lang)
+                            for result in retval.results:
+                                if result.errors or result.failures:
+                                    if not lang in failures:
+                                        failures.append(lang)
 
         self.assertEqual(len(failures), 0, msg='failed for ' + ', '.join(failures))
