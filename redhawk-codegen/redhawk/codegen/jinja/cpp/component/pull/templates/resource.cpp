@@ -151,8 +151,7 @@ void ${className}::updateUsageState()
         Data is passed to the serviceFunction through by reading from input streams
         (BulkIO only). The input stream class is a port-specific class, so each port
         implementing the BulkIO interface will have its own type-specific input stream.
-        UDP multicast (dataSDDS and dataVITA49) and string-based (dataString, dataXML and
-        dataFile) do not support streams.
+        UDP multicast (dataSDDS and dataVITA49) ports do not support streams.
 
         The input stream from which to read can be requested with the getCurrentStream()
         method. The optional argument to getCurrentStream() is a floating point number that
@@ -180,13 +179,16 @@ void ${className}::updateUsageState()
             //  An output (uses) port of type bulkio::OutFloatPort called dataFloat_out
             // The mapping between the port and the class is found
             // in the ${artifactType} base class header file
-            // The ${artifactType} class must have an output stream member; add to
-            // ${component.userclass.header}:
-            //   bulkio::OutFloatStream outputStream;
 
             bulkio::InShortStream inputStream = dataShort_in->getCurrentStream();
             if (!inputStream) { // No streams are available
                 return NOOP;
+            }
+
+            // Get the output stream, creating it if it doesn't exist yet
+            bulkio::OutFloatStream outputStream = dataFloat_out->getStream(inputStream.streamID());
+            if (!outputStream) {
+                outputStream = dataFloat_out->createStream(inputStream.sri());
             }
 
             bulkio::ShortDataBlock block = inputStream.read();
@@ -198,42 +200,40 @@ void ${className}::updateUsageState()
                 return NOOP;
             }
 
-            short* inputData = block.data();
-            std::vector<float> outputData;
-            outputData.resize(block.size());
-            for (size_t index = 0; index < block.size(); ++index) {
-                outputData[index] = (float) inputData[index];
-            }
-
-            // If there is no output stream open, create one
-            if (!outputStream) {
-                outputStream = dataFloat_out->createStream(block.sri());
-            } else if (block.sriChanged()) {
+            if (block.sriChanged()) {
                 // Update output SRI
                 outputStream.sri(block.sri());
             }
 
-            // Write to the output stream
-            outputStream.write(outputData, block.getTimestamps());
+            // Get read-only access to the input data
+            redhawk::shared_buffer<short> inputData = block.buffer();
 
-            // Propagate end-of-stream
-            if (inputStream.eos()) {
-              outputStream.close();
+            // Acquire a new buffer to hold the output data
+            redhawk::buffer<float> outputData(inputData.size());
+
+            // Transform input data into output data
+            for (size_t index = 0; index < inputData.size(); ++index) {
+                outputData[index] = (float) inputData[index];
             }
+
+            // Write to the output stream; outputData must not be modified after
+            // this method call
+            outputStream.write(outputData, block.getStartTime());
 
             return NORMAL;
 
         If working with complex data (i.e., the "mode" on the SRI is set to
         true), the data block's complex() method will return true. Data blocks
-        provide functions that return the correct interpretation of the data
-        buffer and number of complex elements:
+        provide a cxbuffer() method that returns a complex interpretation of the
+        buffer without making a copy:
 
             if (block.complex()) {
-                std::complex<short>* data = block.cxdata();
-                for (size_t index = 0; index < block.cxsize(); ++index) {
-                    data[index] = std::abs(data[index]);
+                redhawk::shared_buffer<std::complex<short> > inData = block.cxbuffer();
+                redhawk::buffer<std::complex<float> > outData(inData.size());
+                for (size_t index = 0; index < inData.size(); ++index) {
+                    outData[index] = inData[index];
                 }
-                outputStream.write(data, block.cxsize(), bulkio::time::utils::now());
+                outputStream.write(outData, block.getStartTime());
             }
 
         Interactions with non-BULKIO ports are left up to the ${artifactType} developer's discretion
