@@ -2030,6 +2030,15 @@ class BulkioTest(unittest.TestCase):
         """
         Verify that provide SRI is handled
         """
+        def wait_on_data( sink ):
+            begin_time = time.time()
+            estimate = sink.getDataEstimate()
+            while estimate.num_timestamps != 1:
+                time.sleep(0.1)
+                estimate = sink.getDataEstimate()
+                if time.time() - begin_time > _timeout:
+                    break
+
         _timeout = 1
         _startTime = 10
         source = sb.DataSource(startTime=_startTime)
@@ -2047,13 +2056,7 @@ class BulkioTest(unittest.TestCase):
         # push samples down stream, with custom sri
         _srcData = [1,2,3,4]
         source.push(_srcData, sri=_sri )
-        begin_time = time.time()
-        estimate = sink.getDataEstimate()
-        while estimate.num_timestamps != 1:
-            time.sleep(0.1)
-            estimate = sink.getDataEstimate()
-            if time.time() - begin_time > _timeout:
-                break
+        wait_on_data(sink)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.streamID, sid )
@@ -2075,12 +2078,7 @@ class BulkioTest(unittest.TestCase):
         _srcData = [1,2,3,4]
         source.push(_srcData, SRIKeywords=kws )
         begin_time = time.time()
-        estimate = sink.getDataEstimate()
-        while estimate.num_timestamps != 1:
-            time.sleep(0.1)
-            estimate = sink.getDataEstimate()
-            if time.time() - begin_time > _timeout:
-                break
+        wait_on_data(sink)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.streamID, sid )
@@ -2089,13 +2087,7 @@ class BulkioTest(unittest.TestCase):
 
         # Repeat, making sure that a second push with keywords does not fail
         source.push(_srcData, SRIKeywords=kws)
-        begin_time = time.time()
-        estimate = sink.getDataEstimate()
-        while estimate.num_timestamps != 1:
-            time.sleep(0.1)
-            estimate = sink.getDataEstimate()
-            if time.time() - begin_time > _timeout:
-                break
+        wait_on_data(sink)
         data=sink.getData()
         self.assertTrue(data)
 
@@ -2109,18 +2101,55 @@ class BulkioTest(unittest.TestCase):
         _sri.keywords=copy.copy(matchkws)
         _srcData = [1,2,3,4]
         source.push(_srcData, sri=_sri )
-        begin_time = time.time()
-        estimate = sink.getDataEstimate()
-        while estimate.num_timestamps != 1:
-            time.sleep(0.1)
-            estimate = sink.getDataEstimate()
-            if time.time() - begin_time > _timeout:
-                break
+        wait_on_data(sink)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.streamID, sid )
         self.assertAlmostEquals(rsri.xdelta, 0.1234)
         self.assertEqual(True, compareKeywordLists( rsri.keywords, matchkws) )
+
+        # try pushing using the same sri object with changing attributes
+        _sri = sb.createSRI()
+        _sri.streamID=sid
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.streamID, sid )
+
+        _sri.streamID='anewsri'
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.streamID, 'anewsri' )
+
+        _sri.mode=1
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.mode, 1 )
+
+        _sri.mode=0
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.mode, 0 )
+
+        _sri.hversion=100
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.hversion, 100 )
+
 
     def test_DataSinkSubsize(self):
         src=sb.DataSource(dataFormat='short',subsize=5)

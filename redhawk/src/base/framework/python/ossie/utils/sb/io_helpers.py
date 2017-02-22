@@ -1379,7 +1379,7 @@ class DataSource(_SourceBase):
                     candidateSri = _copy.copy(self._sri)
                     if sri != None:
                         # user supplied sri
-                       candidateSri = sri
+                        candidateSri = sri
 
                     if streamID and streamID != candidateSri.streamID:
                         candidateSri.streamID = streamID
@@ -1398,9 +1398,8 @@ class DataSource(_SourceBase):
                     if complexData == True:
                         candidateSri.mode = 1
                         self._complexData = 1
-                    else:
-                        candidateSri.mode = 0
-                        self._complexData = 0
+
+                    self._complexData = candidateSri.mode
 
                     if self._startTime >= 0.0:
                         candidateSri.xstart = self._startTime
@@ -1424,7 +1423,7 @@ class DataSource(_SourceBase):
                         candidateSri.keywords = keywords
 
                 if self._sri==None or not compareSRI(candidateSri, self._sri):
-                    self._sri = candidateSri
+                    self._sri = _copy.copy(candidateSri)
                     self._pushSRIAllConnectedPorts(sri = self._sri)
 
                 # if we are give a timestamp then use it as is
@@ -1866,6 +1865,6 @@ def createSRI(streamID='defaultStreamID', sampleRate=1.0, mode=0, blocking=True 
     if sampleRate and sampleRate > 0.0:
         xd = 1.0/float(sampleRate)
 
-    return _BULKIO_.StreamSRI(hversion=1, xstart=0.0, xdelta=xd,
+    return _BULKIO.StreamSRI(hversion=1, xstart=0.0, xdelta=xd,
                               xunits=1, subsize=0, ystart=0.0, ydelta=0.0,
                               yunits=0, mode=mode, streamID=streamID, blocking=blocking, keywords=[])
