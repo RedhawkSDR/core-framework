@@ -26,6 +26,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <property environment="env" />
   <property name="src.dir" location="${basedir}" />
   <property name="build.dir" location="${basedir}" />
+  <property name="top.dir" location="${basedir}/../../../.." />
 
   <path id="junit.class.path">
     <pathelement path="${java.class.path}"/>
@@ -34,8 +35,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <pathelement location="${env.OSSIEHOME}/lib/CFInterfaces.jar"/>
     <pathelement location="${env.OSSIEHOME}/lib/log4j-1.2.15.jar"/>
     <pathelement location="${env.OSSIEHOME}/lib/ossie.jar"/>
-    <pathelement location="${basedir}/../../../bulkio.jar"/>
-    <pathelement location="${basedir}/../../../../BULKIOInterfaces.jar"/>
+    <pathelement location="${top.dir}/libsrc/bulkio.jar"/>
+    <pathelement location="${top.dir}/BULKIOInterfaces.jar"/>
   </path>
 
   <target name="compile" depends="clean">
@@ -53,6 +54,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <target name="test" depends="compile">
     <junit fork="yes" printsummary="yes" haltonfailure="no">
       <classpath refid="junit.class.path"/>
+      <sysproperty key="java.library.path" value="${java.library.path}:${top.dir}/jni/.libs"/>
       <formatter type="xml" />
       <batchtest todir="${basedir}/../" >
         <fileset dir="${basedir}">

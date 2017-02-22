@@ -137,6 +137,10 @@ AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 
 # C++ unit testing support. May want to conditionally enable/disable this.
 AM_PATH_CPPUNIT(1.12.1)
+AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
+  dnl Use RPM location hard-coded for now
+  AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")
+])
 
 # For C++ test components, provide BULKIO_CFLAGS and BULKIO_LIBS so they build
 # without modifying their Makefile.am to change the paths. In order to pick up
@@ -162,6 +166,7 @@ if test "$enable_base_classes" != "no"; then
                    libsrc/bulkio.pc \
                    libsrc/testing/Makefile \
                    libsrc/testing/tests/cpp/Makefile \
+                   libsrc/testing/tests/java/Makefile \
                    libsrc/testing/components/CPP_Ports/cpp/Makefile \
                    libsrc/testing/components/Java_Ports/java/Makefile \
                    libsrc/testing/components/Oversized_framedata/cpp/Makefile \
