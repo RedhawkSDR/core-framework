@@ -2232,14 +2232,11 @@ class FrontendTunerTests(unittest.TestCase):
         listener2 = self._generateListener(controller)
  
         tuner_control = self.dut.getPort('DigitalTuner_in')
-        scd = SCDParser.parse(self.scd_file)
-        for port in sorted(self.scd.get_componentfeatures().get_ports().get_uses(),reverse=True):
-            comp_port_type = port.get_repid().split(':')[1].split('/')[-1]
-            comp_port_name = port.get_usesname()
-            if comp_port_type not in self.port_map:
-                print 'WARNING - skipping %s port named %s, not supported BULKIO port type'%(comp_port_type,comp_port_name)
-                continue
-            self._testBULKIO(tuner_control,comp_port_name,comp_port_type,ttype,controller,listener1,listener2)
+        for port in self.dut.ports:
+            if port._direction == 'Uses':
+                comp_port_name = port.name
+                comp_port_type = port._using.name
+                self._testBULKIO(tuner_control,comp_port_name,comp_port_type,ttype,controller,listener1,listener2)
              
     def _testBULKIO(self,tuner_control,comp_port_name,comp_port_type,ttype,controller,listener1=None,listener2=None):
         if comp_port_type == 'dataSDDS':
