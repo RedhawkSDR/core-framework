@@ -8,7 +8,7 @@ bulkio_top=$(cd ../../..;pwd)
 bulkio_libsrc_top=$bulkio_top/libsrc
 export LD_LIBRARY_PATH=$bulkio_libsrc_top/.libs:$bulkio_top/.libs:$bulkio_top/jni/.libs:${LD_LIBRARY_PATH}
 export PYTHONPATH=$bulkio_libsrc_top/build/lib:${PYTHONPATH}
-export CLASSPATH=${bulkio_libsrc_top}/bulkio.jar:${CLASSPATH}
+export CLASSPATH=${bulkio_libsrc_top}/bulkio.jar:${bulkio_top}/BULKIOInterfaces.jar:${CLASSPATH}
 
 # Limit the number of threads Java uses for the garbage collector to avoid
 # misleading Java "out of memory" errors that in all actuality  appear to be
