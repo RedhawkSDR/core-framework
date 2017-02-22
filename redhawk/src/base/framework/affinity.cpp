@@ -93,7 +93,7 @@ namespace  redhawk {
     //
     static   SetAffinityFunc     _affinity_override_func = NULL;
 
-    static  rh_logger::LoggerPtr  _affinity_logger = rh_logger::Logger::getLogger("redhawk::affinity");
+    static  rh_logger::LoggerPtr  _affinity_logger = rh_logger::Logger::getLogger("redhawk.affinity");
 
 
     //
@@ -222,30 +222,37 @@ namespace  redhawk {
     int   find_socket_for_interface ( const std::string &iface , const bool findFirst, const CpuList &bl ){
 
       int retval=-1;
+      bool check_numa=false;
+#ifdef HAVE_LIBNUMA
+       check_numa=(numa_available() != -1); 
+#endif
       
       // Determine cpu list by interrupts assigned for the specified NIC
-      CpuList cpulist = identify_cpus(iface);
+      redhawk::affinity::CpuList cpulist = identify_cpus(iface);
       if ( cpulist.size() > 0 ) {
-        int psoc=-1;
-#if HAVE_LIBNUMA
-        int soc=-1;
-        for( int i=0; i < (int)cpulist.size();i++ ) {
-          RH_DEBUG(_affinity_logger, "Finding (processor socket) for NIC:" << iface << " socket :" << numa_node_of_cpu(cpulist[i]) );
-          if ( std::count( bl.begin(), bl.end(), cpulist[i] ) != 0 ) continue;
-
-          soc = numa_node_of_cpu(cpulist[i]);
-          if ( soc != psoc && psoc != -1 && !findFirst ) {
-            RH_WARN(_affinity_logger, "More than 1 socket servicing NIC:" << iface);
-            psoc=-1;
-            break;
+        if ( check_numa ) {
+          int psoc=-1;
+#ifdef HAVE_LIBNUMA
+          int soc=-1;
+          for( int i=0; i < (int)cpulist.size();i++ ) {
+            RH_NL_DEBUG("gpp::affinity", "Finding (processor socket) for NIC:" << iface << " socket :" << numa_node_of_cpu(cpulist[i]) );
+            if ( std::count(  bl.begin(), bl.end(), cpulist[i] ) != 0 ) continue;
+            soc = numa_node_of_cpu(cpulist[i]);
+            if ( soc != psoc && psoc != -1 && !findFirst ) {
+              RH_NL_WARN("gpp::affinity", "More than 1 socket servicing NIC:" << iface);
+              psoc=-1;
+              break;
+            }
+            psoc=soc;
+            if( findFirst ) break;
           }
-          psoc=soc;
-          if( findFirst ) break;
-        }
 #endif
-        retval=psoc;
+          retval=psoc;
+        }
+        else {
+          retval=0;
+        }
       }
-      
 
       return retval;
 
@@ -264,6 +271,10 @@ namespace  redhawk {
       }
       
 #ifdef HAVE_LIBNUMA
+      if ( numa_available() == -1 ) {
+          return cpu_list;
+      }
+       
       if ( list_type == "socket" || list_type == "node" ) {
           std::string nodestr = context;
           struct bitmask *node_mask = numa_parse_nodestring((char *)nodestr.c_str()); 
@@ -478,6 +489,7 @@ namespace  redhawk {
     int set_affinity( const AffinityDirectives &spec, const pid_t pid, const CpuList &blacklist) 
       throw (AffinityFailed)
     {
+
       if ( is_disabled() ) {
         return 0;
       }
@@ -495,189 +507,193 @@ namespace  redhawk {
         RH_DEBUG(_affinity_logger, " cnt:" << cnt << " Processing Affinity pid: " << pid << " " << affinity_spec.first << ":" << affinity_spec.second );
 
 #ifdef HAVE_LIBNUMA
-        //
-        // nic -- Determine cpu list by interrupts assigned for the specified NIC
-        //
-        if ( affinity_spec.first == "nic" ) {
-          std::string iface = affinity_spec.second;
-          // Determine cpu list by interrupts assigned for the specified NIC
-          CpuList cpulist = identify_cpus(iface);
+        if ( numa_available() == -1 ) {
+            RH_WARN(_affinity_logger, "Missing affinity support from Redhawk libraries, ... ignoring numa affinity based requests ");
+        }
+        else {
+            //
+            // nic -- Determine cpu list by interrupts assigned for the specified NIC
+            //
+            if ( affinity_spec.first == "nic" ) {
+                std::string iface = affinity_spec.second;
+                // Determine cpu list by interrupts assigned for the specified NIC
+                CpuList cpulist = identify_cpus(iface);
           
-          // if no cpus identified then issue warning
-          if ( cpulist.size() > 0  ) {
+                // if no cpus identified then issue warning
+                if ( cpulist.size() > 0  ) {
 
-            // check if black list is specified... if not then use node based affinity
-            if ( blacklist.size() == 0 && getpid() == pid ) {   // are we the same process,  then use node binding method
-              bitmask *node_mask = numa_allocate_nodemask();
-              if ( !node_mask )  {
-                throw AffinityFailed("Unable to allocate node mask");
-              }
+                    // check if black list is specified... if not then use node based affinity
+                    if ( blacklist.size() == 0 && getpid() == pid ) {   // are we the same process,  then use node binding method
+                        bitmask *node_mask = numa_allocate_nodemask();
+                        if ( !node_mask )  {
+                            throw AffinityFailed("Unable to allocate node mask");
+                        }
 
-              for( int i=0; i < (int)cpulist.size();i++ ) {
-                RH_DEBUG(_affinity_logger, "Setting NIC (processor socket select) available socket :" << numa_node_of_cpu(cpulist[i]) );
-                numa_bitmask_setbit(node_mask, numa_node_of_cpu(cpulist[i]) );
-              }
+                        for( int i=0; i < (int)cpulist.size();i++ ) {
+                            RH_DEBUG(_affinity_logger, "Setting NIC (processor socket select) available socket :" << numa_node_of_cpu(cpulist[i]) );
+                            numa_bitmask_setbit(node_mask, numa_node_of_cpu(cpulist[i]) );
+                        }
 
-              RH_DEBUG(_affinity_logger, "Setting NIC (processor socket select) affinity constraint: :" << iface );
-              numa_bind(node_mask);
-              numa_bitmask_free(node_mask);
-            }
-            else {
+                        RH_DEBUG(_affinity_logger, "Setting NIC (processor socket select) affinity constraint: :" << iface );
+                        numa_bind(node_mask);
+                        numa_bitmask_free(node_mask);
+                    }
+                    else {
 
-              int cpus=0;
-              for( int i=0; i < (int)cpulist.size();i++ ) {
-                // check if cpu id is not in blacklist
-                if ( std::count( blacklist.begin(), blacklist.end(), cpulist[i] ) == 0  ) cpus++;
-              }
+                        int cpus=0;
+                        for( int i=0; i < (int)cpulist.size();i++ ) {
+                            // check if cpu id is not in blacklist
+                            if ( std::count( blacklist.begin(), blacklist.end(), cpulist[i] ) == 0  ) cpus++;
+                        }
 
-              //
-              // For nic based affinity and blacklisted cpus... 
-              //
-              // Find all the cpus that service interrupts for the specified interfaces
-              //
-              //   if interface is serviced by a single cpu and promote to socket flag is on
-              //    get list of cpus for the processor socket servicing the interface...
-              //    apply blacklist
-              //    specify affinity with remaining cpu list
-              //
-              //   if interface is serviced by single cpu and blacklisted, and promote to socket flag is on
-              //    get list of cpus for the processor socket servicing the interface...
-              //    apply blacklist
-              //    specify affinity with remaining cpu list
-              //    
-              //   otherwise ... 
-              //    from the list of cpus for the interface, apply blacklist then apply as affinity 
-              //
-              if ( (cpulist.size() == 1 && get_nic_promotion()) || ( cpus == 0 && get_nic_promotion() ) ) {
-                int cpuid = cpulist[0];
-                std::ostringstream os;
-                os << numa_node_of_cpu( cpuid );
-                CpuList tlist = get_cpu_list( "socket", os.str() );
-                RH_INFO(_affinity_logger, "Promoting NIC affinity to PID:" << pid << " SOCKET:" << os.str() );
+                        //
+                        // For nic based affinity and blacklisted cpus... 
+                        //
+                        // Find all the cpus that service interrupts for the specified interfaces
+                        //
+                        //   if interface is serviced by a single cpu and promote to socket flag is on
+                        //    get list of cpus for the processor socket servicing the interface...
+                        //    apply blacklist
+                        //    specify affinity with remaining cpu list
+                        //
+                        //   if interface is serviced by single cpu and blacklisted, and promote to socket flag is on
+                        //    get list of cpus for the processor socket servicing the interface...
+                        //    apply blacklist
+                        //    specify affinity with remaining cpu list
+                        //    
+                        //   otherwise ... 
+                        //    from the list of cpus for the interface, apply blacklist then apply as affinity 
+                        //
+                        if ( (cpulist.size() == 1 && get_nic_promotion()) || ( cpus == 0 && get_nic_promotion() ) ) {
+                            int cpuid = cpulist[0];
+                            std::ostringstream os;
+                            os << numa_node_of_cpu( cpuid );
+                            CpuList tlist = get_cpu_list( "socket", os.str() );
+                            RH_INFO(_affinity_logger, "Promoting NIC affinity to PID:" << pid << " SOCKET:" << os.str() );
 
-                cpulist.clear();
-                for( int i=0; i < (int)tlist.size();i++ ) {
-                  if ( tlist[i] == cpuid ) continue;
-                  cpulist.push_back( tlist[i] );
-                }
-              }
+                            cpulist.clear();
+                            for( int i=0; i < (int)tlist.size();i++ ) {
+                                if ( tlist[i] == cpuid ) continue;
+                                cpulist.push_back( tlist[i] );
+                            }
+                        }
               
-              cpus=0;
-              for( int i=0; i < (int)cpulist.size();i++ ) {
-                // check if cpu id is not in blacklist
-                if ( std::count( blacklist.begin(), blacklist.end(), cpulist[i] ) == 0  ) cpus++;
-              }
+                        cpus=0;
+                        for( int i=0; i < (int)cpulist.size();i++ ) {
+                            // check if cpu id is not in blacklist
+                            if ( std::count( blacklist.begin(), blacklist.end(), cpulist[i] ) == 0  ) cpus++;
+                        }
             
-              if ( cpus > 0 ) {  // use cpulist to bind process
-                bitmask *cpu_mask = numa_allocate_cpumask();  
-                if ( !cpu_mask )  {
-                  throw AffinityFailed("Unable to allocate node mask");
-                }
+                        if ( cpus > 0 ) {  // use cpulist to bind process
+                            bitmask *cpu_mask = numa_allocate_cpumask();  
+                            if ( !cpu_mask )  {
+                                throw AffinityFailed("Unable to allocate node mask");
+                            }
 
-                for( int i=0; i < (int)cpulist.size();i++ ) {
-                  // check if cpu id is blacklisted
-                  if ( std::count( blacklist.begin(), blacklist.end(), cpulist[i] ) == 0  ) {
-                    RH_DEBUG(_affinity_logger, "Setting NIC (cpu select) available :" << cpulist[i] );
-                    numa_bitmask_setbit(cpu_mask, cpulist[i]);
-                  }
-                }
+                            for( int i=0; i < (int)cpulist.size();i++ ) {
+                                // check if cpu id is blacklisted
+                                if ( std::count( blacklist.begin(), blacklist.end(), cpulist[i] ) == 0  ) {
+                                    RH_DEBUG(_affinity_logger, "Setting NIC (cpu select) available :" << cpulist[i] );
+                                    numa_bitmask_setbit(cpu_mask, cpulist[i]);
+                                }
+                            }
 
-                RH_DEBUG(_affinity_logger, "Setting NIC (cpu select) affinity constraint: :" << iface );
-                if ( numa_sched_setaffinity( pid, cpu_mask) ) {
-                  std::ostringstream e;
-                  e << "Binding to NIC with cpu affinity, nic=" << iface;
-                  throw AffinityFailed(e.str());
+                            RH_DEBUG(_affinity_logger, "Setting NIC (cpu select) affinity constraint: :" << iface );
+                            if ( numa_sched_setaffinity( pid, cpu_mask) ) {
+                                std::ostringstream e;
+                                e << "Binding to NIC with cpu affinity, nic=" << iface;
+                                throw AffinityFailed(e.str());
+                            }
+                            numa_bitmask_free(cpu_mask);
+                        }
+                        else {
+                            RH_WARN(_affinity_logger, "Setting NIC (cpu select), no cpu available all blacklisted :" << iface );
+                            std::ostringstream e;
+                            e << "Binding to NIC, no cpus available all blacklisted :" << iface;
+                            throw AffinityFailed(e.str());
+                        }
+                    }
                 }
-                numa_bitmask_free(cpu_mask);
-              }
-              else {
-                RH_WARN(_affinity_logger, "Setting NIC (cpu select), no cpu available all blacklisted :" << iface );
-                std::ostringstream e;
-                e << "Binding to NIC, no cpus available all blacklisted :" << iface;
-                throw AffinityFailed(e.str());
-              }
+                else {
+                    RH_WARN(_affinity_logger, "Setting NIC, unable to set directive:" << iface );
+                    std::ostringstream e;
+                    e << "Binding to NIC, unable to set directive, cannot determine socket or cpu list from interrupt mapping, directive:" << iface;
+                    throw AffinityFailed(e.str());
+                }
             }
-          }
-          else {
-            RH_WARN(_affinity_logger, "Setting NIC, unable to set directive:" << iface );
-            std::ostringstream e;
-            e << "Binding to NIC, unable to set directive, cannot determine socket or cpu list from interrupt mapping, directive:" << iface;
-            throw AffinityFailed(e.str());
-          }
-        }
 
-        // socket -- assign via socket (numa node) number
-        if ( affinity_spec.first == "socket" ) {
-          std::string nodestr = affinity_spec.second;
-          struct bitmask *node_mask = numa_parse_nodestring((char *)nodestr.c_str()); 
-          if ( !node_mask )  {
-            throw AffinityFailed("Processor Socket affinity failed, unable to parse:  " + nodestr);
-          }
+            // socket -- assign via socket (numa node) number
+            if ( affinity_spec.first == "socket" ) {
+                std::string nodestr = affinity_spec.second;
+                struct bitmask *node_mask = numa_parse_nodestring((char *)nodestr.c_str()); 
+                if ( !node_mask )  {
+                    throw AffinityFailed("Processor Socket affinity failed, unable to parse:  " + nodestr);
+                }
         
-          // plain  node binding if no cpus are listed.
-          if ( blacklist.size() == 0 ) {
-            // bind to node... let system scheduler do its magic
-            RH_DEBUG(_affinity_logger, "Setting PROCESSOR SOCKET affinity to constraint :" << nodestr );
-            numa_bind( node_mask );
-          }
-          else { // remove blacklisted cpus from node binding
-            bitmask *cpu_mask = numa_allocate_cpumask(); 
-            if ( !cpu_mask ) {
-              throw AffinityFailed("Unable to allocate cpu mask");
-            } 
+                // plain  node binding if no cpus are listed.
+                if ( blacklist.size() == 0 ) {
+                    // bind to node... let system scheduler do its magic
+                    RH_DEBUG(_affinity_logger, "Setting PROCESSOR SOCKET affinity to constraint :" << nodestr );
+                    numa_bind( node_mask );
+                }
+                else { // remove blacklisted cpus from node binding
+                    bitmask *cpu_mask = numa_allocate_cpumask(); 
+                    if ( !cpu_mask ) {
+                        throw AffinityFailed("Unable to allocate cpu mask");
+                    } 
 
-            // check if node is active, if so then get a cpu id
-            int nbytes = numa_bitmask_nbytes(node_mask);
-            for (int i=0; i < nbytes*8; i++ ){
-              if ( numa_bitmask_isbitset( node_mask, i ) ) {
-                numa_node_to_cpus( i, cpu_mask );
-              }
-            }
+                    // check if node is active, if so then get a cpu id
+                    int nbytes = numa_bitmask_nbytes(node_mask);
+                    for (int i=0; i < nbytes*8; i++ ){
+                        if ( numa_bitmask_isbitset( node_mask, i ) ) {
+                            numa_node_to_cpus( i, cpu_mask );
+                        }
+                    }
 
-            // check if cpu id is blacklisted
-            CpuList::const_iterator biter = blacklist.begin();
-            for ( ; biter != blacklist.end() ; biter++ ) {
-              RH_DEBUG(_affinity_logger, "Setting PROCESSOR SOCKET (cpu select) blacklist :" << *biter );
-              numa_bitmask_clearbit(cpu_mask, *biter);
-            }
+                    // check if cpu id is blacklisted
+                    CpuList::const_iterator biter = blacklist.begin();
+                    for ( ; biter != blacklist.end() ; biter++ ) {
+                        RH_DEBUG(_affinity_logger, "Setting PROCESSOR SOCKET (cpu select) blacklist :" << *biter );
+                        numa_bitmask_clearbit(cpu_mask, *biter);
+                    }
 
-            RH_DEBUG(_affinity_logger, "Setting PROCESSOR SOCKET (cpu select) affinity, pid/constraint:" << pid << "/" << nodestr );
-            if ( numa_sched_setaffinity( pid, cpu_mask) ) {
-              std::ostringstream e;
-              e << "Binding to PROCESSOR SOCKET with blacklisted cpus, node=" << nodestr;
-              throw AffinityFailed(e.str());
-            }
-            numa_bitmask_free(cpu_mask);
-          }
+                    RH_DEBUG(_affinity_logger, "Setting PROCESSOR SOCKET (cpu select) affinity, pid/constraint:" << pid << "/" << nodestr );
+                    if ( numa_sched_setaffinity( pid, cpu_mask) ) {
+                        std::ostringstream e;
+                        e << "Binding to PROCESSOR SOCKET with blacklisted cpus, node=" << nodestr;
+                        throw AffinityFailed(e.str());
+                    }
+                    numa_bitmask_free(cpu_mask);
+                }
         
-          numa_bitmask_free(node_mask);
+                numa_bitmask_free(node_mask);
 
+            }
+
+            // cpu -- assign via cpu id
+            if ( affinity_spec.first == "cpu" ) {
+                std::string cpustr = affinity_spec.second;
+                struct bitmask *cpu_mask = numa_parse_cpustring((char*)cpustr.c_str());    
+                if ( !cpu_mask ) {
+                    throw AffinityFailed("CPU affinity failed, unable to parse: <" + cpustr + ">" );
+                } 
+
+                // apply black list 
+                CpuList::const_iterator biter = blacklist.begin();
+                for ( ; biter != blacklist.end() ; biter++ ) {
+                    RH_DEBUG(_affinity_logger, "Setting CPU affinity, blacklist :" << *biter );
+                    numa_bitmask_clearbit(cpu_mask, *biter);
+                }
+
+                RH_DEBUG(_affinity_logger, "Setting CPU affinity to constraint :" << cpustr );
+                if ( numa_sched_setaffinity( pid, cpu_mask ) ) {
+                    std::ostringstream e;
+                    e << "Binding to CPU: " << cpustr;
+                    throw AffinityFailed(e.str());
+                }
+
+            }
         }
-
-        // cpu -- assign via cpu id
-        if ( affinity_spec.first == "cpu" ) {
-          std::string cpustr = affinity_spec.second;
-          struct bitmask *cpu_mask = numa_parse_cpustring((char*)cpustr.c_str());    
-          if ( !cpu_mask ) {
-            throw AffinityFailed("CPU affinity failed, unable to parse: <" + cpustr + ">" );
-          } 
-
-          // apply black list 
-          CpuList::const_iterator biter = blacklist.begin();
-          for ( ; biter != blacklist.end() ; biter++ ) {
-              RH_DEBUG(_affinity_logger, "Setting CPU affinity, blacklist :" << *biter );
-            numa_bitmask_clearbit(cpu_mask, *biter);
-          }
-
-          RH_DEBUG(_affinity_logger, "Setting CPU affinity to constraint :" << cpustr );
-          if ( numa_sched_setaffinity( pid, cpu_mask ) ) {
-            std::ostringstream e;
-            e << "Binding to CPU: " << cpustr;
-            throw AffinityFailed(e.str());
-          }
-
-        }
-
 #else
       RH_WARN(_affinity_logger, "Missing affinity support from Redhawk libraries, ... ignoring numa affinity based requests ");
 #endif
