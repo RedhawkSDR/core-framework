@@ -1305,6 +1305,11 @@ class DomainSupport(ossie.utils.testing.ScaComponentTestCase):
                 time.sleep(pause)
         return False
 
+    def _makeLink(self, src, dest):
+        if os.path.exists(dest):
+            os.unlink(dest)
+        os.symlink(src, dest)
+
     def setUp(self):
         super(DomainSupport,self).setUp()
         self.child_pids=[]
@@ -1316,14 +1321,8 @@ class DomainSupport(ossie.utils.testing.ScaComponentTestCase):
         print "\n-----------------------"
         print "Running: ", self.id().split('.')[-1]
         print "-----------------------\n"
-        copyfile(self.orig_sdrroot+'/dom/mgr/DomainManager', 'sdr/dom/mgr/DomainManager')
-        os.chmod('sdr/dom/mgr/DomainManager',0777)
-        copyfile(self.orig_sdrroot+'/dev/mgr/DeviceManager', 'sdr/dev/mgr/DeviceManager')
-        os.chmod('sdr/dev/mgr/DeviceManager',0777)
-        if not os.path.exists('sdr/dev/devices/GPP/cpp'):
-            os.makedirs('sdr/dev/devices/GPP/cpp')
-        copyfile('../cpp/GPP', 'sdr/dev/devices/GPP/cpp/GPP')
-        os.chmod('sdr/dev/devices/GPP/cpp/GPP',0777)
+        self._makeLink(self.orig_sdrroot+'/dom/mgr', 'sdr/dom/mgr')
+        self._makeLink(self.orig_sdrroot+'/dev/mgr', 'sdr/dev/mgr')
         print 'done staging DomainManager'
 
     def tearDown(self):
