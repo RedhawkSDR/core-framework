@@ -147,6 +147,7 @@ def ExceptionType(type):
 
 # Internal cache of parsed IDL interfaces
 _interfaces = {}
+_structs = {}
 
 class Interface:
     def __init__(self,name,nameSpace="",operations=[],filename="",fullpath="",repoId=""):
@@ -287,10 +288,18 @@ class InterfaceVisitor(idlvisitor.AstVisitor):
 
         self.interface.operations.append(new_op)
 
-
+class IdlStruct():
+    def __init__(self, node):
+        self.name = '::'.join(node.scopedName())
+        self.repoId = node.repoId()
+        self.members = {}
+        for member in node.members():
+            self.members[member.declarators()[0].scopedName()[-1]] = baseTypes[member.memberType().kind()]
+        
 class ExampleVisitor (idlvisitor.AstVisitor):
     def __init__(self,*args):
         self.myInterfaces = []   #Used to store the interfaces that are found
+        self.myStructs = []
         if hasattr(idlvisitor.AstVisitor,'__init__'):
             idlvisitor.AstVisitor.__init__(self,args)
 
@@ -301,6 +310,12 @@ class ExampleVisitor (idlvisitor.AstVisitor):
     def visitModule(self, node):
         for n in node.definitions():
             n.accept(self)
+
+    def visitStruct(self, node):
+        # create the Attribute object
+        _struct = IdlStruct(node)
+        _structs[node.repoId()] = _struct
+        self.myStructs.append(_struct)
 
     def visitInterface(self, node):
         # Use cached post-processed interface if available
@@ -316,7 +331,7 @@ class ExampleVisitor (idlvisitor.AstVisitor):
 def run(tree, args):
     visitor = ExampleVisitor()
     tree.accept(visitor)
-    return visitor.myInterfaces
+    return visitor.myInterfaces, visitor.myStructs
 
 def _locateIncludedFile(filename, includepath):
     for ipath in includepath:
@@ -325,7 +340,7 @@ def _locateIncludedFile(filename, includepath):
             return fullpath
     return filename
 
-def getInterfacesFromFile(filename, includepath=None):
+def getInterfacesFromFile(filename, includepath=None, getStructs=False):
     popen_cmd = main.preprocessor_cmd
     if includepath:
         for newpath in includepath:
@@ -343,7 +358,7 @@ def getInterfacesFromFile(filename, includepath=None):
             return []
 
         try:
-            ints = run(tree,'')
+            ints, structs = run(tree,'')
         except:
             pass
         f.close()
@@ -360,6 +375,10 @@ def getInterfacesFromFile(filename, includepath=None):
             x.fullpath = _locateIncludedFile(x.fullpath, includepath)
         x.filename = os.path.basename(x.fullpath)
         x.filename = x.filename[:-4] #remove the .idl suffix
+
+    if getStructs:
+        for _struct in structs:
+            ints = ints + structs
 
     return ints
 
