@@ -28,7 +28,7 @@ Waveform class produces the following types of waveforms:
  - ramp
 '''
 import math
-import numpy as np
+import numpy as _np
 
 class Waveform:
     A = 67081293.0
@@ -81,9 +81,13 @@ class Waveform:
             sum1 = v1*v1 + v2*v2
             if sum1 >= 1.0 or sum1 <1e-20: continue
             sum1 = fdev * float(math.sqrt(factor*math.log(sum1)/sum1))
-            outbuff[i] = float(np.float32(v1*sum1))
+            try:
+                a = _np.float32(5)
+            except:
+                import numpy as _np
+            outbuff[i] = float(_np.float32(v1*sum1))
             if (i+1) < maxIndex:
-                outbuff[i+1] = float(np.float32(v2*sum1))
+                outbuff[i+1] = float(_np.float32(v2*sum1))
             i+=2
         
         self.seed = int(sis*self.T26)
@@ -102,6 +106,10 @@ class Waveform:
     # fast algorithm based on:  sin(x+dp) = sin(x)*cos(dp) + cos(x)*sin(dp)
     #                           cos(x+dp) = cos(x)*cos(dp) - sin(x)*sin(dp)
     def sincos(self, amp, p, dp, n, spa):
+        try:
+            a = _np.float32(5)
+        except:
+            import numpy as _np
         outbuff = range(n*spa)
         cxr = amp*math.cos(p*self.TWOPI)
         cxi = amp*math.sin(p*self.TWOPI)
@@ -109,27 +117,27 @@ class Waveform:
         dxi = math.sin(dp*self.TWOPI)
         if spa==2:
             for i in range(0, n*2, 2):
-                outbuff[i] = float(np.float32(cxr))
-                outbuff[i+1] = float(np.float32(cxi))
+                outbuff[i] = float(_np.float32(cxr))
+                outbuff[i+1] = float(_np.float32(cxi))
                 axr = (cxr*dxr) - (cxi*dxi)
                 axi = (cxr*dxi) + (cxi*dxr)
                 cxr=axr 
                 cxi=axi
         elif spa==1:
             for i in range(n):
-                outbuff[i] = float(np.float32(cxi))
+                outbuff[i] = float(_np.float32(cxi))
                 axr = (cxr*dxr) - (cxi*dxi)
                 axi = (cxr*dxi) + (cxi*dxr)
                 cxr=axr
                 cxi=axi
         elif spa==-1:
             for i in range(n):
-                outbuff[i] = float(np.float32(amp*math.sin(p*self.TWOPI)))
+                outbuff[i] = float(_np.float32(amp*math.sin(p*self.TWOPI)))
                 p += dp
         elif spa==-2:
             for i in range(0, n*2, 2):
-                outbuff[i] = float(np.float32(amp*math.cos(p*self.TWOPI)))
-                outbuff[i+1] = float(np.float32(amp*math.sin(p*self.TWOPI)))
+                outbuff[i] = float(_np.float32(amp*math.cos(p*self.TWOPI)))
+                outbuff[i+1] = float(_np.float32(amp*math.sin(p*self.TWOPI)))
                 p += dp
                 
         return outbuff
@@ -147,16 +155,19 @@ class Waveform:
         value = 0.0
         famp = float(amp)
         famp2 = -famp
-        
+        try:
+            a = _np.float32(5)
+        except:
+            import numpy as _np
         for i in range(0, n*spa, spa):
             value = famp2
             if p >= 1.0:
                 p -= 1.0
             elif p >= 0.5:
                 value = famp
-            outbuff[i] = float(np.float32(value))
+            outbuff[i] = float(_np.float32(value))
             if spa == 2:
-                outbuff[i+1] = float(np.float32(value))
+                outbuff[i+1] = float(_np.float32(value))
             p += dp
             
         return outbuff
@@ -175,7 +186,10 @@ class Waveform:
         famp = float(amp)
         famp2 = 4*famp
         fp = float(p) - 0.5
-        
+        try:
+            a = _np.float32(5)
+        except:
+            import numpy as _np
         for i in range(0, n*spa, spa):
             if fp >= 0.5:
                 fp -= 1.0
@@ -183,9 +197,9 @@ class Waveform:
                 value = float(famp - fp*famp2)
             else:
                 value = float(famp + fp*famp2)
-            outbuff[i] = float(np.float32(value))
+            outbuff[i] = float(_np.float32(value))
             if spa == 2:
-                outbuff[i+1] = float(np.float32(value))
+                outbuff[i+1] = float(_np.float32(value))
             fp += dp
         
         return outbuff
@@ -204,14 +218,17 @@ class Waveform:
         famp = float(amp)
         famp2 = 2*famp
         fp = float(p) - 0.5
-        
+        try:
+            a = _np.float32(5)
+        except:
+            import numpy as _np
         for i in range(0, n*spa, spa):
             if fp >= 0.5:
                 fp -= 1.0
             value = float(fp*famp2)
-            outbuff[i] = float(np.float32(value))
+            outbuff[i] = float(_np.float32(value))
             if spa == 2:
-                outbuff[i+1] = float(np.float32(value))
+                outbuff[i+1] = float(_np.float32(value))
             fp += dp
             
         return outbuff
@@ -228,16 +245,19 @@ class Waveform:
         outbuff = range(n*spa)
         value = 0.0
         famp = float(amp)
-        
+        try:
+            a = _np.float32(5)
+        except:
+            import numpy as _np
         for i in range(0, n*spa, spa):
             if p >= 1.0:
                 value = famp
                 p -= 1.0
             else:
                 value = 0
-            outbuff[i] = float(np.float32(value))
+            outbuff[i] = float(_np.float32(value))
             if spa == 2:
-                outbuff[i+1] = float(np.float32(value))
+                outbuff[i+1] = float(_np.float32(value))
             p += dp
             
         return outbuff
@@ -250,9 +270,12 @@ class Waveform:
     # @return the new data buffer
     def constant(self, amp, n, spa):
         outbuff = range(n*spa)
-        
+        try:
+            a = _np.float32(5)
+        except:
+            import numpy as _np
         for i in range(n*spa):
-            outbuff[i] = float(np.float32(amp))
+            outbuff[i] = float(_np.float32(amp))
         
         return outbuff
             
@@ -266,12 +289,16 @@ class Waveform:
     def lrs(self, amp, n, spa, lrs):
         outbuff = range(n*spa)
         factor = (amp/2.0/self.B1G)
+        try:
+            a = _np.float32(5)
+        except:
+            import numpy as _np
         
         for i in range(0, n*spa, spa):
             data = (factor * lrs)
-            outbuff[i] = float(np.float32(data))
+            outbuff[i] = float(_np.float32(data))
             if spa == 2:
-                outbuff[i+1] = float(np.float32(data))
+                outbuff[i+1] = float(_np.float32(data))
                 
             bit0 = (~(lrs ^ (lrs>>1) ^  (lrs>>5) ^ (lrs>>25)))&0x1
             lrs <<= 1
@@ -293,10 +320,14 @@ class Waveform:
     # @return the new data buffer and the RAMP value at end of array
     def ramp(self, amp, n, spa, data):
         outbuff = range(n*spa)
+        try:
+            a = _np.float32(5)
+        except:
+            import numpy as _np
         for i in range(0, n*spa, spa):
-            outbuff[i] = float(np.float32(data))
+            outbuff[i] = float(_np.float32(data))
             if spa == 2:
-                outbuff[i+1] = float(np.float32(data))
+                outbuff[i+1] = float(_np.float32(data))
             data = data + 1
             if data >= amp:
                 data = int(-amp)

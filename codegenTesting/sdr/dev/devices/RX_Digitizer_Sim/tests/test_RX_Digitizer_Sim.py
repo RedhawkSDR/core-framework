@@ -160,7 +160,10 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertTrue(len(data)>0)
         
         #Check Tuner 2 Data
-        data2= sink2.getData() 
+        data2= sink2.getData()
+        if len(data2) == 0:
+            time.sleep(1)
+            data2 = sink2.getData()
         self.assertTrue(len(data2)>0)
         
         #Deallocate Tuners
