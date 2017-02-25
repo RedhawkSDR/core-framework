@@ -67,3 +67,32 @@ class IDLInterface(object):
 
     def filename(self):
         return self.idl().filename
+
+class IDLStruct(object):
+    def __init__(self, repid):
+        self.__repid = repid
+        interface = self.__repid.split(':')[1]
+        if '/' in interface:
+            self.__namespace, self.__interface = interface.rsplit('/', 1)
+        else:
+            self.__namespace = ''
+            self.__interface = interface
+        self.__idl = None
+
+    def repid(self):
+        return self.__repid
+
+    def namespace(self):
+        return self.__namespace
+
+    def idl(self):
+        if not self.__idl:
+            # NB: This may be a costly operation, as it can parse most of the
+            #     IDL files known to REDHAWK if the source file is not obvious;
+            #     it's not strictly necessary unless looking at the operations
+            #     or attributes.
+            self.__idl = idlRepo.getIdlStruct(self.repid())
+        return self.__idl
+
+    def members(self):
+        return self.idl().members
