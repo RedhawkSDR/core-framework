@@ -27,6 +27,8 @@ import os
 import string
 import pprint
 import re
+import inspect
+import traceback
 from appenders import *
 from layouts import *
 
@@ -41,6 +43,76 @@ _LEVEL_TRANS = {"ALL": logging.NOTSET,
                 "OFF": logging.FATAL + 1
                }
 
+def __ImportModule( module_name, asName=None ):
+    """
+    Import a python module as needed into the global namespace. This can be accomplished
+    programatically and inside a method or class.
+
+    @param module_name : name of the module to load x.y.z
+    @return module : python module object that was loaded
+    """
+    module = __import__(module_name)
+    for layer in module_name.split('.')[1:]:
+        module = getattr(module,layer)
+    if asName:
+        for x in range( len(inspect.stack()) ):
+            inspect.currentframe(x).f_globals[asName]=module
+    return module
+
+def __ImportFrom(module_xname, xname):
+    """
+    Import a specified name from a python module into the global namespace. This can be accomplished
+    programatically and inside a method or class.
+
+    @param module_xname : name of the module to load x.y.z
+    @param xname :  symbol to import from loaded module
+    @return method/class : imported item from loaded module
+    """
+    try:
+        module = __import__(module_xname,globals(),locals(), [xname])
+    except ImportError:
+        return None
+
+    try:
+      module = getattr(module,xname)
+      if xname:
+        for x in range( len(inspect.stack()) ):
+            inspect.currentframe(x).f_globals[xname]=module
+    except AttributeError as e:
+        module=None
+
+    return module
+
+def _parseLines( lsrc, result={} ):
+      line=''
+      for sline in lsrc:
+        sline = sline.lstrip()
+        # A natural line that contains only white space characters is considered
+        # blank and is ignored. A comment line has an ASCII '#' or '!' as its first
+        # non-white space character; comment lines are also ignored
+        if len(sline) == 0 or sline[0] in ('#', '!'):
+          continue
+
+        sline = sline.rstrip()
+        if sline[-1:] == '\\' :
+            line = line + sline[:-1]
+            continue
+
+        line = line + sline[:]
+        g=re.match('([^ =\s]+)[ =\s]+(.*)',line)
+        if g and len(g.groups()) == 2:
+          key=g.groups()[0]
+          value=g.groups()[1]
+          if len(key.strip()) == 0 or len(value.strip()) == 0 :
+            print "log4py: error malformed log4py configuration:" + line
+          else:
+            result[key] = value
+        else:
+            print "log4py: error malformed log4py configuration:" + line
+        line=''
+      return result
+
+
 def _parsePropertiesFile(f):
   """Parse a Java Properties file into a python dictionary.
 
@@ -52,32 +124,9 @@ def _parsePropertiesFile(f):
       f = codecs.open(f, "r", "iso-8859-1")
     except LookupError:
       f = open(f, "r")
- 
-  result = {}
-  for line in f:
-    line = line.lstrip()
-    # A natural line that contains only white space characters is considered
-    # blank and is ignored. A comment line has an ASCII '#' or '!' as its first
-    # non-white space character; comment lines are also ignored
-    if len(line) == 0 or line[0] in ('#', '!'):
-      continue
-
-    key = None
-    value = None
-    for i, char in enumerate(line):
-      if char in ('\\'):
-        continue
-
-      # The key contains all of the characters in the line starting with the
-      # first non-white space character and up to, but not including, the first
-      # unescaped '=', ':', or white space character other than a line
-      # terminator.
-      if char in ('=', ':', ' ', '\t', '\f'):
-        key = line[0:i]
-        value = line[i+1:].lstrip()
-        result[key] = value
-        break
-  return result
+  results={}
+  _parseLines( f, results )
+  return results
 
 
 def _parsePropertiesStream( cfg ):
@@ -86,42 +135,23 @@ def _parsePropertiesStream( cfg ):
   NOTE: CURRENTLY THIS DOES NOT SUPPORT ESCAPE CHARACTERS
   NOR LINE CONTINUATIONS.
   """
-  result = {}
-  for line in cfg.split('\n'):
-    line = line.lstrip()
-    # A natural line that contains only white space characters is considered
-    # blank and is ignored. A comment line has an ASCII '#' or '!' as its first
-    # non-white space character; comment lines are also ignored
-    if len(line) == 0 or line[0] in ('#', '!'):
-      continue
-    key = None
-    value = None
-    for i, char in enumerate(line):
-      if char in ('\\'):
-        continue
-
-      # The key contains all of the characters in the line starting with the
-      # first non-white space character and up to, but not including, the first
-      # unescaped '=', ':', or white space character other than a line
-      # terminator.
-      if char in ('=', ':', ' ', '\t', '\f'):
-        key = line[0:i]
-        value = line[i+1:].lstrip()
-        result[key] = value
-        break
-  return result
-
+  results={}
+  _parseLines( cfg.split('\n'), results )
+  return results
 
 def _import_handler(name):
   if name.startswith("org.apache.log4j."):
     name = name[len("org.apache.log4j."):]
   if name.startswith("org.ossie.logging."):
     name = name[len("org.ossie.logging."):]
+  __ImportFrom('appenders',name )
   return eval(name)
+
 
 def _import_layout(name):
   if name.startswith("org.apache.log4j."):
     name = name[len("org.apache.log4j."):]
+  __ImportFrom('layouts',name )
   return eval(name)
 
 def strConfig(cfg, category=None):
@@ -145,6 +175,9 @@ def _config(props, category=None, disable_existing_loggers=1):
      # Handlers add themselves to logging._handlers
      handlers = _install_handlers(props)
      _install_loggers(props, handlers, category, disable_existing_loggers)
+  except Exception as e:
+    traceback.print_exc()
+    raise e
   finally:
     logging._releaseLock()
 
@@ -170,8 +203,13 @@ def _install_handlers(props):
      layout = None
      appenderKey = "log4j.appender."+str(hname.strip())
      appenderClass = props[appenderKey]
-     klass = _import_handler(appenderClass)
-     handler = klass()
+     try:
+       klass = _import_handler(appenderClass)
+       handler = klass()
+     except:
+         print "log4py: error with appender: ", appenderClass, " for logger ", appenderKey
+         continue
+
      # Deal with appender options
      appenderOptions = filter(lambda x: x.startswith(appenderKey+"."), props.keys())
      for appenderOption in appenderOptions:
@@ -181,13 +219,17 @@ def _install_handlers(props):
          handler.setOption(opt,value)
        if opt.lower().endswith("layout"):
          layoutClass = value
-         klass = _import_layout(layoutClass)
-         layout = klass()
-         layoutOptions = filter(lambda x: x.startswith(appenderKey+".layout."), props.keys())
-         for layoutOption in layoutOptions:
-           opt = layoutOption[len(appenderKey+".layout."):]
-           value = props[layoutOption].strip()
-           setattr(layout, opt, value)
+         try:
+           klass = _import_layout(layoutClass)
+           layout = klass()
+           layoutOptions = filter(lambda x: x.startswith(appenderKey+".layout."), props.keys())
+           for layoutOption in layoutOptions:
+             opt = layoutOption[len(appenderKey+".layout."):]
+             value = props[layoutOption].strip()
+             setattr(layout, opt, value)
+         except:
+             print "log4py: error with layout: ", layoutClass
+
        elif opt.lower().endswith("filter"):
          pass
        elif opt.lower().endswith("errorhandler"):
@@ -210,7 +252,12 @@ def _install_loggers(props, handlers, filterCategory, disable_existing_loggers )
   llist=[]
 
   # process root logger first
-  log_cfg = props["log4j.rootLogger"].split(",")
+  log_cfg=None
+  try:
+     log_cfg = props["log4j.rootLogger"].split(",")
+  except KeyError:
+    print "log4py: missing log4j.rootLogger line"
+
   root = logging.root
   log = root
   
@@ -220,16 +267,23 @@ def _install_loggers(props, handlers, filterCategory, disable_existing_loggers )
   except KeyError:
     pass
 
-  if log_cfg[0].strip().upper() in _LEVEL_TRANS.keys():
-    log.setLevel(_LEVEL_TRANS[log_cfg[0].strip().upper()])
-    del log_cfg[0]
+  if log_cfg and len(log_cfg) > 0:
+    if  log_cfg[0].strip().upper() in _LEVEL_TRANS.keys():
+      log.setLevel(_LEVEL_TRANS[log_cfg[0].strip().upper()])
+      del log_cfg[0]
+    else:
+      print "log4py; error Root logger issue, unknown level: " + str(log_cfg[0].strip())
 
   for h in root.handlers[:]:
     root.removeHandler(h)
   
-  hlist = [x.strip() for x in log_cfg]
-  for h in hlist:
-    root.addHandler(handlers[h])
+  if log_cfg:
+    hlist = [x.strip() for x in log_cfg]
+    for h in hlist:
+      try:
+        root.addHandler(handlers[h])
+      except:
+        print "log4py: error Root logger issue, unknown level or appender: " + str(h)
 
   tmp = filter(lambda x: x.startswith("log4j.category."), props.keys() )
   clist = [ x[len("log4j.category."):] for x in tmp ]
@@ -282,12 +336,17 @@ def _install_from_list( llist, props, filterCategory, additivities, handlers, ex
     for x in [ "log4j.category."+log, "log4j.logger."+log ]:
       if x in props.keys():
         log_cfg = props[x].split(',')
-        if log_cfg[0].strip().upper() in _LEVEL_TRANS.keys():
+        if log_cfg and len(log_cfg) > 0:
+          if log_cfg[0].strip().upper() in _LEVEL_TRANS.keys():
             level = _LEVEL_TRANS[log_cfg[0].strip().upper()]
             has_level = True
             del log_cfg[0]
 
-        hlist = hlist + [x.strip() for x in log_cfg]
+          else:
+            print "log4py error: "+ str(logger.name) + " issue, unknown level: " + str(log_cfg[0].strip())
+
+        if log_cfg:
+            hlist = hlist + [x.strip() for x in log_cfg]
 
     if log in existing:
       i = existing.index(log)
@@ -308,5 +367,8 @@ def _install_from_list( llist, props, filterCategory, additivities, handlers, ex
     logger.disabled = 0
     if len(hlist):
       for hand in hlist:
-        logger.addHandler(handlers[hand])
+        try:
+          logger.addHandler(handlers[hand])
+        except:
+           print "log4py: error "+ str(logger.name) + " issue, unknown handler: " + str(hand)
 
