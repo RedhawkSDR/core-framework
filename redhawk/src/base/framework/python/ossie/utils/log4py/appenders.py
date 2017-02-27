@@ -32,6 +32,29 @@ import CosEventChannelAdmin
 import ossie.logger
 import exceptions
 
+
+nullHandler=None
+dailyRollingFileAppender=None
+try:
+    from logging import NullHandler
+    nullHander='NullHandler'
+except:
+    pass
+try:
+  import logging.handlers.TimedRotatingFileHandler
+  dailyRollingFileAppender='DailyRollingFileAppender'
+except ImportError:
+  pass
+
+__all__ = ('handleError',
+           'ConsoleAppender',
+           'FileAppender',
+           'RollingFileAppender',
+           'RH_LogEventAppender',
+           'SyslogAppender')
+if nullHandler : __all__ = __all__+ (nullHandler)
+if dailyRollingFileAppender : __all__ = __all__+ (dailyRollingFileAppender)
+
 # Override base logging.Handler handleError method to give better stack trace
 #  if string passed to log message is malformed
 def handleError(self, record):
