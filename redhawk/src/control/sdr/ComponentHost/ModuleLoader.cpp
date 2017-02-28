@@ -62,11 +62,13 @@ const std::string& Module::path() const
 
 void Module::load()
 {
+    LOG_TRACE(ModuleLoader, "Incrementing reference count for " << _path);
     ++_refcount;
 }
 
 void Module::unload()
 {
+    LOG_TRACE(ModuleLoader, "Decrementing reference count for " << _path);
     _refcount--;
     if (_refcount == 0) {
         ModuleLoader::Instance().unloaded(this);
@@ -76,7 +78,13 @@ void Module::unload()
 
 void Module::close()
 {
-    dlclose(_handle);
+    if (dlclose(_handle)) {
+        LOG_ERROR(ModuleLoader, "Error closing dynamic library " << _path << ": " << dlerror());
+    }
+    _handle = dlopen(_path.c_str(), RTLD_LAZY | RTLD_NOLOAD);
+    if (_handle) {
+        LOG_WARN(ModuleLoader, "Dynamic library " << _path << " could not be unloaded, some symbols may still be in use");
+    }
     _handle = 0;
 }
 
@@ -182,8 +190,6 @@ void ModuleBundle::loadDirectory(const std::string& path, ModuleLoader::LoadBind
 void ModuleBundle::unload()
 {
     // Unload modules in reverse order of loading
-    for (ModuleList::reverse_iterator module = _modules.rbegin(); module != _modules.rend(); ++module) {
-        (*module)->unload();
-    }
+    std::for_each(_modules.rbegin(), _modules.rend(), std::mem_fun(&Module::unload));
     _modules.clear();
 }
