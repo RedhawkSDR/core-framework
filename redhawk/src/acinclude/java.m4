@@ -87,6 +87,10 @@ EOF
     fi 
     rm -f Test.java Test.class
   fi
+  if test "$JAVAC" == "no"; then
+    echo "Java set for required, but no Java is installed"
+    AS_EXIT(1)
+  fi
 ])
 
 dnl RH_PROG_JAR
