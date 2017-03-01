@@ -27,6 +27,7 @@ import os, time
 from omniORB import CORBA
 import ossie.utils.sandbox
 import logging
+import frontend
 
     
 class varLog(logging.Handler):
@@ -74,6 +75,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         # Clean up all sandbox artifacts created during test
         ossie.utils.sandbox.local.log.removeHandler(self.var)
         sb.release()
+
+    def testAllocation(self):
+        frontend_alloc = frontend.createTunerAllocation(returnDict=False)
+        retval = self.comp.allocateCapacity([frontend_alloc])
+        self.assertEquals(retval, False)
 
     def testBasicBehavior(self):
         self.assertEquals(self.got_logmsg, False)

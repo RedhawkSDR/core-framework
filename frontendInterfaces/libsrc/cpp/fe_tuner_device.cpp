@@ -563,7 +563,9 @@ namespace frontend {
             }
         }
         catch(const std::logic_error &e) {
-            deallocateCapacity(capacities);
+            try {
+                deallocateCapacity(capacities);
+            } catch ( ... ) {}
             return false;
         }
         catch(AllocationAlreadyExists &e) {
@@ -572,15 +574,21 @@ namespace frontend {
             throw static_cast<CF::Device::InvalidCapacity>(e); 
         }
         catch(CF::Device::InvalidCapacity &e) {
-            deallocateCapacity(capacities);
+            try {
+                deallocateCapacity(capacities);
+            } catch ( ... ) {}
             throw e;
         }
         catch(FRONTEND::BadParameterException &e) {
-            deallocateCapacity(capacities);
+            try {
+                deallocateCapacity(capacities);
+            } catch ( ... ) {}
             return false;
         }
         catch(...){
-            deallocateCapacity(capacities);
+            try {
+                deallocateCapacity(capacities);
+            } catch ( ... ) {}
             throw;
         };
         
@@ -653,9 +661,11 @@ namespace frontend {
                 }
             }
             catch(CF::Device::InvalidCapacity &e){
+                _usageState = updateUsageState();
                 throw;
             }
             catch(...){
+                _usageState = updateUsageState();
                 LOG_DEBUG(FrontendTunerDevice<TunerStatusStructType>,"ERROR WHEN DEALLOCATING. SKIPPING...");
             }
         }
