@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:CF/Device:1.0"/>
+  <componenttype>device</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:CF/Device:1.0" supportsname="Device"/>
+    <supportsinterface repid="IDL:CF/Resource:1.0" supportsname="Resource"/>
+    <supportsinterface repid="IDL:CF/LifeCycle:1.0" supportsname="LifeCycle"/>
+    <supportsinterface repid="IDL:CF/TestableObject:1.0" supportsname="TestableObject"/>
+    <supportsinterface repid="IDL:CF/PropertyEmitter:1.0" supportsname="PropertyEmitter"/>
+    <supportsinterface repid="IDL:CF/PropertySet:1.0" supportsname="PropertySet"/>
+    <supportsinterface repid="IDL:CF/PortSet:1.0" supportsname="PortSet"/>
+    <supportsinterface repid="IDL:CF/PortSupplier:1.0" supportsname="PortSupplier"/>
+    <supportsinterface repid="IDL:CF/Logging:1.0" supportsname="Logging"/>
+    <supportsinterface repid="IDL:CF/LogEventConsumer:1.0" supportsname="LogEventConsumer"/>
+    <supportsinterface repid="IDL:CF/LogConfiguration:1.0" supportsname="LogConfiguration"/>
+    <ports>
+      <provides repid="IDL:FRONTEND/RFInfo:1.0" providesname="RFInfo_in">
+        <porttype type="data"/>
+      </provides>
+      <provides repid="IDL:FRONTEND/DigitalTuner:1.0" providesname="DigitalTuner_in">
+        <porttype type="control"/>
+      </provides>
+      <uses repid="IDL:BULKIO/dataDouble:1.0" usesname="dataDouble_out">
+        <porttype type="data"/>
+      </uses>
+    </ports>
+  </componentfeatures>
+  <interfaces>
+    <interface name="Device" repid="IDL:CF/Device:1.0">
+      <inheritsinterface repid="IDL:CF/Resource:1.0"/>
+    </interface>
+    <interface name="Resource" repid="IDL:CF/Resource:1.0">
+      <inheritsinterface repid="IDL:CF/LifeCycle:1.0"/>
+      <inheritsinterface repid="IDL:CF/TestableObject:1.0"/>
+      <inheritsinterface repid="IDL:CF/PropertyEmitter:1.0"/>
+      <inheritsinterface repid="IDL:CF/PortSet:1.0"/>
+      <inheritsinterface repid="IDL:CF/Logging:1.0"/>
+    </interface>
+    <interface name="LifeCycle" repid="IDL:CF/LifeCycle:1.0"/>
+    <interface name="TestableObject" repid="IDL:CF/TestableObject:1.0"/>
+    <interface name="PropertyEmitter" repid="IDL:CF/PropertyEmitter:1.0">
+      <inheritsinterface repid="IDL:CF/PropertySet:1.0"/>
+    </interface>
+    <interface name="PropertySet" repid="IDL:CF/PropertySet:1.0"/>
+    <interface name="PortSet" repid="IDL:CF/PortSet:1.0">
+      <inheritsinterface repid="IDL:CF/PortSupplier:1.0"/>
+    </interface>
+    <interface name="PortSupplier" repid="IDL:CF/PortSupplier:1.0"/>
+    <interface name="Logging" repid="IDL:CF/Logging:1.0">
+      <inheritsinterface repid="IDL:CF/LogEventConsumer:1.0"/>
+      <inheritsinterface repid="IDL:CF/LogConfiguration:1.0"/>
+    </interface>
+    <interface name="LogEventConsumer" repid="IDL:CF/LogEventConsumer:1.0"/>
+    <interface name="LogConfiguration" repid="IDL:CF/LogConfiguration:1.0"/>
+    <interface name="RFInfo" repid="IDL:FRONTEND/RFInfo:1.0"/>
+    <interface name="FrontendTuner" repid="IDL:FRONTEND/FrontendTuner:1.0"/>
+    <interface name="AnalogTuner" repid="IDL:FRONTEND/AnalogTuner:1.0">
+      <inheritsinterface repid="IDL:FRONTEND/FrontendTuner:1.0"/>
+    </interface>
+    <interface name="DigitalTuner" repid="IDL:FRONTEND/DigitalTuner:1.0">
+      <inheritsinterface repid="IDL:FRONTEND/AnalogTuner:1.0"/>
+    </interface>
+    <interface name="ProvidesPortStatisticsProvider" repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+    <interface name="updateSRI" repid="IDL:BULKIO/updateSRI:1.0"/>
+    <interface name="dataDouble" repid="IDL:BULKIO/dataDouble:1.0">
+      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
+      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
+    </interface>
+  </interfaces>
+</softwarecomponent>
