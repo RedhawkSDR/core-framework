@@ -90,13 +90,9 @@ def doesStructIncludeInterface(scopedName):
             repo_id += name + '/'
         repo_id = repo_id[:-1]
     repo_id += ':1.0'
-    print repo_id
     idl = IDLStruct(repo_id)
-    print 'dir for:',repo_id, dir(idl)
-    print idl.idl()
     _members = idl.members()
     for member_key in _members:
-        print member_key, _members[member_key]
         if _members[member_key] == 'objref':
             return True
     return False
@@ -115,12 +111,13 @@ def baseReturnType(typeobj):
     name = '::'.join(typeobj.scopedName())
     if kind == CORBA.tk_objref:
         return name + '_ptr'
-    elif (kind == CORBA.tk_alias and isinstance(typeobj.aliasType(), SequenceType)) or \
-            kind == CORBA.tk_struct:
+    elif kind == CORBA.tk_struct:
         if doesStructIncludeInterface(typeobj.scopedName()):
             return name + '*'
         else:
             return name
+    elif kind == CORBA.tk_alias and isinstance(typeobj.aliasType(), SequenceType):
+        return name + '*'
     else:
         return name
 
@@ -237,9 +234,7 @@ class GenericPortGenerator(CppPortGenerator):
         return jinja2.PackageLoader(__package__)
 
     def operations(self):
-        print dir(self.idl)
         for op in self.idl.operations():
-            print dir(op)
             yield {'name': op.name,
                    'arglist': ', '.join('%s %s' % (argumentType(p.paramType,p.direction), p.name) for p in op.params),
                    'argnames': ', '.join(p.name for p in op.params),
