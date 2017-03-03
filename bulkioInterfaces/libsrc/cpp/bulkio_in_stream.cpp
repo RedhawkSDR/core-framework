@@ -523,8 +523,17 @@ private:
 
         // Allocate empty data block and propagate the SRI change and input queue
         // flush flags
+        DataBlockType _tblk(*this);
+        this->_setBlockFlags(_tblk, front);
+        if (_tblk.sriChanged()) {
+            StreamDescriptor::operator=(front.SRI);
+        }
+
+        // set data block's sri
         DataBlockType data(*this);
-        this->_setBlockFlags(data, front);
+        // assign back any state changes from _setBlockFlags
+        data.sriChangeFlags(_tblk.sriChangeFlags());
+        data.inputQueueFlushed(_tblk.inputQueueFlushed());
 
         // Clear flags from packet, since they've been reported
         front.sriChanged = false;

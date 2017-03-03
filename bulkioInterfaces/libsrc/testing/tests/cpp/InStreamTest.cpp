@@ -121,6 +121,54 @@ void InStreamTest<Port>::testGetCurrentStreamDataEos()
 }
 
 template <class Port>
+void InStreamTest<Port>::testSriModeChanges()
+{
+    typedef typename Port::PortSequenceType PortSequenceType;
+    typedef typename Port::StreamType StreamType;
+    typedef typename StreamType::DataBlockType DataBlockType;
+
+    // Create a new stream and push some data to it
+    BULKIO::StreamSRI sri = bulkio::sri::create("empty_eos");
+    port->pushSRI(sri);
+    PortSequenceType data;
+    data.length(1024);
+    port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
+
+    // Get the input stream and read the first packet
+    StreamType stream = port->getStream("empty_eos");
+    CPPUNIT_ASSERT_EQUAL(!stream, false);
+    DataBlockType block = stream.read();
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT(!stream.eos());
+    CPPUNIT_ASSERT_EQUAL(block.complex(),false);
+
+    // check mode....true
+    sri.mode=1;
+    port->pushSRI(sri);
+    data.length(1024);
+    port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
+    block = stream.read();
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT(!stream.eos());
+    CPPUNIT_ASSERT_EQUAL(block.complex(),true);
+
+    // check mode....false
+    sri.mode=0;
+    port->pushSRI(sri);
+    data.length(1024);
+    port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
+    block = stream.read();
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT(!stream.eos());
+    CPPUNIT_ASSERT_EQUAL(block.complex(),false);
+}
+
+
+
+template <class Port>
 void BufferedInStreamTest<Port>::testReadSizeEos()
 {
     // Create a new stream and push an end-of-stream packet with no data
@@ -137,6 +185,7 @@ void BufferedInStreamTest<Port>::testReadSizeEos()
     CPPUNIT_ASSERT(!block);
     CPPUNIT_ASSERT(stream.eos());
 }
+
 
 #define CREATE_TEST(x)                                                  \
     class In##x##StreamTest : public BufferedInStreamTest<bulkio::In##x##Port>  \
