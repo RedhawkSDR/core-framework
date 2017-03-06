@@ -21,7 +21,6 @@
 #include <boost/filesystem.hpp>
 
 #include "ComponentHost.h"
-#include "ModuleLoader.h"
 
 using namespace redhawk;
 namespace fs = boost::filesystem;
@@ -37,6 +36,7 @@ PREPARE_LOGGING(ComponentHost);
 
 ComponentHost::ComponentHost(const char* identifier, const char* label) :
     Component(identifier, label),
+    defaultBundle("default"),
     counter(0)
 {
     executorService.start();
@@ -45,10 +45,23 @@ ComponentHost::ComponentHost(const char* identifier, const char* label) :
 ComponentHost::~ComponentHost()
 {
     executorService.stop();
+    defaultBundle.clear();
 }
 
 void ComponentHost::constructor()
 {
+    // Preload libraries from $OSSIEHOME/lib to ensure that they are always
+    // available. This prevents common libraries like BulkIO from being loaded
+    // implicitly by components, which can lead to the component library being
+    // unable to be unloaded.
+    const char* ossiehome = getenv("OSSIEHOME");
+    if (ossiehome) {
+        std::string libpath = std::string(ossiehome) + "/lib";
+        if (fs::exists(libpath) && fs::is_directory(libpath)) {
+            LOG_DEBUG(ComponentHost, "Loading default libraries from " << libpath);
+            defaultBundle.loadDirectory(libpath, ModuleLoader::LAZY, ModuleLoader::GLOBAL);
+        }
+    }
 }
 
 CORBA::Boolean ComponentHost::allocateCapacity(const CF::Properties& capacities)

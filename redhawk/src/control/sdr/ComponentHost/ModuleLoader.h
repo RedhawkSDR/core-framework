@@ -98,6 +98,7 @@ namespace redhawk {
         void loadDirectory(const std::string& path, ModuleLoader::LoadBinding binding, ModuleLoader::LoadVisibility visibility);
 
         void unload();
+        void clear();
 
     private:
         const std::string _name;

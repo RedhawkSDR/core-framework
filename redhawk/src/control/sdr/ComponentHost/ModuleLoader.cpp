@@ -191,5 +191,10 @@ void ModuleBundle::unload()
 {
     // Unload modules in reverse order of loading
     std::for_each(_modules.rbegin(), _modules.rend(), std::mem_fun(&Module::unload));
+    clear();
+}
+
+void ModuleBundle::clear()
+{
     _modules.clear();
 }

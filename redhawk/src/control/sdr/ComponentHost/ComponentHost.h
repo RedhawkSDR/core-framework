@@ -24,6 +24,8 @@
 #include <ossie/Component.h>
 #include <ossie/ExecutorService.h>
 
+#include "ModuleLoader.h"
+
 namespace redhawk {
     class ComponentEntry;
 
@@ -62,6 +64,7 @@ namespace redhawk {
 
         std::string getRealPath(const std::string& path);
 
+        ModuleBundle defaultBundle;
         int counter;
 
         boost::mutex loadMutex;
@@ -70,6 +73,7 @@ namespace redhawk {
 
         // Threaded service for performing cleanup checks
         redhawk::ExecutorService executorService;
+
     };
 }
 
