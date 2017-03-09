@@ -1445,6 +1445,8 @@ class ComponentTests_SystemReservations(DomainSupport):
         time.sleep(wait_amount)
         self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
         
+        time.sleep(1)
+        
         base_util = self.dom.devMgrs[0].devs[0].utilization[0]
         subscribed = base_util['subscribed']
         system_load_base = base_util['system_load']
