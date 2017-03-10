@@ -30,7 +30,7 @@ namespace {
     redhawk::PropertyMap generate_test_data()
     {
         redhawk::PropertyMap propmap;
-        propmap["first"] = 123;
+        propmap["first"] = (short)123;
         propmap["second"] = "abc";
         propmap["third"] = 5.25;
         return propmap;
@@ -152,7 +152,7 @@ void PropertyMapTest::testPushBack()
     CPPUNIT_ASSERT_EQUAL(std::string("one"), propmap[0].getValue().toString());
 
     // Push a PropertyType; it should be the second property
-    propmap.push_back(redhawk::PropertyType("test", 0));
+    propmap.push_back(redhawk::PropertyType("test", (short)0));
     CPPUNIT_ASSERT_EQUAL((size_t) 2, propmap.size());
     CPPUNIT_ASSERT_EQUAL(std::string("test"), propmap[1].getId());
     CPPUNIT_ASSERT_EQUAL((CORBA::Long) 0, propmap[1].getValue().toLong());
@@ -190,7 +190,7 @@ void PropertyMapTest::testMutableIndexing()
     CPPUNIT_ASSERT_EQUAL((CORBA::Long) 7, propmap[7].getValue().toLong());
 
     // Overwrite a value by index
-    propmap[3] = redhawk::PropertyType("overwrite", -128);
+    propmap[3] = redhawk::PropertyType("overwrite", (CORBA::Long)-128);
     CPPUNIT_ASSERT_EQUAL(std::string("overwrite"), std::string(properties[3].id));
     CORBA::Long lval = 0;
     CPPUNIT_ASSERT(properties[3].value >>= lval);
@@ -237,7 +237,7 @@ void PropertyMapTest::testMutableMapping()
     // Set a value for an existing key, and check that it overwrote the old
     // value
     CPPUNIT_ASSERT_EQUAL(std::string("second"), propmap[1].getId());
-    propmap["second"] = 5000;
+    propmap["second"] = (short)5000;
     CPPUNIT_ASSERT_EQUAL((size_t) 4, propmap.size());
     CPPUNIT_ASSERT_EQUAL((CORBA::Long) 5000, propmap[1].getValue().toLong());
 

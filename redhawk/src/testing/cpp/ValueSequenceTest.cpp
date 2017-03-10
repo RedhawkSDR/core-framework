@@ -97,7 +97,7 @@ void ValueSequenceTest::testPushBack()
     redhawk::ValueSequence values;
     CPPUNIT_ASSERT(values.empty());
 
-    values.push_back(0);
+    values.push_back((short)0);
     CPPUNIT_ASSERT_EQUAL((size_t) 1, values.size());
     CPPUNIT_ASSERT_EQUAL((CORBA::Long) 0, values[0].toLong());
 
@@ -183,7 +183,7 @@ void ValueSequenceTest::testMutableIteration()
     // Modify one value via an iterator
     for (redhawk::ValueSequence::iterator iter = values.begin(); iter != values.end(); ++iter) {
         if (iter->toDouble() == 5.0) {
-            *iter = -1000;
+            *iter = (short)-1000;
         }
     }
 
@@ -196,7 +196,7 @@ void ValueSequenceTest::testFromConstValue()
     // Create a ValueSequence with known values
     redhawk::ValueSequence original;
     original.push_back("name");
-    original.push_back(1000);
+    original.push_back((short)1000);
 
     // Create a const Value with a copy of the original sequence
     const redhawk::Value rvalue(original);

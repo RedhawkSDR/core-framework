@@ -162,28 +162,28 @@ void ValueTest::testNumericConversion()
     // (where zero is false and non-zero is true)
     CPPUNIT_ASSERT_EQUAL(true, redhawk::Value("True").toBoolean());
     CPPUNIT_ASSERT_EQUAL(false, redhawk::Value("false").toBoolean());
-    CPPUNIT_ASSERT_EQUAL(true, redhawk::Value(-1).toBoolean());
-    CPPUNIT_ASSERT_EQUAL(false, redhawk::Value(0).toBoolean());
+    CPPUNIT_ASSERT_EQUAL(true, redhawk::Value((short)-1).toBoolean());
+    CPPUNIT_ASSERT_EQUAL(false, redhawk::Value((short)0).toBoolean());
 
     // Octet conversion from string, int and double; range test
     CPPUNIT_ASSERT_EQUAL((CORBA::Octet) 222, redhawk::Value("222").toOctet());
-    CPPUNIT_ASSERT_EQUAL((CORBA::Octet) 1, redhawk::Value(1).toOctet());
+    CPPUNIT_ASSERT_EQUAL((CORBA::Octet) 1, redhawk::Value((short)1).toOctet());
     CPPUNIT_ASSERT_EQUAL((CORBA::Octet) 125, redhawk::Value(125.5).toOctet());
-    CPPUNIT_ASSERT_THROW(redhawk::Value(-1).toOctet(), std::range_error);
-    CPPUNIT_ASSERT_THROW(redhawk::Value(256).toOctet(), std::range_error);
+    CPPUNIT_ASSERT_THROW(redhawk::Value((short)-1).toOctet(), std::range_error);
+    CPPUNIT_ASSERT_THROW(redhawk::Value((short)256).toOctet(), std::range_error);
 
     // Short conversion from string, int and double; range test
     CPPUNIT_ASSERT_EQUAL((CORBA::Short) -25000, redhawk::Value("-25000").toShort());
-    CPPUNIT_ASSERT_EQUAL((CORBA::Short) 1, redhawk::Value(1).toShort());
+    CPPUNIT_ASSERT_EQUAL((CORBA::Short) 1, redhawk::Value((float)1).toShort());
     CPPUNIT_ASSERT_EQUAL((CORBA::Short) 16000, redhawk::Value(16000.1).toShort());
-    CPPUNIT_ASSERT_THROW(redhawk::Value(65536).toShort(), std::range_error);
+    CPPUNIT_ASSERT_THROW(redhawk::Value((float)65536).toShort(), std::range_error);
 
     // UShort conversion from string, int and double; range test
     CPPUNIT_ASSERT_EQUAL((CORBA::UShort) 60000, redhawk::Value("60000").toUShort());
-    CPPUNIT_ASSERT_EQUAL((CORBA::UShort) 1, redhawk::Value(1).toUShort());
+    CPPUNIT_ASSERT_EQUAL((CORBA::UShort) 1, redhawk::Value((float)1).toUShort());
     CPPUNIT_ASSERT_EQUAL((CORBA::UShort) 50000, redhawk::Value(50000.999).toUShort());
-    CPPUNIT_ASSERT_THROW(redhawk::Value(-1).toUShort(), std::range_error);
-    CPPUNIT_ASSERT_THROW(redhawk::Value(65536).toUShort(), std::range_error);
+    CPPUNIT_ASSERT_THROW(redhawk::Value((float)-1).toUShort(), std::range_error);
+    CPPUNIT_ASSERT_THROW(redhawk::Value((float)65536).toUShort(), std::range_error);
 
     // Long conversion from string, short and double; range test
     CPPUNIT_ASSERT_EQUAL((CORBA::Long) -262144, redhawk::Value("-262144").toLong());
@@ -194,14 +194,14 @@ void ValueTest::testNumericConversion()
 
     // ULong conversion from string, int and double; range test
     CPPUNIT_ASSERT_EQUAL((CORBA::ULong) 4294967295, redhawk::Value("4294967295").toULong());
-    CPPUNIT_ASSERT_EQUAL((CORBA::ULong) 1, redhawk::Value(1).toULong());
+    CPPUNIT_ASSERT_EQUAL((CORBA::ULong) 1, redhawk::Value((short)1).toULong());
     CPPUNIT_ASSERT_EQUAL((CORBA::ULong) 3000000000, redhawk::Value(3e9).toULong());
-    CPPUNIT_ASSERT_THROW(redhawk::Value(-1).toULong(), std::range_error);
+    CPPUNIT_ASSERT_THROW(redhawk::Value((short)-1).toULong(), std::range_error);
     CPPUNIT_ASSERT_THROW(redhawk::Value(4294967296L).toULong(), std::range_error);
 
     // LongLong conversion from string, int and double; range test
     CPPUNIT_ASSERT_EQUAL((CORBA::LongLong) 1099511627776L, redhawk::Value("1099511627776").toLongLong());
-    CPPUNIT_ASSERT_EQUAL((CORBA::LongLong) 1, redhawk::Value(1).toLongLong());
+    CPPUNIT_ASSERT_EQUAL((CORBA::LongLong) 1, redhawk::Value((short)1).toLongLong());
     CPPUNIT_ASSERT_EQUAL((CORBA::LongLong) 10000000000, redhawk::Value(1e10).toLongLong());
     CPPUNIT_ASSERT_THROW(redhawk::Value(1e19).toLongLong(), std::range_error);
     CPPUNIT_ASSERT_THROW(redhawk::Value(-1e19).toLongLong(), std::range_error);
@@ -210,7 +210,7 @@ void ValueTest::testNumericConversion()
     CPPUNIT_ASSERT_EQUAL((CORBA::ULongLong) 9223372036854775808UL, redhawk::Value("9223372036854775808").toULongLong());
     CPPUNIT_ASSERT_EQUAL((CORBA::ULongLong) 1, redhawk::Value(true).toULongLong());
     CPPUNIT_ASSERT_EQUAL((CORBA::ULongLong) 500000000000, redhawk::Value(5e11).toULongLong());
-    CPPUNIT_ASSERT_THROW(redhawk::Value(-1).toULongLong(), std::range_error);
+    CPPUNIT_ASSERT_THROW(redhawk::Value((short)-1).toULongLong(), std::range_error);
     CPPUNIT_ASSERT_THROW(redhawk::Value(1e20).toULongLong(), std::range_error);
 }
 
