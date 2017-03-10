@@ -257,7 +257,7 @@ void AnyUtilsTest::testIsNull()
     CPPUNIT_ASSERT(ossie::any::isNull(any));
 
     // Insert a number, should no longer be null
-    any <<= 1;
+    any <<= (float)1;
     CPPUNIT_ASSERT(!ossie::any::isNull(any));
 
     // Likewise, a more complex type should not be null
@@ -283,7 +283,7 @@ void AnyUtilsTest::testToBoolean()
     CPPUNIT_ASSERT_EQUAL(false, result);
 
     // Integer, converted by C++ rules (zero == false)
-    any <<= 0;
+    any <<= (short)0;
     CPPUNIT_ASSERT(!ossie::any::toBoolean(any));
     CPPUNIT_ASSERT(ossie::any::toNumber(any, result));
     CPPUNIT_ASSERT_EQUAL(false, result);
