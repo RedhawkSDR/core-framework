@@ -116,7 +116,7 @@ void OutStreamTest<OutPort,PortType>::testSriFields()
     sri.mode = 1;
     sri.blocking = 1;
     ossie::corba::push_back(sri.keywords, redhawk::PropertyType("string", "value"));
-    ossie::corba::push_back(sri.keywords, redhawk::PropertyType("number", 100));
+    ossie::corba::push_back(sri.keywords, redhawk::PropertyType("number", (CORBA::Long)100));
    
     // Create a stream from the SRI; assign to a const variable to ensure that
     // all accessors are const-safe
@@ -197,7 +197,7 @@ void OutStreamTest<OutPort,PortType>::testKeywords()
     CPPUNIT_ASSERT(stub->sriCounter == 1);
 
     // Set/get keywords
-    stream.setKeyword("integer", 250);
+    stream.setKeyword("integer", (CORBA::Long)250);
     stream.setKeyword("string", "value");
     stream.setKeyword("double", 101.1e6);
     stream.setKeyword("boolean", false);
