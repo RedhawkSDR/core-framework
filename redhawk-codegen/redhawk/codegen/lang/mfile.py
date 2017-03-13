@@ -138,6 +138,8 @@ def getArguments(inputString, openDelimiter, closeDelimiter):
     args = inputString[inputString.find(openDelimiter)+1: 
                        inputString.find(closeDelimiter)]
     if args.find(",") != -1:
+        if openDelimiter != '[' and closeDelimiter != ']':
+            raise SystemExit('ERROR: When a function returns more than 1 field, their declaration must be placed between brackets')
         args = args.split(',')
     else:
         args = args.split()

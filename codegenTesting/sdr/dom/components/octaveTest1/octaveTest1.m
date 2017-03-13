@@ -1,7 +1,7 @@
 # this is a comment that should be ignored
 ## this is another comment that should be ignored
 % This is yet another comment that should be ignored
-function vectorOut0, stringPropIO1, stringPropOutput1, complexPropIO1, complexPropOutput1, complexVectorOutput1, complexVectorPropIO1, vectorPropIO1, vectorPropOutput1 = octaveTest0(vectorIn0,stringPropOutput1="default",constIn0=0,stringPropIO1="", __sampleRate,complexPropIO1=0, emptyStringSeqProp=[""], stringSeqProp=["", "1", "12"], vectorPropIO1=[0j,1],vectorPropOutput1=[],complexVectorPropIO1=[],complexVectorOutput1=[],complexPropOutput1=0i )
+function [vectorOut0, stringPropIO1, stringPropOutput1, complexPropIO1, complexPropOutput1, complexVectorOutput1, complexVectorPropIO1, vectorPropIO1, vectorPropOutput1] = octaveTest0(vectorIn0,stringPropOutput1="default",constIn0=0,stringPropIO1="", __sampleRate,complexPropIO1=0, emptyStringSeqProp=[""], stringSeqProp=["", "1", "12"], vectorPropIO1=[0j,1],vectorPropOutput1=[],complexVectorPropIO1=[],complexVectorOutput1=[],complexPropOutput1=0i )
 
     tmp = octaveDependency("foo");
     if tmp ~= "foo"
