@@ -49,7 +49,6 @@ from omniORB import CORBA as _CORBA
 import copy as _copy
 import omniORB as _omniORB
 import CosEventComm__POA
-import warnings as _warnings
 
 from ossie.utils.model import PortSupplier, OutputBase
 from ossie.utils.model.connect import ConnectionManager

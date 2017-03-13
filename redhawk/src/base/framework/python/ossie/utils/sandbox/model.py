@@ -26,6 +26,8 @@ from ossie.utils.model import Resource, Device, Service
 
 from ossie.utils.sandbox.events import EventChannel
 
+warnings.filterwarnings('once',category=DeprecationWarning)
+
 class SandboxMixin(object):
     def __init__(self, sandbox):
         self._sandbox = sandbox
