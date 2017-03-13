@@ -44,6 +44,8 @@ from ossie.utils import rhtime
 import warnings as _warnings
 from connect import *
 
+_warnings.filterwarnings('once',category=DeprecationWarning)
+
 _DEBUG = False
 _trackLaunchedApps = False
 

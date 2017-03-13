@@ -41,6 +41,8 @@ import launcher
 from debugger import GDB, PDB, Valgrind
 import terminal
 
+warnings.filterwarnings('once',category=DeprecationWarning)
+
 # Prepare the ORB
 orb = CORBA.ORB_init()
 poa = orb.resolve_initial_references("RootPOA")

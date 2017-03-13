@@ -119,6 +119,8 @@ from ossie.utils.uuid import uuid4
 from ossie.utils.sandbox import LocalSandbox, IDESandbox
 import ossie.utils.sandbox
 
+warnings.filterwarnings('once',category=DeprecationWarning)
+
 # Limit exported symbols
 __all__ = ('show', 'loadSADFile', 'IDELocation', 'connectedIDE', 'getIDE_REF',
            'start', 'getSDRROOT', 'setSDRROOT', 'Component', 'generateSADXML',

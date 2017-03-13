@@ -41,6 +41,8 @@ from ossie.utils.formatting import TablePrinter
 from ossie.parsers.prf import configurationKind as _configurationKind
 SCA_TYPES = globals()['_SCA_TYPES']
 
+_warnings.filterwarnings('once',category=DeprecationWarning)
+
 # Map the type of the complex number (e.g., complexFloat) to the 
 # type of the real and imaginary members (e.g., float).
 __COMPLEX_SIMPLE_TYPE_MAP = {

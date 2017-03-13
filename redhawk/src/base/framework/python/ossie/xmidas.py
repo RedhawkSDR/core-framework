@@ -23,6 +23,7 @@
 # X-MIDAS interoperabiliy layer
 
 import warnings
+warnings.filterwarnings('once',category=DeprecationWarning)
 warnings.warn("ossie.xmidas is deprecated, use xmsca.resource instead", DeprecationWarning)
 
 from XMinter import *
