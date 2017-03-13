@@ -46,3 +46,22 @@ class ComponentHostTest(scatest.CorbaTestCase):
         self.assertEqual(len(props2), 1)
         self.assertEqual(props2[0].id, 'pid')
         self.assertEqual(from_any(props1[0].value), from_any(props2[0].value))
+
+    def test_CollocBasicShared(self):
+        self.assertNotEqual(self._domainManager, None)
+
+        app = self._domainManager.createApplication('/waveforms/BasicSharedCollocWave/BasicSharedCollocWave.sad.xml',
+                                                    'BasicSharedCollocWave', [], [])
+
+        comps = app._get_registeredComponents()
+        self.assertEqual(len(comps), 2)
+
+        request = [CF.DataType('pid', to_any(None))]
+        props1 = comps[0].componentObject.query(request)
+        props2 = comps[1].componentObject.query(request)
+
+        self.assertEqual(len(props1), 1)
+        self.assertEqual(props1[0].id, 'pid')
+        self.assertEqual(len(props2), 1)
+        self.assertEqual(props2[0].id, 'pid')
+        self.assertEqual(from_any(props1[0].value), from_any(props2[0].value))
