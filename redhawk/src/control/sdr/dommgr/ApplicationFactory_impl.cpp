@@ -583,6 +583,25 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
         }
         throw redhawk::PlacementFailure(collocation, "failed to satisfy device dependencies");
     }
+
+    for (DeploymentList::iterator deployment = deployments.begin(); deployment != deployments.end(); deployment++) {
+        if ((*deployment)->getImplementation()->getCodeType() == SPD::Code::SHARED_LIBRARY) {
+            LOG_DEBUG(ApplicationFactory_impl, "Component " << (*deployment)->getInstantiation()->getID()
+                << "' implementation " << (*deployment)->getImplementation()->getID()
+                << " is a shared library");
+            redhawk::ContainerDeployment* container = appDeployment.createContainer(_profileCache, (*deployment)->getAssignedDevice());
+            if (!container->getAssignedDevice()) {
+                const redhawk::PropertyMap& devReqs = (*deployment)->getDeviceRequires();
+                if ( devReqs.size() ) container->setDeviceRequires(devReqs);
+                // Use whether the device is assigned as a sentinel to check
+                // whether the container was already created, and if not,
+                // allocate it to the device
+                allocateComponent(appDeployment, container, (*deployment)->getAssignedDevice()->identifier);
+            }
+            (*deployment)->setContainer(container);
+        }
+    }
+
     LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
               << collocation.getID() << " Components Placed: " << deployments.size());
 }
