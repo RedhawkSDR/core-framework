@@ -39,8 +39,8 @@ ${ super() -}
     octave_main (2, (char **) argvv, true /* embedded */);
 
 /*{% for port in component.ports if port is uses %}*/
-    std::string streamID_${component.name}_${port.cppname} = "${component.name}_${port.cppname}";
-    outputPackets["${port.cppname}"] = createDefaultDataTransferType(streamID_${component.name}_${port.cppname});
+    std::string streamID_${className}_${port.cppname} = "${component.name}_${port.cppname}";
+    outputPackets["${port.cppname}"] = createDefaultDataTransferType(streamID_${className}_${port.cppname});
 /*{% endfor %}*/
 
     _sriPort = "";
