@@ -29,7 +29,7 @@ AC_DEFUN([AC_HEADER_M_FUNCTION],
     dnl look for "include/octave" followed by a "x.y.z" version number.
     dnl "-print -quit" grabs the first result
     dnl "2>/dev/null" gets rid of permission denied warnings
-    m_base_include_path=`find /usr -regextype posix-extended -regex ".*include\/octave\-[[3-9]]+\.[[4-9]]+\.[[0-9]]+$" -print -quit 2>/dev/null`
+    m_base_include_path=`find /usr -regextype posix-extended -regex ".*include\/octave\-[[3]]+\.[[4-9]]+\.[[0-9]]+$" -print -quit 2>/dev/null`
     M_FUNCTION_INTERPRETER_INCLUDE="-I$m_base_include_path -I${m_base_include_path}/octave"
     ]
   )
@@ -51,7 +51,7 @@ AC_DEFUN([AC_LIB_M_FUNCTION],
     dnl look for "lib/octave/" or "lib64/octave/" followed by a "x.y.z" version number.
     dnl "-print -quit" grabs the first result
     dnl "2>/dev/null" gets rid of permission denied warnings
-    M_FUNCTION_INTERPRETER_LOAD="-Wl,-rpath="`find /usr -regextype posix-extended -regex ".*lib[[6]]?[[4]]?\/octave\/[[3-9]]+\.[[4-9]]+\.[[0-9]]+$" -print -quit 2>/dev/null`" -L"`find /usr -regextype posix-extended -regex ".*lib[[6]]?[[4]]?\/octave\/[[3-9]]+\.[[4-9]]+\.[[0-9]]+$" -print -quit 2>/dev/null`" -loctave -loctinterp"]
+    M_FUNCTION_INTERPRETER_LOAD="-Wl,-rpath="`find /usr -regextype posix-extended -regex ".*lib[[6]]?[[4]]?\/octave\/[[3]]+\.[[4-9]]+\.[[0-9]]+$" -print -quit 2>/dev/null`" -L"`find /usr -regextype posix-extended -regex ".*lib[[6]]?[[4]]?\/octave\/[[3]]+\.[[4-9]]+\.[[0-9]]+$" -print -quit 2>/dev/null`" -loctave -loctinterp"]
   )
   if test $M_FUNCTION_INTERPRETER_LOAD = "-I"; then
       AC_MSG_ERROR(Could not find Octave installation.  Octave-devel v3.4 or greater is required.)

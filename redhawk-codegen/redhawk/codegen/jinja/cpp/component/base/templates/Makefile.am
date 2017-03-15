@@ -101,7 +101,7 @@ include $(srcdir)/Makefile.am.ide
 {{amtarget}}_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
 #{% endif %}
 #{% if component.mFunction %}
-{{amtarget}}_CXXFLAGS += $(M_FUNCTION_INTERPRETER_INCLUDE)
-{{amtarget}}_LDFLAGS += $(M_FUNCTION_INTERPRETER_LOAD)
+{{target}}_CXXFLAGS += $(M_FUNCTION_INTERPRETER_INCLUDE)
+{{target}}_LDFLAGS += $(BOOST_FILESYSTEM_LIB) $(M_FUNCTION_INTERPRETER_LOAD)
 #{% endif %}
 #{% endblock %}

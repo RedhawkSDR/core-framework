@@ -27,7 +27,7 @@ def factory(**opts):
 
 def check():
     # Attempt to determine if octave-devel v3.4 or greater is installed.
-    findCommand = 'find /usr -regextype posix-extended -regex ".*include\/octave\-[3-9]+\.[4-9]+\.[0-9]+$" -print -quit 2>/dev/null'
+    findCommand = 'find /usr -regextype posix-extended -regex ".*include\/octave\-[3]+\.[4-9]+\.[0-9]+$" -print -quit 2>/dev/null'
     (status,output) = commands.getstatusoutput(findCommand)
     if output == "":
         # suitable octave header files were not found

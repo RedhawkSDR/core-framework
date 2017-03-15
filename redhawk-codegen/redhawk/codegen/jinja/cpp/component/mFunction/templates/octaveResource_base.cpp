@@ -59,7 +59,7 @@ ${ super() }
 
 /*{%endif%}*/
     // Prevent octave from leaving around temporary files after shutdown.
-    do_octave_atexit();
+    clean_up_and_exit(0);
 /*{% endblock %}*/
 
 /*{%block extensions%}*/

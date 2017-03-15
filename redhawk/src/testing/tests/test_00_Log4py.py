@@ -56,6 +56,7 @@ conversions = { 'date1' : ( "%d{yyyy-MM-dd}", '%Y-%m-%d' ),
                 'tz3' : ( "%d{zzz}", '%Z' ),
                 'tz1' : ( "%d{z}", '%Z' ),
                 'ap1' : ( "%d{a}", '%p' ),
+                'iso8601' : ( "%d{ISO8601}", '%Y-%m-%d %H:%M:%S', ',' ),
                }
 
 @contextlib.contextmanager
@@ -85,6 +86,9 @@ class Test_Log4py_DateFormat(unittest.TestCase):
         self.tfile.seek(0)
         logline=self.tfile.read()
         logline=logline.strip()
+        if len(conv) > 1:
+            logline = logline.split(conv[2])[0]
+            pval = pval.split(conv[2])[0]
         self.assertEquals( pval, logline)
 
 
@@ -145,8 +149,8 @@ class Test_Log4py_DateFormat(unittest.TestCase):
     def test_timezone3(self):
         self._run_test('tz1')
 
-    def test_ap1(self):
-        self._run_test('ap1')
+    def test_iso8601(self):
+        self._run_test('iso8601')
 
 class Log4PyAppenders(unittest.TestCase):
     def setUp(self):
