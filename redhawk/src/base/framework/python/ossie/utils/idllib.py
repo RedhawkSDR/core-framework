@@ -96,13 +96,14 @@ class IDLLibrary(object):
 
         # Parse file and save the interfaces; this may return interfaces
         # from other files as well.
-        for interface in importIDL.getInterfacesFromFile(filename, self._includePaths):
+        for interface in importIDL.getInterfacesFromFile(filename, self._includePaths, getStructs=True):
             # Only add new, unseen interfaces.
             if interface.repoId not in self._interfaces:
                 self._interfaces[interface.repoId] = interface
 
             # Mark the file that provided this interface as parsed
-            self._parsed.add(interface.fullpath)
+            if not isinstance(interface, importIDL.IdlStruct):
+                self._parsed.add(interface.fullpath)
 
         # Mark the file as parsed in case it didn't contain any interfaces
         self._parsed.add(filename)
@@ -207,6 +208,24 @@ class IDLLibrary(object):
 
             interface = self._interfaces.get(repoid, None)
             if interface is None:
+                raise UnknownInterfaceError(repoid)
+            elif isinstance(interface, importIDL.IdlStruct):
+                raise UnknownInterfaceError(repoid)
+            else:
+                return interface
+        finally:
+            self._lock.release()
+
+    def getIdlStruct(self, repoid):
+        self._lock.acquire()
+        try:
+            if not repoid in self._interfaces:
+                self._findInterface(repoid)
+
+            interface = self._interfaces.get(repoid, None)
+            if interface is None:
+                raise UnknownInterfaceError(repoid)
+            elif isinstance(interface, importIDL.InterfaceVisitor):
                 raise UnknownInterfaceError(repoid)
             else:
                 return interface

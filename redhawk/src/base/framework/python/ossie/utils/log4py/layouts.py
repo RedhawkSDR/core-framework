@@ -23,6 +23,9 @@
 import logging, logging.handlers
 import re
 
+__all__ = ('_FORMATTER_TRANS','_log4j_strftime', 'PatternLayout' )
+
+
 ##############################################################################
 # Map standard log4j layouts to logging formatters
 ##############################################################################
@@ -67,7 +70,7 @@ _log4j_strftime= [
                      ( '(%Q){1,}', '%m' ),                                              # month numbers (stage 2...)
                      ( '(%X){1,}', '%d' ),                                              # day of month (stage 2 )
                      ( '(%V){1,}', '%H' ),                                              # hour (24) (stage 2)
-                     ( '(%R){1,}', '%w' ),                                               # day in week number (stage 2)
+                     ( '(%R){1,}', '%w' ),                                              # day in week number (stage 2)
                      ]
 
 class PatternLayout(logging.Formatter,object):
@@ -108,7 +111,10 @@ class PatternLayout(logging.Formatter,object):
                   i=i+len(m[0])+2
               except:
                   pass
-              self.datefmt = "".join(dfmt)
+              if dfmt.upper() == 'ISO8601' :
+                self.datefmt = None
+              else:
+                self.datefmt = "".join(dfmt)
 
           fmt.append(_FORMATTER_TRANS[char][0])
           fmt.append(modifier)
