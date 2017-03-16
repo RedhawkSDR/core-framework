@@ -76,8 +76,6 @@ def baseType(typeobj, direction=None):
             return name + '_out'
         else:
             return name
-    elif direction and direction != 'in':
-        return name + '&'
     else:
         return name 
 
