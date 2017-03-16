@@ -184,7 +184,7 @@ public:
     void do_load (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind)
     throw (CF::LoadableDevice::LoadFail, CF::InvalidFileName,
            CF::LoadableDevice::InvalidLoadKind, CF::Device::InvalidState,
-           CORBA::SystemException);
+           CF::FileException, CORBA::SystemException);
 
     // Externally visible function call to unload a file
     void  unload (const char* fileName)

@@ -280,6 +280,12 @@ bool DeviceManager_impl::getCodeFilePath(
         return false;
     }
 
+    if (access(codeFilePath.c_str(), F_OK) == -1) {
+        std::string errMsg = "Unable to access file: " + codeFilePath;
+        LOG_ERROR(DeviceManager_impl, errMsg );
+        return false;
+    }
+
     LOG_TRACE(DeviceManager_impl, "Code file path: " << codeFilePath)
 
     return true;
@@ -1085,6 +1091,13 @@ void DeviceManager_impl::createDeviceThread(
                                 componentPlacements,
                                 compositeDeviceIOR,
                                 instanceprops) ;
+
+      // check that our executable is good
+      if (access(codeFilePath.c_str(), R_OK | X_OK) == -1) {
+          std::string errMsg = "Missing read or execute file permissions on file: " + codeFilePath;
+          LOG_ERROR(DeviceManager_impl, errMsg );
+          return;
+      }
 
       // convert std:string to char * for execv
       std::vector<char*> argv(new_argv.size() + 1, NULL);
