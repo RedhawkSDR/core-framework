@@ -264,7 +264,7 @@ LoadableDevice_impl::do_load (CF::FileSystem_ptr fs, const char* fileName,
                            CF::LoadableDevice::LoadType loadKind)
 throw (CORBA::SystemException, CF::Device::InvalidState,
        CF::LoadableDevice::InvalidLoadKind, CF::InvalidFileName,
-       CF::LoadableDevice::LoadFail)
+       CF::LoadableDevice::LoadFail,  CF::FileException )
 {
     LOG_DEBUG(LoadableDevice_impl, "load " << fileName)
 
