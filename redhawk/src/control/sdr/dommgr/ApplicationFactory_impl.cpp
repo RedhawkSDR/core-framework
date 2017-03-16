@@ -909,26 +909,49 @@ void createHelper::_removeUnmatchedImplementations(std::vector<ossie::Implementa
     return;
 }
 
-void createHelper::_consolidateAllocations(const ossie::ImplementationInfo::List& impls, CF::Properties& allocs)
+void createHelper::_consolidateAllocations(const PlacementList &placingComponents, const ossie::ImplementationInfo::List& impls, CF::Properties& allocs)
 {
     allocs.length(0);
     for (ossie::ImplementationInfo::List::const_iterator impl= impls.begin(); impl != impls.end(); ++impl) {
+        ComponentInfo* component = NULL;
+        for (PlacementList::const_iterator _comp=placingComponents.begin(); _comp!=placingComponents.end(); _comp++) {
+            ossie::ImplementationInfo::List _tmp_impls;
+            (*_comp)->getImplementations(_tmp_impls);
+            for (ossie::ImplementationInfo::List::iterator _tmp_impl=_tmp_impls.begin(); _tmp_impl != _tmp_impls.end(); _tmp_impl++) {
+                if ((*_tmp_impl) == (*impl)) {
+                    component = (*_comp);
+                    break;
+                }
+            }
+        }
+        CF::Properties configureProperties = component->getConfigureProperties();
+        const CF::Properties &construct_props = component->getConstructProperties();
+        unsigned int configlen = configureProperties.length();
+        configureProperties.length(configureProperties.length()+construct_props.length());
+        for (unsigned int i=0; i<construct_props.length(); i++) {
+            configureProperties[i+configlen] = construct_props[i];
+        }
         const std::vector<SPD::PropertyRef>& deps = (*impl)->getDependencyProperties();
+
         for (std::vector<SPD::PropertyRef>::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
           ossie::ComponentProperty *prop = dep->property.get();
+          CF::Properties _tmp_allocs;
+          _tmp_allocs.length(1);
           if (dynamic_cast<const SimplePropertyRef*>( prop ) != NULL) {
                 const SimplePropertyRef* dependency = dynamic_cast<const SimplePropertyRef*>(prop);
-                ossie::corba::push_back(allocs, convertPropertyToDataType(dependency));
+                _tmp_allocs[0] = convertPropertyToDataType(dependency);
             } else if (dynamic_cast<const SimpleSequencePropertyRef*>(prop) != NULL) {
                 const SimpleSequencePropertyRef* dependency = dynamic_cast<const SimpleSequencePropertyRef*>(prop);
-                ossie::corba::push_back(allocs, convertPropertyToDataType(dependency));
+                _tmp_allocs[0] = convertPropertyToDataType(dependency);
             } else if (dynamic_cast<const ossie::StructPropertyRef*>(prop) != NULL) {
                 const ossie::StructPropertyRef* dependency = dynamic_cast<const ossie::StructPropertyRef*>(prop);
-                ossie::corba::push_back(allocs, convertPropertyToDataType(dependency));
+                _tmp_allocs[0] = convertPropertyToDataType(dependency);
             } else if (dynamic_cast<const ossie::StructSequencePropertyRef*>(prop) != NULL) {
                 const ossie::StructSequencePropertyRef* dependency = dynamic_cast<const ossie::StructSequencePropertyRef*>(prop);
-                ossie::corba::push_back(allocs, convertPropertyToDataType(dependency));
+                _tmp_allocs[0] = convertPropertyToDataType(dependency);
             }
+          this->_evaluateMATHinRequest(_tmp_allocs, configureProperties);
+          ossie::corba::push_back(allocs, _tmp_allocs[0]);
         }
     }
 }
@@ -989,7 +1012,6 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
             }
         }
     }
-    
 
     for (size_t index = 0; index < res_vec.size(); ++index) {
         // Merge processor and OS dependencies from all implementations
@@ -998,7 +1020,7 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
 
         // Consolidate the allocation properties into a single list
         CF::Properties allocationProperties;
-        this->_consolidateAllocations(res_vec[index], allocationProperties);
+        this->_consolidateAllocations(placingComponents, res_vec[index], allocationProperties);
 
         const std::string requestid = ossie::generateUUID();
         ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appIdentifier, processorDeps, osDeps);

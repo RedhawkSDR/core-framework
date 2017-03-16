@@ -251,7 +251,7 @@ private:
     void _handleUsesDevices(const std::string& appName);
     void _resolveImplementations(PlacementList::iterator comp, PlacementList& compList, std::vector<ossie::ImplementationInfo::List> &res_vec);
     void _removeUnmatchedImplementations(std::vector<ossie::ImplementationInfo::List> &res_vec);
-    void _consolidateAllocations(const ossie::ImplementationInfo::List& implementations, CF::Properties& allocs);
+    void _consolidateAllocations(const PlacementList &placingComponents, const ossie::ImplementationInfo::List& implementations, CF::Properties& allocs);
     void _evaluateMATHinRequest(CF::Properties &request, const CF::Properties &configureProperties);
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SPD::PropertyRef> &prop_refs, unsigned int offset=0);
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SoftwareAssembly::PropertyRef> &prop_refs,

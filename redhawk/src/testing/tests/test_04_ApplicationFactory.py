@@ -288,6 +288,24 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         domMgr.uninstallApplication(appFact._get_identifier())
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
 
+    def test_CollocationMATH(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        device = devMgr._get_registeredDevices()[0]
+
+        # Query the known allocation properties
+        memCapacity = device.query([CF.DataType(id="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb", value=any.to_any(None))])[0].value._v
+
+        self.assertEqual(len(domMgr._get_applications()), 0)
+
+        app = domMgr.createApplication("/waveforms/CommandWrapperColloc/CommandWrapperColloc.sad.xml", 'commandcolloc', [], [])
+        self.assertEqual(len(domMgr._get_applications()), 1)
+
+        new_memCapacity = device.query([CF.DataType(id="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb", value=any.to_any(None))])[0].value._v
+        self.assertEqual(new_memCapacity, memCapacity-5000)
+
     def test_ConfigureNotCalledProperty(self):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
