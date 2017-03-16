@@ -89,7 +89,7 @@ protected:
         any <<= *(reinterpret_cast<const Message*>(data));
     }
 
-    typedef boost::function<void(CORBA::Any&,const void*)> SerializerFunc;
+    typedef void (*SerializerFunc)(CORBA::Any&,const void*);
 
     void _beginMessageQueue(size_t count);
     void _queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer);

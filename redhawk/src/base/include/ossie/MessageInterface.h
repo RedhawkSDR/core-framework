@@ -224,7 +224,7 @@ protected:
     class MessageCallbackImpl : public MessageCallback
     {
     public:
-        typedef boost::function<void (const std::string&, const Message&)> CallbackFunc;
+        typedef redhawk::callback<void (const std::string&, const Message&)> CallbackFunc;
 
         MessageCallbackImpl (const std::string& format, CallbackFunc func) :
             MessageCallback(format),

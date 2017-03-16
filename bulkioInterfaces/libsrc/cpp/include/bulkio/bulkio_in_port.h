@@ -245,7 +245,7 @@ namespace bulkio {
      */
     template <typename Target, typename Func>
     inline void setNewStreamListener(Target target, Func func) {
-      ossie::bind(newStreamCallback, target, func);
+      newStreamCallback.assign(target, func);
     }
 
     /*
@@ -313,7 +313,7 @@ namespace bulkio {
     //
     // Callback for notifications when new SRI streamID's are received
     //
-    boost::function<void (BULKIO::StreamSRI&)> newStreamCallback;
+    redhawk::callback<void (BULKIO::StreamSRI&)> newStreamCallback;
 
     //
     //  List of SRI objects managed by StreamID

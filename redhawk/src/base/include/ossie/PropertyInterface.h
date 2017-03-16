@@ -282,10 +282,7 @@ public:
     template <class Target, class Func>
     void setQuery (Target target, Func func)
     {
-        if (!isQueryable()) {
-            throw std::logic_error("property '" + id + "' is not queryable");
-        }
-        ossie::bind(query_, target, func);
+        setQuery(QueryFunc(target, func));
     }
 
     template <class Func>
@@ -300,10 +297,7 @@ public:
     template <class Target, class Func>
     void setConfigure (Target target, Func func)
     {
-        if (!isConfigurable()) {
-            throw std::logic_error("property '" + id + "' is not configurable");
-        }
-        ossie::bind(configure_, target, func);
+        setConfigure(ConfigureFunc(target, func));
     }
 
     template <class R, class A1, class A2>
@@ -311,7 +305,6 @@ public:
     {
         pointerListeners_.add(func);
     }
-
 
     template <class Target, class Base, class R, class A1, class A2>
     void addChangeListener (Target target, R (Base::*func)(A1*, A2*))
@@ -355,10 +348,7 @@ public:
     template <class Target, class Func>
     void setAllocator (Target target, Func func)
     {
-        if (!isAllocatable()) {
-            throw std::logic_error("property '" + id + "' is not allocatable");
-        }
-        ossie::bind(allocator_, target, func);
+        setAllocator(AllocateFunc(target, func));
     }
 
     template <class Func>
@@ -373,10 +363,7 @@ public:
     template <class Target, class Func>
     void setDeallocator (Target target, Func func)
     {
-        if (!isAllocatable()) {
-            throw std::logic_error("property '" + id + "' is not allocatable");
-        }
-        ossie::bind(deallocator_, target, func);
+        setDeallocator(DeallocateFunc(target, func));
     }
 
     const std::string getNativeType () const
@@ -450,10 +437,10 @@ protected:
 
 private:
     // Delegate function types
-    typedef boost::function<value_type()> QueryFunc;
-    typedef boost::function<void (const value_type&)> ConfigureFunc;
-    typedef boost::function<bool (const value_type&)> AllocateFunc;
-    typedef boost::function<void (const value_type&)> DeallocateFunc;
+    typedef redhawk::callback<value_type()> QueryFunc;
+    typedef redhawk::callback<void (const value_type&)> ConfigureFunc;
+    typedef redhawk::callback<bool (const value_type&)> AllocateFunc;
+    typedef redhawk::callback<void (const value_type&)> DeallocateFunc;
 
     QueryFunc query_;
     ConfigureFunc configure_;

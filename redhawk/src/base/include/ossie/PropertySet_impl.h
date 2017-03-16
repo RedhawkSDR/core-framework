@@ -373,7 +373,7 @@ private:
         return wrapper;
     }
 
-    typedef boost::function<void (const std::string&)> PropertyCallback;
+    typedef redhawk::callback<void (const std::string&)> PropertyCallback;
     void setPropertyCallback (const std::string& id, PropertyCallback callback);
 
     typedef std::map<std::string, PropertyCallback> PropertyCallbackMap;
