@@ -125,7 +125,7 @@ private:
                                                    redhawk::UsesDeviceDeployment& assignedDevices);
     bool _allDevicesBusy(ossie::DeviceList& devices);
 
-    CF::Properties _consolidateAllocations(const DeploymentList& implementations);
+    CF::Properties _consolidateAllocations(redhawk::ApplicationDeployment& appDeployment, const DeploymentList& implementations);
     void _evaluateMATHinRequest(CF::Properties &request, const CF::Properties &configureProperties);
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::PropertyRef> &prop_refs, unsigned int offset=0);
 

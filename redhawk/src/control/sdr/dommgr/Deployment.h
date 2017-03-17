@@ -185,7 +185,14 @@ namespace redhawk {
          */
         void configure();
 
+        /**
+         * Returns the properties used for the initial call to configure()
+         * during deployment
+         */
+        redhawk::PropertyMap getAllInitialProperties() const;
+
     protected:
+
         /**
          * Returns the properties used for the initial call to configure()
          * during deployment

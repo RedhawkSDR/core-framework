@@ -480,6 +480,17 @@ redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
    return properties;
 }
 
+redhawk::PropertyMap ComponentDeployment::getAllInitialProperties() const
+{
+    redhawk::PropertyMap properties;
+    if (softpkg->getProperties()) {
+        BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
+            properties.push_back(getPropertyValue(property));
+        }
+    }
+    return properties;
+}
+
 redhawk::PropertyMap ComponentDeployment::getInitialConfigureProperties() const
 {
    redhawk::PropertyMap properties;

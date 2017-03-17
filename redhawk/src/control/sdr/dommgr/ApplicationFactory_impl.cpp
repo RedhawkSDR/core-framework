@@ -400,7 +400,7 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
                                            const redhawk::PropertyMap& deviceRequires )
 {
     // Consolidate the allocation properties into a single list
-    CF::Properties allocationProperties = _consolidateAllocations(components);
+    CF::Properties allocationProperties = _consolidateAllocations(appDeployment, components);
 
     LOG_TRACE(ApplicationFactory_impl, "Allocating deployment for " << components.size()
               << " collocated components");
@@ -452,14 +452,25 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
     return false;
  }
 
-CF::Properties createHelper::_consolidateAllocations(const DeploymentList& deployments)
+CF::Properties createHelper::_consolidateAllocations(redhawk::ApplicationDeployment& appDeployment, const DeploymentList& deployments)
 {
     CF::Properties allocs;
     for (DeploymentList::const_iterator depl = deployments.begin(); depl != deployments.end(); ++depl) {
+        redhawk::PropertyMap _init;
+        for (redhawk::ApplicationDeployment::ComponentList::const_iterator _comp = appDeployment.getComponentDeployments().begin(); _comp!=appDeployment.getComponentDeployments().end(); _comp++) {
+            redhawk::SoftPkgDeployment * _tmp_comp = static_cast<redhawk::SoftPkgDeployment* const>(*_comp);
+            if (_tmp_comp == (*depl)) {
+                _init = (*_comp)->getAllInitialProperties();
+            }
+        }
         const std::vector<PropertyRef>& deps = (*depl)->getImplementation()->getDependencies();
         for (std::vector<PropertyRef>::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
+          CF::Properties _tmp_allocs;
+          _tmp_allocs.length(1);
           ossie::ComponentProperty *prop = dep->property.get();
-          ossie::corba::push_back(allocs, ossie::convertPropertyRefToDataType(prop));
+          _tmp_allocs[0] = ossie::convertPropertyRefToDataType(prop);
+          this->_evaluateMATHinRequest(_tmp_allocs, _init);
+          ossie::corba::push_back(allocs, _tmp_allocs[0]);
         }
     }
     return allocs;
