@@ -33,24 +33,31 @@ namespace redhawk {
 
     class Module {
     public:
+        const std::string& name() const;
         const std::string& path() const;
         void* symbol(const std::string& name);
-        void unload();
+
+        bool modified();
 
         static bool IsLoadable(const std::string& path);
 
     private:
         Module(const std::string& path, void* handle);
 
-        void load();
+        void incref();
+        bool decref();
 
-        void close();
+        bool close();
+
+        time_t _getModTime();
 
         friend class ModuleLoader;
 
         const std::string _path;
+        const std::string _name;
         void* _handle;
         int _refcount;
+        time_t _modtime;
     };
 
     class ModuleLoader {
@@ -69,6 +76,7 @@ namespace redhawk {
         };
 
         static Module* Load(const std::string& path, LoadBinding binding, LoadVisibility visibility);
+        static void Unload(Module* module);
 
     private:
         ModuleLoader();
@@ -76,7 +84,7 @@ namespace redhawk {
         static ModuleLoader& Instance();
 
         Module* load(const std::string& path, LoadBinding binding, LoadVisibility visibility);
-        void unloaded(Module* module);
+        void unload(Module* module);
 
         Module* findModule(const std::string& path);
 
