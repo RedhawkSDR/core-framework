@@ -86,7 +86,7 @@ class Test_Log4py_DateFormat(unittest.TestCase):
         self.tfile.seek(0)
         logline=self.tfile.read()
         logline=logline.strip()
-        if len(conv) > 1:
+        if len(conv) > 2:
             logline = logline.split(conv[2])[0]
             pval = pval.split(conv[2])[0]
         self.assertEquals( pval, logline)
