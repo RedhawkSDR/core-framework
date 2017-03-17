@@ -30,6 +30,12 @@
 
 #include <boost/filesystem.hpp>
 
+#if BOOST_FILESYSTEM_VERSION < 3
+#define BOOST_PATH_STRING(x) (x)
+#else
+#define BOOST_PATH_STRING(x) (x).string()
+#endif
+
 #include "ModuleLoader.h"
 
 using namespace redhawk;
@@ -63,7 +69,7 @@ bool Module::IsLoadable(const std::string& filename)
 
 Module::Module(const std::string& path, void* handle) :
     _path(path),
-    _name(fs::path(path).filename()),
+    _name(BOOST_PATH_STRING(fs::path(path).filename())),
     _handle(handle),
     _refcount(1),
     _modtime(_getModTime())
