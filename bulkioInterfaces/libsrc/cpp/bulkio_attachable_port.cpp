@@ -385,7 +385,7 @@ namespace bulkio {
     // use: attachedPorts[(*portIter).first] :instead
     while (portIter2 != attachedStreamMap.end()) {
       if (strcmp((*portIter2).first.c_str(), attachId) == 0) {
-        return (*portIter2).second;
+          return new StreamDefinition( *((*portIter2).second) );
       }
       portIter2++;
     }

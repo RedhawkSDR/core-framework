@@ -81,7 +81,7 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
             self.time=time
 
     TRANSFER_TYPE='c'
-    def __init__(self, name, PortTypeClass, PortTransferType=TRANSFER_TYPE, logger=None, noData=[] ):
+    def __init__(self, name, PortTypeClass, PortTransferType=TRANSFER_TYPE, logger=None, noData=None ):
         self.name = name
         self.logger = logger
         self.PortType = PortTypeClass
@@ -91,7 +91,10 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         self.port_lock = threading.Lock()
         self.sriDict = {} # key=streamID  value=SriMapStruct
         self.filterTable = []
-        self.noData = noData
+        if noData==None:
+           self.noData = []
+        else:
+           self.noData = noData
 
         # Determine maximum transfer size in advance
         self.byteSize = 1
@@ -675,7 +678,7 @@ class OutAttachablePort(OutPort):
         def setLogger(self, inlogger):
             self.logger=inlogger
             for att in self.streamAttachments:
-                att.setLogger(inLogger)
+                att.setLogger(inlogger)
 
         def getConnectionIds(self):
             connectionIds = []
@@ -715,8 +718,11 @@ class OutAttachablePort(OutPort):
 
 
     class StreamContainer:
-        def __init__(self, streams=[]):
-            self.streams = streams
+        def __init__(self, streams=None):
+            if streams == None:
+                self.streams = []
+            else:
+               self.streams = streams
             self.logger = None
 
         def printState(self, title):
@@ -845,7 +851,7 @@ class OutAttachablePort(OutPort):
         def setLogger(self, inlogger):
             self.logger = inlogger
             for stream in self.streams:
-                stream.setLogger(inLogger)
+                stream.setLogger(inlogger)
 
 
     TRANSFER_TYPE = 'c'
