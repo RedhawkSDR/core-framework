@@ -22,10 +22,12 @@ import unittest
 import ossie.utils.testing
 import os
 import time
+import logging
 from omniORB import any
 from ossie.utils import sb
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
+
 
 from ossie.utils.sandbox import debugger
 #from ossie.utils.log4py import logging
@@ -204,6 +206,16 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
     # ##############
     #     Tests
     # ##############
+
+    def test_input_attach_detach(self):
+        self.source.start()
+        sdds_stream_def = BULKIO.SDDSStreamDefinition(id='input1', dataFormat=BULKIO.SDDS_SB, multicastAddress='239.0.1.1', vlan=118, port=10000, sampleRate=100000000, timeTagValid=False, privateInfo='privateInfo')
+        sdds_in = self.source.getPort("dataSDDS_in")
+        attach_id = sdds_in.attach(sdds_stream_def,"")
+        sdef = sdds_in.getStreamDefinition(attach_id)
+        print 'Attached stream: %s' % sdef
+        sdds_in.detach(attach_id) 
+
     
     def testSddsConnectionsWithNoStreams(self):
         self.connectAllSdds()       
@@ -1398,6 +1410,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
         self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 0)
         self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+
 
 if __name__ == "__main__":
     ossie.utils.testing.main("../multiout_attachable.spd.xml") # By default tests all implementations
