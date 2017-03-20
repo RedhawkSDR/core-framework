@@ -4,6 +4,7 @@
 *.lo
 *.java
 *.jar
+*.pyc
 .deps/
 .idlj/
 .idljni/
