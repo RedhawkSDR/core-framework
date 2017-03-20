@@ -188,7 +188,7 @@ test:install:el6:
     - yum install -y *.rpm
 
 deploy:el6:
-  image: redhawkci/deploy
+  image: ${DOCKER_REGISTRY_URL}redhawk/deploy
   stage: deploy
   tags:
     - deployment
