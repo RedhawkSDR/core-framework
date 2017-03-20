@@ -43,6 +43,7 @@ public:
   virtual void test_push_simple();
   virtual void test_push_bursts_sequence();
   virtual void test_push_burst_sequence();
+  virtual void test_push_burst_complex();
   virtual void test_fan_out();
   virtual void test_fan_in();
   virtual void test_multiout_push();
@@ -104,6 +105,7 @@ typedef Burstio_PushBursts< burstio::BurstFloatOut, burstio::BurstFloatIn >   Pu
   CPPUNIT_TEST( test_push_simple ); \
   CPPUNIT_TEST( test_push_bursts_sequence ); \
   CPPUNIT_TEST( test_push_burst_sequence ); \
+  CPPUNIT_TEST( test_push_burst_complex ); \
   CPPUNIT_TEST( test_fan_in ); \
   CPPUNIT_TEST( test_fan_out ); \
   CPPUNIT_TEST_SUITE_END(); \
