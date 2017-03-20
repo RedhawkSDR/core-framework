@@ -1,4 +1,5 @@
 variables:
+  DOCKER_REGISTRY_URL: ''
   REDHAWK_VERSION: '2.1.0'
   FRONTEND_VERSION: '2.4.0'
 
@@ -11,7 +12,7 @@ stages:
   - deploy-test
 
 .rpmbuild: &rpmbuild
-  image: redhawk/buildenv:$PLATFORM
+  image: ${DOCKER_REGISTRY_URL}redhawk/buildenv:$PLATFORM
   script:
     - cd $PROJECT
     - tar --transform "s,^,$PROJECT-$REDHAWK_VERSION/,S" -czf /root/rpmbuild/SOURCES/$PROJECT-$REDHAWK_VERSION.tar.gz *
@@ -21,7 +22,7 @@ stages:
     - cp -rv /root/rpmbuild/RPMS/*/*.rpm ..
 
 .core_rpmbuild: &core_rpmbuild
-  image: redhawk/buildenv:$PLATFORM
+  image: ${DOCKER_REGISTRY_URL}redhawk/buildenv:$PLATFORM
   stage: build
   script:
     - cd $PROJECT
@@ -34,7 +35,7 @@ stages:
       - redhawk*.rpm
 
 .frontend_rpmbuild: &frontend_rpmbuild
-  image: redhawk/buildenv:$PLATFORM
+  image: ${DOCKER_REGISTRY_URL}redhawk/buildenv:$PLATFORM
   stage: build-3
   script:
     - cd $PROJECT
