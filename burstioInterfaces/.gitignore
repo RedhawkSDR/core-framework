@@ -24,6 +24,7 @@ missing
 *.omnijni
 *.deps
 *.libs
+.idljni/
 classlist.txt
 filelist.txt
 src/cpp/redhawk
