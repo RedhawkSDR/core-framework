@@ -411,6 +411,78 @@ void  Burstio_PushBursts< OUT_PORT, IN_PORT >::test_push_burst_sequence( ) {
 }
 
 
+template < typename OUT_PORT, typename IN_PORT >
+void Burstio_PushBursts< OUT_PORT, IN_PORT >::test_push_burst_complex()
+{
+  RH_DEBUG(logger, "BURSTIO PUSH-BURST COMPLEX BEGIN " );
+
+  std::string cid("connection_1");
+
+  CORBA::Object_var objref = ip1->_this();
+  op1->connectPort(objref, cid.c_str());
+
+  // need to allow for flow of data
+  op1->start();
+  ip1->start();
+
+  typedef typename OUT_PORT::NativeType NativeType;
+  std::vector<NativeType> dataVec;
+  dataVec.push_back(1);
+  dataVec.push_back(1);
+
+  typedef std::complex<NativeType> ComplexType;
+  std::vector<ComplexType> complexVec;
+  complexVec.push_back(ComplexType(2, 2));
+
+  // With scalar SRI.mode, push one burst of scalar data and one of complex
+  // data; the latter should override SRI.mode
+  BURSTIO::BurstSRI sri = burstio::utils::createSRI("test-complex");
+  sri.mode = 0;
+  op1->pushBurst(dataVec, sri);
+  op1->pushBurst(complexVec, sri);
+
+  // With complex SRI.mode, push one burst of scalar data and one of complex
+  // data; SRI.mode should be preserved
+  sri.mode = 1;
+  op1->pushBurst(dataVec, sri);
+  op1->pushBurst(complexVec, sri);
+
+  // Make sure all the bursts are sent
+  op1->flush();
+
+  // Read each of the four packets, resulting SRI.mode should be as follows:
+  //
+  //              SRI.mode
+  // Data type  user  result
+  // =========  ====  ======
+  // scalar      0      0
+  // complex     0      1
+  // scalar      1      1
+  // complex     1      1
+  typedef typename IN_PORT::PacketType PacketType;
+  boost::scoped_ptr<PacketType> packet(ip1->getBurst(bulkio::Const::NON_BLOCKING));
+  CPPUNIT_ASSERT_MESSAGE("Did not receive first packet", packet);
+  CPPUNIT_ASSERT_MESSAGE("Scalar sri.mode and scalar data has complex mode", !packet->isComplex());
+
+  packet.reset(ip1->getBurst(bulkio::Const::NON_BLOCKING));
+  CPPUNIT_ASSERT_MESSAGE("Did not receive second packet", packet);
+  CPPUNIT_ASSERT_MESSAGE("Scalar sri.mode not overridden by complex data", packet->isComplex());
+
+  packet.reset(ip1->getBurst(bulkio::Const::NON_BLOCKING));
+  CPPUNIT_ASSERT_MESSAGE("Did not receive third packet", packet);
+  CPPUNIT_ASSERT_MESSAGE("Complex sri.mode overridden by scalar data", packet->isComplex());
+
+  packet.reset(ip1->getBurst(bulkio::Const::NON_BLOCKING));
+  CPPUNIT_ASSERT_MESSAGE("Did not receive fourth packet", packet);
+  CPPUNIT_ASSERT_MESSAGE("Complex sri.mode and complex data has scalar mode", packet->isComplex());
+
+  op1->disconnectPort(cid.c_str());
+  RH_DEBUG(logger, "Burstio Flow - Push Complex -- Disconnected" );
+
+  RH_DEBUG(logger, "BURSTIO PUSH-BURSTS COMPLEX END " );
+}
+
+
 
 template < typename OUT_PORT, typename IN_PORT >
 int  Burstio_PushBursts< OUT_PORT, IN_PORT >::test_fan_in_push( OUT_PORT *op, int oid , int nbursts ) {

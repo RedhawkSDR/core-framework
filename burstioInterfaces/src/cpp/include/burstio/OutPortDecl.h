@@ -145,7 +145,10 @@ namespace burstio {
         {
             SequenceType data;
             burstio::utils::copy(data, first, last);
-            this->queueBurst(data, sri, timestamp, eos, burstio::utils::is_complex(*first));
+            // If sri.mode is not set (i.e., default or scalar) but the input
+            // data type is complex, override sri.mode
+            bool is_complex = sri.mode?sri.mode:burstio::utils::is_complex(*first);
+            this->queueBurst(data, sri, timestamp, eos, is_complex);
         }
 
         template <class Iterator>
