@@ -62,6 +62,13 @@ namespace redhawk {
     {
     }
 
+    UsesPort::~UsesPort()
+    {
+        for (TransportList::iterator port = _transports.begin(); port != _transports.end(); ++port) {
+            delete *port;
+        }
+    }
+
     void UsesPort::connectPort(CORBA::Object_ptr connection, const char* connectionId)
     {
         RH_TRACE_ENTER(logger);

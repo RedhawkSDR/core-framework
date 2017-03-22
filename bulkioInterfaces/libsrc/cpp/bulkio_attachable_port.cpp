@@ -862,7 +862,7 @@ namespace bulkio {
           boost::mutex::scoped_lock lock(attachmentsUpdateLock);
           try {
               LOG_TRACE( logger, "Creating ATTACHMENT FOR CONNECTION: " << connectionId);
-              char* attachId = inPort->attach(_streamDefinition, _name.c_str()); 
+              CORBA::String_var attachId = inPort->attach(_streamDefinition, _name.c_str()); 
               LOG_TRACE( logger, "Created ATTACHMENT, CONNECTION  " << connectionId << " ATTACH ID" << attachId);
               StreamAttachment attachment(connectionId, std::string(attachId), inPort, port);
               attachment.setLogger(logger);

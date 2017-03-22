@@ -81,6 +81,7 @@ namespace redhawk {
     {
     public:
         UsesPort(const std::string& name);
+        virtual ~UsesPort();
 
         // Register the member function 'func' to be called on class instance
         // 'target' when a new connection is made. The function receives one

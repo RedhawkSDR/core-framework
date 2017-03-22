@@ -355,6 +355,7 @@ void  Bulkio_MultiOut_Data_Port< OUT_PORT, IN_PORT >::test_multiout_sri_eos_filt
   CPPUNIT_ASSERT_MESSAGE( "getPacket - PKT was empty", pkt != NULL );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - StreamID Mismatch", strcmp( pkt->SRI.streamID, filter_stream_id.c_str() ) == 0 );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - EOS Mismatch:" , pkt->EOS == 1) ;
+  delete pkt;
 
   filter_stream_id = "stream-2-1";
   this->port->pushPacket( v, TS, true, filter_stream_id );
@@ -362,6 +363,7 @@ void  Bulkio_MultiOut_Data_Port< OUT_PORT, IN_PORT >::test_multiout_sri_eos_filt
   CPPUNIT_ASSERT_MESSAGE( "getPacket - PKT was empty", pkt != NULL );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - StreamID Mismatch", strcmp( pkt->SRI.streamID, filter_stream_id.c_str() ) == 0 );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - EOS Mismatch:" , pkt->EOS == 1) ;
+  delete pkt;
 
   filter_stream_id = "stream-3-1";
   this->port->pushPacket( v, TS, true, filter_stream_id );
@@ -369,6 +371,7 @@ void  Bulkio_MultiOut_Data_Port< OUT_PORT, IN_PORT >::test_multiout_sri_eos_filt
   CPPUNIT_ASSERT_MESSAGE( "getPacket - PKT was empty", pkt != NULL );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - StreamID Mismatch", strcmp( pkt->SRI.streamID, filter_stream_id.c_str() ) == 0 );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - EOS Mismatch:" , pkt->EOS == 1) ;
+  delete pkt;
 
   filter_stream_id = "stream-4-1";
   this->port->pushPacket( v, TS, true, filter_stream_id );
@@ -376,6 +379,7 @@ void  Bulkio_MultiOut_Data_Port< OUT_PORT, IN_PORT >::test_multiout_sri_eos_filt
   CPPUNIT_ASSERT_MESSAGE( "getPacket - PKT was empty", pkt != NULL );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - StreamID Mismatch", strcmp( pkt->SRI.streamID, filter_stream_id.c_str() ) == 0 );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - EOS Mismatch:" , pkt->EOS == 1) ;
+  delete pkt;
 
   streams = this->ip1->activeSRIs();
   CPPUNIT_ASSERT_MESSAGE( "Multiout SRI Filtered - Port 1 Stream Failed", streams != NULL );
