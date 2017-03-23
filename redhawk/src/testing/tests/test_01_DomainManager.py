@@ -621,23 +621,6 @@ class DomainManager_CreateApplication(scatest.CorbaTestCase):
         ## reset file
         shutil.copy(comp_spd+".ORIG", comp_spd)
 
-    def test_createApplicationFailures_deps_readissue_dir(self):
-        wf_name=self.wf_name
-        sadfile=self.sadfile
-
-        dep_dir=scatest.getSdrPath()+"/dom/deps/cpp_dep2/cpp/lib"
-        os.chmod(dep_dir,0000)
-        comp_spd=scatest.getSdrPath()+"/dom/components/cpp_with_deps/cpp_with_deps.spd.xml"
-        shutil.copy(comp_spd+".TEST.readissue", comp_spd)
-        self.assertRaises( CF.ApplicationFactory.CreateApplicationError, self._domMgr.createApplication, sadfile, "", [], [])
-        try:
-            self._domMgr.createApplication(sadfile, "", [], [])
-        except Exception, e:
-            self.assertEqual(e.msg,'Failed to load file')
-        ## reset file
-        os.chmod(dep_dir,0775)
-        shutil.copy(comp_spd+".ORIG", comp_spd)
-
     def test_createApplicationFailures_dep_missing(self):
         wf_name=self.wf_name
         sadfile=self.sadfile
