@@ -84,6 +84,8 @@ library_include_HEADERS = cpp/include/bulkio/bulkio.h \
 
 libbulkio_@BULKIO_API_VERSION@_la_CXXFLAGS = -Wall -I $(srcdir)/cpp -I $(srcdir)/cpp/include/bulkio -DLOGGING $(BULKIOINTERFACES_CFLAGS) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
 
+libbulkio_@BULKIO_API_VERSION@_la_LIBADD = $(top_builddir)/libbulkioInterfaces.la
+
 ###############################################################################
 # Python
 

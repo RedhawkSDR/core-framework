@@ -33,7 +33,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 lib_LTLIBRARIES = libfrontend-@FRONTEND_API_VERSION@.la
 libfrontend_@FRONTEND_API_VERSION@_la_LDFLAGS = -version-info $(FRONTEND_SO_VERSION)
-libfrontend_@FRONTEND_API_VERSION@_la_LIBADD = $(BULKIO_LIBS) $(OSSIE_LIBS)
+libfrontend_@FRONTEND_API_VERSION@_la_LIBADD = $(BULKIO_LIBS) $(OSSIE_LIBS) $(top_builddir)/libfrontendInterfaces.la
 
 libfrontend_@FRONTEND_API_VERSION@_la_SOURCES = \
     cpp/fe_rfsource_port_impl.cpp \
