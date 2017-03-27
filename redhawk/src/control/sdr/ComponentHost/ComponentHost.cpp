@@ -36,30 +36,44 @@ PREPARE_LOGGING(ComponentHost);
 
 ComponentHost::ComponentHost(const char* identifier, const char* label) :
     Component(identifier, label),
-    defaultBundle("default"),
     counter(0)
 {
-    executorService.start();
+    loadProperties();
 }
 
 ComponentHost::~ComponentHost()
 {
     executorService.stop();
-    defaultBundle.clear();
+}
+
+void ComponentHost::loadProperties()
+{
+    addProperty(preload,
+                preload,
+                "preload",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
 }
 
 void ComponentHost::constructor()
 {
-    // Preload libraries from $OSSIEHOME/lib to ensure that they are always
-    // available. This prevents common libraries like BulkIO from being loaded
-    // implicitly by components, which can lead to the component library being
-    // unable to be unloaded.
-    const char* ossiehome = getenv("OSSIEHOME");
-    if (ossiehome) {
-        std::string libpath = std::string(ossiehome) + "/lib";
-        if (fs::exists(libpath) && fs::is_directory(libpath)) {
-            LOG_DEBUG(ComponentHost, "Loading default libraries from " << libpath);
-            defaultBundle.loadDirectory(libpath, ModuleLoader::LAZY, ModuleLoader::GLOBAL);
+    executorService.start();
+
+    // Preload libraries as given in initial configuration (in most cases, this
+    // will be the PRF value, because ComponentHost is implicitly launched by
+    // the Domain or the Sandbox). This allows us to prevent common libraries
+    // like BulkIO from being loaded implicitly by components, which can lead
+    // to the component library being unable to be unloaded.
+    LOG_DEBUG(ComponentHost, "Preloading " << preload.size() << " libraries");
+    for (std::vector<std::string>::iterator libname = preload.begin(); libname != preload.end(); ++libname) {
+        try {
+            ModuleLoader::Preload(*libname, ModuleLoader::LAZY, ModuleLoader::GLOBAL);
+        } catch (const std::exception& exc) {
+            // NB: The library name should be at the front of the error message
+            LOG_WARN(ComponentHost, "Unable to preload library " << exc.what());
         }
     }
 }
@@ -237,3 +251,4 @@ void ComponentHost::cleanupComponent(ComponentEntry* component)
     boost::system_time when = boost::get_system_time() + boost::posix_time::microseconds(125);
     executorService.schedule(when, &ComponentHost::cleanupComponent, this, component);
 }
+

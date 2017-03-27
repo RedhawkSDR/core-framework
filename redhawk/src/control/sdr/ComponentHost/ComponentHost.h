@@ -59,12 +59,13 @@ namespace redhawk {
         virtual CF::ExecutableDevice::ProcessID_Type executeLinked(const char* name, const CF::Properties& options, const CF::Properties& parameters, const CF::StringSequence& deps);
 
     private:
+        void loadProperties();
+
         void componentReleased(Resource_impl* object);
         void cleanupComponent(ComponentEntry* entry);
 
         std::string getRealPath(const std::string& path);
 
-        ModuleBundle defaultBundle;
         int counter;
 
         boost::mutex loadMutex;
@@ -74,6 +75,8 @@ namespace redhawk {
         // Threaded service for performing cleanup checks
         redhawk::ExecutorService executorService;
 
+        /// Property: preload
+        std::vector<std::string> preload;
     };
 }
 

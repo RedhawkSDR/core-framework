@@ -19,4 +19,15 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 <!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
-<properties/>
+<properties>
+  <simplesequence id="preload" mode="readonly" type="string">
+    <description>List of shared libraries to be preloaded by ComponentHost at startup time, to be made available for all components launched inside of this ComponentHost instance.</description>
+    <values>
+      <value>libbulkio-2.1.so</value>
+      <value>libburstio.so</value>
+      <value>libfrontend-2.4.so</value>
+    </values>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
+</properties>

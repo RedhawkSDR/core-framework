@@ -75,6 +75,8 @@ namespace redhawk {
             LOCAL = RTLD_LOCAL
         };
 
+        static void Preload(const std::string& path, LoadBinding binding, LoadVisibility visibility);
+
         static Module* Load(const std::string& path, LoadBinding binding, LoadVisibility visibility);
         static void Unload(Module* module);
 
@@ -82,6 +84,8 @@ namespace redhawk {
         ModuleLoader();
 
         static ModuleLoader& Instance();
+
+        void preload(const std::string& path, LoadBinding binding, LoadVisibility visibility);
 
         Module* load(const std::string& path, LoadBinding binding, LoadVisibility visibility);
         void unload(Module* module);
@@ -106,7 +110,6 @@ namespace redhawk {
         void loadDirectory(const std::string& path, ModuleLoader::LoadBinding binding, ModuleLoader::LoadVisibility visibility);
 
         void unload();
-        void clear();
 
     private:
         const std::string _name;

@@ -150,6 +150,11 @@ ModuleLoader& ModuleLoader::Instance()
     return loader;
 }
 
+void ModuleLoader::Preload(const std::string& path, LoadBinding binding, LoadVisibility visibility)
+{
+    Instance().preload(path, binding, visibility);
+}
+
 Module* ModuleLoader::Load(const std::string& path, LoadBinding binding, LoadVisibility visibility)
 {
     return Instance().load(path, binding, visibility);
@@ -158,6 +163,21 @@ Module* ModuleLoader::Load(const std::string& path, LoadBinding binding, LoadVis
 void ModuleLoader::Unload(Module* module)
 {
     Instance().unload(module);
+}
+
+void ModuleLoader::preload(const std::string& filename, LoadBinding binding, LoadVisibility visibility)
+{
+    // Preloading does not go through the normal module resolution that loading
+    // does, because the use case is different:
+    // * filename will usually be just a module name (e.g., "libbulkio-2.1.so")
+    //   that is located via LD_LIBRARY_PATH
+    // * preloaded libraries are not unloaded, so no need to reference count
+    LOG_DEBUG(ModuleLoader, "Preloading module " << filename);
+    int flags = binding | visibility;
+    void* handle = dlopen(filename.c_str(), flags);
+    if (!handle) {
+        throw std::runtime_error(dlerror());
+    }
 }
 
 Module* ModuleLoader::load(const std::string& filename, LoadBinding binding, LoadVisibility visibility)
@@ -267,10 +287,5 @@ void ModuleBundle::unload()
 {
     // Unload modules in reverse order of loading
     std::for_each(_modules.rbegin(), _modules.rend(), &ModuleLoader::Unload);
-    clear();
-}
-
-void ModuleBundle::clear()
-{
     _modules.clear();
 }
