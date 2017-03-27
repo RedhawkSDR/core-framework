@@ -197,8 +197,7 @@ Module* ModuleLoader::load(const std::string& filename, LoadBinding binding, Loa
         _modules[path] = module;
     } else {
         if (module->modified()) {
-            LOG_WARN(ModuleLoader, "Dynamic library " << module->name() << " has been modified since it was loaded"
-                     << " (" << path << ")");
+            throw std::runtime_error(path + ": library is already loaded but has been modified");
         }
         module->incref();
     }

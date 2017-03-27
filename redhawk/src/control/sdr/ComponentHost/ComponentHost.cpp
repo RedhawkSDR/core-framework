@@ -176,24 +176,30 @@ CF::ExecutableDevice::ProcessID_Type ComponentHost::executeLinked(const char* na
                 bundle->load(libpath, ModuleLoader::LAZY, ModuleLoader::LOCAL);
             }
         } catch (const std::exception& exc) {
-            throw CF::InvalidFileName(CF::CF_EINVAL, exc.what());
+            LOG_ERROR(ComponentHost, "Unable to load dependency: " << exc.what());
+            throw CF::ExecutableDevice::ExecuteFail(CF::CF_EINVAL, exc.what());
         }
+    }
+
+    LOG_DEBUG(ComponentHost, "Loading component module: " << path);
+    Module* module;
+    try {
+        // Resolve all required symbols now so that we can catch the error and
+        // turn it into an exception, rather than having the process exit at
+        // point-of-use
+        module = bundle->load(path, ModuleLoader::NOW, ModuleLoader::LOCAL);
+    } catch (const std::exception& exc) {
+        LOG_ERROR(ComponentHost, "Unable to load module: " << exc.what())
+        throw CF::ExecutableDevice::ExecuteFail(CF::CF_EINVAL, exc.what());
     }
 
     typedef Resource_impl* (*ConstructorPtr)(const std::string&, const std::string&);
     ConstructorPtr make_component;
     try {
-        // Resolve all required symbols now so that we can catch the error and
-        // turn it into an exception, rather than having the process exit at
-        // point-of-use
-        Module* module = bundle->load(path, ModuleLoader::NOW, ModuleLoader::LOCAL);
         LOG_DEBUG(ComponentHost, "Resolving module entry point");
         make_component = reinterpret_cast<ConstructorPtr>(module->symbol("make_component"));
     } catch (const std::exception& exc) {
         LOG_ERROR(ComponentHost, "Unable to load module entry point: " << exc.what())
-        make_component = 0;
-    }
-    if (!make_component) {
         throw CF::ExecutableDevice::InvalidFunction();
     }
 
