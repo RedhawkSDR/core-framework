@@ -84,17 +84,15 @@ class InteractiveTestJava(scatest.CorbaTestCase):
 
     def test_NoInteractiveJavaService(self):
         status, output=commands.getstatusoutput('sdr/dev/services/BasicService_java/java/startJava.sh -i')
-        self.assertEquals(output,self.message)
+        self.assertNotEquals(output.find(self.message),-1)
 
     def test_NoInteractiveJavaDevice(self):
-        print os.getcwd()
         status, output=commands.getstatusoutput('sdr/dev/devices/BasicTestDevice_java/java/startJava.sh -i')
-        self.assertEquals(output,self.message)
+        self.assertNotEquals(output.find(self.message),-1)
 
     def test_NoInteractiveJavaComponent(self):
-        print os.getcwd()
         status, output=commands.getstatusoutput('sdr/dom/components/ECM_JAVA/java/startJava.sh -i')
-        self.assertEquals(output,self.message)
+        self.assertNotEquals(output.find(self.message),-1)
 
 class InteractiveTestPython(scatest.CorbaTestCase):
     def setUp(self):
@@ -105,17 +103,15 @@ class InteractiveTestPython(scatest.CorbaTestCase):
 
     def test_NoInteractivePythonService(self):
         status, output=commands.getstatusoutput('sdr/dev/services/S1/python/S1.py -i')
-        self.assertEquals(output,self.message)
+        self.assertNotEquals(output.find(self.message),-1)
 
     def test_NoInteractivePythonDevice(self):
-        print os.getcwd()
         status, output=commands.getstatusoutput('sdr/dev/devices/BasicTestDevice/BasicTestDevice.py -i')
-        self.assertEquals(output,"DEBUG:root:Starting Device\n"+self.message)
+        self.assertNotEquals(output.find(self.message),-1)
 
     def test_NoInteractivePythonComponent(self):
-        print os.getcwd()
         status, output=commands.getstatusoutput('sdr/dom/components/ECM_PY/python/ECM_PY.py -i')
-        self.assertEquals(output,self.message)
+        self.assertNotEquals(output.find(self.message),-1)
 
 class InteractiveTestCpp(scatest.CorbaTestCase):
     def setUp(self):
@@ -126,17 +122,15 @@ class InteractiveTestCpp(scatest.CorbaTestCase):
 
     def test_NoInteractiveCppService(self):
         status, output=commands.getstatusoutput('sdr/dev/services/BasicService_cpp/cpp/BasicService_cpp -i')
-        self.assertEquals(output,self.message)
+        self.assertNotEquals(output.find(self.message),-1)
 
     def test_NoInteractiveCppDevice(self):
-        print os.getcwd()
         status, output=commands.getstatusoutput('sdr/dev/devices/cpp_dev/cpp/cpp_dev -i')
-        self.assertEquals(output,self.message)
+        self.assertNotEquals(output.find(self.message),-1)
 
     def test_NoInteractiveCppComponent(self):
-        print os.getcwd()
         status, output=commands.getstatusoutput('sdr/dom/components/ECM_CPP/cpp/ECM_CPP -i')
-        self.assertEquals(output,self.message)
+        self.assertNotEquals(output.find(self.message),-1)
 
 class SBEventChannelTest(scatest.CorbaTestCase):
     def setUp(self):
