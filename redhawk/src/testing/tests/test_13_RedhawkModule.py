@@ -27,6 +27,8 @@ import os as _os
 from ossie.cf import CF
 from ossie.utils import redhawk
 from ossie.utils import type_helpers
+from ossie.utils import sb
+from ossie.utils.model import NoMatchingPorts
 
 class RedhawkModuleTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -689,3 +691,28 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
             post.extend(comp.runTest(0, []))
 
         self.assertTrue(len(post) > len(pre))
+
+
+class MixedRedhawkSandboxTest(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+
+    def tearDown(self):
+        scatest.CorbaTestCase.tearDown(self)
+        sb.release()
+
+    def test_BadApplicationConnection(self):
+        """
+        Tests that attempting to connect a Sandbox source or sink to an
+        application that does not have matching ports throws the correct
+        exception type (as opposed to an AttributeError).
+        """
+        app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
+
+        source = sb.DataSource()
+        self.assertRaises(NoMatchingPorts, source.connect, app)
+
+        sink = sb.DataSink()
+        self.assertRaises(NoMatchingPorts, app.connect, source)

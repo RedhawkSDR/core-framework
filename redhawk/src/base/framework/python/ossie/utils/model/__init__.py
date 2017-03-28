@@ -327,7 +327,7 @@ class PortSupplier(object):
                     raise RuntimeError, ret_str
                 elif len(matches) == 0:
                     if uses:
-                        raise NoMatchingPorts('No matching interfaces between '+uses.supplier._instanceName+' and '+providesComponent._componentName)
+                        raise NoMatchingPorts('No matching interfaces between '+uses.supplier._instanceName+' and '+providesComponent._instanceName)
                     else:
                         raise NoMatchingPorts('No matching interfaces found')
                 usesEndpoint, providesEndpoint = matches[0]
