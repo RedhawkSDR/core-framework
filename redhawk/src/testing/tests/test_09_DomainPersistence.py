@@ -293,6 +293,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app.start()
 
         eventChannelMgr = domMgr._get_eventChannelMgr()
+        connMgr = domMgr._get_connectionMgr()
+        initial_connections = connMgr.listConnections(100)[0]
 
         _consumer = Consumer_i(self)
         evt_reg = CF.EventChannelManager.EventRegistration(channel_name = 'anotherChannel', reg_id = 'my_reg_id')
@@ -311,6 +313,17 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         # Restart the Domain Manager (which should restore the old channel)
         self._nb_domMgr, domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+
+        current_connections = connMgr.listConnections(100)[0]
+        current_connection_ids = []
+        for _cc in current_connections:
+            current_connection_ids.append(_cc.connectionRecordId)
+        initial_connection_ids = []
+        for _cc in initial_connections:
+            initial_connection_ids.append(_cc.connectionRecordId)
+        self.assertEquals(len(current_connection_ids), len(initial_connection_ids))
+        for _cc in initial_connection_ids:
+            self.assertTrue(_cc in current_connection_ids)
 
         newappFact = domMgr._get_applicationFactories()[0]
         app2 = newappFact.create(appFact._get_name(), [], [])
@@ -353,6 +366,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app.start()
 
         eventChannelMgr = domMgr._get_eventChannelMgr()
+        connMgr = domMgr._get_connectionMgr()
+        initial_connections = connMgr.listConnections(100)[0]
 
         _consumer = Consumer_i(self)
         evt_reg = CF.EventChannelManager.EventRegistration(channel_name = 'anotherChannel', reg_id = 'my_reg_id')
@@ -371,6 +386,17 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         # Restart the Domain Manager (which should restore the old channel)
         self._nb_domMgr, domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+
+        current_connections = connMgr.listConnections(100)[0]
+        current_connection_ids = []
+        for _cc in current_connections:
+            current_connection_ids.append(_cc.connectionRecordId)
+        initial_connection_ids = []
+        for _cc in initial_connections:
+            initial_connection_ids.append(_cc.connectionRecordId)
+        self.assertEquals(len(current_connection_ids), len(initial_connection_ids))
+        for _cc in initial_connection_ids:
+            self.assertTrue(_cc in current_connection_ids)
 
         newappFact = domMgr._get_applicationFactories()[0]
         app2 = newappFact.create(appFact._get_name(), [], [])
@@ -442,6 +468,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app.start()
 
         eventChannelMgr = domMgr._get_eventChannelMgr()
+        connMgr = domMgr._get_connectionMgr()
+        initial_connections = connMgr.listConnections(100)[0]
 
         _consumer = Consumer_i(self)
         evt_reg = CF.EventChannelManager.EventRegistration(channel_name = 'anotherChannel', reg_id = 'my_reg_id')
@@ -460,6 +488,17 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         # Restart the Domain Manager (which should restore the old channel)
         self._nb_domMgr, domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+
+        current_connections = connMgr.listConnections(100)[0]
+        current_connection_ids = []
+        for _cc in current_connections:
+            current_connection_ids.append(_cc.connectionRecordId)
+        initial_connection_ids = []
+        for _cc in initial_connections:
+            initial_connection_ids.append(_cc.connectionRecordId)
+        self.assertEquals(len(current_connection_ids), len(initial_connection_ids))
+        for _cc in initial_connection_ids:
+            self.assertTrue(_cc in current_connection_ids)
 
         newappFact = domMgr._get_applicationFactories()[0]
         app2 = newappFact.create(appFact._get_name(), [], [])
