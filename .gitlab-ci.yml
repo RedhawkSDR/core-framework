@@ -1,7 +1,6 @@
 variables:
-  DOCKER_REGISTRY_URL: ''
-  REDHAWK_VERSION: '2.1.0'
-  FRONTEND_VERSION: '2.4.0'
+  REDHAWK_VERSION: '2.1.1'
+  FRONTEND_VERSION: '2.4.1'
 
 stages:
   - build

@@ -28,8 +28,8 @@ Prefix:         %{_prefix}
 %bcond_without java
 
 Name:           bulkioInterfaces
-Version:        2.1.0
-Release:        3%{?dist}
+Version:        2.1.1
+Release:        1%{?dist}
 Summary:        The bulkio library for REDHAWK
 
 Group:          Applications/Engineering
