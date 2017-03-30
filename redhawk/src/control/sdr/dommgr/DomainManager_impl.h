@@ -294,6 +294,12 @@ protected:
     void disconnectDomainManagementChannels();
     void idmTerminationMessages( const redhawk::events::ComponentTerminationEvent &msg );
     void destroyEventChannels (void);
+    void storePubProxies();
+    void storeSubProxies();
+    void storeEventChannelRegistrations();
+    void restorePubProxies(const std::string& _db_uri);
+    void restoreSubProxies(const std::string& _db_uri);
+    void restoreEventChannelRegistrations(const std::string& _db_uri);
 
     bool applicationDependsOnDevice (Application_impl* application, const std::string& deviceId);
 
@@ -369,6 +375,9 @@ private:
     std::string      redhawk_version;
     bool             _useLogConfigUriResolver;
     bool             _strict_spd_validation;
+
+    // orb context
+    ossie::corba::OrbContext                         _orbCtx;
 
     void _exit(int __status) {
         ossie::logging::Terminate();            //no more logging....

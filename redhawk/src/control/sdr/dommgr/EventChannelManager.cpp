@@ -634,9 +634,9 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
       throw (CF::EventChannelManager::OperationFailed());      
     }
 
-    ECM_DEBUG("restore", 
+    /*ECM_DEBUG("restore", 
             "ADD Channel Registration, Event Channel: "<< channel_name << " fqn:" << fqn );
-    ChannelRegistrationPtr reg  __attribute__((unused)) = _addChannelRegistration( channel_name, fqn, event_channel, false ); 
+    ChannelRegistrationPtr reg  __attribute__((unused)) = _addChannelRegistration( channel_name, fqn, event_channel, false );*/
 
     //
     // return pointer the channel... we maintain a separate copy
@@ -645,17 +645,26 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
   }
 
 
-
-  ossie::events::EventChannelReg_ptr EventChannelManager::registerResource( const ossie::events::EventRegistration &request)  
+ossie::events::EventChannelReg_ptr EventChannelManager::registerResource( const ossie::events::EventRegistration &request)  
     throw ( CF::EventChannelManager::InvalidChannelName, 
-	    CF::EventChannelManager::RegistrationAlreadyExists,
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
+        CF::EventChannelManager::RegistrationAlreadyExists,
+        CF::EventChannelManager::OperationFailed, 
+        CF::EventChannelManager::OperationNotAllowed,
+        CF::EventChannelManager::ServiceUnavailable )
+{
+    SCOPED_LOCK(_mgrlock);
+    return _registerResource( request );
+}
+
+ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const ossie::events::EventRegistration &request)  
+    throw ( CF::EventChannelManager::InvalidChannelName, 
+        CF::EventChannelManager::RegistrationAlreadyExists,
+        CF::EventChannelManager::OperationFailed, 
+        CF::EventChannelManager::OperationNotAllowed,
+        CF::EventChannelManager::ServiceUnavailable )
   {
 
     ECM_DEBUG("registerResource", "REQUEST REGISTRATION , REG-ID:" << request.reg_id << " CHANNEL:" << request.channel_name );
-    SCOPED_LOCK(_mgrlock);
 
     // get the event channel factory... throws ServiceUnavailable
     _getEventChannelFactory();
@@ -709,8 +718,8 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
     reg->channel = ossie::events::EventChannel::_duplicate(creg->channel);
 
     std::string ior = ossie::corba::objectToString( reg->channel );
-    ECM_DEBUG("register", "NEW REGISTRATION FOR:" << ior );
     creg->registrants.insert( RegRecord( regid, ior ) );
+    this->_domainManager->storeEventChannelRegistrations();
 
     ECM_DEBUG("registerResource", "NEW REGISTRATION REG-ID:" << regid << " CHANNEL:" << channel_name );
 
@@ -726,11 +735,13 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
             CF::EventChannelManager::OperationFailed, 
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable ) {
+      SCOPED_LOCK(_mgrlock);
       int retries = 10;
       int retry_wait = 10;
       int tries = retries;
       CosEventChannelAdmin::ConsumerAdmin_var consumer_admin;
-      ossie::events::EventChannel_var channel = get(req.channel_name);
+      std::string _channel_name(req.channel_name);
+      ossie::events::EventChannel_var channel = _get(_channel_name);
       do
       {
           try {
@@ -791,7 +802,7 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
       } while ( tries );
       ossie::events::EventChannelReg_ptr ret_reg;
       try {
-          ret_reg = registerResource(req);
+          ret_reg = _registerResource(req);
       } catch ( ... ) {
           try {
               _proxy->disconnect_push_supplier();
@@ -801,6 +812,7 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
       }
       std::string _reg_id(ret_reg->reg.reg_id);
       _subProxies[_reg_id] = ossie::events::EventSubscriber::_duplicate(_proxy);
+      this->_domainManager->storeSubProxies();
       return ret_reg;
   }
   
@@ -810,14 +822,15 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
             CF::EventChannelManager::OperationFailed, 
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable ) {
-        
+      SCOPED_LOCK(_mgrlock);
       int retries = 10;
       int retry_wait = 10;
       int tries = retries;
         
       CosEventChannelAdmin::SupplierAdmin_var supplier_admin;
       ossie::events::PublisherReg_ptr reg = new ossie::events::PublisherReg();
-      ossie::events::EventChannel_var channel = get(req.channel_name);
+      std::string _channel_name(req.channel_name);
+      ossie::events::EventChannel_var channel = _get(_channel_name);
       do
       {
           try {
@@ -851,7 +864,7 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
         
       ossie::events::EventChannelReg_var ret_reg;
       try {
-          ret_reg = registerResource(req);
+          ret_reg = _registerResource(req);
       } catch ( ... ) {
           throw;
       }
@@ -1496,7 +1509,6 @@ EventChannelManager::ChannelRegistrationPtr EventChannelManager::_addChannelRegi
                                                                                           ossie::events::EventChannel_ptr channel,
                                                                                           bool autoRelease ) 
 {
-
   ECM_TRACE("_addChannelRegistration", "Created ChannelRegistrationRecord, Event Channel/FQN : "<< cname << "/" << fqn );
   ECM_TRACE("_addChannelRegistration", "Created ChannelRegistrationRecord, Event Channel : "<< channel << "/" << autoRelease );
 
@@ -1520,6 +1532,7 @@ EventChannelManager::ChannelRegistrationPtr EventChannelManager::_addChannelRegi
     ECM_TRACE("addChannelRegistration", "    ChannelRecord: channel:" << _channels[cname].channel);
     ECM_TRACE("_addChannelRegistration", "Registration Table Size: "<< _channels.size() );
   }
+  this->_domainManager->storeEventChannelRegistrations();
   return ret;
 }
 
@@ -1552,6 +1565,7 @@ EventChannelManager::ChannelRegistrationPtr EventChannelManager::_addChannelRegi
       _channels.erase(itr);
     }
     ECM_DEBUG("_deleteChannelRegistration", "Completed delete registration...EventChannel: "<< cname );
+    this->_domainManager->storeEventChannelRegistrations();
     return;
   }
 

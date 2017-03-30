@@ -167,6 +167,13 @@ class EventChannelManager: public virtual EventChannelManagerBase {
   
   */
 
+  ossie::events::EventChannelReg_ptr _registerResource( const ossie::events::EventRegistration &req)  
+    throw ( CF::EventChannelManager::InvalidChannelName, 
+            CF::EventChannelManager::RegistrationAlreadyExists,
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
+
   ossie::events::EventChannelReg_ptr registerResource( const ossie::events::EventRegistration &req)  
     throw ( CF::EventChannelManager::InvalidChannelName, 
             CF::EventChannelManager::RegistrationAlreadyExists,
@@ -214,14 +221,7 @@ class EventChannelManager: public virtual EventChannelManagerBase {
   bool             isChannel( const std::string &channel_name );
   void             setPollingPeriod( const int64_t period );
 
- private:
-
-  typedef  std::pair< std::string, std::string >  RegRecord;
   typedef  std::map< std::string, std::string >   RegIdList;
-  
-  std::map<std::string, ossie::events::EventSubscriber_var> _subProxies;
-  std::map<std::string, ossie::events::EventPublisher_var> _pubProxies;
-
   struct ChannelRegistration {
     std::string                      channel_name;
     std::string                      fqn;
@@ -234,11 +234,53 @@ class EventChannelManager: public virtual EventChannelManagerBase {
       return registrants.size();
     }
   };
+  typedef std::map< std::string, ChannelRegistration >      ChannelRegistrationTable;
+  
+  typedef std::map<std::string, ossie::events::EventSubscriber_var> SubProxyMap;
+  typedef std::map<std::string, ossie::events::EventPublisher_var> PubProxyMap;
+  
+  SubProxyMap getSubProxies() { return _subProxies;};
+  PubProxyMap getPubProxies() { return _pubProxies;};
+  ChannelRegistrationTable getChannelRegistrations() { return _channels;};
+  void setSubProxies(SubProxyMap &_inval) { _subProxies = _inval;};
+  void setPubProxies(PubProxyMap &_inval) { _pubProxies = _inval;};
+  void setChannelRegistrations(ChannelRegistrationTable &_inval) { _channels = _inval; };
 
+  private:
 
+  // type definitions
+  typedef  std::pair< std::string, std::string >  RegRecord;
   typedef ChannelRegistration*                              ChannelRegistrationPtr;
 
-  typedef std::map< std::string, ChannelRegistration >      ChannelRegistrationTable;
+  // event channel manager state
+  SubProxyMap _subProxies;
+  PubProxyMap _pubProxies;
+  //
+  // Channel Registration database
+  //
+  ChannelRegistrationTable                         _channels;
+
+  // configuration and default state information
+#ifndef CPPUNIT_TEST
+  // Handle to the Resource that owns us
+  DomainManager_impl*                              _domainManager;
+#endif
+  // naming context directory to bind event channgels to...
+  std::string                                      _domain_context;
+  // orb context
+  ossie::corba::OrbContext                         _orbCtx;
+  //  Handle to factory interface to create EventChannels
+  ossie::events::EventChannelFactory_var            _event_channel_factory;
+  // if enabled, events will show up in the NamingService
+  bool                                            _use_naming_service;
+  // use fully qualified domain names when creating channels.
+  bool                                           _use_fqn;
+  // allow event service to resolve channels
+  bool                                           _allow_es_resolve;
+  // default polling period to assign to a channel
+  int64_t                                        _default_poll_period;
+  // synchronize access to member variables
+  redhawk::Mutex                                   _mgrlock;
 
 
   void _initialize();
@@ -353,42 +395,6 @@ class EventChannelManager: public virtual EventChannelManagerBase {
        
    */
   void                                _deleteChannelRegistration( const std::string &cname );
-
-
-
-#ifndef CPPUNIT_TEST
-  // Handle to the Resource that owns us
-  DomainManager_impl*                              _domainManager;
-#endif
-
-  // naming context directory to bind event channgels to...
-  std::string                                      _domain_context;
-
-  // orb context
-  ossie::corba::OrbContext                         _orbCtx;
-
-  //  Handle to factory interface to create EventChannels
-  ossie::events::EventChannelFactory_var            _event_channel_factory;
-
-  //
-  // Channel Registration database
-  //
-  ChannelRegistrationTable                         _channels;
-
-  // if enabled, events will show up in the NamingService
-  bool                                            _use_naming_service;
-
-  // use fully qualified domain names when creating channels.
-  bool                                           _use_fqn;
-
-  // allow event service to resolve channels
-  bool                                           _allow_es_resolve;
-
-  // default polling period to assign to a channel
-  int64_t                                        _default_poll_period;
-
-  // synchronize access to member variables
-  redhawk::Mutex                                   _mgrlock;
 
 };
 

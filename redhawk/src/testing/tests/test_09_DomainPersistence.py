@@ -32,6 +32,7 @@ import CosEventChannelAdmin
 from ossie import properties
 from ossie.cf import StandardEvent
 from ossie.utils import uuid
+from ossie.events import Publisher
 
 
 class Supplier_i(CosEventComm__POA.PushSupplier):
@@ -291,6 +292,18 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app = appFact.create(appFact._get_name(), [], [])
         app.start()
 
+        eventChannelMgr = domMgr._get_eventChannelMgr()
+
+        _consumer = Consumer_i(self)
+        evt_reg = CF.EventChannelManager.EventRegistration(channel_name = 'anotherChannel', reg_id = 'my_reg_id')
+        reg = eventChannelMgr.registerConsumer(_consumer._this(), evt_reg)
+        pub = Publisher(domMgr, 'anotherChannel')
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+        _channel_registrations = {}
+        for _channel in _channels:
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
+
         # Kill the domainMgr
         os.kill(self._nb_domMgr.pid, signal.SIGKILL)
         if not self.waitTermination(self._nb_domMgr, 5.0):
@@ -302,37 +315,26 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         newappFact = domMgr._get_applicationFactories()[0]
         app2 = newappFact.create(appFact._get_name(), [], [])
         app2.start()
-        channelName = URI.stringToName("%s/%s" % (domainName, 'anotherChannel'))
-        try:
-            appChannel = self._root.resolve(channelName)._narrow(CosEventChannelAdmin.EventChannel)
-        except:
-            self.assertEqual(False, True)
-        else:
-            self.assertEqual(True, True)
-
-        # resolve the producer for the event
-        supplier_admin = appChannel.for_suppliers()
-        _proxy_consumer = supplier_admin.obtain_push_consumer()
-        _supplier = Supplier_i()
-        _proxy_consumer.connect_push_supplier(_supplier._this())
-
-        # resolve the consumer for the event
-        consumer_admin = appChannel.for_consumers()
-        _proxy_supplier = consumer_admin.obtain_push_supplier()
-        _consumer = Consumer_i(self)
-        _proxy_supplier.connect_push_consumer(_consumer._this())
+        appChannel = eventChannelMgr.get('anotherChannel')
 
         # a flag is raised only when two responses come back (one for each running app)
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+        self.assertEquals(len(_channel_registrations), len(_channels))
+        for _channel in _channels:
+            self.assertTrue(_channel_registrations.has_key(_channel.channel_name))
+            self.assertEquals(_channel_registrations[_channel.channel_name], _channel.reg_count)
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
 
         self.eventFlag = False
         # this step tests whether the number of subscribers to the channel is restored
         app2.releaseObject()
 
         self.localEvent.clear()
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()
@@ -350,6 +352,18 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app = appFact.create(appFact._get_name(), [], [])
         app.start()
 
+        eventChannelMgr = domMgr._get_eventChannelMgr()
+
+        _consumer = Consumer_i(self)
+        evt_reg = CF.EventChannelManager.EventRegistration(channel_name = 'anotherChannel', reg_id = 'my_reg_id')
+        reg = eventChannelMgr.registerConsumer(_consumer._this(), evt_reg)
+        pub = Publisher(domMgr, 'anotherChannel')
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+        _channel_registrations = {}
+        for _channel in _channels:
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
+
         # Kill the domainMgr
         os.kill(self._nb_domMgr.pid, signal.SIGTERM)
         if not self.waitTermination(self._nb_domMgr, 5.0):
@@ -361,37 +375,25 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         newappFact = domMgr._get_applicationFactories()[0]
         app2 = newappFact.create(appFact._get_name(), [], [])
         app2.start()
-        channelName = URI.stringToName("%s/%s" % (domainName, 'anotherChannel'))
-        try:
-            appChannel = self._root.resolve(channelName)._narrow(CosEventChannelAdmin.EventChannel)
-        except:
-            self.assertEqual(False, True)
-        else:
-            self.assertEqual(True, True)
-
-        # resolve the producer for the event
-        supplier_admin = appChannel.for_suppliers()
-        _proxy_consumer = supplier_admin.obtain_push_consumer()
-        _supplier = Supplier_i()
-        _proxy_consumer.connect_push_supplier(_supplier._this())
-
-        # resolve the consumer for the event
-        consumer_admin = appChannel.for_consumers()
-        _proxy_supplier = consumer_admin.obtain_push_supplier()
-        _consumer = Consumer_i(self)
-        _proxy_supplier.connect_push_consumer(_consumer._this())
 
         # a flag is raised only when two responses come back (one for each running app)
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+        self.assertEquals(len(_channel_registrations), len(_channels))
+        for _channel in _channels:
+            self.assertTrue(_channel_registrations.has_key(_channel.channel_name))
+            self.assertEquals(_channel_registrations[_channel.channel_name], _channel.reg_count)
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
 
         self.eventFlag = False
         # this step tests whether the number of subscribers to the channel is restored
         app2.releaseObject()
 
         self.localEvent.clear()
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()
@@ -426,7 +428,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         devMgrs = domMgr._get_deviceManagers()
         self.assertEqual(len(devMgrs), 0)
 
-    def test_EventAppPortConnectionSIGQUIT(self):
+    def test_EventAppPortConnectionSIGQUITFoo(self):
         self.localEvent = threading.Event()
         self.eventFlag = False
 
@@ -439,6 +441,18 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app = appFact.create(appFact._get_name(), [], [])
         app.start()
 
+        eventChannelMgr = domMgr._get_eventChannelMgr()
+
+        _consumer = Consumer_i(self)
+        evt_reg = CF.EventChannelManager.EventRegistration(channel_name = 'anotherChannel', reg_id = 'my_reg_id')
+        reg = eventChannelMgr.registerConsumer(_consumer._this(), evt_reg)
+        pub = Publisher(domMgr, 'anotherChannel')
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+        _channel_registrations = {}
+        for _channel in _channels:
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
+
         # Kill the domainMgr
         os.kill(self._nb_domMgr.pid, signal.SIGQUIT)
         if not self.waitTermination(self._nb_domMgr, 5.0):
@@ -450,37 +464,26 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         newappFact = domMgr._get_applicationFactories()[0]
         app2 = newappFact.create(appFact._get_name(), [], [])
         app2.start()
-        channelName = URI.stringToName("%s/%s" % (domainName, 'anotherChannel'))
-        try:
-            appChannel = self._root.resolve(channelName)._narrow(CosEventChannelAdmin.EventChannel)
-        except:
-            self.assertEqual(False, True)
-        else:
-            self.assertEqual(True, True)
-
-        # resolve the producer for the event
-        supplier_admin = appChannel.for_suppliers()
-        _proxy_consumer = supplier_admin.obtain_push_consumer()
-        _supplier = Supplier_i()
-        _proxy_consumer.connect_push_supplier(_supplier._this())
-
-        # resolve the consumer for the event
-        consumer_admin = appChannel.for_consumers()
-        _proxy_supplier = consumer_admin.obtain_push_supplier()
-        _consumer = Consumer_i(self)
-        _proxy_supplier.connect_push_consumer(_consumer._this())
 
         # a flag is raised only when two responses come back (one for each running app)
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+
+        self.assertEquals(len(_channel_registrations), len(_channels))
+        for _channel in _channels:
+            self.assertTrue(_channel_registrations.has_key(_channel.channel_name))
+            self.assertEquals(_channel_registrations[_channel.channel_name], _channel.reg_count)
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
 
         self.eventFlag = False
         # this step tests whether the number of subscribers to the channel is restored
         app2.releaseObject()
 
         self.localEvent.clear()
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()

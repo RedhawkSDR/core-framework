@@ -209,9 +209,15 @@ void DomainManager_impl::establishDomainManagementChannels( const std::string &d
     if ( _eventChannelMgr ){
 
       if ( !dburi.empty() ) {
+        LOG_INFO(DomainManager_impl, "Restoring event channel manager state");
+        restorePubProxies(dburi);
+        restoreSubProxies(dburi);
+        restoreEventChannelRegistrations(dburi);
+        LOG_DEBUG(DomainManager_impl, "Completed Restoring Event Channel Manager state");
 	LOG_INFO(DomainManager_impl, "Restoring event channels file:" << dburi);
 	restoreEventChannels(dburi);
       }
+      
 
       LOG_TRACE(DomainManager_impl, "Establishing Domain Event Channels");
 

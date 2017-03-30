@@ -2107,6 +2107,124 @@ void DomainManager_impl::_local_registerService (CORBA::Object_ptr registeringSe
 //exists which causes an unsuccessful registration.
 }
 
+void DomainManager_impl::storePubProxies()
+{
+    EventProxies _proxies;
+    EventChannelManager::PubProxyMap _retVal = _eventChannelMgr->getPubProxies();
+    for (EventChannelManager::PubProxyMap::iterator it = _retVal.begin(); it != _retVal.end(); it++) {
+        _proxies[it->first] = _orbCtx.orb->object_to_string(it->second);
+    }
+    try {
+        db.store("EVTCHMGR_PUBPROXIES", _proxies);
+    } catch (const ossie::PersistenceException& ex) {
+        LOG_ERROR(DomainManager_impl, "Error persisting change to event channel manager publisher proxies");
+    }
+}
+
+void DomainManager_impl::storeSubProxies()
+{
+    EventProxies _proxies;
+    EventChannelManager::SubProxyMap _retVal = _eventChannelMgr->getSubProxies();
+    for (EventChannelManager::SubProxyMap::iterator it = _retVal.begin(); it != _retVal.end(); it++) {
+        _proxies[it->first] = _orbCtx.orb->object_to_string(it->second);
+    }
+    try {
+        db.store("EVTCHMGR_SUBPROXIES", _proxies);
+    } catch (const ossie::PersistenceException& ex) {
+        LOG_ERROR(DomainManager_impl, "Error persisting change to event channel manager subscriber proxies");
+    }
+}
+
+void DomainManager_impl::storeEventChannelRegistrations()
+{
+    ChannelRegistrationNodes _nodes;
+    EventChannelManager::ChannelRegistrationTable _retVal = _eventChannelMgr->getChannelRegistrations();
+    for (EventChannelManager::ChannelRegistrationTable::iterator it = _retVal.begin(); it != _retVal.end(); it++) {
+        ChannelRegistrationNode _tmp;
+        _tmp.channel_name = it->second.channel_name;
+        _tmp.fqn = it->second.fqn;
+        _tmp.channel = _orbCtx.orb->object_to_string(it->second.channel);
+        _tmp.autoRelease = it->second.autoRelease;
+        _tmp.release = it->second.release;
+        _tmp.registrants = it->second.registrants;
+        _nodes[it->first] = _tmp;
+    }
+    try {
+        db.store("EVTCHMGR_CHANNELREGISTRATIONS", _nodes);
+    } catch (const ossie::PersistenceException& ex) {
+        LOG_ERROR(DomainManager_impl, "Error persisting change to event channel manager event channel registrations");
+    }
+}
+
+void DomainManager_impl::restorePubProxies(const std::string& _db_uri)
+{
+    try {
+        db.open(_db_uri);
+    } catch (const ossie::PersistenceException& e) {
+        LOG_ERROR(DomainManager_impl, "Error loading persistent state: " << e.what());
+        return;
+    }
+    EventProxies _proxies;
+    try {
+        db.fetch("EVTCHMGR_PUBPROXIES", _proxies, true);
+    } catch (const ossie::PersistenceException& ex) {
+        LOG_ERROR(DomainManager_impl, "Error persisting change to event channel manager publisher proxies");
+    }
+    EventChannelManager::PubProxyMap _newVal;
+    for (EventProxies::iterator it = _proxies.begin(); it != _proxies.end(); it++) {
+        _newVal[it->first] = ossie::corba::_narrowSafe<CosEventChannelAdmin::ProxyPushConsumer>(_orbCtx.orb->string_to_object(it->second.c_str()));
+    }
+    _eventChannelMgr->setPubProxies(_newVal);
+}
+
+void DomainManager_impl::restoreSubProxies(const std::string& _db_uri)
+{
+    try {
+        db.open(_db_uri);
+    } catch (const ossie::PersistenceException& e) {
+        LOG_ERROR(DomainManager_impl, "Error loading persistent state: " << e.what());
+        return;
+    }
+    EventProxies _proxies;
+    try {
+        db.fetch("EVTCHMGR_SUBPROXIES", _proxies, true);
+    } catch (const ossie::PersistenceException& ex) {
+        LOG_ERROR(DomainManager_impl, "Error persisting change to event channel manager subscriber proxies");
+    }
+    EventChannelManager::SubProxyMap _newVal;
+    for (EventProxies::iterator it = _proxies.begin(); it != _proxies.end(); it++) {
+        _newVal[it->first] = ossie::corba::_narrowSafe<CosEventChannelAdmin::ProxyPushSupplier>(_orbCtx.orb->string_to_object(it->second.c_str()));
+    }
+    _eventChannelMgr->setSubProxies(_newVal);
+}
+
+void DomainManager_impl::restoreEventChannelRegistrations(const std::string& _db_uri)
+{
+    try {
+        db.open(_db_uri);
+    } catch (const ossie::PersistenceException& e) {
+        LOG_ERROR(DomainManager_impl, "Error loading persistent state: " << e.what());
+        return;
+    }
+    ChannelRegistrationNodes _nodes;
+    try {
+        db.fetch("EVTCHMGR_CHANNELREGISTRATIONS", _nodes, true);
+    } catch (const ossie::PersistenceException& ex) {
+        LOG_ERROR(DomainManager_impl, "Error persisting change to event channel manager event channel registrations");
+    }
+    EventChannelManager::ChannelRegistrationTable _newVal;// = _eventChannelMgr->getChannelRegistrations();
+    for (ChannelRegistrationNodes::iterator it = _nodes.begin(); it != _nodes.end(); it++) {
+        EventChannelManager::ChannelRegistration _tmp;
+        _tmp.channel_name = it->second.channel_name;
+        _tmp.fqn = it->second.fqn;
+        _tmp.channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(_orbCtx.orb->string_to_object(it->second.channel.c_str()));
+        _tmp.autoRelease = it->second.autoRelease;
+        _tmp.release = it->second.release;
+        _tmp.registrants = it->second.registrants;
+        _newVal[it->first] = _tmp;
+    }
+    _eventChannelMgr->setChannelRegistrations(_newVal);
+}
 
 void DomainManager_impl::unregisterService(CORBA::Object_ptr unregisteringService, const char* name)
     throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException)

@@ -108,6 +108,16 @@ namespace ossie {
 
     typedef std::map<std::string, AllocationType> AllocationTable;
     typedef std::map<std::string, RemoteAllocationType> RemoteAllocationTable;
+    typedef std::map<std::string, std::string> EventProxies;
+    struct ChannelRegistrationNode {
+        std::string                          channel_name;
+        std::string                          fqn;
+        std::string                          channel;
+        bool                                 autoRelease;
+        bool                                 release;
+        std::map< std::string, std::string > registrants;
+    };
+    typedef std::map<std::string, ChannelRegistrationNode> ChannelRegistrationNodes;
 
     struct ComponentNode {
         std::string identifier;
@@ -258,13 +268,23 @@ namespace boost {
             }
             ar & (*ptr);
         }
-    
+
         template<class Archive>
         void serialize(Archive& ar, ossie::EventChannelNode& node, const unsigned int version) {
             ar & (node.channel);
             ar & (node.connectionCount);
             ar & (node.boundName);
             ar & (node.name);
+        }
+
+        template<class Archive>
+        void serialize(Archive& ar, ossie::ChannelRegistrationNode& node, const unsigned int version) {
+            ar & (node.channel_name);
+            ar & (node.fqn);
+            ar & (node.channel);
+            ar & (node.autoRelease);
+            ar & (node.release);
+            ar & (node.registrants);
         }
 
         template<class Archive>
