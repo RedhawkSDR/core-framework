@@ -428,7 +428,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         devMgrs = domMgr._get_deviceManagers()
         self.assertEqual(len(devMgrs), 0)
 
-    def test_EventAppPortConnectionSIGQUITFoo(self):
+    def test_EventAppPortConnectionSIGQUIT(self):
         self.localEvent = threading.Event()
         self.eventFlag = False
 
