@@ -19,6 +19,7 @@
 #
 
 import logging
+import threading
 
 log = logging.getLogger(__name__)
 
@@ -123,42 +124,49 @@ class ConnectionManager(object):
 
     def __init__(self):
         self.__connections = {}
+        self.__lock = threading.Lock()
 
     def getConnections(self):
-        return self.__connections
+        with self.__lock:
+            return dict(self.__connections)
 
     def getConnectionsBetween(self, usesComponent, providesComponent):
         connections = {}
-        for _identifier, (identifier, uses, provides) in self.__connections.iteritems():
-            if uses.hasComponent(usesComponent) and provides.hasComponent(providesComponent):
-                connections[_identifier] = (identifier, uses, provides)
+        with self.__lock:
+            for _identifier, (identifier, uses, provides) in self.__connections.iteritems():
+                if uses.hasComponent(usesComponent) and provides.hasComponent(providesComponent):
+                    connections[_identifier] = (identifier, uses, provides)
         return connections
 
     def getConnectionsFor(self, usesComponent):
         connections = {}
-        for _identifier, (identifier, uses, provides) in self.__connections.iteritems():
-            if uses.hasComponent(usesComponent):
-                connections[_identifier] = (identifier, uses, provides)
+        with self.__lock:
+            for _identifier, (identifier, uses, provides) in self.__connections.iteritems():
+                if uses.hasComponent(usesComponent):
+                    connections[_identifier] = (identifier, uses, provides)
         return connections
 
     def registerConnection(self, identifier, uses, provides):
         _name = uses.getName()
-        if _name+identifier in self.__connections:
-            log.warn("Skipping registration of duplicate connection id '%s'", identifier)
-            return
-        log.debug("Registering connection '%s' from %s to %s", identifier, uses, provides)
-        self.__connections[_name+identifier] = (identifier, uses, provides)
+        with self.__lock:
+            if _name+identifier in self.__connections:
+                log.warn("Skipping registration of duplicate connection id '%s'", identifier)
+                return
+            log.debug("Registering connection '%s' from %s to %s", identifier, uses, provides)
+            self.__connections[_name+identifier] = (identifier, uses, provides)
 
     def unregisterConnection(self, identifier, _uses):
         _name = _uses.getName()
-        if not _name+identifier in self.__connections:
-            log.warn("Skipping unregistration of unknown connection id '%s'", identifier)
-            return
-        log.debug("Unregistering connection '%s'", identifier)
-        del self.__connections[_name+identifier]
+        with self.__lock:
+            if not _name+identifier in self.__connections:
+                log.warn("Skipping unregistration of unknown connection id '%s'", identifier)
+                return
+            log.debug("Unregistering connection '%s'", identifier)
+            del self.__connections[_name+identifier]
     
     def resetConnections(self):
-        self.__connections = {}
+        with self.__lock:
+            self.__connections = {}
     
     def refreshConnections(self, components):
         providesPorts = []
@@ -194,9 +202,7 @@ class ConnectionManager(object):
                                 self.registerConnection(connection.connectionId, _usesPortEndpoint, _providesPortEndpoint)
                                 break
 
-    def breakConnection(self, identifier, _uses):
-        _name = _uses.getName()
-        _identifier, uses, provides = self.__connections[_name+identifier]
+    def _breakConnection(self, identifier, uses, provides):
         log.debug("Breaking connection '%s'", identifier)
         try:
             usesPort = uses.getReference()
@@ -205,8 +211,17 @@ class ConnectionManager(object):
             log.warn("Ignoring exception breaking connection '%s'", identifier)
         uses.disconnected(identifier)
         provides.disconnected(identifier)
+        
+    def breakConnection(self, identifier, _uses):
+        _name = _uses.getName()
+        with self.__lock:
+            _identifier, uses, provides = self.__connections[_name+identifier]
+        self._breakConnection(identifier, uses, provides)
 
     def cleanup(self):
-        for _identifier in self.__connections.iterkeys():
-            self.breakConnection(self.__connections[_identifier][0], self.__connections[_identifier][1])
-        self.__connections = {}
+        with self.__lock:
+            connections = self.__connections
+            self.__connections = {}
+
+        for (identifier, uses, provides) in connections.itervalues():
+            self._breakConnection(identifier, uses, provides)

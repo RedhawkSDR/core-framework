@@ -2078,7 +2078,6 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
     def createApplication(self, application_sad='', name=None, initConfiguration={}, deviceAssignment=[]):
         """Install and create a particular waveform. This function returns
             a pointer to the instantiated waveform"""
-        uninstallAppWhenDone = True
         # If only an application name is given, format it properly
         if application_sad[0] != "/" and not ".sad.xml" in application_sad:
             # adjust path components incase of namespaced application names
@@ -2088,43 +2087,27 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             application_sad = "/waveforms/" + ns_path + "/" + app_name + ".sad.xml"
         
         try:
-            self.ref.installApplication(application_sad)
-        except _CF.DomainManager.ApplicationAlreadyInstalled:
-            uninstallAppWhenDone = False
-    
-        sadFile = self.fileManager.open(application_sad, True)
+            sadFile = self.fileManager.open(application_sad, True)
+        except _CF.FileException as exc:
+            # If the SAD file can't even be opened, turn it into an application
+            # installation error to match legacy exception
+            raise _CF.DomainManager.ApplicationInstallationError(exc.errorNumber, exc.msg)
         try:
             sadContents = sadFile.read(sadFile.sizeOf())
         finally:
             sadFile.close()
     
-        doc_sad = parsers.SADParser.parseString(sadContents)
-        app_id = str(doc_sad.get_id())
-    
-        # Find the application factory that is needed
-        app_factory = None
-        for factory in self.ref._get_applicationFactories():
-            if factory._get_identifier() == app_id:
-                app_factory = factory
-                break
-    
-        if app_factory is None:
-            raise AssertionError("Application factory not found")
-
         # If no name is given, generate a unique one from the clock
         if name is None:
-            name = '%s_%s' % (app_factory._get_name(), getCurrentDateTimeString())
+            doc_sad = parsers.SADParser.parseString(sadContents)  
+            name = '%s_%s' % (doc_sad.get_name(), getCurrentDateTimeString())
 
         # Convert dictionary to properties, otherwise assume that initial
         # configuration is already a list of properties.
         if isinstance(initConfiguration, dict):
             initConfiguration = properties.props_from_dict(initConfiguration)
 
-        try:
-            app = app_factory.create(name, initConfiguration, deviceAssignment)
-        finally:
-            if uninstallAppWhenDone:
-                self.ref.uninstallApplication(app_id)
+        app = self.ref.createApplication(application_sad, name, initConfiguration, deviceAssignment)
         
         appId = app._get_identifier()
         # Add the app to the application list, or get the existing object if

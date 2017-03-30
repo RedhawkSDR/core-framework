@@ -31,6 +31,8 @@ from ossie.utils import redhawk
 from ossie.utils import type_helpers
 from ossie.utils import rhconnection
 from ossie.utils import allocations
+from ossie.utils import sb
+from ossie.utils.model import NoMatchingPorts
 from ossie.events import Subscriber, Publisher
 from ossie.cf import CF
 
@@ -889,3 +891,27 @@ class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
         self.assertEquals(len(resp),1)
         self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
         self.am.deallocate([resp[0].allocationID])
+
+class MixedRedhawkSandboxTest(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+
+    def tearDown(self):
+        scatest.CorbaTestCase.tearDown(self)
+        sb.release()
+
+    def test_BadApplicationConnection(self):
+        """
+        Tests that attempting to connect a Sandbox source or sink to an
+        application that does not have matching ports throws the correct
+        exception type (as opposed to an AttributeError).
+        """
+        app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
+
+        source = sb.DataSource()
+        self.assertRaises(NoMatchingPorts, source.connect, app)
+
+        sink = sb.DataSink()
+        self.assertRaises(NoMatchingPorts, app.connect, source)
