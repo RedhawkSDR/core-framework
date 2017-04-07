@@ -412,3 +412,33 @@ class Log4PyConfigFile(unittest.TestCase):
                                "J1.*unknown handler: pse",
                                ] )
 
+
+
+class Log4PyConfigImport(unittest.TestCase):
+    def setUp(self):
+        pass
+
+
+    def tearDown(self):
+        pass
+
+    def test_import_issue_file(self):
+        from ossie.utils import sb
+        import ossie.utils.log4py.config
+        assert_raised=False
+        try:
+            ossie.utils.log4py.config.fileConfig(os.getcwd()+'/logconfig.cfg')
+        except:
+            assert_raised=True
+        self.assertEqual( assert_raised, False )
+
+
+    def test_import_issue_str(self):
+        from ossie.utils import sb
+        import ossie.utils.log4py.config
+        assert_raised=False
+        try:
+            ossie.utils.log4py.config.strConfig(logcfg_ok_spaces)
+        except:
+            assert_raised=True
+        self.assertEqual( assert_raised, False )
