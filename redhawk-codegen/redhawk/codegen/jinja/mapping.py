@@ -271,7 +271,6 @@ class ComponentMapper(SoftpkgMapper):
     def mapComponent(self, softpkg):
         component = self.mapSoftpkg(softpkg)
         component['license'] = None
-        component['mFunction'] = None
         if softpkg.descriptor():
             if softpkg.descriptor().supports('IDL:CF/AggregateDevice:1.0'):
                 component['aggregate'] = True
