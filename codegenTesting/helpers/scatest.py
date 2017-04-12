@@ -20,7 +20,8 @@
 #
 from _unitTestHelpers.scatest import *
 import commands
-from subprocess import Popen
+import glob
+import os
 from xml.dom.minidom import parse
 
 import common
@@ -182,26 +183,26 @@ class CodeGenTestCase(OssieTestCase):
                 impl_id = impl['id']
                 impl_name = impl['name']
                 spd_file = os.path.join(self.build_dir, self.base_name+'.spd.xml')
-                if self.octave_test_dir:
-                    # setup octave components to run from their test directory
-                    start_dir = os.getcwd();
-                    spd_file = "../"+self.base_name+'.spd.xml'
-                    os.chdir(self.test_dir)
 
-                _files = os.listdir(self.build_dir+'/tests')
-                for _file in _files:
-                    if len(_file) > 8:
-                        if _file[-3:] == '.py' and _file[:5] == 'test_':
-                            retval = ossie.utils.testing.ScaComponentTestProgram(spd_file,
-                                                                     module=_file[:-3],
-                                                                     impl=impl_id)
+                for test_file in glob.glob(self.build_dir+'/tests/test_*.py'):
+                    _file = os.path.basename(test_file)
 
-                            if self.octave_test_dir:
-                                os.chdir(start_dir)
+                    if self.octave_test_dir:
+                        # setup octave components to run from their test directory
+                        start_dir = os.getcwd();
+                        spd_file = "../"+self.base_name+'.spd.xml'
+                        os.chdir(self.test_dir)
 
-                            for result in retval.results:
-                                if result.errors or result.failures:
-                                    if not lang in failures:
-                                        failures.append(lang)
+                    retval = ossie.utils.testing.ScaComponentTestProgram(spd_file,
+                                                             module=_file[:-3],
+                                                             impl=impl_id)
+
+                    if self.octave_test_dir:
+                        os.chdir(start_dir)
+
+                    for result in retval.results:
+                        if result.errors or result.failures:
+                            if not lang in failures:
+                                failures.append(lang)
 
         self.assertEqual(len(failures), 0, msg='failed for ' + ', '.join(failures))
