@@ -667,6 +667,15 @@ class SBTestTest(scatest.CorbaTestCase):
             time.sleep(0.5)
         self.assertNotEquals(sri, None)
 
+
+    def test_SDDS_Incompatable_Port(self):
+        from ossie.utils.model import NoMatchingPorts
+        c = sb.launch('sdds_src')
+        self.assertNotEquals(c, None)
+        snk = sb.DataSink()
+        self.assertRaises(NoMatchingPorts, c.connect,snk)
+
+
     def test_loadSADFileSpecialChar(self):
         retval = sb.loadSADFile('sdr/dom/waveforms/comp_prop_special_char_w/comp_prop_special_char_w.sad.xml')
         self.assertEquals(retval, True)
