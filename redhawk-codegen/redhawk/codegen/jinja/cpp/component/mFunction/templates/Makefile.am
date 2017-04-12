@@ -17,12 +17,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #}
-#{% extends "base/configure.ac" %}
+#{% extends "base/Makefile.am" %}
 
-#{% block coreDeps %}
-{{ super() -}}
-AX_BOOST_FILESYSTEM
-RH_OCTAVE([{{versions.octave}}])
+#{% block extensions %}
+mdir = {{impldir}}
+dist_m_DATA = *.m
 #{% endblock %}
-#{% block softpkgDeps %}
+
+#{% block compileFlags %}
+{{ super() -}}
+{{amtarget}}_CXXFLAGS += $(OCTAVE_CPPFLAGS)
+{{amtarget}}_LDFLAGS += $(BOOST_FILESYSTEM_LIB) $(OCTAVE_LIBS)
 #{% endblock %}

@@ -26,6 +26,9 @@
 #{% block license %}
 #{# Allow child templates to include license #}
 #{% endblock %}
+ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
+AUTOMAKE_OPTIONS = subdir-objects
+
 #{% block binInfo %}
 ossieName = {{component.name}}
 #{% if component.impl.module %}
@@ -41,14 +44,7 @@ bin_PROGRAMS = {{target}}
 xmldir = {{installdir}}
 dist_xml_DATA = {{component.profile.values()|relpath(outputdir)|join(' ')}}
 #{% endblock %}
-ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
-AUTOMAKE_OPTIONS = subdir-objects
 
-#{% if component.mFunction != None %}
-mdir = {{impldir}}
-dist_m_DATA = *.m
-
-#{% endif %}
 #{% if component.impl.module %}
 #{% set solib = component.impl.entrypoint|relpath(outputdir) %}
 .PHONY: convenience-link clean-convenience-link
@@ -99,9 +95,5 @@ include $(srcdir)/Makefile.am.ide
 {{amtarget}}_LDFLAGS = -shared -module -export-dynamic -export-symbols-regex 'make_component' -avoid-version $(redhawk_LDFLAGS_auto)
 #{% else %}
 {{amtarget}}_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
-#{% endif %}
-#{% if component.mFunction %}
-{{target}}_CXXFLAGS += $(M_FUNCTION_INTERPRETER_INCLUDE)
-{{target}}_LDFLAGS += $(BOOST_FILESYSTEM_LIB) $(M_FUNCTION_INTERPRETER_LOAD)
 #{% endif %}
 #{% endblock %}
