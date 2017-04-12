@@ -1121,14 +1121,15 @@ class DataSource(_SourceBase):
                  startTime    = 0.0,
                  blocking     = True,
                  subsize      = 0):
-
+        fmts=['char','short','long','float','double','longlong','octet','ushort', 'ulong', 'ulonglong', 'file','xml' ]
         self.threadExited = None
 
         _SourceBase.__init__(self,
                              bytesPerPush = bytesPerPush,
                              dataFormat   = dataFormat,
                              data         = data,
-                             subsize      = subsize)
+                             subsize      = subsize,
+                             formats=fmts )
 
         self._sampleRate  = None
         self._onPushSampleRate  = None
@@ -1469,6 +1470,10 @@ class DataSource(_SourceBase):
                     raise AssertionError, self.className + ":stop() failed to exit thread"
 
 class DataSink(_SinkBase):
+    def __init__(self):
+        fmts=['char','short','long','float','double','longlong','octet','ushort', 'ulong', 'ulonglong', 'file','xml' ]
+        _SinkBase.__init__(self, formats=fmts)
+
     def getPort(self, portName):
         if _domainless._DEBUG == True:
             print self.className + ":getPort() portName " + str(portName) + "================================="
