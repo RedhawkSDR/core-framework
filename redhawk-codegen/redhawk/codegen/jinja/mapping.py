@@ -184,6 +184,7 @@ class SoftpkgMapper(object):
         impldict['id'] = impl.identifier()
         impldict['entrypoint'] = impl.entrypoint()
         impldict['softpkgdeps'] = [self._mapSoftpkgDependency(dep) for dep in impl.softpkgdeps()]
+        impldict['outputdir'] = impl.entrypoint()
         impldict.update(self._mapImplementation(impl))
         return impldict
 
