@@ -22,10 +22,16 @@
 #$ set dirname = component.name.replace('.','/')
 # By default, the RPM will install to the standard REDHAWK SDR root location (/var/redhawk/sdr)
 %{!?_sdrroot: %global _sdrroot /var/redhawk/sdr}
+#{$ if component.implementations[0].id == 'octave' $}
+%define _prefix %{_sdrroot}
+#{$ else $}
 %define _prefix %{_sdrroot}/{{component.sdrpath}}/{{dirname}}
+#{$ endif $}
 
 # Point install paths to locations within our target SDR root
+#{$ if component.implementations[0].id != 'octave' $}
 %define _libdir        %{_prefix}/{{component.implementations[0].outputdir}}/lib
+#{$ endif $}
 %define _sysconfdir    %{_prefix}/etc
 %define _localstatedir %{_prefix}/var
 %define _mandir        %{_prefix}/man
@@ -113,7 +119,6 @@ popd
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-
 %files
 #{$ block files $}
 %defattr(-,redhawk,redhawk,-)
@@ -123,21 +128,33 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{_sdrroot}/{{subdirs}}
 #{$ endfor $}
 #{$ for xmlfile in component.profile.values() $}
+#{$ if component.implementations[0].id == 'octave' $}
+%{_prefix}/{{component.sdrpath}}/{{dirname}}/{{xmlfile}}
+#{$ else $}
 %{_prefix}/{{xmlfile}}
+#{$ endif $}
 #{$ endfor $}
 #{$ for impl in component.implementations $}
+#{$ if component.implementations[0].id == 'octave' $}
+%{_prefix}/{{component.sdrpath}}/{{dirname}}/{{impl.outputdir}}
+#{$ else $}
 %{_prefix}/{{impl.outputdir}}
+#{$ endif $}
 #{$ endfor $}
+#{$ if component.implementations[0].id != 'octave' $}
 %exclude %{_libdir}/lib{{basename}}.la
 %exclude %{_libdir}/lib{{basename}}.so
 %exclude %{_libdir}/pkgconfig
+#{$ endif $}
 #{$ endblock $}
 
 %files devel
 #{$ block filesdevel $}
 %defattr(-,redhawk,redhawk,-)
+#{$ if component.implementations[0].id != 'octave' $}
 %{_libdir}/lib{{basename}}.la
 %{_libdir}/lib{{basename}}.so
 %{_libdir}/pkgconfig
 %{_prefix}/include
+#{$ endif $}
 #{$ endblock $}

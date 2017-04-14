@@ -24,7 +24,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 xmldir = $(prefix)/{{component.sdrpath}}/{{component.name}}{{generator.variant}}/
 dist_xml_DATA = ../{{component.name}}.spd.xml
 
-mdir = $(prefix)/{{component.sdrpath}}/{{component.name}}{{generator.variant}}/{{component.impl.id}}/share/
+mdir = $(prefix)/{{component.sdrpath}}/{{component.name}}{{generator.variant}}/{{component.impl.outputdir}}/share/
 dist_m_DATA = share/*
 
 distclean-local:
