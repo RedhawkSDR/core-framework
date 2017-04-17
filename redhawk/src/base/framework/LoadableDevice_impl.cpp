@@ -908,7 +908,15 @@ bool LoadableDevice_impl::isFileLoaded (const char* fileName)
 }
 
 
-const std::string& LoadableDevice_impl::getCacheDirectory() const
+const std::string& LoadableDevice_impl::getCacheDirectory()
 {
+    if (this->getPropertyFromId("cacheDirectory")) {
+        std::string cache_dir = ((StringProperty*)this->getPropertyFromId("cacheDirectory"))->getValue();
+        if (!cache_dir.empty()) {
+            if (cacheDirectory != cache_dir) {
+                cacheDirectory = cache_dir;
+            }
+        }
+    }
     return cacheDirectory;
 }

@@ -1552,6 +1552,22 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
 
         shutil.rmtree(self.base_dir)
 
+    def test_CheckDEPLOYMENTROOT(self):
+        self.assertNotEqual(self._domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(devMgr, None)
+        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
+        self.assertNotEqual(app, None)
+        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
+        pid = str(app._get_componentProcessIds()[0].processId)
+        fp=open('/proc/'+pid+'/cmdline','r')
+        cmdline = fp.read()
+        fp.close()
+        _args = cmdline.split('\x00')
+        idx = _args.index('RH::DEPLOYMENT_ROOT')
+        deployment_root=_args[idx+1]
+        self.assertEquals(deployment_root, self._rhDom.devices[0].cacheDirectory)
+
     def test_PyCompConfigCacheCWD(self):
         self.assertNotEqual(self._domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)

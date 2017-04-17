@@ -226,7 +226,7 @@ protected:
     std::string prependCacheIfAvailable(const std::string &localPath);
 
     // Returns the base directory in use for the file cache
-    const std::string& getCacheDirectory() const;
+    const std::string& getCacheDirectory();
 
  private:
     LoadableDevice_impl(); // No default constructor
