@@ -228,7 +228,7 @@
     def get_rf_flow_id(self,port_name):
         return ""
 
-    def set_rf_flow_id(self,port_name, id):
+    def set_rf_flow_id(self,port_name, _id):
         pass
 
     def get_rfinfo_pkt(self,port_name):
