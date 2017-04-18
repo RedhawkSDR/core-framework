@@ -112,7 +112,7 @@
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         if allocation_id != self.getControlAllocationId(idx):
             raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-        if freq<0: raise FRONTEND.BadParameterException()
+        if freq<0: raise FRONTEND.BadParameterException("Center frequency cannot be less than 0")
         # set hardware to new value. Raise an exception if it's not possible
         self.frontend_tuner_status[idx].center_frequency = freq
 
@@ -126,7 +126,7 @@
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         if allocation_id != self.getControlAllocationId(idx):
             raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-        if bw<0: raise FRONTEND.BadParameterException()
+        if bw<0: raise FRONTEND.BadParameterException("Bandwidth cannot be less than 0")
         # set hardware to new value. Raise an exception if it's not possible
         self.frontend_tuner_status[idx].bandwidth = bw
 
@@ -174,7 +174,7 @@
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         if allocation_id != self.getControlAllocationId(idx):
             raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-        if sr<0: raise FRONTEND.BadParameterException()
+        if sr<0: raise FRONTEND.BadParameterException("Sample rate cannot be less than 0")
         # set hardware to new value. Raise an exception if it's not possible
         self.frontend_tuner_status[idx].sample_rate = sr
 
