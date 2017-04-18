@@ -108,7 +108,7 @@ void ${className}::setTunerCenterFrequency(const std::string& allocation_id, dou
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-    if (freq<0) throw FRONTEND::BadParameterException();
+    if (freq<0) throw FRONTEND::BadParameterException("Center frequency cannot be less than 0");
     // set hardware to new value. Raise an exception if it's not possible
     this->frontend_tuner_status[idx].center_frequency = freq;
 }
@@ -124,7 +124,7 @@ void ${className}::setTunerBandwidth(const std::string& allocation_id, double bw
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-    if (bw<0) throw FRONTEND::BadParameterException();
+    if (bw<0) throw FRONTEND::BadParameterException("Bandwidth cannot be less than 0");
     // set hardware to new value. Raise an exception if it's not possible
     this->frontend_tuner_status[idx].bandwidth = bw;
 }
@@ -187,7 +187,7 @@ void ${className}::setTunerOutputSampleRate(const std::string& allocation_id, do
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-    if (sr<0) throw FRONTEND::BadParameterException();
+    if (sr<0) throw FRONTEND::BadParameterException("Sample rate cannot be less than 0");
     // set hardware to new value. Raise an exception if it's not possible
     this->frontend_tuner_status[idx].sample_rate = sr;
 }

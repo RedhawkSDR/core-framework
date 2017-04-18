@@ -133,7 +133,7 @@ import CF.InvalidObjectReference;
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
         if(allocation_id != getControlAllocationId(idx))
             throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
-        if (freq<0) throw new FRONTEND.BadParameterException();
+        if (freq<0) throw new FRONTEND.BadParameterException("Center frequency cannot be less than 0");
         // set hardware to new value. Raise an exception if it's not possible
         this.frontend_tuner_status.getValue().get(idx).center_frequency.setValue(freq);
     }
@@ -151,7 +151,7 @@ import CF.InvalidObjectReference;
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
         if(allocation_id != getControlAllocationId(idx))
             throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
-        if (bw<0) throw new FRONTEND.BadParameterException();
+        if (bw<0) throw new FRONTEND.BadParameterException("Bandwidth cannot be less than 0");
         // set hardware to new value. Raise an exception if it's not possible
         this.frontend_tuner_status.getValue().get(idx).bandwidth.setValue(bw);
     }
@@ -218,7 +218,7 @@ import CF.InvalidObjectReference;
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
         if(allocation_id != getControlAllocationId(idx))
             throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
-        if (sr<0) throw new FRONTEND.BadParameterException();
+        if (sr<0) throw new FRONTEND.BadParameterException("Sample rate cannot be less than 0");
         // set hardware to new value. Raise an exception if it's not possible
         this.frontend_tuner_status.getValue().get(idx).sample_rate.setValue(sr);
     }
