@@ -58,9 +58,11 @@ class ${className}(${baseClass}):
         The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
      
         For example, if this device has 5 physical
-        tuners, each an RX_DIGITIZER, then the code in the construct function should look like this:
+        tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
+        should look like this:
 
-        self.setNumChannels(5, "RX_DIGITIZER");
+        self.addChannels(3, "RX_DIGITIZER");
+        self.addChannels(2, "CHANNELIZER");
      
         The incoming request for tuning contains a string describing the requested tuner
         type. The string for the request must match the string in the tuner status.
@@ -68,7 +70,7 @@ class ${className}(${baseClass}):
         """
         # TODO add customization here.
 #{% if 'FrontendTuner' in component.implements %}
-        self.setNumChannels(1, "RX_DIGITIZER");
+        self.addChannels(1, "RX_DIGITIZER");
 #{% endif %}
         
 #{% block updateUsageState %}

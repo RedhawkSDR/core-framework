@@ -191,22 +191,24 @@ public class ${classname} extends ${baseclass} {
     public void constructor()
     {
 /*{% if 'FrontendTuner' in component.implements %}*/
-    /**************************************************************************
+        /**************************************************************************
     
-     For a tuner device, the structure frontend_tuner_status needs to match the number
-     of tuners that this device controls and what kind of device it is.
-     The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
+         For a tuner device, the structure frontend_tuner_status needs to match the number
+         of tuners that this device controls and what kind of device it is.
+         The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
      
-     For example, if this device has 5 physical
-     tuners, each an RX_DIGITIZER, then the code in the construct function should look like this:
+         For example, if this device has 5 physical
+         tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
+         should look like this:
 
-     this.setNumChannels(5, "RX_DIGITIZER");
+         this.addChannels(3, "RX_DIGITIZER");
+         this.addChannels(2, "CHANNELIZER");
      
-     The incoming request for tuning contains a string describing the requested tuner
-     type. The string for the request must match the string in the tuner status.
+         The incoming request for tuning contains a string describing the requested tuner
+         type. The string for the request must match the string in the tuner status.
      
-    **************************************************************************/
-    this.setNumChannels(1, "RX_DIGITIZER");
+        **************************************************************************/
+        this.addChannels(1, "RX_DIGITIZER");
 /*{% endif %}*/
     }
 

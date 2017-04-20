@@ -80,30 +80,6 @@ public abstract class ${classname} extends ${superClass}
 
 /*{% block extensions %}*/
 /*{% if 'FrontendTuner' in component.implements %}*/
-    /* This sets the number of entries in the frontend_tuner_status struct sequence property
-     * as well as the tuner_allocation_ids vector. Call this function during initialization
-     */
-    public void setNumChannels(int num)
-    {
-        this.setNumChannels(num, "RX_DIGITIZER");
-    }
-    
-    /* This sets the number of entries in the frontend_tuner_status struct sequence property
-     * as well as the tuner_allocation_ids vector. Call this function during initialization
-     */
-    public void setNumChannels(int num, String tuner_type)
-    {
-        frontend_tuner_status.setValue(new ArrayList<frontend_tuner_status_struct_struct>());
-        tuner_allocation_ids = new ArrayList<frontend.FrontendTunerDevice<frontend_tuner_status_struct_struct>.tunerAllocationIdsStruct>();
-        for (int idx=0;idx<num;idx++){
-            frontend_tuner_status_struct_struct tuner = new frontend_tuner_status_struct_struct();
-            tuner.enabled.setValue(false);
-            tuner.tuner_type.setValue(tuner_type);
-            frontend_tuner_status.getValue().add(tuner);
-            tuner_allocation_ids.add(new tunerAllocationIdsStruct());
-        }
-    }
-
     protected Map<String, String> listeners = new HashMap<String, String>();
 
     public void frontendTunerStatusChanged(final List<frontend_tuner_status_struct_struct> oldValue, final List<frontend_tuner_status_struct_struct> newValue)

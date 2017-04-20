@@ -595,6 +595,37 @@ namespace frontend {
         return true;
     }
 
+    /* This sets the number of entries in the frontend_tuner_status struct sequence property
+    * as well as the tuner_allocation_ids vector. Call this function during initialization
+    */
+    template < typename TunerStatusStructType >
+    void FrontendTunerDevice<TunerStatusStructType>::setNumChannels(size_t num)
+    {
+        this->setNumChannels(num, "RX_DIGITIZER");
+    }
+
+    /* This sets the number of entries in the frontend_tuner_status struct sequence property
+    * as well as the tuner_allocation_ids vector. Call this function during initialization
+    */
+    template < typename TunerStatusStructType >
+    void FrontendTunerDevice<TunerStatusStructType>::setNumChannels(size_t num, std::string tuner_type)
+    {
+        frontend_tuner_status.clear();
+        tuner_allocation_ids.clear();
+        addChannels(num, tuner_type);
+    }
+
+    template < typename TunerStatusStructType >
+    void FrontendTunerDevice<TunerStatusStructType>::addChannels(size_t num, std::string tuner_type) {
+        tuner_allocation_ids.resize(tuner_allocation_ids.size()+num);
+        for (unsigned int i=0; i<num; i++) {
+            TunerStatusStructType tmp;
+            tmp.enabled = false;
+            tmp.tuner_type = tuner_type;
+            frontend_tuner_status.push_back(tmp);
+        }
+    }
+
     template < typename TunerStatusStructType >
     void FrontendTunerDevice<TunerStatusStructType>::deallocateCapacity(const CF::Properties & capacities)
     throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {

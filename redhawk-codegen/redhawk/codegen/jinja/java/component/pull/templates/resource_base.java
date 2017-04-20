@@ -150,7 +150,11 @@ public abstract class ${classname} extends ${superClass} {
      */
     public ${classname}()
     {
+/*{% if 'FrontendTuner' in component.implements %}*/
+        super(frontend_tuner_status_struct_struct.class);
+/*{% else %}*/
         super();
+/*{% endif %}*/
 
         setLogger( logger, ${classname}.class.getName() );
 

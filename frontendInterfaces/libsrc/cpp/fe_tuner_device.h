@@ -213,7 +213,9 @@ namespace frontend {
             virtual void assignListener(const std::string& listen_alloc_id, const std::string& alloc_id);
             virtual void removeListener(const std::string& listen_alloc_id);
             virtual void removeAllocationIdRouting(const size_t tuner_id) = 0;
-            virtual void setNumChannels(size_t num) = 0;
+            virtual void setNumChannels(size_t num);
+            virtual void setNumChannels(size_t num, std::string tuner_type);
+            virtual void addChannels(size_t num, std::string tuner_type);
 
             // Configure tuner - gets called during allocation
             virtual bool enableTuner(size_t tuner_id, bool enable);

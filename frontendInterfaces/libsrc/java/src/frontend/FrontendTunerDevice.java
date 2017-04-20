@@ -269,11 +269,23 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
         return true;
     }
 
+    private Class<TunerStatusStructType> frontend_tuner_status_class_type;
+
     public FrontendTunerDevice() {
         super();
         construct();
     }
- 
+
+    public FrontendTunerDevice(Class<TunerStatusStructType> _genericType) {
+        super();
+        this.frontend_tuner_status_class_type = _genericType;
+        construct();
+    }
+
+    public void setFrontendTunerStatusClassType(Class<TunerStatusStructType> _genericType) {
+        this.frontend_tuner_status_class_type = _genericType;
+    }
+
     private void construct() {
         loadProperties();
         allocation_id_to_tuner_id = new HashMap<String,Integer>();
@@ -343,6 +355,64 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
 
     protected List<String> getListenerAllocationIds(int tuner_id){
         return tuner_allocation_ids.get(tuner_id).listener_allocation_ids;
+    }
+
+    /* This sets the number of entries in the frontend_tuner_status struct sequence property
+     * as well as the tuner_allocation_ids vector. Call this function during initialization
+     */
+    public void setNumChannels(int num)
+    {
+        this.setNumChannels(num, "RX_DIGITIZER");
+    }
+
+    /* This sets the number of entries in the frontend_tuner_status struct sequence property
+     * as well as the tuner_allocation_ids vector. Call this function during initialization
+     */
+    public void setNumChannels(int num, String tuner_type)
+    {
+        if (frontend_tuner_status_class_type == null) {
+            logger.error("To use setNumChannels from the base classes, this device must be re-generated");
+            return;
+        }
+        frontend_tuner_status.setValue(new ArrayList<TunerStatusStructType>());
+        tuner_allocation_ids = new ArrayList<tunerAllocationIdsStruct>();
+        this.addChannels(num, tuner_type);
+    }
+
+    /* This sets the number of entries in the frontend_tuner_status struct sequence property
+     * as well as the tuner_allocation_ids vector. Call this function during initialization
+     */
+    public void addChannels(int num, String tuner_type)
+    {
+        if (frontend_tuner_status_class_type == null) {
+            logger.error("To use addChannels from the base classes, this device must be re-generated");
+            return;
+        }
+        if (frontend_tuner_status == null) {
+            frontend_tuner_status.setValue(new ArrayList<TunerStatusStructType>());
+        }
+        if (tuner_allocation_ids == null) {
+            tuner_allocation_ids = new ArrayList<tunerAllocationIdsStruct>();
+        }
+        for (int idx=0;idx<num;idx++){
+            TunerStatusStructType tuner;
+            try {
+                tuner = frontend_tuner_status_class_type.newInstance();
+            } catch (InstantiationError ex) {
+                logger.error("setNumChannels: Unable to create an instance of a frontend_tuner_status item");
+                continue;
+            } catch (InstantiationException ex) {
+                logger.error("setNumChannels: Unable to create an instance of a frontend_tuner_status item");
+                continue;
+            } catch (IllegalAccessException ex) {
+                logger.error("setNumChannels: Unable to create an instance of a frontend_tuner_status item");
+                continue;
+            }
+            tuner.enabled.setValue(false);
+            tuner.tuner_type.setValue(tuner_type);
+            frontend_tuner_status.getValue().add(tuner);
+            tuner_allocation_ids.add(new tunerAllocationIdsStruct());
+        }
     }
 
     /*****************************************************************/
@@ -882,8 +952,6 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
             Mode.READWRITE, //mode
             new Kind[] {Kind.ALLOCATION} //kind
             );
-
-    private Class<TunerStatusStructType> frontend_tuner_status_class_type;
 
     protected StructSequenceProperty<TunerStatusStructType> frontend_tuner_status =
         new StructSequenceProperty<TunerStatusStructType> (

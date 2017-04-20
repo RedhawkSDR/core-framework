@@ -587,6 +587,11 @@ class FrontendTunerDevice(Device):
     # as well as the tuner_allocation_ids vector. Call this function during initialization
     def setNumChannels(self,num,tuner_type='RX_DIGITIZER'):
         self.frontend_tuner_status = []
+        self.addChannels(num, tuner_type)
+
+    # This sets the number of entries in the frontend_tuner_status struct sequence property
+    # as well as the tuner_allocation_ids vector. Call this function during initialization
+    def addChannels(self,num,tuner_type='RX_DIGITIZER'):
         for ii in range(num):
             tuner_status = self.frontend_tuner_status_struct_struct()
             tuner_status.tuner_type = tuner_type
