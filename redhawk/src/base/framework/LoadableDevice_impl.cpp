@@ -236,13 +236,13 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
         std::stringstream errstr;
         errstr << "IO Exception occurred, file: " << fileName;
         LOG_ERROR(LoadableDevice_impl, __FUNCTION__ << ": " << errstr.str() );
-        throw CF::LoadableDevice::LoadFail();
+        throw CF::LoadableDevice::LoadFail(e.errorNumber, e.msg);
     }
     catch( CF::FileException & e ) {
         std::stringstream errstr;
         errstr << "File Exception occurred, file: " << fileName;
         LOG_ERROR(LoadableDevice_impl, __FUNCTION__ << ": " << errstr.str() );
-        throw CF::LoadableDevice::LoadFail();
+        throw CF::LoadableDevice::LoadFail(e.errorNumber, e.msg);
     }
     catch( const boost::thread_resource_error& e )
     {

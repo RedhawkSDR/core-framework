@@ -697,3 +697,27 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
 
     def test_py_LoadOctaveDir(self):
         self._test_LoadOctaveDir('test_ExecutableDevicePy_node')
+
+    def _test_NoAccessDir(self, nodeName):
+        devBooter, devMgr = self.launchDeviceManager("/nodes/%s/DeviceManager.dcd.xml" % nodeName)
+        device = devMgr._get_registeredDevices()[0]
+        fileMgr = self._domMgr._get_fileMgr()
+
+        dirname = '/noaccess'
+        testdir = os.path.join(scatest.getSdrPath(), 'dom' + dirname)
+        if not os.path.exists(testdir):
+            os.mkdir(testdir, 0000)
+        else:
+            os.chmod(testdir, 0000)
+
+        try:
+            self.assertFalse(os.access(testdir, os.R_OK|os.X_OK), 'Current user can still access directory')
+            self.assertRaises(CF.LoadableDevice.LoadFail, device.load, fileMgr, dirname, CF.LoadableDevice.SHARED_LIBRARY)                                                                                                                  
+        finally:
+            os.rmdir(testdir)
+
+    def test_cpp_NoAccessDir(self):
+        self._test_NoAccessDir('test_ExecutableDevice_node')
+
+    def test_py_NoAccessDir(self):
+        self._test_NoAccessDir('test_ExecutableDevicePy_node')
