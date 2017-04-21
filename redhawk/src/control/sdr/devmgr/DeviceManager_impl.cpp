@@ -3312,16 +3312,17 @@ ossie::SpdSupport::ResourceInfo DeviceManager_impl::buildServiceSpd( const std::
     CF::Properties componentProperties;
     std::ostringstream eout;
     std::string cname;
+    std::string cid;
     std::string spdFile;
     // get service's spd from DeviceManager's DCD file
     const std::vector<ossie::DevicePlacement>& components = DCDParser.getComponentPlacements();
     LOG_TRACE(DeviceManager_impl, "Getting ComponentPlacements,  size is " << components.size());
     for ( std::vector< ossie::DevicePlacement >::const_iterator comp = components.begin();
           comp != components.end(); comp++) {
-
         for (unsigned int i = 0; i < comp->instantiations.size(); i++) {
-            cname =  comp->instantiations[i].getID();
-            if ( cname == svc_name ) {
+            cid =  comp->instantiations[i].getID();
+            cname =  comp->instantiations[i].getUsageName();
+            if (( cname == svc_name ) or (cid == svc_name)) {
                 LOG_TRACE(DeviceManager_impl, "Getting file name for refid " << comp->getFileRefId());
                 const char* svc_spdFile = DCDParser.getFileNameFromRefId(comp->getFileRefId().c_str());
                 if (svc_spdFile == 0) {
@@ -3330,11 +3331,14 @@ ossie::SpdSupport::ResourceInfo DeviceManager_impl::buildServiceSpd( const std::
                     throw(CF::InvalidObjectReference(eout.str().c_str()));
                 }
                 spdFile=svc_spdFile;
+                break;
             }
         }
+        if (not spdFile.empty())
+            break;
     }
 
-   ossie::SpdSupport::ResourceInfo spdinfo(spdFile);
+    ossie::SpdSupport::ResourceInfo spdinfo(spdFile);
     try  {
         spdinfo.load(_fileSys);
     }
@@ -3349,22 +3353,18 @@ ossie::SpdSupport::ResourceInfo DeviceManager_impl::buildServiceSpd( const std::
     LOG_INFO(DeviceManager_impl, "Service: " << svc_name << "  SPD loaded: " << spd_name << "' - '" << spd_id );
 
     try {
-        const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(svc_name);
-        if (!instantiation.getUsageName().empty())
-            std::string tmp_name = instantiation.getUsageName(); // this is here to get rid of a warning
+        const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(cid);
+        const ossie::ComponentPropertyList& overrideProps = instantiation.getProperties();
+        // Check for any overrides from DCD componentproperites
+        for (unsigned int j = 0; j < overrideProps.size (); j++) {
+            LOG_DEBUG(DeviceManager_impl, "Service:" << svc_name << " Override Properties - ID: " << overrideProps[j].getID());
+            spdinfo.overrideProperty( overrideProps[j] );
+        }
     } catch (...) {
-        eout << "ComponentInstantiation is invalid for Service:" << svc_name;
+        eout << "ComponentInstantiation is invalid for Service:" << svc_name << " with id " << cid;
         LOG_WARN(DeviceManager_impl, eout.str());
         throw(CF::InvalidObjectReference(eout.str().c_str()));
     }
 
-    // override device properties in DCD file
-    const ComponentInstantiation& instantiation = DCDParser.getComponentInstantiationById(svc_name);
-    const ossie::ComponentPropertyList& overrideProps = instantiation.getProperties();
-    // Check for any overrides from DCD componentproperites
-    for (unsigned int j = 0; j < overrideProps.size (); j++) {
-        LOG_DEBUG(DeviceManager_impl, "Service:" << svc_name << " Override Properties - ID: " << overrideProps[j].getID());
-        spdinfo.overrideProperty( overrideProps[j] );
-    }
     return spdinfo;
  }
