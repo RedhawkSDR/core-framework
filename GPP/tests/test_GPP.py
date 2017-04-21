@@ -610,6 +610,17 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assert_(81 == any.from_any(event.properties[0].value))
 
 
+    def test_workingCacheDirView(self):
+        # set mcast exec param values for the test
+        eparms = { "DCE:4e416acc-3144-47eb-9e38-97f1d24f7700": 'eth0',
+                   'DCE:5a41c2d3-5b68-4530-b0c4-ae98c26c77ec': 100,
+                   'DCE:442d5014-2284-4f46-86ae-ce17e0749da0': 100 }
+        self.runGPP(eparms)
+        cwd = os.getcwd()
+        self.assertEquals(cwd,self.comp.cacheDirectory)
+        self.assertEquals(cwd,self.comp.workingDirectory)
+
+
     def test_mcastNicThreshold(self):
 
         # set mcast exec param values for the test

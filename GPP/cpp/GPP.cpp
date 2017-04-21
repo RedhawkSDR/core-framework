@@ -501,6 +501,25 @@ void GPP_i::_init() {
 
 }
 
+void GPP_i::constructor()
+{
+    if (this->workingDirectory.empty() or this->cacheDirectory.empty()) {
+        char* tmp;
+        std::string path;
+        tmp = getcwd(NULL, 200);
+        if (tmp != NULL) {
+            path = std::string(tmp);
+            free(tmp);
+        }
+        if (this->workingDirectory.empty()) {
+            this->workingDirectory = path;
+        }
+        if (this->cacheDirectory.empty()) {
+            this->cacheDirectory = path;
+        }
+    }
+}
+
 
 void GPP_i::postConstruction (std::string &profile, 
                                      std::string &registrar_ior, 

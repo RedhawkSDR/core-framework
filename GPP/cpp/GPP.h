@@ -174,6 +174,7 @@ class GPP_i : public GPP_base
 	  int64_t       get_process_time();
         };
 
+        void constructor();
 
         protected:
 
