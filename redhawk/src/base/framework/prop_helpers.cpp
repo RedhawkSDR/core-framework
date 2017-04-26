@@ -482,38 +482,71 @@ namespace redhawk {
  */
 CORBA::Any ossie::stringToSimpleAny(std::string value, CORBA::TCKind kind) {
     CORBA::Any result;
+    char *endptr = NULL;
+    std::string _type;
+    bool fixed_point = false;
     if (kind == CORBA::tk_boolean){
+        _type = "boolean";
         if ((value == "true") || (value == "True") || (value == "TRUE") || (value == "1")) {
             result <<= CORBA::Any::from_boolean(CORBA::Boolean(true));
         } else {
             result <<= CORBA::Any::from_boolean(CORBA::Boolean(false));
         }
     } else if (kind == CORBA::tk_char){
+        _type = "char";
         result <<= CORBA::Any::from_char(CORBA::Char(value[0]));
     } else if (kind == CORBA::tk_double){
-        result <<= CORBA::Double(strtod(value.c_str(), NULL));
+        _type = "double";
+        result <<= CORBA::Double(strtod(value.c_str(), &endptr));
     } else if (kind == CORBA::tk_octet){
-        result <<= CORBA::Any::from_octet(CORBA::Octet(strtol(value.c_str(), NULL, 0)));
+        fixed_point = true;
+        _type = "octet";
+        result <<= CORBA::Any::from_octet(CORBA::Octet(strtol(value.c_str(), &endptr, 0)));
     } else if (kind == CORBA::tk_ushort){
-        result <<= CORBA::UShort(strtol(value.c_str(), NULL, 0));
+        fixed_point = true;
+        _type = "ushort";
+        result <<= CORBA::UShort(strtol(value.c_str(), &endptr, 0));
     } else if (kind == CORBA::tk_short){
-        result <<= CORBA::Short(strtol(value.c_str(), NULL, 0));
+        fixed_point = true;
+        _type = "short";
+        result <<= CORBA::Short(strtol(value.c_str(), &endptr, 0));
     } else if (kind == CORBA::tk_float){
-        result <<= CORBA::Float(strtof(value.c_str(), NULL));
+        _type = "float";
+        result <<= CORBA::Float(strtof(value.c_str(), &endptr));
     } else if (kind == CORBA::tk_ulong){
-        result <<= CORBA::ULong(strtol(value.c_str(), NULL, 0));
+        fixed_point = true;
+        _type = "ulong";
+        result <<= CORBA::ULong(strtol(value.c_str(), &endptr, 0));
     } else if (kind == CORBA::tk_long){
-        result <<= CORBA::Long(strtol(value.c_str(), NULL, 0));
+        fixed_point = true;
+        _type = "long";
+        result <<= CORBA::Long(strtol(value.c_str(), &endptr, 0));
     } else if (kind == CORBA::tk_longlong){
-        result <<= CORBA::LongLong(strtoll(value.c_str(), NULL, 0));
+        fixed_point = true;
+        _type = "longlong";
+        result <<= CORBA::LongLong(strtoll(value.c_str(), &endptr, 0));
     } else if (kind == CORBA::tk_ulonglong){
-        result <<= CORBA::ULongLong(strtoll(value.c_str(), NULL, 0));
+        fixed_point = true;
+        _type = "ulonglong";
+        result <<= CORBA::ULongLong(strtoll(value.c_str(), &endptr, 0));
     } else if (kind == CORBA::tk_string){
+        _type = "string";
         result <<= value.c_str();
     } else {
+        _type = "any";
         result = CORBA::Any();
     } // end of outer switch statement
 
+    if (endptr != NULL) {
+        if ((value != "(null)") and ((endptr == value.c_str()) or (*endptr != '\0'))) {
+            if (fixed_point) {
+                strtod(value.c_str(), &endptr);
+                if (*endptr == '\0')
+                    return result;
+            }
+            throw ossie::badConversion(value, _type);
+        }
+    }
     return result;
 }
 

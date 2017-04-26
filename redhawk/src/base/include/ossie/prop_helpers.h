@@ -30,6 +30,8 @@
 #endif
 
 #include "CF/cf.h"
+#include <stdexcept>
+#include <sstream>
 
 namespace redhawk {
   namespace time {
@@ -79,6 +81,20 @@ namespace ossie
             return false;
         }
     }
+
+    class badConversion : public std::runtime_error {
+    public:
+        badConversion(std::string value, std::string type) : std::runtime_error("Unable to perform conversion"), _value(value), _type(type) {};
+        ~badConversion() throw() {};
+        virtual const char* what() const throw()
+        {
+            std::ostringstream _msg;
+            _msg << std::runtime_error::what() << ": '"<<_value<<"' to type '"<<_type << "'";
+            return _msg.str().c_str();
+        };
+    private:
+        std::string _value, _type;
+    };
 
     template<class T>
     double perform_math(double operand, T propval, std::string& math)

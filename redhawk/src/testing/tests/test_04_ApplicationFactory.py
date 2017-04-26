@@ -344,6 +344,20 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
     def test_NamespacedWaveformJava(self):
         self._test_NamespacedWaveform('javawave')
 
+    def test_BadOverload(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, domMgr.createApplication, "/waveforms/props_bad_numbers_w/props_bad_numbers_w.sad.xml", "props_app", [], [], )
+        try:
+            app = domMgr.createApplication("/waveforms/props_bad_numbers_w/props_bad_numbers_w.sad.xml", "props_app", [], [])
+        except Exception, e:
+            pass
+        self.assertNotEqual(e.msg.find('Unable to perform conversion'), -1)
+        self.assertEqual(len(domMgr._get_applications()), 0)
+
     def test_PartialStructConfiguration(self):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)

@@ -236,6 +236,11 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
 
+    def test_DeviceBadOverload(self):
+        # This device manager fails to launch because of a bad overloaded value
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/dev_props_bad_numbers_node/DeviceManager.dcd.xml")
+        self.assertEquals(devMgr, None)
+
     def test_DeviceInitializeFail(self):
         # These two nodes use the same identifier, but have different names to distinguish them
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/bad_init_device_node/DeviceManager.dcd.xml")
