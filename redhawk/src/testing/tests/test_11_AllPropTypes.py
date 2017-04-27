@@ -51,7 +51,6 @@ class TimeTest(scatest.CorbaTestCase):
         os.environ['SDRROOT'] = globalsdrRoot
     
     def basetest_getTime(self, comp_name):
-        _timeprop = CF.DataType(id='QUERY_TIMESTAMP',value=any.to_any(None))
         comp = sb.launch(comp_name)
         _prop=CF.DataType(id='prop',value=any.to_any(None))
         _retval = comp.query([_prop])
@@ -62,7 +61,7 @@ class TimeTest(scatest.CorbaTestCase):
         self.assertEqual(_retval[0].value._v, 'value')
         self.assertEqual(len(_retval), 1)
         
-        _retval = comp.query([_prop, _timeprop])
+        _retval = comp.query([_prop, rhtime.queryTimestamp()])
         self.assertEqual(_retval[0].value._v, 'value')
         self.assertEqual(len(_retval), 2)
         
@@ -77,7 +76,7 @@ class TimeTest(scatest.CorbaTestCase):
         self.assertEqual(_retval[0].value._v, 'hello')
         self.assertEqual(myl.rcv_event.properties[0].value._v, 'hello')
         
-        _retval = comp.query([_timeprop])
+        _retval = comp.query([rhtime.queryTimestamp()])
         self.assertEqual(len(_retval), 1)
         self.assertEqual(_retval[0].value._v.tcstatus, 1)
         _time1 = myl.rcv_event.timestamp.twsec + myl.rcv_event.timestamp.tfsec

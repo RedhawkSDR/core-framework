@@ -22,6 +22,7 @@ import copy
 import math
 
 from ossie.cf import CF
+from omniORB import any as _any
 
 def now():
     """
@@ -37,6 +38,9 @@ def notSet():
     and an invalid flag. This is used by the automatic EOS
     """
     return CF.UTCTime(1, 0.0, 0.0)
+
+def queryTimestamp():
+    return CF.DataType(id='QUERY_TIMESTAMP',value=_any.to_any(None))
 
 def cpuTimeStamp():
     return now()
