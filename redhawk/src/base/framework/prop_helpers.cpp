@@ -390,6 +390,9 @@ namespace redhawk {
         }
         
         CF::UTCTime convert( const std::string formatted ) {
+            if (formatted == "now") {
+                return now();
+            }
             unsigned int year;
             unsigned int month;
             unsigned int day;

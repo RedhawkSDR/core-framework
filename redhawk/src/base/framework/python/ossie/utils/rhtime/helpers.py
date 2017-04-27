@@ -134,6 +134,8 @@ def toString(tstamp):
                                                     gmt.tm_min, gmt.tm_sec, fractional)
 
 def convert(timeString):
+    if timeString == 'now':
+        return now()
     _sets = timeString.split(':')
     if len(_sets) != 7:
         return CF.UTCTime(0,0,0)

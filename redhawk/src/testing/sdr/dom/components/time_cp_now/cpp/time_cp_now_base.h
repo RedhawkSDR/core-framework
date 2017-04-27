@@ -1,0 +1,30 @@
+#ifndef TIME_CP_NOW_BASE_IMPL_BASE_H
+#define TIME_CP_NOW_BASE_IMPL_BASE_H
+
+#include <boost/thread.hpp>
+#include <ossie/Component.h>
+#include <ossie/ThreadedComponent.h>
+
+
+class time_cp_now_base : public Component, protected ThreadedComponent
+{
+    public:
+        time_cp_now_base(const char *uuid, const char *label);
+        ~time_cp_now_base();
+
+        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+
+        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+
+        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+
+        void loadProperties();
+
+    protected:
+        // Member variables exposed as properties
+        /// Property: rightnow
+        CF::UTCTime rightnow;
+
+    private:
+};
+#endif // TIME_CP_NOW_BASE_IMPL_BASE_H

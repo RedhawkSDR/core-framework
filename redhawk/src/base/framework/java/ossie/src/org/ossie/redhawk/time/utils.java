@@ -151,10 +151,13 @@ public class utils {
 
     /**
      * Converts a human-readable string following of the format:
-     *   YYYY:MM:DD::HH:MM:SS.SSSSSS
+     *   YYYY:MM:DD::HH:MM:SS.SSSSSS or 'now'
      * to UTCTime
      */
     public static UTCTime convert(String time) {
+        if (time.equals("now")) {
+            return now();
+        }
         String[] token = time.split(":");
         if (token.length != 7)
             return new CF.UTCTime();

@@ -74,6 +74,7 @@ SUBDIRS = sdr/dev/devices/ExecutableDevice \
           sdr/dom/components/TestCppOptionalProps/cpp \
           sdr/dom/components/cpp_with_deps/cpp \
           sdr/dom/components/timeprop_cpp/cpp \
+          sdr/dom/components/time_cp_now/cpp \
           sdr/dom/components/msg_through_cpp/cpp
 
 if HAVE_JAVASUPPORT
@@ -88,6 +89,7 @@ SUBDIRS += sdr/dev/devices/BasicTestDevice_java/java \
            sdr/dom/components/java_comp/java \
            sdr/dom/components/msg_through_java/java \
            sdr/dom/components/timeprop_java/java \
+           sdr/dom/components/time_ja_now/java \
            sdr/dom/components/HardLimit/HardLimit_java_impl1 \
            sdr/dom/components/PropertyChangeEventsJava/PropertyChangeEventsJava_java_impl1 \
            sdr/dom/components/TestJavaProps \

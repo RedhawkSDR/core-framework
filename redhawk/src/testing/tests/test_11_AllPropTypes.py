@@ -23,7 +23,7 @@ import unittest
 from _unitTestHelpers import scatest
 from ossie.cf import CF, CF__POA
 from omniORB import CORBA
-from ossie.utils import sb
+from ossie.utils import sb, rhtime, redhawk
 import struct, time, os
 
 globalsdrRoot = os.environ['SDRROOT']
@@ -96,6 +96,77 @@ class TimeTest(scatest.CorbaTestCase):
     @scatest.requireJava
     def test_getTimeJava(self):
         self.basetest_getTime('timeprop_java')
+
+class UTCTimeTestWaveform(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom._get_applications()), 0)
+
+    def tearDown(self):
+        if self._app:
+            self._app.stop()
+            self._app.releaseObject()
+
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+
+    def basetest_Now(self, app_name):
+        self._app = self._rhDom.createApplication("/waveforms/"+app_name+"/"+app_name+".sad.xml")
+        self.assertNotEqual(self._app, None)
+        cur_time = rhtime.now()
+        app_time = self._app.comps[0].rightnow.queryValue()
+        _cur_time = cur_time.twsec + cur_time.tfsec
+        _app_time = app_time.twsec + app_time.tfsec
+        self.assertTrue(abs(_cur_time-_app_time)<1, True)
+
+    def test_nowOverload(self):
+        self.basetest_Now('newtime_w')
+
+    def test_nowCpp(self):
+        self.basetest_Now('time_cp_now_w')
+
+    def test_nowPython(self):
+        self.basetest_Now('time_py_now_w')
+
+    @scatest.requireJava
+    def test_nowJava(self):
+        self.basetest_Now('time_ja_now_w')
+
+class UTCTimeTestSandbox(scatest.CorbaTestCase):
+    def setUp(self):
+        sb.setDEBUG(False)
+        # Flagrant violation of sandbox API: if the sandbox singleton exists,
+        # clean up previous state and dispose of it.
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+
+    def tearDown(self):
+        sb.release()
+        sb.setDEBUG(False)
+        os.environ['SDRROOT'] = globalsdrRoot
+
+    def basetest_Now(self, comp_name):
+        comp = sb.launch(comp_name)
+        self.assertNotEqual(comp, None)
+        cur_time = rhtime.now()
+        comp_time = comp.rightnow.queryValue()
+        _cur_time = cur_time.twsec + cur_time.tfsec
+        _comp_time = comp_time.twsec + comp_time.tfsec
+        self.assertTrue(abs(_cur_time-_comp_time)<1, True)
+
+    def test_nowSbCpp(self):
+        self.basetest_Now('time_cp_now')
+
+    def test_nowSbPython(self):
+        self.basetest_Now('time_py_now')
+
+    @scatest.requireJava
+    def test_nowSbJava(self):
+        self.basetest_Now('time_ja_now')
 
 class TestAllTypes(scatest.CorbaTestCase):
     def setUp(self):
