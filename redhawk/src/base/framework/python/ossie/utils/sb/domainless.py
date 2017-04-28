@@ -620,6 +620,7 @@ def loadSADFile(filename, props={}):
         sad = parsers.sad.parseString(sadFileString)
         log.debug("waveform ID '%s'", sad.get_id())
         log.debug("waveform name '%s'", sad.get_name())
+        waveform_modifier = ':'+sad.get_name()
         validRequestedComponents = {} 
         # Loop over each <componentfile> entry to determine SPD filenames and which components are kickable
         for component in sad.componentfiles.get_componentfile():
@@ -637,7 +638,7 @@ def loadSADFile(filename, props={}):
         # Need to determine which component is the assembly controller
         assemblyControllerRefid = None
         if sad.assemblycontroller:
-            assemblyControllerRefid = sad.assemblycontroller.get_componentinstantiationref().get_refid()
+            assemblyControllerRefid = sad.assemblycontroller.get_componentinstantiationref().get_refid() + waveform_modifier
             log.debug("ASSEMBLY CONTROLLER component instantiation ref '%s'", assemblyControllerRefid)
         if not assemblyControllerRefid:
             log.warn('SAD file did not specify an assembly controller')
@@ -647,7 +648,7 @@ def loadSADFile(filename, props={}):
         # 
         externprops=[]
         if sad.get_externalproperties():
-            externprops=[ { 'comprefid' : x.comprefid, 'propid' : x.propid, 'externalpropid' : x.externalpropid } for x in sad.get_externalproperties().get_property() ]
+            externprops=[ { 'comprefid' : x.comprefid + waveform_modifier, 'propid' : x.propid, 'externalpropid' : x.externalpropid } for x in sad.get_externalproperties().get_property() ]
             log.debug( "External Props: %s", externprops )
 
         # Loop over each <componentplacement> entry to determine actual instance name for component
@@ -687,7 +688,7 @@ def loadSADFile(filename, props={}):
             refid = component.componentfileref.refid
             if validRequestedComponents.has_key(refid):
                 instanceName = component.get_componentinstantiation()[0].get_usagename()
-                instanceID = component.get_componentinstantiation()[0].id_
+                instanceID = component.get_componentinstantiation()[0].id_ + waveform_modifier
                 log.debug("launching component '%s'", instanceName)
                 properties=component.get_componentinstantiation()[0].get_componentproperties()
                 #simples
@@ -831,7 +832,7 @@ def loadSADFile(filename, props={}):
             assemblyController = False
             sandboxComponent = None
             if validRequestedComponents.has_key(refid):
-                instanceID = component.get_componentinstantiation()[0].id_
+                instanceID = component.get_componentinstantiation()[0].id_ + waveform_modifier
                 componentProps = None
                 if len(launchedComponents) > 0:
                     for comp in launchedComponents:
