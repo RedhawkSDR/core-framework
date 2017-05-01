@@ -1121,7 +1121,7 @@ class QueryableBase(object):
                         defValue = _convertType(propType, val)
                     id_clean = _prop_helpers._cleanId(prop)
                     # Add individual property
-                    id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
+                    id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames, namesp=structProp.get_id())
                     members.append((prop.get_id(), propType, defValue, id_clean))
                     structDefValue[prop.get_id()] = defValue
                 for prop in structProp.get_simplesequence():
@@ -1133,7 +1133,7 @@ class QueryableBase(object):
                         defValue = None
                     id_clean = _prop_helpers._cleanId(prop)
                     # Add individual property
-                    id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
+                    id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames, namesp=structProp.get_id())
                     members.append((prop.get_id(), propType, defValue, id_clean))
                     structDefValue[prop.get_id()] = defValue
                 
@@ -1174,7 +1174,7 @@ class QueryableBase(object):
                         id_clean = _prop_helpers._cleanId(prp)
                         # Add struct member
                         members.append((prp.get_id(), propType, defValue, id_clean))
-                        _prop_helpers.addCleanName(id_clean, prp.get_id(), _displayNames, _duplicateNames)
+                        _prop_helpers.addCleanName(id_clean, prp.get_id(), _displayNames, _duplicateNames, namesp=prop.get_id())
                     for prp in prop.get_struct().get_simplesequence():
                         propType = self._getPropType(prp)
                         vals = prp.get_values()
@@ -1185,7 +1185,7 @@ class QueryableBase(object):
                         id_clean = _prop_helpers._cleanId(prp)
                         # Adds struct member
                         members.append((prp.get_id(), propType, defValue, id_clean))
-                        _prop_helpers.addCleanName(id_clean, prp.get_id(), _displayNames, _duplicateNames)
+                        _prop_helpers.addCleanName(id_clean, prp.get_id(), _displayNames, _duplicateNames, namesp=prop.get_id())
                     
                     structSeqDefValue = None
                     structValues = prop.get_structvalue()
