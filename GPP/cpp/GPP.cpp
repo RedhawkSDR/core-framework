@@ -1534,23 +1534,26 @@ void GPP_i::updateUsageState()
                 );
   }
   
-  if (sys_idle < modified_thresholds.cpu_idle) {
-    if ( sys_idle_avg < modified_thresholds.cpu_idle) {
-        std::ostringstream oss;
-        oss << "Threshold: " <<  modified_thresholds.cpu_idle << " Actual/Average: " << sys_idle << "/" << sys_idle_avg ;
-        _setReason( "CPU IDLE", oss.str() );
-        setUsageState(CF::Device::BUSY);
-        return;
-    }
+  if ( thresholds.cpu_idle != 0 ) {
+      if (sys_idle < modified_thresholds.cpu_idle) {
+          if ( sys_idle_avg < modified_thresholds.cpu_idle) {
+              std::ostringstream oss;
+              oss << "Threshold: " <<  modified_thresholds.cpu_idle << " Actual/Average: " << sys_idle << "/" << sys_idle_avg ;
+              _setReason( "CPU IDLE", oss.str() );
+              setUsageState(CF::Device::BUSY);
+              return;
+          }
+      }
   }
 
-  if ( mem_free < modified_thresholds.mem_free) {
+  if ( thresholds.mem_free != 0 && (mem_free < modified_thresholds.mem_free)) {
         std::ostringstream oss;
         oss << "Threshold: " <<  modified_thresholds.mem_free << " Actual: " << mem_free;
         _setReason( "FREE MEMORY", oss.str() );
         setUsageState(CF::Device::BUSY);
   }
-  else if ( sys_load > modified_thresholds.load_avg ) {
+
+  else if ( thresholds.load_avg != 0 && ( sys_load > modified_thresholds.load_avg )) {
       std::ostringstream oss;
       oss << "Threshold: " <<  modified_thresholds.load_avg << " Actual: " << sys_load;
       _setReason( "LOAD AVG", oss.str() );
@@ -1562,7 +1565,7 @@ void GPP_i::updateUsageState()
       _setReason( "RESERVATION CAPACITY", oss.str() );
       setUsageState(CF::Device::BUSY);
   }
-  else if (_check_nic_thresholds() ) {
+  else if ( thresholds.nic_usage != 0 && _check_nic_thresholds() ) {
       setUsageState(CF::Device::BUSY);
   }
   else if (_check_limits(thresholds)) {
@@ -2409,7 +2412,7 @@ void GPP_i::update()
   utilization[0].subscribed = (reservation_set * (float)processor_cores) / 100.0 + utilization[0].component_load;
   utilization[0].maximum = processor_cores-(thresholds.cpu_idle/100.0) * processor_cores;
 
-  LOG_DEBUG(GPP_i, __FUNCTION__ << " LOAD aand IDLE : " << std::endl << 
+  LOG_DEBUG(GPP_i, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
            " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
            " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
            "         idle avg: " << system_monitor->get_idle_average() << std::endl << 
