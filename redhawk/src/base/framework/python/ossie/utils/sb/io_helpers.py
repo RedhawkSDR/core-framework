@@ -143,7 +143,14 @@ class helperBase(object):
         pass
 
 class MessageSink(helperBase, PortSupplier):
-    def __init__(self, messageId = None, messageFormat = None, messageCallback = None):
+    '''
+        Received structured messages
+        if storeMessages is True, then messages can be retrieved through the getMessages function
+            The internal message queue is emptied when messages are retrieved, so if storeMessages is True,
+            make sure to regularly retrieve the available messages to empty out the internal list
+
+    '''
+    def __init__(self, messageId = None, messageFormat = None, messageCallback = None, storeMessages = False):
         helperBase.__init__(self)
         PortSupplier.__init__(self)
         self._flowOn = False
@@ -151,6 +158,7 @@ class MessageSink(helperBase, PortSupplier):
         self._messageId = messageId
         self._messageFormat = messageFormat
         self._messageCallback = messageCallback
+        self._storeMessages = storeMessages
         self._providesPortDict = {}
         self._providesPortDict['msgIn'] = {
             'Port Interface': 'IDL:ExtendedEvent/MessageEvent:1.0',
@@ -165,12 +173,15 @@ class MessageSink(helperBase, PortSupplier):
     def messageCallback(self, msgId, msgData):
         print msgId, msgData
 
+    def getMessages(self):
+        return self._messagePort.getMessages()
+
     def getPort(self, portName):
         try:
             if self._messageCallback == None:
                 self._messageCallback = self.messageCallback
             if  self._messagePort == None:
-                self._messagePort = _events.MessageConsumerPort(thread_sleep=0.1)
+                self._messagePort = _events.MessageConsumerPort(thread_sleep=0.1, storeMessages = self._storeMessages)
                 self._messagePort.registerMessage(self._messageId,
                                              self._messageFormat, self._messageCallback)
             return self._messagePort._this()

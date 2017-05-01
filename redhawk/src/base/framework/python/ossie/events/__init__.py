@@ -30,7 +30,7 @@ from omniORB import any, URI, CORBA
 from ossie.cf import CF, CF__POA
 from ossie.cf import ExtendedCF, ExtendedCF__POA
 from ossie.cf import ExtendedEvent, ExtendedEvent__POA
-from ossie.properties import struct_from_any, struct_to_any, props_to_any
+from ossie.properties import struct_from_any, struct_to_any, props_to_any, prop_to_dict
 from ossie.properties import simple_property, simpleseq_property, struct_property, structseq_property
 
 import traceback
@@ -322,7 +322,7 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
             self.parent = parent
             self.instance_id = instance_id
             self.existence_lock = threading.Lock()
-            
+
         def push(self, data):
             self.parent.actionQueue.put(('message',data))
         
@@ -351,7 +351,7 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
             self.parent.consumer_lock.release()
             return objref
 
-    def __init__(self, thread_sleep=0.1, parent=None):
+    def __init__(self, thread_sleep=0.1, parent=None, storeMessages = False):
         self.consumer_lock = threading.Lock()
         threading.Thread.__init__(self)
         self._terminateMe=False
@@ -366,6 +366,8 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
         self.consumers = {}
         self.supplier_admin = self.SupplierAdmin_i(self)
         self._parent_comp = parent
+        self._storeMessages = storeMessages
+        self._storedMessages = []
         self.startPort()
 
 
@@ -445,6 +447,11 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
             # Stop tracking this thread
             _consumers.remove(self)
 
+    def getMessages(self):
+        retval = copy.deepcopy(self._storedMessages)
+        self._storedMessages = []
+        return retval
+
     def _run(self):
         while not self._terminateMe:
             while not self.actionQueue.empty():
@@ -473,6 +480,8 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
                             except Exception, e:
                                 print "Callback for message "+str(id)+" failed with exception: "+str(e)
                         for allMsg in self._allMsg:
+                            if self._storeMessages:
+                                self._storedMessages.append(prop_to_dict(value))
                             callback = allMsg[1]
                             try:
                                 callback(id, value)

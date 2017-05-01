@@ -2359,11 +2359,10 @@ class MessagePortTest(scatest.CorbaTestCase):
         msrc = sb.MessageSource()
         cond = threading.Condition()
         mcb = MCB(cond)
-        msink = sb.MessageSink( messageCallback=mcb.msgCallback )
+        msink = sb.MessageSink(messageCallback=mcb.msgCallback, storeMessages = True)
         msrc.connect(msink)
         # Simple messages come across properties list which translates into the following
         # {'sb_struct': {'sb': 'testing 1'}}
- 
 
         msrc.sendMessage("testing 1")
         wait_for_msg(cond)
@@ -2373,6 +2372,10 @@ class MessagePortTest(scatest.CorbaTestCase):
         wait_for_msg(cond)
         msg = mcb.msg['sb_struct']['sb']
         self.assertEquals( msg, "testing 2")
+        rcv_msg = msink.getMessages()
+        self.assertEquals(len(rcv_msg), 1)
+        self.assertEquals(rcv_msg[0], mcb.msg)
+        self.assertEquals(len(msink.getMessages()), 0)
         sb.stop()
 
         # terminate this sink object
@@ -2398,6 +2401,20 @@ class MessagePortTest(scatest.CorbaTestCase):
         wait_for_msg(cond)
         msg = mcb.msg['sb_struct']['sb']
         self.assertEquals( msg, "testing 5")
+        self.assertEquals(len(msink.getMessages()), 0)
+        sb.stop()
+
+        # terminate this sink object
+        msink.releaseObject()
+
+        # create new sink and connect to source 
+        msink = sb.MessageSink(messageCallback=None, storeMessages = True)
+        msrc.connect(msink)
+        sb.start()
+        msrc.sendMessage("testing 4")
+        msrc.sendMessage("testing 5")
+        time.sleep(2)
+        self.assertEquals(len(msink.getMessages()), 2)
         sb.stop()
 
         #  reset receiver and cycle sandbox state
