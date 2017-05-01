@@ -104,7 +104,7 @@ import fnmatch
 import sys
 import logging
 import string as _string
-import cStringIO
+import cStringIO, pydoc
 import warnings
 import traceback
 from omniORB import CORBA, any
@@ -1083,7 +1083,12 @@ class Component(object):
         except RuntimeError, e:
             # Turn RuntimeErrors into AssertionErrors to match legacy expectation.
             raise AssertionError, "Unable to launch component: '%s'" % e
-def api(descriptor, objType=None):
+def api(descriptor, objType=None, destfile=None):
+    localdef_dest = False
+    if destfile == None:
+        localdef_dest = True
+        destfile = cStringIO.StringIO()
+
     sdrRoot = _getSandbox().getSdrRoot()
     profile = sdrRoot.findProfile(descriptor, objType=objType)
     spd, scd, prf = sdrRoot.readProfile(profile)
@@ -1098,21 +1103,21 @@ def api(descriptor, objType=None):
         else:
             description = spd.description
     if description:
-        print '\nDescription ======================\n'
-        print description
-    print '\nPorts ======================'
-    print '\nUses (output)'
+        print >>destfile, '\nDescription ======================\n'
+        print >>destfile, description
+    print >>destfile, '\nPorts ======================'
+    print >>destfile, '\nUses (output)'
     table = TablePrinter('Port Name', 'Port Interface')
     for uses in scd.get_componentfeatures().get_ports().get_uses():
         table.append(uses.get_usesname(), uses.get_repid())
-    table.write()
-    print '\nProvides (input)'
+    table.write(f=destfile)
+    print >>destfile, '\nProvides (input)'
     table = TablePrinter('Port Name', 'Port Interface')
     for provides in scd.get_componentfeatures().get_ports().get_provides():
         table.append(provides.get_providesname(), provides.get_repid())
-    table.write()
+    table.write(f=destfile)
 
-    print '\nProperties ======================\n'
+    print >>destfile, '\nProperties ======================\n'
     table = TablePrinter('id', 'type')
     if prf != None:
         for simple in prf.simple:
@@ -1137,9 +1142,11 @@ def api(descriptor, objType=None):
                 table.append('  '+prop.get_id(),prop.get_type())
             for prop in struct.get_struct().get_simplesequence():
                 table.append('  '+prop.get_id(),prop.get_type())
-        table.write()
+        table.write(f=destfile)
 
-
+    if localdef_dest:
+        pydoc.pager(destfile.getvalue())
+        destfile.close()
 
 def _get_started():
     return _getSandbox()._get_started()

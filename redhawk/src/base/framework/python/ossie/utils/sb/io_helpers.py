@@ -38,6 +38,7 @@ from ossie.cf import CF as _CF
 import shlex as _shlex
 import time as _time
 import signal as _signal
+import cStringIO, pydoc
 import os as _os
 import subprocess as _subprocess
 import Queue as _Queue
@@ -189,9 +190,18 @@ class MessageSink(helperBase, PortSupplier):
             log.error("MessageSink:getPort(): failed " + str(e))
         return None
 
-    def api(self):
-        print "Component MessageSink :"
-        PortSupplier.api(self)
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, "Component MessageSink :"
+        PortSupplier.api(self, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def start(self):
         if self._messagePort :  self._messagePort.startPort()
@@ -315,9 +325,18 @@ class MessageSource(helperBase, PortSupplier):
             log.error("MessageSource:getUsesPort(): failed " + str(e))
         return None
 
-    def api(self):
-        print "Component MessageSource :"
-        PortSupplier.api(self)
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, "Component MessageSource :"
+        PortSupplier.api(self, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def start(self):
         self._flowOn = True
@@ -590,13 +609,22 @@ class _DataPortBase(helperBase, PortSupplier):
         # as the portName should be set via self.supportedPorts.
         raise Exception, "Port name " + portName + " not found."
 
-    def api(self):
+    def api(self, destfile=None):
         """
         Prints application programming interface (API) information and returns.
 
         """
-        print "Component " + self.__class__.__name__ + " :"
-        PortSupplier.api(self)
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, "Component " + self.__class__.__name__ + " :"
+        PortSupplier.api(self, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
 
 class _SourceBase(_DataPortBase):

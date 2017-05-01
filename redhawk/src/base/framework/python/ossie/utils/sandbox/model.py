@@ -19,6 +19,7 @@
 #
 
 import warnings
+import cStringIO, pydoc
 
 from ossie.utils.model import CorbaObject
 from ossie.utils.model import PortSupplier, PropertySet, ComponentBase
@@ -132,13 +133,22 @@ class SandboxResource(ComponentBase, SandboxMixin):
         # Allow the launcher to peform any follow-up cleanup.
         SandboxMixin._terminate(self)
 
-    def api(self):
+    def api(self, destfile=None):
         '''
         Inspect interfaces and properties for the component
         '''
-        print "Component [" + str(self._componentName) + "]:"
-        PortSupplier.api(self)
-        PropertySet.api(self)
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, "Component [" + str(self._componentName) + "]:"
+        PortSupplier.api(self, destfile=destfile)
+        PropertySet.api(self, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def sendMessage(self, msg, msgId=None, msgPort=None, restrict=True ):
         """
@@ -177,10 +187,19 @@ class SandboxDevice(SandboxResource, Device):
     def __repr__(self):
         return "<%s device '%s' at 0x%x>" % (self._sandbox.getType(), self._instanceName, id(self))
 
-    def api(self):
-        SandboxResource.api(self)
-        print
-        Device.api(self)
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        SandboxResource.api(self, destfile=destfile)
+        print >>destfile, '\n'
+        Device.api(self, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
 
 class SandboxService(Service, SandboxMixin):
