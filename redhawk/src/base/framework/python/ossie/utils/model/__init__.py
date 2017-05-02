@@ -20,6 +20,7 @@
 
 
 import commands as _commands
+import sys as _sys
 import os as _os
 import copy as _copy
 import logging
@@ -1355,7 +1356,7 @@ class ComponentBase(QueryableBase):
 
         if _DEBUG == True:
             try:
-                self.api()
+                self.api(destfile=_sys.stdout)
             except:
                 pass
             

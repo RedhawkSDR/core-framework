@@ -39,6 +39,7 @@ import shlex as _shlex
 import time as _time
 import signal as _signal
 import cStringIO, pydoc
+import sys as _sys
 import os as _os
 import subprocess as _subprocess
 import Queue as _Queue
@@ -721,7 +722,7 @@ class _SourceBase(_DataPortBase):
 
         if _domainless._DEBUG == True:
             print self.className + ":_buildAPI()"
-            self.api()
+            self.api(destfile=_sys.stdout)
 
     def getPort(self, name):
         if name in self._connections:
@@ -767,7 +768,7 @@ class _SinkBase(_DataPortBase):
 
         if _domainless._DEBUG == True:
             print self.className + ":_buildAPI()"
-            self.api()
+            self.api(destfile=_sys.stdout)
 
     def getPortType(self, portName):
         """

@@ -69,7 +69,7 @@ if '__main__':
                         components[componentNumber]["InputFile"] = {}
                         components[componentNumber]["InputFile"]["Filename"] = inputFilename
                         components[componentNumber]["InputFile"]["Object"] = InputFile(str(inputFilename), "short")
-                        components[componentNumber]["InputFile"]["Object"].api()
+                        components[componentNumber]["InputFile"]["Object"].api(destfile=sys.stdout)
                         componentNumber = componentNumber + 1 
                         needInputFileDataType = False
                 elif arg.find("!") != -1:

@@ -297,7 +297,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
         # Make sure only one instance name and refid can be used
         comp = sb.launch(self.test_comp, "comp")
-        comp.api()
+        comp.api(destfile=sys.stdout)
         refid = comp._refid
         self.assertRaises(ValueError, sb.launch, self.test_comp, "comp")
         self.assertRaises(ValueError, sb.launch, self.test_comp, "new_comp", refid)
@@ -420,7 +420,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_simpleComp(self):
         comp = sb.launch(self.test_comp)
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Check the init values
         self.initValues(comp)
@@ -581,7 +581,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_illegalPropertyNames(self):
         comp = sb.launch(self.test_comp)
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         self.initValues(comp)
 
@@ -788,7 +788,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_simplePropertyRange(self):
         comp = sb.launch('TestPythonPropsRange')
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Test upper range
         comp.my_octet_name = 255
@@ -843,7 +843,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_structPropertyRange(self):
         comp = sb.launch('TestPythonPropsRange')
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Test upper range
         comp.my_struct_name.struct_octet_name = 255
@@ -948,7 +948,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_seqPropertyRange(self):
         comp = sb.launch('TestPythonPropsRange')
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Test upper and lower bounds
         comp.seq_octet_name[0] = 0
@@ -1011,7 +1011,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_structSeqPropertyRange(self):
         comp = sb.launch('TestPythonPropsRange')
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Test upper and lower bounds
         comp.my_structseq_name[0].ss_octet_name = 255
@@ -1130,7 +1130,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_readOnlyProps(self):
         comp = sb.launch('Sandbox')
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Properties should be able to be read, but not set, and all should throw the saem exception
         exception = None
@@ -1513,10 +1513,10 @@ class SBTestTest(scatest.CorbaTestCase):
     
     def test_apiBeforeLaunch(self):
         try:
-            sb.api("TestCppProps")
-            sb.api("SimpleDevice")
+            sb.api("TestCppProps", destfile=sys.stdout)
+            sb.api("SimpleDevice", destfile=sys.stdout)
             # Building Java support is not necessary to test sb.api()
-            sb.api("BasicService_java")
+            sb.api("BasicService_java", destfile=sys.stdout)
         except:
             self.fail("sb.api(<objectName>) failure")
 
