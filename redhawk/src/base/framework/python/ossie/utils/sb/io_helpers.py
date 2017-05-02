@@ -47,6 +47,7 @@ import logging as _logging
 import socket as _socket
 from omniORB import any as _any
 from omniORB import CORBA as _CORBA
+from omniORB import tcInternal
 import copy as _copy
 import omniORB as _omniORB
 import CosEventComm__POA
@@ -112,6 +113,13 @@ def compareKeywordLists( a, b ):
             return False
     return True
 
+def _getAnyValue(key):
+    if key._format[0]=='[' and key._format[-1]==']':
+        expectedType = _properties.getTypeCode(key._format[1:-1])
+        expectedTypeCode = tcInternal.createTypeCode((tcInternal.tv_sequence, expectedType._d, 0))
+        return _CORBA.Any(expectedTypeCode, key._value)
+    else:
+        return _properties.to_tc_value(key._value,str(key._format))
 
 def _checkComplex(data):
     for item in data:
@@ -957,7 +965,7 @@ class FileSource(_SourceBase):
                 self._src = _bulkio_data_helpers.FileSource(eval(portType),self._byteswap, portTypes)
                 keywords = []
                 for key in self._SRIKeywords:
-                    keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
+                    keywords.append(_CF.DataType(key._name, _getAnyValue(key)))
 
                 if self._streamID == None:
                     self._streamID = self._filename.split('/')[-1]
@@ -1235,7 +1243,7 @@ class DataSource(_SourceBase):
             keywords = []
             try:
                 for key in self._SRIKeywords:
-                    keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
+                    keywords.append(_CF.DataType(key._name, _getAnyValue(key)))
             except:
                 pass
             candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
@@ -1396,7 +1404,7 @@ class DataSource(_SourceBase):
                       len(SRIKeywords) > 0:
                         keywords = []
                         for key in self._SRIKeywords:
-                            keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
+                            keywords.append(_CF.DataType(key._name, _getAnyValue(key)))
                         candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
                                                          streamID, self._blocking, keywords)
 
@@ -1452,7 +1460,7 @@ class DataSource(_SourceBase):
                         keywords = candidateSri.keywords[:]
                         for key in self._SRIKeywords:
                             # if current sri contains they keyword then overwrite else append
-                            kw=_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format)))
+                            kw = _CF.DataType(key._name, _getAnyValue(key))
                             if key._name in ckeys:
                                 # replace that keyword
                                 for x in range(len(keywords)):
@@ -1883,18 +1891,26 @@ class SRIKeyword(object):
     This is used in the Input series as the element in the SRIKeywords list
     name and value correspond to the id/value pair
     format is a string that describes the data type casting that needs to happen
-      - short, ushort
-      - float, double
-      - long, ulong
-      - longlong, ulonglong
-      - char
-      - octet
+      - short, ushort, complexShort, complexUShort
+      - float, double, complexFloat, complexDouble
+      - long, ulong, complexLong, complexULong
+      - longlong, ulonglong, complexLongLong, complexULongLong
+      - char, complexChar
+      - octet, complexOctet
       - string
-      - boolean
+      - boolean, complexBoolean
+    For sequences, encase the data type in brackets (e.g.: [short])
     '''
     def __init__(self, name, value, format):
         # validate format is legal type to convert to
-        if format in _properties.getTypeMap().keys():
+        if format[0] == '[' and format[-1] == ']':
+            if format[1:-1] in _properties.getTypeMap().keys():
+                self._name   = name
+                self._value  = value
+                self._format = format
+            else:
+                raise RuntimeError("Unsupported format type: " + format)
+        elif format in _properties.getTypeMap().keys():
             self._name   = name
             self._value  = value
             self._format = format

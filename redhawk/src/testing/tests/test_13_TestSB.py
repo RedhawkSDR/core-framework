@@ -32,7 +32,7 @@ import subprocess
 import commands
 import struct
 
-from omniORB import CORBA, any
+from omniORB import CORBA, any, tcInternal
 
 from ossie import properties
 from ossie.cf import CF, StandardEvent
@@ -69,7 +69,11 @@ def compareKeywordLists( a, b ):
         if keyA.id  != keyB.id:
             return False
         if keyA.value._t != keyB.value._t:
-            return False
+            if isinstance(keyA.value._t,tcInternal.TypeCode_sequence):
+                if keyA.value._t.content_type() != keyB.value._t.content_type():
+                    return False
+            else:
+                return False
         if keyA.value._v != keyB.value._v:
             return False
     return True
@@ -2076,11 +2080,18 @@ class BulkioTest(unittest.TestCase):
         kws.append(sb.SRIKeyword('kw3',16,'short'))
         kws.append(sb.SRIKeyword('kw4', 200,'octet'))
         kws.append(sb.SRIKeyword('kw5','this is a test','string'))
+        kws.append(sb.SRIKeyword('kw6',[1,2],'[short]'))
+
+        expectedType = properties.getTypeCode('short')
+        expectedTypeCode = tcInternal.createTypeCode((tcInternal.tv_sequence, expectedType._d, 0))
+        kw6 = CORBA.Any(expectedTypeCode, [1,2])
+
         matchkws=[ CF.DataType(id='kw1', value=CORBA.Any(CORBA.TC_long, 1000)), 
                    CF.DataType(id='kw2', value=CORBA.Any(CORBA.TC_float, 12456.0)), 
                    CF.DataType(id='kw3', value=CORBA.Any(CORBA.TC_short, 16)), 
                    CF.DataType(id='kw4', value=CORBA.Any(CORBA.TC_octet, 200)), 
-                   CF.DataType(id='kw5', value=CORBA.Any(CORBA.TC_string, 'this is a test'))
+                   CF.DataType(id='kw5', value=CORBA.Any(CORBA.TC_string, 'this is a test')),
+                   CF.DataType(id='kw6', value=kw6)
                    ]
         _srcData = [1,2,3,4]
         source.push(_srcData, SRIKeywords=kws )
