@@ -18,6 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+import cStringIO, pydoc
+
 from ossie.utils.model import ComponentBase, Resource, PropertySet, PortSupplier
 
 class DomainComponent(ComponentBase):
@@ -37,17 +39,26 @@ class DomainComponent(ComponentBase):
 
     #####################################
 
-    def api(self, showComponentName=True, showInterfaces=True, showProperties=True, externalPropInfo=None):
+    def api(self, showComponentName=True, showInterfaces=True, showProperties=True, externalPropInfo=None, destfile=None):
         '''
         Inspect interfaces and properties for the component
         '''
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
         className = self.__class__.__name__
         if showComponentName == True:
-            print className+" [" + str(self.name) + "]:"
+            print >>destfile, className+" [" + str(self.name) + "]:"
         if showInterfaces == True:
-            PortSupplier.api(self)
+            PortSupplier.api(self, destfile=destfile)
         if showProperties == True and self._properties != None:
-            PropertySet.api(self, externalPropInfo)
+            PropertySet.api(self, externalPropInfo, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
 
 class Component(DomainComponent, Resource):

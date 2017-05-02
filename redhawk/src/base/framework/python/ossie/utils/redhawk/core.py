@@ -32,6 +32,7 @@ import CosNaming as _CosNaming
 import sys as _sys
 import time as _time
 import datetime as _datetime
+import cStringIO, pydoc
 import weakref
 import threading
 import logging
@@ -421,25 +422,30 @@ class App(_CF__POA.Application, Resource):
             if refid.find(self.assemblyController) >= 0:
                 self._acRef = new_comp
 
-    def api(self):
+    def api(self, destfile=None):
         # Display components, their properties, and external ports
-        print "Waveform [" + self.ns_name + "]"
-        print "---------------------------------------------------"
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
 
-        print "External Ports =============="
-        PortSupplier.api(self)
+        print >>destfile, "Waveform [" + self.ns_name + "]"
+        print >>destfile, "---------------------------------------------------"
 
-        print "Components =============="
+        print >>destfile, "External Ports =============="
+        PortSupplier.api(self, destfile=destfile)
+
+        print >>destfile, "Components =============="
         for count, comp_entry in enumerate(self.comps):
             name = comp_entry.name
             if comp_entry._get_identifier().find(self.assemblyController) != -1:
                 name += " (Assembly Controller)"
-            print "%d. %s" % (count+1, name)
-        print "\n"
+            print >>destfile, "%d. %s" % (count+1, name)
+        print >>destfile, "\n"
 
         # Display AC props
         if self._acRef:
-            self._acRef.api(showComponentName=False, showInterfaces=False, showProperties=True)
+            self._acRef.api(showComponentName=False, showInterfaces=False, showProperties=True, destfile=destfile)
 
         # Loops through each external prop looking for a component to use to display the internal prop value
         for extId in self._externalProps.keys():
@@ -447,10 +453,14 @@ class App(_CF__POA.Application, Resource):
             for comp_entry in self.comps:
                 if comp_entry._get_identifier().find(compRefId) != -1:
                     # Pass along external prop info to component api()
-                    comp_entry.api(showComponentName=False,showInterfaces=False,showProperties=True, externalPropInfo=(extId, propId))
+                    comp_entry.api(showComponentName=False,showInterfaces=False,showProperties=True, externalPropInfo=(extId, propId), destfile=destfile)
                     break
 
-        print
+        print >>destfile, '\n'
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def _populatePorts(self, fs=None):
         """Add all port descriptions to the component instance"""

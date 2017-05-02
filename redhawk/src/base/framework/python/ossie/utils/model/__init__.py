@@ -42,6 +42,7 @@ from ossie.utils.formatting import TablePrinter
 from ossie.utils import prop_helpers
 from ossie.utils import rhtime
 import warnings as _warnings
+import cStringIO, pydoc
 from connect import *
 
 _warnings.filterwarnings('once',category=DeprecationWarning)
@@ -197,23 +198,41 @@ class PortSupplier(object):
         self._providesPortDict = {}
         self._usesPortDict = {}
 
-    def _showPorts(self, ports):
+    def _showPorts(self, ports, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
         if ports:
             table = TablePrinter('Port Name', 'Port Interface')
             for port in ports.itervalues():
                 table.append(port['Port Name'], port['Port Interface'])
-            table.write()
+            table.write(f=destfile)
         else:
-            print "None"
+            print >>destfile, "None"
 
-    def api(self):
-        print "Provides (Input) Ports =============="
-        self._showPorts(self._providesPortDict)
-        print
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
-        print "Uses (Output) Ports =============="
-        self._showPorts(self._usesPortDict)
-        print
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, "Provides (Input) Ports =============="
+        self._showPorts(self._providesPortDict, destfile=destfile)
+        print >>destfile, "\n"
+
+        print >>destfile, "Uses (Output) Ports =============="
+        self._showPorts(self._usesPortDict, destfile=destfile)
+        print >>destfile, "\n"
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def _getUsesPort(self, name):
         if not name in self._usesPortDict:
@@ -481,7 +500,14 @@ class PropertySet(object):
         else:
             return None
    
-    def api(self, externalPropInfo=None):
+    def api(self, externalPropInfo=None, destfile=None):
+        '''
+            If destfile is None, output is sent to stdout
+        '''
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
         properties = [p for p in self._properties if 'property' in p.kinds or 'configure' in p.kinds or 'execparam' in p.kinds]
         if not properties:
             return
@@ -497,7 +523,7 @@ class PropertySet(object):
             extId, propId = externalPropInfo
             table.enable_header(False)
         else:
-            print "Properties =============="
+            print >>destfile, "Properties =============="
         for prop in properties:
             if externalPropInfo:
                 # Searching for a particular external property
@@ -549,7 +575,10 @@ class PropertySet(object):
                 currentValue = _formatSimple(prop, currentValue,prop.id)
                 table.append(name, '('+scaType+')', str(prop.defValue), currentValue)
 
-        table.write()
+        table.write(f=destfile)
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
 
 class PropertyEmitter(PropertySet):
@@ -890,10 +919,15 @@ class Device(Resource):
             if _DEBUG == True:
                 print ("attempted to deallocate a non-existent allocation")
 
-    def api(self):
-        print 'Allocation Properties ======'
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, 'Allocation Properties ======'
         if not self._allocProps:
-            print 'None'
+            print >>destfile, 'None'
             return
 
         table = TablePrinter('Property Name', '(Data Type)', 'Action')
@@ -906,8 +940,10 @@ class Device(Resource):
                     structdef = prop
                 for member in structdef.members.itervalues():
                     table.append('  '+member.clean_name, member.type)
-        table.write()
-            
+        table.write(f=destfile)
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
 class LoadableDevice(Device):
     def load(self, fs, fileName, loadKind):

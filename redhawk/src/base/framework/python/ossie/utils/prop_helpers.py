@@ -32,6 +32,7 @@ from omniORB import any as _any
 from omniORB import CORBA as _CORBA
 from omniORB import tcInternal as _tcInternal
 import copy as _copy
+import cStringIO, pydoc
 import struct as _struct
 import string as _string
 import operator as _operator
@@ -405,25 +406,30 @@ class Property(object):
         type = str(self.compRef._getPropType(sprop))
         return defVal, values, type, kinds, enums
 
-    def api(self):
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
         kinds = []
-        print "\nProperty\n--------"
-        print "% -*s %s" % (17,"ID:",self.id)
-        print "% -*s %s" % (17,"Type:",self.type)
+        print >>destfile, "\nProperty\n--------"
+        print >>destfile, "% -*s %s" % (17,"ID:",self.id)
+        print >>destfile, "% -*s %s" % (17,"Type:",self.type)
         simpleOrSequence = False
         if self.type != "structSeq" and self.type != "struct":
             simpleOrSequence = True
-            print "% -*s %s" % (17,"Default Value:", self.defValue)
+            print >>destfile, "% -*s %s" % (17,"Default Value:", self.defValue)
             if self.mode != "writeonly":
-                print "% -*s %s" % (17,"Value: ", self.queryValue())
+                print >>destfile, "% -*s %s" % (17,"Value: ", self.queryValue())
             try:
                 if self._enums != None:
-                    print "% -*s %s" % (17,"Enumumerations:", self._enums)
+                    print >>destfile, "% -*s %s" % (17,"Enumumerations:", self._enums)
             except:
                 simpleOrSequence = True
         if self.type != "struct":
-            print "% -*s %s" % (17,"Action:", self.action) 
-        print "% -*s %s" % (17,"Mode: ", self.mode)
+            print >>destfile, "% -*s %s" % (17,"Action:", self.action) 
+        print >>destfile, "% -*s %s" % (17,"Mode: ", self.mode)
 
         if self.type == "struct":
             structTable = TablePrinter('Name','Data Type','Default Value', 'Current Value','Enumerations')
@@ -438,17 +444,17 @@ class Property(object):
                         defVal,value, type, kinds,enums = self._getStructsSimpleProps(sprop,prop)
                         structTable.append(sprop.get_id(),type,str(defVal),str(value),enums)
                         if first:
-                            print "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
+                            print >>destfile, "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
                             first = False
                     for sprop in prop.get_simplesequence():
                         defVal,values,type,kinds,enums = self._getStructsSimpleSeqProps(sprop, prop)
                         structTable.append(sprop.get_id(),type,defVal,values,enums)
                         if first:
-                            print "% -*s %s" % (17,"Kinds: ",', '.join(kinds))
+                            print >>destfile, "% -*s %s" % (17,"Kinds: ",', '.join(kinds))
                             first = False
             structTable.write()
         elif self.type == "sequence":
-            print "sequence: ",type(self)
+            print >>destfile, "sequence: ",type(self)
 
         elif self.type == "structSeq":
             structNum = -1
@@ -462,8 +468,8 @@ class Property(object):
                         structTable.append(prop.id_, prop.get_type())
                     for prop in prop.get_struct().get_simplesequence():
                         structTable.append(prop.id_, prop.get_type())
-            print "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
-            print "\nStruct\n======"
+            print >>destfile, "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
+            print >>destfile, "\nStruct\n======"
             structTable.write()
 
             simpleTable = TablePrinter('Index','Name','Value')
@@ -476,7 +482,7 @@ class Property(object):
                         for key in s.keys():
                             simpleTable.append(str(structNum),key,str(s[key]))
             if self.mode != "writeonly":
-                print "\nSimple Properties\n================="
+                print >>destfile, "\nSimple Properties\n================="
                 simpleTable.write()
 
         elif simpleOrSequence:
@@ -484,8 +490,11 @@ class Property(object):
                 if prop.id_ == self.id:
                     for kind in prop.get_kind():
                         kinds.append(kind.get_kindtype())
-            print "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
-          
+            print >>destfile, "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def _isNested(self):
         return self._parent is not None
