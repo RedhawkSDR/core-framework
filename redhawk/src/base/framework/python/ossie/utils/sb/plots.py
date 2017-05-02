@@ -104,12 +104,13 @@ class PlotSink(bulkio_data_helpers.ArraySink):
         return changed
 
     def retrieveData(self, length):
-        data, times = super(PlotSink,self).retrieveData(length)
+        data, times, sris = super(PlotSink,self).retrieveData(length)
         if self.sri.mode or self._forceComplex:
-            data2, times2 = super(PlotSink,self).retrieveData(length)
+            data2, times2, sris2 = super(PlotSink,self).retrieveData(length)
             data = bulkio_helpers.bulkioComplexToPythonComplexList(data + data2)
             times.extend(times2)
-        return data, times
+            sris.extend(sris2)
+        return data, times, sris
 
 class CharSink(PlotSink):
     def __init__(self):
@@ -380,7 +381,7 @@ class LineBase(PlotBase):
         line = trace['line']
 
         # Read next frame.
-        data, timestamps = sink.retrieveData(length=self._frameSize)
+        data, timestamps, sris = sink.retrieveData(length=self._frameSize)
         if not data:
             return
         x_data, y_data = self._formatData(data, sink.sri)
@@ -651,7 +652,7 @@ class RasterBase(PlotBase):
             return False
 
         # Read and format data.
-        data, timestamps = self._sink.retrieveData(length=self._frameSize)
+        data, timestamps, sris = self._sink.retrieveData(length=self._frameSize)
         if not data:
             return
         sri = self._sink.sri

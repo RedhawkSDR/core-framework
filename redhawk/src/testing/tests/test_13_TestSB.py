@@ -2036,6 +2036,36 @@ class BulkioTest(unittest.TestCase):
         _rnd_toffset = int(round( (_toffset+len(_srcData)/_sampleRate) *10))/10.0
         self.assertEquals(_rnd_pkt_time,_rnd_toffset )
 
+    def test_DataSinkSRI(self):
+        """
+        Verify that provide SRI is handled
+        """
+        def wait_on_data( sink ):
+            _timeout = 1
+            begin_time = time.time()
+            estimate = sink.getDataEstimate()
+            while estimate.num_timestamps != 3:
+                time.sleep(0.1)
+                estimate = sink.getDataEstimate()
+                if time.time() - begin_time > _timeout:
+                    break
+
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5],sampleRate=100)
+        src.push([1,2,3,4,5],sampleRate=1000)
+        src.push([1,2,3,4,5],sampleRate=10000)
+        wait_on_data(snk)
+        data=snk.getData(tstamps=True,sris=True)
+        self.assertEquals(len(data[2]), 3)
+        self.assertEquals(data[2][0][0], 0)
+        self.assertEquals(data[2][1][0], 5)
+        self.assertEquals(data[2][2][0], 10)
+        self.assertEquals(data[2][0][1].xdelta, 0.01)
+        self.assertEquals(data[2][1][1].xdelta, 0.001)
+        self.assertEquals(data[2][2][1].xdelta, 0.0001)
 
     def test_DataSourceSRI(self):
         """
