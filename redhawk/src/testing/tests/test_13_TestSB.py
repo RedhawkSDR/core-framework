@@ -39,6 +39,7 @@ from ossie.cf import CF, StandardEvent
 from ossie.utils import sb, type_helpers
 from ossie.utils.bulkio import bulkio_helpers
 from ossie.events import ChannelManager, Subscriber, Publisher
+from ossie.utils.bulkio import bulkio_data_helpers
 
 from _unitTestHelpers import scatest, runtestHelpers
 import traceback
@@ -2066,6 +2067,47 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(data[2][0][1].xdelta, 0.01)
         self.assertEquals(data[2][1][1].xdelta, 0.001)
         self.assertEquals(data[2][2][1].xdelta, 0.0001)
+
+    class customSink(bulkio_data_helpers.ArraySink):
+        def __init__(self, porttype):
+            bulkio_data_helpers.ArraySink.__init__(self, porttype)
+
+        def pushSRI(self, H):
+            _H = H
+            _H.xdelta = H.xdelta * 2
+            self.sri = _H
+            self.sris.append([len(self.data), _H])
+
+    def test_CustomDataSink(self):
+        """
+        Verify that provide SRI is handled
+        """
+        def wait_on_data( sink ):
+            _timeout = 1
+            begin_time = time.time()
+            estimate = sink.getDataEstimate()
+            while estimate.num_timestamps != 3:
+                time.sleep(0.1)
+                estimate = sink.getDataEstimate()
+                if time.time() - begin_time > _timeout:
+                    break
+
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink(sinkClass=self.customSink)
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5],sampleRate=100)
+        src.push([1,2,3,4,5],sampleRate=1000)
+        src.push([1,2,3,4,5],sampleRate=10000)
+        wait_on_data(snk)
+        data=snk.getData(tstamps=True,sris=True)
+        self.assertEquals(len(data[2]), 3)
+        self.assertEquals(data[2][0][0], 0)
+        self.assertEquals(data[2][1][0], 5)
+        self.assertEquals(data[2][2][0], 10)
+        self.assertEquals(data[2][0][1].xdelta, 0.02)
+        self.assertEquals(data[2][1][1].xdelta, 0.002)
+        self.assertEquals(data[2][2][1].xdelta, 0.0002)
 
     def test_DataSourceSRI(self):
         """

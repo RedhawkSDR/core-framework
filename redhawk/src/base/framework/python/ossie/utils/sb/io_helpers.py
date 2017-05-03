@@ -29,8 +29,8 @@ except:
 import domainless as _domainless
 import threading as _threading
 import ossie.utils.bulkio.bulkio_helpers as _bulkio_helpers
-import ossie.utils.bluefile.bluefile_helpers as _bluefile_helpers
-import ossie.utils.bulkio.bulkio_data_helpers as _bulkio_data_helpers
+from ossie.utils.bluefile import bluefile_helpers
+from ossie.utils.bulkio import bulkio_data_helpers
 import ossie.utils.bluefile.bluefile as _bluefile
 from ossie import properties as _properties
 from ossie import events as _events
@@ -735,7 +735,6 @@ class _SourceBase(_DataPortBase):
 
 
 class _SinkBase(_DataPortBase):
-
     def __init__(self, formats=None):
         """
         Forward parameters to parent constructor.
@@ -960,10 +959,10 @@ class FileSource(_SourceBase):
             # If input file is a Midas Blue file
             if self._midasFile == True:
                 # define source helper component
-                self._src = _bluefile_helpers.BlueFileReader(eval(portType))
+                self._src = bluefile_helpers.BlueFileReader(eval(portType))
             # else, input file is binary file
             else:
-                self._src = _bulkio_data_helpers.FileSource(eval(portType),self._byteswap, portTypes)
+                self._src = bulkio_data_helpers.FileSource(eval(portType),self._byteswap, portTypes)
                 keywords = []
                 for key in self._SRIKeywords:
                     keywords.append(_CF.DataType(key._name, _getAnyValue(key)))
@@ -1020,9 +1019,15 @@ class FileSource(_SourceBase):
             self._src.EOS = True
 
 class FileSink(_SinkBase):
-    def __init__(self,filename=None, midasFile=False):
+    """
+      To use a different sink (for custom data processing) for regular files, assign the new class to sinkClass
+      To use a different sink for blue files, assign the new class to sinkBlueClass
+    """
+    def __init__(self,filename=None, midasFile=False, sinkClass=bulkio_data_helpers.FileSink, sinkBlueClass=bluefile_helpers.BlueFileWriter):
         _SinkBase.__init__(self)
 
+        self.sinkClass = sinkClass
+        self.sinkBlueClass = sinkBlueClass
         if _domainless._DEBUG == True:
             print className + ":__init__() filename " + str(filename)
             print className + ":__init__() midasFile " + str(midasFile)
@@ -1037,10 +1042,10 @@ class FileSink(_SinkBase):
             # If output file is a Midas Blue file
             if self._midasFile == True:
                 # define source helper component
-                self._sink = _bluefile_helpers.BlueFileWriter(self._filename,eval(self._sinkPortType))
+                self._sink = self.sinkBlueClass(self._filename,eval(self._sinkPortType))
             # else, output file is binary file
             else:
-                self._sink = _bulkio_data_helpers.FileSink(self._filename, eval(self._sinkPortType))
+                self._sink = self.sinkClass(self._filename, eval(self._sinkPortType))
 
             if self._sink != None:
                 self._sinkPortObject = self._sink.getPort()
@@ -1090,14 +1095,14 @@ class DataSinkSDDS(_SinkBase):
 
     It is the responsibility of the user to consume the SDDS data
 
-    DataSinkSDDS manages attachment Ids under the port (self._sink) dictionary attachments
+    DataSinkSDDS manages attachment Ids under the port (sinkClass) dictionary attachments
 
     register an attach callback by passing a function to registerAttachCallback
     register an detach callback by passing a function to registerDetachCallback
     """
-    def __init__(self):
+    def __init__(self, sinkClass=bulkio_data_helpers.SDDSSink):
         _SinkBase.__init__(self, formats=['sdds'])
-        self._sink = _bulkio_data_helpers.SDDSSink(self)
+        self._sink = sinkClass(self)
         self.attach_cb = self.__attach_cb
         self.detach_cb = self.__detach_cb
 
@@ -1138,7 +1143,7 @@ class DataSourceSDDS(_SourceBase):
         Helper to handle the generation of SDDS metadata forwarding
         """
         _SourceBase.__init__(self, bytesPerPush = 0, dataFormat='sdds', formats=['sdds'])
-        self._src = _bulkio_data_helpers.SDDSSource()
+        self._src = bulkio_data_helpers.SDDSSource()
     def attach(self, streamData=None, name=None):
         """
         streamData: type BULKIO.SDDSStreamDefinition
@@ -1219,9 +1224,9 @@ class DataSource(_SourceBase):
     def _createArraySrcInst(self, srcPortType):
 
         if srcPortType != "_BULKIO__POA.dataXML":
-            return _bulkio_data_helpers.ArraySource(eval(srcPortType))
+            return bulkio_data_helpers.ArraySource(eval(srcPortType))
         else:
-            return _bulkio_data_helpers.XmlArraySource(eval(srcPortType))
+            return bulkio_data_helpers.XmlArraySource(eval(srcPortType))
 
 
     def start(self):
@@ -1605,13 +1610,13 @@ class DataSource(_SourceBase):
                                          int(currentSampleTime),
                                          currentSampleTime - int(currentSampleTime))
         if srcPortType != "_BULKIO__POA.dataXML":
-            _bulkio_data_helpers.ArraySource.pushPacket(arraySrcInst,
+            bulkio_data_helpers.ArraySource.pushPacket(arraySrcInst,
                                                         data     = data,
                                                         T        = T,
                                                         EOS      = EOS,
                                                         streamID = streamID)
         else:
-            _bulkio_data_helpers.XmlArraySource.pushPacket(arraySrcInst,
+            bulkio_data_helpers.XmlArraySource.pushPacket(arraySrcInst,
                                                            data     = data,
                                                            EOS      = EOS,
                                                            streamID = streamID)
@@ -1625,9 +1630,9 @@ class DataSource(_SourceBase):
     def _pushSRI(self, arraySrcInst, srcPortType, sri):
         if srcPortType != "_BULKIO__POA.dataXML":
             #print "_pushSRI ", sri
-            _bulkio_data_helpers.ArraySource.pushSRI(arraySrcInst, sri)
+            bulkio_data_helpers.ArraySource.pushSRI(arraySrcInst, sri)
         else:
-            _bulkio_data_helpers.XmlArraySource.pushSRI(arraySrcInst, sri)
+            bulkio_data_helpers.XmlArraySource.pushSRI(arraySrcInst, sri)
 
     def waitAllPacketsSent(self, timeout=None):
         """
@@ -1656,9 +1661,15 @@ class DataSource(_SourceBase):
                     raise AssertionError, self.className + ":stop() failed to exit thread"
 
 class DataSink(_SinkBase):
-    def __init__(self):
+    """
+      To use a different sink (for custom data processing), assign the new class to sinkClass
+      To use a different sink for XML data, assign the new class to sinkXmlClass
+    """
+    def __init__(self, sinkClass=bulkio_data_helpers.ArraySink, sinkXmlClass=bulkio_data_helpers.XmlArraySink):
         fmts=['char','short','long','float','double','longlong','octet','ushort', 'ulong', 'ulonglong', 'file','xml' ]
         _SinkBase.__init__(self, formats=fmts)
+        self.sinkClass = sinkClass
+        self.sinkXmlClass = sinkXmlClass
 
     def getPort(self, portName):
         if _domainless._DEBUG == True:
@@ -1668,9 +1679,9 @@ class DataSink(_SinkBase):
 
             # Set up output array sink
             if str(portName) == "xmlIn":
-                self._sink = _bulkio_data_helpers.XmlArraySink(eval(self._sinkPortType))
+                self._sink = self.sinkXmlClass(eval(self._sinkPortType))
             else:
-                self._sink = _bulkio_data_helpers.ArraySink(eval(self._sinkPortType))
+                self._sink = self.sinkClass(eval(self._sinkPortType))
 
             if self._sink != None:
                 self._sinkPortObject = self._sink.getPort()
@@ -1793,8 +1804,12 @@ class _OutputBase(helperBase):
         pass
 
 class probeBULKIO(_SinkBase):
-    def __init__(self):
+    """
+      To use a different sink (for custom data processing), assign the new class to sinkClass
+    """
+    def __init__(self, sinkClass=bulkio_data_helpers.ProbeSink):
         _SinkBase.__init__(self)
+        self._sinkClass = sinkClass
 
     def getPort(self, portName):
         if _domainless._DEBUG == True:
@@ -1803,7 +1818,7 @@ class probeBULKIO(_SinkBase):
             self._sinkPortType = self.getPortType(portName)
 
             # Set up output array sink
-            self._sink = _bulkio_data_helpers.ProbeSink(eval(self._sinkPortType))
+            self._sink = self._sinkClass(eval(self._sinkPortType))
 
             if self._sink != None:
                 self._sinkPortObject = self._sink.getPort()
