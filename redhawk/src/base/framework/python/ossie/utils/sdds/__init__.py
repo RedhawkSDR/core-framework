@@ -20,3 +20,4 @@
 
 from sdds_time import *
 from sdds_pkt import *
+from sdds_analyzer import *

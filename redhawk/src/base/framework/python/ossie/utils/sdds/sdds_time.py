@@ -32,6 +32,7 @@ def difference(t1, t2):
      else:
           tmp.pf250_  = Time.Two32 + ( tmp.pf250_ - t2.pf250_ )
           tmp.ps250_ -= t2.ps250_ + 1;
+     return tmp
 
 def sum( t1, t2 ):
      tmp=_copy.copy(t1)

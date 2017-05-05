@@ -21,6 +21,28 @@ import ctypes
 import time
 import datetime
 
+__all__ = [ 
+ 'format_identifier',
+ 'frame_sequence',
+ 'msptr_data',
+ 'ttag_info_struct',
+ 'ttag_info_union',
+ 'ttag_values',
+ 'ttag_info',
+ 'ssc_info_struct',
+ 'ssd_data',
+ 'aad_data',
+ 'sdds_header',
+ 'sdds_sb_payload',
+ 'sdds_cb_payload',
+ 'sdds_si_payload',
+ 'sdds_ci_payload',
+ 'sdds_sn_sample',
+ 'sdds_sn_payload',
+ 'sdds_sf_payload',
+ 'sdds_payload',
+ 'sdds_packet',
+]
 
 def  BitsToNumber(sbits, reverse=False ):
      tbits=sbits[:]
@@ -43,11 +65,13 @@ class format_identifier(ctypes.Structure):
                   ('snp',ctypes.c_uint8,1),
                   ('cx',ctypes.c_uint8,1) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(format_identifier,cls).__new__(cls)
+               return super(format_identifier,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
            self.sf = 1
@@ -95,11 +119,13 @@ class frame_sequence(ctypes.BigEndianStructure):
       _pack_ = 1
       _fields_ = [ ('seq',ctypes.c_ushort,16) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(frame_sequence,cls).__new__(cls)
+               return super(frame_sequence,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
            self.seq = 0
@@ -127,11 +153,13 @@ class msptr_data (ctypes.Structure):
       _fields_ = [ ('msptr',ctypes.c_ushort,16),
                    ('msdelta',ctypes.c_ushort,16)  ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(msptr_data,cls).__new__(cls)
+               return super(msptr_data,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
            self.msptr=0
@@ -164,11 +192,13 @@ class ttag_info_struct(ctypes.Structure):
                    ('pad1',ctypes.c_uint8,3),
                    ('pad3',ctypes.c_uint16,16) ]
                    
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(ttag_info_struct,cls).__new__(cls)
+               return super(ttag_info_struct,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
            self.ttv=0
@@ -239,11 +269,13 @@ class ttag_info_union(ctypes.Union):
       _fields_ = [ ('msptr', msptr_data), 
                    ('info', ttag_info_struct )]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(ttag_info_union,cls).__new__(cls)
+               return super(ttag_info_union,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
@@ -262,11 +294,13 @@ class ttag_values(ctypes.BigEndianStructure):
       _fields_ = [ ('ttag',ctypes.c_uint64), 
                    ('ttage',ctypes.c_uint32)
                  ]
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(ttag_values,cls).__new__(cls)
+               return super(ttag_values,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
            self.ttag=0
@@ -302,11 +336,13 @@ class ttag_info(ctypes.Structure):
       _fields_ = [ ('info', ttag_info_union ),
                    ('tstamp', ttag_values ) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(ttag_info,cls).__new__(cls)
+               return super(ttag_info,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
@@ -360,11 +396,13 @@ class ssc_info_struct(ctypes.BigEndianStructure):
       _fields_ = [ ('dfdt',ctypes.c_int32), 
                    ('freq',ctypes.c_uint64)
                  ]
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(ssc_info_struct,cls).__new__(cls)
+               return super(ssc_info_struct,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
@@ -402,11 +440,13 @@ class ssd_data(ctypes.BigEndianStructure):
       _pack_ = 1
       _fields_ = [ ('data', ctypes.c_uint16* DATA_LEN ) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(ssd_data,cls).__new__(cls)
+               return super(ssd_data,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
@@ -425,11 +465,13 @@ class aad_data(ctypes.BigEndianStructure):
       _pack_ = 1
       _fields_ = [ ('data', ctypes.c_uint8*DATA_LEN) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(aad_data,cls).__new__(cls)
+               return super(aad_data,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
@@ -456,14 +498,15 @@ class sdds_header(ctypes.Structure):
                    ('aad',  aad_data ),
                  ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(sdds_header,cls).__new__(cls)
+               return super(sdds_header,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None, skip_parity=True):
-           
            self._skip_parity=skip_parity
            pass
 
@@ -476,9 +519,9 @@ class sdds_header(ctypes.Structure):
                   '      aad: '+str(self.aad)
 
 
-      def inc(self):
+      def inc(self, skip_parity=None):
            self.fsn.inc()
-           if self._skip_parity:
+           if skip_parity or self._skip_parity:
                 if self.fsn.seq % sdds_header.PARITY_SEQ_NUMBER == 31:
                      self.fsn.inc()
            
@@ -639,17 +682,19 @@ class sdds_sb_payload(ctypes.BigEndianStructure):
       _pack_ = 1
       _fields_ = [ ('data', ctypes.c_uint8 *PAYLOAD_SIZE ) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(sdds_sb_payload,cls).__new__(cls)
+               return super(sdds_sb_payload,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
 
-      def get_data(self):
-           return self.data[:]
+      def get_data(self, start=None, end=None):
+           return self.data[start:end]
 
       def set_data(self, samples ):
            if type(samples) == list:
@@ -673,17 +718,19 @@ class sdds_cb_payload(ctypes.BigEndianStructure):
       _pack_ = 1
       _fields_ = [ ('data', ctypes.c_uint8 *PAYLOAD_SIZE ) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(sdds_cb_payload,cls).__new__(cls)
+               return super(sdds_cb_payload,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
 
-      def get_data(self):
-           return self.data[:]
+      def get_data(self, start=None, end=None):
+           return self.data[start:end]
 
       def set_data(self, samples ):
            if type(samples) == list:
@@ -707,17 +754,19 @@ class sdds_si_payload(ctypes.BigEndianStructure):
       _pack_ = 1
       _fields_ = [ ('data', ctypes.c_uint16 * PAYLOAD_SIZE) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(sdds_si_payload,cls).__new__(cls)
+               return super(sdds_si_payload,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
 
-      def get_data(self):
-           return self.data[:]
+      def get_data(self, start=None, end=None):
+           return self.data[start:end]
 
       def set_data(self, samples ):
            if type(samples) == list:
@@ -740,17 +789,19 @@ class sdds_ci_payload(ctypes.BigEndianStructure):
       _pack_ = 1
       _fields_ = [ ('data', ctypes.c_uint16 * PAYLOAD_SIZE) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(sdds_ci_payload,cls).__new__(cls)
+               return super(sdds_ci_payload,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
 
-      def get_data(self):
-           return self.data[:]
+      def get_data(self, start=None, end=None):
+           return self.data[start:end]
 
       def set_data(self, samples ):
            if type(samples) == list:
@@ -773,11 +824,13 @@ class sdds_sn_sample(ctypes.BigEndianStructure):
                    ('sn1', ctypes.c_uint8,4 )
                  ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(sdds_sn_sample,cls).__new__(cls)
+               return super(sdds_sn_sample,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
@@ -797,18 +850,20 @@ class sdds_sn_payload(ctypes.Structure):
       _pack_ = 1
       _fields_ = [ ('data', sdds_sn_sample*PAYLOAD_SIZE) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(sdds_sn_payload,cls).__new__(cls)
+               return super(sdds_sn_payload,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
            pass
 
-      def get_data(self):
+      def get_data(self, start=None, end=None):
            _ret=[]
-           for x in self.data[:]:
+           for x in self.data[start:end]:
                 _ret += x.get_data()
            return _ret
 
@@ -833,17 +888,19 @@ class sdds_sf_payload(ctypes.BigEndianStructure):
       _pack_ = 1
       _fields_ = [ ('data', ctypes.c_float * PAYLOAD_SIZE ) ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(sdds_sf_payload,cls).__new__(cls)
+               return super(sdds_sf_payload,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
           pass
 
-      def get_data(self):
-           return self.data[:]
+      def get_data(self, start=None, end=None):
+           return self.data[start:end]
 
       def set_data(self, samples ):
            if type(samples) == list:
@@ -872,20 +929,25 @@ class sdds_payload(ctypes.Union):
                    ('sf',  sdds_sf_payload )
                  ]
 
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(sdds_payload_struct,cls).__new__(cls)
+               return super(sdds_payload,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None):
-          pass
+           pass
 
       def __str__(self):
-          return  ','.join( [ str(x) for x in self.raw[:40] ] )
+           return  ','.join( [ str(x) for x in self.raw[:40] ] )
+      
+      def trim_payload(self, start=0, end=40):
+           return  ','.join( [ str(x) for x in self.raw[start:end] ] )
 
-      def get_data(self):
-           return self.raw[:]
+      def get_data(self, start=None, end=None):
+           return self.raw[start:end]
 
       def asBuffer(self):
           return buffer(self)[:]
@@ -912,12 +974,13 @@ class sdds_packet(ctypes.Structure):
       _fields_ = [ ('header', sdds_header ),
                    ('payload', sdds_payload )
                  ]
-
-      def __new__(cls,buf=None):
-          if buf:
-             return cls.from_buffer_copy(buf)
+      def __new__(cls,*args, **kwargs ):
+          if len(args) > 0 or 'buf' in kwargs:
+               if len(args) > 0:
+                  return cls.from_buffer_copy(args[0])
+               return cls.from_buffer_copy(kwargs['buf'])
           else:
-             return super(sdds_packet,cls).__new__(cls)
+               return super(sdds_packet,cls).__new__(cls,*args,**kwags)
 
       def __init__(self,data=None, skip_parity=True):
            self._skip_parity=skip_parity
@@ -927,8 +990,19 @@ class sdds_packet(ctypes.Structure):
            return ''.join(str(self.header)) + '\n' +\
                   '  payload: '+ ''.join(str(self.payload))
 
+      def  header_and_payload(self, start=0, end=40, header_only=False, raw=False ):
+           pkt_line=''.join(str(self.header)) 
+           if header_only == False:
+                if raw:
+                     pkt_line = pkt_line + '\n' +\
+                         '  payload: '+ ''.join(str(self.payload.trim_payload(start,end)))
+                else:
+                     pkt_line = pkt_line + '\n' +\
+                         '  payload: '+ ''.join(str(self.get_data(start,end)))
+           return pkt_line
+
       def inc(self):
-           self.header.inc()
+           self.header.inc(self._skip_parity)
       
       ##
       ##  Format Identifier 
@@ -982,6 +1056,16 @@ class sdds_packet(ctypes.Structure):
                 bps=16
            if dmode == 7: bps=32
            return bps
+
+      def get_samples_for_bps(self, bps=None ):
+           if bps == None:
+                bps=self.get_bps()
+           
+           for x in self.FORMATS.values():
+                if x.has_key('bps' ) and x['bps'] == bps:
+                     return x['samples']
+
+           return None
 
       ##
       ## frame sequence
@@ -1076,13 +1160,13 @@ class sdds_packet(ctypes.Structure):
                 self.set_dmode( dm, cplx, bps=_fmt['bps'])
 
 
-      def get_data(self):
+      def get_data(self, start=None, end=None ):
            bps=self.header.get_bps()
            for k, v in sdds_packet.FORMATS.items():
                 if v['bps'] == bps :
                      attr = getattr(self.payload, k.lower())
                      return v['get_data'](attr)
-           return self.payload.sb.get_data()
+           return self.payload.sb.get_data(start,end)
 
       def asBuffer(self):
           return buffer(self)[:]

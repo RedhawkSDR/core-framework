@@ -50,6 +50,7 @@ from omniORB import CORBA as _CORBA
 import copy as _copy
 import omniORB as _omniORB
 import CosEventComm__POA
+import traceback
 
 from ossie.utils.model import PortSupplier, OutputBase
 from ossie.utils.model.connect import ConnectionManager
@@ -1133,6 +1134,12 @@ class DataSourceSDDS(_SourceBase):
         self._blocking    = True
         self._streamdefs = {}
 
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
     def attach(self, streamData=None, name=None):
         """
         streamData: type BULKIO.SDDSStreamDefinition
@@ -1173,7 +1180,7 @@ class DataSourceSDDS(_SourceBase):
     def _createArraySrcInst(self, srcPortType):
         return self._src
 
-    def grabStreamDef( self, name=None, pkts=1000, block=True ):
+    def getStreamDef( self, name=None, pkts=1000, block=True, returnSddsAnalyzer=True):
         # grab data if stream definition is available 
         sdef =None
         aid=name
@@ -1193,7 +1200,7 @@ class DataSourceSDDS(_SourceBase):
         return self.grabData( sdef.multicastAddress, sdef.port, sdef.vlan, packets, block=block)
         
 
-    def grabData( self, mgroup, hostip, port=29495, vlan=0, pkts=1000, pktlen=1080, sdds=True, block=True ):
+    def getData( self, mgroup, hostip, port=29495, vlan=0, pkts=1000, pktlen=1080, sdds=True, block=True, returnSddsAnalyzer=True):
         totalRead=0.0
         startTime = _time.time()        
         sock = None
@@ -1201,7 +1208,7 @@ class DataSourceSDDS(_SourceBase):
         blen=10240
         bytesRead=0
         requestedBytes=pkts*pktlen
-        data=None
+        data=[]
         rawdata=''
         try:
             try:
@@ -1222,21 +1229,30 @@ class DataSourceSDDS(_SourceBase):
                 print "Capturing Socket Interface: (MULTICAST) Host Interface: " + hostip + " Multicast: " + mgroup + " Port: "+ str(port)
             else:
                 print "Capturing Socket Interface: (UDP) Host Interface: " + hostip + " Source Address: " + mgroup + " Port: "+ str(port)
-            while bytesRead < requestedBytes:
+            ncnt=0
+            while totalRead < requestedBytes:
                 rcvddata = sock.recv(blen,_socket.MSG_WAITALL)
-                rawdata=rawdata+rcvdata
+                rawdata=rawdata+rcvddata
                 data=data+list(rcvddata)
                 totalRead = totalRead + len(rcvddata)
+                ncnt += 1
+                print " read ", ncnt, " pkt ", len(rcvddata)
         except KeyboardInterrupt,e :
+            traceback.print_exc()
             print "Exception during packet capture: " + str(e)
         except Exception, e :
+            traceback.print_exc()
             print "Exception during packet capture: " + str(e)
         finally:
             endTime=_time.time()
             deltaTime=endTime -startTime            
         if sock: sock.close()
         print "Elapsed Time: ", deltaTime, "  Total Data (kB): ", totalRead/1000.0, " Rate (kBps): ", (totalRead/1000.0)/deltaTime
-        return data, rawdata, (pktlen,pkts,totalRead)
+        if returnSddsAnalyzer:
+            from ossie.utils.sdds import SDDSAnalyzer
+            return SDDSAnalyzer( pkts, data, rawdata, totalRead, pktlen )
+        else:
+            return data, rawdata, (pktlen,pkts,totalRead)
             
 
 class DataSource(_SourceBase):
