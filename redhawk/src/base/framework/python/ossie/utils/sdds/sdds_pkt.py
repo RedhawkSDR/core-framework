@@ -1013,11 +1013,11 @@ class sdds_packet(ctypes.Structure):
       def set_complex(self, isComplex=False ):
            self.header.set_complex(isComplex)
 
-      def set_spectralsense(self, ison=False ):
-           self.header.set_spectralsense(ison)
-
       def get_spectralsense(self, ison=False ):
            return self.header.get_spectralsense()
+
+      def set_spectralsense(self, ison=False ):
+           self.header.set_spectralsense(ison)
 
       def get_vw(self):
            return self.header.get_vw()
@@ -1031,6 +1031,9 @@ class sdds_packet(ctypes.Structure):
       def set_bps(self, bps ):
            self.header.set_bps(bps)
 
+      def get_dmode(self):
+           return self.header.get_dmode()
+
       def set_dmode(self,dm, cplx=False, calc_bps=True, bps=None):
            if self.ok_dmode(dm):
                 self.header.set_dmode(dm)
@@ -1043,9 +1046,6 @@ class sdds_packet(ctypes.Structure):
       def ok_dmode(self, dmode ):
            return dmode == 0 or dmode == 1 or dmode == 2 or dmode == 5 or dmode == 6 or dmode == 7;
            
-      def get_dmode(self):
-           return self.header.get_dmode()
-
       def get_bps_for_mode(self, dmode ):
            bps=8
            if dmode == 0:
@@ -1089,25 +1089,25 @@ class sdds_packet(ctypes.Structure):
            self.header.clear_msptr()
 
       def get_msdelta( self ):
-           self.header.get_msdelta()
+           return self.header.get_msdelta()
 
       def set_msdelta( self, val ):
            self.header.set_msdelta(val)
 
+      def get_msv(self):
+           return self.header.get_msv()
+
       def set_msv(self, valid=True):
            self.header.set_msv(valid)
 
-      def get_msv(self):
-           self.header.get_msv()
-
       def get_ttv(self):
-           self.header.get_ttv()
+           return self.header.get_ttv()
 
       def set_ttv(self, valid=True):
            self.header.set_ttv(valid)
 
       def get_sscv(self):
-           self.header.get_sscv()
+           return self.header.get_sscv()
 
       def set_sscv(self, valid=True):
            self.header.set_sscv(valid)
@@ -1115,11 +1115,11 @@ class sdds_packet(ctypes.Structure):
       def set_time(self, ps250, pf250 ):
            self.header.set_time(ps250, pf250)
 
-      def set_SDDSTime(self, sdds_time, ):
-           self.header.set_SDDSTime(sdds_time)
-
       def get_SDDSTime(self):
            return self.header.get_SDDSTime()
+
+      def set_SDDSTime(self, sdds_time, ):
+           self.header.set_SDDSTime(sdds_time)
 
       ##
       ##  ssc - synchronous sample clock

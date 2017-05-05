@@ -72,6 +72,9 @@ class SDDSAnalyzer(object):
             if last_pkt.get_fsn() != next_pkt.get_fsn() :
                 res['fsn']=self._TRACK_ERROR_
 
+        if last_pkt and last_pkt.get_complex() != next_pkt.get_complex() :
+            res['cplx']=self._TRACK_ERROR_
+
         if last_pkt and last_pkt.get_dmode() != next_pkt.get_dmode() :
             res['dmode']=self._TRACK_ERROR_
 
@@ -91,10 +94,10 @@ class SDDSAnalyzer(object):
 
         if last_tstamp:
             # check that we have a good timestamp to check against
+            t2 = next_pkt.get_SDDSTime()
             if next_pkt.get_ttv():
                 if res['freq'] == False:
                     rate=pkt.get_freq();
-                    t2 = next_pkt.get_time()
                     offset = 1.0/rate*last_nsamps
                     t_ck = sdds_time.add( last_tstamp, offset )
                     if sdds_time.compare( t2, t_chk ) == False:
@@ -102,15 +105,25 @@ class SDDSAnalyzer(object):
                 else:
                    res['timeslip']=self._TRACK_ERROR_
 
+    def _first_pkt( self, res, next_pkt ):
+        res['fsn'] = str(next_pkt.get_fsn())
+        res['dmode']=str(next_pkt.get_dmode())
+        res['cplx']=str(next_pkt.get_complex())
+        res['bps']=str(next_pkt.get_bps())
+        res['freq']=str(next_pkt.get_freq())
+        res['rate']=str(next_pkt.get_rate())
+        res['ttv']=str(next_pkt.get_ttv())
+        t2 = next_pkt.get_SDDSTime()
+        res['timeslip']=str(t2)
             
     def trackChanges(self, pkt_start=0, pkt_end=None, repeat_header=20, use_pager=True ):
         genf=self._gen_packet( self.raw_data_, pkt_start ) 
         if pkt_end == None: pkt_end = self.pkts_
         res = StringIO()
-        keys = [ 'pkt', 'fsn', 'dmode', 'bps', 'freq', 'rate', 'timeslip', 'ttv' ]
-        hdrs = [ 'PKT', 'SEQ', 'FMT', 'BPS',  'FREQ',  'CLK', 'TIME SLIP', 'TIME VALID']
-        hdr_fmt='{pkt:^5s} {fsn:^5s} {dmode:^5s} {bps:^5s} {freq:^5s} {rate:^5s} {timeslip:^9s} {ttv:^10s}'
-        line_fmt='{pkt:^5d} {fsn:^5s} {dmode:^5s} {bps:^5s} {freq:^5s} {rate:^5s} {timeslip:^9s} {ttv:^10s}'
+        keys = [ 'pkt', 'fsn', 'dmode', 'cplx', 'bps', 'freq', 'rate', 'ttv', 'timeslip' ]
+        hdrs = [ 'PKT', 'SEQ', 'FMT', 'CPLX', 'BPS',  '    FREQ    ',  '    CLK    ', 'TIME VALID', 'TIME SLIP' ]
+        hdr_fmt='{pkt:^5s} {fsn:^5s} {dmode:^5s} {cplx:^4s} {bps:^5s} {freq:^12s} {rate:^12s} {ttv:^10s} {timeslip:^9s}'
+        line_fmt='{pkt:^5d} {fsn:^5s} {dmode:^5s} {cplx:^4s} {bps:^5s} {freq:^12s} {rate:^12s} {ttv:^10s} {timeslip:^9s}'
         last_pkt = None
         last_tstamp=None
         last_nsamps=0
@@ -119,7 +132,10 @@ class SDDSAnalyzer(object):
                 print >>res, hdr_fmt.format( **dict(zip(keys,hdrs)))
 
             cmp_res = dict.fromkeys( keys, self._TRACK_OK_ )
-            self._cmp_pkt( cmp_res, last_pkt, pkt, last_tstamp, last_nsamps )
+            if i == pkt_start :
+                self._first_pkt( cmp_res, pkt )
+            else:
+                self._cmp_pkt( cmp_res, last_pkt, pkt, last_tstamp, last_nsamps )
             cmp_res['pkt']=i
 
             dline=line_fmt.format( **cmp_res )
