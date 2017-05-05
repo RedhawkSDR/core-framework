@@ -331,7 +331,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             procs.append(subprocess.Popen('./busy.py'))
         time.sleep(sleep_time)
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        br=self.comp.busy_reason
+        br=self.comp.busy_reason.queryValue()
         br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
         self.assertEqual(br_cpu, True)
         for proc in procs:
@@ -367,7 +367,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             proc.kill()
         time.sleep(sleep_time)
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.ACTIVE)
-        self.assertEqual(self.comp.busy_reason, "")
+        self.assertEqual(self.comp.busy_reason.queryValue(), "")
         
         try:
             os.kill(pid, 0)
@@ -383,6 +383,90 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             pass
         else:
             self.fail("Process failed to terminate")
+
+
+
+    def test_busy_allow(self):
+        self.runGPP(execparam_overrides={'DEBUG_LEVEL': 3 })
+
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
+        cores = multiprocessing.cpu_count()
+        sleep_time = 3+cores/10.0
+        if sleep_time < 7:
+            sleep_time = 7
+        procs = []
+        for core in range(cores*2+5):
+            procs.append(subprocess.Popen('./busy.py'))
+        time.sleep(sleep_time)
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
+        br=self.comp.busy_reason.queryValue()
+        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
+        self.assertEqual(br_cpu, True)
+
+        # turn off check for idle
+        self.comp.thresholds.cpu_idle = 0.0
+        # wait for busy to be reported... should just be load avg .. takes approx 1 minute
+        for i in range(42):
+            br=self.comp.busy_reason.queryValue()
+            br_cpu="LOAD AVG" in br.upper()
+            if br_cpu == True:
+                break
+            time.sleep(1.5)
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
+        self.assertEqual(br_cpu, True)
+
+        # turn off check for load_avg
+        self.comp.thresholds.load_avg = 0.0
+        for i in range(5):
+            br=self.comp.busy_reason.queryValue()
+            if br == "":
+                break
+            time.sleep(1.5)
+        # wait for busy to be reported... should just be load avg now
+        br=self.comp.busy_reason.queryValue()
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
+        self.assertEqual(br, "")
+
+        # turn on check for cpu_idle check
+        self.comp.thresholds.cpu_idle = 10.0
+        # wait for busy to be reported... should just be load avg now
+        for i in range(5):
+            br=self.comp.busy_reason.queryValue()
+            br_cpu="CPU IDLE" in br.upper()
+            if br_cpu == True:
+                break
+            time.sleep(1.5)
+        br_cpu="CPU IDLE" in br.upper()
+        self.assertEqual(br_cpu, True)
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
+
+        # turn on check for load_avg check
+        self.comp.thresholds.load_avg = 80.0
+        # wait for busy to be reported... should just be load avg now
+        for i in range(5):
+            br=self.comp.busy_reason.queryValue()
+            br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
+            if br_cpu == True:
+                break
+            time.sleep(1.5)
+
+        self.assertEqual(br_cpu, True)
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
+        for proc in procs:
+            proc.kill()
+        for i in range(40):
+            br=self.comp.busy_reason.queryValue()
+            if br == "":
+                break
+            time.sleep(1.5)
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
+        self.assertEqual(self.comp.busy_reason.queryValue(), "")
+        time.sleep(1)    
+        try:
+            # kill all busy.py just in case
+            os.system('pkill -9 -f busy.py')
+        except OSError:
+            pass
 
 
     def visual_testBusy(self):
