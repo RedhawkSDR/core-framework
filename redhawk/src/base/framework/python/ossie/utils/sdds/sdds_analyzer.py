@@ -9,14 +9,23 @@ __all__ = [ 'SDDSAnalyzer' ]
 
 class SDDSAnalyzer(object):
     """
-    
-    Return a SDDS Analyzer object that can process a set list of raw bytes as SDDS packets and can perform the 
+    The SDDSAnalyzer class can process a block of raw bytes as SDDS packets and perform the 
     following actions:
 
-    trackChanges - montior fsn, bps, dmode, freq, sample rate, time stamps, ttv, changes between runs of packets 
-    dumpRawPackets() - dump raw packets with contents managed by an optional Pager
-    dumpPackets() - dump packets with bit representations, contents managed by an optional Pager
-    getPackets - returns a generator object for access packets in a looping construct
+    trackChanges - track changes in the packet data for the field values:
+      fsn - frame sequence number
+      bps - bits per sample
+      dmode - data mode
+      freq - collected signal frequency
+      sample rate - sample rate of the data
+      time stamps - changes in time (only if ttv=1)
+      ttv - time tag value (controls time stamp check)
+
+    dumpRawPackets - Dump the entire content as a data buffer with the results 
+                     managed by a pager
+    dumpPackets - dump packet fields and their data values, contents managed by a pager
+    getPacketsIterator - returns a generator object for access packets in a looping construct
+    getPackets - returns a list of sdds_packet objects
        
     """
     _VAILID_VAL_='+'

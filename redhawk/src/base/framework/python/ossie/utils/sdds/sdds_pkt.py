@@ -20,6 +20,96 @@
 import ctypes
 import time
 import datetime
+"""
+Class definitions that represent SDDS packet structure.  The classes make use of python
+ctypes to pack and unpack bit fields into class's members.  The fields of arranged in
+a set format to correctly unpack from data packets that are in BigEndian format.   For 
+extact field definitions and values consult the SDDS packet specification.
+
+To unpack a raw data buffer from a socket to an SDDS packet you 
+would perform the following:
+
+  pkt = sdds_packet(data_buffer)
+
+The pkt object provides extraction of sdds header as well as
+payload overlays for accessing the each of the following formats:
+ 
+  raw: 1024 8 bit samples
+  sn:  2048 samples representing the two 4 bit samples packed into a byte
+  sb: 1024 8 bit samples
+  cb: 512 samples of interleaved I & Q data
+  si: 512 samples of 16 bit data
+  ci: 256 samples of 16 bit data I & Q data
+  sf: 256 samples of (32 bit) scalar float data
+
+In addition to the overlays, the pkt.get_data() method returns a copy of the data samples
+in the correct format.
+
+
+Format Identifier
+  Complex field
+      def get_complex(self) 
+      def set_complex(self, isComplex=False )
+
+  SpectralSense field
+      def get_spectralsense(self, ison=False ):
+      def set_spectralsense(self, ison=False ):
+
+  Very Wideband field
+      def get_vw(self):
+      def set_vw(self, isVeryWide=False ):
+
+  Bits per sample
+      def get_bps(self):
+      def set_bps(self, bps ):
+
+  Data Mode
+      def get_dmode(self):
+      def set_dmode(self,dm, cplx=False, calc_bps=True, bps=None):
+           
+      def get_bps_for_mode(self, dmode ):
+      def get_samples_for_bps(self, bps=None ):
+
+  Frame Sequence number
+      def get_fsn(self):
+      def set_fsn(self, v ):
+
+  Time Tag fields
+       def get_msptr( self ):
+       def set_msptr( self, val ):
+ 
+       def get_msdelta( self ):
+       def set_msdelta( self, val ):
+
+      def get_msv(self):
+      def set_msv(self, valid=True):
+
+      def get_ttv(self):
+      def set_ttv(self, valid=True):
+
+      def get_sscv(self):
+      def set_sscv(self, valid=True):
+
+      def set_time(self, ps250, pf250 ):
+      def get_SDDSTime(self):
+      def set_SDDSTime(self, sdds_time, ):
+
+  Synchronous Sample Clock
+      def get_freq(self):
+      def set_freq(self, freq):
+
+      def get_rate(self):
+      def set_rate(self, freq):
+
+      def get_dfdt(self):
+      def set_dfdt(self, freq):
+
+  Payload Processing
+      def get_format(self):
+      def set_format(self, fmt):
+      def get_data(self, start=None, end=None ):
+
+"""
 
 __all__ = [ 
  'format_identifier',
@@ -1013,7 +1103,7 @@ class sdds_packet(ctypes.Structure):
       def set_complex(self, isComplex=False ):
            self.header.set_complex(isComplex)
 
-      def get_spectralsense(self, ison=False ):
+      def get_spectralsense(self ):
            return self.header.get_spectralsense()
 
       def set_spectralsense(self, ison=False ):

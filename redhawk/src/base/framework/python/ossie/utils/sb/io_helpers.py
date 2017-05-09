@@ -1218,10 +1218,9 @@ class DataSourceSDDS(_SourceBase):
             except:
                 pass
 
-            print " mgroup ", mgroup, " host ", hostip, " port ", port
+            #print " Capturing ", mgroup, " host ", hostip, " port ", port
             sock = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM, _socket.IPPROTO_UDP)
             sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
-            print "Port ", port
             sock.bind(("",port))
             if ismulticast:
                 mreq=struct.pack('4s4s',_socket.inet_aton(mgroup),_socket.inet_aton(hostip))
