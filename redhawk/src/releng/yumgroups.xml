@@ -33,6 +33,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
             <packagereq type="default">redhawk-devel</packagereq>
             <packagereq type="default">redhawk-debuginfo</packagereq>
             <packagereq type="default">redhawk-ide</packagereq>
+            <packagereq type="default">redhawk-integration-dist</packagereq>
             <packagereq type="default">redhawk-qt-tools</packagereq>
             <packagereq type="default">redhawk-sdrroot-dev-mgr</packagereq>
             <packagereq type="default">redhawk-sdrroot-dom-mgr</packagereq>
