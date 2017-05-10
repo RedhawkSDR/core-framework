@@ -247,7 +247,7 @@ public abstract class ${classname} extends ${superClass}
         connection_descriptor_struct tmp = new connection_descriptor_struct();
 /*{%   for port in component.ports if port.multiout %}*/
         tmp.connection_id.setValue(allocation_id);
-        tmp.port_name.setValue("${port.javaname}");
+        tmp.port_name.setValue("${port.name}");
         tmp.stream_id.setValue(stream_id);
         this.connectionTable.getValue().add(tmp);
 /*{%   endfor %}*/
