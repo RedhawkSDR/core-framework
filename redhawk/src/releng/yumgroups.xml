@@ -25,25 +25,25 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <description>REDHAWK Development Installation</description>
         <uservisible>true</uservisible>
         <packagelist>
-            <packagereq type="default">redhawk</packagereq>
-            <packagereq type="default">redhawk-basic-components</packagereq>
-            <packagereq type="default">redhawk-basic-devices</packagereq>
-            <packagereq type="default">redhawk-basic-waveforms</packagereq>
-            <packagereq type="default">redhawk-codegen</packagereq>
-            <packagereq type="default">redhawk-devel</packagereq>
-            <packagereq type="default">redhawk-debuginfo</packagereq>
-            <packagereq type="default">redhawk-ide</packagereq>
-            <packagereq type="default">redhawk-qt-tools</packagereq>
-            <packagereq type="default">redhawk-sdrroot-dev-mgr</packagereq>
-            <packagereq type="default">redhawk-sdrroot-dom-mgr</packagereq>
-            <packagereq type="default">redhawk-sdrroot-dom-profile</packagereq>
-            <packagereq type="default">GPP</packagereq>
-            <packagereq type="default">GPP-profile</packagereq>
-            <packagereq type="default">bulkioInterfaces</packagereq>
-            <packagereq type="default">burstioInterfaces</packagereq>
-            <packagereq type="default">frontendInterfaces</packagereq>
-            <packagereq type="default">omniORB-servers</packagereq>
-            <packagereq type="default">omniEvents-bootscripts</packagereq>
+            <packagereq type="mandatory">redhawk</packagereq>
+            <packagereq type="mandatory">redhawk-basic-components</packagereq>
+            <packagereq type="mandatory">redhawk-basic-devices</packagereq>
+            <packagereq type="mandatory">redhawk-basic-waveforms</packagereq>
+            <packagereq type="mandatory">redhawk-codegen</packagereq>
+            <packagereq type="mandatory">redhawk-devel</packagereq>
+            <packagereq type="mandatory">redhawk-debuginfo</packagereq>
+            <packagereq type="mandatory">redhawk-ide</packagereq>
+            <packagereq type="mandatory">redhawk-qt-tools</packagereq>
+            <packagereq type="mandatory">redhawk-sdrroot-dev-mgr</packagereq>
+            <packagereq type="mandatory">redhawk-sdrroot-dom-mgr</packagereq>
+            <packagereq type="mandatory">redhawk-sdrroot-dom-profile</packagereq>
+            <packagereq type="mandatory">GPP</packagereq>
+            <packagereq type="mandatory">GPP-profile</packagereq>
+            <packagereq type="mandatory">bulkioInterfaces</packagereq>
+            <packagereq type="mandatory">burstioInterfaces</packagereq>
+            <packagereq type="mandatory">frontendInterfaces</packagereq>
+            <packagereq type="mandatory">omniORB-servers</packagereq>
+            <packagereq type="mandatory">omniEvents-bootscripts</packagereq>
         </packagelist>
     </group>
     <group>
@@ -53,17 +53,29 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <description>REDHAWK Runtime Installation</description>
         <uservisible>true</uservisible>
         <packagelist>
-            <packagereq type="default">redhawk</packagereq>
-            <packagereq type="default">redhawk-sdrroot-dev-mgr</packagereq>
-            <packagereq type="default">redhawk-sdrroot-dom-mgr</packagereq>
-            <packagereq type="default">redhawk-sdrroot-dom-profile</packagereq>
-            <packagereq type="default">GPP</packagereq>
-            <packagereq type="default">GPP-profile</packagereq>
-            <packagereq type="default">bulkioInterfaces</packagereq>
-            <packagereq type="default">burstioInterfaces</packagereq>
-            <packagereq type="default">frontendInterfaces</packagereq>
-            <packagereq type="default">omniORB-servers</packagereq>
-            <packagereq type="default">omniEvents-bootscripts</packagereq>
+            <packagereq type="mandatory">redhawk</packagereq>
+            <packagereq type="mandatory">redhawk-sdrroot-dev-mgr</packagereq>
+            <packagereq type="mandatory">redhawk-sdrroot-dom-mgr</packagereq>
+            <packagereq type="mandatory">redhawk-sdrroot-dom-profile</packagereq>
+            <packagereq type="mandatory">GPP</packagereq>
+            <packagereq type="mandatory">GPP-profile</packagereq>
+            <packagereq type="mandatory">bulkioInterfaces</packagereq>
+            <packagereq type="mandatory">burstioInterfaces</packagereq>
+            <packagereq type="mandatory">frontendInterfaces</packagereq>
+            <packagereq type="mandatory">omniORB-servers</packagereq>
+            <packagereq type="mandatory">omniEvents-bootscripts</packagereq>
+        </packagelist>
+    </group>
+    <group>
+        <id>redhawk-enterprise-integration</id>
+        <name>REDHAWK Enterprise Integration</name>
+        <default>true</default>
+        <description>REDHAWK Enterprise Integration</description>
+        <uservisible>true</uservisible>
+        <packagelist>
+            <packagereq type="default">redhawk-enterprise-integration-demo-dist</packagereq>
+            <packagereq type="mandatory">redhawk-enterprise-integration-dist</packagereq>
+            <packagereq type="default">redhawk-enterprise-integration-docs</packagereq>
         </packagelist>
     </group>
 </comps>
