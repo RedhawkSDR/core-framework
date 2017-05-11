@@ -38,6 +38,7 @@ from ossie.cf import CF as _CF
 import shlex as _shlex
 import time as _time
 import signal as _signal
+import warnings as _warnings
 import cStringIO, pydoc
 import sys as _sys
 import os as _os
@@ -1711,10 +1712,15 @@ class DataSink(_SinkBase):
         return self._sink.getStreams()
 
     def getCurrentStream(self):
+        '''
+          Return the current data stream
+        '''
         return self._sink.getCurrentStream()
 
     def getData(self, length=None, eos_block=False, tstamps=False):
         '''
+        WARNING: This function is deprecated. Use getCurrentStream instead
+
         Returns either an array of the received data elements or a tuple containing the received list
         and their associated time stamps
 
@@ -1726,6 +1732,8 @@ class DataSink(_SinkBase):
             element is the data set and the second element is a series of tuples
             containing the element index number and the timestamp for that index
         '''
+        _warnings.warn("This function is deprecated. Use getCurrentStream instead")
+
         isChar = self._sink.port_type == _BULKIO__POA.dataChar
 
         if not self._sink:
