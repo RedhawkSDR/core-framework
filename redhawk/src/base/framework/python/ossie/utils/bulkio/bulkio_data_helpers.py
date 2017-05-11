@@ -375,7 +375,7 @@ class InputStream(BaseStream):
         if not consume:
             consume = count
 
-        while blocking:
+        while True:
             # is there enough data for this sri?
             # is there enough in the first packet?
             if len(self._data) != 0:
@@ -497,8 +497,9 @@ class InputStream(BaseStream):
                     self._new_sri = False
                     return ret_block
             # this sleep happens if len(self._sri_idx) == 0 and total_data < count
-            if blocking:
-                time.sleep(0.1)
+            if not blocking:
+                break
+            time.sleep(0.1)
         return None
 
     def tryread(self, count=None, consume=None):

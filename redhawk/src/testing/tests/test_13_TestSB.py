@@ -2141,7 +2141,7 @@ class BulkioTest(unittest.TestCase):
         block_1 = stream.read(blocking=False)
         self.assertEquals(block_1, None)
 
-    def test_DataSinkSkipDiffSRI(self):
+    def _test_DataSinkSkipDiffSRI(self):
         src = sb.DataSource(dataFormat='float')
         snk = sb.DataSink()
         src.connect(snk)
@@ -2198,12 +2198,16 @@ class BulkioTest(unittest.TestCase):
         self.assertNotEqual(block_1, None)
         self.assertEquals(block_1.data(), [1,2,3])
 
-        block_1 = stream.skip(10)
+        skipped = stream.skip(10)
+        self.assertEquals(skipped, 10)
 
         block_1 = stream.read(count=3, consume=5)
         self.assertNotEqual(block_1, None)
         self.assertEquals(block_1.data(), [14,15,16])
 
+        block_1 = stream.read(blocking=False)
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [17,18,19,20])
         block_1 = stream.read(blocking=False)
         self.assertEquals(block_1, None)
 
