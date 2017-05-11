@@ -801,9 +801,11 @@ class _SinkBase(_DataPortBase):
         self._sink exists.
 
         """
-
         if self._sink == None:
             return False
+        _stream = self._sink.getCurrentStream()
+        if _stream:
+            return _stream.eos()
         return self._sink.gotEOS
 
     def sri(self):
@@ -1702,7 +1704,16 @@ class DataSink(_SinkBase):
             return None
         return self._sink.estimateData()
 
-    def getData(self, length=None, eos_block=False, tstamps=False, sris=False):
+    def getStream(self, streamID):
+        return self._sink.getStream(streamID)
+
+    def getStreams(self):
+        return self._sink.getStreams()
+
+    def getCurrentStream(self):
+        return self._sink.getCurrentStream()
+
+    def getData(self, length=None, eos_block=False, tstamps=False):
         '''
         Returns either an array of the received data elements or a tuple containing the received list
         and their associated time stamps
@@ -1714,11 +1725,6 @@ class DataSink(_SinkBase):
         tstamps: setting to True makes the return value a tuple, where the first
             element is the data set and the second element is a series of tuples
             containing the element index number and the timestamp for that index
-        sris: setting to True makes the return value a tuple, where the first
-            element is the data set, the second element is the series of 
-            timestamps (empty list if tstamps==False) and the third element is 
-            a series of tuples containing the element index number and the 
-            sri value for that index
         '''
         isChar = self._sink.port_type == _BULKIO__POA.dataChar
 
@@ -1726,7 +1732,16 @@ class DataSink(_SinkBase):
             return None
         if eos_block:
             self._sink.waitEOS()
-        (retval, timestamps, _sris) = self._sink.retrieveData(length=length)
+        _retval = self._sink.retrieveData(length=length)
+        if not _retval:
+            if tstamps:
+                return ([],[])
+            return []
+        (retval, timestamps) = _retval
+        _tstamps = []
+        for tstamp in timestamps:
+            _tstamps.append((tstamp[1],tstamp[0]))
+        timestamps = _tstamps
         if isChar:
             # Converts char values into their numeric equivalents
             def from_char(data):
@@ -1739,12 +1754,8 @@ class DataSink(_SinkBase):
                 retval = [from_char(frame) for frame in retval]
             else:
                 retval = from_char(retval)
-        if tstamps and not sris:
+        if tstamps:
             return (retval,timestamps)
-        if not tstamps and sris:
-            return (retval, [], _sris)
-        if tstamps and sris:
-            return (retval,timestamps,_sris)
         else:
             return retval
 

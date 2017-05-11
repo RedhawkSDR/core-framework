@@ -137,6 +137,16 @@ class InteractiveTestCpp(scatest.CorbaTestCase):
         status, output=commands.getstatusoutput('sdr/dom/components/ECM_CPP/cpp/ECM_CPP -i')
         self.assertNotEquals(output.find(self.message),-1)
 
+def wait_on_data( sink, number_timestamps ):
+    _timeout = 1
+    begin_time = time.time()
+    estimate = sink.getDataEstimate()
+    while estimate.num_timestamps != number_timestamps:
+        time.sleep(0.1)
+        estimate = sink.getDataEstimate()
+        if time.time() - begin_time > _timeout:
+            break
+
 class SBEventChannelTest(scatest.CorbaTestCase):
     def setUp(self):
         orb = CORBA.ORB_init()
@@ -2038,19 +2048,6 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(_rnd_pkt_time,_rnd_toffset )
 
     def test_DataSinkSRI(self):
-        """
-        Verify that provide SRI is handled
-        """
-        def wait_on_data( sink ):
-            _timeout = 1
-            begin_time = time.time()
-            estimate = sink.getDataEstimate()
-            while estimate.num_timestamps != 3:
-                time.sleep(0.1)
-                estimate = sink.getDataEstimate()
-                if time.time() - begin_time > _timeout:
-                    break
-
         src = sb.DataSource(dataFormat='float')
         snk = sb.DataSink()
         src.connect(snk)
@@ -2058,15 +2055,157 @@ class BulkioTest(unittest.TestCase):
         src.push([1,2,3,4,5],sampleRate=100)
         src.push([1,2,3,4,5],sampleRate=1000)
         src.push([1,2,3,4,5],sampleRate=10000)
-        wait_on_data(snk)
-        data=snk.getData(tstamps=True,sris=True)
-        self.assertEquals(len(data[2]), 3)
-        self.assertEquals(data[2][0][0], 0)
-        self.assertEquals(data[2][1][0], 5)
-        self.assertEquals(data[2][2][0], 10)
-        self.assertEquals(data[2][0][1].xdelta, 0.01)
-        self.assertEquals(data[2][1][1].xdelta, 0.001)
-        self.assertEquals(data[2][2][1].xdelta, 0.0001)
+        wait_on_data(snk, 3)
+        stream=snk.getCurrentStream()
+        block_1 = stream.read()
+        self.assertNotEqual(block_1, None)
+        block_2 = stream.read()
+        self.assertNotEqual(block_2, None)
+        block_3 = stream.read()
+        self.assertNotEqual(block_3, None)
+        self.assertEquals(len(block_1.data()), 5)
+        self.assertEquals(len(block_2.data()), 5)
+        self.assertEquals(len(block_3.data()), 5)
+        self.assertEquals(block_1.xdelta(), 0.01)
+        self.assertEquals(block_2.xdelta(), 0.001)
+        self.assertEquals(block_3.xdelta(), 0.0001)
+
+    def test_DataSinkMultipleStream(self):
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5],sampleRate=100, streamID='hello_1')
+        src.push([6,7,8,9,10],sampleRate=1000, streamID='hello_2')
+        src.push([11,12,13,14,15],sampleRate=10000, streamID='hello_3')
+        src.push([16,17,18,19,20],sampleRate=100, streamID='hello_1')
+
+        wait_on_data(snk, 3)
+
+        stream=snk.getCurrentStream()
+        block_1 = stream.read()
+        self.assertNotEqual(block_1, None)
+
+        stream=snk.getCurrentStream()
+        block_2 = stream.read()
+        self.assertNotEqual(block_2, None)
+        block_2_2 = stream.read(blocking=False)
+        self.assertEquals(block_2_2, None)
+
+        stream=snk.getCurrentStream()
+        block_3 = stream.read()
+        self.assertNotEqual(block_3, None)
+        block_3_2 = stream.read(blocking=False)
+        self.assertEquals(block_3_2, None)
+
+        stream=snk.getCurrentStream()
+        block_1_2 = stream.read()
+        self.assertNotEqual(block_1_2, None)
+        block_1_3 = stream.read(blocking=False)
+        self.assertEqual(block_1_3, None)
+
+        self.assertEquals(block_1.data(), [1,2,3,4,5])
+        self.assertEquals(block_1_2.data(), [16,17,18,19,20])
+        self.assertEquals(block_2.data(), [6,7,8,9,10])
+        self.assertEquals(block_3.data(), [11,12,13,14,15])
+        self.assertEquals(block_1.xdelta(), 0.01)
+        self.assertEquals(block_2.xdelta(), 0.001)
+        self.assertEquals(block_3.xdelta(), 0.0001)
+
+    def test_DataSinkReadConsume(self):
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],sampleRate=100, streamID='hello_1')
+
+        wait_on_data(snk, 1)
+
+        stream=snk.getCurrentStream()
+        block_1 = stream.read(count=10, consume=5)
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [1,2,3,4,5,6,7,8,9,10])
+
+        block_1 = stream.read(count=10, consume=5)
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [6,7,8,9,10,11,12,13,14,15])
+
+        block_1 = stream.read(count=10, consume=5)
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [11,12,13,14,15,16,17,18,19,20])
+
+        block_1 = stream.read(count=5, consume=5)
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [16,17,18,19,20])
+
+        block_1 = stream.read(blocking=False)
+        self.assertEquals(block_1, None)
+
+    def test_DataSinkSkipDiffSRI(self):
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5],sampleRate=100, streamID='hello_1')
+        src.push([6,7,8,9,10],sampleRate=1000, streamID='hello_1')
+        src.push([11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],sampleRate=10000, streamID='hello_1')
+
+        wait_on_data(snk, 4)
+
+        stream=snk.getCurrentStream()
+        block_1 = stream.read(count=3)
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [1,2,3])
+
+        skipped = stream.skip(10)
+        self.assertEquals(skipped, 2)
+
+        block_1 = stream.read(count=2, consume=3)
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [6,7])
+
+        skipped = stream.skip(10)
+        self.assertEquals(skipped, 2)
+
+        block_1 = stream.read(count=2, consume=3)
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [11,12])
+
+        skipped = stream.skip(10)
+        self.assertEquals(skipped, 10)
+
+        block_1 = stream.read()
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [23,24,25])
+
+        block_1 = stream.read(blocking=False)
+        self.assertEquals(block_1, None)
+
+    def test_DataSinkSkip(self):
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5],sampleRate=100, streamID='hello_1')
+        src.push([6,7,8,9,10],sampleRate=100, streamID='hello_1')
+        src.push([11,12,13,14,15],sampleRate=100, streamID='hello_1')
+        src.push([16,17,18,19,20],sampleRate=100, streamID='hello_1')
+
+        wait_on_data(snk, 4)
+
+        stream=snk.getCurrentStream()
+        block_1 = stream.read(count=3)
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [1,2,3])
+
+        block_1 = stream.skip(10)
+
+        block_1 = stream.read(count=3, consume=5)
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(block_1.data(), [14,15,16])
+
+        block_1 = stream.read(blocking=False)
+        self.assertEquals(block_1, None)
 
     class customSink(bulkio_data_helpers.ArraySink):
         def __init__(self, porttype):
@@ -2076,22 +2215,12 @@ class BulkioTest(unittest.TestCase):
             _H = H
             _H.xdelta = H.xdelta * 2
             self.sri = _H
-            self.sris.append([len(self.data), _H])
+            if not self._livingStreams.has_key(_H.streamID):
+                self._livingStreams[_H.streamID] = bulkio_data_helpers.InputStream(self, _H)
+            else:
+                self._livingStreams[_H.streamID]._updateSRI(_H)
 
     def test_CustomDataSink(self):
-        """
-        Verify that provide SRI is handled
-        """
-        def wait_on_data( sink ):
-            _timeout = 1
-            begin_time = time.time()
-            estimate = sink.getDataEstimate()
-            while estimate.num_timestamps != 3:
-                time.sleep(0.1)
-                estimate = sink.getDataEstimate()
-                if time.time() - begin_time > _timeout:
-                    break
-
         src = sb.DataSource(dataFormat='float')
         snk = sb.DataSink(sinkClass=self.customSink)
         src.connect(snk)
@@ -2099,29 +2228,35 @@ class BulkioTest(unittest.TestCase):
         src.push([1,2,3,4,5],sampleRate=100)
         src.push([1,2,3,4,5],sampleRate=1000)
         src.push([1,2,3,4,5],sampleRate=10000)
-        wait_on_data(snk)
-        data=snk.getData(tstamps=True,sris=True)
-        self.assertEquals(len(data[2]), 3)
-        self.assertEquals(data[2][0][0], 0)
-        self.assertEquals(data[2][1][0], 5)
-        self.assertEquals(data[2][2][0], 10)
-        self.assertEquals(data[2][0][1].xdelta, 0.02)
-        self.assertEquals(data[2][1][1].xdelta, 0.002)
-        self.assertEquals(data[2][2][1].xdelta, 0.0002)
+        wait_on_data(snk, 3)
+        data=snk.getData(tstamps=True)
+        self.assertEquals(len(data[1]), 3)
+        self.assertEquals(len(data[0]), 15)
+
+    def test_CustomStreamDataSink(self):
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink(sinkClass=self.customSink)
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5],sampleRate=100)
+        src.push([1,2,3,4,5],sampleRate=1000)
+        src.push([1,2,3,4,5],sampleRate=10000)
+        wait_on_data(snk, 3)
+        stream=snk.getCurrentStream()
+        block_1 = stream.read()
+        self.assertNotEqual(block_1, None)
+        block_2 = stream.read()
+        self.assertNotEqual(block_2, None)
+        block_3 = stream.read()
+        self.assertNotEqual(block_3, None)
+        self.assertEquals(len(block_1.data()), 5)
+        self.assertEquals(len(block_2.data()), 5)
+        self.assertEquals(len(block_3.data()), 5)
+        self.assertEquals(block_1.xdelta(), 0.02)
+        self.assertEquals(block_2.xdelta(), 0.002)
+        self.assertEquals(block_3.xdelta(), 0.0002)
 
     def test_DataSourceSRI(self):
-        """
-        Verify that provide SRI is handled
-        """
-        def wait_on_data( sink ):
-            begin_time = time.time()
-            estimate = sink.getDataEstimate()
-            while estimate.num_timestamps != 1:
-                time.sleep(0.1)
-                estimate = sink.getDataEstimate()
-                if time.time() - begin_time > _timeout:
-                    break
-
         _timeout = 1
         _startTime = 10
         source = sb.DataSource(startTime=_startTime)
@@ -2139,7 +2274,7 @@ class BulkioTest(unittest.TestCase):
         # push samples down stream, with custom sri
         _srcData = [1,2,3,4]
         source.push(_srcData, sri=_sri )
-        wait_on_data(sink)
+        wait_on_data(sink, 1)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.streamID, sid )
@@ -2168,7 +2303,7 @@ class BulkioTest(unittest.TestCase):
         _srcData = [1,2,3,4]
         source.push(_srcData, SRIKeywords=kws )
         begin_time = time.time()
-        wait_on_data(sink)
+        wait_on_data(sink, 1)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.streamID, sid )
@@ -2177,7 +2312,7 @@ class BulkioTest(unittest.TestCase):
 
         # Repeat, making sure that a second push with keywords does not fail
         source.push(_srcData, SRIKeywords=kws)
-        wait_on_data(sink)
+        wait_on_data(sink, 1)
         data=sink.getData()
         self.assertTrue(data)
 
@@ -2191,7 +2326,7 @@ class BulkioTest(unittest.TestCase):
         _sri.keywords=copy.copy(matchkws)
         _srcData = [1,2,3,4]
         source.push(_srcData, sri=_sri )
-        wait_on_data(sink)
+        wait_on_data(sink, 1)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.streamID, sid )
@@ -2203,7 +2338,7 @@ class BulkioTest(unittest.TestCase):
         _sri.streamID=sid
         _srcData = [1,2,3,4]
         source.push(_srcData, sri=_sri )
-        wait_on_data(sink)
+        wait_on_data(sink, 1)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.streamID, sid )
@@ -2211,7 +2346,7 @@ class BulkioTest(unittest.TestCase):
         _sri.streamID='anewsri'
         _srcData = [1,2,3,4]
         source.push(_srcData, sri=_sri )
-        wait_on_data(sink)
+        wait_on_data(sink, 1)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.streamID, 'anewsri' )
@@ -2219,7 +2354,7 @@ class BulkioTest(unittest.TestCase):
         _sri.mode=1
         _srcData = [1,2,3,4]
         source.push(_srcData, sri=_sri )
-        wait_on_data(sink)
+        wait_on_data(sink, 1)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.mode, 1 )
@@ -2227,7 +2362,7 @@ class BulkioTest(unittest.TestCase):
         _sri.mode=0
         _srcData = [1,2,3,4]
         source.push(_srcData, sri=_sri )
-        wait_on_data(sink)
+        wait_on_data(sink, 1)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.mode, 0 )
@@ -2235,7 +2370,7 @@ class BulkioTest(unittest.TestCase):
         _sri.hversion=100
         _srcData = [1,2,3,4]
         source.push(_srcData, sri=_sri )
-        wait_on_data(sink)
+        wait_on_data(sink, 1)
         data=sink.getData()
         rsri=sink.sri()
         self.assertEquals(rsri.hversion, 100 )

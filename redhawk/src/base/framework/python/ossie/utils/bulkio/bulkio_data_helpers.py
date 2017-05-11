@@ -32,7 +32,7 @@ try:
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
 except:
     pass
-from ossie.utils import _uuid
+from ossie.utils import _uuid, rhtime
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -195,7 +195,388 @@ class ArraySource(object):
         T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(currentSampleTime), currentSampleTime - int(currentSampleTime))
         self.pushPacket([], T, True, self.sri.streamID)
 
+def addUTCTime(time_1, time_2):
+    '''
+        Return a UTCTime (or PrecisionUTCTime) value incremented by time_2
+    '''
+    fulltime = (time_1.twsec+time_1.tfsec) + float(time_2)
+    if isinstance(time_1, CF.UTCTime):
+        retval = rhtime.now()
+    else:
+        retval = bulkio_helpers.createCPUTimestamp()
+    retval.twsec = int(fulltime)
+    retval.tfsec = fulltime - retval.twsec
+    return retval
 
+def subUTCTime(time_1, time_2):
+    '''
+        Return a UTCTime (or PrecisionUTCTime) value reduced by time_2
+    '''
+    fulltime = (time_1.twsec+time_1.tfsec) - float(time_2)
+    if isinstance(time_1, CF.UTCTime):
+        retval = rhtime.now()
+    else:
+        retval = bulkio_helpers.createCPUTimestamp()
+    retval.twsec = int(fulltime)
+    retval.tfsec = fulltime - retval.twsec
+    return retval
+
+def diffUTCTime(time_1, time_2):
+    '''
+        Return the difference in time between 2 UTCTime (or PrecisionUTCTime) values
+    '''
+    retval = (time_1.twsec+time_1.tfsec) - (time_2.twsec+time_2.tfsec)
+    return retval
+
+class BaseStream(object):
+    def __init__(self, parent, sri):
+        self._sri = sri
+        self._parent = parent
+    def sri(self):
+        return self._sri
+
+class DataBlock(object):
+    def __init__(self, sri, data, tstamps, new_sri):
+        self._sri = sri
+        self._data = data
+        self._new_sri = new_sri
+        self._tstamps = tstamps
+    def data(self):
+        return self._data
+    def sri(self):
+        return self._sri
+    def xdelta(self):
+        return self._sri.xdelta
+    def sriChanged(self):
+        return self._new_sri
+    def inputQueueFlushed(self):
+        return False
+    def getStartTime(self):
+        return self._tstamps[0][0]
+    def getTimestamps(self):
+        return self._tstamps
+    def getNetTimeDrift(self):
+        if len(self._tstamps) == 1:
+            return 0
+        diff_time = diffUTCTime(self._tstamps[-1][0], self._tstamps[0][0])
+        synth_time = self._sri.xdelta * len(self._data)
+        return abs(diff_time - synth_time)
+    def getMaxTimeDrift(self):
+        max_drift = 0
+        for _diff in range(len(self._tstamps)-1):
+            diff_time = diffUTCTime(self._tstamps[_diff][0], self._tstamps[_diff-1][0])
+            synth_time = self._sri.xdelta * self._tstamps[_diff][1]-self._tstamps[_diff-1][1]
+            drift = abs(diff_time - synth_time)
+            if drift > max_drift:
+                max_drift = drift
+        return max_drift
+
+class _dataUnit(object):
+    def __init__(self, data, T, valid):
+        self._data = data
+        self._T = T
+        self._valid = valid
+        self._creation = time.time()
+    def getData(self):
+        return self._data
+    def delData(self, begin=0, end=-1):
+        if type(self._data) == str:
+            if end == -1:
+                end = len(_data)
+            self._data = self._data[:begin]+self._data[end:]
+        else:
+            del self._data[begin:end]
+        self._valid = False
+    def getCreateTime(self):
+        return self._creation
+    def getTstamp(self):
+        return self._T
+    def updateTstamp(self, offset):
+        if self._T:
+            self._T = addUTCTime(self._T, offset)
+    def cleanup(self, count, xdelta):
+        self.delData(end=count)
+        self.updateTstamp(count * xdelta)
+    def getValidTstamp(self):
+        return self._valid
+
+class _sriUnit(object):
+    def __init__(self, sri, offset):
+        self._offset = offset
+        self._sri = sri
+    def getOffset(self):
+        return self._offset
+    def changeOffset(self, delta):
+        self._offset = self._offset - delta
+    def getSri(self):
+        return self._sri
+    def getStreamID(self):
+        return self._sri.streamID
+
+class InputStream(BaseStream):
+    def __init__(self, parent, sri):
+        BaseStream.__init__(self, parent, sri)
+        self._enabled = True
+        self._data = []
+        self._sri_idx = []
+        self._eos = False
+        self._new_sri = True
+
+    def streamID(self):
+        return self._sri.streamID
+
+    def _updateSRI(self, sri):
+        # this sri applies to whatever packet is delivered next
+        if len(self._data) == 0:
+            self._new_sri = True
+            self._sri = sri
+            return
+        self._sri_idx.append(_sriUnit(sri, len(self._data)))
+    def _updateData(self, data, T, EOS):
+        self._parent.port_cond.acquire()
+        try:
+            self._data.append(_dataUnit(data, T, True))
+            if EOS:
+                self._eos = True
+                self._parent.port_cond.notifyAll()
+        finally:
+            self._parent.port_cond.release()
+
+    def getOldestCreateTime(self):
+        if len(self._data) != 0:
+            return self._data[0].getCreateTime()
+        else:
+            return None
+
+    def _dataCurrSri(self):
+        upper_end = len(self._data)
+        if len(self._sri_idx) != 0:
+            upper_end = self._sri_idx[0].getOffset()
+        total_data = 0
+        for total_data_idx in range(upper_end):
+            total_data += len(self._data[total_data_idx].getData())
+        return total_data
+
+    def read(self, count=None, consume=None, blocking=True):
+        '''
+            Blocking read from the data buffer.
+            count: number of items read. All available if None
+            consumer: how far to move the read pointer. Move by count if None
+
+            Note: if a new SRI was received, read all data until the new SRI
+        '''
+        # if the amount of data left is 0, erase this from parent._streams
+        if len(self._data) == 0 and self._eos:
+            self._parent._removeStream(self)
+            return None
+
+        if not count:
+            count = self.samplesAvailableSingleSRI()
+        if not consume:
+            consume = count
+
+        while blocking:
+            # is there enough data for this sri?
+            # is there enough in the first packet?
+            if len(self._data) != 0:
+              if len(self._sri_idx) == 0:
+                if self._dataCurrSri() < count:
+                    continue
+                ret_data = []
+                tstamps = []
+                total_read = actual_read = data_idx = curr_idx = consume_count = 0
+                consume_count = consume
+                while total_read < count:
+                    actual_read = len(self._data[data_idx].getData())
+                    if total_read + actual_read > count:
+                        actual_read = count - total_read
+                    ret_data += self._data[data_idx].getData()[:actual_read]
+                    tstamps += [(self._data[data_idx].getTstamp(), curr_idx)]
+                    curr_idx += len(self._data[data_idx].getData())
+                    total_read += actual_read
+                    consume_now = actual_read
+                    if consume_now > consume_count:
+                        consume_now = consume_count
+                    consume_count -= consume_now
+                    self._data[data_idx].cleanup(consume_now, self._sri.xdelta)
+                    data_idx += 1
+                if self._sri.subsize != 0:
+                    framelength = self._sri.subsize if not self._sri.mode else 2 * self._sri.subsize
+                    if float(len(ret_data))/framelength != len(ret_data)/framelength:
+                        print 'The data length ('+str(len(ret_data))+') divided by subsize ('+str(self._sri.subsize)+')is not a whole number'
+                        return None
+                    _ret_data = []
+                    for idx in range(len(ret_data)/framelength):
+                        _ret_data.append(ret_data[idx*framelength:(idx+1)*framelength])
+                    ret_data = _ret_data
+                ret_block = DataBlock(self._sri, ret_data, tstamps, self._new_sri)
+                self._new_sri = False
+                while True:
+                    if len(self._data) == 0:
+                        break
+                    if len(self._data[0].getData()) == 0:
+                        self._data.pop(0)
+                    else:
+                        break
+                return ret_block
+              # are there other sri in the queue?
+              else:
+                ret_data = []
+                tstamps = []
+                curr_idx = 0
+                number_data = self._sri_idx[0].getOffset()
+                total_data = self._dataCurrSri()
+                if total_data <= count:
+                    # return it all for the current sri and queue up the next sri
+                    for data_idx in range(number_data):
+                        ret_data += self._data[data_idx].getData()
+                        tstamps += [(self._data[data_idx].getTstamp(), curr_idx)]
+                        curr_idx += len(self._data[data_idx].getData())
+                    number_pop = 0
+                    consume_count = consume
+                    while consume_count != 0:
+                        consume_now = len(self._data[0].getData())
+                        if consume_now <= consume_count:
+                            self._data.pop(0)
+                            consume_count -= consume_now
+                            number_pop += 1
+                            continue
+                        self._data[0].cleanup(consume_count, self._sri.xdelta)
+                        consume_count = 0
+                    for _item_sri_idx in self._sri_idx:
+                        _item_sri_idx.changeOffset(number_pop)
+                    if self._sri.subsize != 0:
+                        framelength = self._sri.subsize if not self._sri.mode else 2 * self._sri.subsize
+                        if float(len(ret_data))/framelength != len(ret_data)/framelength:
+                            print 'The data length ('+str(len(ret_data))+') divided by subsize ('+str(self._sri.subsize)+')is not a whole number'
+                            return None
+                        _ret_data = []
+                        for idx in range(len(ret_data)/framelength):
+                            _ret_data.append(ret_data[idx*framelength:(idx+1)*framelength])
+                        ret_data = _ret_data
+                    ret_block = DataBlock(self._sri, ret_data, tstamps, self._new_sri)
+                    self._new_sri = True
+                    self._sri = self._sri_idx.pop(0).getSri()
+                    return ret_block
+                else:
+                    # find a subset
+                    total_read = actual_read = 0
+                    for data_idx in range(number_data):
+                        actual_read = len(self._data[data_idx].getData())
+                        if total_read + actual_read > count:
+                            actual_read = count - total_read
+                        ret_data += self._data[data_idx].getData()[:actual_read]
+                        tstamps += [(self._data[data_idx].getTstamp(), curr_idx)]
+                        curr_idx += len(self._data[data_idx].getData())
+                        total_read += actual_read
+                        if total_read == count:
+                            break
+                    number_pop = 0
+                    consume_count = consume
+                    while consume_count != 0:
+                        consume_now = len(self._data[0].getData())
+                        if consume_now <= consume_count:
+                            self._data.pop(0)
+                            consume_count -= consume_now
+                            number_pop += 1
+                            continue
+                        self._data[0].cleanup(consume_count, self._sri.xdelta)
+                        consume_count = 0
+                    for _item_sri_idx in self._sri_idx:
+                        _item_sri_idx.changeOffset(number_pop)
+                    if self._sri.subsize != 0:
+                        framelength = self._sri.subsize if not self._sri.mode else 2 * self._sri.subsize
+                        if float(len(ret_data))/framelength != len(ret_data)/framelength:
+                            print 'The data length ('+str(len(ret_data))+') divided by subsize ('+str(self._sri.subsize)+')is not a whole number'
+                            return None
+                        _ret_data = []
+                        for idx in range(len(ret_data)/framelength):
+                            _ret_data.append(ret_data[idx*framelength:(idx+1)*framelength])
+                        ret_data = _ret_data
+                    ret_block = DataBlock(self._sri, ret_data, tstamps, self._new_sri)
+                    self._new_sri = False
+                    return ret_block
+            # this sleep happens if len(self._sri_idx) == 0 and total_data < count
+            if blocking:
+                time.sleep(0.1)
+        return None
+
+    def tryread(self, count=None, consume=None):
+        '''
+            Non-blocking read from the data buffer.
+            count: number of items read. All available if None
+            consumer: how far to move the read pointer. Move by count if None
+
+            Note: if a new SRI was received, read all data until the new SRI
+        '''
+        return self.read(count, consume, False)
+
+    def skip(self, count=None):
+        '''
+            Move forward the read pointer by count or the next SRI, whichever comes first.
+            Move to next SRI if None
+            Returns the number of skipped elements
+        '''
+        number_pop = 0
+        consume_count = count
+        total_consumed = 0
+        while consume_count != 0:
+            consume_now = len(self._data[0].getData())
+            if consume_now <= consume_count:
+                self._data.pop(0)
+                consume_count -= consume_now
+                total_consumed += consume_now
+                for _item_sri_idx in self._sri_idx:
+                    _item_sri_idx.changeOffset(1)
+                if len(self._sri_idx) != 0:
+                    if self._sri_idx[0].getOffset() <= 0:
+                        self._sri = self._sri_idx[0].getSri()
+                        self._new_sri = True
+                        self._sri_idx.pop(0)
+                        break
+                continue
+            total_consumed += consume_count
+            self._data[0].cleanup(consume_count, self._sri.xdelta)
+            consume_count = 0
+        return total_consumed
+    def ready(self):
+        return self.samplesAvailable() > 0
+    def dataEstimate(self):
+        len_data = tstamps = 0
+        for _data in self._data:
+            len_data += len(_data.getData())
+            tstamps += 1
+        return (len_data,tstamps)
+    def samplesAvailable(self):
+        len_data = 0
+        for _data in self._data:
+            len_data += len(_data.getData())
+        return len_data
+    def samplesAvailableSingleSRI(self):
+        len_data = 0
+        data_block_reads = len(self._data)
+        if len(self._sri_idx) != 0:
+            data_block_reads = self._sri_idx[0].getOffset()
+        for _data_idx in range(data_block_reads):
+            len_data += len(self._data[_data_idx].getData())
+        return len_data
+    def enable(self):
+        '''
+            Do not drop incoming data
+        '''
+        self._enabled = True
+    def disable(self):
+        '''
+            Drop all incoming data
+        '''
+        self._enabled = False
+    def enabled(self):
+        return self._enabled
+    def eos(self):
+        '''
+            Has EOS been received?
+        '''
+        return self._eos
 
 class ArraySink(object):
     """
@@ -220,20 +601,19 @@ class ArraySink(object):
         self.sri=bulkio_helpers.defaultSRI
         self.data = []
         self.timestamps = []
-        self.sris = []
+        self._streams = []
+        self._livingStreams = {}
         self.gotEOS = False
         self.breakBlock = False
         self.port_lock = threading.Lock()
         self.port_cond = threading.Condition(self.port_lock)
-    
+
     class estimateStruct():
         len_data=0
         num_timestamps=0
-        num_sris=0
-        def __init__(self, data=[], timestamps=[], sris=[]):
-            self.len_data = len(data)
-            self.num_timestamps = len(timestamps)
-            self.num_sris = len(sris)
+        def __init__(self, data=0, timestamps=0):
+            self.len_data = data
+            self.num_timestamps = timestamps
 
     def _isActive(self):
         return not self.gotEOS and not self.breakBlock
@@ -242,6 +622,41 @@ class ArraySink(object):
         if not self._isActive():
             self.gotEOS = False
             self.breakBlock = False
+
+    def getStream(self, streamID):
+        for _stream in self._streams:
+            if _stream.getStreamID() == streamID:
+                return _stream
+        for _stream in self._livingStreams:
+            if self._livingStreams[_stream].getStreamID() == streamID:
+                return self._livingStreams[_stream]
+        return None
+
+    def getStreams(self):
+        retval = []
+        for _stream in self._streams:
+            retval.append(_stream)
+        for _stream in self._livingStreams:
+            retval.append(self._livingStreams[_stream])
+        return retval
+
+    def getCurrentStream(self):
+        if len(self._streams) != 0:
+            return self._streams[0]
+        streams_with_data = []
+        for _stream in self._livingStreams:
+            if self._livingStreams[_stream].samplesAvailable() != 0:
+                streams_with_data.append(_stream)
+        if len(streams_with_data) == 0:
+            return None
+        oldest = (0,'')
+        for _stream in streams_with_data:
+            if oldest[0] == 0:
+                oldest = (_stream, self._livingStreams[_stream].getOldestCreateTime())
+                continue
+            if self._livingStreams[_stream].getOldestCreateTime() < oldest[1]:
+                oldest = (_stream, self._livingStreams[_stream].getOldestCreateTime())
+        return self._livingStreams[oldest[0]]
 
     def start(self):
         self.gotEOS = False
@@ -254,16 +669,27 @@ class ArraySink(object):
         self.port_cond.release()
 
     def eos(self):
+        _stream = self.getCurrentStream()
+        if _stream:
+            return _stream.eos()
         return self.gotEOS
 
     def waitEOS(self):
         self.port_cond.acquire()
         try:
             while self._isActive():
+                if self.eos():
+                    break
                 self.port_cond.wait()
             return self.gotEOS
         finally:
             self.port_cond.release()
+
+    def _removeStream(self, stream):
+        for stream_idx in range(len(self._streams)):
+            if self._streams[stream_idx] == stream:
+                self._streams.pop(stream_idx)
+                break
 
     def pushSRI(self, H):
         """
@@ -274,7 +700,10 @@ class ArraySink(object):
                    generate the header file
         """
         self.sri = H
-        self.sris.append([len(self.data), H])
+        if not self._livingStreams.has_key(H.streamID):
+            self._livingStreams[H.streamID] = InputStream(self, H)
+        else:
+            self._livingStreams[H.streamID]._updateSRI(H)
 
     def pushPacket(self, data, ts, EOS, stream_id):
         """
@@ -286,25 +715,40 @@ class ArraySink(object):
             <EOS>         Flag indicating if this is the End Of the Stream
             <stream_id>   The unique stream id
         """
-        self.port_cond.acquire()
-        try:
-            self.gotEOS = EOS
-            self.timestamps.append([len(self.data), ts])
-            self.data += data
-            self.port_cond.notifyAll()
-        finally:
-            self.port_cond.release()
+        if not self._livingStreams.has_key(stream_id):
+            self._livingStreams[stream_id] = InputStream(self, BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, stream_id, False, []))
+        _stream = self._livingStreams[stream_id]
+        _stream._updateData(data, ts, EOS)
+        if EOS:
+            self._streams.append(_stream)
+            self._livingStreams.pop(stream_id)
+        #self.port_cond.acquire()
+        #try:
+        #    self.gotEOS = EOS
+        #    self.timestamps.append([len(self.data), ts])
+        #    self.data += data
+        #    self.port_cond.notifyAll()
+        #finally:
+        #    self.port_cond.release()
+
+        # legacy stuff
+        self.data += data
 
     def estimateData(self):
         self.port_cond.acquire()
         estimate = self.estimateStruct()
-        try:
-            estimate = self.estimateStruct(self.data, self.timestamps, self.sris)
-        finally:
-            self.port_cond.release()
+        _streams = self.getStreams()
+        _total_data = 0
+        _total_tstamps = 0
+        for _stream in _streams:
+            (data_len,tstamp_len) = _stream.dataEstimate()
+            _total_data += data_len
+            _total_tstamps += tstamp_len
+        estimate = self.estimateStruct(_total_data, _total_tstamps)
+        self.port_cond.release()
         return estimate
-        
-    def syncAssocData(self, reference):
+
+    def __syncAssocData(self, reference):
         retval = []
         length_to_erase = None
         for i,(l,t) in enumerate(reference[::-1]):
@@ -321,60 +765,29 @@ class ArraySink(object):
     def retrieveData(self, length=None):
         self.port_cond.acquire()
         try:
-            if length is None:
-                # No length specified; get all of the data.
-                length = len(self.data)
-                
-            # have not received any data yet (and I need a minimum amount)
-            if self.sri == None and len(self.data) == 0 and length != 0:
-                self.port_cond.wait()
-            
-            if self.sri != None and self.sri.subsize != 0:
-                frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
-                if float(length)/frameLength != length/frameLength:
-                    print 'The requested length divided by the subsize ('+str(length)+'/'+str(self.sri.subsize)+') is not a whole number. Cannot return framed data'
-                    return (None,None)
-
-            # Wait for there to be enough data.
-            while len(self.data) < length and self._isActive():
-                self.port_cond.wait()
-
-            if len(self.data) > length:
-                # More data is available than was requested. Return only
-                # as much data as was asked for, and the associated
-                # timestamps.
-                rettime = self.syncAssocData(self.timestamps)
-                retsris = self.syncAssocData(self.sris)
-
-                if self.sri.subsize == 0:
-                    retval = self.data[:length]
-                else:
-                    retval = []
-                    frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
-                    for idx in range(length/frameLength):
-                        retval.append(self.data[idx*frameLength:(idx+1)*frameLength])
-                del self.data[:length]
-                return (retval, rettime, retsris)
-
-            # No length was provided, or length is equal to the length of data.
-            # Return all data and timestamps.
-            if self.sri == None:
-                (retval, rettime, retsris) = (self.data, self.timestamps, [])
-            elif self.sri.subsize == 0:
-                (retval, rettime, retsris) = (self.data, self.timestamps, self.sris)
-            else:
-                retval = []
-                frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
-                for idx in range(length/frameLength):
-                    retval.append(self.data[idx*frameLength:(idx+1)*frameLength])
-                rettime = self.timestamps
-                retsris = self.sris
-            self.data = []
-            self.timestamps = []
-            self.sris = []
-            return (retval, rettime, retsris)
+            retval = []
+            rettime = []
+            _stream = self.getCurrentStream()
+            if not _stream:
+                return None
+            done = False
+            goal = length
+            if length == None:
+                goal = _stream.samplesAvailable()
+            while True:
+                _block = _stream.read(count=length)
+                if not _block:
+                    break
+                retval += _block.data()
+                rettime += _block.getTimestamps()
+                goal_offset = 1
+                if _block.sri().subsize != 0:
+                    goal_offset = _block.sri().subsize
+                if len(retval) == goal/goal_offset:
+                    break
         finally:
             self.port_cond.release()
+        return (retval, rettime)
 
     def getPort(self):
         """
@@ -570,13 +983,13 @@ class XmlArraySink(ArraySink):
             <EOS>         Flag indicating if this is the End Of the Stream
             <stream_id>   The unique stream id
         """
-        self.port_cond.acquire()
-        try:
-            self.gotEOS = EOS
-            self.data.append(data)
-            self.port_cond.notifyAll()
-        finally:
-            self.port_cond.release()
+        if not self._livingStreams.has_key(stream_id):
+            self._livingStreams[stream_id] = InputStream(self, BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, stream_id, False, []))
+        _stream = self._livingStreams[stream_id]
+        _stream._updateData([data], None, EOS)
+        if EOS:
+            self._streams.append(_stream)
+            self._livingStreams.pop(stream_id)
 
 class XmlArraySource(ArraySource):
     "This sub-class exists to override pushPacket for dataXML ports."
