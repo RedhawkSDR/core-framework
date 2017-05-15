@@ -1746,10 +1746,6 @@ class DataSink(_SinkBase):
                 return ([],[])
             return []
         (retval, timestamps) = _retval
-        _tstamps = []
-        for tstamp in timestamps:
-            _tstamps.append((tstamp[1],tstamp[0]))
-        timestamps = _tstamps
         if isChar:
             # Converts char values into their numeric equivalents
             def from_char(data):

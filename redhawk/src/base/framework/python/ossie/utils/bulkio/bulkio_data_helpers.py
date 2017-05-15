@@ -252,20 +252,20 @@ class DataBlock(object):
     def inputQueueFlushed(self):
         return False
     def getStartTime(self):
-        return self._tstamps[0][0]
+        return self._tstamps[0][1]
     def getTimestamps(self):
         return self._tstamps
     def getNetTimeDrift(self):
         if len(self._tstamps) == 1:
             return 0
-        diff_time = diffUTCTime(self._tstamps[-1][0], self._tstamps[0][0])
+        diff_time = diffUTCTime(self._tstamps[-1][1], self._tstamps[0][1])
         synth_time = self._sri.xdelta * len(self._data)
         return abs(diff_time - synth_time)
     def getMaxTimeDrift(self):
         max_drift = 0
         for _diff in range(len(self._tstamps)-1):
-            diff_time = diffUTCTime(self._tstamps[_diff][0], self._tstamps[_diff-1][0])
-            synth_time = self._sri.xdelta * self._tstamps[_diff][1]-self._tstamps[_diff-1][1]
+            diff_time = diffUTCTime(self._tstamps[_diff][1], self._tstamps[_diff-1][1])
+            synth_time = self._sri.xdelta * self._tstamps[_diff][0]-self._tstamps[_diff-1][0]
             drift = abs(diff_time - synth_time)
             if drift > max_drift:
                 max_drift = drift
@@ -371,14 +371,18 @@ class InputStream(BaseStream):
             return None
 
         if not count:
+            self._parent.port_cond.acquire()
             count = self.samplesAvailableSingleSRI()
+            self._parent.port_cond.release()
         if not consume:
             consume = count
 
         while True:
             # is there enough data for this sri?
             # is there enough in the first packet?
-            if len(self._data) != 0:
+            try:
+             self._parent.port_cond.acquire()
+             if len(self._data) != 0:
               if len(self._sri_idx) == 0:
                 if self._dataCurrSri() < count:
                     continue
@@ -391,7 +395,7 @@ class InputStream(BaseStream):
                     if total_read + actual_read > count:
                         actual_read = count - total_read
                     ret_data += self._data[data_idx].getData()[:actual_read]
-                    tstamps += [(self._data[data_idx].getTstamp(), curr_idx)]
+                    tstamps += [(curr_idx, self._data[data_idx].getTstamp())]
                     curr_idx += len(self._data[data_idx].getData())
                     total_read += actual_read
                     consume_now = actual_read
@@ -430,7 +434,7 @@ class InputStream(BaseStream):
                     # return it all for the current sri and queue up the next sri
                     for data_idx in range(number_data):
                         ret_data += self._data[data_idx].getData()
-                        tstamps += [(self._data[data_idx].getTstamp(), curr_idx)]
+                        tstamps += [(curr_idx, self._data[data_idx].getTstamp())]
                         curr_idx += len(self._data[data_idx].getData())
                     number_pop = 0
                     consume_count = consume
@@ -466,7 +470,7 @@ class InputStream(BaseStream):
                         if total_read + actual_read > count:
                             actual_read = count - total_read
                         ret_data += self._data[data_idx].getData()[:actual_read]
-                        tstamps += [(self._data[data_idx].getTstamp(), curr_idx)]
+                        tstamps += [(curr_idx, self._data[data_idx].getTstamp())]
                         curr_idx += len(self._data[data_idx].getData())
                         total_read += actual_read
                         if total_read == count:
@@ -497,6 +501,8 @@ class InputStream(BaseStream):
                     self._new_sri = False
                     return ret_block
             # this sleep happens if len(self._sri_idx) == 0 and total_data < count
+            finally:
+             self._parent.port_cond.release()
             if not blocking:
                 break
             time.sleep(0.1)
@@ -764,17 +770,26 @@ class ArraySink(object):
         return retval
 
     def retrieveData(self, length=None):
-        self.port_cond.acquire()
+        #self.port_cond.acquire()
         try:
             retval = []
             rettime = []
-            _stream = self.getCurrentStream()
+            while True:
+                self.port_cond.acquire()
+                _stream = self.getCurrentStream()
+                self.port_cond.release()
+                if not _stream and length != None:
+                    time.sleep(0.1)
+                    continue
+                break
             if not _stream:
                 return None
             done = False
             goal = length
+            self.port_cond.acquire()
             if length == None:
                 goal = _stream.samplesAvailable()
+            self.port_cond.release()
             while True:
                 _block = _stream.read(count=length)
                 if not _block:
@@ -787,7 +802,8 @@ class ArraySink(object):
                 if len(retval) == goal/goal_offset:
                     break
         finally:
-            self.port_cond.release()
+            pass
+        #    self.port_cond.release()
         return (retval, rettime)
 
     def getPort(self):
