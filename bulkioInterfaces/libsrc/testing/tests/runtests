@@ -97,6 +97,14 @@ cd ../components/Oversized_framedata/tests/
 cd -
 
 #
+#  Run port lock Test
+#
+#
+cd ../components/src/tests/
+./test_src.py
+cd -
+
+#
 #  Run jni reference resolution
 #
 #

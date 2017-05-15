@@ -20,6 +20,7 @@
 
 import logging
 import threading
+import omniORB
 
 log = logging.getLogger(__name__)
 
@@ -204,11 +205,13 @@ class ConnectionManager(object):
 
     def _breakConnection(self, identifier, uses, provides):
         log.debug("Breaking connection '%s'", identifier)
+        omniORB.setClientCallTimeout(1500)
         try:
             usesPort = uses.getReference()
             usesPort.disconnectPort(identifier)
         except:
             log.warn("Ignoring exception breaking connection '%s'", identifier)
+        omniORB.setClientCallTimeout(0)
         uses.disconnected(identifier)
         provides.disconnected(identifier)
         

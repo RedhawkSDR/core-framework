@@ -65,9 +65,15 @@ namespace bulkio {
     void PortTransport<PortType>::disconnect()
     {
         // Send an end-of-stream for all active streams
+        omniORB::setClientCallTimeout(1000);
         for (VersionMap::iterator stream = _sriVersions.begin(); stream != _sriVersions.end(); ++stream) {
-            this->_pushPacket(BufferType(), bulkio::time::utils::notSet(), true, stream->first);
+            try {
+                this->_pushPacket(BufferType(), bulkio::time::utils::notSet(), true, stream->first);
+            } catch (redhawk::TransportTimeoutError& e) {
+                // ignore the timeout. The destination is in a bad state
+            }
         }
+        omniORB::setClientCallTimeout(0);
         _sriVersions.clear();
     }
 
@@ -169,6 +175,8 @@ namespace bulkio {
         {
             try {
                 _pushPacketImpl(data, T, EOS, streamID.c_str());
+            } catch (const CORBA::TIMEOUT& exc) {
+                throw redhawk::TransportTimeoutError("Push timed out");
             } catch (const CORBA::SystemException& exc) {
                 throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
             }

@@ -43,6 +43,15 @@ namespace redhawk {
         }
     };
 
+    class TransportTimeoutError : public TransportError
+    {
+    public:
+        TransportTimeoutError(const std::string& message) :
+            TransportError(message)
+        {
+        }
+    };
+
     class FatalTransportError : public TransportError
     {
     public:
