@@ -1164,7 +1164,7 @@ class FileSource(object):
     """
     Simple class used to push data into a port from a given array of data.
     """
-    def __init__(self, porttype, byteswap=False, usesPortTypeDict=None):
+    def __init__(self, porttype, byteswap=False, usesPortTypeDict=None, throttle=False):
         """
         Instantiates a new object and generates a default StreamSRI.  The
         porttype parameter corresponds to the type of data contained in the
@@ -1221,6 +1221,7 @@ class FileSource(object):
         self.connectionNormalization = {}
         self.connectionTranslation = {}
         self.usesPortTypeDict = usesPortTypeDict
+        self._throttle=throttle
         self.refreshSRI = False
         # Create default SRI
         self.sri=bulkio_helpers.defaultSRI
@@ -1305,6 +1306,9 @@ class FileSource(object):
         if EOS: # This deals with subsequent pushes with the same SRI
             self.refreshSRI = True
 
+        if self._throttle:
+            time.sleep(len(data)*self.sri.xdelta/2.0)
+
         self.port_lock.acquire()
         try:
             try:
@@ -1332,6 +1336,10 @@ class FileSource(object):
                 log.warn(msg)
         finally:
             self.port_lock.release()
+
+        if self._throttle:
+            time.sleep(len(data)*self.sri.xdelta/2.0)
+
 
     def getPort(self):
         """

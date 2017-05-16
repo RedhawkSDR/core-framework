@@ -137,14 +137,20 @@ class InteractiveTestCpp(scatest.CorbaTestCase):
         status, output=commands.getstatusoutput('sdr/dom/components/ECM_CPP/cpp/ECM_CPP -i')
         self.assertNotEquals(output.find(self.message),-1)
 
-def wait_on_data( sink, number_timestamps ):
-    _timeout = 1
+def wait_on_data(sink, number_timestamps, timeout=1):
     begin_time = time.time()
     estimate = sink.getDataEstimate()
     while estimate.num_timestamps != number_timestamps:
         time.sleep(0.1)
         estimate = sink.getDataEstimate()
-        if time.time() - begin_time > _timeout:
+        if time.time() - begin_time > timeout:
+            break
+
+def wait_for_eos(sink, timeout=10):
+    begin_time = time.time()
+    while not sink.eos():
+        time.sleep(0.1)
+        if time.time() - begin_time > timeout:
             break
 
 class SBEventChannelTest(scatest.CorbaTestCase):
@@ -1837,6 +1843,7 @@ class BulkioTest(unittest.TestCase):
                 break
         (_data, _tstamps) = sink.getData(tstamps=True)
         xdelta = sink.sri().xdelta
+        print _tstamps
         self.assertEquals(_tstamps[0][1].twsec, _startTime)
         self.assertEquals(_tstamps[1][1].twsec, _tstamps[1][0]*sink.sri().xdelta+_startTime)
         self.assertEquals(_tstamps[2][1].twsec, _tstamps[2][0]*sink.sri().xdelta+_startTime)
@@ -2070,6 +2077,68 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(block_2.xdelta(), 0.001)
         self.assertEquals(block_3.xdelta(), 0.0001)
 
+    def _fileSourceThrottle(self, _file, rate):
+        fp=open(_file, 'r')
+        contents = fp.read()
+        fp.close()
+        source = sb.FileSource(_file, dataFormat='octet', sampleRate=rate, throttle=True)
+        sink = sb.DataSink()
+        source.connect(sink)
+        time_estimate = len(contents)/float(rate)
+        sb.start()
+        begin_time = time.time()
+        wait_for_eos(sink)
+        time_diff = time.time()-begin_time
+        self.assertTrue(time_diff<time_estimate*1.1)
+        self.assertTrue(time_diff>time_estimate*0.9)
+        sb.stop()
+
+    def test_FileSourceThrottle(self):
+        infile = os.path.join(sb.getSDRROOT(), 'dom/mgr/DomainManager.spd.xml')
+        self._fileSourceThrottle(infile, 1000)
+        self._fileSourceThrottle(infile, 1500)
+
+    def test_DataSourceThrottle(self):
+        src = sb.DataSource(dataFormat='float', throttle=True)
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        _sampleRate = 500
+        _dataLength = 100
+        time_estimate = (3.0*_dataLength)/(_sampleRate)
+        begin_time = time.time()
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        wait_on_data(snk, 3, 5)
+        end_time = time.time()
+        time_diff = end_time-begin_time
+        self.assertTrue(time_diff<time_estimate*1.1)
+        self.assertTrue(time_diff>time_estimate*0.9)
+
+        stream=snk.getCurrentStream()
+        block_1 = stream.read()
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(len(block_1.data()), 3.0*_dataLength)
+
+        _sampleRate = 300
+        _dataLength = 100
+        time_estimate = (3.0*_dataLength)/(_sampleRate)
+        begin_time = time.time()
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        wait_on_data(snk, 3, 5)
+        end_time = time.time()
+        time_diff = end_time-begin_time
+        self.assertTrue(time_diff<time_estimate*1.1)
+        self.assertTrue(time_diff>time_estimate*0.9)
+
+        stream=snk.getCurrentStream()
+        block_1 = stream.read()
+        self.assertNotEqual(block_1, None)
+        self.assertEquals(len(block_1.data()), 3.0*_dataLength)
+
     def test_DataSinkMultipleStream(self):
         src = sb.DataSource(dataFormat='float')
         snk = sb.DataSink()
@@ -2234,6 +2303,7 @@ class BulkioTest(unittest.TestCase):
         src.push([1,2,3,4,5],sampleRate=10000)
         wait_on_data(snk, 3)
         data=snk.getData(tstamps=True)
+        print data
         self.assertEquals(len(data[1]), 3)
         self.assertEquals(len(data[0]), 15)
 

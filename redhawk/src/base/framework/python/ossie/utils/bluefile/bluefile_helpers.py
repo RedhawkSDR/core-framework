@@ -231,7 +231,7 @@ class BlueFileReader(object):
     Simple class used to send data to a port from an X-Midas file.  It uses 
     the header to generate a SRI.
     """
-    def __init__(self, porttype):
+    def __init__(self, porttype, throttle=False):
         """
         Instantiates a new object and generates a default StreamSRI.  The 
         porttype parameter corresponds to the type of data contained in the 
@@ -249,6 +249,7 @@ class BlueFileReader(object):
                                                  0.001, 1, 0, "sampleStream", 
                                                  True, [])
         self.port_lock = threading.Lock()
+        self._throttle=throttle
         self.done = False
 
     def connectPort(self, connection, connectionId):
@@ -284,8 +285,13 @@ class BlueFileReader(object):
     def pushPacket(self, data, T, EOS, streamID):        
         if self.refreshSRI:
             self.pushSRI(self.defaultStreamSRI)
+
         self.port_lock.acquire()
-        try:    
+
+        if self._throttle:
+            time.sleep(len(data)*self.defaultStreamSRI.xdelta/2.0)
+
+        try:
             try:
                 for connId, port in self.outPorts.items():
                     if port != None: port.pushPacket(data, T, EOS, streamID)
@@ -295,6 +301,9 @@ class BlueFileReader(object):
                 log.warn(msg)
         finally:
             self.port_lock.release()
+
+        if self._throttle:
+            time.sleep(len(data)*self.defaultStreamSRI.xdelta/2.0)
 
     def getPort(self):
         """

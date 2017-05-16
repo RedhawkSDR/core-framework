@@ -833,7 +833,8 @@ class FileSource(_SourceBase):
                  startTime    = 0.0,
                  streamID     = None,
                  blocking     = True,
-                 subsize      = 0):
+                 subsize      = 0,
+                 throttle     = False):
 
         self._filename = filename
         self._midasFile = midasFile
@@ -846,6 +847,7 @@ class FileSource(_SourceBase):
         self._streamID    = streamID
         self._blocking    = blocking 
         self._sri         = None
+        self._throttle    = throttle
         self._byteswap    = False
         self._defaultDataFormat = '16t'
 
@@ -962,10 +964,10 @@ class FileSource(_SourceBase):
             # If input file is a Midas Blue file
             if self._midasFile == True:
                 # define source helper component
-                self._src = bluefile_helpers.BlueFileReader(eval(portType))
+                self._src = bluefile_helpers.BlueFileReader(eval(portType), throttle=self._throttle)
             # else, input file is binary file
             else:
-                self._src = bulkio_data_helpers.FileSource(eval(portType),self._byteswap, portTypes)
+                self._src = bulkio_data_helpers.FileSource(eval(portType),self._byteswap, portTypes, throttle=self._throttle)
                 keywords = []
                 for key in self._SRIKeywords:
                     keywords.append(_CF.DataType(key._name, _getAnyValue(key)))
@@ -1182,6 +1184,11 @@ class DataSourceSDDS(_SourceBase):
         return self._src
 
 class DataSource(_SourceBase):
+    '''
+      Soure of Bulk IO data. Supported data format strings:
+        char, short, long, float, double, longlong, octet, ushort, ulong, ulonglong
+      throttle: when True, data will match sampleRate (provided in the push function)
+    '''
     def __init__(self,
                  data         = None,
                  dataFormat   = None,
@@ -1190,7 +1197,8 @@ class DataSource(_SourceBase):
                  startTime    = 0.0,
                  blocking     = True,
                  subsize      = 0,
-                 sri          = None):
+                 sri          = None,
+                 throttle     = False):
 
         fmts=['char','short','long','float','double','longlong','octet','ushort', 'ulong', 'ulonglong', 'file','xml' ]
         self.threadExited = None
@@ -1215,6 +1223,7 @@ class DataSource(_SourceBase):
         self._runThread   = None
         self._dataQueue   = _Queue.Queue()
         self._currentSampleTime = self._startTime
+        self._throttle = throttle
 
         # Track unsent packets so that callers can monitor for when all packets
         # have really been sent; checking for an empty queue only tells whether
@@ -1612,6 +1621,10 @@ class DataSource(_SourceBase):
                                          0.0,
                                          int(currentSampleTime),
                                          currentSampleTime - int(currentSampleTime))
+        if self._throttle:
+            if self._sampleRate != None:
+                _time.sleep(len(data)/(self._sampleRate*2.0))
+
         if srcPortType != "_BULKIO__POA.dataXML":
             bulkio_data_helpers.ArraySource.pushPacket(arraySrcInst,
                                                         data     = data,
@@ -1623,6 +1636,9 @@ class DataSource(_SourceBase):
                                                            data     = data,
                                                            EOS      = EOS,
                                                            streamID = streamID)
+        if self._throttle:
+            if self._sampleRate != None:
+                _time.sleep(len(data)/(self._sampleRate*2.0))
 
     def _pushSRIAllConnectedPorts(self, sri):
         for connection in self._connections.values():
@@ -1759,7 +1775,7 @@ class DataSink(_SinkBase):
             else:
                 retval = from_char(retval)
         if tstamps:
-            return (retval,timestamps)
+            return (retval, timestamps)
         else:
             return retval
 
