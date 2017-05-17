@@ -1188,6 +1188,7 @@ def launch(descriptor, instanceName=None, refid=None, impl=None,
       impl         - Implementation ID to execute. If not given, the first
                      implementation whose entry point exists will be used.
       debugger     - Debugger to attach to the executable (default: None).
+                     Options: gdb (C++), jdb (Java), pdb (Python)
       window       - Terminal to receive command input/output. If not given,
                      output will be directed to stdout, and component will not
                      receive input.
