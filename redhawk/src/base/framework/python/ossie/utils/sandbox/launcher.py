@@ -206,6 +206,8 @@ class VirtualDevice(object):
         else:
             # Run the command directly.
             command = entryPoint
+        if debugger:
+            environment.update(debugger.envUpdate())
 
         if window_mode == 'monitor':
             # Open up a window for component output.

@@ -38,7 +38,7 @@ from base import SdrRoot, Sandbox, SandboxLauncher, SandboxComponent
 from devmgr import DeviceManagerStub
 from naming import ApplicationRegistrarStub
 import launcher
-from debugger import GDB, PDB, Valgrind
+from debugger import GDB, JDB, PDB, Valgrind
 import terminal
 
 warnings.filterwarnings('once',category=DeprecationWarning)
@@ -176,6 +176,8 @@ class LocalLauncher(SandboxLauncher):
             try:
                 if debugger == 'pdb':
                     debugger = PDB()
+                elif debugger == 'jdb':
+                    debugger = JDB()
                 elif debugger == 'gdb':
                     debugger = GDB()
                 elif debugger == 'valgrind':

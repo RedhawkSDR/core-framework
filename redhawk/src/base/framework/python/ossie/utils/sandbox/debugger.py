@@ -21,6 +21,7 @@
 import commands
 import os
 import sys
+import socket
 
 class Debugger(object):
     def __init__(self, command):
@@ -34,6 +35,9 @@ class Debugger(object):
 
     def canAttach(self):
         return False
+
+    def envUpdate(self):
+        return {}
 
 class GDB(Debugger):
     def __init__(self, attach=True):
@@ -78,6 +82,42 @@ class PDB(Debugger):
 
     def name(self):
         return 'pdb'
+
+class JDB(Debugger):
+    def __init__(self, attach=True):
+        status, jdb = commands.getstatusoutput('which jdb')
+        if status:
+            raise RuntimeError, 'jdb cannot be found'
+        super(JDB,self).__init__(jdb)
+        self._lastport = 5680
+        self._attach = attach
+
+    def modifiesCommand(self):
+        return False
+
+    def canAttach(self):
+        return self._attach
+
+    def attach(self, process):
+        return self.command, ['-attach', str(self._lastport)]
+
+    def wrap(self, command, arguments):
+        return command, arguments
+
+    def envUpdate(self):
+        _open = False
+        s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        while not _open:
+            try:
+                s.bind((socket.gethostbyname(socket.gethostname()), self._lastport))
+                _open = True
+                s.close()
+            except:
+                self._lastport += 1
+        return {'JAVA_TOOL_OPTIONS':'-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address='+str(self._lastport)}
+
+    def name(self):
+        return 'jdb'
 
 class Valgrind(Debugger):
     def __init__(self, quiet=False, verbose=False, **opts):
