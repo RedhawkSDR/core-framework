@@ -57,7 +57,7 @@ class ProcessThread(threading.Thread):
                 # If there was no data to process sleep to avoid spinning
                 delay = self.pause
             else:
-                delay = 1e-6
+                delay = 1e-9
             time.sleep(delay)
 
 class ThreadedComponent(object):
