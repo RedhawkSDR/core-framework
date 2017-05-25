@@ -27,18 +27,20 @@ import core as _core
 from ossie.cf import CF as _CF
 import ossie.utils as _utils
 from ossie.utils.sca import importIDL as _importIDL
+import atexit
 
 class _envContainer(object):
     def __init__(self, domain, stdout):
         self.domain = int(domain)
         self.stdout = stdout
-    
-    def __del__(self):
-        import os as _os
-        _os.kill(self.domain,2)
-        if self.stdout != None:
-            self.stdout.close()
-    
+
+def _cleanup_domain():
+    try:
+        _os.kill(globals()['currentdomain'].domain,2)
+    except:
+        pass
+
+atexit.register(_cleanup_domain)
 
 def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], detached=False, sdrroot=None, stdout=None, logfile=None):
     """Kick-start a REDHAWK domain.
