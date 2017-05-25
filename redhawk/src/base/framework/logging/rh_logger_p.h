@@ -72,6 +72,8 @@ namespace rh_logger {
     static L4LoggerPtr   _rootLogger;
 
     log4cxx::LoggerPtr  l4logger;
+
+    uint32_t               _error_count;
   };
 
 #endif

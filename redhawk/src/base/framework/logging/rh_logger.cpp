@@ -51,7 +51,6 @@ unsigned int LoggingConfigurator::ossieDebugLevel = 0;
 
 #endif
 
-
 #ifdef LOCAL_DEBUG_ON
 #define STDOUT_DEBUG(x)    std::cout << x << std::endl
 #else
@@ -319,14 +318,16 @@ namespace rh_logger {
   Logger::Logger( const char *name ) :
     name(name),
     level(),
-    log_records(30)
+    log_records(30),
+    log_mutex()
   {
   }
 
   Logger::Logger( const std::string &name ) :
     name(name),
     level(),
-    log_records(30)
+    log_records(30),
+    log_mutex()
   {
   }
 
@@ -746,6 +747,7 @@ namespace rh_logger {
     l4logger()
   {
     l4logger = log4cxx::Logger::getLogger(name);
+    //_error_count = 0;
   }
 
   L4Logger::L4Logger( const char *name ) :
@@ -753,6 +755,7 @@ namespace rh_logger {
     l4logger()
   {
     l4logger = log4cxx::Logger::getLogger(name);
+    // _error_count = 0;
   }
 
   void L4Logger::setLevel ( const rh_logger::LevelPtr &newLevel ) {
@@ -833,7 +836,19 @@ namespace rh_logger {
     // push log message to log4cxx logger...need to call basic log methods (info, debug, etc)
     // since the underlying 
     ::log4cxx::helpers::MessageBuffer oss_;
-    l4logger->forcedLog( ConvertRHLevelToLog4(level), oss_.str(oss_ << msg) );
+
+    try {
+        l4logger->forcedLog( ConvertRHLevelToLog4(level), oss_.str(oss_ << msg) );
+        _error_count=0;
+    }
+    catch(...) {
+        if ( !( _error_count  % 500000 ) ) {
+            uint32_t ec= (_error_count ) ? _error_count : 1;
+            std::cerr << "ERROR: log4cxx IO exception (check disk usage),  appender: " << name << " error_count: " << ec << std::endl;
+        }
+        _error_count++;
+
+    }
   }
 
   void L4Logger::handleLogEvent( const LevelPtr &level, const std::string &msg, const spi::LocationInfo &loc )  {
@@ -848,7 +863,18 @@ namespace rh_logger {
     // push log message to log4cxx logger...need to call basic log methods (info, debug, etc)
     // since the underlying 
     ::log4cxx::helpers::MessageBuffer oss_;
-    l4logger->forcedLog( ConvertRHLevelToLog4(level), oss_.str(oss_ << msg), l4loc );
+    try {
+        l4logger->forcedLog( ConvertRHLevelToLog4(level), oss_.str(oss_ << msg), l4loc );
+        _error_count=0;
+    }
+    catch(...) {
+        if ( !(_error_count % 500000 ) ) {
+            uint32_t ec= (_error_count ) ? _error_count : 1;
+            std::cerr << "ERROR: log4cxx IO exception (check disk usage),  appender: " << name << " error_count: " << ec << std::endl;
+        }
+        _error_count++;
+    }
+      
   }
 
   const LevelPtr& L4Logger::getEffectiveLevel() const
