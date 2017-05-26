@@ -167,7 +167,8 @@ CosNaming::NamingContext_ptr RH_NamingContext::GetNamingContext( const std::stri
   }
   else {
     if ( CORBA::is_nil(names_poa) )     {
-      names_poa = PortableServer::POA::_duplicate( ossie::corba::RootPOA());
+        names_poa = ossie::corba::RootPOA()->find_POA("RH_NamingContext",1);
+      //names_poa = PortableServer::POA::_duplicate( ossie::corba::RootPOA());
     }
 
     DB(std::cout << " Using DomainManager's NamingContext facility ##############################" << std::endl;);

@@ -221,7 +221,7 @@ throw (CORBA::SystemException, CF::Resource::StartError)
             _appStartSeq[i]-> start();
         }
     } catch( CF::Resource::StartError& se ) {
-        LOG_ERROR(Application_impl, "Start failed with CF:Resource::StartError")
+        LOG_ERROR(Application_impl, "Start failed with CF:Resource::StartError");
         throw;
     } CATCH_THROW_LOG_ERROR(Application_impl, "Start failed", CF::Resource::StartError())
     if (!this->_started) {
@@ -740,6 +740,13 @@ throw (CORBA::SystemException, CF::LifeCycle::InitializeError)
 CORBA::Object_ptr Application_impl::getPort (const char* _id)
 throw (CORBA::SystemException, CF::PortSupplier::UnknownPort)
 {
+
+    SCOPED_LOCK( releaseObjectLock );
+    if (_releaseAlreadyCalled) {
+        LOG_DEBUG(Application_impl, "skipping getPort because release has already been called");
+        return CORBA::Object::_nil();
+    }
+
     const std::string identifier = _id;
     if (_ports.count(identifier)) {
         return CORBA::Object::_duplicate(_ports[identifier]);
@@ -749,16 +756,29 @@ throw (CORBA::SystemException, CF::PortSupplier::UnknownPort)
     }
 }
 
+
+
 CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
 {
+    SCOPED_LOCK( releaseObjectLock );
     CF::PortSet::PortInfoSequence_var retval = new CF::PortSet::PortInfoSequence();
+
+    if (_releaseAlreadyCalled) {
+        LOG_DEBUG(Application_impl, "skipping getPortSet because release has alraeady been called");
+        return retval._retn();
+    }
+
     std::vector<CF::PortSet::PortInfoSequence_var> comp_portsets;
     for (ossie::ComponentList::iterator _component_iter=this->_components.begin(); _component_iter!=this->_components.end(); _component_iter++) {
         try {
-            CF::Resource_ptr comp = CF::Resource::_narrow(_component_iter->componentObject);
-            comp_portsets.push_back(comp->getPortSet());
+            CF::Resource_var comp = CF::Resource::_narrow(_component_iter->componentObject);
+            CF::PortSet::PortInfoSequence_var comp_ports = comp->getPortSet();
+            comp_portsets.push_back(comp_ports);
+        } catch ( CORBA::COMM_FAILURE &ex ) {
+            LOG_ERROR(Application_impl, "Component getPortSet failed, application: " << _identifier << " comp:" << _component_iter->identifier << "/" << _component_iter->namingContext );            
+            // unable to add port reference
         } catch ( ... ) {
-            // failed to get the port set from the component
+            LOG_ERROR(Application_impl, "Unhandled exception during getPortSet, application: " << _identifier << " comp:" << _component_iter->identifier << "/" << _component_iter->namingContext );            
         }
     }
     for (std::map<std::string, CORBA::Object_var>::iterator _port_val=_ports.begin(); _port_val!=_ports.end(); _port_val++) {
@@ -1121,6 +1141,7 @@ throw (CORBA::SystemException)
 CF::Components* Application_impl::registeredComponents ()
 {
     CF::Components_var result = new CF::Components();
+    boost::mutex::scoped_lock lock(_registrationMutex);
     convert_sequence_if(result, _components, to_component_type, is_registered);
     return result._retn();
 }
@@ -1218,6 +1239,7 @@ bool Application_impl::waitForComponents (std::set<std::string>& identifiers, in
 
 CF::Application_ptr Application_impl::getComponentApplication ()
 {
+    SCOPED_LOCK( releaseObjectLock );
     if (_isAware) {
         return _this();
     } else {
@@ -1227,11 +1249,13 @@ CF::Application_ptr Application_impl::getComponentApplication ()
 
 CF::DomainManager_ptr Application_impl::getComponentDomainManager ()
 {
+    SCOPED_LOCK( releaseObjectLock );
+    CF::DomainManager_var ret = CF::DomainManager::_nil();
     if (_isAware) {
-        return _domainManager->_this();
-    } else {
-        return CF::DomainManager::_nil();
+        ret = _domainManager->_this();
     }
+
+    return CF::DomainManager::_duplicate(ret);
 }
 
 void Application_impl::registerComponent (CF::Resource_ptr resource)

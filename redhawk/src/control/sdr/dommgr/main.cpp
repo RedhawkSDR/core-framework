@@ -97,6 +97,15 @@ static void raise_limit(int resource, const char* name, const rlim_t DEFAULT_MAX
 }
 
 
+#if _HAMMER_TEST_
+static CORBA::Boolean CommFailureHandler(void* pCookie, CORBA::ULong nRetries, const CORBA::COMM_FAILURE& ex)
+{
+    std::cerr << std::endl << "CommFailure handler called. Minor: " << ex.minor() << "Retries = " << nRetries << std::endl << std::endl;
+   return ((nRetries < 1) ? 1 : 0);
+}
+#endif
+
+
 int old_main(int argc, char* argv[])
 {
     // parse command line options
@@ -343,6 +352,10 @@ int old_main(int argc, char* argv[])
     // diagnose failures.
     orbProperties.push_back(std::make_pair("outConScanPeriod", "10"));
     CORBA::ORB_ptr orb = ossie::corba::OrbInit(argc, argv, orbProperties, enablePersistence);
+
+#if _HAMMER_TEST_
+    omniORB::installCommFailureExceptionHandler(NULL, CommFailureHandler);
+#endif
 
     PortableServer::POA_ptr root_poa = PortableServer::POA::_nil();
     try {
