@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public License 
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-
+#include <iostream>
 #include <signal.h>
 
 #include "ossie/Resource_impl.h"
@@ -66,21 +66,31 @@ void Resource_impl::setAdditionalParameters(std::string& softwareProfile, std::s
       setDomainManager(CF::DomainManager::_nil());
       return;
     }
-    CF::ApplicationRegistrar_ptr applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
+    CF::ApplicationRegistrar_var applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
     if (!CORBA::is_nil(applicationRegistrar)) {
-      RH_NL_TRACE("Resource", "Get DomainManager from Registrar object:" << application_registrar_ior );
-      CF::DomainManager_var dm=applicationRegistrar->domMgr();
-      setDomainManager(dm);
-      return;
+      try {
+          RH_NL_TRACE("Resource", "Get DomainManager from Registrar object:" << application_registrar_ior );
+          CF::DomainManager_var dm=applicationRegistrar->domMgr();
+          setDomainManager(dm);
+          return;
+      }
+      catch(...){
+          RH_NL_WARN("Resource", "ApplicationRegistrar Failure to get DomainManager container");
+      }
     }
 
     RH_NL_TRACE("Resource", "Resolve DeviceManager...");
     CF::DeviceManager_var devMgr = ossie::corba::_narrowSafe<CF::DeviceManager>(applicationRegistrarObject);
     if (!CORBA::is_nil(devMgr)) {
-      RH_NL_TRACE("Resource", "Resolving DomainManager from DeviceManager...");
-        CF::DomainManager_var dm=devMgr->domMgr();
-        setDomainManager(dm);
-        return;
+        try {
+            RH_NL_TRACE("Resource", "Resolving DomainManager from DeviceManager...");
+            CF::DomainManager_var dm=devMgr->domMgr();
+            setDomainManager(dm);
+            return;
+        }
+        catch(...){
+            RH_NL_WARN("Resource", "DeviceManager... Failure to get DomainManager container");
+        }
     }
 
     RH_NL_DEBUG("Resource", "All else failed.... use empty container");
@@ -250,22 +260,36 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
     if (!application_registrar_ior.empty()) {
         CORBA::Object_var applicationRegistrarObject = ossie::corba::stringToObject(application_registrar_ior);
         CF::ApplicationRegistrar_var applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
-        if (!CORBA::is_nil(applicationRegistrar)) {
-            // Set up the DomainManager container
-            CF::DomainManager_var domainManager = applicationRegistrar->domMgr();
-            resource->setDomainManager(domainManager);
 
-            // If it inherits from the Component class, set up the Application
-            // container as well
-            Component* component = dynamic_cast<Component*>(resource);
-            if (component) {
-                CF::Application_var application = applicationRegistrar->app();
-                component->setApplication(application);
+        if (!CORBA::is_nil(applicationRegistrar)) {
+            try {
+                // Set up the DomainManager container
+                CF::DomainManager_var domainManager = applicationRegistrar->domMgr();
+                resource->setDomainManager(domainManager);
+
+                // If it inherits from the Component class, set up the Application
+                // container as well
+                Component* component = dynamic_cast<Component*>(resource);
+                if (component) {
+                    CF::Application_var application = applicationRegistrar->app();
+                    component->setApplication(application);
+                }
+
+                // Register with the application
+                LOG_TRACE(Resource_impl, "Registering with application using name '" << name_binding << "'");
+                applicationRegistrar->registerComponent(name_binding.c_str(), resource_obj);
+            }
+            catch( CF::InvalidObjectReference &e ) {
+                LOG_ERROR(Resource_impl, "Exception registering with registrar, comp: " << name_binding << " exception: InvalidObjectReference");
+            }
+            catch( CF::DuplicateName &e ){
+                LOG_ERROR(Resource_impl, "Exception registering with registrar, comp: " << name_binding << " exception: DuplicateName");
+            }
+            catch(CORBA::SystemException &ex){
+                LOG_ERROR(Resource_impl, "Exception registering with registrar, comp: " << name_binding << " exception: CORBA System Exception, terminating application");
+                throw;
             }
 
-            // Register with the application
-            LOG_TRACE(Resource_impl, "Registering with application using name '" << name_binding << "'");
-            applicationRegistrar->registerComponent(name_binding.c_str(), resource_obj);
         } else {
             LOG_TRACE(Resource_impl, "Binding component to naming context with name '" << name_binding << "'");
             // the registrar is not available (because the invoking infrastructure only uses the name service)
@@ -357,50 +381,74 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
         ossie::logging::Configure(logcfg_uri, debug_level, ctx);
     }
 
-    // Create the servant.
-    Resource_impl* resource = create_component(ctor, cmdlineProps);
+    try {
+        // Create the servant.
+        Resource_impl* resource = create_component(ctor, cmdlineProps);
 
-    if ( !skip_run ) {
-        // assign the logging context to the resource to support logging interface
-        resource->saveLoggingContext( logcfg_uri, debug_level, ctx );
+        if ( !skip_run ) {
+            // assign the logging context to the resource to support logging interface
+            resource->saveLoggingContext( logcfg_uri, debug_level, ctx );
+        }
+
+        std::string pathAndFile = argv[0];
+        unsigned lastSlash      = pathAndFile.find_last_of("/");
+        std::string cwd         = pathAndFile.substr(0, lastSlash);
+        resource->setCurrentWorkingDirectory(cwd);
+
+        if (skip_run){
+            return;
+        }
+
+        // Store away a reference to the main component and establish a handler for
+        // SIGINT that will break out of run()
+        main_component = resource;
+        struct sigaction sa;
+        sa.sa_handler = &sigint_handler;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+        sigaction(SIGINT, &sa, NULL);
+
+        LOG_TRACE(Resource_impl, "Entering component run loop");
+        resource->run();
+        LOG_TRACE(Resource_impl, "Component run loop terminated");
+
+        redhawk::events::Manager::Terminate();
+
+        // Ignore SIGINT from here on out to ensure that the ORB gets shut down
+        // properly
+        sa.sa_handler = SIG_IGN;
+        sigemptyset(&sa.sa_mask);
+        sigaction(SIGINT, &sa, NULL);
+        main_component = 0;
+
+        LOG_TRACE(Resource_impl, "Deleting component");
+        resource->_remove_ref();
+        LOG_TRACE(Resource_impl, "Shutting down ORB");
+
+        ossie::logging::Terminate();
+
+        ossie::corba::OrbShutdown(true);
+    }
+    catch( CORBA::SystemException &e ){
+        std::cerr << "Resource_impl: Unhandled CORBA exception, exiting comp: " << component_identifier << "/"  <<  name_binding << std::endl;
+        try {
+            ossie::logging::Terminate();
+            ossie::corba::OrbShutdown(true);
+
+        }
+        catch(...){
+        }
+    }
+    catch (...) {
+        std::cerr << "Resource_impl: Unknown exception, exiting comp: " << component_identifier << "/"  <<  name_binding << std::endl;
+        try {
+            ossie::logging::Terminate();
+            ossie::corba::OrbShutdown(true);
+        }
+        catch(...){
+        }
+
     }
 
-    std::string pathAndFile = argv[0];
-    unsigned lastSlash      = pathAndFile.find_last_of("/");
-    std::string cwd         = pathAndFile.substr(0, lastSlash);
-    resource->setCurrentWorkingDirectory(cwd);
 
-    if (skip_run){
-        return;
-    }
-
-    // Store away a reference to the main component and establish a handler for
-    // SIGINT that will break out of run()
-    main_component = resource;
-    struct sigaction sa;
-    sa.sa_handler = &sigint_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGINT, &sa, NULL);
-
-    LOG_TRACE(Resource_impl, "Entering component run loop");
-    resource->run();
-    LOG_TRACE(Resource_impl, "Component run loop terminated");
-
-    redhawk::events::Manager::Terminate();
-
-    // Ignore SIGINT from here on out to ensure that the ORB gets shut down
-    // properly
-    sa.sa_handler = SIG_IGN;
-    sigemptyset(&sa.sa_mask);
-    sigaction(SIGINT, &sa, NULL);
-    main_component = 0;
-
-    LOG_TRACE(Resource_impl, "Deleting component");
-    resource->_remove_ref();
-    LOG_TRACE(Resource_impl, "Shutting down ORB");
-
-    ossie::logging::Terminate();
-
-    ossie::corba::OrbShutdown(true);
 }

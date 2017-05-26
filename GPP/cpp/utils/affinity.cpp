@@ -89,14 +89,14 @@ namespace  gpp {
       std::string pintr("/proc/interrupts");
       std::ifstream in(pintr.c_str(), std::ifstream::in );
       if ( in.fail() ) {
-        RH_NL_ERROR("gpp::affinity", "Unable to access /proc/interrupts");
+        RH_ERROR(get_affinity_logger(), "Unable to access /proc/interrupts");
         return cpus;
       }
 
       std::string line;
       while( std::getline( in, line ) ) {
         // check if the device is our interface
-        RH_NL_TRACE("gpp::affinity", "Processing /proc/interrupts.... line:" << line);
+        RH_TRACE(get_affinity_logger(), "Processing /proc/interrupts.... line:" << line);
         if ( line.rfind(iface) != std::string::npos ) {
           std::istringstream iss(line);
           int parts=0;
@@ -108,14 +108,14 @@ namespace  gpp {
 	      int icnt=0;
 	      try {
 		icnt=boost::lexical_cast<int>(tok);
-		RH_NL_TRACE("gpp::affinity", "identify cpus: CPU : " << parts-1 << " nic interrupts:" << icnt);
+		RH_TRACE(get_affinity_logger(), "identify cpus: CPU : " << parts-1 << " nic interrupts:" << icnt);
 		if ( icnt > 0 ) {
-		  RH_NL_TRACE("gpp::affinity", "identify cpus: Adding CPU : " << parts-1);
+		  RH_TRACE(get_affinity_logger(), "identify cpus: Adding CPU : " << parts-1);
 		  cpus.push_back(parts-1);
 		}
 	      }
 	      catch(...){
-		RH_NL_TRACE("gpp::affinity", "Invalid Token: tok:" << tok);
+		RH_TRACE(get_affinity_logger(), "Invalid Token: tok:" << tok);
 	      }
             }
             parts++;
@@ -126,7 +126,7 @@ namespace  gpp {
 
       redhawk::affinity::CpuList::iterator citer=cpus.begin();
       for (; citer != cpus.end(); citer++) {
-        RH_NL_DEBUG("gpp::affinity", "identified CPUS iface/cpu ...:" << iface << "/" << *citer);
+        RH_DEBUG(get_affinity_logger(), "identified CPUS iface/cpu ...:" << iface << "/" << *citer);
       }
 
       return cpus;
@@ -145,11 +145,11 @@ namespace  gpp {
 #ifdef HAVE_LIBNUMA
           int soc=-1;
           for( int i=0; i < (int)cpulist.size();i++ ) {
-            RH_NL_DEBUG("gpp::affinity", "Finding (processor socket) for NIC:" << iface << " socket :" << numa_node_of_cpu(cpulist[i]) );
+            RH_DEBUG(get_affinity_logger(), "Finding (processor socket) for NIC:" << iface << " socket :" << numa_node_of_cpu(cpulist[i]) );
             if ( std::count(  bl.begin(), bl.end(), cpulist[i] ) != 0 ) continue;
             soc = numa_node_of_cpu(cpulist[i]);
             if ( soc != psoc && psoc != -1 && !findFirst ) {
-              RH_NL_WARN("gpp::affinity", "More than 1 socket servicing NIC:" << iface);
+              RH_WARN(get_affinity_logger(), "More than 1 socket servicing NIC:" << iface);
               psoc=-1;
               break;
             }

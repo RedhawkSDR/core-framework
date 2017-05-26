@@ -94,6 +94,13 @@ CORBA::Boolean POACreator::unknown_adapter (PortableServer::POA_ptr parent, cons
         lifespan = parent->create_lifespan_policy(PortableServer::TRANSIENT);
         idassignment = parent->create_id_assignment_policy(PortableServer::SYSTEM_ID);
         thread = parent->create_thread_policy(PortableServer::ORB_CTRL_MODEL);
+    } else if (child_name == "RH_NamingContext") {
+        if (parent_name != "RootPOA") {
+            return 0;
+        }
+        lifespan = parent->create_lifespan_policy(PortableServer::TRANSIENT);
+        idassignment = parent->create_id_assignment_policy(PortableServer::SYSTEM_ID);
+        thread = parent->create_thread_policy(PortableServer::ORB_CTRL_MODEL);
     } else if (child_name == "EventChannels") {
         if (parent_name != "DomainManager") {
             return 0;

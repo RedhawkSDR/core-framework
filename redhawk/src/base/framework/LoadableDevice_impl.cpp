@@ -297,7 +297,7 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
             throw (CF::InvalidFileName (CF::CF_ENOENT, "Cannot load. File name is invalid."));
         }
     } catch ( ... ) {
-        LOG_ERROR(LoadableDevice_impl, "Exception raised when calling the file system")
+        LOG_ERROR(LoadableDevice_impl, "Exception raised when calling the file system: " << workingFileName  );
         throw;
     }
 
