@@ -1260,30 +1260,30 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
       int returnval = 0;
 
       //
-      // log4cxx will cause dead locks between fork and execv, use the stdout logger object, this will only replace the new process'
-      // ExecutableDevice's logger object till execv envoked.
+      // log4cxx will cause dead locks between fork and execv, use the stdout logger object 
+      // for all logging
       //
-      GPP_i::__logger = rh_logger::StdOutLogger::getRootLogger();
-      GPP_i::__logger->setLevel(lvl);
+      rh_logger::LoggerPtr __logger = rh_logger::StdOutLogger::getRootLogger();
+      __logger->setLevel(lvl);
 
       // set affinity logger method so we do not use log4cxx during affinity processing routine
-      redhawk::affinity::set_affinity_logger( GPP_i::__logger ) ;
-      LOG_DEBUG(GPP_i, " Calling set resource affinity....exec:" << name << " options=" << options.length());
+      redhawk::affinity::set_affinity_logger( __logger ) ;
+      RH_DEBUG(__logger, " Calling set resource affinity....exec:" << name << " options=" << options.length());
 
       // set affinity preference before exec
       try {
-        LOG_DEBUG(GPP_i, " Calling set resource affinity....exec:" << name << " options=" << options.length());
+        RH_DEBUG(__logger, " Calling set resource affinity....exec:" << name << " options=" << options.length());
         set_resource_affinity( options, getpid(), name );
       }
       catch( redhawk::affinity::AffinityFailed &ex ) {
-        LOG_WARN(GPP_i, "Unable to satisfy affinity request for: " << name << " Reason: " << ex.what() );
+        RH_WARN(__logger, "Unable to satisfy affinity request for: " << name << " Reason: " << ex.what() );
         errno=EPERM<<2;
         returnval=-1;
         ossie::corba::OrbShutdown(true);
         exit(returnval);
       }
       catch( ... ) {
-        LOG_WARN(GPP_i,  "Unhandled exception during affinity processing for resource: " << name  );
+        RH_WARN(__logger,  "Unhandled exception during affinity processing for resource: " << name  );
         ossie::corba::OrbShutdown(true);
         exit(returnval);
       }
@@ -1298,13 +1298,13 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
       if ( _handle_io_redirects ) {
 
         if( dup2(comp_fd[1],STDERR_FILENO) ==-1 ) {
-            LOG_ERROR(GPP_i,  "Failure to dup2 stderr for resource: " << name  );
+            RH_ERROR(__logger,  "Failure to dup2 stderr for resource: " << name  );
             ossie::corba::OrbShutdown(true);
             exit(-1);
         } 
 
         if( dup2(comp_fd[1],STDOUT_FILENO) ==-1 ) {
-            LOG_ERROR(GPP_i,  "Failure to dup2 stdout for resource: " << name  );
+            RH_ERROR(__logger,  "Failure to dup2 stdout for resource: " << name  );
             ossie::corba::OrbShutdown(true);
             exit(-1);
         } 
@@ -1329,16 +1329,16 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
                 break;
 
           // Only retry on "text file busy" error
-          LOG_WARN(GPP_i, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
+          RH_WARN(__logger, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
           usleep(100000);
         }
 
         if( returnval ) {
-            LOG_ERROR(GPP_i, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
+            RH_ERROR(__logger, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
             ossie::corba::OrbShutdown(true);
         }
 
-        LOG_DEBUG(GPP_i, "Exiting FAILED subprocess:" << returnval );
+        RH_ERROR(__logger, "Exiting FAILED subprocess:" << returnval );
         exit(returnval);
     }
     else if (pid < 0 ){
