@@ -191,10 +191,12 @@ void ApplicationDeployment::applyCpuReservations(const CpuReservations& reservat
         CpuReservations::const_iterator reserved = reservations.find(deployment->getIdentifier());
         if (reserved == reservations.end()) {
             // NB: Check for the usage name for consistency with 2.0, although
-            // the instantiation ID would make more sense. In most cases, this
-            // is probably a moot point, since the IDE uses the same value for
-            // both.
+            // the instantiation ID makes more sense. If the usage name does not apply,
+            // use the instantiation ID
             reserved = reservations.find(deployment->getInstantiation()->getUsageName());
+            if (reserved == reservations.end()) {
+                reserved = reservations.find(deployment->getInstantiation()->getID());
+            }
         }
         if (reserved != reservations.end()) {
             deployment->setCpuReservation(reserved->second);

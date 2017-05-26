@@ -635,6 +635,9 @@ namespace sad
     usesdeviceref (const ::ossie::UsesDeviceRef&);
 
     virtual void
+    reservation (const ::ossie::Reservation&);
+
+    virtual void
     id (const ::std::string&);
 
     virtual void
@@ -663,6 +666,26 @@ namespace sad
     ossie::UsesDeviceRef udevref;
   };
 
+  class reservation_pimpl: public virtual reservation_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    kind (const ::std::string&);
+
+    virtual void
+    value (const ::std::string&);
+
+    virtual const ossie::Reservation&
+    post_reservation ();
+
+    virtual std::string post_string ();
+
+    private:
+    ossie::Reservation resrv;
+  };
 
   class assemblycontroller_pimpl: public virtual assemblycontroller_pskel
   {

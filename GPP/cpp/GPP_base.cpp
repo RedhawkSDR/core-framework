@@ -508,6 +508,15 @@ void GPP_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(redhawk__reservation_request,
+                redhawk__reservation_request_struct(),
+                "redhawk::reservation_request",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "allocation");
+
 
 }
 

@@ -265,12 +265,13 @@ const std::string& ApplicationFactory_impl::getSoftwareProfile() const
 }
 
 void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& appDeployment,
-                                             const DeviceAssignmentMap& devices)
+                                             const DeviceAssignmentMap& devices,
+                                             const std::map<std::string,float>& specialized_reservations)
 {
     // Try to place all of the collocations first, since they naturally have
     // more restrictive placement constraints
     BOOST_FOREACH(const SoftwareAssembly::HostCollocation& collocation, _appFact._sadParser.getHostCollocations()) {
-        _placeHostCollocation(appDeployment, collocation, devices);
+        _placeHostCollocation(appDeployment, collocation, devices, specialized_reservations);
     }
 
     // Place the remaining components one-by-one
@@ -288,7 +289,7 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
                           << " is assigned to device " << assigned_device);
             }
             redhawk::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, &instantiation);
-            allocateComponent(appDeployment, deployment, assigned_device);
+            allocateComponent(appDeployment, deployment, assigned_device, specialized_reservations);
 
             // For components that run as shared libraries, create or reuse a
             // matching container deployment
@@ -304,7 +305,7 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
                     // Use whether the device is assigned as a sentinel to check
                     // whether the container was already created, and if not,
                     // allocate it to the device
-                    allocateComponent(appDeployment, container, deployment->getAssignedDevice()->identifier);
+                    allocateComponent(appDeployment, container, deployment->getAssignedDevice()->identifier, specialized_reservations);
                 }
                 deployment->setContainer(container);
             }
@@ -340,6 +341,7 @@ bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeplo
                                         DeploymentList::const_iterator current,
                                         ossie::DeviceList& deploymentDevices,
                                         const redhawk::PropertyMap& deviceRequires,
+                                        const ReservationList& reservations,
                                         const ProcessorList& processorDeps,
                                         const OSList& osDeps)
 
@@ -350,7 +352,7 @@ bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeplo
         if ( !deviceRequires.empty() ) {
             LOG_TRACE(ApplicationFactory_impl, "Collocation has devicerequires: " << deviceRequires );
         }
-        return allocateHostCollocation(appDeployment, components, deploymentDevices, processorDeps, osDeps, deviceRequires );
+        return allocateHostCollocation(appDeployment, components, deploymentDevices, processorDeps, osDeps, deviceRequires, reservations );
     }
 
     // Try all of the implementations from the current component for matches
@@ -384,7 +386,7 @@ bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeplo
 
         // Set this implementation for deployment and recurse one more level
         deployment->setImplementation(implementation);
-        if (placeHostCollocation(appDeployment, components, current, deploymentDevices, deviceRequires, proc_list, os_list)) {
+        if (placeHostCollocation(appDeployment, components, current, deploymentDevices, deviceRequires, reservations, proc_list, os_list)) {
             return true;
         }
     }
@@ -397,10 +399,24 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
                                            ossie::DeviceList& deploymentDevices,
                                            const ProcessorList& processorDeps,
                                            const OSList& osDeps,
-                                           const redhawk::PropertyMap& deviceRequires )
+                                           const redhawk::PropertyMap& deviceRequires,
+                                           const ReservationList& reservations )
 {
     // Consolidate the allocation properties into a single list
     CF::Properties allocationProperties = _consolidateAllocations(appDeployment, components);
+    redhawk::PropertyMap &_allocationProperties = redhawk::PropertyMap::cast(allocationProperties);
+    if (reservations.size() != 0) {
+        redhawk::PropertyMap _struct;
+        std::vector<std::string> _kinds, _values;
+        for (ReservationList::const_iterator it=reservations.begin(); it!=reservations.end(); it++) {
+            _kinds.push_back(it->kind);
+            _values.push_back(it->value);
+        }
+        _struct["redhawk::reservation_request::kinds"].setValue(_kinds);
+        _struct["redhawk::reservation_request::values"].setValue(_values);
+        _struct["redhawk::reservation_request::obj_id"].setValue(appDeployment.getIdentifier());
+        _allocationProperties["redhawk::reservation_request"].setValue(_struct);
+    }
 
     LOG_TRACE(ApplicationFactory_impl, "Allocating deployment for " << components.size()
               << " collocated components");
@@ -414,7 +430,7 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
     }
 
     const std::string requestid = ossie::generateUUID();
-    ossie::AllocationResult response = _allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appDeployment.getIdentifier(), processorDeps, osDeps, deviceRequires);
+    ossie::AllocationResult response = _allocationMgr->allocateDeployment(requestid, _allocationProperties, deploymentDevices, appDeployment.getIdentifier(), processorDeps, osDeps, deviceRequires);
     if (!response.first.empty()) {
         // Ensure that all capacities get cleaned up, keeping ownership local
         // to this scope until it's clear that the device can support all of
@@ -478,7 +494,8 @@ CF::Properties createHelper::_consolidateAllocations(redhawk::ApplicationDeploym
 
 void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDeployment,
                                          const ossie::SoftwareAssembly::HostCollocation& collocation,
-                                         const DeviceAssignmentMap& devices)
+                                         const DeviceAssignmentMap& devices,
+                                         const std::map<std::string,float>& specialized_reservations)
 {
     LOG_TRACE(ApplicationFactory_impl, "Placing host collocation " << collocation.getID()
               << " " << collocation.getName());
@@ -555,7 +572,6 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
         throw redhawk::PlacementFailure(collocation, os.str() );
     }
 
-    
     // if there is a usesdevice in the collocation that filter out the GPPs that we can use.
     if ( req_usesDevices.size() > 0 ) {
         // from the remaining list of deploymentDevices filter out those that not on the same host
@@ -586,9 +602,11 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
 
     }
 
+    // load any collocation-based reservations
+    std::vector<Reservation> _overloadedReservations = overloadReservations(collocation, specialized_reservations);
 
     LOG_TRACE(ApplicationFactory_impl, "Placing " << deployments.size() << " components");
-    if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices, devReq.second )) {
+    if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices, devReq.second, _overloadedReservations)) {
         if (_allDevicesBusy(deploymentDevices)) {
             throw redhawk::PlacementFailure(collocation, "all executable devices (GPPs) in the Domain are busy");
         }
@@ -607,7 +625,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
                 // Use whether the device is assigned as a sentinel to check
                 // whether the container was already created, and if not,
                 // allocate it to the device
-                allocateComponent(appDeployment, container, (*deployment)->getAssignedDevice()->identifier);
+                allocateComponent(appDeployment, container, (*deployment)->getAssignedDevice()->identifier, specialized_reservations);
             }
             (*deployment)->setContainer(container);
         }
@@ -615,6 +633,74 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
 
     LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
               << collocation.getID() << " Components Placed: " << deployments.size());
+}
+
+std::vector<ossie::Reservation> createHelper::overloadReservations(const ossie::SoftwareAssembly::HostCollocation& collocation,
+                                                                   const std::map<std::string,float>& specialized_reservations)
+{
+    const std::vector<Reservation>& reservations = collocation.getReservations();
+    std::vector<ossie::Reservation> retval = reservations;
+    if ((reservations.size() == 0) and (specialized_reservations.size() == 0)) {
+        return retval;
+    }
+
+    int number_collocations = _appFact._sadParser.getHostCollocations().size();
+    if (number_collocations == 0) {
+        return retval;
+    }
+    int number_blank_specialization = 0;
+    for (std::map<std::string,float>::const_iterator _it=specialized_reservations.begin();_it!=specialized_reservations.end();_it++) {
+        if (_it->first.empty()) {
+            number_blank_specialization++;
+        }
+    }
+    if (number_blank_specialization > 1) {
+        throw std::logic_error("Ambiguous specialized CPU usage; cannot have more than one blank specialization");
+    }
+    if ((number_blank_specialization == 1) and (number_collocations > 1)) {
+        throw std::logic_error("Ambiguous specialized CPU usage; more than one host collocation cannot be matched to a blank specialization");
+    }
+    if ((number_blank_specialization == 1) and (number_collocations == 1)) {
+        if (reservations.size() != 0) {
+            for (std::vector<Reservation>::iterator _it=retval.begin();_it!=retval.end();_it++) {
+                if (_it->getKind() == "cpucores") {
+                    std::string value_str;
+                    std::ostringstream ss;
+                    ss<<specialized_reservations.find(value_str)->second;
+                    value_str = ss.str();
+                    _it->overloadValue(value_str);
+                }
+            }
+        }
+        return retval;
+    }
+    bool found_overload = false;
+    bool has_value = false;
+    for (std::map<std::string,float>::const_iterator _it_spec=specialized_reservations.begin();_it_spec!=specialized_reservations.end();_it_spec++) {
+        if (_it_spec->first == collocation.getID()) {
+            has_value = true;
+            for (std::vector<Reservation>::iterator _it=retval.begin();_it!=retval.end();_it++) {
+                if (_it->getKind() == "cpucores") {
+                    found_overload = true;
+                    std::string value_str;
+                    std::ostringstream ss;
+                    ss<<specialized_reservations.find(_it_spec->first)->second;
+                    value_str = ss.str();
+                    _it->overloadValue(value_str);
+                }
+            }
+        }
+    }
+    if ((not found_overload) and has_value) {
+        Reservation res;
+        res.kind = "cpucores";
+        std::string value_str;
+        std::ostringstream ss;
+        ss<<specialized_reservations.find(collocation.getID())->second;
+        res.value = ss.str();
+        retval.push_back(res);
+    }
+    return retval;
 }
 
 void createHelper::_handleUsesDevices(redhawk::ApplicationDeployment& appDeployment,
@@ -931,11 +1017,16 @@ CF::Application_ptr createHelper::create (
     // require matching properties
     _resolveAssemblyController(app_deployment);
 
+    // check to make sure that there's no collision between sad-based and command-line reservations
+    if (specialized_reservations.size() != 0) {
+        verifyNoCpuSpecializationCollisions(_appFact._sadParser, specialized_reservations);
+    }
+
     // Allocate any usesdevice capacities specified in the SAD file
     _handleUsesDevices(app_deployment, name);
 
     // Assign all components to devices
-    assignPlacementsToDevices(app_deployment, deviceAssignments);
+    assignPlacementsToDevices(app_deployment, deviceAssignments, specialized_reservations);
 
     // Assign CPU reservations to components
     app_deployment.applyCpuReservations(specialized_reservations);
@@ -1067,6 +1158,86 @@ CF::Application_ptr createHelper::create (
     return appObj._retn();
 }
 
+void createHelper::verifyNoCpuSpecializationCollisions(const ossie::SoftwareAssembly& sad, std::map<std::string,float> specialized_reservations) {
+    std::vector<std::string> host_collocation_names = this->getHostCollocationsIds();
+    int number_empty = 0;
+    bool found_host_collocation = false;
+    BOOST_FOREACH(const SoftwareAssembly::HostCollocation& collocation, _appFact._sadParser.getHostCollocations()) {
+        if (collocation.getReservations().size() > 0) {
+            found_host_collocation = true;
+            break;
+        }
+    }
+    bool found_component = false;
+    bool name_is_nothing = false;
+    std::string bad_name;
+    for (std::map<std::string,float>::iterator _reservation=specialized_reservations.begin();_reservation!=specialized_reservations.end();_reservation++) {
+        if (not _reservation->first.empty()) {
+            bool host_collocation = false;
+            for (std::vector<std::string>::iterator _name=host_collocation_names.begin();_name!=host_collocation_names.end();_name++) {
+                if (*_name == _reservation->first) {
+                    host_collocation = true;
+                    found_host_collocation = true;
+                    break;
+                }
+            }
+            if (not host_collocation) {
+                BOOST_FOREACH(const ComponentPlacement& placement, sad.getComponentPlacements()) {
+                    if (placement.getInstantiations()[0].getID() == _reservation->first) {
+                        found_component = true;
+                        break;
+                    }
+                }
+                BOOST_FOREACH(const SoftwareAssembly::HostCollocation& _hostcollocation, sad.getHostCollocations()) {
+                    BOOST_FOREACH(const ComponentPlacement& placement, _hostcollocation.getComponents()) {
+                        if (placement.getInstantiations()[0].getID() == _reservation->first) {
+                            found_component = true;
+                            break;
+                        }
+                    }
+                }
+                if (found_component)
+                    break;
+                name_is_nothing = true;
+                bad_name = _reservation->first;
+                break;
+            }
+        } else {
+            number_empty++;
+        }
+    }
+    if (name_is_nothing) {
+        throw std::logic_error("'SPECIALIZED_CPU_RESERVATION must include a hostcollocation id, a component id, or (when not ambiguous), a blank, bad id is: "+bad_name+"'");
+    }
+    if (number_empty > 1) {
+        throw std::logic_error("'SPECIALIZED_CPU_RESERVATION cannot have more than 1 hostcollocation without an id'");
+    }
+    if (number_empty > 0)
+        found_host_collocation = true;
+    if (found_host_collocation and found_component) {
+        throw std::logic_error("'SPECIALIZED_CPU_RESERVATION cannot mix hostcollocation and component reservations'");
+    }
+}
+
+std::vector<std::string> createHelper::getComponentUsageNames(redhawk::ApplicationDeployment& appDeployment) {
+    std::vector<std::string> retval;
+    BOOST_FOREACH(const redhawk::ComponentDeployment* compdep, appDeployment.getComponentDeployments()) {
+        retval.push_back(compdep->getInstantiation()->usageName);
+    }
+    return retval;
+}
+
+std::vector<std::string> createHelper::getHostCollocationsIds() {
+    std::vector<std::string> retval;
+    BOOST_FOREACH(const SoftwareAssembly::HostCollocation& collocation, _appFact._sadParser.getHostCollocations()) {
+        std::string _name;
+        if (not collocation.id.empty()) {
+            _name = collocation.id;
+        }
+        retval.push_back(_name);
+    }
+    return retval;
+}
 
 void  createHelper::_resolveAssemblyController( redhawk::ApplicationDeployment& appDeployment  ) {
 
@@ -1114,7 +1285,8 @@ CF::AllocationManager::AllocationResponseSequence* createHelper::allocateUsesDev
  */
 void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployment,
                                      redhawk::ComponentDeployment* deployment,
-                                     const std::string& assignedDeviceId)
+                                     const std::string& assignedDeviceId,
+                                     const std::map<std::string,float>& specialized_reservations)
 {
     redhawk::PropertyMap alloc_context = deployment->getAllocationContext();
     
@@ -1154,7 +1326,8 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
         // satisfied, now perform assignment/allocation of component to device
         LOG_DEBUG(ApplicationFactory_impl, "Trying to find the device");
         ossie::AllocationResult response = allocateComponentToDevice(deployment, assignedDeviceId,
-                                                                     appDeployment.getIdentifier());
+                                                                     appDeployment.getIdentifier(),
+                                                                     specialized_reservations);
         
         if (response.first.empty()) {
             LOG_DEBUG(ApplicationFactory_impl, "Unable to allocate device for component "
@@ -1381,7 +1554,8 @@ void createHelper::_evaluateMATHinRequest(CF::Properties &request, const CF::Pro
  */
 ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::ComponentDeployment* deployment,
                                                                 const std::string& assignedDeviceId,
-                                                                const std::string& appIdentifier)
+                                                                const std::string& appIdentifier,
+                                                                const std::map<std::string,float>& specialized_reservations)
 {
     const ossie::SPD::Implementation* implementation = deployment->getImplementation();
     ossie::DeviceList devices = _registeredDevices;
@@ -1460,14 +1634,31 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
         }
     }
 
+    redhawk::PropertyMap &_allocationProperties = redhawk::PropertyMap::cast(allocationProperties);
+    redhawk::PropertyMap _struct;
+    std::string instantiationId = deployment->getInstantiation()->instantiationId;
+    std::vector<std::string> _kinds, _values;
+    _kinds.push_back("cpucores");
+    if (specialized_reservations.find(instantiationId) == specialized_reservations.end()) {
+        _values.push_back("-1");
+    } else {
+        std::ostringstream ss;
+        ss<<specialized_reservations.find(instantiationId)->second;
+        _values.push_back(ss.str());
+    }
+    _struct["redhawk::reservation_request::kinds"].setValue(_kinds);
+    _struct["redhawk::reservation_request::values"].setValue(_values);
+    _struct["redhawk::reservation_request::obj_id"].setValue(deployment->getIdentifier());
+    _allocationProperties["redhawk::reservation_request"].setValue(_struct);
+
     ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid,
-                                                                                allocationProperties,
+                                                                                _allocationProperties,
                                                                                 devices,
                                                                                 appIdentifier,
                                                                                 implementation->getProcessors(),
                                                                                 implementation->getOsDeps(),
                                                                                 deviceRequires );
-    if (allocationProperties.contains("nic_allocation")) {
+    if (_allocationProperties.contains("nic_allocation")) {
         if (!response.first.empty()) {
             redhawk::PropertyMap query_props;
             query_props["nic_allocation_status"] = redhawk::Value();

@@ -100,22 +100,28 @@ private:
     typedef std::vector<redhawk::ContainerDeployment*> ContainerList;
     typedef std::vector<std::string> ProcessorList;
     typedef std::vector<ossie::SPD::NameVersionPair> OSList;
+    typedef std::vector<ossie::Reservation> ReservationList;
 
     // createHelper helper methods
     void assignPlacementsToDevices(redhawk::ApplicationDeployment& appDeployment,
-                                   const DeviceAssignmentMap& devices);
+                                   const DeviceAssignmentMap& devices,
+                                   const std::map<std::string,float>& specialized_reservations);
     void _resolveAssemblyController(redhawk::ApplicationDeployment& appDeployment);
     void _validateDAS(redhawk::ApplicationDeployment& appDeployment, const DeviceAssignmentMap& deviceAssignments);
     void setUpExternalPorts(redhawk::ApplicationDeployment& appDeployment, Application_impl* application);
     void setUpExternalProperties(redhawk::ApplicationDeployment& appDeployment, Application_impl* application);
+    std::vector<ossie::Reservation> overloadReservations(const ossie::SoftwareAssembly::HostCollocation& collocation,
+                                                         const std::map<std::string,float>& specialized_reservations);
     void _placeHostCollocation(redhawk::ApplicationDeployment& appDeployment,
                                const ossie::SoftwareAssembly::HostCollocation& collocation,
-                               const DeviceAssignmentMap& devices);
+                               const DeviceAssignmentMap& devices,
+                               const std::map<std::string,float>& specialized_reservations);
     bool placeHostCollocation(redhawk::ApplicationDeployment& appDeployment,
                               const DeploymentList& components,
                               DeploymentList::const_iterator current,
                               ossie::DeviceList& deploymentDevices,
                               const redhawk::PropertyMap& deviceRequires=redhawk::PropertyMap(),
+                              const ReservationList& reservations=ReservationList(),
                               const ProcessorList& processorDeps=ProcessorList(),
                               const OSList& osDeps=OSList());
 
@@ -139,11 +145,13 @@ private:
         const CF::Properties& configureProperties);
     void allocateComponent(redhawk::ApplicationDeployment& appDeployment,
                            redhawk::ComponentDeployment* deployment,
-                           const std::string& assignedDeviceId);
+                           const std::string& assignedDeviceId,
+                           const std::map<std::string,float>& specialized_reservations);
 
     ossie::AllocationResult allocateComponentToDevice(redhawk::ComponentDeployment* deployment,
                                                       const std::string& assignedDeviceId,
-                                                      const std::string& appIdentifier);
+                                                      const std::string& appIdentifier,
+                                                      const std::map<std::string,float>& specialized_reservations);
 
     bool checkPartitionMatching( ossie::DeviceNode& node,
                                  const CF::Properties& devicerequires );
@@ -153,7 +161,8 @@ private:
                                  ossie::DeviceList& deploymentDevices,
                                  const ProcessorList& processorDeps,
                                  const OSList& osDeps,
-                                 const redhawk::PropertyMap &);
+                                 const redhawk::PropertyMap &,
+                                 const ReservationList& reservations);
 
     bool resolveSoftpkgDependencies(redhawk::ApplicationDeployment& appDeployment,
                                     redhawk::SoftPkgDeployment* deployment,
@@ -183,6 +192,9 @@ private:
 
     std::string resolveLoggingConfiguration(redhawk::ComponentDeployment* deployment);
     std::vector<std::string> getStartOrder(const DeploymentList& deployments);
+    void verifyNoCpuSpecializationCollisions(const ossie::SoftwareAssembly& sad, std::map<std::string,float> specialized_reservations);
+    std::vector<std::string> getComponentUsageNames(redhawk::ApplicationDeployment& appDeployment);
+    std::vector<std::string> getHostCollocationsIds();
 
     // Cleanup - used when create fails/doesn't succeed for some reason
     bool _isComplete;

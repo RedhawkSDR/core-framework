@@ -68,5 +68,6 @@ namespace urn:mil:jpeojtrs:sca:sad {
     devicerequires "ossie::ComponentPropertyList &" "ossie::ComponentPropertyList &";
     idvalue "const ossie::IdValue&" "const ossie::IdValue&";
     usesdeviceref "const ossie::UsesDeviceRef&" "const ossie::UsesDeviceRef&";
+    reservation "const ossie::Reservation&" "const ossie::Reservation&";
 }
 

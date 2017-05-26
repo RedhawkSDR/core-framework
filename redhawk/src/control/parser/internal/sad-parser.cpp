@@ -74,6 +74,7 @@ ossie::internalparser::parseSAD(std::istream& input) throw (ossie::parser_error)
         ::sad::devicerequires_pimpl devicerequires_p;
         ::sad::idvalue_pimpl idvalue_p;
         ::sad::usesdeviceref_pimpl usesdeviceref_p;
+        ::sad::reservation_pimpl reservation_p;
 
 
         // Connect the parsers together.
@@ -165,10 +166,13 @@ ossie::internalparser::parseSAD(std::istream& input) throw (ossie::parser_error)
 
         hostcollocation_p.parsers (componentplacement_p,
                                    usesdeviceref_p,
+                                   reservation_p,
                                    string_p,
                                    string_p);
 
         usesdeviceref_p.parsers (string_p);
+
+        reservation_p.parsers (string_p, string_p);
 
         assemblycontroller_p.parsers (componentinstantiationref_p);
 

@@ -110,6 +110,8 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         float  reserved_capacity_per_component;
         /// Property  processor_cores  - number of cores the machine supports
         short  processor_cores;
+        /// Property: redhawk__reservation_request
+        redhawk__reservation_request_struct redhawk__reservation_request;
         /// Property  processor_monitor_list - list of the cores we are watching..
         std::string processor_monitor_list;
         // Property affinity  - controls affinity processing for the GPP

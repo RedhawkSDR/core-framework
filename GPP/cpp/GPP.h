@@ -80,6 +80,8 @@ class GPP_i : public GPP_base
         void deallocate_diskCapacity(const double &value);
         bool allocate_memCapacity(const CORBA::LongLong &value);
         void deallocate_memCapacity(const CORBA::LongLong &value);
+        bool allocate_reservation_request(const redhawk__reservation_request_struct &value);
+        void deallocate_reservation_request(const redhawk__reservation_request_struct &value);
         bool allocate_mcastegress_capacity(const CORBA::Long &value);
         void deallocate_mcastegress_capacity(const CORBA::Long &value);
         bool allocate_mcastingress_capacity(const CORBA::Long &value);
@@ -174,6 +176,12 @@ class GPP_i : public GPP_base
 	  int64_t       get_process_time();
         };
 
+        struct application_reservation {
+          std::vector<unsigned short> component_pids;
+          std::map<std::string, float> reservation;
+          float usage;
+        };
+
         void constructor();
 
         protected:
@@ -249,6 +257,7 @@ class GPP_i : public GPP_base
           typedef std::map<int, component_description >         ProcessMap;
           typedef std::deque< component_description >           ProcessList;
           typedef std::deque< proc_redirect >                   ProcessFds;
+          typedef std::map<std::string, application_reservation>    ApplicationReservationMap;
 
           void addProcess(int pid, 
                       const std::string &appName, 
@@ -276,6 +285,7 @@ class GPP_i : public GPP_base
           SystemMonitorPtr                                    system_monitor;
           ProcessLimitsPtr                                    process_limits;
           ExecPartitionList                                   execPartitions;
+          ApplicationReservationMap                           applicationReservations;
         
           Lock                                                monitorLock;
           UpdateableSequence                                  data_model;

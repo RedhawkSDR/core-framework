@@ -498,6 +498,9 @@ void GPP_i::_init() {
   setAllocationImpl("DCE:8dcef419-b440-4bcf-b893-cab79b6024fb", this, &GPP_i::allocate_memCapacity, &GPP_i::deallocate_memCapacity);
 
   //setAllocationImpl("diskCapacity", this, &GPP_i::allocate_diskCapacity, &GPP_i::deallocate_diskCapacity);
+  
+  // check  reservation allocations 
+  setAllocationImpl(this->redhawk__reservation_request, this, &GPP_i::allocate_reservation_request, &GPP_i::deallocate_reservation_request);
 
 }
 
@@ -689,6 +692,19 @@ void GPP_i::process_ODM(const CORBA::Any &data) {
                 LOG_TRACE(GPP_i, "Monitor_Processes.. APP STOPPED :" << i->pid << " app: " << i->appName );
                 i++;
               }
+            }
+        }
+    }
+    const StandardEvent::DomainManagementObjectRemovedEventType* app_removed;
+    if (data >>= app_removed) {
+        if (app_removed->sourceCategory == StandardEvent::APPLICATION) {
+            WriteLock rlock(pidLock);
+            std::string producerId(app_removed->producerId);
+            for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
+                if (app_it->first == producerId) {
+                    applicationReservations.erase(app_it);
+                    break;
+                }
             }
         }
     }
@@ -1072,6 +1088,9 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
     naming_context_ior = tmp_params["NAMING_CONTEXT_IOR"].toString();
     std::string app_id;
     std::string component_id = tmp_params["COMPONENT_IDENTIFIER"].toString();
+    if (applicationReservations.find(component_id) != applicationReservations.end()) {
+        applicationReservations.erase(component_id);
+    }
     std::string name_binding = tmp_params["NAME_BINDING"].toString();
     CF::Application_var _app = CF::Application::_nil();
     CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(naming_context_ior.c_str());
@@ -2067,6 +2086,55 @@ void GPP_i::deallocate_mcastegress_capacity(const CORBA::Long &value)
     mcastnicEgressFree = mcastnicEgressCapacity;
 }
 
+bool GPP_i::allocate_reservation_request(const redhawk__reservation_request_struct &value)
+{
+    if (isBusy()) {
+        return false;
+    }
+    LOG_DEBUG(GPP_i, __FUNCTION__ << ": allocating reservation_request allocation ");
+    {
+        WriteLock rlock(pidLock);
+        if (applicationReservations.find(value.obj_id) != applicationReservations.end()){
+            LOG_INFO(GPP_i, __FUNCTION__ << ": Cannot make multiple reservations against the same application: "<<value.obj_id);
+        }
+        if (applicationReservations.find(value.obj_id) == applicationReservations.end()) {
+            applicationReservations[value.obj_id] = application_reservation();
+        }
+
+        for (unsigned int idx=0; idx<value.kinds.size(); idx++) {
+            if (applicationReservations[value.obj_id].reservation.find(value.kinds[idx]) == applicationReservations[value.obj_id].reservation.end()) {
+                applicationReservations[value.obj_id].reservation[value.kinds[idx]] = strtof(value.values[idx].c_str(), 0);
+            } else {
+                applicationReservations[value.obj_id].reservation[value.kinds[idx]] += strtof(value.values[idx].c_str(), 0);
+            }
+        }
+    }
+    updateUsageState();
+    if (isBusy()) {
+        WriteLock rlock(pidLock);
+        for (unsigned int idx=0; idx<value.kinds.size(); idx++) {
+            applicationReservations[value.obj_id].reservation[value.kinds[idx]] -= strtof(value.values[idx].c_str(), 0);
+        }
+        if (abs(applicationReservations[value.obj_id].reservation[value.kinds[0]]) <= 0.0001) {
+            applicationReservations.erase(value.obj_id);
+        }
+        return false;
+    }
+    return true;
+}
+
+void GPP_i::deallocate_reservation_request(const redhawk__reservation_request_struct &value)
+{
+    WriteLock rlock(pidLock);
+    LOG_DEBUG(GPP_i, __FUNCTION__ << ": Deallocating reservation_request allocation ");
+    for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
+        if (app_it->first == value.obj_id) {
+            applicationReservations.erase(app_it);
+            break;
+        }
+    }
+}
+
 
 
 bool GPP_i::allocate_mcastingress_capacity(const CORBA::Long &value)
@@ -2368,6 +2436,11 @@ void GPP_i::update()
         usage = i->get_pstat_usage();
 
         if ( !i->app_started ) {
+          if ( applicationReservations.find(i->appName) != applicationReservations.end()) {
+            if (applicationReservations[i->appName].reservation.find("cpucores") != applicationReservations[i->appName].reservation.end()) {
+              continue;
+            }
+          }
           nres++;
           if ( i->reservation == -1) {
             reservation_set += idle_capacity_modifier;
@@ -2404,6 +2477,9 @@ void GPP_i::update()
   ReadLock rlock(pidLock);
   ProcessList::iterator i=this->pids.begin(); 
   int usage_out=0;
+  for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
+      app_it->second.usage = 0;
+  }
   for ( ; i!=pids.end(); i++, usage_out++) {
     
     usage = 0;
@@ -2432,6 +2508,12 @@ void GPP_i::update()
       }
 #endif
 
+      if ( applicationReservations.find(i->appName) != applicationReservations.end()) {
+          if (applicationReservations[i->appName].reservation.find("cpucores") != applicationReservations[i->appName].reservation.end()) {
+              applicationReservations[i->appName].usage += percent_core;
+          }
+      }
+
       if ( i->app_started ) {
 
         // if component is not using enough the add difference between minimum and current load
@@ -2448,7 +2530,30 @@ void GPP_i::update()
       }
     }
   }
-  
+
+  for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
+    if (app_it->second.reservation.find("cpucores") != app_it->second.reservation.end()) {
+      bool found_app = false;
+      for ( ProcessList::iterator _pid_it=this->pids.begin();_pid_it!=pids.end(); _pid_it++) {
+        if (applicationReservations.find(_pid_it->appName) != applicationReservations.end()) {
+            found_app = true;
+            break;
+        }
+      }
+      if (not found_app) {
+        if (app_it->second.reservation["cpucores"] == -1) {
+            reservation_set += idle_capacity_modifier;
+        } else {
+          reservation_set += 100.0 * app_it->second.reservation["cpucores"]/((float)processor_cores);
+        }
+      } else {
+        if (app_it->second.usage < app_it->second.reservation["cpucores"]) {
+          reservation_set += 100.00 * ( app_it->second.reservation["cpucores"] - app_it->second.usage)/((double)processor_cores);
+        }
+      }
+    }
+  }
+
   LOG_TRACE(GPP_i, __FUNCTION__ << " Completed SECOND pass, record pstats for processes" );
 
   aggregate_usage *= inverse_load_per_core;
@@ -2720,6 +2825,9 @@ void GPP_i::addProcess(int pid, const std::string &appName, const std::string &i
   tmp.core_usage = 0;
   tmp.parent = this;
   pids.push_front( tmp );
+  if (applicationReservations.find(appName) != applicationReservations.end()) {
+      applicationReservations[appName].component_pids.push_back(pid);
+  }
   LOG_DEBUG(GPP_i, "END Adding Process/RES: "  <<  pid << "/" << req_reservation << "  APP:" << appName );
 }
 

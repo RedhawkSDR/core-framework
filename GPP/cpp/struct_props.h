@@ -145,6 +145,65 @@ inline bool operator!= (const nic_allocation_struct& s1, const nic_allocation_st
     return !(s1==s2);
 };
 
+struct redhawk__reservation_request_struct {
+    redhawk__reservation_request_struct ()
+    {
+    }
+
+    static std::string getId() {
+        return std::string("redhawk::reservation_request");
+    }
+
+    static const char* getFormat() {
+        return "s[s][s]";
+    }
+
+    std::string obj_id;
+    std::vector<std::string> kinds;
+    std::vector<std::string> values;
+};
+
+inline bool operator>>= (const CORBA::Any& a, redhawk__reservation_request_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("redhawk::reservation_request::obj_id")) {
+        if (!(props["redhawk::reservation_request::obj_id"] >>= s.obj_id)) return false;
+    }
+    if (props.contains("redhawk::reservation_request::kinds")) {
+        if (!(props["redhawk::reservation_request::kinds"] >>= s.kinds)) return false;
+    }
+    if (props.contains("redhawk::reservation_request::values")) {
+        if (!(props["redhawk::reservation_request::values"] >>= s.values)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const redhawk__reservation_request_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["redhawk::reservation_request::obj_id"] = s.obj_id;
+ 
+    props["redhawk::reservation_request::kinds"] = s.kinds;
+ 
+    props["redhawk::reservation_request::values"] = s.values;
+    a <<= props;
+}
+
+inline bool operator== (const redhawk__reservation_request_struct& s1, const redhawk__reservation_request_struct& s2) {
+    if (s1.obj_id!=s2.obj_id)
+        return false;
+    if (s1.kinds!=s2.kinds)
+        return false;
+    if (s1.values!=s2.values)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const redhawk__reservation_request_struct& s1, const redhawk__reservation_request_struct& s2) {
+    return !(s1==s2);
+}
+
 struct advanced_struct {
     advanced_struct ()
     {

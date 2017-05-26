@@ -31,6 +31,32 @@
 #include "UsesDevice.h"
 
 namespace ossie {
+
+    class Reservation {
+    public:
+        std::string kind;
+        std::string value;
+
+        const std::string& getKind() const {
+            return kind;
+        }
+
+        const std::string& getValue() const {
+            return value;
+        }
+
+        void overloadValue(std::string& new_value) {
+            value = new_value;
+        }
+
+    };
+
+    inline std::ostream& operator<<(std::ostream& out, const Reservation& resrv)
+    {
+        out << "Reservation kind: " << resrv.kind;
+        return out;
+    };
+
     class SoftwareAssembly {
     public:
         class HostCollocation {
@@ -39,6 +65,7 @@ namespace ossie {
                 std::string name;
                 std::vector<ComponentPlacement> placements;
                 std::vector<UsesDeviceRef>      usesdevicerefs;
+                std::vector<Reservation>        reservations;
 
                 const std::string& getID() const {
                     return id;
@@ -54,6 +81,14 @@ namespace ossie {
 
                 const std::vector<UsesDeviceRef>& getUsesDeviceRefs() const {
                     return usesdevicerefs;
+                }
+
+                const std::vector<Reservation>& getReservations() const {
+                    return reservations;
+                }
+
+                void overloadReservation(std::string &value, int idx) {
+                    reservations[idx].overloadValue(value);
                 }
 
                 const ComponentInstantiation* getInstantiation(const std::string& refid) const;

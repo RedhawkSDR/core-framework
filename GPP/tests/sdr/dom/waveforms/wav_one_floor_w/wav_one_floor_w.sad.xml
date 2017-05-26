@@ -19,22 +19,36 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 <!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
-<softwareassembly id="DCE:0508d592-25a2-4b05-9e2a-abc08b31b65f" name="busy_w">
+<softwareassembly id="DCE:0508d592-25a2-4b05-9e2a-abc08b31b622" name="wav_one_floor_w">
   <componentfiles>
     <componentfile id="busy_comp_24f5c4f2-8d30-4906-beb6-af941498741f" type="SPD">
       <localfile name="/components/busy_comp/busy_comp.spd.xml"/>
     </componentfile>
   </componentfiles>
   <partitioning>
-    <componentplacement>
-      <componentfileref refid="busy_comp_24f5c4f2-8d30-4906-beb6-af941498741f"/>
-      <componentinstantiation id="busy_comp_1" startorder="0">
-        <usagename>busy_cOmp_1</usagename>
-        <findcomponent>
-          <namingservice name="busy_comp_1"/>
-        </findcomponent>
-      </componentinstantiation>
-    </componentplacement>
+    <hostcollocation id="ID_TEST_SET1" name="COLLOC_SET1">
+      <reservation kind="cpucores" value="3"/>
+      <componentplacement>
+        <componentfileref refid="busy_comp_24f5c4f2-8d30-4906-beb6-af941498741f"/>
+        <componentinstantiation id="busy_comp_1" startorder="0">
+          <usagename>busy_comp_1</usagename>
+          <findcomponent>
+            <namingservice name="busy_comp_1"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+    </hostcollocation>
+    <hostcollocation id="ID_TEST_SET2" name="COLLOC_SET2">
+      <componentplacement>
+        <componentfileref refid="busy_comp_24f5c4f2-8d30-4906-beb6-af941498741f"/>
+        <componentinstantiation id="busy_comp_2" startorder="1">
+          <usagename>busy_comp_2</usagename>
+          <findcomponent>
+            <namingservice name="busy_comp_2"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+    </hostcollocation>
   </partitioning>
   <assemblycontroller>
     <componentinstantiationref refid="busy_comp_1"/>

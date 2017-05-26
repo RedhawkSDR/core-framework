@@ -1558,7 +1558,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         comp_load = base_util['component_load']
         #print "After App1 Create subnow(sub) " , sub_now, " sys_load", system_load_now, " sys_load_base ", system_load_base, " comp_load ", comp_load, " subscribed(base) ", subscribed, " extra ", extra_reservation, " res per", res_per_comp, " idle cap mod ", idle_cap_mod 
         self.assertEquals(self.close(sub_now, extra_reservation), True)
-        
+
         app_2=self.dom.createApplication('/waveforms/busy_w/busy_w.sad.xml','busy_w',[])
         time.sleep(wait_amount)
         base_util = self.dom.devMgrs[0].devs[0].utilization[0]
@@ -1583,8 +1583,6 @@ class ComponentTests_SystemReservations(DomainSupport):
         else:
             self.assertEqual(self.close(sub_now, extra_reservation+res_per_comp), True)
 
-
-        
         app_2.start()
         time.sleep(wait_amount)
         base_util = self.dom.devMgrs[0].devs[0].utilization[0]
@@ -1611,6 +1609,192 @@ class ComponentTests_SystemReservations(DomainSupport):
         #print "state:", gpp_state
         self.assertEquals(self.close(sub_now, extra_reservation+res_per_comp ), True)
         self.assertEquals(self.float_eq(sub_now_pre, sub_now, eps=.01), True)
+
+    def _verifyReservations(self, extra, application, wait_amount):
+        base_util = self.dom.devMgrs[0].devs[0].utilization[0]
+        system_load_now = base_util['system_load']
+        sub_now = base_util['subscribed']
+        comp_load = base_util['component_load']
+        self.assertEquals(self.close(sub_now, extra), True)
+        self.assertEquals(comp_load, 0)
+
+        application.start()
+        time.sleep(wait_amount)
+        base_util = self.dom.devMgrs[0].devs[0].utilization[0]
+        system_load_now = base_util['system_load']
+        sub_now = base_util['subscribed']
+        comp_load = base_util['component_load']
+        self.assertEquals(self.close(sub_now, extra), True)
+        self.assertEquals(self.close(comp_load, 2, margin=0.1), True)
+
+        application.stop()
+        time.sleep(wait_amount)
+        base_util = self.dom.devMgrs[0].devs[0].utilization[0]
+        system_load_now = base_util['system_load']
+        sub_now = base_util['subscribed']
+        comp_load = base_util['component_load']
+        self.assertEquals(self.close(sub_now, extra), True)
+        self.assertEquals(comp_load, 0)
+
+    def testAppReservation(self):
+        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self.assertNotEquals(domMgr,None)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEquals(devMgr,None)
+        self.comp= self.dom.devMgrs[0].devs[0]
+        cpus = self.dom.devMgrs[0].devs[0].processor_cores
+        cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
+        res_per_comp = self.dom.devMgrs[0].devs[0].reserved_capacity_per_component
+        idle_cap_mod = 100.0  * res_per_comp / (cpus*1.0)
+        upper_capacity = cpus - (cpus * (cpu_thresh/100))
+        wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
+        time.sleep(wait_amount)
+        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+
+        time.sleep(1)
+
+        base_util = self.dom.devMgrs[0].devs[0].utilization[0]
+        subscribed = base_util['subscribed']
+        system_load_base = base_util['system_load']
+
+        extra_reservation = 3
+        _value=any.to_any(extra_reservation)
+        _value._t=CORBA.TC_double
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self.dom.createApplication, '/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='busy_comp_1',value=any.to_any(_value))]))])
+        app_1=self.dom.createApplication('/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[])
+        time.sleep(wait_amount)
+        self._verifyReservations(extra_reservation, app_1, wait_amount)
+
+        app_1.releaseObject()
+        time.sleep(wait_amount)
+        base_util = self.dom.devMgrs[0].devs[0].utilization[0]
+        sub_now = base_util['subscribed']
+        comp_load = base_util['component_load']
+        self.assertEquals(sub_now, 0)
+
+    def testAppOverloadGenericReservation(self):
+        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self.assertNotEquals(domMgr,None)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEquals(devMgr,None)
+        self.comp= self.dom.devMgrs[0].devs[0]
+        cpus = self.dom.devMgrs[0].devs[0].processor_cores
+        cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
+        res_per_comp = self.dom.devMgrs[0].devs[0].reserved_capacity_per_component
+        idle_cap_mod = 100.0  * res_per_comp / (cpus*1.0)
+        upper_capacity = cpus - (cpus * (cpu_thresh/100))
+        wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
+        time.sleep(wait_amount)
+        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+
+        time.sleep(1)
+
+        base_util = self.dom.devMgrs[0].devs[0].utilization[0]
+        subscribed = base_util['subscribed']
+        system_load_base = base_util['system_load']
+
+        extra_reservation = 4
+        _value=any.to_any(extra_reservation)
+        _value._t=CORBA.TC_double
+        app_1=self.dom.createApplication('/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='',value=any.to_any(_value))]))])
+        time.sleep(wait_amount)
+        self._verifyReservations(extra_reservation, app_1, wait_amount)
+
+    def testAppOverloadSpecificReservation(self):
+        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self.assertNotEquals(domMgr,None)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEquals(devMgr,None)
+        self.comp= self.dom.devMgrs[0].devs[0]
+        cpus = self.dom.devMgrs[0].devs[0].processor_cores
+        cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
+        res_per_comp = self.dom.devMgrs[0].devs[0].reserved_capacity_per_component
+        idle_cap_mod = 100.0  * res_per_comp / (cpus*1.0)
+        upper_capacity = cpus - (cpus * (cpu_thresh/100))
+        wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
+        time.sleep(wait_amount)
+        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+
+        time.sleep(1)
+
+        base_util = self.dom.devMgrs[0].devs[0].utilization[0]
+        subscribed = base_util['subscribed']
+        system_load_base = base_util['system_load']
+
+        extra_reservation = 4
+        _value=any.to_any(extra_reservation)
+        _value._t=CORBA.TC_double
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self.dom.createApplication, '/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='COLLOC_SET1',value=any.to_any(_value))]))])
+        app_1=self.dom.createApplication('/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='ID_TEST_SET1',value=any.to_any(_value))]))])
+        time.sleep(wait_amount)
+        self._verifyReservations(extra_reservation, app_1, wait_amount)
+
+    def testAppOverloadTwoSpecificReservation(self):
+        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self.assertNotEquals(domMgr,None)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEquals(devMgr,None)
+        self.comp= self.dom.devMgrs[0].devs[0]
+        cpus = self.dom.devMgrs[0].devs[0].processor_cores
+        cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
+        res_per_comp = self.dom.devMgrs[0].devs[0].reserved_capacity_per_component
+        idle_cap_mod = 100.0  * res_per_comp / (cpus*1.0)
+        upper_capacity = cpus - (cpus * (cpu_thresh/100))
+        wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
+        time.sleep(wait_amount)
+        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+
+        time.sleep(1)
+
+        base_util = self.dom.devMgrs[0].devs[0].utilization[0]
+        subscribed = base_util['subscribed']
+        system_load_base = base_util['system_load']
+
+        extra_reservation = 4
+        _value=any.to_any(extra_reservation/2)
+        _value._t=CORBA.TC_double
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self.dom.createApplication, '/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='COLLOC_SET1',value=any.to_any(_value)),CF.DataType(id='ID_TEST_SET2',value=any.to_any(_value))]))])
+        app_1=self.dom.createApplication('/waveforms/wav_two_floor_w/wav_two_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='ID_TEST_SET1',value=any.to_any(_value)),CF.DataType(id='ID_TEST_SET2',value=any.to_any(_value))]))])
+        time.sleep(wait_amount)
+        self._verifyReservations(extra_reservation, app_1, wait_amount)
+
+    def testAppOverloadOneSpecificReservation(self):
+        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self.assertNotEquals(domMgr,None)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEquals(devMgr,None)
+        self.comp= self.dom.devMgrs[0].devs[0]
+        cpus = self.dom.devMgrs[0].devs[0].processor_cores
+        cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
+        res_per_comp = self.dom.devMgrs[0].devs[0].reserved_capacity_per_component
+        idle_cap_mod = 100.0  * res_per_comp / (cpus*1.0)
+        upper_capacity = cpus - (cpus * (cpu_thresh/100))
+        wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
+        time.sleep(wait_amount)
+        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+
+        time.sleep(1)
+
+        base_util = self.dom.devMgrs[0].devs[0].utilization[0]
+        subscribed = base_util['subscribed']
+        system_load_base = base_util['system_load']
+
+        extra_reservation = 4
+        _value=any.to_any(extra_reservation/2)
+        _value._t=CORBA.TC_double
+        app_1=self.dom.createApplication('/waveforms/wav_one_floor_w/wav_one_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='ID_TEST_SET1',value=any.to_any(_value)),CF.DataType(id='ID_TEST_SET2',value=any.to_any(_value))]))])
+        time.sleep(wait_amount)
+        self._verifyReservations(extra_reservation, app_1, wait_amount)
 
 
 class LoadableDeviceVariableDirectoriesTest(DomainSupport):

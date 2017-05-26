@@ -939,6 +939,12 @@ namespace sad
   }
 
   void hostcollocation_pimpl::
+  reservation (const ::ossie::Reservation& reservation)
+  {
+      hostcollocation->reservations.push_back(reservation);
+  }
+
+  void hostcollocation_pimpl::
   id (const ::std::string& id)
   {
     hostcollocation->id = id;
@@ -955,7 +961,6 @@ namespace sad
   {
       return *hostcollocation;
   }
-
 
   // usesdeviceref_pimpl
   //
@@ -976,6 +981,40 @@ namespace sad
   post_usesdeviceref ()
   {
     return udevref;
+  }
+
+
+  // reservation_pimpl
+  //
+
+  void reservation_pimpl::
+  pre ()
+  {
+    resrv = ossie::Reservation();
+  }
+
+  void reservation_pimpl::
+  kind (const ::std::string& kind)
+  {
+    resrv.kind = kind;
+  }
+
+  void reservation_pimpl::
+  value (const ::std::string& value)
+  {
+    resrv.value = value;
+  }
+
+  std::string reservation_pimpl::post_string()
+  {
+    resrv.value = this->post_string();
+    return resrv.value;
+  }
+
+  const ossie::Reservation& reservation_pimpl::
+  post_reservation ()
+  {
+    return resrv;
   }
 
 
