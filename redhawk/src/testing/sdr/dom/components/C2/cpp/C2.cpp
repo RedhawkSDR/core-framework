@@ -215,7 +215,12 @@ void C2_i::constructor()
 ************************************************************************************************/
 int C2_i::serviceFunction()
 {
-    LOG_DEBUG(C2_i, "serviceFunction() example log message");
+    LOG_FATAL(C2_i, "serviceFunction() example log message - FATAL");
+    LOG_ERROR(C2_i, "serviceFunction() example log message - ERROR");
+    LOG_WARN(C2_i, "serviceFunction() example log message - WARN");
+    LOG_INFO(C2_i, "serviceFunction() example log message - INFO");
+    LOG_DEBUG(C2_i, "serviceFunction() example log message - DEBUG");
+    LOG_TRACE(C2_i, "serviceFunction() example log message - TRACE");
     
     return NOOP;
 }

@@ -170,7 +170,7 @@ int sigprocessor(void ) {
       // check if we need to exit...
       if ( si.ssi_signo == SIGINT ||si.ssi_signo == SIGQUIT || 
            si.ssi_signo == SIGTERM ) {
-        LOG_INFO(DeviceManager, "DeviceManager exiting.... signal:" << si.ssi_pid);
+        LOG_INFO(DeviceManager, "DeviceManager received signal (INT or QUIT or TERM) for proces: " << si.ssi_pid);
         shutdown();
       }
     }

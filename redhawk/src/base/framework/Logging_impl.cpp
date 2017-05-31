@@ -164,9 +164,13 @@ void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLev
   catch( std::exception &e ) {
   }
 
+  bool set_level=false;
+  rh_logger::LevelPtr _lvl;
   if ( logLevel > -1  ) {
     STDOUT_DEBUG( "Logging_impl setLoggingContext save _logLevel:" << logLevel );
     _logLevel = ossie::logging::ConvertDebugToCFLevel(logLevel);
+    _lvl = ossie::logging::ConvertDebugToRHLevel(logLevel);
+    set_level=true;
   }
   else {
     LOGGER root = rh_logger::Logger::getRootLogger();
@@ -182,6 +186,7 @@ void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLev
       std::string _lname = _logger->getName();
       if ( lname != _lname )  {
           LOGGER _l = getLogger( lname, true );
+          if ( set_level ) _l->setLevel( _lvl );
           _logName = lname;
       }
   }

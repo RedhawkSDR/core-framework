@@ -29,7 +29,9 @@
 #include <list>
 #include <unistd.h>
 
+
 #include <boost/filesystem/path.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <ossie/CF/WellKnownProperties.h>
 #include <ossie/FileStream.h>
@@ -2704,84 +2706,10 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
             pn.id = "PROFILE_NAME";
             pn.value <<= component->getSpdFileName();
             component->addExecParameter(pn);
+
+            // resolve LOGGING_CONFIG_URI and DEBUG_LEVEL for component's execparam
+            resolveLoggingConfiguration( component );
             
-            // See if the LOGGING_CONFIG_URI has already been set
-            // via <componentproperties> or initParams
-            bool alreadyHasLoggingConfigURI = false;
-            std::string logging_uri("");
-            CF::DataType* logcfg_prop = NULL;
-            CF::Properties execParameters = component->getExecParameters();
-            for (unsigned int i = 0; i < execParameters.length(); ++i) {
-                std::string propid = static_cast<const char*>(execParameters[i].id);
-                if (propid == "LOGGING_CONFIG_URI") {
-                  logcfg_prop = &execParameters[i];
-                  const char* tmpstr;
-                  if ( ossie::any::isNull(logcfg_prop->value) == true ) {
-                    LOG_WARN(ApplicationFactory_impl, "Missing value for LOGGING_CONFIG_URI, component: " << _baseNamingContext << "/" << component->getNamingServiceName() );
-                  }
-                  else {
-                    logcfg_prop->value >>= tmpstr;
-                    LOG_TRACE(ApplicationFactory_impl, "Resource logging configuration provided, logcfg:" << tmpstr);
-                    logging_uri = string(tmpstr);
-                    alreadyHasLoggingConfigURI = true;
-                  }
-                  break;
-                }
-            }
-
-            ossie::logging::LogConfigUriResolverPtr logcfg_resolver = ossie::logging::GetLogConfigUriResolver();
-            std::string logcfg_path = ossie::logging::GetComponentPath( _appFact._domainName, _waveformContextName, component->getNamingServiceName() );
-            if ( _appFact._domainManager->getUseLogConfigResolver() && logcfg_resolver ) {
-                  std::string t_uri = logcfg_resolver->get_uri( logcfg_path );
-                  LOG_DEBUG(ApplicationFactory_impl, "Using LogConfigResolver plugin: path " << logcfg_path << " logcfg:" << t_uri );
-                  if ( !t_uri.empty() ) logging_uri = t_uri;
-            }
-            
-            if (!alreadyHasLoggingConfigURI && logging_uri.empty() ) {
-                // Query the DomainManager for the logging configuration
-                LOG_TRACE(ApplicationFactory_impl, "Checking DomainManager for LOGGING_CONFIG_URI");
-                PropertyInterface *log_prop = _appFact._domainManager->getPropertyFromId("LOGGING_CONFIG_URI");
-                StringProperty *logProperty = (StringProperty *)log_prop;
-                if (!logProperty->isNil()) {
-                    logging_uri = logProperty->getValue();
-                } else {
-                    LOG_TRACE(ApplicationFactory_impl, "DomainManager LOGGING_CONFIG_URI is not set");
-                }
-
-                rh_logger::LoggerPtr dom_logger = _appFact._domainManager->getLogger();
-                if ( dom_logger ) {
-                  rh_logger::LevelPtr dlevel = dom_logger->getLevel();
-                  if ( !dlevel ) dlevel = rh_logger::Logger::getRootLogger()->getLevel();
-                  CF::DataType prop;
-                  prop.id = "DEBUG_LEVEL";
-                  prop.value <<= static_cast<CORBA::Long>(ossie::logging::ConvertRHLevelToDebug( dlevel ));
-                  component->addExecParameter(prop);
-                }
-            }
-
-            // if we have a uri but no property, add property to component's exec param list
-            if ( logcfg_prop == NULL && !logging_uri.empty() ) {
-                CF::DataType prop;
-                prop.id = "LOGGING_CONFIG_URI";
-                prop.value <<= logging_uri.c_str();
-                LOG_DEBUG(ApplicationFactory_impl, "logcfg_prop == NULL " << prop.id << " / " << logging_uri );
-                component->addExecParameter(prop);
-            }
-
-            if (!logging_uri.empty()) {
-                if (logging_uri.substr(0, 4) == "sca:") {
-                    string fileSysIOR = ossie::corba::objectToString(_appFact._domainManager->_fileMgr);
-                    logging_uri += ("?fs=" + fileSysIOR);
-                    LOG_TRACE(ApplicationFactory_impl, "Adding file system IOR " << logging_uri);
-                }
-
-                LOG_DEBUG(ApplicationFactory_impl, " LOGGING_CONFIG_URI :" << logging_uri);
-                CORBA::Any loguri;
-                loguri <<= logging_uri.c_str();
-                // this overrides all instances of the property called LOGGING_CONFIG_URI
-                LOG_TRACE(ApplicationFactory_impl, "override ....... uri " << logging_uri );
-                component->overrideProperty("LOGGING_CONFIG_URI", loguri);
-            }
             // Add the Naming Context IOR to make it easier to parse the command line
             CF::DataType ncior;
             ncior.id = "NAMING_CONTEXT_IOR";
@@ -2820,6 +2748,124 @@ void createHelper::loadAndExecuteComponents(CF::ApplicationRegistrar_ptr _appReg
         }
     }
 }
+
+
+int createHelper::resolveDebugLevel( const std::string &level_in ) {
+    int  debug_level=-1;
+    std::string dlevel = boost::to_upper_copy(level_in);
+    rh_logger::LevelPtr rhlevel=ossie::logging::ConvertCanonicalLevelToRHLevel( dlevel );
+    debug_level = ossie::logging::ConvertRHLevelToDebug( rhlevel );
+    if ( dlevel.at(0) != 'I' and debug_level == 3 ) debug_level=-1;
+
+    // test if number was provided. 
+    if ( debug_level == -1  ){
+        char *p=NULL;
+        int dl=strtol(dlevel.c_str(), &p, 10 );
+        if ( p == 0 ) {
+            // this will for check valid value and force to info for errant values
+            rh_logger::LevelPtr rhlevel=ossie::logging::ConvertDebugToRHLevel( dl );
+            debug_level = ossie::logging::ConvertRHLevelToDebug( rhlevel );
+        }
+    }
+    
+    return debug_level;    
+}
+
+void createHelper::resolveLoggingConfiguration( ossie::ComponentInfo *component ) {
+
+
+    std::string logging_uri("");
+    int  debug_level=-1;
+    redhawk::PropertyMap execParams = redhawk::PropertyMap::cast(component->getExecParameters());
+    if ( execParams.contains("LOGGING_CONFIG_URI") ) {
+        logging_uri = execParams["LOGGING_CONFIG_URI"].toString();
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingContext:  exec parameter provided, logging cfg uri:" << logging_uri);
+    }
+    if ( execParams.contains("DEBUG_LEVEL") ) {
+        debug_level = resolveDebugLevel( execParams["DEBUG_LEVEL"].toString() );
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfig: exec parameter provided debug_level:" << debug_level);
+    }
+
+    // resolve with older style where 
+    redhawk::PropertyMap cfgProps = redhawk::PropertyMap::cast(component->getConfigureProperties());
+    if ( cfgProps.contains("LOGGING_CONFIG_URI") ) {
+        logging_uri = cfgProps["LOGGING_CONFIG_URI"].toString();
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfig: configure parameer provided, logcfg:" << logging_uri);
+    }
+
+    if ( cfgProps.contains("DEBUG_LEVEL") ) {
+        debug_level = resolveDebugLevel( cfgProps["DEBUG_LEVEL"].toString() );
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfig: configure parameer provided, debug level:" << debug_level);
+    }
+
+    // check if logging configuration is part of component placement
+    ComponentInfo::LoggingConfig log_config=component->getLoggingConfig();
+    if ( !log_config.first.empty()) {
+        logging_uri = log_config.first;
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfig: loggingconfig log config:" << logging_uri);
+    }
+    // check if debug value provided 
+    if ( !log_config.second.empty() ) {
+        debug_level = resolveDebugLevel( log_config.second );
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfig: loggingconfig debug_level:" << debug_level);
+    }
+
+    if ( _appFact._domainManager->getUseLogConfigResolver() ) {
+        std::string logcfg_path = ossie::logging::GetComponentPath( _appFact._domainName, _waveformContextName, component->getNamingServiceName() );
+        ossie::logging::LogConfigUriResolverPtr logcfg_resolver = ossie::logging::GetLogConfigUriResolver();
+        if ( logcfg_resolver ) {
+            std::string t_uri = logcfg_resolver->get_uri( logcfg_path );
+            LOG_DEBUG(ApplicationFactory_impl, "Using LogConfigResolver plugin: path " << logcfg_path << " logcfg:" << t_uri );
+            if ( !t_uri.empty() ) logging_uri = t_uri;
+        }
+    }
+           
+    // nothing is provided, use DomainManger's context
+    if ( logging_uri.empty() ) {
+        // Query the DomainManager for the logging configuration
+        LOG_DEBUG(ApplicationFactory_impl, "Checking DomainManager for LOGGING_CONFIG_URI");
+        PropertyInterface *log_prop = _appFact._domainManager->getPropertyFromId("LOGGING_CONFIG_URI");
+        StringProperty *logProperty = (StringProperty *)log_prop;
+        if (!logProperty->isNil()) {
+            logging_uri = logProperty->getValue();
+        } else {
+            LOG_DEBUG(ApplicationFactory_impl, "DomainManager LOGGING_CONFIG_URI is not set");
+        }
+
+        rh_logger::LoggerPtr dom_logger = _appFact._domainManager->getLogger();
+        if ( dom_logger && debug_level == -1 ) {
+            rh_logger::LevelPtr dlevel = dom_logger->getLevel();
+            if ( !dlevel ) dlevel = rh_logger::Logger::getRootLogger()->getLevel();
+            debug_level = ossie::logging::ConvertRHLevelToDebug( dlevel );
+        }
+    }
+
+    // if logging uri is resolved, then add as execparam
+    if (!logging_uri.empty()) {
+        if (logging_uri.substr(0, 4) == "sca:") {
+            string fileSysIOR = ossie::corba::objectToString(_appFact._domainManager->_fileMgr);
+            logging_uri += ("?fs=" + fileSysIOR);
+            LOG_DEBUG(ApplicationFactory_impl, "Adding DomainManager's FileSystem IOR " << logging_uri);
+        }
+
+        CF::DataType prop;
+        prop.id = "LOGGING_CONFIG_URI";
+        prop.value <<= logging_uri.c_str();
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfiguration: LOGGING_CONFIG_URI: " << logging_uri);
+        component->addExecParameter(prop);
+    }
+
+    // if debug level is resolved, then add as execparam
+    if ( debug_level != -1 ) {
+        CF::DataType prop;
+        prop.id = "DEBUG_LEVEL";
+        prop.value <<= static_cast<CORBA::Long>(debug_level);
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfiguration: DEBUG_LEVEL: " << debug_level );
+        component->addExecParameter(prop);
+    }
+
+}
+
 
 std::string createHelper::createVersionMismatchMessage(std::string &component_version)
 {
