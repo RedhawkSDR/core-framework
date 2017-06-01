@@ -318,6 +318,7 @@ namespace sad
   void componentinstantiation_pimpl::loggingconfig ( const ossie::ComponentInstantiation::LoggingConfig& log_cfg )
   {
     componentInstantiation.loggingConfig = log_cfg;
+    LOG_TRACE(sad_parser, "componentinstantiation_pimpl logging cfg "<< componentInstantiation.loggingConfig.first.c_str() << " level " << componentInstantiation.loggingConfig.second.c_str() );    
   }
 
   void componentinstantiation_pimpl::devicerequires (ossie::ComponentPropertyList& requiresproperties)
@@ -383,11 +384,13 @@ namespace sad
   void loggingconfig_pimpl::level ( const ::std::string &v )
   {
     info.second=v;
+    LOG_TRACE(sad_parser, " loggingconfig : parser found level " << v );
   }
 
   const ossie::ComponentInstantiation::LoggingConfig& loggingconfig_pimpl::post_loggingconfig ( )
   {
     info.first = this->post_string();
+    LOG_TRACE(sad_parser, " loggingconfig : first " << info.first << "second " << info.second );
     return info;
   }
 

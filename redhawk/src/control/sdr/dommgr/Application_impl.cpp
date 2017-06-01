@@ -726,6 +726,8 @@ CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
         try {
             CF::Resource_var comp = _component_iter->getResourcePtr();
             comp_portsets.push_back(comp->getPortSet());
+        } catch ( CORBA::COMM_FAILURE &ex ) {
+            LOG_ERROR(Application_impl, "Component getPortSet failed, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );            
         } catch ( ... ) {
             LOG_ERROR(Application_impl, "Unhandled exception during getPortSet, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );            
         }

@@ -278,6 +278,13 @@ private:
 
     CF::Properties getResourceOptions( const ossie::ComponentInstantiation& instantiation);
 
+
+    int  resolveDebugLevel( const std::string &level_in );
+    void resolveLoggingConfiguration( const std::string &                      usageName,
+                                      std::vector< std::string >&              new_argv, 
+                                      const ossie::ComponentInstantiation&     instantiation,
+                                      const ossie::ComponentPropertyList&      instanceprops,
+                                      const std::string &logcfg_path );
     bool loadScdToParser(
         ossie::ComponentDescriptor& scdParser, 
         const ossie::SoftPkg&       _SPDParser);

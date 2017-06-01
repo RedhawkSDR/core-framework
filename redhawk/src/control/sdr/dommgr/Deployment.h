@@ -100,6 +100,8 @@ namespace redhawk {
     class ComponentDeployment : public SoftPkgDeployment, public UsesDeviceDeployment
     {
     public:
+        typedef ossie::ComponentInstantiation::LoggingConfig    LoggingConfig;
+
         ComponentDeployment(const ossie::SoftPkg* softpkg,
                             const ossie::ComponentInstantiation* instantiation,
                             const std::string& identifier);
@@ -126,6 +128,8 @@ namespace redhawk {
 
         redhawk::PropertyMap getAffinityOptionsWithAssignment() const;
         void mergeAffinityOptions(const CF::Properties& affinity);
+
+        redhawk::PropertyMap getLoggingConfiguration() const;
 
         void setNicAssignment(const std::string& nic);
         bool hasNicAssignment() const;
@@ -156,8 +160,6 @@ namespace redhawk {
         CF::Resource_ptr getResourcePtr() const;
 
         void load(CF::FileSystem_ptr fileSystem, CF::LoadableDevice_ptr device);
-
-        std::string getLoggingConfiguration() const;
 
         redhawk::PropertyMap getDeviceRequires() const;
         void  setDeviceRequires( const redhawk::PropertyMap &devRequires );
@@ -225,6 +227,7 @@ namespace redhawk {
         ossie::optional_value<float> cpuReservation;
         redhawk::PropertyMap affinityOptions;
         redhawk::PropertyMap deviceRequires;
+        redhawk::PropertyMap loggingConfig;
     };
 
 }

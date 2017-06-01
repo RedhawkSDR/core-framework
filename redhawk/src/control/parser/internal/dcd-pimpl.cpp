@@ -492,6 +492,7 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   const ossie::ComponentInstantiation::LoggingConfig& loggingconfig_pimpl::post_loggingconfig ( )
   {
     info.first = this->post_string();
+    LOG_TRACE(dcd_parser, " logging config: first " << info.first << "second " << info.second );
     return info;
   }
 

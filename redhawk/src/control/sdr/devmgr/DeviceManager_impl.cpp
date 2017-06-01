@@ -25,6 +25,7 @@
 #include <sys/utsname.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <ossie/debug.h>
 #include <ossie/ossieSupport.h>
@@ -776,64 +777,8 @@ void DeviceManager_impl::createDeviceExecStatement(
       new_argv.push_back( "SERVICE_NAME");
       new_argv.push_back(usageName);
     }
-
-    // get logging info if available
-    logging_uri = "";      
-    for (iprops_iter = instanceprops.begin(); iprops_iter != instanceprops.end(); iprops_iter++) {
-        if ((iprops_iter->getID() == "LOGGING_CONFIG_URI")
-            && (dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter)) != NULL)) {
-          const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter));
-            logging_uri = simpleref->getValue();
-            break;
-        }
-    }
-
-    if ( logging_uri.empty() ||  getUseLogConfigResolver() ) {
-      ossie::logging::LogConfigUriResolverPtr log_cfg_resolver = ossie::logging::GetLogConfigUriResolver();
-      if ( log_cfg_resolver ) {
-	logging_uri = log_cfg_resolver->get_uri(  logcfg_path );
-        LOG_DEBUG(DeviceManager_impl, "Resolve LOGGING_CONFIG_URI:  key:" << logcfg_path << " value <" << logging_uri << ">" );
-      }
-    }
-
-    // if resource provides logging info then override all preferences
-    ossie::ComponentInstantiation::LoggingConfig  lcfg = instantiation.getLoggingConfig();
-    std::string debug_level("");
-    if ( lcfg.first != "" )  {
-      LOG_DEBUG(DeviceManager_impl, "Component Placement has LoggingConfig, RSC: " << usageName << " LOGGING URI/LEVEL  <" << lcfg.first << ">/" << lcfg.second );
-      logging_uri = lcfg.first;
-      debug_level = lcfg.second;
-    }
     
-    // if we still do not have a URI then assigne the DeviceManager's logging config uri
-    if (logging_uri.empty() && !logging_config_prop->isNil()) {
-      logging_uri = logging_config_uri;
-    }
-
-    if (!logging_uri.empty()) {
-        if (logging_uri.substr(0, 4) == "sca:") {
-            logging_uri += ("?fs=" + fileSysIOR);
-        }
-        new_argv.push_back("LOGGING_CONFIG_URI");
-        new_argv.push_back(logging_uri);
-        LOG_DEBUG(DeviceManager_impl, "RSC: " << usageName << " LOGGING PARAM:VALUE " << new_argv[new_argv.size()-2] << ":" <<new_argv[new_argv.size()-1] );
-    } 
-
-    int level;
-    if ( debug_level == "" )
-      // Pass along the current debug level setting.
-      level = ossie::logging::ConvertRHLevelToDebug(rh_logger::Logger::getRootLogger()->getLevel());
-    else {
-      level = ossie::logging::ConvertRHLevelToDebug( 
-                                                    ossie::logging::ConvertCanonicalLevelToRHLevel(debug_level) );
-      debug_level="";
-    }
-
-    // Convert the numeric level directly into its ASCII equivalent.
-    debug_level.push_back(char(0x30 + level));
-    new_argv.push_back( "DEBUG_LEVEL");
-    new_argv.push_back(debug_level);
-    LOG_DEBUG(DeviceManager_impl, "DEBUG_LEVEL: arg: " << new_argv[new_argv.size()-2] << " value:"  << debug_level );
+    resolveLoggingConfiguration( usageName, new_argv, instantiation, instanceprops, logcfg_path );
 
     std::string dpath;
     dpath = _domainName + "/" + _label;
@@ -889,61 +834,17 @@ DeviceManager_impl::ExecparamList DeviceManager_impl::createDeviceExecparams(
     //  1) honor LOGGING_CONFIG_URI property
     //  2) check if log_cfg_resolver resolves device path
     //  3) use  devmgr's property value
-
-    ossie::logging::LogConfigUriResolverPtr      log_cfg_resolver = ossie::logging::GetLogConfigUriResolver();
-
-    ossie::ComponentPropertyList::const_iterator iprops_iter;
-    logging_uri = "";
-    for (iprops_iter = instanceprops.begin(); iprops_iter != instanceprops.end(); iprops_iter++) {
-        if ((iprops_iter->getID() == "LOGGING_CONFIG_URI")
-            && (dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter)) != NULL)) {
-          const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter));
-            logging_uri = simpleref->getValue();
-            break;
+    std::vector< std::string >  new_argv;
+    resolveLoggingConfiguration( usageName, new_argv, instantiation, instanceprops, logcfg_path );
+    for( std::vector< std::string >::iterator iter = new_argv.begin(); iter != new_argv.end(); ) {
+        std::string p1 = iter->c_str();
+        iter++;
+        std::string p2="";
+        if ( iter != new_argv.end() ){
+            p2 = iter->c_str();
         }
+        execparams.push_back(std::make_pair(p1,p2));
     }
-
-    if (logging_uri.empty()) {
-      if ( log_cfg_resolver ) {
-	logging_uri = log_cfg_resolver->get_uri( logcfg_path );
-        LOG_INFO(DeviceManager_impl, "Resolve LOGGING_CONFIG_URI:  key:" << logcfg_path << " value <" << logging_uri << ">" );
-      }
-    }
-
-    // if resource provides logging info then override all preferences
-    ossie::ComponentInstantiation::LoggingConfig  lcfg = instantiation.getLoggingConfig();
-    std::string debug_level("");
-    if ( lcfg.first != "" )  {
-      LOG_DEBUG(DeviceManager_impl, "Component Placement: RSC: " << usageName << " LOGGING URI/LEVEL  <" << lcfg.first << ">/" << lcfg.second );
-      logging_uri = lcfg.first;
-      debug_level = lcfg.second;
-    }
-
-    if (logging_uri.empty() && !logging_config_prop->isNil()) {
-	logging_uri = logging_config_uri;
-    }
-
-    if (!logging_uri.empty()) {
-        if (logging_uri.substr(0, 4) == "sca:") {
-            logging_uri += ("?fs=" + fileSysIOR);
-        }
-        execparams.push_back(std::make_pair("LOGGING_CONFIG_URI", logging_uri));
-    }
-
-    int level;
-    if ( debug_level == "" )
-      // Pass along the current debug level setting.
-      level = ossie::logging::ConvertRHLevelToDebug(rh_logger::Logger::getRootLogger()->getLevel());
-    else {
-      level = ossie::logging::ConvertRHLevelToDebug( 
-                                                    ossie::logging::ConvertCanonicalLevelToRHLevel(debug_level) );
-      debug_level="";
-    }
-
-    // Pass along the current debug level setting.
-    // Convert the numeric level directly into its ASCII equivalent.
-    debug_level.push_back(char(0x30 + level));
-    execparams.push_back(std::make_pair("DEBUG_LEVEL", debug_level));
 
     std::string dpath;
     dpath = _domainName + "/" + _label;
@@ -1119,7 +1020,7 @@ void DeviceManager_impl::createDeviceThread(
       // convert std:string to char * for execv
       std::vector<char*> argv(new_argv.size() + 1, NULL);
       for (std::size_t i = 0; i < new_argv.size(); ++i) {
-        LOG_TRACE(DeviceManager_impl, "ARG: " << i << " VALUE " << new_argv[i] );
+        LOG_DEBUG(DeviceManager_impl, "ARG: " << i << " VALUE " << new_argv[i] );
         argv[i] = const_cast<char*> (new_argv[i].c_str());
       }
 
@@ -1233,6 +1134,105 @@ void DeviceManager_impl::createDeviceThread(
             throw;
         }
     }
+}
+
+
+int DeviceManager_impl::resolveDebugLevel( const std::string &level_in ) {
+    int  debug_level=-1;
+    std::string dlevel = boost::to_upper_copy(level_in);
+    rh_logger::LevelPtr rhlevel=ossie::logging::ConvertCanonicalLevelToRHLevel( dlevel );
+    debug_level = ossie::logging::ConvertRHLevelToDebug( rhlevel );
+    if ( dlevel.at(0) != 'I' and debug_level == 3 ) debug_level=-1;
+
+    // test if number was provided. 
+    if ( debug_level == -1  ){
+        char *p=NULL;
+        int dl=strtol(dlevel.c_str(), &p, 10 );
+        if ( p == 0 ) {
+            // this will for check valid value and force to info for errant values
+            rh_logger::LevelPtr rhlevel=ossie::logging::ConvertDebugToRHLevel( dl );
+            debug_level = ossie::logging::ConvertRHLevelToDebug( rhlevel );
+        }
+    }
+    
+    return debug_level;    
+}
+
+
+void DeviceManager_impl::resolveLoggingConfiguration( const std::string &                      usageName,
+                                                      std::vector< std::string >&              new_argv, 
+                                                      const ossie::ComponentInstantiation&     instantiation,
+                                                      const ossie::ComponentPropertyList&      instanceprops,
+                                                      const std::string &logcfg_path ) {
+    // get logging info if available
+    std::string logging_uri = "";      
+    int debug_level = -1;
+    ossie::ComponentPropertyList::const_iterator iprops_iter;
+    for (iprops_iter = instanceprops.begin(); iprops_iter != instanceprops.end(); iprops_iter++) {
+        if ((strcmp(iprops_iter->getID().c_str(), "LOGGING_CONFIG_URI") == 0)
+            && (dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter)) != NULL)) {
+          const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter));
+            logging_uri = simpleref->getValue();
+            LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: property log config:" << logging_uri);
+            continue;
+        }
+
+        if ((strcmp(iprops_iter->getID().c_str(), "DEBUG_LEVEL") == 0)
+            && (dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter)) != NULL)) {
+          const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter));
+          debug_level = resolveDebugLevel(simpleref->getValue());
+            LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: property debug level:" << logging_uri);
+            continue;
+        }
+    }
+
+    // check if logging configuration is part of component
+    ossie::ComponentInstantiation::LoggingConfig log_config=instantiation.getLoggingConfig();
+    if ( !log_config.first.empty()) {
+        logging_uri = log_config.first;
+        LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: loggingconfig log config:" << logging_uri);
+    }
+    // check if debug value provided 
+    if ( !log_config.second.empty() ) {
+        debug_level = resolveDebugLevel( log_config.second );
+        LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: loggingconfig debug_level:" << debug_level);
+    }
+
+    if ( getUseLogConfigResolver() ) {
+        ossie::logging::LogConfigUriResolverPtr logcfg_resolver = ossie::logging::GetLogConfigUriResolver();
+        if ( logcfg_resolver ) {
+            std::string t_uri = logcfg_resolver->get_uri( logcfg_path );
+            LOG_DEBUG(DeviceManager_impl, "Resolve LOGGING_CONFIG_URI:  key:" << logcfg_path << " value <" << t_uri << ">" );
+            if ( !t_uri.empty() ) logging_uri = t_uri;
+        }
+    }
+
+    // if we still do not have a URI then assigne the DeviceManager's logging config uri
+    if (logging_uri.empty() && !logging_config_prop->isNil()) {
+      logging_uri = logging_config_uri;
+    }
+
+    if (!logging_uri.empty()) {
+        if (logging_uri.substr(0, 4) == "sca:") {
+            logging_uri += ("?fs=" + fileSysIOR);
+        }
+        new_argv.push_back("LOGGING_CONFIG_URI");
+        new_argv.push_back(logging_uri);
+        LOG_DEBUG(DeviceManager_impl, "RSC: " << usageName << " LOGGING PARAM:VALUE " << new_argv[new_argv.size()-2] << ":" <<new_argv[new_argv.size()-1] );
+    } 
+
+    if ( debug_level == -1 ) {
+      // Pass along the current debug level setting.
+      debug_level = ossie::logging::ConvertRHLevelToDebug(rh_logger::Logger::getRootLogger()->getLevel());
+    }
+
+    // Convert the numeric level directly into its ASCII equivalent.
+    std::string dlevel="";
+    dlevel.push_back(char(0x30 + debug_level));
+    new_argv.push_back( "DEBUG_LEVEL");
+    new_argv.push_back(dlevel);
+    LOG_DEBUG(DeviceManager_impl, "DEBUG_LEVEL: arg: " << new_argv[new_argv.size()-2] << " value:"  << dlevel );
+
 }
 
 void DeviceManager_impl::abort() {

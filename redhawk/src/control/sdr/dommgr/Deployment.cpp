@@ -273,6 +273,18 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
         }
     }
 
+    
+    
+    ComponentInstantiation::LoggingConfig lcfg = instantiation->getLoggingConfig();
+    if ( !lcfg.first.empty() ){
+        RH_NL_TRACE("ApplicationFactory_impl", "Logging Config: <" << lcfg.first << ">" );
+        loggingConfig["LOGGING_CONFIG_URI"] = lcfg.first;
+    }
+    if ( !lcfg.second.empty() ){
+        RH_NL_TRACE("ApplicationFactory_impl", "Logging Debug: <" << lcfg.second << ">" );
+        loggingConfig["DEBUG_LEVEL"] = lcfg.second;
+    }
+
     if (!instantiation->getAffinity().empty()) {
         RH_NL_TRACE("ApplicationFactory_impl", "Setting affinity options");
         affinityOptions = ossie::getAffinityOptions(instantiation->getAffinity());
@@ -595,15 +607,36 @@ void ComponentDeployment::load(CF::FileSystem_ptr fileSystem, CF::LoadableDevice
     SoftPkgDeployment::load(appComponent, fileSystem, device);
 }
 
-std::string ComponentDeployment::getLoggingConfiguration() const
+
+redhawk::PropertyMap ComponentDeployment::getLoggingConfiguration() const
 {
+    std::string logcfg_uri;
+    std::string debug_level;
+
+    // check for a PRF value
+    if (softpkg->getProperties()) {
+        const Property* property = softpkg->getProperties()->getProperty("LOGGING_CONFIG_URI");
+        if (property) {
+            const SimpleProperty* simple = dynamic_cast<const SimpleProperty*>(property);
+            if (simple && simple->getValue()) {
+                logcfg_uri = simple->getValue();
+            }
+        }
+    }
+
     // Check for a runtime override first
-    redhawk::PropertyMap::const_iterator override = overrides.find("LOGGING_CONFIG_URI");
-    if (override != overrides.end()) {
-        if (override->getValue().isNil()) {
-            return std::string();
-        } else {
-            return override->getValue().toString();
+    redhawk::PropertyMap::const_iterator  override;
+    if (overrides.contains("LOGGING_CONFIG_URI") ) {
+        override = overrides.find("LOGGING_CONFIG_URI");
+        if (!override->getValue().isNil()) {
+            logcfg_uri = override->getValue().toString();
+        }
+    }
+
+    if (overrides.contains("DEBUG_LEVEL") ) {
+        override = overrides.find("DEBUG_LEVEL");
+        if (!override->getValue().isNil()) {
+            debug_level = override->getValue().toString();
         }
     }
 
@@ -611,25 +644,39 @@ std::string ComponentDeployment::getLoggingConfiguration() const
     const ComponentProperty* propref = getPropertyOverride("LOGGING_CONFIG_URI");
     if (propref) {
         const SimplePropertyRef* simple = dynamic_cast<const SimplePropertyRef*>(propref);
-        if (!simple) {
-            return std::string();
-        } else {
-            return simple->getValue();
+        if (simple) {
+            logcfg_uri=simple->getValue();
         }
     }
 
-    // Finally, check for a PRF value
-    if (softpkg->getProperties()) {
-        const Property* property = softpkg->getProperties()->getProperty("LOGGING_CONFIG_URI");
-        if (property) {
-            const SimpleProperty* simple = dynamic_cast<const SimpleProperty*>(property);
-            if (simple && simple->getValue()) {
-                return simple->getValue();
-            }
+    propref = getPropertyOverride("DEBUG_LEVEL");
+    if (propref) {
+        const SimplePropertyRef* simple = dynamic_cast<const SimplePropertyRef*>(propref);
+        if (simple) {
+            debug_level=simple->getValue();
         }
     }
 
-    return std::string();
+    redhawk::PropertyMap ret;
+
+    // prefer logging config if provide via sad, else use property setting
+    if ( loggingConfig.contains("LOGGING_CONFIG_URI") )  {
+        logcfg_uri = loggingConfig["LOGGING_CONFIG_URI"].toString();
+    }
+
+    if ( loggingConfig.contains("DEBUG_LEVEL") )  {
+        debug_level = loggingConfig["DEBUG_LEVEL"].toString();
+    }
+
+    if ( !logcfg_uri.empty() ) {
+        ret["LOGGING_CONFIG_URI"]=logcfg_uri;
+    }
+
+    if ( !debug_level.empty() ) {
+        ret["DEBUG_LEVEL"]=debug_level;
+    }
+
+    return ret;
 }
 
 redhawk::ApplicationComponent* ComponentDeployment::getApplicationComponent()

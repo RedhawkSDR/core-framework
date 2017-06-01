@@ -32,6 +32,7 @@
 
 #include <boost/foreach.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <ossie/CF/WellKnownProperties.h>
 #include <ossie/FileStream.h>
@@ -1635,21 +1636,23 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
     }
 
     redhawk::PropertyMap &_allocationProperties = redhawk::PropertyMap::cast(allocationProperties);
-    redhawk::PropertyMap _struct;
-    std::string instantiationId = deployment->getInstantiation()->instantiationId;
-    std::vector<std::string> _kinds, _values;
-    _kinds.push_back("cpucores");
-    if (specialized_reservations.find(instantiationId) == specialized_reservations.end()) {
-        _values.push_back("-1");
-    } else {
-        std::ostringstream ss;
-        ss<<specialized_reservations.find(instantiationId)->second;
-        _values.push_back(ss.str());
+    if ( specialized_reservations.size() > 0 ) {
+        redhawk::PropertyMap _struct;
+        std::string instantiationId = deployment->getInstantiation()->instantiationId;
+        std::vector<std::string> _kinds, _values;
+        _kinds.push_back("cpucores");
+        if (specialized_reservations.find(instantiationId) == specialized_reservations.end()) {
+            _values.push_back("-1");
+        } else {
+            std::ostringstream ss;
+            ss<<specialized_reservations.find(instantiationId)->second;
+            _values.push_back(ss.str());
+        }
+        _struct["redhawk::reservation_request::kinds"].setValue(_kinds);
+        _struct["redhawk::reservation_request::values"].setValue(_values);
+        _struct["redhawk::reservation_request::obj_id"].setValue(deployment->getIdentifier());
+        _allocationProperties["redhawk::reservation_request"].setValue(_struct);
     }
-    _struct["redhawk::reservation_request::kinds"].setValue(_kinds);
-    _struct["redhawk::reservation_request::values"].setValue(_values);
-    _struct["redhawk::reservation_request::obj_id"].setValue(deployment->getIdentifier());
-    _allocationProperties["redhawk::reservation_request"].setValue(_struct);
 
     ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid,
                                                                                 _allocationProperties,
@@ -1968,42 +1971,102 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
     }
 }
 
-std::string createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* deployment)
+int createHelper::resolveDebugLevel( const std::string &level_in ) {
+    int  debug_level=-1;
+    std::string dlevel = boost::to_upper_copy(level_in);
+    rh_logger::LevelPtr rhlevel=ossie::logging::ConvertCanonicalLevelToRHLevel( dlevel );
+    debug_level = ossie::logging::ConvertRHLevelToDebug( rhlevel );
+    if ( dlevel.at(0) != 'I' and debug_level == 3 ) debug_level=-1;
+
+    // test if number was provided. 
+    if ( debug_level == -1  ){
+        char *p=NULL;
+        int dl=strtol(dlevel.c_str(), &p, 10 );
+        if ( p == 0 ) {
+            // this will for check valid value and force to info for errant values
+            rh_logger::LevelPtr rhlevel=ossie::logging::ConvertDebugToRHLevel( dl );
+            debug_level = ossie::logging::ConvertRHLevelToDebug( rhlevel );
+        }
+    }
+    
+    return debug_level;    
+}
+
+void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* deployment, redhawk::PropertyMap &execParams )
 {
+
+    std::string logging_uri("");
+    int  debug_level=-1;
+    if ( execParams.contains("LOGGING_CONFIG_URI") ) {
+        logging_uri = execParams["LOGGING_CONFIG_URI"].toString();
+        LOG_TRACE(ApplicationFactory_impl, "resolveLoggingContext:  exec parameter provided, logging cfg uri: " << logging_uri);
+    }
+    if ( execParams.contains("DEBUG_LEVEL") ) {
+        debug_level = resolveDebugLevel( execParams["DEBUG_LEVEL"].toString() );
+        LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: exec parameter provided debug_level: " << debug_level);
+    }
+
+   // check if logging configuration is part of component placement
+    redhawk::PropertyMap log_config=deployment->getLoggingConfiguration();
+    if ( log_config.contains("LOGGING_CONFIG_URI") ) {
+        logging_uri = log_config["LOGGING_CONFIG_URI"].toString();
+        LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: loggingconfig log config: " << logging_uri);
+    }
+    if ( log_config.contains("DEBUG_LEVEL") ) {
+        debug_level = resolveDebugLevel(log_config["DEBUG_LEVEL"].toString());
+        LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: loggingconfig debug_level: " << debug_level);
+    }
+
     // Use the log config resolver (if enabled)
     const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
     if (_appFact._domainManager->getUseLogConfigResolver()) {
         ossie::logging::LogConfigUriResolverPtr logcfg_resolver = ossie::logging::GetLogConfigUriResolver();
-        if (logcfg_resolver) {
+        if ( logcfg_resolver ) {
             std::string logcfg_path = ossie::logging::GetComponentPath(_appFact._domainName, _waveformContextName,
                                                                        instantiation->getFindByNamingServiceName());
             std::string uri = logcfg_resolver->get_uri(logcfg_path);
-            LOG_DEBUG(ApplicationFactory_impl, "Using LogConfigResolver plugin: path " << logcfg_path
-                      << " logcfg:" << uri );
-            if (!uri.empty()) {
-                return uri;
-            }
+            LOG_TRACE(ApplicationFactory_impl, "Using LogConfigResolver plugin: path " << logcfg_path << " logcfg: " << uri );
+            if ( !uri.empty() ) logging_uri = uri;
         }
     }
 
-    // Ask the component for its configuration
-    std::string logging_uri = deployment->getLoggingConfiguration();
+    // nothing is provided, use DomainManger's context
+    if ( logging_uri.empty() ) {
+        // Query the DomainManager for the logging configuration
+        LOG_DEBUG(ApplicationFactory_impl, "Checking DomainManager for LOGGING_CONFIG_URI");
+        PropertyInterface *log_prop = _appFact._domainManager->getPropertyFromId("LOGGING_CONFIG_URI");
+        StringProperty *logProperty = (StringProperty *)log_prop;
+        if (!logProperty->isNil()) {
+            logging_uri = logProperty->getValue();
+        } else {
+            LOG_TRACE(ApplicationFactory_impl, "DomainManager LOGGING_CONFIG_URI is not set");
+        }
+
+        rh_logger::LoggerPtr dom_logger = _appFact._domainManager->getLogger();
+        if ( dom_logger && debug_level == -1 ) {
+            rh_logger::LevelPtr dlevel = dom_logger->getLevel();
+            if ( !dlevel ) dlevel = rh_logger::Logger::getRootLogger()->getLevel();
+            debug_level = ossie::logging::ConvertRHLevelToDebug( dlevel );
+        }
+    }
+
+    // if logging uri is resolved, then add as execparam
     if (!logging_uri.empty()) {
-        LOG_TRACE(ApplicationFactory_impl, "Resource logging configuration provided, logcfg:" << logging_uri);
-        return logging_uri;
+        if (logging_uri.substr(0, 4) == "sca:") {
+            string fileSysIOR = ossie::corba::objectToString(_appFact._domainManager->_fileMgr);
+            logging_uri += ("?fs=" + fileSysIOR);
+            LOG_TRACE(ApplicationFactory_impl, "Adding DomainManager's FileSystem IOR " << logging_uri);
+        }
+
+        execParams["LOGGING_CONFIG_URI"] = logging_uri;
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " LOGGING_CONFIG_URI: " << logging_uri);
     }
 
-    // Query the DomainManager for the logging configuration
-    LOG_TRACE(ApplicationFactory_impl, "Checking DomainManager for LOGGING_CONFIG_URI");
-    PropertyInterface* log_prop = _appFact._domainManager->getPropertyFromId("LOGGING_CONFIG_URI");
-    StringProperty* logProperty = dynamic_cast<StringProperty*>(log_prop);
-    if (!logProperty->isNil()) {
-        logging_uri = logProperty->getValue();
-    } else {
-        LOG_TRACE(ApplicationFactory_impl, "DomainManager LOGGING_CONFIG_URI is not set");
+    // if debug level is resolved, then add as execparam
+    if ( debug_level != -1 ) {
+        execParams["DEBUG_LEVEL"] = static_cast<CORBA::Long>(debug_level);
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " DEBUG_LEVEL: " << debug_level );
     }
-
-    return logging_uri;
 }
 
 void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr registrar,
@@ -2043,27 +2106,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     // TODO: Determine how to handle configuration of logging in containers
     if (!deployment->getContainer()) {
         execParameters["DOM_PATH"] = _baseNamingContext;
-        std::string logging_uri = resolveLoggingConfiguration(deployment);
-        if (!logging_uri.empty()) {
-            // Check for sca: URI type, and append the IOR for the file system
-            if (logging_uri.find("sca:/") == 0) {
-                string ior = ossie::corba::objectToString(_appFact._domainManager->_fileMgr);
-                logging_uri += ("?fs=" + ior);
-                LOG_TRACE(ApplicationFactory_impl, "Adding file system IOR " << logging_uri);
-            }
-            LOG_DEBUG(ApplicationFactory_impl, " LOGGING_CONFIG_URI: " << logging_uri);
-            execParameters["LOGGING_CONFIG_URI"] = logging_uri;
-        } else {
-            // No LOGGING_CONFIG_URI can be found, pass DEBUG_LEVEL
-            rh_logger::LoggerPtr dom_logger = _appFact._domainManager->getLogger();
-            if (dom_logger) {
-                rh_logger::LevelPtr dlevel = dom_logger->getLevel();
-                if (!dlevel) {
-                    dlevel = rh_logger::Logger::getRootLogger()->getLevel();
-                }
-                execParameters["DEBUG_LEVEL"] = static_cast<CORBA::Long>(ossie::logging::ConvertRHLevelToDebug(dlevel));
-            }
-        }
+        resolveLoggingConfiguration(deployment, execParameters);
     }
 
     // Add the Naming Context IOR last to make it easier to parse the command line

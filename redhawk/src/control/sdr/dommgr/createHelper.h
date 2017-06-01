@@ -190,7 +190,8 @@ private:
         std::vector<ossie::ConnectionNode>& connections, 
         std::string                         base_naming_context);
 
-    std::string resolveLoggingConfiguration(redhawk::ComponentDeployment* deployment);
+    int  resolveDebugLevel( const std::string &level_in );
+    void resolveLoggingConfiguration(redhawk::ComponentDeployment* deployment, redhawk::PropertyMap &execParams );
     std::vector<std::string> getStartOrder(const DeploymentList& deployments);
     void verifyNoCpuSpecializationCollisions(const ossie::SoftwareAssembly& sad, std::map<std::string,float> specialized_reservations);
     std::vector<std::string> getComponentUsageNames(redhawk::ApplicationDeployment& appDeployment);

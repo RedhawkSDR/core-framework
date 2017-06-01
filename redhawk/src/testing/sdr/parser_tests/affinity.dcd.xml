@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="affinity_parse_1" name="test_affinity_node_socket">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="GPP_File_1" type="SPD">
+      <localfile name="/devices/GPP/GPP.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="GPP_File_1"/>
+      <componentinstantiation id="test_affinity_node:GPP_1">
+        <usagename>GPP_1</usagename>
+        <componentproperties>
+          <structref refid="thresholds">
+            <simpleref refid="cpu_idle" value="2"/>
+            <simpleref refid="mem_free" value="100"/>
+            <simpleref refid="nic_usage" value="900"/>
+          </structref>
+          <structref refid="affinity">
+            <simpleref refid="affinity::blacklist_cpus" value="0"/>
+            <simpleref refid="affinity::force_override" value="false"/>
+            <simpleref refid="affinity::exec_directive_class" value="socket"/>
+            <simpleref refid="affinity::exec_directive_value" value="0"/>
+            <simpleref refid="affinity::deploy_per_socket" value="true"/>
+            <simpleref refid="affinity::disabled" value="false"/>
+          </structref>
+        </componentproperties>
+      <affinity>
+        <simpleref refid="affinity::exec_directive_class" value="socket"/>
+        <simpleref refid="affinity::exec_directive_value" value="0"/>
+      </affinity>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>
