@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="colloc_usesdev_1" name="colloc_usesdev">
+  <componentfiles>
+    <componentfile id="P1_file_1" type="SPD">
+      <localfile name="/components/P1/P1.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <hostcollocation name="collocation_1">
+      <componentplacement>
+        <componentfileref refid="P1_file_1"/>
+        <componentinstantiation id="P1_1" startorder="0">
+          <usagename>P1_1</usagename>
+          <findcomponent>
+            <namingservice name="P1_1"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+      <usesdeviceref refid="FrontEndTuner_1"/>
+    </hostcollocation>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="P1_1"/>
+  </assemblycontroller>
+  <usesdevicedependencies>
+    <usesdevice id="FrontEndTuner_1">
+      <propertyref refid="DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d" value="FRONTEND::TUNER"/>
+      <structref refid="FRONTEND::tuner_allocation">
+        <simpleref refid="FRONTEND::tuner_allocation::tuner_type" value="RX_DIGITIZER"/>
+        <simpleref refid="FRONTEND::tuner_allocation::allocation_id" value="8530:25bf3e22-9361-4a69-975b-3bb4363ad214"/>
+        <simpleref refid="FRONTEND::tuner_allocation::center_frequency" value="1000000.0"/>
+        <simpleref refid="FRONTEND::tuner_allocation::bandwidth" value="1000000.0"/>
+        <simpleref refid="FRONTEND::tuner_allocation::bandwidth_tolerance" value="20.0"/>
+        <simpleref refid="FRONTEND::tuner_allocation::sample_rate" value="2000000.0"/>
+        <simpleref refid="FRONTEND::tuner_allocation::sample_rate_tolerance" value="20.0"/>
+        <simpleref refid="FRONTEND::tuner_allocation::device_control" value="true"/>
+        <simpleref refid="FRONTEND::tuner_allocation::group_id" value=""/>
+        <simpleref refid="FRONTEND::tuner_allocation::rf_flow_id" value=""/>
+      </structref>
+    </usesdevice>
+  </usesdevicedependencies>
+</softwareassembly>

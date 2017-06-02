@@ -1494,12 +1494,13 @@ class componentinstantiation(GeneratedsSuper):
     attribute is a DCE UUID that uniquely identifier the component."""
     subclass = None
     superclass = None
-    def __init__(self, id_=None, usagename=None, componentproperties=None, affinity=None, loggingconfig=None ):
+    def __init__(self, id_=None, usagename=None, componentproperties=None, affinity=None, loggingconfig=None, deployerrequires=None ):
         self.id_ = _cast(None, id_)
         self.usagename = usagename
         self.componentproperties = componentproperties
         self.affinity = affinity
         self.loggingconfig = loggingconfig
+        self.deployerrequires = deployerrequires        
     def factory(*args_, **kwargs_):
         if componentinstantiation.subclass:
             return componentinstantiation.subclass(*args_, **kwargs_)
@@ -1518,6 +1519,9 @@ class componentinstantiation(GeneratedsSuper):
     def get_loggingconfig(self): return self.loggingconfig
     def set_loggingconfig(self, loggingconfig): self.loggingconfig = loggingconfig
     loggingconfigProp = property(get_loggingconfig, set_loggingconfig)
+    def get_deployerrequires(self): return self.deployerrequires
+    def set_deployerrequires(self, deployerrequires): self.deployerrequires = deployerrequires
+    deployerrequiresProp = property(get_deployerrequires, set_deployerrequires)
     def get_id(self): return self.id_
     def set_id(self, id): self.id_ = id
     idProp = property(get_id, set_id)
@@ -1555,13 +1559,16 @@ class componentinstantiation(GeneratedsSuper):
             self.affinity.export(outfile, level, namespace_, name_='affinity', pretty_print=pretty_print)
         if self.loggingconfig is not None:
             self.loggingconfig.export(outfile, level, namespace_, name_='loggingconfig', pretty_print=pretty_print)
+        if self.deployerrequires is not None:
+            self.deployerrequires.export(outfile, level, namespace_, name_='deployerrequires', pretty_print=pretty_print)
     def hasContent_(self):
         if (
             self.usagename is not None or
             self.componentproperties is not None or
             self.affinity is not None or 
             self.loggingconfig is not None or 
-            self.findcomponent is not None 
+            self.findcomponent is not None or 
+            self.deployerrequires is not None
             ):
             return True
         else:
@@ -1598,6 +1605,12 @@ class componentinstantiation(GeneratedsSuper):
             self.loggingconfig.exportLiteral(outfile, level)
             showIndent(outfile, level)
             outfile.write('),\n')
+        if self.deployerrequires is not None:
+            showIndent(outfile, level)
+            outfile.write('deployerrequires=model_.deployerrequires(\n')
+            self.deployerrequires.exportLiteral(outfile, level)
+            showIndent(outfile, level)
+            outfile.write('),\n')
 
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
@@ -1626,6 +1639,10 @@ class componentinstantiation(GeneratedsSuper):
             obj_ = loggingconfig.factory()
             obj_.build(child_)
             self.set_loggingconfig(obj_)
+        elif nodeName_ == 'deployerrequires':
+            obj_ = deployerrequires.factory()
+            obj_.build(child_)
+            self.set_deployerrequires(obj_)
 
 # end class componentinstantiation
 
@@ -2050,6 +2067,176 @@ class loggingconfig(GeneratedsSuper):
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         pass
 # end class loggingconfig
+
+class deployerrequires(GeneratedsSuper):
+    subclass = None
+    superclass = None
+    def __init__(self, requires=None,):
+        if requires is None:
+           self.requires=[]
+        else:
+            self.requires = requires
+    def factory(*args_, **kwargs_):
+        if requires.subclass:
+            return deployerrequires.subclass(*args_, **kwargs_)
+        else:
+            return deployerrequires(*args_, **kwargs_)
+    factory = staticmethod(factory)
+    def get_requires(self): return self.requires
+    def set_requires(self, requires): self.requires = requires
+    def add_requires(self, value): self.requires.append(value)
+    def insert_requires(self, index, value): self.requires[index] = value
+    requiresProp = property(get_requires, set_requires)
+    def export(self, outfile, level, namespace_='', name_='deployerrequires', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='deployerrequires')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='deployerrequires'):
+        pass
+    def exportChildren(self, outfile, level, namespace_='', name_='deployerrequires', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        for requires_ in self.requires:
+            requires_.export(outfile, level, namespace_, name_='requires', pretty_print=pretty_print)
+    def hasContent_(self):
+        if (
+            self.requires
+            ):
+            return True
+        else:
+            return False
+    def exportLiteral(self, outfile, level, name_='deployerrequires'):
+        level += 1
+        self.exportLiteralAttributes(outfile, level, [], name_)
+        if self.hasContent_():
+            self.exportLiteralChildren(outfile, level, name_)
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
+        pass
+    def exportLiteralChildren(self, outfile, level, name_):
+        showIndent(outfile, level)
+        outfile.write('requires=[\n')
+        level += 1
+        for simpleref_ in self.simpleref:
+            showIndent(outfile, level)
+            outfile.write('model_.requires(\n')
+            simpleref_.exportLiteral(outfile, level)
+            showIndent(outfile, level)
+            outfile.write('),\n')
+        level -= 1
+        showIndent(outfile, level)
+        outfile.write('],\n')
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
+        pass
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'requires':
+            obj_ = requires.factory()
+            obj_.build(child_)
+            self.requires.append(obj_)
+# end class deployerrequires
+
+
+class requires(GeneratedsSuper):
+    subclass = None
+    superclass = None
+    def __init__(self, id=None, value=None):
+        self.id = _cast(None, id)
+        self.value = _cast(None, value)
+        pass
+    def factory(*args_, **kwargs_):
+        if requires.subclass:
+            return requires.subclass(*args_, **kwargs_)
+        else:
+            return requires(*args_, **kwargs_)
+    factory = staticmethod(factory)
+    def get_id(self): return self.id
+    def set_id(self, id): self.id = id
+    idProp = property(get_id, set_id)
+    def get_value(self): return self.value
+    def set_value(self, value): self.value = value
+    valueProp = property(get_value, set_value)
+    def export(self, outfile, level, namespace_='', name_='requires', namespacedef_='', pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = []
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='requires')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='requires'):
+        if self.id is not None and 'id' not in already_processed:
+            already_processed.append('id')
+            outfile.write(' id=%s' % (self.gds_format_string(quote_attrib(self.id).encode(ExternalEncoding), input_name='id'), ))
+        if self.value is not None and 'value' not in already_processed:
+            already_processed.append('value')
+            outfile.write(' value=%s' % (self.gds_format_string(quote_attrib(self.value).encode(ExternalEncoding), input_name='value'), ))
+    def exportChildren(self, outfile, level, namespace_='', name_='requires', fromsubclass_=False, pretty_print=True):
+        pass
+    def hasContent_(self):
+        if (
+
+            ):
+            return True
+        else:
+            return False
+    def exportLiteral(self, outfile, level, name_='requires'):
+        level += 1
+        self.exportLiteralAttributes(outfile, level, [], name_)
+        if self.hasContent_():
+            self.exportLiteralChildren(outfile, level, name_)
+    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
+        if self.id is not None and 'id' not in already_processed:
+            already_processed.append('id')
+            showIndent(outfile, level)
+            outfile.write('id = "%s",\n' % (self.id,))
+        if self.value is not None and 'value' not in already_processed:
+            already_processed.append('value')
+            showIndent(outfile, level)
+            outfile.write('value = "%s",\n' % (self.value,))
+    def exportLiteralChildren(self, outfile, level, name_):
+        pass
+    def build(self, node):
+        self.buildAttributes(node, node.attrib, [])
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+    def buildAttributes(self, node, attrs, already_processed):
+        value = find_attr_value_('id', node)
+        if value is not None and 'id' not in already_processed:
+            already_processed.append('id')
+            self.id = value
+        value = find_attr_value_('value', node)
+        if value is not None and 'value' not in already_processed:
+            already_processed.append('value')
+            self.value = value
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        pass
+# end class requires
 
 
 
@@ -4063,6 +4250,7 @@ __all__ = [
     "connectinterface",
     "connections",
     "deployondevice",
+    "deployerrequires",
     "deviceconfiguration",
     "devicemanagersoftpkg",
     "devicepkgfile",
