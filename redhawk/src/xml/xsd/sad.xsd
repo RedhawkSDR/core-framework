@@ -234,16 +234,6 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         </xs:complexContent>
     </xs:complexType>
 
-    <!--xs:complexType name="hostcollocation">
-        <xs:choice  maxOccurs="unbounded">
-                    <xs:element name="componentplacement" type="componentplacement" ecore:name="componentplacement"/>
-                    <xs:element name="usesdeviceref" type="usesdeviceref" ecore:name="usesdeviceref"/>
-                    <xs:element name="reservation" type="reservation" ecore:name="reservation"/>
-        </xs:choice>
-        <xs:attribute name="id" type="xs:string"/>
-        <xs:attribute name="name" type="xs:string"/>
-    </xs:complexType-->
-
     <xs:complexType name="reservation">
         <xs:attribute name="kind" use="required" type="xs:string"/>
         <xs:attribute name="value" use="required" type="xs:string"/>
