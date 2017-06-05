@@ -1,224 +1,297 @@
 variables:
-  DOCKER_REGISTRY_URL: ''
-  REDHAWK_VERSION: '2.0.6'
-  FRONTEND_VERSION: '2.3.6'
+  rpm_release: "0.$CI_PIPELINE_ID"
+  specfile: $project.spec
+  other_repos: $yum_repo_url/redhawk-dependencies
 
 stages:
-  - build
-  - build-2
-  - build-3
-  - test
-  - deploy
-  - deploy-test
+ - package-redhawk-codegen
+ - package-bulkio-gpp
+ - package-burstio-fei
+ - deploy
 
 .rpmbuild: &rpmbuild
-  image: ${DOCKER_REGISTRY_URL}redhawk/buildenv:$PLATFORM
-  script:
-    - cd $PROJECT
-    - tar --transform "s,^,$PROJECT-$REDHAWK_VERSION/,S" -czf /root/rpmbuild/SOURCES/$PROJECT-$REDHAWK_VERSION.tar.gz *
-    - yum install -y ../*.rpm || true
-    - yum-builddep -y $PROJECT.spec
-    - bash -lc 'rpmbuild -bb $PROJECT.spec'
-    - cp -rv /root/rpmbuild/RPMS/*/*.rpm ..
-
-.core_rpmbuild: &core_rpmbuild
-  image: ${DOCKER_REGISTRY_URL}redhawk/buildenv:$PLATFORM
-  stage: build
-  script:
-    - cd $PROJECT
-    - tar --transform "s,^,$PROJECT-$REDHAWK_VERSION/,S" -czf /root/rpmbuild/SOURCES/$PROJECT-$REDHAWK_VERSION.tar.gz *
-    - yum-builddep -y src/releng/redhawk.spec
-    - rpmbuild -bb src/releng/redhawk.spec
-    - cp -rv /root/rpmbuild/RPMS/*/*.rpm ..
-  artifacts:
-    paths:
-      - redhawk*.rpm
-
-.frontend_rpmbuild: &frontend_rpmbuild
-  image: ${DOCKER_REGISTRY_URL}redhawk/buildenv:$PLATFORM
-  stage: build-3
-  script:
-    - cd $PROJECT
-    - tar --transform "s,^,$PROJECT-$FRONTEND_VERSION/,S" -czf /root/rpmbuild/SOURCES/$PROJECT-$FRONTEND_VERSION.tar.gz *
-    - yum install -y ../*.rpm || true
-    - yum-builddep -y $PROJECT.spec
-    - bash -lc 'rpmbuild -bb $PROJECT.spec'
-    - cp -rv /root/rpmbuild/RPMS/*/*.rpm ..
-  artifacts:
-    paths:
-      - frontend*.rpm
-
-core-el6:
-  variables:
-    PROJECT: 'redhawk'
-    PLATFORM: 'el6'
-  <<: *core_rpmbuild
-
-core-el7:
-  variables:
-    PROJECT: 'redhawk'
-    PLATFORM: 'el7'
-  <<: *core_rpmbuild
-
-codegen-el6:
-  variables:
-    PROJECT: 'redhawk-codegen'
-    PLATFORM: 'el6'
-  stage: build
-  <<: *rpmbuild
-  artifacts:
-    paths:
-      - redhawk*.rpm
-
-codegen-el7:
-  variables:
-    PROJECT: 'redhawk-codegen'
-    PLATFORM: 'el7'
-  stage: build
-  <<: *rpmbuild
-  artifacts:
-    paths:
-      - redhawk*.rpm
-
-bulkio-el6:
-  variables:
-    PROJECT: 'bulkioInterfaces'
-    PLATFORM: 'el6'
-  stage: build-2
-  dependencies:
-    - core-el6
-  <<: *rpmbuild
-  artifacts:
-    paths:
-      - bulkio*.rpm
-
-bulkio-el7:
-  variables:
-    PROJECT: 'bulkioInterfaces'
-    PLATFORM: 'el7'
-  stage: build-2
-  dependencies:
-    - core-el7
-  <<: *rpmbuild
-  artifacts:
-    paths:
-      - bulkio*.rpm
-
-GPP-el6:
-  variables:
-    PROJECT: 'GPP'
-    PLATFORM: 'el6'
-  stage: build-2
-  dependencies:
-    - core-el6
-  <<: *rpmbuild
-  artifacts:
-    paths:
-      - GPP*.rpm
-
-GPP-el7:
-  variables:
-    PROJECT: 'GPP'
-    PLATFORM: 'el7'
-  stage: build-2
-  dependencies:
-    - core-el7
-  <<: *rpmbuild
-  artifacts:
-    paths:
-      - GPP*.rpm
-
-burstio-el6:
-  variables:
-    PROJECT: 'burstioInterfaces'
-    PLATFORM: 'el6'
-  stage: build-3
-  dependencies:
-    - core-el6
-    - bulkio-el6
-  <<: *rpmbuild
-  artifacts:
-    paths:
-      - burstio*.rpm
-
-burstio-el7:
-  variables:
-    PROJECT: 'burstioInterfaces'
-    PLATFORM: 'el7'
-  stage: build-3
-  dependencies:
-    - core-el7
-    - bulkio-el7
-  <<: *rpmbuild
-  artifacts:
-    paths:
-      - burstio*.rpm
-
-frontend-el6:
-  variables:
-    PROJECT: 'frontendInterfaces'
-    PLATFORM: 'el6'
-  dependencies:
-    - core-el6
-    - bulkio-el6
-  <<: *frontend_rpmbuild
-
-frontend-el7:
-  variables:
-    PROJECT: 'frontendInterfaces'
-    PLATFORM: 'el7'
-  dependencies:
-    - core-el7
-    - bulkio-el7
-  <<: *frontend_rpmbuild
-
-test:install:el6:
-  image: centos:6
-  stage: test
-  dependencies:
-    - core-el6
-    - bulkio-el6
-    - burstio-el6
-    - GPP-el6
-    - frontend-el6
-    - codegen-el6
-  script:
-    - printf "[redhawk-deps]\nname=redhawk-deps\nbaseurl=$REDHAWK_DEPS_URL/el6/x86_64\nenabled=1\ngpgcheck=0" > /etc/yum.repos.d/redhawk-deps.repo
-    - yum install -y epel-release
-    - yum install -y *.rpm
-
-deploy:el6:
-  image: ${DOCKER_REGISTRY_URL}redhawk/deploy
-  stage: deploy
+  image: docker:latest
   tags:
-    - deployment
-  dependencies:
-    - core-el6
-    - bulkio-el6
-    - burstio-el6
-    - GPP-el6
-    - frontend-el6
-    - codegen-el6
+    - dind
   script:
-    - mkdir output
-    - cp *.rpm output
-    - cd output
-    - createrepo .
-    - eval "$(ssh-agent -s)"
-    - ssh-add
-    - rsync -avz --delete * $PUBLISH_URL:$PUBLISH_PATH/$CI_BUILD_REF_NAME/el6/x86_64/
+    # Ensure newest version of FROM image
+    - docker pull ${docker_registry}rpmbuild:${dist}-${arch}-onbuild
+    # Use RPM release from specfile if this is a tag
+    - if [ -n "$CI_COMMIT_TAG" ]; then rpm_release=""; fi
+    - if [ -f output/repo.tar.gz ]; then cd output; tar xvf repo.tar.gz; cd -; cp -r output $project; fi
+    - cd $project
+    - printf "FROM ${docker_registry}rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
+    # Don't build redhawk tests as part of rpmbuild to save time
+    - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
+    - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
+    - docker build --tag=${docker_registry}redhawk-rpmbuild:$proj_lower-$CI_COMMIT_SHA-${dist}-${arch}
+                   --build-arg "project=$project"
+                   --build-arg "target=$arch"
+                   --build-arg "spec_file=$specfile"
+                   --build-arg "rpm_release=$rpm_release"
+                   --build-arg "other_repos=$other_repos/$dist/$arch"
+                   --build-arg "local_repo=$local_repo" .
+    # Create a yum repository from the packages we just built and any packages we've built in a previous stage
+    - id=$(docker create -it ${docker_registry}redhawk-rpmbuild:$proj_lower-$CI_COMMIT_SHA-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
+                                                for file in `find /usr/src/yum /root/rpmbuild/RPMS -name '*.rpm'`; do
+                                                cp -v $file /tmp/repo;
+                                                done;
+                                                cd /tmp/repo;
+                                                createrepo .;
+                                                tar czf repo.tar.gz *')
+    - docker start -a $id
+    #Cleanup any previous output we've inherited
+    - cd $CI_PROJECT_DIR
+    - rm -rf output && mkdir output
+    - docker cp $id:/tmp/repo/repo.tar.gz output/repo.tar.gz
+    - docker rm -f $id
   artifacts:
+    name: $CI_JOB_NAME
     paths:
-      - output/*.rpm
-      - output/**/*
+      - output/
+    expire_in: 3 days
 
-test:deployed:el6:
-  image: centos:6
-  stage: deploy-test
-  dependencies:
-    - deploy:el6
+.deploy-common: &deploy-common
+  image: centos:7
+  stage: deploy
+  dependencies: []
   script:
-    - printf "[redhawk-deps]\nname=redhawk-deps\nbaseurl=$REDHAWK_DEPS_URL/el6/x86_64\nenabled=1\ngpgcheck=0" > /etc/yum.repos.d/redhawk-deps.repo
-    - printf "[redhawk]\nname=redhawk\nbaseurl=$PUBLISH_WEB_URL/$CI_BUILD_REF_NAME/el6/x86_64/\nenabled=1\ngpgcheck=0" > /etc/yum.repos.d/redhawk.repo
-    - yum install -y epel-release
-    - yum install -y redhawk-devel redhawk-* bulkio* burstio* frontend* GPP*
+  - if [ -n "$jenkins_url" ]; then
+      curl --insecure -X POST $jenkins_url/job/$jenkins_job/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
+    fi
+
+redhawk:el6-i386:
+  stage: package-redhawk-codegen
+  variables:
+    dist: el6
+    arch: i686
+    project: redhawk
+    specfile: src/releng/redhawk.spec
+    local_repo: ""
+  <<: *rpmbuild
+
+redhawk-codegen:el6-i386:
+  stage: package-redhawk-codegen
+  variables:
+    dist: el6
+    arch: i686
+    project: redhawk-codegen
+    local_repo: ""
+  <<: *rpmbuild
+
+bulkio:el6-i386:
+  stage: package-bulkio-gpp
+  dependencies:
+    - redhawk:el6-i386
+  variables:
+    dist: el6
+    arch: i686
+    project: bulkioInterfaces
+    local_repo: output
+  <<: *rpmbuild
+
+gpp:el6-i386:
+  stage: package-bulkio-gpp
+  dependencies:
+    - redhawk:el6-i386
+  variables:
+    dist: el6
+    arch: i686
+    project: GPP
+    local_repo: output
+  <<: *rpmbuild
+
+burstio:el6-i386:
+  stage: package-burstio-fei
+  dependencies:
+    - bulkio:el6-i386
+  variables:
+    dist: el6
+    arch: i686
+    project: burstioInterfaces
+    local_repo: output
+  <<: *rpmbuild
+
+frontend:el6-i386:
+  stage: package-burstio-fei
+  dependencies:
+    - bulkio:el6-i386
+  variables:
+    dist: el6
+    arch: i686
+    project: frontendInterfaces
+    version: $fei_version
+    local_repo: output
+  <<: *rpmbuild
+
+redhawk:el6:
+  stage: package-redhawk-codegen
+  variables:
+    dist: el6
+    arch: x86_64
+    project: redhawk
+    specfile: src/releng/redhawk.spec
+    local_repo: ""
+  <<: *rpmbuild
+
+redhawk-codegen:el6:
+  stage: package-redhawk-codegen
+  variables:
+    dist: el6
+    arch: x86_64
+    project: redhawk-codegen
+    local_repo: ""
+  <<: *rpmbuild
+
+bulkio:el6:
+  stage: package-bulkio-gpp
+  dependencies:
+    - redhawk:el6
+  variables:
+    dist: el6
+    arch: x86_64
+    project: bulkioInterfaces
+    local_repo: output
+  <<: *rpmbuild
+
+gpp:el6:
+  stage: package-bulkio-gpp
+  dependencies:
+    - redhawk:el6
+  variables:
+    dist: el6
+    arch: x86_64
+    project: GPP
+    local_repo: output
+  <<: *rpmbuild
+
+burstio:el6:
+  stage: package-burstio-fei
+  dependencies:
+    - bulkio:el6
+  variables:
+    dist: el6
+    arch: x86_64
+    project: burstioInterfaces
+    local_repo: output
+  <<: *rpmbuild
+
+frontend:el6:
+  stage: package-burstio-fei
+  dependencies:
+    - bulkio:el6
+  variables:
+    dist: el6
+    arch: x86_64
+    project: frontendInterfaces
+    version: $fei_version
+    local_repo: output
+  <<: *rpmbuild
+
+redhawk:el7:
+  stage: package-redhawk-codegen
+  variables:
+    dist: el7
+    arch: x86_64
+    project: redhawk
+    specfile: src/releng/redhawk.spec
+    local_repo: ""
+  <<: *rpmbuild
+
+redhawk-codegen:el7:
+  stage: package-redhawk-codegen
+  variables:
+    dist: el7
+    arch: x86_64
+    project: redhawk-codegen
+    local_repo: ""
+  <<: *rpmbuild
+
+bulkio:el7:
+  stage: package-bulkio-gpp
+  dependencies:
+    - redhawk:el7
+  variables:
+    dist: el7
+    arch: x86_64
+    project: bulkioInterfaces
+    local_repo: output
+  <<: *rpmbuild
+
+gpp:el7:
+  stage: package-bulkio-gpp
+  dependencies:
+    - redhawk:el7
+  variables:
+    dist: el7
+    arch: x86_64
+    project: GPP
+    local_repo: output
+  <<: *rpmbuild
+
+burstio:el7:
+  stage: package-burstio-fei
+  dependencies:
+    - bulkio:el7
+  variables:
+    dist: el7
+    arch: x86_64
+    project: burstioInterfaces
+    local_repo: output
+  <<: *rpmbuild
+
+frontend:el7:
+  stage: package-burstio-fei
+  dependencies:
+    - bulkio:el7
+  variables:
+    dist: el7
+    arch: x86_64
+    project: frontendInterfaces
+    local_repo: output
+  <<: *rpmbuild
+
+#Trigger a Jenkins job to aggregate artifacts there
+deploy:
+  variables:
+    jenkins_job: REDHAWK-core-framework-$CI_COMMIT_REF_NAME
+  <<: *deploy-common
+  only:
+    - branches
+
+deploy-release:
+  variables:
+    redhawk_version: '2.0.7'
+    jenkins_job: $redhawk_version/job/REDHAWK-core-framework-$redhawk_version
+  <<: *deploy-common
+  only:
+    - tags
+
+#Trigger separate tests pipeline
+test-trigger:
+  image: centos:7
+  stage: deploy
+  dependencies: []
+  script:
+    - curl --insecure -X POST -F ref=$CI_COMMIT_REF_NAME
+                              -F token=$test_token
+                              -F "variables[triggering_ref]=$CI_COMMIT_SHA"
+                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
+                              $test_url
+  only:
+    - branches
+
+test-trigger:release:
+  image: centos:7
+  stage: deploy
+  dependencies: []
+  variables:
+    redhawk_version: '2.0.7'
+  script:
+    - curl --insecure -X POST -F ref=$redhawk_version
+                              -F token=$test_token
+                              -F "variables[triggering_ref]=$CI_COMMIT_SHA"
+                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
+                              $test_url
+  only:
+    - tags
