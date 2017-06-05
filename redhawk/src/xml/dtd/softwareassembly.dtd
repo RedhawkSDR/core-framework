@@ -193,6 +193,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT hostcollocation
 	( componentplacement+
         , usesdeviceref*
+        , reservation*
 	)>
 
 <!ATTLIST hostcollocation
@@ -202,6 +203,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT usesdeviceref EMPTY>
 <!ATTLIST usesdeviceref
 	refid		CDATA	#REQUIRED>
+
+<!ELEMENT reservation EMPTY>
+<!ATTLIST reservation
+    kind        CDATA   #REQUIRED
+    value       CDATA   #REQUIRED>
 
 <!ELEMENT assemblycontroller
 	( componentinstantiationref
