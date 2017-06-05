@@ -26,7 +26,7 @@ stages:
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
     - docker build --tag=${docker_registry}redhawk-rpmbuild:$proj_lower-$CI_COMMIT_SHA-${dist}-${arch}
                    --build-arg "project=$project"
-                   --build-arg "target=$arch"
+                   --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
                    --build-arg "other_repos=$other_repos/$dist/$arch"
