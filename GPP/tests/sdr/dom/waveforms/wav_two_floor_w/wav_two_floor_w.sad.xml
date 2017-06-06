@@ -27,7 +27,6 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   </componentfiles>
   <partitioning>
     <hostcollocation id="ID_TEST_SET1" name="COLLOC_SET1">
-      <reservation kind="cpucores" value="3"/>
       <componentplacement>
         <componentfileref refid="busy_comp_24f5c4f2-8d30-4906-beb6-af941498741f"/>
         <componentinstantiation id="busy_comp_1" startorder="0">
@@ -37,9 +36,9 @@ with this program.  If not, see http://www.gnu.org/licenses/.
           </findcomponent>
         </componentinstantiation>
       </componentplacement>
+      <reservation kind="cpucores" value="3"/>
     </hostcollocation>
     <hostcollocation id="ID_TEST_SET2" name="COLLOC_SET2">
-      <reservation kind="cpucores" value="3"/>
       <componentplacement>
         <componentfileref refid="busy_comp_24f5c4f2-8d30-4906-beb6-af941498741f"/>
         <componentinstantiation id="busy_comp_2" startorder="1">
@@ -49,6 +48,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
           </findcomponent>
         </componentinstantiation>
       </componentplacement>
+      <reservation kind="cpucores" value="3"/>
     </hostcollocation>
   </partitioning>
   <assemblycontroller>

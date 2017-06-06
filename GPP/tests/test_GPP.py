@@ -1549,7 +1549,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         extra_reservation = 1
         _value=any.to_any(extra_reservation)
         _value._t=CORBA.TC_double
-        app_1=self.dom.createApplication('/waveforms/busy_w/busy_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='busy_comp_1',value=any.to_any(_value))]))])
+        app_1=self.dom.createApplication('/waveforms/busy_w/busy_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='busy_comp_1',value=_value)]))])
         time.sleep(wait_amount)
         
         base_util = self.dom.devMgrs[0].devs[0].utilization[0]
@@ -1662,7 +1662,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         extra_reservation = 3
         _value=any.to_any(extra_reservation)
         _value._t=CORBA.TC_double
-        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self.dom.createApplication, '/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='busy_comp_1',value=any.to_any(_value))]))])
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self.dom.createApplication, '/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='busy_comp_1',value=_value)]))])
         app_1=self.dom.createApplication('/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[])
         time.sleep(wait_amount)
         self._verifyReservations(extra_reservation, app_1, wait_amount)
@@ -1700,7 +1700,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         extra_reservation = 4
         _value=any.to_any(extra_reservation)
         _value._t=CORBA.TC_double
-        app_1=self.dom.createApplication('/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='',value=any.to_any(_value))]))])
+        app_1=self.dom.createApplication('/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='',value=_value)]))])
         time.sleep(wait_amount)
         self._verifyReservations(extra_reservation, app_1, wait_amount)
 
@@ -1730,8 +1730,8 @@ class ComponentTests_SystemReservations(DomainSupport):
         extra_reservation = 4
         _value=any.to_any(extra_reservation)
         _value._t=CORBA.TC_double
-        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self.dom.createApplication, '/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='COLLOC_SET1',value=any.to_any(_value))]))])
-        app_1=self.dom.createApplication('/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='ID_TEST_SET1',value=any.to_any(_value))]))])
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self.dom.createApplication, '/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='COLLOC_SET1',value=_value)]))])
+        app_1=self.dom.createApplication('/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='ID_TEST_SET1',value=_value)]))])
         time.sleep(wait_amount)
         self._verifyReservations(extra_reservation, app_1, wait_amount)
 
@@ -1761,8 +1761,8 @@ class ComponentTests_SystemReservations(DomainSupport):
         extra_reservation = 4
         _value=any.to_any(extra_reservation/2)
         _value._t=CORBA.TC_double
-        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self.dom.createApplication, '/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='COLLOC_SET1',value=any.to_any(_value)),CF.DataType(id='ID_TEST_SET2',value=any.to_any(_value))]))])
-        app_1=self.dom.createApplication('/waveforms/wav_two_floor_w/wav_two_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='ID_TEST_SET1',value=any.to_any(_value)),CF.DataType(id='ID_TEST_SET2',value=any.to_any(_value))]))])
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self.dom.createApplication, '/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='COLLOC_SET1',value=any.to_any(_value)),CF.DataType(id='ID_TEST_SET2',value=_value)]))])
+        app_1=self.dom.createApplication('/waveforms/wav_two_floor_w/wav_two_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='ID_TEST_SET1',value=any.to_any(_value)),CF.DataType(id='ID_TEST_SET2',value=_value)]))])
         time.sleep(wait_amount)
         self._verifyReservations(extra_reservation, app_1, wait_amount)
 
@@ -1792,7 +1792,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         extra_reservation = 4
         _value=any.to_any(extra_reservation/2)
         _value._t=CORBA.TC_double
-        app_1=self.dom.createApplication('/waveforms/wav_one_floor_w/wav_one_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='ID_TEST_SET1',value=any.to_any(_value)),CF.DataType(id='ID_TEST_SET2',value=any.to_any(_value))]))])
+        app_1=self.dom.createApplication('/waveforms/wav_one_floor_w/wav_one_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='ID_TEST_SET1',value=any.to_any(_value)),CF.DataType(id='ID_TEST_SET2',value=_value)]))])
         time.sleep(wait_amount)
         self._verifyReservations(extra_reservation, app_1, wait_amount)
 
