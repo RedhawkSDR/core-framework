@@ -569,6 +569,30 @@ class CorbaTestCase(OssieTestCase):
             self._addDeviceManager(devMgr)
         return devMgr
 
+    def waitForDeviceManager(self, node_dir):
+        dcdPath = getSdrPath()+"/dev/nodes/"+node_dir+"/DeviceManager.dcd.xml"
+
+        dcd = DCDParser.parse(dcdPath)
+        if dcd.get_partitioning():
+            numDevices = len(dcd.get_partitioning().get_componentplacement())
+        else:
+            numDevices = 0
+
+        dm = self._getDomainManager()
+
+        devMgr = None
+        while devMgr == None:
+            devMgr = self._getDeviceManager(dm, dcd.get_id())
+            if devMgr:
+                break
+            time.sleep(0.1)
+
+        if devMgr:
+            self._waitRegisteredDevices(devMgr, numDevices)
+            self._addDeviceManager(devMgr)
+        return devMgr
+
+
     def _waitRegisteredDevices(self, devMgr, numDevices, timeout=5.0, pause=0.1):
         while timeout > 0.0:
             if (len(devMgr._get_registeredDevices())+len(devMgr._get_registeredServices())) == numDevices:

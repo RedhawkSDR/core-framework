@@ -702,7 +702,7 @@ module CF {
     };
 
     /* The DomainManager interface is for the control and configuration of the radio domain. */
-    interface DomainManager : PropertyEmitter {
+    interface DomainManager : PropertyEmitter, Logging {
       /* This exception is raised when an Application installation has not completed correctly. The message provides additional information describing the reason for the error. */
       exception ApplicationInstallationError {
         CF::ErrorNumberType errorNumber;

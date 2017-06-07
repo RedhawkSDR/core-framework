@@ -251,6 +251,30 @@ def ConvertToLog4Level( newLevel ):
     return level
 
 
+
+def ConvertLevelNameToDebugLevel( level_name ):
+    if  level_name == "OFF" :   return 0
+    if  level_name == "FATAL" : return 0
+    if  level_name == "ERROR" : return 1
+    if  level_name == "WARN" :  return 2
+    if  level_name == "INFO" :  return 3
+    if  level_name == "DEBUG" : return 4
+    if  level_name == "TRACE":  return 5
+    if  level_name ==  "ALL" :  return 5
+    return 3
+
+def ConvertLevelNameToCFLevel( level_name ):
+    if  level_name == "OFF" :   return CF.LogLevels.OFF
+    if  level_name == "FATAL" : return CF.LogLevels.FATAL
+    if  level_name == "ERROR" : return CF.LogLevels.ERROR
+    if  level_name == "WARN" :  return CF.LogLevels.WARN
+    if  level_name == "INFO" :  return CF.LogLevels.INFO
+    if  level_name == "DEBUG" : return CF.LogLevels.DEBUG
+    if  level_name == "TRACE":  return CF.LogLevels.TRACE
+    if  level_name ==  "ALL" :  return CF.LogLevels.ALL
+    return CF.LogLevels.INFO
+
+
 def SupportedCFLevel( newLevel ):
     level = True
     if  newLevel != CF.LogLevels.OFF and \

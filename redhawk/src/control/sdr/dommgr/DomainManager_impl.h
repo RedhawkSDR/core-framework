@@ -33,6 +33,7 @@
 
 #include <ossie/CF/cf.h>
 #include <ossie/PropertySet_impl.h>
+#include <ossie/Logging_impl.h>
 #include <ossie/Runnable.h>
 #include <ossie/Events.h>
 #include <ossie/logging/loghelpers.h>
@@ -51,7 +52,7 @@ class AllocationManager_impl;
 class ConnectionManager_impl;
 
 
-class DomainManager_impl: public virtual POA_CF::DomainManager, public PropertySet_impl, public ossie::ComponentLookup, public ossie::DomainLookup, public ossie::Runnable
+class DomainManager_impl: public virtual POA_CF::DomainManager, public PropertySet_impl, public Logging_impl, public ossie::ComponentLookup, public ossie::DomainLookup, public ossie::Runnable
 {
     ENABLE_LOGGING
 

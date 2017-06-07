@@ -27,30 +27,70 @@ import core as _core
 from ossie.cf import CF as _CF
 import ossie.utils as _utils
 from ossie.utils.sca import importIDL as _importIDL
+from ossie.logger import ConvertLevelNameToDebugLevel
 import atexit
+import signal as _signal
+import time  as _time
+import traceback
 
 class _envContainer(object):
-    def __init__(self, domain, stdout):
-        self.domain = int(domain)
+    def __init__(self, process, stdout):
+        self.process = process
         self.stdout = stdout
+
+def __waitTermination( process, timeout=5.0, pause=0.1):
+        while process and process.poll() is None and timeout > 0.0:
+            timeout -= pause
+            _time.sleep(pause)
+        return process.poll() != None
+
+def __terminate_process( process, signals=(_signal.SIGINT, _signal.SIGTERM, _signal.SIGKILL) ):
+        if process and process.poll() != None:
+           return
+        try:
+            for sig in signals:
+                _os.kill(process.pid, sig)
+                if __waitTermination(process):
+                    break
+            process.wait()
+        except OSError, e:
+            pass
+        finally:
+            pass
 
 def _cleanup_domain():
     try:
-        _os.kill(globals()['currentdomain'].domain,2)
+        if globals().has_key('currentdomain'):
+            __terminate_process( globals()['currentdomain'].process)
+            x = globals().pop('currentdomain')
+            if x : del x
     except:
+        traceback.print_exc()
         pass
+    if globals().has_key('currentdevmgrs'):
+        for x in globals()['currentdevmgrs']:
+            try:
+                __terminate_process(x.process)
+            except:
+                traceback.print_exc()
+                pass
+        x = globals().pop('currentdevmgrs')
+        if x : del x
 
 atexit.register(_cleanup_domain)
 
-def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], detached=False, sdrroot=None, stdout=None, logfile=None):
+def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], detached=False, sdrroot=None, stdout=None, logfile=None, debug_level=None, device_managers_debug_levels=[]):
     """Kick-start a REDHAWK domain.
          domain_name: the name that should be used
          kick_device_managers: one or more Device Managers should be automatically started
          device_managers: if kick_device_managers set to True, list of Device Managers to start. If the list is empty, then start all Device Managers in
-                          $SDRROOT/dev/nodes
+                          $SDRROOT/dev/nodes.  List can be node names i.e. GPP_node or absolute path to DCD files
          detached: determine whether the life cycle of the started Domain and Device Managers should follow the lifecycle of the current Python session
          sdrroot: use this sdr root. If set to None, then use $SDRROOT
          stdout: filename where stdout should be redirected. None sends stdout to /dev/null
+         debug_level: debug level to pass on command line: FATAL, ERROR, WARN, INFO, DEBUG, TRACE
+         device_managers_debug_levels = list of debug levels to pass on command line with corresponding device_managers
+
     """
         
     if sdrroot == None:
@@ -66,6 +106,10 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
     if logfile:
         args.append('-logcfgfile')
         args.append(logfile)
+
+    if debug_level:
+        args.append('-debug')
+        args.append(str(ConvertLevelNameToDebugLevel(debug_level)))
     
     if domain_name != None:
         args.append('--domainname')
@@ -102,9 +146,10 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
     if globals().has_key('currentdomain'):
         globals()['currentdomain'] = None
         
-    globals()['currentdomain'] = _envContainer(sp.pid, stdout_fp)
+    globals()['currentdomain'] = _envContainer(sp, stdout_fp)
     
     if kick_device_managers:
+        dm_procs=[]
         if len(device_managers) == 0:
             base = sdrroot + '/dev/nodes'
             for (directory,sub,files) in _os.walk(base):
@@ -117,6 +162,26 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
                         break
                 if foundDCD:
                     device_managers.append(directory[len(sdrroot)+4:]+'/'+filename)
+        else:
+            dm_list=[]
+            for dm in device_managers:
+                base = sdrroot + '/dev/nodes'
+                fname = dm
+                if dm.startswith("/") == False:
+                    fname = base + '/' + dm
+
+                try:
+                    if fname.endswith(".dcd.xml") == False:
+                        fname = fname + "/DeviceManager.dcd.xml"
+                    f=open(fname)
+                    dm_list.append(fname)
+                    f.close()
+                except:
+                    #traceback.print_exc()
+                    print "Unable to locate DCD file for :" + dm + " file: " + fname
+            device_managers = dm_list
+
+        idx=0
         for device_manager in device_managers:
             args = ['nodeBooter']
             args.append('-d')
@@ -128,7 +193,21 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
             if logfile:
                 args.append('-logcfgfile')
                 args.append(logfile)
+            if device_managers_debug_levels and len(device_managers_debug_levels) > 0 :
+                dlevel = None
+                if idx < len(device_managers_debug_levels):
+                    dlevel = device_managers_debug_levels[idx]
+                if dlevel:
+                     args.append('-debug')
+                     args.append(str(ConvertLevelNameToDebugLevel(dlevel)))
+            idx =  idx + 1
             sp = _utils.Popen(args, executable=None, cwd=_os.getcwd(), close_fds=True, stdin=_devnull, stdout=stdout_fp, preexec_fn=_os.setpgrp)
+            dm_procs.append( _envContainer(sp, stdout_fp) )
+
+        if globals().has_key('currentdevmgrs'):
+            globals()['currentdevmgrs'].append(dm_procs)
+        else:
+            globals()['currentdevmgrs'] = dm_procs
 
     dom = attach(domain_name)
     

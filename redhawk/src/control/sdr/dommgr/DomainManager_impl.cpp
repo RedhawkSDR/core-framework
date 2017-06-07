@@ -70,7 +70,7 @@ static const ComponentInstantiation* findComponentInstantiation (const std::vect
     return 0;
 }
 
-PREPARE_CF_LOGGING(DomainManager_impl)
+PREPARE_LOGGING(DomainManager_impl)
 
 // If _overrideDomainName == NULL read the domain name from the DMD file
 DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpath, const char* domainName, 
@@ -188,8 +188,6 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
         LOG_FATAL(DomainManager_impl, "Stopping domain manager; EventChannelManager - EventChannelFactory unavailable" )
         _exit(EXIT_FAILURE);
     }
-
-
 
 // \todo lookup and install any services specified in the DMD
 

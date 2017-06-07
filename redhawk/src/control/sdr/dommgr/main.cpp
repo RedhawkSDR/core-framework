@@ -225,53 +225,12 @@ int old_main(int argc, char* argv[])
     dpath= os.str();
 
     // setup logging context for a component resource
-    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::DomainCtx(name_binding, domainName, dpath ) );
-
     std::string logcfg_uri = logfile_uri;
-    if ( !logfile_uri.empty() ) {
-        // Determine the scheme, if any.  This isn't a full fledged URI parser so we can
-        // get tripped up on complex URIs.  We should probably incorporate a URI parser
-        // library for this sooner rather than later
-        std::string scheme;
-        fs::path path;
-
-        std::string::size_type colonIdx = logfile_uri.find(":"); // Find the scheme separator
-        if (colonIdx == std::string::npos) {
-
-            scheme = "file";
-            path = logfile_uri;
-            // Make the path absolute
-            fs::path logfile_path(path);
-            if (! logfile_path.is_complete()) {
-                // Get the root path so we can resolve relative paths
-                fs::path root = fs::initial_path();
-                logfile_path = fs::path(root / path);
-            }
-            path = logfile_path;
-            logfile_uri = "file://" + path.string();
-
-        } else {
-
-            scheme = logfile_uri.substr(0, colonIdx);
-            colonIdx += 1;
-            if ((logfile_uri.at(colonIdx + 1) == '/') && (logfile_uri.at(colonIdx + 2) == '/')) {
-                colonIdx += 2;
-            }
-            path = logfile_uri.substr(colonIdx, logfile_uri.length() - colonIdx);
-        }
-
-        if (scheme == "file") {
-          std::string fpath((char*)path.string().c_str());
-          logcfg_uri = "file://" + fpath;         
-        }
-        if (scheme == "sca") {
-          std::string fpath((char*)fs::path(domRootPath / path).string().c_str());
-          logcfg_uri = "file://" + fpath;
-        }
-    }
+    ossie::logging::DomainCtx *ctx_=new ossie::logging::DomainCtx( name_binding, domainName, dpath );
+    ctx_->configure( logcfg_uri, debugLevel, logfile_uri );
+    ossie::logging::ResourceCtxPtr ctx(ctx_);
 
     // configure the  logging library
-    ossie::logging::Configure(logcfg_uri, debugLevel, ctx);
     // This log statement is exempt from the "NO LOG STATEMENTS" warning below
     if ( logfile_uri == "") {
       LOG_INFO(DomainManager, "Loading DEFAULT logging configuration. " );
@@ -287,7 +246,7 @@ int old_main(int argc, char* argv[])
     }
 #endif
 
-#if 0 
+#if 0
     // test logger configuration....
     LOG_FATAL(DomainManager, "FATAL MESSAGE " );
     LOG_ERROR(DomainManager, "ERROR MESSAGE " );
@@ -415,7 +374,7 @@ int old_main(int argc, char* argv[])
 
         // set logging level for the DomainManager's logger
         if ( DomainManager_servant ) {
-          DomainManager_servant->getLogger()->setLevel( ossie::logging::ConvertDebugToRHLevel(debugLevel) );
+          DomainManager_servant->saveLoggingContext( logfile_uri, debugLevel, ctx );
         }
 
     } catch (const CORBA::Exception& ex) {

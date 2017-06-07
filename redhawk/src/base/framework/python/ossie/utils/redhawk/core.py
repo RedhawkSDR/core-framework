@@ -2003,7 +2003,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             except:
                 raise
         return self.__eventChannelMgr
-    
+
     def _get_allocationMgr(self):
         if self.ref and self.__allocationMgr == None :
             try:
@@ -2027,6 +2027,51 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             except:
                 raise
         return self.__eventChannelMgr
+
+    def _get_log_level(self):
+        ret=None
+        if self.ref :
+            try:
+                ret=self.ref._get_log_level()
+            except:
+                raise
+        return ret
+
+    def _set_log_level(self, cf_log_lvl ):
+        if self.ref :
+            try:
+                self.ref._set_log_level(cf_log_lvl)
+            except:
+                raise
+
+    def getLogConfig(self):
+        if self.ref :
+            try:
+                return self.ref.getLogConfig()
+            except:
+                raise
+        return None
+
+    def setLogConfig(self, cfg):
+        if self.ref :
+            try:
+                self.ref.setLogConfig(cfg)
+            except:
+                raise
+
+    def setLogConfigURL(self, cfg_url):
+        if self.ref :
+            try:
+                self.ref.setLogConfigURL(cfg_url)
+            except:
+                raise
+
+    def setLogLevel(self, logger_id, cf_log_lvl ):
+        if self.ref :
+            try:
+                self.ref.setLogLevel(logger_id, cf_log_lvl)
+            except:
+                raise
 
     # End external Domain Manager API
     ########################################

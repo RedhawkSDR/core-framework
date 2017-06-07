@@ -21,6 +21,11 @@
 import unittest
 from _unitTestHelpers import scatest
 import time
+import contextlib
+import cStringIO
+import tempfile
+import re
+import sys as _sys
 from omniORB import CORBA
 from omniORB import any as _any
 from xml.dom import minidom
@@ -35,6 +40,7 @@ from ossie.utils import sb
 from ossie.utils.model import NoMatchingPorts
 from ossie.events import Subscriber, Publisher
 from ossie.cf import CF
+import traceback
 
 class RedhawkModuleEventChannelTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -122,7 +128,8 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         remap_api = dir(self._rhDom)
         not_remap = ['_NP_RepositoryId','_Object__release','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
                      '__methods__','_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '__del__','__omni_obj','_release','_unchecked_narrow', '_non_existent']
+                     '__del__','__omni_obj','_release','_unchecked_narrow', '_non_existent',
+                     'retrieve_records', 'retrieve_records_by_date', 'retrieve_records_from_date' ]
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -915,3 +922,275 @@ class MixedRedhawkSandboxTest(scatest.CorbaTestCase):
 
         sink = sb.DataSink()
         self.assertRaises(NoMatchingPorts, app.connect, source)
+
+
+class DomainMgrLoggingAPI(scatest.CorbaTestCase):
+    def setUp(self):
+        self.lcfg=_os.environ['OSSIEUNITTESTSLOGCONFIG']
+        _os.environ['OSSIEUNITTESTSLOGCONFIG']=""
+        domBooter, self._domMgr = self.launchDomainManager()
+        self.dom = redhawk.attach(scatest.getTestDomainName())
+
+    def tearDown(self):
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        time.sleep(0.1)
+        _os.environ['OSSIEUNITTESTSLOGCONFIG']=self.lcfg
+
+    def test123log_level(self):
+        """
+        Tests set debug level api is working
+        """
+        from ossie.cf import CF
+        self.assertNotEqual( self.dom, None )
+
+        self.dom.ref._set_log_level( CF.LogLevels.TRACE  )
+        ret=self.dom.ref._get_log_level( )
+        self.assertEqual( ret, CF.LogLevels.TRACE )
+
+        self.dom.ref._set_log_level( CF.LogLevels.DEBUG )
+        ret=self.dom.ref._get_log_level()
+        self.assertEqual( ret, CF.LogLevels.DEBUG )
+
+        self.dom.ref._set_log_level( CF.LogLevels.INFO )
+        ret=self.dom.ref._get_log_level()
+        self.assertEqual( ret, CF.LogLevels.INFO )
+
+        self.dom.ref._set_log_level( CF.LogLevels.WARN )
+        ret=self.dom.ref._get_log_level()
+        self.assertEqual( ret, CF.LogLevels.WARN )
+
+        self.dom.ref._set_log_level( CF.LogLevels.ERROR )
+        ret=self.dom.ref._get_log_level()
+        self.assertEqual( ret, CF.LogLevels.ERROR )
+
+        self.dom.ref._set_log_level( CF.LogLevels.FATAL )
+        ret=self.dom.ref._get_log_level()
+        self.assertEqual( ret, CF.LogLevels.FATAL )
+
+    def test_default_logconfig(self):
+        cfg = "log4j.rootLogger=INFO,STDOUT\n" + \
+              "# Direct log messages to STDOUT\n" + \
+              "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
+              "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
+              "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n"
+
+        c_cfg=self.dom.ref.getLogConfig()
+
+        ## remove extra white space
+        cfg=cfg.replace(" ","")
+        c_cfg=c_cfg.replace(" ","")
+        self.assertEquals( cfg, c_cfg)
+
+
+    def test_logconfig(self):
+        cfg = "log4j.rootLogger=ERROR,STDOUT\n" + \
+            "# Direct log messages to STDOUT\n" + \
+            "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
+            "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n"
+
+        self.dom.ref.setLogConfig(cfg)
+
+        c_cfg=self.dom.ref.getLogConfig()
+        cfg=cfg.replace(" ","")
+        c_cfg=c_cfg.replace(" ","")
+        self.assertEquals( cfg, c_cfg)
+
+
+    def test_macro_config(self):
+        cfg = "log4j.rootLogger=ERROR,STDOUT\n " + \
+            "# Direct log messages to STDOUT\n" + \
+            "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
+            "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.STDOUT.layout.ConversionPattern=@@@DOMAIN.NAME@@@\n"
+
+        self.dom.ref.setLogConfig(cfg)
+
+        c_cfg=self.dom.ref.getLogConfig()
+
+        res=c_cfg.find(scatest.getTestDomainName())
+
+        self.assertNotEquals( res, -1 )
+
+    def test_macro_config2(self):
+        cfg = "@@@DOMAIN.NAME@@@"
+        self.dom.ref.setLogConfig(cfg)
+        c_cfg=self.dom.ref.getLogConfig()
+        res=c_cfg.find(scatest.getTestDomainName())
+        self.assertNotEquals( res, -1 )
+
+
+
+
+class RedhawkStartup(scatest.CorbaTestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        redhawk.base._cleanup_domain()
+        scatest.CorbaTestCase.tearDown(self)
+        import commands
+        try:
+            s,o = commands.getstatusoutput('pkill -9 -f nodeBooter ')
+            s,o = commands.getstatusoutput('pkill -9 -f dev/devices ')
+            s,o = commands.getstatusoutput('pkill -9 -f DomainManager ')
+            s,o = commands.getstatusoutput('pkill -9 -f DeviceManager ')
+        except:
+            pass
+
+    def _try_kick_domain(self, logcfg, epatterns, debug_level=None,  kick_device_managers=False, dev_mgrs=[], dev_mgr_levels=[] ):
+
+        tmpfile=tempfile.mktemp()
+        self._rhDom = redhawk.kickDomain(domain_name=scatest.getTestDomainName(),
+                                         logfile=scatest.getSdrPath()+'/dom/logcfg/'+logcfg,
+                                         kick_device_managers=kick_device_managers,
+                                         device_managers = dev_mgrs,
+                                         stdout=tmpfile,
+                                         debug_level=debug_level,
+                                         device_managers_debug_levels = dev_mgr_levels )
+
+        if kick_device_managers and len(dev_mgrs)> 0 :
+            for devm in dev_mgrs:
+                try:
+                    self.waitForDeviceManager(devm)
+                except:
+                    traceback.print_exc()
+                    pass
+        new_stdout=open(tmpfile,'r')
+        for k, epat in epatterns.iteritems():
+            epat.setdefault('results',[])
+
+        for x in new_stdout.readlines():
+            #print "Line -> ", x
+            for k, pat in epatterns.iteritems():
+                for epat in pat['patterns' ]:
+                    m=re.search( epat, x )
+                    if m :
+                        #print "MATCH  -> ", epat, " LINE ", x
+                        pat['results'].append(True)
+
+        for k,pat in epatterns.iteritems():
+            if type(pat['match']) == list:
+                lmatch = len(pat['results']) == len(pat['match']) and pat['results'] == pat['match']
+                self.assertEqual(lmatch, True )
+
+            if type(pat['match']) == int:
+                # ignore
+                if pat['match'] == -1 :
+                    pass
+                else:
+                   self.assertEqual( pat['match'] , len(pat['results']) )
+
+
+    def test_kick_trace(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={
+                                          "yes" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="TRACE")
+
+    def test_kick_trace_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={
+                                          "yes" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="TRACE",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node' ],
+                              dev_mgr_levels= [ "TRACE" ],
+                                )
+
+    def test_kick_debug(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE " ], 'match': [] },
+                                          "yes" :  { 'patterns':  [" DEBUG ", " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="DEBUG")
+
+
+    def test_kick_debug_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE " ], 'match': [] },
+                                          "yes" :  { 'patterns':  [ " DEBUG ", " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="DEBUG",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
+                              dev_mgr_levels= [ "DEBUG", "DEBUG" ]
+                                )
+
+    def test_kick_info(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG " ], 'match': [] },
+                                          "yes" :  { 'patterns':  [ " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="INFO")
+
+    def test_kick_info_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG " ], 'match': [] },
+                                          "yes" :  { 'patterns':  [ " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="INFO",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
+                              dev_mgr_levels= [ "INFO", "INFO" ]
+                                )
+
+    def test_kick_warn(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ",   ], 'match': 2 },
+                                          "yes" :  { 'patterns':  [" WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="WARN")
+
+    def test_kick_warn_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG "   ], 'match': [] },
+                                          "no2" :  { 'patterns':  [ " INFO ",   ], 'match': 12 },
+                                          "yes" :  { 'patterns':  [ " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="WARN",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
+                              dev_mgr_levels= [ "WARN", "WARN" ]
+                                )
+
+    def test_kick_error(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ", " WARN "  ], 'match': 2 },
+                                          "yes" :  { 'patterns':  [ " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="ERROR")
+
+    def test_kick_error_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG " ] , 'match': [] },
+                                          "no2" :  { 'patterns':  [ " INFO ", " WARN "  ], 'match': 14 },
+                                          "yes" :  { 'patterns':  [ " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="ERROR",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
+                              dev_mgr_levels= [ "ERROR", "ERROR"  ]
+                                )
+
+    def test_kick_fatal(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ", " WARN ", " ERROR "  ], 'match': 2 },
+                                          "yes" :  { 'patterns':  [" FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="ERROR")
+
+    def test_kick_fatal_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " ERROR "  ], 'match': [] },
+                                          "no2" :  { 'patterns':  [ " INFO ", " WARN "  ], 'match': 14 },
+                                          "yes" :  { 'patterns':  [ " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="FATAL",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
+                              dev_mgr_levels= [ "FATAL", "FATAL"  ]
+                                )
