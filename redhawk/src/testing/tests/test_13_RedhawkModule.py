@@ -31,6 +31,7 @@ from omniORB import any as _any
 from xml.dom import minidom
 import os as _os
 import Queue
+import StringIO
 from ossie.cf import CF
 from ossie.utils import redhawk
 from ossie.utils import type_helpers
@@ -178,8 +179,9 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEquals(len(self._rhDom.apps), 1)
 
         # Ensure that api() works.
+        _destfile=StringIO.StringIO()
         try:
-            app.api()
+            app.api(destfile=_destfile)
         except:
             self.fail('App.api() raised an exception')
 
@@ -232,8 +234,9 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEquals(len(self._rhDom.apps), 1)
 
         # Ensure that api() works.
+        _destfile=StringIO.StringIO()
         try:
-            app.api()
+            app.api(destfile=_destfile)
         except:
             self.fail('App.api() raised an exception')
 
@@ -298,7 +301,8 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEquals(provides_ports, {})
         uses_ports = object.__getattribute__(app,'_usesPortDict')
         self.assertEquals(uses_ports, {})
-        app.api()
+        _destfile=StringIO.StringIO()
+        app.api(destfile=_destfile)
         provides_ports = object.__getattribute__(app,'_providesPortDict')
         self.assertEquals(len(provides_ports), 1)
         self.assertEquals(provides_ports.keys()[0], 'input')
