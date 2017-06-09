@@ -1249,7 +1249,7 @@ class DataSourceSDDS(_SourceBase):
         print "Elapsed Time: ", deltaTime, "  Total Data (kB): ", totalRead/1000.0, " Rate (kBps): ", (totalRead/1000.0)/deltaTime
         if returnSddsAnalyzer:
             from ossie.utils.sdds import SDDSAnalyzer
-            return SDDSAnalyzer( pkts, data, rawdata, totalRead, pktlen )
+            return SDDSAnalyzer( rawdata, pkts, pktlen, totalRead )
         else:
             return data, rawdata, (pktlen,pkts,totalRead)
             

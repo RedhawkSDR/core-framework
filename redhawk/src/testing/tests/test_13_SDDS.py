@@ -186,12 +186,12 @@ class Test_SDDS_Packet(unittest.TestCase):
     def test_format_identifier_api(self):
         
         # get default format identifer.. sf=1, sos=1, dm=1 bps=8 all others 0
-        res=binascii.unhexlify('2340')
+        res=binascii.a2b_hex('C108')
         formatid = format_identifier()
         self.assertEqual( formatid.asString(), res )
 
         # assign from values sf=1, sos=1, dm =4, bps=16
-        formatid= format_identifier.from_buffer_copy('\x83\x80')
+        formatid= format_identifier.from_buffer_copy('\xC4\x10')
         self.assertEqual( formatid.sf, 1 )
         self.assertEqual( formatid.sos, 1 )
         self.assertEqual( formatid.dm, 4 )
@@ -211,11 +211,45 @@ class Test_SDDS_Packet(unittest.TestCase):
         formatid.set_dmode( 5 )
         self.assertEqual( formatid.dm, 5 )
 
+
+    def test_format_identifier_packet(self):
+        pkt = sdds_pkt.sdds_packet()
+
+        pkt.set_standardformat(True)
+        self.assertEquals(pkt.get_standardformat(),True)
+
+        pkt.set_startofsequence(True)
+        self.assertEquals(pkt.get_startofsequence(),True)
+
+        pkt.set_paritypacket(True)
+        self.assertEquals(pkt.get_paritypacket(),True)
+
+        pkt.set_spectralsense(True)
+        self.assertEquals(pkt.get_spectralsense(),True)
+
+        pkt.set_originalformat(True)
+        self.assertEquals(pkt.get_originalformat(),True)
+
+        pkt.set_complex(True)
+        self.assertEquals(pkt.get_complex(),True)
+
+        pkt.set_vw(True)
+        self.assertEquals(pkt.get_vw(),True)
+
+        for x in [ 2, 4, 8, 12 ]:
+            pkt.set_bps(x)
+            self.assertEquals(pkt.get_bps(),x)
+
+        for x in [ 0,1,2,5,6,7]:
+            pkt.set_dmode(x)
+            self.assertEquals(pkt.get_dmode(),x)
+        
+
         
     def test_frame_sequence(self):
 
         # get default frame sequence == 0
-        res=binascii.unhexlify('0000')
+        res=binascii.a2b_hex('0000')
         fsn = frame_sequence()
         self.assertEqual( fsn.asString(), res )
         
@@ -242,6 +276,40 @@ class Test_SDDS_Packet(unittest.TestCase):
         res=struct.pack("!H",0)
         self.assertEqual( fsn.asString(), res )
 
+
+    def test_frame_sequence_packet(self):
+        pkt = sdds_pkt.sdds_packet()
+        res=binascii.a2b_hex('0000')
+        self.assertEqual( pkt.header.fsn.asString(), res )
+        
+        # test big endian format for number
+        seq=256
+        res=struct.pack("!H",seq)
+        pkt.set_fsn(seq)
+        self.assertEqual( pkt.header.fsn.asString(), res )
+        self.assertEqual( pkt.get_fsn(), seq  )
+
+        # add one...
+        seq +=1
+        res=struct.pack("!H",seq)
+        pkt.inc_fsn()
+        self.assertEqual( pkt.header.fsn.asString(), res )
+        self.assertEqual( pkt.get_fsn(), seq  )
+
+        # set for rollover
+        seq =65535
+        res=struct.pack("!H",seq)
+        pkt.set_fsn(seq)
+        self.assertEqual( pkt.header.fsn.asString(), res )
+        self.assertEqual( pkt.get_fsn(), seq  )
+
+        # set for rollover
+        res=struct.pack("!H",0)
+        pkt.inc_fsn()
+        self.assertEqual( pkt.header.fsn.asString(), res )
+        self.assertEqual( pkt.get_fsn(), 0  )
+
+
     def test_msptr_data(self):
 
         # get default frame sequence == 0
@@ -267,57 +335,119 @@ class Test_SDDS_Packet(unittest.TestCase):
         msptr.msdelta=msdelta_
         self.assertEqual( msptr.asString(), res )
 
+
+    def test_msptr_packet(self):
+        pkt = sdds_pkt.sdds_packet()
+
+        # get default frame sequence == 0
+        msptr_=0
+        msdelta_=0
+        res=struct.pack("!HH",msptr_, msdelta_)
+        pkt.set_msptr(msptr_)
+        pkt.set_msdelta(msdelta_)
+        self.assertEqual( pkt.header.ttag.info.asString(), res )
+        self.assertEqual( pkt.get_msptr(), msptr_ )
+        self.assertEqual( pkt.get_msdelta(), msdelta_ )
+        
+        # test big endian format for number
+        msptr_=256
+        msdelta_=256
+        res=struct.pack("!HH",msptr_, msdelta_)
+        pkt.set_msptr(msptr_)
+        pkt.set_msdelta(msdelta_)
+        self.assertEqual( pkt.header.ttag.info.asString(), res )
+        self.assertEqual( pkt.get_msptr(), msptr_ )
+        self.assertEqual( pkt.get_msdelta(), msdelta_ )
+
+        # set max value
+        msptr_=2047
+        msdelta_=65535
+        res=struct.pack("!HH",msptr_, msdelta_)
+        pkt.set_msptr(msptr_)
+        pkt.set_msdelta(msdelta_)
+        self.assertEqual( pkt.header.ttag.info.asString(), res )
+        self.assertEqual( pkt.get_msptr(), msptr_ )
+        self.assertEqual( pkt.get_msdelta(), msdelta_ )
+
+
     def test_ttag_info_struct(self):
 
         # get default 
-        res=binascii.unhexlify('00000000')
+        res=binascii.a2b_hex('00000000')
         ttag_info = ttag_info_struct()
         self.assertEqual( ttag_info.asString(), res )
         
         # test msv
-        res=binascii.unhexlify('00800000')
+        res=binascii.a2b_hex('80000000')
         ttag_info.set_msv()
         self.assertEqual( ttag_info.asString(), res )
 
-        res=binascii.unhexlify('00000000')
+        res=binascii.a2b_hex('00000000')
         ttag_info.set_msv(False)
         self.assertEqual( ttag_info.asString(), res )
 
         # test ttv
-        res=binascii.unhexlify('00400000')
+        res=binascii.a2b_hex('40000000')
         ttag_info.set_ttv()
         self.assertEqual( ttag_info.asString(), res )
 
-        res=binascii.unhexlify('00000000')
+        res=binascii.a2b_hex('00000000')
         ttag_info.set_ttv(False)
         self.assertEqual( ttag_info.asString(), res )
 
         # test sscv
-        res=binascii.unhexlify('0000000')
+        res=binascii.a2b_hex('20000000')
         ttag_info.set_sscv()
         self.assertEqual( ttag_info.asString(), res )
 
-        res=binascii.unhexlify('00000000')
+        res=binascii.a2b_hex('00000000')
         ttag_info.set_sscv(False)
         self.assertEqual( ttag_info.asString(), res )
 
         # test pi
-        res=binascii.unhexlify('08000000')
+        res=binascii.a2b_hex('10000000')
         ttag_info.set_pi()
         self.assertEqual( ttag_info.asString(), res )
 
-        res=binascii.unhexlify('00000000')
+        res=binascii.a2b_hex('00000000')
         ttag_info.set_pi(False)
         self.assertEqual( ttag_info.asString(), res )
 
         # test peo
-        res=binascii.unhexlify('10000000')
+        res=binascii.a2b_hex('08000000')
         ttag_info.set_peo(True)
         self.assertEqual( ttag_info.asString(), res )
 
-        res=binascii.unhexlify('00000000')
+        res=binascii.a2b_hex('00000000')
         ttag_info.set_peo(False)
         self.assertEqual( ttag_info.asString(), res )
+
+
+    def test_ttag_info_packet(self):
+        pkt = sdds_pkt.sdds_packet()
+
+        res=binascii.a2b_hex('00000000')
+        self.assertEqual( pkt.header.ttag.info.asString(), res )
+        self.assertEqual( pkt.get_msv(), 0 )
+
+        res=binascii.a2b_hex('80000000')
+        pkt.set_msv()
+        self.assertEqual( pkt.header.ttag.info.asString(), res )
+        self.assertEqual( pkt.get_msv(), 1 )
+        pkt.set_msv(False)
+
+        res=binascii.a2b_hex('40000000')
+        pkt.set_ttv()
+        self.assertEqual( pkt.header.ttag.info.asString(), res )
+        self.assertEqual( pkt.get_ttv(), 1 )
+        pkt.set_ttv(False)
+
+        res=binascii.a2b_hex('20000000')
+        pkt.set_sscv()
+        self.assertEqual( pkt.header.ttag.info.asString(), res )
+        self.assertEqual( pkt.get_sscv(), 1 )
+        pkt.set_sscv(False)
+
 
     def test_ttag_values(self):
         ttag_=0
@@ -333,6 +463,32 @@ class Test_SDDS_Packet(unittest.TestCase):
         ttag_val.ttag=ttag_
         ttag_val.ttage=ttage_
         self.assertEqual( ttag_val.asString(), res )
+
+    def test_ttag_values_packet(self):
+        pkt = sdds_pkt.sdds_packet()
+
+        ttag_=0
+        ttage_=0
+        sddstime=Time()
+        sddstime.set(ttag_,ttage_)
+        res=struct.pack("!QI", ttag_, ttage_)
+        pkt.set_time( ttag_, ttage_)
+        self.assertEqual( pkt.header.ttag.tstamp.asString(), res )
+        self.assertEqual( pkt.get_SDDSTime(), sddstime )
+        pkt.set_SDDSTime( sddstime )
+        self.assertEqual( pkt.get_SDDSTime(), sddstime )
+
+        ttag_= 4294967296
+        ttage_= 8388608
+        sddstime=Time()
+        sddstime.set(ttag_,ttage_)
+        res=struct.pack("!QI", ttag_, ttage_)
+        res=struct.pack("!QI", ttag_, ttage_)
+        pkt.set_time( ttag_, ttage_)
+        self.assertEqual( pkt.header.ttag.tstamp.asString(), res )
+        self.assertEqual( pkt.get_SDDSTime(), sddstime )
+        pkt.set_SDDSTime( sddstime )
+        self.assertEqual( pkt.get_SDDSTime(), sddstime )
 
     def test_ttag_info(self):
         msptr_=0
@@ -355,6 +511,117 @@ class Test_SDDS_Packet(unittest.TestCase):
         ttag_val.tstamp.ttage=ttage_
         self.assertEqual( ttag_val.asString(), res )
 
+    def test_ttag_info_msv(self):
+        msptr_=0
+        msdelta_=0
+        ttag_=0
+        ttage_=0
+        res=struct.pack("!HHQI", msptr_, msdelta_, ttag_, ttage_)
+        ttag_val = ttag_info()
+        self.assertEqual( ttag_val.asString(), res )
+        
+        # test big endian format for number
+        ttag_= 4294967296
+        ttage_= 8388608
+        msptr_=2047
+        msdelta_=256
+        res=struct.pack("!HHQI", msptr_, msdelta_, ttag_, ttage_)
+        ttag_val.info.msptr.msptr=msptr_
+        ttag_val.info.msptr.msdelta=msdelta_
+        ttag_val.tstamp.ttag=ttag_
+        ttag_val.tstamp.ttage=ttage_
+        self.assertEqual( ttag_val.asString(), res )
+
+        ttag_val.info.info.set_msv()
+
+        res=struct.pack("!QI", ttag_, ttage_)
+        # first bit is msv
+        tinfo=binascii.a2b_hex('87FF0100')
+        res=tinfo+res
+        self.assertEqual( ttag_val.asString(), res )
+
+
+    def test_ttag_info_ttv(self):
+        msptr_=0
+        msdelta_=0
+        ttag_=0
+        ttage_=0
+        res=struct.pack("!HHQI", msptr_, msdelta_, ttag_, ttage_)
+        ttag_val = ttag_info()
+        self.assertEqual( ttag_val.asString(), res )
+        
+        # test big endian format for number
+        ttag_= 4294967296
+        ttage_= 8388608
+        msptr_=2047
+        msdelta_=256
+        res=struct.pack("!HHQI", msptr_, msdelta_, ttag_, ttage_)
+        ttag_val.info.msptr.msptr=msptr_
+        ttag_val.info.msptr.msdelta=msdelta_
+        ttag_val.tstamp.ttag=ttag_
+        ttag_val.tstamp.ttage=ttage_
+        self.assertEqual( ttag_val.asString(), res )
+
+        ttag_val.info.info.set_ttv()
+
+        res=struct.pack("!QI", ttag_, ttage_)
+        # first bit is msv
+        tinfo=binascii.a2b_hex('47FF0100')
+        res=tinfo+res
+        self.assertEqual( ttag_val.asString(), res )
+
+
+    def test_ttag_info_sscv(self):
+        msptr_=0
+        msdelta_=0
+        ttag_=0
+        ttage_=0
+        res=struct.pack("!HHQI", msptr_, msdelta_, ttag_, ttage_)
+        ttag_val = ttag_info()
+        self.assertEqual( ttag_val.asString(), res )
+        
+        # test big endian format for number
+        ttag_= 4294967296
+        ttage_= 8388608
+        msptr_=2047
+        msdelta_=256
+        res=struct.pack("!HHQI", msptr_, msdelta_, ttag_, ttage_)
+        ttag_val.info.msptr.msptr=msptr_
+        ttag_val.info.msptr.msdelta=msdelta_
+        ttag_val.tstamp.ttag=ttag_
+        ttag_val.tstamp.ttage=ttage_
+        self.assertEqual( ttag_val.asString(), res )
+
+        ttag_val.info.info.set_sscv()
+
+        res=struct.pack("!QI", ttag_, ttage_)
+        # first bit is msv
+        tinfo=binascii.a2b_hex('27FF0100')
+        res=tinfo+res
+        self.assertEqual( ttag_val.asString(), res )
+
+
+    def test_ttag_info_all_bits(self):
+        msptr_=0
+        msdelta_=0
+        ttag_=0
+        ttage_=0
+        res=struct.pack("!HHQI", msptr_, msdelta_, ttag_, ttage_)
+        ttag_val = ttag_info()
+        self.assertEqual( ttag_val.asString(), res )
+        
+        # test big endian format for number
+        ttag_= 4294967296
+        ttage_= 8388608
+        msptr_=2047
+        msdelta_=256
+        res=struct.pack("!HHQI", msptr_, msdelta_, ttag_, ttage_)
+        ttag_val.info.msptr.msptr=msptr_
+        ttag_val.info.msptr.msdelta=msdelta_
+        ttag_val.tstamp.ttag=ttag_
+        ttag_val.tstamp.ttage=ttage_
+        self.assertEqual( ttag_val.asString(), res )
+
         ttag_val = ttag_info()
         ttag_= 4294967296
         ttage_= 8388608
@@ -368,7 +635,43 @@ class Test_SDDS_Packet(unittest.TestCase):
         ttag_val.info.info.set_ttv()
         ttag_val.info.info.set_sscv()
         res=struct.pack("!QI", ttag_, ttage_)
-        tinfo=binascii.unhexlify('07370100')
+        tinfo=binascii.a2b_hex('E7FF0100')
         res=tinfo+res
         self.assertEqual( ttag_val.asString(), res )
 
+    def test_ssc_info_struct(self):
+
+        ssc = sdds_pkt.ssc_info_struct()
+        self.assertEqual(ssc.get_freq(),0)
+        self.assertEqual(ssc.get_dfdt(),0)
+
+        ssc.set_freq(5000000)
+        self.assertEqual(ssc.get_freq(),5000000)
+
+        ssc.set_dfdt(.15)
+        self.assertAlmostEqual(ssc.get_dfdt(),.15, places=3)
+
+    def test_ssc_info_header(self):
+
+        ssc = sdds_pkt.sdds_header()
+        self.assertEqual(ssc.get_freq(),0)
+        self.assertEqual(ssc.get_dfdt(),0)
+
+        ssc.set_freq(5000000)
+        self.assertEqual(ssc.get_freq(),5000000)
+
+        ssc.set_dfdt(.15)
+        self.assertAlmostEqual(ssc.get_dfdt(),.15, places=3)
+
+    def test_ssc_info_packet(self):
+
+        ssc = sdds_pkt.sdds_packet()
+        self.assertEqual(ssc.get_freq(),0)
+        self.assertEqual(ssc.get_dfdt(),0)
+
+        ssc.set_freq(5000000)
+        self.assertEqual(ssc.get_freq(),5000000)
+
+        ssc.set_dfdt(.15)
+        self.assertAlmostEqual(ssc.get_dfdt(),.15, places=3)
+        

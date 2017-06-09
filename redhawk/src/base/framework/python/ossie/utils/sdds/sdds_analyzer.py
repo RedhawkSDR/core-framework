@@ -26,24 +26,40 @@ class SDDSAnalyzer(object):
     dumpPackets - dump packet fields and their data values, contents managed by a pager
     getPacketsIterator - returns a generator object for access packets in a looping construct
     getPackets - returns a list of sdds_packet objects
-       
+
+    __iter__ - The iterable returns a tuple (pkt number,sdds_packet)
+    __len__  - returns the number of packets 
+
     """
     _VAILID_VAL_='+'
     _TRACK_OK_='-'
     _TRACK_ERROR_='***'
 
-    def __init__(self, pkts, data, raw_data, total_bytes_read, pkt_len=1080 ):
-        self.pkts_ = pkts
-        self.data_ = data
+    def __init__(self, raw_data, npkts, pkt_len=1080, total_bytes=None):
+        self.npkts_ = npkts
         self.raw_data_ = raw_data
         self.pkt_len_ = pkt_len
-        self.total_bytes_read = total_bytes_read
+        dsize=len(raw_data)
+        expected_size = pkt_len * npkts
+
+        if expected_size > dsize :
+            raise RuntimeError("Invalid parameters, pkt_len*npkts is greater than raw_data size ")
+
+        # adjust total bytes if necessary
+        if total_bytes:
+            if total_bytes > dsize:
+                total_bytes=dsize
+        else:
+            total_bytes = dsize
+
+        self.total_bytes_=total_bytes
+
 
     def dumpRawPackets(self, pkt_start=0, pkt_end=None, row_width=80, bytes_per_group=2, pkt_len=None, use_pager=True ):
         if pkt_end == None: 
-            pkt_end = self.pkts_
+            pkt_end = self.npkts_
             if pkt_len:
-                pkt_end = self.pkts_
+                pkt_end = self.npkts_
 
         if pkt_len == None: pkt_len = self.pkt_len_
         genf=self._gen_hex_dump( self.raw_data_, pkt_start, pkt_len, row_width, bytes_per_group )
@@ -61,7 +77,7 @@ class SDDSAnalyzer(object):
 
     def dumpPackets(self, pkt_start=0, pkt_end=None, payload_start=0, payload_end=40, raw_payload=False, header_only=False, use_pager=True ):
         genf=self._gen_packet( self.raw_data_, pkt_start ) 
-        if pkt_end == None: pkt_end = self.pkts_
+        if pkt_end == None: pkt_end = self.npkts_
         res = StringIO()
         for i, pkt in enumerate(genf,pkt_start):
             if i < pkt_end:
@@ -127,7 +143,7 @@ class SDDSAnalyzer(object):
             
     def trackChanges(self, pkt_start=0, pkt_end=None, repeat_header=20, use_pager=True ):
         genf=self._gen_packet( self.raw_data_, pkt_start ) 
-        if pkt_end == None: pkt_end = self.pkts_
+        if pkt_end == None: pkt_end = self.npkts_
         res = StringIO()
         keys = [ 'pkt', 'fsn', 'dmode', 'cplx', 'bps', 'freq', 'rate', 'ttv', 'timeslip' ]
         hdrs = [ 'PKT', 'SEQ', 'FMT', 'CPLX', 'BPS',  '    FREQ    ',  '    CLK    ', 'TIME VALID', 'TIME SLIP' ]
@@ -164,12 +180,18 @@ class SDDSAnalyzer(object):
 
     def getPacketIterator(self, pkt_start=0, pkt_end=None ):
         genf=self._gen_packet( self.raw_data_, pkt_start ) 
-        if pkt_end == None: pkt_end = self.pkts_
+        if pkt_end == None: pkt_end = self.npkts_
         for i, pkt in enumerate(genf,pkt_start):
             if i < pkt_end:
                 yield i,pkt
             else:
                 StopIteration
+
+    def __iter__(self):
+        return self.getPacketIterator()
+
+    def __len__(self):
+        return self.npkts_
 
     def getPackets(self, pkt_start=0, pkt_end=None ):
         res=[]
