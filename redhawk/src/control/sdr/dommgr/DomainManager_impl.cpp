@@ -70,7 +70,7 @@ static const ComponentInstantiation* findComponentInstantiation (const std::vect
     return 0;
 }
 
-PREPARE_LOGGING(DomainManager_impl)
+rh_logger::LoggerPtr DomainManager_impl::__logger;
 
 // If _overrideDomainName == NULL read the domain name from the DMD file
 DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpath, const char* domainName, 
@@ -84,6 +84,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
   _strict_spd_validation(false),
   _bindToDomain(bindToDomain)
 {
+    __logger = rh_logger::Logger::getResourceLogger("DomainManager_impl");
     TRACE_ENTER(DomainManager_impl)
 
     LOG_TRACE(DomainManager_impl, "Looking for DomainManager POA");
