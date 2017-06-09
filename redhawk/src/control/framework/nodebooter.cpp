@@ -154,7 +154,7 @@ void loadPRFExecParams (const std::string& prfFile, ExecParams& execParams)
         const ossie::SimpleProperty* simpleProp;
         simpleProp = dynamic_cast<const ossie::SimpleProperty*>(*prop);
         if (!simpleProp) {
-            LOG_WARN(nodebooter, "Only execparams of type \"simple\" supported");
+            LOG_WARN(nodebooter, "Only execp   arams of type \"simple\" supported");
             continue;
         } else if (!simpleProp->getValue()) {
             continue;
@@ -334,6 +334,7 @@ static void setOwners(const std::string& user, const std::string& group)
             err << "]: " << strerror(errno);
             throw std::runtime_error(err.str());
         }
+        setgid(gids[0]);
 
         std::cout << "Running as group: [ ";
         for (unsigned int gr_idx=0; gr_idx < groups.size(); gr_idx++) {
@@ -368,6 +369,7 @@ static void setOwners(const std::string& user, const std::string& group)
                 } else {
                     setgroups(ngroups, groups);
                 }
+                setgid(groups[0]);
                 std::cout << "Running as group: [ ";
                 for (unsigned int gr_idx=0; gr_idx < ngroups; gr_idx++) {
                     std::cout << getgrgid(groups[gr_idx])->gr_name <<  "(gid=" << groups[gr_idx] << ") ";
@@ -852,11 +854,8 @@ int main(int argc, char* argv[])
                     dmdFile = tmpdmdfile;
                 }
               }
-
             startDomainManagerRequested = true;
-        }
-
-        if( strcmp( argv[i], "-d" ) == 0 ) {
+        } else if( strcmp( argv[i], "-d" ) == 0 ) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 dcdFile = argv[i+1];
                 if( dcdFile.find(".dcd.xml") == string::npos ) {
@@ -870,9 +869,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if( strcmp( argv[i], "-sdrroot" ) == 0 ) {
+        } else if( strcmp( argv[i], "-sdrroot" ) == 0 ) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 sdrRoot = argv[i+1];
             } else {
@@ -880,9 +877,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if( strcmp( argv[i], "-sdrcache" ) == 0 ) {
+        } else if( strcmp( argv[i], "-sdrcache" ) == 0 ) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 sdrCache = argv[i+1];
             } else {
@@ -890,9 +885,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if( strcmp( argv[i], "-domainname" ) == 0 ) {
+        } else if( strcmp( argv[i], "-domainname" ) == 0 ) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 domainName = argv[i+1];
                 std::cerr << "[nodeBooter] warning: -domainname is deprecated. Please use --domainname\n";
@@ -902,9 +895,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if( strcmp( argv[i], "--domainname" ) == 0 ) {
+        } else if( strcmp( argv[i], "--domainname" ) == 0 ) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 domainName = argv[i+1];
             }
@@ -913,15 +904,9 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-
-        if (( strcmp( argv[i], "--bindapps" ) == 0 )) {
+        } else if (( strcmp( argv[i], "--bindapps" ) == 0 )) {
             bind_apps = true;
-        }
-
-
-        if (( strcmp( argv[i], "-log4cxx" ) == 0 ) || ( strcmp( argv[i], "-logcfgfile" ) == 0 )) {
+        } else if (( strcmp( argv[i], "-log4cxx" ) == 0 ) || ( strcmp( argv[i], "-logcfgfile" ) == 0 )) {
             if( i + 1 <argc && strcmp( argv[i + 1], "--" ) != 0) {
                 logfile_uri = argv[i+1];
             } else {
@@ -929,14 +914,9 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if (( strcmp( argv[i], "--useloglib" ) == 0 )) {
+        } else if (( strcmp( argv[i], "--useloglib" ) == 0 )) {
             use_loglib = true;
-        }
-
-
-        if (( strcmp( argv[i], "-dburl" ) == 0 )) {
+        } else if (( strcmp( argv[i], "-dburl" ) == 0 )) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 std::cout << "WARNING: -dburl has been deprecated. In the future please use --dburl " << std::endl;
                 db_uri = argv[i+1];
@@ -945,9 +925,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if (( strcmp( argv[i], "--dburl" ) == 0 )) {
+        } else if (( strcmp( argv[i], "--dburl" ) == 0 )) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 db_uri = argv[i+1];
             } else {
@@ -955,9 +933,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if (( strcmp( argv[i], "--ORBInitRef" ) == 0 )) {
+        } else if (( strcmp( argv[i], "--ORBInitRef" ) == 0 )) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 orb_init_ref = "NameService=corbaname::";
                 orb_init_ref += argv[i+1];
@@ -966,9 +942,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if (( strcmp( argv[i], "--ORBport" ) == 0 )) {
+        } else if (( strcmp( argv[i], "--ORBport" ) == 0 )) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 endPoint = "giop:tcp::";
                 endPoint += argv[i+1];
@@ -986,28 +960,22 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if( strcmp( argv[i], "-debug" ) == 0 ) {
+        } else if( strcmp( argv[i], "-debug" ) == 0 ) {
                 if( (i + 1 < argc) && isdigit( *argv[i+1] ) ) {
                     debugLevel = atoi( argv[i+1] );
+                    i++;
                 } else {
                     std::cerr << "\n\t[nodeBooter] WARNING: The debug level must be an integer, using default value (3)\n" << std::endl;
                 }
-        }
-
-        if( strcmp( argv[i], "--help" ) == 0 ) {
+        } else if( strcmp( argv[i], "--help" ) == 0 ) {
             usage();
             exit(EXIT_SUCCESS);
-        }
-        if( strcmp( argv[i], "--version" ) == 0 ) {
+        } else if( strcmp( argv[i], "--version" ) == 0 ) {
             std::cout<<"REDHAWK version: "<<VERSION<<std::endl;
             exit(EXIT_SUCCESS);
-        }
-        if (strcmp(argv[i], "--nopersist") == 0) {
+        } else if (strcmp(argv[i], "--nopersist") == 0) {
             noPersist = true;
-        }
-        if (strcmp(argv[i], "--force-rebind") == 0) {
+        } else if (strcmp(argv[i], "--force-rebind") == 0) {
             forceRebind = true;
         } else if (strcmp(argv[i], "--daemon") == 0) {
             daemonize = true;
@@ -1032,9 +1000,25 @@ int main(int argc, char* argv[])
                 return (EXIT_FAILURE);
             }
             group = argv[i];
+        } else {
+            std::string unknown_arg(argv[i]);
+            if (unknown_arg[0] == '-') {
+                if (unknown_arg.find('=') != std::string::npos) {
+                    std::cerr << "[nodeBooter] invalid argument format for argument: \""<<unknown_arg<<"\". Separator must be a space, not an equals sign."<< std::endl;
+                    usage();
+                    return (EXIT_FAILURE);
+                }
+            }
         }
     }  // end argument parsing
 
+    if ((not user.empty()) or (not group.empty())) {
+        if (not daemonize) {
+            std::cerr << "[nodeBooter] If either group or user are specified, daemon must be set" << std::endl;
+            usage();
+            return (EXIT_FAILURE);
+        }
+    }
 
     // Check that there is work to do
     if (!(startDeviceManagerRequested || startDomainManagerRequested)) {
