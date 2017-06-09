@@ -244,18 +244,23 @@ def getPropNameDict(prf):
 -Prevents duplicate entries within a component
 -Allows for get/set on components with invalid chars in ID
 '''
-def addCleanName(cleanName, id, _displayNames, _duplicateNames):
+def addCleanName(cleanName, id, _displayNames, _duplicateNames, namesp=None):
+    retval=cleanName
     if not _displayNames.has_key(cleanName):
         _displayNames[cleanName] = id
-        _duplicateNames[cleanName] = 0
-        return cleanName
-    elif _displayNames[cleanName] == id:
-        return cleanName
-    else:
-        count = _duplicateNames[cleanName] + 1
-        _displayNames[cleanName + str(count)] = id
-        _duplicateNames[cleanName] = count
-        return cleanName + str(count)
+        # maintain a count of clean name for each namespace context
+        _duplicateNames[cleanName] = { namesp : 0 }
+        return retval
+    elif _displayNames[cleanName] != id:
+        if namesp in _duplicateNames[cleanName]:
+            count = _duplicateNames[cleanName][namespace] + 1
+            _displayNames[cleanName + str(count)] = id
+            _duplicateNames[cleanName][namespace] = count
+            retval=cleanName + str(count)
+        else:
+            _duplicateNames[cleanName][namesp] = 0
+            retval = cleanName
+    return retval
     
 def _cleanId(prop):
     translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_"
@@ -369,11 +374,14 @@ class Property(object):
             if i.clean_name == prop.id_:
                 for k in prop.get_configurationkind():
                     kinds.append(k.get_kindtype())
-                if i.members[_cleanId(simple)]._enums != None:
-                    enums = i.members[_cleanId(simple)]._enums
+                mname = _cleanId(simple)
+                if mname in i._memberNames:
+                     mname = i._memberNames[mname]
+                if i.members[mname]._enums != None:
+                    enums = i.members[mname]._enums
                 if self.mode != "writeonly":
-                    value = str(i.members[_cleanId(simple)])
-                defVal = str(i.members[_cleanId(simple)].defValue)
+                    value = str(i.members[mname])
+                defVal = str(i.members[mname].defValue)
         type = str(self.compRef._getPropType(simple))
         return defVal, value, type, kinds, enums
 
@@ -386,12 +394,15 @@ class Property(object):
             if i.clean_name == prop.id_:
                 for k in prop.get_configurationkind():
                     kinds.append(k.get_kindtype())
-                if i.members[_cleanId(sprop)].__dict__.has_key("_enums"):
-                  if i.members[_cleanId(sprop)]._enums != None:
-                    enums = i.members[_cleanId(sprop)]._enums
+                cname = _cleanId(sprop)
+                if cname in i._memberNames:
+                     cname = i._memberNames[cname]
+                if i.members[cname].__dict__.has_key("_enums"):
+                  if i.members[cname]._enums != None:
+                    enums = i.members[cname]._enums
                 if self.mode != "writeonly":
-                    values = i.members[_cleanId(sprop)]
-                defVal = i.members[_cleanId(sprop)].defValue
+                    values = i.members[cname]
+                defVal = i.members[cname].defValue
         type = str(self.compRef._getPropType(sprop))
         return defVal, values, type, kinds, enums
 

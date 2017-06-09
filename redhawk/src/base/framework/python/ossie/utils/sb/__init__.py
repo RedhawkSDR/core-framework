@@ -127,5 +127,8 @@ except:
     # BULKIO is not installed
     pass
 
+import helpers
+from helpers import *
+
 from plots import *
 from audio import *

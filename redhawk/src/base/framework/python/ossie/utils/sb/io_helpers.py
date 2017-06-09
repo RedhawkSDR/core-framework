@@ -53,6 +53,7 @@ from omniORB import tcInternal
 import copy as _copy
 import omniORB as _omniORB
 import CosEventComm__POA
+import traceback
 
 from ossie.utils.model import PortSupplier, OutputBase
 from ossie.utils.model.connect import ConnectionManager
@@ -1148,7 +1149,16 @@ class DataSourceSDDS(_SourceBase):
         Helper to handle the generation of SDDS metadata forwarding
         """
         _SourceBase.__init__(self, bytesPerPush = 0, dataFormat='sdds', formats=['sdds'])
-        self._src = bulkio_data_helpers.SDDSSource()
+        self._src = _bulkio_data_helpers.SDDSSource()
+        self._blocking    = True
+        self._streamdefs = {}
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
     def attach(self, streamData=None, name=None):
         """
         streamData: type BULKIO.SDDSStreamDefinition
@@ -1169,6 +1179,8 @@ class DataSourceSDDS(_SourceBase):
         if not isinstance(name, str):
             raise Exception("name must be of <type 'str'>")
         retval = self._src.attach(streamData, name)
+        if retval:
+            self._streamdefs[name] = streamData
         return retval
 
     def detach(self, attachId=''):
@@ -1179,9 +1191,87 @@ class DataSourceSDDS(_SourceBase):
         if not isinstance(attachId, str):
             raise Exception("attachId must be of <type 'str'>")
         self._src.detach(attachId)
+        try:
+           self._streamdefs.pop(attachid,None)
+        except:
+            pass
 
     def _createArraySrcInst(self, srcPortType):
         return self._src
+
+    def getStreamDef( self, name=None, pkts=1000, block=True, returnSddsAnalyzer=True):
+        # grab data if stream definition is available 
+        sdef =None
+        aid=name
+        if not aid:
+            if len(self._streamdefs) ==  0:
+                raise Exception("No attachment have been made, use grabData or call attach")
+            
+            aid = self._streamdefs.keys()[0]
+            print "Defaults to first entry, attach id = ", aid
+            sdef = self._streamdefs[aid]
+        else:
+            sdef = sefl._streamdefs[aid]
+            
+        if not sdef:
+            raise Exception("No SDDS stream definition for attach id:" + aid )
+
+        return self.grabData( sdef.multicastAddress, sdef.port, sdef.vlan, packets, block=block)
+        
+
+    def getData( self, mgroup, hostip, port=29495, vlan=0, pkts=1000, pktlen=1080, sdds=True, block=True, returnSddsAnalyzer=True):
+        totalRead=0.0
+        startTime = _time.time()        
+        sock = None
+        ismulticast=False
+        blen=10240
+        bytesRead=0
+        requestedBytes=pkts*pktlen
+        data=[]
+        rawdata=''
+        try:
+            try:
+                ip_class=int(mgroup.split('.')[0])
+                if ip_class == '224' or ip_class == '239':
+                    ismulticast=True
+            except:
+                pass
+
+            #print " Capturing ", mgroup, " host ", hostip, " port ", port
+            sock = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM, _socket.IPPROTO_UDP)
+            sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+            sock.bind(("",port))
+            if ismulticast:
+                mreq=struct.pack('4s4s',_socket.inet_aton(mgroup),_socket.inet_aton(hostip))
+                sock.setsockopt(_socket.IPPROTO_IP, _socket.IP_ADD_MEMBERSHIP, mreq)
+                print "Capturing Socket Interface: (MULTICAST) Host Interface: " + hostip + " Multicast: " + mgroup + " Port: "+ str(port)
+            else:
+                print "Capturing Socket Interface: (UDP) Host Interface: " + hostip + " Source Address: " + mgroup + " Port: "+ str(port)
+            ncnt=0
+            while totalRead < requestedBytes:
+                rcvddata = sock.recv(blen,_socket.MSG_WAITALL)
+                rawdata=rawdata+rcvddata
+                data=data+list(rcvddata)
+                totalRead = totalRead + len(rcvddata)
+                ncnt += 1
+                print " read ", ncnt, " pkt ", len(rcvddata)
+        except KeyboardInterrupt,e :
+            traceback.print_exc()
+            print "Exception during packet capture: " + str(e)
+        except Exception, e :
+            traceback.print_exc()
+            print "Exception during packet capture: " + str(e)
+        finally:
+            endTime=_time.time()
+            deltaTime=endTime -startTime            
+        if sock: sock.close()
+        print "Elapsed Time: ", deltaTime, "  Total Data (kB): ", totalRead/1000.0, " Rate (kBps): ", (totalRead/1000.0)/deltaTime
+        if returnSddsAnalyzer:
+            from ossie.utils.sdds import SDDSAnalyzer
+            return SDDSAnalyzer( rawdata, pkts, pktlen, totalRead )
+        else:
+            return data, rawdata, (pktlen,pkts,totalRead)
+            
 
 class DataSource(_SourceBase):
     '''
@@ -1489,6 +1579,7 @@ class DataSource(_SourceBase):
                         candidateSri.keywords = keywords
 
                 if self._sri==None or not compareSRI(candidateSri, self._sri):
+                    print "New SRI ", candidateSri,  " mode = ", candidateSri.mode
                     self._sri = _copy.copy(candidateSri)
                     self._pushSRIAllConnectedPorts(sri = self._sri)
 
