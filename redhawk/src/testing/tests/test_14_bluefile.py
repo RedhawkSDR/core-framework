@@ -389,9 +389,6 @@ class BlueFileHelpers(unittest.TestCase):
         time_out = bluefile_helpers.j1950_to_unix(hdr['timecode'])
         self.assertAlmostEqual(time_in, time_out)
 
-
-class BlueFileHelpersKW(BlueFileHelpers):
-
     def test_keywords_retrieval_int(self):
         filename='bf-kw-test.out'
         self._tempfiles.append(filename)

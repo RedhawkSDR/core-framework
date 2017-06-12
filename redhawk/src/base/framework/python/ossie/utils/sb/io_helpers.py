@@ -1579,7 +1579,6 @@ class DataSource(_SourceBase):
                         candidateSri.keywords = keywords
 
                 if self._sri==None or not compareSRI(candidateSri, self._sri):
-                    print "New SRI ", candidateSri,  " mode = ", candidateSri.mode
                     self._sri = _copy.copy(candidateSri)
                     self._pushSRIAllConnectedPorts(sri = self._sri)
 
