@@ -125,12 +125,15 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertNotEqual(self._devMgr, None, "DeviceManager not available")
 
     def test_API_remap(self):
+        import _omnipy
+        v=int(_omnipy.__version__[0])
         orig_api = dir(self._rhDom.ref)
         remap_api = dir(self._rhDom)
         not_remap = ['_NP_RepositoryId','_Object__release','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
                      '__methods__','_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
                      '__del__','__omni_obj','_release','_unchecked_narrow', '_non_existent',
-                     'retrieve_records', 'retrieve_records_by_date', 'retrieve_records_from_date' ]
+                     'retrieve_records', 'retrieve_records_by_date', 'retrieve_records_from_date'  ]
+        if  v > 3 :  not_remap += ['log_level']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -1061,6 +1064,8 @@ class RedhawkStartup(scatest.CorbaTestCase):
                 except:
                     traceback.print_exc()
                     pass
+
+	time.sleep(2)
         new_stdout=open(tmpfile,'r')
         for k, epat in epatterns.iteritems():
             epat.setdefault('results',[])
@@ -1078,6 +1083,12 @@ class RedhawkStartup(scatest.CorbaTestCase):
             if type(pat['match']) == list:
                 lmatch = len(pat['results']) == len(pat['match']) and pat['results'] == pat['match']
                 self.assertEqual(lmatch, True )
+
+            if type(pat['match']) == tuple:
+                   reslen=len(pat['results'])
+                   c=pat['match']
+	           res=eval("'" + str(reslen) + " " + str(c[0]) + " " + str(c[1]) + "'")
+                   self.assertTrue(res)
 
             if type(pat['match']) == int:
                 # ignore
@@ -1152,7 +1163,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
     def test_kick_warn_both(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG "   ], 'match': [] },
-                                          "no2" :  { 'patterns':  [ " INFO ",   ], 'match': 12 },
+                                          "no2" :  { 'patterns':  [ " INFO ",   ], 'match': ("<=", 12 ) },
                                           "yes" :  { 'patterns':  [ " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
                                           },
                               debug_level="WARN",
@@ -1171,7 +1182,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
     def test_kick_error_both(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG " ] , 'match': [] },
-                                          "no2" :  { 'patterns':  [ " INFO ", " WARN "  ], 'match': 14 },
+                                          "no2" :  { 'patterns':  [ " INFO ", " WARN "  ], 'match': ('<=', 18) },
                                           "yes" :  { 'patterns':  [ " ERROR ", " FATAL " ], 'match': -1 },
                                           },
                               debug_level="ERROR",
@@ -1190,7 +1201,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
     def test_kick_fatal_both(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " ERROR "  ], 'match': [] },
-                                          "no2" :  { 'patterns':  [ " INFO ", " WARN "  ], 'match': 14 },
+                                          "no2" :  { 'patterns':  [ " INFO ", " WARN "  ], 'match': ('<=', 18 ) },
                                           "yes" :  { 'patterns':  [ " FATAL " ], 'match': -1 },
                                           },
                               debug_level="FATAL",
