@@ -1209,3 +1209,31 @@ class RedhawkStartup(scatest.CorbaTestCase):
                               dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
                               dev_mgr_levels= [ "FATAL", "FATAL"  ]
                                 )
+
+    def test_kick_devmgr_path(self):
+        """
+        Test $SDRROOT/dev relative paths for DeviceManagers in kickDomain()
+        """
+        dom = redhawk.kickDomain(domain_name=scatest.getTestDomainName(),
+                                 kick_device_managers=True,
+                                 device_managers=['/nodes/test_GPP_node/DeviceManager.dcd.xml'])
+
+        def check_devmgr():
+            return len(dom.devMgrs) == 1
+
+        self.assertPredicateWithWait(check_devmgr, 'test_GPP_node did not launch')
+        self.assertEqual(dom.devMgrs[0].label, 'test_GPP_node')
+
+    def test_kick_devmgr_name(self):
+        """
+        Test using node names for DeviceManagers in kickDomain()
+        """
+        dom = redhawk.kickDomain(domain_name=scatest.getTestDomainName(),
+                                 kick_device_managers=True,
+                                 device_managers=['test_GPP_node'])
+
+        def check_devmgr():
+            return len(dom.devMgrs) == 1
+
+        self.assertPredicateWithWait(check_devmgr, 'test_GPP_node did not launch')
+        self.assertEqual(dom.devMgrs[0].label, 'test_GPP_node')

@@ -79,6 +79,31 @@ def _cleanup_domain():
 
 atexit.register(_cleanup_domain)
 
+def _getDCDFile(sdrroot, dcdFile):
+    """
+    Try to find the DCD file, either as an absolute path or relative to SDRROOT
+    """
+    # The DCD file may just be a directory name under $SDRROOT/dev/nodes
+    if not dcdFile.endswith('.dcd.xml'):
+        # Path did not include a final DCD file
+        node_path = _os.path.join(sdrroot, 'dev/nodes/') + dcdFile
+        node_path += '/DeviceManager.dcd.xml'
+        if _os.path.exists(node_path):
+            return node_path
+
+    # If the file exists as-is, return it
+    if _os.path.exists(dcdFile):
+        return dcdFile
+
+    # Try an SDR-relative path
+    sdr_path = _os.path.join(sdrroot, 'dev/') + dcdFile
+    if _os.path.exists(sdr_path):
+        return sdr_path
+
+    # Could not fine any matching path
+    return None
+    
+
 def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], detached=False, sdrroot=None, stdout=None, logfile=None, debug_level=None, device_managers_debug_levels=[]):
     """Kick-start a REDHAWK domain.
          domain_name: the name that should be used
@@ -166,30 +191,16 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
                         break
                 if foundDCD:
                     device_managers.append(directory[len(sdrroot)+4:]+'/'+filename)
-        else:
-            dm_list=[]
-            for dm in device_managers:
-                base = sdrroot + '/dev/nodes'
-                fname = dm
-                if dm.startswith("/") == False:
-                    fname = base + '/' + dm
 
-                try:
-                    if fname.endswith(".dcd.xml") == False:
-                        fname = fname + "/DeviceManager.dcd.xml"
-                    f=open(fname)
-                    dm_list.append(fname)
-                    f.close()
-                except:
-                    #traceback.print_exc()
-                    print "Unable to locate DCD file for :" + dm + " file: " + fname
-            device_managers = dm_list
+        for idx, device_manager in enumerate(device_managers):
+            dcd_file = _getDCDFile(sdrroot, device_manager)
+            if not dcd_file:
+                print "Unable to locate DCD file for '%s'" % device_manager
+                continue
 
-        idx=0
-        for device_manager in device_managers:
             args = ['nodeBooter']
             args.append('-d')
-            args.append(device_manager)
+            args.append(dcd_file)
             args.append('-sdrroot')
             args.append(sdrroot)
             args.append('--domainname')
@@ -204,7 +215,6 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
                 if dlevel:
                      args.append('-debug')
                      args.append(str(ConvertLevelNameToDebugLevel(dlevel)))
-            idx =  idx + 1
             sp = _utils.Popen(args, executable=None, cwd=_os.getcwd(), close_fds=True, stdin=_devnull, stdout=stdout_fp, preexec_fn=_os.setpgrp)
             dm_procs.append( _envContainer(sp, stdout_fp) )
 
