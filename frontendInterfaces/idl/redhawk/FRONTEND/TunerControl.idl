@@ -23,7 +23,6 @@
 
 #include "redhawk/FRONTEND/Frontend.idl" 
 #include "ossie/BULKIO/bulkioDataTypes.idl"
-#include "ossie/CF/PortTypes.idl"
 
 module FRONTEND {
 
