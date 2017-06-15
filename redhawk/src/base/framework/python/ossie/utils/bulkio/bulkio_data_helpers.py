@@ -790,7 +790,7 @@ class ArraySink(object):
             if length == None:
                 goal = _stream.samplesAvailable()
             self.port_cond.release()
-            sample_offset = 0
+            samples_read = 0
             while True:
                 _block = _stream.read(count=length)
                 if not _block:
@@ -798,14 +798,13 @@ class ArraySink(object):
                 retval += _block.data()
                 # The block timestamp offsets are relative to the start of that
                 # block, so adjust for any previous data offsets
-                rettime += [(off+sample_offset, ts) for off, ts in _block.getTimestamps()]
+                rettime += [(off+samples_read, ts) for off, ts in _block.getTimestamps()]
                 goal_offset = 1
                 if _block.sri().subsize != 0:
-                    goal_offset = _block.sri().subsize
-                    sample_offset += sum(len(frame) for frame in _block.data())
+                    samples_read += sum(len(frame) for frame in _block.data())
                 else:
-                    sample_offset += len(_block.data())
-                if len(retval) == goal/goal_offset:
+                    samples_read += len(_block.data())
+                if samples_read >= goal:
                     break
         finally:
             pass

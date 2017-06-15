@@ -2479,6 +2479,23 @@ class BulkioTest(unittest.TestCase):
         self.assertEqual(len(recData),_frames/2)
         self.assertEqual(len(recData[0]),_subsize*2)
 
+    def test_SubsizeComplexNoEOS(self):
+        # Test interleaved-to-complex
+        _subsize = 10
+        _frames = 4
+        inData = range(_subsize * _frames)
+        src=sb.DataSource(dataFormat='short',subsize=_subsize)
+        snk=sb.DataSink()
+        sb.start()
+        src.connect(snk)
+        src.push(inData,complexData=True)
+
+        wait_on_data(snk, 1)
+        recData = snk.getData()
+
+        self.assertEqual(len(recData),_frames/2)
+        self.assertEqual(len(recData[0]),_subsize*2)
+
     def test_DataSinkChar(self):
         src=sb.DataSource(dataFormat='char')
         snk=sb.DataSink()

@@ -1838,7 +1838,7 @@ class DataSink(_SinkBase):
             element is the data set and the second element is a series of tuples
             containing the element index number and the timestamp for that index
         '''
-        _warnings.warn("This function is deprecated. Use getCurrentStream instead")
+        _warnings.warn("This function is deprecated. Use getCurrentStream instead", DeprecationWarning)
 
         isChar = self._sink.port_type == _BULKIO__POA.dataChar
 
