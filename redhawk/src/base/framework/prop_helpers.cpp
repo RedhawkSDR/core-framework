@@ -400,11 +400,10 @@ namespace redhawk {
             unsigned int minute;
             double second;
             int retval = sscanf(formatted.c_str(), "%d:%d:%d::%d:%d:%lf",&year,&month,&day,&hour,&minute,&second);
-            CF::UTCTime utctime;
             if (retval != 6) {
-                utctime.tcstatus=0;
-                return utctime;
+                return notSet();
             }
+            CF::UTCTime utctime;
             utctime.tcstatus=1;
             struct tm t = {0};
             t.tm_year = year - 1900;
