@@ -1097,7 +1097,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                 else:
                    self.assertEqual( pat['match'] , len(pat['results']) )
 
-
+    @scatest.requireLog4cxx
     def test_kick_trace(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={
@@ -1105,6 +1105,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                                           },
                               debug_level="TRACE")
 
+    @scatest.requireLog4cxx
     def test_kick_trace_both(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={
@@ -1116,6 +1117,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                               dev_mgr_levels= [ "TRACE" ],
                                 )
 
+    @scatest.requireLog4cxx
     def test_kick_debug(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE " ], 'match': [] },
@@ -1124,6 +1126,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                               debug_level="DEBUG")
 
 
+    @scatest.requireLog4cxx
     def test_kick_debug_both(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE " ], 'match': [] },
@@ -1135,6 +1138,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                               dev_mgr_levels= [ "DEBUG", "DEBUG" ]
                                 )
 
+    @scatest.requireLog4cxx
     def test_kick_info(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG " ], 'match': [] },
@@ -1142,6 +1146,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                                           },
                               debug_level="INFO")
 
+    @scatest.requireLog4cxx
     def test_kick_info_both(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG " ], 'match': [] },
@@ -1153,6 +1158,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                               dev_mgr_levels= [ "INFO", "INFO" ]
                                 )
 
+    @scatest.requireLog4cxx
     def test_kick_warn(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ",   ], 'match': 2 },
@@ -1160,6 +1166,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                                           },
                               debug_level="WARN")
 
+    @scatest.requireLog4cxx
     def test_kick_warn_both(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG "   ], 'match': [] },
@@ -1172,6 +1179,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                               dev_mgr_levels= [ "WARN", "WARN" ]
                                 )
 
+    @scatest.requireLog4cxx
     def test_kick_error(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ", " WARN "  ], 'match': 2 },
@@ -1179,6 +1187,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                                           },
                               debug_level="ERROR")
 
+    @scatest.requireLog4cxx
     def test_kick_error_both(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG " ] , 'match': [] },
@@ -1191,6 +1200,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                               dev_mgr_levels= [ "ERROR", "ERROR"  ]
                                 )
 
+    @scatest.requireLog4cxx
     def test_kick_fatal(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ", " WARN ", " ERROR "  ], 'match': 2 },
@@ -1198,6 +1208,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                                           },
                               debug_level="ERROR")
 
+    @scatest.requireLog4cxx
     def test_kick_fatal_both(self):
         self._try_kick_domain('log4j.kickdomain.cfg',
                               epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " ERROR "  ], 'match': [] },
