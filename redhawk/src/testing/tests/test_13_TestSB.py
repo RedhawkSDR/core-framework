@@ -2054,24 +2054,6 @@ class BulkioTest(unittest.TestCase):
         _rnd_toffset = int(round( (_toffset+len(_srcData)/_sampleRate) *10))/10.0
         self.assertEquals(_rnd_pkt_time,_rnd_toffset )
 
-    def test_DataSinkSRI(self):
-        src = sb.DataSource(dataFormat='float')
-        snk = sb.DataSink()
-        src.connect(snk)
-        sb.start()
-        src.push([1,2,3,4,5],sampleRate=100)
-        src.push([1,2,3,4,5],sampleRate=1000)
-        src.push([1,2,3,4,5],sampleRate=10000)
-        wait_on_data(snk, 3)
-        data=snk.getData(tstamps=True,sris=True)
-        self.assertEquals(len(data[2]), 3)
-        self.assertEquals(data[2][0][0], 0)
-        self.assertEquals(data[2][1][0], 5)
-        self.assertEquals(data[2][2][0], 10)
-        self.assertEquals(data[2][0][1].xdelta, 0.01)
-        self.assertEquals(data[2][1][1].xdelta, 0.001)
-        self.assertEquals(data[2][2][1].xdelta, 0.0001)
-
     def _fileSourceThrottle(self, _file, rate):
         fp=open(_file, 'r')
         contents = fp.read()
@@ -2138,7 +2120,6 @@ class BulkioTest(unittest.TestCase):
             _H = H
             _H.xdelta = H.xdelta * 2
             self.sri = _H
-            self.sris.append([len(self.data), _H])
 
     def test_CustomDataSink(self):
         src = sb.DataSource(dataFormat='float')
@@ -2149,14 +2130,8 @@ class BulkioTest(unittest.TestCase):
         src.push([1,2,3,4,5],sampleRate=1000)
         src.push([1,2,3,4,5],sampleRate=10000)
         wait_on_data(snk, 3)
-        data=snk.getData(tstamps=True,sris=True)
-        self.assertEquals(len(data[2]), 3)
-        self.assertEquals(data[2][0][0], 0)
-        self.assertEquals(data[2][1][0], 5)
-        self.assertEquals(data[2][2][0], 10)
-        self.assertEquals(data[2][0][1].xdelta, 0.02)
-        self.assertEquals(data[2][1][1].xdelta, 0.002)
-        self.assertEquals(data[2][2][1].xdelta, 0.0002)
+        data=snk.getData(tstamps=True)
+        self.assertEquals(snk._sink.sri.xdelta, 0.0002)
 
     def test_DataSourceSRI(self):
         _timeout = 1

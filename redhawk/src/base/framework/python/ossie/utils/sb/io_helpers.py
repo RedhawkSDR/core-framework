@@ -1808,7 +1808,7 @@ class DataSink(_SinkBase):
             return None
         return self._sink.estimateData()
 
-    def getData(self, length=None, eos_block=False, tstamps=False, sris=False):
+    def getData(self, length=None, eos_block=False, tstamps=False):
         '''
         Returns either an array of the received data elements or a tuple containing the received list
         and their associated time stamps
@@ -1819,12 +1819,7 @@ class DataSink(_SinkBase):
         eos_block: setting to True creates a blocking call until eos is received
         tstamps: setting to True makes the return value a tuple, where the first
             element is the data set and the second element is a series of tuples
-            containing the element index number and the timestamp for that index
-        sris: setting to True makes the return value a tuple, where the first
-            element is the data set, the second element is the series of 
-            timestamps (empty list if tstamps==False) and the third element is 
-            a series of tuples containing the element index number and the 
-            sri value for that index
+            containing the element index number of and timestamp
         '''
         isChar = self._sink.port_type == _BULKIO__POA.dataChar
 
@@ -1832,7 +1827,7 @@ class DataSink(_SinkBase):
             return None
         if eos_block:
             self._sink.waitEOS()
-        (retval, timestamps, _sris) = self._sink.retrieveData(length=length)
+        (retval, timestamps) = self._sink.retrieveData(length=length)
         if isChar:
             # Converts char values into their numeric equivalents
             def from_char(data):
@@ -1845,12 +1840,8 @@ class DataSink(_SinkBase):
                 retval = [from_char(frame) for frame in retval]
             else:
                 retval = from_char(retval)
-        if tstamps and not sris:
+        if tstamps:
             return (retval,timestamps)
-        if not tstamps and sris:
-            return (retval, [], _sris)
-        if tstamps and sris:
-            return (retval,timestamps,_sris)
         else:
             return retval
 

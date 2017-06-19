@@ -220,7 +220,6 @@ class ArraySink(object):
         self.sri=bulkio_helpers.defaultSRI
         self.data = []
         self.timestamps = []
-        self.sris = []
         self.gotEOS = False
         self.breakBlock = False
         self.port_lock = threading.Lock()
@@ -229,11 +228,9 @@ class ArraySink(object):
     class estimateStruct():
         len_data=0
         num_timestamps=0
-        num_sris=0
-        def __init__(self, data=[], timestamps=[], sris=[]):
+        def __init__(self, data=[], timestamps=[]):
             self.len_data = len(data)
             self.num_timestamps = len(timestamps)
-            self.num_sris = len(sris)
 
     def _isActive(self):
         return not self.gotEOS and not self.breakBlock
@@ -274,7 +271,6 @@ class ArraySink(object):
                    generate the header file
         """
         self.sri = H
-        self.sris.append([len(self.data), H])
 
     def pushPacket(self, data, ts, EOS, stream_id):
         """
@@ -299,25 +295,11 @@ class ArraySink(object):
         self.port_cond.acquire()
         estimate = self.estimateStruct()
         try:
-            estimate = self.estimateStruct(self.data, self.timestamps, self.sris)
+            estimate = self.estimateStruct(self.data, self.timestamps)
         finally:
             self.port_cond.release()
         return estimate
         
-    def syncAssocData(self, reference):
-        retval = []
-        length_to_erase = None
-        for i,(l,t) in enumerate(reference[::-1]):
-            if l > length:
-                reference[len(reference)-i-1][0] = l - length
-                continue
-            if length_to_erase == None:
-                length_to_erase = len(reference)-i
-            retval.append((l,t))
-        if length_to_erase != None:
-            del reference[:length_to_erase]
-        return retval
-
     def retrieveData(self, length=None):
         self.port_cond.acquire()
         try:
@@ -343,9 +325,17 @@ class ArraySink(object):
                 # More data is available than was requested. Return only
                 # as much data as was asked for, and the associated
                 # timestamps.
-                rettime = self.syncAssocData(self.timestamps)
-                retsris = self.syncAssocData(self.sris)
-
+                rettime = []
+                length_to_erase = None
+                for i,(l,t) in enumerate(self.timestamps[::-1]):
+                    if l > length:
+                        self.timestamps[len(self.timestamps)-i-1][0] = l - length
+                        continue
+                    if length_to_erase == None:
+                        length_to_erase = len(self.timestamps)-i
+                    rettime.append((l,t))
+                if length_to_erase != None:
+                    del self.timestamps[:length_to_erase]
                 if self.sri.subsize == 0:
                     retval = self.data[:length]
                 else:
@@ -354,25 +344,23 @@ class ArraySink(object):
                     for idx in range(length/frameLength):
                         retval.append(self.data[idx*frameLength:(idx+1)*frameLength])
                 del self.data[:length]
-                return (retval, rettime, retsris)
+                return (retval, rettime)
 
             # No length was provided, or length is equal to the length of data.
             # Return all data and timestamps.
             if self.sri == None:
-                (retval, rettime, retsris) = (self.data, self.timestamps, [])
+                (retval, rettime) = (self.data, self.timestamps)
             elif self.sri.subsize == 0:
-                (retval, rettime, retsris) = (self.data, self.timestamps, self.sris)
+                (retval, rettime) = (self.data, self.timestamps)
             else:
                 retval = []
                 frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
                 for idx in range(length/frameLength):
                     retval.append(self.data[idx*frameLength:(idx+1)*frameLength])
                 rettime = self.timestamps
-                retsris = self.sris
             self.data = []
             self.timestamps = []
-            self.sris = []
-            return (retval, rettime, retsris)
+            return (retval, rettime)
         finally:
             self.port_cond.release()
 
