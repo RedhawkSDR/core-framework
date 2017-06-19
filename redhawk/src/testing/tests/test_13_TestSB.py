@@ -1584,6 +1584,14 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertNotEqual(int(comp1.pid), int(comp2.pid))
 
 
+class Test_DataSDDSSource(unittest.TestCase):
+
+    def test_CreateSDDSSource(self):
+        source = sb.DataSourceSDDS()
+        self.assertNotEquals(source, None)
+
+
+
 class BulkioTest(unittest.TestCase):
     XMLDATA = """<body>
   <element tag=value/>

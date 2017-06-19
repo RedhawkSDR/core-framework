@@ -1149,7 +1149,7 @@ class DataSourceSDDS(_SourceBase):
         Helper to handle the generation of SDDS metadata forwarding
         """
         _SourceBase.__init__(self, bytesPerPush = 0, dataFormat='sdds', formats=['sdds'])
-        self._src = _bulkio_data_helpers.SDDSSource()
+        self._src = bulkio_data_helpers.SDDSSource()
         self._blocking    = True
         self._streamdefs = {}
 
