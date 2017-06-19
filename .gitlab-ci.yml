@@ -24,7 +24,8 @@ stages:
     # Don't build redhawk tests as part of rpmbuild to save time
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
-    - docker build --tag=${docker_registry}redhawk-rpmbuild:$proj_lower-$CI_COMMIT_SHA-${dist}-${arch}
+    - safe_ref=$(echo ${CI_COMMIT_REF_NAME} | tr -d /| tr '[:upper:]' '[:lower:]')
+    - docker build --tag=${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-${dist}-${arch}
                    --build-arg "project=$project"
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
@@ -32,7 +33,7 @@ stages:
                    --build-arg "other_repos=$other_repos/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
-    - id=$(docker create -it ${docker_registry}redhawk-rpmbuild:$proj_lower-$CI_COMMIT_SHA-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
+    - id=$(docker create -it ${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
                                                 for file in `find /usr/src/yum /root/rpmbuild/RPMS -name '*.rpm'`; do
                                                 cp -v $file /tmp/repo;
                                                 done;
@@ -44,7 +45,7 @@ stages:
     - cd $CI_PROJECT_DIR
     - rm -rf output && mkdir output
     - docker cp $id:/tmp/repo/repo.tar.gz output/repo.tar.gz
-    - docker rm -f $id
+    - docker rm -f $id || true
   artifacts:
     name: $CI_JOB_NAME
     paths:
