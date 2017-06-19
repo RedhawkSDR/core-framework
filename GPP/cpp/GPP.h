@@ -92,9 +92,11 @@ class GPP_i : public GPP_base
                  CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, 
                  CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail);
 
+        static std::string find_exec(const char* name);
         CF::ExecutableDevice::ProcessID_Type do_execute (const char* name, const CF::Properties& options,
                                                          const CF::Properties& parameters, 
-                                                         const std::vector<std::string> prepend_args) 
+                                                         const std::vector<std::string> prepend_args,
+														 const bool use_docker)
           throw (CF::ExecutableDevice::ExecuteFail,
                  CF::InvalidFileName, CF::ExecutableDevice::InvalidOptions,
                  CF::ExecutableDevice::InvalidParameters,
