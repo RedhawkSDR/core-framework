@@ -1007,6 +1007,38 @@ void GPP_i::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::Releas
   GPP_base::releaseObject();
 }
 
+// Find the executable name in the path variable and returns the path (or empty string, if not found).
+std::string GPP_i::find_exec(const char* name) {
+    DIR *dir;
+    struct dirent *ent;
+    std::string search_bin(name);
+
+    std::string path(getenv( "PATH" ));
+    std::string target;
+    bool found = false;
+    while (not found) {
+        size_t sub = path.find(":");
+        if (path.size() == 0)
+            break;
+        std::string substr = path.substr(0, sub);
+        if ((dir = opendir (substr.c_str())) != NULL) {
+            while ((ent = readdir (dir)) != NULL) {
+                std::string filename(ent->d_name);
+                if (filename == search_bin) {
+                    target.append(substr+"/"+filename);
+                    found = true;
+                    break;
+                }
+            }
+            closedir (dir);
+        }
+        if (sub != std::string::npos)
+            path = path.substr(sub+1, std::string::npos);
+        else
+            path.clear();
+    }
+	return target;
+}
 
 CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF::Properties& options, const CF::Properties& parameters)
     throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, 
@@ -1068,32 +1100,9 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
         std::string ld_lib_path(getenv("LD_LIBRARY_PATH"));
         setenv("GPP_LD_LIBRARY_PATH",ld_lib_path.c_str(),1);
         
-        DIR *dir;
-        struct dirent *ent;
-        std::string search_bin("screen");
-    
-        std::string path(getenv( "PATH" ));
-        bool foundScreen = false;
-        while (not foundScreen) {
-            size_t sub = path.find(":");
-            if (path.size() == 0)
-                break;
-            std::string substr = path.substr(0, sub);
-            if ((dir = opendir (substr.c_str())) != NULL) {
-                while ((ent = readdir (dir)) != NULL) {
-                    std::string filename(ent->d_name);
-                    if (filename == search_bin) {
-                        prepend_args.push_back(substr+"/"+filename);
-                        foundScreen = true;
-                        break;
-                    }
-                }
-                closedir (dir);
-            }
-            if (sub != std::string::npos)
-                path = path.substr(sub+1, std::string::npos);
-            else
-                path.clear();
+        std::string target = GPP_i::find_exec("screen");
+        if (!target.empty()) {
+        	prepend_args.push_back(target);
         }
         prepend_args.push_back("-D");
         prepend_args.push_back("-m");
@@ -1113,9 +1122,73 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
             prepend_args.push_back(waveform_name+"."+name_binding);
         }
     }
+    bool useDocker = false;
+    if (tmp_params.find("__DOCKER_IMAGE__") != tmp_params.end()) {
+        std::string image_name = tmp_params["__DOCKER_IMAGE__"].toString();
+    	LOG_DEBUG(GPP_i, __FUNCTION__ << "Component specified a Docker image: " << image_name);
+
+        std::string target = GPP_i::find_exec("docker");
+        if (!target.empty()) {
+        	// Verify the image exists
+        	char buffer[128];
+        	std::string result = "";
+        	std::string docker_query = target + " images -q " + image_name;
+        	FILE* pipe = popen(docker_query.c_str(), "r");
+        	if (!pipe)
+        		throw CF::ExecutableDevice::ExecuteFail(CF::CF_EINVAL, "Could not run popen");
+        	try {
+        		while (!feof(pipe)) {
+        			if (fgets(buffer, 128, pipe) != NULL) {
+        				result += buffer;
+        			}
+        		}
+        	} catch (...) {
+        		pclose (pipe);
+        		throw;
+        	}
+        	pclose(pipe);
+        	if (result.empty()) {
+        		CF::Properties invalidParameters;
+        		invalidParameters.length(invalidParameters.length() + 1);
+        		invalidParameters[invalidParameters.length() - 1].id = "__DOCKER_IMAGE__";
+        		invalidParameters[invalidParameters.length() - 1].value <<= image_name.c_str();
+        		throw CF::ExecutableDevice::InvalidParameters(invalidParameters);
+        	}
+
+        	// Remove the ':' from the container name
+        	std::string container_name(component_id);
+        	std::replace(container_name.begin(), container_name.end(), ':', '-');
+
+        	prepend_args.push_back(target);
+        	prepend_args.push_back("run");
+        	prepend_args.push_back("--sig-proxy=true");
+        	prepend_args.push_back("--rm");
+        	prepend_args.push_back("--name");
+        	prepend_args.push_back(container_name);
+        	prepend_args.push_back("--net=host");
+        	prepend_args.push_back("-v");
+        	prepend_args.push_back(docker_omniorb_cfg+":/etc/omniORB.cfg"); // Overload omniORB.cfg in the container
+
+        	// Additional arguments
+        	if (tmp_params.find("__DOCKER_ARGS__") != tmp_params.end()) {
+        		std::string docker_args_raw = tmp_params["__DOCKER_ARGS__"].toString();
+                std::vector<std::string> docker_args;
+                boost::split(docker_args, docker_args_raw, boost::is_any_of(" ") );
+                BOOST_FOREACH( const std::string& arg, docker_args ) {
+                	prepend_args.push_back(arg);
+                }
+        	}
+
+        	// Finally, the image name
+        	prepend_args.push_back(image_name);
+        	LOG_DEBUG(GPP_i, __FUNCTION__ << "Component will launch within a Docker container using this image: " << image_name);
+
+        	useDocker = true;
+        }
+    }
     CF::ExecutableDevice::ProcessID_Type ret_pid;
     try {
-        ret_pid = do_execute(name, options, tmp_params, prepend_args);
+        ret_pid = do_execute(name, options, tmp_params, prepend_args, useDocker);
         addProcess(ret_pid, app_id, component_id, reservation_value);
     } catch ( ... ) {
         throw;
@@ -1129,7 +1202,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
 /* execute *****************************************************************
     - executes a process on the device
 ************************************************************************* */
-CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const CF::Properties& options, const CF::Properties& parameters, const std::vector<std::string> prepend_args) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
+CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const CF::Properties& options, const CF::Properties& parameters, const std::vector<std::string> prepend_args, const bool use_docker) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
 {
     CF::Properties invalidOptions;
     std::string path;
@@ -1215,7 +1288,14 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
         logFile += "/valgrind.%p.log";
         args.push_back(logFile);
     }
-    args.push_back(path);
+
+    if (use_docker) {
+    	// docker container will come up at its own $SDRROOT
+    	// 'name' is prefixed by /, so we prefix it with '.' here
+    	args.push_back("." + std::string(name));
+    } else {
+    	args.push_back(path);
+    }
 
     LOG_DEBUG(GPP_i, "Building param list for process " << path);
     for (CORBA::ULong i = 0; i < parameters.length(); ++i) {
@@ -1227,12 +1307,16 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 
     LOG_DEBUG(GPP_i, "Forking process " << path);
 
+    std::string full_command;
     std::vector<char*> argv(args.size() + 1, NULL);
     for (std::size_t i = 0; i < args.size(); ++i) {
         // const_cast because execv does not modify values in argv[].
         // See:  http://pubs.opengroup.org/onlinepubs/9699919799/functions/exec.html
         argv[i] = const_cast<char*> (args[i].c_str());
+        full_command.append(args[i] + " ");
     }
+
+    LOG_DEBUG(GPP_i, __FUNCTION__ << "Full command executed: " << full_command);
 
     rh_logger::LevelPtr  lvl = GPP_i::__logger->getLevel();
 
@@ -1315,33 +1399,32 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 
       
       // Run executable
-      while(true)
-        {
-          if (strcmp(argv[0], "valgrind") == 0) {
-              // Find valgrind in the path
-              returnval = execvp(argv[0], &argv[0]);
-          } else {
-              returnval = execv(argv[0], &argv[0]);
-          }
+      while (true) {
+		  if (strcmp(argv[0], "valgrind") == 0) {
+			  // Find valgrind in the path
+			  returnval = execvp(argv[0], &argv[0]);
+		  } else {
+			  returnval = execv(argv[0], &argv[0]);
+		  }
 
-          num_retries--;
-          if( num_retries <= 0 || errno!=ETXTBSY)
-                break;
+		  num_retries--;
+		  if( num_retries <= 0 || errno!=ETXTBSY)
+				break;
 
-          // Only retry on "text file busy" error
-          LOG_WARN(GPP_i, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
-          usleep(100000);
-        }
+		  // Only retry on "text file busy" error
+		  LOG_WARN(GPP_i, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
+		  usleep(100000);
+      }
 
-        if( returnval ) {
-            LOG_ERROR(GPP_i, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
-            ossie::corba::OrbShutdown(true);
-        }
+      if( returnval ) {
+		  LOG_ERROR(GPP_i, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
+		  ossie::corba::OrbShutdown(true);
+      }
 
-        LOG_DEBUG(GPP_i, "Exiting FAILED subprocess:" << returnval );
-        exit(returnval);
+      LOG_DEBUG(GPP_i, "Exiting FAILED subprocess:" << returnval );
+      exit(returnval);
     }
-    else if (pid < 0 ){
+    else if (pid < 0 ) {
         LOG_ERROR(GPP_i, "Error forking child process (errno: " << errno << " msg=\"" << strerror(errno) << "\")" );
         switch (errno) {
             case E2BIG:

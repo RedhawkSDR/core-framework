@@ -181,6 +181,14 @@ void GPP_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(docker_omniorb_cfg,
+    		    "docker_omniorb_cfg",
+				"docker_omniorb_cfg",
+				"readonly",
+				"/etc/omniORB.cfg",
+				"external",
+				"property");
+
     addProperty(mcastnicInterface,
                 "",
                 "DCE:4e416acc-3144-47eb-9e38-97f1d24f7700",
