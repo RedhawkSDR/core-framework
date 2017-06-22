@@ -471,6 +471,9 @@ void GPP_i::_init() {
   cpu.subscribed = 0;
   cpu.maximum = 0;
   utilization.push_back(cpu);
+
+  // shadow property to allow for disabling of values
+  __thresholds = thresholds;
   
   setPropertyQueryImpl(this->component_monitor, this, &GPP_i::get_component_monitor);
 
@@ -699,7 +702,7 @@ int GPP_i::_setupExecPartitions( const CpuList &bl_cpus ) {
         CpuUsageStats cpu_usage(cpus);
         soc.cpus = cpus;
         soc.stats = cpu_usage;
-        soc.idle_threshold = thresholds.cpu_idle;      
+        soc.idle_threshold = __thresholds.cpu_idle;      
         soc.load_capacity.max =  cpus.size() * 1.0;
         soc.load_capacity.measured = 0.0;
         soc.load_capacity.allocated = 0.0;
@@ -802,6 +805,15 @@ GPP_i::addThresholdMonitor( ThresholdMonitorPtr t )
     threshold_monitors.push_back( t );
 }
 
+void
+GPP_i::setShadowThresholds( const thresholds_struct &nv ) {
+    if ( nv.cpu_idle >= 0.0 ) __thresholds.cpu_idle = nv.cpu_idle;
+    if ( nv.load_avg >= 0.0 ) __thresholds.load_avg = nv.load_avg;
+    if ( nv.mem_free >= 0 ) __thresholds.mem_free = nv.mem_free;
+    if ( nv.nic_usage >= 0 ) __thresholds.nic_usage = nv.nic_usage;
+    if ( nv.files_available >= 0.0 ) __thresholds.files_available = nv.files_available;
+    if ( nv.threads >= 0.0 ) __thresholds.threads = nv.threads;
+}
 
 //
 //  Device LifeCycle API
@@ -881,12 +893,15 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   // get monitored system values...
   //
   const SystemMonitor::Report &rpt = system_monitor->getReport();
-  
+
+  // thresholds can be individually disabled, use shadow thresholds for actual calculations and conditions
+  setShadowThresholds( thresholds );
+
   //
   // load average attributes
   //
   loadTotal = loadCapacityPerCore * (float)processor_cores;
-  loadCapacity = loadTotal * ((double)thresholds.load_avg / 100.0);
+  loadCapacity = loadTotal * ((double)__thresholds.load_avg / 100.0);
   loadFree = loadCapacity;
   idle_capacity_modifier = 100.0 * reserved_capacity_per_component/((float)processor_cores);
  
@@ -895,7 +910,7 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   //
   memInitVirtFree=rpt.virtual_memory_free;  // assume current state to be total available
   int64_t init_mem_free = (int64_t) memInitVirtFree;
-  memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(thresholds.mem_free*thresh_mem_free_units) )/ (double)init_mem_free;
+  memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(__thresholds.mem_free*thresh_mem_free_units) )/ (double)init_mem_free;
   if ( memInitCapacityPercent < 0.0 )  memInitCapacityPercent = 100.0;
   memFree =  init_mem_free / mem_free_units;
   memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent)) / mem_cap_units ;
@@ -905,9 +920,9 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   // set initial modified thresholds
   //
   modified_thresholds = thresholds;
-  modified_thresholds.mem_free = thresholds.mem_free*thresh_mem_free_units;
-  modified_thresholds.load_avg = loadTotal * ( (double)thresholds.load_avg / 100.0);
-  modified_thresholds.cpu_idle = thresholds.cpu_idle;
+  modified_thresholds.mem_free = __thresholds.mem_free*thresh_mem_free_units;
+  modified_thresholds.load_avg = loadTotal * ( (double)__thresholds.load_avg / 100.0);
+  modified_thresholds.cpu_idle = __thresholds.cpu_idle;
 
   loadAverage.onemin = rpt.load.one_min;
   loadAverage.fivemin = rpt.load.five_min;
@@ -961,7 +976,7 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
 
 void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_struct *nv) {
 
-    if ( ov->mem_free != nv->mem_free ) {
+    if ( !(nv->mem_free < 0 ) && ov->mem_free != nv->mem_free ) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov->mem_free << "/" << nv->mem_free );
         WriteLock wlock(pidLock);
 	int64_t init_mem_free = (int64_t) memInitVirtFree;
@@ -974,7 +989,7 @@ void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_str
     }
 
 
-    if ( !(fabs(ov->load_avg - nv->load_avg ) < std::numeric_limits<double>::epsilon()) ) {
+    if ( !(nv->load_avg < 0.0) && !(fabs(ov->load_avg - nv->load_avg ) < std::numeric_limits<double>::epsilon()) ) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.LOAD_AVG CHANGED  old/new " << ov->load_avg << "/" << nv->load_avg );
         WriteLock wlock(pidLock);
         loadCapacity = loadTotal * ((double)nv->load_avg / 100.0);
@@ -982,18 +997,20 @@ void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_str
         modified_thresholds.load_avg = loadTotal * ( (double)nv->load_avg / 100.0);
     }
 
-    if ( !(fabs(ov->cpu_idle - nv->cpu_idle ) < std::numeric_limits<double>::epsilon())) {
+    if ( !(nv->cpu_idle < 0.0) && !(fabs(ov->cpu_idle - nv->cpu_idle ) < std::numeric_limits<double>::epsilon())) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov->cpu_idle << "/" << nv->cpu_idle );
         WriteLock wlock(pidLock);
         modified_thresholds.cpu_idle = nv->cpu_idle;
     }
 
 
-    if ( !(fabs(ov->nic_usage - nv->nic_usage ) < std::numeric_limits<double>::epsilon())) {
+    if ( !(nv->nic_usage < 0) && !(fabs(ov->nic_usage - nv->nic_usage ) < std::numeric_limits<double>::epsilon())) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov->nic_usage << "/" << nv->nic_usage );
         WriteLock wlock(monitorLock);
         modified_thresholds.nic_usage = nv->nic_usage;
     }
+
+    setShadowThresholds( *nv );
 
 }
 
@@ -1467,7 +1484,7 @@ bool GPP_i::_check_limits( const thresholds_struct &thresholds)
         return false;
     }
 
-    float _tthreshold = 1 - thresholds.threads * .01;
+    float _tthreshold = 1 - __thresholds.threads * .01;
 
     if (gpp_limits.max_threads != -1) {
       //
@@ -1534,7 +1551,7 @@ void GPP_i::updateUsageState()
                 );
   }
   
-  if ( thresholds.cpu_idle != 0 ) {
+  if ( !(thresholds.cpu_idle < 0) ) {
       if (sys_idle < modified_thresholds.cpu_idle) {
           if ( sys_idle_avg < modified_thresholds.cpu_idle) {
               std::ostringstream oss;
@@ -1546,14 +1563,14 @@ void GPP_i::updateUsageState()
       }
   }
 
-  if ( thresholds.mem_free != 0 && (mem_free < modified_thresholds.mem_free)) {
+  if ( !(thresholds.mem_free < 0) && (mem_free < modified_thresholds.mem_free)) {
         std::ostringstream oss;
         oss << "Threshold: " <<  modified_thresholds.mem_free << " Actual: " << mem_free;
         _setReason( "FREE MEMORY", oss.str() );
         setUsageState(CF::Device::BUSY);
   }
 
-  else if ( thresholds.load_avg != 0 && ( sys_load > modified_thresholds.load_avg )) {
+  else if ( !(thresholds.load_avg < 0) && ( sys_load > modified_thresholds.load_avg )) {
       std::ostringstream oss;
       oss << "Threshold: " <<  modified_thresholds.load_avg << " Actual: " << sys_load;
       _setReason( "LOAD AVG", oss.str() );
@@ -1565,7 +1582,7 @@ void GPP_i::updateUsageState()
       _setReason( "RESERVATION CAPACITY", oss.str() );
       setUsageState(CF::Device::BUSY);
   }
-  else if ( thresholds.nic_usage != 0 && _check_nic_thresholds() ) {
+  else if ( !(thresholds.nic_usage < 0) && _check_nic_thresholds() ) {
       setUsageState(CF::Device::BUSY);
   }
   else if (_check_limits(thresholds)) {
@@ -2405,18 +2422,18 @@ void GPP_i::update()
 
   aggregate_usage *= inverse_load_per_core;
   non_specialized_aggregate_usage *= inverse_load_per_core;
-  modified_thresholds.cpu_idle = thresholds.cpu_idle + reservation_set;
+  modified_thresholds.cpu_idle = __thresholds.cpu_idle + reservation_set;
   utilization[0].component_load = aggregate_usage + non_specialized_aggregate_usage;
   float estimate_total = (f_use_end_total-f_use_start_total) * inverse_load_per_core;
   utilization[0].system_load = (utilization[0].component_load > estimate_total) ? utilization[0].component_load : estimate_total; // for very light loads, sometimes there is a measurement mismatch because of timing
   utilization[0].subscribed = (reservation_set * (float)processor_cores) / 100.0 + utilization[0].component_load;
-  utilization[0].maximum = processor_cores-(thresholds.cpu_idle/100.0) * processor_cores;
+  utilization[0].maximum = processor_cores-(__thresholds.cpu_idle/100.0) * processor_cores;
 
   LOG_DEBUG(GPP_i, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
            " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
            " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
            "         idle avg: " << system_monitor->get_idle_average() << std::endl << 
-           " threshold(req): " << thresholds.cpu_idle << std::endl <<
+           " threshold(req): " << __thresholds.cpu_idle << std::endl <<
            " idle modifier: " << idle_capacity_modifier << std::endl <<
            " reserved_cap_per_component: " << reserved_capacity_per_component << std::endl <<
            " reservations: " << n_reservations << std::endl <<

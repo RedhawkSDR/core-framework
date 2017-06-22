@@ -403,7 +403,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual(br_cpu, True)
 
         # turn off check for idle
-        self.comp.thresholds.cpu_idle = 0.0
+        self.comp.thresholds.cpu_idle = -1.0
         # wait for busy to be reported... should just be load avg .. takes approx 1 minute
         for i in range(42):
             br=self.comp.busy_reason.queryValue()
@@ -415,7 +415,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual(br_cpu, True)
 
         # turn off check for load_avg
-        self.comp.thresholds.load_avg = 0.0
+        self.comp.thresholds.load_avg = -1.0
         for i in range(5):
             br=self.comp.busy_reason.queryValue()
             if br == "":
