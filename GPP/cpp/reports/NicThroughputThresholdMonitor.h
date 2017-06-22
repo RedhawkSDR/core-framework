@@ -22,7 +22,7 @@
 
 #include "ThresholdMonitor.h"
 
-class NicThroughputThresholdMonitor : public GenericThresholdMonitor<float, std::greater<float> >
+class NicThroughputThresholdMonitor : public GenericThresholdMonitor<float, std::greater_equal<float> >
 {
 public:
 	NicThroughputThresholdMonitor( const std::string& source_id, const std::string& resource_id, QueryFunction threshold, QueryFunction measured );
