@@ -582,10 +582,22 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     </simple>
     <configurationkind kindtype="property"/>
   </struct>
-  <simple id="docker_omniorb_cfg" mode="readonly" type="string">
+  <simple id="DCE:0b5c1a83-7226-4705-a3be-eff5a8a9f38a" name="docker_omniorb_cfg" mode="readonly" type="string">
     <description>Absolute path to the omniORB configuration file that will be provided to the docker images being launched (if any).</description>
     <value>/etc/omniORB.cfg</value>
     <kind kindtype="property"/>
     <action type="external"/>
+  </simple>
+  <simple id="DCE:c38d28a6-351d-4aa4-a9ba-3cea51966838" name="docker_image" mode="readwrite" type="string">
+    <description>Docker Image to load</description>
+    <value></value>
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
+  </simple>
+  <simple id="DCE:47a581c8-e31f-4284-a3ef-6d8b98385835" name="docker_volume" mode="readwrite" type="string">
+    <description>Docker Volume to load</description>
+    <value></value>
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
   </simple>
 </properties>

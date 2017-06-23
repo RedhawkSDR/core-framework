@@ -248,7 +248,7 @@ public:
 };
 
 inline bool operator== (const GPP_i::component_description& s1, 
-			const GPP_i::component_description& s2) {
+      const GPP_i::component_description& s2) {
     if (s1.appName!=s2.appName)
         return false;
     if (s1.identifier!=s2.identifier)
@@ -495,6 +495,10 @@ void GPP_i::_init() {
   setAllocationImpl("DCE:8dcef419-b440-4bcf-b893-cab79b6024fb", this, &GPP_i::allocate_memCapacity, &GPP_i::deallocate_memCapacity);
 
   //setAllocationImpl("diskCapacity", this, &GPP_i::allocate_diskCapacity, &GPP_i::deallocate_diskCapacity);
+
+  // check for docker elements
+  setAllocationImpl("DCE:c38d28a6-351d-4aa4-a9ba-3cea51966838",  this, &GPP_i::allocate_docker_image,  &GPP_i::deallocate_docker_image);
+  setAllocationImpl("DCE:47a581c8-e31f-4284-a3ef-6d8b98385835",  this, &GPP_i::allocate_docker_volume, &GPP_i::deallocate_docker_volume);
 
 }
 
@@ -1011,7 +1015,7 @@ void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_str
     if ( !(nv->mem_free < 0 ) && ov->mem_free != nv->mem_free ) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov->mem_free << "/" << nv->mem_free );
         WriteLock wlock(pidLock);
-	int64_t init_mem_free = (int64_t) memInitVirtFree;
+  int64_t init_mem_free = (int64_t) memInitVirtFree;
         // type cast required for correct calc on 32bit os
         memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(nv->mem_free*thresh_mem_free_units) )/ (double) init_mem_free;
         if ( memInitCapacityPercent < 0.0 )  memInitCapacityPercent = 100.0;
@@ -1086,8 +1090,64 @@ std::string GPP_i::find_exec(const char* name) {
         else
             path.clear();
     }
-	return target;
+  return target;
 }
+
+// Generic docker caller
+bool GPP_i::check_docker(const std::string &params) {
+  bool retval = false;
+
+  std::string docker = GPP_i::find_exec("docker");
+
+  if (!docker.empty()) {
+    // Verify the image exists
+    char buffer[128];
+    std::string result = "";
+    std::string docker_query = docker + " " + params;
+    FILE* pipe = popen(docker_query.c_str(), "r");
+    if (!pipe)
+      throw CF::ExecutableDevice::ExecuteFail(CF::CF_EINVAL, "Could not run popen");
+    try {
+      while (!feof(pipe)) {
+        if (fgets(buffer, 128, pipe) != NULL) {
+          result += buffer;
+        }
+      }
+    } catch (...) {
+      pclose (pipe);
+      throw;
+    }
+    pclose(pipe);
+
+    retval = !result.empty();
+  }
+  return retval;
+}
+
+// Check for a docker image tagged as value
+bool GPP_i::check_docker_image(const std::string &value) {
+  return check_docker("images -q " + value);
+}
+
+// Check for a docker volume named value
+// TODO: Be less hackey. :-|
+bool GPP_i::check_docker_volume(const std::string &value) {
+  std::string grep = GPP_i::find_exec("grep");
+  return check_docker("volumes ls -q | " + grep + " " + value);
+}
+
+bool GPP_i::allocate_docker_image(const std::string &value) {
+  return check_docker_image(value);
+}
+
+void GPP_i::deallocate_docker_image(const std::string &value) { }
+
+bool GPP_i::allocate_docker_volume(const std::string &value) {
+  return check_docker_volume(value);
+}
+
+void GPP_i::deallocate_docker_volume(const std::string &value) { }
+
 
 CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF::Properties& options, const CF::Properties& parameters)
     throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, 
@@ -1115,15 +1175,15 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
     redhawk::PropertyMap& tmp_params = redhawk::PropertyMap::cast(variable_parameters);
     float reservation_value = -1;
     if (tmp_params.find("RH::GPP::MODIFIED_CPU_RESERVATION_VALUE") != tmp_params.end()) {
-        double reservation_value_d;
-        if (!tmp_params["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"].getValue(reservation_value)) {
-            if (tmp_params["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"].getValue(reservation_value_d)) {
-                reservation_value = reservation_value_d;
-            } else {
-                reservation_value = -1;
-            }
+      double reservation_value_d;
+      if (!tmp_params["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"].getValue(reservation_value)) {
+        if (tmp_params["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"].getValue(reservation_value_d)) {
+            reservation_value = reservation_value_d;
+        } else {
+            reservation_value = -1;
         }
-        tmp_params.erase("RH::GPP::MODIFIED_CPU_RESERVATION_VALUE");
+      }
+      tmp_params.erase("RH::GPP::MODIFIED_CPU_RESERVATION_VALUE");
     }
     naming_context_ior = tmp_params["NAMING_CONTEXT_IOR"].toString();
     std::string app_id;
@@ -1132,115 +1192,96 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
     CF::Application_var _app = CF::Application::_nil();
     CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(naming_context_ior.c_str());
     if (CORBA::is_nil(obj)) {
-        LOG_WARN(GPP_i, "Invalid application registrar IOR");
+      LOG_WARN(GPP_i, "Invalid application registrar IOR");
     } else {
-        CF::ApplicationRegistrar_var _appRegistrar = CF::ApplicationRegistrar::_nil();
-        _appRegistrar = CF::ApplicationRegistrar::_narrow(obj);
-        if (CORBA::is_nil(_appRegistrar)) {
-            LOG_WARN(GPP_i, "Invalid application registrar IOR");
-        } else {
-            _app = _appRegistrar->app();
-            if (not CORBA::is_nil(_app)) {
-                app_id = ossie::corba::returnString(_app->identifier());
-            }
+      CF::ApplicationRegistrar_var _appRegistrar = CF::ApplicationRegistrar::_nil();
+      _appRegistrar = CF::ApplicationRegistrar::_narrow(obj);
+      if (CORBA::is_nil(_appRegistrar)) {
+        LOG_WARN(GPP_i, "Invalid application registrar IOR");
+      } else {
+        _app = _appRegistrar->app();
+        if (not CORBA::is_nil(_app)) {
+            app_id = ossie::corba::returnString(_app->identifier());
         }
+      }
     }
     if (useScreen) {
-        std::string ld_lib_path(getenv("LD_LIBRARY_PATH"));
-        setenv("GPP_LD_LIBRARY_PATH",ld_lib_path.c_str(),1);
-        
-        std::string target = GPP_i::find_exec("screen");
-        if (!target.empty()) {
-        	prepend_args.push_back(target);
+      std::string ld_lib_path(getenv("LD_LIBRARY_PATH"));
+      setenv("GPP_LD_LIBRARY_PATH",ld_lib_path.c_str(),1);
+      
+      std::string target = GPP_i::find_exec("screen");
+      if (!target.empty()) {
+        prepend_args.push_back(target);
+      }
+      prepend_args.push_back("-D");
+      prepend_args.push_back("-m");
+      prepend_args.push_back("-c");
+      prepend_args.push_back(binary_location+"gpp.screenrc");
+      if ((not component_id.empty()) and (not name_binding.empty())) {
+        if (component_id.find("DCE:") != std::string::npos) {
+          component_id = component_id.substr(4, std::string::npos);
         }
-        prepend_args.push_back("-D");
-        prepend_args.push_back("-m");
-        prepend_args.push_back("-c");
-        prepend_args.push_back(binary_location+"gpp.screenrc");
-        if ((not component_id.empty()) and (not name_binding.empty())) {
-            if (component_id.find("DCE:") != std::string::npos) {
-                component_id = component_id.substr(4, std::string::npos);
-            }
-            size_t waveform_boundary = component_id.find(":");
-            std::string component_inst_id, waveform_name;
-            component_inst_id = component_id.substr(0, waveform_boundary);
-            waveform_name = component_id.substr(waveform_boundary+1, std::string::npos);
-            prepend_args.push_back("-S");
-            prepend_args.push_back(waveform_name+"."+name_binding);
-            prepend_args.push_back("-t");
-            prepend_args.push_back(waveform_name+"."+name_binding);
-        }
+        size_t waveform_boundary = component_id.find(":");
+        std::string component_inst_id, waveform_name;
+        component_inst_id = component_id.substr(0, waveform_boundary);
+        waveform_name = component_id.substr(waveform_boundary+1, std::string::npos);
+        prepend_args.push_back("-S");
+        prepend_args.push_back(waveform_name+"."+name_binding);
+        prepend_args.push_back("-t");
+        prepend_args.push_back(waveform_name+"."+name_binding);
+      }
     }
     bool useDocker = false;
     if (tmp_params.find("__DOCKER_IMAGE__") != tmp_params.end()) {
         std::string image_name = tmp_params["__DOCKER_IMAGE__"].toString();
-    	LOG_DEBUG(GPP_i, __FUNCTION__ << "Component specified a Docker image: " << image_name);
+      LOG_DEBUG(GPP_i, __FUNCTION__ << "Component specified a Docker image: " << image_name);
 
-        std::string target = GPP_i::find_exec("docker");
-        if (!target.empty()) {
-        	// Verify the image exists
-        	char buffer[128];
-        	std::string result = "";
-        	std::string docker_query = target + " images -q " + image_name;
-        	FILE* pipe = popen(docker_query.c_str(), "r");
-        	if (!pipe)
-        		throw CF::ExecutableDevice::ExecuteFail(CF::CF_EINVAL, "Could not run popen");
-        	try {
-        		while (!feof(pipe)) {
-        			if (fgets(buffer, 128, pipe) != NULL) {
-        				result += buffer;
-        			}
-        		}
-        	} catch (...) {
-        		pclose (pipe);
-        		throw;
-        	}
-        	pclose(pipe);
-        	if (result.empty()) {
-        		CF::Properties invalidParameters;
-        		invalidParameters.length(invalidParameters.length() + 1);
-        		invalidParameters[invalidParameters.length() - 1].id = "__DOCKER_IMAGE__";
-        		invalidParameters[invalidParameters.length() - 1].value <<= image_name.c_str();
-        		throw CF::ExecutableDevice::InvalidParameters(invalidParameters);
-        	}
+      // Check for the docker image
+      if (!check_docker_image(image_name)) {
+        CF::Properties invalidParameters;
+        invalidParameters.length(invalidParameters.length() + 1);
+        invalidParameters[invalidParameters.length() - 1].id = "__DOCKER_IMAGE__";
+        invalidParameters[invalidParameters.length() - 1].value <<= image_name.c_str();
+        throw CF::ExecutableDevice::InvalidParameters(invalidParameters);
+      }
 
-        	// Remove the ':' from the container name
-        	std::string container_name(component_id);
-        	std::replace(container_name.begin(), container_name.end(), ':', '-');
+      // Remove the ':' from the container name
+      std::string container_name(component_id);
+      std::replace(container_name.begin(), container_name.end(), ':', '-');
 
-        	prepend_args.push_back(target);
-        	prepend_args.push_back("run");
-        	prepend_args.push_back("--sig-proxy=true");
-        	prepend_args.push_back("--rm");
-        	prepend_args.push_back("--name");
-        	prepend_args.push_back(container_name);
-        	prepend_args.push_back("--net=host");
-        	prepend_args.push_back("-v");
-        	prepend_args.push_back(docker_omniorb_cfg+":/etc/omniORB.cfg"); // Overload omniORB.cfg in the container
+      std::string docker = GPP_i::find_exec("docker");
+      prepend_args.push_back(docker);
+      prepend_args.push_back("run");
+      prepend_args.push_back("--sig-proxy=true");
+      prepend_args.push_back("--rm");
+      prepend_args.push_back("--name");
+      prepend_args.push_back(container_name);
+      prepend_args.push_back("--net=host");
+      prepend_args.push_back("-v");
+      prepend_args.push_back(docker_omniorb_cfg+":/etc/omniORB.cfg"); // Overload omniORB.cfg in the container
 
-        	// Additional arguments
-        	if (tmp_params.find("__DOCKER_ARGS__") != tmp_params.end()) {
-        		std::string docker_args_raw = tmp_params["__DOCKER_ARGS__"].toString();
-                std::vector<std::string> docker_args;
-                boost::split(docker_args, docker_args_raw, boost::is_any_of(" ") );
-                BOOST_FOREACH( const std::string& arg, docker_args ) {
-                	prepend_args.push_back(arg);
-                }
-        	}
-
-        	// Finally, the image name
-        	prepend_args.push_back(image_name);
-        	LOG_DEBUG(GPP_i, __FUNCTION__ << "Component will launch within a Docker container using this image: " << image_name);
-
-        	useDocker = true;
+      // Additional arguments
+      if (tmp_params.find("__DOCKER_ARGS__") != tmp_params.end()) {
+        std::string docker_args_raw = tmp_params["__DOCKER_ARGS__"].toString();
+        std::vector<std::string> docker_args;
+        boost::split(docker_args, docker_args_raw, boost::is_any_of(" ") );
+        BOOST_FOREACH( const std::string& arg, docker_args ) {
+          prepend_args.push_back(arg);
         }
+      }
+
+      // Finally, the image name
+      prepend_args.push_back(image_name);
+      LOG_DEBUG(GPP_i, __FUNCTION__ << "Component will launch within a Docker container using this image: " << image_name);
+
+      useDocker = true;
     }
     CF::ExecutableDevice::ProcessID_Type ret_pid;
     try {
-        ret_pid = do_execute(name, options, tmp_params, prepend_args, useDocker);
-        addProcess(ret_pid, app_id, component_id, reservation_value);
+      ret_pid = do_execute(name, options, tmp_params, prepend_args, useDocker);
+      addProcess(ret_pid, app_id, component_id, reservation_value);
     } catch ( ... ) {
-        throw;
+      throw;
     }
     return ret_pid;
 }
@@ -1253,52 +1294,50 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
 ************************************************************************* */
 CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const CF::Properties& options, const CF::Properties& parameters, const std::vector<std::string> prepend_args, const bool use_docker) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
 {
-    CF::Properties invalidOptions;
-    std::string path;
-    char* tmp;
+  CF::Properties invalidOptions;
+  std::string path;
+  char* tmp;
 
-    // throw and error if name does not begin with a /
-    if (strncmp(name, "/", 1) != 0)
-        throw CF::InvalidFileName(CF::CF_EINVAL, "Filename must be absolute");
-    if (isLocked())
-        throw CF::Device::InvalidState("System is locked down");
-    if (isDisabled())
-        throw CF::Device::InvalidState("System is disabled");
+  // throw and error if name does not begin with a /
+  if (strncmp(name, "/", 1) != 0)
+      throw CF::InvalidFileName(CF::CF_EINVAL, "Filename must be absolute");
+  if (isLocked())
+      throw CF::Device::InvalidState("System is locked down");
+  if (isDisabled())
+      throw CF::Device::InvalidState("System is disabled");
 
-    //process options and throw InvalidOptions errors if they are not ULong
-    for (CORBA::ULong i = 0; i < options.length(); ++i) {
-        if (options[i].id == CF::ExecutableDevice::PRIORITY_ID) {
-            CORBA::TypeCode_var atype = options[i].value.type();
-            if (atype->kind() != CORBA::tk_ulong) {
-                invalidOptions.length(invalidOptions.length() + 1);
-                invalidOptions[invalidOptions.length() - 1].id = options[i].id;
-                invalidOptions[invalidOptions.length() - 1].value
-                        = options[i].value;
-            } else
-                LOG_WARN(GPP_i, "Received a PRIORITY_ID execute option...ignoring.")
-            }
-        if (options[i].id == CF::ExecutableDevice::STACK_SIZE_ID) {
-            CORBA::TypeCode_var atype = options[i].value.type();
-            if (atype->kind() != CORBA::tk_ulong) {
-                invalidOptions.length(invalidOptions.length() + 1);
-                invalidOptions[invalidOptions.length() - 1].id = options[i].id;
-                invalidOptions[invalidOptions.length() - 1].value
-                        = options[i].value;
-            } else
-                LOG_WARN(GPP_i, "Received a STACK_SIZE_ID execute option...ignoring.")
-            }
-    }
+  //process options and throw InvalidOptions errors if they are not ULong
+  for (CORBA::ULong i = 0; i < options.length(); ++i) {
+    if (options[i].id == CF::ExecutableDevice::PRIORITY_ID) {
+      CORBA::TypeCode_var atype = options[i].value.type();
+      if (atype->kind() != CORBA::tk_ulong) {
+        invalidOptions.length(invalidOptions.length() + 1);
+        invalidOptions[invalidOptions.length() - 1].id = options[i].id;
+        invalidOptions[invalidOptions.length() - 1].value = options[i].value;
+      } else
+        LOG_WARN(GPP_i, "Received a PRIORITY_ID execute option...ignoring.")
+      }
+    if (options[i].id == CF::ExecutableDevice::STACK_SIZE_ID) {
+      CORBA::TypeCode_var atype = options[i].value.type();
+      if (atype->kind() != CORBA::tk_ulong) {
+        invalidOptions.length(invalidOptions.length() + 1);
+        invalidOptions[invalidOptions.length() - 1].id = options[i].id;
+        invalidOptions[invalidOptions.length() - 1].value = options[i].value;
+      } else
+        LOG_WARN(GPP_i, "Received a STACK_SIZE_ID execute option...ignoring.")
+      }
+  }
 
-    if (invalidOptions.length() > 0) {
-        throw CF::ExecutableDevice::InvalidOptions(invalidOptions);
-    }
+  if (invalidOptions.length() > 0) {
+    throw CF::ExecutableDevice::InvalidOptions(invalidOptions);
+  }
 
-    // retrieve current working directory
-    tmp = getcwd(NULL, 200);
-    if (tmp != NULL) {
-        path = std::string(tmp);
-        free(tmp);
-    }
+  // retrieve current working directory
+  tmp = getcwd(NULL, 200);
+  if (tmp != NULL) {
+      path = std::string(tmp);
+      free(tmp);
+  }
 
     // append relative path of the executable
     path.append(name);
@@ -1339,11 +1378,11 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
     }
 
     if (use_docker) {
-    	// docker container will come up at its own $SDRROOT
-    	// 'name' is prefixed by /, so we prefix it with '.' here
-    	args.push_back("." + std::string(name));
+      // docker container will come up at its own $SDRROOT
+      // 'name' is prefixed by /, so we prefix it with '.' here
+      args.push_back("." + std::string(name));
     } else {
-    	args.push_back(path);
+      args.push_back(path);
     }
 
     LOG_DEBUG(GPP_i, "Building param list for process " << path);
@@ -1449,25 +1488,25 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
       
       // Run executable
       while (true) {
-		  if (strcmp(argv[0], "valgrind") == 0) {
-			  // Find valgrind in the path
-			  returnval = execvp(argv[0], &argv[0]);
-		  } else {
-			  returnval = execv(argv[0], &argv[0]);
-		  }
+      if (strcmp(argv[0], "valgrind") == 0) {
+        // Find valgrind in the path
+        returnval = execvp(argv[0], &argv[0]);
+      } else {
+        returnval = execv(argv[0], &argv[0]);
+      }
 
-		  num_retries--;
-		  if( num_retries <= 0 || errno!=ETXTBSY)
-				break;
+      num_retries--;
+      if( num_retries <= 0 || errno!=ETXTBSY)
+        break;
 
-		  // Only retry on "text file busy" error
-		  LOG_WARN(GPP_i, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
-		  usleep(100000);
+      // Only retry on "text file busy" error
+      LOG_WARN(GPP_i, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
+      usleep(100000);
       }
 
       if( returnval ) {
-		  LOG_ERROR(GPP_i, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
-		  ossie::corba::OrbShutdown(true);
+      LOG_ERROR(GPP_i, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
+      ossie::corba::OrbShutdown(true);
       }
 
       LOG_DEBUG(GPP_i, "Exiting FAILED subprocess:" << returnval );
@@ -2959,7 +2998,7 @@ int  GPP_i::_get_deploy_on_partition() {
     double m_idle_thresh = iter->idle_threshold + ( iter->idle_cap_mod * n_reservations) + 
       (float)loadCapacity/(float)iter->cpus.size();
     RH_NL_DEBUG("GPP", " Looking for execute partition (processor socket:" << iter->id << ") IDLE: actual/avg/threshold limit/modified " <<  
-		iter->get_idle_percent() << "/" << iter->get_idle_average() << "/" << iter->idle_threshold << "/" << m_idle_thresh );
+    iter->get_idle_percent() << "/" << iter->get_idle_average() << "/" << iter->idle_threshold << "/" << m_idle_thresh );
     if ( iter->get_idle_percent() > m_idle_thresh ) {
       psoc=iter->id;
       break;

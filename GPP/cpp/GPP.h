@@ -103,6 +103,16 @@ class GPP_i : public GPP_base
                  CF::ExecutableDevice::InvalidFunction, CF::Device::InvalidState,
                  CORBA::SystemException);
 
+        bool check_docker(const std::string &params);
+        bool check_docker_image(const std::string &value);
+        bool check_docker_volume(const std::string &value);
+
+        bool allocate_docker_image(const std::string &value);
+        void deallocate_docker_image(const std::string &value);
+
+        bool allocate_docker_volume(const std::string &value);
+        void deallocate_docker_volume(const std::string &value);
+
 
         void terminate (CF::ExecutableDevice::ProcessID_Type processId)
             throw (CORBA::SystemException, CF::ExecutableDevice::InvalidProcess, CF::Device::InvalidState);
