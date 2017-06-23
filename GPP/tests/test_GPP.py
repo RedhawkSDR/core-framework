@@ -40,6 +40,7 @@ from ossie.utils import sb, redhawk
 from ossie.cf import CF, CF__POA
 import ossie.utils.testing
 from shutil import copyfile
+import shutil
 import os
 import shutil
 
@@ -616,6 +617,29 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 break
         self.assertEqual(scrpid, None)
         self.assertEqual(scrname, None)
+
+    def test_scraping_proc(self):
+
+        # start up subprocess with spaces in the name...
+        proc="./busy.py"
+        sproc="/tmp/spacely sprockets"
+        shutil.copy(proc,sproc)
+        procs = subprocess.Popen(sproc)
+        self.assertEqual(procs.poll(), None )
+
+        self.runGPP()
+        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
+        # wait for an update to occur
+        time.sleep(4)
+
+        # basically if we get past here.. and did not crash we are goodx
+        self.assertEqual(self.comp._process.isAlive(), True )
+        try:
+            os.system('pkill -9 -f "'+sproc+'"')
+            proc.kill()
+        except:
+            pass
+
         
     def testPropertyEvents(self):
         class Consumer_i(CosEventChannelAdmin__POA.ProxyPushConsumer):

@@ -550,38 +550,70 @@ void GPP_i::update_grp_child_pids() {
     for (unsigned int i = 0; i < globbuf.gl_pathc; i++) {
         std::string stat_filename(globbuf.gl_pathv[globbuf.gl_pathc - i - 1]);
         std::string proc_id(stat_filename.substr(stat_filename.rfind("/")+1));
-        pids_now.push_back(boost::lexical_cast<int>(proc_id));
+        try {
+            pids_now.push_back(boost::lexical_cast<int>(proc_id));
+        }
+        catch(...){
+            std::stringstream errstr;
+            errstr << "Unable to process id:  "<<proc_id;
+            LOG_DEBUG(GPP_i, __FUNCTION__ << ": " << errstr.str() );
+            continue;
+        }
     }
     globfree(&globbuf);
-
+    boost::regex re_("-?\\d+|[[:alpha:]]+|\\(.*\\)");
     BOOST_FOREACH(const int &_pid, pids_now) {
         if (parsed_stat.find(_pid) == parsed_stat.end()) { // it is not on the map
             std::stringstream stat_filename;
             stat_filename << "/proc/"<<_pid<<"/stat";
             std::string line;
-            std::vector<std::string> fields;
+            unsigned fcnt=0;
+            proc_values tmp;
+            int pid;
             try {
                 std::ifstream istr(stat_filename.str().c_str());
                 std::getline(istr, line);
-                boost::split(fields, line, boost::is_any_of(std::string(" ")));
-                static const size_t expected_size(37);
-                if (fields.size() < expected_size) {
+                boost::sregex_token_iterator j;
+                boost::sregex_token_iterator i(line.begin(), line.end(), re_);
+                try {
+                    for( fcnt=0; i != j; i++, fcnt++) {
+                        if ( fcnt == 23 ) {  // rss pages
+                            tmp.mem_rss = boost::lexical_cast<float>(*i) * getpagesize() / (1024*1024);
+                            continue;
+                        }
+                        if ( fcnt == 19 ) { // threads
+                            tmp.num_threads = boost::lexical_cast<CORBA::ULong>(*i);
+                            continue;
+                        }
+                        if ( fcnt == 4 ) { // process group id
+                            tmp.pgrpid = boost::lexical_cast<int>(*i);
+                            continue;
+                        }
+                        if ( fcnt == 0 ) { // pid
+                            pid = boost::lexical_cast<int>(*i);
+                            continue;
+                        }
+                    }
+
+                } catch ( ... ) {
                     std::stringstream errstr;
-                    errstr << "Insufficient fields in "<<stat_filename<<" file (expected>=" << expected_size << " received=" << fields.size() << ")";
-                    LOG_DEBUG(GPP_i, __FUNCTION__ << ": " << errstr.str() );
+                    errstr << "Invalid line format in stat file, pid :" << _pid << " field number " << fcnt << " line " << line ;
+                    LOG_WARN(GPP_i, __FUNCTION__ << ": " << errstr.str() );
                     continue;
                 }
+
             } catch ( ... ) {
                 std::stringstream errstr;
                 errstr << "Unable to read "<<stat_filename<<". The process is no longer there";
                 LOG_DEBUG(GPP_i, __FUNCTION__ << ": " << errstr.str() );
                 continue;
             }
-            proc_values tmp;
-            tmp.mem_rss = boost::lexical_cast<float>(fields[23]) * getpagesize() / (1024*1024);
-            tmp.num_threads = boost::lexical_cast<CORBA::ULong>(fields[19]);
-            tmp.pgrpid = boost::lexical_cast<float>(fields[4]);
-            int pid = boost::lexical_cast<int>(fields[0]);
+            if ( fcnt < 37 ) {
+                std::stringstream errstr;
+                errstr << "Insufficient fields proc/<pid>/stat: "<<stat_filename.str()<<" file (expected>=37 received=" << fcnt << ")";
+                LOG_DEBUG(GPP_i, __FUNCTION__ << ": " << errstr.str() );
+                continue;
+            }
             parsed_stat[pid] = tmp;
             if (grp_children.find(tmp.pgrpid) == grp_children.end()) {
                 grp_children[tmp.pgrpid].num_processes = 1;

@@ -1309,7 +1309,7 @@ def start_component(componentclass, interactive_callback=None, thread_policy=Non
                     orb.run()
 
             try:
-               orb.shutdown(true)
+               orb.shutdown(True)
             except:
                 pass
             signal.signal(signal.SIGINT, signal.SIG_IGN)
