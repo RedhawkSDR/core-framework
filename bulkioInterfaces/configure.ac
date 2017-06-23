@@ -49,23 +49,17 @@ RH_PKG_IDLDIR([OSSIE], [ossie])
 PKG_CHECK_MODULES([OMNICOS], [omniCOS4 >= 4.0.0])
 RH_PKG_IDLDIR([OMNICOS], [omniCOS4])
 
-# Optionally include BULKIO base class libraries
-AC_ARG_ENABLE([base-classes], AS_HELP_STRING([--disable-base-classes], [Disable BULKIO base class libraries]))
-AM_CONDITIONAL([BUILD_BASE_CLASSES], [test "$enable_base_classes" != "no"])
+AC_SUBST([BULKIO_SO_VERSION], [0:0:0])
+AC_SUBST([BULKIO_API_VERSION], [2.1])
 
-if test "$enable_base_classes" != "no"; then
-  AC_SUBST([BULKIO_SO_VERSION], [0:0:0])
-  AC_SUBST([BULKIO_API_VERSION], [2.1])
+AX_BOOST_BASE([1.41])
+AX_BOOST_THREAD
+AX_BOOST_SYSTEM
+OSSIE_ENABLE_LOG4CXX
+CHECK_VECTOR_IMPL
 
-  AX_BOOST_BASE([1.41])
-  AX_BOOST_THREAD
-  AX_BOOST_SYSTEM
-  OSSIE_ENABLE_LOG4CXX
-  CHECK_VECTOR_IMPL
-
-  AC_SUBST(BULKIOINTERFACES_CFLAGS, "-I \$(top_srcdir)/src/cpp -I \$(top_srcdir)/src/cpp/ossie")
-  AC_SUBST(BULKIOINTERFACES_LIBS, "-L\$(top_srcdir) -lbulkioInterfaces")
-fi
+AC_SUBST(BULKIOINTERFACES_CFLAGS, "-I \$(top_srcdir)/src/cpp -I \$(top_srcdir)/src/cpp/ossie")
+AC_SUBST(BULKIOINTERFACES_LIBS, "-L\$(top_srcdir) -lbulkioInterfaces")
 
 # Optionally include java support
 AC_ARG_ENABLE([java], AS_HELP_STRING([--disable-java], [Disable framework java support]))
@@ -152,34 +146,32 @@ AC_SUBST(BULKIO_CFLAGS, "-I ${bulkio_includedir} -I ${bulkio_includedir}/bulkio 
 AC_SUBST(BULKIO_LIBS, "-L\$(top_srcdir)/libsrc -lbulkio-${BULKIO_API_VERSION} ${BULKIOINTERFACES_LIBS}")
 
 AC_CONFIG_FILES([bulkioInterfaces.pc setup.py Makefile jni/Makefile])
-if test "$enable_base_classes" != "no"; then
-  if test "$HAVE_JAVASUPPORT = yes"; then
-    AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF])
-  fi
-  AC_SUBST(PROJECTDEPS_CFLAGS, "\$(OSSIE_CFLAGS)")
-  AC_SUBST(PROJECTDEPS_LIBS, "\$(OSSIE_LIBS)")
-  AC_SUBST(INTERFACEDEPS_CFLAGS, "\$(BULKIO_CFLAGS)")
-  AC_SUBST(INTERFACEDEPS_LIBS, "\$(BULKIO_LIBS)")
-  AC_SUBST(REDHAWK_CLASSPATH, "\$(OSSIE_CLASSPATH)")
-  AC_SUBST(BULKIO_CLASSPATH, "\$(top_srcdir)/libsrc/bulkio.jar:\$(top_srcdir)/BULKIOInterfaces.jar")
-  AC_CONFIG_FILES([libsrc/Makefile \
-                   libsrc/bulkio.pc \
-                   libsrc/testing/Makefile \
-                   libsrc/testing/tests/cpp/Makefile \
-                   libsrc/testing/tests/java/Makefile \
-                   libsrc/testing/components/CPP_Ports/cpp/Makefile \
-                   libsrc/testing/components/Java_Ports/java/Makefile \
-                   libsrc/testing/components/Oversized_framedata/cpp/Makefile \
-                   libsrc/testing/components/src/cpp/Makefile \
-                   libsrc/testing/components/snk_slow/cpp/Makefile \
-                   libsrc/testing/components/Oversized_framedata/java/Makefile \
-                   libsrc/testing/components/TestLargePush/cpp/Makefile \
-                   libsrc/testing/components/TestLargePush/java/Makefile \
-                   libsrc/testing/components/multiout_attachable/cpp/Makefile \
-                   libsrc/testing/components/multiout_attachable/java/Makefile \
-                   libsrc/testing/components/sri_changed_cpp/cpp/Makefile \
-                   libsrc/testing/devices/dev_snk/java/Makefile \
-                   libsrc/testing/devices/dev_src/java/Makefile])
+if test "$HAVE_JAVASUPPORT = yes"; then
+  AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF])
 fi
+AC_SUBST(PROJECTDEPS_CFLAGS, "\$(OSSIE_CFLAGS)")
+AC_SUBST(PROJECTDEPS_LIBS, "\$(OSSIE_LIBS)")
+AC_SUBST(INTERFACEDEPS_CFLAGS, "\$(BULKIO_CFLAGS)")
+AC_SUBST(INTERFACEDEPS_LIBS, "\$(BULKIO_LIBS)")
+AC_SUBST(REDHAWK_CLASSPATH, "\$(OSSIE_CLASSPATH)")
+AC_SUBST(BULKIO_CLASSPATH, "\$(top_srcdir)/libsrc/bulkio.jar:\$(top_srcdir)/BULKIOInterfaces.jar")
+AC_CONFIG_FILES([libsrc/Makefile \
+                 libsrc/bulkio.pc \
+                 libsrc/testing/Makefile \
+                 libsrc/testing/tests/cpp/Makefile \
+                 libsrc/testing/tests/java/Makefile \
+                 libsrc/testing/components/CPP_Ports/cpp/Makefile \
+                 libsrc/testing/components/Java_Ports/java/Makefile \
+                 libsrc/testing/components/Oversized_framedata/cpp/Makefile \
+                 libsrc/testing/components/src/cpp/Makefile \
+                 libsrc/testing/components/snk_slow/cpp/Makefile \
+                 libsrc/testing/components/Oversized_framedata/java/Makefile \
+                 libsrc/testing/components/TestLargePush/cpp/Makefile \
+                 libsrc/testing/components/TestLargePush/java/Makefile \
+                 libsrc/testing/components/multiout_attachable/cpp/Makefile \
+                 libsrc/testing/components/multiout_attachable/java/Makefile \
+                 libsrc/testing/components/sri_changed_cpp/cpp/Makefile \
+                 libsrc/testing/devices/dev_snk/java/Makefile \
+                 libsrc/testing/devices/dev_src/java/Makefile])
 
 AC_OUTPUT

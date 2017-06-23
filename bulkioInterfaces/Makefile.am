@@ -177,11 +177,7 @@ distclean-local:
 
 # Always build the current directory first (this is hack-ish, but the
 # alternative is to combine the Makefile.am's)
-SUBDIRS = .
-
-if BUILD_BASE_CLASSES
-SUBDIRS += libsrc
-endif
+SUBDIRS = . libsrc
 
 ###############################################################################
 # C++ (via automake and libtool)
