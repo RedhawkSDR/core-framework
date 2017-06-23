@@ -150,16 +150,6 @@ OSSIE_ENABLE_PERSISTENCE
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-AC_ARG_ENABLE([xml_validation], AS_HELP_STRING([--disable-xml-validation], [Disable xml validation in the parsers]))
-AC_MSG_CHECKING([if xml parsers should perform validation])
-if test "x$enable_xml_validation" != "xno"; then
-  AC_SUBST(OSSIE_XSDFLAGS, "--generate-validation")
-  AC_MSG_RESULT([yes])
-else
-  AC_SUBST(OSSIE_XSDFLAGS, "--suppress-validation")
-  AC_MSG_RESULT([no])
-fi
-
 # Allow user to explictly prevent JAVA compilation
 AC_ARG_ENABLE([java], AS_HELP_STRING([--disable-java], [Disable framework java support]))
 

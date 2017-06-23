@@ -76,7 +76,7 @@ libossieparser_la_LDFLAGS = $(EXPAT_LDFLAGS)
 
 AM_CPPFLAGS = -I../include -I. -I$(top_srcdir)/base/include
 
-XSDFLAGS = --hxx-suffix .h --cxx-suffix .cpp --xml-parser expat --output-dir internal $(OSSIE_XSDFLAGS)
+XSDFLAGS = --hxx-suffix .h --cxx-suffix .cpp --xml-parser expat --output-dir internal --generate-validation
 
 # Pattern rule to generate *-pskel files using the corresponding .xsd and .map
 # files. We need to keep xmlns items in the XSD, but we have to remove them
