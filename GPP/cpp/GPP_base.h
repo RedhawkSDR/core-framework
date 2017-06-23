@@ -55,6 +55,8 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         std::string hostName;
         std::string componentOutputLog;
         std::string docker_omniorb_cfg;
+        std::string docker_image;
+        std::string docker_volume;
         bool useScreen;
         advanced_struct advanced;
 

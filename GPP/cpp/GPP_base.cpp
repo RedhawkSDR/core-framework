@@ -182,12 +182,28 @@ void GPP_base::loadProperties()
                 "property");
 
     addProperty(docker_omniorb_cfg,
-    		    "docker_omniorb_cfg",
+    		    "DCE:0b5c1a83-7226-4705-a3be-eff5a8a9f38a",
 				"docker_omniorb_cfg",
 				"readonly",
 				"/etc/omniORB.cfg",
 				"external",
 				"property");
+
+    addProperty(docker_image,
+                "DCE:c38d28a6-351d-4aa4-a9ba-3cea51966838",
+                "docker_image",
+                "readwrite",
+                "",
+                "eq",
+                "allocation");
+
+    addProperty(docker_volume,
+                "DCE:DCE:47a581c8-e31f-4284-a3ef-6d8b98385835",
+                "docker_volume",
+                "readwrite",
+                "",
+                "eq",
+                "allocation");
 
     addProperty(mcastnicInterface,
                 "",
