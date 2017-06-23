@@ -243,6 +243,7 @@ class GPP_i : public GPP_base
           void process_ODM(const CORBA::Any &data);
 
           void updateUsageState();
+          void setShadowThresholds(const thresholds_struct &newVals );
 
           typedef boost::shared_ptr<NicThroughputThresholdMonitor>   NicMonitorPtr;
           typedef boost::shared_ptr<ThresholdMonitor>           ThresholdMonitorPtr;
@@ -289,6 +290,7 @@ class GPP_i : public GPP_base
         
           Lock                                                monitorLock;
           UpdateableSequence                                  data_model;
+          thresholds_struct                                   __thresholds;             
           thresholds_struct                                   modified_thresholds;
           uint64_t                                            thresh_mem_free_units;
           uint64_t                                            mem_free_units;
