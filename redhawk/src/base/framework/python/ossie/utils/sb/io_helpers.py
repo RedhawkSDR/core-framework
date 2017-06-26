@@ -1196,7 +1196,7 @@ class DataSourceSDDS(_SourceBase):
     def _createArraySrcInst(self, srcPortType):
         return self._src
 
-    def getStreamDef( self, name=None, pkts=1000, block=True, returnSddsAnalyzer=True):
+    def getStreamDef( self, name=None, hostip=None, pkts=1000, block=True, returnSddsAnalyzer=True):
         # grab data if stream definition is available 
         sdef =None
         aid=name
@@ -1212,11 +1212,14 @@ class DataSourceSDDS(_SourceBase):
             
         if not sdef:
             raise Exception("No SDDS stream definition for attach id:" + aid )
+        
+        if not hostip:
+            hostip = _socket.gethostbyname(_socket.gethostname())
 
-        return self.grabData( sdef.multicastAddress, sdef.port, sdef.vlan, packets, block=block)
+        return self.getData( sdef.multicastAddress, hostip, sdef.port, packets, block=block, returnSDDSAnalyzer=returnSDDSAnalyzer)
         
 
-    def getData( self, mgroup, hostip, port=29495, vlan=0, pkts=1000, pktlen=1080, sdds=True, block=True, returnSddsAnalyzer=True):
+    def getData( self, mgroup, hostip, port=29495, pkts=1000, pktlen=1080, block=True, returnSddsAnalyzer=True):
         totalRead=0.0
         startTime = _time.time()        
         sock = None
