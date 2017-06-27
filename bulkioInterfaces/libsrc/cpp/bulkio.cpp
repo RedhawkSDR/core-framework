@@ -31,6 +31,7 @@ namespace  bulkio {
     mutex(),
     condition() 
   {
+    currValue=0;   
     maxValue = initialMaxValue;
   }
 
