@@ -89,6 +89,23 @@ def is_structsequence(prop):
     """
     return prop['class'] == 'structsequence'
 
+def is_enumerated(prop):
+    """
+    Returns True if the property, or one of its nested properties, has
+    enumerated values.
+    """
+    if is_simple(prop):
+        return 'enums' in prop
+    elif is_struct(prop):
+        # If any field is enumerated, return True
+        return any(is_enumerated(f) for f in prop['fields'])
+    elif is_structsequence(prop):
+        # Check the struct defintion
+        return is_enumerated(prop['structdef'])
+    else:
+        # Simple sequence properties do not support enumerations
+        return False
+
 def _getvalue(obj, name):
     """
     Looks up the item or attribute 'name' in obj. If the item is callable,

@@ -107,6 +107,14 @@ class JavaPropertyMapper(PropertyMapper):
         javaprop['isOptional'] = prop.isOptional()
         return javaprop
 
+    def mapEnumeration(self, prop, label, value):
+        javaenum = {}
+        enumtype = self.javaType(prop.type())
+        javaenum['javatype'] = enumtype
+        javaenum['javalabel'] = java.identifier(label)
+        javaenum['javavalue'] = java.literal(value, enumtype, prop.isComplex())
+        return javaenum
+
     def mapSimpleSequenceProperty(self, prop):
         javaprop, javatype = self._createComplexJavaProp(prop)
         values = []

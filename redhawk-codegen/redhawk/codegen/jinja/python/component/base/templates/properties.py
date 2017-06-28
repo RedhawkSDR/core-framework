@@ -243,3 +243,23 @@ ${struct(prop)}
 ${structsequence(prop)}
 #{% endif %}
 #{% endmacro %}
+
+#{% macro enumvalues(prop) %}
+#{%   if prop is structsequence %}
+#{%     set prop = prop.structdef %}
+#{%   endif %}
+# Enumerated values for ${prop.identifier}
+class ${prop.pyname}:
+#{%   if prop is struct %}
+#{%     for field in prop.fields if field.enums %}
+#{%       if not loop.first %}
+
+#{%       endif %}
+    ${enumvalues(field)|indent(4)}
+#{%     endfor %}
+#{%   else %}
+#{%     for enum in prop.enums %}
+    ${enum.pylabel} = ${enum.pyvalue}
+#{%     endfor %}
+#{%   endif %}
+#{% endmacro %}

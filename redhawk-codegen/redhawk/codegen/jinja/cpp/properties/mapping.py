@@ -77,6 +77,12 @@ class CppPropertyMapper(PropertyMapper):
         cppprop['format'] = self._getSimpleFormat(prop, False)
         return cppprop
 
+    def mapEnumeration(self, prop, label, value):
+        cppenum = {}
+        cppenum['cpplabel'] = cpp.identifier(label)
+        cppenum['cppvalue'] = cpp.literal(value, prop.type(), prop.isComplex())
+        return cppenum
+
     def mapSimpleSequenceProperty(self, prop):
         cppprop = self.mapProperty(prop)
         cppprop['cpptype'] = cpp.sequenceType(prop.type(), prop.isComplex())

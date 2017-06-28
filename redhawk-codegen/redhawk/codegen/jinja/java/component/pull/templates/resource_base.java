@@ -116,6 +116,19 @@ public abstract class ${classname} extends ${superClass} {
     public final static Logger logger = Logger.getLogger(${classname}.class.getName());
 
 /*{% import "base/properties.java" as properties with context %}*/
+/*{% for prop in component.properties if prop is enumerated %}*/
+/*{%   if loop.first %}*/
+    /**
+     * Enumerated values for properties
+     */
+    public static class enums {
+/*{%   endif %}*/
+        ${properties.enumvalues(prop)|indent(8)}
+/*{%   if loop.last %}*/
+    }
+/*{%   endif %}*/
+
+/*{% endfor %}*/
 /*{% for prop in component.properties %}*/
 /*{%   if not prop.inherited %}*/
     ${properties.create(prop)|indent(4)}

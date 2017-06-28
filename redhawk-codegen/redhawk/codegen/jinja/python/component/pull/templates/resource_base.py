@@ -63,6 +63,14 @@ ${statement}
 #{# Allow additional child class imports #}
 #{% endblock %}
 
+#{% import "base/properties.py" as properties with context %}
+#{% for prop in component.properties if prop is enumerated %}
+#{%   if loop.first %}
+class enums:
+#{%   endif %}
+    ${properties.enumvalues(prop)|indent(4)}
+
+#{% endfor %}
 class ${className}(${component.poaclass}, ${component.superclasses|join(', ', attribute='name')}, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class
 
@@ -160,7 +168,6 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
         # 
         # DO NOT ADD NEW PROPERTIES HERE.  You can add properties in your derived class, in the PRF xml file
         # or by using the IDE.
-#{% import "base/properties.py" as properties with context %}
 #{% filter codealign %}
 #{% for prop in component.properties %}
 #{%   if prop is struct and not prop.builtin %}

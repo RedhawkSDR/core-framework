@@ -50,6 +50,17 @@
 /*# Allow child templates to add #define statements #*/
 /*{% endblock %}*/
 
+/*{% from "properties/properties.cpp" import enumvalues %}*/
+/*{% for prop in component.properties if prop.enums %}*/
+/*{%   if loop.first %}*/
+namespace enums {
+/*{%   endif %}*/
+    ${enumvalues(prop)|indent(4)}
+/*{%   if loop.last %}*/
+}
+
+/*{%   endif %}*/
+/*{% endfor %}*/
 /*{% block classPrototype %}*/
 class ${className} : public ${component.superclasses|join(', public ', attribute='name')}, protected ThreadedComponent
 /*{% endblock %}*/

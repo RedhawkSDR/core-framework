@@ -49,6 +49,7 @@ class CodegenEnvironment(jinja2.Environment):
         self.tests['simplesequence'] = tests.is_simplesequence
         self.tests['struct'] = tests.is_struct
         self.tests['structsequence'] = tests.is_structsequence
+        self.tests['enumerated'] = tests.is_enumerated
         self.tests['provides'] = tests.is_provides
         self.tests['uses'] = tests.is_uses
         self.tests['bidir'] = tests.is_bidir
