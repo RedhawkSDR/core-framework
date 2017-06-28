@@ -656,7 +656,7 @@ void ResourceInfo::overrideProperty(const ossie::ComponentProperty* propref) {
     const Property* prop = prf.getProperty(propId);
     // Without a prop, we don't know how to convert the strings to the property any type
     if (prop == NULL) {
-        if ( propId != "LOGGING_CONFIG_URI" and propId != "DEBUG_LEVEL" ) {
+        if ( propId != "LOGGING_CONFIG_URI" and propId != "LOG_LEVEL" ) {
             LOG_WARN(ResourceInfo, "Ignoring attempt to override property " << propId << " Reason: Property ID not exist in component")
                 return;
         }
@@ -664,8 +664,8 @@ void ResourceInfo::overrideProperty(const ossie::ComponentProperty* propref) {
     }
 
     // allow intrinstic properties to be command line
-    if ( propId == "LOGGING_CONFIG_URI" or propId == "DEBUG_LEVEL" ) {
-        LOG_DEBUG(ResourceInfo, "Allowing LOGGING_CONFIG_URI and DEBUG_LEVEL to be passed to override");
+    if ( propId == "LOGGING_CONFIG_URI" or propId == "LOG_LEVEL" ) {
+        LOG_DEBUG(ResourceInfo, "Allowing LOGGING_CONFIG_URI and LOG_LEVEL to be passed to override");
         CF::DataType prop;
         prop.id = propId.c_str();
         prop.value <<= dynamic_cast<const SimplePropertyRef*>(propref)->getValue();

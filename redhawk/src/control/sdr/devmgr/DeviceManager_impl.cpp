@@ -1144,7 +1144,7 @@ int DeviceManager_impl::resolveDebugLevel( const std::string &level_in ) {
     debug_level = ossie::logging::ConvertRHLevelToDebug( rhlevel );
     if ( dlevel.at(0) != 'I' and debug_level == 3 ) debug_level=-1;
 
-    // test if number was provided. 
+    // test if number was provided.
     if ( debug_level == -1  ){
         char *p=NULL;
         int dl=strtol(dlevel.c_str(), &p, 10 );
@@ -1154,13 +1154,13 @@ int DeviceManager_impl::resolveDebugLevel( const std::string &level_in ) {
             debug_level = ossie::logging::ConvertRHLevelToDebug( rhlevel );
         }
     }
-    
-    return debug_level;    
+
+    return debug_level;
 }
 
 
 void DeviceManager_impl::resolveLoggingConfiguration( const std::string &                      usageName,
-                                                      std::vector< std::string >&              new_argv, 
+                                                      std::vector< std::string >&              new_argv,
                                                       const ossie::ComponentInstantiation&     instantiation,
                                                       const ossie::ComponentPropertyList&      instanceprops,
                                                       const std::string &logcfg_path ) {
@@ -1177,10 +1177,10 @@ void DeviceManager_impl::resolveLoggingConfiguration( const std::string &       
             continue;
         }
 
-        if ((strcmp(iprops_iter->getID().c_str(), "DEBUG_LEVEL") == 0)
+        if ((strcmp(iprops_iter->getID().c_str(), "LOG_LEVEL") == 0)
             && (dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter)) != NULL)) {
-          const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter));
-          debug_level = resolveDebugLevel(simpleref->getValue());
+            const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter));
+            debug_level = resolveDebugLevel(simpleref->getValue());
             LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: property debug level:" << logging_uri);
             continue;
         }
@@ -1192,7 +1192,7 @@ void DeviceManager_impl::resolveLoggingConfiguration( const std::string &       
         logging_uri = log_config.first;
         LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: loggingconfig log config:" << logging_uri);
     }
-    // check if debug value provided 
+    // check if debug value provided
     if ( !log_config.second.empty() ) {
         debug_level = resolveDebugLevel( log_config.second );
         LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: loggingconfig debug_level:" << debug_level);
