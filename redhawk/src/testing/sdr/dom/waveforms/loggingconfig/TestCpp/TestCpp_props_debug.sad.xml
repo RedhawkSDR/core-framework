@@ -33,7 +33,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
                 <usagename>C2_1</usagename>
                 <componentproperties>
                     <simpleref refid="LOGGING_CONFIG_URI" value="sca://logcfg/log.props.c2"/>
-                    <simpleref refid="DEBUG_LEVEL" value="TRACE"/>
+                    <simpleref refid="LOG_LEVEL" value="TRACE"/>
                 </componentproperties>
                 <findcomponent>
                     <namingservice name="C2_1"/>
