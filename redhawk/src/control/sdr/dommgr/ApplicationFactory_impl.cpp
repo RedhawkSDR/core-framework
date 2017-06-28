@@ -2006,14 +2006,19 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
         LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: exec parameter provided debug_level: " << debug_level);
     }
 
+    if ( execParams.contains("LOG_LEVEL") ) {
+        debug_level = resolveDebugLevel( execParams["LOG_LEVEL"].toString() );
+        LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: exec parameter provided log_level: " << debug_level);
+    }
+
    // check if logging configuration is part of component placement
     redhawk::PropertyMap log_config=deployment->getLoggingConfiguration();
     if ( log_config.contains("LOGGING_CONFIG_URI") ) {
         logging_uri = log_config["LOGGING_CONFIG_URI"].toString();
         LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: loggingconfig log config: " << logging_uri);
     }
-    if ( log_config.contains("DEBUG_LEVEL") ) {
-        debug_level = resolveDebugLevel(log_config["DEBUG_LEVEL"].toString());
+    if ( log_config.contains("LOG_LEVEL") ) {
+        debug_level = resolveDebugLevel(log_config["LOG_LEVEL"].toString());
         LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: loggingconfig debug_level: " << debug_level);
     }
 
@@ -2065,7 +2070,7 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
     // if debug level is resolved, then add as execparam
     if ( debug_level != -1 ) {
         execParams["DEBUG_LEVEL"] = static_cast<CORBA::Long>(debug_level);
-        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " DEBUG_LEVEL: " << debug_level );
+        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " LOG_LEVEL: " << debug_level );
     }
 }
 

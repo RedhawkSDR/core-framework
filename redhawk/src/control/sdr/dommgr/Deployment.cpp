@@ -281,8 +281,8 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
         loggingConfig["LOGGING_CONFIG_URI"] = lcfg.first;
     }
     if ( !lcfg.second.empty() ){
-        RH_NL_TRACE("ApplicationFactory_impl", "Logging Debug: <" << lcfg.second << ">" );
-        loggingConfig["DEBUG_LEVEL"] = lcfg.second;
+        RH_NL_TRACE("ApplicationFactory_impl", "Logging Level: <" << lcfg.second << ">" );
+        loggingConfig["LOG_LEVEL"] = lcfg.second;
     }
 
     if (!instantiation->getAffinity().empty()) {
@@ -633,8 +633,8 @@ redhawk::PropertyMap ComponentDeployment::getLoggingConfiguration() const
         }
     }
 
-    if (overrides.contains("DEBUG_LEVEL") ) {
-        override = overrides.find("DEBUG_LEVEL");
+    if (overrides.contains("LOG_LEVEL") ) {
+        override = overrides.find("LOG_LEVEL");
         if (!override->getValue().isNil()) {
             debug_level = override->getValue().toString();
         }
@@ -649,7 +649,7 @@ redhawk::PropertyMap ComponentDeployment::getLoggingConfiguration() const
         }
     }
 
-    propref = getPropertyOverride("DEBUG_LEVEL");
+    propref = getPropertyOverride("LOG_LEVEL");
     if (propref) {
         const SimplePropertyRef* simple = dynamic_cast<const SimplePropertyRef*>(propref);
         if (simple) {
@@ -664,8 +664,8 @@ redhawk::PropertyMap ComponentDeployment::getLoggingConfiguration() const
         logcfg_uri = loggingConfig["LOGGING_CONFIG_URI"].toString();
     }
 
-    if ( loggingConfig.contains("DEBUG_LEVEL") )  {
-        debug_level = loggingConfig["DEBUG_LEVEL"].toString();
+    if ( loggingConfig.contains("LOG_LEVEL") )  {
+        debug_level = loggingConfig["LOG_LEVEL"].toString();
     }
 
     if ( !logcfg_uri.empty() ) {
@@ -673,7 +673,7 @@ redhawk::PropertyMap ComponentDeployment::getLoggingConfiguration() const
     }
 
     if ( !debug_level.empty() ) {
-        ret["DEBUG_LEVEL"]=debug_level;
+        ret["LOG_LEVEL"]=debug_level;
     }
 
     return ret;
