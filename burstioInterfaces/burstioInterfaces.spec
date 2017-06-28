@@ -29,7 +29,7 @@ Prefix:         %{_prefix}
 
 Name:           burstioInterfaces
 Version:        2.1.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        BURSTIO interfaces for REDHAWK
 
 Group:          Applications/Engineering
@@ -109,5 +109,8 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.1-2
+- Bump for 2.1.1-rc2
+
 * Thu Feb 20 2014 1.10.0
 - Initial commit
