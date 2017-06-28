@@ -717,11 +717,6 @@ void ComponentInfo::setLoggingConfig( const LoggingConfig  &logcfg )
   loggingConfig = logcfg;
 }
 
-const ComponentInfo::LoggingConfig &ComponentInfo::getLoggingConfig( )
-{
-    return loggingConfig;
-}
-
 
 void ComponentInfo::addFactoryParameter(CF::DataType dt)
 {
@@ -749,25 +744,12 @@ void ComponentInfo::overrideProperty(const ossie::ComponentProperty* propref) {
     const Property* prop = prf.getProperty(propId);
     // Without a prop, we don't know how to convert the strings to the property any type
     if (prop == NULL) {
-        if ( propId != "LOGGING_CONFIG_URI" and propId != "DEBUG_LEVEL" ) {
-            LOG_WARN(ComponentInfo, "ignoring attempt to override property " << propId << " that does not exist in component")
-                return;
-        }
+        LOG_WARN(ComponentInfo, "ignoring attempt to override property " << propId << " that does not exist in component")
+        return;
     }
 
-    // allow intrinstic properties to be command line
-    if ( propId == "LOGGING_CONFIG_URI" or propId == "DEBUG_LEVEL" ) {
-        LOG_DEBUG(ComponentInfo, "Allowing LOGGING_CONFIG_URI and DEBUG_LEVEL to be passed to override");
-        CF::DataType prop;
-        prop.id = propId.c_str();
-        prop.value <<= dynamic_cast<const SimplePropertyRef*>(propref)->getValue();
-        addExecParameter(prop);
-
-    }
-    else{
-        CF::DataType dt = overridePropertyValue(prop, propref);
-        overrideProperty(dt.id, dt.value);
-    }
+    CF::DataType dt = overridePropertyValue(prop, propref);
+    overrideProperty(dt.id, dt.value);
 }
 
 void ComponentInfo::overrideProperty(const char* id, const CORBA::Any& value)

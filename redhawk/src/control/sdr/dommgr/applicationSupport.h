@@ -232,7 +232,6 @@ namespace ossie
         void setAffinity( const AffinityProperties &affinity );
         void mergeAffinityOptions( const CF::Properties &new_affinity );
         void setLoggingConfig( const LoggingConfig &logcfg );
-        const ComponentInfo::LoggingConfig &getLoggingConfig();
         void addResolvedSoftPkgDependency(const std::string &dep);
         std::vector<std::string> getResolvedSoftPkgDependencies();
 

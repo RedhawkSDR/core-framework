@@ -1494,12 +1494,10 @@ class componentinstantiation(GeneratedsSuper):
     attribute is a DCE UUID that uniquely identifier the component."""
     subclass = None
     superclass = None
-    def __init__(self, id_=None, usagename=None, componentproperties=None, affinity=None, loggingconfig=None ):
+    def __init__(self, id_=None, usagename=None, componentproperties=None):
         self.id_ = _cast(None, id_)
         self.usagename = usagename
         self.componentproperties = componentproperties
-        self.affinity = affinity
-        self.loggingconfig = loggingconfig
     def factory(*args_, **kwargs_):
         if componentinstantiation.subclass:
             return componentinstantiation.subclass(*args_, **kwargs_)
@@ -1512,12 +1510,6 @@ class componentinstantiation(GeneratedsSuper):
     def get_componentproperties(self): return self.componentproperties
     def set_componentproperties(self, componentproperties): self.componentproperties = componentproperties
     componentpropertiesProp = property(get_componentproperties, set_componentproperties)
-    def get_affinity(self): return self.affinity
-    def set_affinity(self, affinity): self.affinity = affinity
-    affinityProp = property(get_affinity, set_affinity)
-    def get_loggingconfig(self): return self.loggingconfig
-    def set_loggingconfig(self, loggingconfig): self.loggingconfig = loggingconfig
-    loggingconfigProp = property(get_loggingconfig, set_loggingconfig)
     def get_id(self): return self.id_
     def set_id(self, id): self.id_ = id
     idProp = property(get_id, set_id)
@@ -1551,17 +1543,10 @@ class componentinstantiation(GeneratedsSuper):
             outfile.write('<%susagename>%s</%susagename>%s' % (namespace_, self.gds_format_string(quote_xml(self.usagename).encode(ExternalEncoding), input_name='usagename'), namespace_, eol_))
         if self.componentproperties is not None:
             self.componentproperties.export(outfile, level, namespace_, name_='componentproperties', pretty_print=pretty_print)
-        if self.affinity is not None:
-            self.affinity.export(outfile, level, namespace_, name_='affinity', pretty_print=pretty_print)
-        if self.loggingconfig is not None:
-            self.loggingconfig.export(outfile, level, namespace_, name_='loggingconfig', pretty_print=pretty_print)
     def hasContent_(self):
         if (
             self.usagename is not None or
-            self.componentproperties is not None or
-            self.affinity is not None or 
-            self.loggingconfig is not None or 
-            self.findcomponent is not None 
+            self.componentproperties is not None
             ):
             return True
         else:
@@ -1586,19 +1571,6 @@ class componentinstantiation(GeneratedsSuper):
             self.componentproperties.exportLiteral(outfile, level)
             showIndent(outfile, level)
             outfile.write('),\n')
-        if self.affinity is not None:
-            showIndent(outfile, level)
-            outfile.write('affinity=model_.affinity(\n')
-            self.affinity.exportLiteral(outfile, level)
-            showIndent(outfile, level)
-            outfile.write('),\n')
-        if self.loggingconfig is not None:
-            showIndent(outfile, level)
-            outfile.write('loggingconfig=model_.loggingconfig(\n')
-            self.loggingconfig.exportLiteral(outfile, level)
-            showIndent(outfile, level)
-            outfile.write('),\n')
-
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         for child in node:
@@ -1618,15 +1590,6 @@ class componentinstantiation(GeneratedsSuper):
             obj_ = componentproperties.factory()
             obj_.build(child_)
             self.set_componentproperties(obj_)
-        elif nodeName_ == 'affinity':
-            obj_ = affinity.factory()
-            obj_.build(child_)
-            self.set_affinity(obj_)
-        elif nodeName_ == 'loggingconfig':
-            obj_ = loggingconfig.factory()
-            obj_.build(child_)
-            self.set_loggingconfig(obj_)
-
 # end class componentinstantiation
 
 
@@ -1798,259 +1761,6 @@ class componentproperties(GeneratedsSuper):
             obj_.build(child_)
             self.structsequenceref.append(obj_)
 # end class componentproperties
-
-
-class affinity(GeneratedsSuper):
-    subclass = None
-    superclass = None
-    def __init__(self, simpleref=None, simplesequenceref=None, structref=None, structsequenceref=None):
-        if simpleref is None:
-            self.simpleref = []
-        else:
-            self.simpleref = simpleref
-        if simplesequenceref is None:
-            self.simplesequenceref = []
-        else:
-            self.simplesequenceref = simplesequenceref
-        if structref is None:
-            self.structref = []
-        else:
-            self.structref = structref
-        if structsequenceref is None:
-            self.structsequenceref = []
-        else:
-            self.structsequenceref = structsequenceref
-    def factory(*args_, **kwargs_):
-        if affinity.subclass:
-            return affinity.subclass(*args_, **kwargs_)
-        else:
-            return affinity(*args_, **kwargs_)
-    factory = staticmethod(factory)
-    def get_simpleref(self): return self.simpleref
-    def set_simpleref(self, simpleref): self.simpleref = simpleref
-    def add_simpleref(self, value): self.simpleref.append(value)
-    def insert_simpleref(self, index, value): self.simpleref[index] = value
-    simplerefProp = property(get_simpleref, set_simpleref)
-    def get_simplesequenceref(self): return self.simplesequenceref
-    def set_simplesequenceref(self, simplesequenceref): self.simplesequenceref = simplesequenceref
-    def add_simplesequenceref(self, value): self.simplesequenceref.append(value)
-    def insert_simplesequenceref(self, index, value): self.simplesequenceref[index] = value
-    simplesequencerefProp = property(get_simplesequenceref, set_simplesequenceref)
-    def get_structref(self): return self.structref
-    def set_structref(self, structref): self.structref = structref
-    def add_structref(self, value): self.structref.append(value)
-    def insert_structref(self, index, value): self.structref[index] = value
-    structrefProp = property(get_structref, set_structref)
-    def get_structsequenceref(self): return self.structsequenceref
-    def set_structsequenceref(self, structsequenceref): self.structsequenceref = structsequenceref
-    def add_structsequenceref(self, value): self.structsequenceref.append(value)
-    def insert_structsequenceref(self, index, value): self.structsequenceref[index] = value
-    structsequencerefProp = property(get_structsequenceref, set_structsequenceref)
-    def export(self, outfile, level, namespace_='', name_='affinity', namespacedef_='', pretty_print=True):
-        if pretty_print:
-            eol_ = '\n'
-        else:
-            eol_ = ''
-        showIndent(outfile, level, pretty_print)
-        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
-        already_processed = []
-        self.exportAttributes(outfile, level, already_processed, namespace_, name_='affinity')
-        if self.hasContent_():
-            outfile.write('>%s' % (eol_, ))
-            self.exportChildren(outfile, level + 1, namespace_, name_, pretty_print=pretty_print)
-            showIndent(outfile, level, pretty_print)
-            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
-        else:
-            outfile.write('/>%s' % (eol_, ))
-    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='affinity'):
-        pass
-    def exportChildren(self, outfile, level, namespace_='', name_='affinity', fromsubclass_=False, pretty_print=True):
-        if pretty_print:
-            eol_ = '\n'
-        else:
-            eol_ = ''
-        for simpleref_ in self.simpleref:
-            simpleref_.export(outfile, level, namespace_, name_='simpleref', pretty_print=pretty_print)
-        for simplesequenceref_ in self.simplesequenceref:
-            simplesequenceref_.export(outfile, level, namespace_, name_='simplesequenceref', pretty_print=pretty_print)
-        for structref_ in self.structref:
-            structref_.export(outfile, level, namespace_, name_='structref', pretty_print=pretty_print)
-        for structsequenceref_ in self.structsequenceref:
-            structsequenceref_.export(outfile, level, namespace_, name_='structsequenceref', pretty_print=pretty_print)
-    def hasContent_(self):
-        if (
-            self.simpleref or
-            self.simplesequenceref or
-            self.structref or
-            self.structsequenceref
-            ):
-            return True
-        else:
-            return False
-    def exportLiteral(self, outfile, level, name_='affinity'):
-        level += 1
-        self.exportLiteralAttributes(outfile, level, [], name_)
-        if self.hasContent_():
-            self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
-        pass
-    def exportLiteralChildren(self, outfile, level, name_):
-        showIndent(outfile, level)
-        outfile.write('simpleref=[\n')
-        level += 1
-        for simpleref_ in self.simpleref:
-            showIndent(outfile, level)
-            outfile.write('model_.simpleref(\n')
-            simpleref_.exportLiteral(outfile, level)
-            showIndent(outfile, level)
-            outfile.write('),\n')
-        level -= 1
-        showIndent(outfile, level)
-        outfile.write('],\n')
-        showIndent(outfile, level)
-        outfile.write('simplesequenceref=[\n')
-        level += 1
-        for simplesequenceref_ in self.simplesequenceref:
-            showIndent(outfile, level)
-            outfile.write('model_.simplesequenceref(\n')
-            simplesequenceref_.exportLiteral(outfile, level)
-            showIndent(outfile, level)
-            outfile.write('),\n')
-        level -= 1
-        showIndent(outfile, level)
-        outfile.write('],\n')
-        showIndent(outfile, level)
-        outfile.write('structref=[\n')
-        level += 1
-        for structref_ in self.structref:
-            showIndent(outfile, level)
-            outfile.write('model_.structref(\n')
-            structref_.exportLiteral(outfile, level)
-            showIndent(outfile, level)
-            outfile.write('),\n')
-        level -= 1
-        showIndent(outfile, level)
-        outfile.write('],\n')
-        showIndent(outfile, level)
-        outfile.write('structsequenceref=[\n')
-        level += 1
-        for structsequenceref_ in self.structsequenceref:
-            showIndent(outfile, level)
-            outfile.write('model_.structsequenceref(\n')
-            structsequenceref_.exportLiteral(outfile, level)
-            showIndent(outfile, level)
-            outfile.write('),\n')
-        level -= 1
-        showIndent(outfile, level)
-        outfile.write('],\n')
-    def build(self, node):
-        self.buildAttributes(node, node.attrib, [])
-        for child in node:
-            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
-            self.buildChildren(child, node, nodeName_)
-    def buildAttributes(self, node, attrs, already_processed):
-        pass
-    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
-        if nodeName_ == 'simpleref':
-            obj_ = simpleref.factory()
-            obj_.build(child_)
-            self.simpleref.append(obj_)
-        elif nodeName_ == 'simplesequenceref':
-            obj_ = simplesequenceref.factory()
-            obj_.build(child_)
-            self.simplesequenceref.append(obj_)
-        elif nodeName_ == 'structref':
-            obj_ = structref.factory()
-            obj_.build(child_)
-            self.structref.append(obj_)
-        elif nodeName_ == 'structsequenceref':
-            obj_ = structsequenceref.factory()
-            obj_.build(child_)
-            self.structsequenceref.append(obj_)
-# end class affinity
-
-
-
-class loggingconfig(GeneratedsSuper):
-    subclass = None
-    superclass = None
-    def __init__(self, level=None, value=None):
-        self.level = _cast(None,level)
-        self.value = _cast(None,value)
-    def factory(*args_, **kwargs_):
-        if loggingconfig.subclass:
-            return loggingconfig.subclass(*args_, **kwargs_)
-        else:
-            return loggingconfig(*args_, **kwargs_)
-    factory = staticmethod(factory)
-    def get_level(self): return self.level
-    def set_level(self, level): self.level = level
-    levelProp = property(get_level, set_level)
-    def get_value(self): return self.value
-    def set_value(self, value): self.value = value
-    valueProp = property(get_level, set_level)
-    def export(self, outfile, level, namespace_='', name_='loggingconfig', namespacedef_='', pretty_print=True):
-        if pretty_print:
-            eol_ = '\n'
-        else:
-            eol_ = ''
-        showIndent(outfile, level, pretty_print)
-        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
-        already_processed = []
-        self.exportAttributes(outfile, level, already_processed, namespace_, name_='loggingconfig')
-        if self.hasContent_():
-            outfile.write('>%s' % (eol_, ))
-            outfile.write('%s' % self.gds_format_string(quote_xml(self.value).encode(ExternalEncoding),input_name='loggingconfig'))
-            showIndent(outfile, level, pretty_print)
-            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
-        else:
-            outfile.write('/>%s' % (eol_, ))
-    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='loggingconfig'):
-        if self.level is not None and 'level' not in already_processed:
-            already_processed.append('level')
-            outfile.write(' level=%s' % (self.gds_format_string(quote_attrib(self.level).encode(ExternalEncoding), input_name='level'), ))
-
-    def exportChildren(self, outfile, level, namespace_='', name_='loggingconfig', fromsubclass_=False, pretty_print=True):
-        pass
-
-    def hasContent_(self):
-        if (
-            self.level is not None or
-            self.value is not None
-            ):
-            return True
-        else:
-            return False
-    def exportLiteral(self, outfile, level, name_='loggingconfig'):
-        level += 1
-        self.exportLiteralAttributes(outfile, level, [], name_)
-        if self.hasContent_():
-            self.exportLiteralChildren(outfile, level, name_)
-    def exportLiteralAttributes(self, outfile, level, already_processed, name_):
-        if self.level is not None and 'level' not in already_processed:
-            already_processed.append('level')
-            showIndent(outfile, level)
-            outfile.write('level = "%s",\n' % (self.level,))
-
-    def exportLiteralChildren(self, outfile, level, name_):
-        pass
-
-    def build(self, node):
-        self.buildAttributes(node, node.attrib, [])
-        self.value = node.text
-        for child in node:
-            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
-            self.buildChildren(child, node, nodeName_)
-    def buildAttributes(self, node, attrs, already_processed):
-        value_ = find_attr_value_('level', node)
-        if value_ is not None and 'level' not in already_processed:
-            already_processed.append('level')
-            self.level = value_
-
-    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
-        pass
-# end class loggingconfig
-
 
 
 class devicethatloadedthiscomponentref(GeneratedsSuper):
@@ -4050,7 +3760,6 @@ if __name__ == '__main__':
 
 
 __all__ = [
-    "affinity",
     "componentfile",
     "componentfileref",
     "componentfiles",
@@ -4074,7 +3783,6 @@ __all__ = [
     "filesystemnames",
     "findby",
     "localfile",
-    "loggingconfig",
     "namingservice",
     "partitioning",
     "providesport",

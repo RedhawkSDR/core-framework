@@ -36,7 +36,6 @@ from ossie.resource import usesport
 import ossie.parsers.prf as PRFParser
 import ossie.utils
 from omniORB import any
-import subprocess
 
 import CosNaming
 import re
@@ -44,7 +43,6 @@ import tempfile
 import buildconfig
 import runtestHelpers
 import commands
-import traceback
 
 _DCEUUID_RE = re.compile("DCE:[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
 
@@ -259,22 +257,6 @@ def spawnNodeBooter(dmdFile=None,
 
     return nb
 
-def  getProcessArgs( pname ):
-     args=[]
-     try:
-        p=subprocess.Popen(['pgrep', '-f', pname ], stdout=subprocess.PIPE)
-        o,e = p.communicate()
-        if o != None and o != '':
-            pid=int(o)
-            cmdline = open('/proc/'+str(pid)+'/cmdline')
-            args = cmdline.readlines()[0].split('\x00')
-     except:
-         traceback.print_exc()
-         pass
-
-     return args
-               
-
 class OssieTestCase(unittest.TestCase):
 
     def assertMatch(self, first, re, msg=None):
@@ -371,9 +353,6 @@ class OssieTestCase(unittest.TestCase):
         """
         self.waitPredicate(predicate, wait)
         self.assert_(predicate(), msg)
-
-    def getProcessArgs(self,pname ):
-        return getProcessArgs(pname)
 
 class CorbaTestCase(OssieTestCase):
     """A helper class for test cases which need a CORBA connection."""
