@@ -28,8 +28,8 @@ Prefix:         %{_prefix}
 %bcond_without java
 
 Name:           burstioInterfaces
-Version:        2.1.1
-Release:        2%{?dist}
+Version:        2.1.2
+Release:        1%{?dist}
 Summary:        BURSTIO interfaces for REDHAWK
 
 Group:          Applications/Engineering
@@ -109,6 +109,9 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.2-1
+- Update for 2.1.2-rc1
+
 * Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.1-2
 - Bump for 2.1.1-rc2
 

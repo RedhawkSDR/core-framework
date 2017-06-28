@@ -31,8 +31,8 @@ Prefix: %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           GPP
-Version:        2.1.1
-Release:        2%{?dist}
+Version:        2.1.2
+Release:        1%{?dist}
 Summary:        REDHAWK GPP
 
 Group:          Applications/Engineering
@@ -120,6 +120,9 @@ find %{_prefix}/dev/nodes -type d -name 'DevMgr_*' -uid 0 -exec chown -R redhawk
 
 
 %changelog
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.2-1
+- Update for 2.1.2-rc1
+
 * Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.1-2
 - Bump for 2.1.1-rc2
 

@@ -262,7 +262,7 @@ deploy:
 
 deploy-release:
   variables:
-    redhawk_version: '2.1.1'
+    redhawk_version: '2.1.2'
     jenkins_job: $redhawk_version/job/REDHAWK-core-framework-$redhawk_version
   <<: *deploy-common
   only:
@@ -287,7 +287,7 @@ test-trigger:release:
   stage: deploy
   dependencies: []
   variables:
-    redhawk_version: '2.1.1'
+    redhawk_version: '2.1.2'
   script:
     - curl --insecure -X POST -F ref=$redhawk_version
                               -F token=$test_token

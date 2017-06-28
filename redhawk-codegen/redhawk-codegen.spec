@@ -23,8 +23,8 @@
 Prefix:         %{_prefix}
 
 Name:           redhawk-codegen
-Version:        2.1.1
-Release:        2%{?dist}
+Version:        2.1.2
+Release:        1%{?dist}
 Summary:        Redhawk Code Generators
 
 Group:          Applications/Engineering
@@ -93,6 +93,9 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 
 %changelog
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.2-1
+- Bump for 2.1.2-rc1
+
 * Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.1-2
 - Bump for 2.1.1-rc2
 
