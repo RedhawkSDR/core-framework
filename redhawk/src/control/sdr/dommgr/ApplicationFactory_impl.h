@@ -261,6 +261,9 @@ private:
     // Populate _requiredComponents vector
     void getRequiredComponents() throw (CF::ApplicationFactory::CreateApplicationError); 
 
+    int  resolveDebugLevel( const std::string &debug_level );
+    void resolveLoggingConfiguration( ossie::ComponentInfo*  component);
+
     // Supports allocation
     bool allocateUsesDevices(const std::string& componentIdentifier,
                              const ossie::UsesDeviceInfo::List& usesDevices,
