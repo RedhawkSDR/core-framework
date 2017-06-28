@@ -29,6 +29,7 @@ class queueSemaphore
     private   Condition     condition = mutex.newCondition();
 
     public queueSemaphore( int initialMaxValue) {
+	    currValue=0;
             maxValue = initialMaxValue;
     }
 
