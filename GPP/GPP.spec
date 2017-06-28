@@ -32,7 +32,7 @@ Prefix: %{_prefix}
 
 Name:           GPP
 Version:        2.1.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        REDHAWK GPP
 
 Group:          Applications/Engineering
@@ -120,6 +120,9 @@ find %{_prefix}/dev/nodes -type d -name 'DevMgr_*' -uid 0 -exec chown -R redhawk
 
 
 %changelog
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.1-2
+- Bump for 2.1.1-rc2
+
 * Fri Jan 9 2015 1.11.0-1
 - Update for cpp GPP
 
