@@ -1339,3 +1339,8 @@ class TestPythonFramework(scatest.OssieTestCase):
         result = ossie.properties.to_tc_value(value, 'long')
         self.assertTrue(result.typecode().equal(CORBA.TC_long))
         self.assertEqual(any.from_any(result), 1)
+
+    def test_DefaultRunTest(self):
+        tr = TestResource()
+        tr.initialize() # Initialize *must* be called, normally this is done by the coreframework
+        self.assertRaises(CF.TestableObject.UnknownTest, tr.runTest, 0, [])
