@@ -1000,7 +1000,7 @@ void Device_impl::connectIDMChannel( const std::string &idm_channel_ior ) {
       }
     }
     catch(...) { 
-      LOG_ERROR(Device_impl, "Unable to connect to Domain's IDM Channel,  DEV-ID:" << _identifier );
+      LOG_WARN(Device_impl, "Unable to connect to Domain's IDM Channel,  DEV-ID:" << _identifier );
     }  
   }
 
