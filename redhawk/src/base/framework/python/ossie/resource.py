@@ -684,7 +684,7 @@ class Resource(object):
     def runTest(self, testid, properties):
         """Override this function to provide the desired behavior."""
         self._log.trace("runTest()")
-        raise CF.Device.UnknownTest("unknown test: %s" % str(testid))
+        raise CF.TestableObject.UnknownTest()
 
     #########################################
     # CF::PropertySet
