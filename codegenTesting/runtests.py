@@ -29,7 +29,8 @@ from _unitTestHelpers import runtestHelpers
 # ComponentHost for shared library components
 sdrroot = os.path.join(os.getcwd(), "sdr")
 mgrpath = os.path.join(sdrroot, 'dom/mgr')
-os.unlink(mgrpath)
+if os.path.exists(mgrpath):
+    os.unlink(mgrpath)
 os.symlink(os.path.join(os.environ['SDRROOT'], 'dom/mgr'), mgrpath)
 
 # Point to the testing SDR folder
