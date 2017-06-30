@@ -118,10 +118,10 @@ void ${className}::removeListener(const std::string& listen_alloc_id)
 /*{%   for port_out in component.ports if port_out.multiout %}*/
     // Check to see if port "${port_out.cppname}" has a connection for this listener
     tmp = this->${port_out.cppname}->connections();
-    for (unsigned int i=0; i<this->${port_out.cppname}->connections()->length(); i++) {
-        std::string connection_id = ossie::corba::returnString(tmp[i].connectionId);
+    for (unsigned int i=0; i<tmp->length(); i++) {
+        const char* connection_id = tmp[i].connectionId;
         if (connection_id == listen_alloc_id) {
-            this->${port_out.cppname}->disconnectPort(connection_id.c_str());
+            this->${port_out.cppname}->disconnectPort(connection_id);
         }
     }
 /*{%   endfor %}*/
