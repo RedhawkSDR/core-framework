@@ -38,6 +38,7 @@ from ossie.cf import CF as _CF
 import shlex as _shlex
 import time as _time
 import signal as _signal
+import warnings as _warnings
 import cStringIO, pydoc
 import sys as _sys
 import os as _os
@@ -802,9 +803,11 @@ class _SinkBase(_DataPortBase):
         self._sink exists.
 
         """
-
         if self._sink == None:
             return False
+        _stream = self._sink.getCurrentStream()
+        if _stream:
+            return _stream.eos()
         return self._sink.gotEOS
 
     def sri(self):
@@ -1146,7 +1149,7 @@ class DataSourceSDDS(_SourceBase):
         Helper to handle the generation of SDDS metadata forwarding
         """
         _SourceBase.__init__(self, bytesPerPush = 0, dataFormat='sdds', formats=['sdds'])
-        self._src = bulkio_data_helpers.SDDSSource()
+        self._src = _bulkio_data_helpers.SDDSSource()
         self._blocking    = True
         self._streamdefs = {}
 
@@ -1811,8 +1814,22 @@ class DataSink(_SinkBase):
             return None
         return self._sink.estimateData()
 
+    def getStream(self, streamID):
+        return self._sink.getStream(streamID)
+
+    def getStreams(self):
+        return self._sink.getStreams()
+
+    def getCurrentStream(self):
+        '''
+          Return the current data stream
+        '''
+        return self._sink.getCurrentStream()
+
     def getData(self, length=None, eos_block=False, tstamps=False):
         '''
+        WARNING: This function is deprecated. Use getCurrentStream instead
+
         Returns either an array of the received data elements or a tuple containing the received list
         and their associated time stamps
 
@@ -1822,15 +1839,22 @@ class DataSink(_SinkBase):
         eos_block: setting to True creates a blocking call until eos is received
         tstamps: setting to True makes the return value a tuple, where the first
             element is the data set and the second element is a series of tuples
-            containing the element index number of and timestamp
+            containing the element index number and the timestamp for that index
         '''
+        _warnings.warn("This function is deprecated. Use getCurrentStream instead", DeprecationWarning)
+
         isChar = self._sink.port_type == _BULKIO__POA.dataChar
 
         if not self._sink:
             return None
         if eos_block:
             self._sink.waitEOS()
-        (retval, timestamps) = self._sink.retrieveData(length=length)
+        _retval = self._sink.retrieveData(length=length)
+        if not _retval:
+            if tstamps:
+                return ([],[])
+            return []
+        (retval, timestamps) = _retval
         if isChar:
             # Converts char values into their numeric equivalents
             def from_char(data):
@@ -1844,7 +1868,7 @@ class DataSink(_SinkBase):
             else:
                 retval = from_char(retval)
         if tstamps:
-            return (retval,timestamps)
+            return (retval, timestamps)
         else:
             return retval
 
