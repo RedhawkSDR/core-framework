@@ -222,10 +222,8 @@ int main(int argc, char* argv[])
             spdFile = argv[ii];
         } else if (param == "SDRCACHE") {
             sdrCache = argv[ii];
-            execparams[param] = argv[ii];
         } else if (param == "DOMAIN_NAME") {
             domainName = argv[ii];
-            execparams[param] = argv[ii];
         } else if (param == "LOGGING_CONFIG_URI") {
             logfile_uri = argv[ii];
         } else if (pupper == "NOLOGCFG") {
