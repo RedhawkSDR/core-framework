@@ -180,6 +180,8 @@ int old_main(int argc, char* argv[])
             forceRebind = (value == "true");
         } else if (param == "-ORBendPoint") {
             endPoint = true;
+        } else if (param == "SPD") {
+            // The SPD value is ignored at present
         } else if ( ii > 0 ) { // any other argument besides the first one is part of the execparams
             execparams[param] = argv[ii];
         }
