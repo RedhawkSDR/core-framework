@@ -50,6 +50,11 @@ else
         ./build.sh $*
     fi
     cd -
+    cd tests/sdr/dom/components/check_cwd_cpp_so/cpp
+    if [ -e build.sh ]; then
+        ./build.sh $*
+    fi
+    cd -
     cd tests/sdr/dom/components/check_cwd_java
     if [ -e build.sh ]; then
         ./build.sh $*
