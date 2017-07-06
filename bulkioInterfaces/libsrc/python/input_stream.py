@@ -484,4 +484,6 @@ class InputStream(BaseStream):
         '''
             Has EOS been received?
         '''
+        if len(self._data) == 0 and self._eos:
+            self._parent._removeStream(self)
         return self._eos
