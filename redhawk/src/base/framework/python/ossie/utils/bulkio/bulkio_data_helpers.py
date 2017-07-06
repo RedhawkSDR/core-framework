@@ -376,6 +376,8 @@ class ArraySink(StreamMgr):
                 samples_read += len(_block.data())
             if samples_read >= goal:
                 break
+        if len(self.data) >= len(retval):
+            self.data[:len(retval)] = []
         return (retval, rettime)
 
     def getPort(self):
