@@ -201,6 +201,16 @@ CORBA::Boolean Application_impl::started () throw (CORBA::SystemException)
 void Application_impl::start ()
 throw (CORBA::SystemException, CF::Resource::StartError)
 {
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping start call because releaseObject has been called");
+            return;
+        }
+    }
+
     if (CORBA::is_nil(assemblyController) and (_appStartSeq.size() == 0)) {
         throw(CF::Resource::StartError(CF::CF_ENOTSUP, "No assembly controller and no Components with startorder set"));
         return;
@@ -263,6 +273,21 @@ bool Application_impl::stopComponent (CF::Resource_ptr component)
 void Application_impl::stop ()
 throw (CORBA::SystemException, CF::Resource::StopError)
 {
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping stop call because releaseObject has been called");
+            return;
+        }
+    }
+    this->local_stop();
+}
+
+void Application_impl::local_stop ()
+throw (CORBA::SystemException, CF::Resource::StopError)
+{
     if (CORBA::is_nil(assemblyController) and (_appStartSeq.size() == 0)) {
         throw(CF::Resource::StopError(CF::CF_ENOTSUP, "No assembly controller and no Components with startorder set"));
         return;
@@ -302,6 +327,15 @@ throw (CORBA::SystemException, CF::Resource::StopError)
 void Application_impl::initializeProperties (const CF::Properties& configProperties)
 throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfiguration, CORBA::SystemException)
 {
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping initializeProperties call because releaseObject has been called");
+            return;
+        }
+    }
 }
 
 void Application_impl::configure (const CF::Properties& configProperties)
@@ -632,6 +666,11 @@ char *Application_impl::registerPropertyListener( CORBA::Object_ptr listener, co
 {
 
   SCOPED_LOCK( releaseObjectLock );
+  if (_releaseAlreadyCalled) {
+    LOG_DEBUG(Application_impl, "skipping registerPropertyListener call because releaseObject has been called");
+    std::string regid;
+    return CORBA::string_dup(regid.c_str());
+  }
 
   LOG_TRACE(Application_impl, "Number of Properties to Register: " << prop_ids.length() );
   typedef   std::map< CF::Resource_ptr, std::vector< std::string > > CompRegs;
@@ -693,8 +732,11 @@ char *Application_impl::registerPropertyListener( CORBA::Object_ptr listener, co
 void Application_impl::unregisterPropertyListener( const char *reg_id ) 
   throw (CF::InvalidIdentifier)
 {
-
   SCOPED_LOCK( releaseObjectLock );
+  if (_releaseAlreadyCalled) {
+    LOG_DEBUG(Application_impl, "skipping unregisterPropertyListener call because releaseObject has been called");
+    return;
+  }
 
   if ( _propertyChangeRegistrations.count( reg_id ) == 0 )  {
     throw CF::InvalidIdentifier();
@@ -725,6 +767,15 @@ void Application_impl::unregisterPropertyListener( const char *reg_id )
 void Application_impl::initialize ()
 throw (CORBA::SystemException, CF::LifeCycle::InitializeError)
 {
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping initialize call because releaseObject has been called");
+            return;
+        }
+    }
     if (CORBA::is_nil(assemblyController)) { return; }
 
     try {
@@ -762,7 +813,6 @@ CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
 {
     SCOPED_LOCK( releaseObjectLock );
     CF::PortSet::PortInfoSequence_var retval = new CF::PortSet::PortInfoSequence();
-
     if (_releaseAlreadyCalled) {
         LOG_DEBUG(Application_impl, "skipping getPortSet because release has alraeady been called");
         return retval._retn();
@@ -830,6 +880,15 @@ void Application_impl::runTest (CORBA::ULong _testId, CF::Properties& _props)
 throw (CORBA::SystemException, CF::UnknownProperties, CF::TestableObject::UnknownTest)
 
 {
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping runTest call because releaseObject has been called");
+            return;
+        }
+    }
     if (CORBA::is_nil(assemblyController)) {
         LOG_ERROR(Application_impl, "Run test called with non SCA compliant assembly controller");
         throw CF::TestableObject::UnknownTest();
@@ -888,7 +947,7 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 
     // Stop all components on the application
     try {
-        this->stop();
+        this->local_stop();
     } catch ( ... ) {
         // error happened while stopping. Ignore the error and continue tear-down
         LOG_TRACE(Application_impl, "Error occurred while stopping the application during tear-down. Ignoring the error and continuing")
@@ -1134,6 +1193,15 @@ CF::Application::ComponentProcessIdSequence* Application_impl::componentProcessI
 throw (CORBA::SystemException)
 {
     CF::Application::ComponentProcessIdSequence_var result = new CF::Application::ComponentProcessIdSequence();
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping componentProcessIds call because releaseObject has been called");
+            return result._retn();
+        }
+    }
     convert_sequence(result, _components, to_pid_type);
     return result._retn();
 }
@@ -1141,6 +1209,15 @@ throw (CORBA::SystemException)
 CF::Components* Application_impl::registeredComponents ()
 {
     CF::Components_var result = new CF::Components();
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping registeredComponents call because releaseObject has been called");
+            return result._retn();
+        }
+    }
     boost::mutex::scoped_lock lock(_registrationMutex);
     convert_sequence_if(result, _components, to_component_type, is_registered);
     return result._retn();
@@ -1155,6 +1232,15 @@ CF::Application::ComponentElementSequence* Application_impl::componentNamingCont
 throw (CORBA::SystemException)
 {
     CF::Application::ComponentElementSequence_var result = new CF::Application::ComponentElementSequence();
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping componentNamingContexts call because releaseObject has been called");
+            return result._retn();
+        }
+    }
     convert_sequence_if(result, _components, to_name_element, has_naming_context);
     return result._retn();
 }
@@ -1164,6 +1250,15 @@ CF::Application::ComponentElementSequence* Application_impl::componentImplementa
 throw (CORBA::SystemException)
 {
     CF::Application::ComponentElementSequence_var result = new CF::Application::ComponentElementSequence();
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping componentImplementations call because releaseObject has been called");
+            return result._retn();
+        }
+    }
     convert_sequence(result, _components, to_impl_element);
     return result._retn();
 }
@@ -1173,6 +1268,15 @@ CF::DeviceAssignmentSequence* Application_impl::componentDevices ()
 throw (CORBA::SystemException)
 {
     CF::DeviceAssignmentSequence_var result = new CF::DeviceAssignmentSequence();
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping componentDevices call because releaseObject has been called");
+            return result._retn();
+        }
+    }
     std::vector<ossie::DeviceAssignmentInfo>::const_iterator begin = _componentDevices.begin();
     const std::vector<ossie::DeviceAssignmentInfo>::const_iterator end = _componentDevices.end();
     for (; begin != end; ++begin) {
