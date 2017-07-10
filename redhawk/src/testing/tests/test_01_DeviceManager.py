@@ -1298,3 +1298,102 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             if ub_patch:
                 os.unlink(altpath+'.bin')
 
+
+
+class DeviceManagerDepsTest(scatest.CorbaTestCase):
+    def setUp(self):
+        nodebooter, self._domMgr = self.launchDomainManager()
+        self._domBooter = nodebooter
+
+    def tearDown(self):
+        scatest.CorbaTestCase.tearDown(self)
+
+        killChildProcesses(os.getpid())
+
+    def test_DevCppDeps(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_device_deps/DeviceManager.dcd.xml.cpp")
+        self.assertNotEqual(devMgr, None)
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+
+        devMgr.shutdown()
+
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
+
+    def test_DevPyDeps(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_device_deps/DeviceManager.dcd.xml.py")
+        self.assertNotEqual(devMgr, None)
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+
+        devMgr.shutdown()
+
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
+
+
+    def test_DevCppPyDeps(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_device_deps/DeviceManager.dcd.xml.cpp.py")
+        self.assertNotEqual(devMgr, None)
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 2)
+
+        devMgr.shutdown()
+
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
+
+    def test_DevCppPyDeps2(self):
+        devmgr_nb_1, devMgr_1 = self.launchDeviceManager("/nodes/node_device_deps/DeviceManager.dcd.xml.cpp")
+        self.assertNotEqual(devMgr_1, None)
+        devmgr_nb_2, devMgr_2 = self.launchDeviceManager("/nodes/node_device_deps/DeviceManager.dcd.xml.py")
+        self.assertNotEqual(devMgr_2, None)
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 2)
+        self.assertEqual(len(devMgr_1._get_registeredDevices()), 1)
+        self.assertEqual(len(devMgr_2._get_registeredDevices()), 1)
+
+        devMgr_1.shutdown()
+        devMgr_2.shutdown()
+
+        self.assert_(self.waitTermination(devmgr_nb_1), "Nodebooter did not die after shutdown")
+        self.assert_(self.waitTermination(devmgr_nb_2), "Nodebooter did not die after shutdown")
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
+
+
+    @scatest.requireJava
+    def test_DevJavaDeps(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_device_deps/DeviceManager.dcd.xml.java")
+        self.assertNotEqual(devMgr, None)
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+
+        devMgr.shutdown()
+
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
+
+    @scatest.requireJava
+    def test_DevCppPyJavaDeps(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_device_deps/DeviceManager.dcd.xml.cpp.py.java")
+        self.assertNotEqual(devMgr, None)
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 3)
+
+        devMgr.shutdown()
+
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+        self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
+

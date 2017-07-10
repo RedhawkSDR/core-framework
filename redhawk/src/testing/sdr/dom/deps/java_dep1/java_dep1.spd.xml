@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of GNUHAWK.
+
+GNUHAWK is free software: you can redistribute it and/or modify is under the 
+terms of the GNU General Public License as published by the Free Software 
+Foundation, either version 3 of the License, or (at your option) any later 
+version.
+
+GNUHAWK is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with 
+this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
+<softpkg id="DCE:cc95e81d-3068-465a-aadb-dd7a596fe927" name="java_dep1" type="sca_compliant">
+    <title/>
+    <author>
+        <name></name>
+        <company></company>
+        <webpage></webpage>
+    </author>
+    <description>HelloWorld Example
+    </description> 
+    <implementation id="firstImplementation">
+        <description>
+        </description>
+        <code type="SharedLibrary">
+            <localfile name="java/java_dep1.jar"/>
+        </code>
+        <programminglanguage name="java"/>
+        <os name="Linux"/>
+        <processor name="x86"/>
+        <processor name="x86_64"/>
+    </implementation>
+</softpkg>

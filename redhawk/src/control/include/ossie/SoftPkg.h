@@ -258,10 +258,11 @@ namespace ossie {
 
             SoftPkg(std::istream& input, const std::string& _spdFile) throw (ossie::parser_error);
 
-            SoftPkg& operator=(SoftPkg other)
+            SoftPkg& operator=( SoftPkg other)
             {
                 _spd = other._spd;
                 _spdFile = other._spdFile;
+                _spdPath = other._spdPath;
                 return *this;
             }
 

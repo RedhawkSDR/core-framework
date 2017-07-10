@@ -26,8 +26,7 @@
 #include <map>
 
 #include <boost/thread/recursive_mutex.hpp>
-
-//#include <COS/CosEventChannelAdmin.hh>
+#include <boost/shared_ptr.hpp>
 
 #include <ossie/ComponentDescriptor.h>
 #include <ossie/ossieSupport.h>
@@ -39,6 +38,8 @@
 #include <ossie/SoftPkg.h>
 #include <ossie/Events.h>
 #include <ossie/affinity.h>
+#include "spdSupport.h"
+#include "process_utils.h"
 
 #include <dirent.h>
 
@@ -50,7 +51,7 @@ class DeviceManager_impl:
     ENABLE_LOGGING
 
 public:
-  DeviceManager_impl (const char*, const char*, const char*, const char*, struct utsname uname, bool, const char *, bool *);
+  DeviceManager_impl (const char*, const char*, const char*, const char*, const struct utsname &uname, bool, const char *, bool *);
 
     ~DeviceManager_impl ();
     char* deviceConfigurationProfile ()
@@ -96,8 +97,6 @@ public:
 
     char* getComponentImplementationId (const char* componentInstantiationId)
         throw (CORBA::SystemException);
-    char* _local_getComponentImplementationId (const char* componentInstantiationId)
-        throw (CORBA::SystemException);
 
     bool getUseLogConfigResolver() { return _useLogConfigUriResolver; };
 
@@ -113,6 +112,14 @@ private:
     DeviceManager_impl ();   // No default constructor
     DeviceManager_impl(DeviceManager_impl&);  // No copying
 
+    typedef   boost::shared_ptr<FileSystem_impl>                                  FileSystemPtr;
+    typedef   std::vector<  ossie::ComponentPlacement >                           ComponentPlacements;
+    typedef   std::pair< ossie::ComponentPlacement, local_spd::ProgramProfile* >  Deployment;
+    typedef   std::vector< Deployment >                                           DeploymentList;
+    typedef   std::list<std::pair<std::string,std::string> >                      ExecparamList;
+    typedef   std::map<std::string, PackageMod  >                                 PackageMods;
+    typedef   std::vector< PackageMod >                                           PackageModList;
+
     struct DeviceNode {
         std::string identifier;
         std::string label;
@@ -125,7 +132,7 @@ private:
         std::string identifier;
         std::string label;
         std::string IOR;
-        CORBA::Object_ptr service;
+        CORBA::Object_var service;
         pid_t pid;
     };
 
@@ -133,29 +140,32 @@ private:
     typedef std::vector<ServiceNode*> ServiceList;
 
     // Devices that are registered with this DeviceManager.
-    DeviceList _registeredDevices;
+    DeviceList  _registeredDevices;
     ServiceList _registeredServices;
 
     // Devices that were launched by this DeviceManager, but are either waiting for
     // registration or process termination.
-    DeviceList _pendingDevices;
+    DeviceList  _pendingDevices;
     ServiceList _pendingServices;
 
     // Properties
     std::string     logging_config_uri;
     StringProperty* logging_config_prop;
     std::string     HOSTNAME;
-    std::string     logging_uri;
     float           DEVICE_FORCE_QUIT_TIME;
     CORBA::ULong    CLIENT_WAIT_TIME;
-    
-// read only attributes
+
+    // read only attributes
     struct utsname _uname;
+    std::string processor_name;
+    std::string os_name;
     std::string _identifier;
     std::string _label;
     std::string _deviceConfigurationProfile;
     std::string _fsroot;
     std::string _cacheroot;
+    std::string _local_sdrroot;
+    std::string _local_domroot;
     redhawk::affinity::CpuList cpu_blacklist;
 
     std::string _domainName;
@@ -163,6 +173,7 @@ private:
     CosNaming::Name_var base_context;
     CosNaming::NamingContext_var rootContext;
     CosNaming::NamingContext_var devMgrContext;
+    CF::FileSystem_var _local_dom_filesys;
     CF::FileSystem_var _fileSys;
     CF::DeviceManager_var myObj;
     bool checkWriteAccess(std::string &path);
@@ -180,43 +191,21 @@ private:
     void killPendingDevices(int signal, int timeout);
     void abort();
 
-    void getDevManImpl(
-        const ossie::SPD::Implementation*& devManImpl,
-        ossie::SoftPkg&                    devmgrspdparser);
-    
-    void checkDeviceConfigurationProfile();
-    void parseDCDProfile(
-        ossie::DeviceManagerConfiguration& DCDParser,
-        const char*                        overrideDomainName);
-
+    void parseDeviceConfigurationProfile(const char *overrideDomainName);
+    void parseSpd();
+    void setupImplementationForHost();
+    void getDomainManagerReferenceAndCheckExceptions();
     void resolveNamingContext();
     void bindNamingContext();
 
-    void parseSpd(
-        const ossie::DeviceManagerConfiguration& DCDParser,
-        ossie::SoftPkg&                          devmgrspdparser);
-
-    void getDomainManagerReferenceAndCheckExceptions();
-
-    bool storeCommonDevicePrfLocation(
-        ossie::SoftPkg&    SPDParser,
-        ossie::Properties& deviceProperties);
-
-    bool storeImplementationSpecificDevicePrfLocation(
-        ossie::SoftPkg&                    SPDParser,
-        ossie::Properties&                 deviceProperties,
-        const ossie::SPD::Implementation*& matchedDeviceImpl);
+    const std::vector<const ossie::Property *> &getAllocationProperties();
 
     bool getCodeFilePath(
-        std::string&                       codeFilePath,
-        const ossie::SPD::Implementation*& matchedDeviceImpl,
-        ossie::SoftPkg&                    SPDParser,
-        FileSystem_impl*&                  fs_servant);
-
-    bool joinDevicePropertiesFromPRFs(
-        ossie::SoftPkg&                    SPDParser,
-        ossie::Properties&                 deviceProperties,
-        const ossie::SPD::Implementation*& matchedDeviceImpl);
+        std::string&                            codeFilePath,
+        const local_spd::ImplementationInfo &   matchedDeviceImpl,
+        ossie::SoftPkg&                         SPDParser,
+        FileSystem_impl*&                       fs_servant,
+	bool                                    useLocalFileSystem=true);
 
     void registerDeviceManagerWithDomainManager(
         CF::DeviceManager_var& my_object_var);
@@ -226,20 +215,15 @@ private:
         const std::vector<ossie::ComponentPlacement>& componentPlacements,
         const ossie::ComponentPlacement&              componentPlacementInst);
 
-    bool loadDeviceProperties (
-        const ossie::SoftPkg& softpkg, 
-        const ossie::SPD::Implementation& deviceImpl, 
-        ossie::Properties& deviceProperties);
+    bool addDeviceImplProperties (
+        local_spd::ProgramProfile *compProfile,
+        const local_spd::ImplementationInfo& deviceImpl );
+
 
     bool joinPRFProperties (
         const std::string& prfFile, 
         ossie::Properties& properties);
     
-    void getOverloadprops(
-        std::map<std::string, std::string>&           overloadprops, 
-        const ossie::ComponentPropertyList&           instanceprops,
-        const ossie::Properties&                      deviceProperties);
-
     CF::Properties getResourceOptions( const ossie::ComponentInstantiation& instantiation);
 
 
@@ -247,17 +231,22 @@ private:
     void resolveLoggingConfiguration( const std::string &                      usageName,
                                       std::vector< std::string >&              new_argv,
                                       const ossie::ComponentInstantiation&     instantiation,
-                                      const ossie::ComponentPropertyList&      instanceprops,
                                       const std::string &logcfg_path );
-    bool loadScdToParser(
-        ossie::ComponentDescriptor& scdParser, 
-        const ossie::SoftPkg&       _SPDParser);
-    
     DeviceNode* getDeviceNode(const pid_t pid);
 
-    bool getDeviceOrService(
-        std::string& type, 
-        const ossie::ComponentDescriptor& scdParser);
+    bool getDeviceOrService(std::string& type, const local_spd::ProgramProfile *comp );
+
+    void setEnvironment( ProcessEnvironment &env,
+                         const std::vector< std::string > &deps,
+                         const PackageMods  &pkgMods );
+
+    void do_load( CF::FileSystem_ptr fs,
+                  const std::string &fileName, 
+                  const CF::LoadableDevice::LoadType &loadKind);
+
+    void loadDependencies( local_spd::ProgramProfile *component,
+                           CF::LoadableDevice_ptr  device,
+                           const local_spd::SoftpkgInfoList & dependencies);
 
     void createDeviceCacheLocation(
         std::string&                         devcache,
@@ -267,67 +256,49 @@ private:
     void createDeviceExecStatement(
         std::vector< std::string >&                   new_argv,
         const ossie::ComponentPlacement&              componentPlacement,
+	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
-        std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
-        ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            usageName,
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
-        const std::string&                            compositeDeviceIOR,
-        const ossie::ComponentPropertyList&           instanceprops) ;
+        const std::string&                            compositeDeviceIOR );
 
     void createDeviceThreadAndHandleExceptions(
         const ossie::ComponentPlacement&              componentPlacement,
+	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
-        std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
-        const ossie::SoftPkg&                         SPDParser,
-        ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
-        const std::string&                            compositeDeviceIOR,
-        const ossie::ComponentPropertyList&           instanceprops);
+        const std::string&                            compositeDeviceIOR );
 
     void createDeviceThread(
         const ossie::ComponentPlacement&              componentPlacement,
+	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
-        std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
-        const ossie::SoftPkg&                         SPDParser,
-        ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            devcache,
         const std::string&                            usageName,
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
-        const std::string&                            compositeDeviceIOR,
-        const ossie::ComponentPropertyList&           instanceprops);
-
-    typedef std::list<std::pair<std::string,std::string> > ExecparamList;
+        const std::string&                            compositeDeviceIOR );
 
     ExecparamList createDeviceExecparams(
         const ossie::ComponentPlacement&              componentPlacement,
+	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
-        std::map<std::string, std::string>*           pOverloadprops,
         const std::string&                            codeFilePath,
-        ossie::DeviceManagerConfiguration&            DCDParser,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            usageName,
-        const std::string&                            compositeDeviceIOR,
-        const ossie::ComponentPropertyList&           instanceprops);
-
-    bool loadSPD(
-        ossie::SoftPkg&                    SPDParser,
-        ossie::DeviceManagerConfiguration& DCDParser,
-        const ossie::ComponentPlacement&   componentPlacement);
+        const std::string&                            compositeDeviceIOR );
 
     void recordComponentInstantiationId(
         const ossie::ComponentInstantiation& instantiation,
-        const ossie::SPD::Implementation*&   matchedDeviceImpl);
+        const std::string &impl_id );
 
+    local_spd::ProgramProfile *findProfile( const std::string &instantiationId );
     bool deviceIsRegistered (CF::Device_ptr);
     bool serviceIsRegistered (const char*);
     void getDomainManagerReference(const std::string&);
+    void registerRogueDevice (CF::Device_ptr registeringDevice);
 
     // this mutex is used for synchronizing _registeredDevices, _pendingDevices, and _registeredServices
     boost::recursive_mutex registeredDevicesmutex;  
@@ -345,14 +316,14 @@ private:
     void local_unregisterService(CORBA::Object_ptr service, const std::string& name);
     void local_unregisterDevice(CF::Device_ptr device, const std::string& name);
 
-    const ossie::SPD::Implementation* locateMatchingDeviceImpl(
-        const ossie::SoftPkg&             devSpd, 
-        const ossie::SPD::Implementation* deployonImpl);
+    bool resolveImplementation( local_spd::ProgramProfile* rsc );
+    bool resolveSoftpkgDependencies( local_spd::ImplementationInfo* implementation );
+    bool resolveSoftpkgDependencies( local_spd::ImplementationInfo* implementation, 
+                                     const ossie::Properties&       host_props );
 
-    bool checkProcessorAndOs(
-        const ossie::SPD::Implementation&          devMan, 
-        const std::vector<const ossie::Property*>& props);
-
+    local_spd::ImplementationInfo *resolveDependencyImplementation( const local_spd::SoftpkgInfo&        implementation, 
+                                                                    const ossie::Properties&        host_props );
+                        
     void deleteFileSystems();
     bool makeDirectory(std::string path);
     std::string getIORfromID(const char* instanceid);
@@ -362,10 +333,17 @@ private:
     bool _useLogConfigUriResolver;   
     bool skip_fork;
 
-    // this mutex is used for synchronizing _registeredDevices, labelTable, and identifierTable
-    boost::mutex componentImplMapmutex;  
-
+    // this mutex is used for synchronizing access to implementations and deployed components
+    boost::mutex                       componentImplMapmutex;  
     std::map<std::string, std::string> _componentImplMap;
+    DeploymentList                     deployed_comps;
+    PackageMods                        sharedPkgs;
+
+    
+    // DeviceManager context... 
+    ossie::DeviceManagerConfiguration          node_dcd;
+    ossie::Properties                          host_props;
+    local_spd::ProgramProfile                  *devmgr_info;
 
     // Registration record for Domain's IDM_Channel 
     ossie::events::EventChannelReg_var   idm_registration;

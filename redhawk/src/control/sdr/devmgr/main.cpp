@@ -142,7 +142,7 @@ int sigprocessor(void ) {
   if ( sig_fd > -1 ) {
 
     // don't care about writefds and exceptfds:
-    LOG_TRACE(DeviceManager, "Checking for signals from SIGNALFD......" << sig_fd);
+    //LOG_TRACE(DeviceManager, "Checking for signals from SIGNALFD......" );
     select(sig_fd+1, &readfds, NULL, NULL, &tv);
     if (FD_ISSET(sig_fd, &readfds)) {
 
@@ -154,8 +154,8 @@ int sigprocessor(void ) {
       }
  
       // check for SIGCHLD
-      LOG_TRACE(DeviceManager, "Signals are active....." << sig_fd);
       if ( si.ssi_signo == SIGCHLD) {
+          LOG_TRACE(DeviceManager, "SignalChild is active....pid:." << si.ssi_pid);
           // Only concerned with children that exited; the status will be reported by
           // the DeviceManager's child handler
           switch (si.ssi_code) {
@@ -386,7 +386,7 @@ int main(int argc, char* argv[])
     CORBA::ORB_ptr orb = ossie::corba::OrbInit(argc, argv, false);
 
     // Temporarily deactivate the root POA manager.
-    PortableServer::POA_ptr root_poa = ossie::corba::RootPOA();
+    PortableServer::POA_var root_poa = ossie::corba::RootPOA();
     PortableServer::POAManager_var mgr = root_poa->the_POAManager();
     mgr->hold_requests(1);
 
@@ -479,15 +479,15 @@ int main(int argc, char* argv[])
         } catch (const CORBA::Exception& ex) {
           LOG_FATAL(DeviceManager, "Startup failed with CORBA::" << ex._name() << " exception");
           shutdown();
-          throw pstage;
+          throw;
         } catch (const std::runtime_error& e) {
           LOG_FATAL(DeviceManager, "Startup failed: " << e.what() );
           shutdown();
-          throw pstage;
+          throw;
         } catch (...) {
           LOG_FATAL(DeviceManager, "Startup failed; unknown exception");
           shutdown();
-          throw pstage;
+          throw;
         }
 
         pstage++;
@@ -498,13 +498,13 @@ int main(int argc, char* argv[])
         LOG_INFO(DeviceManager, "Goodbye!");
       } catch (const CORBA::Exception& ex) {
         LOG_ERROR(DeviceManager, "Terminated with CORBA::" << ex._name() << " exception");
-        throw pstage ;
+        throw;
  
       } catch (const std::exception& ex) {
         LOG_ERROR(DeviceManager, "Terminated with exception: " << ex.what());
-        throw pstage;
+        throw;
       }
-    }catch(int x ) {
+    }catch(...) {
     }
     
     // check if we ran.... this should 

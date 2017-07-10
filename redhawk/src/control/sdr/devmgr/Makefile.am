@@ -22,7 +22,7 @@ devmgrdir = $(SDR_ROOT)/dev/mgr
 dist_devmgr_DATA = DeviceManager.spd.xml DeviceManager.scd.xml DeviceManager.prf.xml DeviceManager.Linux.x86.prf.xml DeviceManager.Linux.x86_64.prf.xml DeviceManager.Linux.armv7l.prf.xml
 devmgr_PROGRAMS = DeviceManager
 
-DeviceManager_SOURCES = main.cpp spdSupport.cpp DeviceManager_impl.cpp
+DeviceManager_SOURCES = main.cpp spdSupport.cpp process_utils.cpp DeviceManager_DeployerSupport.cpp DeviceManager_impl.cpp
 DeviceManager_CPPFLAGS = -I../../include -I../../parser -I$(top_srcdir)/base/include -I$(top_srcdir)/base/framework/logging $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
 DeviceManager_CXXFLAGS = -Wall
 DeviceManager_LDADD = ../../framework/libossiedomain.la ../../parser/libossieparser.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la $(OMNIORB_LIBS) $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) $(LOG4CXX_LIBS) -ldl

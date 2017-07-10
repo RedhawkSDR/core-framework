@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:fe3a92e2-d4b1-4bf2-a395-dac57ff71f1f" name="devpy" type="2.0.1">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="devpy.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="devpy.scd.xml"/>
+  </descriptor>
+  <implementation id="python">
+    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <code type="Executable">
+      <localfile name="python"/>
+      <entrypoint>python/devpy.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <runtime name="python" version="2.6.6"/>
+    <os name="Linux"/>
+    <dependency type="required">
+      <softpkgref>
+        <localfile name="/deps/py_dep1/py_dep1.spd.xml"/>
+      </softpkgref>
+    </dependency>
+  </implementation>
+</softpkg>

@@ -48,6 +48,14 @@ namespace ossie
 
   namespace SpdSupport {
 
+      class   ResourceInfo;
+      class   SoftpkgInfo;
+      class   ImplementationInfo;
+
+      // list of placements
+      typedef std::vector < ResourceInfo* >   ResourceList;
+
+
     /* Base class for all implementations  */
     class ResourceContext
     {
@@ -61,7 +69,8 @@ namespace ossie
 
     };
 
-    class SoftpkgInfo;
+    typedef SoftpkgInfo*                  SoftpkgInfoPtr;
+    typedef std::vector< SoftpkgInfoPtr >   SoftpkgInfoList;
 
     /* Base class to contain data for implementations
      *  - Used to store information about about implementations
@@ -71,11 +80,9 @@ namespace ossie
         ENABLE_LOGGING;
 
     public:
-        typedef std::vector< ImplementationInfo >  List;
+        typedef std::vector< ImplementationInfo *>  List;
 
         ImplementationInfo(const SPD::Implementation& spdImpl);
-        ImplementationInfo ( const ImplementationInfo&);
-        ImplementationInfo (){};
         ~ImplementationInfo();
 
         bool operator==( const ImplementationInfo &other ) const;
@@ -84,6 +91,7 @@ namespace ossie
         CF::LoadableDevice::LoadType getCodeType() const;
         const std::vector<std::string>& getProcessorDeps() const;
         const std::vector<ossie::SPD::NameVersionPair>& getOsDeps() const;
+        const std::string& getPropertyFile() const;
         const std::string& getLocalFileName() const;
         const std::string& getEntryPoint() const;
         const CORBA::ULong getStackSize() const;
@@ -91,27 +99,31 @@ namespace ossie
         const bool hasStackSize() const;
         const bool hasPriority() const;
         const std::vector<SPD::PropertyRef>& getDependencyProperties() const;
-        const std::vector<SoftpkgInfo>& getSoftPkgDependency() const;
+        const SoftpkgInfoList & getSoftPkgDependencies() const;
 
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
 
         void clearSelectedDependencyImplementations();
 
-        static void BuildImplementationInfo( CF::FileSystem_ptr fileSys, 
-					const SPD::Implementation& spdImpl,
-					ImplementationInfo &impl );
+        static ImplementationInfo *BuildImplementationInfo( CF::FileSystem_ptr fileSys, 
+                                                            const SPD::Implementation& spdImpl,
+							    CF::FileSystem_ptr depFileSys );
 
     protected:
+        ImplementationInfo ( const ImplementationInfo&);
         void setLocalFileName(const char* fileName);
         void setEntryPoint(const char* fileName);
         void setCodeType(const char* _type);
+        void setPropertyFile(const char* filename);
         void setStackSize(const unsigned long long *_stackSize);
         void setPriority(const unsigned long long *_priority);
         void addDependencyProperty(const ossie::SPD::PropertyRef& property);
-        void addSoftPkgDependency(SoftpkgInfo &softpkg);
+        void addSoftPkgDependency(SoftpkgInfo *softpkg);
 
         std::string id;
         CF::LoadableDevice::LoadType codeType;
+        std::string _codeType;
+        std::string propertyFile;
         std::string localFileName;
         std::string entryPoint;
         CORBA::ULong stackSize;
@@ -121,7 +133,7 @@ namespace ossie
         std::vector<std::string> processorDeps;
         std::vector<ossie::SPD::NameVersionPair> osDeps;
         std::vector<SPD::PropertyRef> dependencyProperties;
-        std::vector<SoftpkgInfo> softPkgDependencies;
+        SoftpkgInfoList softPkgDependencies;
 
     };
 
@@ -136,27 +148,27 @@ namespace ossie
         SoftpkgInfo ();
         ~SoftpkgInfo ();
 
-        SoftpkgInfo &operator=(const SoftpkgInfo &src );
+        //SoftpkgInfo &operator=(const SoftpkgInfo &src );
 
-        const char* getSpdFileName();
-        const char* getName();
-        const char* getID();
+        const char* getSpdFileName() const;
+        const char* getName() const;
+        const char* getID() const;
 
-        void addImplementation(ImplementationInfo &impl);
-        void getImplementations(ImplementationInfo::List& res);
+        void addImplementation(ImplementationInfo *impl);
+        void getImplementations(ImplementationInfo::List& res) const ;
 
-        const ImplementationInfo &getSelectedImplementation() const;
-        void setSelectedImplementation(ImplementationInfo & implementation);
+        const ImplementationInfo *getSelectedImplementation() const;
+        ImplementationInfo *selectedImplementation() const;
+        void setSelectedImplementation(const ImplementationInfo * implementation);
         void clearSelectedImplementation();
 
-        static void BuildSoftpkgInfo (CF::FileSystem_ptr fileSys, 
-				      const char* spdFileName, 
-				      SoftpkgInfo &sinfo );
-
+        static SoftpkgInfo*  BuildSoftpkgInfo (CF::FileSystem_ptr fileSys, 
+                                               const char* spdFileName,
+					       CF::FileSystem_ptr depFileSys );
         SoftPkg spd;
 
     protected:
-        bool parseProfile (CF::FileSystem_ptr fileSys);
+        bool parseProfile (CF::FileSystem_ptr fileSys, CF::FileSystem_ptr depFileSys );
 
         const std::string _spdFileName;
         std::string _name;                // name from SPD File
@@ -166,10 +178,11 @@ namespace ossie
         ImplementationInfo::List::iterator _selectedImplementation;
     };
 
-    /* Base class to contain data for components
-     *  - Used to store information about about components
+
+    /* 
+     * 
      */
-    class ResourceInfo : public SoftpkgInfo
+    class ProgramProfile : public SoftpkgInfo
     {
         ENABLE_LOGGING
 
@@ -177,11 +190,8 @@ namespace ossie
       typedef ossie::ComponentInstantiation::AffinityProperties AffinityProperties;
       typedef ossie::ComponentInstantiation::LoggingConfig  LoggingConfig;
 
-        ResourceInfo (const std::string& spdFileName);
-        ResourceInfo ( const ResourceInfo&);
-        ResourceInfo (){};
-        ~ResourceInfo ();
-        ResourceInfo &operator=( const ResourceInfo&);
+        ProgramProfile (const std::string& spdFileName);
+        ~ProgramProfile ();
 
         void setIdentifier(const char* identifier, std::string instance_id);
         void setNamingService(const bool isNamingService);
@@ -218,24 +228,36 @@ namespace ossie
         const bool  isScaCompliant();
         const std::string getNicAssignment();
 
+        CF::Properties containsPartialStructConfig();
+        CF::Properties containsPartialStructConstruct();
+        CF::Properties iteratePartialStruct(CF::Properties &props);
+        bool checkStruct(CF::Properties &props);
+
         CF::Properties getNonNilConfigureProperties();
         CF::Properties getNonNilConstructProperties();
+        CF::Properties getNonNilNonExecConstructProperties();
         CF::Properties getConfigureProperties();
         CF::Properties getConstructProperties();
         CF::Properties getOptions();
         CF::Properties getAffinityOptions();
+        CF::Properties getAffinityOptionsWithAssignment();
         CF::Properties getExecParameters();
+        CF::Properties getPopulatedExecParameters();
 
-        static void LoadResource(CF::FileSystem_ptr fileSystem, 
-                                 const char* _SPDFile, 
-                                 ResourceInfo &rsc);
         ComponentDescriptor scd;
         ossie::Properties prf;
+
+    static ProgramProfile *LoadProfile(CF::FileSystem_ptr fileSystem, 
+				       const char* _SPDFile,
+				       CF::FileSystem_ptr depFileSys );
+
+    static std::auto_ptr<ProgramProfile> LoadProgramProfile(CF::FileSystem_ptr fileSystem, 
+							    const char* _SPDFile,
+							    CF::FileSystem_ptr depFileSys );
 
     protected:
 
         void process_overrides(CF::Properties* props, const char* id, CORBA::Any value);
-        void _copy( const ResourceInfo &src );
         bool _isAssemblyController;
         bool _isConfigurable;
         bool _isScaCompliant;
@@ -245,6 +267,7 @@ namespace ossie
         std::string identifier;
         std::string instantiationId;
         std::string namingServiceName;
+        std::string nicAssignment;
 
         ossie::Properties _affinity_prf;
         LoggingConfig     loggingConfig;
@@ -257,10 +280,23 @@ namespace ossie
         CF::Properties affinityOptions;
         
         std::vector<std::string> resolved_softpkg_dependencies;
+
+    private:
+        ProgramProfile &operator=(const ProgramProfile&);
+        ProgramProfile ( const ProgramProfile&);
+        ProgramProfile ( ProgramProfile&);
+	
     };
+
+
 
 
   };
 
+
+
 };
+
+namespace local_spd = ossie::SpdSupport;
+
 #endif

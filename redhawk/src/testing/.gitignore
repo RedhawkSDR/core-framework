@@ -6,6 +6,7 @@ sdr/cache/
 sdr/dev/devices/BasicDevWithExecParam_cpp/BasicDevWithExecParam_cpp_impl1/BasicDevWithExecParam_cpp_impl1
 sdr/dev/devices/BasicTestDevice_cpp/BasicTestDevice_cpp_impl1/BasicTestDevice_cpp_impl1
 sdr/dev/devices/cpp_dev/cpp/cpp_dev
+sdr/dev/devices/devcpp/cpp/devcpp
 sdr/dev/devices/CppTestDevice/cpp/CppTestDevice
 sdr/dev/devices/dev_kill_devmgr/cpp/dev_kill_devmgr
 sdr/dev/devices/ExecutableDevice/ExecutableDevice

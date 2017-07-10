@@ -26,7 +26,9 @@ ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
 ossie__v_pysetup_0 = --quiet
 ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 
-SUBDIRS = sdr/dev/devices/ExecutableDevice \
+SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
+          sdr/dom/deps/cpp_dep2/cpp \
+          sdr/dev/devices/ExecutableDevice \
           sdr/dev/devices/BasicTestDevice_cpp/BasicTestDevice_cpp_impl1 \
           sdr/dev/devices/BasicDevWithExecParam_cpp/BasicDevWithExecParam_cpp_impl1 \
           sdr/dev/devices/CppTestDevice/cpp \
@@ -36,12 +38,10 @@ SUBDIRS = sdr/dev/devices/ExecutableDevice \
           sdr/dev/devices/PersonaDevice/cpp \
           sdr/dev/devices/ProgrammableDevice/cpp \
           sdr/dev/devices/cpp_dev/cpp \
+          sdr/dev/devices/devcpp/cpp \
           sdr/dev/devices/dev_kill_devmgr/cpp \
           sdr/dev/devices/GPP/cpp \
-          sdr/dev/devices/java_dev/java \
           sdr/dev/devices/LongDevice/cpp \
-          sdr/dom/deps/cpp_dep1/cpp \
-          sdr/dom/deps/cpp_dep2/cpp \
           sdr/dom/components/TestCppProps \
           sdr/dom/components/linkedLibraryTest \
           sdr/dom/components/TestCppsoftpkgDeps \
@@ -73,9 +73,11 @@ SUBDIRS = sdr/dev/devices/ExecutableDevice \
           sdr/dom/components/msg_through_cpp/cpp
 
 if HAVE_JAVASUPPORT
-SUBDIRS += sdr/dev/devices/BasicTestDevice_java/java \
+SUBDIRS += sdr/dom/deps/java_dep1/java \
+           sdr/dev/devices/BasicTestDevice_java/java \
            sdr/dev/devices/JavaTestDevice/java \
            sdr/dev/devices/issue_111_java/java \
+           sdr/dev/devices/devj/java \
            sdr/dev/services/BasicService_java/java \
            sdr/dom/components/BasicAC/basicac_java_impl1 \
            sdr/dom/components/EventSend/EventSend_java_impl1 \
