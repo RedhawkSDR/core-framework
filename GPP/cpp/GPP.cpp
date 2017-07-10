@@ -2468,7 +2468,7 @@ void GPP_i::update()
            " threshold(req): " << __thresholds.cpu_idle << std::endl <<
            " idle modifier: " << idle_capacity_modifier << std::endl <<
            " reserved_cap_per_component: " << reserved_capacity_per_component << std::endl <<
-           " reservations: " << n_reservations << std::endl <<
+           " number of reservations: " << n_reservations << std::endl <<
            " processes: " << pids.size() << std::endl <<
            " loadCapacity: " << loadCapacity  << std::endl <<
            " loadTotal: " << loadTotal  << std::endl <<
