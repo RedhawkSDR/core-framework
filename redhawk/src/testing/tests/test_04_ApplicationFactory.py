@@ -28,7 +28,7 @@ from ossie.cf import CF, CF__POA
 import commands
 from ossie.utils import redhawk
 from ossie import properties
-
+import threading
 
 def getChildren(parentPid):
     process_listing = commands.getoutput('ls /proc').split('\n')
@@ -2628,6 +2628,49 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         timeout=40 # this is in seconds
         omniORB.setClientCallTimeout(app,timeout*1000)
         app.releaseObject()
+        apps = domMgr._get_applications()
+        self.assertEqual(len(apps),0)
+
+    def _releaseThread(self, app):
+        # Wait for all of the threads to get kicked off.
+        timeout=40 # this is in seconds
+        omniORB.setClientCallTimeout(app,timeout*1000)
+        app.releaseObject()
+
+    def test_CallsWhileRelease(self):
+        """
+        Tests that all child processes associated with a component get
+        terminated with that component.
+        """
+        nb, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml')
+        self.assertNotEqual(devMgr, None)
+
+        domMgr.installApplication('/waveforms/hang_release/hang_release.sad.xml')
+
+        appFact = domMgr._get_applicationFactories()[0]
+        self.assertEqual(appFact._get_name(), 'hang_release')
+
+        app = appFact.create(appFact._get_name(), [], [])
+
+        #timeout=40 # this is in seconds
+        #omniORB.setClientCallTimeout(app,timeout*1000)
+        release_thread = threading.Thread(target=self._releaseThread, args=(app,))
+        release_thread.start()
+        time.sleep(3.5)
+        app.start()
+        app.stop()
+        comps = app._get_registeredComponents()
+        ncs = app._get_componentNamingContexts()
+        cpids = app._get_componentProcessIds()
+        cdevs = app._get_componentDevices()
+        cimpls = app._get_componentImplementations()
+        app.initialize()
+        app.runTest(0,[])
+        app.initializeProperties([])
+
         apps = domMgr._get_applications()
         self.assertEqual(len(apps),0)
 

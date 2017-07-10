@@ -21,6 +21,8 @@
 
 #include <string>
 #include <uuid/uuid.h>
+#include <string.h>
+
 #include <boost/filesystem/path.hpp>
 #include <boost/regex.hpp>
 #include <omniORB4/CORBA.h>
@@ -60,7 +62,6 @@ std::string ossie::generateUUID()
 
     return std::string("DCE:") + strbuf;
 }
-
 
 
 static std::string _trim_addr( const std::string &addr, const std::string &exp="(.*):([^:]*)$" )
@@ -170,3 +171,57 @@ bool ossie::sameHost(CORBA::Object_ptr aobj, CORBA::Object_ptr bobj)
     }
     return retval;
 }
+std::string ossie::getCurrentDirName()
+{
+  std::string retval;
+  char *tdir = get_current_dir_name();
+  if ( tdir ) {
+    retval = tdir;
+    free(tdir);
+  }
+  return retval;
+}
+
+#include <fstream>
+
+namespace ossie {
+
+  namespace helpers {
+  
+  /*
+     is_jarfile 
+     
+     Helper method to test if parameter is a valid jar file in lue of "file" command
+     result differences from various OS distros
+
+     @return 0   contents of jarPath is a valid jar format
+     @return 1   contents of file does not match magic number format
+     @return -1  file acces/open error
+
+   */
+    int is_jarfile( const std::string &jarPath ) {
+      int retval=-1;
+      std::ifstream r_fs(jarPath.c_str() );
+      // test if file was opened...
+      if ( r_fs.fail() == false )  {
+        int mlen=6;
+        // magic numbers for jar/zip files
+        uint8_t java_m1[6] = { 0x50, 0x4b, 0x03, 0x04, 0x14, 0x00 };
+        uint8_t java_m2[6] = { 0x50, 0x4b, 0x03, 0x04, 0x0a, 0x00 };
+        uint8_t tbuf[mlen];
+        r_fs.read( (char *)tbuf, mlen );
+        if (r_fs) {
+          retval=memcmp( tbuf, java_m1, mlen);
+          // check file contents against magic number sequence
+          if ( retval != 0 ) {
+            retval = memcmp( tbuf, java_m2, mlen);
+            if ( retval != 0 ) retval=1;
+          }
+        }
+      }
+      return retval;
+    };
+
+  };
+
+};

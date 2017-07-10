@@ -71,6 +71,9 @@ public:
     void stop ()
         throw (CF::Resource::StopError, CORBA::SystemException);
 
+    void local_stop ()
+        throw (CF::Resource::StopError, CORBA::SystemException);
+
     // The core framework provides an implementation for this method.
     void initializeProperties (const CF::Properties& configProperties)
         throw (CF::PropertySet::PartialConfiguration,

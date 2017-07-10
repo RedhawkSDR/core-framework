@@ -63,6 +63,8 @@ PREPARE_CF_LOGGING(ImplementationInfo);
 ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
     id(spdImpl.getID()),
     codeType(),
+    _codeType(),
+    propertyFile(),
     localFileName(),
     entryPoint(),
     processorDeps(spdImpl.getProcessors()),
@@ -74,6 +76,7 @@ ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
     setCodeType(spdImpl.getCodeType());
     setStackSize(spdImpl.code.stacksize.get());
     setPriority(spdImpl.code.priority.get());
+    setPropertyFile(spdImpl.getPRFFile());
 
     // Handle allocation property dependencies
     LOG_TRACE(ImplementationInfo, "Loading component implementation property dependencies")
@@ -85,35 +88,19 @@ ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
     }
 }
 
-ImplementationInfo::ImplementationInfo( const ImplementationInfo &src ) {
-  id = src.id;
-  codeType = src.codeType;
-  localFileName = src.localFileName;
-  entryPoint = src.entryPoint;
-  stackSize = src.stackSize;
-  priority = src.priority;
-  _hasStackSize = src._hasStackSize;
-  _hasPriority = src._hasPriority;
-  processorDeps.resize(src.processorDeps.size());
-  std::copy( src.processorDeps.begin(), src.processorDeps.end(), processorDeps.begin());
-  osDeps.resize(src.osDeps.size());
-  std::copy( src.osDeps.begin(), src.osDeps.end(), osDeps.begin());
-  dependencyProperties.resize(src.dependencyProperties.size());
-  std::copy( src.dependencyProperties.begin(), src.dependencyProperties.end(), dependencyProperties.begin());
-  softPkgDependencies.resize(src.softPkgDependencies.size());
-  std::copy( src.softPkgDependencies.begin(), src.softPkgDependencies.end(), softPkgDependencies.begin());
-}
-
 
 ImplementationInfo::~ImplementationInfo()
 {
+    for ( SoftpkgInfoList::iterator ii = softPkgDependencies.begin(); ii != softPkgDependencies.end(); ++ii) {
+        delete (*ii);
+    }
 }
 
-void ImplementationInfo::BuildImplementationInfo(CF::FileSystem_ptr fileSys, 
-					     const SPD::Implementation& spdImpl,
-					     ImplementationInfo &rimpl )
+ImplementationInfo *ImplementationInfo::BuildImplementationInfo(CF::FileSystem_ptr fileSys, 
+                                                                const SPD::Implementation& spdImpl,
+								CF::FileSystem_ptr  depFileSys )
 {
-    ImplementationInfo impl(spdImpl);
+    std::auto_ptr<ImplementationInfo> impl(new ImplementationInfo(spdImpl));
 
     // Handle allocation property dependencies
     LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependencies")
@@ -121,16 +108,13 @@ void ImplementationInfo::BuildImplementationInfo(CF::FileSystem_ptr fileSys,
     std::vector<ossie::SPD::SoftPkgRef>::const_iterator jj;
     for (jj = softpkgDependencies.begin(); jj != softpkgDependencies.end(); ++jj) {
         LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependency '" << *jj);
-        try{
-          SoftpkgInfo softpkg (jj->localfile.c_str());
-	  SoftpkgInfo::BuildSoftpkgInfo(fileSys, jj->localfile.c_str(), softpkg );
-	  impl.addSoftPkgDependency(softpkg);
-        }catch(...){
-        }
+        std::auto_ptr<SoftpkgInfo> softpkg(SoftpkgInfo::BuildSoftpkgInfo(depFileSys, jj->localfile.c_str(),depFileSys));
+        impl->addSoftPkgDependency(softpkg.release());
     }
 
-    rimpl = impl;
+    return impl.release();
 }
+
 
 bool ImplementationInfo::operator==( const ImplementationInfo &other ) const {
   
@@ -139,7 +123,7 @@ bool ImplementationInfo::operator==( const ImplementationInfo &other ) const {
   if ( localFileName != other.localFileName ) return retval;
   if ( entryPoint != other.entryPoint ) return retval;
   if ( codeType != other.codeType ) return retval;
-  return retval;
+  return true;
 }
 
 
@@ -153,7 +137,7 @@ const std::vector<std::string>& ImplementationInfo::getProcessorDeps() const
     return processorDeps;
 }
 
-const std::vector<SoftpkgInfo>& ImplementationInfo::getSoftPkgDependency() const
+const SoftpkgInfoList & ImplementationInfo::getSoftPkgDependencies() const
 {
     return softPkgDependencies;
 }
@@ -163,14 +147,19 @@ const std::vector<ossie::SPD::NameVersionPair>& ImplementationInfo::getOsDeps() 
     return osDeps;
 }
 
+const std::string& ImplementationInfo::getLocalFileName() const
+{
+    return localFileName;
+}
+
 CF::LoadableDevice::LoadType ImplementationInfo::getCodeType() const
 {
     return codeType;
 }
 
-const std::string& ImplementationInfo::getLocalFileName() const
+const std::string& ImplementationInfo::getPropertyFile() const
 {
-    return localFileName;
+    return propertyFile;
 }
 
 const std::string& ImplementationInfo::getEntryPoint() const
@@ -230,6 +219,13 @@ void ImplementationInfo::setLocalFileName(const char* fileName)
     }
 }
 
+void ImplementationInfo::setPropertyFile(const char* fileName)
+{
+    if (fileName) {
+        propertyFile = fileName;
+    }
+}
+
 void ImplementationInfo::setEntryPoint(const char* _entryPoint)
 {
     if (_entryPoint) {
@@ -260,7 +256,7 @@ void ImplementationInfo::addDependencyProperty(const PropertyRef& property)
     dependencyProperties.push_back(property);
 }
 
-void ImplementationInfo::addSoftPkgDependency(SoftpkgInfo & softpkg)
+void ImplementationInfo::addSoftPkgDependency(SoftpkgInfo * softpkg)
 {
     softPkgDependencies.push_back(softpkg);
 }
@@ -281,9 +277,9 @@ bool ImplementationInfo::checkProcessorAndOs(const Properties& _prf) const
 
 void ImplementationInfo::clearSelectedDependencyImplementations()
 {
-  std::vector<ossie::SpdSupport::SoftpkgInfo>::iterator iter;
+    SoftpkgInfoList::iterator iter;
     for (iter = softPkgDependencies.begin(); iter != softPkgDependencies.end(); ++iter) {
-        iter->clearSelectedImplementation();
+        (*iter)->clearSelectedImplementation();
     }
 }
 
@@ -303,65 +299,66 @@ SoftpkgInfo::SoftpkgInfo():
 
 SoftpkgInfo::~SoftpkgInfo()
 {
+    for (ImplementationInfo::List::iterator ii = _implementations.begin(); ii != _implementations.end(); ++ii) {
+        delete *ii;
+    }
 }
 
 
-SoftpkgInfo::SoftpkgInfo ( const SoftpkgInfo &src ) {
-   _identifier = src._identifier;
-   _implementations = src._implementations;
-}
-
-SoftpkgInfo &SoftpkgInfo::operator=(const SoftpkgInfo &src ) {
-   _identifier = src._identifier;
-   _implementations = src._implementations;
-  return *this;
-}
-
-
-
-const char* SoftpkgInfo::getSpdFileName()
+const char* SoftpkgInfo::getSpdFileName() const
 {
     return _spdFileName.c_str();
 }
 
-const char* SoftpkgInfo::getName()
+const char* SoftpkgInfo::getName() const
 {
     return spd.getName().c_str();
 }
 
-const char* SoftpkgInfo::getID()
+const char* SoftpkgInfo::getID() const
 {
     return _identifier.c_str();
 }
 
-void SoftpkgInfo::BuildSoftpkgInfo(CF::FileSystem_ptr fileSys, const char* spdFileName,
-				   SoftpkgInfo &spd )
+SoftpkgInfo *SoftpkgInfo::BuildSoftpkgInfo(CF::FileSystem_ptr fileSys, const char* spdFileName, 
+					   CF::FileSystem_ptr depFileSys )
+
 {
     LOG_TRACE(SoftpkgInfo, "Building soft package info from file " << spdFileName);
 
-    SoftpkgInfo softpkg(spdFileName);
+    std::auto_ptr<SoftpkgInfo> softpkg(new SoftpkgInfo(spdFileName));
 
-    if (softpkg.parseProfile(fileSys) == false ) {
-      throw -1;
+    if (!softpkg->parseProfile(fileSys,depFileSys)) {
+        return 0;
+    } else {
+        return softpkg.release();
     }
-    
-    spd =  softpkg;
-    return;
 }
 
-bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys)
+bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys, CF::FileSystem_ptr depFileSys )
 {
     try {
+        LOG_TRACE(SoftpkgInfo, "Parsing SPD file:  " << _spdFileName );
         File_stream spd_file(fileSys, _spdFileName.c_str());
         spd.load(spd_file, _spdFileName.c_str());
         spd_file.close();
     } catch (const ossie::parser_error& e) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-        LOG_ERROR(SoftpkgInfo, "Building component info problem; error parsing SPD: " << _spdFileName << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
-        return false;
-    } catch (...) {
-        LOG_ERROR(SoftpkgInfo, "Building component info problem; unknown error parsing SPD: "  << _spdFileName );
-        return false;
+        std::ostringstream eout;
+        eout << "Building component info problem; error parsing SPD: " << _spdFileName << ". " << parser_error_line << " The XML parser returned the following error: " << e.what();
+        throw std::runtime_error(eout.str().c_str());        
+    } catch ( std::exception& ex ) {
+        std::ostringstream eout;
+        eout << "The following standard exception occurred: "<<ex.what()<<" while parsing the SPD: " << _spdFileName;
+        throw std::runtime_error(eout.str().c_str());
+    } catch ( CORBA::Exception& ex ) {
+        std::ostringstream eout;
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while parsing the SPD: " << _spdFileName;
+        throw std::runtime_error(eout.str().c_str());
+    } catch ( ... ) {
+        std::ostringstream eout;
+        eout << "Unknown error, parsing SPD: " << _spdFileName;
+        throw std::runtime_error(eout.str().c_str());
     }
 
     // Set name from the SPD
@@ -371,29 +368,27 @@ bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys)
     // Extract implementation data from SPD file
     const std::vector <SPD::Implementation>& spd_i = spd.getImplementations();
 
-    // Assume only one implementation, use first available result [0]
     for (unsigned int implCount = 0; implCount < spd_i.size(); implCount++) {
         const SPD::Implementation& spdImpl = spd_i[implCount];
         LOG_TRACE(SoftpkgInfo, "Adding implementation " << spdImpl.getID());
-        ImplementationInfo newImpl;
-	ImplementationInfo::BuildImplementationInfo(fileSys, spdImpl,newImpl);
+        ImplementationInfo* newImpl = ImplementationInfo::BuildImplementationInfo(fileSys, spdImpl, depFileSys);
         addImplementation(newImpl);
     }
 
     return true;
 }
 
-void SoftpkgInfo::addImplementation(ImplementationInfo &impl)
+void SoftpkgInfo::addImplementation(ImplementationInfo *impl)
 {
     _implementations.push_back(impl);
 }
 
-void SoftpkgInfo::getImplementations(ImplementationInfo::List& res)
+void SoftpkgInfo::getImplementations(ImplementationInfo::List& res) const
 {
     std::copy(_implementations.begin(), _implementations.end(), std::back_inserter(res));
 }
 
-void SoftpkgInfo::setSelectedImplementation(ImplementationInfo &implementation)
+void SoftpkgInfo::setSelectedImplementation(const ImplementationInfo *implementation)
 {
   _selectedImplementation = std::find(_implementations.begin(), _implementations.end(), implementation);
   if (_selectedImplementation == _implementations.end()) {
@@ -403,31 +398,56 @@ void SoftpkgInfo::setSelectedImplementation(ImplementationInfo &implementation)
 
 void SoftpkgInfo::clearSelectedImplementation()
 {
-  _selectedImplementation = _implementations.end();
+    if (*_selectedImplementation) {
+        (*_selectedImplementation)->clearSelectedDependencyImplementations();
+    }
+    _selectedImplementation = _implementations.end();
 }
 
-const ImplementationInfo &SoftpkgInfo::getSelectedImplementation() const
+const ImplementationInfo *SoftpkgInfo::getSelectedImplementation() const
+{
+    if ( _selectedImplementation == _implementations.end() ) 
+        return 0;
+    return *_selectedImplementation;
+}
+
+ImplementationInfo *SoftpkgInfo::selectedImplementation() const
 {
   if ( _selectedImplementation == _implementations.end() ) 
-    throw 0;
+    return 0;
 
   return *_selectedImplementation;
 }
 
 
-////////////////////////////////////////////////////
-/*
- * ResourceInfo member function definitions
- */
-PREPARE_CF_LOGGING(ResourceInfo);
+PREPARE_CF_LOGGING(ProgramProfile);
 
-void ResourceInfo::load(CF::FileSystem_ptr fileSys)
-{
-    LOG_TRACE(ResourceInfo, "Building component info from file " << _spdFileName);
+std::auto_ptr<ProgramProfile> ProgramProfile::LoadProgramProfile(CF::FileSystem_ptr fileSys, 
+								 const char* spdFileName,
+								 CF::FileSystem_ptr depFileSys ) {
+  std::auto_ptr<ProgramProfile> ret( LoadProfile( fileSys, spdFileName, depFileSys ) );
+    return ret;
+}
 
-    if (!parseProfile(fileSys)) {
-      throw 0;
-    }
+ProgramProfile *ProgramProfile::LoadProfile(CF::FileSystem_ptr fileSys, 
+					    const char* spdFileName,
+					    CF::FileSystem_ptr depFileSys ) {
+  
+    LOG_TRACE(ProgramProfile, "Building component info from file " << spdFileName);
+
+    std::auto_ptr<ProgramProfile> newComponent(new ProgramProfile(spdFileName));
+
+    newComponent->load(fileSys, depFileSys );
+
+    return newComponent.release();
+}
+
+void ProgramProfile::load(CF::FileSystem_ptr fileSys, 
+                                    CF::FileSystem_ptr depFileSys ) {
+  
+    LOG_TRACE(ProgramProfile, "Building component info from file " << _spdFileName);
+
+    parseProfile(fileSys, depFileSys);
     
     if (spd.getSCDFile() != 0) {
         try {
@@ -436,29 +456,37 @@ void ResourceInfo::load(CF::FileSystem_ptr fileSys)
             _scd.close();
         } catch (ossie::parser_error& e) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-            LOG_ERROR(ResourceInfo, "Building component info problem; error parsing SCD: " << spd.getSCDFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
-            throw 0;
+            std::ostringstream eout;
+            eout << "Building component info problem; error parsing SCD: " << spd.getSCDFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what();
+            LOG_TRACE(ProgramProfile, eout.str());
+            throw std::runtime_error(eout.str().c_str());
         } catch( ... ) {
-            LOG_ERROR(ResourceInfo, "Building component info problem; unknown error parsing SCD: " << spd.getSCDFile() );
-            throw 0;
+            std::ostringstream eout;
+            eout << "Building component info problem; unknown error parsing SCD: " << spd.getSCDFile();
+            LOG_TRACE(ProgramProfile, eout.str());
+            throw std::runtime_error(eout.str().c_str());
         }
     }
 
     if (spd.getPRFFile() != 0) {
-        LOG_DEBUG(ResourceInfo, "Loading component properties from " << spd.getPRFFile());
+        LOG_DEBUG(ProgramProfile, "Loading component properties from " << spd.getPRFFile());
         try {
             File_stream _prf(fileSys, spd.getPRFFile());
-            LOG_DEBUG(ResourceInfo, "Parsing component properties");
+            LOG_DEBUG(ProgramProfile, "Parsing component properties");
             prf.load(_prf);
-            LOG_TRACE(ResourceInfo, "Closing PRF file")
+            LOG_TRACE(ProgramProfile, "Closing PRF file")
             _prf.close();
         } catch (ossie::parser_error& e) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-            LOG_ERROR(ResourceInfo, "Building component info problem; error parsing PRF: " << spd.getPRFFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what());
-            throw  0;
+            std::ostringstream eout;
+            eout << "Building component info problem; error parsing PRF: " << spd.getPRFFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what();
+            LOG_TRACE(ProgramProfile, eout.str());
+            throw std::runtime_error(eout.str().c_str());
         } catch( ... ) {
-            LOG_ERROR(ResourceInfo, "Building component info problem; unknown error parsing PRF: " << spd.getPRFFile() );
-            throw 0;
+            std::ostringstream eout;
+            eout << "Building component info problem; unknown error parsing PRF: " << spd.getPRFFile();
+            LOG_TRACE(ProgramProfile, eout.str());
+            throw std::runtime_error(eout.str().c_str());
         }
     }
 
@@ -467,20 +495,20 @@ void ResourceInfo::load(CF::FileSystem_ptr fileSys)
     // specific PRF file
     if (spd.getPRFFile() != 0) {
         // Handle component properties
-        LOG_TRACE(ResourceInfo, "Adding factory params")
+        LOG_TRACE(ProgramProfile, "Adding factory params")
         const std::vector<const Property*>& fprop = prf.getFactoryParamProperties();
         for (unsigned int i = 0; i < fprop.size(); i++) {
             addFactoryParameter(convertPropertyToDataType(fprop[i]));
         }
 
-        LOG_TRACE(ResourceInfo, "Adding exec params")
+        LOG_TRACE(ProgramProfile, "Adding exec params")
         const std::vector<const Property*>& eprop = prf.getExecParamProperties();
         for (unsigned int i = 0; i < eprop.size(); i++) {
             if (!eprop[i]->isReadOnly()) {
-                LOG_TRACE(ResourceInfo, "Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
+                LOG_TRACE(ProgramProfile, "Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
                 addExecParameter(convertPropertyToDataType(eprop[i]));
             } else {
-                LOG_TRACE(ResourceInfo, "Ignoring readonly exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
+                LOG_TRACE(ProgramProfile, "Ignoring readonly exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
             }
         }
 
@@ -491,20 +519,20 @@ void ResourceInfo::load(CF::FileSystem_ptr fileSys)
         // element
         // prop = prf->getMatchingProperties();
         //for (unsigned int i=0; i < prop->size(); i++) {
-        //    newComponent.addAllocationCapacity((*prop)[i]->getDataType());
+        //    addAllocationCapacity((*prop)[i]->getDataType());
         //}
 
         const std::vector<const Property*>& prop = prf.getConfigureProperties();
         for (unsigned int i = 0; i < prop.size(); i++) {
             if (!prop[i]->isReadOnly()) {
-                LOG_TRACE(ResourceInfo, "Adding configure prop " << prop[i]->getID() << " " << prop[i]->getName() << " " << prop[i]->isReadOnly())
+                LOG_TRACE(ProgramProfile, "Adding configure prop " << prop[i]->getID() << " " << prop[i]->getName() << " " << prop[i]->isReadOnly())
                 addConfigureProperty(convertPropertyToDataType(prop[i]));
             }
         }
 
         const std::vector<const Property*>& cprop = prf.getConstructProperties();
         for (unsigned int i = 0; i < cprop.size(); i++) {
-          LOG_TRACE(ResourceInfo, "Adding construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
+          LOG_TRACE(ProgramProfile, "Adding construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
           if (cprop[i]->isCommandLine()) {
             addExecParameter(convertPropertyToDataType(cprop[i]));
           } else {
@@ -514,13 +542,15 @@ void ResourceInfo::load(CF::FileSystem_ptr fileSys)
 
     }
         
-    LOG_TRACE(ResourceInfo, "Done building component info from file " << _spdFileName);
+    LOG_TRACE(ProgramProfile, "Done building component info from file " << _spdFileName);
 }
 
-ResourceInfo::ResourceInfo(const std::string& spdFileName) :
+
+ProgramProfile::ProgramProfile(const std::string& spdFileName) :
     SoftpkgInfo(spdFileName),
     _isAssemblyController(false)
 {
+    nicAssignment="";
     resolved_softpkg_dependencies.resize(0);
 
     // add internal affinity properties
@@ -533,43 +563,20 @@ ResourceInfo::ResourceInfo(const std::string& spdFileName) :
 
 }
 
-ResourceInfo::ResourceInfo(const ResourceInfo& other) :
-    SoftpkgInfo(other),
-    scd(other.scd),
-    _isAssemblyController(other._isAssemblyController),
-    _isConfigurable(other._isConfigurable),
-    isNamingService(other.isNamingService),
-    usageName(other.usageName),
-    identifier(other.identifier),
-    instantiationId(other.instantiationId),
-    namingServiceName(other.namingServiceName),
-    loggingConfig(other.loggingConfig),
-    configureProperties(other.configureProperties),
-    ctorProperties(other.ctorProperties),
-    options(other.options),
-    factoryParameters(other.factoryParameters),
-    execParameters(other.execParameters),
-    affinityOptions(other.affinityOptions),
-    resolved_softpkg_dependencies(other.resolved_softpkg_dependencies)
-{
-    // The copy constructor for Properties is inaccessible, but assignment is
-    // allowed
-    prf = other.prf;
-}
 
-ResourceInfo::~ResourceInfo ()
+ProgramProfile::~ProgramProfile ()
 {
 }
 
-void ResourceInfo::addResolvedSoftPkgDependency(const std::string &dep) {
+void ProgramProfile::addResolvedSoftPkgDependency(const std::string &dep) {
     this->resolved_softpkg_dependencies.push_back(dep);
 }
 
-std::vector<std::string> ResourceInfo::getResolvedSoftPkgDependencies() {
+std::vector<std::string> ProgramProfile::getResolvedSoftPkgDependencies() {
     return this->resolved_softpkg_dependencies;
 }
 
-void ResourceInfo::setIdentifier(const char* _identifier, std::string instance_id)
+void ProgramProfile::setIdentifier(const std::string & _identifier,  const std::string &instance_id)
 {
     identifier = _identifier;
     // Per the SCA spec, the identifier is the instantiation ID:waveform_name
@@ -577,38 +584,47 @@ void ResourceInfo::setIdentifier(const char* _identifier, std::string instance_i
 }
 
 
-void ResourceInfo::setNamingService(const bool _isNamingService)
+void ProgramProfile::setNamingService(const bool _isNamingService)
 {
     isNamingService = _isNamingService;
 }
 
-void ResourceInfo::setNamingServiceName(const char* _namingServiceName)
+void ProgramProfile::setNamingServiceName(const std::string &_namingServiceName)
 {
     namingServiceName = _namingServiceName;
 }
 
-void ResourceInfo::setUsageName(const char* _usageName)
+void ProgramProfile::setUsageName(const std::string & _usageName)
 {
-    if (_usageName != 0) {
-        usageName = _usageName;
-    }
+    usageName = _usageName;
 }
 
-void ResourceInfo::setIsAssemblyController(bool _isAssemblyController)
+void ProgramProfile::setIsAssemblyController(bool _isAssemblyController)
 {
     this->_isAssemblyController = _isAssemblyController;
 }
 
-void ResourceInfo::setAffinity( const AffinityProperties &affinity_props )
+
+void ProgramProfile::setIsScaCompliant(bool _isScaCompliant)
+{
+    this->_isScaCompliant = _isScaCompliant;
+}
+
+void ProgramProfile::setNicAssignment(const std::string &nic) {
+    nicAssignment = nic;
+};
+
+
+void ProgramProfile::setAffinity( const AffinityProperties &affinity_props )
 {
   for (unsigned int i = 0; i < affinity_props.size(); ++i) {
     const ossie::ComponentProperty* propref = &affinity_props[i];
     std::string propId = propref->getID();
-    RH_NL_DEBUG("ResourceInfo", "Affinity property id = " << propId);
+    RH_NL_DEBUG("ProgramProfile", "Affinity property id = " << propId);
     const Property* prop = _affinity_prf.getProperty(propId);
     // Without a prop, we don't know how to convert the strings to the property any type
     if (prop == NULL) {
-      RH_NL_WARN("ResourceInfo", "Ignoring attempt to override property " << propId << ", Reason: Property ID does not exist in component");
+      RH_NL_WARN("ProgramProfile", "Ignoring attempt to override property " << propId << ", Reason: Property ID does not exist in component");
         continue;
     }
 
@@ -620,44 +636,44 @@ void ResourceInfo::setAffinity( const AffinityProperties &affinity_props )
 }
 
 
-void ResourceInfo::setLoggingConfig( const LoggingConfig  &logcfg )
+void ProgramProfile::setLoggingConfig( const LoggingConfig  &logcfg )
 {
   loggingConfig = logcfg;
 }
 
 
-void ResourceInfo::addFactoryParameter(CF::DataType dt)
+void ProgramProfile::addFactoryParameter(CF::DataType dt)
 {
     addProperty(dt, factoryParameters);
 }
 
-void ResourceInfo::addExecParameter(CF::DataType dt)
+void ProgramProfile::addExecParameter(CF::DataType dt)
 {
     addProperty(dt, execParameters);
 }
 
-void ResourceInfo::addConfigureProperty(CF::DataType dt)
+void ProgramProfile::addConfigureProperty(CF::DataType dt)
 {
     addProperty(dt, configureProperties);
 }
 
-void ResourceInfo::addConstructProperty(CF::DataType dt)
+void ProgramProfile::addConstructProperty(CF::DataType dt)
 {
     addProperty(dt, ctorProperties);
 }
 
-void ResourceInfo::overrideProperty(const ossie::ComponentProperty& propref) {
+void ProgramProfile::overrideProperty(const ossie::ComponentProperty& propref) {
   overrideProperty(&propref);
 }
 
-void ResourceInfo::overrideProperty(const ossie::ComponentProperty* propref) {
+void ProgramProfile::overrideProperty(const ossie::ComponentProperty* propref) {
     std::string propId = propref->getID();
-    LOG_TRACE(ResourceInfo, "Instantiation property id = " << propId)
+    LOG_TRACE(ProgramProfile, "Instantiation property id = " << propId)
     const Property* prop = prf.getProperty(propId);
     // Without a prop, we don't know how to convert the strings to the property any type
     if (prop == NULL) {
         if ( propId != "LOGGING_CONFIG_URI" and propId != "LOG_LEVEL" ) {
-            LOG_WARN(ResourceInfo, "Ignoring attempt to override property " << propId << " Reason: Property ID not exist in component")
+            LOG_WARN(ProgramProfile, "Ignoring attempt to override property " << propId << " Reason: Property ID not exist in component")
                 return;
         }
 
@@ -665,7 +681,8 @@ void ResourceInfo::overrideProperty(const ossie::ComponentProperty* propref) {
 
     // allow intrinstic properties to be command line
     if ( propId == "LOGGING_CONFIG_URI" or propId == "LOG_LEVEL" ) {
-        LOG_DEBUG(ResourceInfo, "Allowing LOGGING_CONFIG_URI and LOG_LEVEL to be passed to override");
+        LOG_DEBUG(ProgramProfile, "Allowing LOGGING_CONFIG_URI and LOG_LEVEL to be passed to override");
+        //if (propId == "LOG_LEVEL") propId = "DEBUG_LEVEL";
         CF::DataType prop;
         prop.id = propId.c_str();
         prop.value <<= dynamic_cast<const SimplePropertyRef*>(propref)->getValue();
@@ -679,12 +696,12 @@ void ResourceInfo::overrideProperty(const ossie::ComponentProperty* propref) {
 }
 
 
-void ResourceInfo::overrideSimpleProperty(const char* id, const std::string value)
+void ProgramProfile::overrideSimpleProperty(const char* id, const std::string value)
 {
     const Property* prop = prf.getProperty(id);
     // Without a prop, we don't know how to convert the strings to the property any type
     if (prop == NULL) {
-        LOG_WARN(ResourceInfo, "Ignoring attempt to override property " << id << " Reason: Property ID does not exist in component");
+        LOG_WARN(ProgramProfile, "Ignoring attempt to override property " << id << " Reason: Property ID does not exist in component");
         return;
     }
 
@@ -694,18 +711,18 @@ void ResourceInfo::overrideSimpleProperty(const char* id, const std::string valu
         CORBA::Any val = ossie::string_to_any(value, type);
         overrideProperty(id, val);
     } else {
-        LOG_WARN(ResourceInfo, "attempt to override non-simple property with string value");
+        LOG_WARN(ProgramProfile, "attempt to override non-simple property with string value");
     }
 }
 
-void ResourceInfo::overrideProperty(const char* id, const CORBA::Any& value)
+void ProgramProfile::overrideProperty(const char* id, const CORBA::Any& value)
 {
     const Property* prop = prf.getProperty(id);
 
     if (prop != NULL) {
         if (prop->isReadOnly()) {
             if ( !prop->isProperty()) {
-                LOG_WARN(ResourceInfo, "Ignoring attempt to override readonly property " << id);
+                LOG_WARN(ProgramProfile, "Ignoring attempt to override readonly property " << id);
             }
             else {
                 process_overrides(&ctorProperties, id, value);
@@ -723,12 +740,12 @@ void ResourceInfo::overrideProperty(const char* id, const CORBA::Any& value)
 
 
 
-void ResourceInfo::process_overrides(CF::Properties* props, const char* id, CORBA::Any value)
+void ProgramProfile::process_overrides(CF::Properties* props, const char* id, CORBA::Any value)
 {
-    LOG_DEBUG(ResourceInfo, "Attempting to override property " << id);
+    LOG_DEBUG(ProgramProfile, "Attempting to override property " << id);
     for (unsigned int i = 0; i < (*props).length(); ++i ) {
         if (strcmp(id, (*props)[i].id) == 0) {
-            LOG_DEBUG(ResourceInfo, "Overriding property " << id << " with value " << ossie::any_to_string(value));
+            LOG_DEBUG(ProgramProfile, "Overriding property " << id << " with value " << ossie::any_to_string(value));
             (*props)[i].value = value;
         }
     }
@@ -736,71 +753,173 @@ void ResourceInfo::process_overrides(CF::Properties* props, const char* id, CORB
 }
 
 
-const char* ResourceInfo::getInstantiationIdentifier()
+const char* ProgramProfile::getInstantiationIdentifier()
 {
     return instantiationId.c_str();
 }
 
-const char* ResourceInfo::getIdentifier()
+const char* ProgramProfile::getIdentifier()
 {
     return identifier.c_str();
 }
 
 
-const bool  ResourceInfo::getNamingService()
+const bool  ProgramProfile::getNamingService()
 {
     return isNamingService;
 }
 
-const char* ResourceInfo::getUsageName()
+const char* ProgramProfile::getUsageName()
 {
     return usageName.c_str();
 }
 
-const char* ResourceInfo::getNamingServiceName()
+const char* ProgramProfile::getNamingServiceName()
 {
     return namingServiceName.c_str();
 }
 
+const std::string ProgramProfile::getNicAssignment() {
+    return nicAssignment;
+};
 
-const bool  ResourceInfo::isResource()
+
+const bool  ProgramProfile::isResource()
 {
     return scd.isResource();
 }
 
-const bool  ResourceInfo::isConfigurable()
+const bool  ProgramProfile::isConfigurable()
 {
     return scd.isConfigurable();
 }
 
 
-const bool  ResourceInfo::isAssemblyController()
+const bool  ProgramProfile::isAssemblyController()
 {
     return _isAssemblyController;
 }
 
-const bool  ResourceInfo::isScaCompliant()
+const bool  ProgramProfile::isScaCompliant()
 {
     return spd.isScaCompliant();
 }
 
-CF::Properties ResourceInfo::getNonNilConfigureProperties()
+
+bool ProgramProfile::checkStruct(CF::Properties &props)
+{
+    redhawk::PropertyMap& tmpProps = redhawk::PropertyMap::cast(props);
+    int state = 0; // 1 set, -1 nil
+    for (redhawk::PropertyMap::iterator tmpP = tmpProps.begin(); tmpP != tmpProps.end(); tmpP++) {
+        if (tmpProps[ossie::corba::returnString(tmpP->id)].isNil()) {
+            if (state == 0) {
+                state = -1;
+            } else {
+                if (state == 1) {
+                    return true;
+                }
+            }
+        } else {
+            if (state == 0) {
+                state = 1;
+            } else {
+                if (state == -1) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+CF::Properties ProgramProfile::iteratePartialStruct(CF::Properties &props)
+{
+    CF::Properties retval;
+    redhawk::PropertyMap& configProps = redhawk::PropertyMap::cast(props);
+    for (redhawk::PropertyMap::iterator cP = configProps.begin(); cP != configProps.end(); cP++) {
+        const ossie::Property* prop = this->prf.getProperty(ossie::corba::returnString(cP->id));
+        if (dynamic_cast<const ossie::StructProperty*>(prop)) {
+            CF::Properties* tmp;
+            if (!(cP->value >>= tmp))
+                continue;
+            if (this->checkStruct(*tmp))
+                return *tmp;
+        } else if (dynamic_cast<const ossie::StructSequenceProperty*>(prop)) {
+            CORBA::AnySeq* anySeqPtr;
+            if (!(cP->value >>= anySeqPtr)) {
+                continue;
+            }
+            CORBA::AnySeq& anySeq = *anySeqPtr;
+            for (CORBA::ULong ii = 0; ii < anySeq.length(); ++ii) {
+                CF::Properties* tmp;
+                if (!(anySeq[ii] >>= tmp))
+                    continue;
+                if (this->checkStruct(*tmp))
+                    return *tmp;
+            }
+        } else {
+            continue;
+        }
+    }
+    return retval;
+}
+
+
+
+CF::Properties ProgramProfile::containsPartialStructConfig() {
+    return this->iteratePartialStruct(configureProperties);
+}
+
+CF::Properties ProgramProfile::containsPartialStructConstruct()
+{
+    return this->iteratePartialStruct(ctorProperties);
+}
+
+CF::Properties ProgramProfile::getNonNilConfigureProperties()
 {
     return ossie::getNonNilConfigureProperties(configureProperties);
 }
 
-CF::Properties ResourceInfo::getNonNilConstructProperties()
+CF::Properties ProgramProfile::getNonNilConstructProperties()
 {
     return ossie::getNonNilProperties(ctorProperties);
 }
 
-CF::Properties ResourceInfo::getAffinityOptions()
+CF::Properties ProgramProfile::getNonNilNonExecConstructProperties()
+{
+    return ossie::getNonNilProperties(ctorProperties);
+}
+
+
+CF::Properties ProgramProfile::getAffinityOptionsWithAssignment()
+{
+  // Add affinity setting first...
+  CF::Properties affinity_options;
+  for ( uint32_t i=0; i < affinityOptions.length(); i++ ) {
+      affinity_options.length(affinity_options.length()+1);
+      affinity_options[affinity_options.length()-1] = affinityOptions[i];
+      CF::DataType dt = affinityOptions[i];
+      RH_NL_DEBUG("spdSupport", "ProgramProfile getAffinityOptionsWithAssignment ... Affinity Property: directive id:"  <<  dt.id << "/" <<  ossie::any_to_string( dt.value )) ;
+  }
+
+  // add nic allocations to affinity list 
+  if ( nicAssignment != "" ) {
+      affinity_options.length(affinity_options.length()+1);
+      affinity_options[affinity_options.length()-1].id = CORBA::string_dup("nic");  
+      affinity_options[affinity_options.length()-1].value <<= nicAssignment.c_str(); 
+      RH_NL_DEBUG("spdSupport", "ProgramProfile getAffinityOptionsWithAssignment ... NIC AFFINITY: pol/value "  <<  "nic"  << "/" << nicAssignment );
+  }      
+
+  return affinity_options;
+
+}
+
+CF::Properties ProgramProfile::getAffinityOptions()
 {
     return affinityOptions;
 }
 
-
-void ResourceInfo::mergeAffinityOptions( const CF::Properties &new_affinity )
+void ProgramProfile::mergeAffinityOptions( const CF::Properties &new_affinity )
 {
   // for each new affinity setting apply settings to component's affinity options
   const redhawk::PropertyMap &newmap = redhawk::PropertyMap::cast(new_affinity);
@@ -812,56 +931,129 @@ void ResourceInfo::mergeAffinityOptions( const CF::Properties &new_affinity )
   }
 }
 
-CF::Properties ResourceInfo::getConfigureProperties()
+CF::Properties ProgramProfile::getConfigureProperties()
 {
     return configureProperties;
 }
 
 
-CF::Properties ResourceInfo::getConstructProperties()
+CF::Properties ProgramProfile::getConstructProperties()
 {
     return ctorProperties;
 }
 
 
-CF::Properties ResourceInfo::getOptions()
+
+
+CF::Properties ProgramProfile::getOptions()
 {
     // Get the PRIORITY and STACK_SIZE from the SPD (if available)
     //  unfortunately this can't happen until an implementation has been chosen
-  if (_selectedImplementation != _implementations.end()) {
-        if (_selectedImplementation->hasStackSize()) {
+    if (*_selectedImplementation) {
+        ImplementationInfo *impl = *_selectedImplementation;
+        if ( impl->hasStackSize()) {
             options.length(options.length()+1);
             options[options.length()-1].id = CORBA::string_dup("STACK_SIZE");  // 3.1.3.3.3.3.6
-            options[options.length()-1].value <<= _selectedImplementation->getStackSize();  // The specification says it's supposed to be an unsigned long, but the parser is set to unsigned long long
+            options[options.length()-1].value <<= impl->getStackSize();  // The specification says it's supposed to be an unsigned long, but the parser is set to unsigned long long
         }
-        if (_selectedImplementation->hasPriority()) {
+        if (impl->hasPriority()) {
             options.length(options.length()+1);
             options[options.length()-1].id = CORBA::string_dup("PRIORITY");  // 3.1.3.3.3.3.7
-            options[options.length()-1].value <<= _selectedImplementation->getPriority();  // The specification says it's supposed to be an unsigned long, but the parser is set to unsigned long long
+            options[options.length()-1].value <<= impl->getPriority();  // The specification says it's supposed to be an unsigned long, but the parser is set to unsigned long long
         }
     }
 
-    // Pass all afinity settings under single options list
+    // Add affinity settings under AFFINITY property directory
     CF::Properties affinity_options;
     for ( uint32_t i=0; i < affinityOptions.length(); i++ ) {
       affinity_options.length(affinity_options.length()+1);
       affinity_options[affinity_options.length()-1] = affinityOptions[i];
       CF::DataType dt = affinityOptions[i];
-      RH_NL_DEBUG("ResourceInfo", "Affinity Property: directive id:"  <<  dt.id << "/" <<  ossie::any_to_string( dt.value )) ;
+      RH_NL_DEBUG("ProgramProfile", "ProgramProfile - Affinity Property: directive id:"  <<  dt.id << "/" <<  ossie::any_to_string( dt.value )) ;
     }
+
+    // add nic allocations to affinity list 
+    if ( nicAssignment != "" ) {
+      std::string id = "nic";
+      const redhawk::PropertyMap &tmap = redhawk::PropertyMap::cast( affinityOptions );
+      if ( !tmap.contains(id) ) {
+        // missing nic directive... add to map
+        affinity_options.length(affinity_options.length()+1);
+        affinity_options[affinity_options.length()-1].id = CORBA::string_dup("nic");  
+        affinity_options[affinity_options.length()-1].value <<= nicAssignment.c_str(); 
+      }
+      else {
+        std::string nic_iface = tmap[id].toString();
+        if ( nic_iface != nicAssignment ) {
+          // nic_iface is differnet add this 
+          affinity_options.length(affinity_options.length()+1);
+          affinity_options[affinity_options.length()-1].id = CORBA::string_dup("nic");  
+          affinity_options[affinity_options.length()-1].value <<= nicAssignment.c_str(); 
+        }
+      }
+      RH_NL_DEBUG("ProgramProfile", "ProgramProfile - NIC AFFINITY: pol/value "  <<  "nic"  << "/" << nicAssignment );
+    }      
 
     if ( affinity_options.length() > 0 ) {
       options.length(options.length()+1);
       options[options.length()-1].id = CORBA::string_dup("AFFINITY"); 
       options[options.length()-1].value <<= affinity_options;
-      RH_NL_INFO("ResourceInfo", "Affinity Sequence... Extending options set length: " << affinity_options.length());
+      RH_NL_DEBUG("ProgramProfile", "ProgramProfile - Extending options, adding Affinity Properties ...set length: " << affinity_options.length());
     }
 
+    RH_NL_TRACE("ProgramProfile", "ProgramProfile - getOptions.... length: " << options.length());
+    for ( uint32_t i=0; i < options.length(); i++ ) {
+      RH_NL_TRACE("ProgramProfile", "ProgramProfile - getOptions id:"  <<  options[i].id << "/" <<  ossie::any_to_string( options[i].value )) ;
+    }
     return options;
 }
 
-CF::Properties ResourceInfo::getExecParameters()
+
+CF::Properties ProgramProfile::getExecParameters()
 {
     return execParameters;
 }
 
+CF::Properties ProgramProfile::getPopulatedExecParameters()
+{
+    CF::Properties retval;
+    unsigned int i;
+    for ( i=0; i < execParameters.length(); i++ ) {
+
+        // no empty exec params allowed..
+        CORBA::TypeCode_var typecode = execParameters[i].value.type();
+        if (typecode->kind() == CORBA::tk_null) continue;
+          
+        std::string v=ossie::any_to_string( execParameters[i].value );
+        if ( v.size() == 0 )  continue;
+          
+        // add to retval
+        int l=retval.length();
+        retval.length(l+1);
+        retval[l] = execParameters[i];
+    }
+
+    return retval;
+}
+
+#if 0
+  while (true) {
+        unsigned int i;
+        for (i=0; i<retval.length(); i++) {
+	  CORBA::TypeCode_var typecode = retval[i].value.type();
+	  if (typecode->kind() == CORBA::tk_null) {
+	    break;
+	  }
+        }
+        if (i == retval.length()) {
+            break;
+        }
+        for (unsigned int j=i+1; j<retval.length(); j++) {
+            retval[j-1] = retval[j];
+        }
+        retval.length(retval.length()-1);
+    }
+  return retval;
+}
+
+#endif
