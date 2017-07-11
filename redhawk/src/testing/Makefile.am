@@ -63,7 +63,6 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/CppCallbacks/cpp \
           sdr/dom/components/prop_trigger_timing/cpp \
           sdr/dom/components/cpp_comp/cpp \
-          sdr/dom/components/java_comp/java \
           sdr/dom/components/TestLoggingAPI/cpp \
           sdr/dom/components/ECM_CPP/cpp \
           sdr/dom/components/C1/cpp \
@@ -85,6 +84,7 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dev/devices/JavaTestDevice/java \
            sdr/dev/devices/issue_111_java/java \
            sdr/dev/devices/devj/java \
+           sdr/dev/devices/java_dev/java \
            sdr/dev/services/BasicService_java/java \
            sdr/dom/components/BasicAC/basicac_java_impl1 \
            sdr/dom/components/EventSend/EventSend_java_impl1 \
