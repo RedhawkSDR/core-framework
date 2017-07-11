@@ -154,7 +154,7 @@ void loadPRFExecParams (const std::string& prfFile, ExecParams& execParams)
         const ossie::SimpleProperty* simpleProp;
         simpleProp = dynamic_cast<const ossie::SimpleProperty*>(*prop);
         if (!simpleProp) {
-            LOG_WARN(nodebooter, "Only execp   arams of type \"simple\" supported");
+            LOG_WARN(nodebooter, "Only exec params of type \"simple\" supported");
             continue;
         } else if (!simpleProp->getValue()) {
             continue;
@@ -168,7 +168,7 @@ void loadPRFExecParams (const std::string& prfFile, ExecParams& execParams)
         const ossie::SimpleProperty* simpleProp;
         simpleProp = dynamic_cast<const ossie::SimpleProperty*>(*prop);
         if (!simpleProp) {
-            LOG_WARN(nodebooter, "Only execparams of type \"simple\" supported");
+            // property properties that are not simples cannot be commandline, so no warning is needed
             continue;
         } else if (!simpleProp->getValue()) {
             continue;
