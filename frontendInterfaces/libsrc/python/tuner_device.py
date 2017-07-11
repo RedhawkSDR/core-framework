@@ -291,7 +291,7 @@ def validateRequestVsDevice(request, rfinfo, mode, min_device_center_freq, max_d
 
     return True
 
-def createTunerAllocation(tuner_type='DDC',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=1.0,
+def createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=1.0,
                  device_control=True,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True):
     if returnDict:
         retval = {'FRONTEND::tuner_allocation':{'FRONTEND::tuner_allocation::tuner_type':tuner_type,'FRONTEND::tuner_allocation::allocation_id':allocation_id,
@@ -324,7 +324,7 @@ def createTunerAllocation(tuner_type='DDC',allocation_id=None,center_frequency=0
         retval = CF.DataType(id='FRONTEND::tuner_allocation',value=CORBA.Any(CF._tc_Properties,alloc))
     return retval
 
-def createTunerGenericListenerAllocation(tuner_type='DDC',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=1.0,
+def createTunerGenericListenerAllocation(tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=1.0,
                  device_control=False,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True):
     if returnDict:
         retval = {'FRONTEND::tuner_allocation':{'FRONTEND::tuner_allocation::tuner_type':tuner_type,'FRONTEND::tuner_allocation::allocation_id':allocation_id,
