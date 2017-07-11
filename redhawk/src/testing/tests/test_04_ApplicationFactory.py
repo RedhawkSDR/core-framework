@@ -2670,6 +2670,8 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         app.initialize()
         app.runTest(0,[])
         app.initializeProperties([])
+        
+        release_thread.join()
 
         apps = domMgr._get_applications()
         self.assertEqual(len(apps),0)
