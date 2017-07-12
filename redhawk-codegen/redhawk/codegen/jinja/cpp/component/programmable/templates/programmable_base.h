@@ -61,7 +61,7 @@ namespace HW_LOAD {
     };
 
     static std::string getId() {
-        return std::string("hw_load_request");
+        return std::string("hw_load_status");
     };
 
     std::string request_id;
@@ -84,16 +84,16 @@ inline bool operator>>= (const CORBA::Any& a, HW_LOAD::default_hw_load_request_s
     if (!(a >>= temp)) return false;
     CF::Properties& props = *temp;
     for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("request_id", props[idx].id)) {
+        if (!strcmp("hw_load_request::request_id", props[idx].id)) {
             if (!(props[idx].value >>= s.request_id)) return false;
         }
-        if (!strcmp("requester_id", props[idx].id)) {
+        if (!strcmp("hw_load_request::requester_id", props[idx].id)) {
             if (!(props[idx].value >>= s.requester_id)) return false;
         }
-        if (!strcmp("hardware_id", props[idx].id)) {
+        if (!strcmp("hw_load_request::hardware_id", props[idx].id)) {
             if (!(props[idx].value >>= s.hardware_id)) return false;
         }
-        if (!strcmp("load_filepath", props[idx].id)) {
+        if (!strcmp("hw_load_request:load_filepath", props[idx].id)) {
             if (!(props[idx].value >>= s.load_filepath)) return false;
         }
     }
@@ -103,16 +103,59 @@ inline bool operator>>= (const CORBA::Any& a, HW_LOAD::default_hw_load_request_s
 inline void operator<<= (CORBA::Any& a, const HW_LOAD::default_hw_load_request_struct& s) {
     CF::Properties props;
     props.length(4);
-    props[0].id = CORBA::string_dup("request_id");
+    props[0].id = CORBA::string_dup("hw_load_request::request_id");
     props[0].value <<= s.request_id;
-    props[1].id = CORBA::string_dup("requester_id");
+    props[1].id = CORBA::string_dup("hw_load_request::requester_id");
     props[1].value <<= s.requester_id;
-    props[2].id = CORBA::string_dup("hardware_id");
+    props[2].id = CORBA::string_dup("hw_load_request::hardware_id");
     props[2].value <<= s.hardware_id;
-    props[3].id = CORBA::string_dup("load_filepath");
+    props[3].id = CORBA::string_dup("hw_load_request::load_filepath");
     props[3].value <<= s.load_filepath;
     a <<= props;
 };
+
+
+
+inline bool operator>>= (const CORBA::Any& a, HW_LOAD::default_hw_load_status_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    CF::Properties& props = *temp;
+    for (unsigned int idx = 0; idx < props.length(); idx++) {
+        if (!strcmp("hw_load_status::request_id", props[idx].id)) {
+            if (!(props[idx].value >>= s.request_id)) return false;
+        }
+        if (!strcmp("hw_load_status::requester_id", props[idx].id)) {
+            if (!(props[idx].value >>= s.requester_id)) return false;
+        }
+        if (!strcmp("hw_load_status::hardware_id", props[idx].id)) {
+            if (!(props[idx].value >>= s.hardware_id)) return false;
+        }
+        if (!strcmp("hw_load_status:load_filepath", props[idx].id)) {
+            if (!(props[idx].value >>= s.load_filepath)) return false;
+        }
+        if (!strcmp("hw_load_status:state", props[idx].id)) {
+            if (!(props[idx].value >>= s.state)) return false;
+        }
+    }
+    return true;
+};
+
+inline void operator<<= (CORBA::Any& a, const HW_LOAD::default_hw_load_status_struct& s) {
+    CF::Properties props;
+    props.length(4);
+    props[0].id = CORBA::string_dup("hw_load_status::request_id");
+    props[0].value <<= s.request_id;
+    props[1].id = CORBA::string_dup("hw_load_status::requester_id");
+    props[1].value <<= s.requester_id;
+    props[2].id = CORBA::string_dup("hw_load_status::hardware_id");
+    props[2].value <<= s.hardware_id;
+    props[3].id = CORBA::string_dup("hw_load_status::load_filepath");
+    props[3].value <<= s.load_filepath;
+    props[3].id = CORBA::string_dup("hw_load_status::state");
+    props[3].value <<= s.state;
+    a <<= props;
+};
+
 
 /*{% if component is device %}*/
 typedef std::string ${executeType.capitalize()}Id;
