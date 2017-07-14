@@ -38,7 +38,7 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
         # Clean up all sandbox artifacts created during test
         sb.release()
 
-    def testBasicBehavior(self):
+    def testSrcSnkBehavior(self):
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         self.comp.connect(self.snk)
@@ -50,6 +50,21 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
         except:
             pass
         self.snk.stop()
+        self.comp.releaseObject()
+        self.snk.releaseObject()
+
+    def testSnkSrcBehavior(self):
+        #######################################################################
+        # Make sure start and stop can be called without throwing exceptions
+        self.comp.connect(self.snk)
+        self.comp.start()
+        self.snk.start()
+        time.sleep(1)
+        self.snk.stop()
+        try:
+            self.comp.stop()
+        except:
+            pass
         self.comp.releaseObject()
         self.snk.releaseObject()
 
