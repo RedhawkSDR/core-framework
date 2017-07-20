@@ -51,7 +51,11 @@ def fileCRC(filename, stripnewlines=False):
     return value & 0xffffffff
 
 def fileMD5(filename):
-    m = md5()
+    # On FIPS-enabled systems, MD5 is disabled because it's not cryptologically
+    # secure; the "usedforsecurity" flag assures the library that it's not used
+    # in that way, since in this case it's just a hash for tracking when a file
+    # has changed. 
+    m = md5(usedforsecurity=False)
     for line in open(filename, 'r'):
         m.update(line)
     return m.hexdigest()
