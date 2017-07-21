@@ -485,5 +485,18 @@ frontend::RFInfoPkt fei_cap_i::get_rfinfo_pkt(const std::string& port_name)
 
 void fei_cap_i::set_rfinfo_pkt(const std::string& port_name, const frontend::RFInfoPkt &pkt)
 {
+    FRONTEND::RFInfoPkt_var tmp_pkt = returnRFInfoPkt(pkt);
+    if (tmp_pkt->ext_path_delays.length() != 2) {
+        throw FRONTEND::NotSupportedException("ext_path_delays needs to be length 2");
+    }
+    if (tmp_pkt->capabilities.freq_range.min_val!=1) {
+        throw FRONTEND::NotSupportedException("capabilities.freq_range.min_val needs to be 1");
+    }
+    if (tmp_pkt->capabilities.bw_range.min_val!=3) {
+        throw FRONTEND::NotSupportedException("capabilities.bw_range.min_val needs to be 3");
+    }
+    if (tmp_pkt->additional_info.length()!=3) {
+        throw FRONTEND::NotSupportedException("additional_info.length() needs to be 3");
+    }
 }
 
