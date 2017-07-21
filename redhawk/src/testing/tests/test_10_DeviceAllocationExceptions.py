@@ -24,6 +24,16 @@ from omniORB import CORBA, any
 from ossie.cf import CF
 
 class DeviceExceptionsTest(object):
+    def setUp(self):
+        self.dev=None
+        self._domMgr=None
+        self._devMgr=None
+
+    def teadDown(self):
+        if self.dev != None:
+            self.dev.releaseObject()
+        
+
     def test_InvalidPropertyException(self):
         bad_prop = CF.DataType(id='bad_cap', value=any.to_any('foo'))
         self.assertRaises(CF.Device.InvalidCapacity, self._device.allocateCapacity, [bad_prop])
@@ -51,12 +61,56 @@ class JavaDeviceExceptionsTest(DeviceExceptionsTest, scatest.CorbaTestCase):
         self.assertEqual(len(self._devMgr._get_registeredDevices()), 1)
         self._device = self._devMgr._get_registeredDevices()[0]
 
+    def test_InvalidCapacity_simple(self):
+        from ossie.utils import sb
+        self.dev=sb.launch('DevC', impl="java")
+        
+        self.assertRaises(CF.Device.InvalidCapacity, self.dev.allocateCapacity, {'myulong': 3 } )
+        self.dev.releaseObject()
+        self.dev=None
+        sb.release()
+
+    def test_InvalidCapacity_node(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/invalid_capacity/DeviceManager.dcd.xml.java")
+        
+        from ossie.utils import redhawk
+        dom=redhawk.attach(scatest.getTestDomainName())
+        dev=dom.devices[0]
+        self.assertNotEquals(dev,None)
+        b=[ CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3))]
+        self.assertRaises(CF.Device.InvalidCapacity, dev.allocateCapacity, b)
+
+
 class CppDeviceExceptionsTest(DeviceExceptionsTest, scatest.CorbaTestCase):
     def setUp (self):
         domBooter, self._domMgr = self.launchDomainManager()
         devBooter, self._devMgr = self.launchDeviceManager("/nodes/issue_111_node_cpp/DeviceManager.dcd.xml")
         self.assertEqual(len(self._devMgr._get_registeredDevices()), 1)
         self._device = self._devMgr._get_registeredDevices()[0]
+
+    def test_InvalidCapacity_simple(self):
+        from ossie.utils import sb
+        self.dev=sb.launch('DevC', impl="cpp")
+        
+        res=self.dev.allocateCapacity({'myulong': 3 } )
+        self.assertEquals(res,False)
+        self.dev.releaseObject()
+        self.dev=None
+        sb.release()
+
+    def test_InvalidCapacity_node(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/invalid_capacity/DeviceManager.dcd.xml.cpp")
+        
+        from ossie.utils import redhawk
+        dom=redhawk.attach(scatest.getTestDomainName())
+        d=dom.devices[0]
+        self.assertNotEquals(d,None)
+        b=[ CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3))]
+        res=d.allocateCapacity(b)
+        self.assertEquals(res,False)
+
 
 class PythonDeviceExceptionsTest(DeviceExceptionsTest, scatest.CorbaTestCase):
     def setUp (self):

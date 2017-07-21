@@ -324,7 +324,14 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
 {
     LOG_TRACE(Device_impl, "Using legacy capacity allocation");
     
+    typedef std::pair< CF::DataType, CF::DataType >         Allocation;
+    std::vector< Allocation > allocations;
     CF::Properties currentCapacities;
+
+    {
+        SCOPED_LOCK(propertySetAccess);
+        validateCapacities(capacities);
+    }
 
     bool extraCap = false;  // Flag to check remaining extra capacity to allocate
     bool foundProperty;     // Flag to indicate if the requested property was found
@@ -337,6 +344,7 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
         } catch (CF::UnknownProperties) {
         }
 
+        SCOPED_LOCK(propertySetAccess);
         /* Look in propertySet for the properties requested */
         for (unsigned i = 0; i < capacities.length (); i++) {
             foundProperty = false;
@@ -354,9 +362,9 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
                             LOG_ERROR(Device_impl, "Cannot allocate capacity: Insufficient capacity.");
                             return false;
                         }
-                        CORBA::Short capValue;
-                        currentCapacities[j].value >>= capValue;
-                        LOG_TRACE(Device_impl, "Device Capacity ID: " << currentCapacities[j].id << ", New Capacity: " << capValue);
+                        Allocation a( capacities[i], currentCapacities[j] );
+                        allocations.push_back( a );
+                        LOG_TRACE(Device_impl, "Device Allocation Capacity against, ID: " << capacities[i].id );
                     }
 
                     foundProperty = true;     // Report that the requested property was found
@@ -371,8 +379,8 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
         }
 
         // Check for remaining capacity.
-        for (unsigned i = 0; i < currentCapacities.length (); i++) {
-            if (compareAnyToZero (currentCapacities[i].value) == POSITIVE) {
+        for (unsigned i = 0; i < allocations.size(); i++) {
+            if (compareAnyToZero (allocations[i].second.value) == POSITIVE) {
                 extraCap = true;
 
                 // No need to keep going. if after allocation there is any capacity available, the device is ACTIVE.
@@ -380,8 +388,59 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
             }
         }
 
-        // Store new capacities, here is when the allocation takes place
-        configure (currentCapacities);
+        // apply allocations to properties..
+        CF::Properties invalidProperties;
+        DeallocationHelper cleanup(this);
+
+        for (CORBA::ULong ii = 0; ii < allocations.size(); ++ii) {
+            CF::DataType request = allocations[ii].first;
+            CF::DataType new_alloc = allocations[ii].second;
+            PropertyInterface* property = getPropertyFromId((const char*)request.id);
+            LOG_TRACE(Device_impl, "Allocatable property: " << property->id);
+            try {
+                    std::vector<std::string>::iterator kind = property->kinds.begin();
+                    bool sendEvent = false;
+                    bool eventType = false;
+                    if (propertyChangePort != NULL) {
+                        // searching for event type
+                        while (kind != property->kinds.end()) {
+                            if (!kind->compare("event")) {
+                                // it is of event type
+                                eventType = true;
+                                break;
+                            }
+                            kind++;
+                        }
+                        if (eventType) {
+                            if (property->compare(new_alloc.value)) {
+                                // the incoming value is different from the current value
+                                sendEvent = true;
+                            }
+                        }
+                    }
+                    property->setValue(new_alloc.value);
+                    executePropertyCallback(property->id);
+                    if (sendEvent) {
+                        // sending the event
+                        propertyChangePort->sendPropertyEvent(property->id);
+                    }
+
+                    // just in case.. should not happen
+                    cleanup.add(request);
+            } catch (std::exception& e) {
+                LOG_ERROR(Device_impl, "Setting property " << property->id << ", " << property->name << " failed.  Cause: " << e.what());
+                ossie::corba::push_back(invalidProperties,request);
+            } catch (CORBA::Exception& e) {
+                LOG_ERROR(Device_impl, "Setting property " << property->id << " failed.  Cause: " << e._name());
+                ossie::corba::push_back(invalidProperties,request);
+            }
+        }
+
+        if (invalidProperties.length () > 0) {
+            throw (CF::Device::InvalidCapacity("Cannot allocate capacity", invalidProperties ));
+        }
+
+        cleanup.clear();
 
         /* Update usage state */
         if (!extraCap) {
@@ -553,6 +612,8 @@ void Device_impl::deallocateCapacityNew (const CF::Properties& capacities)
     updateUsageState();
 }
 
+
+
 void Device_impl::updateUsageState ()
 {
     // Default implementation does nothing
@@ -568,7 +629,6 @@ bool Device_impl::allocate (CORBA::Any& deviceCapacity, const CORBA::Any& resour
         CORBA::ULong devCapac, rscReq;
         deviceCapacity >>= devCapac;
         resourceRequest >>= rscReq;
-
         if (rscReq <= devCapac) {
             devCapac -= rscReq;
             deviceCapacity <<= devCapac;
@@ -948,7 +1008,6 @@ throw (CORBA::SystemException)
 {
     return CF::AggregateDevice::_duplicate(_aggregateDevice);
 }
-
 
 void  Device_impl::configure (const CF::Properties& capacities)
 throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::

@@ -471,15 +471,22 @@ public abstract class Device extends Resource implements DeviceOperations {
      * @throws InvalidCapacity
      */
     private void validateAllocProps(final DataType[] capacities) throws InvalidCapacity {
+
+        final ArrayList<DataType> invalidProperties = new ArrayList<DataType>();
+        //        throw new InvalidCapacity("Error configuring component", 
         for (final DataType capacity : capacities) {
             if (AnyUtils.isNull(capacity.value)) {
-                throw new InvalidCapacity("Invalid null value", new DataType[]{capacity});
+                invalidProperties.add(capacity);
+                throw new InvalidCapacity("Invalid null value", invalidProperties.toArray(new DataType[0]));
             }
             final IProperty property = this.propSet.get(capacity.id);
             if (property == null) {
-                throw new InvalidCapacity("Unknown property", new DataType[]{capacity});
+                //throw new InvalidCapacity("Unknown property", new DataType[]{capacity});
+                invalidProperties.add(capacity);
+                throw new InvalidCapacity("Unknown property", invalidProperties.toArray(new DataType[0]));
             } else if (!property.isAllocatable()) {
-                throw new InvalidCapacity("Property is not allocatable", new DataType[]{capacity});
+                invalidProperties.add(capacity);
+                throw new InvalidCapacity("Property is not allocatable",invalidProperties.toArray(new DataType[0]));
             }
         }
     }
@@ -493,6 +500,7 @@ public abstract class Device extends Resource implements DeviceOperations {
      * @throws InvalidState
      */
     public boolean allocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
+
         logger.debug("allocateCapacity : " + capacities.toString());
 
         // Checks for empty
@@ -520,6 +528,7 @@ public abstract class Device extends Resource implements DeviceOperations {
 
         // Track successful allocations in case they need to be undone.
         List<DataType> allocations = new ArrayList<DataType>();
+        List<DataType> invalidProperties= new ArrayList<DataType>();
 
         // Loops through all requested capacities
         try {
@@ -540,7 +549,7 @@ public abstract class Device extends Resource implements DeviceOperations {
                             return false;
                         }
                     } catch (final RuntimeException ex) {
-                        throw new InvalidCapacity(ex.getMessage(), new DataType[]{cap});
+                        invalidProperties.add(cap);
                     }
                 }
             }
@@ -550,6 +559,10 @@ public abstract class Device extends Resource implements DeviceOperations {
             if (allocations.size() < capacities.length) {
                 deallocateCapacity(allocations.toArray(new DataType[allocations.size()]));
             }
+        }
+
+        if ( invalidProperties.size() > 0 ) {
+            throw new InvalidCapacity("Unable to allocate capacity for the following: ", invalidProperties.toArray(new DataType[0]));
         }
 
         updateUsageState();

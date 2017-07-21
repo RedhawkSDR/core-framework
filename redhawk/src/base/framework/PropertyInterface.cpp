@@ -265,6 +265,7 @@ protected:
     NumericPropertyWrapper (value_type& value) :
         super(value)
     {
+        value=0;
     }
 
     virtual bool fromAny (const CORBA::Any& any, value_type& value)
