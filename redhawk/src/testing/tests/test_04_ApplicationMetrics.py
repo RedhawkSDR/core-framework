@@ -41,7 +41,7 @@ class ApplicationMetrics(scatest.CorbaTestCase):
 
     def test_AppAllMetrics(self):
         domBooter, self._domMgr = self.launchDomainManager()
-        dommgr = redhawk.attach(self._domMgr.name)
+        dommgr = redhawk.attach(self._domMgr._get_name())
         plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
         dommgr.devices[0].threshold_cycle_time = 100
 
@@ -127,7 +127,7 @@ class ApplicationMetrics(scatest.CorbaTestCase):
 
     def test_AppIndividualMetrics(self):
         domBooter, self._domMgr = self.launchDomainManager()
-        dommgr = redhawk.attach(self._domMgr.name)
+        dommgr = redhawk.attach(self._domMgr._get_name())
         plainBooter, self._plainnode = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
         dommgr.devices[0].threshold_cycle_time = 100
 
