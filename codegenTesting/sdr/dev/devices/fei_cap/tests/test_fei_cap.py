@@ -4,6 +4,8 @@ import ossie.utils.testing
 from ossie.utils import sb
 import frontend
 from ossie.cf import CF
+from omniORB import any
+from redhawk.frontendInterfaces import FRONTEND
 
 class DeviceTests(ossie.utils.testing.RHTestCase):
     # Path to the SPD file, relative to this file. This must be set in order to
@@ -62,7 +64,22 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
         self.comp.deallocateCapacity([a])
         self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
-        
+
+    def testRFInfo(self):
+        _port = None
+        for port in self.comp.ports:
+            if port.name == 'RFInfo_in':
+                _port = port
+                break
+        _antennainfo=FRONTEND.AntennaInfo('','','','')
+        _freqrange=FRONTEND.FreqRange(0,0,[])
+        _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
+        _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _pathdelays=[FRONTEND.PathDelay(100,200), FRONTEND.PathDelay(300,400)]
+        _rfcapabilities=FRONTEND.RFCapabilities(FRONTEND.FreqRange(1,2,[]),FRONTEND.FreqRange(3,4,[]))
+        _additionalinfo = [CF.DataType(id='a',value=any.to_any(1)), CF.DataType(id='b',value=any.to_any(2)), CF.DataType(id='c',value=any.to_any(3))]
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,_pathdelays,_rfcapabilities,_additionalinfo)
+        _port.ref._set_rfinfo_pkt(_rfinfopkt)
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations

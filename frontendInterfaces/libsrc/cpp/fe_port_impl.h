@@ -77,6 +77,16 @@ namespace frontend {
         for (unsigned int i=0; i<val.sensor.feed.freq_range.values.size(); i++) {
             tmpVal->sensor.feed.freq_range.values[i] = val.sensor.feed.freq_range.values[i];
         }
+        tmpVal->ext_path_delays.length(val.ext_path_delays.size());
+        for (unsigned int i=0; i<val.ext_path_delays.size(); i++) {
+            tmpVal->ext_path_delays[i].freq = val.ext_path_delays[i].freq;
+            tmpVal->ext_path_delays[i].delay_ns = val.ext_path_delays[i].delay_ns;
+        }
+        tmpVal->capabilities.freq_range.min_val = val.capabilities.freq_range.min_val;
+        tmpVal->capabilities.freq_range.max_val = val.capabilities.freq_range.max_val;
+        tmpVal->capabilities.bw_range.min_val = val.capabilities.bw_range.min_val;
+        tmpVal->capabilities.bw_range.max_val = val.capabilities.bw_range.max_val;
+        tmpVal->additional_info = val.additional_info;
         return tmpVal;
     };
     inline RFInfoPkt returnRFInfoPkt(const FRONTEND::RFInfoPkt &tmpVal) {
@@ -101,6 +111,16 @@ namespace frontend {
         for (unsigned int i=0; i<val.sensor.feed.freq_range.values.size(); i++) {
             val.sensor.feed.freq_range.values[i] = tmpVal.sensor.feed.freq_range.values[i];
         }
+        val.ext_path_delays.resize(tmpVal.ext_path_delays.length());
+        for (unsigned int i=0; i<val.ext_path_delays.size(); i++) {
+            val.ext_path_delays[i].freq = tmpVal.ext_path_delays[i].freq;
+            val.ext_path_delays[i].delay_ns = tmpVal.ext_path_delays[i].delay_ns;
+        }
+        val.capabilities.freq_range.min_val = tmpVal.capabilities.freq_range.min_val;
+        val.capabilities.freq_range.max_val = tmpVal.capabilities.freq_range.max_val;
+        val.capabilities.bw_range.min_val = tmpVal.capabilities.bw_range.min_val;
+        val.capabilities.bw_range.max_val = tmpVal.capabilities.bw_range.max_val;
+        val.additional_info = tmpVal.additional_info;
         return val;
     };
     

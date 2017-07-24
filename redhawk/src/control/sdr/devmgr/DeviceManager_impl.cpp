@@ -1658,7 +1658,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   // the new device with the Domain Manager
   if (_adminState == DEVMGR_REGISTERED) { 
       try {
-          LOG_INFO(DeviceManager_impl, "Registering device " << deviceLabel << " on Domain Manager" << _domainName );
+          LOG_INFO(DeviceManager_impl, "Registering device " << deviceLabel << " on Domain Manager " << _domainName );
           _dmnMgr->registerDevice (registeringDevice, myObj);
       } catch( CF::DomainManager::RegisterError& e ) {
           LOG_ERROR(DeviceManager_impl, "Failed to register device to domain manager due to: " << e.msg);

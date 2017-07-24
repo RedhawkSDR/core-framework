@@ -67,6 +67,7 @@ import CF.DevicePackage.UsageType;
 import CF.LifeCyclePackage.ReleaseError;
 import CF.PropertySetPackage.InvalidConfiguration;
 import CF.PropertySetPackage.PartialConfiguration;
+import CF.PropertyEmitterPackage.AlreadyInitialized;
 import org.omg.CosEventComm.Disconnected;
 import org.omg.CosEventChannelAdmin.AlreadyConnected;
 import org.omg.CosEventChannelAdmin.EventChannel;
@@ -122,6 +123,8 @@ public abstract class Device extends Resource implements DeviceOperations {
     private boolean warnedLegacyAllocProps = false;
 
     public final static Logger logger = Logger.getLogger(Device.class.getName());
+
+    public ArrayList<DataType> originalCap = new ArrayList<DataType>();
 
     enum AnyComparisonType {
         FIRST_BIGGER,
@@ -469,21 +472,48 @@ public abstract class Device extends Resource implements DeviceOperations {
     }
 
 
+ public void initializeProperties(final DataType[] ctorProperties) throws AlreadyInitialized, InvalidConfiguration, PartialConfiguration {
+     super.initializeProperties(ctorProperties);
+     for (final IProperty prop : this.propSet.values() ) {
+         if ( prop.isAllocatable() ) {
+             boolean found = false;
+             for ( final DataType ov : originalCap ) {
+                 if ( ov.id.equals(prop.getId()) ) {
+                     ov.value = prop.toAny();
+                     found = true;
+                 }
+             }
+
+             if ( ! found ) {
+                 originalCap.add( new DataType(prop.getId(),prop.toAny()) );
+             }
+         }
+     }
+ }
+
+
     /**
      * Checks that all of the properties given are valid and allocatable.
      *
      * @throws InvalidCapacity
      */
     private void validateAllocProps(final DataType[] capacities) throws InvalidCapacity {
+
+        final ArrayList<DataType> invalidProperties = new ArrayList<DataType>();
+        //        throw new InvalidCapacity("Error configuring component", 
         for (final DataType capacity : capacities) {
             if (AnyUtils.isNull(capacity.value)) {
-                throw new InvalidCapacity("Invalid null value", new DataType[]{capacity});
+                invalidProperties.add(capacity);
+                throw new InvalidCapacity("Invalid null value", invalidProperties.toArray(new DataType[0]));
             }
             final IProperty property = this.propSet.get(capacity.id);
             if (property == null) {
-                throw new InvalidCapacity("Unknown property", new DataType[]{capacity});
+                //throw new InvalidCapacity("Unknown property", new DataType[]{capacity});
+                invalidProperties.add(capacity);
+                throw new InvalidCapacity("Unknown property", invalidProperties.toArray(new DataType[0]));
             } else if (!property.isAllocatable()) {
-                throw new InvalidCapacity("Property is not allocatable", new DataType[]{capacity});
+                invalidProperties.add(capacity);
+                throw new InvalidCapacity("Property is not allocatable",invalidProperties.toArray(new DataType[0]));
             }
         }
     }
@@ -497,6 +527,7 @@ public abstract class Device extends Resource implements DeviceOperations {
      * @throws InvalidState
      */
     public boolean allocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
+
         logger.debug("allocateCapacity : " + capacities.toString());
 
         // Checks for empty
@@ -524,6 +555,7 @@ public abstract class Device extends Resource implements DeviceOperations {
 
         // Track successful allocations in case they need to be undone.
         List<DataType> allocations = new ArrayList<DataType>();
+        List<DataType> invalidProperties= new ArrayList<DataType>();
 
         // Loops through all requested capacities
         try {
@@ -544,7 +576,7 @@ public abstract class Device extends Resource implements DeviceOperations {
                             return false;
                         }
                     } catch (final RuntimeException ex) {
-                        throw new InvalidCapacity(ex.getMessage(), new DataType[]{cap});
+                        invalidProperties.add(cap);
                     }
                 }
             }
@@ -554,6 +586,10 @@ public abstract class Device extends Resource implements DeviceOperations {
             if (allocations.size() < capacities.length) {
                 deallocateCapacity(allocations.toArray(new DataType[allocations.size()]));
             }
+        }
+
+        if ( invalidProperties.size() > 0 ) {
+            throw new InvalidCapacity("Unable to allocate capacity for the following: ", invalidProperties.toArray(new DataType[0]));
         }
 
         updateUsageState();
@@ -577,8 +613,10 @@ public abstract class Device extends Resource implements DeviceOperations {
         // Check for obviously invalid properties to avoid partial deallocation.
         validateAllocProps(capacities);
 
+        final ArrayList<DataType> invalidProps = new ArrayList<DataType>();
+        final ArrayList<DataType> overCaps = new ArrayList<DataType>();
         for (DataType cap : capacities){
-            // Checks to see if the device has a call back function registered
+            // Checks to see if the device has a callback function registered
             if (callbacks.containsKey(cap.id) && callbacks.get(cap.id).deallocate(cap)){
                 // If it does, use it
                 logger.trace("Capacity allocated by user-defined function.");
@@ -587,13 +625,35 @@ public abstract class Device extends Resource implements DeviceOperations {
                 final IProperty property = this.propSet.get(cap.id);
                 try {
                     property.deallocate(cap.value);
+                    for(  DataType ov : originalCap ) {
+                        if ( ov.id.equals(property.getId()) ) {
+                            if ( AnyUtils.compareAnys(property.toAny(),ov.value,"gt") ) {
+                                logger.debug("deallocation exceeds bounds for " + property );
+                                overCaps.add(cap);
+                                property.allocate(cap.value);
+                                break;
+                            }
+                        }
+                    }
+
                 } catch (final RuntimeException ex) {
-                    throw new InvalidCapacity(ex.getMessage(), new DataType[]{cap});
+                    logger.debug("Exception during dealloaction...property: " + property );
+                    invalidProps.add(cap);
                 }
+
             }
         }
 
         updateUsageState();
+
+
+        if ( overCaps.size() > 0 ) {
+            throw new InvalidCapacity("Following properties exceeded original bounds", overCaps.toArray(new DataType[0]));
+        }
+
+        if ( invalidProps.size() > 0  ) {
+            throw new InvalidCapacity("Invalid capacity allocation Id(s)", invalidProps.toArray(new DataType[0]));
+        }
     }
 
     /**
