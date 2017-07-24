@@ -386,6 +386,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/PropertyChange_J1/java/Makefile \
                 testing/sdr/dom/components/Property_CPP/cpp/Makefile \
                 testing/sdr/dom/components/msg_through_cpp/cpp/Makefile \
+                testing/sdr/dom/components/busycomp/cpp/Makefile \
                 testing/sdr/dom/components/commandline_prop/cpp/Makefile \
                 testing/sdr/dom/components/timeprop_cpp/cpp/Makefile \
                 testing/sdr/dom/components/time_cp_now/cpp/Makefile \

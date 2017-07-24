@@ -1040,6 +1040,12 @@ module CF {
         /*readonly attribute ApplicationRegistrar appReg;*/
         /* This boolean attribute contains the aware state of Application. This attribute shows whether the Components in the Application are given a pointer to the Application and Domain Manager. */
         readonly attribute boolean aware;
+        exception InvalidMetric {
+            CF::StringSequence components;
+            CF::StringSequence attributes;
+        };
+        /* The metrics method returns the requested metrics for the Application. An empty sequence returns all metrics. */
+        CF::Properties metrics(in CF::StringSequence components, in CF::StringSequence attributes) raises (CF::Application::InvalidMetric);
     };
     /* This interface extends the Device interface by adding software loading and unloading behavior to a Device. */
     interface LoadableDevice : Device {

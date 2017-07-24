@@ -53,30 +53,74 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         std::string os_name;
         std::string os_version;
         std::string hostName;
+        std::string componentOutputLog;
         bool useScreen;
-        double loadCapacity;
-        CORBA::Long mcastnicIngressCapacity;
-        CORBA::LongLong memCapacity;
-        double loadCapacityPerCore;
-        float reserved_capacity_per_component;
-        short processor_cores;
-        CORBA::Long loadThreshold;
+        advanced_struct advanced;
+
         std::vector<std::string> nic_interfaces;
         std::vector<std::string> available_nic_interfaces;
         nic_allocation_struct nic_allocation;
-        advanced_struct advanced;
-        threshold_event_struct threshold_event;
-        thresholds_struct thresholds;
+        std::string mcastnicInterface;
+        CORBA::Long mcastnicIngressTotal;
+        CORBA::Long mcastnicEgressTotal;
+        CORBA::Long mcastnicIngressCapacity;
+        CORBA::Long mcastnicEgressCapacity;
+        CORBA::Long mcastnicIngressFree;
+        CORBA::Long mcastnicEgressFree;
+        CORBA::Long mcastnicThreshold;
+        std::vector<CORBA::Long> mcastnicVLANs;
         std::vector<nic_allocation_status_struct_struct> nic_allocation_status;
         std::vector<nic_metrics_struct_struct> nic_metrics;
         std::vector<interfaces_struct> networkMonitor;
-        std::string processor_monitor_list;
-        affinity_struct affinity;
+        std::vector<component_monitor_struct> component_monitor;
+
+        // reporting struct when a threshold is broke
+        threshold_event_struct threshold_event;
+        // threshold items to watch
+        thresholds_struct thresholds;
+        /// Property  to annotate why the system is busy 
+        std::string busy_reason;
+        /// Property  to select a cache directory other than the default
+        std::string cacheDirectory;
+        /// Property  to select a working directory other than the default
+        std::string workingDirectory;
+        // time between cycles to refresh threshold metrics
         CORBA::ULong threshold_cycle_time;
+        // ulimits for the GPP process
+        ulimit_struct gpp_limits;
+        // ulimits for the system as a whole
+        sys_limits_struct sys_limits;
+        /// Property: memFree
+        CORBA::LongLong memFree;
+        /// Property: memCapacity
+        CORBA::LongLong memCapacity;
+        /// Property: loadTotal
+        double loadTotal;
+        /// Property: loadThreshold
+        CORBA::Long   loadThreshold;
+        /// Property: loadCapacityPerCore
+        double loadCapacityPerCore;
+        /// Property: loadFree
+        double loadFree;
+        /// Property: loadCapacity
+        double loadCapacity;
+        /// Property: loadAverage
+        loadAverage_struct loadAverage;
+        /// Property: reserved capacity per core for reservation schema
+        float  reserved_capacity_per_component;
+        /// Property  processor_cores  - number of cores the machine supports
+        short  processor_cores;
+        /// Property: redhawk__reservation_request
+        redhawk__reservation_request_struct redhawk__reservation_request;
+        /// Property  processor_monitor_list - list of the cores we are watching..
+        std::string processor_monitor_list;
+        // Property affinity  - controls affinity processing for the GPP
+        affinity_struct affinity;
 
         // Ports
         PropertyEventSupplier *propEvent;
         MessageSupplierPort *MessageEvent_out;
+        std::vector<utilization_entry_struct> utilization;
 
     private:
         void construct();

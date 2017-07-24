@@ -28,6 +28,7 @@
 #include <boost/bind.hpp>
 
 #include <net/if.h>
+#include <fstream>
 
 #if BOOST_FILESYSTEM_VERSION < 3
 #define BOOST_PATH_STRING(x) (x)
@@ -96,6 +97,12 @@ NicFacade::poll_nic_interfaces() const
           std::ostringstream tmp;
           tmp << BOOST_PATH_STRING(iter->path());
           boost::filesystem::path test_file( tmp.str() + "/statistics/rx_bytes" );
+
+          std::string operstate = tmp.str()+"/operstate";
+          std::ifstream fp(operstate.c_str());
+          std::string _state;
+          std::getline(fp, _state);
+          if (_state==std::string("down")) continue;
 
           if(boost::filesystem::is_regular_file(test_file)) 
             {
@@ -314,6 +321,18 @@ NicFacade::get_devices() const
     std::vector<std::string> devices;
     NicAccumulators::const_iterator i;
     for( i=nic_accumulators_.begin(); i!=nic_accumulators_.end(); ++i )
+    {
+        devices.push_back(i->first);
+    }
+    return devices;
+}
+
+std::vector<std::string>
+NicFacade::get_filtered_devices() const
+{
+    std::vector<std::string> devices;
+    NicStates::const_iterator i;
+    for( i=filtered_nic_states_.begin(); i!=filtered_nic_states_.end(); ++i )
     {
         devices.push_back(i->first);
     }

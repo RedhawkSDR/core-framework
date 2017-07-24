@@ -220,7 +220,16 @@ class App(_CF__POA.Application, Resource):
                 self._domain.removeApplication(self)
             except:
                 raise
-            
+
+    def metrics(self, components, attributes):
+        retval = None
+        if self.ref:
+            try:
+                retval = self.ref.metrics(components, attributes)
+            except:
+                raise
+        return retval
+
     @property
     def aware(self):
         retval = False
@@ -1895,7 +1904,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             except:
                 raise
         return retval
-    
+
     def registerDevice(self, device, deviceManager):
         if self.ref:
             try:

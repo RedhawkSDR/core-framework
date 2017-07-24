@@ -59,6 +59,12 @@ void FakeApplication::query (CF::Properties& configProperties)
     throw CF::UnknownProperties();
 }
 
+CF::Properties* FakeApplication::metrics(const CF::StringSequence& components, const CF::StringSequence& attributes)
+  throw (CF::Application::InvalidMetric, CORBA::SystemException)
+{
+    throw CF::Application::InvalidMetric(components, attributes);
+}
+
 char * FakeApplication::registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval) 
   throw(CF::UnknownProperties, CF::InvalidObjectReference)
 {

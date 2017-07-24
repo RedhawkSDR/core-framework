@@ -29,7 +29,7 @@ module FRONTEND {
 	/**
 		Mandated Structures and Ports:
 		------------------------------
-		Frontend mandates three property structures outside of normal REDHAWK properties of "device_kind" and "device_model" :
+		Frontend mandates four property structures outside of normal REDHAWK properties of "device_kind" and "device_model" :
 			(1) FRONTEND::tuner_allocation  - allocation structure to acquire capability on a tuner based off tuner settings. 	       
 					Name || ID || Type || Description
 					- tuner_type || FRONTEND::tuner_allocation::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER, RX_SCANNER_DIGITIZER
@@ -59,7 +59,7 @@ module FRONTEND {
 					- listener_allocation_id || FRONTEND::listener_allocation::listener_allocation_id || string || New Listener ID 
 			(4) FRONTEND::tuner_status  - a struct sequence containing the status of all tuners. There are optional and required fields for this structure. The required fields are listed below:
 					Name || ID || Type || Description
-					- tuner_type || FRONTEND::tuner_status::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGTIZIER_CHANNELIZER
+					- tuner_type || FRONTEND::tuner_status::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER, RX_SCANNER_DIGITIZER
 					- allocation_id_csv || FRONTEND::tuner_status::allocation_id_csv || string || Comma seperated list of currrent allocation ids, both control and listeners.
 					- center_frequency || FRONTEND::tuner_status::center_frequency || double || Current center frequency in Hz
 					- bandwidth || FRONTEND::tuner_status::bandwidth || double || Current Bandwidth in Hz
@@ -67,8 +67,8 @@ module FRONTEND {
 					- group_id || FRONTEND::tuner_status::group_id || string || Unique identifier that specifies a group of device.
 					- rf_flow_id || FRONTEND::tuner_status::rf_flow_id || string || Specifies a certain RF flow to allocate against.
 					- enabled || FRONTEND::tuner_status::enabled || boolean || True is tuner is enabled. Can be allocated but disabled 
-					- mode_enabled || FRONTEND::tuner_status::scan_mode_enabled || boolean || True is scan mode is enabled. False is Manual Tune is enabled 
-					- supports_scan || FRONTEND::tuner_status::supports_scan || boolean || True if scan allocated
+					- scan_mode_enabled || FRONTEND::tuner_status::scan_mode_enabled || boolean || True is scan mode is enabled. False is Manual Tune is enabled 
+					- supports_scan || FRONTEND::tuner_status::supports_scan || boolean || True if scan is supported
 					
 		Usual port additions include a input (provides) port for the tuner control as well as an output (uses) BULKIO data port that follows the naming convention [interface]_[in/out]. Examples
 		include dataShort_out, dataSDDS_out,  dataOctet_in, and DigitalTuner_in.
@@ -84,7 +84,8 @@ module FRONTEND {
 			- CHANNELIZER: Accepts digitized wideband and provides DDC's (allocation against a channelizer ensures that the input port is not shared)  
 			- DDC: Digital Down Converter. Channel that is extracted from a wider bandwidth (ie - Channelizer). Similar to a RX_DIGITIZER but often much cheaper.
 			- RX_DIGITIZER_CHANNELIZER: RX_DIGITIZER and CHANNELIZER combo. The reason they are combined is because they are a single device that cannot operate 
-			 		independetly (ie - RX_DIGITIZER can not output full-rate or the CHANNELIZER can not accept external input)  
+			 		independetly (ie - RX_DIGITIZER can not output full-rate or the CHANNELIZER can not accept external input)
+			- RX_SCANNER_DIGITIZER
 			
 			
 			

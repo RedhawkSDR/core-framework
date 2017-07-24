@@ -88,6 +88,10 @@ public:
     void query (CF::Properties& configProperties)
         throw (CF::UnknownProperties, CORBA::SystemException);
 
+    // The core framework provides an implementation for this method.
+    CF::Properties* metrics (const CF::StringSequence& components, const CF::StringSequence& attributes)
+        throw (CF::Application::InvalidMetric, CORBA::SystemException);
+
     char *registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval)
       throw(CF::UnknownProperties, CF::InvalidObjectReference);
 
@@ -162,7 +166,7 @@ public:
 
     CF::Application_ptr getComponentApplication();
     CF::DomainManager_ptr getComponentDomainManager();
-    
+
     redhawk::ApplicationComponent* getComponent(const std::string& identifier);
 
 private:
@@ -179,6 +183,11 @@ private:
     };
     typedef  std::vector< PropertyChangeRecord >                 PropertyChangeRecords;
     typedef  std::map< std::string, PropertyChangeRecords >      PropertyChangeRegistry;
+
+    std::map<std::string, redhawk::PropertyMap> measuredDevices;
+    bool haveAttribute(std::vector<std::string> &atts, std::string att);
+    redhawk::PropertyMap measureComponent(redhawk::ApplicationComponent &component);
+    redhawk::PropertyMap filterAttributes(redhawk::PropertyMap &attributes, std::vector<std::string> &filter);
 
     void registerComponent(CF::Resource_ptr resource);
 
@@ -215,6 +224,7 @@ private:
 
     bool _releaseAlreadyCalled;
     boost::mutex releaseObjectLock;
+    boost::mutex metricsLock;
 
     PropertyChangeRegistry   _propertyChangeRegistrations;
 

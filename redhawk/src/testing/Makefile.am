@@ -77,7 +77,8 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/cpp_with_deps/cpp \
           sdr/dom/components/timeprop_cpp/cpp \
           sdr/dom/components/time_cp_now/cpp \
-          sdr/dom/components/msg_through_cpp/cpp
+          sdr/dom/components/msg_through_cpp/cpp \
+          sdr/dom/components/busycomp/cpp
 
 if HAVE_JAVASUPPORT
 SUBDIRS += sdr/dom/deps/java_dep1/java \

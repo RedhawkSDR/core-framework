@@ -89,14 +89,13 @@ void   ProcMeminfoParser::parse( ProcMeminfo::Contents & data )
       if ( values.size() >= 3 ) {
           std::string units(values[2]);
           boost::to_upper(units);
-          if ( units == "KB" ) unit_m = 1e3;
-          if ( units == "MB" ) unit_m = 1e6;
-          if ( units == "GB" ) unit_m = 1e9;
-          if ( units == "TB" ) unit_m = 1e12;
+          if ( units == "KB" ) unit_m = 1024;
+          if ( units == "MB" ) unit_m = 1024*1024;
+          if ( units == "GB" ) unit_m = 1024*1024*1024;
+          if ( units == "TB" ) unit_m = (uint64_t)1024*1024*1024*1024;
       }
         
       metric = metric * unit_m;
-        
       data[key]=metric;
     }
 

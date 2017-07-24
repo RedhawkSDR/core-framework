@@ -1139,6 +1139,244 @@ CF::Components* Application_impl::registeredComponents ()
     return result._retn();
 }
 
+bool Application_impl::haveAttribute(std::vector<std::string> &atts, std::string att)
+{
+    if (std::find(atts.begin(), atts.end(), att) == atts.end()) {
+        return false;
+    }
+    return true;
+}
+
+CF::Properties* Application_impl::metrics(const CF::StringSequence& components, const CF::StringSequence& attributes)
+throw (CF::Application::InvalidMetric, CORBA::SystemException)
+{
+    CF::Properties_var result_ugly = new CF::Properties();
+    // Make sure releaseObject hasn't already been called
+    {
+        boost::mutex::scoped_lock lock(releaseObjectLock);
+
+        if (_releaseAlreadyCalled) {
+            LOG_DEBUG(Application_impl, "skipping metrics call because releaseObject has been called");
+            return result_ugly._retn();
+        }
+    }
+
+    boost::mutex::scoped_lock lock(metricsLock);
+    measuredDevices.clear();
+    std::vector<std::string> valid_attributes;
+    valid_attributes.push_back("valid");
+    valid_attributes.push_back("shared");
+    valid_attributes.push_back("cores");
+    valid_attributes.push_back("memory");
+    valid_attributes.push_back("processes");
+    valid_attributes.push_back("threads");
+    valid_attributes.push_back("files");
+    valid_attributes.push_back("componenthost");
+    std::vector<std::string> mod_attributes;
+    mod_attributes.resize(attributes.length());
+    for (unsigned int _att=0; _att<attributes.length(); _att++) {
+        mod_attributes[_att] = attributes[_att];
+        if (not haveAttribute(valid_attributes, mod_attributes[_att])) {
+            CF::StringSequence _components;
+            CF::StringSequence _attributes;
+            ossie::corba::push_back(_attributes, mod_attributes[_att].c_str());
+            throw CF::Application::InvalidMetric(_components, _attributes);
+        }
+    }
+    if (mod_attributes.size() == 0) {
+        mod_attributes = valid_attributes;
+    }
+
+    std::map<std::string, redhawk::ApplicationComponent*> component_map;
+    std::vector<std::string> component_list;
+    for (ComponentList::iterator _component_iter=this->_components.begin(); _component_iter!=this->_components.end(); _component_iter++) {
+        if (_component_iter->isVisible()) {
+            component_list.push_back(_component_iter->getName());
+            component_map[_component_iter->getName()] = &(*_component_iter);
+        }
+    }
+    ossie::DeviceList _registeredDevices = _domainManager->getRegisteredDevices();
+    redhawk::PropertyMap& result = redhawk::PropertyMap::cast(result_ugly);
+    redhawk::PropertyMap measuredComponents;
+    std::vector<std::string> mod_requests;
+    if (components.length() == 0) {
+        mod_requests.insert(mod_requests.begin(), component_list.begin(), component_list.end());
+        mod_requests.push_back("application utilization");
+    } else {
+        mod_requests.resize(components.length());
+        for (unsigned int _req=0; _req<components.length(); _req++) {
+            mod_requests[_req] = components[_req];
+        }
+    }
+    for (unsigned int _req=0; _req<mod_requests.size(); _req++) {
+        std::string _request(mod_requests[_req]);
+        if (_request == "application utilization") {
+            bool valid = true;
+            for (std::vector<std::string>::iterator _comp=component_list.begin();_comp!=component_list.end();_comp++) {
+                measuredComponents[*_comp] = measureComponent(*component_map[*_comp]);
+                if (not measuredComponents[*_comp].asProperties()["valid"].toBoolean())
+                    valid = false;
+            }
+            redhawk::PropertyMap _util;
+            if (valid) {
+                if (haveAttribute(mod_attributes, "cores"))
+                    _util["cores"] = (float)0;
+                if (haveAttribute(mod_attributes, "memory"))
+                    _util["memory"] = (float)0;
+                if (haveAttribute(mod_attributes, "processes"))
+                    _util["processes"] = (unsigned long)0;
+                if (haveAttribute(mod_attributes, "threads"))
+                    _util["threads"] = (unsigned long)0;
+                if (haveAttribute(mod_attributes, "files"))
+                    _util["files"] = (unsigned long)0;
+                if (haveAttribute(mod_attributes, "valid"))
+                    _util["valid"] = true;
+                std::vector<std::string> already_measured;
+                for (std::vector<std::string>::iterator _comp=component_list.begin();_comp!=component_list.end();_comp++) {
+                    redhawk::PropertyMap _mC = measuredComponents[*_comp].asProperties();
+                    if (haveAttribute(already_measured, _mC["componenthost"].toString()))
+                        continue;
+                    already_measured.push_back(_mC["componenthost"].toString());
+                    if (haveAttribute(mod_attributes, "cores"))
+                        _util["cores"] = _util["cores"].toFloat() + _mC["cores"].toFloat();
+                    if (haveAttribute(mod_attributes, "memory"))
+                        _util["memory"] = _util["memory"].toFloat() + _mC["memory"].toFloat();
+                    if (haveAttribute(mod_attributes, "processes"))
+                        _util["processes"] = _util["processes"].toULong() + _mC["processes"].toULong();
+                    if (haveAttribute(mod_attributes, "threads"))
+                        _util["threads"] = _util["threads"].toULong() + _mC["threads"].toULong();
+                    if (haveAttribute(mod_attributes, "files"))
+                        _util["files"] = _util["files"].toULong() + _mC["files"].toULong();
+                }
+                result[_request] = _util;
+            } else {
+                redhawk::PropertyMap _util;
+                if (haveAttribute(mod_attributes, "valid"))
+                    _util["valid"] = false;
+                result[_request] = _util;
+            }
+        }
+    }
+    // find out if all components need to be queried
+    for (unsigned int _req=0; _req<mod_requests.size(); _req++) {
+        std::string _request(mod_requests[_req]);
+        if (_request != "application utilization") {
+            if (measuredComponents.size() != 0) {
+                result[_request] = filterAttributes(measuredComponents[_request].asProperties(), mod_attributes);
+            } else {
+                bool found_component = false;
+                for (std::vector<std::string>::iterator _comp=component_list.begin();_comp!=component_list.end();_comp++) {
+                    if (_request == *_comp) {
+                        redhawk::PropertyMap tmp = measureComponent(*component_map[*_comp]);
+                        result[_request] = filterAttributes(tmp, mod_attributes);
+                        found_component = true;
+                        break;
+                    }
+                }
+                if (not found_component) {
+                    CF::StringSequence _components;
+                    CF::StringSequence _attributes;
+                    ossie::corba::push_back(_components, _request.c_str());
+                    throw CF::Application::InvalidMetric(_components, _attributes);
+                }
+            }
+        }
+    }
+    return result_ugly._retn();
+}
+
+redhawk::PropertyMap Application_impl::filterAttributes(redhawk::PropertyMap &attributes, std::vector<std::string> &filter)
+{
+    redhawk::PropertyMap retval;
+    if (haveAttribute(filter, "cores"))
+        retval["cores"] = attributes["cores"];
+    if (haveAttribute(filter, "memory"))
+        retval["memory"] = attributes["memory"];
+    if (haveAttribute(filter, "valid"))
+        retval["valid"] = attributes["valid"];
+    if (haveAttribute(filter, "shared"))
+        retval["shared"] = attributes["shared"];
+    if (haveAttribute(filter, "processes"))
+        retval["processes"] = attributes["processes"];
+    if (haveAttribute(filter, "threads"))
+        retval["threads"] = attributes["threads"];
+    if (haveAttribute(filter, "files"))
+        retval["files"] = attributes["files"];
+    if (haveAttribute(filter, "componenthost"))
+        retval["componenthost"] = attributes["componenthost"];
+    return retval;
+}
+
+redhawk::PropertyMap Application_impl::measureComponent(redhawk::ApplicationComponent &component)
+{
+    redhawk::PropertyMap retval;
+    retval["valid"] = false;
+    if (component.getComponentHost() != NULL) {
+        retval["shared"] = true;
+    } else {
+        retval["shared"] = false;
+    }
+    ossie::DeviceList _registeredDevices = _domainManager->getRegisteredDevices();
+    for (ossie::DeviceList::iterator _dev=_registeredDevices.begin(); _dev!=_registeredDevices.end(); _dev++) {
+        if (component.getAssignedDevice()->identifier == (*_dev)->identifier) {
+            retval["valid"] = false;
+            redhawk::PropertyMap query;
+            if (measuredDevices.find(component.getAssignedDevice()->identifier) == measuredDevices.end()) {
+                query["component_monitor"] = NULL;
+                try {
+                    (*_dev)->device->query(query);
+                } catch ( ... ) {
+                    LOG_WARN(Application_impl, "Unable to query 'component_monitor' on "<<component.getAssignedDevice()->identifier);
+                    continue;
+                }
+                measuredDevices[component.getAssignedDevice()->identifier] = query;
+            } else {
+                query = measuredDevices[component.getAssignedDevice()->identifier];
+            }
+            const redhawk::ValueSequence& values = query["component_monitor"].asSequence();
+            std::string target_id = component.getIdentifier();
+            if (retval["shared"].toBoolean())
+                target_id = component.getComponentHost()->getIdentifier();
+            if (values.size()!=0) {
+                for (unsigned int i=0; i<values.size(); i++) {
+                    const redhawk::PropertyMap& single(values[i].asProperties());
+                    if (not single.contains("component_monitor::component_monitor::waveform_id")) {
+                        LOG_WARN(Application_impl, "Unable to query 'component_monitor' missing 'waveform_id' on "<<component.getAssignedDevice()->identifier);
+                        continue;
+                    }
+                    if (single["component_monitor::component_monitor::waveform_id"].toString() != _identifier) {
+                        continue;
+                    }
+                    if (not single.contains("component_monitor::component_monitor::component_id")) {
+                        LOG_WARN(Application_impl, "Unable to query 'component_monitor' missing 'component_id' on "<<component.getAssignedDevice()->identifier);
+                        continue;
+                    }
+                    if (single["component_monitor::component_monitor::component_id"].toString() != target_id) {
+                        continue;
+                    }
+                    if ((not single.contains("component_monitor::component_monitor::cores")) or
+                        (not single.contains("component_monitor::component_monitor::mem_rss")) or
+                        (not single.contains("component_monitor::component_monitor::num_processes")) or
+                        (not single.contains("component_monitor::component_monitor::num_threads")) or
+                        (not single.contains("component_monitor::component_monitor::num_files"))) {
+                        LOG_WARN(Application_impl, "Unable to query 'component_monitor' missing 'cores', 'mem_rss', 'num_processes', 'num_threads', or 'num_files' on "<<component.getAssignedDevice()->identifier);
+                        continue;
+                    }
+                    retval["cores"] = single["component_monitor::component_monitor::cores"].toFloat();
+                    retval["memory"] = single["component_monitor::component_monitor::mem_rss"].toFloat();
+                    retval["processes"] = single["component_monitor::component_monitor::num_processes"].toULong();
+                    retval["threads"] = single["component_monitor::component_monitor::num_threads"].toULong();
+                    retval["files"] = single["component_monitor::component_monitor::num_files"].toULong();
+                    retval["componenthost"] = target_id;
+                    retval["valid"] = true;
+                    break;
+                }
+            }
+        }
+    }
+    return retval;
+}
+
 CF::ApplicationRegistrar_ptr Application_impl::appReg (void)
 {
     return _registrar->_this();
