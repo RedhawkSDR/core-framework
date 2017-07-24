@@ -1322,7 +1322,7 @@ redhawk::PropertyMap Application_impl::measureComponent(redhawk::ApplicationComp
             retval["valid"] = false;
             redhawk::PropertyMap query;
             if (measuredDevices.find(component.getAssignedDevice()->identifier) == measuredDevices.end()) {
-                query["component_monitor"] = NULL;
+                query["component_monitor"] = redhawk::Value();
                 try {
                     (*_dev)->device->query(query);
                 } catch ( ... ) {
