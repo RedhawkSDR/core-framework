@@ -102,7 +102,7 @@ void DevC_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "allocation");
+                "allocation,property");
 
 }
 

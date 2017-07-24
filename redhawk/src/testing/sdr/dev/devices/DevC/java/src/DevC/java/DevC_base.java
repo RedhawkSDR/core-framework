@@ -77,7 +77,7 @@ public abstract class DevC_base extends ThreadedDevice {
             null, //default value
             Mode.READWRITE, //mode
             Action.EXTERNAL, //action
-            new Kind[] {Kind.ALLOCATION}
+            new Kind[] {Kind.ALLOCATION, Kind.PROPERTY}
             );
     
     /**

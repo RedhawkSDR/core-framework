@@ -166,11 +166,37 @@ void  Device_impl::postConstruction (std::string &profile,
   // resolves Domain and Device Manger relationships
   setAdditionalParameters(profile, registrar_ior, nic);
 
-    // establish IDM Channel connectivity
-    connectIDMChannel( idm_channel_ior );
+  // establish IDM Channel connectivity
+  connectIDMChannel( idm_channel_ior );
 
-   // register ourself with my DeviceManager
-   _deviceManager->registerDevice(this->_this());
+  // register ourself with my DeviceManager
+  _deviceManager->registerDevice(this->_this());
+
+  // setup original capacity values cache
+  LOG_TRACE(Device_impl, "postConstructor: Saving original capacities... ");
+  PropertySet_impl::PropertyMap::iterator pi = propTable.begin();
+  for( ; pi != propTable.end(); pi++ ) {
+      PropertyInterface *p = pi->second;
+      if ( p and p->isAllocatable() ) {
+          CF::DataType res;
+          res.id = p->id.c_str();
+          p->getValue(res.value);
+          LOG_TRACE(Device_impl, "postConstructor: Saving allocation ID: " << p->id);
+          bool found = false;
+          for ( unsigned int j=0; j < originalCap.length(); j++) {
+              if ( strcmp(p->id.c_str(), originalCap[j].id) == 0 ) {
+                  LOG_TRACE(Device_impl, "Override value for allocation ID: " << p->id);
+                  originalCap[j].value = res.value;
+                  found = true;
+              }
+          }
+          if ( !found ) {
+              ossie::corba::push_back( originalCap, res );
+          }
+      }
+
+  }
+
 }
 
 
@@ -516,52 +542,103 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
 {
     LOG_TRACE(Device_impl, "Using legacy capacity deallocation");
 
-    CF::Properties currentCapacities;
+    typedef std::pair< CF::DataType, PropertyInterface * >         Allocation;
+    std::vector< Allocation > deallocations;
+    CF::Properties overCaps;
+    CF::Properties invalidProps;
 
     bool totalCap = true;                         /* Flag to check remaining extra capacity to allocate */
     bool foundProperty;                           /* Flag to indicate if the requested property was found */
     AnyComparisonType compResult;
 
+    {
+        SCOPED_LOCK(propertySetAccess);
+        validateCapacities(capacities);
+    }
+
     /* Now verify that there is capacity currently being used */
     if (!isIdle ()) {
-        query (currentCapacities);
-
+        SCOPED_LOCK(propertySetAccess);
         /* Look in propertySet for the properties requested */
         for (unsigned i = 0; i < capacities.length (); i++) {
             foundProperty = false;
+            CF::DataType request = capacities[i];
+            std::string pid = (const char*)capacities[i].id;
+            PropertyInterface *property = getPropertyFromId(pid);
+            CORBA::Any new_value;
+            property->getValue(new_value);
+            if (!ossie::corba::isValidType (new_value, capacities[i].value)) {
+                LOG_WARN(Device_impl, "Cannot deallocate capacity. Incorrect Data Type.");
+                throw (CF::Device::InvalidCapacity("Cannot deallocate capacity. Incorrect Data Type.", capacities));
+            } else {
+                deallocate (new_value, capacities[i].value);
+                // check that we can stay within original bounds
+                bool _apply=true;
+                for (unsigned ii = 0; ii < originalCap.length (); ii++) {
+                    LOG_TRACE(Device_impl, "Testing max value for allocation ID: " << originalCap[ii].id);
+                    if (strcmp (pid.c_str(), originalCap[ii].id) == 0) {
+                        compResult = compareAnys (new_value, originalCap[ii].value);
+                        if (compResult == FIRST_BIGGER) {
+                            LOG_WARN(Device_impl, "Cannot deallocate capacity, allocation ID: " << pid << ", New capacity would exceed original bound.");
+                            ossie::corba::push_back(overCaps, capacities[i]);
+                            _apply = false;
+                        }
+                    }
+                }
+                if (_apply) {
+                    LOG_TRACE(Device_impl, "(deallocation) Allocatable property : " << property->id);
+                    try {
+                        std::vector<std::string>::iterator kind = property->kinds.begin();
+                        bool sendEvent = false;
+                        bool eventType = false;
+                        if (propertyChangePort != NULL) {
+                            // searching for event type
+                            while (kind != property->kinds.end()) {
+                                if (!kind->compare("event")) {
+                                    // it is of event type
+                                    eventType = true;
+                                    break;
+                                }
+                                kind++;
+                            }
+                            if (eventType) {
+                                if (property->compare(new_value)) {
+                                    // the incoming value is different from the current value
+                                    sendEvent = true;
+                                }
+                            }
+                        }
+                        property->setValue(new_value);
+                        executePropertyCallback(property->id);
+                        if (sendEvent) {
+                            // sending the event
+                            propertyChangePort->sendPropertyEvent(property->id);
+                        }
 
-            for (unsigned j = 0; j < currentCapacities.length (); j++) {
-                if (strcmp (capacities[i].id, currentCapacities[j].id) == 0) {
-
-                    // Verify that both values have the same type
-                    if (!ossie::corba::isValidType (currentCapacities[j].value, capacities[i].value)) {
-                        LOG_WARN(Device_impl, "Cannot deallocate capacity. Incorrect Data Type.");
-                        throw (CF::Device::InvalidCapacity("Cannot deallocate capacity. Incorrect Data Type.", capacities));
-                    } else {
-                        deallocate (currentCapacities[j].value, capacities[i].value);
+                    } catch (std::exception& e) {
+                        LOG_ERROR(Device_impl, "Setting property " << property->id << ", " << property->name << " failed.  Cause: " << e.what());
+                        ossie::corba::push_back(invalidProps,request);
+                    } catch (CORBA::Exception& e) {
+                        LOG_ERROR(Device_impl, "Setting property " << property->id << " failed.  Cause: " << e._name());
+                        ossie::corba::push_back(invalidProps,request);
                     }
 
-                    foundProperty = true;     /* Report that the requested property was found */
-                    break;
+                    //currentCapacities[j] = new_value;
+                    Allocation a( capacities[i], property );
+                    deallocations.push_back( a );
                 }
-            }
 
-            if (!foundProperty) {
-                LOG_WARN(Device_impl, "Cannot deallocate capacity. Invalid property ID");
-                throw (CF::Device::InvalidCapacity("Cannot deallocate capacity. Invalid property ID",   capacities));
             }
         }
 
-        // Check for exceeding dealLocations and back-to-total capacity
-        for (unsigned i = 0; i < currentCapacities.length (); i++) {
+        // Check for exceeding deallocations and back-to-total capacity
+        for (unsigned i = 0; i < deallocations.size(); i++) {
             for (unsigned j = 0; j < originalCap.length (); j++) {
-                if (strcmp (currentCapacities[i].id, originalCap[j].id) == 0) {
-                    compResult = compareAnys (currentCapacities[i].value, originalCap[j].value);
-
-                    if (compResult == FIRST_BIGGER) {
-                        LOG_WARN(Device_impl, "Cannot deallocate capacity. New capacity would exceed original bound.");
-                        throw (CF::Device::InvalidCapacity("Cannot deallocate capacity. New capacity would exceed original bound.", capacities));
-                    } else if (compResult == SECOND_BIGGER) {
+                if (strcmp (deallocations[i].second->id.c_str(), originalCap[j].id) == 0) {
+                    CORBA::Any new_value;
+                    deallocations[i].second->getValue(new_value);
+                    compResult = compareAnys (new_value, originalCap[j].value);
+                    if (compResult == SECOND_BIGGER) {
                         totalCap = false;
                         break;
                     }
@@ -569,14 +646,19 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
             }
         }
 
-        /* Write new capacities */
-        configure (currentCapacities);
-
         /* Update usage state */
         if (!totalCap) {
             setUsageState (CF::Device::ACTIVE);
         } else {
             setUsageState (CF::Device::IDLE);     /* Assumes it allocated something. Not considering zero allocations */
+        }
+
+        if (invalidProps.length () > 0) {
+            throw (CF::Device::InvalidCapacity("Invalid capacity allocation Ids", invalidProps ));
+        }
+
+        if (overCaps.length () > 0) {
+            throw (CF::Device::InvalidCapacity("Following properties exceeded original bounds", overCaps ));
         }
 
         return;
@@ -593,26 +675,47 @@ void Device_impl::deallocateCapacityNew (const CF::Properties& capacities)
 
     validateCapacities(capacities);
 
+    CF::Properties invalidProps;
+    CF::Properties overCaps;
+    AnyComparisonType compResult;
+
     for (size_t ii = 0; ii < capacities.length(); ++ii) {
         const CF::DataType& capacity = capacities[ii];
         const std::string id = static_cast<const char*>(capacity.id);
         PropertyInterface* property = getPropertyFromId(id);
-        LOG_TRACE(Device_impl, "Deallocating property '" << id << "'");
+        LOG_TRACE(Device_impl, "Deallocating property (new method) '" << id << "'");
         try {
             property->deallocate(capacity.value);
+            // check if are over deallocated...
+            for (unsigned ii = 0; ii < originalCap.length (); ii++) {
+                if (strcmp (id.c_str(), originalCap[ii].id) == 0) {
+                    CORBA::Any new_value;
+                    property->getValue(new_value);
+                    compResult = compareAnys (new_value, originalCap[ii].value);
+                    if (compResult == FIRST_BIGGER) {
+                        LOG_WARN(Device_impl, "Cannot deallocate capacity, allocation ID: " << id << ", New capacity would exceed original bound.");
+                        ossie::corba::push_back(overCaps, capacity);
+                        property->allocate(capacity.value);
+                    }
+                }
+            }
+
         } catch (const ossie::not_implemented_error& ex) {
             LOG_WARN(Device_impl, "No deallocation implementation for property '" << id << "'");
         } catch (const std::exception& ex) {
-            CF::Properties invalidProps;
             ossie::corba::push_back(invalidProps, capacity);
-            throw CF::Device::InvalidCapacity(ex.what(), invalidProps);
         }
     }
 
+    if (overCaps.length () > 0) {
+        throw (CF::Device::InvalidCapacity("Following properties exceeded original bounds", overCaps ));
+    }
+
+    if ( invalidProps.length() > 0 ) {
+        throw CF::Device::InvalidCapacity("Error occurred during deallocation for the following properties", invalidProps);
+    }
     updateUsageState();
 }
-
-
 
 void Device_impl::updateUsageState ()
 {
@@ -1009,26 +1112,73 @@ throw (CORBA::SystemException)
     return CF::AggregateDevice::_duplicate(_aggregateDevice);
 }
 
+
 void  Device_impl::configure (const CF::Properties& capacities)
 throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
        InvalidConfiguration, CORBA::SystemException)
 {
-    
     if (initialConfiguration) {
         initialConfiguration = false;
 
-        originalCap.length (capacities.length ());
+        PropertySet_impl::PropertyMap::iterator pi = propTable.begin();
+        for( ; pi != propTable.end(); pi++ ) {
+            PropertyInterface *p = pi->second;
+            if ( p and p->isAllocatable() ) {
+                CF::DataType res;
+                res.id = p->id.c_str();
+                p->getValue(res.value);
+                LOG_TRACE(Device_impl, "Saving value for allocation ID: " << p->id);
+                bool found = false;
+                for ( unsigned int j=0; j < originalCap.length(); j++) {
+                    if ( strcmp(p->id.c_str(), originalCap[j].id) == 0 ) {
+                        LOG_TRACE(Device_impl, "Override value for allocation ID: " << p->id);
+                        originalCap[j].value = res.value;
+                        found = true;
+                    }
+                }
+                if ( !found ) {
+                    ossie::corba::push_back( originalCap, res );
+                }
+            }
+
+        }
+
 
         for (unsigned int i = 0; i < capacities.length (); i++) {
-            
-            originalCap[i].id = CORBA::string_dup (capacities[i].id);
-            originalCap[i].value = capacities[i].value;
+            bool found = false;
+            unsigned int j=0;
+            for ( ; j < originalCap.length(); j++ ) {
+                if ( strcmp(capacities[i].id, originalCap[j].id) == 0 ) {
+                    LOG_TRACE(Device_impl, "Override original value for allocation ID: " <<capacities[i].id);
+                    originalCap[j].value = capacities[i].value;
+                    found=true;
+                    break;
+                }
+            }
+            if ( !found ) {
+                LOG_TRACE(Device_impl, "Saving original value for allocation ID: " <<capacities[i].id);
+                ossie::corba::push_back( originalCap, capacities[i]);
+            }
+        }
+    }
+    else {
+        for (unsigned int i = 0; i < capacities.length (); i++) {
+            // if allocation property is configurable... then change the originalCap
+            const std::string id = static_cast<const char*>(capacities[i].id);
+            PropertyInterface *p = getPropertyFromId(id);
+            if ( p and p->isAllocatable() && p->isConfigurable() ) {
+                for ( unsigned int j=0 ; j < originalCap.length(); j++ ) {
+                    if ( strcmp(capacities[i].id, originalCap[j].id) == 0 ) {
+                        originalCap[j].value = capacities[i].value;
+                        break;
+                    }
+                }
+            }
         }
     }
 
     PropertySet_impl::configure(capacities);
 }
-
 
 void Device_impl::connectIDMChannel( const std::string &idm_channel_ior ) {
 

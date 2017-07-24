@@ -13,6 +13,7 @@
   </simple>
   <simple id="myulong" mode="readwrite" name="myulong" type="ulong">
     <kind kindtype="allocation"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
 </properties>
