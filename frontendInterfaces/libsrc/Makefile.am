@@ -36,6 +36,7 @@ libfrontend_@FRONTEND_API_VERSION@_la_LDFLAGS = -version-info $(FRONTEND_SO_VERS
 libfrontend_@FRONTEND_API_VERSION@_la_LIBADD = $(BULKIO_LIBS) $(OSSIE_LIBS) $(top_builddir)/libfrontendInterfaces.la
 
 libfrontend_@FRONTEND_API_VERSION@_la_SOURCES = \
+    cpp/fe_port_impl.cpp \
     cpp/fe_rfsource_port_impl.cpp \
     cpp/fe_tuner_device.cpp
 
