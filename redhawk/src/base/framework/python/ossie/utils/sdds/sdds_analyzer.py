@@ -60,6 +60,8 @@ class SDDSAnalyzer(object):
             pkt_end = self.npkts_
             if pkt_len:
                 pkt_end = self.npkts_
+        else:
+            pkt_end = pkt_end + 1
 
         if pkt_len == None: pkt_len = self.pkt_len_
         genf=self._gen_hex_dump( self.raw_data_, pkt_start, pkt_len, row_width, bytes_per_group )
@@ -77,7 +79,10 @@ class SDDSAnalyzer(object):
 
     def dumpPackets(self, pkt_start=0, pkt_end=None, payload_start=0, payload_end=40, raw_payload=False, header_only=False, use_pager=True ):
         genf=self._gen_packet( self.raw_data_, pkt_start ) 
-        if pkt_end == None: pkt_end = self.npkts_
+        if pkt_end == None: 
+           pkt_end = self.npkts_ 
+        else:
+           pkt_end = pkt_end + 1
         res = StringIO()
         for i, pkt in enumerate(genf,pkt_start):
             if i < pkt_end:
@@ -180,7 +185,10 @@ class SDDSAnalyzer(object):
 
     def getPacketIterator(self, pkt_start=0, pkt_end=None ):
         genf=self._gen_packet( self.raw_data_, pkt_start ) 
-        if pkt_end == None: pkt_end = self.npkts_
+        if pkt_end == None: 
+           pkt_end = self.npkts_ 
+        else:
+           pkt_end +=1
         for i, pkt in enumerate(genf,pkt_start):
             if i < pkt_end:
                 yield i,pkt
