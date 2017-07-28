@@ -363,6 +363,9 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
             for connId, port in self.outConnections.items():
                 try:
                     if port != None:
+                        if connId not in self.sriDict[streamID].connections and len(data) == 0:
+                            # connection is being closed but no data was ever sent, so ignore
+                            continue
                         if connId not in self.sriDict[streamID].connections:
                             port.pushSRI(self.sriDict[streamID].sri)
                             self.sriDict[streamID].connections.add(connId)

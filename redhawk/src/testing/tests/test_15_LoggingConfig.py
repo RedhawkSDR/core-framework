@@ -29,12 +29,41 @@ import CosEventChannelAdmin
 from ossie.utils import sb
 import os
 
+@contextlib.contextmanager
+def stdout_redirect(where):
+    sys.stdout = where
+    try:
+        yield where
+    finally:
+        sys.stdout = sys.__stdout__
+
 @scatest.requireLog4cxx
 class CppLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
         self.cname = "TestLoggingAPI"
         self.comp = sb.launch(self.cname)
 
+    def _try_config_test(self, logcfg, epattern, foundTest=None ):
+
+        with stdout_redirect(cStringIO.StringIO()) as new_stdout:
+            ossie.utils.log4py.config.strConfig(logcfg,None)
+
+        new_stdout.seek(0)
+        found = []
+        epats=[]
+        if type(epattern) == str:
+            epats.append(epattern)
+        else:
+            epats = epattern
+        if foundTest == None:
+            foundTest = len(epats)*[True]
+        for x in new_stdout.readlines():
+            for epat in epats:
+                m=re.search( epat, x )
+                if m :
+                    found.append( True )
+
+        self.assertEqual(found, foundTest )
         
     def tearDown(self):
         self.comp.releaseObject()
