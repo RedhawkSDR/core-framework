@@ -31,7 +31,7 @@ class SDDSAnalyzer(object):
     __len__  - returns the number of packets 
 
     """
-    _VAILID_VAL_='+'
+    _VALID_VAL_='+'
     _TRACK_OK_='-'
     _TRACK_ERROR_='***'
 
