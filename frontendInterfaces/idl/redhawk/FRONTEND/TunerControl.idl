@@ -67,6 +67,7 @@ module FRONTEND {
 					- group_id || FRONTEND::tuner_status::group_id || string || Unique identifier that specifies a group of device.
 					- rf_flow_id || FRONTEND::tuner_status::rf_flow_id || string || Specifies a certain RF flow to allocate against.
 					- enabled || FRONTEND::tuner_status::enabled || boolean || True is tuner is enabled. Can be allocated but disabled 
+				If the tuner_type is of type RX_SCANNER_DIGITIZER, the following optional fields are required as part of FRONTEND::tuner_status:
 					- scan_mode_enabled || FRONTEND::tuner_status::scan_mode_enabled || boolean || True is scan mode is enabled. False is Manual Tune is enabled 
 					- supports_scan || FRONTEND::tuner_status::supports_scan || boolean || True if scan is supported
 					
