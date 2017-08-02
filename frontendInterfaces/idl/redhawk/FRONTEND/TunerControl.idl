@@ -86,7 +86,7 @@ module FRONTEND {
 			- DDC: Digital Down Converter. Channel that is extracted from a wider bandwidth (ie - Channelizer). Similar to a RX_DIGITIZER but often much cheaper.
 			- RX_DIGITIZER_CHANNELIZER: RX_DIGITIZER and CHANNELIZER combo. The reason they are combined is because they are a single device that cannot operate 
 			 		independetly (ie - RX_DIGITIZER can not output full-rate or the CHANNELIZER can not accept external input)
-			- RX_SCANNER_DIGITIZER
+            - RX_SCANNER_DIGITIZER: Frequency scanning digitizer
 			
 			
 			
