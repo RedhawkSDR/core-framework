@@ -222,9 +222,7 @@ int old_main(int argc, char* argv[])
         return(EXIT_FAILURE);
     }
 
-    std::ostringstream os;
-    os << domainName << "/" << domainName;
-    dpath= os.str();
+    dpath= domRootPath.string();
 
     // setup logging context for a component resource
     std::string logcfg_uri = logfile_uri;
