@@ -489,6 +489,7 @@ class MessageSupplierPort(CF__POA.Port):
         self._messages = {}
         self._connections = {}
         self.portInterfaceAccess = threading.Lock()
+        self._port_log = logging.getLogger("MessageSupplierPort")
 
     def registerMessage(self, msgid, msgstruct, callback):
         self._messages[msgid] = (msgstruct, callback)
@@ -554,6 +555,8 @@ class MessageSupplierPort(CF__POA.Port):
         for connection in self._connections:
             try:
                 self._connections[connection]['proxy_consumer'].push(outmsg)
+            except CORBA.MARSHAL:
+                self._port_log.warn("Could not deliver the message. Maximum message size exceeded")
             except:
                 print "WARNING: Unable to send data to",connection
         self.portInterfaceAccess.release()
@@ -572,6 +575,8 @@ class MessageSupplierPort(CF__POA.Port):
         for connection in self._connections:
             try:
                 self._connections[connection]['proxy_consumer'].push(outmsg)
+            except CORBA.MARSHAL:
+                self._port_log.warn("Could not deliver the message. Maximum message size exceeded")
             except:
                 print "WARNING: Unable to send data to",connection
         self.portInterfaceAccess.release()

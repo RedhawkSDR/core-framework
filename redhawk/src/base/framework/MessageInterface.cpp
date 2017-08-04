@@ -222,6 +222,8 @@ void MessageSupplierPort::push(const CORBA::Any& data)
     while (connection != consumers.end()) {
         try {
             (connection->second)->push(data);
+        } catch ( const CORBA::MARSHAL& ex ) {
+            RH_NL_WARN("MessageSupplierPort","Could not deliver the message. Maximum message size exceeded");
         } catch ( ... ) {
         }
         connection++;

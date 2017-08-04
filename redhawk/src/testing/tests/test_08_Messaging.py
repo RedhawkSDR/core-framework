@@ -61,6 +61,109 @@ class Foo(object):
     def getMembers(self):
         return [("a",self.a),("b",self.b),("c",self.c)]
 
+class MessagMarshalErrorTest(scatest.CorbaTestCase):
+    def setUp(self):
+        sb.setDEBUG(False)
+        self.test_comp = "Sandbox"
+        # Flagrant violation of sandbox API: if the sandbox singleton exists,
+        # clean up previous state and dispose of it.
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+        self.rcv_msg = None
+
+    def tearDown(self):
+        sb.domainless._getSandbox().shutdown()
+        sb.setDEBUG(False)
+        os.environ['SDRROOT'] = globalsdrRoot
+
+    def test_MessageMarshalCpp(self):
+        snk=sb.MessageSink('')
+        c=sb.launch('huge_msg_cpp', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
+        c.connect(snk)
+        sb.start()
+        time.sleep(1)
+        fp = None
+        try:
+            fp = open('foo/bar/test.log','r')
+        except:
+            pass
+        if fp != None:
+            log_contents = fp.read()
+            fp.close()
+        try:
+            os.remove('foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('foo')
+        except:
+            pass
+        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
+        self.assertEquals(number_warnings, 2)
+
+    def test_MessageMarshalJava(self):
+        snk=sb.MessageSink('')
+        c=sb.launch('huge_msg_java', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
+        c.connect(snk)
+        sb.start()
+        time.sleep(1)
+        fp = None
+        try:
+            fp = open('foo/bar/test.log','r')
+        except:
+            pass
+        if fp != None:
+            log_contents = fp.read()
+            fp.close()
+        try:
+            os.remove('foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('foo')
+        except:
+            pass
+        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
+        self.assertEquals(number_warnings, 2)
+
+    def test_MessageMarshalPython(self):
+        snk=sb.MessageSink('')
+        c=sb.launch('huge_msg_python', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
+        c.connect(snk)
+        sb.start()
+        time.sleep(1)
+        fp = None
+        try:
+            fp = open('foo/bar/test.log','r')
+        except:
+            pass
+        if fp != None:
+            log_contents = fp.read()
+            fp.close()
+        try:
+            os.remove('foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('foo')
+        except:
+            pass
+        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
+        self.assertEquals(number_warnings, 2)
+
 class MessagingCompatibilityTest(scatest.CorbaTestCase):
     def setUp(self):
         sb.setDEBUG(False)
