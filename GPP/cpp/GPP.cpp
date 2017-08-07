@@ -1448,31 +1448,30 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 
       
       // Run executable
-      while(true)
-        {
-          if (strcmp(argv[0], "valgrind") == 0) {
-              // Find valgrind in the path
-              returnval = execvp(argv[0], &argv[0]);
-          } else {
-              returnval = execv(argv[0], &argv[0]);
-          }
+      while (true) {
+		  if (strcmp(argv[0], "valgrind") == 0) {
+			  // Find valgrind in the path
+			  returnval = execvp(argv[0], &argv[0]);
+		  } else {
+			  returnval = execv(argv[0], &argv[0]);
+		  }
 
-          num_retries--;
-          if( num_retries <= 0 || errno!=ETXTBSY)
-                break;
+		  num_retries--;
+		  if( num_retries <= 0 || errno!=ETXTBSY)
+				break;
 
-          // Only retry on "text file busy" error
-          RH_WARN(__logger, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
-          usleep(100000);
-        }
+		  // Only retry on "text file busy" error
+		  LOG_WARN(GPP_i, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
+		  usleep(100000);
+      }
 
-        if( returnval ) {
-            RH_ERROR(__logger, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
-            ossie::corba::OrbShutdown(true);
-        }
+      if( returnval ) {
+		  LOG_ERROR(GPP_i, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
+		  ossie::corba::OrbShutdown(true);
+      }
 
-        RH_ERROR(__logger, "Exiting FAILED subprocess:" << returnval );
-        exit(returnval);
+      LOG_DEBUG(GPP_i, "Exiting FAILED subprocess:" << returnval );
+      exit(returnval);
     }
     else if (pid < 0 ) {
         LOG_ERROR(GPP_i, "Error forking child process (errno: " << errno << " msg=\"" << strerror(errno) << "\")" );
