@@ -1672,6 +1672,32 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(_tstamps[2][1].twsec, _tstamps[2][0]*sink.sri().xdelta+_startTime)
         self.assertEquals(_tstamps[3][1].twsec, _tstamps[3][0]*sink.sri().xdelta+_startTime)
 
+    def test_DataSourceSampleRateInt(self):
+        """
+        Verify that DataSource handles integer values for sampleRate when
+        updating the timestamp for pushes that exceed bytesPerPush
+        """
+        source = sb.DataSource(startTime=0.0, bytesPerPush=4096)
+        sink = sb.DataSink()
+        source.connect(sink, usesPortName='floatOut')
+        sb.start()
+
+        # Use an integral sample rate larger than the packet size to make sure
+        # that floating point math is used to calculate the time stamps
+        sampleRate = 48000
+        source.push(range(9600), sampleRate=sampleRate, EOS=True)
+        data, tstamps = sink.getData(eos_block=True, tstamps=True)
+        xdelta = sink.sri().xdelta
+        self.assertAlmostEquals(xdelta, 1.0/sampleRate)
+
+        # Check all of the received time stamps, only using the precision of a
+        # float (instead of a PrecisionUTCTime) because that's all DataSource
+        # uses
+        for offset, ts in tstamps:
+            actual = ts.twsec + ts.tfsec
+            expected = offset * xdelta
+            self.assertAlmostEquals(actual, expected)
+
     def test_DataSourceTimeStamp(self):
         """
         Verify that timestamps are correct across multiple pushes.
