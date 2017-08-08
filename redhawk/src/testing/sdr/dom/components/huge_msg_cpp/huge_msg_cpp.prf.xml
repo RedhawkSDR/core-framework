@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <struct id="my_msg" mode="readwrite">
+    <simple id="string_payload" type="string"/>
+    <configurationkind kindtype="message"/>
+  </struct>
+</properties>

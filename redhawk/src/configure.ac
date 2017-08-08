@@ -355,6 +355,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/javaDep/javaDep/Makefile \
                 testing/sdr/dom/components/java_comp/java/Makefile \
                 testing/sdr/dom/components/msg_through_java/java/Makefile \
+                testing/sdr/dom/components/huge_msg_java/java/Makefile \
                 testing/sdr/dom/components/timeprop_java/java/Makefile \
                 testing/sdr/dom/components/time_ja_now/java/Makefile \
                 testing/sdr/dom/components/HardLimit/HardLimit_java_impl1/Makefile \
@@ -394,6 +395,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/Property_JAVA/java/Makefile \
                 testing/sdr/dom/components/foo/bar/comp/cpp/Makefile \
                 testing/sdr/dom/components/foo/bar/jv/java/Makefile \
+                testing/sdr/dom/components/huge_msg_cpp/cpp/Makefile \
                 testing/sdr/dom/components/TestCppOptionalProps/cpp/Makefile \
                 testing/sdr/dom/components/TestJavaOptionalProps/java/Makefile )
 AC_OUTPUT

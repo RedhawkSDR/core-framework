@@ -158,6 +158,9 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
                 } catch( final org.omg.CORBA.OBJECT_NOT_EXIST ex ) {
                     removeConnection( consumer );
                     continue;
+                } catch( final org.omg.CORBA.MARSHAL ex ) {
+                    this.logger.warn("Could not deliver the message. Maximum message size exceeded");
+                    continue;
                 } catch (final Exception e) {
                     continue;
                 }
@@ -170,7 +173,7 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
         this.sendMessages(Arrays.asList(message));
     }
 
-    public void sendMessages(final Collection<StructDef> messages) {
+    public void sendMessages(final Collection<? extends StructDef> messages) {
         final CF.DataType[] properties = new CF.DataType[messages.size()];
         int index = 0;
         for (StructDef message : messages) {

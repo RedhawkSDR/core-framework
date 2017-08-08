@@ -62,7 +62,11 @@ public:
 
     void push(const CORBA::Any& data)
     {
-        _consumer->push(data);
+        try {
+            _consumer->push(data);
+        } catch (const CORBA::MARSHAL&) {
+            throw redhawk::TransportError("Maximum message size exceeded");
+        }
     }
 
     void beginQueue(size_t count)
@@ -250,7 +254,9 @@ void MessageSupplierPort::push(const CORBA::Any& data)
     for (TransportIterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
         try {
             (*transport)->push(data);
-        } catch ( ... ) {
+        } catch (const redhawk::TransportError& exc) {
+            RH_NL_WARN("MessageSupplierPort", "Could not deliver the message. " << exc.what());
+        } catch (...) {
         }
     }
 }
@@ -280,6 +286,11 @@ void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* fo
 void MessageSupplierPort::_sendMessageQueue()
 {
     for (TransportIterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
-        (*transport)->sendMessages();
+        try {
+            (*transport)->sendMessages();
+        } catch (const redhawk::TransportError& exc) {
+            RH_NL_WARN("MessageSupplierPort", "Could not deliver the message. " << exc.what());
+        } catch (...) {
+        }
     }
 }

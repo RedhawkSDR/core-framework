@@ -75,6 +75,8 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/foo/bar/comp/cpp \
           sdr/dom/components/TestCppOptionalProps/cpp \
           sdr/dom/components/cpp_with_deps/cpp \
+          sdr/dom/components/huge_msg_cpp/cpp \
+          sdr/dom/components/msg_through_cpp/cpp \
           sdr/dom/components/timeprop_cpp/cpp \
           sdr/dom/components/time_cp_now/cpp \
           sdr/dom/components/msg_through_cpp/cpp \
@@ -94,6 +96,7 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dom/components/EventReceive/EventReceive_java_impl1 \
            sdr/dom/components/javaDep/javaDep \
            sdr/dom/components/java_comp/java \
+           sdr/dom/components/huge_msg_java/java \
            sdr/dom/components/msg_through_java/java \
            sdr/dom/components/timeprop_java/java \
            sdr/dom/components/time_ja_now/java \
