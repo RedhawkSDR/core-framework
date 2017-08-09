@@ -74,6 +74,9 @@ namespace bulkio {
   {
 
   public:
+    // The CORBA interface of this port (nested typedef for template parameter)
+    typedef PortType CorbaType;
+
     //
     // Port Variable Definition
     //

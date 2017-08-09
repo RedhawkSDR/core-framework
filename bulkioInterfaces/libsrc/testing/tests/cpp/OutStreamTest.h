@@ -25,7 +25,7 @@
 
 #include "InPortStub.h"
 
-template <class OutPort, class PortType>
+template <class Port>
 class OutStreamTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(OutStreamTest);
@@ -53,7 +53,8 @@ public:
     void testSendEosOnClose();
 
 protected:
-    typedef typename OutPort::StreamType StreamType;
+    typedef typename Port::StreamType StreamType;
+    typedef typename Port::CorbaType CorbaType;
 
     virtual std::string getPortName() const = 0;
     void _writeSinglePacket(StreamType& stream, size_t size,
@@ -61,14 +62,14 @@ protected:
 
     bool _checkLastTimestamp(const BULKIO::PrecisionUTCTime& time);
 
-    OutPort* port;
-    InPortStub<PortType>* stub;
+    Port* port;
+    InPortStub<CorbaType>* stub;
 };
 
-template <class OutPort, class PortType>
-class BufferedOutStreamTest : public OutStreamTest<OutPort,PortType>
+template <class Port>
+class BufferedOutStreamTest : public OutStreamTest<Port>
 {
-    typedef OutStreamTest<OutPort,PortType> TestBase;
+    typedef OutStreamTest<Port> TestBase;
     CPPUNIT_TEST_SUB_SUITE(BufferedOutStreamTest, TestBase);
     CPPUNIT_TEST(testBufferedWrite);
     CPPUNIT_TEST(testWriteSkipBuffer);
@@ -95,7 +96,7 @@ public:
     void testWriteTimestampsMixed();
 
 private:
-    typedef typename OutPort::StreamType StreamType;
+    typedef typename Port::StreamType StreamType;
     typedef typename StreamType::ScalarType ScalarType;
     typedef typename StreamType::ComplexType ComplexType;
 

@@ -23,23 +23,23 @@
 #include <ossie/PropertyMap.h>
 #include "bulkio.h"
 
-template <class OutPort, class PortType>
-void OutStreamTest<OutPort,PortType>::setUp()
+template <class Port>
+void OutStreamTest<Port>::setUp()
 {
     ossie::corba::CorbaInit(0,0);
 
     std::string name = "data" + getPortName() + "_out";
-    port = new OutPort(name);
+    port = new Port(name);
 
-    stub = new InPortStub<PortType>();
+    stub = new InPortStub<CorbaType>();
     PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(stub);
 
     CORBA::Object_var objref = stub->_this();
     port->connectPort(objref, "test_connection");
 }
 
-template <class OutPort, class PortType>
-void OutStreamTest<OutPort,PortType>::tearDown()
+template <class Port>
+void OutStreamTest<Port>::tearDown()
 {
     port->disconnectPort("test_connection");
 
@@ -53,10 +53,11 @@ void OutStreamTest<OutPort,PortType>::tearDown()
         // Ignore CORBA exceptions
     }
     stub->_remove_ref();
+    stub = 0;
 }
 
-template <class OutPort, class PortType>
-void OutStreamTest<OutPort,PortType>::testOperators()
+template <class Port>
+void OutStreamTest<Port>::testOperators()
 {
     StreamType null_stream;
     CPPUNIT_ASSERT(!null_stream);
@@ -86,8 +87,8 @@ void OutStreamTest<OutPort,PortType>::testOperators()
     CPPUNIT_ASSERT(other_stream != good_stream);
 }
 
-template <class OutPort, class PortType>
-void OutStreamTest<OutPort,PortType>::testBasicWrite()
+template <class Port>
+void OutStreamTest<Port>::testBasicWrite()
 {
     StreamType stream = port->createStream("test_basic_write");
     CPPUNIT_ASSERT(stub->packets.empty());
@@ -101,8 +102,8 @@ void OutStreamTest<OutPort,PortType>::testBasicWrite()
     CPPUNIT_ASSERT_EQUAL(stream.streamID(), stub->packets[0].streamID);
 }
 
-template <class OutPort, class PortType>
-void OutStreamTest<OutPort,PortType>::testSriFields()
+template <class Port>
+void OutStreamTest<Port>::testSriFields()
 {
     BULKIO::StreamSRI sri = bulkio::sri::create("test_sri");
     sri.xstart = -2.5;
@@ -135,8 +136,8 @@ void OutStreamTest<OutPort,PortType>::testSriFields()
     CPPUNIT_ASSERT_EQUAL((CORBA::Long) 100, stream.getKeyword("number").toLong());
 }
 
-template <class OutPort, class PortType>
-void OutStreamTest<OutPort,PortType>::testSriUpdate()
+template <class Port>
+void OutStreamTest<Port>::testSriUpdate()
 {
     // Create initial stream; all changes should be queued up for the first
     // write
@@ -188,8 +189,8 @@ void OutStreamTest<OutPort,PortType>::testSriUpdate()
     CPPUNIT_ASSERT(bulkio::sri::DefaultComparator(stream.sri(), stub->H.back()));
 }
 
-template <class OutPort, class PortType>
-void OutStreamTest<OutPort,PortType>::testKeywords()
+template <class Port>
+void OutStreamTest<Port>::testKeywords()
 {
     StreamType stream = port->createStream("test_keywords");
     _writeSinglePacket(stream, 1);
@@ -245,8 +246,8 @@ void OutStreamTest<OutPort,PortType>::testKeywords()
     }
 }
 
-template <class OutPort, class PortType>
-void OutStreamTest<OutPort,PortType>::testSendEosOnClose()
+template <class Port>
+void OutStreamTest<Port>::testSendEosOnClose()
 {
     StreamType stream = port->createStream("close_eos");
 
@@ -264,9 +265,9 @@ void OutStreamTest<OutPort,PortType>::testSendEosOnClose()
     CPPUNIT_ASSERT(stub->packets.back().EOS);
 }
 
-template <class OutPort, class PortType>
-void OutStreamTest<OutPort,PortType>::_writeSinglePacket(StreamType& stream, size_t size,
-                                                         const BULKIO::PrecisionUTCTime& time)
+template <class Port>
+void OutStreamTest<Port>::_writeSinglePacket(StreamType& stream, size_t size,
+                                             const BULKIO::PrecisionUTCTime& time)
 {
     typedef typename StreamType::ScalarType ScalarType;
     std::vector<ScalarType> buffer;
@@ -274,16 +275,16 @@ void OutStreamTest<OutPort,PortType>::_writeSinglePacket(StreamType& stream, siz
     stream.write(buffer, time);
 }
 
-template <class OutPort, class PortType>
-bool OutStreamTest<OutPort,PortType>::_checkLastTimestamp(const BULKIO::PrecisionUTCTime& time)
+template <class Port>
+bool OutStreamTest<Port>::_checkLastTimestamp(const BULKIO::PrecisionUTCTime& time)
 {
     return (time == stub->packets.back().T);
 }
 
 // Specialization for dataFile, which uses std::string
 template <>
-void OutStreamTest<bulkio::OutFilePort,BULKIO::dataFile>::_writeSinglePacket(StreamType& stream, size_t size,
-                                                                             const BULKIO::PrecisionUTCTime& time)
+void OutStreamTest<bulkio::OutFilePort>::_writeSinglePacket(StreamType& stream, size_t size,
+                                                            const BULKIO::PrecisionUTCTime& time)
 {
     std::string url(size, 'F');
     stream.write(url, time);
@@ -292,23 +293,23 @@ void OutStreamTest<bulkio::OutFilePort,BULKIO::dataFile>::_writeSinglePacket(Str
 // Specializations for dataXML, which uses std::string and does not include a
 // timestamp
 template <>
-void OutStreamTest<bulkio::OutXMLPort,BULKIO::dataXML>::_writeSinglePacket(StreamType& stream, size_t size,
-                                                                           const BULKIO::PrecisionUTCTime& /*unused*/)
+void OutStreamTest<bulkio::OutXMLPort>::_writeSinglePacket(StreamType& stream, size_t size,
+                                                           const BULKIO::PrecisionUTCTime& /*unused*/)
 {
     std::string xml(size, 'X');
     stream.write(xml);
 }
 
 template <>
-bool OutStreamTest<bulkio::OutXMLPort,BULKIO::dataXML>::_checkLastTimestamp(const BULKIO::PrecisionUTCTime& /*unused*/)
+bool OutStreamTest<bulkio::OutXMLPort>::_checkLastTimestamp(const BULKIO::PrecisionUTCTime& /*unused*/)
 {
     // dataXML has no time stamp, so the check should always succeed
     return true;
 }
 
 
-template <class OutPort, class PortType>
-void BufferedOutStreamTest<OutPort,PortType>::testBufferedWrite()
+template <class Port>
+void BufferedOutStreamTest<Port>::testBufferedWrite()
 {
     // Initial state is unbuffered; turn on buffering
     StreamType stream = port->createStream("test_buffered_write");
@@ -349,8 +350,8 @@ void BufferedOutStreamTest<OutPort,PortType>::testBufferedWrite()
     CPPUNIT_ASSERT(stub->packets.size() == 3);
 }
 
-template <class OutPort, class PortType>
-void BufferedOutStreamTest<OutPort,PortType>::testWriteSkipBuffer()
+template <class Port>
+void BufferedOutStreamTest<Port>::testWriteSkipBuffer()
 {
     // Turn on buffering
     StreamType stream = port->createStream("test_skip_buffer");
@@ -376,8 +377,8 @@ void BufferedOutStreamTest<OutPort,PortType>::testWriteSkipBuffer()
     CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), (size_t) stub->packets.back().data.length());
 }
 
-template <class OutPort, class PortType>
-void BufferedOutStreamTest<OutPort,PortType>::testFlush()
+template <class Port>
+void BufferedOutStreamTest<Port>::testFlush()
 {
     // Turn on buffering
     StreamType stream = port->createStream("test_flush");
@@ -397,8 +398,8 @@ void BufferedOutStreamTest<OutPort,PortType>::testFlush()
     CPPUNIT_ASSERT_EQUAL(buffer.size(), (size_t) stub->packets.back().data.length());
 }
 
-template <class OutPort, class PortType>
-void BufferedOutStreamTest<OutPort,PortType>::testFlushOnClose()
+template <class Port>
+void BufferedOutStreamTest<Port>::testFlushOnClose()
 {
     StreamType stream = port->createStream("test_flush_close");
     stream.setBufferSize(64);
@@ -416,8 +417,8 @@ void BufferedOutStreamTest<OutPort,PortType>::testFlushOnClose()
     CPPUNIT_ASSERT(stub->packets.size() == 1);
 }
 
-template <class OutPort, class PortType>
-void BufferedOutStreamTest<OutPort,PortType>::testFlushOnSriChange()
+template <class Port>
+void BufferedOutStreamTest<Port>::testFlushOnSriChange()
 {
     // Start with known values for important stream metadata
     StreamType stream = port->createStream("test_flush_sri");
@@ -476,8 +477,8 @@ void BufferedOutStreamTest<OutPort,PortType>::testFlushOnSriChange()
     CPPUNIT_ASSERT(stub->H.back().blocking);
 }
 
-template <class OutPort, class PortType>
-void BufferedOutStreamTest<OutPort,PortType>::testFlushOnBufferSizeChange()
+template <class Port>
+void BufferedOutStreamTest<Port>::testFlushOnBufferSizeChange()
 {
     StreamType stream = port->createStream("test_flush_buffer_size");
     stream.setBufferSize(64);
@@ -515,31 +516,31 @@ void BufferedOutStreamTest<OutPort,PortType>::testFlushOnBufferSizeChange()
     CPPUNIT_ASSERT_MESSAGE("Disabling buffering did not flush", stub->packets.size() == 3);
 }
 
-template <class OutPort, class PortType>
-void BufferedOutStreamTest<OutPort,PortType>::testWriteTimestampsReal()
+template <class Port>
+void BufferedOutStreamTest<Port>::testWriteTimestampsReal()
 {
     StreamType stream = port->createStream("write_timestamps_real");
     _writeTimestampsImpl(stream, false);
 }
 
-template <class OutPort, class PortType>
-void BufferedOutStreamTest<OutPort,PortType>::testWriteTimestampsComplex()
+template <class Port>
+void BufferedOutStreamTest<Port>::testWriteTimestampsComplex()
 {
     StreamType stream = port->createStream("write_timestamps_complex");
     stream.complex(true);
     _writeTimestampsImpl(stream, true);
 }
 
-template <class OutPort, class PortType>
-void BufferedOutStreamTest<OutPort,PortType>::testWriteTimestampsMixed()
+template <class Port>
+void BufferedOutStreamTest<Port>::testWriteTimestampsMixed()
 {
    StreamType stream = port->createStream("write_timestamps_mixed");
    stream.complex(true);
    _writeTimestampsImpl(stream, false);
 }
 
-template <class OutPort, class PortType>
-void BufferedOutStreamTest<OutPort,PortType>::_writeTimestampsImpl(StreamType& stream, bool complexData)
+template <class Port>
+void BufferedOutStreamTest<Port>::_writeTimestampsImpl(StreamType& stream, bool complexData)
 {
     // Generate a ramp using the scalar type; if the data needs to be pushed as
     // complex, it will be reintepreted there
@@ -591,30 +592,30 @@ void BufferedOutStreamTest<OutPort,PortType>::_writeTimestampsImpl(StreamType& s
     CPPUNIT_ASSERT_EQUAL_MESSAGE("Final packet size is incorrect", scalars_received, scalars.size());
 }
 
-#define CREATE_TEST_IMPL(TESTCLASS,PORT,NAME,BASE,CORBA)                \
-    class TESTCLASS : public BASE<PORT,CORBA>                           \
+#define CREATE_TEST_IMPL(TESTCLASS,PORT,NAME,BASE)                      \
+    class TESTCLASS : public BASE<PORT>                                 \
     {                                                                   \
-        typedef BASE<PORT,CORBA> TestBase;                              \
+        typedef BASE<PORT> TestBase;                                    \
         CPPUNIT_TEST_SUB_SUITE(TESTCLASS, TestBase);                    \
         CPPUNIT_TEST_SUITE_END();                                       \
         virtual std::string getPortName() const { return #NAME; };      \
     };                                                                  \
     CPPUNIT_TEST_SUITE_REGISTRATION(TESTCLASS);
 
-#define CREATE_TEST(x,BASE,y) CREATE_TEST_IMPL(Out##x##StreamTest,bulkio::Out##x##Port,x,BASE,y)
-#define CREATE_BASIC_TEST(x,y) CREATE_TEST(x,OutStreamTest,y)
-#define CREATE_BUFFERED_TEST(x,y) CREATE_TEST(x,BufferedOutStreamTest,y)
+#define CREATE_TEST(x,BASE) CREATE_TEST_IMPL(Out##x##StreamTest,bulkio::Out##x##Port,x,BASE)
+#define CREATE_BASIC_TEST(x) CREATE_TEST(x,OutStreamTest)
+#define CREATE_BUFFERED_TEST(x) CREATE_TEST(x,BufferedOutStreamTest)
 
-CREATE_BUFFERED_TEST(Octet,BULKIO::dataOctet);
-CREATE_BUFFERED_TEST(Char,BULKIO::dataChar);
-CREATE_BUFFERED_TEST(Short,BULKIO::dataShort);
-CREATE_BUFFERED_TEST(UShort,BULKIO::dataUshort);
-CREATE_BUFFERED_TEST(Long,BULKIO::dataLong);
-CREATE_BUFFERED_TEST(ULong,BULKIO::dataUlong);
-CREATE_BUFFERED_TEST(LongLong,BULKIO::dataLongLong);
-CREATE_BUFFERED_TEST(ULongLong,BULKIO::dataUlongLong);
-CREATE_BUFFERED_TEST(Float,BULKIO::dataFloat);
-CREATE_BUFFERED_TEST(Double,BULKIO::dataDouble);
+CREATE_BUFFERED_TEST(Octet);
+CREATE_BUFFERED_TEST(Char);
+CREATE_BUFFERED_TEST(Short);
+CREATE_BUFFERED_TEST(UShort);
+CREATE_BUFFERED_TEST(Long);
+CREATE_BUFFERED_TEST(ULong);
+CREATE_BUFFERED_TEST(LongLong);
+CREATE_BUFFERED_TEST(ULongLong);
+CREATE_BUFFERED_TEST(Float);
+CREATE_BUFFERED_TEST(Double);
 
-CREATE_BASIC_TEST(XML,BULKIO::dataXML);
-CREATE_BASIC_TEST(File,BULKIO::dataFile);
+CREATE_BASIC_TEST(XML);
+CREATE_BASIC_TEST(File);

@@ -66,6 +66,9 @@ namespace bulkio {
   class InPort : public CorbaTraits<PortType>::POAType, public Port_Provides_base_impl
   {
   public:
+    // The CORBA interface of this port (nested typedef for template parameter)
+    typedef PortType CorbaType;
+
     // Transport Sequence Type use to during push packet
     typedef typename CorbaTraits<PortType>::SequenceType PortSequenceType;
 
