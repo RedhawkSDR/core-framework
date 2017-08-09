@@ -1583,7 +1583,7 @@ void GPP_i::updateUsageState()
                 );
   }
   
-  if ( !(thresholds.cpu_idle < 0) ) {
+  if (!(thresholds.cpu_idle < 0) && !(thresholds.load_avg < 0)) {
       if (sys_idle < modified_thresholds.cpu_idle) {
           if ( sys_idle_avg < modified_thresholds.cpu_idle) {
               std::ostringstream oss;
@@ -1602,7 +1602,7 @@ void GPP_i::updateUsageState()
         setUsageState(CF::Device::BUSY);
   }
 
-  else if ( !(thresholds.load_avg < 0) && ( sys_load > modified_thresholds.load_avg )) {
+  else if ( !(thresholds.cpu_idle < 0) && !(thresholds.load_avg < 0) && ( sys_load > modified_thresholds.load_avg )) {
       std::ostringstream oss;
       oss << "Threshold: " <<  modified_thresholds.load_avg << " Actual: " << sys_load;
       _setReason( "LOAD AVG", oss.str() );
