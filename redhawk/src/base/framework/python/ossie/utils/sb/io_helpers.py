@@ -1658,7 +1658,7 @@ class DataSource(_SourceBase):
             for startIdx in xrange(0, len(data), pktSize):
                 # Calculate the time offset per packet
                 _data = data[startIdx:startIdx+pktSize]
-                sampleTimeForPush = len(_data) / self._sampleRate
+                sampleTimeForPush = len(_data) / float(self._sampleRate)
                 if self._sri and self._sri.mode == 1:
                     sampleTimeForPush /= 2.0
                     

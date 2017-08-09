@@ -59,7 +59,7 @@ protected:
     void _writeSinglePacket(StreamType& stream, size_t size,
                             const BULKIO::PrecisionUTCTime& time=bulkio::time::utils::now());
 
-    bool _hasTimestamp();
+    bool _checkLastTimestamp(const BULKIO::PrecisionUTCTime& time);
 
     OutPort* port;
     InPortStub<PortType>* stub;
@@ -76,6 +76,9 @@ class BufferedOutStreamTest : public OutStreamTest<OutPort,PortType>
     CPPUNIT_TEST(testFlushOnClose);
     CPPUNIT_TEST(testFlushOnSriChange);
     CPPUNIT_TEST(testFlushOnBufferSizeChange);
+    CPPUNIT_TEST(testWriteTimestampsReal);
+    CPPUNIT_TEST(testWriteTimestampsComplex);
+    CPPUNIT_TEST(testWriteTimestampsMixed);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -87,14 +90,19 @@ public:
     void testFlushOnSriChange();
     void testFlushOnBufferSizeChange();
 
+    void testWriteTimestampsReal();
+    void testWriteTimestampsComplex();
+    void testWriteTimestampsMixed();
+
 private:
     typedef typename OutPort::StreamType StreamType;
     typedef typename StreamType::ScalarType ScalarType;
+    typedef typename StreamType::ComplexType ComplexType;
+
+    void _writeTimestampsImpl(StreamType& stream, bool complexData);
 
     using TestBase::port;
     using TestBase::stub;
 };
-
-
 
 #endif  // BULKIO_OUTSTREAMTEST_H

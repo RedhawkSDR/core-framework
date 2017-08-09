@@ -25,6 +25,20 @@
 
 using bulkio::OutputStream;
 
+namespace {
+  // Traits class to distinguish between scalar (real) and complex data
+  template <typename T>
+  struct is_complex {
+    static const bool value = false;
+  };
+
+  // Specialization of traits class to identify complex data types
+  template <typename T>
+  struct is_complex<std::complex<T> > {
+    static const bool value = true;
+  };
+}
+
 template <class PortType>
 class OutputStream<PortType>::Impl : public StreamBase::Impl {
 public:
@@ -360,6 +374,12 @@ public:
                 last = data.size();
             } else {
                 last = timestamp->offset;
+                if (!is_complex<Sample>::value && this->complex()) {
+                    // If the stream is complex but the data type is not, adjust sample
+                    // offset to account for the fact that each real/imaginary pair is
+                    // actually two values
+                    last *= 2;
+                }
             }
             write(data.slice(first, last), when);
             first = last;

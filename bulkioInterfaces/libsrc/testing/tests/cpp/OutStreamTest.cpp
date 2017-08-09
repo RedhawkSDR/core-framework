@@ -43,6 +43,7 @@ void OutStreamTest<OutPort,PortType>::tearDown()
 {
     port->disconnectPort("test_connection");
 
+    // The port has not been used as a CORBA object, so we can delete it directly
     delete port;
 
     try {
@@ -89,17 +90,15 @@ template <class OutPort, class PortType>
 void OutStreamTest<OutPort,PortType>::testBasicWrite()
 {
     StreamType stream = port->createStream("test_basic_write");
-    CPPUNIT_ASSERT(stub->packetCounter == 0);
+    CPPUNIT_ASSERT(stub->packets.empty());
 
     const BULKIO::PrecisionUTCTime time = bulkio::time::utils::now();
     _writeSinglePacket(stream, 256, time);
-    CPPUNIT_ASSERT(stub->packetCounter == 1);
-    CPPUNIT_ASSERT_EQUAL((size_t) 256, (size_t) stub->data.length());
-    CPPUNIT_ASSERT(!stub->EOS);
-    if (_hasTimestamp()) {
-        CPPUNIT_ASSERT_EQUAL(time, stub->T);
-    }
-    CPPUNIT_ASSERT_EQUAL(stream.streamID(), stub->streamID);
+    CPPUNIT_ASSERT(stub->packets.size() == 1);
+    CPPUNIT_ASSERT_EQUAL((size_t) 256, (size_t) stub->packets[0].data.length());
+    CPPUNIT_ASSERT(!stub->packets[0].EOS);
+    CPPUNIT_ASSERT_MESSAGE("Received incorrect time stamp", _checkLastTimestamp(time));
+    CPPUNIT_ASSERT_EQUAL(stream.streamID(), stub->packets[0].streamID);
 }
 
 template <class OutPort, class PortType>
@@ -145,32 +144,32 @@ void OutStreamTest<OutPort,PortType>::testSriUpdate()
     double xdelta = 1.0 / 1.25e6;
     stream.xdelta(xdelta);
     stream.blocking(true);
-    CPPUNIT_ASSERT(stub->sriCounter == 0);
+    CPPUNIT_ASSERT(stub->H.empty());
 
     // Write data to trigger initial SRI update
     _writeSinglePacket(stream, 10);
-    CPPUNIT_ASSERT(stub->sriCounter == 1);
-    CPPUNIT_ASSERT(stub->H.blocking);
-    CPPUNIT_ASSERT_EQUAL(xdelta, stub->H.xdelta);
+    CPPUNIT_ASSERT(stub->H.size() == 1);
+    CPPUNIT_ASSERT(stub->H.back().blocking);
+    CPPUNIT_ASSERT_EQUAL(xdelta, stub->H.back().xdelta);
 
     // Update xdelta; no SRI update should occur
     double new_xdelta = 1.0/2.5e6;
     stream.xdelta(new_xdelta);
-    CPPUNIT_ASSERT(stub->sriCounter == 1);
-    CPPUNIT_ASSERT_EQUAL(xdelta, stub->H.xdelta);
+    CPPUNIT_ASSERT(stub->H.size() == 1);
+    CPPUNIT_ASSERT_EQUAL(xdelta, stub->H.back().xdelta);
 
     // Write data to trigger SRI update
     _writeSinglePacket(stream, 25);
-    CPPUNIT_ASSERT(stub->sriCounter == 2);
-    CPPUNIT_ASSERT_EQUAL(new_xdelta, stub->H.xdelta);
+    CPPUNIT_ASSERT(stub->H.size() == 2);
+    CPPUNIT_ASSERT_EQUAL(new_xdelta, stub->H.back().xdelta);
 
     // Change blocking flag, then trigger an SRI update
     stream.blocking(false);
-    CPPUNIT_ASSERT(stub->sriCounter == 2);
-    CPPUNIT_ASSERT(stub->H.blocking);
+    CPPUNIT_ASSERT(stub->H.size() == 2);
+    CPPUNIT_ASSERT(stub->H.back().blocking);
     _writeSinglePacket(stream, 25);
-    CPPUNIT_ASSERT(stub->sriCounter == 3);
-    CPPUNIT_ASSERT(!stub->H.blocking);
+    CPPUNIT_ASSERT(stub->H.size() == 3);
+    CPPUNIT_ASSERT(!stub->H.back().blocking);
 
     // Change multiple fields, but only one SRI update should occur (after the
     // next write)
@@ -181,12 +180,12 @@ void OutStreamTest<OutPort,PortType>::testSriUpdate()
     stream.xunits(BULKIO::UNITS_FREQUENCY);
     stream.ydelta(1024.0 / 1.25e6);
     stream.yunits(BULKIO::UNITS_TIME);
-    CPPUNIT_ASSERT(stub->sriCounter == 3);
+    CPPUNIT_ASSERT(stub->H.size() == 3);
 
     // Trigger SRI update and verify that it matches
     _writeSinglePacket(stream, 1024);
-    CPPUNIT_ASSERT(stub->sriCounter == 4);
-    CPPUNIT_ASSERT(bulkio::sri::DefaultComparator(stream.sri(), stub->H));
+    CPPUNIT_ASSERT(stub->H.size() == 4);
+    CPPUNIT_ASSERT(bulkio::sri::DefaultComparator(stream.sri(), stub->H.back()));
 }
 
 template <class OutPort, class PortType>
@@ -194,7 +193,7 @@ void OutStreamTest<OutPort,PortType>::testKeywords()
 {
     StreamType stream = port->createStream("test_keywords");
     _writeSinglePacket(stream, 1);
-    CPPUNIT_ASSERT(stub->sriCounter == 1);
+    CPPUNIT_ASSERT(stub->H.size() == 1);
 
     // Set/get keywords
     stream.setKeyword("integer", (CORBA::Long)250);
@@ -214,11 +213,11 @@ void OutStreamTest<OutPort,PortType>::testKeywords()
     CPPUNIT_ASSERT(stream.hasKeyword("boolean"));
 
     // Write a packet to trigger an SRI update
-    CPPUNIT_ASSERT(stub->sriCounter == 1);
+    CPPUNIT_ASSERT(stub->H.size() == 1);
     _writeSinglePacket(stream, 1);
-    CPPUNIT_ASSERT(stub->sriCounter == 2);
+    CPPUNIT_ASSERT(stub->H.size() == 2);
     {
-        const redhawk::PropertyMap& keywords = redhawk::PropertyMap::cast(stub->H.keywords);
+        const redhawk::PropertyMap& keywords = redhawk::PropertyMap::cast(stub->H.back().keywords);
         CPPUNIT_ASSERT_EQUAL(stream.keywords().size(), keywords.size());
         CPPUNIT_ASSERT_EQUAL(stream.getKeyword("integer").toLong(), keywords.get("integer").toLong());
         CPPUNIT_ASSERT_EQUAL(stream.getKeyword("double").toDouble(), keywords.get("double").toDouble());
@@ -235,11 +234,11 @@ void OutStreamTest<OutPort,PortType>::testKeywords()
     CPPUNIT_ASSERT_EQUAL(101.1e6, stream.getKeyword("CHAN_RF").toDouble());
 
     // Trigger another SRI update
-    CPPUNIT_ASSERT(stub->sriCounter == 2);
+    CPPUNIT_ASSERT(stub->H.size() == 2);
     _writeSinglePacket(stream, 1);
-    CPPUNIT_ASSERT(stub->sriCounter == 3);
+    CPPUNIT_ASSERT(stub->H.size() == 3);
     {
-        const redhawk::PropertyMap& keywords = redhawk::PropertyMap::cast(stub->H.keywords);
+        const redhawk::PropertyMap& keywords = redhawk::PropertyMap::cast(stub->H.back().keywords);
         CPPUNIT_ASSERT_EQUAL(stream.keywords().size(), keywords.size());
         CPPUNIT_ASSERT_EQUAL(stream.getKeyword("COL_RF").toDouble(), keywords.get("COL_RF").toDouble());
         CPPUNIT_ASSERT_EQUAL(stream.getKeyword("COL_RF").toDouble(), keywords.get("COL_RF").toDouble());
@@ -251,18 +250,18 @@ void OutStreamTest<OutPort,PortType>::testSendEosOnClose()
 {
     StreamType stream = port->createStream("close_eos");
 
-    CPPUNIT_ASSERT(stub->sriCounter == 0);
-    CPPUNIT_ASSERT(stub->packetCounter == 0);
+    CPPUNIT_ASSERT(stub->H.size() == 0);
+    CPPUNIT_ASSERT(stub->packets.size() == 0);
 
     _writeSinglePacket(stream, 16);
 
-    CPPUNIT_ASSERT(stub->sriCounter == 1);
-    CPPUNIT_ASSERT(stub->packetCounter == 1);
-    CPPUNIT_ASSERT(!stub->EOS);
+    CPPUNIT_ASSERT(stub->H.size() == 1);
+    CPPUNIT_ASSERT(stub->packets.size() == 1);
+    CPPUNIT_ASSERT(!stub->packets.back().EOS);
 
     stream.close();
-    CPPUNIT_ASSERT(stub->packetCounter == 2);
-    CPPUNIT_ASSERT(stub->EOS);
+    CPPUNIT_ASSERT(stub->packets.size() == 2);
+    CPPUNIT_ASSERT(stub->packets.back().EOS);
 }
 
 template <class OutPort, class PortType>
@@ -276,9 +275,9 @@ void OutStreamTest<OutPort,PortType>::_writeSinglePacket(StreamType& stream, siz
 }
 
 template <class OutPort, class PortType>
-bool OutStreamTest<OutPort,PortType>::_hasTimestamp()
+bool OutStreamTest<OutPort,PortType>::_checkLastTimestamp(const BULKIO::PrecisionUTCTime& time)
 {
-    return true;
+    return (time == stub->packets.back().T);
 }
 
 // Specialization for dataFile, which uses std::string
@@ -301,9 +300,10 @@ void OutStreamTest<bulkio::OutXMLPort,BULKIO::dataXML>::_writeSinglePacket(Strea
 }
 
 template <>
-bool OutStreamTest<bulkio::OutXMLPort,BULKIO::dataXML>::_hasTimestamp()
+bool OutStreamTest<bulkio::OutXMLPort,BULKIO::dataXML>::_checkLastTimestamp(const BULKIO::PrecisionUTCTime& /*unused*/)
 {
-    return false;
+    // dataXML has no time stamp, so the check should always succeed
+    return true;
 }
 
 
@@ -315,38 +315,38 @@ void BufferedOutStreamTest<OutPort,PortType>::testBufferedWrite()
     CPPUNIT_ASSERT_EQUAL((size_t) 0, stream.bufferSize());
     stream.setBufferSize(128);
     CPPUNIT_ASSERT_EQUAL((size_t) 128, stream.bufferSize());
-    CPPUNIT_ASSERT(stub->packetCounter == 0);
+    CPPUNIT_ASSERT(stub->packets.size() == 0);
 
     // First write is below the buffer size
     std::vector<ScalarType> buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->packetCounter == 0);
+    CPPUNIT_ASSERT(stub->packets.size() == 0);
 
     // The second write is still below the buffer size
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->packetCounter == 0);
+    CPPUNIT_ASSERT(stub->packets.size() == 0);
 
     // The third write goes beyond the buffer size and should trigger a push,
     // but only up to the buffer size (48*3 == 144)
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->packetCounter == 1);
-    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), (size_t) stub->data.length());
+    CPPUNIT_ASSERT(stub->packets.size() == 1);
+    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), (size_t) stub->packets.back().data.length());
 
     // There should now be 16 samples in the queue; writing another 48 should
     // not trigger a push
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->packetCounter == 1);
+    CPPUNIT_ASSERT(stub->packets.size() == 1);
 
     // Flush the stream and make sure we get as many samples as expected
     stream.flush();
-    CPPUNIT_ASSERT(stub->packetCounter == 2);
-    CPPUNIT_ASSERT_EQUAL((CORBA::ULong) 64, stub->data.length());
+    CPPUNIT_ASSERT(stub->packets.size() == 2);
+    CPPUNIT_ASSERT_EQUAL((CORBA::ULong) 64, stub->packets.back().data.length());
 
     // Disable buffering; push should happen immediately
     stream.setBufferSize(0);
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->packetCounter == 3);
+    CPPUNIT_ASSERT(stub->packets.size() == 3);
 }
 
 template <class OutPort, class PortType>
@@ -360,20 +360,20 @@ void BufferedOutStreamTest<OutPort,PortType>::testWriteSkipBuffer()
     std::vector<ScalarType> buffer;
     buffer.resize(256);
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->packetCounter == 1);
-    CPPUNIT_ASSERT_EQUAL(buffer.size(), (size_t) stub->data.length());
+    CPPUNIT_ASSERT(stub->packets.size() == 1);
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), (size_t) stub->packets.back().data.length());
 
     // Queue up a bit of data
     buffer.resize(16);
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->packetCounter == 1);
+    CPPUNIT_ASSERT(stub->packets.size() == 1);
 
     // With queued data, the large write should get broken up into a buffer-
     // sized packet
     buffer.resize(128);
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->packetCounter == 2);
-    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), (size_t) stub->data.length());
+    CPPUNIT_ASSERT(stub->packets.size() == 2);
+    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), (size_t) stub->packets.back().data.length());
 }
 
 template <class OutPort, class PortType>
@@ -387,14 +387,14 @@ void BufferedOutStreamTest<OutPort,PortType>::testFlush()
     std::vector<ScalarType> buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->sriCounter == 0);
-    CPPUNIT_ASSERT(stub->packetCounter == 0);
+    CPPUNIT_ASSERT(stub->H.size() == 0);
+    CPPUNIT_ASSERT(stub->packets.size() == 0);
 
     // Make sure flush sends a packet
     stream.flush();
-    CPPUNIT_ASSERT(stub->sriCounter == 1);
-    CPPUNIT_ASSERT(stub->packetCounter == 1);
-    CPPUNIT_ASSERT_EQUAL(buffer.size(), (size_t) stub->data.length());
+    CPPUNIT_ASSERT(stub->H.size() == 1);
+    CPPUNIT_ASSERT(stub->packets.size() == 1);
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), (size_t) stub->packets.back().data.length());
 }
 
 template <class OutPort, class PortType>
@@ -407,13 +407,13 @@ void BufferedOutStreamTest<OutPort,PortType>::testFlushOnClose()
     std::vector<ScalarType> buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->sriCounter == 0);
-    CPPUNIT_ASSERT(stub->packetCounter == 0);
+    CPPUNIT_ASSERT(stub->H.size() == 0);
+    CPPUNIT_ASSERT(stub->packets.size() == 0);
 
     // Close the stream; should cause a flush
     stream.close();
-    CPPUNIT_ASSERT(stub->sriCounter == 1);
-    CPPUNIT_ASSERT(stub->packetCounter == 1);
+    CPPUNIT_ASSERT(stub->H.size() == 1);
+    CPPUNIT_ASSERT(stub->packets.size() == 1);
 }
 
 template <class OutPort, class PortType>
@@ -434,46 +434,46 @@ void BufferedOutStreamTest<OutPort,PortType>::testFlushOnSriChange()
 
     // Change the xdelta to cause a flush; the received data should be using
     // the old xdelta
-    CPPUNIT_ASSERT(stub->packetCounter == 0);
+    CPPUNIT_ASSERT(stub->packets.size() == 0);
     stream.xdelta(0.25);
-    CPPUNIT_ASSERT_MESSAGE("xdelta change did not flush stream", stub->packetCounter == 1);
-    CPPUNIT_ASSERT_EQUAL(0.125, stub->H.xdelta);
+    CPPUNIT_ASSERT_MESSAGE("xdelta change did not flush stream", stub->packets.size() == 1);
+    CPPUNIT_ASSERT_EQUAL(0.125, stub->H.back().xdelta);
 
     // Queue more data (should not flush)
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->sriCounter == 1);
-    CPPUNIT_ASSERT(stub->packetCounter == 1);
+    CPPUNIT_ASSERT(stub->H.size() == 1);
+    CPPUNIT_ASSERT(stub->packets.size() == 1);
 
     // Change the mode to complex to cause a flush; the mode shouldn't change
     // yet, but xdelta should be up-to-date now
     stream.complex(true);
-    CPPUNIT_ASSERT_MESSAGE("Complex mode change did not flush stream", stub->packetCounter == 2);
-    CPPUNIT_ASSERT(stub->H.mode == 0);
-    CPPUNIT_ASSERT_EQUAL(stream.xdelta(), stub->H.xdelta);
+    CPPUNIT_ASSERT_MESSAGE("Complex mode change did not flush stream", stub->packets.size() == 2);
+    CPPUNIT_ASSERT(stub->H.back().mode == 0);
+    CPPUNIT_ASSERT_EQUAL(stream.xdelta(), stub->H.back().xdelta);
 
     // Queue more data (should not flush)
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->sriCounter == 2);
-    CPPUNIT_ASSERT(stub->packetCounter == 2);
+    CPPUNIT_ASSERT(stub->H.size() == 2);
+    CPPUNIT_ASSERT(stub->packets.size() == 2);
 
     // Change the blocking mode to cause a flush; the blocking flag shouldn't
     // change yet, but mode should be up-to-date now
     stream.blocking(true);
-    CPPUNIT_ASSERT_MESSAGE("Blocking change did not flush stream", stub->packetCounter == 3);
-    CPPUNIT_ASSERT(stub->H.blocking == 0);
-    CPPUNIT_ASSERT(stub->H.mode != 0);
+    CPPUNIT_ASSERT_MESSAGE("Blocking change did not flush stream", stub->packets.size() == 3);
+    CPPUNIT_ASSERT(stub->H.back().blocking == 0);
+    CPPUNIT_ASSERT(stub->H.back().mode != 0);
 
     // Queue more data (should not flush)
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->sriCounter == 3);
-    CPPUNIT_ASSERT(stub->packetCounter == 3);
+    CPPUNIT_ASSERT(stub->H.size() == 3);
+    CPPUNIT_ASSERT(stub->packets.size() == 3);
 
     // Change the subsize to cause a flush; the subsize shouldn't change yet,
     // but blocking should be up-to-date now
     stream.subsize(16);
-    CPPUNIT_ASSERT_MESSAGE("Subsize change did not flush stream", stub->packetCounter == 4);
-    CPPUNIT_ASSERT(stub->H.subsize == 0);
-    CPPUNIT_ASSERT(stub->H.blocking);
+    CPPUNIT_ASSERT_MESSAGE("Subsize change did not flush stream", stub->packets.size() == 4);
+    CPPUNIT_ASSERT(stub->H.back().subsize == 0);
+    CPPUNIT_ASSERT(stub->H.back().blocking);
 }
 
 template <class OutPort, class PortType>
@@ -486,33 +486,109 @@ void BufferedOutStreamTest<OutPort,PortType>::testFlushOnBufferSizeChange()
     std::vector<ScalarType> buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
-    CPPUNIT_ASSERT(stub->packetCounter == 0);
+    CPPUNIT_ASSERT(stub->packets.size() == 0);
 
     // Reduce the buffer size smaller than the current queue, should trigger a
     // flush
     stream.setBufferSize(32);
-    CPPUNIT_ASSERT_MESSAGE("Reducing buffer size below queue size did not flush", stub->packetCounter == 1);
+    CPPUNIT_ASSERT_MESSAGE("Reducing buffer size below queue size did not flush", stub->packets.size() == 1);
 
     // Reduce the buffer size again, but not down to the queue size, should not
     // trigger a flush
     buffer.resize(16);
     stream.write(buffer, bulkio::time::utils::now());
     stream.setBufferSize(24);
-    CPPUNIT_ASSERT_MESSAGE("Reducing buffer size above queue size flushed", stub->packetCounter == 1);
+    CPPUNIT_ASSERT_MESSAGE("Reducing buffer size above queue size flushed", stub->packets.size() == 1);
 
     // Boundary condition: exact size
     stream.setBufferSize(16);
-    CPPUNIT_ASSERT_MESSAGE("Reducing buffer size to exact size did not flush", stub->packetCounter == 2);
+    CPPUNIT_ASSERT_MESSAGE("Reducing buffer size to exact size did not flush", stub->packets.size() == 2);
 
     // Increasing the buffer size should not trigger a flush
     buffer.resize(8);
     stream.write(buffer, bulkio::time::utils::now());
     stream.setBufferSize(128);
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Increasing buffer size flushed", 2, stub->packetCounter);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Increasing buffer size flushed", (size_t) 2, stub->packets.size());
 
     // Disabling buffering must flush
     stream.setBufferSize(0);
-    CPPUNIT_ASSERT_MESSAGE("Disabling buffering did not flush", stub->packetCounter == 3);
+    CPPUNIT_ASSERT_MESSAGE("Disabling buffering did not flush", stub->packets.size() == 3);
+}
+
+template <class OutPort, class PortType>
+void BufferedOutStreamTest<OutPort,PortType>::testWriteTimestampsReal()
+{
+    StreamType stream = port->createStream("write_timestamps_real");
+    _writeTimestampsImpl(stream, false);
+}
+
+template <class OutPort, class PortType>
+void BufferedOutStreamTest<OutPort,PortType>::testWriteTimestampsComplex()
+{
+    StreamType stream = port->createStream("write_timestamps_complex");
+    stream.complex(true);
+    _writeTimestampsImpl(stream, true);
+}
+
+template <class OutPort, class PortType>
+void BufferedOutStreamTest<OutPort,PortType>::testWriteTimestampsMixed()
+{
+   StreamType stream = port->createStream("write_timestamps_mixed");
+   stream.complex(true);
+   _writeTimestampsImpl(stream, false);
+}
+
+template <class OutPort, class PortType>
+void BufferedOutStreamTest<OutPort,PortType>::_writeTimestampsImpl(StreamType& stream, bool complexData)
+{
+    // Generate a ramp using the scalar type; if the data needs to be pushed as
+    // complex, it will be reintepreted there
+    std::vector<ScalarType> scalars;
+    scalars.resize(200);
+    for (size_t ii = 0; ii < scalars.size(); ++ii) {
+        scalars[ii] = ii;
+    }
+    size_t sample_count = scalars.size();
+    if (stream.complex()) {
+        sample_count /= 2;
+    }
+
+    // Create 3 timestamps, breaking the input data at the 1/4 and 5/8 points
+    // (taking real/complex mode of the stream into account)
+    BULKIO::PrecisionUTCTime start = bulkio::time::utils::now();
+    std::list<bulkio::SampleTimestamp> tstamps;
+    tstamps.push_back(bulkio::SampleTimestamp(start, 0));
+    size_t offset = sample_count / 4;
+    tstamps.push_back(bulkio::SampleTimestamp(start + offset, offset));
+    offset = sample_count * 5 / 8;
+    tstamps.push_back(bulkio::SampleTimestamp(start + offset, offset));
+
+    if (complexData) {
+        ComplexType* data = reinterpret_cast<ComplexType*>(&scalars[0]);
+        stream.write(data, sample_count, tstamps);
+    } else {
+        stream.write(&scalars[0], scalars.size(), tstamps);
+    }
+
+    // Data should have been broken into one chunk per timestamp
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Number of packets does not match timestamps",
+                                 tstamps.size(), stub->packets.size());
+
+    // Check that the packets are at the right offsets (implicitly checking
+    // that the prior packet was the right size) and have the correct time
+    size_t scalars_received = 0;
+    std::list<bulkio::SampleTimestamp>::iterator ts = tstamps.begin();
+    for (size_t ii = 0; ii < stub->packets.size(); ++ii, ++ts) {
+        // Take complex data into account for the expected timestamp offset
+        size_t expected_offset = ts->offset;
+        if (stream.complex()) {
+            expected_offset *= 2;
+        }
+        CPPUNIT_ASSERT_EQUAL_MESSAGE("Packet timestamp is incorrect", ts->time, stub->packets[ii].T);
+        CPPUNIT_ASSERT_EQUAL_MESSAGE("Packet offset does not match timestamp offset", expected_offset, scalars_received);
+        scalars_received += stub->packets[ii].data.length();
+    }
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Final packet size is incorrect", scalars_received, scalars.size());
 }
 
 #define CREATE_TEST_IMPL(TESTCLASS,PORT,NAME,BASE,CORBA)                \
