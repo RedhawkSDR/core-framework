@@ -1,0 +1,17 @@
+[Unit]
+Description=Redhawk Device Manager
+After=syslog.target
+Wants=redhawk-domain-mgrs.service
+After=redhawk-domain-mgrs.service
+
+[Service]
+Type=forking
+ExecStart=/etc/redhawk/init.d/redhawk-service-start "NODE"
+ExecStop=/etc/redhawk/init.d/redhawk-service-start "NODE"
+WorkingDirectory=/etc/redhawk/init.d
+TimeoutSec=10s
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
+

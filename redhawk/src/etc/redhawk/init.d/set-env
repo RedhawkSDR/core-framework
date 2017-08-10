@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# read in file that contains n=v pairs and 
+# export as environment variables
+while read line
+do
+    echo "export $line"
+    eval "export $line"
+done<"${1:-/dev/stdin}"

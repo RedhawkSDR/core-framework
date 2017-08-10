@@ -1,0 +1,16 @@
+[Unit]
+Description=Redhawk Domain Manager
+After=syslog.target
+After=omniNames.service omniEvents.service
+Wants=omniNames.service omniEvents.service
+
+[Service]
+Type=forking
+ExecStart=/etc/redhawk/init.d/redhawk-service-start "DOMAIN" 
+ExecStop=/etc/redhawk/init.d/redhawk-service-stop "DOMAIN"
+WorkingDirectory=/etc/redhawk/init.d
+TimeoutSec=10s
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

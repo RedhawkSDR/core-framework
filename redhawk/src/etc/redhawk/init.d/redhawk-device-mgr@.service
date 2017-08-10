@@ -1,0 +1,20 @@
+[Unit]
+Description=Redhawk Device Manager Template
+After=syslog.target
+Wants=redhawk-domain-mgrs.service
+After=redhawk-domain-mgrs.service
+
+[Service]
+Type=forking
+Environment=DOMAIN_NAME=
+Environment=NODE_NAME=
+ExecStart=/etc/redhawk/init.d/redhawk-service-start "NODE" "${DOMAIN_NAME}.${NODE_NAME}"
+ExecStop=/etc/redhawk/init.d/redhawk-service-stop "NODE" "${DOMAIN_NAME}.${NODE_NAME}"
+TimeoutSec=10s
+KillMode=mixed
+
+
+
+[Install]
+WantedBy=multi-user.target
+

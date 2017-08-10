@@ -33,6 +33,70 @@ profiled_DATA = profile.d/redhawk.sh \
   profile.d/redhawk-sdrroot.sh \
   profile.d/redhawk-sdrroot.csh
 
+rh_etc_dir = $(sysconfdir)/redhawk
+cron_dir = $(rh_etc_dir)/cron.d
+domains_dir = $(rh_etc_dir)/domains.d
+init_dir = $(rh_etc_dir)/init.d
+logging_dir = $(rh_etc_dir)/logging
+nodes_dir = $(rh_etc_dir)/nodes.d
+limits_dir = $(rh_etc_dir)/security/limits.d
+sysctl_dir = $(rh_etc_dir)/sysctl.d
+waveforms_dir = $(rh_etc_dir)/waveforms.d
+
+rh_etc__DATA = \
+redhawk/redhawk-release \
+redhawk/rh.cond.cfg 
+
+cron__DATA = \
+redhawk/cron.d/redhawk
+
+domains__DATA = \
+redhawk/domains.d/example.domains
+
+init__DATA = \
+redhawk/init.d/conditional_overrides \
+redhawk/init.d/redhawk-device-mgr@.service \
+redhawk/init.d/domain.defaults \
+redhawk/init.d/functions \
+redhawk/init.d/node.defaults \
+redhawk/init.d/omni-clean \
+redhawk/init.d/redhawk-device-mgrs.service \
+redhawk/init.d/redhawk-device-mgrs \
+redhawk/init.d/set-env \
+redhawk/init.d/redhawk-domain-mgr@.service \
+redhawk/init.d/redhawk-domain-mgrs \
+redhawk/init.d/redhawk-domain-mgrs.service \
+redhawk/init.d/redhawk-service-config \
+redhawk/init.d/redhawk-service-list \
+redhawk/init.d/redhawk-service-start \
+redhawk/init.d/redhawk-service-status \
+redhawk/init.d/redhawk-service-stop \
+redhawk/init.d/redhawk-waveform \
+redhawk/init.d/redhawk-waveform@.service \
+redhawk/init.d/redhawk-waveforms \
+redhawk/init.d/redhawk-waveforms.service \
+redhawk/init.d/redhawk-wf-control \
+redhawk/init.d/rundir \
+redhawk/init.d/svc-functions \
+redhawk/init.d/waveform.defaults
+
+logging__DATA = \
+redhawk/logging/default.logging.properties \
+redhawk/logging/example.logging.properties \
+redhawk/logging/logrotate.redhawk
+
+nodes__DATA = \
+redhawk/nodes.d/example.nodes
+
+limits__DATA = \
+redhawk/security/limits.d/99-redhawk-limits.conf
+
+sysctl__DATA = \
+redhawk/sysctl.d/sysctl.conf
+
+waveforms__DATA = \
+redhawk/waveforms.d/example.waveforms
+
 lib = lib${gr_libdir_suffix}
 edit = $(SED) \
   -e 's|@prefix[@]|$(prefix)|g' \
@@ -50,5 +114,5 @@ profile.d/redhawk.csh: profile.d/redhawk.csh.in
 profile.d/redhawk-sdrroot.sh: profile.d/redhawk-sdrroot.sh.in
 profile.d/redhawk-sdrroot.csh: profile.d/redhawk-sdrroot.csh.in
 
-DISTCLEANFILES = $(ldsoconfd_DATA) $(profiled_DATA)
+DISTCLEANFILES = $(ldsoconfd_DATA) $(profiled_DATA) $(rh_etc__DATA) $(cron__DATA) $(domains__DATA) $(init__DATA) $(logging__DATA) $(nodes__DATA) $(limits__DATA) $(sysctl__DATA) $(waveforms__DATA)
 

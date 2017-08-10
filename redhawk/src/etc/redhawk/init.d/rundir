@@ -1,0 +1,7 @@
+#!/bin/bash
+
+. /etc/redhawk/init.d/functions
+
+# run all scripts in $1
+rh_script $1
+exit $?

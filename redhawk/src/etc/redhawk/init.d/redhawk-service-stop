@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Source redhawk support functions
+. /etc/redhawk/init.d/functions && import_os_functions
+
+. /etc/redhawk/init.d/svc-functions
+
+SVC_NAME="REDHAWK Service Stop"
+cmd="stop"
+rh_init_dir="/etc/redhawk/init.d/"
+func=""
+rsc=${1^^}
+case $rsc in
+    DOMAIN)
+        func="redhawk-domain-mgrs"
+        ;;
+    NODE)
+        func="redhawk-device-mgrs"
+        ;;
+    WAVEFORM)
+        func="redhawk-waveforms"
+        ;;
+    *)
+	echo $"Usage: $0 [domain] [domain name]"
+	echo $"       $0 [node] [domain name.node name]"
+	echo $"       $0 [waveform] [waveform instance]"
+        exit 1
+esac
+
+[[ ! -z $func ]] && ${rh_init_dir}${func} $cmd "${@:2}"
+exit $?

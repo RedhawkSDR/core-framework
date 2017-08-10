@@ -1,0 +1,44 @@
+#[node section name]
+#NODE_NAME= [NO DEFAULT] #required 
+#DCD_PATH= [NO DEFAULT] #required  - relative or absolute path
+#DOMAIN_NAME= [NO DEFAULT] #optional
+
+#LOGCFG=  [default defaults.logging.properties ]     # optional file name in /etc/redhawk/logging or path to log configuration file 
+#DEBUG_LEVEL= [3]                                    #optional (5=TRACE,4=DEBUG,3=INFO,2=WARN,1=ERROR,0=FATAL) name or numbers
+
+#SDRROOT= [$SDRROOT]           # optional if blank uses $SDRROOT, fallback /var/redhawk/sdr
+#OSSIEHOME= [$OSSIEHOME]       # optional if blank uses $OMNIHOME, fallback /usr/local/redhawk
+#LD_LIBRARY_PATH:              # optional setup LD_LIBRARY_PATH before execution
+#PYTHON_PATH:                  # optional setup PYTHON_PATH before execution
+#ORB_CFG:                      # optional path to omniORB configuration file  
+#ORB_ENDPOINT:                 # optional Sets the endpoint for the DomainManager servant
+#ORB_INITREF:                  # optional pass to ORBInitRef N=V
+
+#ENABLED= [1]                  # optional control if service should be enabled
+#COND_CFG=                     # optional configuration file passed to customizeable override enable method. default to /etc/redhawk/rh.cond.cfg
+
+#USER= [redhawk]               # optional - runas user
+#GROUP= [redhawk]              # optional - runas group
+
+#NICELEVEL:                    # optional - cmd line args to pass to nice when running process
+#AFFINITY:                     # optional - cmd line args to pass to numaclt when running process
+#ULIMIT:                       # optional - cmd line args to pass to ulimit before running process
+#CORE_FILES:                   # optional - 1 enable core files, 0 use ulimit settings
+
+#PERMISSIONS_START_ONLY=[1]    # optional - control if start_pre_script is run as root or run userb
+#ENVIRONMENT:                  # optional - Additional environment variables VAR=VALUE VAR=VALUE
+#RUN_DIR:                      # optional - change directory before running scripts and service
+#OUTPUT_REDIRECT:              # optional - stderr stdout
+#OUTPUT:                       # optional - [dommgr.domain_name.log] path to file that will capture output redirect
+#OUTPUT_PREFIX:                # optional - [dommgr] prefix for output redirect  
+#START_PRE_SCRIPT:             # optional - script run before process   [source] <script and args>  
+#START_POST_SCRIPT:            # optional - script run after process is terminate,pd [source] <script and args>
+#STOP_PRE_SCRIPT:              # optional - script run before process   [source] <script and args>  
+#STOP_POST_SCRIPT:             # optional - script run after process is terminate,pd [source] <script and args>
+
+#[example node]
+#NODE_NAME=GPP
+#DOMAIN_NAME=REDHAWK
+#DEBUG_LEVEL=INFO
+
+

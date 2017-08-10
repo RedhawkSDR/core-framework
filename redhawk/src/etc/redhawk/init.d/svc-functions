@@ -1,0 +1,1141 @@
+#!/bin/bash
+
+. /etc/redhawk/init.d/functions
+
+. /etc/redhawk/init.d/conditional_overrides
+
+rh_svc_wrapper() { 
+local cmd="$1"
+local rh_init_dir="/etc/redhawk/init.d/"
+local func=""
+local  rsc=${2^^}
+case $rsc in
+    DOMAIN)
+        func="redhawk-domain-mgrs"
+        ;;
+    NODE)
+        func="redhawk-device-mgrs"
+        ;;
+    WAVEFORM)
+        func="redhawk-waveforms"
+        ;;
+    *)
+	echo $"Usage: $0 [domain] [domain name]"
+	echo $"       $0 [node] [domain name.node name]"
+	echo $"       $0 [waveform] [domain name.waveform name]"
+        exit 1
+esac
+
+[[ ! -z $func ]] && ${rh_init_dir}${func} $cmd "${@:3}"
+return $?
+}
+
+
+#
+# Domain Manager service functions
+#
+
+
+#
+# return the DomainName from running an DomainManager for a specific Domain
+#
+
+domain_from_pidfile(){
+    local v=$(pidfile_remove_ext $1)
+    [[ ! $v =~ .*\..*  ]] && echo ${v}
+    [[ $v =~ (.*)\..*  ]] && echo ${BASH_REMATCH[1]} || echo ""
+}
+
+domain_from_lockfile(){
+    local v=$(pidfile_remove_ext $1)
+    [[ ! $v =~ .*\..*  ]] && echo ${v}
+    [[ $v =~ (.*)\..*  ]] && echo ${BASH_REMATCH[1]} || echo ""
+}
+
+#
+# Generate a pidfile to use when launching the service
+#
+domain_to_pidfile(){
+    pidfile_name $1
+}
+
+domain_to_lockfile(){
+    lockfile_name $1
+}
+
+
+dommgr_pid_files() {
+    ! check_pid_dir && return 1
+    get_pid_files ${PID_DIR}
+    [ ${#pid_files[@]} -eq 0 ] && echo "No REDHAWK DomainManager services appear to be running, pid directory $PID_DIR"
+    [ ${#pid_files[@]} -eq 0 ] && return 1 || return 0
+}
+
+#
+# Search domain configuration directory to see if domain is ENABLE
+#
+domain_enabled() {
+    if [[ $# == 1 ]];
+    then
+        svc_enabled $1 ${DOMAIN_CONFIG_DIR} "DOMAIN_NAME" 
+        return $?
+    else
+        resolve_enabled $*
+        return $?
+    fi
+}
+
+dommgr_cmd_pre() {
+    #
+    # 
+    #
+    EXEC=DomainManager
+    PID_DIR=/var/run/redhawk/domain-mgrs
+    LOCK_DIR=/var/lock/redhawk/domain-mgrs
+    LOG_CFG_DIR=/etc/redhawk/logging
+    LOG_OUT_DIR=/var/log/redhawk
+    DOMAIN_CONFIG_DIR=/etc/redhawk/domains.d
+    domain_cfg_defaults=/etc/redhawk/init.d/domain.defaults
+    retval=0
+
+    #
+    # Environment and directory checks
+    #
+    [ -d $PID_DIR ] || mkdir -p $PID_DIR
+    [ -d $LOCK_DIR ] || mkdir -p $LOCK_DIR
+    [ -d $LOG_OUT_DIR ] || mkdir -p $LOG_OUT_DIR && chmod guo+rwx $LOG_OUT_DIR
+}
+
+
+dommgr_build_arg_list()
+{
+    local arg
+    local pair
+    local exec_
+    local sdrroot_
+    local tmp_
+
+    unset arg
+    arg=$(resolve_item cfg "sdrroot")
+    [ -z $arg ] && echo "Missing SDRROOT " &&  return 1
+    tmp_=`eval echo $arg`
+    sdrroot_="$tmp_"
+
+    # add in service to run
+    exec_=$(resolve_item cfg "exec")
+    if [ $? -eq 0 ];
+    then
+       if [[ $exec_ =~ ^\/.* ]] ; 
+       then
+   	   argv+=("$exec_")
+       else
+           if [ -f $sdrroot_/dom/mgr/$exec_ ];
+           then
+	       argv+=("$sdrroot_/dom/mgr/$exec_")
+           else
+	       argv+=("$exec_")
+           fi
+       fi
+    else
+       argv+=("${EXEC}")
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "dmd_path")
+    [ -z $arg ] && echo "Missing DMD PATH" && return 1
+    argv+=("DMD_FILE") && argv+=($arg)
+
+    unset arg
+    arg=$(resolve_item cfg "domain_name")
+    [ -z $arg ] && echo "Missing Domain Name " && return 1
+    argv+=("DOMAIN_NAME") && argv+=($arg)
+
+    argv+=("SDRROOT") && argv+=($sdrroot_)
+    SDRROOT_="$sdrroot_"
+
+    unset arg
+    arg=$(resolve_item cfg "debug_level")
+    if [[ $? == 0 ]] ;
+    then
+        argv+=("DEBUG_LEVEL")
+        if [[ $arg =~ ^(0|1|2|3|4|5)$ ]] ;
+        then
+            argv+=("$arg")
+        else
+            dl=$(debug_name_to_number $arg)
+            argv+=("$dl")
+       fi
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "logcfg")
+    if [[ $? == 0 ]] ;
+    then
+        argv+=("LOGGING_CONFIG_URI")
+        local lf
+        if [[ $arg =~ ^sca://.* ]]
+        then
+            lf=$arg
+        elif [[ $arg =~ ^\/.* ]] 
+        then
+	    tmp_=`eval echo $arg`
+            lf="file://$tmp_"
+        else
+            lf="file://${LOG_CFG_DIR}/$arg"
+        fi
+        argv+=("$lf")
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "force_rebind")
+    if [[ $? == 0 ]] ;
+    then
+        argv+=("FORCE_REBIND")
+        if  check_true_value $arg ;
+        then
+            argv+=("true")
+        else
+            argv+=("false")
+       fi
+    fi
+
+    unset arg
+    pair=0
+    arg=$(resolve_item cfg "persistence")
+    if [[ $? == 0 ]] ; 
+    then
+	tmp_=`eval echo $arg`
+        argv+=("PERSISTENCE")
+        argv+=("true")
+        argv+=("DB_URL")
+        argv+=("$tmp_")
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "bindapps")
+    if [[ $? == 0 ]] ;
+    then
+        argv+=("BINAPPS")
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "use_logcfg")
+    if [[ $? == 0 ]] ;
+    then
+        argv+=("USELOGCFG")
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "orb_endpoint")
+    if [[ $? == 0 ]] ;
+    then
+        argv+=("-ORBendPoint")
+        argv+=("$arg")
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "orb_initref")
+    if [[ $? == 0 ]] ;
+    then
+        argv+=("-ORBInitRef")
+        argv+=("$arg")
+    fi
+
+    return 0
+
+}
+
+
+#
+# 
+#
+dommgr_start_one() {
+
+    dommgr_cmd_pre
+
+    local cfg_file_="$1"
+    local section_="$2"
+    local filter_list_="$3"
+
+    [[ $_rh_debug_ ]] && echo "dommgr_start:: Processing  cfg: $cfg_file_"
+
+    # reset variables
+    unset exec_options
+    unset argv
+    unset domain_name
+    unset dmd_path
+    unset enabled
+    unset cond_cfg
+    unset pid_file
+    unset lock_file
+
+    unset SDRROOT_
+    unset OSSIEHOME_
+
+    # Load all default configuration setting
+    unset cfg
+    declare -A cfg
+    get_config_section "$cfg_file_" "$section_" "$domain_cfg_defaults"
+    [[ $? != 0 ]] && echo "Config file error, config file: \"$cfg_file_\" section: \"$section_\". " && return 1
+
+    domain_name=$(resolve_item cfg "domain_name")
+
+    [[ $_rh_debug_ ]] && echo "not_in_list $filter_list_ $domain_name "
+
+    not_in_list "$filter_list_" "$domain_name" && return 0
+
+    if [ -z $domain_name ];
+    then
+        echo "==> (ERROR) Required field DOMAIN_NAME not found, config file: \"$cfg_file_\" section: \"$section_\". " && return 1
+        return 1
+    fi
+
+    enabled=$(resolve_item cfg "enable")
+    cond_cfg=$(resolve_item cfg "cond_cfg")
+    [[ $_rh_debug_ ]] && printf "  DOMAIN: %s ENABLE: %d \n\n" $domain_name $enabled
+    domain_enabled "$domain_name" "$enabled" "$cond_cfg"
+    [[ $? != 0 ]] && echo "Skipping $domain_name, disabled in config file " && return 0
+
+    pid_file=$(domain_to_pidfile $domain_name)
+    lock_file=$(domain_to_lockfile $domain_name)
+            
+    # check if Domain is already started
+    if check_run "$pid_file"
+    then
+	echo "DomainManager $domain_name is already started. ($pid_file) Skipping..."
+	retval=0
+        rh_success
+        return $retval
+    fi
+
+    # build arg list for DomainManager service
+    declare -a argv
+    ! dommgr_build_arg_list  && echo "Failed parameter check for Domain: $domain_name" && return 1
+    [[ $_rh_debug_ ]] && declare -p argv
+
+    # build exec_options 
+    declare -A exec_options
+    build_exec_options "$domain_name" "$pid_file"
+    [[ $_rh_debug_ ]] && declare -p exec_options
+
+    echo -n "Starting $domain_name: "
+    touch $pid_file && chmod guo+rw $pid_file
+
+    printf -v CMD "%s " "${argv[@]}"
+    [[ $_rh_debug_ ]] && { printf "\nCMD= $CMD \n" ; }
+
+    rh_bg_cmd "$CMD"
+    cmd_retval=$?
+    sleep 1
+    check_run $pid_file
+    retval=$?
+    if [[ $retval ==  2 ]]
+    then
+	[[ $cmd_retval -eq 0 ]]  && rh_success || rh_failure
+    else
+	[[ $retval -eq 0 ]]  && rh_success || rh_failure
+    fi
+
+    # run post start commands...
+    rh_run_scripts "${cfg["START_POST_SCRIPT"]}"
+
+    return $retval
+}
+
+dommgr_stop_one() {
+
+    dommgr_cmd_pre
+
+    local cfg_file_="$1"
+    local section_="$2"
+    local filter_list_="$3"
+
+    [[ $_rh_debug_ ]] && echo "dommgr_stop:: Processing cfg: $cfg_file_"
+
+    # reset variables
+    local domain_name_
+    local pid_file_
+    local lock_file_
+
+    # Load all default configuration setting
+    unset cfg
+    declare -A cfg
+    get_config_section "$cfg_file_" "$section_" "$domain_cfg_defaults"
+    [[ $? != 0 ]] && echo "Config file error, config file: \"$cfg_file_\" section: \"$section_\". " && return 1
+    domain_name_=$(resolve_item cfg "domain_name")
+
+    not_in_list "$filter_list_" "$domain_name_" && return 0
+
+    if [ -z $domain_name_ ];
+    then
+        echo "==> (ERROR) Required field DOMAIN_NAME not found, config file: \"$cfg_file_\" section: \"$section_\". "
+        return 1
+    fi
+
+    pid_file_=$(domain_to_pidfile $domain_name_)
+    lock_file_=$(domain_to_lockfile $domain_name_)
+            
+    echo -n "Stopping $domain_name_: "
+    local exec_=$(resolve_item cfg "exec")
+    if check_run "$pid_file_" "$exec_" ; 
+    then
+        rh_run_scripts "${cfg["STOP_PRE_SCRIPT"]}"
+
+	killproc -p "$pid_file_" 
+        retval=0
+	rh_success
+        [ -f "$pid_file_" ] && rm -f "$pid_file_"
+
+        rh_run_scripts "${cfg["STOP_POST_SCRIPT"]}"
+    else
+	retval=1		
+	rh_failure	
+    fi	
+    rh_return $retval $cnt
+    return $?
+}
+
+
+
+
+
+#
+# Node/DeviceManager Functions
+#
+
+node_name(){
+    echo "$1.$2"
+}
+
+#
+# return the Node from running a DeviceManager for a specific Domain
+#
+node_from_pidfile(){
+    local v=$(pidfile_remove_ext $1)
+    [[ $v =~ .*\.(.*)  ]] && echo ${BASH_REMATCH[1]} || echo ""
+}
+
+node_from_lockfile(){
+    local v=$(pidfile_remove_ext $1)
+    [[ $v =~ .*\.(.*)  ]] && echo ${BASH_REMATCH[1]} || echo ""
+}
+
+#
+# Generate a pidfile to use when launching the service
+#
+node_to_pidfile(){
+    pidfile_name "$1.$2"
+}
+
+node_to_lockfile(){
+    lockfile_name "$1.$2"
+}
+
+
+devmgr_pid_files() {
+    ! check_pid_dir && return 1
+    get_pid_files ${PID_DIR}
+    [ ${#pid_files[@]} -eq 0 ] && echo "No REDHAWK DeviceManager services appear to be running, pid directory $PID_DIR"
+    [ ${#pid_files[@]} -eq 0 ] && return 1 || return 0
+}
+
+#
+# Search node configuration directory to see if node is ENABLE
+#
+node_enabled() {
+    if [[ $# == 1 ]];
+    then
+        svc_enabled $1 ${NODE_CONFIG_DIR} "NODE_NAME" 
+        return $?
+    else
+        resolve_enabled $*
+        return $?
+    fi
+}
+
+
+node_cmd_pre() {
+    #
+    # 
+    #
+    EXEC=DeviceManager
+    PID_DIR=/var/run/redhawk/device-mgrs
+    LOCK_DIR=/var/lock/redhawk/device-mgrs
+    NODE_CONFIG_DIR=/etc/redhawk/nodes.d
+    LOG_CFG_DIR=/etc/redhawk/logging
+    LOG_OUT_DIR=/var/log/redhawk
+    node_cfg_defaults=/etc/redhawk/init.d/node.defaults
+    retval=0
+
+    #
+    # Environment and directory checks
+    #
+    [ -d $PID_DIR ] || mkdir -p $PID_DIR
+    [ -d $LOCK_DIR ] || mkdir -p $LOCK_DIR
+    [ -d $LOG_OUT_DIR ] || mkdir -p $LOG_OUT_DIR && chmod guo+rwx $LOG_OUT_DIR
+}
+
+
+node_build_arg_list()
+{
+    local arg
+    local pair
+    local exec_
+    local sdrroot_
+    local tmp_
+
+    unset arg
+    arg=$(resolve_item cfg "sdrroot")
+    [ -z $arg ] && echo "Missing SDRROOT " &&  return 1
+    tmp_=`eval echo $arg`
+    sdrroot_="$tmp_"
+
+    # add in service to run
+    exec_=$(resolve_item cfg "exec")
+    if [[ $? == 0 ]] ;
+    then
+       if [[ $exec_ =~ ^\/.* ]] ; 
+       then
+   	   argv+=("$exec_")
+       else
+           if [ -f $sdrroot_/dev/mgr/$exec_ ];
+           then
+	       argv+=("$sdrroot_/dev/mgr/$exec_")
+           else
+	       argv+=("$exec_")
+           fi
+       fi
+    else
+       argv+=("${EXEC}")
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "dcd_path")
+    if [ -z $arg ];
+    then
+	# dcd is optional use node_name
+        local dcd_path="$sdrroot_/dev/nodes/$node_name/DeviceManager.dcd.xml"
+	if [ -f $dcd_path ];
+	then
+	    arg="/nodes/$node_name/DeviceManager.dcd.xml"
+	else
+	    echo "Missing DMD PATH" && return 1
+	fi
+    else
+	tmp_=`eval echo $arg`
+	arg="$tmp_"
+        # if path starts with / then stip off up to $sdrroot/dev
+        if [[ $arg =~ ^\/.* ]] ; 
+        then
+            if ! [[ $arg =~ ^\/nodes\/.* ]] ; 
+            then
+                arg="${arg#/*/dev}"
+            fi 
+        elif ! [[ $arg =~ ^\/.* ]] ;
+        then
+            local t_="$sdrroot_/$arg"
+            t_=$(readlink -m $t_)
+            arg="${t_#/*/dev}"
+        fi
+    fi
+    argv+=("DCD_FILE") && argv+=($arg)
+
+    unset arg
+    arg=$(resolve_item cfg "domain_name")
+    [ -z $arg ] && echo "Missing Domain Name " && return 1
+    argv+=("DOMAIN_NAME") && argv+=($arg)
+
+    argv+=("SDRROOT") && argv+=($sdrroot_)
+
+    unset arg
+    arg=$(resolve_item cfg "spd")
+    if [ -z $arg ];
+    then
+	# spd is optional use default if not specific
+        local spd_="$sdrroot_/dev/mgr/DeviceManager.spd.xml"
+	if [ -f $spd_ ];
+	then
+	    arg="/mgr/DeviceManager.spd.xml"
+	fi
+    fi
+    [ -z $arg ] && argv+=("SPD") && argv+=($arg)
+
+    unset arg
+    arg=$(resolve_item cfg "sdrcache")
+    if [[ $? == 0 ]];
+    then
+	tmp_=`eval echo $arg`
+	argv+=("SDRCACHE") && argv+=($tmp_)
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "client_wait_time")
+    if [[ $? == 0 ]];
+    then
+	argv+=("CLIENT_WAIT_TIME") && argv+=($arg)
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "debug_level")
+    if [[ $? == 0 ]];
+    then
+        argv+=("DEBUG_LEVEL")
+        if [[ $arg =~ ^(0|1|2|3|4|5)$ ]] ;
+        then
+            argv+=("$arg")
+        else
+            dl=$(debug_name_to_number $arg)
+            argv+=("$dl")
+       fi
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "logcfg")
+    if [[ $? == 0 ]];
+    then
+        argv+=("LOGGING_CONFIG_URI")
+        local lf
+        if [[ $arg =~ ^sca://.* ]]
+        then
+            lf=$arg
+        elif [[ $arg =~ ^\/.* ]] 
+        then
+	    tmp_=`eval echo $arg`
+            lf="file://$tmp_"
+        else
+            lf="file://${LOG_CFG_DIR}/$arg"
+        fi
+        argv+=("$lf")
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "use_logcfg")
+    if [[ $? == 0 ]];
+    then
+        argv+=("USELOGCFG")
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "orb_endpoint")
+    if [[ $? == 0 ]];
+    then
+        argv+=("-ORBendPoint")
+        argv+=("$arg")
+    fi
+
+    unset arg
+    arg=$(resolve_item cfg "orb_initref")
+    if [[ $? == 0 ]];
+    then
+        argv+=("-ORBInitRef")
+        argv+=("$arg")
+    fi
+
+    return 0
+
+}
+
+
+#
+node_start_one() {
+ 
+    node_cmd_pre
+
+    local cfg_file_=$1
+    local section_=$2
+    local filter_list_="$3"
+
+    [[ $_rh_debug_ ]] && echo "node_start:: Processing cfg: $cfg_file_"
+
+    unset exec_options
+    unset argv
+    unset node_name
+    unset dcd_path
+    unset domain_name
+    unset enabled
+    unset pid_file
+    unset lock_file
+
+    unset SDRROOT_
+    unset OSSIEHOME_
+
+    unset cfg
+    declare -A cfg
+    get_config_section "$cfg_file_" "$section_" "$node_cfg_defaults"
+    [[ $? != 0 ]] && echo "Config file error, config file: \"$cfg_file_\" section_: \"$section_\". " && return 1
+    node_name=$(resolve_item cfg "node_name")
+    domain_name=$(resolve_item cfg "domain_name")
+
+    not_in_list "$filter_list_" "$node_name" && not_in_list "$filter_list_" "$domain_name.$node_name" && return 0
+    
+    if [ -z $domain_name ]
+    then
+        echo "==> (ERROR) Required field DOMAIN_NAME not found. config file: \"$cfg_file_\" section: \"$section_\". "
+        return 1
+    fi
+
+    if [ -z $node_name ]
+    then
+        echo "==> (ERROR) Required field NODE_NAME not found, config file: \"$cfg_file_\" section: \"$section_\". "
+        return 1
+    fi
+
+    enabled=$(resolve_item cfg "enable")
+    cond_cfg=$(resolve_item cfg "cond_cfg")
+    [[ $_rh_debug_ ]] && printf "  DOMAIN: %s NODE: %s ENABLE: %d \n\n" "$domain_name" "$node_name" "$enabled"
+    node_enabled "$domain_name.$node_name" "$enabled" "$cond_cfg"
+    [[ $? != 0 ]] && echo "Skipping $node_name, disabled in config file " && return 1
+
+
+    pid_file=$(node_to_pidfile "$domain_name" "$node_name")
+    lock_file=$(node_to_lockfile "$domain_name" "$node_name")
+            
+    # check if process is already started
+    if check_run "$pid_file"
+    then
+	echo "DeviceManager $node_name is already started. ($pid_file) Skipping..."
+	retval=0
+	rh_success
+	return $retval
+    fi
+
+    # build arg list for DeviceManager service
+    declare -a argv
+    ! node_build_arg_list  && echo "Failed parameter check for Node: $node_name" && return 1
+    [[ $_rh_debug_ ]] && declare -p argv
+
+    # build exec_options 
+    declare -A exec_options
+    build_exec_options "$domain_name.$node_name" "$pid_file"
+    [[ $_rh_debug_ ]] && declare -p exec_options
+
+    echo -n "Starting   $node_name: "
+    touch $pid_file && chmod guo+rw $pid_file
+
+    printf -v CMD "%s " "${argv[@]}"
+    [[ $_rh_debug_ ]] && { printf "\nCMD= $CMD \n" ; }
+
+    rh_bg_cmd "$CMD"
+    cmd_retval=$?
+    sleep 1
+    check_run $pid_file
+    retval=$?
+    if [[ $retval ==  2 ]]
+    then
+	[[ $cmd_retval -eq 0 ]]  && rh_success || rh_failure
+    else
+	[[ $retval -eq 0 ]]  && rh_success || rh_failure
+    fi
+
+    # run post start commands...
+    rh_run_scripts "${cfg["START_POST_SCRIPT"]}"
+
+    return $retval
+}
+
+
+node_stop_one() {
+    node_cmd_pre
+
+    local cfg_file_="$1"
+    local section_="$2"
+    local filter_list_="$3"
+
+    [[ $_rh_debug_ ]] && echo "node_stop:: processing cfg: $cfg_file_"
+
+    unset node_name_
+    unset domain_name_
+    unset pid_file_
+    unset lock_file_
+
+    unset cfg
+    declare -A cfg
+    get_config_section "$cfg_file_" "$section_" "$node_cfg_defaults"
+    [[ $? != 0 ]] && echo "Config file error, config file: \"$cfg_file_\" section_: \"$section_\". " && return 1
+    node_name_=$(resolve_item cfg "node_name")
+    domain_name_=$(resolve_item cfg "domain_name")
+
+    not_in_list "$filter_list_" "$node_name_" && not_in_list "$filter_list_" "$domain_name_.$node_name_" && return 0
+
+    if [ -z $domain_name_ ]
+    then
+        echo "==> (ERROR) Required field DOMAIN_NAME not found. config file: \"$cfg_file_\" section: \"$section_\". "
+        return 1
+    fi
+
+    if [ -z $node_name_ ]
+    then
+        echo "==> (ERROR) Required field NODE_NAME not found, config file: \"$cfg_file_\" section: \"$section_\". "
+        return 1
+    fi
+
+    pid_file_=$(node_to_pidfile "$domain_name_" "$node_name_")
+    lock_file_=$(node_to_lockfile "$domain_name_" "$node_name_")
+
+    echo -n "Stopping $node_name: "
+    local exec_=$(resolve_item cfg "exec")
+    if check_run "$pid_file_" "$exec_" ; 
+    then
+        rh_run_scripts "${cfg["STOP_PRE_SCRIPT"]}"
+
+	killproc -p "$pid_file_" 
+	rh_success
+        retval=0
+        [ -f "$pid_file_" ] && rm -f "$pid_file_"
+
+        rh_run_scripts "${cfg["STOP_POST_SCRIPT"]}"
+    else
+	retval=1		
+	rh_failure	
+    fi	
+
+    return $retval
+}
+
+
+
+#
+# Wavform Service Functions
+#
+
+waveform_name(){
+    echo "$1.$2"
+}
+
+#
+# return the DomainName from running an DomainManager for a specific Domain
+#
+waveform_from_pidfile(){
+    local v=$(pidfile_remove_ext $1)
+    [[ $v =~ .*\.(.*)  ]] && echo ${BASH_REMATCH[1]} || echo ""
+}
+
+waveform_from_lockfile(){
+    local v=$(pidfile_remove_ext $1)
+    [[ $v =~ .*\.(.*)  ]] && echo ${BASH_REMATCH[1]} || echo ""
+}
+
+#
+# Generate a pidfile to use when launching the service
+#
+waveform_to_pidfile(){
+    pidfile_name "$1.$2"
+}
+
+waveform_to_lockfile(){
+    lockfile_name "$1.$2"
+}
+
+waveform_pid_files() {
+    ! check_pid_dir && return 1
+    get_pid_files ${PID_DIR}
+    [ ${#pid_files[@]} -eq 0 ] && echo "No REDHAWK Waveform services appear to be running, pid directory $PID_DIR"
+    [ ${#pid_files[@]} -eq 0 ] && return 1 || return 0
+}
+
+#
+# Search domain configuration directory to see if domain is ENABLE
+#
+waveform_enabled() {
+    if [[ $# == 1 ]];
+    then
+        svc_enabled $1 ${WAVEFORM_CONFIG_DIR} "WAVEFORM_NAME" 
+        return $?
+    else
+        resolve_enabled $*
+        return $?
+    fi
+}
+
+
+waveform_check_run() {
+    local waveform_id_=$(waveform_from_pidfile $1)
+    local domain_name_=$(domain_from_pidfile $1)
+    waveform_operation "status" "$domain_name_" "$waveform_id_"
+    return $?
+}
+
+
+
+waveform_cmd_pre(){
+    #
+    # 
+    #
+    EXEC=redhawk-wf-control
+    PID_DIR=/var/run/redhawk/waveforms
+    LOCK_DIR=/var/lock/redhawk/waveforms
+    WAVEFORM_CONFIG_DIR=/etc/redhawk/waveforms.d
+    LOG_CFG_DIR=/etc/redhawk/logging
+    LOG_OUT_DIR=/var/log/redhawk
+    waveform_cfg_defaults=/etc/redhawk/init.d/waveform.defaults
+    retval=0
+
+    #
+    # Environment and directory checks
+    #
+    [ -d $PID_DIR ] || mkdir -p $PID_DIR
+    [ -d $LOCK_DIR ] || mkdir -p $LOCK_DIR
+    [ -d $LOG_OUT_DIR ] || mkdir -p $LOG_OUT_DIR && chmod guo+rwx $LOG_OUT_DIR
+}
+
+
+waveform_operation() {
+
+    local  arg_
+    unset  argv_
+    unset  ARGV_
+    local  operation_=$1
+    local  domain_name_=$2
+    local  waveform_id_=$3
+    local  waveform_uri_=$4
+    local  xtra_args=${@:5}
+
+    declare -a argv_
+    exec_=$(resolve_item cfg "exec")
+    if [ $? -eq 0 ];
+    then
+       if [[ $exec_ =~ ^\/.* ]] ; 
+       then
+   	   argv_+=("$exec_")
+       else
+           if [ -f /etc/redhawk/init.d/$exec_ ];
+           then
+	       argv_+=("/etc/redhawk/init.d/$exec_")
+           else
+	       argv_+=("exec_")
+           fi
+       fi
+    else
+       argv_+=("/etc/redhawk/init.d/${EXEC}")
+    fi
+
+    unset arg
+    [ -z $operation_ ] && echo "Missing required operation: create, remove, status " && return 1
+    argv_+=("--operation") && argv_+=($operation_)
+
+    [[ -n $domain_name_ ]] && argv_+=("--domain-name") && argv_+=("$domain_name_") && shift 
+    [[ -n $waveform_id_ ]] && argv_+=("--waveform-instance-name") && argv_+=("$waveform_id_") && shift
+    [[ -n $waveform_uri ]] && argv_+=("--waveform-uri") && argv_+=("$waveform_uri_") && shift
+
+    # add rest of cmd args
+    argv_+=( ${@} )
+
+    unset arg_
+    arg=$(resolve_item cfg "orb_initref")
+    if [[ $? == 0 ]] ;
+    then
+        argv+=("-ORBInitRef")
+        argv+=("$arg")
+    fi
+
+    # build of command line arguments
+    printf -v ARGS "%s " "${argv_[@]}"
+    [[ $_rh_debug_ ]] && { printf "ARGS= $ARGS \n" ; printf "USER= $user_ \n" ;  printf "GROUP= $group_ \n" ; }
+
+    if [[ $operation_ == "status" ]];
+    then
+        rh_fg_nocap_cmd  "$ARGS"    
+    else
+        rh_fg_cmd  "$ARGS"    
+    fi
+    return $?
+}
+    
+waveform_start_args()
+{
+    local arg
+    local tmp_
+    local operation_=$1
+    
+    [[ $_rh_debug_ ]] && { echo "************************* Build Arg List" ;  declare -p cfg;  echo "*************************"; }
+
+    unset arg
+    arg=$(resolve_item cfg "domain_name")
+    argv+=("--domain-name") && argv+=($arg)
+
+    local wf_name_
+    wf_name_=$(resolve_item cfg "waveform_name")
+    [ -z $wf_name_ ] && echo "Missing WAVEFORM_NAME " && return 1
+
+    unset arg
+    local wf_id_
+    arg=$(resolve_item cfg "waveform_id")
+    if [[ $? != 0 ]];
+    then
+	arg="${wf_name_}_%AUTO%"
+    fi
+
+    wf_id_="$arg"
+    if [[ $arg =~ .*\%AUTO\%.* ]] ;
+    then
+	local uuid_=$(uuidgen)
+	wf_id_=${arg//%AUTO%/$uuid_}
+    fi
+
+    argv+=("--waveform-instance-name") && argv+=($wf_id_)
+    cfg["WAVEFORM_ID"]="$wf_id_"
+
+    local wf_path_
+    wf_path_=$(resolve_item cfg "waveform_path")
+    if [[ $? != 0 ]] ;
+    then
+	wf_path_="/waveforms/$wf_name_/$wf_name_.sad.xml"
+    fi
+    argv+=("--waveform-uri") && argv+=($wf_path_)
+
+    return 0
+
+}
+
+waveform_start_one() {
+
+    waveform_cmd_pre
+
+    local cfg_file_="$1"
+    local section_="$2"
+    local filter_list_="$3"
+
+    unset exec_options
+    unset argv
+    unset waveform_name
+    unset domain_name
+    unset enabled
+    unset pid_file
+    unset lock_file
+
+    unset SDRROOT_
+    unset OSSIEHOME_
+
+    unset cfg
+    declare -A cfg
+    get_config_section "$cfg_file_" "$section_" "$waveform_cfg_defaults"
+    [[ $? != 0 ]] && echo "Config file error, config: \"$cfg_file_\" section: \"$section_\". " && return 1
+
+    waveform_name=$(resolve_item cfg "waveform_name")
+    domain_name=$(resolve_item cfg "domain_name")
+    not_in_list "$filter_list_" "$waveform_name" && not_in_list "$filter_list_" "$domain_name.$waveform_name" && return 0
+
+    if [ -z $domain_name ]
+    then 
+        echo "==> (ERROR) Required field, DOMAIN_NAME not found, config: \"$cfg_file_\" section: \"$section_\". " && return 1
+    fi
+
+    waveform_name=$(resolve_item cfg "waveform_name")
+    if [ -z $waveform_name ]
+    then
+        echo "==> (ERROR) Required field, WAVEFORM_NAME not found, config: \"$cfg_file_\" section: \"$section_\". " && return 1
+    fi
+
+    enabled=$(resolve_item cfg "enable")
+    cond_cfg=$(resolve_item cfg "cond_cfg")
+    [[ $_rh_debug_ ]] && printf "  DOMAIN: %s WAVEFORM: %s ENABLE: %d \n\n" "$domain_name" "$waveform_name" "$enabled"
+    waveform_enabled "$domain_name.$waveform_name" "$enabled" "$cond_cfg"
+    [[ $? != 0 ]] && echo "Skipping $waveform_name, disabled in config file " && return 0
+
+    # build arg list for managing waveform lifecycle, resolves waveform_id
+    declare -a argv
+    ! waveform_start_args  && echo "Failed parameter check for Waveform: $waveform_name" && return 1
+
+    waveform_id=$(resolve_item cfg "waveform_id")
+    pid_file=$(waveform_to_pidfile "$domain_name" "$waveform_id")
+    lock_file=$(waveform_to_lockfile "$domain_name" "$waveform_id")
+
+    # build exec_options 
+    declare -A exec_options
+    build_exec_options "$domain_name.$waveform_name"  "$pid_file"
+    exec_options["RETAIN_ENVIRONMENT"]="true"
+    [[ $_rh_debug_ ]] && declare -p exec_options
+    
+    # check if process is already started
+    if waveform_check_run "$pid_file"
+    then
+	echo "Waveform $waveform_name is already started!. Skipping..."
+	retval=0
+	rh_success
+    else
+        echo -n "Starting   $waveform_id: "
+        waveform_operation "create" "$domain_name" "$waveform_id" ${argv[@]}
+        retval=$?
+        if [[ $retval -eq 0 ]] 
+        then 
+            rh_success
+	    touch $pid_file && chmod guo+rw $pid_file
+            echo "DOMAIN_NAME=$domain_name" >> $pid_file 
+            echo "WAVEFORM_NAME=$waveform_name" >> $pid_file
+            echo "WAVEFORM_ID=$waveform_id" >> $pid_file 
+            echo "CFG_FILE=$cfg_file_" >> $pid_file 
+            echo "SECTION=$section_" >> $pid_file 
+        else
+            retval=1
+            rh_failure
+        fi
+
+        # run post start commands...
+        rh_run_scripts "${cfg["START_POST_SCRIPT"]}"
+    fi
+
+    rh_clean_env
+
+    return $retval
+}
+
+waveform_stop_one() {
+
+    waveform_cmd_pre
+
+    local pid_file_="$1"
+    local filter_list_="$2"
+    local domain_name_
+    local cfg_file_
+    local waveform_name_
+    local waveform_id_
+    local retval_=0
+
+    [[ ! -f "$pid_file_" ]] && echo "Unable to open pidfile: $pid_file_" && return 1
+
+    unset exec_options
+    waveform_id_=$(waveform_from_pidfile $pid_file)
+    domain_name_=$(domain_from_pidfile $pid_file)
+    not_in_list "$filter_list_" "$waveform_id_" && not_in_list "$filter_list_" "$domain_name_.$waveform_id_" && return 0
+
+    declare -A exec_options
+    declare -A cfg=()
+    get_ini_section $pid_file_ "" 
+        
+    waveform_name_=$(resolve_item cfg "waveform_name")
+    section_=$(resolve_item cfg "section")
+    cfg_file_=$(resolve_item cfg "cfg_file")
+
+    unset cfg
+    declare -A cfg=()
+    if [[ $cfg_file_ ]];
+    then
+        get_config_section "$cfg_file_" "$section_" "$waveform_cfg_defaults"
+        cfg["WAVEFORM_ID"]="$waveform_id"
+        build_exec_options "$domain_name_.$waveform_name_"  "$pid_file_"
+        exec_options["RETAIN_ENVIRONMENT"]="true"
+        [[ $_rh_debug_ ]] && declare -p cfg
+        [[ $_rh_debug_ ]] && declare -p exec_options
+    fi
+           
+    echo -n "Stopping $waveform_name: "
+    if waveform_check_run "$pid_file_"
+    then
+        rh_run_scripts "${cfg["STOP_PRE_SCRIPT"]}"
+
+        waveform_operation "remove" "$domain_name_" "$waveform_id_" 
+        retval_=0
+	rh_success
+	[ -f "$pid_file_" ] && rm -f "$pid_file_"
+
+        rh_run_scripts "${cfg["STOP_POST_SCRIPT"]}"
+    else
+	retval_=1		
+	rh_failure	
+    fi	
+
+    rh_clean_env
+    return $retval_
+
+}
+

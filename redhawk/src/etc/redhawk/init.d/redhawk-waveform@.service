@@ -1,0 +1,18 @@
+[Unit]
+Description=Redhawk Waveform Template
+After=syslog.target
+Wants=redhawk-domain-mgrs.service
+After=redhawk-domain-mgrs.service
+
+[Service]
+Type=notify
+Environment=DOMAIN=
+Environment=WAVEFORM_NAME=
+ExecStart=/etc/redhawk/init.d/redhawk-waveform ${DOMAIN_NAME} ${WAVEFORM_NAME}
+WorkingDirectory=/etc/redhawk/init.d
+NotifyAccess=all
+TimeoutSec=10s
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
