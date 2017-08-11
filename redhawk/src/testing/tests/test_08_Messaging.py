@@ -111,7 +111,7 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         c=sb.launch('huge_msg_java', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
         c.connect(snk)
         sb.start()
-        time.sleep(1)
+        time.sleep(3)
         fp = None
         try:
             fp = open('foo/bar/test.log','r')
