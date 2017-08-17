@@ -213,14 +213,14 @@ module FRONTEND {
 
         The scan_mode property in the tuner_allocation structure is used for device allocation. If scan_mode is set to 
         "Scan" and the device has the capability, it will be allocated. The scan_rate property is also available in the 
-        tuner_allocation structure. It is used as a allocation property if the user specifies a desired rate for the scan 
+        tuner_allocation structure. It is used as an allocation property if the user specifies a desired rate for the scan 
         operation. It is an optional allocation parameter.
 
         Tuner SCAN Mode allows the tuner to internally perform a scan where the tuner itself retunes to cover the desired
         spectrum. There are two types of automated scans: Span scan and discrete frequency scan, and a single non-automated scan: Manual (the way devices normally operate).
         The scan_mode_type value determines the scan type. If the only scanning that the device allows is manual, then the device does not support scanning.
         A Span scan is created using a series of start/stop frequencies. A Discrete Frequency Scan is created from a series of discrete 
-        frequencies. Each of these are inputs are used to create a series of center tune frequencies. Based on the selected bandwidth,
+        frequencies. Each of these inputs are used to create a series of center tune frequencies. Based on the selected bandwidth,
         the tuner scan generates as a series of center frequency retunes to cover the spectrum between the start/stop frequencies or
         discrete frequencies.
 
