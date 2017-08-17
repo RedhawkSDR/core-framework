@@ -24,7 +24,7 @@ from _unitTestHelpers import scatest
 from xml.dom import minidom
 from omniORB import CORBA, URI, any
 import omniORB
-from ossie.cf import CF, CF__POA
+from ossie.cf import CF, CF__POA, ExtendedCF
 import commands
 from ossie.utils import redhawk
 from ossie import properties
@@ -2741,6 +2741,138 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         for comp in components:
             comp.componentObject.configure(props)
         app.releaseObject()
+
+    def test_StopTimeout(self):
+        nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
+        self.assertNotEqual(devMgr, None)
+
+        # Create the application, which is pre-configured such that the last
+        # component in the start order (and hence, first in stop) will fail on
+        # stop().
+        app = domMgr.createApplication('/waveforms/long_stop/long_stop.sad.xml', 'long_stop', [], [])
+        app.start()
+        begin_stop = time.time()
+        try:
+            app.stop()
+        except:
+            pass
+        end_stop = time.time()
+        stop_time = end_stop-begin_stop
+        app.releaseObject()
+        end_release = time.time()
+        release_time = end_release-end_stop
+        self.assertTrue(16<=stop_time<=17)
+        self.assertTrue(20<=release_time<=21)
+
+    def test_StopTimeoutBuiltinDefault(self):
+        nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
+        self.assertNotEqual(devMgr, None)
+
+        # Create the application, which is pre-configured such that the last
+        # component in the start order (and hence, first in stop) will fail on
+        # stop().
+        app = domMgr.createApplication('/waveforms/long_stop_builtin_def/long_stop_builtin_def.sad.xml', 'long_stop', [], [])
+        app.start()
+        begin_stop = time.time()
+        try:
+            app.stop()
+        except:
+            pass
+        end_stop = time.time()
+        stop_time = end_stop-begin_stop
+        app.releaseObject()
+        end_release = time.time()
+        release_time = end_release-end_stop
+        self.assertTrue(6<=stop_time<=7)
+        self.assertTrue(20<=release_time<=21)
+
+    def test_StopTimeoutLiveOverride(self):
+        nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
+        self.assertNotEqual(devMgr, None)
+
+        # Create the application, which is pre-configured such that the last
+        # component in the start order (and hence, first in stop) will fail on
+        # stop().
+        initconfig = [CF.DataType(id=ExtendedCF.WKP.STOP_TIMEOUT, value=any.to_any(4))]
+        app = domMgr.createApplication('/waveforms/long_stop/long_stop.sad.xml', 'long_stop', initconfig, [])
+        app.start()
+        begin_stop = time.time()
+        try:
+            app.stop()
+        except:
+            pass
+        end_stop = time.time()
+        stop_time = end_stop-begin_stop
+        app.releaseObject()
+        end_release = time.time()
+        release_time = end_release-end_stop
+        self.assertTrue(8<=stop_time<=9)
+        self.assertTrue(20<=release_time<=21)
+
+    def test_StopTimeoutChange(self):
+        nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
+        self.assertNotEqual(devMgr, None)
+
+        # Create the application, which is pre-configured such that the last
+        # component in the start order (and hence, first in stop) will fail on
+        # stop().
+        initconfig = [CF.DataType(id=ExtendedCF.WKP.STOP_TIMEOUT, value=any.to_any(4))]
+        app = domMgr.createApplication('/waveforms/long_stop/long_stop.sad.xml', 'long_stop', initconfig, [])
+        app.start()
+        curr_stoptimeout = app._get_stopTimeout()
+        self.assertEquals(curr_stoptimeout, 4.0)
+        app._set_stopTimeout(5)
+        begin_stop = time.time()
+        try:
+            app.stop()
+        except:
+            pass
+        end_stop = time.time()
+        stop_time = end_stop-begin_stop
+        app.releaseObject()
+        end_release = time.time()
+        release_time = end_release-end_stop
+        self.assertTrue(10<=stop_time<=11)
+        self.assertTrue(20<=release_time<=21)
+
+    def test_StopTimeoutIndefinite(self):
+        nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
+        self.assertNotEqual(devMgr, None)
+
+        # Create the application, which is pre-configured such that the last
+        # component in the start order (and hence, first in stop) will fail on
+        # stop().
+        app = domMgr.createApplication('/waveforms/slow_stop_w/slow_stop_w.sad.xml', 'slow_stop', [], [])
+        app.start()
+        curr_stoptimeout = app._get_stopTimeout()
+        self.assertEquals(curr_stoptimeout, -1)
+        begin_stop = time.time()
+        try:
+            app.stop()
+        except:
+            pass
+        end_stop = time.time()
+        stop_time = end_stop-begin_stop
+        app.releaseObject()
+        end_release = time.time()
+        release_time = end_release-end_stop
+        self.assertTrue(5<=stop_time<=6)
+        self.assertTrue(8<=release_time<=9)
 
     def _test_ValgrindCppDevice(self, appFact, valgrind):
         # Clear the device cache to prevent false positives

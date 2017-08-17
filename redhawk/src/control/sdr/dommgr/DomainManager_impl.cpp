@@ -2669,6 +2669,7 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
                                                          node.contextName,
                                                          node.context,
                                                          node.aware_application,
+                                                         node.stop_timeout,
                                                          CosNaming::NamingContext::_nil());
     LOG_TRACE(DomainManager_impl, "Restored " << node.connections.size() << " connections");
 
@@ -2768,6 +2769,7 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
     appNode.allocationIDs = application->_allocationIDs;
     appNode.connections = application->_connections;
     appNode.aware_application = application->_isAware;
+    appNode.stop_timeout = application->_stopTimeout;
     appNode.ports = application->_ports;
     appNode.properties = application->_properties;
 

@@ -179,6 +179,11 @@ const std::vector<SoftwareAssembly::Property>& SoftwareAssembly::getExternalProp
     return _sad->externalproperties;
 }
 
+const std::vector<SoftwareAssembly::Option>& SoftwareAssembly::getOptions() const {
+    assert(_sad.get() != 0);
+    return _sad->options;
+}
+
 const std::vector<UsesDevice>& SoftwareAssembly::getUsesDevices() const {
     assert(_sad.get() != 0);
     return _sad->usesdevice;

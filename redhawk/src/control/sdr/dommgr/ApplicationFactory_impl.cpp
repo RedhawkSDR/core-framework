@@ -738,6 +738,24 @@ std::vector<std::string> createHelper::_getFailedUsesDevices(const std::vector<o
     return failed_ids;
 }
 
+void createHelper::checkOptions()
+{
+    LOG_TRACE(ApplicationFactory_impl,
+              "Number of optionss: " << _appFact._sadParser.getOptions().size());
+
+    BOOST_FOREACH(const SoftwareAssembly::Option& option, _appFact._sadParser.getOptions()) {
+        if (option.name == "AWARE_APPLICATION") {
+            if ((option.value == "true") || (option.value == "True") || (option.value == "TRUE") || (option.value == "1")) {
+                this->_aware = true;
+            } else if ((option.value == "false") || (option.value == "False") || (option.value == "FALSE") || (option.value == "0")) {
+                this->_aware = false;
+            }
+        } else if (option.name == "STOP_TIMEOUT") {
+            this->_stopTimeout = strtof(option.value.c_str(), NULL);
+        }
+    }
+}
+
 void createHelper::setUpExternalPorts(redhawk::ApplicationDeployment& appDeployment,
                                       Application_impl* application)
 {
@@ -934,17 +952,53 @@ CF::Application_ptr createHelper::create (
 {
     TRACE_ENTER(ApplicationFactory_impl);
     
-    bool aware_application = true;
-    
     CF::Properties modifiedInitConfiguration;
+
+    checkOptions();
 
     ///////////////////////////////////////////////////////////////////
     // Check to see if this is an aware application and 
     //  check to see if a different GPP reservation setting is defined
     const std::string aware_app_property_id(ExtendedCF::WKP::AWARE_APPLICATION);
+    const std::string aware_app_deprecated_property_id("AWARE_APPLICATION");
+    const std::string stop_timeout_property_id(ExtendedCF::WKP::STOP_TIMEOUT);
     for (unsigned int initCount = 0; initCount < initConfiguration.length(); initCount++) {
-        if (std::string(initConfiguration[initCount].id) == aware_app_property_id) {
-            initConfiguration[initCount].value >>= aware_application;
+        std::string stringId(initConfiguration[initCount].id);
+        if ((stringId == aware_app_property_id) or (stringId == aware_app_deprecated_property_id)) {
+            initConfiguration[initCount].value >>= this->_aware;
+            modifiedInitConfiguration.length(initConfiguration.length()-1);
+            for (unsigned int rem_idx=0; rem_idx<initConfiguration.length()-1; rem_idx++) {
+                unsigned int idx_mod = 0;
+                if (rem_idx == initCount)
+                    idx_mod = 1;
+                modifiedInitConfiguration[rem_idx] = initConfiguration[rem_idx+idx_mod];
+            }
+        }
+    }
+    for (unsigned int initCount = 0; initCount < initConfiguration.length(); initCount++) {
+        std::string stringId(initConfiguration[initCount].id);
+        if (stringId == stop_timeout_property_id) {
+            short short_to;
+            CORBA::Long long_to;
+            unsigned short ushort_to;
+            CORBA::ULong ulong_to;
+            double double_to;
+            float float_to;
+            if (initConfiguration[initCount].value >>= short_to) {
+                this->_stopTimeout = short_to;
+            } else if (initConfiguration[initCount].value >>= long_to) {
+                this->_stopTimeout = long_to;
+            } else if (initConfiguration[initCount].value >>= ushort_to) {
+                this->_stopTimeout = ushort_to;
+            } else if (initConfiguration[initCount].value >>= ulong_to) {
+                this->_stopTimeout = ulong_to;
+            } else if (initConfiguration[initCount].value >>= double_to) {
+                this->_stopTimeout = (float)double_to;
+            } else if (initConfiguration[initCount].value >>= float_to) {
+                this->_stopTimeout = float_to;
+            } else {
+                throw std::logic_error("Option STOP_TIMEOUT must be a number");
+            }
             modifiedInitConfiguration.length(initConfiguration.length()-1);
             for (unsigned int rem_idx=0; rem_idx<initConfiguration.length()-1; rem_idx++) {
                 unsigned int idx_mod = 0;
@@ -1040,7 +1094,8 @@ CF::Application_ptr createHelper::create (
                                         _appFact._domainManager, 
                                         _waveformContextName, 
                                         _waveformContext,
-                                        aware_application,
+                                        this->_aware,
+                                        this->_stopTimeout,
                                         _domainContext);
     _appFact._domainManager->addPendingApplication(_application);
 
@@ -2495,7 +2550,9 @@ createHelper::createHelper (
     _domainContext(domainContext),
     _profileCache(_appFact._fileMgr),
     _isComplete(false),
-    _application(0)
+    _application(0),
+    _stopTimeout(DEFAULT_STOP_TIMEOUT),
+    _aware(true)
 {
 }
 

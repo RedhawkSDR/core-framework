@@ -200,9 +200,10 @@ void ApplicationComponent::start()
     }
 }
 
-bool ApplicationComponent::stop()
+bool ApplicationComponent::stop(float timeout)
 {
-    const unsigned long timeout = 3; // seconds
+    if (timeout < 0)
+        timeout = 0;
     omniORB::setClientCallTimeout(_resource, timeout * 1000);
     try {
         _resource->stop();

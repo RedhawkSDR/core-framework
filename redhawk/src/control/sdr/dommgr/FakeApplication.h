@@ -68,6 +68,10 @@ public:
     
     bool aware ();
     
+    CORBA::Float stopTimeout () throw (CORBA::SystemException);
+
+    void stopTimeout (CORBA::Float timeout) throw (CORBA::SystemException);
+    
     CF::DeviceAssignmentSequence * componentDevices ();
     CF::Application::ComponentElementSequence * componentImplementations ();
     CF::Application::ComponentElementSequence * componentNamingContexts ();

@@ -86,6 +86,12 @@ namespace sad
   }
 
   void softwareassembly_pimpl::
+  options (::std::vector<ossie::SoftwareAssembly::Option>& options)
+  {
+      _sad->options.swap(options);
+  }
+
+  void softwareassembly_pimpl::
   usesdevicedependencies (::std::vector<ossie::UsesDevice>& usesdevices)
   {
       _sad->usesdevice.swap(usesdevices);
@@ -1403,6 +1409,54 @@ namespace sad
    post_property ()
   {
       return *property;
+  }
+
+  // options_pimpl
+  //
+
+  void options_pimpl::
+  pre ()
+  {
+      extOptions.clear();
+  }
+
+  void options_pimpl::
+  option (const ossie::SoftwareAssembly::Option& option)
+  {
+      extOptions.push_back(option);
+  }
+
+  ::std::vector<ossie::SoftwareAssembly::Option>& options_pimpl::
+  post_options ()
+  {
+      return extOptions;
+  }
+
+  // option_pimpl
+  //
+
+  void option_pimpl::
+  pre ()
+  {
+      option.reset(new ossie::SoftwareAssembly::Option());
+  }
+
+  void option_pimpl::
+  name(const ::std::string& name)
+  {
+      option->name = name;
+  }
+
+  void option_pimpl::
+  value(const ::std::string& value)
+  {
+      option->value = value;
+  }
+
+  ::ossie::SoftwareAssembly::Option option_pimpl::
+  post_option ()
+  {
+      return *option;
   }
 
   // usesdevicedependencies_pimpl

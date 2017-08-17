@@ -108,6 +108,7 @@ private:
                                    const std::map<std::string,float>& specialized_reservations);
     void _resolveAssemblyController(redhawk::ApplicationDeployment& appDeployment);
     void _validateDAS(redhawk::ApplicationDeployment& appDeployment, const DeviceAssignmentMap& deviceAssignments);
+    void checkOptions();
     void setUpExternalPorts(redhawk::ApplicationDeployment& appDeployment, Application_impl* application);
     void setUpExternalProperties(redhawk::ApplicationDeployment& appDeployment, Application_impl* application);
     std::vector<ossie::Reservation> overloadReservations(const ossie::SoftwareAssembly::HostCollocation& collocation,
@@ -201,5 +202,7 @@ private:
     bool _isComplete;
     void _cleanupFailedCreate();
     Application_impl* _application;
+    float _stopTimeout;
+    bool _aware;
 };
 #endif

@@ -35,6 +35,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 			<xs:element name="connections" type="connections" minOccurs="0"/>
 			<xs:element name="externalports" type="externalports" minOccurs="0" ecore:name="externalPorts"/>
 			<xs:element name="externalproperties" type="externalproperties" minOccurs="0" ecore:name="externalProperties"/>
+            <xs:element name="options" type="options" minOccurs="0" ecore:name="options"/>
 			<xs:element name="usesdevicedependencies" type="usesdevicedependencies" minOccurs="0" maxOccurs="unbounded" ecore:name="usesDeviceDependencies"/>
 		</xs:sequence>
 		<xs:attribute name="id" use="required" type="xs:string"/>
@@ -327,6 +328,15 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 		<xs:attribute name="propid" use="required" type="xs:string"/>
 		<xs:attribute name="externalpropid" use="optional" type="xs:string"/>
 	</xs:complexType>
+    <xs:complexType name="options">
+        <xs:sequence>
+            <xs:element name="option" type="option" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="option">
+        <xs:attribute name="name" use="required" type="xs:string"/>
+        <xs:attribute name="value" use="required" type="xs:string"/>
+    </xs:complexType>
 	<xs:complexType name="usesdevicedependencies">
 		<xs:sequence>
 			<xs:element name="usesdevice" type="usesdevice" maxOccurs="unbounded"/>

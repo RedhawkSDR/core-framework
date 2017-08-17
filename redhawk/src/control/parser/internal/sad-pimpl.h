@@ -59,6 +59,9 @@ namespace sad
     externalproperties (::std::vector<ossie::SoftwareAssembly::Property>&);
 
     virtual void
+    options (::std::vector<ossie::SoftwareAssembly::Option>&);
+
+    virtual void
     usesdevicedependencies (::std::vector<ossie::UsesDevice>&);
 
     virtual void
@@ -923,6 +926,41 @@ namespace sad
 
   private:
       std::auto_ptr<ossie::SoftwareAssembly::Property> property;
+  };
+
+  class options_pimpl: public virtual options_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    option (const ossie::SoftwareAssembly::Option&);
+
+    virtual ::std::vector<ossie::SoftwareAssembly::Option>&
+    post_options ();
+
+    private:
+    std::vector<ossie::SoftwareAssembly::Option> extOptions;
+  };
+
+  class option_pimpl: public virtual option_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    name (const ::std::string&);
+
+    virtual void
+    value (const ::std::string&);
+
+    virtual ::ossie::SoftwareAssembly::Option
+    post_option ();
+
+    private:
+    std::auto_ptr<ossie::SoftwareAssembly::Option> option;
   };
 
   class usesdevicedependencies_pimpl: public virtual usesdevicedependencies_pskel

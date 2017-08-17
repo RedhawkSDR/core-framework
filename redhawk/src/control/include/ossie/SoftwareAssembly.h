@@ -140,6 +140,22 @@ namespace ossie {
             }
         };
 
+        class Option {
+        public:
+            std::string name;
+            std::string value;
+
+            const std::string& getName() const
+            {
+                return name;
+            }
+
+            const std::string& getValue() const
+            {
+                return value;
+            }
+        };
+
         class SAD {
             public:
                 std::string id;
@@ -150,6 +166,7 @@ namespace ossie {
                 std::vector<ComponentFile> componentfiles;
                 std::vector<SoftwareAssembly::Port> externalports;
                 std::vector<SoftwareAssembly::Property> externalproperties;
+                std::vector<SoftwareAssembly::Option> options;
                 std::vector<UsesDevice> usesdevice;
         };
        
@@ -182,6 +199,8 @@ namespace ossie {
         const std::vector<SoftwareAssembly::Port>& getExternalPorts() const;
 
         const std::vector<SoftwareAssembly::Property>& getExternalProperties() const;
+
+        const std::vector<SoftwareAssembly::Option>& getOptions() const;
 
         const std::vector<UsesDevice>& getUsesDevices() const;
 

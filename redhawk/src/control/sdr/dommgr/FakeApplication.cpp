@@ -122,6 +122,13 @@ bool FakeApplication::aware ()
     return false;
 }
 
+CORBA::Float FakeApplication::stopTimeout () throw (CORBA::SystemException) {
+    return -1;
+}
+
+void FakeApplication::stopTimeout (CORBA::Float timeout) throw (CORBA::SystemException) {
+}
+
 CF::DeviceAssignmentSequence * FakeApplication::componentDevices ()
 {
     return new CF::DeviceAssignmentSequence();

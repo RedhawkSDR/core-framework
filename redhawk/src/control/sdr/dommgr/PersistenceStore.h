@@ -149,6 +149,7 @@ namespace ossie {
         std::map<std::string, CORBA::Object_var> ports;
         std::map<std::string, std::pair<std::string, CF::Resource_var> > properties;
         bool aware_application;
+        float stop_timeout;
     };
     
     class ServiceNode {

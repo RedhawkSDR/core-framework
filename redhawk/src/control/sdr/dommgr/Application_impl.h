@@ -51,7 +51,8 @@ public:
 
     Application_impl (const std::string& id, const std::string& name, const std::string& profile,
                       DomainManager_impl* domainManager, const std::string& waveformContextName,
-                      CosNaming::NamingContext_ptr waveformContext, bool aware, CosNaming::NamingContext_ptr DomainContext);
+                      CosNaming::NamingContext_ptr waveformContext, bool aware,
+                      float stopTimeout, CosNaming::NamingContext_ptr DomainContext);
     
     void populateApplication (const CF::DeviceAssignmentSequence& deviceAssignments,
                               std::vector<ossie::ConnectionNode>& connections,
@@ -71,7 +72,7 @@ public:
     void stop ()
         throw (CF::Resource::StopError, CORBA::SystemException);
 
-    void local_stop ()
+    void local_stop (float timeout)
         throw (CF::Resource::StopError, CORBA::SystemException);
 
     // The core framework provides an implementation for this method.
@@ -119,6 +120,10 @@ public:
     char* name () throw (CORBA::SystemException);
     
     bool aware () throw (CORBA::SystemException);
+    
+    CORBA::Float stopTimeout () throw (CORBA::SystemException);
+
+    void stopTimeout (CORBA::Float timeout) throw (CORBA::SystemException);
     
     CF::DeviceAssignmentSequence * componentDevices ()
         throw (CORBA::SystemException);
@@ -208,6 +213,7 @@ private:
     CosNaming::NamingContext_var _waveformContext;
     bool _started;
     const bool _isAware;
+    float _stopTimeout;
     FakeApplication* _fakeProxy;
     
     ApplicationRegistrar_impl* _registrar;

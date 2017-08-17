@@ -111,7 +111,8 @@ namespace {
 
 Application_impl::Application_impl (const std::string& id, const std::string& name, const std::string& profile,
                                     DomainManager_impl* domainManager, const std::string& waveformContextName,
-                                    CosNaming::NamingContext_ptr waveformContext, bool aware, CosNaming::NamingContext_ptr DomainContext) :
+                                    CosNaming::NamingContext_ptr waveformContext, bool aware,
+                                    float stopTimeout, CosNaming::NamingContext_ptr DomainContext) :
     _assemblyController(0),
     _identifier(id),
     _sadProfile(profile),
@@ -121,6 +122,7 @@ Application_impl::Application_impl (const std::string& id, const std::string& na
     _waveformContext(CosNaming::NamingContext::_duplicate(waveformContext)),
     _started(false),
     _isAware(aware),
+    _stopTimeout(stopTimeout),
     _fakeProxy(0),
     _domainContext(CosNaming::NamingContext::_duplicate(DomainContext)),
     _releaseAlreadyCalled(false)
@@ -270,10 +272,10 @@ throw (CORBA::SystemException, CF::Resource::StopError)
             return;
         }
     }
-    this->local_stop();
+    this->local_stop(this->_stopTimeout);
 }
 
-void Application_impl::local_stop ()
+void Application_impl::local_stop (float timeout)
 throw (CORBA::SystemException, CF::Resource::StopError)
 {
     if (!_assemblyController && _startOrder.empty()) {
@@ -284,14 +286,14 @@ throw (CORBA::SystemException, CF::Resource::StopError)
     // Stop the components in the reverse order they were started
     BOOST_REVERSE_FOREACH(redhawk::ApplicationComponent* component, _startOrder) {
         LOG_TRACE(Application_impl, "Calling stop for " << component->getIdentifier());
-        if (!component->stop()) {
+        if (!component->stop(timeout)) {
             failures++;
         }
     }
 
     if (_assemblyController) {
         LOG_TRACE(Application_impl, "Calling stop on assembly controller");
-        if (!_assemblyController->stop()) {
+        if (!_assemblyController->stop(timeout)) {
             failures++;
         }
     }
@@ -314,6 +316,13 @@ throw (CORBA::SystemException, CF::Resource::StopError)
     }
 }
 
+CORBA::Float Application_impl::stopTimeout () throw (CORBA::SystemException) {
+    return this->_stopTimeout;
+}
+
+void Application_impl::stopTimeout (CORBA::Float timeout) throw (CORBA::SystemException) {
+    this->_stopTimeout = timeout;
+}
 
 void Application_impl::initializeProperties (const CF::Properties& configProperties)
 throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfiguration, CORBA::SystemException)
@@ -901,7 +910,7 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 
     // Stop all components on the application
     try {
-        this->local_stop();
+        this->local_stop(DEFAULT_STOP_TIMEOUT);
     } catch ( ... ) {
         // error happened while stopping. Ignore the error and continue tear-down
         LOG_TRACE(Application_impl, "Error occurred while stopping the application during tear-down. Ignoring the error and continuing")

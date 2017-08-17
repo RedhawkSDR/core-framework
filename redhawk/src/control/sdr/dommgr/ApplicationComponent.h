@@ -29,6 +29,8 @@
 
 #include "PersistenceStore.h"
 
+#define DEFAULT_STOP_TIMEOUT 3
+
 namespace redhawk {
     class ApplicationComponent {
 
@@ -79,7 +81,7 @@ namespace redhawk {
         const std::vector<ApplicationComponent*>& getChildren() const;
 
         void start();
-        bool stop();
+        bool stop(float timeout);
 
         void releaseObject();
         void terminate();

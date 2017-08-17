@@ -548,7 +548,6 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
     CF::Properties invalidProps;
 
     bool totalCap = true;                         /* Flag to check remaining extra capacity to allocate */
-    bool foundProperty;                           /* Flag to indicate if the requested property was found */
     AnyComparisonType compResult;
 
     {
@@ -561,7 +560,6 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
         SCOPED_LOCK(propertySetAccess);
         /* Look in propertySet for the properties requested */
         for (unsigned i = 0; i < capacities.length (); i++) {
-            foundProperty = false;
             CF::DataType request = capacities[i];
             std::string pid = (const char*)capacities[i].id;
             PropertyInterface *property = getPropertyFromId(pid);

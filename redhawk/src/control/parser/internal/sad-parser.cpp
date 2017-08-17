@@ -66,6 +66,8 @@ ossie::internalparser::parseSAD(std::istream& input) throw (ossie::parser_error)
         ::sad::port_pimpl port_p;
         ::sad::externalproperties_pimpl externalproperties_p;
         ::sad::property_pimpl property_p;
+        ::sad::options_pimpl options_p;
+        ::sad::option_pimpl option_p;
         ::sad::usesdevicedependencies_pimpl usesdevicedependencies_p;
         ::sad::usesdevice_pimpl usesdevice_p;
         ::sad::propertyref_pimpl propertyref_p;
@@ -86,6 +88,7 @@ ossie::internalparser::parseSAD(std::istream& input) throw (ossie::parser_error)
                                     connections_p,
                                     externalports_p,
                                     externalproperties_p,
+                                    options_p,
                                     usesdevicedependencies_p,
                                     string_p,
                                     string_p,
@@ -235,6 +238,11 @@ ossie::internalparser::parseSAD(std::istream& input) throw (ossie::parser_error)
         property_p.parsers (string_p,
                             string_p,
                             string_p);
+
+        options_p.parsers (option_p);
+
+        option_p.parsers (string_p,
+                        string_p);
 
         usesdevicedependencies_p.parsers (usesdevice_p);
 

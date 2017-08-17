@@ -1040,6 +1040,8 @@ module CF {
         /*readonly attribute ApplicationRegistrar appReg;*/
         /* This boolean attribute contains the aware state of Application. This attribute shows whether the Components in the Application are given a pointer to the Application and Domain Manager. */
         readonly attribute boolean aware;
+        /* This readwrite float attribute is the stop timeout for the Application. This is how long the framework will wait on each component when stop is called (not during releaseObject). */
+        attribute float stopTimeout;
         exception InvalidMetric {
             CF::StringSequence components;
             CF::StringSequence attributes;

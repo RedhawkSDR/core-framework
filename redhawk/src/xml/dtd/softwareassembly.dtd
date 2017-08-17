@@ -26,6 +26,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	, connections?
 	, externalports?
 	, externalproperties?
+    , settings?
 	, usesdevicedependencies?
 	)>
 <!ATTLIST softwareassembly
@@ -284,6 +285,13 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	comprefid			CDATA	#REQUIRED
 	propid				CDATA	#REQUIRED
 	externalpropid		CDATA	#IMPLIED>
+
+<!ELEMENT options
+    (option+
+    )>
+<!ATTLIST option
+    name                CDATA   #REQUIRED
+    value               CDATA   #REQUIRED>
 
 <!ELEMENT usesdevicedependencies
 	(usesdevice+
