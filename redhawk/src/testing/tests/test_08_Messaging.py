@@ -106,6 +106,7 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
         self.assertEquals(number_warnings, 2)
 
+    @scatest.requireJava
     def test_MessageMarshalJava(self):
         snk=sb.MessageSink('')
         c=sb.launch('huge_msg_java', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
