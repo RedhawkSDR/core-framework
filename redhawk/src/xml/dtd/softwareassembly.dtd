@@ -26,7 +26,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	, connections?
 	, externalports?
 	, externalproperties?
-    , settings?
+	, options?
 	, usesdevicedependencies?
 	)>
 <!ATTLIST softwareassembly
