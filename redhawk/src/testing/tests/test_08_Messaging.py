@@ -77,6 +77,7 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         sb.setDEBUG(False)
         os.environ['SDRROOT'] = globalsdrRoot
 
+    @scatest.requireLog4cxx
     def test_MessageMarshalCpp(self):
         snk=sb.MessageSink('')
         c=sb.launch('huge_msg_cpp', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
