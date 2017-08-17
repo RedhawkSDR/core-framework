@@ -224,10 +224,9 @@ module FRONTEND {
         the tuner scan generates as a series of center frequency retunes to cover the spectrum between the start/stop frequencies or
         discrete frequencies.
 
-        If the scan_mode_enable is toggled from "OFF" to "ON", the tuner will begin to generate retunes for each center tune frequency
-        that was generated to cover the spectrum. It will then tune, dwell for a specific number of samples based on the dwell setting 
-        and then move to the next center frequency. It is imperative to guarantee accurate data that the tuner not output samples until 
-        the tuner settling time has been internally accounted for.
+        If the scan_mode_enabled reflects whether the tuner is currently scanning through a plan that was generated to cover the spectrum.
+        It will then tune, dwell for a specific number of samples based on the dwell setting and then move to the next center frequency.
+        No output samples should be generated until the tuner settling time has been internally accounted for.
 
         The start_time allows for synchronous sampling between multiple tuners. 
 
