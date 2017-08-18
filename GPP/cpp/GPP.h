@@ -373,9 +373,14 @@ class GPP_i : public GPP_base
           void _init();
         
           //
-          // check file and thread limits for the process and system
+          // check thread limits for the process and system
           //
-          bool _check_limits( const thresholds_struct &threshold);
+          bool _check_thread_limits( const thresholds_struct &threshold);
+
+          //
+          // check file limits for the process and system
+          //
+          bool _check_file_limits( const thresholds_struct &threshold);
 
           //
           // check threshold limits for nic interfaces to determine busy state
@@ -383,8 +388,6 @@ class GPP_i : public GPP_base
           bool _check_nic_thresholds();
 
           std::string user_id;
-          int limit_check_count;
-
           ossie::ProcessThread                                _signalThread;
           ossie::ProcessThread                                _redirectedIO;
         };

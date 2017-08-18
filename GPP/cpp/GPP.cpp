@@ -401,7 +401,6 @@ void GPP_i::_init() {
   std::ostringstream s;
   s << tmp_user_id;
   user_id = s.str();
-  limit_check_count = 0;
   n_reservations =0;
   sig_fd = -1;
 
@@ -1509,13 +1508,8 @@ bool GPP_i::_check_nic_thresholds()
     return retval;
 }
 
-bool GPP_i::_check_limits( const thresholds_struct &thresholds)
+bool GPP_i::_check_thread_limits( const thresholds_struct &thresholds)
 {
-    limit_check_count = (limit_check_count + 1) % 10;
-    if ( limit_check_count ) {
-        return false;
-    }
-
     float _tthreshold = 1 - __thresholds.threads * .01;
 
     if (gpp_limits.max_threads != -1) {
@@ -1539,7 +1533,34 @@ bool GPP_i::_check_limits( const thresholds_struct &thresholds)
         return true;
       }
     }
-    
+    return false;
+}
+
+bool GPP_i::_check_file_limits( const thresholds_struct &thresholds)
+{
+    float _fthreshold = 1 - __thresholds.files_available * .01;
+
+    if (gpp_limits.max_open_files != -1) {
+      //
+      // check current process limits
+      //
+      LOG_TRACE(GPP_i, "_gpp_check_limits threads (cur/max): "  << gpp_limits.current_open_files << "/" << gpp_limits.max_open_files );
+      if (gpp_limits.current_open_files>(gpp_limits.max_open_files*_fthreshold)) {
+        LOG_WARN(GPP_i, "GPP process thread limit threshold exceeded,  count/threshold: " <<  gpp_limits.current_open_files   << "/" << (gpp_limits.max_open_files*_fthreshold) );
+        return true;
+      }
+    }
+
+    if ( sys_limits.max_open_files != -1 ) {
+      //
+      // check current system limits
+      //
+      LOG_TRACE(GPP_i, "_sys_check_limits threads (cur/max): "  << sys_limits.current_open_files << "/" << sys_limits.max_open_files );
+      if (sys_limits.current_open_files>( sys_limits.max_open_files *_fthreshold)) {
+        LOG_WARN(GPP_i, "SYSTEM thread limit threshold exceeded,  count/threshold: " <<  sys_limits.current_open_files   << "/" << (sys_limits.max_open_files*_fthreshold) );
+        return true;
+      }
+    }
     return false;
 }
 
@@ -1617,10 +1638,16 @@ void GPP_i::updateUsageState()
   else if ( !(thresholds.nic_usage < 0) && _check_nic_thresholds() ) {
       setUsageState(CF::Device::BUSY);
   }
-  else if (_check_limits(thresholds)) {
+  else if (!(thresholds.threads < 0) && _check_thread_limits(thresholds)) {
       std::ostringstream oss;
       oss << "Threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads;
       _setReason( "ULIMIT (MAX_THREADS)", oss.str() );
+      setUsageState(CF::Device::BUSY);
+  }
+  else if (!(thresholds.files_available < 0) && _check_file_limits(thresholds)) {
+      std::ostringstream oss;
+      oss << "Threshold: " << gpp_limits.max_open_files << " Actual: " << gpp_limits.current_open_files;
+      _setReason( "ULIMIT (MAX_FILES)", oss.str() );
       setUsageState(CF::Device::BUSY);
   }
   else if (getPids().size() == 0) {
