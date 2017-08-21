@@ -23,7 +23,7 @@
 Prefix:         %{_prefix}
 
 Name:           redhawk-codegen
-Version:        2.0.7
+Version:        2.0.8
 Release:        1%{?dist}
 Summary:        Redhawk Code Generators
 
