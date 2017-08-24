@@ -198,7 +198,7 @@ void GPP_base::loadProperties()
                 "allocation");
 
     addProperty(docker_volume,
-                "DCE:DCE:47a581c8-e31f-4284-a3ef-6d8b98385835",
+                "DCE:47a581c8-e31f-4284-a3ef-6d8b98385835",
                 "docker_volume",
                 "readwrite",
                 "",
