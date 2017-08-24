@@ -11,3 +11,4 @@ configure
 depcomp
 install-sh
 missing
+*.o

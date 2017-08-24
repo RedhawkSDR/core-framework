@@ -194,7 +194,7 @@ void GPP_base::loadProperties()
                 "docker_image",
                 "readwrite",
                 "",
-                "eq",
+                "external",
                 "allocation");
 
     addProperty(docker_volume,
@@ -202,7 +202,7 @@ void GPP_base::loadProperties()
                 "docker_volume",
                 "readwrite",
                 "",
-                "eq",
+                "external",
                 "allocation");
 
     addProperty(mcastnicInterface,

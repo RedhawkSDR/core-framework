@@ -592,12 +592,12 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <description>Docker Image to load</description>
     <value></value>
     <kind kindtype="allocation"/>
-    <action type="eq"/>
+    <action type="external"/>
   </simple>
   <simple id="DCE:47a581c8-e31f-4284-a3ef-6d8b98385835" name="docker_volume" mode="readwrite" type="string">
     <description>Docker Volume to load</description>
     <value></value>
     <kind kindtype="allocation"/>
-    <action type="eq"/>
+    <action type="external"/>
   </simple>
 </properties>

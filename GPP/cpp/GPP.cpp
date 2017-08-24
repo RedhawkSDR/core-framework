@@ -1133,7 +1133,7 @@ bool GPP_i::check_docker_image(const std::string &value) {
 // TODO: Be less hackey. :-|
 bool GPP_i::check_docker_volume(const std::string &value) {
   std::string grep = GPP_i::find_exec("grep");
-  return check_docker("volumes ls -q | " + grep + " " + value);
+  return check_docker("volume ls -q | " + grep + " " + value);
 }
 
 bool GPP_i::allocate_docker_image(const std::string &value) {
