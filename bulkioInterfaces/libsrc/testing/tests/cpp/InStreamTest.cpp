@@ -120,6 +120,53 @@ void InStreamTest<Port>::testGetCurrentStreamDataEos()
     CPPUNIT_ASSERT(stream.eos());
 }
 
+template <class Port>
+void InStreamTest<Port>::testSizedReadEmptyEos()
+{
+    typedef typename Port::StreamType StreamType;
+    typedef typename Port::PortSequenceType PortSequenceType;
+    typedef typename StreamType::DataBlockType DataBlockType;
+
+    // Create a new stream and push some data to it
+    const char* stream_id = "read_empty_eos";
+
+    // Create a new stream and push some data to it
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    PortSequenceType data;
+    port->pushPacket(data, bulkio::time::utils::now(), true, stream_id);
+
+    // Get the input stream and read the first packet
+    StreamType stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT_EQUAL(!stream, false);
+    DataBlockType block = stream.read(1);
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(stream.eos());
+}
+
+template <class Port>
+void InStreamTest<Port>::testSizedTryreadEmptyEos()
+{
+    typedef typename Port::StreamType StreamType;
+    typedef typename Port::PortSequenceType PortSequenceType;
+    typedef typename StreamType::DataBlockType DataBlockType;
+
+    const char* stream_id = "tryread_empty_eos";
+
+    // Create a new stream and push some data to it
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    PortSequenceType data;
+    port->pushPacket(data, bulkio::time::utils::now(), true, stream_id);
+
+    // Get the input stream and read the first packet
+    StreamType stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT_EQUAL(!stream, false);
+    DataBlockType block = stream.tryread(1);
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(stream.eos());
+}
+
 #define CREATE_TEST(x)                                                  \
     class In##x##StreamTest : public InStreamTest<bulkio::In##x##Port>  \
     {                                                                   \

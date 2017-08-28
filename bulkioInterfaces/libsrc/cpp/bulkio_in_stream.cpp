@@ -516,15 +516,14 @@ private:
       _eosState = EOS_RECEIVED;
     }
     if (_queue.empty() || _canBridge(packet)) {
-      _queuePacket(packet);
-      return true;
+      return _queuePacket(packet);
     } else {
       _pending = packet;
       return false;
     }
   }
 
-  void _queuePacket(DataTransferType* packet)
+  bool _queuePacket(DataTransferType* packet)
   {
     if (packet->EOS && packet->dataBuffer.empty()) {
       // Handle end-of-stream packet with no data (assuming that timestamps,
@@ -538,9 +537,13 @@ private:
         _queue.back()->EOS = true;
       }
       delete packet;
+      // Return false to let the caller know that no more sample data is
+      // forthcoming
+      return false;
     } else {
       _samplesQueued += packet->dataBuffer.size();
       _queue.push_back(packet);
+      return true;
     }
   }
 

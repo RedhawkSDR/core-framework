@@ -29,6 +29,8 @@ class InStreamTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(InStreamTest);
     CPPUNIT_TEST(testGetCurrentStreamEmptyEos);
     CPPUNIT_TEST(testGetCurrentStreamDataEos);
+    CPPUNIT_TEST(testSizedReadEmptyEos);
+    CPPUNIT_TEST(testSizedTryreadEmptyEos);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -37,6 +39,9 @@ public:
 
     void testGetCurrentStreamEmptyEos();
     void testGetCurrentStreamDataEos();
+
+    void testSizedReadEmptyEos();
+    void testSizedTryreadEmptyEos();
 
 private:
     virtual std::string getPortName() const = 0;
