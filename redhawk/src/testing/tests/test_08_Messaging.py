@@ -79,6 +79,7 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         sb.setDEBUG(False)
         os.environ['SDRROOT'] = globalsdrRoot
 
+    @scatest.requireLog4cxx
     def test_MessageMarshalCpp(self):
         snk=sb.MessageSink('')
         c=sb.launch('huge_msg_cpp', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
@@ -108,12 +109,13 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
         self.assertEquals(number_warnings, 2)
 
+    @scatest.requireJava
     def test_MessageMarshalJava(self):
         snk=sb.MessageSink('')
         c=sb.launch('huge_msg_java', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
         c.connect(snk)
         sb.start()
-        time.sleep(1)
+        time.sleep(3)
         fp = None
         try:
             fp = open('foo/bar/test.log','r')

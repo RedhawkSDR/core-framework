@@ -405,7 +405,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual(br_cpu, True)
 
         # turn off check for idle
-        self.comp.thresholds.cpu_idle = -1.0
+        self.comp.thresholds.cpu_idle = 0.0
         # wait for busy to be reported... should just be load avg .. takes approx 1 minute
         for i in range(42):
             br=self.comp.busy_reason.queryValue()
@@ -417,7 +417,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual(br_cpu, True)
 
         # turn off check for load_avg
-        self.comp.thresholds.load_avg = -1.0
+        self.comp.thresholds.load_avg = 100.0
         for i in range(5):
             br=self.comp.busy_reason.queryValue()
             if br == "":
@@ -949,6 +949,48 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         # set nic_usage  back
         self.comp.thresholds.nic_usage = orig_thres
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.IDLE: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.IDLE)
+
+        # set files_available
+        orig_thres = self.comp.thresholds.files_available.queryValue()
+        self.comp.thresholds.files_available=100.0
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.BUSY: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.BUSY)
+
+        # set files_available back
+        self.comp.thresholds.files_available = orig_thres
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.IDLE: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.IDLE)
+
+        # set threads
+        orig_thres = self.comp.thresholds.threads.queryValue()
+        self.comp.thresholds.threads=100.0
+        ustate=None
+        for i in xrange(6):
+           ustate= self.comp._get_usageState()
+           if ustate == CF.Device.BUSY: break
+           time.sleep(.5)
+
+        self.assertEquals(ustate, CF.Device.BUSY)
+
+        # set threads back
+        self.comp.thresholds.threads = orig_thres
         ustate=None
         for i in xrange(6):
            ustate= self.comp._get_usageState()
