@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(burstioInterfaces, 2.1.2)
+AC_INIT(burstio, 2.1.2)
 AC_CONFIG_SRCDIR([src/cpp/Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 
