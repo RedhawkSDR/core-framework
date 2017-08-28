@@ -2,7 +2,7 @@ variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
   other_repos: $yum_repo_url/redhawk-dependencies
-  redhawk_version: '2.0.7'
+  redhawk_version: '2.1.2'
 
 stages:
  - package-redhawk-codegen
