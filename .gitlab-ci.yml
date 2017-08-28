@@ -289,7 +289,7 @@ mvn:deploy:
 #Trigger a Jenkins job to aggregate artifacts there
 deploy:
   variables:
-    jenkins_job: redhawk/job/core-framework-$CI_COMMIT_REF
+    jenkins_job: redhawk/job/core-framework-$CI_COMMIT_REF_NAME
   <<: *deploy-common
   only:
     - branches
