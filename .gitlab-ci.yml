@@ -16,12 +16,12 @@ stages:
     - dind
   script:
     # Ensure newest version of FROM image
-    - docker pull ${docker_registry}rpmbuild:${dist}-${arch}-onbuild
+    - docker pull ${docker_registry}${rpmbuild_repository}rpmbuild:${dist}-${arch}-onbuild
     # Use RPM release from specfile if this is a tag
     - if [ -n "$CI_COMMIT_TAG" ]; then rpm_release=""; fi
     - if [ -f output/repo.tar.gz ]; then cd output; tar xvf repo.tar.gz; cd -; cp -r output $project; fi
     - cd $project
-    - printf "FROM ${docker_registry}rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
+    - printf "FROM ${docker_registry}${rpmbuild_repository}rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
     # Don't build redhawk tests as part of rpmbuild to save time
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
@@ -52,6 +52,9 @@ stages:
     paths:
       - output/
     expire_in: 3 days
+  except:
+    #Don't build on final tags
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 .deploy-common: &deploy-common
   image: centos:7
@@ -285,14 +288,14 @@ mvn:deploy:
 #Trigger a Jenkins job to aggregate artifacts there
 deploy:
   variables:
-    jenkins_job: REDHAWK-core-framework-$CI_COMMIT_REF_NAME
+    jenkins_job: redhawk/job/core-framework-$CI_COMMIT_REF
   <<: *deploy-common
   only:
     - branches
 
 deploy-release:
   variables:
-    jenkins_job: $redhawk_version/job/REDHAWK-core-framework-$redhawk_version
+    jenkins_job: $redhawk_version/job/core-framework
   <<: *deploy-common
   only:
     - tags
