@@ -633,18 +633,14 @@ private:
         }
 
         if (_queue.empty() || _canBridge(packet)) {
-            _queuePacket(packet);
-            // The packet may not have actually extended the queue, if it was
-            // an emtpy end-of-stream packet; if the queue is empty, return
-            // false to indicate that the fetch effectively failed
-            return !_queue.empty();
+            return _queuePacket(packet);
         } else {
             _pending = packet;
             return false;
         }
     }
 
-    void _queuePacket(PacketType* packet)
+    bool _queuePacket(PacketType* packet)
     {
         if (packet->EOS && packet->buffer.empty()) {
             // Handle end-of-stream packet with no data (assuming that timestamps,
@@ -657,13 +653,17 @@ private:
                 // that it is handled on read
                 _queue.back().EOS = true;
             }
-            // Explicitly delete the packet, since it isn't being queued
+            // Explicitly delete the packet, since it isn't being queued, and
+            // return false to let the caller know that no more sample data is
+            // forthcoming
             delete packet;
+            return false;
         } else {
             // Add the packet to the queue, taking ownership; it will be deleted when
             // it's consumed
             _samplesQueued += packet->buffer.size();
             _queue.push_back(packet);
+            return true;
         }
     }
 

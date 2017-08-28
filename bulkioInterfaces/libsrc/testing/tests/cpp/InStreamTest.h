@@ -51,11 +51,13 @@ class BufferedInStreamTest : public InStreamTest<Port>
 {
     typedef InStreamTest<Port> TestBase;
     CPPUNIT_TEST_SUB_SUITE(BufferedInStreamTest, TestBase);
-    CPPUNIT_TEST(testReadSizeEos);
+    CPPUNIT_TEST(testSizedReadEmptyEos);
+    CPPUNIT_TEST(testSizedTryreadEmptyEos);
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    void testReadSizeEos();
+    void testSizedReadEmptyEos();
+    void testSizedTryreadEmptyEos();
 
 private:
     typedef typename Port::PortSequenceType PortSequenceType;

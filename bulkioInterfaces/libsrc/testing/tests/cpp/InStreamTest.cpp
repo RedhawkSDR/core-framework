@@ -166,26 +166,45 @@ void InStreamTest<Port>::testSriModeChanges()
     CPPUNIT_ASSERT_EQUAL(block.complex(),false);
 }
 
-
-
 template <class Port>
-void BufferedInStreamTest<Port>::testReadSizeEos()
+void BufferedInStreamTest<Port>::testSizedReadEmptyEos()
 {
+    const char* stream_id = "read_empty_eos";
+
     // Create a new stream and push an end-of-stream packet with no data
-    BULKIO::StreamSRI sri = bulkio::sri::create("empty_eos");
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
     port->pushSRI(sri);
     PortSequenceType data;
     data.length(0);
-    port->pushPacket(data, bulkio::time::utils::notSet(), true, sri.streamID);
+    port->pushPacket(data, bulkio::time::utils::notSet(), true, stream_id);
 
     // Try to read a single element; this should return a null block
-    StreamType stream = port->getStream("empty_eos");
+    StreamType stream = port->getStream(stream_id);
     CPPUNIT_ASSERT(stream);
     DataBlockType block = stream.read(1);
     CPPUNIT_ASSERT(!block);
     CPPUNIT_ASSERT(stream.eos());
 }
 
+template <class Port>
+void BufferedInStreamTest<Port>::testSizedTryreadEmptyEos()
+{
+    const char* stream_id = "tryread_empty_eos";
+
+    // Create a new stream and push an end-of-stream packet with no data
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    PortSequenceType data;
+    data.length(0);
+    port->pushPacket(data, bulkio::time::utils::notSet(), true, stream_id);
+
+    // Try to read a single element; this should return a null block
+    StreamType stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT(stream);
+    DataBlockType block = stream.tryread(1);
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(stream.eos());
+}
 
 #define CREATE_TEST(x)                                                  \
     class In##x##StreamTest : public BufferedInStreamTest<bulkio::In##x##Port>  \
