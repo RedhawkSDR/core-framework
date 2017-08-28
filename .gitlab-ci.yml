@@ -259,7 +259,7 @@ frontend:el7:
 
 mvn:deploy:
   stage: package-redhawk-codegen
-  image: ${docker_registry}redhawk/buildenv:2.0-el7
+  image: ${docker_registry}redhawk/buildenv:2.1-el7
   variables:
     OSSIEHOME: /usr/local/redhawk/core
     SDRROOT: /var/redhawk/sdr
