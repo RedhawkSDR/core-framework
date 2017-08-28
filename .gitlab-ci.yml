@@ -259,11 +259,12 @@ frontend:el7:
 
 mvn:deploy:
   stage: package-redhawk-codegen
-  image: ${docker_registry}redhawk/buildenv:el7
+  image: ${docker_registry}redhawk/buildenv:2.0-el7
   variables:
     OSSIEHOME: /usr/local/redhawk/core
     SDRROOT: /var/redhawk/sdr
     PYTHONPATH: /usr/local/redhawk/core/lib64/python:/usr/local/redhawk/core/lib/python
+    LD_LIBRARY_PATH: /usr/local/redhawk/core/lib64:/usr/local/redhawk/core/lib
     PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/redhawk/core/bin
   script:
     - if [ -n "$CI_COMMIT_TAG" ]; then
