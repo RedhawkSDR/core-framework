@@ -28,6 +28,7 @@ import CosNaming
 import CosEventChannelAdmin
 from ossie.utils import sb
 import os
+import contextlib
 
 @contextlib.contextmanager
 def stdout_redirect(where):
