@@ -113,6 +113,7 @@ ossie::internalparser::parseDCD(std::istream& input) throw (ossie::parser_error)
                                           affinity_p,
                                           loggingconfig_p,
                                           deployerrequires_p,
+                                          string_p,
                                           string_p);
 
         affinity_p.parsers (simpleref_p,

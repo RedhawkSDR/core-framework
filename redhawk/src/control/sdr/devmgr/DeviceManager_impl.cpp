@@ -1524,6 +1524,8 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   // due to a lack of threads (which would result in blocking
   // the mutex lock, which would prevent shutdown from killing
   // this).
+  bool allregistered = false;
+  {
   boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
   //Get properties from SPD
@@ -1672,6 +1674,11 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
         }
 
   LOG_TRACE(DeviceManager_impl, "Done registering device " << deviceLabel);
+  allregistered = verifyAllRegistered();
+  }
+  if (allregistered) {
+      startOrder();
+  }
 
   //The registerDevice operation shall write a FAILURE_ALARM log record to a
   //DomainManagers Log, upon unsuccessful registration of a Device to the DeviceManagers
@@ -1749,6 +1756,40 @@ void DeviceManager_impl::deleteFileSystems()
     _fileSys = CF::FileSystem::_nil();
 }
 
+void DeviceManager_impl::stopOrder()
+{
+    unsigned long timeout = 3; // seconds;
+    for (std::vector<std::pair<std::string, int> >::reverse_iterator item=start_order.rbegin(); item!=start_order.rend();++item) {
+        bool started = false;
+        for(DeviceList::iterator _dev=_registeredDevices.begin(); _dev!=_registeredDevices.end(); ++_dev) {
+            if ((*_dev)->identifier == item->first) {
+                try {
+                    omniORB::setClientCallTimeout((*_dev)->device, timeout * 1000);
+                    (*_dev)->device->stop();
+                } catch ( ... ) {
+                }
+                started = true;
+                break;
+            }
+        }
+        if (started)
+            continue;
+        for(ServiceList::iterator _svc=_registeredServices.begin(); _svc!=_registeredServices.end(); ++_svc) {
+            if ((*_svc)->identifier == item->first) {
+                try {
+                    CF::Resource_ptr res = CF::Resource::_narrow((*_svc)->service);
+                    if (not CORBA::is_nil(res)) {
+                        omniORB::setClientCallTimeout(res, timeout * 1000);
+                        res->stop();
+                    }
+                } catch ( ... ) {
+                }
+                break;
+            }
+        }
+    }
+}
+
 void
 DeviceManager_impl::shutdown ()
 throw (CORBA::SystemException)
@@ -1765,6 +1806,8 @@ throw (CORBA::SystemException)
     }
 
   _adminState = DEVMGR_SHUTTING_DOWN;
+
+    stopOrder();
 
     // SR:501
     // The shutdown operation shall unregister the DeviceManager from the DomainManager.
@@ -1833,6 +1876,8 @@ DeviceManager_impl::registerService (CORBA::Object_ptr registeringService,
                                      const char* name)
 throw (CORBA::SystemException, CF::InvalidObjectReference)
 {
+  bool allregistered = false;
+  {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
     LOG_INFO(DeviceManager_impl, "Registering service " << name)
 
@@ -1886,6 +1931,11 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
             throw;
         }
     }
+    allregistered = verifyAllRegistered();
+  }
+  if (allregistered) {
+      startOrder();
+  }
 
 //The registerService operation shall write a FAILURE_ALARM log record, upon unsuccessful
 //registration of a Service to the DeviceManagers registeredServices.
@@ -2234,6 +2284,52 @@ void DeviceManager_impl::local_unregisterDevice(CF::Device_ptr device, const std
     }
   }
 
+}
+
+bool DeviceManager_impl::verifyAllRegistered() {
+    if (_pendingDevices.empty() and _pendingServices.empty())
+        return true;
+    return false;
+}
+
+void DeviceManager_impl::startOrder()
+{
+    const std::vector<ossie::DevicePlacement>& componentPlacements = node_dcd.getComponentPlacements();
+    for(std::vector<ossie::DevicePlacement>::const_iterator cP = componentPlacements.begin(); cP!=componentPlacements.end(); cP++) {
+        if (cP->getInstantiations()[0].startOrder.isSet()) {
+            int cP_order = *(cP->getInstantiations()[0].startOrder.get());
+            std::string cP_id(cP->getInstantiations()[0].getID());
+            std::vector<std::pair<std::string, int> >::iterator _o=start_order.begin();
+            for ( ; _o!=start_order.end(); _o++) {
+                if (_o->second >= cP_order) {
+                    start_order.insert(_o, std::make_pair(cP_id, cP_order));
+                    break;
+                }
+            }
+            if (_o == start_order.end())
+                start_order.push_back(std::make_pair(cP_id, cP_order));
+        }
+    }
+    for (std::vector<std::pair<std::string, int> >::iterator item=start_order.begin(); item!=start_order.end();item++) {
+        bool started = false;
+        for(DeviceList::iterator _dev=_registeredDevices.begin(); _dev!=_registeredDevices.end(); _dev++) {
+            if ((*_dev)->identifier == item->first) {
+                (*_dev)->device->start();
+                started = true;
+                break;
+            }
+        }
+        if (started)
+            continue;
+        for(ServiceList::iterator _svc=_registeredServices.begin(); _svc!=_registeredServices.end(); _svc++) {
+            if ((*_svc)->identifier == item->first) {
+                CF::Resource_ptr res = CF::Resource::_narrow((*_svc)->service);
+                if (not CORBA::is_nil(res))
+                    res->start();
+                break;
+            }
+        }
+    }
 }
 
 /*

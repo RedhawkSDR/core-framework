@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:1ed6f18b-1068-40e7-8539-71d548483626" name="devmgr_startorder">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="dev_startorder_09405cd8-368c-4532-b0bf-fab729d09eb2" type="SPD">
+      <localfile name="/devices/dev_startorder/dev_startorder.spd.xml"/>
+    </componentfile>
+    <componentfile id="svc_startorder_13d8b567-2976-4ffd-999c-0a103b972767" type="SPD">
+      <localfile name="/services/svc_startorder/svc_startorder.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="dev_startorder_09405cd8-368c-4532-b0bf-fab729d09eb2"/>
+      <componentinstantiation id="devmgr_startorder:dev_startorder_1" startorder="3">
+        <usagename>dev_startorder_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="dev_startorder_09405cd8-368c-4532-b0bf-fab729d09eb2"/>
+      <componentinstantiation id="devmgr_startorder:dev_startorder_2" startorder="1">
+        <usagename>dev_startorder_2</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="svc_startorder_13d8b567-2976-4ffd-999c-0a103b972767"/>
+      <componentinstantiation id="devmgr_startorder:svc_startorder_1" startorder="2">
+        <usagename>svc_startorder_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="dev_startorder_09405cd8-368c-4532-b0bf-fab729d09eb2"/>
+      <componentinstantiation id="devmgr_startorder:dev_startorder_3">
+        <usagename>dev_startorder_3</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <connections>
+    <connectinterface id="connection_1">
+      <usesport>
+        <usesidentifier>output</usesidentifier>
+        <componentinstantiationref refid="devmgr_startorder:dev_startorder_1"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:CF/Resource:1.0</supportedidentifier>
+        <componentinstantiationref refid="devmgr_startorder:dev_startorder_2"/>
+      </componentsupportedinterface>
+    </connectinterface>
+    <connectinterface id="connection_2">
+      <usesport>
+        <usesidentifier>output</usesidentifier>
+        <componentinstantiationref refid="devmgr_startorder:dev_startorder_3"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:CF/Resource:1.0</supportedidentifier>
+        <componentinstantiationref refid="devmgr_startorder:dev_startorder_1"/>
+      </componentsupportedinterface>
+    </connectinterface>
+  </connections>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

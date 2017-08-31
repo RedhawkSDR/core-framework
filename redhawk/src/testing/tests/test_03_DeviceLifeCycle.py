@@ -21,6 +21,9 @@
 import unittest, os
 from _unitTestHelpers import scatest
 from test_01_DeviceManager import killChildProcesses
+from ossie.utils import redhawk
+from ossie.cf import CF
+from omniORB import any as _any
 import time
 
 class DeviceLifeCycleTest(scatest.CorbaTestCase):
@@ -46,7 +49,75 @@ class DeviceLifeCycleTest(scatest.CorbaTestCase):
 
     def test_DeviceLifeCycleNoKill(self):
         pass
-        
+
+class DeviceStartorder(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, domMgr = self.launchDomainManager()
+        devBooter, devMgr = self.launchDeviceManager("/nodes/devmgr_startorder/DeviceManager.dcd.xml", loggingURI='file://'+os.getcwd()+'/devmgr_config.cfg')
+
+    def test_DeviceStarted(self):
+        rhdom = redhawk.attach(scatest.getTestDomainName())
+        startfrom = {}
+        q=CF.DataType(id='start_from',value=_any.to_any(None))
+        for dev in rhdom.devMgrs[0].devs:
+            startfrom[dev._id] = dev.query([q])[0].value._v
+        for svc in rhdom.devMgrs[0].services:
+            startfrom[svc._id] = svc.query([q])[0].value._v
+        self.assertEquals(startfrom['devmgr_startorder:dev_startorder_1'], ',devmgr_startorder:dev_startorder_2,svc_startorder_1')
+        self.assertEquals(startfrom['devmgr_startorder:dev_startorder_2'], ',devmgr_startorder:dev_startorder_2,svc_startorder_1,devmgr_startorder:dev_startorder_1')
+        self.assertEquals(startfrom['devmgr_startorder:dev_startorder_3'], '')
+        self.assertEquals(startfrom['devmgr_startorder:svc_startorder_1'], ',devmgr_startorder:dev_startorder_2')
+
+        rhdom.devMgrs[0].shutdown()
+
+        fp = None
+        try:
+            fp = open('sdr/cache/.devmgr_startorder/foo/bar/test.log','r')
+        except:
+            pass
+        if fp != None:
+            log_contents = fp.read()
+            fp.close()
+        try:
+            os.remove('foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('foo')
+        except:
+            pass
+        try:
+            os.remove('sdr/cache/.devmgr_startorder/foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('sdr/cache/.devmgr_startorder/foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('sdr/cache/.devmgr_startorder/foo')
+        except:
+            pass
+        start_dev_1 = log_contents.find('starting devmgr_startorder:dev_startorder_1')
+        start_dev_2 = log_contents.find('starting devmgr_startorder:dev_startorder_2')
+        start_dev_3 = log_contents.find('starting devmgr_startorder:dev_startorder_3')
+        start_svc = log_contents.find('starting svc_startorder_1')
+        stop_dev_1 = log_contents.find('stopping devmgr_startorder:dev_startorder_1')
+        stop_dev_2 = log_contents.find('stopping devmgr_startorder:dev_startorder_2')
+        stop_dev_3 = log_contents.find('stopping devmgr_startorder:dev_startorder_3')
+        stop_svc = log_contents.find('stopping svc_startorder_1')
+
+        self.assertTrue(start_dev_2<start_svc)
+        self.assertTrue(start_svc<start_dev_1)
+        self.assertEquals(start_dev_3, -1)
+        self.assertTrue(stop_dev_1<stop_svc)
+        self.assertTrue(stop_svc<stop_dev_2)
+        self.assertTrue(stop_dev_2<stop_dev_3)
+
 class DeviceDeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):
     

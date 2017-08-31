@@ -266,6 +266,9 @@ namespace dcd
     id (const ::std::string&);
 
     virtual void
+    startorder (const ::std::string&);
+
+    virtual void
       affinity (const ossie::ComponentInstantiation::AffinityProperties& );
 
     virtual void

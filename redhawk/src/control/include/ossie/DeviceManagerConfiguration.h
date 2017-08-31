@@ -106,7 +106,7 @@ namespace ossie {
         const char* getDeviceManagerSoftPkg() const;
 
         const char* getDomainManagerName() const;
-        
+
         const std::vector<ComponentFile>& getComponentFiles();
 
         const std::vector<DevicePlacement>& getComponentPlacements();

@@ -793,7 +793,6 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
 
     // check if directory
     fs::path workpath(workingFileName);
-    bool isDir=false;
     try {
         if (!fs::exists (workpath)) {
             std::ostringstream emsg;
@@ -801,8 +800,6 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
             LOG_ERROR(DeviceManager_impl, emsg.str());
             throw std::runtime_error(emsg.str().c_str());
         }
-
-        if ( fs::is_directory(workpath) ) { isDir=true; }
     }
     catch(...){
         std::ostringstream emsg;

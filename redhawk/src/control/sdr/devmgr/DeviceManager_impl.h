@@ -341,6 +341,11 @@ private:
     void clean_registeredDevices();
     void clean_registeredServices();
     void clean_externalServices();
+    bool verifyAllRegistered();
+
+    std::vector<std::pair<std::string, int> > start_order;
+    void startOrder();
+    void stopOrder();
 
     void local_unregisterService(CORBA::Object_ptr service, const std::string& name);
     void local_unregisterDevice(CF::Device_ptr device, const std::string& name);

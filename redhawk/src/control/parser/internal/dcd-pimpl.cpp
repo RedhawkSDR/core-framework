@@ -384,6 +384,14 @@ const ::ossie::ComponentFile &componentfile_pimpl::
   }
 
   void componentinstantiation_pimpl::
+  startorder (const ::std::string& startorder)
+  {
+    // We have to parse the string into an integer here, rather than declaring
+    // startorder as an integer in the schema, for backwards compatibility.
+    componentInstantiation.startOrder = atoi(startorder.c_str());
+  }
+
+  void componentinstantiation_pimpl::
   usagename (const ::std::string& usagename)
   {
     LOG_TRACE(dcd_parser, "setting usage name" << usagename);

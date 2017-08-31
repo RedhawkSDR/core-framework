@@ -199,6 +199,7 @@ usagename element needs to be unique for each service type.</xs:documentation>
 	    <xs:documentation>The componentinstantiation‘s id attribute is a DCE UUID that uniquely identifier the component.</xs:documentation>
 	</xs:annotation>
         </xs:attribute>
+        <xs:attribute name="startorder" use="optional" type="xs:string"/>
 	</xs:complexType>
 
 	<xs:element name="componentinstantiation" type="componentinstantiation"/>

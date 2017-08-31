@@ -90,7 +90,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
          ,deployerrequires?
 	)>
 <!ATTLIST componentinstantiation
-	id	ID 	#REQUIRED>
+    id  ID  #REQUIRED
+    startorder CDATA #IMPLIED>
 
 <!ELEMENT usagename (#PCDATA)>
 
