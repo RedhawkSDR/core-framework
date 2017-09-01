@@ -1,0 +1,157 @@
+#!/bin/python
+
+from systemd import daemon
+import time
+import subprocess
+import os
+import sys
+import StringIO
+import signal
+import logging
+import re
+
+stop=False
+
+def __exit_handler(signum, frame):
+        global stop
+        stop=True
+
+
+signal.signal(signal.SIGTERM, __exit_handler)
+
+
+#
+# log_msg 
+#
+# Handles logging messages to a global logger with python print like output
+#
+
+def log_msg( *args, **kwds ):
+    out = StringIO.StringIO()
+    print >>out, args
+    if kwds.has_key('level'):
+        lvl = kwds['level'].upper()
+        if lvl in [ 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE']:
+            if kwds['level'].upper() == 'ERROR': logging.error( out.getvalue() )
+            if kwds['level'].upper() == 'WARN': logging.warn( out.getvalue() )
+            if kwds['level'].upper() == 'INFO': logging.info( out.getvalue() )
+            if kwds['level'].upper() == 'DEBUG': logging.debug( out.getvalue() )
+            if kwds['level'].upper() == 'TRACE': logging.debug( out.getvalue() )
+        else:
+            logging.debug( out.getvalue() )
+    else:
+        logging.debug( out.getvalue() )
+    out.close()
+
+
+def info_msg( *args, **kwds ):
+    log_msg( args, kwds, level='info')
+
+def error_msg( *args, **kwds ):
+    log_msg( args, kwds, level='error')
+
+def warn_msg( *args, **kwds ):
+    log_msg( args, kwds, level='warn')
+
+def debug_msg( *args, **kwds ):
+    log_msg( args, kwds, level='debug')
+
+def trace_msg( *args, **kwds ):
+    log_msg( args, kwds, level='trace')
+
+
+
+def run_command( cmd, validret=0, useShell=False ):
+    """
+    Run the contents of cmd in a subprocess using popen and consume the redirected output.  The output is saved to
+    and provided to the caller as the second argument of the return tuple
+
+    the resulting value is a tuple of the following:
+    
+    if return code == validret:
+       ('PASSED', output of subprocess)
+    else
+       ('FAILED', output of subprocess)
+    """
+    try:
+        results=('','')
+        trace_msg( "runBuildCommand ...cmd-->", cmd)
+        proc=subprocess.Popen( cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=useShell)
+        cout=''
+        lines=[]
+        for line in iter(proc.stdout.readline, ''):
+            trace_msg( "runBuildCommand(output) ...", line)
+            cout += line
+            lines.append(line)
+        proc.wait()
+        if proc.returncode == validret:
+            results=('PASSED', cout, lines)
+        else:
+            if cout == None or cout =='':
+                cout = 'command failed with exit code: '+str(proc.returncode)
+            results=('FAILED', cout, lines)
+    except Exception as e:
+        raise RuntimeError('FAILED',str(e))
+
+    return results
+
+
+domain_name=None
+waveform_name=None
+waveform_id=None
+wf_start=""
+alen=len(sys.argv)
+if alen > 2 :
+    if alen > 3 :
+        domain_name=sys.argv[2]
+        waveform_name=sys.argv[3]
+    else:
+      try:
+          domain_name=sys.argv[2].split(".")[0]
+          waveform_name=sys.argv[2].split(".")[1]
+      except:
+        pass
+
+    if not waveform_name:
+       print "Unable to process waveform name"
+       sys.exit(1) 
+
+    wf_start=domain_name+"."+waveform_name 
+
+args_=[ "/etc/redhawk/init.d/redhawk-waveforms"] + [ "start", wf_start ]
+print " cmd args ", sys.argv
+print " args_ ", args_
+ret, ostr, olines=run_command( args_ ) 
+if ret == "FAILED":
+   sys.exit(1)
+
+# arg 2 is domain.wf
+if not waveform_name:
+        print "Unable to process waveform name"
+        sys.exit(1)        
+
+print "output ", olines
+for i in olines:
+        m=re.match(".*Waveform:.*("+waveform_name+"_.*?) .*$",i)
+        print  m, i
+        if m:
+                try:
+                        waveform_id=m.groups()[0]
+                except:
+                        pass
+
+daemon.notify("READY=1")
+cnt=0
+while not stop :
+	time.sleep(1)
+	cnt+=1
+
+if waveform_name and waveform_id:
+        args_=[ "/etc/redhawk/init.d/redhawk-waveforms"] + [ "stop", domain_name+"."+waveform_id ] 
+        print " args_ ", args_
+        ret, ostr, olines=run_command( args_ )
+        if ret == "FAILED":
+                sys.exit(1)
+
+
+sys.exit(0)

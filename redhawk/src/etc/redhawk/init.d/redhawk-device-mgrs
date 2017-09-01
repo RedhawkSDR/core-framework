@@ -1,0 +1,286 @@
+#!/bin/bash
+# chkconfig: 2345 90 10
+# description: Starts and stops the REDHAWK Device Manager Service
+# processname: DeviceManager
+# pidfile: /var/run/redhawk/device-mgrs/[device_name].pid
+### BEGIN INIT INFO
+# Provides:         redhawk-device-mgrs
+# Required-Start:    
+# Required-Stop:     
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: redhawk-device-mgrs
+# Description:       redhawk-device-mgrs 
+### END INIT INFO
+
+
+# Source redhawk function library remap for other os
+. /etc/redhawk/init.d/functions && import_os_functions
+
+. /etc/redhawk/init.d/svc-functions
+
+#
+# Base service info
+#
+SVC_NAME="REDHAWK Device Manager Service"
+
+# if script contains extra cmd args use those as specific 
+# nodes to perform the operations against
+filter_list=${@:2}
+
+
+#
+# Service State Functions
+#
+start() {
+    node_cmd_pre
+
+    echo "Starting ${SVC_NAME}"
+
+    declare -i cnt=0
+    CFG_FILES=$(shopt -s nullglob dotglob; echo ${NODE_CONFIG_DIR}/[^.]*[^~])
+    for cfg_file in ${CFG_FILES}
+    do
+	[[ $_rh_debug_ ]] && echo "Processing cfg: ${cfg_file}"
+	unset section_list
+	declare -a section_list
+        load_cfg_sections $cfg_file
+	for section in "${section_list[@]}"
+	do
+	    node_start_one "$cfg_file" "$section" "$filter_list"
+	    retval=$?
+            (( cnt ++ ))
+	done
+    done
+
+    rh_return $retval $cnt
+    return $?
+}
+
+stop() {
+    node_cmd_pre
+
+    echo "Stopping ${SVC_NAME}(s)"
+    retval=0
+    declare -i cnt=0
+    declare -a pid_files
+    ! devmgr_pid_files && return 0
+    for pid_file in ${pid_files[@]};
+    do
+	node_name=$(node_from_pidfile $pid_file)
+	domain_name=$(domain_from_pidfile $pid_file)
+        not_in_list "$filter_list" "$node_name" && not_in_list "$filter_list" "$domain_name.$node_name" && continue
+	echo -n "Stopping $node_name: "
+	declare -A cfg
+	search_config_section "$node_name" "node_name" "$NODE_CONFIG_DIR" "$node_cfg_defaults"
+	local exec_=$(resolve_item cfg "exec")
+	if check_run "$pid_file" "$exec_" ; 
+	then
+            rh_run_scripts "${cfg["STOP_PRE_SCRIPT"]}"
+
+	    killproc -p "$pid_file" 
+	    rh_success
+
+            rh_run_scripts "${cfg["STOP_POST_SCRIPT"]}"
+	else
+	    retval=1		
+	    rh_failure	
+	fi	
+	    
+	[ -f "$pid_file" ] && rm -f "$pid_file"
+        (( cnt++ ))
+    done
+    rh_return $retval $cnt
+    return $?
+}
+
+stop_disabled_nodes() {
+    retval=0
+    declare -a pid_files
+    ! devmgr_pid_files && return 0
+    for pid_file in ${pid_files[@]};
+    do
+	node_name=$(node_from_pidfile "$pid_file")
+	domain_name=$(domain_from_pidfile $pid_file)
+        not_in_list "$filter_list" "$node_name" && not_in_list "$filter_list" "$domain_name.$node_name" && continue
+	node_enabled $node_name
+	if [[ $? -ne 0 ]]
+	then
+	    echo -n "Stopping $node_name: "
+	    killproc -p "$pid_file" -d 10
+	    [ -f "$pid_file" ] && rm -f "$pid_file"
+	    rh_success
+	fi
+    done
+    return 0
+}
+
+
+
+restart() {
+    node_cmd_pre
+
+    echo "Restarting ${SVC_NAME}(s)"
+
+    # stop all running services
+    stop
+
+    # start all enabled services
+    start
+    return $?
+}
+
+
+refresh() {
+
+    echo "Refreshing ${SVC_NAME}(s)"
+
+    # stop all nodes that are not enabled..
+    stop_disabled_nodes
+    
+    # startup all enabled nodes that are not started
+    start
+    return $?
+}
+
+
+#
+# Service Inspection Functions
+#
+list() {
+    node_cmd_pre
+
+    echo "${SVC_NAME} : List Defined Nodes"
+
+    CFG_FILES=$(shopt -s nullglob dotglob; echo ${NODE_CONFIG_DIR}/[^.]*[^~])
+    for cfg_file in ${CFG_FILES}
+    do
+	[[ $_rh_debug_ ]] && echo "Processing cfg: ${cfg_file}"
+	unset section_list
+	declare -a section_list
+        load_cfg_sections $cfg_file
+	for section in "${section_list[@]}"
+	do
+            unset cfg
+	    declare -A cfg
+            get_config_section "$cfg_file" "$section" "$node_cfg_defaults"
+            node_name=$(resolve_item cfg "node_name")
+            domain_name=$(resolve_item cfg "domain_name")
+            not_in_list "$filter_list" "$node_name" && not_in_list "$filter_list" "$domain_name.$node_name" && continue
+            printf "Domain: %s Node: %s File: %s \n"  "$domain_name" "$node_name" "$cfg_file"
+	done
+    done
+}
+
+
+
+config() {
+    node_cmd_pre
+
+    echo "${SVC_NAME} : List Node Configurations"
+
+    CFG_FILES=$(shopt -s nullglob dotglob; echo ${NODE_CONFIG_DIR}/[^.]*[^~])
+    for cfg_file in ${CFG_FILES}
+    do
+	[[ $_rh_debug_ ]] && echo "Processing cfg: ${cfg_file}"
+	unset section_list
+	declare -a section_list
+        load_cfg_sections $cfg_file
+	for section in "${section_list[@]}"
+	do
+            unset cfg
+	    declare -A cfg
+            get_config_section "$cfg_file" "$section" "$node_cfg_defaults"
+            node_name=$(resolve_item cfg "node_name")
+            domain_name=$(resolve_item cfg "domain_name")
+            not_in_list "$filter_list" "$node_name" && not_in_list "$filter_list" "$domain_name.$node_name" && continue
+
+	    local kl=( ${!cfg[@]} )
+	    IFS=$'\n' 
+	    local kls=( $(echo -e "${kl[@]/%/\\n}" | sed -r -e 's/^ *//' -e '/^$/d' | sort) )
+	    unset IFS
+	    printf "%s\n" "-------------------------------------------------------------------------"
+	    printf "Config: Domain: ${domain_name}  Node: ${node_name}\nSection: ${section} File: ${cfg_file}  \n"
+	    printf "%s\n" "-------------------------------------------------------------------------"
+	    for key in "${kls[@]}"; do printf "%s=%s\n" ${key^^} ${cfg[$key]} ;  done
+	    printf "\n\n"
+	done
+
+    done
+}
+
+status() {
+
+    node_cmd_pre
+
+    echo "Status ${SVC_NAME}(s)"
+
+    retval=0
+    declare -i cnt=0
+    declare -a pid_files
+    ! devmgr_pid_files && return $retval
+    for pid_file in ${pid_files[@]};
+    do
+	node_name=$(node_from_pidfile "$pid_file")
+	domain_name=$(domain_from_pidfile "$pid_file")
+        not_in_list "$filter_list" "$node_name" && not_in_list "$filter_list" "$domain_name.$node_name" && continue
+
+	echo -n "Status for $node_name: "
+	declare -A cfg
+	search_config_section "$node_name" "node_name" "$NODE_CONFIG_DIR" "$node_cfg_defaults"
+	local exec_=$(resolve_item cfg "exec")
+	if check_run "$pid_file" "$exec_" ; 
+	then
+	    pid=`cat $pid_file`
+	    echo -n $" (pid $pid) is running "
+	    rh_success
+	else
+	    echo -n $" is stopped         "
+	    [ -f "$pid_file" ] && rm -f "$pid_file"
+	    retval=1
+	    rh_failure
+	fi
+        (( cnt++ ))
+    done
+    rh_return $retval $cnt
+    return $?
+}
+
+
+
+
+#
+# Check if user has sufficient privledges
+#
+[[ $UID -ne 0 ]] && echo "User has insufficient privilege." && exit 4
+
+case "$1" in
+	
+	start)
+		start 
+		;;
+	stop)
+		stop 
+		;;
+	refresh)
+		refresh 
+		;;
+	restart)
+		restart 
+		;;
+	status)
+		status
+		;;
+
+	config)
+		config
+		;;
+	list)
+		list
+		;;
+	*)
+		echo $"Usage: $0 {start|stop|restart|refresh|status|config|list} [node name | domain name.node name ]"
+		exit 1
+esac
+
+exit $?

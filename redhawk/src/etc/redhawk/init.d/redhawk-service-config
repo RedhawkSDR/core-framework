@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Source redhawk support functions
+. /etc/redhawk/init.d/svc-functions && import_os_functions
+
+SVC_NAME="REDHAWK Service Configuration Listing"
+rh_svc_wrapper "config" "${@}"
+exit $?

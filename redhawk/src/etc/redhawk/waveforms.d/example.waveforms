@@ -1,0 +1,40 @@
+#[waveform section name]
+#WAVEFORM_NAME=                # required, name of directory in  $SDRROOT/dom/waveforms/
+#DOMAIN_NAME=                  # required
+#WAVEFORM_PATH=                # optional, default to [$SDRROOT/dom/waveforms/<waveform_name>/<waveform_name>.sad.xml
+#WAVEFORM_ID=                  # optional will auto generate waveform_name_uuid
+
+#SDRROOT= [$SDRROOT]           # optional if blank uses $SDRROOT, fallback /var/redhawk/sdr
+#OSSIEHOME= [$OSSIEHOME]       # optional if blank uses $OMNIHOME, fallback /usr/local/redhawk
+#LD_LIBRARY_PATH:              # optional setup LD_LIBRARY_PATH before execution
+#PYTHON_PATH:                  # optional setup PYTHON_PATH before execution
+#ORB_CFG:                      # optional path to omniORB configuration file  
+#ORB_ENDPOINT:                 # optional Sets the endpoint for the DomainManager servant
+#ORB_INITREF:                  # optional pass to ORBInitRef N=V
+
+#ENABLED= [1]                  # optional control if service should be enabled
+#COND_CFG=                     # optional configuration file passed to customizeable override enable method. default to /etc/redhawk/rh.cond.cfg
+
+#USER= [redhawk]               # optional - runas user
+#GROUP= [redhawk]              # optional - runas group
+
+#NICELEVEL:                    # optional - cmd line args to pass to nice when running process
+#AFFINITY:                     # optional - cmd line args to pass to numaclt when running process
+#ULIMIT:                       # optional - cmd line args to pass to ulimit before running process
+#CORE_FILES:                   # optional - 1 enable core files, 0 use ulimit settings
+
+#PERMISSIONS_START_ONLY=[1]    # optional - control if start_pre_script is run as root or run user
+#ENVIRONMENT:                  # optional - Additional environment variables VAR=VALUE VAR=VALUE
+#RUN_DIR:                      # optional - change directory before running scripts and service
+#OUTPUT_REDIRECT:              # optional - stderr stdout
+#OUTPUT:                       # optional - [dommgr.domain_name.log] path to file that will capture output redirect
+#OUTPUT_PREFIX:                # optional - [dommgr] prefix for output redirect  
+#START_PRE_SCRIPT:             # optional - script run before process   [source] <script and args>  
+#START_POST_SCRIPT:            # optional - script run after process is terminate,pd [source] <script and args>
+#STOP_PRE_SCRIPT:              # optional - script run before process   [source] <script and args>  
+#STOP_POST_SCRIPT:             # optional - script run after process is terminate,pd [source] <script and args>
+
+
+#[example waveform]
+#WAVEFORM_NAME=fm_radio
+#DOMAIN_NAME=REDHAWK

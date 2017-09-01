@@ -1,0 +1,10 @@
+#!/bin/bash
+
+
+# Source redhawk support functions
+. /etc/redhawk/init.d/svc-functions && import_os_functions
+
+SVC_NAME="REDHAWK Service Status"
+rh_svc_wrapper "status" "${@}"
+exit $?
+

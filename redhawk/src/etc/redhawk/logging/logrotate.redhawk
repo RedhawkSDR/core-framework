@@ -1,0 +1,9 @@
+/var/log/redhawk/*.log {
+    rotate 5
+    size 100M
+    copytruncate
+    postrotate 
+               sed -i -e 's/\o00//g' $1.1
+    endscript
+}
+
