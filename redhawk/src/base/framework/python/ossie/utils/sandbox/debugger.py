@@ -24,8 +24,22 @@ import sys
 import socket
 
 class Debugger(object):
-    def __init__(self, command):
+    def __init__(self, command, option_value_join, **opts):
         self.command = command
+        self.arguments = []
+        for name, value in opts.iteritems():
+            if value is True:
+                value = 'yes'
+            elif value is False:
+                value = 'no'
+            if value == '':
+                self.arguments.append(name)
+            else:
+                if option_value_join:
+                    self.arguments.append(name + option_value_join + str(value))
+                else:
+                    self.arguments.append(name)
+                    self.arguments.append(str(value))
 
     def isInteractive(self):
         return True
@@ -40,11 +54,11 @@ class Debugger(object):
         return {}
 
 class GDB(Debugger):
-    def __init__(self, attach=True):
+    def __init__(self, attach=True, **opts):
         status, gdb = commands.getstatusoutput('which gdb')
         if status:
             raise RuntimeError, 'gdb cannot be found'
-        super(GDB,self).__init__(gdb)
+        super(GDB,self).__init__(gdb, '=', **opts)
         self._attach = attach
 
     def modifiesCommand(self):
@@ -54,23 +68,23 @@ class GDB(Debugger):
         return self._attach
 
     def attach(self, process):
-        return self.command, ['-p', str(process.pid())]
+        return self.command, ['-p', str(process.pid())] + self.arguments
 
     def wrap(self, command, arguments):
-        return self.command, ['--args', command] + arguments
+        return self.command, ['--args', command] + arguments + self.arguments
 
     def name(self):
         return 'gdb'
 
 class PDB(Debugger):
-    def __init__(self):
-        super(PDB,self).__init__(PDB.findPDB())
+    def __init__(self, **opts):
+        super(PDB,self).__init__(PDB.findPDB(), None, **opts)
 
     def modifiesCommand(self):
         return True
 
     def wrap(self, command, arguments):
-        return self.command, [command] + arguments
+        return self.command, [command] + arguments + self.arguments
 
     @staticmethod
     def findPDB():
@@ -84,11 +98,11 @@ class PDB(Debugger):
         return 'pdb'
 
 class JDB(Debugger):
-    def __init__(self, attach=True):
+    def __init__(self, attach=True, **opts):
         status, jdb = commands.getstatusoutput('which jdb')
         if status:
             raise RuntimeError, 'jdb cannot be found'
-        super(JDB,self).__init__(jdb)
+        super(JDB,self).__init__(jdb, None, **opts)
         self._lastport = 5680
         self._attach = attach
 
@@ -99,10 +113,10 @@ class JDB(Debugger):
         return self._attach
 
     def attach(self, process):
-        return self.command, ['-attach', str(self._lastport)]
+        return self.command, ['-attach', str(self._lastport)] + self.arguments
 
     def wrap(self, command, arguments):
-        return command, arguments
+        return command, arguments + self.arguments
 
     def envUpdate(self):
         _open = False
@@ -120,23 +134,11 @@ class JDB(Debugger):
         return 'jdb'
 
 class Valgrind(Debugger):
-    def __init__(self, quiet=False, verbose=False, **opts):
+    def __init__(self, **opts):
         status, valgrind = commands.getstatusoutput('which valgrind')
         if status:
             raise RuntimeError, 'valgrind cannot be found'
-        super(Valgrind,self).__init__(valgrind)
-        self.arguments = []
-        if quiet:
-            self.arguments.append('-q')
-        if verbose:
-            self.arguments.append('-v')
-        for name, value in opts.iteritems():
-            optname = '--' + name.replace('_','-')
-            if value is True:
-                value = 'yes'
-            elif value is False:
-                value = 'no'
-            self.arguments.append(optname + '=' + str(value))
+        super(Valgrind,self).__init__(valgrind, '=', **opts)
 
     def modifiesCommand(self):
         return True

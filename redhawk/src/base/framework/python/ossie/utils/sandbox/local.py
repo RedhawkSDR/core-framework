@@ -38,7 +38,7 @@ from base import SdrRoot, Sandbox, SandboxLauncher, SandboxComponent
 from devmgr import DeviceManagerStub
 from naming import ApplicationRegistrarStub
 import launcher
-from debugger import GDB, JDB, PDB, Valgrind
+from debugger import GDB, JDB, PDB, Valgrind, Debugger
 import terminal
 
 warnings.filterwarnings('once',category=DeprecationWarning)
@@ -172,8 +172,8 @@ class LocalLauncher(SandboxLauncher):
 
         # Set up the debugger if requested
         debugger = self._debugger
-        if isinstance(debugger, basestring):
-            try:
+        try:
+            if isinstance(debugger, basestring):
                 if debugger == 'pdb':
                     debugger = PDB()
                 elif debugger == 'jdb':
@@ -182,11 +182,16 @@ class LocalLauncher(SandboxLauncher):
                     debugger = GDB()
                 elif debugger == 'valgrind':
                     debugger = Valgrind()
-                else:
-                    raise RuntimeError, 'not supported'
-            except Exception, e:
-                log.warning('Cannot run debugger %s (%s)', debugger, e)
-                debugger = None
+            elif isinstance(debugger, Debugger):
+                # check for PDB, JDB, Valgrind, or GDB
+                pass
+            elif debugger is None:
+                pass
+            else:
+                raise RuntimeError, 'not supported'
+        except Exception, e:
+            log.warning('Cannot run debugger %s (%s)', debugger, e)
+            debugger = None
 
         # If using an interactive debugger that directly runs the command, put
         # it in a window so it doesn't compete for the terminal.
@@ -226,9 +231,9 @@ class LocalLauncher(SandboxLauncher):
         entry_point = sdrroot.relativePath(comp._profile, impl.get_code().get_entrypoint())
         if impl.get_code().get_type() == 'SharedLibrary':
             if self._shared:
-                container = comp._sandbox._getComponentHost()
+                container = comp._sandbox._getComponentHost(_debugger = debugger)
             else:
-                container = comp._sandbox._launchComponentHost(comp._instanceName)
+                container = comp._sandbox._launchComponentHost(comp._instanceName, _debugger = debugger)
             container.executeLinked(entry_point, [], execparams, deps)
             process = container._process
         else:
@@ -426,12 +431,12 @@ class LocalSandbox(Sandbox):
         self._sdrroot = LocalSdrRoot(sdrroot)
         self.__container = None
 
-    def _getComponentHost(self):
+    def _getComponentHost(self, _debugger=None):
         if self.__container is None:
-            self.__container = self._launchComponentHost()
+            self.__container = self._launchComponentHost(_debugger=_debugger)
         return self.__container
 
-    def _launchComponentHost(self, instanceName=None):
+    def _launchComponentHost(self, instanceName=None, _debugger=None):
         # Directly create the sandbox object instead of going through launch()
         profile = self._sdrroot.domPath('/mgr/rh/ComponentHost/ComponentHost.spd.xml')
         spd, scd, prf = self._sdrroot.readProfile(profile)
@@ -445,7 +450,9 @@ class LocalSandbox(Sandbox):
         # root of the local filesystem; all component paths provided to the
         # component host will be absolute.
         execparams = {'RH::DEPLOYMENT_ROOT':'/'}
-        comp._launcher = LocalComponentLauncher(execparams, {}, True, {}, None, None, None, False)
+        if not isinstance(_debugger, Valgrind):
+            _debugger = None
+        comp._launcher = LocalComponentLauncher(execparams, {}, True, {}, _debugger, None, None, False)
         comp._kick()
         return comp
 
