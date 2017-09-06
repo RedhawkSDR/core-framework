@@ -79,9 +79,17 @@ stop() {
             rh_run_scripts "${cfg["STOP_PRE_SCRIPT"]}"
 
 	    killproc -p "$pid_file" 
-	    rh_success
+            if [[ $? == 0 ]]
+            then
+	       rh_success
 
-            rh_run_scripts "${cfg["STOP_POST_SCRIPT"]}"
+	       [ -f "$pid_file" ] && rm -f "$pid_file"
+
+               rh_run_scripts "${cfg["STOP_POST_SCRIPT"]}"
+           else
+               retval=1
+	       rh_failure
+           fi
 	else
 	    retval=1		
 	    rh_failure	

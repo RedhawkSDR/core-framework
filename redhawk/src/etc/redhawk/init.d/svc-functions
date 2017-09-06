@@ -101,8 +101,8 @@ dommgr_cmd_pre() {
     #
     # Environment and directory checks
     #
-    [ -d $PID_DIR ] || mkdir -p $PID_DIR
-    [ -d $LOCK_DIR ] || mkdir -p $LOCK_DIR
+    [ -d $PID_DIR ] || mkdir -p $PID_DIR && chmod guo+rwx $PID_DIR
+    [ -d $LOCK_DIR ] || mkdir -p $LOCK_DIR && chmod guo+rwx $LOCK_DIR
     [ -d $LOG_OUT_DIR ] || mkdir -p $LOG_OUT_DIR && chmod guo+rwx $LOG_OUT_DIR
 }
 
@@ -470,8 +470,8 @@ node_cmd_pre() {
     #
     # Environment and directory checks
     #
-    [ -d $PID_DIR ] || mkdir -p $PID_DIR
-    [ -d $LOCK_DIR ] || mkdir -p $LOCK_DIR
+    [ -d $PID_DIR ] || mkdir -p $PID_DIR && chmod guo+rwx $PID_DIR
+    [ -d $LOCK_DIR ] || mkdir -p $LOCK_DIR && chmod guo+rwx $LOCK_DIR
     [ -d $LOG_OUT_DIR ] || mkdir -p $LOG_OUT_DIR && chmod guo+rwx $LOG_OUT_DIR
 }
 
@@ -519,7 +519,7 @@ node_build_arg_list()
 	then
 	    arg="/nodes/$node_name/DeviceManager.dcd.xml"
 	else
-	    echo "Missing DMD PATH" && return 1
+	    echo "Missing DCD PATH" && return 1
 	fi
     else
 	tmp_=`eval echo $arg`
@@ -873,8 +873,8 @@ waveform_cmd_pre(){
     #
     # Environment and directory checks
     #
-    [ -d $PID_DIR ] || mkdir -p $PID_DIR
-    [ -d $LOCK_DIR ] || mkdir -p $LOCK_DIR
+    [ -d $PID_DIR ] || mkdir -p $PID_DIR && chmod guo+rwx $PID_DIR
+    [ -d $LOCK_DIR ] || mkdir -p $LOCK_DIR && chmod guo+rwx $LOCK_DIR
     [ -d $LOG_OUT_DIR ] || mkdir -p $LOG_OUT_DIR && chmod guo+rwx $LOG_OUT_DIR
 }
 
@@ -1044,6 +1044,7 @@ waveform_start_one() {
     declare -A exec_options
     build_exec_options "$domain_name.$waveform_name"  "$pid_file"
     exec_options["RETAIN_ENVIRONMENT"]="true"
+    exec_options["CAT_ENV"]="false"
     [[ $_rh_debug_ ]] && declare -p exec_options
     
     # check if process is already started

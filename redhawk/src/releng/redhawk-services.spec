@@ -81,9 +81,9 @@ if ! id redhawk &> /dev/null; then
     -c "REDHAWK System Account" -n -g redhawk redhawk > /dev/null
 fi
 
-[ -d /var/run/redhawk ] || mkdir -p /var/run/redhawk && chmod 775 /var/run/redhawk > /dev/null 2>&1 || :
-[ -d /var/log/redhawk ] || mkdir -p /var/log/redhawk && chmod 775 /var/log/redhawk > /dev/null 2>&1 || :
-[ -d /var/lock/redhawk ] || mkdir -p /var/lock/redhawk && chmod 775 /var/lock/redhawk > /dev/null 2>&1 || :
+[ -d /var/run/redhawk ] || mkdir -p /var/run/redhawk && chmod 777 /var/run/redhawk > /dev/null 2>&1 || :
+[ -d /var/log/redhawk ] || mkdir -p /var/log/redhawk && chmod 777 /var/log/redhawk > /dev/null 2>&1 || :
+[ -d /var/lock/redhawk ] || mkdir -p /var/lock/redhawk && chmod 777 /var/lock/redhawk > /dev/null 2>&1 || :
 
 
 %files

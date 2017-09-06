@@ -91,7 +91,9 @@ config() {
 	    IFS=$'\n' 
 	    local kls=( $(echo -e "${kl[@]/%/\\n}" | sed -r -e 's/^ *//' -e '/^$/d' | sort) )
 	    unset IFS
-	    printf "\n\n --------- Processing Section: ${section} in CFG: ${cfg_file} -------------\n\n"
+	    printf "%s\n" "---------------------------------------------------------------------------------------------"
+	    printf "Config: Domain: ${domain_name}  Waveform: ${waveform_name}\nSection: ${section} File: ${cfg_file}  \n"
+	    printf "%s\n" "----------------------------------------------------------------------------------------------"
 	    for key in "${kls[@]}"; do printf "%s=%s\n" ${key^^} ${cfg[$key]} ;  done
 	done
 
@@ -155,6 +157,7 @@ stop() {
             cfg["WAVEFORM_ID"]="$waveform_id"
             build_exec_options "$domain_name.$waveform_name"  "$pid_file"
             exec_options["RETAIN_ENVIRONMENT"]="true"
+            exec_options["CAT_ENV"]="false"
             [[ $_rh_debug_ ]] && declare -p cfg
             [[ $_rh_debug_ ]] && declare -p exec_options
         fi
@@ -261,11 +264,12 @@ status() {
             cfg["WAVEFORM_ID"]="$waveform_id"
             build_exec_options "$domain_name.$waveform_name"   "$pid_file"
             exec_options["RETAIN_ENVIRONMENT"]="true"
+            exec_options["CAT_ENV"]="false"
             [[ $_rh_debug_ ]] && declare -p cfg
             [[ $_rh_debug_ ]] && declare -p exec_options
         fi
 
-	echo -n "Status for $waveform_id: "
+	echo  "Status for $waveform_id: "
 	if waveform_check_run "$pid_file"
 	then
             [[ $_rh_debug_ ]] && declare -p exec_options
