@@ -856,6 +856,8 @@ class simpleProperty(Property):
             value = self.queryValue()
             if value != None:
                 ret=str(value)
+        else:
+            raise Exception, 'Could not perform query, "' + str(self.id) + '" is a writeonly property'
         return ret
         
     def __str__(self, *args):
@@ -1026,7 +1028,8 @@ class sequenceProperty(Property):
     def __repr__(self):
         if self.mode != "writeonly":
             return repr(self.queryValue())
-        return ''
+        else:
+            raise Exception, 'Could not perform query, "' + str(self.id) + '" is a writeonly property'
     
     def __str__(self):
         return self.__repr__()
@@ -1228,6 +1231,8 @@ class structProperty(Property):
         currValue = ""
         if self.mode != "writeonly":
             currValue = self.queryValue()
+        else:
+            raise Exception, 'Could not perform query, "' + str(self.id) + '" is a writeonly property'
         structView = "ID: " + self.id
         for key in currValue:
             try:

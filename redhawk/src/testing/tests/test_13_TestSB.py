@@ -394,6 +394,29 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals('override', comp.cmdline)
         comp.releaseObject()
 
+    def test_writeOnly(self):
+        dev = sb.launch('writeonly_cpp')
+        try:
+            print dev.foo
+            self.assertTrue(False)
+        except Exception, e:
+            self.assertEquals(e.args[0], 'Could not perform query, "foo" is a writeonly property')
+        try:
+            print dev.foo_seq
+            self.assertTrue(False)
+        except Exception, e:
+            self.assertEquals(e.args[0], 'Could not perform query, "foo_seq" is a writeonly property')
+        try:
+            print dev.foo_struct
+            self.assertTrue(False)
+        except Exception, e:
+            self.assertEquals(e.args[0], 'Could not perform query, "foo_struct" is a writeonly property')
+        try:
+            print dev.foo_struct_seq
+            self.assertTrue(False)
+        except Exception, e:
+            self.assertEquals(e.args[0], 'Could not perform query, "foo_struct_seq" is a writeonly property')
+
     def test_nestedSoftPkgDeps(self):
         cwd = os.getcwd()
         depLibraryPath = cwd + "/sdr/dom/components/softpkgNestedDep/spdNestedDepLibrary"

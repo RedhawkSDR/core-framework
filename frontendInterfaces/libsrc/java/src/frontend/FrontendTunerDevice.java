@@ -939,7 +939,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
             "frontend_tuner_allocation", //name
             frontend.FETypes.frontend_tuner_allocation_struct.class, //type
             new frontend.FETypes.frontend_tuner_allocation_struct(), //default value
-            Mode.READWRITE, //mode
+            Mode.WRITEONLY, //mode
             new Kind[] {Kind.ALLOCATION} //kind
             );
 
@@ -949,7 +949,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
             "frontend_listener_allocation", //name
             frontend.FETypes.frontend_listener_allocation_struct.class, //type
             new frontend.FETypes.frontend_listener_allocation_struct(), //default value
-            Mode.READWRITE, //mode
+            Mode.WRITEONLY, //mode
             new Kind[] {Kind.ALLOCATION} //kind
             );
 

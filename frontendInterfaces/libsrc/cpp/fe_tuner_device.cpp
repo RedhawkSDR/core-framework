@@ -293,7 +293,7 @@ namespace frontend {
                     frontend::frontend_tuner_allocation_struct(),
                     "FRONTEND::tuner_allocation",
                     "frontend_tuner_allocation",
-                    "readwrite",
+                    "writeonly",
                     "",
                     "external",
                     "allocation");
@@ -302,7 +302,7 @@ namespace frontend {
                     frontend::frontend_listener_allocation_struct(),
                     "FRONTEND::listener_allocation",
                     "frontend_listener_allocation",
-                    "readwrite",
+                    "writeonly",
                     "",
                     "external",
                     "allocation");

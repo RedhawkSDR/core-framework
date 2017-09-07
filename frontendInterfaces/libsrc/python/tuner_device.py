@@ -1081,14 +1081,14 @@ class FrontendTunerDevice(Device):
                                                 name="frontend_tuner_allocation",
                                                 structdef=frontend_tuner_allocation,
                                                 configurationkind=("allocation",),
-                                                mode="readwrite",
+                                                mode="writeonly",
                                                 description="""Frontend Interfaces v2.0 main allocation structure"""
                                                 )
     frontend_listener_allocation = struct_property(id_="FRONTEND::listener_allocation",
                                                    name="frontend_listener_allocation",
                                                    structdef=frontend_listener_allocation,
                                                    configurationkind=("allocation",),
-                                                   mode="readwrite",
+                                                   mode="writeonly",
                                                    description="""Allocates a listener (subscriber) based off a previous allocation """
                                                    )
     frontend_tuner_status = structseq_property(id_="FRONTEND::tuner_status",
