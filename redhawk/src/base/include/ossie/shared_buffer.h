@@ -24,7 +24,6 @@
 #include <algorithm>
 #include <memory>
 
-#include <boost/shared_array.hpp>
 #include "BufferManager.h"
 
 #ifdef _RH_SHARED_BUFFER_DEBUG
@@ -39,41 +38,42 @@
 
 namespace redhawk {
 
-    /**
-     * @brief  Class to adapt an STL-compliant allocator to a deleter.
-     */
-    template <class Alloc>
-    class allocator_deleter : public Alloc {
-    public:
-        /// @brief  The allocator type (Alloc).
-        typedef Alloc allocator_type;
-
-        /**
-         * @brief  Construct an %allocator_deleter.
-         *
-         * @internal  The STL allocator concept defines deallocate as taking
-         * both a pointer and a size; unfortunately, Boost smart pointers
-         * expect deleters take just a pointer. This class extends from the
-         * template parameter, an allocator (which must be copy-constructible),
-         * and stores the size for use with deallocate.
-         */
-        allocator_deleter(size_t size, const allocator_type& alloc=allocator_type()) :
-            allocator_type(alloc),
-            _M_size(size)
+    namespace detail {
+        // Atomically increments a reference count. 
+        // Abstracts away the platform-specific aspects of atomic operations
+        // for use in reference counting.
+        static inline void add_reference(int* counter)
         {
+#ifdef __ATOMIC_RELAXED
+            // Adding a reference can use the relaxed memory model because no
+            // further action needs to be taken based on the reference count
+            // (at least one reference exists already).
+            __atomic_add_fetch(counter, 1, __ATOMIC_RELAXED);
+#else
+            // In GCC 4.4, the atomic built-ins are a full memory barrier.
+            __sync_add_and_fetch(counter, 1);
+#endif
         }
 
-        /**
-         * @brief  Deallocates a pointer.
-         */
-        void operator() (typename allocator_type::pointer ptr)
+        // Atomically decrements a reference count, returning the new value.
+        // Abstracts away the platform-specific aspects of atomic operations
+        // for use in reference counting.
+        static inline int remove_reference(int* counter)
         {
-            this->deallocate(ptr, _M_size);
+#ifdef __ATOMIC_ACQ_REL
+            // Technically, the subtraction just requires a release barrier (to
+            // ensure no prior operations can be moved after it), with an
+            // acquire barrier only if the reference count is 0 (so that the
+            // destructor code is not moved before it). In practice, using an
+            // acquire-release barrier does not appear to make much difference
+            // (on x86, at least) and is always safe (because it it stricter).
+            return __atomic_sub_fetch(counter, 1, __ATOMIC_ACQ_REL);
+#else
+            // In GCC 4.4, the atomic built-ins are a full memory barrier.
+            return __sync_sub_and_fetch(counter, 1);
+#endif
         }
-
-    private:
-        const size_t _M_size;
-    };
+    }
 
     // Forward declaration of read/write buffer class.
     template <typename T>
@@ -124,7 +124,7 @@ namespace redhawk {
          * @brief  Construct an empty %shared_buffer.
          */
         shared_buffer() :
-            _M_array(),
+            _M_impl(),
             _M_start(0),
             _M_finish(0)
         {
@@ -140,7 +140,7 @@ namespace redhawk {
          * will be deleted with delete[].
          */
         shared_buffer(value_type* data, size_t size) :
-            _M_array(data),
+            _M_impl(new impl(data)),
             _M_start(data),
             _M_finish(data + size)
         {
@@ -159,10 +159,28 @@ namespace redhawk {
          */
         template <class D>
         shared_buffer(value_type* data, size_t size, D deleter) :
-            _M_array(data, deleter),
+            _M_impl(new func_impl<D>(data, deleter)),
             _M_start(data),
             _M_finish(data + size)
         {
+        }
+
+        /**
+         * @brief  %shared_buffer copy constructor.
+         * @param other  A %shared_buffer of identical element type.
+         *
+         * %shared_buffer has reference semantics; after construction, this
+         * instance shares the underlying data, increasing its reference count
+         * by one.
+         */
+        shared_buffer(const shared_buffer& other) :
+            _M_impl(other._M_impl),
+            _M_start(other._M_start),
+            _M_finish(other._M_finish)
+        {
+            if (_M_impl) {
+                detail::add_reference(&(_M_impl->refcount));
+            }
         }
 
         /**
@@ -171,6 +189,28 @@ namespace redhawk {
          */
         ~shared_buffer()
         {
+            if (_M_impl) {
+                if (detail::remove_reference(&(_M_impl->refcount)) == 0) {
+                    delete _M_impl;
+                }
+            }
+        }
+
+        /**
+         * @brief  %shared_buffer assignment operator.
+         * @param other  A %shared_buffer of identical element type.
+         *
+         * %shared_buffer has reference semantics; after assignment, this
+         * instance shares the underlying data, increasing its reference count
+         * by one. The prior data pointer is released, deleting the data if
+         * this was the last reference. 
+         */
+        shared_buffer& operator=(const shared_buffer& other)
+        {
+            // Use copy constructor and swap to handle reference count
+            shared_buffer temp(other);
+            this->swap(temp);
+            return *this;
         }
 
         /**
@@ -326,9 +366,10 @@ namespace redhawk {
          * @param data  Pointer to first element.
          * @param size  Number of elements.
          *
-         * Adapts externally aquired memory to work with the %shared_buffer
+         * Adapts externally managed memory to work with the %shared_buffer
          * API; however, additional care must be taken to ensure that the data
-         * is copied if it needs to be held past the lifetime of the call.
+         * is copied if it needs to be held past the lifetime of the transient
+         * %shared_buffer.
          */
         static shared_buffer make_transient(const value_type* data, size_t size)
         {
@@ -347,7 +388,7 @@ namespace redhawk {
          */
         bool transient() const
         {
-            return !(this->_M_array);
+            return !(this->_M_impl);
         }
 
     protected:
@@ -398,7 +439,7 @@ namespace redhawk {
         // Internal implementation of swap.
         void _M_swap(shared_buffer& other)
         {
-            this->_M_array.swap(other._M_array);
+            std::swap(this->_M_impl, other._M_impl);
             std::swap(this->_M_start, other._M_start);
             std::swap(this->_M_finish, other._M_finish);
         }
@@ -419,7 +460,7 @@ namespace redhawk {
             // or buffer) via a void pointer so that the compiler doesn't
             // object about strict aliasing rules, which shouldn't matter here.
             // The in-memory layout is always the same irrespective of the
-            // individual element type (including the boost::shared_array), so
+            // individual element type (including the data implementation), so
             // the important effects of the copy constructor like reference
             // counting will still occur.
             const void* ptr = &other;
@@ -433,16 +474,98 @@ namespace redhawk {
             result._M_finish = result._M_start + result.size();
             return result;
         }
+
+        // Internal reference-counted data buffer implementation similar to,
+        // but simpler than, Boost/C++11's shared_ptr. Stores the reference
+        // count and original buffer pointer along with a function pointer to a
+        // deleter, which subclasses may provide. This approach, as opposed to
+        // virtual functions, greatly reduces the number of symbols created per
+        // type, and makes the in-memory layout more predicatable should cache
+        // alignment be a concern.
+        struct impl {
+            typedef void (*release_func)(impl*);
+
+            impl(value_type* ptr, release_func func=&impl::delete_release) :
+                refcount(1),
+                data(ptr),
+                release(func)
+            {
+            }
+
+            ~impl()
+            {
+                if (data) {
+                    release(this);
+                }
+            }
+
+            static void delete_release(impl* imp)
+            {
+                delete[] imp->data;
+            }
+
+            int refcount;
+            value_type* data;
+            release_func release;
+        };
+
+        // Data buffer implementation that uses an arbitrary function to
+        // release the buffer data; may be a function pointer or functor.
+        template <class Func>
+        struct func_impl : public impl {
+            func_impl(value_type* data, Func func) :
+                impl(data, &func_impl::func_release),
+                func(func)
+            {
+            }
+
+            static void func_release(impl* imp)
+            {
+                static_cast<func_impl*>(imp)->func(imp->data);
+            }
+
+            Func func;
+        };
+
+        // Data buffer implementation that inherits from an STL-compliant
+        // allocator class; supports allocation as well as deallocation for use
+        // by the mutable buffer class below for exception-safe allocation.
+        template <class Alloc>
+        struct allocator_impl : public impl, public Alloc
+        {
+            allocator_impl(value_type* data, size_t size, const Alloc& allocator) :
+                impl(data, &allocator_impl::allocator_release),
+                Alloc(allocator),
+                size(size)
+            {
+            }
+
+            static void allocator_release(impl* imp)
+            {
+                allocator_impl* alloc = static_cast<allocator_impl*>(imp);
+                alloc->deallocate(alloc->data, alloc->size);
+            }
+
+            size_t size;
+        };
+
+        // Internal constructor to allow buffer to provide its own allocator-
+        // based data buffer instance.
+        template <class Alloc>
+        shared_buffer(allocator_impl<Alloc>* imp) :
+            _M_impl(imp),
+            _M_start(imp->data),
+            _M_finish(_M_start + imp->size)
+        {
+        }
         /// @endcond
 
     private:
-        typedef boost::shared_array<value_type> array_type;
-
         // Disallow swap with any other type (mainly, buffer).
         template <class U>
         void swap(U& other);
 
-        array_type _M_array;
+        impl* _M_impl;
         value_type* _M_start;
         value_type* _M_finish;
     };
@@ -779,14 +902,26 @@ namespace redhawk {
 #endif
         }
 
-        // Implementation of allocate.
+        // Implementation of allocating constructor; creates an allocator-based
+        // data buffer implementation in an exception-safe way which can then
+        // be passed to the base class constructor.
         template <class Alloc>
-        static shared_type _M_allocate(size_t size, const Alloc& allocator)
+        static typename shared_type::template allocator_impl<Alloc>* _M_allocate(size_t size, const Alloc& allocator)
         {
-            allocator_deleter<Alloc> deleter(size, allocator);
-            return shared_type(deleter.allocate(size), size, deleter);
+            // Create an empty allocator_impl instance first then try to allocate
+            // the memory, using the fact that it inherits from the allocator.
+            typedef typename shared_type::template allocator_impl<Alloc> impl_type;
+            impl_type* imp = new impl_type(0, size, allocator);
+            try {
+                imp->data = imp->allocate(size);
+            } catch (...) {
+                // If allocation throws an exception (most likely, std::bad_alloc),
+                // delete the implementation to avoid a memory leak, and rethrow.
+                delete imp;
+                throw;
+            }
+            return imp;
         }
-
         /// @endcond
     };
 
