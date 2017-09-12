@@ -258,6 +258,22 @@ namespace redhawk {
         }
 
         /**
+         * Returns the base pointer that was used to create the initial
+         * %shared_buffer instance.
+         *
+         * Transient shared_buffers do not have any information about how the
+         * memory was allocated, so their base pointer is always null.
+         */
+        const void* base() const
+        {
+            if (_M_impl) {
+                return _M_impl->data;
+            } else {
+                return 0;
+            }
+        }
+
+        /**
          * Returns a read-only pointer to the first element.
          */
         const value_type* data() const
