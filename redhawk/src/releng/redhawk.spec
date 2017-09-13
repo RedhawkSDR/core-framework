@@ -17,7 +17,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-
+%if 0%{?fedora} >= 17 || 0%{?rhel} >=7
+%global with_systemd 1
+%endif
 %{!?_ossiehome:  %define _ossiehome  /usr/local/redhawk/core}
 %{!?_sdrroot:    %define _sdrroot    /var/redhawk/sdr}
 %define _prefix %{_ossiehome}
@@ -147,7 +149,9 @@ Requires:       redhawk >= 2.0
 Requires:       redhawk-sdrroot-dom-mgr >= 2.0
 Requires:       redhawk-sdrroot-dev-mgr >= 2.0
 
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+%if 0%{?with_systemd}
+%{?systemd_requires}
+BuildRequires:   systemd
 Requires:        systemd
 Requires:        systemctl
 Requires(pre):   systemd
@@ -161,19 +165,33 @@ Requires(pre):  /sbin/service
 Service scripts for REDHAWK, a Software Defined Radio framework.
 
 %prep
-%setup -q 
+
+%if 0%{?_localbuild}
+%setup -q -n redhawk
+%else
+%setup -q
+%endif
 
 
 %build
 # build the core framework
 cd src
 ./reconf
-%configure --with-sdr=%{_sdrroot} --with-pyscheme=home
+%if 0%{?with_systemd}
+%configure --with-sdr=%{_sdrroot} --with-pyscheme=home --without-tests --with-unitdir=%{_unitdir}
+%else
+%configure --with-sdr=%{_sdrroot} --with-pyscheme=home --without-tests
+%endif
+
 make %{?_smp_mflags}
 
 
 %install
 rm -rf --preserve-root $RPM_BUILD_ROOT
+
+%if 0%{?with_systemd}
+mkdir -p %{buildroot}%{_unitdir}
+%endif
 
 # install ossie framework
 cd src
@@ -294,22 +312,22 @@ fi
 %dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk
 %attr(444,root,redhawk) %{_sysconfdir}/redhawk/redhawk-release
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/rh.cond.cfg
-%attr(775,root,redhawk) %{_sysconfdir}/redhawk/cron.d
+%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/cron.d
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/cron.d/redhawk
-%attr(775,root,redhawk) %{_sysconfdir}/redhawk/domains.d
+%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/domains.d
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/domains.d/example.domains
-%attr(775,root,redhawk) %{_sysconfdir}/redhawk/logging
+%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/logging
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/logging/default.logging.properties
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/logging/example.logging.properties
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/logging/logrotate.redhawk
-%attr(775,root,redhawk) %{_sysconfdir}/redhawk/nodes.d
+%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/nodes.d
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/nodes.d/example.nodes
-%attr(775,root,redhawk) %{_sysconfdir}/redhawk/security
-%attr(775,root,redhawk) %{_sysconfdir}/redhawk/security/limits.d
+%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/security
+%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/security/limits.d
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/security/limits.d/99-redhawk-limits.conf
-%attr(775,root,redhawk) %{_sysconfdir}/redhawk/sysctl.d
+%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/sysctl.d
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/sysctl.d/sysctl.conf
-%attr(775,root,redhawk) %{_sysconfdir}/redhawk/waveforms.d
+%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/waveforms.d
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/waveforms.d/example.waveforms
 %dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/init.d
 %attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-domain-mgrs
@@ -335,38 +353,39 @@ fi
 %attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/rundir
 %attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/set-env
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/init.d/*.defaults
-
+%dir %attr(0777,root,redhawk) %{_localstatedir}/log/redhawk
+%dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk
+%dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk
+%dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk/domain-mgrs
+%dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk/device-mgrs
+%dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk/waveforms
+%dir %attr(0777,root,redhawk) %{_localstatedir}/run/redhawk
+%dir %attr(0777,root,redhawk) %{_localstatedir}/run/redhawk/domain-mgrs
+%dir %attr(0777,root,redhawk) %{_localstatedir}/run/redhawk/device-mgrs
+%dir %attr(0777,root,redhawk) %{_localstatedir}/run/redhawk/waveforms
+%if 0%{?with_systemd}
+%defattr (-,root,root)
+%{_unitdir}/redhawk-domain-mgrs.service
+%{_unitdir}/redhawk-device-mgrs.service
+%{_unitdir}/redhawk-waveforms.service
+%{_unitdir}/redhawk-domain-mgr@.service
+%{_unitdir}/redhawk-device-mgr@.service
+%{_unitdir}/redhawk-waveform@.service
+%endif
 
 %post
 /sbin/ldconfig
 
 
-%pre services
-[ -d /var/run/redhawk ] || mkdir -p /var/run/redhawk && chmod 775 /var/run/redhawk > /dev/null 2>&1 || :
-[ -d /var/log/redhawk ] || mkdir -p /var/log/redhawk && chmod 775 /var/log/redhawk > /dev/null 2>&1 || :
-[ -d /var/lock/redhawk ] || mkdir -p /var/lock/redhawk && chmod 775 /var/lock/redhawk > /dev/null 2>&1 || :
-
 %post services
 
 cp %{_sysconfdir}/redhawk/cron.d/redhawk %{_sysconfdir}/cron.d 
 
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+%if 0%{?with_systemd}
 
-cp %{_sysconfdir}/redhawk/init.d/redhawk-domain-mgrs.service /usr/lib/systemd/system
-cp %{_sysconfdir}/redhawk/init.d/redhawk-device-mgrs.service /usr/lib/systemd/system
-cp %{_sysconfdir}/redhawk/init.d/redhawk-waveforms.service   /usr/lib/systemd/system
-cp %{_sysconfdir}/redhawk/init.d/redhawk-domain-mgr@.service /usr/lib/systemd/system
-cp %{_sysconfdir}/redhawk/init.d/redhawk-device-mgr@.service /usr/lib/systemd/system
-cp %{_sysconfdir}/redhawk/init.d/redhawk-waveform@.service   /usr/lib/systemd/system
-
-systemctl daemon-reload  > /dev/null 2>&1 || :
-systemctl enable redhawk-domain-mgrs > /dev/null 2>&1 || :
-systemctl enable redhawk-device-mgrs > /dev/null 2>&1 || :
-systemctl enable redhawk-waveforms > /dev/null 2>&1 || :
-
-systemctl start redhawk-domain-mgrs > /dev/null 2>&1 || :
-systemctl start redhawk-device-mgrs > /dev/null 2>&1 || :
-systemctl start redhawk-waveforms > /dev/null 2>&1 || :
+%systemd_post redhawk-domain-mgrs.service
+%systemd_post redhawk-device-mgrs.service
+%systemd_post redhawk-waveforms.service
 
 systemctl reload crond > /dev/null 2>&1 || :
 
@@ -388,17 +407,11 @@ service crond reload > /dev/null 2>&1 || :
 
 %preun services
 
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+%if 0%{?with_systemd}
 
-systemctl stop redhawk-waveforms  > /dev/null 2>&1 || :
-systemctl stop redhawk-device-mgrs  > /dev/null 2>&1 || :
-systemctl stop redhawk-domain-mgrs  > /dev/null 2>&1 || :
-
-systemctl disable redhawk-waveforms  > /dev/null 2>&1 || :
-systemctl disable redhawk-device-mgrs  > /dev/null 2>&1 || :
-systemctl disable redhawk-domain-mgrs  > /dev/null 2>&1 || :
-
-systemctl daemon-reload  > /dev/null 2>&1 || :
+%systemd_preun redhawk-domain-mgrs.service
+%systemd_preun redhawk-device-mgrs.service
+%systemd_preun redhawk-waveforms.service
 
 %else
 
@@ -416,16 +429,13 @@ systemctl daemon-reload  > /dev/null 2>&1 || :
 %postun services
 [ -f %{_sysconfdir}/cron.d/redhawk ] && rm -f  %{_sysconfdir}/cron.d/redhawk || :
 
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
 
-[ -f /usr/lib/systemd/system/redhawk-domain-mgrs.service ] && rm -f /usr/lib/systemd/system/redhawk-domain-mgrs.service
-[ -f /usr/lib/systemd/system/redhawk-domain-mgr@.service ] && rm -f /usr/lib/systemd/system/redhawk-domain-mgr@.service
-[ -f /usr/lib/systemd/system/redhawk-device-mgrs.service ] && rm -f /usr/lib/systemd/system/redhawk-device-mgrs.service
-[ -f /usr/lib/systemd/system/redhawk-device-mgr@.service ] && rm -f /usr/lib/systemd/system/redhawk-device-mgr@.service
-[ -f /usr/lib/systemd/system/redhawk-waveforms.service ]   && rm -f /usr/lib/systemd/system/redhawk-waveforms.service
-[ -f /usr/lib/systemd/system/redhawk-waveform@.service ]   && rm -f /usr/lib/systemd/system/redhawk-waveform@.service
+%if 0%{?with_systemd}
 
-systemctl daemon-reload  > /dev/null 2>&1 || :
+%systemd_postun_with_restart redhawk-domain-mgrs.service
+%systemd_postun_with_restart redhawk-device-mgrs.service
+%systemd_postun_with_restart redhawk-waveforms.service
+
 systemctl reload crond  > /dev/null 2>&1 || :
 
 %else
@@ -437,11 +447,6 @@ systemctl reload crond  > /dev/null 2>&1 || :
 /sbin/service crond reload  > /dev/null 2>&1 || :
 
 %endif
-
-[ -d /var/lock/redhawk ] && rm -rf  /var/lock/redhawk || :
-[ -d /var/run/redhawk ]  && rm -rf  /var/run/redhawk || :
-[ -d /var/log/redhawk ]  && rm -rf  /var/log/redhawk || :
-
 
 %changelog
 * Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.2-1

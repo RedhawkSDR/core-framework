@@ -1,3 +1,5 @@
+
+
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -97,6 +99,19 @@ redhawk/sysctl.d/sysctl.conf
 waveforms__DATA = \
 redhawk/waveforms.d/example.waveforms
 
+if INSTALL_SYSTEMDUNITS
+
+rh_systemdunits_dir=$(unitdir)
+rh_systemdunits__DATA = \
+redhawk/init.d/redhawk-domain-mgrs.service \
+redhawk/init.d/redhawk-device-mgrs.service \
+redhawk/init.d/redhawk-waveforms.service \
+redhawk/init.d/redhawk-domain-mgr@.service \
+redhawk/init.d/redhawk-device-mgr@.service \
+redhawk/init.d/redhawk-waveform@.service
+
+endif
+
 lib = lib${gr_libdir_suffix}
 edit = $(SED) \
   -e 's|@prefix[@]|$(prefix)|g' \
@@ -114,5 +129,13 @@ profile.d/redhawk.csh: profile.d/redhawk.csh.in
 profile.d/redhawk-sdrroot.sh: profile.d/redhawk-sdrroot.sh.in
 profile.d/redhawk-sdrroot.csh: profile.d/redhawk-sdrroot.csh.in
 
-DISTCLEANFILES = $(ldsoconfd_DATA) $(profiled_DATA) $(rh_etc__DATA) $(cron__DATA) $(domains__DATA) $(init__DATA) $(logging__DATA) $(nodes__DATA) $(limits__DATA) $(sysctl__DATA) $(waveforms__DATA)
+DISTCLEANFILES = $(ldsoconfd_DATA) $(profiled_DATA)
 
+install-data-local:
+	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/log/redhawk"
+	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/lock/redhawk/domain-mgrs"
+	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/lock/redhawk/device-mgrs"
+	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/lock/redhawk/waveforms"
+	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/run/redhawk/domain-mgrs"
+	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/run/redhawk/device-mgrs"
+	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/run/redhawk/waveforms"

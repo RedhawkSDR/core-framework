@@ -69,6 +69,9 @@ AX_BOOST_REGEX
 AX_BOOST_THREAD
 AX_BOOST_DATE_TIME
 
+m4_include(acinclude/unitdir.m4)
+m4_include(acinclude/testdir.m4)
+
 AX_LIB_EXPAT([1.95.8])
 if test x"$HAVE_EXPAT" = xno ; then
         AC_MSG_ERROR([The Expat XML parser library and header files are required])
@@ -311,8 +314,10 @@ AC_CONFIG_FILES(Makefile \
                 idl/Makefile \
                 xml/Makefile \
                 tools/Makefile \
-                tools/LogEventAppender/Makefile \
-                testing/Makefile \
+                tools/LogEventAppender/Makefile )
+
+AM_COND_IF( [BUILD_TESTS], [
+AC_CONFIG_FILES( [testing/Makefile \
                 testing/_unitTestHelpers/buildconfig.py \
                 testing/cpp/Makefile \
                 testing/sdr/dev/devices/ExecutableDevice/Makefile \
@@ -399,6 +404,6 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/foo/bar/jv/java/Makefile \
                 testing/sdr/dom/components/huge_msg_cpp/cpp/Makefile \
                 testing/sdr/dom/components/TestCppOptionalProps/cpp/Makefile \
-                testing/sdr/dom/components/TestJavaOptionalProps/java/Makefile )
+                testing/sdr/dom/components/TestJavaOptionalProps/java/Makefile ]) ])
 AC_OUTPUT
 
