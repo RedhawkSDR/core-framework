@@ -18,11 +18,11 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 %if 0%{?fedora} >= 17 || 0%{?rhel} >=7
-%global with_systemd 1
+%define with_systemd 1
 %endif
-%{!?_ossiehome:  %define _ossiehome  /usr/local/redhawk/core}
-%{!?_sdrroot:    %define _sdrroot    /var/redhawk/sdr}
-%define _prefix %{_ossiehome}
+%{!?_ossiehome:  %global _ossiehome  /usr/local/redhawk/core}
+%{!?_sdrroot:    %global _sdrroot    /var/redhawk/sdr}
+%global _prefix %{_ossiehome}
 Prefix:         %{_ossiehome}
 Prefix:         %{_sdrroot}
 Prefix:         %{_sysconfdir}
@@ -38,7 +38,7 @@ URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-%define __arch_install_post %{nil}
+%global __arch_install_post %{nil}
 
 Requires:       util-linux-ng
 Requires:       java >= 1:1.8.0
@@ -151,11 +151,7 @@ Requires:       redhawk-sdrroot-dev-mgr >= 2.0
 
 %if 0%{?with_systemd}
 %{?systemd_requires}
-BuildRequires:   systemd
-Requires:        systemd
-Requires:        systemctl
-Requires(pre):   systemd
-Requires(pre):   systemctl
+BuildRequires:          systemd
 %else
 Requires:       /sbin/service /sbin/chkconfig
 Requires(pre):  /sbin/service
@@ -172,7 +168,6 @@ Service scripts for REDHAWK, a Software Defined Radio framework.
 %setup -q
 %endif
 
-
 %build
 # build the core framework
 cd src
@@ -188,10 +183,6 @@ make %{?_smp_mflags}
 
 %install
 rm -rf --preserve-root $RPM_BUILD_ROOT
-
-%if 0%{?with_systemd}
-mkdir -p %{buildroot}%{_unitdir}
-%endif
 
 # install ossie framework
 cd src
@@ -355,7 +346,6 @@ fi
 %attr(664,root,redhawk) %{_sysconfdir}/redhawk/init.d/*.defaults
 %dir %attr(0777,root,redhawk) %{_localstatedir}/log/redhawk
 %dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk
-%dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk
 %dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk/domain-mgrs
 %dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk/device-mgrs
 %dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk/waveforms
@@ -379,13 +369,22 @@ fi
 
 %post services
 
-cp %{_sysconfdir}/redhawk/cron.d/redhawk %{_sysconfdir}/cron.d 
+cp %{_sysconfdir}/redhawk/cron.d/redhawk %{_sysconfdir}/cron.d
 
 %if 0%{?with_systemd}
 
-%systemd_post redhawk-domain-mgrs.service
-%systemd_post redhawk-device-mgrs.service
-%systemd_post redhawk-waveforms.service
+if [ $1 -eq 1 ] ; then 
+    # Initial installation 
+    systemctl preset redhawk-domain-mgrs.service >/dev/null 2>&1 || : 
+fi 
+if [ $1 -eq 1 ] ; then 
+    # Initial installation 
+    systemctl preset redhawk-device-mgrs.service >/dev/null 2>&1 || : 
+fi 
+if [ $1 -eq 1 ] ; then 
+    # Initial installation 
+    systemctl preset redhawk-waveforms.service >/dev/null 2>&1 || : 
+fi 
 
 systemctl reload crond > /dev/null 2>&1 || :
 
@@ -394,7 +393,7 @@ ln -s %{_sysconfdir}/redhawk/init.d/redhawk-domain-mgrs %{_sysconfdir}/rc.d/init
 ln -s %{_sysconfdir}/redhawk/init.d/redhawk-device-mgrs %{_sysconfdir}/rc.d/init.d/
 ln -s %{_sysconfdir}/redhawk/init.d/redhawk-waveforms %{_sysconfdir}/rc.d/init.d/
 
-/sbin/chkconfig --add redhawk-domain-mgrs 
+/sbin/chkconfig --add redhawk-domain-mgrs
 /sbin/chkconfig --add redhawk-device-mgrs
 /sbin/chkconfig --add redhawk-waveforms
 
@@ -409,9 +408,21 @@ service crond reload > /dev/null 2>&1 || :
 
 %if 0%{?with_systemd}
 
-%systemd_preun redhawk-domain-mgrs.service
-%systemd_preun redhawk-device-mgrs.service
-%systemd_preun redhawk-waveforms.service
+if [ $1 -eq 0 ] ; then 
+    # Package removal, not upgrade 
+    systemctl --no-reload disable redhawk-domain-mgrs.service > /dev/null 2>&1 || : 
+    systemctl stop redhawk-domain-mgrs.service > /dev/null 2>&1 || : 
+fi 
+if [ $1 -eq 0 ] ; then 
+    # Package removal, not upgrade 
+    systemctl --no-reload disable redhawk-device-mgrs.service > /dev/null 2>&1 || : 
+    systemctl stop redhawk-device-mgrs.service > /dev/null 2>&1 || : 
+fi 
+if [ $1 -eq 0 ] ; then 
+    # Package removal, not upgrade 
+    systemctl --no-reload disable redhawk-waveforms.service > /dev/null 2>&1 || : 
+    systemctl stop redhawk-waveforms.service > /dev/null 2>&1 || : 
+fi
 
 %else
 
@@ -419,7 +430,7 @@ service crond reload > /dev/null 2>&1 || :
 /sbin/service redhawk-device-mgrs stop > /dev/null 2>&1 || :
 /sbin/service redhawk-domain-mgrs stop > /dev/null 2>&1 || :
 
-/sbin/chkconfig --del redhawk-domain-mgrs  > /dev/null 2>&1 || : 
+/sbin/chkconfig --del redhawk-domain-mgrs  > /dev/null 2>&1 || :
 /sbin/chkconfig --del redhawk-device-mgrs  > /dev/null 2>&1 || :
 /sbin/chkconfig --del redhawk-waveforms  > /dev/null 2>&1 || :
 
@@ -427,14 +438,28 @@ service crond reload > /dev/null 2>&1 || :
 
 
 %postun services
-[ -f %{_sysconfdir}/cron.d/redhawk ] && rm -f  %{_sysconfdir}/cron.d/redhawk || :
 
+[ -f %{_sysconfdir}/cron.d/redhawk ] && rm -f  %{_sysconfdir}/cron.d/redhawk || :
 
 %if 0%{?with_systemd}
 
-%systemd_postun_with_restart redhawk-domain-mgrs.service
-%systemd_postun_with_restart redhawk-device-mgrs.service
-%systemd_postun_with_restart redhawk-waveforms.service
+systemctl daemon-reload >/dev/null 2>&1 || : 
+if [ $1 -ge 1 ] ; then 
+    # Package upgrade, not uninstall 
+    systemctl try-restart redhawk-domain-mgrs.service >/dev/null 2>&1 || : 
+fi 
+
+systemctl daemon-reload >/dev/null 2>&1 || : 
+if [ $1 -ge 1 ] ; then 
+    # Package upgrade, not uninstall 
+    systemctl try-restart redhawk-device-mgrs.service >/dev/null 2>&1 || : 
+fi 
+
+systemctl daemon-reload >/dev/null 2>&1 || : 
+if [ $1 -ge 1 ] ; then 
+    # Package upgrade, not uninstall 
+    systemctl try-restart redhawk-waveforms.service >/dev/null 2>&1 || : 
+fi 
 
 systemctl reload crond  > /dev/null 2>&1 || :
 
