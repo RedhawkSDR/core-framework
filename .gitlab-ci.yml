@@ -51,9 +51,9 @@ stages:
     name: $CI_JOB_NAME
     paths:
       - output/
-    expire_in: 3 days
+    expire_in: 2 days
+  #Skip on tag of following format
   except:
-    #Don't build on final tags
     - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 .deploy-common: &deploy-common
@@ -64,6 +64,9 @@ stages:
   - if [ -n "$jenkins_url" ]; then
       curl --insecure -X POST $jenkins_url/job/$jenkins_job/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
     fi
+  #Skip on tag of following format
+  except:
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 redhawk:el6-i386:
   stage: package-redhawk-codegen
@@ -285,6 +288,9 @@ mvn:deploy:
     - cd ..
     - find -name '*.jar'
     - mvn deploy
+  #Skip on tag of following format
+  except:
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 #Trigger a Jenkins job to aggregate artifacts there
 deploy:
@@ -330,3 +336,6 @@ test-trigger:release:
                               $test_url
   only:
     - tags
+  #Skip on tag of following format
+  except:
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
