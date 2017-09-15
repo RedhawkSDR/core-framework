@@ -27,6 +27,7 @@
 #include <ossie/shared_buffer.h>
 
 #include "BULKIO_Interfaces.h"
+#include <ossie/BULKIO/bio_dataShm.h>
 
 namespace bulkio {
 
@@ -34,27 +35,29 @@ namespace bulkio {
     struct CorbaTraits {
     };
 
-#define DEFINE_CORBA_TRAITS(NAME,TT,ST) \
-    template <>                         \
-    struct CorbaTraits<NAME> {          \
-        typedef POA_##NAME POAType;     \
-        typedef TT TransportType;       \
-        typedef ST SequenceType;        \
+#define DEFINE_CORBA_TRAITS(NAME,POA,TT,ST)     \
+    template <>                                 \
+    struct CorbaTraits<NAME> {                  \
+        typedef POA POAType;                    \
+        typedef TT TransportType;               \
+        typedef ST SequenceType;                \
     };
 
-    DEFINE_CORBA_TRAITS(BULKIO::dataChar, CORBA::Char, PortTypes::CharSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataOctet, CORBA::Octet, CF::OctetSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataShort, CORBA::Short, PortTypes::ShortSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataUshort, CORBA::UShort, PortTypes::UshortSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataLong, CORBA::Long, PortTypes::LongSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataUlong, CORBA::ULong, PortTypes::UlongSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataLongLong, CORBA::LongLong, PortTypes::LongLongSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataUlongLong, CORBA::ULongLong, PortTypes::UlongLongSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataFloat, CORBA::Float, PortTypes::FloatSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataDouble, CORBA::Double, PortTypes::DoubleSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataFile, char, char*);
-    DEFINE_CORBA_TRAITS(BULKIO::dataXML, char, char*);
+#define DEFINE_CORBA_SHM_TRAITS(NAME,TT,ST) DEFINE_CORBA_TRAITS(NAME,POA_##NAME##Shm,TT,ST)
+    DEFINE_CORBA_SHM_TRAITS(BULKIO::dataChar, CORBA::Char, PortTypes::CharSequence);
+    DEFINE_CORBA_SHM_TRAITS(BULKIO::dataOctet, CORBA::Octet, CF::OctetSequence);
+    DEFINE_CORBA_SHM_TRAITS(BULKIO::dataShort, CORBA::Short, PortTypes::ShortSequence);
+    DEFINE_CORBA_SHM_TRAITS(BULKIO::dataUshort, CORBA::UShort, PortTypes::UshortSequence);
+    DEFINE_CORBA_SHM_TRAITS(BULKIO::dataLong, CORBA::Long, PortTypes::LongSequence);
+    DEFINE_CORBA_SHM_TRAITS(BULKIO::dataUlong, CORBA::ULong, PortTypes::UlongSequence);
+    DEFINE_CORBA_SHM_TRAITS(BULKIO::dataLongLong, CORBA::LongLong, PortTypes::LongLongSequence);
+    DEFINE_CORBA_SHM_TRAITS(BULKIO::dataUlongLong, CORBA::ULongLong, PortTypes::UlongLongSequence);
+    DEFINE_CORBA_SHM_TRAITS(BULKIO::dataFloat, CORBA::Float, PortTypes::FloatSequence);
+    DEFINE_CORBA_SHM_TRAITS(BULKIO::dataDouble, CORBA::Double, PortTypes::DoubleSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataFile, POA_BULKIO::dataFile, char, char*);
+    DEFINE_CORBA_TRAITS(BULKIO::dataXML, POA_BULKIO::dataXML, char, char*);
 
+#undef DEFINE_CORBA_SHM_TRAITS
 #undef DEFINE_CORBA_TRAITS
 
     template <typename PortType>

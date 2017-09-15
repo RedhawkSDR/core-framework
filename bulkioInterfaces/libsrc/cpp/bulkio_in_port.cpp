@@ -805,6 +805,15 @@ namespace  bulkio {
   }
 
   template <typename PortType>
+  void InNumericPort<PortType>::pushPacketShm(const BULKIO::ShmBuffer& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+  {
+      // TODO: Acquire data from shared memory
+      //NativeType* ptr = new NativeType[data.size];
+      static NativeType buffer[1024];
+      this->queuePacket(BufferType(buffer, data.size, null_deleter()), T, EOS, streamID);
+  }
+
+  template <typename PortType>
   typename InNumericPort<PortType>::StreamList InNumericPort<PortType>::pollStreams(float timeout)
   {
     return pollStreams(0, timeout);

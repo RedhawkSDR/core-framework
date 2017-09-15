@@ -1,0 +1,77 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _DATASHM_IDL_
+#define _DATASHM_IDL_
+
+#include "ossie/BULKIO/bio_dataChar.idl"
+#include "ossie/BULKIO/bio_dataDouble.idl"
+#include "ossie/BULKIO/bio_dataFloat.idl"
+#include "ossie/BULKIO/bio_dataLong.idl"
+#include "ossie/BULKIO/bio_dataLongLong.idl"
+#include "ossie/BULKIO/bio_dataOctet.idl"
+#include "ossie/BULKIO/bio_dataShort.idl"
+#include "ossie/BULKIO/bio_dataUlong.idl"
+#include "ossie/BULKIO/bio_dataUlongLong.idl"
+#include "ossie/BULKIO/bio_dataUshort.idl"
+
+module BULKIO {
+    struct ShmBuffer {
+        unsigned long heapId;
+        unsigned long long ptrId;
+        unsigned long long size;
+    };
+
+    interface dataShm {
+        void pushPacketShm(in ShmBuffer data, in PrecisionUTCTime T, in boolean EOS, in string streamID);
+    };
+
+    interface dataCharShm : dataChar, dataShm {
+    };
+
+    interface dataDoubleShm : dataDouble, dataShm {
+    };
+
+    interface dataFloatShm : dataFloat, dataShm {
+    };
+
+    interface dataLongShm : dataLong, dataShm {
+    };
+
+    interface dataLongLongShm : dataLongLong, dataShm {
+    };
+
+    interface dataOctetShm : dataOctet, dataShm {
+    };
+
+    interface dataShortShm : dataShort, dataShm {
+    };
+
+    interface dataUlongShm : dataUlong, dataShm {
+    };
+
+    interface dataUlongLongShm : dataUlongLong, dataShm {
+    };
+
+    interface dataUshortShm : dataUshort, dataShm {
+    };
+};
+
+#endif

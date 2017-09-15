@@ -56,7 +56,8 @@ bio_dataLong.idl \
 bio_dataLongLong.idl \
 bio_dataUlongLong.idl \
 bio_dataSDDS.idl \
-bio_dataVITA49.idl
+bio_dataVITA49.idl \
+bio_dataShm.idl
 
 # External IDL namespaces that your IDLs reference, comment this line
 # out if your IDL has no external references
@@ -131,7 +132,9 @@ libbulkioInterfaces_la_SOURCES = \
 	src/cpp/ossie/BULKIO/bio_dataSDDSSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataSDDSDynSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataVITA49SK.cpp \
-	src/cpp/ossie/BULKIO/bio_dataVITA49DynSK.cpp
+	src/cpp/ossie/BULKIO/bio_dataVITA49DynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataShmSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataShmDynSK.cpp
 
 pkgincludedir = $(includedir)/$(LIBRARY_NAME)/$(IDL_MODULE)
 pkginclude_HEADERS = \
@@ -151,7 +154,8 @@ pkginclude_HEADERS = \
 	src/cpp/ossie/BULKIO/bio_dataLongLong.h \
 	src/cpp/ossie/BULKIO/bio_dataUlongLong.h \
 	src/cpp/ossie/BULKIO/bio_dataSDDS.h \
-	src/cpp/ossie/BULKIO/bio_dataVITA49.h
+	src/cpp/ossie/BULKIO/bio_dataVITA49.h \
+	src/cpp/ossie/BULKIO/bio_dataShm.h
 
 BUILT_SOURCES = $(libbulkioInterfaces_la_SOURCES) $(pkginclude_HEADERS)
 CLEANFILES = $(BUILT_SOURCES)

@@ -478,6 +478,9 @@ namespace bulkio {
     // @param streamID - name of the stream the vector and stream context data are associated with
     virtual void pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
 
+
+    virtual void pushPacketShm(const BULKIO::ShmBuffer& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
+
     //
     // Stream-based input API
     //

@@ -35,6 +35,9 @@ namespace bulkio {
     class ChunkingTransport;
 
     template <typename PortType>
+    class ShmTransport;
+
+    template <typename PortType>
     PortTransport<PortType>* PortTransport<PortType>::Factory(const std::string& connectionId,
                                                               const std::string& name,
                                                               PtrType port)
@@ -44,7 +47,13 @@ namespace bulkio {
         if (local_port) {
             return LocalTransport<PortType>::Factory(connectionId, name, local_port, port);
         } else {
-            return RemoteTransport<PortType>::Factory(connectionId, name, port);
+            BULKIO::dataShm_var shm_port;
+            try {
+                shm_port = BULKIO::dataShm::_narrow(port);
+            } catch (...) {
+                return RemoteTransport<PortType>::Factory(connectionId, name, port);
+            }
+            return ShmTransport<PortType>::Factory(connectionId, name, shm_port, port);
         }
     }
 
@@ -381,13 +390,74 @@ namespace bulkio {
         _localPort->queuePacket(data, T, EOS, streamID);
     }
 
+    template <typename PortType>
+    class ShmTransport : public ChunkingTransport<PortType>
+    {
+    public:
+        typedef typename PortType::_ptr_type PtrType;
+        typedef typename PortTransport<PortType>::BufferType BufferType;
+        typedef typename CorbaTraits<PortType>::TransportType TransportType;
+
+        static ShmTransport* Factory(const std::string& connectionId, const std::string& name, BULKIO::dataShm_ptr shm, PtrType port)
+        {
+            return new ShmTransport(connectionId, name, shm, port);
+        }
+
+        ShmTransport(const std::string& connectionId, const std::string& name, BULKIO::dataShm_ptr shm, PtrType port) :
+            ChunkingTransport<PortType>(connectionId, name, port),
+            _shm(BULKIO::dataShm::_duplicate(shm))
+        {
+        }
+
+        virtual std::string getDescription() const
+        {
+            return "shared memory BulkIO connection";
+        }
+
+    protected:
+        virtual void _sendPacket(const BufferType& data,
+                                 const BULKIO::PrecisionUTCTime& T,
+                                 bool EOS,
+                                 const std::string& streamID,
+                                 const BULKIO::StreamSRI& sri)
+        {
+            BULKIO::ShmBuffer buffer;
+            buffer.size = data.size();
+            _shm->pushPacketShm(buffer, T, EOS, streamID.c_str());
+        }
+
+    private:
+        BULKIO::dataShm_var _shm;
+    };
+
+    template <>
+    class ShmTransport<BULKIO::dataFile>
+    {
+    public:
+        static PortTransport<BULKIO::dataFile>* Factory(const std::string&, const std::string&, BULKIO::dataShm_ptr, BULKIO::dataFile_ptr)
+        {
+            throw std::logic_error("BULKIO::dataFile does not support shared memory IPC");
+        }
+    };
+
+    template <>
+    class ShmTransport<BULKIO::dataXML>
+    {
+    public:
+        static PortTransport<BULKIO::dataXML>* Factory(const std::string&, const std::string&, BULKIO::dataShm_ptr, BULKIO::dataXML_ptr)
+        {
+            throw std::logic_error("BULKIO::dataXML does not support shared memory IPC");
+        }
+    };
+
 #define INSTANTIATE_TEMPLATE(x)                 \
     template class PortTransport<x>;            \
     template class LocalTransport<x>;           \
-    template class RemoteTransport<x>;          \
+    template class RemoteTransport<x>;
 
 #define INSTANTIATE_NUMERIC_TEMPLATE(x)         \
-    template class ChunkingTransport<x>;
+    template class ChunkingTransport<x>;        \
+    template class ShmTransport<x>;
 
     FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
     FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
