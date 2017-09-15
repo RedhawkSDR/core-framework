@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 %if 0%{?fedora} >= 17 || 0%{?rhel} >=7
-%define with_systemd 1
+%global with_systemd 1
 %endif
 %{!?_ossiehome:  %global _ossiehome  /usr/local/redhawk/core}
 %{!?_sdrroot:    %global _sdrroot    /var/redhawk/sdr}
@@ -373,18 +373,9 @@ cp %{_sysconfdir}/redhawk/cron.d/redhawk %{_sysconfdir}/cron.d
 
 %if 0%{?with_systemd}
 
-if [ $1 -eq 1 ] ; then 
-    # Initial installation 
-    systemctl preset redhawk-domain-mgrs.service >/dev/null 2>&1 || : 
-fi 
-if [ $1 -eq 1 ] ; then 
-    # Initial installation 
-    systemctl preset redhawk-device-mgrs.service >/dev/null 2>&1 || : 
-fi 
-if [ $1 -eq 1 ] ; then 
-    # Initial installation 
-    systemctl preset redhawk-waveforms.service >/dev/null 2>&1 || : 
-fi 
+%systemd_post redhawk-domain-mgrs.service
+%systemd_post redhawk-device-mgrs.service
+%systemd_post redhawk-waveforms.service
 
 systemctl reload crond > /dev/null 2>&1 || :
 
@@ -408,21 +399,9 @@ service crond reload > /dev/null 2>&1 || :
 
 %if 0%{?with_systemd}
 
-if [ $1 -eq 0 ] ; then 
-    # Package removal, not upgrade 
-    systemctl --no-reload disable redhawk-domain-mgrs.service > /dev/null 2>&1 || : 
-    systemctl stop redhawk-domain-mgrs.service > /dev/null 2>&1 || : 
-fi 
-if [ $1 -eq 0 ] ; then 
-    # Package removal, not upgrade 
-    systemctl --no-reload disable redhawk-device-mgrs.service > /dev/null 2>&1 || : 
-    systemctl stop redhawk-device-mgrs.service > /dev/null 2>&1 || : 
-fi 
-if [ $1 -eq 0 ] ; then 
-    # Package removal, not upgrade 
-    systemctl --no-reload disable redhawk-waveforms.service > /dev/null 2>&1 || : 
-    systemctl stop redhawk-waveforms.service > /dev/null 2>&1 || : 
-fi
+%systemd_preun redhawk-domain-mgrs.service
+%systemd_preun redhawk-device-mgrs.service
+%systemd_preun redhawk-waveforms.service
 
 %else
 
@@ -438,28 +417,14 @@ fi
 
 
 %postun services
-
 [ -f %{_sysconfdir}/cron.d/redhawk ] && rm -f  %{_sysconfdir}/cron.d/redhawk || :
+
 
 %if 0%{?with_systemd}
 
-systemctl daemon-reload >/dev/null 2>&1 || : 
-if [ $1 -ge 1 ] ; then 
-    # Package upgrade, not uninstall 
-    systemctl try-restart redhawk-domain-mgrs.service >/dev/null 2>&1 || : 
-fi 
-
-systemctl daemon-reload >/dev/null 2>&1 || : 
-if [ $1 -ge 1 ] ; then 
-    # Package upgrade, not uninstall 
-    systemctl try-restart redhawk-device-mgrs.service >/dev/null 2>&1 || : 
-fi 
-
-systemctl daemon-reload >/dev/null 2>&1 || : 
-if [ $1 -ge 1 ] ; then 
-    # Package upgrade, not uninstall 
-    systemctl try-restart redhawk-waveforms.service >/dev/null 2>&1 || : 
-fi 
+%systemd_postun_with_restart redhawk-domain-mgrs.service
+%systemd_postun_with_restart redhawk-device-mgrs.service
+%systemd_postun_with_restart redhawk-waveforms.service
 
 systemctl reload crond  > /dev/null 2>&1 || :
 
