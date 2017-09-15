@@ -180,8 +180,13 @@ namespace frontend {
         // check device constraints
         // see if IF center frequency is set in rfinfo packet
         double request_if_center_freq = request.center_frequency;
-        if(request.tuner_type != "TX" && floatingPointCompare(rfinfo.if_center_freq,0) > 0 && floatingPointCompare(rfinfo.rf_center_freq,rfinfo.if_center_freq) > 0)
-            request_if_center_freq = request.center_frequency - (rfinfo.rf_center_freq-rfinfo.if_center_freq);
+        if(request.tuner_type != "TX" && floatingPointCompare(rfinfo.if_center_freq,0) > 0 && floatingPointCompare(rfinfo.rf_center_freq,rfinfo.if_center_freq) > 0) {
+            if (rfinfo.spectrum_inverted) {
+                request_if_center_freq = rfinfo.if_center_freq - (request.center_frequency - rfinfo.rf_center_freq);
+            } else {
+                request_if_center_freq = rfinfo.if_center_freq + (request.center_frequency - rfinfo.rf_center_freq);
+            }
+        }
 
         // check vs. device center freq capability (ensure 0 <= request <= max device capability)
         if ( !validateRequest(min_device_center_freq,max_device_center_freq,request_if_center_freq) ) {

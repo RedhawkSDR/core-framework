@@ -254,18 +254,21 @@ def validateRequestVsDevice(request, rfinfo, mode, min_device_center_freq, max_d
     # see if IF center frequency is set in rfinfo packet
     request_if_center_freq = request.center_frequency
     if request.tuner_type != "TX" and floatingPointCompare(rfinfo.if_center_freq,0) > 0 and floatingPointCompare(rfinfo.rf_center_freq,rfinfo.if_center_freq) > 0:
-        request_if_center_freq = request.center_frequency - (rfinfo.rf_center_freq-rfinfo.if_center_freq)
+        if rfinfo.spectrum_inverted:
+            request_if_center_freq = rfinfo.if_center_freq - (request.center_frequency - rfinfo.rf_center_freq)
+        else:
+            request_if_center_freq = rfinfo.if_center_freq + (request.center_frequency - rfinfo.rf_center_freq)
 
     # check vs. device center freq capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(min_device_center_freq,max_device_center_freq,request_if_center_freq):
+    if not validateRequestSingle(min_device_center_freq, max_device_center_freq, request_if_center_freq):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq request")
 
     # check vs. device bandwidth capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(0,max_device_bandwidth,request.bandwidth):
+    if not validateRequestSingle(0, max_device_bandwidth, request.bandwidth):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support bw request")
 
     # check vs. device sample rate capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(0,max_device_sample_rate,request.sample_rate):
+    if not validateRequestSingle(0, max_device_sample_rate, request.sample_rate):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support sr request")
 
     # calculate overall frequency range of the device (not just CF range)
@@ -279,14 +282,14 @@ def validateRequestVsDevice(request, rfinfo, mode, min_device_center_freq, max_d
     min_requested_freq = request_if_center_freq-(request.bandwidth/2)
     max_requested_freq = request_if_center_freq+(request.bandwidth/2)
 
-    if not validateRequest(min_device_freq,max_device_freq,min_requested_freq,max_requested_freq):
+    if not validateRequest(min_device_freq, max_device_freq, min_requested_freq, max_requested_freq):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq/bw request")
 
     # check based on sample rate
     min_requested_freq = request_if_center_freq-(request.sample_rate/scaling_factor)
     max_requested_freq = request_if_center_freq+(request.sample_rate/scaling_factor)
 
-    if not validateRequest(min_device_freq,max_device_freq,min_requested_freq,max_requested_freq):
+    if not validateRequest(min_device_freq, max_device_freq, min_requested_freq, max_requested_freq):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq/sr request")
 
     return True
