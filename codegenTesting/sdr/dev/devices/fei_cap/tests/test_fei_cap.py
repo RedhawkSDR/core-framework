@@ -71,14 +71,14 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
             if port.name == 'RFInfo_in':
                 _port = port
                 break
-        _antennainfo=FRONTEND.AntennaInfo('','','','')
-        _freqrange=FRONTEND.FreqRange(0,0,[])
-        _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
-        _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _antennainfo=FRONTEND.AntennaInfo('testAnt','testType','testSize','testDescription')
+        _freqrange=FRONTEND.FreqRange(0,100,[1])
+        _feedinfo=FRONTEND.FeedInfo('testFeed','testPol',_freqrange)
+        _sensorinfo=FRONTEND.SensorInfo('testMission','testCollector','testRX',_antennainfo,_feedinfo)
         _pathdelays=[FRONTEND.PathDelay(100,200), FRONTEND.PathDelay(300,400)]
         _rfcapabilities=FRONTEND.RFCapabilities(FRONTEND.FreqRange(1,2,[]),FRONTEND.FreqRange(3,4,[]))
         _additionalinfo = [CF.DataType(id='a',value=any.to_any(1)), CF.DataType(id='b',value=any.to_any(2)), CF.DataType(id='c',value=any.to_any(3))]
-        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,_pathdelays,_rfcapabilities,_additionalinfo)
+        _rfinfopkt=FRONTEND.RFInfoPkt('TestID',256.0,101.0,412.0,False,_sensorinfo,_pathdelays,_rfcapabilities,_additionalinfo)
         _port.ref._set_rfinfo_pkt(_rfinfopkt)
 
 if __name__ == "__main__":

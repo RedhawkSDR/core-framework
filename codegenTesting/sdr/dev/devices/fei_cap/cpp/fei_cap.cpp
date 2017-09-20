@@ -38,17 +38,17 @@ fei_cap_i::~fei_cap_i()
 void fei_cap_i::constructor()
 {
     /***********************************************************************************
-     This is the RH constructor. All properties are properly initialized before this function is called 
+     This is the RH constructor. All properties are properly initialized before this function is called
 
      For a tuner device, the structure frontend_tuner_status needs to match the number
      of tuners that this device controls and what kind of device it is.
      The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
-     
+
      For example, if this device has 5 physical
      tuners, each an RX_DIGITIZER, then the code in the construct function should look like this:
 
      this->setNumChannels(5, "RX_DIGITIZER");
-     
+
      The incoming request for tuning contains a string describing the requested tuner
      type. The string for the request must match the string in the tuner status.
     ***********************************************************************************/
@@ -64,7 +64,7 @@ void fei_cap_i::constructor()
         the previous call was NORMAL.
         If the return value for the previous call was NOOP, then the serviceThread waits
         an amount of time defined in the serviceThread's constructor.
-        
+
     SRI:
         To create a StreamSRI object, use the following code:
                 std::string stream_id = "testStream";
@@ -78,7 +78,7 @@ void fei_cap_i::constructor()
         To create a PrecisionUTCTime object, use the following code:
                 BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
 
-        
+
     Ports:
 
         Data is passed to the serviceFunction through by reading from input streams
@@ -104,7 +104,7 @@ void fei_cap_i::constructor()
         data to it. When done with the output stream, the close() method sends and end-of-
         stream flag and cleans up.
 
-        NOTE: If you have a BULKIO dataSDDS or dataVITA49  port, you must manually call 
+        NOTE: If you have a BULKIO dataSDDS or dataVITA49  port, you must manually call
               "port->updateStats()" to update the port statistics when appropriate.
 
         Example:
@@ -170,69 +170,69 @@ void fei_cap_i::constructor()
             }
 
         Interactions with non-BULKIO ports are left up to the device developer's discretion
-        
+
     Messages:
-    
+
         To receive a message, you need (1) an input port of type MessageEvent, (2) a message prototype described
         as a structure property of kind message, (3) a callback to service the message, and (4) to register the callback
         with the input port.
-        
+
         Assuming a property of type message is declared called "my_msg", an input port called "msg_input" is declared of
         type MessageEvent, create the following code:
-        
+
         void fei_cap_i::my_message_callback(const std::string& id, const my_msg_struct &msg){
         }
-        
+
         Register the message callback onto the input port with the following form:
         this->msg_input->registerMessage("my_msg", this, &fei_cap_i::my_message_callback);
-        
+
         To send a message, you need to (1) create a message structure, (2) a message prototype described
         as a structure property of kind message, and (3) send the message over the port.
-        
+
         Assuming a property of type message is declared called "my_msg", an output port called "msg_output" is declared of
         type MessageEvent, create the following code:
-        
+
         ::my_msg_struct msg_out;
         this->msg_output->sendMessage(msg_out);
 
     Accessing the Device Manager and Domain Manager:
-    
+
         Both the Device Manager hosting this Device and the Domain Manager hosting
         the Device Manager are available to the Device.
-        
+
         To access the Domain Manager:
             CF::DomainManager_ptr dommgr = this->getDomainManager()->getRef();
         To access the Device Manager:
             CF::DeviceManager_ptr devmgr = this->getDeviceManager()->getRef();
-    
+
     Properties:
-        
+
         Properties are accessed directly as member variables. For example, if the
         property name is "baudRate", it may be accessed within member functions as
         "baudRate". Unnamed properties are given the property id as its name.
         Property types are mapped to the nearest C++ type, (e.g. "string" becomes
         "std::string"). All generated properties are declared in the base class
         (fei_cap_base).
-    
+
         Simple sequence properties are mapped to "std::vector" of the simple type.
         Struct properties, if used, are mapped to C++ structs defined in the
         generated file "struct_props.h". Field names are taken from the name in
         the properties file; if no name is given, a generated name of the form
         "field_n" is used, where "n" is the ordinal number of the field.
-        
+
         Example:
             // This example makes use of the following Properties:
             //  - A float value called scaleValue
             //  - A boolean called scaleInput
-              
+
             if (scaleInput) {
                 dataOut[i] = dataIn[i] * scaleValue;
             } else {
                 dataOut[i] = dataIn[i];
             }
-            
+
         Callback methods can be associated with a property so that the methods are
-        called each time the property value changes.  This is done by calling 
+        called each time the property value changes.  This is done by calling
         addPropertyListener(<property>, this, &fei_cap_i::<callback method>)
         in the constructor.
 
@@ -245,7 +245,7 @@ void fei_cap_i::constructor()
             // This example makes use of the following Properties:
             //  - A float value called scaleValue
             //  - A struct property called status
-            
+
         //Add to fei_cap.cpp
         fei_cap_i::fei_cap_i(const char *uuid, const char *label) :
             fei_cap_base(uuid, label)
@@ -258,24 +258,24 @@ void fei_cap_i::constructor()
         {
             LOG_DEBUG(fei_cap_i, "scaleValue changed from" << oldValue << " to " << newValue);
         }
-            
+
         void fei_cap_i::statusChanged(const status_struct& oldValue, const status_struct& newValue)
         {
             LOG_DEBUG(fei_cap_i, "status changed");
         }
-            
+
         //Add to fei_cap.h
         void scaleChanged(float oldValue, float newValue);
         void statusChanged(const status_struct& oldValue, const status_struct& newValue);
-        
+
     Allocation:
-    
-        Allocation callbacks are available to customize the Device's response to 
-        allocation requests. For example, if the Device contains the allocation 
+
+        Allocation callbacks are available to customize the Device's response to
+        allocation requests. For example, if the Device contains the allocation
         property "my_alloc" of type string, the allocation and deallocation
         callbacks follow the pattern (with arbitrary function names
         my_alloc_fn and my_dealloc_fn):
-        
+
         bool fei_cap_i::my_alloc_fn(const std::string &value)
         {
             // perform logic
@@ -285,20 +285,20 @@ void fei_cap_i::constructor()
         {
             // perform logic
         }
-        
+
         The allocation and deallocation functions are then registered with the Device
         base class with the setAllocationImpl call. Note that the variable for the property is used rather
         than its id:
-        
+
         this->setAllocationImpl(my_alloc, this, &fei_cap_i::my_alloc_fn, &fei_cap_i::my_dealloc_fn);
-        
-        
+
+
 
 ************************************************************************************************/
 int fei_cap_i::serviceFunction()
 {
     LOG_DEBUG(fei_cap_i, "serviceFunction() example log message");
-    
+
     return NOOP;
 }
 
@@ -498,5 +498,90 @@ void fei_cap_i::set_rfinfo_pkt(const std::string& port_name, const frontend::RFI
     if (tmp_pkt->additional_info.length()!=3) {
         throw FRONTEND::NotSupportedException("additional_info.length() needs to be 3");
     }
-}
+    //Make sure the sensor is populated correctly
+    FRONTEND::SensorInfo_var tempSensor = new FRONTEND::SensorInfo();
+    tempSensor->feed.name = "testFeed";
+    tempSensor->feed.polarization = "testPol";
+    tempSensor->feed.freq_range.min_val = 0;
+    tempSensor->feed.freq_range.max_val = 100;
+    tempSensor->feed.freq_range.values.length(1);
+    tempSensor->feed.freq_range.values[0] = 1;
+    tempSensor->antenna.name = "testAnt";
+    tempSensor->antenna.type = "testType";
+    tempSensor->antenna.size = "testSize";
+    tempSensor->antenna.description = "testDescription";
+    tempSensor->mission = "testMission";
+    tempSensor->collector = "testCollector";
+    tempSensor->rx = "testRX";
+    if (std::string(tmp_pkt->sensor.feed.name) != std::string(tempSensor->feed.name)){
 
+        throw FRONTEND::NotSupportedException("SensorInfo feed name not passed");
+    }
+    if (std::string(tmp_pkt->sensor.feed.polarization) != std::string(tempSensor->feed.polarization)){
+
+        throw FRONTEND::NotSupportedException("SensorInfo feed polarization not passed");
+    }
+    if (tmp_pkt->sensor.feed.freq_range.min_val != tempSensor->feed.freq_range.min_val){
+
+        throw FRONTEND::NotSupportedException("SensorInfo feed freq_range min not passed");
+    }
+    if (tmp_pkt->sensor.feed.freq_range.max_val != tempSensor->feed.freq_range.max_val){
+
+        throw FRONTEND::NotSupportedException("SensorInfo feed freq_range max not passed");
+    }
+    if (tmp_pkt->sensor.feed.freq_range.values.length() != 1){
+
+        throw FRONTEND::NotSupportedException("SensorInfo feed freq_range values not passed");
+    }
+    if (std::string(tmp_pkt->sensor.antenna.name) != std::string(tempSensor->antenna.name)){
+
+        throw FRONTEND::NotSupportedException("SensorInfo antenna name not passed");
+    }
+    if (std::string(tmp_pkt->sensor.antenna.type) != std::string(tempSensor->antenna.type)){
+
+        throw FRONTEND::NotSupportedException("SensorInfo antenna type not passed");
+    }
+    if (std::string(tmp_pkt->sensor.antenna.size) != std::string(tempSensor->antenna.size)){
+
+        throw FRONTEND::NotSupportedException("SensorInfo antenna size not passed");
+    }
+    if (std::string(tmp_pkt->sensor.antenna.description) != std::string(tempSensor->antenna.description)){
+
+        throw FRONTEND::NotSupportedException("SensorInfo antenna description not passed");
+    }
+    if (std::string(tmp_pkt->sensor.mission) != std::string(tempSensor->mission)){
+
+        throw FRONTEND::NotSupportedException("SensorInfo mission not passed");
+    }
+    if (std::string(tmp_pkt->sensor.collector) != std::string(tempSensor->collector)){
+
+        throw FRONTEND::NotSupportedException("SensorInfo collector not passed");
+    }
+    if (std::string(tmp_pkt->sensor.rx) != std::string(tempSensor->rx)){
+
+        throw FRONTEND::NotSupportedException("SensorInfo rx not passed");
+    }
+
+
+    if (tmp_pkt->spectrum_inverted){
+
+        throw FRONTEND::NotSupportedException("spectrum_inverted not passed");
+    }
+    if (tmp_pkt->if_center_freq != 412.0){
+
+        throw FRONTEND::NotSupportedException("if_center_freq not passed");
+    }
+    if (tmp_pkt->rf_bandwidth != 101.0){
+
+        throw FRONTEND::NotSupportedException("rf_bandwidth not passed");
+    }
+    if (tmp_pkt->rf_center_freq != 256.0){
+
+        throw FRONTEND::NotSupportedException("rf_center_freq not passed");
+    }
+    std::string tempString = "TestID";
+    if ( tempString.compare(tmp_pkt->rf_flow_id._retn()) != 0){
+
+        throw FRONTEND::NotSupportedException("rf_flow_id not passed");
+    }
+}
