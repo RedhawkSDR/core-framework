@@ -37,6 +37,8 @@
 
 namespace bulkio {
 
+  class IPCFifo;
+
   template <class PortType>
   class LocalTransport;
 
@@ -479,7 +481,7 @@ namespace bulkio {
     virtual void pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
 
 
-    virtual void pushPacketShm(const BULKIO::ShmBuffer& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
+    virtual void connectShm(const char* location);
 
     //
     // Stream-based input API
@@ -502,6 +504,8 @@ namespace bulkio {
     using super::streams;
     using super::streamsMutex;
     typedef typename super::Packet Packet;
+
+    void _shmThread(IPCFifo* fifo);
 
     StreamList getReadyStreams(size_t samples);
   };

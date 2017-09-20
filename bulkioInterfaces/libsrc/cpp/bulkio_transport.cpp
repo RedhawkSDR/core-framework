@@ -24,6 +24,9 @@
 #include "bulkio_in_port.h"
 #include "bulkio_p.h"
 
+#include "ipcfifo.h"
+#include "MessageBuffer.h"
+
 namespace bulkio {
     template <typename PortType>
     class LocalTransport;
@@ -46,15 +49,14 @@ namespace bulkio {
         LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
         if (local_port) {
             return LocalTransport<PortType>::Factory(connectionId, name, local_port, port);
-        } else {
-            BULKIO::dataShm_var shm_port;
-            try {
-                shm_port = BULKIO::dataShm::_narrow(port);
-            } catch (...) {
-                return RemoteTransport<PortType>::Factory(connectionId, name, port);
-            }
-            return ShmTransport<PortType>::Factory(connectionId, name, shm_port, port);
         }
+
+        PortTransport* transport = ShmTransport<PortType>::Factory(connectionId, name, port);
+        if (transport) {
+            return transport;
+        }
+
+        return RemoteTransport<PortType>::Factory(connectionId, name, port);
     }
 
     template <typename PortType>
@@ -398,15 +400,48 @@ namespace bulkio {
         typedef typename PortTransport<PortType>::BufferType BufferType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
-        static ShmTransport* Factory(const std::string& connectionId, const std::string& name, BULKIO::dataShm_ptr shm, PtrType port)
+        static ShmTransport* Factory(const std::string& connectionId, const std::string& name, PtrType port)
         {
-            return new ShmTransport(connectionId, name, shm, port);
+            // For testing, allow disabling
+            const char* shm_env = getenv("BULKIO_SHM");
+            if (shm_env) {
+                if (strcmp(shm_env, "disable") == 0) {
+                    return 0;
+                }
+            }
+
+            BULKIO::dataShm_var shm_port;
+            try {
+                shm_port = BULKIO::dataShm::_narrow(port);
+            } catch (...) {
+                // Not shm-capable
+                return 0;
+            }
+
+            RH_NL_DEBUG("ShmTransport", "Attempting to negotiate shared memory IPC");
+            IPCFifo* fifo = new IPCFifoServer(name + "-fifo");
+            fifo->beginConnect();
+            try {
+                shm_port->connectShm(fifo->name().c_str());
+            } catch (const BULKIO::NegotiationError& exc) {
+                RH_NL_ERROR("ShmTransport", "Error negotiating shared memory IPC");
+                delete fifo;
+                return 0;
+            }
+            fifo->finishConnect();
+
+            return new ShmTransport(connectionId, name, fifo, port);
         }
 
-        ShmTransport(const std::string& connectionId, const std::string& name, BULKIO::dataShm_ptr shm, PtrType port) :
+        ShmTransport(const std::string& connectionId, const std::string& name, IPCFifo* fifo, PtrType port) :
             ChunkingTransport<PortType>(connectionId, name, port),
-            _shm(BULKIO::dataShm::_duplicate(shm))
+            _fifo(fifo)
         {
+        }
+
+        ~ShmTransport()
+        {
+            delete _fifo;
         }
 
         virtual std::string getDescription() const
@@ -415,28 +450,62 @@ namespace bulkio {
         }
 
     protected:
+        template <class U>
+        void _writeMessage(std::vector<char>& msg, const U& val)
+        {
+            size_t offset = msg.size();
+            msg.resize(offset + sizeof(U));
+            *(reinterpret_cast<U*>(&msg[offset])) = val;
+        }
+
+        void _writeMessage(std::vector<char>& msg, const std::string& val)
+        {
+            _writeMessage(msg, val.size());
+            size_t offset = msg.size();
+            msg.resize(offset + val.size());
+            strncpy(&msg[offset], val.data(), val.size());
+        }
+
         virtual void _sendPacket(const BufferType& data,
                                  const BULKIO::PrecisionUTCTime& T,
                                  bool EOS,
                                  const std::string& streamID,
-                                 const BULKIO::StreamSRI& sri)
+                                 const BULKIO::StreamSRI&)
         {
-            BULKIO::ShmBuffer buffer;
-            buffer.size = data.size();
-            _shm->pushPacketShm(buffer, T, EOS, streamID.c_str());
+            MessageBuffer msg;
+            msg.write(data.base());
+            msg.write((void*) data.data());
+            msg.write(data.size());
+            msg.write(T);
+            msg.write(EOS);
+            msg.write(streamID);
+
+            _fifo->write(msg.buffer(), msg.size());
+
+            size_t status;
+            if (_fifo->read(&status, sizeof(size_t)) != sizeof(size_t)) {
+                RH_NL_ERROR("ShmTransport", "Bad response");
+            }
+
+        }
+
+        virtual void disconnect()
+        {
+            _fifo->close();
+            ChunkingTransport<PortType>::disconnect();
         }
 
     private:
-        BULKIO::dataShm_var _shm;
+        IPCFifo* _fifo;
     };
 
     template <>
     class ShmTransport<BULKIO::dataFile>
     {
     public:
-        static PortTransport<BULKIO::dataFile>* Factory(const std::string&, const std::string&, BULKIO::dataShm_ptr, BULKIO::dataFile_ptr)
+        static PortTransport<BULKIO::dataFile>* Factory(const std::string&, const std::string&, BULKIO::dataFile_ptr)
         {
-            throw std::logic_error("BULKIO::dataFile does not support shared memory IPC");
+            return 0;
         }
     };
 
@@ -444,9 +513,9 @@ namespace bulkio {
     class ShmTransport<BULKIO::dataXML>
     {
     public:
-        static PortTransport<BULKIO::dataXML>* Factory(const std::string&, const std::string&, BULKIO::dataShm_ptr, BULKIO::dataXML_ptr)
+        static PortTransport<BULKIO::dataXML>* Factory(const std::string&, const std::string&, BULKIO::dataXML_ptr)
         {
-            throw std::logic_error("BULKIO::dataXML does not support shared memory IPC");
+            return 0;
         }
     };
 

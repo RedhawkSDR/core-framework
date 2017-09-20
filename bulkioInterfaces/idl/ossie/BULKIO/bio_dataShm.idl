@@ -33,14 +33,12 @@
 #include "ossie/BULKIO/bio_dataUshort.idl"
 
 module BULKIO {
-    struct ShmBuffer {
-        unsigned long heapId;
-        unsigned long long ptrId;
-        unsigned long long size;
+
+    exception NegotiationError {
     };
 
     interface dataShm {
-        void pushPacketShm(in ShmBuffer data, in PrecisionUTCTime T, in boolean EOS, in string streamID);
+        void connectShm(in string location) raises (NegotiationError);
     };
 
     interface dataCharShm : dataChar, dataShm {
