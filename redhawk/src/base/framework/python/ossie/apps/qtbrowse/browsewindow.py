@@ -671,20 +671,18 @@ class BrowseWindow(BrowseWindowBase):
                 # NB: As a temporary hack for mapping back to property id, store the id in
                 #     the hidden fourth field.
                 valueItem = self.addTreeWidgetItem(self.domMgrPropsItem, name, str(value))
-                #if property['mode'] in ('readwrite', 'writeonly'):
-                #    valueItem.setRenameEnabled(1, True)
             elif property['elementType'] == 'struct':
-                valueItem = QListViewItem(parent, name, '', '', id)
+                valueItem = self.addTreeWidgetItem(parent, name, id)
                 for field in value:
-                    QListViewItem(valueItem, field['id'], str(field['value']))
+                    self.addTreeWidgetItem(valueItem, field['id'], str(field['value']))
             elif property['elementType'] == 'structsequence':
-                valueItem = QListViewItem(parent, name, '', '', id)
+                valueItem = self.addTreeWidgetItem(parent, name, id)
                 if value == None:
                     continue
                 for index, structval in enumerate(value):
-                    subitem = QListViewItem(valueItem, str(index))
+                    subitem = self.addTreeWidgetItem(valueItem, str(index))
                     for field in structval:
-                        QListViewItem(subitem, field['id'], str(field['value']))
+                        self.addTreeWidgetItem(subitem, field['id'], str(field['value']))
 
     def buildProperty(self, parent, prop):
         editable = prop.mode != 'readonly'
