@@ -317,7 +317,8 @@ class TreeWidget(QTreeWidget):
             if column == 1:
                 appname, compname, propname, prop = self.findPropUnderApp(item.parent().parent())
                 idx = int(item.parent().text(0)[1:-1])
-                for member in prop.structDef.members:
+                if prop:
+                  for member in prop.structDef.members:
                     if item.text(0) == member:
                         value = str(prop[idx].members[member].queryValue())
                         itemtext = str(item.text(1))
