@@ -38,7 +38,7 @@ namespace bulkio {
     class ChunkingTransport;
 
     template <typename PortType>
-    class ShmTransport;
+    class NegotiableTransportFactory;
 
     template <typename PortType>
     PortTransport<PortType>* PortTransport<PortType>::Factory(const std::string& connectionId,
@@ -51,7 +51,7 @@ namespace bulkio {
             return LocalTransport<PortType>::Factory(connectionId, name, local_port, port);
         }
 
-        PortTransport* transport = ShmTransport<PortType>::Factory(connectionId, name, port);
+        PortTransport* transport = NegotiableTransportFactory<PortType>::Create(connectionId, name, port);
         if (transport) {
             return transport;
         }
@@ -400,7 +400,10 @@ namespace bulkio {
         typedef typename PortTransport<PortType>::BufferType BufferType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
-        static ShmTransport* Factory(const std::string& connectionId, const std::string& name, PtrType port)
+        static ShmTransport* Factory(const std::string& connectionId,
+                                     const std::string& name,
+                                     BULKIO::NegotiableProvidesPort_ptr negotiablePort,
+                                     PtrType port)
         {
             // For testing, allow disabling
             const char* shm_env = getenv("BULKIO_SHM");
@@ -410,21 +413,13 @@ namespace bulkio {
                 }
             }
 
-            BULKIO::NegotiableProvidesPort_var shm_port;
-            try {
-                shm_port = BULKIO::NegotiableProvidesPort::_narrow(port);
-            } catch (...) {
-                // Not shm-capable
-                return 0;
-            }
-
             RH_NL_DEBUG("ShmTransport", "Attempting to negotiate shared memory IPC");
             IPCFifo* fifo = new IPCFifoServer(name + "-fifo");
             redhawk::PropertyMap props;
             props["fifo"] = fifo->name();
             fifo->beginConnect();
             try {
-                shm_port->negotiate("shmipc", props);
+                negotiablePort->negotiate("shmipc", props);
             } catch (const BULKIO::NegotiationError& exc) {
                 RH_NL_ERROR("ShmTransport", "Error negotiating shared memory IPC: " << exc.msg);
                 delete fifo;
@@ -452,6 +447,7 @@ namespace bulkio {
         }
 
     protected:
+
         virtual void _sendPacket(const BufferType& data,
                                  const BULKIO::PrecisionUTCTime& T,
                                  bool EOS,
@@ -485,21 +481,46 @@ namespace bulkio {
         IPCFifo* _fifo;
     };
 
+    template <class PortType>
+    class NegotiableTransportFactory {
+    public:
+        typedef typename PortType::_ptr_type PtrType;
+        typedef PortTransport<PortType> TransportType;
+
+        static TransportType* Create(const std::string& connectionId, const std::string& name, PtrType port)
+        {
+            BULKIO::NegotiableProvidesPort_var negotiable_port;
+            try {
+                negotiable_port = BULKIO::NegotiableProvidesPort::_narrow(port);
+            } catch (...) {
+                // Not capable of negotiation
+                return 0;
+            }
+
+            TransportType* transport = ShmTransport<PortType>::Factory(connectionId, name, negotiable_port, port);
+            if (transport) {
+                return transport;
+            }
+
+            return 0;
+        };
+    };
+
     template <>
-    class ShmTransport<BULKIO::dataFile>
+    class NegotiableTransportFactory<BULKIO::dataFile>
     {
     public:
-        static PortTransport<BULKIO::dataFile>* Factory(const std::string&, const std::string&, BULKIO::dataFile_ptr)
+        static PortTransport<BULKIO::dataFile>* Create(const std::string&, const std::string&, BULKIO::dataFile_ptr)
         {
             return 0;
         }
     };
 
     template <>
-    class ShmTransport<BULKIO::dataXML>
+    class NegotiableTransportFactory<BULKIO::dataXML>
     {
     public:
-        static PortTransport<BULKIO::dataXML>* Factory(const std::string&, const std::string&, BULKIO::dataXML_ptr)
+        static PortTransport<BULKIO::dataXML>* Create(const std::string&, const std::string&, BULKIO::dataXML_ptr)
         {
             return 0;
         }
