@@ -410,9 +410,9 @@ namespace bulkio {
                 }
             }
 
-            BULKIO::dataShm_var shm_port;
+            BULKIO::NegotiableProvidesPort_var shm_port;
             try {
-                shm_port = BULKIO::dataShm::_narrow(port);
+                shm_port = BULKIO::NegotiableProvidesPort::_narrow(port);
             } catch (...) {
                 // Not shm-capable
                 return 0;
@@ -420,11 +420,13 @@ namespace bulkio {
 
             RH_NL_DEBUG("ShmTransport", "Attempting to negotiate shared memory IPC");
             IPCFifo* fifo = new IPCFifoServer(name + "-fifo");
+            redhawk::PropertyMap props;
+            props["fifo"] = fifo->name();
             fifo->beginConnect();
             try {
-                shm_port->connectShm(fifo->name().c_str());
+                shm_port->negotiate("shmipc", props);
             } catch (const BULKIO::NegotiationError& exc) {
-                RH_NL_ERROR("ShmTransport", "Error negotiating shared memory IPC");
+                RH_NL_ERROR("ShmTransport", "Error negotiating shared memory IPC: " << exc.msg);
                 delete fifo;
                 return 0;
             }

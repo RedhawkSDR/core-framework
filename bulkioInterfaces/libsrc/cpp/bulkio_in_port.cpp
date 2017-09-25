@@ -849,19 +849,30 @@ namespace  bulkio {
     }
 
   template <typename PortType>
-  void InNumericPort<PortType>::connectShm(const char* location)
+  void InNumericPort<PortType>::negotiate(const char* protocol, const CF::Properties& properties)
   {
-      IPCFifo* fifo = new IPCFifoClient(location);
-      try {
-          fifo->beginConnect();
-      } catch (const std::exception& exc) {
-          LOG_ERROR(logger, "Failed to connect to FIFO " << location);
-          delete fifo;
-          throw BULKIO::NegotiationError();
+      if (strcmp(protocol, "shmipc") == 0) {
+          const redhawk::PropertyMap& shm_props = redhawk::PropertyMap::cast(properties);
+          if (!shm_props.contains("fifo")) {
+              throw BULKIO::NegotiationError("Invalid properties for shared memory connection");
+          }
+          const std::string location = shm_props["fifo"].toString();
+          IPCFifo* fifo = new IPCFifoClient(location);
+          try {
+              fifo->beginConnect();
+          } catch (const std::exception& exc) {
+              delete fifo;
+              std::string message = "Failed to connect to FIFO " + location;
+              throw BULKIO::NegotiationError(message.c_str());
+          }
+          boost::thread* thread = new boost::thread(&InNumericPort::_shmThread, this, fifo);
+          thread->detach();
+          LOG_INFO(logger, "Connected to FIFO " << location);
+      } else {
+          std::string message = "Cannot negotiate protocol '" + std::string(protocol) + "'";
+          LOG_DEBUG(logger, message);
+          throw BULKIO::NegotiationError(message.c_str());
       }
-      boost::thread* thread = new boost::thread(&InNumericPort::_shmThread, this, fifo);
-      thread->detach();
-      LOG_INFO(logger, "Connected to FIFO " << location);
   }
 
   template <typename PortType>

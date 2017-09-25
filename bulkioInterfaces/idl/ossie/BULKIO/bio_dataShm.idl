@@ -35,40 +35,41 @@
 module BULKIO {
 
     exception NegotiationError {
+       string msg;
     };
 
-    interface dataShm {
-        void connectShm(in string location) raises (NegotiationError);
+    interface NegotiableProvidesPort {
+        void negotiate(in string protocol, in CF::Properties props) raises (NegotiationError);
     };
 
-    interface dataCharShm : dataChar, dataShm {
+    interface dataCharExt : dataChar, NegotiableProvidesPort {
     };
 
-    interface dataDoubleShm : dataDouble, dataShm {
+    interface dataDoubleExt : dataDouble, NegotiableProvidesPort {
     };
 
-    interface dataFloatShm : dataFloat, dataShm {
+    interface dataFloatExt : dataFloat, NegotiableProvidesPort {
     };
 
-    interface dataLongShm : dataLong, dataShm {
+    interface dataLongExt : dataLong, NegotiableProvidesPort {
     };
 
-    interface dataLongLongShm : dataLongLong, dataShm {
+    interface dataLongLongExt : dataLongLong, NegotiableProvidesPort {
     };
 
-    interface dataOctetShm : dataOctet, dataShm {
+    interface dataOctetExt : dataOctet, NegotiableProvidesPort {
     };
 
-    interface dataShortShm : dataShort, dataShm {
+    interface dataShortExt : dataShort, NegotiableProvidesPort {
     };
 
-    interface dataUlongShm : dataUlong, dataShm {
+    interface dataUlongExt : dataUlong, NegotiableProvidesPort {
     };
 
-    interface dataUlongLongShm : dataUlongLong, dataShm {
+    interface dataUlongLongExt : dataUlongLong, NegotiableProvidesPort {
     };
 
-    interface dataUshortShm : dataUshort, dataShm {
+    interface dataUshortExt : dataUshort, NegotiableProvidesPort {
     };
 };
 
