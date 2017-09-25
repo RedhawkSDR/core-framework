@@ -452,22 +452,6 @@ namespace bulkio {
         }
 
     protected:
-        template <class U>
-        void _writeMessage(std::vector<char>& msg, const U& val)
-        {
-            size_t offset = msg.size();
-            msg.resize(offset + sizeof(U));
-            *(reinterpret_cast<U*>(&msg[offset])) = val;
-        }
-
-        void _writeMessage(std::vector<char>& msg, const std::string& val)
-        {
-            _writeMessage(msg, val.size());
-            size_t offset = msg.size();
-            msg.resize(offset + val.size());
-            strncpy(&msg[offset], val.data(), val.size());
-        }
-
         virtual void _sendPacket(const BufferType& data,
                                  const BULKIO::PrecisionUTCTime& T,
                                  bool EOS,
@@ -493,8 +477,8 @@ namespace bulkio {
 
         virtual void disconnect()
         {
-            _fifo->close();
             ChunkingTransport<PortType>::disconnect();
+            _fifo->close();
         }
 
     private:
