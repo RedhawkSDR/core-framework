@@ -427,6 +427,11 @@ namespace bulkio {
             }
             fifo->finishConnect();
 
+            // Send the heap name so the remote side can map it now
+            MessageBuffer msg;
+            msg.write(redhawk::ShmAllocator::name());
+            fifo->write(msg.buffer(), msg.size());
+
             return new ShmTransport(connectionId, name, fifo, port);
         }
 
@@ -455,8 +460,13 @@ namespace bulkio {
                                  const BULKIO::StreamSRI&)
         {
             MessageBuffer msg;
-            msg.write(data.base());
-            msg.write((void*) data.data());
+
+            const void* base = data.base();
+            redhawk::ShmHeap::ID id = redhawk::ShmAllocator::getID(const_cast<void*>(base));
+            size_t offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
+
+            msg.write(id);
+            msg.write(offset);
             msg.write(data.size());
             msg.write(T);
             msg.write(EOS);
@@ -494,6 +504,9 @@ namespace bulkio {
                 negotiable_port = BULKIO::NegotiableProvidesPort::_narrow(port);
             } catch (...) {
                 // Not capable of negotiation
+                return 0;
+            }
+            if (CORBA::is_nil(negotiable_port)) {
                 return 0;
             }
 

@@ -74,4 +74,9 @@ nobase_pkginclude_HEADERS = internal/equals.h \
 	     logging/loghelpers.h \
 	     debug/check.h \
 	     debug/checked_allocator.h \
-	     debug/checked_iterator.h
+	     debug/checked_iterator.h \
+	     shm/shared_mutex.h \
+	     shm/ShmAlloc.h \
+	     shm/ShmFile.h \
+	     shm/ShmHeap.h
+

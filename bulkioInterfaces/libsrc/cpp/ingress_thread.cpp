@@ -3,12 +3,15 @@
 #include "MessageBuffer.h"
 #include "bulkio_p.h"
 
+#include <ossie/shm/ShmAlloc.h>
+
 namespace bulkio {
 
     template <class PortType>
     ShmIngressThread<PortType>::ShmIngressThread(InPortType* port, IPCFifo* fifo) :
         IngressThread<PortType>(port),
-        _fifo(fifo)
+        _fifo(fifo),
+        _heap(0)
     {
     }
 
@@ -17,12 +20,23 @@ namespace bulkio {
     {
         _fifo->close();
         delete _fifo;
+
+        delete _heap;
     }
 
     template <class PortType>
     void ShmIngressThread<PortType>::_threadStarted()
     {
         _fifo->finishConnect();
+
+        MessageBuffer msg(512);
+        size_t msg_length = _fifo->read(msg.buffer(), msg.size());
+        msg.resize(msg_length);
+
+        std::string heap_name;
+        msg.read(heap_name);
+
+        _heap = new redhawk::ShmHeapClient(heap_name);
     }
 
     template <class PortType>
@@ -39,11 +53,12 @@ namespace bulkio {
                 break;
             }
             msg.resize(msg_length);
+
+            redhawk::ShmHeap::ID id;
+            size_t offset;
             size_t count;
-            void* base;
-            void* data;
-            msg.read(base);
-            msg.read(data);
+            msg.read(id);
+            msg.read(offset);
             msg.read(count);
             msg.read(T);
             msg.read(EOS);
@@ -52,7 +67,9 @@ namespace bulkio {
                 std::cerr << "Message bytes left over" << std::endl;
             }
 
-            this->_queuePacket(redhawk::buffer<NativeType>(count), T, EOS, streamID);
+            NativeType* base = reinterpret_cast<NativeType*>(_heap->fetch(id));
+            redhawk::buffer<NativeType> buffer(base, count, &redhawk::ShmAllocator::deallocate);
+            this->_queuePacket(buffer, T, EOS, streamID);
 
             // Send response back
             size_t status = 0;
