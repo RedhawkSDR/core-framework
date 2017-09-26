@@ -26,7 +26,7 @@
 #include <bulkio_in_port.h>
 
 #include "ipcfifo.h"
-#include "MessageBuffer.h"
+#include "ingress_thread.h"
 
 namespace  bulkio {
 
@@ -98,6 +98,16 @@ namespace  bulkio {
   }
 
 
+  template <typename PortType>
+  void InPort<PortType>::releasePort()
+  {
+    TRACE_ENTER(logger, "InPort::releasePort");
+    for (typename IngressThreadList::iterator thread = ingressThreads.begin(); thread != ingressThreads.end(); ++thread) {
+        (*thread)->stop();
+    }
+    TRACE_EXIT(logger, "InPort::releasePort");
+  }
+  
 
   template <typename PortType>
   BULKIO::PortStatistics * InPort<PortType>::statistics()
@@ -808,46 +818,6 @@ namespace  bulkio {
     this->queuePacket(BufferType(reinterpret_cast<NativeType*>(ptr), size), T, EOS, streamID);
   }
 
-    template <typename PortType>
-    void InNumericPort<PortType>::_shmThread(IPCFifo* fifo)
-    {
-        fifo->finishConnect();
-
-        while (true) {
-            BULKIO::PrecisionUTCTime T;
-            bool EOS = false;
-            std::string streamID = "test";
-
-            MessageBuffer msg(512);
-            size_t msg_length = fifo->read(msg.buffer(), msg.size());
-            if (msg_length == 0) {
-                break;
-            }
-            msg.resize(msg_length);
-            size_t count;
-            void* base;
-            void* data;
-            msg.read(base);
-            msg.read(data);
-            msg.read(count);
-            msg.read(T);
-            msg.read(EOS);
-            msg.read(streamID);
-            if (msg.offset() < msg.size()) {
-                LOG_INFO(logger, "Message bytes left over");
-            }
-
-            this->queuePacket(redhawk::buffer<NativeType>(count), T, EOS, streamID);
-
-            // Send response back
-            size_t status = 0;
-            fifo->write(&status, sizeof(size_t));
-        }
-        LOG_INFO(logger, "Closing FIFO " << fifo->name());
-        fifo->close();
-        delete fifo;
-    }
-
   template <typename PortType>
   void InNumericPort<PortType>::negotiate(const char* protocol, const CF::Properties& properties)
   {
@@ -865,9 +835,11 @@ namespace  bulkio {
               std::string message = "Failed to connect to FIFO " + location;
               throw BULKIO::NegotiationError(message.c_str());
           }
-          boost::thread* thread = new boost::thread(&InNumericPort::_shmThread, this, fifo);
-          thread->detach();
+          ShmIngressThread<PortType>* thread = new ShmIngressThread<PortType>(this, fifo);
+          thread->start();
           LOG_INFO(logger, "Connected to FIFO " << location);
+
+          this->ingressThreads.push_back(thread);
       } else {
           std::string message = "Cannot negotiate protocol '" + std::string(protocol) + "'";
           LOG_DEBUG(logger, message);

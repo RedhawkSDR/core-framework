@@ -50,7 +50,9 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/bulkio_transport.h \
     cpp/bulkio_transport.cpp \
     cpp/ipcfifo.h \
-    cpp/ipcfifo.cpp
+    cpp/ipcfifo.cpp \
+    cpp/ingress_thread.h \
+    cpp/ingress_thread.cpp
 
 ## Define the list of public header files and their install location.
 library_includedir = $(includedir)/bulkio

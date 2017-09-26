@@ -37,10 +37,11 @@
 
 namespace bulkio {
 
-  class IPCFifo;
-
   template <class PortType>
   class LocalTransport;
+
+  template <typename PortType>
+  class IngressThread;
 
   template <class PortType>
   struct InStreamTraits {
@@ -220,6 +221,9 @@ namespace bulkio {
     //
     virtual void stopPort();
 
+    //
+    virtual void releasePort();
+
     /*
      * blocked
      *
@@ -377,6 +381,12 @@ namespace bulkio {
     // end-of-stream has been queued but not yet read 
     std::multimap<std::string,StreamType> pendingStreams;
 
+    // Allow non-CORBA data ingress (shared memory, VITA49)
+    friend class IngressThread<PortType>;
+    typedef IngressThread<PortType> IngressThreadType;
+    typedef std::vector<IngressThreadType*> IngressThreadList;
+    IngressThreadList ingressThreads;
+
     //
     // Queues a packet received via pushPacket; in most cases, this method maps
     // exactly to pushPacket, except for dataFile
@@ -503,8 +513,6 @@ namespace bulkio {
     using super::streams;
     using super::streamsMutex;
     typedef typename super::Packet Packet;
-
-    void _shmThread(IPCFifo* fifo);
 
     StreamList getReadyStreams(size_t samples);
   };
