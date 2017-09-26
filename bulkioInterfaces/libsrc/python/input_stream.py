@@ -226,7 +226,8 @@ class InputStream(BaseStream):
     def _updateData(self, data, T, EOS):
         self._parent.port_cond.acquire()
         try:
-            self._data.append(_dataUnit(data, T, True))
+            if (T == None) or ((len(data) != 0) and (T.tcstatus != BULKIO.TCS_INVALID)):
+                self._data.append(_dataUnit(data, T, True))
             if EOS:
                 self._eos = True
                 self._parent.port_cond.notifyAll()
