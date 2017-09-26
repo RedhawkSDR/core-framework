@@ -37,6 +37,10 @@ import time
 import copy
 import struct
 import ossie.utils.bulkio.bulkio_helpers as _bulkio_helpers
+try:
+    from bulkio.bulkioInterfaces import BULKIO
+except:
+    pass
 
 def _initSourceAndSink(dataFormat):
 
@@ -1555,6 +1559,22 @@ class BulkioTest(unittest.TestCase):
                 self._pushDataThroughSourceAndSink(
                     data         = dataCopy,
                     dataFormat   = format)
+
+    def test_DataSinkBadTimeStamp(self):
+        if 'bulkio.bulkioInterfaces.BULKIO' not in sys.modules:
+            return
+        datasink = sb.DataSink()
+        port=datasink.getPort('shortIn')
+        sb.start()
+
+        t_good=BULKIO.PrecisionUTCTime(1,BULKIO.TCS_VALID,0,0,0)
+        t_bad=BULKIO.PrecisionUTCTime(1,BULKIO.TCS_INVALID,0,0,0)
+
+        # Retrieve the data
+        port.pushPacket([1,2,3,4],t_good,False,'hello')
+        port.pushPacket([],t_bad,True,'hello')
+        data, tstamps = datasink.getData(eos_block=True, tstamps=True)
+        self.assertEquals(len(tstamps), 1)
 
     def test_XMLDataSource(self):
         source = sb.DataSource(dataFormat='xml')

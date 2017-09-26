@@ -285,7 +285,8 @@ class ArraySink(object):
         self.port_cond.acquire()
         try:
             self.gotEOS = EOS
-            self.timestamps.append([len(self.data), ts])
+            if ts.tcstatus != BULKIO.TCS_INVALID:
+                self.timestamps.append([len(self.data), ts])
             self.data += data
             self.port_cond.notifyAll()
         finally:
