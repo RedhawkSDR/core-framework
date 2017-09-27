@@ -548,7 +548,6 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
     CF::Properties invalidProps;
 
     bool totalCap = true;                         /* Flag to check remaining extra capacity to allocate */
-    bool foundProperty;                           /* Flag to indicate if the requested property was found */
     AnyComparisonType compResult;
 
     {
@@ -561,7 +560,6 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
         SCOPED_LOCK(propertySetAccess);
         /* Look in propertySet for the properties requested */
         for (unsigned i = 0; i < capacities.length (); i++) {
-            foundProperty = false;
             CF::DataType request = capacities[i];
             std::string pid = (const char*)capacities[i].id;
             PropertyInterface *property = getPropertyFromId(pid);
@@ -677,7 +675,6 @@ void Device_impl::deallocateCapacityNew (const CF::Properties& capacities)
 
     CF::Properties invalidProps;
     CF::Properties overCaps;
-    AnyComparisonType compResult;
 
     for (size_t ii = 0; ii < capacities.length(); ++ii) {
         const CF::DataType& capacity = capacities[ii];
@@ -686,20 +683,6 @@ void Device_impl::deallocateCapacityNew (const CF::Properties& capacities)
         LOG_TRACE(Device_impl, "Deallocating property (new method) '" << id << "'");
         try {
             property->deallocate(capacity.value);
-            // check if are over deallocated...
-            for (unsigned ii = 0; ii < originalCap.length (); ii++) {
-                if (strcmp (id.c_str(), originalCap[ii].id) == 0) {
-                    CORBA::Any new_value;
-                    property->getValue(new_value);
-                    compResult = compareAnys (new_value, originalCap[ii].value);
-                    if (compResult == FIRST_BIGGER) {
-                        LOG_WARN(Device_impl, "Cannot deallocate capacity, allocation ID: " << id << ", New capacity would exceed original bound.");
-                        ossie::corba::push_back(overCaps, capacity);
-                        property->allocate(capacity.value);
-                    }
-                }
-            }
-
         } catch (const ossie::not_implemented_error& ex) {
             LOG_WARN(Device_impl, "No deallocation implementation for property '" << id << "'");
         } catch (const std::exception& ex) {
