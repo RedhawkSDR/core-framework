@@ -227,7 +227,7 @@ class ArraySink(StreamMgr):
 
     def __getattribute__(self, name):
         if name == 'gotEOS':
-            _stream = object.__getattribute__(self, 'getCurrentStream')()
+            _stream = object.__getattribute__(self, 'getCurrentStream')(0)
             if _stream:
                 return _stream.eos()
             attr = object.__getattribute__(self, name)
@@ -262,7 +262,7 @@ class ArraySink(StreamMgr):
         self.port_cond.release()
 
     def eos(self):
-        _stream = self.getCurrentStream()
+        _stream = self.getCurrentStream(0)
         if _stream:
             return _stream.eos()
         return self.gotEOS
@@ -346,7 +346,7 @@ class ArraySink(StreamMgr):
         rettime = []
         while True:
             self.port_cond.acquire()
-            _stream = self.getCurrentStream()
+            _stream = self.getCurrentStream(0)
             self.port_cond.release()
             if not _stream and length != None:
                 time.sleep(0.1)

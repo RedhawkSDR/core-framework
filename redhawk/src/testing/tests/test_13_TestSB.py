@@ -2154,6 +2154,18 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(block_2.xdelta(), 0.001)
         self.assertEquals(block_3.xdelta(), 0.0001)
 
+    def test_getCurrentStreamTimeout(self):
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        time_diff = 2
+        start_time = time.time()
+        stream=snk.getCurrentStream(time_diff)
+        now = time.time()
+        self.assertTrue((now-start_time) >= time_diff)
+        self.assertTrue((now-start_time) < time_diff + 0.1)
+
     def _fileSourceThrottle(self, _file, rate):
         fp=open(_file, 'r')
         contents = fp.read()

@@ -154,15 +154,23 @@ class StreamMgr(object):
             retval.append(self._livingStreams[_stream])
         return retval
 
-    def getCurrentStream(self):
+    def getCurrentStream(self, timeout=-1):
         if len(self._streams) != 0:
             return self._streams[0]
         streams_with_data = []
-        for _stream in self._livingStreams:
-            if self._livingStreams[_stream].samplesAvailable() != 0:
-                streams_with_data.append(_stream)
-        if len(streams_with_data) == 0:
-            return None
+        start_time = time.time()
+        while True:
+            for _stream in self._livingStreams:
+                if self._livingStreams[_stream].samplesAvailable() != 0:
+                    streams_with_data.append(_stream)
+            if len(streams_with_data) == 0:
+                if timeout != -1:
+                    if time.time() - start_time >= timeout:
+                        return None
+                time.sleep(0.1)
+                continue
+            else:
+                break
         oldest = (0,'')
         for _stream in streams_with_data:
             if oldest[0] == 0:
