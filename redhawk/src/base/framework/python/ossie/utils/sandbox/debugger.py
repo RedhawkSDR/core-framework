@@ -138,7 +138,13 @@ class Valgrind(Debugger):
         status, valgrind = commands.getstatusoutput('which valgrind')
         if status:
             raise RuntimeError, 'valgrind cannot be found'
-        super(Valgrind,self).__init__(valgrind, '=', **opts)
+        pass_opts = {}
+        for name, value in opts.iteritems():
+            if name[:2] != '--':
+                name = '--'+name
+                name = name.replace('_','-')
+                pass_opts[name] = value
+        super(Valgrind,self).__init__(valgrind, '=', **pass_opts)
 
     def modifiesCommand(self):
         return True
