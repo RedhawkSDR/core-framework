@@ -59,9 +59,9 @@ private:
 };
 
 Heap::Heap(const std::string& name) :
-    _shm(name)
+    _file(name)
 {
-    _shm.create();
+    _file.create();
     int nprocs = sysconf(_SC_NPROCESSORS_CONF);
     for (int id = 0; id < nprocs; ++id) {
         _allocs.push_back(new PrivateHeap(id, this));
@@ -72,9 +72,8 @@ Heap::~Heap()
 {
 #ifdef HEAP_DEBUG
     std::cout << _superblocks.size() << " superblocks" << std::endl;
-    std::cout << _shm.size() << " total bytes" << std::endl;
+    std::cout << _file.size() << " total bytes" << std::endl;
 #endif
-    unlink();
 }
 
 void* Heap::allocate(size_t bytes)
@@ -86,11 +85,6 @@ void* Heap::allocate(size_t bytes)
 void Heap::deallocate(void* ptr)
 {
     Superblock::deallocate(ptr);
-}
-
-void Heap::unlink()
-{
-    _shm.unlink();
 }
 
 MemoryRef Heap::getRef(const void* ptr)
@@ -106,7 +100,7 @@ MemoryRef Heap::getRef(const void* ptr)
 
 const std::string& Heap::name() const
 {
-    return _shm.name();
+    return _file.name();
 }
 
 Heap::PrivateHeap* Heap::_getPrivateHeap()
@@ -153,53 +147,5 @@ Superblock* Heap::_createSuperblock(size_t minSize)
     if (minSize > superblock_size) {
         superblock_size = PAGE_ROUND_UP(minSize, MappedFile::PAGE_SIZE);
     }
-
-    // Allocate 1 page for the index, plus the superblock memory
-    size_t current_offset = _shm.size();
-    size_t total_size = MappedFile::PAGE_SIZE + superblock_size;
-    _shm.resize(current_offset + total_size);
-
-    void* base = _shm.map(total_size, MappedFile::READWRITE, current_offset);
-    Superblock* superblock = new (base) Superblock(_shm.name(), current_offset, superblock_size);
-    _superblocks.push_back(superblock);
-    return superblock;
-}
-
-HeapClient::HeapClient(const std::string& name) :
-    _shm(name)
-{
-    _shm.open();
-}
-
-void* HeapClient::fetch(const MemoryRef& ref)
-{
-    Superblock* superblock = 0;
-    SuperblockMap::iterator iter = _superblocks.find(ref.superblock);
-    if (iter != _superblocks.end()) {
-        superblock = iter->second;
-    } else {
-        superblock = _attach(ref.superblock);
-    }
-    return superblock->attach(ref.offset);
-}
-
-void HeapClient::deallocate(void* ptr)
-{
-    Superblock::deallocate(ptr);
-}
-
-Superblock* HeapClient::_attach(size_t offset)
-{
-    // Map just the superblock's index to get the complete size
-    void* base = _shm.map(MappedFile::PAGE_SIZE, MappedFile::READWRITE, offset);
-    Superblock* superblock = reinterpret_cast<Superblock*>(base);
-    size_t superblock_size = superblock->size();
-
-    // Remap to get the full superblock size
-    base = _shm.remap(base, MappedFile::PAGE_SIZE, MappedFile::PAGE_SIZE + superblock_size);
-    superblock = reinterpret_cast<Superblock*>(base);
-
-    // Store mapping
-    _superblocks[superblock->offset()] = superblock;
-    return superblock;
+    return _file.createSuperblock(superblock_size);
 }

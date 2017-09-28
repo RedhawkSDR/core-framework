@@ -21,17 +21,14 @@
 #ifndef REDHAWK_SHM_HEAP_H
 #define REDHAWK_SHM_HEAP_H
 
-#include <map>
 #include <vector>
-#include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 
-#include "MappedFile.h"
+#include "SuperblockFile.h"
 
 namespace redhawk {
 
     namespace shm {
-        class Superblock;
         class ThreadState;
 
         struct MemoryRef {
@@ -47,8 +44,6 @@ namespace redhawk {
 
             void* allocate(size_t bytes);
             void deallocate(void* ptr);
-
-            void unlink();
 
             static MemoryRef getRef(const void* ptr);
 
@@ -72,30 +67,11 @@ namespace redhawk {
             // Serializes access to all members except thread-specific data
             boost::mutex _mutex;
 
-            MappedFile _shm;
+            SuperblockFile _file;
 
             std::vector<PrivateHeap*> _allocs;
 
             boost::thread_specific_ptr<ThreadState> _threadState;
-
-            typedef std::vector<Superblock*> SuperblockList;
-            SuperblockList _superblocks;
-        };
-
-        class HeapClient {
-        public:
-            HeapClient(const std::string& name);
-
-            void* fetch(const MemoryRef& ref);
-            static void deallocate(void* ptr);
-
-        private:
-            MappedFile _shm;
-
-            Superblock* _attach(size_t offset);
-
-            typedef std::map<size_t,Superblock*> SuperblockMap;
-            SuperblockMap _superblocks;
         };
     }
 }

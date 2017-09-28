@@ -77,6 +77,8 @@ nobase_pkginclude_HEADERS = internal/equals.h \
 	     debug/checked_iterator.h \
 	     shm/Allocator.h \
 	     shm/Heap.h \
+	     shm/HeapClient.h \
 	     shm/MappedFile.h \
-	     shm/ProcessHeap.h
+	     shm/ProcessHeap.h \
+	     shm/SuperblockFile.h
 

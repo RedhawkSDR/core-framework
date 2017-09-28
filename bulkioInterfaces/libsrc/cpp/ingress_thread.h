@@ -3,6 +3,8 @@
 
 #include <boost/thread.hpp>
 
+#include <ossie/shm/HeapClient.h>
+
 #include <bulkio_in_port.h>
 
 #include "ipcfifo.h"
@@ -68,11 +70,8 @@ namespace bulkio {
         virtual void _threadStarted();
         virtual void _run();
 
-        redhawk::shm::HeapClient* _getHeap(const std::string& name);
-
         IPCFifo* _fifo;
-        typedef std::map<std::string,redhawk::shm::HeapClient*> HeapMap;
-        HeapMap _heaps;
+        redhawk::shm::HeapClient _heapClient;
     };
 }
 

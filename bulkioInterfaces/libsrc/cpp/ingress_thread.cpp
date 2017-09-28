@@ -55,9 +55,7 @@ namespace bulkio {
                 std::cerr << "Message bytes left over" << std::endl;
             }
 
-            redhawk::shm::HeapClient* heap = _getHeap(ref.heap);
-
-            NativeType* base = reinterpret_cast<NativeType*>(heap->fetch(ref));
+            NativeType* base = reinterpret_cast<NativeType*>(_heapClient.fetch(ref));
             redhawk::buffer<NativeType> buffer(base, count, &redhawk::shm::HeapClient::deallocate);
             this->_queuePacket(buffer, T, EOS, streamID);
 
@@ -65,19 +63,10 @@ namespace bulkio {
             size_t status = 0;
             _fifo->write(&status, sizeof(size_t));
         }
-    }
 
-    template <class PortType>
-    redhawk::shm::HeapClient* ShmIngressThread<PortType>::_getHeap(const std::string& name)
-    {
-        typename HeapMap::iterator existing = _heaps.find(name);
-        if (existing != _heaps.end()) {
-            return existing->second;
-        }
-
-        redhawk::shm::HeapClient* heap = new redhawk::shm::HeapClient(name);
-        _heaps[name] = heap;
-        return heap;
+        // TODO: The ingress thread object doesn't get deleted; detaching the
+        //       HeapClient ensures the heap(s) can be cleaned up (for now)
+        _heapClient.detach();
     }
 
 #define INSTANTIATE_NUMERIC_TEMPLATE(x) \
