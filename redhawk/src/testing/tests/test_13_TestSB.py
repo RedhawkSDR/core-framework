@@ -2154,6 +2154,26 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(block_2.xdelta(), 0.001)
         self.assertEquals(block_3.xdelta(), 0.0001)
 
+    def test_DataSinkSingleRead(self):
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5])
+        src.push([1,2,3,4,5])
+        src.push([1,2,3,4,5])
+        wait_on_data(snk, 3)
+        stream=snk.getCurrentStream()
+        block_1 = stream.read()
+        block_2 = stream.read()
+        block_3 = stream.read()
+        self.assertNotEqual(block_1, None)
+        self.assertNotEqual(block_2, None)
+        self.assertNotEqual(block_3, None)
+        self.assertEquals(len(block_1.data()), 5)
+        self.assertEquals(len(block_2.data()), 5)
+        self.assertEquals(len(block_3.data()), 5)
+
     def test_getCurrentStreamTimeout(self):
         src = sb.DataSource(dataFormat='float')
         snk = sb.DataSink()

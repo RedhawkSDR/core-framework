@@ -278,7 +278,7 @@ class InputStream(BaseStream):
 
         if not count:
             self._parent.port_cond.acquire()
-            count = self.samplesAvailableSingleSRI()
+            count = self.samplesAvailableSinglePush()
             self._parent.port_cond.release()
         if not consume:
             consume = count
@@ -469,6 +469,8 @@ class InputStream(BaseStream):
         for _data in self._data:
             len_data += len(_data.getData())
         return len_data
+    def samplesAvailableSinglePush(self):
+        return len(self._data[0].getData())
     def samplesAvailableSingleSRI(self):
         len_data = 0
         data_block_reads = len(self._data)
