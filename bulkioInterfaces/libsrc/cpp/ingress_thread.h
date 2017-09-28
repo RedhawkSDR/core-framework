@@ -69,7 +69,7 @@ namespace bulkio {
         virtual void _run();
 
         IPCFifo* _fifo;
-        redhawk::ShmHeapClient* _heap;
+        redhawk::shm::HeapClient* _heap;
     };
 }
 

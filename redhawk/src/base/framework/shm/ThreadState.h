@@ -1,20 +1,23 @@
-#ifndef THREADSTATE_HH
-#define THREADSTATE_HH
+#ifndef REDHAWK_THREADSTATE_H
+#define REDHAWK_THREADSTATE_H
 
 namespace redhawk {
-    class ShmArena;
 
-    class ThreadState {
-    public:
-        ThreadState() :
-            last(0),
-            contention(0)
-        {
-        }
+    namespace shm {
+        class Superblock;
 
-        ShmArena* last;
-        int contention;
-    };
+        class ThreadState {
+        public:
+            ThreadState() :
+                last(0),
+                contention(0)
+            {
+            }
+
+            shm::Superblock* last;
+            int contention;
+        };
+    }
 }
 
-#endif // THREADSTATE_HH
+#endif // REDHAWK_THREADSTATE_H

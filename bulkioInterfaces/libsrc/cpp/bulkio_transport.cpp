@@ -429,7 +429,7 @@ namespace bulkio {
 
             // Send the heap name so the remote side can map it now
             MessageBuffer msg;
-            msg.write(redhawk::ShmAllocator::name());
+            msg.write(redhawk::shm::ProcessHeap::Instance().name());
             fifo->write(msg.buffer(), msg.size());
 
             return new ShmTransport(connectionId, name, fifo, port);
@@ -462,7 +462,7 @@ namespace bulkio {
             MessageBuffer msg;
 
             const void* base = data.base();
-            redhawk::ShmHeap::ID id = redhawk::ShmAllocator::getID(const_cast<void*>(base));
+            redhawk::shm::Heap::ID id = redhawk::shm::ProcessHeap::Instance().getID(base);
             size_t offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
 
             msg.write(id);

@@ -60,44 +60,7 @@ namespace redhawk {
         }
 
     private:
-        friend class shared_cond;
-
         pthread_mutex_t _mutex;
-    };
-
-    class shared_cond {
-    public:
-        shared_cond()
-        {
-            pthread_condattr_t attr;
-            pthread_condattr_init(&attr);
-            pthread_condattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
-            pthread_cond_init(&_cond, &attr);
-            pthread_condattr_destroy(&attr);
-        }
-
-        ~shared_cond()
-        {
-            pthread_cond_destroy(&_cond);
-        }
-
-        void wait(shared_mutex* mutex)
-        {
-            pthread_cond_wait(&_cond, &(mutex->_mutex));
-        }
-
-        void signal()
-        {
-            pthread_cond_signal(&_cond);
-        }
-
-        void broadcast()
-        {
-            pthread_cond_broadcast(&_cond);
-        }
-
-    private:
-        pthread_cond_t _cond;
     };
 
     class scoped_lock {

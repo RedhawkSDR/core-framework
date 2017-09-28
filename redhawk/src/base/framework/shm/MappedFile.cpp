@@ -1,4 +1,4 @@
-#include <ossie/shm/ShmFile.h>
+#include <ossie/shm/MappedFile.h>
 
 #include <stdexcept>
 #include <cstring>
@@ -9,22 +9,22 @@
 #include <fcntl.h>
 #include <errno.h>
 
-using namespace redhawk;
+using namespace redhawk::shm;
 
 static std::string error_string()
 {
     return strerror(errno);
 }
 
-const size_t ShmFile::PAGE_SIZE = sysconf(_SC_PAGESIZE);
+const size_t MappedFile::PAGE_SIZE = sysconf(_SC_PAGESIZE);
 
-ShmFile::ShmFile(const std::string& name) :
+MappedFile::MappedFile(const std::string& name) :
     _name(name),
     _fd(-1)
 {
 }
 
-void ShmFile::create()
+void MappedFile::create()
 {
     if (_fd >= 0) {
         throw std::runtime_error("shm file is already open");
@@ -36,7 +36,7 @@ void ShmFile::create()
     }
 }
 
-void ShmFile::open()
+void MappedFile::open()
 {
     if (_fd >= 0) {
         throw std::runtime_error("shm file is already open");
@@ -48,17 +48,17 @@ void ShmFile::open()
     }
 }
 
-ShmFile::~ShmFile()
+MappedFile::~MappedFile()
 {
     close();
 }
 
-const std::string& ShmFile::name() const
+const std::string& MappedFile::name() const
 {
     return _name;
 }
 
-size_t ShmFile::size() const
+size_t MappedFile::size() const
 {
     struct stat statbuf;
     if (fstat(_fd, &statbuf)) {
@@ -67,14 +67,14 @@ size_t ShmFile::size() const
     return statbuf.st_size;
 }
 
-void ShmFile::resize(size_t bytes)
+void MappedFile::resize(size_t bytes)
 {
     if (ftruncate(_fd, bytes)) {
         throw std::runtime_error("ftruncate: " + error_string());
     }
 }
 
-void* ShmFile::map(size_t bytes, mode_e mode, off_t offset)
+void* MappedFile::map(size_t bytes, mode_e mode, off_t offset)
 {
     int prot = PROT_READ;
     if (mode == READWRITE) {
@@ -88,7 +88,7 @@ void* ShmFile::map(size_t bytes, mode_e mode, off_t offset)
     return addr;
 }
 
-void* ShmFile::remap(void* oldAddr, size_t oldSize, size_t newSize)
+void* MappedFile::remap(void* oldAddr, size_t oldSize, size_t newSize)
 {
     int flags = MREMAP_MAYMOVE;
     void* addr = mremap(oldAddr, oldSize, newSize, flags);
@@ -98,14 +98,14 @@ void* ShmFile::remap(void* oldAddr, size_t oldSize, size_t newSize)
     return addr;
 }
 
-void ShmFile::unmap(void* ptr, size_t bytes)
+void MappedFile::unmap(void* ptr, size_t bytes)
 {
     if (munmap(ptr, bytes)) {
         throw std::runtime_error("munmap: " + error_string());
     }
 }
 
-void ShmFile::close()
+void MappedFile::close()
 {
     if (_fd >= 0) {
         ::close(_fd);
@@ -113,7 +113,7 @@ void ShmFile::close()
     }
 }
 
-void ShmFile::unlink()
+void MappedFile::unlink()
 {
     if (shm_unlink(_name.c_str())) {
         throw std::runtime_error("unlink: " + error_string());

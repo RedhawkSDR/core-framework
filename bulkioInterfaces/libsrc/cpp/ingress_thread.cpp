@@ -3,8 +3,6 @@
 #include "MessageBuffer.h"
 #include "bulkio_p.h"
 
-#include <ossie/shm/ShmAlloc.h>
-
 namespace bulkio {
 
     template <class PortType>
@@ -36,7 +34,7 @@ namespace bulkio {
         std::string heap_name;
         msg.read(heap_name);
 
-        _heap = new redhawk::ShmHeapClient(heap_name);
+        _heap = new redhawk::shm::HeapClient(heap_name);
     }
 
     template <class PortType>
@@ -54,7 +52,7 @@ namespace bulkio {
             }
             msg.resize(msg_length);
 
-            redhawk::ShmHeap::ID id;
+            redhawk::shm::Heap::ID id;
             size_t offset;
             size_t count;
             msg.read(id);
@@ -68,7 +66,7 @@ namespace bulkio {
             }
 
             NativeType* base = reinterpret_cast<NativeType*>(_heap->fetch(id));
-            redhawk::buffer<NativeType> buffer(base, count, &redhawk::ShmAllocator::deallocate);
+            redhawk::buffer<NativeType> buffer(base, count, &redhawk::shm::HeapClient::deallocate);
             this->_queuePacket(buffer, T, EOS, streamID);
 
             // Send response back

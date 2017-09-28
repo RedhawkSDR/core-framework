@@ -24,8 +24,7 @@
 #include <algorithm>
 #include <memory>
 
-//#include "BufferManager.h"
-#include "shm/ShmAlloc.h"
+#include "shm/Allocator.h"
 
 #ifdef _RH_SHARED_BUFFER_DEBUG
 #include "debug/check.h"
@@ -627,7 +626,7 @@ namespace redhawk {
 #elif defined(_RH_SHARED_BUFFER_USE_STD_ALLOC)
         typedef std::allocator<T> default_allocator;
 #else
-        typedef ::redhawk::shm_allocator<T> default_allocator;
+        typedef ::redhawk::shm::Allocator<T> default_allocator;
 #endif
 
         /**

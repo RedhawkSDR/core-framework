@@ -62,10 +62,10 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
 			UsesPort.cpp \
 			BufferManager.cpp \
 			inplace_list.h \
-			shm/ShmAlloc.cpp \
-			shm/ShmArena.cpp \
-			shm/ShmFile.cpp \
-			shm/ShmHeap.cpp
+			shm/Heap.cpp \
+			shm/MappedFile.cpp \
+			shm/ProcessHeap.cpp \
+			shm/Superblock.cpp
 
 libossiecf_la_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
 # Include the omniORB internal directory, otherwise CorbaUtils will not build

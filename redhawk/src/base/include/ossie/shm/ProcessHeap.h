@@ -18,44 +18,29 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef REDHAWK_SHMFILE_H
-#define REDHAWK_SHMFILE_H
+#ifndef REDHAWK_SHM_PROCESSHEAP_H
+#define REDHAWK_SHM_PROCESSHEAP_H
 
-#include <string>
-#include <sys/mman.h>
+#include <boost/scoped_ptr.hpp>
+
+#include "Heap.h"
 
 namespace redhawk {
-    class ShmFile {
-    public:
-        enum mode_e {
-            READONLY,
-            READWRITE
+
+    namespace shm {
+
+        class ProcessHeap {
+        public:
+            static Heap& Instance();
+        private:
+            // Cannot instantiate
+            ProcessHeap();
+
+            static void _initialize();
+
+            static boost::scoped_ptr<Heap> _instance;
         };
-
-        static const size_t PAGE_SIZE;
-
-        ShmFile(const std::string& name);
-        ~ShmFile();
-
-        void create();
-        void open();
-
-        const std::string& name() const;
-
-        size_t size() const;
-        void resize(size_t bytes);
-
-        void* map(size_t bytes, mode_e mode, off_t offset=0);
-        void* remap(void* oldAddr, size_t oldSize, size_t newSize);
-        void unmap(void* addr, size_t bytes);
-
-        void close();
-        void unlink();
-
-    private:
-        const std::string _name;
-        int _fd;
-    };
+    }
 }
 
-#endif // REDHAWK_SHMFILE_H
+#endif // REDHAWK_SHM_PROCESSHEAP_H

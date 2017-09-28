@@ -1,9 +1,9 @@
-#include "ShmArena.h"
-#include "ShmBlock.h"
+#include "Superblock.h"
+#include "Block.h"
 #include "ThreadState.h"
 #include "offset_ptr.h"
 
-#include <ossie/shm/ShmFile.h>
+#include <ossie/shm/MappedFile.h>
 
 #include <stdexcept>
 #include <cstring>
@@ -13,25 +13,28 @@
 #include <assert.h>
 
 using namespace redhawk;
+using redhawk::shm::Superblock;
+using redhawk::shm::Block;
+using redhawk::shm::ThreadState;
 
 #define ALLOC_DEBUG 0
 #if ALLOC_DEBUG > 0
-#define LOG_ALLOC(x) std::cout << "+ " << ((x) - sizeof(ShmBlock)) << std::endl;
-#define LOG_DEALLOC(x) std::cout << "- " << ((x) - sizeof(ShmBlock)) << std::endl;
+#define LOG_ALLOC(x) std::cout << "+ " << ((x) - sizeof(Block)) << std::endl;
+#define LOG_DEALLOC(x) std::cout << "- " << ((x) - sizeof(Block)) << std::endl;
 #else
 #define LOG_ALLOC(x)
 #define LOG_DEALLOC(x)
 #endif
 
-struct ShmArena::FreeBlock : public ShmBlock {
+struct Superblock::FreeBlock : public Block {
     FreeBlock(size_t offset, size_t bytes) :
-        ShmBlock(offset, bytes),
+        Block(offset, bytes),
         prev_free(0),
         next_free(0),
         prev_size(0),
         next_size(0)
     {
-        mark_tail();
+        markTail();
     }
     
     uint32_t prev_free;
@@ -40,36 +43,36 @@ struct ShmArena::FreeBlock : public ShmBlock {
     uint32_t next_size;
 };
 
-ShmArena::ShmArena(size_t offset, size_t size) :
+Superblock::Superblock(size_t offset, size_t size) :
     _offset(offset),
     _size(size),
-    _dataStart(ShmFile::PAGE_SIZE),
+    _dataStart(MappedFile::PAGE_SIZE),
     _first(0),
     _last(0)
 {
-    uint32_t block_start = _dataStart / ShmBlock::BLOCK_SIZE;
-    uint32_t block_count = size / ShmBlock::BLOCK_SIZE;
+    uint32_t block_start = _dataStart / Block::BLOCK_SIZE;
+    uint32_t block_count = size / Block::BLOCK_SIZE;
     FreeBlock* block = new (_data()) FreeBlock(block_start, block_count);
    _queueFree(block);
 }
 
-ShmArena::~ShmArena()
+Superblock::~Superblock()
 {
 }
 
-size_t ShmArena::offset() const
+size_t Superblock::offset() const
 {
     return _offset;
 }
 
-size_t ShmArena::size() const
+size_t Superblock::size() const
 {
     return _size;
 }
 
-void* ShmArena::attach(size_t offset)
+void* Superblock::attach(size_t offset)
 {
-    ShmBlock* block = offset_ptr<ShmBlock>(this, offset * ShmBlock::BLOCK_SIZE);
+    Block* block = offset_ptr<Block>(this, offset * Block::BLOCK_SIZE);
     if (!block->valid()) {
         throw std::bad_alloc();
     }
@@ -77,23 +80,23 @@ void* ShmArena::attach(size_t offset)
     return block->data();
 }
 
-void ShmArena::deallocate(void* ptr)
+void Superblock::deallocate(void* ptr)
 {
-    ShmBlock* block = ShmBlock::from_pointer(ptr);
+    Block* block = Block::from_pointer(ptr);
     assert(block->valid());
     if (block->decref() == 0) {
-        ShmArena* arena = block->arena();
-        arena->_deallocate(block);
+        Superblock* superblock = block->getSuperblock();
+        superblock->_deallocate(block);
     }
 }
 
-void ShmArena::dump(std::ostream& stream) const
+void Superblock::dump(std::ostream& stream) const
 {
     scoped_lock lock(_lock);
     _dump(stream);
 }
 
-void ShmArena::_dump(std::ostream& stream) const
+void Superblock::_dump(std::ostream& stream) const
 {
     stream << "Free list:" << std::endl;
     int index = 0;
@@ -102,14 +105,14 @@ void ShmArena::_dump(std::ostream& stream) const
             stream << "Bad bin@" << bin << " [" << index << "]" << std::endl;
             break;
         }
-        std::cout << "Bin " << bin->byte_size() << std::endl;
+        std::cout << "Bin " << bin->byteSize() << std::endl;
         for (const FreeBlock* free_block = bin; free_block; free_block = _offsetToBlock(free_block->next_free)) {
             stream << "block@" << free_block << ":" << std::endl;
             if (!free_block->valid()) {
                 stream << "  INVALID" << std::endl;
                 break;
             }
-            stream << "  refcount: " << free_block->refcount << std::endl;
+            stream << "  refcount: " << free_block->getRefcount() << std::endl;
             stream << "  offset:   " << free_block->offset() << std::endl;
             stream << "  prev:     " << free_block->prev_free << std::endl;
             stream << "  next:     " << free_block->next_free << std::endl;
@@ -120,87 +123,87 @@ void ShmArena::_dump(std::ostream& stream) const
     stream << std::endl
            << "All blocks:" << std::endl;
     size_t blocks = 0;
-    for (const ShmBlock* block = _begin(); block != _end(); block = block->next()) {
+    for (const Block* block = _begin(); block != _end(); block = block->next()) {
         stream << "block@" << block << ":" << std::endl;
         if (!block->valid()) {
             stream << "  INVALID" << std::endl;
             break;
         } else {
-            stream << "  prevfree: " << block->previous_free() << std::endl;
-            stream << "  refcount: " << block->refcount << std::endl;
+            stream << "  prevfree: " << block->isPreviousFree() << std::endl;
+            stream << "  refcount: " << block->getRefcount() << std::endl;
             stream << "  offset:   " << block->offset() << std::endl;
-            stream << "  size:     " << block->byte_size() << std::endl;
+            stream << "  size:     " << block->byteSize() << std::endl;
             blocks++;
         }
     }
     stream << blocks << " block(s)" << std::endl;
 }
 
-char* ShmArena::_data()
+char* Superblock::_data()
 {
     char* ptr = reinterpret_cast<char*>(this);
     return ptr + _dataStart;
 }
 
-const char* ShmArena::_data() const
+const char* Superblock::_data() const
 {
-    return const_cast<ShmArena*>(this)->_data();
+    return const_cast<Superblock*>(this)->_data();
 }
 
-const ShmBlock* ShmArena::_begin() const
+const Block* Superblock::_begin() const
 {
-    return reinterpret_cast<const ShmBlock*>(_data());
+    return reinterpret_cast<const Block*>(_data());
 }
 
-const ShmBlock* ShmArena::_end() const
+const Block* Superblock::_end() const
 {
-    return reinterpret_cast<const ShmBlock*>(_data() + _size);
+    return reinterpret_cast<const Block*>(_data() + _size);
 }
 
-ShmArena::FreeBlock* ShmArena::_offsetToBlock(uint32_t offset)
+Superblock::FreeBlock* Superblock::_offsetToBlock(uint32_t offset)
 {
     if (offset) {
-        return offset_ptr<FreeBlock>(this, offset * ShmBlock::BLOCK_SIZE);
+        return offset_ptr<FreeBlock>(this, offset * Block::BLOCK_SIZE);
     } else {
         return 0;
     }
 }
 
-const ShmArena::FreeBlock* ShmArena::_offsetToBlock(uint32_t offset) const
+const Superblock::FreeBlock* Superblock::_offsetToBlock(uint32_t offset) const
 {
     if (offset) {
-        return offset_ptr<FreeBlock>(this, offset * ShmBlock::BLOCK_SIZE);
+        return offset_ptr<FreeBlock>(this, offset * Block::BLOCK_SIZE);
     } else {
         return 0;
     }
 }
 
-void ShmArena::_deallocate(ShmBlock* block)
+void Superblock::_deallocate(Block* block)
 {
     scoped_lock lock(_lock);
-    assert(block->byte_size() >= sizeof(FreeBlock));
-    LOG_DEALLOC(block->byte_size());
+    assert(block->byteSize() >= sizeof(FreeBlock));
+    LOG_DEALLOC(block->byteSize());
 
 #if ALLOC_DEBUG > 1
     std::cout << "Returning block@" << block << std::endl;
     std::cout << "  offset: " << block->offset() << std::endl;
-    std::cout << "  size:   " << block->byte_size() << std::endl;
+    std::cout << "  size:   " << block->byteSize() << std::endl;
 #endif
 
     // Try to recombine adjacent memory
     _coalesceNext(block);
-    if (block->previous_free()) {
+    if (block->isPreviousFree()) {
         // Previous block is free, combine and re-queue the "new" block
         block = _coalescePrevious(block);
     } else {
         // Mark this block as free to allow it to be right-coalesced in the
         // future
-        block->mark_free();
+        block->markFree();
     }
 
     // Write the tail so that the next block can determine the size of this one
     // (after all coalescing is complete)
-    block->mark_tail();
+    block->markTail();
 
     _queueFree(block);
 
@@ -209,9 +212,9 @@ void ShmArena::_deallocate(ShmBlock* block)
 #endif
 }
 
-void ShmArena::_queueFree(ShmBlock* block)
+void Superblock::_queueFree(Block* block)
 {
-    assert(block->is_free());
+    assert(block->isFree());
     FreeBlock* free_block = reinterpret_cast<FreeBlock*>(block);
     if (!_first) {
         // No free blocks exist
@@ -223,7 +226,7 @@ void ShmArena::_queueFree(ShmBlock* block)
     } else {
         for (FreeBlock* bin = _offsetToBlock(_first); bin; bin = _offsetToBlock(bin->next_size)) {
             assert(bin->valid());
-            assert(bin->is_free());
+            assert(bin->isFree());
             if (bin->size() == free_block->size()) {
                 // Insert into existing bin
                 free_block->prev_free = bin->offset();
@@ -265,7 +268,7 @@ void ShmArena::_queueFree(ShmBlock* block)
     }
 }
 
-void* ShmArena::allocate(ThreadState* thread, size_t bytes)
+void* Superblock::allocate(ThreadState* thread, size_t bytes)
 {
     scoped_lock lock(_lock, false);
     if (lock.trylock()) {
@@ -278,7 +281,7 @@ void* ShmArena::allocate(ThreadState* thread, size_t bytes)
     // Add overhead for block metadata, and round up to the nearest block
     // size to preserve alignment on all architectures; otherwise, atomic
     // operations may cause a fatal bus error
-    size_t blocks = (bytes + sizeof(ShmBlock) + ShmBlock::BLOCK_SIZE - 1) / ShmBlock::BLOCK_SIZE;
+    size_t blocks = (bytes + sizeof(Block) + Block::BLOCK_SIZE - 1) / Block::BLOCK_SIZE;
 
     LOG_ALLOC(bytes);
 
@@ -288,13 +291,13 @@ void* ShmArena::allocate(ThreadState* thread, size_t bytes)
         return 0;
     }
     assert(block->valid());
-    assert(block->is_free());
+    assert(block->isFree());
     assert(block->size() >= blocks);
 
 #if ALLOC_DEBUG > 1
     std::cout << "Allocating from block@" << block << std::endl;
     std::cout << "  offset: " << block->offset() << std::endl;
-    std::cout << "  size:   " << block->byte_size() << std::endl;
+    std::cout << "  size:   " << block->byteSize() << std::endl;
     std::cout << "  prev:   " << block->prev_free << std::endl;
     std::cout << "  next:   " << block->next_free << std::endl;
 #endif
@@ -307,28 +310,28 @@ void* ShmArena::allocate(ThreadState* thread, size_t bytes)
     // (taking into account that there has to be enough left over to store the
     // extra pointers)
     size_t remainder = block->size() - blocks;
-    if ((remainder * ShmBlock::BLOCK_SIZE) > sizeof(FreeBlock)) {
+    if ((remainder * Block::BLOCK_SIZE) > sizeof(FreeBlock)) {
         FreeBlock* next_block = reinterpret_cast<FreeBlock*>(block->split(blocks));
         _queueFree(next_block);
 
 #if ALLOC_DEBUG > 1
         std::cout << "Used block@" << block << std::endl;
         std::cout << "  offset: " << block->offset() << std::endl;
-        std::cout << "  size:   " << block->byte_size() << std::endl;
+        std::cout << "  size:   " << block->byteSize() << std::endl;
 
         std::cout << "Remain block@" << next_block << std::endl;
         std::cout << "  offset: " << next_block->offset() << std::endl;
-        std::cout << "  size:   " << next_block->byte_size() << std::endl;
+        std::cout << "  size:   " << next_block->byteSize() << std::endl;
 #endif
         assert(next_block->valid());
     }
 
     // Mark the block as "allocated"
-    block->mark_used();
-    ShmBlock* next = block->next();
+    block->markUsed();
+    Block* next = block->next();
     if (next != _end()) {
         assert(next->valid());
-        next->set_previous_used();
+        next->setPreviousUsed();
     }
 
 #if ALLOC_DEBUG > 1
@@ -338,7 +341,7 @@ void* ShmArena::allocate(ThreadState* thread, size_t bytes)
     return block->data();
 }
 
-void ShmArena::_removeFreeBlock(FreeBlock* block)
+void Superblock::_removeFreeBlock(FreeBlock* block)
 {
     FreeBlock* prev_block = _offsetToBlock(block->prev_free);
     FreeBlock* next_block = _offsetToBlock(block->next_free);
@@ -382,11 +385,11 @@ void ShmArena::_removeFreeBlock(FreeBlock* block)
     }
 }
 
-ShmArena::FreeBlock* ShmArena::_findAvailable(size_t blocks)
+Superblock::FreeBlock* Superblock::_findAvailable(size_t blocks)
 {
     for (FreeBlock* bin = _offsetToBlock(_first); bin; bin = _offsetToBlock(bin->next_size)) {
         assert(bin->valid());
-        assert(bin->is_free());
+        assert(bin->isFree());
         if (bin->size() >= blocks) {
             if (bin->next_free) {
                 // Take the second entry in the bin to avoid having to alter
@@ -403,30 +406,30 @@ ShmArena::FreeBlock* ShmArena::_findAvailable(size_t blocks)
     return 0;
 }
 
-void ShmArena::_coalesceNext(ShmBlock* block)
+void Superblock::_coalesceNext(Block* block)
 {
-    ShmBlock* next = block->next();
+    Block* next = block->next();
     if (next == _end()) {
         return;
     }
 
     assert(next->valid());
-    if (next->is_free()) {
+    if (next->isFree()) {
         // Next block is free, append it to this block
         _removeFreeBlock(reinterpret_cast<FreeBlock*>(next));
         block->join(next);
     } else {
         // Next block is in use, just inform it that this block is free so that
         // it can coalesce this block when it gets freed
-        next->set_previous_free();
+        next->setPreviousFree();
     }
 }
 
-ShmBlock* ShmArena::_coalescePrevious(ShmBlock* block)
+Block* Superblock::_coalescePrevious(Block* block)
 {
     FreeBlock* prev = reinterpret_cast<FreeBlock*>(block->prev()); 
     assert(prev->valid());
-    assert(prev->is_free());
+    assert(prev->isFree());
 
     // Pull the block off of the free list; its size is going to change, so
     // its position will need to be adjusted
