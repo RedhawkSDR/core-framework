@@ -427,11 +427,6 @@ namespace bulkio {
             }
             fifo->finishConnect();
 
-            // Send the heap name so the remote side can map it now
-            MessageBuffer msg;
-            msg.write(redhawk::shm::ProcessHeap::Instance().name());
-            fifo->write(msg.buffer(), msg.size());
-
             return new ShmTransport(connectionId, name, fifo, port);
         }
 
@@ -462,10 +457,12 @@ namespace bulkio {
             MessageBuffer msg;
 
             const void* base = data.base();
-            redhawk::shm::Heap::ID id = redhawk::shm::ProcessHeap::Instance().getID(base);
+            redhawk::shm::MemoryRef ref = redhawk::shm::Heap::getRef(base);
             size_t offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
 
-            msg.write(id);
+            msg.write(ref.heap);
+            msg.write(ref.superblock);
+            msg.write(ref.offset);
             msg.write(offset);
             msg.write(data.size());
             msg.write(T);

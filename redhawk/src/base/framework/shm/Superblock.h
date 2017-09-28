@@ -15,8 +15,10 @@ namespace redhawk {
 
         class Superblock {
         public:
-            Superblock(size_t offset, size_t size);
+            Superblock(const std::string& heap, size_t offset, size_t size);
             ~Superblock();
+
+            const char* heap() const;
 
             size_t offset() const;
 
@@ -52,6 +54,7 @@ namespace redhawk {
             FreeBlock* _offsetToBlock(uint32_t offset);
             const FreeBlock* _offsetToBlock(uint32_t offset) const;
 
+            char _heapname[256];
             const uint64_t _offset;
             const uint32_t _size;
             const uint32_t _dataStart;

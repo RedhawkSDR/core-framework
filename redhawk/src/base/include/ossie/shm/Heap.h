@@ -34,13 +34,14 @@ namespace redhawk {
         class Superblock;
         class ThreadState;
 
+        struct MemoryRef {
+            std::string heap;
+            size_t superblock;
+            size_t offset;
+        };
+
         class Heap {
         public:
-            struct ID {
-                size_t superblock;
-                size_t offset;
-            };
-
             Heap(const std::string& name);
             ~Heap();
 
@@ -49,7 +50,7 @@ namespace redhawk {
 
             void unlink();
 
-            ID getID(const void* ptr);
+            static MemoryRef getRef(const void* ptr);
 
             const std::string& name() const;
 
@@ -85,7 +86,7 @@ namespace redhawk {
         public:
             HeapClient(const std::string& name);
 
-            void* fetch(Heap::ID id);
+            void* fetch(const MemoryRef& ref);
             static void deallocate(void* ptr);
 
         private:

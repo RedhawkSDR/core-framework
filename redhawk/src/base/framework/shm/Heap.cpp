@@ -93,13 +93,15 @@ void Heap::unlink()
     _shm.unlink();
 }
 
-Heap::ID Heap::getID(const void* ptr)
+MemoryRef Heap::getRef(const void* ptr)
 {
     Block* block = Block::from_pointer(const_cast<void*>(ptr));
-    ID id;
-    id.superblock = block->getSuperblock()->offset();
-    id.offset = block->offset();
-    return id;
+    const Superblock* superblock = block->getSuperblock();
+    MemoryRef ref;
+    ref.heap = superblock->heap();
+    ref.superblock = superblock->offset();
+    ref.offset = block->offset();
+    return ref;
 }
 
 const std::string& Heap::name() const
@@ -158,7 +160,7 @@ Superblock* Heap::_createSuperblock(size_t minSize)
     _shm.resize(current_offset + total_size);
 
     void* base = _shm.map(total_size, MappedFile::READWRITE, current_offset);
-    Superblock* superblock = new (base) Superblock(current_offset, superblock_size);
+    Superblock* superblock = new (base) Superblock(_shm.name(), current_offset, superblock_size);
     _superblocks.push_back(superblock);
     return superblock;
 }
@@ -169,16 +171,16 @@ HeapClient::HeapClient(const std::string& name) :
     _shm.open();
 }
 
-void* HeapClient::fetch(Heap::ID id)
+void* HeapClient::fetch(const MemoryRef& ref)
 {
     Superblock* superblock = 0;
-    SuperblockMap::iterator iter = _superblocks.find(id.superblock);
+    SuperblockMap::iterator iter = _superblocks.find(ref.superblock);
     if (iter != _superblocks.end()) {
         superblock = iter->second;
     } else {
-        superblock = _attach(id.superblock);
+        superblock = _attach(ref.superblock);
     }
-    return superblock->attach(id.offset);
+    return superblock->attach(ref.offset);
 }
 
 void HeapClient::deallocate(void* ptr)

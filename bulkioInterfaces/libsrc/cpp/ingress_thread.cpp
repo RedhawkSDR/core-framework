@@ -8,8 +8,7 @@ namespace bulkio {
     template <class PortType>
     ShmIngressThread<PortType>::ShmIngressThread(InPortType* port, IPCFifo* fifo) :
         IngressThread<PortType>(port),
-        _fifo(fifo),
-        _heap(0)
+        _fifo(fifo)
     {
     }
 
@@ -18,23 +17,12 @@ namespace bulkio {
     {
         _fifo->close();
         delete _fifo;
-
-        delete _heap;
     }
 
     template <class PortType>
     void ShmIngressThread<PortType>::_threadStarted()
     {
         _fifo->finishConnect();
-
-        MessageBuffer msg(512);
-        size_t msg_length = _fifo->read(msg.buffer(), msg.size());
-        msg.resize(msg_length);
-
-        std::string heap_name;
-        msg.read(heap_name);
-
-        _heap = new redhawk::shm::HeapClient(heap_name);
     }
 
     template <class PortType>
@@ -52,10 +40,12 @@ namespace bulkio {
             }
             msg.resize(msg_length);
 
-            redhawk::shm::Heap::ID id;
+            redhawk::shm::MemoryRef ref;
             size_t offset;
             size_t count;
-            msg.read(id);
+            msg.read(ref.heap);
+            msg.read(ref.superblock);
+            msg.read(ref.offset);
             msg.read(offset);
             msg.read(count);
             msg.read(T);
@@ -65,7 +55,9 @@ namespace bulkio {
                 std::cerr << "Message bytes left over" << std::endl;
             }
 
-            NativeType* base = reinterpret_cast<NativeType*>(_heap->fetch(id));
+            redhawk::shm::HeapClient* heap = _getHeap(ref.heap);
+
+            NativeType* base = reinterpret_cast<NativeType*>(heap->fetch(ref));
             redhawk::buffer<NativeType> buffer(base, count, &redhawk::shm::HeapClient::deallocate);
             this->_queuePacket(buffer, T, EOS, streamID);
 
@@ -73,6 +65,19 @@ namespace bulkio {
             size_t status = 0;
             _fifo->write(&status, sizeof(size_t));
         }
+    }
+
+    template <class PortType>
+    redhawk::shm::HeapClient* ShmIngressThread<PortType>::_getHeap(const std::string& name)
+    {
+        typename HeapMap::iterator existing = _heaps.find(name);
+        if (existing != _heaps.end()) {
+            return existing->second;
+        }
+
+        redhawk::shm::HeapClient* heap = new redhawk::shm::HeapClient(name);
+        _heaps[name] = heap;
+        return heap;
     }
 
 #define INSTANTIATE_NUMERIC_TEMPLATE(x) \

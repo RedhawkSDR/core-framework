@@ -68,8 +68,11 @@ namespace bulkio {
         virtual void _threadStarted();
         virtual void _run();
 
+        redhawk::shm::HeapClient* _getHeap(const std::string& name);
+
         IPCFifo* _fifo;
-        redhawk::shm::HeapClient* _heap;
+        typedef std::map<std::string,redhawk::shm::HeapClient*> HeapMap;
+        HeapMap _heaps;
     };
 }
 

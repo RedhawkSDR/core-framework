@@ -43,13 +43,16 @@ struct Superblock::FreeBlock : public Block {
     uint32_t next_size;
 };
 
-Superblock::Superblock(size_t offset, size_t size) :
+Superblock::Superblock(const std::string& heap, size_t offset, size_t size) :
     _offset(offset),
     _size(size),
     _dataStart(MappedFile::PAGE_SIZE),
     _first(0),
     _last(0)
 {
+    assert(heap.size() < 256);
+    strcpy(_heapname, heap.c_str());
+
     uint32_t block_start = _dataStart / Block::BLOCK_SIZE;
     uint32_t block_count = size / Block::BLOCK_SIZE;
     FreeBlock* block = new (_data()) FreeBlock(block_start, block_count);
@@ -58,6 +61,11 @@ Superblock::Superblock(size_t offset, size_t size) :
 
 Superblock::~Superblock()
 {
+}
+
+const char* Superblock::heap() const
+{
+    return _heapname;
 }
 
 size_t Superblock::offset() const
