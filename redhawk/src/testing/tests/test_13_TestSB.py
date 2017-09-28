@@ -2226,7 +2226,7 @@ class BulkioTest(unittest.TestCase):
         self.assertTrue(time_diff>time_estimate*0.9)
 
         stream=snk.getCurrentStream()
-        block_1 = stream.read()
+        block_1 = stream.read(3.0*_dataLength)
         self.assertNotEqual(block_1, None)
         self.assertEquals(len(block_1.data()), 3.0*_dataLength)
 
@@ -2244,7 +2244,7 @@ class BulkioTest(unittest.TestCase):
         self.assertTrue(time_diff>time_estimate*0.9)
 
         stream=snk.getCurrentStream()
-        block_1 = stream.read()
+        block_1 = stream.read(3.0*_dataLength)
         self.assertNotEqual(block_1, None)
         self.assertEquals(len(block_1.data()), 3.0*_dataLength)
 

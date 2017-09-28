@@ -470,6 +470,8 @@ class InputStream(BaseStream):
             len_data += len(_data.getData())
         return len_data
     def samplesAvailableSinglePush(self):
+        if len(self._data) == 0:
+            return 0
         return len(self._data[0].getData())
     def samplesAvailableSingleSRI(self):
         len_data = 0
