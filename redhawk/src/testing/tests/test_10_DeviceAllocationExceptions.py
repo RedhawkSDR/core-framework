@@ -149,6 +149,7 @@ class JavaDeviceCapacityExceptions(scatest.CorbaTestCase):
     def tearDown(self):
         if self.dev != None:
             self.dev.releaseObject()
+        scatest.CorbaTestCase.tearDown(self)
 
     def test_InvalidCapacity_simple(self):
         from ossie.utils import sb
