@@ -261,7 +261,7 @@ namespace bulkio {
 
     virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
-    typedef redhawk::UsesPort::TransportIteratorAdapter<PortTransportType> TransportIterator;
+    typedef redhawk::TransportIteratorAdapter<PortTransportType> TransportIterator;
 
     typedef std::map<std::string,StreamType> StreamMap;
     StreamMap streams;

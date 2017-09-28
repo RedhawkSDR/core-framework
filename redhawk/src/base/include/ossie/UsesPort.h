@@ -32,57 +32,9 @@
 #include "Port_impl.h"
 #include "callback.h"
 #include "debug.h"
+#include "BasicTransport.h"
 
 namespace redhawk {
-    class TransportError : public std::runtime_error
-    {
-    public:
-        TransportError(const std::string& message) :
-            std::runtime_error(message)
-        {
-        }
-    };
-
-    class TransportTimeoutError : public TransportError
-    {
-    public:
-        TransportTimeoutError(const std::string& message) :
-            TransportError(message)
-        {
-        }
-    };
-
-    class FatalTransportError : public TransportError
-    {
-    public:
-        FatalTransportError(const std::string& message) :
-            TransportError(message)
-        {
-        }
-    };
-
-    class BasicTransport
-    {
-    public:
-        BasicTransport(const std::string& connectionId, CORBA::Object_ptr objref);
-        virtual ~BasicTransport() { }
-
-        const std::string& connectionId() const;
-        CORBA::Object_ptr objref() const;
-
-        virtual std::string getDescription() const;
-
-        bool isAlive() const;
-        void setAlive(bool alive);
-
-        virtual void disconnect() { }
-
-    private:
-        const std::string _connectionId;
-        CORBA::Object_var _objref;
-        bool _alive;
-    };
-
     class UsesPort : public Port_Uses_base_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
                    , public virtual POA_ExtendedCF::QueryablePort
@@ -99,7 +51,7 @@ namespace redhawk {
         //   void Target::func(const std::string&);
         //
         template <class Target, class Func>
-        void addConnectListener (Target target, Func func)
+            void addConnectListener (Target target, Func func)
         {
             _portConnected.add(target, func);
         }
@@ -108,7 +60,7 @@ namespace redhawk {
         // from further connection notifications. If the pair has not been
         // registered previously, it is ignored.
         template <class Target, class Func>
-        void removeConnectListener (Target target, Func func)
+            void removeConnectListener (Target target, Func func)
         {
             _portConnected.remove(target, func);
         }
@@ -120,7 +72,7 @@ namespace redhawk {
         //   void Target::func(const std::string&);
         //
         template <class Target, class Func>
-        void addDisconnectListener (Target target, Func func)
+            void addDisconnectListener (Target target, Func func)
         {
             _portDisconnected.add(target, func);
         }
@@ -129,7 +81,7 @@ namespace redhawk {
         // from further disconnection notifications. If the pair has not been
         // registered previously, it is ignored.
         template <class Target, class Func>
-        void removeDisconnectListener (Target target, Func func)
+            void removeDisconnectListener (Target target, Func func)
         {
             _portDisconnected.remove(target, func);
         }
@@ -143,64 +95,19 @@ namespace redhawk {
         void setLogger(LOGGER newLogger);
 
     protected:
-        typedef std::vector<BasicTransport*> TransportList;
 
-        template <class TransportType>
-        class TransportIteratorAdapter {
-        public:
-            typedef TransportList::iterator IteratorType;
-
-            TransportIteratorAdapter()
-            {
-            }
-
-            TransportIteratorAdapter(IteratorType iter) :
-                _iterator(iter)
-            {
-            }
-
-            inline TransportType* operator*()
-            {
-                return static_cast<TransportType*>(*_iterator);
-            }
-
-            inline TransportIteratorAdapter& operator++()
-            {
-                ++_iterator;
-                return *this;
-            }
-
-            inline TransportIteratorAdapter operator++(int)
-            {
-                TransportIteratorAdapter result(*this);
-                ++(*this);
-                return result;
-            }
-
-            inline bool operator==(const TransportIteratorAdapter& other) const
-            {
-                return (_iterator == other._iterator);
-            }
-
-            inline bool operator!=(const TransportIteratorAdapter& other) const
-            {
-                return (_iterator != other._iterator);
-            }
-
-        private:
-            IteratorType _iterator;
-        };
+        typedef redhawk::TransportList     TransportList;
 
         virtual void _validatePort(CORBA::Object_ptr object);
 
-        TransportList::iterator _findTransportEntry(const std::string& connectionId);
+        redhawk::TransportList::iterator _findTransportEntry(const std::string& connectionId);
         void _addTransportEntry(BasicTransport* transport);
 
         virtual BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
         LOGGER logger;
 
-        TransportList _transports;
+        redhawk::TransportList _transports;
 
     private:
         ossie::notification<void (const std::string&)> _portConnected;

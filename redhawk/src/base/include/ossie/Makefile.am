@@ -65,6 +65,7 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              Versions.h \
              shared_buffer.h \
              ExecutorService.h \
+             BasicTransport.h \
              UsesPort.h \
              BufferManager.h
 
