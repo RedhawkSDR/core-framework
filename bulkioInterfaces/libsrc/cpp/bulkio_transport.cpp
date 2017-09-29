@@ -469,7 +469,11 @@ namespace bulkio {
             msg.write(EOS);
             msg.write(streamID);
 
-            _fifo->write(msg.buffer(), msg.size());
+            try {
+                _fifo->write(msg.buffer(), msg.size());
+            } catch (const std::exception& exc) {
+                throw redhawk::FatalTransportError(exc.what());
+            }
 
             size_t status;
             if (_fifo->read(&status, sizeof(size_t)) != sizeof(size_t)) {
