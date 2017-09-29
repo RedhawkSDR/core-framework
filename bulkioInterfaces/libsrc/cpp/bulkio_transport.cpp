@@ -475,7 +475,7 @@ namespace bulkio {
             if (_fifo->read(&status, sizeof(size_t)) != sizeof(size_t)) {
                 RH_NL_ERROR("ShmTransport", "Bad response");
             }
-
+            this->stats.update(this->_dataLength(data), 0, EOS, streamID);
         }
 
         virtual void disconnect()
