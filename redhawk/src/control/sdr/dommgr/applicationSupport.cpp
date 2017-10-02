@@ -774,16 +774,28 @@ void ComponentInfo::overrideProperty(const char* id, const CORBA::Any& value)
 {
     const Property* prop = prf.getProperty(id);
 
-
     if (prop != NULL) {
         if (prop->isReadOnly()) {
             if ( !prop->isProperty()) {
                 LOG_WARN(ComponentInfo, "Ignoring attempt to override readonly property " << id);
+                return;
             }
             else {
                 process_overrides(&ctorProperties, id, value);
             }
-            return;
+        }
+        if (prop->isCommandLine()) {
+            bool foundProp = false;
+            for (unsigned int i=0; i<execParameters.length(); i++) {
+                std::string _id(execParameters[i].id);
+                std::string _in_id(id);
+                if (_id == _in_id) {
+                    foundProp = true;
+                }
+            }
+            if (not foundProp) {
+                addExecParameter(convertPropertyToDataType(prop));
+            }
         }
     }
 
