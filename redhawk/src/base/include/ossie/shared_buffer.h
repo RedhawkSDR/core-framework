@@ -73,6 +73,19 @@ namespace redhawk {
             return __sync_sub_and_fetch(counter, 1);
 #endif
         }
+
+        // Traits class for determining whether an allocator provides memory
+        // that can be shared between processes (default: false).
+        template <typename Allocator>
+        struct is_process_shared {
+            static const bool value = false;
+        };
+
+        // Traits class specialization for REDHAWK's shared memory allocator
+        template <typename T>
+        struct is_process_shared<::redhawk::shm::Allocator<T> > {
+            static const bool value = true;
+        };
     }
 
     // Forward declaration of read/write buffer class.
@@ -255,6 +268,18 @@ namespace redhawk {
         bool empty() const
         {
             return this->begin() == this->end();
+        }
+
+        /**
+         * Returns true if the %shared_buffer was allocated from process-shared
+         * memory.
+         */
+        bool is_process_shared() const
+        {
+            if (_M_impl) {
+                return _M_impl->shared;
+            }
+            return false;
         }
 
         /**
@@ -504,7 +529,8 @@ namespace redhawk {
             impl(value_type* ptr, release_func func=&impl::delete_release) :
                 refcount(1),
                 data(ptr),
-                release(func)
+                release(func),
+                shared(false)
             {
             }
 
@@ -523,6 +549,7 @@ namespace redhawk {
             int refcount;
             value_type* data;
             release_func release;
+            bool shared;
         };
 
         // Data buffer implementation that uses an arbitrary function to
@@ -554,6 +581,7 @@ namespace redhawk {
                 Alloc(allocator),
                 size(size)
             {
+                this->shared = detail::is_process_shared<Alloc>::value;
             }
 
             static void allocator_release(impl* imp)

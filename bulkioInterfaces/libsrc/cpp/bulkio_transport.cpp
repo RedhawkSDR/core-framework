@@ -413,7 +413,7 @@ namespace bulkio {
     }
 
     template <typename PortType>
-    class ShmTransport : public ChunkingTransport<PortType>
+    class ShmTransport : public PortTransport<PortType>
     {
     public:
         typedef typename PortType::_ptr_type PtrType;
@@ -462,7 +462,7 @@ namespace bulkio {
         }
 
         ShmTransport(const std::string& connectionId, const std::string& name, IPCFifo* fifo, PtrType port) :
-            ChunkingTransport<PortType>(connectionId, name, port),
+            PortTransport<PortType>(connectionId, name, port),
             _fifo(fifo)
         {
         }
@@ -487,25 +487,59 @@ namespace bulkio {
             return CF::Properties();
         }
 
-    protected:
+        virtual void disconnect()
+        {
+            PortTransport<PortType>::disconnect();
+            _fifo->close();
+        }
 
-        virtual void _sendPacket(const BufferType& data,
+    protected:
+        virtual void _pushSRI(const BULKIO::StreamSRI& sri)
+        {
+            try {
+                this->_port->pushSRI(sri);
+            } catch (const CORBA::SystemException& exc) {
+                throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
+            }
+        }
+
+        virtual void _pushPacket(const BufferType& data,
                                  const BULKIO::PrecisionUTCTime& T,
                                  bool EOS,
-                                 const std::string& streamID,
-                                 const BULKIO::StreamSRI&)
+                                 const std::string& streamID)
         {
             MessageBuffer msg;
-
-            const void* base = data.base();
-            redhawk::shm::MemoryRef ref = redhawk::shm::Heap::getRef(base);
-            size_t offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
-
-            msg.write(ref.heap);
-            msg.write(ref.superblock);
-            msg.write(ref.offset);
-            msg.write(offset);
             msg.write(data.size());
+
+            // Temporary buffer to ensure that if a copy is made, it gets
+            // released after the transfer
+            BufferType copy;
+
+            // If the packet is non-empty, write the additional shared memory
+            // information for the remote side to pick up
+            if (!data.empty()) {
+                const void* base;
+                size_t offset;
+
+                // Check that the buffer is already in shared memory (this is
+                // hoped to be the common case); if not, copy it into another
+                // buffer that is allocated in shared memory
+                if (data.is_process_shared()) {
+                    base = data.base();
+                    offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
+                } else {
+                    copy = data.copy(redhawk::shm::Allocator<typename BufferType::value_type>());
+                    base = copy.base();
+                    offset = 0;
+                }
+
+                redhawk::shm::MemoryRef ref = redhawk::shm::Heap::getRef(base);
+                msg.write(ref.heap);
+                msg.write(ref.superblock);
+                msg.write(ref.offset);
+                msg.write(offset);
+            }
+
             msg.write(T);
             msg.write(EOS);
             msg.write(streamID);
@@ -520,13 +554,6 @@ namespace bulkio {
             if (_fifo->read(&status, sizeof(size_t)) != sizeof(size_t)) {
                 RH_NL_ERROR("ShmTransport", "Bad response");
             }
-            this->stats.update(this->_dataLength(data), 0, EOS, streamID);
-        }
-
-        virtual void disconnect()
-        {
-            ChunkingTransport<PortType>::disconnect();
-            _fifo->close();
         }
 
     private:

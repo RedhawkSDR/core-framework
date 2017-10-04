@@ -41,13 +41,19 @@ namespace bulkio {
             msg.resize(msg_length);
 
             redhawk::shm::MemoryRef ref;
+            redhawk::buffer<NativeType> buffer;
             size_t offset;
             size_t count;
-            msg.read(ref.heap);
-            msg.read(ref.superblock);
-            msg.read(ref.offset);
-            msg.read(offset);
             msg.read(count);
+            if (count > 0) {
+                msg.read(ref.heap);
+                msg.read(ref.superblock);
+                msg.read(ref.offset);
+                msg.read(offset);
+
+                NativeType* base = reinterpret_cast<NativeType*>(_heapClient.fetch(ref));
+                buffer = redhawk::make_buffer(base, count, &redhawk::shm::HeapClient::deallocate);
+            }
             msg.read(T);
             msg.read(EOS);
             msg.read(streamID);
@@ -55,8 +61,6 @@ namespace bulkio {
                 std::cerr << "Message bytes left over" << std::endl;
             }
 
-            NativeType* base = reinterpret_cast<NativeType*>(_heapClient.fetch(ref));
-            redhawk::buffer<NativeType> buffer(base, count, &redhawk::shm::HeapClient::deallocate);
             this->_queuePacket(buffer, T, EOS, streamID);
 
             // Send response back
