@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 import ExtendedCF.UsesConnection;
+import ExtendedCF.ConnectionStatus;
 import org.ossie.component.PortBase;
 
 import BULKIO.PortUsageType;
@@ -170,6 +171,22 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
             }
         }
         return connList.toArray(new UsesConnection[connList.size()]);
+    }
+
+    public ConnectionStatus[] connectionStatus()
+    {
+        final List<ConnectionStatus> status = new ArrayList<ConnectionStatus>();
+        synchronized (this.updatingPortsLock) {
+            for (Entry<String, E> ent : this.outConnections.entrySet()) {
+                org.omg.CORBA.Object my_obj = (org.omg.CORBA.Object)ent.getValue();
+                if (my_obj instanceof omnijni.ObjectImpl) {
+                    String ior = omnijni.ORB.object_to_string(my_obj);
+                    my_obj = this._orb().string_to_object(ior);
+                }
+                status.add(new ConnectionStatus(ent.getKey(), my_obj, true, "CORBA", new CF.DataType[0]));
+            }
+        }
+        return status.toArray(new ConnectionStatus[status.size()]);
     }
 
     public void updateStats( String cid ) 
