@@ -60,6 +60,16 @@ public:
         return "CORBA messaging transport";
     }
 
+    virtual std::string transportType() const
+    {
+        return "CORBA";
+    }
+
+    virtual CF::Properties transportInfo() const
+    {
+        return CF::Properties();
+    }
+
     void push(const CORBA::Any& data)
     {
         try {
@@ -122,6 +132,16 @@ public:
     virtual std::string getDescription() const
     {
         return "local messaging connection to " + _consumer->getName();
+    }
+
+    virtual std::string transportType() const
+    {
+        return "local";
+    }
+
+    virtual CF::Properties transportInfo() const
+    {
+        return CF::Properties();
     }
 
     void push(const CORBA::Any& data)

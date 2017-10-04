@@ -22,12 +22,26 @@
 #define _NEGOTIABLE_PORT_IDL_
 
 #include "ossie/CF/DataType.idl"
-#include "ossie/CF/Port.idl"
+#include "ossie/CF/QueryablePort.idl"
 
 module ExtendedCF {
 
     exception NegotiationError {
        string msg;
+    };
+
+    struct ConnectionStatus {
+        string connectionId;
+        Object port;
+        boolean alive;
+        string transportType;
+        CF::Properties transportInfo;
+    };
+
+    typedef sequence<ConnectionStatus> ConnectionStatusSequence;
+
+    interface NegotiableUsesPort : ExtendedCF::QueryablePort {
+        readonly attribute ConnectionStatusSequence connectionStatus;
     };
 
     interface NegotiableProvidesPort {

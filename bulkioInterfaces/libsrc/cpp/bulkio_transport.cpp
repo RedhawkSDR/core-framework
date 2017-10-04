@@ -169,6 +169,16 @@ namespace bulkio {
             return "CORBA BulkIO transport";
         }
 
+        virtual std::string transportType() const
+        {
+            return "CORBA";
+        }
+
+        virtual CF::Properties transportInfo() const
+        {
+            return CF::Properties();
+        }
+
     protected:
         virtual void _pushSRI(const BULKIO::StreamSRI& sri)
         {
@@ -349,6 +359,16 @@ namespace bulkio {
             return "local BulkIO connection to " + _localPort->getName();
         }
 
+        virtual std::string transportType() const
+        {
+            return "local";
+        }
+
+        virtual CF::Properties transportInfo() const
+        {
+            return CF::Properties();
+        }
+
     protected:
         virtual void _pushSRI(const BULKIO::StreamSRI& sri)
         {
@@ -455,6 +475,16 @@ namespace bulkio {
         virtual std::string getDescription() const
         {
             return "shared memory BulkIO connection";
+        }
+
+        virtual std::string transportType() const
+        {
+            return "shmipc";
+        }
+
+        virtual CF::Properties transportInfo() const
+        {
+            return CF::Properties();
         }
 
     protected:

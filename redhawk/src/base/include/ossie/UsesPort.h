@@ -26,7 +26,7 @@
 
 #include <omniORB4/CORBA.h>
 
-#include "CF/QueryablePort.h"
+#include "CF/NegotiablePort.h"
 
 #include "Autocomplete.h"
 #include "Port_impl.h"
@@ -70,6 +70,16 @@ namespace redhawk {
         const std::string& connectionId() const;
         CORBA::Object_ptr objref() const;
 
+        virtual std::string transportType() const
+        {
+            return "";
+        }
+
+        virtual CF::Properties transportInfo() const
+        {
+            return CF::Properties();
+        }
+
         virtual std::string getDescription() const;
 
         bool isAlive() const;
@@ -85,7 +95,7 @@ namespace redhawk {
 
     class UsesPort : public Port_Uses_base_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
-                   , public virtual POA_ExtendedCF::QueryablePort
+                   , public virtual POA_ExtendedCF::NegotiableUsesPort
 #endif
     {
     public:
@@ -139,6 +149,8 @@ namespace redhawk {
         virtual void disconnectPort(const char* connectionId);
 
         virtual ExtendedCF::UsesConnectionSequence* connections();
+
+        virtual ExtendedCF::ConnectionStatusSequence* connectionStatus();
 
         void setLogger(LOGGER newLogger);
 

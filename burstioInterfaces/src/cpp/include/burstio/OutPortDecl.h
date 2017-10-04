@@ -60,7 +60,7 @@ namespace burstio {
     class BurstTransport;
 
     template <class Traits>
-    class OutPort : public redhawk::UsesPort, public virtual POA_BULKIO::UsesPortStatisticsProvider
+    class OutPort : public redhawk::UsesPort, public virtual POA_BULKIO::UsesPortStatisticsProviderExt
     {
     public:
         typedef typename Traits::PortType PortType;

@@ -160,6 +160,22 @@ namespace redhawk {
         return retVal._retn();
     }
 
+    ExtendedCF::ConnectionStatusSequence* UsesPort::connectionStatus()
+    {
+        boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
+        ExtendedCF::ConnectionStatusSequence_var retVal = new ExtendedCF::ConnectionStatusSequence();
+        for (TransportList::iterator port = _transports.begin(); port != _transports.end(); ++port) {
+            ExtendedCF::ConnectionStatus status;
+            status.connectionId = (*port)->connectionId().c_str();
+            status.port = CORBA::Object::_duplicate((*port)->objref());
+            status.alive = (*port)->isAlive();
+            status.transportType = (*port)->transportType().c_str();
+            status.transportInfo = (*port)->transportInfo();
+            ossie::corba::push_back(retVal, status);
+        }
+        return retVal._retn();
+    }
+
     void UsesPort::setLogger(LOGGER newLogger)
     {
         logger = newLogger;

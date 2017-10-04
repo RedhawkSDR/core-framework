@@ -79,6 +79,16 @@ namespace burstio {
             return "CORBA BurstIO transport";
         }
 
+        virtual std::string transportType() const
+        {
+            return "CORBA";
+        }
+
+        virtual CF::Properties transportInfo() const
+        {
+            return CF::Properties();
+        }
+
         void pushBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth)
         {
             try {
@@ -156,6 +166,16 @@ namespace burstio {
         virtual std::string getDescription() const
         {
             return "local BurstIO connection to " + localPort_->getName();
+        }
+
+        virtual std::string transportType() const
+        {
+            return "local";
+        }
+
+        virtual CF::Properties transportInfo() const
+        {
+            return CF::Properties();
         }
 
         void pushBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth)

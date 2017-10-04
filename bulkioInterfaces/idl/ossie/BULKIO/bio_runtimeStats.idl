@@ -23,7 +23,7 @@
 
 #include "ossie/CF/DataType.idl"
 #include "ossie/CF/PortTypes.idl"
-#include "ossie/CF/QueryablePort.idl"
+#include "ossie/CF/NegotiablePort.idl"
 #include "ossie/BULKIO/bulkioDataTypes.idl"
 
 module BULKIO {
@@ -87,6 +87,9 @@ module BULKIO {
 
     interface UsesPortStatisticsProvider : ExtendedCF::QueryablePort {
         readonly attribute UsesPortStatisticsSequence statistics;
+    };
+
+    interface UsesPortStatisticsProviderExt : UsesPortStatisticsProvider, ExtendedCF::NegotiableUsesPort {
     };
 };
 
