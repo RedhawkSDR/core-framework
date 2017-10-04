@@ -403,6 +403,7 @@ namespace bulkio {
         static ShmTransport* Factory(const std::string& connectionId,
                                      const std::string& name,
                                      ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
+                                     const redhawk::PropertyMap& transportProps,
                                      PtrType port)
         {
             // For testing, allow disabling
@@ -411,6 +412,16 @@ namespace bulkio {
                 if (strcmp(shm_env, "disable") == 0) {
                     return 0;
                 }
+            }
+
+            // If the other end of the connection has a different hostname, it
+            // is reasonable to assume that we cannot use shared memory
+            char host[HOST_NAME_MAX+1];
+            gethostname(host, sizeof(host));
+            const std::string hostname(host);
+            if (transportProps.get("hostname", "").toString() != hostname) {
+                RH_NL_TRACE("ShmTransport", "Connection '" << connectionId << "' is on another host");
+                return 0;
             }
 
             RH_NL_DEBUG("ShmTransport", "Attempting to negotiate shared memory IPC");
@@ -511,9 +522,14 @@ namespace bulkio {
                 return 0;
             }
 
-            TransportType* transport = ShmTransport<PortType>::Factory(connectionId, name, negotiable_port, port);
-            if (transport) {
-                return transport;
+            CF::Properties_var supported_props = negotiable_port->supportedTransports();
+            redhawk::PropertyMap& supported = redhawk::PropertyMap::cast(supported_props);
+            if (supported.contains("shmipc")) {
+                redhawk::PropertyMap& shm_props = supported["shmipc"].asProperties();
+                TransportType* transport = ShmTransport<PortType>::Factory(connectionId, name, negotiable_port, shm_props, port);
+                if (transport) {
+                    return transport;
+                }
             }
 
             return 0;
