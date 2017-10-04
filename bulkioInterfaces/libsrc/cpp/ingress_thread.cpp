@@ -51,8 +51,33 @@ namespace bulkio {
                 msg.read(ref.offset);
                 msg.read(offset);
 
-                NativeType* base = reinterpret_cast<NativeType*>(_heapClient.fetch(ref));
-                buffer = redhawk::make_buffer(base, count, &redhawk::shm::HeapClient::deallocate);
+                void* base = _heapClient.fetch(ref);
+
+                // Find the first element, which may be offset from the base
+                // pointer. If so, start with a larger buffer and then trim the
+                // elements off of the front.
+                size_t start = offset / sizeof(NativeType);
+                if ((start * sizeof(NativeType)) != offset) {
+                    // The starting element is not aligned from the base, which
+                    // will require some additional care to adjust. Start with
+                    // a char buffer, trim that to the correct starting point,
+                    // and then recast to the desired type.
+                    char* ptr = reinterpret_cast<char*>(base);
+                    size_t bytes = offset + count * sizeof(NativeType);
+                    redhawk::buffer<char> temp(ptr, bytes, &redhawk::shm::HeapClient::deallocate);
+                    temp.trim(offset);
+
+                    buffer = redhawk::buffer<NativeType>::recast(temp);
+                } else {
+                    // Normal alignment, include the start offset (if any) in
+                    // the initial buffer size, then trim to the desired start.
+                    NativeType* ptr = reinterpret_cast<NativeType*>(base);
+                    count += start;
+                    buffer = redhawk::make_buffer(ptr, count, &redhawk::shm::HeapClient::deallocate);
+                    if (start > 0) {
+                        buffer.trim(start);
+                    }
+                }
             }
             msg.read(T);
             msg.read(EOS);
