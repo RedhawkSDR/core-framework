@@ -35,7 +35,7 @@ public class UTCTimeProperty extends AbstractSimpleProperty<UTCTime> {
                           Action action, Kind[] kinds, boolean optional) {
         super(id, name, "utctime", value, mode, action, kinds, optional);
     }
-    
+
     public UTCTimeProperty(String id, String name, String value, Mode mode,
                           Action action, Kind[] kinds) {
         super(id, name, "utctime", utils.convert(value), mode, action, kinds);

@@ -303,6 +303,15 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
+  <struct id="utc_struct" mode="readwrite">
+    <simple id="utc_elem" type="utctime"/>
+    <configurationkind kindtype="property"/>
+  </struct>
+  <structsequence id="utc_struct_seq" mode="readwrite">
+    <struct id="utc_struct_seq_prot">
+      <simple id="utc_struct_seq_elem" type="utctime"/>
+    </struct>
+  </structsequence>
   <simplesequence id="seq_utctime" mode="readwrite" type="utctime">
       <values>
         <value>2010:2:1::12:01:00.123</value>
