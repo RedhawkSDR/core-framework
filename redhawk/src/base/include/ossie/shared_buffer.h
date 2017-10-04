@@ -83,7 +83,7 @@ namespace redhawk {
 
         // Traits class specialization for REDHAWK's shared memory allocator
         template <typename T>
-        struct is_process_shared<::redhawk::shm::Allocator<T> > {
+        struct is_process_shared< ::redhawk::shm::Allocator<T> > {
             static const bool value = true;
         };
     }
