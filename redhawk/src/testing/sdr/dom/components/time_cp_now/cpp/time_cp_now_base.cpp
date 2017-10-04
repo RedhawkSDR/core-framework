@@ -64,6 +64,15 @@ void time_cp_now_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(simple1970,
+                "1970:01:01::00:00:00",
+                "simple1970",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
 }
 
 

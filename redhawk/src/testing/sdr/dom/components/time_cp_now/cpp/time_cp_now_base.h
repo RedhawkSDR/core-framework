@@ -24,6 +24,8 @@ class time_cp_now_base : public Component, protected ThreadedComponent
         // Member variables exposed as properties
         /// Property: rightnow
         CF::UTCTime rightnow;
+        /// Property: simple1970
+        CF::UTCTime simple1970;
 
     private:
 };

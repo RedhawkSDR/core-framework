@@ -64,6 +64,12 @@ class time_py_now_base(CF__POA.Resource, Component, ThreadedComponent):
                                    mode="readwrite",
                                    action="external",
                                    kinds=("property",))
+        simple1970 = simple_property(id_="simple1970",
+                                     type_="utctime",
+                                     defvalue="1970:01:01::00:00:00",
+                                     mode="readwrite",
+                                     action="external",
+                                     kinds=("property",))
 
 
 

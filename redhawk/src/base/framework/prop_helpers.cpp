@@ -412,7 +412,7 @@ namespace redhawk {
             t.tm_hour = hour;
             t.tm_min = minute;
             t.tm_sec = (int)second;
-            utctime.twsec = mktime(&t);
+            utctime.twsec = mktime(&t) - timezone;
             utctime.tfsec = second - (int)second;
             return utctime;
         }
