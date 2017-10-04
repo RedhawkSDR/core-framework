@@ -18,9 +18,10 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef _DATASHM_IDL_
-#define _DATASHM_IDL_
+#ifndef _DATAEXT_IDL_
+#define _DATAEXT_IDL_
 
+#include "ossie/CF/NegotiablePort.idl"
 #include "ossie/BULKIO/bio_dataChar.idl"
 #include "ossie/BULKIO/bio_dataDouble.idl"
 #include "ossie/BULKIO/bio_dataFloat.idl"
@@ -34,42 +35,34 @@
 
 module BULKIO {
 
-    exception NegotiationError {
-       string msg;
+    interface dataCharExt : dataChar, ExtendedCF::NegotiableProvidesPort {
     };
 
-    interface NegotiableProvidesPort {
-        void negotiate(in string protocol, in CF::Properties props) raises (NegotiationError);
+    interface dataDoubleExt : dataDouble, ExtendedCF::NegotiableProvidesPort {
     };
 
-    interface dataCharExt : dataChar, NegotiableProvidesPort {
+    interface dataFloatExt : dataFloat, ExtendedCF::NegotiableProvidesPort {
     };
 
-    interface dataDoubleExt : dataDouble, NegotiableProvidesPort {
+    interface dataLongExt : dataLong, ExtendedCF::NegotiableProvidesPort {
     };
 
-    interface dataFloatExt : dataFloat, NegotiableProvidesPort {
+    interface dataLongLongExt : dataLongLong, ExtendedCF::NegotiableProvidesPort {
     };
 
-    interface dataLongExt : dataLong, NegotiableProvidesPort {
+    interface dataOctetExt : dataOctet, ExtendedCF::NegotiableProvidesPort {
     };
 
-    interface dataLongLongExt : dataLongLong, NegotiableProvidesPort {
+    interface dataShortExt : dataShort, ExtendedCF::NegotiableProvidesPort {
     };
 
-    interface dataOctetExt : dataOctet, NegotiableProvidesPort {
+    interface dataUlongExt : dataUlong, ExtendedCF::NegotiableProvidesPort {
     };
 
-    interface dataShortExt : dataShort, NegotiableProvidesPort {
+    interface dataUlongLongExt : dataUlongLong, ExtendedCF::NegotiableProvidesPort {
     };
 
-    interface dataUlongExt : dataUlong, NegotiableProvidesPort {
-    };
-
-    interface dataUlongLongExt : dataUlongLong, NegotiableProvidesPort {
-    };
-
-    interface dataUshortExt : dataUshort, NegotiableProvidesPort {
+    interface dataUshortExt : dataUshort, ExtendedCF::NegotiableProvidesPort {
     };
 };
 

@@ -27,7 +27,7 @@
 #include <ossie/shared_buffer.h>
 
 #include "BULKIO_Interfaces.h"
-#include <ossie/BULKIO/bio_dataShm.h>
+#include <ossie/BULKIO/bio_dataExt.h>
 
 namespace bulkio {
 

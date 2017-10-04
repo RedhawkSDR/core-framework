@@ -402,7 +402,7 @@ namespace bulkio {
 
         static ShmTransport* Factory(const std::string& connectionId,
                                      const std::string& name,
-                                     BULKIO::NegotiableProvidesPort_ptr negotiablePort,
+                                     ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
                                      PtrType port)
         {
             // For testing, allow disabling
@@ -419,8 +419,8 @@ namespace bulkio {
             props["fifo"] = fifo->name();
             fifo->beginConnect();
             try {
-                negotiablePort->negotiate("shmipc", props);
-            } catch (const BULKIO::NegotiationError& exc) {
+                negotiablePort->negotiateTransport("shmipc", props);
+            } catch (const ExtendedCF::NegotiationError& exc) {
                 RH_NL_ERROR("ShmTransport", "Error negotiating shared memory IPC: " << exc.msg);
                 delete fifo;
                 return 0;
@@ -500,9 +500,9 @@ namespace bulkio {
 
         static TransportType* Create(const std::string& connectionId, const std::string& name, PtrType port)
         {
-            BULKIO::NegotiableProvidesPort_var negotiable_port;
+            ExtendedCF::NegotiableProvidesPort_var negotiable_port;
             try {
-                negotiable_port = BULKIO::NegotiableProvidesPort::_narrow(port);
+                negotiable_port = ExtendedCF::NegotiableProvidesPort::_narrow(port);
             } catch (...) {
                 // Not capable of negotiation
                 return 0;

@@ -50,6 +50,7 @@ BUILT_SOURCES = \
  ossie/cf/ExtendedEvent_idl.py \
  ossie/cf/AggregateDevices_idl.py \
  ossie/cf/QueryablePort_idl.py \
+ ossie/cf/NegotiablePort_idl.py \
  ossie/cf/WellKnownProperties_idl.py \
  ossie/cf/sandbox_idl.py \
  ossie/cf/LogInterfaces_idl.py \

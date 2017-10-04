@@ -57,7 +57,7 @@ bio_dataLongLong.idl \
 bio_dataUlongLong.idl \
 bio_dataSDDS.idl \
 bio_dataVITA49.idl \
-bio_dataShm.idl
+bio_dataExt.idl
 
 # External IDL namespaces that your IDLs reference, comment this line
 # out if your IDL has no external references
@@ -65,7 +65,7 @@ IDL_EXTERNS := CF
 
 # In some cases, you may need to define python externs 
 #     f:p   Assume Python stub file for file f is in package p.
-PYTHON_EXTERNS := PortTypes:ossie.cf DataType:ossie.cf Port:ossie.cf QueryablePort:ossie.cf bulkioDataTypes:bulkio.bulkioInterfaces
+PYTHON_EXTERNS := PortTypes:ossie.cf DataType:ossie.cf Port:ossie.cf QueryablePort:ossie.cf NegotiablePort:ossie.cf bulkioDataTypes:bulkio.bulkioInterfaces
 
 # Relative path to the location of the IDL files
 IDL_SOURCE_PATH := .
@@ -133,8 +133,8 @@ libbulkioInterfaces_la_SOURCES = \
 	src/cpp/ossie/BULKIO/bio_dataSDDSDynSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataVITA49SK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataVITA49DynSK.cpp \
-	src/cpp/ossie/BULKIO/bio_dataShmSK.cpp \
-	src/cpp/ossie/BULKIO/bio_dataShmDynSK.cpp
+	src/cpp/ossie/BULKIO/bio_dataExtSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataExtDynSK.cpp
 
 pkgincludedir = $(includedir)/$(LIBRARY_NAME)/$(IDL_MODULE)
 pkginclude_HEADERS = \
@@ -155,7 +155,7 @@ pkginclude_HEADERS = \
 	src/cpp/ossie/BULKIO/bio_dataUlongLong.h \
 	src/cpp/ossie/BULKIO/bio_dataSDDS.h \
 	src/cpp/ossie/BULKIO/bio_dataVITA49.h \
-	src/cpp/ossie/BULKIO/bio_dataShm.h
+	src/cpp/ossie/BULKIO/bio_dataExt.h
 
 BUILT_SOURCES = $(libbulkioInterfaces_la_SOURCES) $(pkginclude_HEADERS)
 CLEANFILES = $(BUILT_SOURCES)
