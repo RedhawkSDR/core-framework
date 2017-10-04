@@ -449,8 +449,9 @@ namespace bulkio {
             redhawk::PropertyMap props;
             props["fifo"] = fifo->name();
             fifo->beginConnect();
+            CF::Properties_var result;
             try {
-                negotiablePort->negotiateTransport("shmipc", props);
+                result = negotiablePort->negotiateTransport("shmipc", props);
             } catch (const ExtendedCF::NegotiationError& exc) {
                 RH_NL_ERROR("ShmTransport", "Error negotiating shared memory IPC: " << exc.msg);
                 delete fifo;

@@ -834,7 +834,7 @@ namespace  bulkio {
   }
 
   template <typename PortType>
-  void InNumericPort<PortType>::negotiateTransport(const char* protocol, const CF::Properties& properties)
+  CF::Properties* InNumericPort<PortType>::negotiateTransport(const char* protocol, const CF::Properties& properties)
   {
       if (strcmp(protocol, "shmipc") == 0) {
           const redhawk::PropertyMap& shm_props = redhawk::PropertyMap::cast(properties);
@@ -855,6 +855,7 @@ namespace  bulkio {
           LOG_INFO(logger, "Connected to FIFO " << location);
 
           this->ingressThreads.push_back(thread);
+          return new CF::Properties;
       } else {
           std::string message = "Cannot negotiate protocol '" + std::string(protocol) + "'";
           LOG_DEBUG(logger, message);

@@ -47,7 +47,7 @@ module ExtendedCF {
     interface NegotiableProvidesPort {
         readonly attribute CF::Properties supportedTransports;
 
-        void negotiateTransport(in string protocol, in CF::Properties props) raises (NegotiationError);
+        CF::Properties negotiateTransport(in string protocol, in CF::Properties props) raises (NegotiationError);
     };
 };
 
