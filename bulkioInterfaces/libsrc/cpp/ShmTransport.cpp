@@ -164,7 +164,7 @@ namespace bulkio {
         redhawk::PropertyMap props;
         props["fifo"] = fifo->name();
         fifo->beginConnect();
-        CF::Properties_var result;
+        ExtendedCF::NegotiationResult_var result;
         try {
             result = negotiablePort->negotiateTransport("shmipc", props);
         } catch (const ExtendedCF::NegotiationError& exc) {

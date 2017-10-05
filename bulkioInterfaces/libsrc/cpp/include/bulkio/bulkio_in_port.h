@@ -492,7 +492,9 @@ namespace bulkio {
 
     virtual CF::Properties* supportedTransports();
 
-    virtual CF::Properties* negotiateTransport(const char* protocol, const CF::Properties& props);
+    virtual ExtendedCF::NegotiationResult* negotiateTransport(const char* protocol, const CF::Properties& props);
+
+    virtual void disconnectTransport(const char* connectionId);
 
     //
     // Stream-based input API

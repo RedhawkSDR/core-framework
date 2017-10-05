@@ -44,10 +44,17 @@ module ExtendedCF {
         readonly attribute ConnectionStatusSequence connectionStatus;
     };
 
+    struct NegotiationResult {
+        string negotiationId;
+        CF::Properties properties;
+    };
+
     interface NegotiableProvidesPort {
         readonly attribute CF::Properties supportedTransports;
 
-        CF::Properties negotiateTransport(in string protocol, in CF::Properties props) raises (NegotiationError);
+        NegotiationResult negotiateTransport(in string protocol, in CF::Properties props) raises (NegotiationError);
+
+        void disconnectTransport(in string negotiationId);
     };
 };
 
