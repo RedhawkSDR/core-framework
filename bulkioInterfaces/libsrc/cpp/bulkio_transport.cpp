@@ -20,22 +20,15 @@
 
 #include "bulkio_transport.h"
 #include "bulkio_typetraits.h"
-#include "bulkio_time_operators.h"
 #include "bulkio_in_port.h"
 #include "bulkio_p.h"
 
-#include "ipcfifo.h"
 #include "MessageBuffer.h"
+#include "LocalTransport.h"
+#include "ShmTransport.h"
+#include "CorbaTransport.h"
 
 namespace bulkio {
-    template <typename PortType>
-    class LocalTransport;
-
-    template <typename PortType>
-    class RemoteTransport;
-
-    template <typename PortType>
-    class ChunkingTransport;
 
     template <typename PortType>
     class NegotiableTransportFactory;
@@ -48,7 +41,7 @@ namespace bulkio {
         typedef InPort<PortType> LocalPortType;
         LocalPortType* local_port = ossie::corba::getLocalServant<LocalPortType>(port);
         if (local_port) {
-            return LocalTransport<PortType>::Factory(connectionId, name, local_port, port);
+            return new LocalTransport<PortType>(connectionId, name, local_port, port);
         }
 
         PortTransport* transport = NegotiableTransportFactory<PortType>::Create(connectionId, name, port);
@@ -56,7 +49,7 @@ namespace bulkio {
             return transport;
         }
 
-        return RemoteTransport<PortType>::Factory(connectionId, name, port);
+        return CorbaTransportFactory<PortType>::Create(connectionId, name, port);
     }
 
     template <typename PortType>
@@ -76,15 +69,13 @@ namespace bulkio {
     void PortTransport<PortType>::disconnect()
     {
         // Send an end-of-stream for all active streams
-        omniORB::setClientCallTimeout(1000);
         for (VersionMap::iterator stream = _sriVersions.begin(); stream != _sriVersions.end(); ++stream) {
             try {
                 this->_pushPacket(BufferType(), bulkio::time::utils::notSet(), true, stream->first);
             } catch (redhawk::TransportTimeoutError& e) {
-                // ignore the timeout. The destination is in a bad state
+                // Ignore the timeout. The destination is in a bad state
             }
         }
-        omniORB::setClientCallTimeout(0);
         _sriVersions.clear();
     }
 
@@ -145,422 +136,6 @@ namespace bulkio {
         return 1;
     }
 
-    template <typename PortType>
-    class RemoteTransport : public PortTransport<PortType>
-    {
-    public:
-        typedef typename PortType::_ptr_type PtrType;
-        typedef typename PortTransport<PortType>::BufferType BufferType;
-        typedef typename CorbaTraits<PortType>::SequenceType SequenceType;
-        typedef typename CorbaTraits<PortType>::TransportType TransportType;
-
-        static RemoteTransport* Factory(const std::string& connectionId, const std::string& name, PtrType port)
-        {
-            return new ChunkingTransport<PortType>(connectionId, name, port);
-        }
-
-        RemoteTransport(const std::string& connectionId, const std::string& name, PtrType port) :
-            PortTransport<PortType>(connectionId, name, port)
-        {
-        }
-
-        virtual std::string getDescription() const
-        {
-            return "CORBA BulkIO transport";
-        }
-
-        virtual std::string transportType() const
-        {
-            return "CORBA";
-        }
-
-        virtual CF::Properties transportInfo() const
-        {
-            return CF::Properties();
-        }
-
-    protected:
-        virtual void _pushSRI(const BULKIO::StreamSRI& sri)
-        {
-            try {
-                this->_port->pushSRI(sri);
-            } catch (const CORBA::SystemException& exc) {
-                throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
-            }
-        }
-
-        virtual void _pushPacket(const BufferType& data,
-                                 const BULKIO::PrecisionUTCTime& T,
-                                 bool EOS,
-                                 const std::string& streamID)
-        {
-            try {
-                _pushPacketImpl(data, T, EOS, streamID.c_str());
-            } catch (const CORBA::TIMEOUT& exc) {
-                throw redhawk::TransportTimeoutError("Push timed out");
-            } catch (const CORBA::SystemException& exc) {
-                throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
-            }
-        }
-
-    private:
-        void _pushPacketImpl(const BufferType& data,
-                             const BULKIO::PrecisionUTCTime& T,
-                             bool EOS,
-                             const char* streamID)
-        {
-            const TransportType* ptr = reinterpret_cast<const TransportType*>(data.data());
-            const SequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
-            this->_port->pushPacket(buffer, T, EOS, streamID);
-        }
-    };
-
-    template <>
-    RemoteTransport<BULKIO::dataFile>* RemoteTransport<BULKIO::dataFile>::Factory(const std::string& connectionId,
-                                                                                  const std::string& name,
-                                                                                  PtrType port)
-    {
-        return new RemoteTransport<BULKIO::dataFile>(connectionId, name, port);
-    }
-
-    template <>
-    void RemoteTransport<BULKIO::dataFile>::_pushPacketImpl(const std::string& data,
-                                                            const BULKIO::PrecisionUTCTime& T,
-                                                            bool EOS,
-                                                            const char* streamID)
-    {
-        _port->pushPacket(data.c_str(), T, EOS, streamID);
-    }
-
-    template <>
-    RemoteTransport<BULKIO::dataXML>* RemoteTransport<BULKIO::dataXML>::Factory(const std::string& connectionId,
-                                                                                const std::string& name,
-                                                                                PtrType port)
-    {
-        return new RemoteTransport<BULKIO::dataXML>(connectionId, name, port);
-    }
-
-    template <>
-    void RemoteTransport<BULKIO::dataXML>::_pushPacketImpl(const std::string& data,
-                                                           const BULKIO::PrecisionUTCTime& /* unused */,
-                                                           bool EOS,
-                                                           const char* streamID)
-    {
-        _port->pushPacket(data.c_str(), EOS, streamID);
-    }
-
-    template <typename PortType>
-    class ChunkingTransport : public RemoteTransport<PortType>
-    {
-    public:
-        typedef typename PortType::_ptr_type PtrType;
-        typedef typename PortTransport<PortType>::BufferType BufferType;
-        typedef typename CorbaTraits<PortType>::TransportType TransportType;
-
-        ChunkingTransport(const std::string& connectionId, const std::string& name, PtrType port) :
-            RemoteTransport<PortType>(connectionId, name, port)      
-        {
-            // Multiply by some number < 1 to leave some margin for the CORBA header
-            const size_t maxPayloadSize = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
-            maxSamplesPerPush = maxPayloadSize/sizeof(TransportType);
-        }
-
-        /*
-         * Push a packet whose payload may not fit within the CORBA limit. The
-         * packet is broken down into sub-packets and sent via multiple pushPacket
-         * calls.  The EOS is set to false for all of the sub-packets, except for
-         * the last sub-packet, which uses the input EOS argument.
-         */
-        virtual void _sendPacket(const BufferType& data,
-                                 const BULKIO::PrecisionUTCTime& T,
-                                 bool EOS,
-                                 const std::string& streamID,
-                                 const BULKIO::StreamSRI& sri)
-        {
-            double xdelta = sri.xdelta;
-            size_t itemSize = sri.mode?2:1;
-            size_t frameSize = itemSize;
-            if (sri.subsize > 0) {
-                frameSize *= sri.subsize;
-            }
-            // Quantize the push size (in terms of scalars) to the nearest frame,
-            // which takes both the complex mode and subsize into account
-            const size_t maxPushSize = (maxSamplesPerPush/frameSize) * frameSize;
-
-            // Always do at least one push (may be empty), ensuring that all samples
-            // are pushed
-            size_t first = 0;
-            size_t samplesRemaining = data.size();
-
-            // Initialize time of first subpacket
-            BULKIO::PrecisionUTCTime packetTime = T;
-      
-            do {
-                // Don't send more samples than are remaining
-                const size_t pushSize = std::min(samplesRemaining, maxPushSize);
-                samplesRemaining -= pushSize;
-
-                // Send end-of-stream as false for all sub-packets except for the
-                // last one (when there are no samples remaining after this push),
-                // which gets the input EOS.
-                bool packetEOS = false;
-                if (samplesRemaining == 0) {
-                    packetEOS = EOS;
-                }
-
-                // Take the next slice of the input buffer.
-                BufferType subPacket = data.slice(first, first + pushSize);
-                RemoteTransport<PortType>::_sendPacket(subPacket, packetTime, packetEOS, streamID, sri);
-
-                // Synthesize the next packet timestamp
-                if (packetTime.tcstatus == BULKIO::TCS_VALID) {
-                    packetTime += (pushSize/itemSize)* xdelta;
-                }
-
-                // Advance buffer to next sub-packet boundary
-                first += pushSize;
-            } while (samplesRemaining > 0);
-        }
-
-    private:
-        size_t maxSamplesPerPush;
-    };
-
-
-    template <typename PortType>
-    class LocalTransport : public PortTransport<PortType>
-    {
-    public:
-        typedef typename PortType::_ptr_type PtrType;
-        typedef typename PortTransport<PortType>::BufferType BufferType;
-        typedef InPort<PortType> LocalPortType;
-
-        static LocalTransport* Factory(const std::string& connectionId, const std::string& name,
-                                       LocalPortType* localPort, PtrType port)
-        {
-            return new LocalTransport(connectionId, name, localPort, port);
-        }
-
-        LocalTransport(const std::string& connectionId, const std::string& name,
-                       LocalPortType* localPort, PtrType port) :
-            PortTransport<PortType>(connectionId, name, port),
-            _localPort(localPort)
-        {
-            _localPort->_add_ref();
-        }
-
-        ~LocalTransport()
-        {
-            _localPort->_remove_ref();
-        }
-
-        virtual std::string getDescription() const
-        {
-            return "local BulkIO connection to " + _localPort->getName();
-        }
-
-        virtual std::string transportType() const
-        {
-            return "local";
-        }
-
-        virtual CF::Properties transportInfo() const
-        {
-            return CF::Properties();
-        }
-
-    protected:
-        virtual void _pushSRI(const BULKIO::StreamSRI& sri)
-        {
-            _localPort->pushSRI(sri);
-        }
-
-        virtual void _pushPacket(const BufferType& data,
-                                 const BULKIO::PrecisionUTCTime& T,
-                                 bool EOS,
-                                 const std::string& streamID)
-        {
-            if (data.transient()) {
-                // The data comes from a non-shared source (a vector or raw pointer),
-                // so we need to make a copy. This could be optimized for the fanout
-                // case by making the copy at a higher level, but only if there's at
-                // least one local connection.
-                _localPort->queuePacket(data.copy(), T, EOS, streamID);
-            } else {
-                _localPort->queuePacket(data, T, EOS, streamID);
-            }
-        }
-
-        LocalPortType* _localPort;
-    };
-
-    template <>
-    void LocalTransport<BULKIO::dataFile>::_pushPacket(const std::string& data,
-                                                       const BULKIO::PrecisionUTCTime& T,
-                                                       bool EOS,
-                                                       const std::string& streamID)
-    {
-        _localPort->queuePacket(data, T, EOS, streamID);
-    }
-
-    template <>
-    void LocalTransport<BULKIO::dataXML>::_pushPacket(const std::string& data,
-                                                      const BULKIO::PrecisionUTCTime& T,
-                                                      bool EOS,
-                                                      const std::string& streamID)
-    {
-        _localPort->queuePacket(data, T, EOS, streamID);
-    }
-
-    template <typename PortType>
-    class ShmTransport : public PortTransport<PortType>
-    {
-    public:
-        typedef typename PortType::_ptr_type PtrType;
-        typedef typename PortTransport<PortType>::BufferType BufferType;
-        typedef typename CorbaTraits<PortType>::TransportType TransportType;
-
-        static ShmTransport* Factory(const std::string& connectionId,
-                                     const std::string& name,
-                                     ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
-                                     const redhawk::PropertyMap& transportProps,
-                                     PtrType port)
-        {
-            // For testing, allow disabling
-            const char* shm_env = getenv("BULKIO_SHM");
-            if (shm_env) {
-                if (strcmp(shm_env, "disable") == 0) {
-                    return 0;
-                }
-            }
-
-            // If the other end of the connection has a different hostname, it
-            // is reasonable to assume that we cannot use shared memory
-            char host[HOST_NAME_MAX+1];
-            gethostname(host, sizeof(host));
-            const std::string hostname(host);
-            if (transportProps.get("hostname", "").toString() != hostname) {
-                RH_NL_TRACE("ShmTransport", "Connection '" << connectionId << "' is on another host");
-                return 0;
-            }
-
-            RH_NL_DEBUG("ShmTransport", "Attempting to negotiate shared memory IPC");
-            IPCFifo* fifo = new IPCFifoServer(name + "-fifo");
-            redhawk::PropertyMap props;
-            props["fifo"] = fifo->name();
-            fifo->beginConnect();
-            CF::Properties_var result;
-            try {
-                result = negotiablePort->negotiateTransport("shmipc", props);
-            } catch (const ExtendedCF::NegotiationError& exc) {
-                RH_NL_ERROR("ShmTransport", "Error negotiating shared memory IPC: " << exc.msg);
-                delete fifo;
-                return 0;
-            }
-            fifo->finishConnect();
-
-            return new ShmTransport(connectionId, name, fifo, port);
-        }
-
-        ShmTransport(const std::string& connectionId, const std::string& name, IPCFifo* fifo, PtrType port) :
-            PortTransport<PortType>(connectionId, name, port),
-            _fifo(fifo)
-        {
-        }
-
-        ~ShmTransport()
-        {
-            delete _fifo;
-        }
-
-        virtual std::string getDescription() const
-        {
-            return "shared memory BulkIO connection";
-        }
-
-        virtual std::string transportType() const
-        {
-            return "shmipc";
-        }
-
-        virtual CF::Properties transportInfo() const
-        {
-            return CF::Properties();
-        }
-
-        virtual void disconnect()
-        {
-            PortTransport<PortType>::disconnect();
-            _fifo->close();
-        }
-
-    protected:
-        virtual void _pushSRI(const BULKIO::StreamSRI& sri)
-        {
-            try {
-                this->_port->pushSRI(sri);
-            } catch (const CORBA::SystemException& exc) {
-                throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
-            }
-        }
-
-        virtual void _pushPacket(const BufferType& data,
-                                 const BULKIO::PrecisionUTCTime& T,
-                                 bool EOS,
-                                 const std::string& streamID)
-        {
-            MessageBuffer msg;
-            msg.write(data.size());
-
-            // Temporary buffer to ensure that if a copy is made, it gets
-            // released after the transfer
-            BufferType copy;
-
-            // If the packet is non-empty, write the additional shared memory
-            // information for the remote side to pick up
-            if (!data.empty()) {
-                const void* base;
-                size_t offset;
-
-                // Check that the buffer is already in shared memory (this is
-                // hoped to be the common case); if not, copy it into another
-                // buffer that is allocated in shared memory
-                if (data.is_process_shared()) {
-                    base = data.base();
-                    offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
-                } else {
-                    copy = data.copy(redhawk::shm::Allocator<typename BufferType::value_type>());
-                    base = copy.base();
-                    offset = 0;
-                }
-
-                redhawk::shm::MemoryRef ref = redhawk::shm::Heap::getRef(base);
-                msg.write(ref.heap);
-                msg.write(ref.superblock);
-                msg.write(ref.offset);
-                msg.write(offset);
-            }
-
-            msg.write(T);
-            msg.write(EOS);
-            msg.write(streamID);
-
-            try {
-                _fifo->write(msg.buffer(), msg.size());
-            } catch (const std::exception& exc) {
-                throw redhawk::FatalTransportError(exc.what());
-            }
-
-            size_t status;
-            if (_fifo->read(&status, sizeof(size_t)) != sizeof(size_t)) {
-                RH_NL_ERROR("ShmTransport", "Bad response");
-            }
-        }
-
-    private:
-        IPCFifo* _fifo;
-    };
-
     template <class PortType>
     class NegotiableTransportFactory {
     public:
@@ -584,7 +159,7 @@ namespace bulkio {
             redhawk::PropertyMap& supported = redhawk::PropertyMap::cast(supported_props);
             if (supported.contains("shmipc")) {
                 redhawk::PropertyMap& shm_props = supported["shmipc"].asProperties();
-                TransportType* transport = ShmTransport<PortType>::Factory(connectionId, name, negotiable_port, shm_props, port);
+                TransportType* transport = ShmTransportFactory<PortType>::Create(connectionId, name, negotiable_port, shm_props, port);
                 if (transport) {
                     return transport;
                 }
@@ -615,14 +190,7 @@ namespace bulkio {
     };
 
 #define INSTANTIATE_TEMPLATE(x)                 \
-    template class PortTransport<x>;            \
-    template class LocalTransport<x>;           \
-    template class RemoteTransport<x>;
-
-#define INSTANTIATE_NUMERIC_TEMPLATE(x)         \
-    template class ChunkingTransport<x>;        \
-    template class ShmTransport<x>;
+    template class PortTransport<x>;
 
     FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
-    FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
 }

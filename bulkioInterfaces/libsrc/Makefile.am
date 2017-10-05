@@ -49,6 +49,12 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/bulkio_p.h \
     cpp/bulkio_transport.h \
     cpp/bulkio_transport.cpp \
+    cpp/CorbaTransport.h \
+    cpp/CorbaTransport.cpp \
+    cpp/LocalTransport.h \
+    cpp/LocalTransport.cpp \
+    cpp/ShmTransport.h \
+    cpp/ShmTransport.cpp \
     cpp/ipcfifo.h \
     cpp/ipcfifo.cpp \
     cpp/ingress_thread.h \
