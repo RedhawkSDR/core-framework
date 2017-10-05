@@ -160,6 +160,23 @@ class App(_CF__POA.Application, Resource):
                 pass
         return retval
     
+    def _get_stopTimeout(self):
+        retval = None
+        if self.ref:
+            try:
+                retval = self.ref._get_stopTimeout()
+            except:
+                pass
+        return retval
+    
+    def _set_stopTimeout(self, timeout):
+        retval = None
+        if self.ref:
+            try:
+                self.ref._set_stopTimeout(timeout)
+            except:
+                pass
+    
     def _get_registeredComponents(self):
         retval = None
         if self.ref:
@@ -256,6 +273,16 @@ class App(_CF__POA.Application, Resource):
         if self.ref:
             try:
                 retval = self.ref._get_componentImplementations()
+            except:
+                pass
+        return retval
+    
+    @property
+    def stopTimeout(self):
+        retval = []
+        if self.ref:
+            try:
+                retval = self.ref._get_stopTimeout()
             except:
                 pass
         return retval
