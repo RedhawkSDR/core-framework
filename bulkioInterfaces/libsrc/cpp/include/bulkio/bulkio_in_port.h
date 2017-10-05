@@ -66,7 +66,7 @@ namespace bulkio {
   //                 passed between port objects
   //
   template <typename PortType>
-  class InPort : public CorbaTraits<PortType>::POAType, public Port_Provides_base_impl
+  class InPort : public Port_Provides_base_impl, public virtual CorbaTraits<PortType>::POAType
   {
   public:
     // The CORBA interface of this port (nested typedef for template parameter)
