@@ -4,6 +4,7 @@
 #include <boost/thread.hpp>
 
 #include <ossie/shm/HeapClient.h>
+#include <ossie/ProvidesPort.h>
 
 #include <bulkio_in_port.h>
 
@@ -12,7 +13,7 @@
 namespace bulkio {
 
     template <typename PortType>
-    class IngressThread {
+    class IngressThread : public redhawk::InputTransport {
     public:
         typedef InPort<PortType> InPortType;
         

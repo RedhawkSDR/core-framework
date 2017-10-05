@@ -28,6 +28,7 @@
 
 #include <ossie/callback.h>
 #include <ossie/signalling.h>
+#include <ossie/ProvidesPort.h>
 
 #include "bulkio_base.h"
 #include "bulkio_typetraits.h"
@@ -66,7 +67,10 @@ namespace bulkio {
   //                 passed between port objects
   //
   template <typename PortType>
-  class InPort : public Port_Provides_base_impl, public virtual CorbaTraits<PortType>::POAType
+  class InPort : public redhawk::NegotiableProvidesPortBase
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+               , public virtual CorbaTraits<PortType>::POAType
+#endif
   {
   public:
     // The CORBA interface of this port (nested typedef for template parameter)
@@ -135,12 +139,6 @@ namespace bulkio {
      * @param H - Incoming StreamSRI object that defines the state of the data flow portion of the stream (pushPacket)
      */
     virtual void pushSRI(const BULKIO::StreamSRI& H);
-
-    virtual CF::Properties* supportedTransports();
-
-    virtual ExtendedCF::NegotiationResult* negotiateTransport(const char* protocol, const CF::Properties& props);
-
-    virtual void disconnectTransport(const char* connectionId);
 
     //
     //  Port Statistics Interface
@@ -509,6 +507,8 @@ namespace bulkio {
   protected:
     // Shared buffer type used for local transfers
     typedef typename InPort<PortType>::BufferType BufferType;
+
+    void _initializeTransports();
 
     typedef InPort<PortType> super;
     using super::packetWaiters;

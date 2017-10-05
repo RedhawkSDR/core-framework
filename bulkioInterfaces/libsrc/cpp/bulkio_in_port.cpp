@@ -27,8 +27,9 @@
 
 #include "ipcfifo.h"
 #include "ingress_thread.h"
+#include "ShmInputTransport.h"
 
-namespace  bulkio {
+namespace bulkio {
 
   // ----------------------------------------------------------------------------------------
   //  Source/Input Port Definitions
@@ -39,7 +40,7 @@ namespace  bulkio {
                            LOGGER_PTR  logger,
                            bulkio::sri::Compare sriCmp,
                            SriListener *newStreamCB):
-    Port_Provides_base_impl(port_name),
+    redhawk::NegotiableProvidesPortBase(port_name),
     sri_cmp(sriCmp),
     newStreamCallback(),
     maxQueue(100),
@@ -212,58 +213,6 @@ namespace  bulkio {
       }
     }
     TRACE_EXIT( logger, "InPort::pushSRI"  );
-  }
-
-  template <typename PortType>
-  CF::Properties* InPort<PortType>::supportedTransports()
-  {
-      redhawk::PropertyMap transports;
-
-      char host[HOST_NAME_MAX+1];
-      gethostname(host, sizeof(host));
-
-      redhawk::PropertyMap shmipc;
-      shmipc["hostname"] = std::string(host);
-      transports["shmipc"] = shmipc;
-
-      return new CF::Properties(transports);
-  }
-
-  template <typename PortType>
-  ExtendedCF::NegotiationResult*
-  InPort<PortType>::negotiateTransport(const char* protocol, const CF::Properties& properties)
-  {
-      if (strcmp(protocol, "shmipc") == 0) {
-          const redhawk::PropertyMap& shm_props = redhawk::PropertyMap::cast(properties);
-          if (!shm_props.contains("fifo")) {
-              throw ExtendedCF::NegotiationError("Invalid properties for shared memory connection");
-          }
-          const std::string location = shm_props["fifo"].toString();
-          IPCFifo* fifo = new IPCFifoClient(location);
-          try {
-              fifo->beginConnect();
-          } catch (const std::exception& exc) {
-              delete fifo;
-              std::string message = "Failed to connect to FIFO " + location;
-              throw ExtendedCF::NegotiationError(message.c_str());
-          }
-          ShmIngressThread<PortType>* thread = new ShmIngressThread<PortType>(this, fifo);
-          thread->start();
-          LOG_INFO(logger, "Connected to FIFO " << location);
-
-          this->ingressThreads.push_back(thread);
-          ExtendedCF::NegotiationResult_var result = new ExtendedCF::NegotiationResult;
-          return result._retn();
-      } else {
-          std::string message = "Cannot negotiate protocol '" + std::string(protocol) + "'";
-          LOG_DEBUG(logger, message);
-          throw ExtendedCF::NegotiationError(message.c_str());
-      }
-  }
-
-  template <typename PortType>
-  void InPort<PortType>::disconnectTransport(const char*)
-  {
   }
 
   template <typename PortType>
@@ -837,20 +786,6 @@ namespace  bulkio {
     return 1;
   }
 
-  template <>
-  ExtendedCF::NegotiationResult*
-  InPort<BULKIO::dataFile>::negotiateTransport(const char*, const CF::Properties&)
-  {
-      throw ExtendedCF::NegotiationError("unsupported transport");
-  }
-
-  template <>
-  ExtendedCF::NegotiationResult*
-  InPort<BULKIO::dataXML>::negotiateTransport(const char*, const CF::Properties&)
-  {
-      throw ExtendedCF::NegotiationError("unsupported transport");
-  }
-
   //
   template <typename PortType>
   InNumericPort<PortType>::InNumericPort(std::string port_name, 
@@ -873,6 +808,12 @@ namespace  bulkio {
   InNumericPort<PortType>::InNumericPort(std::string port_name, void* /*unused*/) :
     InPort<PortType>(port_name, LOGGER_PTR())
   {
+  }
+
+  template <typename PortType>
+  void InNumericPort<PortType>::_initializeTransports()
+  {
+      _addTransportManager("shmipc", new ShmInputTransportManager<PortType>(this));
   }
 
   template <typename PortType>
