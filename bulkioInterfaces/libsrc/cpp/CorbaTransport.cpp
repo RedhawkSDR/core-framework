@@ -60,9 +60,9 @@ namespace bulkio {
         {
             // Set a timeout for the duration of this call, in case the remote
             // side is in a bad state.
-            omniORB::setClientCallTimeout(1000);
+            omniORB::setClientCallTimeout(this->_port, 1000);
             PortTransport<PortType>::disconnect();
-            omniORB::setClientCallTimeout(0);
+            omniORB::setClientCallTimeout(this->_port, 0);
         }
 
     protected:
