@@ -10,6 +10,7 @@ from ossie.utils import uuid
 from ossie.component import Component
 from ossie.threadedcomponent import *
 from ossie.properties import simple_property
+from ossie.properties import simpleseq_property
 
 import Queue, copy, time, threading
 
@@ -71,6 +72,23 @@ class time_py_now_base(CF__POA.Resource, Component, ThreadedComponent):
                                      action="external",
                                      kinds=("property",))
 
+        simpleSeqDefNow = simpleseq_property(id_="simpleSeqDefNow",
+                                             type_="utctime",
+                                             defvalue=["now"],
+                                             mode="readwrite",
+                                             action="external",
+                                             kinds=("property",))
 
+        simpleSeqNoDef = simpleseq_property(id_="simpleSeqNoDef",
+                                            type_="utctime",
+                                            defvalue=[],
+                                            mode="readwrite",
+                                            action="external",
+                                            kinds=("property",))
 
-
+        simpleSeq1970 = simpleseq_property(id_="simpleSeq1970",
+                                           type_="utctime",
+                                           defvalue=["1970:01:01::00:00:00"],
+                                           mode="readwrite",
+                                           action="external",
+                                           kinds=("property",))

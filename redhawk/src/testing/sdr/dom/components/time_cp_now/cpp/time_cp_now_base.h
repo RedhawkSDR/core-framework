@@ -26,6 +26,12 @@ class time_cp_now_base : public Component, protected ThreadedComponent
         CF::UTCTime rightnow;
         /// Property: simple1970
         CF::UTCTime simple1970;
+        /// Property: simpleSeqDefNow
+        std::vector<CF::UTCTime> simpleSeqDefNow;
+        /// Property: simpleSeqNoDef
+        std::vector<CF::UTCTime> simpleSeqNoDef;
+        /// Property: simpleSeq1970
+        std::vector<CF::UTCTime> simpleSeq1970;
 
     private:
 };

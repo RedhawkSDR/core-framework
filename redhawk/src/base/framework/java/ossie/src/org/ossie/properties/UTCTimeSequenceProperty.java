@@ -40,6 +40,10 @@ public class UTCTimeSequenceProperty extends AbstractSequenceProperty<CF.UTCTime
         super(id, name, "utctime", value, mode, action, kinds, optional);
     }
 
+    public static List<CF.UTCTime> asList() {
+        return new ArrayList<CF.UTCTime>();
+    }
+
     public static List<CF.UTCTime> asList(CF.UTCTime... array) {
         return new ArrayList<CF.UTCTime>(Arrays.asList(array));
     }
