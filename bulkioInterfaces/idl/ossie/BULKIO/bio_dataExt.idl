@@ -32,6 +32,8 @@
 #include "ossie/BULKIO/bio_dataUlong.idl"
 #include "ossie/BULKIO/bio_dataUlongLong.idl"
 #include "ossie/BULKIO/bio_dataUshort.idl"
+#include "ossie/BULKIO/bio_dataXML.idl"
+#include "ossie/BULKIO/bio_dataFile.idl"
 
 module BULKIO {
 
@@ -63,6 +65,12 @@ module BULKIO {
     };
 
     interface dataUshortExt : dataUshort, ExtendedCF::NegotiableProvidesPort {
+    };
+
+    interface dataXMLExt : dataXML, ExtendedCF::NegotiableProvidesPort {
+    };
+
+    interface dataFileExt : dataFile, ExtendedCF::NegotiableProvidesPort {
     };
 };
 

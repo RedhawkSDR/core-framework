@@ -136,6 +136,12 @@ namespace bulkio {
      */
     virtual void pushSRI(const BULKIO::StreamSRI& H);
 
+    virtual CF::Properties* supportedTransports();
+
+    virtual ExtendedCF::NegotiationResult* negotiateTransport(const char* protocol, const CF::Properties& props);
+
+    virtual void disconnectTransport(const char* connectionId);
+
     //
     //  Port Statistics Interface
     //
@@ -489,12 +495,6 @@ namespace bulkio {
     // @param EOS  - indicator that the stream has ended, (stream is identified by streamID)
     // @param streamID - name of the stream the vector and stream context data are associated with
     virtual void pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
-
-    virtual CF::Properties* supportedTransports();
-
-    virtual ExtendedCF::NegotiationResult* negotiateTransport(const char* protocol, const CF::Properties& props);
-
-    virtual void disconnectTransport(const char* connectionId);
 
     //
     // Stream-based input API

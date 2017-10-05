@@ -35,29 +35,28 @@ namespace bulkio {
     struct CorbaTraits {
     };
 
-#define DEFINE_CORBA_TRAITS(NAME,POA,TT,ST)     \
+#define DEFINE_CORBA_TRAITS(NAME,TT,ST)         \
     template <>                                 \
     struct CorbaTraits<NAME> {                  \
-        typedef POA POAType;                    \
+        typedef POA_##NAME##Ext POAType;        \
         typedef TT TransportType;               \
         typedef ST SequenceType;                \
     };
 
 #define DEFINE_CORBA_EXT_TRAITS(NAME,TT,ST) DEFINE_CORBA_TRAITS(NAME,POA_##NAME##Ext,TT,ST)
-    DEFINE_CORBA_EXT_TRAITS(BULKIO::dataChar, CORBA::Char, PortTypes::CharSequence);
-    DEFINE_CORBA_EXT_TRAITS(BULKIO::dataOctet, CORBA::Octet, CF::OctetSequence);
-    DEFINE_CORBA_EXT_TRAITS(BULKIO::dataShort, CORBA::Short, PortTypes::ShortSequence);
-    DEFINE_CORBA_EXT_TRAITS(BULKIO::dataUshort, CORBA::UShort, PortTypes::UshortSequence);
-    DEFINE_CORBA_EXT_TRAITS(BULKIO::dataLong, CORBA::Long, PortTypes::LongSequence);
-    DEFINE_CORBA_EXT_TRAITS(BULKIO::dataUlong, CORBA::ULong, PortTypes::UlongSequence);
-    DEFINE_CORBA_EXT_TRAITS(BULKIO::dataLongLong, CORBA::LongLong, PortTypes::LongLongSequence);
-    DEFINE_CORBA_EXT_TRAITS(BULKIO::dataUlongLong, CORBA::ULongLong, PortTypes::UlongLongSequence);
-    DEFINE_CORBA_EXT_TRAITS(BULKIO::dataFloat, CORBA::Float, PortTypes::FloatSequence);
-    DEFINE_CORBA_EXT_TRAITS(BULKIO::dataDouble, CORBA::Double, PortTypes::DoubleSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataFile, POA_BULKIO::dataFile, char, char*);
-    DEFINE_CORBA_TRAITS(BULKIO::dataXML, POA_BULKIO::dataXML, char, char*);
+    DEFINE_CORBA_TRAITS(BULKIO::dataChar, CORBA::Char, PortTypes::CharSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataOctet, CORBA::Octet, CF::OctetSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataShort, CORBA::Short, PortTypes::ShortSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataUshort, CORBA::UShort, PortTypes::UshortSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataLong, CORBA::Long, PortTypes::LongSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataUlong, CORBA::ULong, PortTypes::UlongSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataLongLong, CORBA::LongLong, PortTypes::LongLongSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataUlongLong, CORBA::ULongLong, PortTypes::UlongLongSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataFloat, CORBA::Float, PortTypes::FloatSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataDouble, CORBA::Double, PortTypes::DoubleSequence);
+    DEFINE_CORBA_TRAITS(BULKIO::dataFile, char, char*);
+    DEFINE_CORBA_TRAITS(BULKIO::dataXML, char, char*);
 
-#undef DEFINE_CORBA_EXT_TRAITS
 #undef DEFINE_CORBA_TRAITS
 
     template <typename PortType>
