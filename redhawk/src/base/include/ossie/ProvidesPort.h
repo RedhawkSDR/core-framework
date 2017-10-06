@@ -67,8 +67,9 @@ namespace redhawk {
 
     class NegotiableProvidesPortBase : public Port_Provides_base_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
-                                     , public virtual POA_ExtendedCF::NegotiableProvidesPort {
+                                     , public virtual POA_ExtendedCF::NegotiableProvidesPort
 #endif
+    {
     public:
         NegotiableProvidesPortBase(const std::string& name);
         ~NegotiableProvidesPortBase();
