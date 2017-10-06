@@ -31,9 +31,9 @@ namespace bulkio {
     class InPort;
 
     template <typename PortType>
-    class ShmInputTransportManager : public redhawk::InputTransportManager {
+    class ShmProvidesTransportManager : public redhawk::ProvidesTransportManager {
     public:
-        ShmInputTransportManager(InPort<PortType>* port) :
+        ShmProvidesTransportManager(InPort<PortType>* port) :
             _port(port)
         {
         }

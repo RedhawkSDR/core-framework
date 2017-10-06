@@ -30,14 +30,14 @@
 
 namespace redhawk {
 
-    class InputTransport
+    class ProvidesTransport
     {
     public:
-        InputTransport()
+        ProvidesTransport()
         {
         }
 
-        virtual ~InputTransport()
+        virtual ~ProvidesTransport()
         {
         }
 
@@ -50,14 +50,14 @@ namespace redhawk {
         }
     };
 
-    class InputTransportManager
+    class ProvidesTransportManager
     {
     public:
-        InputTransportManager()
+        ProvidesTransportManager()
         {
         }
 
-        virtual InputTransport* createInput(const CF::Properties& properties) = 0;
+        virtual ProvidesTransport* createInput(const CF::Properties& properties) = 0;
 
         virtual CF::Properties transportProperties()
         {
@@ -83,17 +83,17 @@ namespace redhawk {
         {
         }
 
-        void _addTransportManager(const std::string& transport, InputTransportManager* manager);
+        void _addTransportManager(const std::string& transport, ProvidesTransportManager* manager);
 
-        InputTransportManager* _getTransportManager(const std::string& protocol);
+        ProvidesTransportManager* _getTransportManager(const std::string& protocol);
 
-        InputTransport* _getInput(const std::string identifier);
+        ProvidesTransport* _getTransport(const std::string identifier);
 
-        typedef std::map<std::string,InputTransportManager*> TransportManagerMap;
+        typedef std::map<std::string,ProvidesTransportManager*> TransportManagerMap;
         TransportManagerMap _transportManagers;
 
-        typedef std::map<std::string,InputTransport*> InputMap;
-        InputMap _inputs;
+        typedef std::map<std::string,ProvidesTransport*> TransportMap;
+        TransportMap _transports;
 
     private:
         void _initializeTransportMap();

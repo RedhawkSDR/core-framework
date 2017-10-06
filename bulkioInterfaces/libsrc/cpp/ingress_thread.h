@@ -13,7 +13,7 @@
 namespace bulkio {
 
     template <typename PortType>
-    class IngressThread : public redhawk::InputTransport {
+    class IngressThread : public redhawk::ProvidesTransport {
     public:
         typedef InPort<PortType> InPortType;
         

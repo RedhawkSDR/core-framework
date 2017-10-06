@@ -49,17 +49,17 @@ namespace redhawk {
     {
         _initializeTransportMap();
 
-        InputTransportManager* manager = _getTransportManager(protocol);
+        ProvidesTransportManager* manager = _getTransportManager(protocol);
         if (!manager) {
             std::string message = "Cannot negotiate protocol '" + std::string(protocol) + "'";
             throw ExtendedCF::NegotiationError(message.c_str());
         }
 
-        InputTransport* transport = manager->createInput(props);
+        ProvidesTransport* transport = manager->createInput(props);
         transport->start();
 
         std::string negotiationId = ossie::generateUUID();
-        _inputs[negotiationId] = transport;
+        _transports[negotiationId] = transport;
 
         ExtendedCF::NegotiationResult_var result = new ExtendedCF::NegotiationResult;
         result->negotiationId = negotiationId.c_str();
@@ -70,7 +70,7 @@ namespace redhawk {
     {
     }
 
-    InputTransportManager* NegotiableProvidesPortBase::_getTransportManager(const std::string& protocol)
+    ProvidesTransportManager* NegotiableProvidesPortBase::_getTransportManager(const std::string& protocol)
     {
         TransportManagerMap::iterator manager = _transportManagers.find(protocol);
         if (manager == _transportManagers.end()) {
@@ -79,7 +79,7 @@ namespace redhawk {
         return manager->second;
     }
 
-    void NegotiableProvidesPortBase::_addTransportManager(const std::string& name, InputTransportManager* manager)
+    void NegotiableProvidesPortBase::_addTransportManager(const std::string& name, ProvidesTransportManager* manager)
     {
         _transportManagers[name] = manager;
     }
