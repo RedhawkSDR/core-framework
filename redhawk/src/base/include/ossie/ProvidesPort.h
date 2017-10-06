@@ -74,6 +74,8 @@ namespace redhawk {
         NegotiableProvidesPortBase(const std::string& name);
         ~NegotiableProvidesPortBase();
 
+        virtual void initializePort();
+
         virtual CF::Properties* supportedTransports();
         virtual ExtendedCF::NegotiationResult* negotiateTransport(const char* protocol, const CF::Properties& props);
         virtual void disconnectTransport(const char* connectionId);
@@ -94,10 +96,6 @@ namespace redhawk {
 
         typedef std::map<std::string,ProvidesTransport*> TransportMap;
         TransportMap _transports;
-
-    private:
-        void _initializeTransportMap();
-        bool _transportMapInitialized;
     };
 }
 

@@ -25,8 +25,7 @@
 namespace redhawk {
 
     NegotiableProvidesPortBase::NegotiableProvidesPortBase(const std::string& name) :
-        Port_Provides_base_impl(name),
-        _transportMapInitialized(false)
+        Port_Provides_base_impl(name)
     {
     }
     
@@ -34,10 +33,13 @@ namespace redhawk {
     {
     }
      
+    void NegotiableProvidesPortBase::initializePort()
+    {
+        _initializeTransports();
+    }
+
     CF::Properties* NegotiableProvidesPortBase::supportedTransports()
     {
-        _initializeTransportMap();
-
         redhawk::PropertyMap transports;
         for (TransportManagerMap::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
             transports[manager->first] = manager->second->transportProperties();
@@ -47,8 +49,6 @@ namespace redhawk {
 
     ExtendedCF::NegotiationResult* NegotiableProvidesPortBase::negotiateTransport(const char* protocol, const CF::Properties& props)
     {
-        _initializeTransportMap();
-
         ProvidesTransportManager* manager = _getTransportManager(protocol);
         if (!manager) {
             std::string message = "Cannot negotiate protocol '" + std::string(protocol) + "'";
@@ -82,13 +82,5 @@ namespace redhawk {
     void NegotiableProvidesPortBase::_addTransportManager(const std::string& name, ProvidesTransportManager* manager)
     {
         _transportManagers[name] = manager;
-    }
-
-    void NegotiableProvidesPortBase::_initializeTransportMap()
-    {
-        if (!_transportMapInitialized) {
-            _initializeTransports();
-            _transportMapInitialized = true;
-        }
     }
 }

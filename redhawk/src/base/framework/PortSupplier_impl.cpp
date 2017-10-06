@@ -46,6 +46,10 @@ void PortSupplier_impl::addPort (const std::string& name, PortBase* servant)
     LOG_TRACE(PortSupplier_impl, "Activating port '" << name << "'");
     PortableServer::POA_var poa = servant->_default_POA();
     PortableServer::ObjectId_var oid = poa->activate_object(servant);
+
+    // Allow additional post-activation initialization
+    LOG_TRACE(PortSupplier_impl, "Initializing port '" << name << "'");
+    servant->initializePort();
 }
 
 void PortSupplier_impl::addPort (const std::string& name, const std::string& description, PortBase* servant)
