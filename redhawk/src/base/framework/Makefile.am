@@ -60,6 +60,7 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
 			Versions.cpp \
 			ExecutorService.cpp \
 			UsesPort.cpp \
+			ProvidesPort.cpp \
 			BufferManager.cpp \
 			inplace_list.h \
 			shm/Heap.cpp \
