@@ -26,6 +26,19 @@
 namespace bulkio {
 
     template <typename PortType>
+    LocalTransport<PortType>* LocalTransport<PortType>::Factory(const std::string& connectionId,
+                                                                const std::string& name,
+                                                                PortBase* localPort,
+                                                                PtrType port)
+    {
+        LocalPortType* local_port = dynamic_cast<LocalPortType*>(localPort);
+        if (local_port) {
+            return new LocalTransport(connectionId, name, local_port, port);
+        }
+        return 0;
+    }
+
+    template <typename PortType>
     LocalTransport<PortType>::LocalTransport(const std::string& connectionId, const std::string& name,
                                              LocalPortType* localPort, PtrType port) :
         PortTransport<PortType>(connectionId, name, port),

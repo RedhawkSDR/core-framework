@@ -21,6 +21,7 @@
 #include <ossie/UsesPort.h>
 #include <ossie/CorbaUtils.h>
 #include <ossie/CorbaSequence.h>
+#include <ossie/PropertyMap.h>
 
 namespace redhawk {
     
@@ -218,5 +219,81 @@ namespace redhawk {
     UsesTransport* UsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
     {
         return new UsesTransport(connectionId, object);
+    }
+
+    NegotiableUsesPort::NegotiableUsesPort(const std::string& name) :
+        UsesPort(name)
+    {
+    }
+
+    NegotiableUsesPort::~NegotiableUsesPort()
+    {
+    }
+
+    void NegotiableUsesPort::initializePort()
+    {
+        _initializeTransports();
+    }
+
+    UsesTransport* NegotiableUsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
+    {
+        PortBase* local_port = ossie::corba::getLocalServant<PortBase>(object);
+        if (local_port) {
+            UsesTransport* transport = _createLocalTransport(local_port, object, connectionId);
+            if (transport) {
+                return transport;
+            }
+        }
+
+        ExtendedCF::NegotiableProvidesPort_var negotiable_port = ossie::corba::_narrowSafe<ExtendedCF::NegotiableProvidesPort>(object);
+        if (!CORBA::is_nil(negotiable_port)) {
+            UsesTransport* transport = _negotiateTransport(negotiable_port, connectionId);
+            if (transport) {
+                return transport;
+            }
+        }
+
+        return _createDefaultTransport(object, connectionId);
+    }
+
+    UsesTransport* NegotiableUsesPort::_createLocalTransport(PortBase*, CORBA::Object_ptr, const std::string&)
+    {
+        return 0;
+    }
+
+    UsesTransport* NegotiableUsesPort::_createDefaultTransport(CORBA::Object_ptr object, const std::string& connectionId)
+    {
+        return UsesPort::_createTransport(object, connectionId);
+    }
+
+    UsesTransport* NegotiableUsesPort::_negotiateTransport(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
+                                                           const std::string& connectionId)
+    {
+        RH_DEBUG(logger, "Trying to negotiate transport for connection '" << connectionId << "'");
+        CF::Properties_var props;
+        try {
+            props = negotiablePort->supportedTransports();
+        } catch (const CORBA::Exception& exc) {
+            // Can't negotiate with an inaccessible object
+            return 0;
+        }
+        const redhawk::PropertyMap& supported_props = redhawk::PropertyMap::cast(props);
+
+        for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
+            const std::string transport_name = (*manager)->transportName();
+            if (!supported_props.contains(transport_name)) {
+                RH_TRACE(logger, "Provides side for connection '" << connectionId
+                         << "' does not support transport '" << transport_name << "'");
+                continue;
+            }
+            RH_TRACE(logger, "Trying to negotiate transport '" << transport_name
+                     << "' for connection '" << connectionId << "'");
+            const redhawk::PropertyMap& transport_props = supported_props[transport_name].asProperties();
+            UsesTransport* transport = (*manager)->createUsesTransport(negotiablePort, connectionId, transport_props);
+            if (transport) {
+                return transport;
+            }
+        }
+        return 0;
     }
 }

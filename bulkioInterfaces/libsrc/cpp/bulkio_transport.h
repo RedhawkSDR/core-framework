@@ -36,8 +36,6 @@ namespace bulkio {
         typedef typename NativeTraits<PortType>::NativeType NativeType;
         typedef typename BufferTraits<PortType>::BufferType BufferType;
 
-        static PortTransport* Factory(const std::string& connectionId, const std::string& name, PtrType port);
-
         PortTransport(const std::string& connectionId, const std::string& name, PtrType objref);
 
         virtual ~PortTransport();

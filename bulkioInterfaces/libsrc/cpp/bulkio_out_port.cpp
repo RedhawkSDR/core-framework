@@ -25,6 +25,10 @@
 #include "bulkio_p.h"
 #include "bulkio_transport.h"
 
+#include "LocalTransport.h"
+#include "CorbaTransport.h"
+#include "ShmTransport.h"
+
 // Suppress warnings for access to deprecated currentSRI member (on gcc 4.4, at
 // least, the implicit destructor call from OutPort's destructor emits a
 // warning)
@@ -42,7 +46,7 @@ namespace bulkio {
                                  LOGGER_PTR logger,
                                  ConnectionEventListener *connectCB,
                                  ConnectionEventListener *disconnectCB) :
-    redhawk::UsesPort(name)
+    redhawk::NegotiableUsesPort(name)
   {
 
     if ( !logger ) {
@@ -254,10 +258,17 @@ namespace bulkio {
       }
   }
 
+  template <typename PortType>
+  redhawk::UsesTransport*
+  OutPort<PortType>::_createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId)
+  {
+      PortVarType bulkio_port = ossie::corba::_narrowSafe<PortType>(object);
+      return LocalTransport<PortType>::Factory(connectionId, name, port, bulkio_port);
+  }
 
   template <typename PortType>
   redhawk::UsesTransport*
-  OutPort<PortType>::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
+  OutPort<PortType>::_createDefaultTransport(CORBA::Object_ptr object, const std::string& connectionId)
   {
       PortVarType port;
       try {
@@ -270,7 +281,7 @@ namespace bulkio {
           throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
 
-      return PortTransportType::Factory(connectionId, name, port);
+      return CorbaTransportFactory<PortType>::Create(connectionId, name, port);
   }
 
 
@@ -422,6 +433,12 @@ namespace bulkio {
   template <typename PortType>
   OutNumericPort<PortType>::~OutNumericPort()
   {
+  }
+
+  template <typename PortType>
+  void OutNumericPort<PortType>::_initializeTransports()
+  {
+      this->_transportManagers.push_back(new ShmUsesTransportManager<PortType>(this->name));
   }
 
   template <typename PortType>

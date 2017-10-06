@@ -27,15 +27,19 @@
 namespace bulkio {
 
     template <typename PortType>
-    class ShmTransportFactory {
+    class ShmUsesTransportManager : public redhawk::UsesTransportManager
+    {
     public:
-        typedef typename PortType::_ptr_type PtrType;
+        ShmUsesTransportManager(const std::string& name);
 
-        static PortTransport<PortType>* Create(const std::string& connectionId,
-                                               const std::string& name,
-                                               ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
-                                               const redhawk::PropertyMap& transportProps,
-                                               PtrType port);
+        virtual std::string transportName();
+
+        virtual redhawk::UsesTransport* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
+                                                            const std::string& connectionId,
+                                                            const CF::Properties& properties);
+
+    private:
+        const std::string _name;
     };
 
 }

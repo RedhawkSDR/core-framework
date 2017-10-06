@@ -67,7 +67,7 @@ namespace bulkio {
   //
   //
   template <typename PortType>
-  class OutPort : public redhawk::UsesPort
+  class OutPort : public redhawk::NegotiableUsesPort
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
                 , public virtual POA_BULKIO::UsesPortStatisticsProvider
 #endif
@@ -259,7 +259,9 @@ namespace bulkio {
     //
     typedef PortTransport<PortType> PortTransportType;
 
-    virtual redhawk::UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
+    virtual redhawk::UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);
+
+    virtual redhawk::UsesTransport* _createDefaultTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
     typedef redhawk::UsesPort::TransportIteratorAdapter<PortTransportType> TransportIterator;
 
@@ -332,6 +334,8 @@ namespace bulkio {
     // virtual destructor to clean up resources
     //
     virtual ~OutNumericPort();
+
+    virtual void _initializeTransports();
 
     /*
      * pushPacket

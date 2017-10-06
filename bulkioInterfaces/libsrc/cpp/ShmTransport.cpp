@@ -134,20 +134,30 @@ namespace bulkio {
     };
 
     template <typename PortType>
-    PortTransport<PortType>*
-    ShmTransportFactory<PortType>::Create(const std::string& connectionId,
-                                          const std::string& name,
-                                          ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
-                                          const redhawk::PropertyMap& transportProps,
-                                          PtrType port)
+    ShmUsesTransportManager<PortType>::ShmUsesTransportManager(const std::string& name) :
+        _name(name)
+    {
+    }
+
+    template <typename PortType>
+    std::string ShmUsesTransportManager<PortType>::transportName()
+    {
+        return "shmipc";
+    }
+
+    template <typename PortType>
+    redhawk::UsesTransport*
+    ShmUsesTransportManager<PortType>::createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
+                                                           const std::string& connectionId,
+                                                           const CF::Properties& properties)
     {
         // For testing, allow disabling
         const char* shm_env = getenv("BULKIO_SHM");
-        if (shm_env) {
-            if (strcmp(shm_env, "disable") == 0) {
-                return 0;
-            }
+        if (shm_env && (strcmp(shm_env, "disable") == 0)) {
+            return 0;
         }
+
+        const redhawk::PropertyMap& transportProps = redhawk::PropertyMap::cast(properties);
 
         // If the other end of the connection has a different hostname, it
         // is reasonable to assume that we cannot use shared memory
@@ -160,7 +170,7 @@ namespace bulkio {
         }
 
         RH_NL_DEBUG("ShmTransport", "Attempting to negotiate shared memory IPC");
-        IPCFifo* fifo = new IPCFifoServer(name + "-fifo");
+        IPCFifo* fifo = new IPCFifoServer(_name + "-fifo");
         redhawk::PropertyMap props;
         props["fifo"] = fifo->name();
         fifo->beginConnect();
@@ -174,12 +184,13 @@ namespace bulkio {
         }
         fifo->finishConnect();
 
-        return new ShmTransport<PortType>(connectionId, name, fifo, port);
+        typename PortType::_var_type bulkio_port = ossie::corba::_narrowSafe<PortType>(negotiablePort);
+        return new ShmTransport<PortType>(connectionId, _name, fifo, bulkio_port);
     }
 
 #define INSTANTIATE_TEMPLATE(x)                 \
     template class ShmTransport<x>;             \
-    template class ShmTransportFactory<x>;
+    template class ShmUsesTransportManager<x>;
 
     FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_TEMPLATE);
 }

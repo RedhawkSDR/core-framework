@@ -35,6 +35,9 @@ namespace bulkio {
         typedef typename PortTransport<PortType>::BufferType BufferType;
         typedef InPort<PortType> LocalPortType;
 
+        static LocalTransport* Factory(const std::string& connectionId, const std::string& name,
+                                       PortBase* localPort, PtrType port);
+
         LocalTransport(const std::string& connectionId, const std::string& name,
                        LocalPortType* localPort, PtrType port);
         ~LocalTransport();

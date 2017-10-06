@@ -218,6 +218,44 @@ namespace redhawk {
         ossie::notification<void (const std::string&)> _portConnected;
         ossie::notification<void (const std::string&)> _portDisconnected;
     };
+
+    class UsesTransportManager
+    {
+    public:
+        virtual ~UsesTransportManager()
+        {
+        }
+
+        virtual std::string transportName() = 0;
+
+        virtual UsesTransport* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
+                                                   const std::string& connectionId,
+                                                   const CF::Properties& properties) = 0;
+    };
+
+    class NegotiableUsesPort : public UsesPort
+    {
+    public:
+        NegotiableUsesPort(const std::string& name);
+        virtual ~NegotiableUsesPort();
+
+        virtual void initializePort();
+
+    protected:
+        virtual void _initializeTransports()
+        {
+        }
+
+        virtual UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
+
+        virtual UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);
+        virtual UsesTransport* _createDefaultTransport(CORBA::Object_ptr object, const std::string& connectionId);
+
+        UsesTransport* _negotiateTransport(ExtendedCF::NegotiableProvidesPort_ptr port, const std::string& connectionId);
+
+        typedef std::vector<UsesTransportManager*> TransportManagerList;
+        TransportManagerList _transportManagers;
+    };
 }
 
 #endif // OSSIE_USESPORT_H
