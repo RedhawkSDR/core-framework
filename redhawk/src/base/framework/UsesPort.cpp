@@ -24,34 +24,34 @@
 
 namespace redhawk {
     
-    BasicTransport::BasicTransport(const std::string& connectionId, CORBA::Object_ptr objref) :
+    UsesTransport::UsesTransport(const std::string& connectionId, CORBA::Object_ptr objref) :
         _connectionId(connectionId),
         _objref(CORBA::Object::_duplicate(objref)),
         _alive(true)
     {
     }
 
-    const std::string& BasicTransport::connectionId() const
+    const std::string& UsesTransport::connectionId() const
     {
         return _connectionId;
     }
 
-    std::string BasicTransport::getDescription() const
+    std::string UsesTransport::getDescription() const
     {
         return "basic transport";
     }
 
-    bool BasicTransport::isAlive() const
+    bool UsesTransport::isAlive() const
     {
         return _alive;
     }
 
-    void BasicTransport::setAlive(bool alive)
+    void UsesTransport::setAlive(bool alive)
     {
         _alive = alive;
     }
 
-    CORBA::Object_ptr BasicTransport::objref() const
+    CORBA::Object_ptr UsesTransport::objref() const
     {
         return _objref;
     }
@@ -89,7 +89,7 @@ namespace redhawk {
 
             TransportList::iterator entry = _findTransportEntry(connection_id);
             if (entry == _transports.end()) {
-                BasicTransport* transport = _createTransport(connection, connection_id);
+                UsesTransport* transport = _createTransport(connection, connection_id);
                 _addTransportEntry(transport);
                 RH_DEBUG(logger, "Using " << transport->getDescription()
                          << " for connection '" << connection_id << "'");
@@ -210,13 +210,13 @@ namespace redhawk {
         return entry;
     }
 
-    void UsesPort::_addTransportEntry(BasicTransport* transport)
+    void UsesPort::_addTransportEntry(UsesTransport* transport)
     {
         _transports.push_back(transport);
     }
 
-    BasicTransport* UsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
+    UsesTransport* UsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
     {
-        return new BasicTransport(connectionId, object);
+        return new UsesTransport(connectionId, object);
     }
 }

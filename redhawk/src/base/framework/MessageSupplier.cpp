@@ -21,11 +21,11 @@
 #include <ossie/MessageInterface.h>
 #include <ossie/PropertyMap.h>
 
-class MessageSupplierPort::MessageTransport : public redhawk::BasicTransport
+class MessageSupplierPort::MessageTransport : public redhawk::UsesTransport
 {
 public:
     MessageTransport(const std::string& connectionId, CosEventChannelAdmin::EventChannel_ptr channel) :
-        redhawk::BasicTransport(connectionId, channel),
+        redhawk::UsesTransport(connectionId, channel),
         _channel(CosEventChannelAdmin::EventChannel::_duplicate(channel))
     {
     }
@@ -253,7 +253,7 @@ void MessageSupplierPort::_validatePort(CORBA::Object_ptr object)
     }
 }
 
-redhawk::BasicTransport* MessageSupplierPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
+redhawk::UsesTransport* MessageSupplierPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
 {
     CosEventChannelAdmin::EventChannel_var channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(object);
     if (CORBA::is_nil(channel)) {

@@ -28,7 +28,7 @@
 namespace bulkio {
 
     template <typename PortType>
-    class PortTransport : public redhawk::BasicTransport
+    class PortTransport : public redhawk::UsesTransport
     {
     public:
         typedef typename PortType::_var_type VarType;

@@ -60,7 +60,7 @@ namespace burstio {
     class BurstTransport;
 
     template <class Traits>
-    class OutPort : public redhawk::UsesPort, public virtual POA_BULKIO::UsesPortStatisticsProviderExt
+    class OutPort : public redhawk::UsesPort, public virtual POA_BULKIO::UsesPortStatisticsProvider
     {
     public:
         typedef typename Traits::PortType PortType;
@@ -251,7 +251,7 @@ namespace burstio {
         void queueBurst (SequenceType& data, const BURSTIO::BurstSRI& sri,
                          const BULKIO::PrecisionUTCTime& timestamp, bool eos, bool isComplex);
 
-        virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
+        virtual redhawk::UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
         const Queue& getQueueForStream (const std::string& streamID) const;
         Queue& getQueueForStream (const std::string& streamID);

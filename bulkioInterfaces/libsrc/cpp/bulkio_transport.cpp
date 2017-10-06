@@ -54,7 +54,7 @@ namespace bulkio {
 
     template <typename PortType>
     PortTransport<PortType>::PortTransport(const std::string& connectionId, const std::string& name, PtrType objref) :
-        redhawk::BasicTransport(connectionId, objref),
+        redhawk::UsesTransport(connectionId, objref),
         stats(name, sizeof(NativeType)),
         _port(PortType::_duplicate(objref))
     {

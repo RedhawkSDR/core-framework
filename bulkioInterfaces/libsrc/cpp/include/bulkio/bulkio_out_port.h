@@ -259,7 +259,7 @@ namespace bulkio {
     //
     typedef PortTransport<PortType> PortTransportType;
 
-    virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
+    virtual redhawk::UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
     typedef redhawk::UsesPort::TransportIteratorAdapter<PortTransportType> TransportIterator;
 

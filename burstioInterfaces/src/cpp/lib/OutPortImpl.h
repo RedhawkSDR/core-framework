@@ -32,7 +32,7 @@
 namespace burstio {
 
     template <typename Traits>
-    class BurstTransport : public redhawk::BasicTransport
+    class BurstTransport : public redhawk::UsesTransport
     {
     public:
         typedef typename Traits::PortType PortType;
@@ -41,7 +41,7 @@ namespace burstio {
         typedef typename Traits::ElementType ElementType;
 
         BurstTransport(typename PortType::_ptr_type port, const std::string& connectionId, const std::string& name) :
-            redhawk::BasicTransport(connectionId, port),
+            redhawk::UsesTransport(connectionId, port),
             port_(PortType::_duplicate(port)),
             stats_(name, sizeof(ElementType) * 8)
         {
@@ -611,7 +611,7 @@ namespace burstio {
     }
 
     template <class Traits>
-    redhawk::BasicTransport* OutPort<Traits>::_createTransport (CORBA::Object_ptr object,
+    redhawk::UsesTransport* OutPort<Traits>::_createTransport (CORBA::Object_ptr object,
                                                                 const std::string& connectionId)
     {
         typedef typename PortType::_var_type var_type;

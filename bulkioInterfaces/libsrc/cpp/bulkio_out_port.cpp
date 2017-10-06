@@ -256,7 +256,7 @@ namespace bulkio {
 
 
   template <typename PortType>
-  redhawk::BasicTransport*
+  redhawk::UsesTransport*
   OutPort<PortType>::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
   {
       PortVarType port;

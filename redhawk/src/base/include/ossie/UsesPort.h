@@ -61,11 +61,11 @@ namespace redhawk {
         }
     };
 
-    class BasicTransport
+    class UsesTransport
     {
     public:
-        BasicTransport(const std::string& connectionId, CORBA::Object_ptr objref);
-        virtual ~BasicTransport() { }
+        UsesTransport(const std::string& connectionId, CORBA::Object_ptr objref);
+        virtual ~UsesTransport() { }
 
         const std::string& connectionId() const;
         CORBA::Object_ptr objref() const;
@@ -155,7 +155,7 @@ namespace redhawk {
         void setLogger(LOGGER newLogger);
 
     protected:
-        typedef std::vector<BasicTransport*> TransportList;
+        typedef std::vector<UsesTransport*> TransportList;
 
         template <class TransportType>
         class TransportIteratorAdapter {
@@ -206,9 +206,9 @@ namespace redhawk {
         virtual void _validatePort(CORBA::Object_ptr object);
 
         TransportList::iterator _findTransportEntry(const std::string& connectionId);
-        void _addTransportEntry(BasicTransport* transport);
+        void _addTransportEntry(UsesTransport* transport);
 
-        virtual BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
+        virtual UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
         LOGGER logger;
 
