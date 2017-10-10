@@ -76,7 +76,7 @@ namespace redhawk {
 
         virtual void initializePort();
 
-        virtual CF::Properties* supportedTransports();
+        virtual ExtendedCF::TransportInfoSequence* supportedTransports();
         virtual ExtendedCF::NegotiationResult* negotiateTransport(const char* protocol, const CF::Properties& props);
         virtual void disconnectTransport(const char* connectionId);
 

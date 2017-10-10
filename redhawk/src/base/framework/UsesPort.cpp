@@ -161,22 +161,6 @@ namespace redhawk {
         return retVal._retn();
     }
 
-    ExtendedCF::ConnectionStatusSequence* UsesPort::connectionStatus()
-    {
-        boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
-        ExtendedCF::ConnectionStatusSequence_var retVal = new ExtendedCF::ConnectionStatusSequence();
-        for (TransportList::iterator port = _transports.begin(); port != _transports.end(); ++port) {
-            ExtendedCF::ConnectionStatus status;
-            status.connectionId = (*port)->connectionId().c_str();
-            status.port = CORBA::Object::_duplicate((*port)->objref());
-            status.alive = (*port)->isAlive();
-            status.transportType = (*port)->transportType().c_str();
-            status.transportInfo = (*port)->transportInfo();
-            ossie::corba::push_back(retVal, status);
-        }
-        return retVal._retn();
-    }
-
     void UsesPort::setLogger(LOGGER newLogger)
     {
         logger = newLogger;
@@ -235,6 +219,33 @@ namespace redhawk {
         _initializeTransports();
     }
 
+    ExtendedCF::TransportInfoSequence* NegotiableUsesPort::supportedTransports()
+    {
+        ExtendedCF::TransportInfoSequence_var transports = new ExtendedCF::TransportInfoSequence;
+        for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
+            ExtendedCF::TransportInfo info;
+            info.transportName = (*manager)->transportName().c_str();
+            ossie::corba::push_back(transports, info);
+        }
+        return transports._retn();
+    }
+
+    ExtendedCF::ConnectionStatusSequence* NegotiableUsesPort::connectionStatus()
+    {
+        boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
+        ExtendedCF::ConnectionStatusSequence_var retVal = new ExtendedCF::ConnectionStatusSequence();
+        for (TransportList::iterator port = _transports.begin(); port != _transports.end(); ++port) {
+            ExtendedCF::ConnectionStatus status;
+            status.connectionId = (*port)->connectionId().c_str();
+            status.port = CORBA::Object::_duplicate((*port)->objref());
+            status.alive = (*port)->isAlive();
+            status.transportType = (*port)->transportType().c_str();
+            status.transportInfo = (*port)->transportInfo();
+            ossie::corba::push_back(retVal, status);
+        }
+        return retVal._retn();
+    }
+
     UsesTransport* NegotiableUsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
     {
         PortBase* local_port = ossie::corba::getLocalServant<PortBase>(object);
@@ -270,29 +281,29 @@ namespace redhawk {
                                                            const std::string& connectionId)
     {
         RH_DEBUG(logger, "Trying to negotiate transport for connection '" << connectionId << "'");
-        CF::Properties_var props;
+        ExtendedCF::TransportInfoSequence_var supported_transports;
         try {
-            props = negotiablePort->supportedTransports();
+            supported_transports = negotiablePort->supportedTransports();
         } catch (const CORBA::Exception& exc) {
             // Can't negotiate with an inaccessible object
             return 0;
         }
-        const redhawk::PropertyMap& supported_props = redhawk::PropertyMap::cast(props);
 
         for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
             const std::string transport_name = (*manager)->transportName();
-            if (!supported_props.contains(transport_name)) {
-                RH_TRACE(logger, "Provides side for connection '" << connectionId
-                         << "' does not support transport '" << transport_name << "'");
-                continue;
+            for (CORBA::ULong index = 0; index < supported_transports->length(); ++index) {
+                if (transport_name == (const char*) supported_transports[index].transportName) {
+                    RH_TRACE(logger, "Trying to negotiate transport '" << transport_name
+                             << "' for connection '" << connectionId << "'");
+                    const redhawk::PropertyMap& transport_props = redhawk::PropertyMap::cast(supported_transports[index].transportProperties);
+                    UsesTransport* transport = (*manager)->createUsesTransport(negotiablePort, connectionId, transport_props);
+                    if (transport) {
+                        return transport;
+                    }
+                }
             }
-            RH_TRACE(logger, "Trying to negotiate transport '" << transport_name
-                     << "' for connection '" << connectionId << "'");
-            const redhawk::PropertyMap& transport_props = supported_props[transport_name].asProperties();
-            UsesTransport* transport = (*manager)->createUsesTransport(negotiablePort, connectionId, transport_props);
-            if (transport) {
-                return transport;
-            }
+            RH_TRACE(logger, "Provides side for connection '" << connectionId
+                     << "' does not support transport '" << transport_name << "'");
         }
         return 0;
     }

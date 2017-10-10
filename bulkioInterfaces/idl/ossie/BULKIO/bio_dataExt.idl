@@ -37,6 +37,9 @@
 
 module BULKIO {
 
+    interface UsesPortStatisticsProviderExt : UsesPortStatisticsProvider, ExtendedCF::NegotiableUsesPort {
+    };
+
     interface dataCharExt : dataChar, ExtendedCF::NegotiableProvidesPort {
     };
 

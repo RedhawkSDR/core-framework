@@ -38,13 +38,16 @@ namespace redhawk {
         _initializeTransports();
     }
 
-    CF::Properties* NegotiableProvidesPortBase::supportedTransports()
+    ExtendedCF::TransportInfoSequence* NegotiableProvidesPortBase::supportedTransports()
     {
-        redhawk::PropertyMap transports;
+        ExtendedCF::TransportInfoSequence_var transports = new ExtendedCF::TransportInfoSequence;
         for (TransportManagerMap::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
-            transports[manager->first] = manager->second->transportProperties();
+            ExtendedCF::TransportInfo transport;
+            transport.transportName = manager->first.c_str();
+            transport.transportProperties = manager->second->transportProperties();
+            ossie::corba::push_back(transports, transport);
         }
-        return new CF::Properties(transports);
+        return transports._retn();
     }
 
     ExtendedCF::NegotiationResult* NegotiableProvidesPortBase::negotiateTransport(const char* protocol, const CF::Properties& props)

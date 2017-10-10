@@ -30,6 +30,17 @@ module ExtendedCF {
        string msg;
     };
 
+    struct TransportInfo {
+        string transportName;
+        CF::Properties transportProperties;
+    };
+
+    typedef sequence<TransportInfo> TransportInfoSequence;
+
+    interface NegotiablePort {
+        readonly attribute TransportInfoSequence supportedTransports;
+    };
+
     struct ConnectionStatus {
         string connectionId;
         Object port;
@@ -40,7 +51,7 @@ module ExtendedCF {
 
     typedef sequence<ConnectionStatus> ConnectionStatusSequence;
 
-    interface NegotiableUsesPort : ExtendedCF::QueryablePort {
+    interface NegotiableUsesPort : ExtendedCF::QueryablePort, NegotiablePort {
         readonly attribute ConnectionStatusSequence connectionStatus;
     };
 
@@ -49,9 +60,7 @@ module ExtendedCF {
         CF::Properties properties;
     };
 
-    interface NegotiableProvidesPort {
-        readonly attribute CF::Properties supportedTransports;
-
+    interface NegotiableProvidesPort : NegotiablePort {
         NegotiationResult negotiateTransport(in string protocol, in CF::Properties props) raises (NegotiationError);
 
         void disconnectTransport(in string negotiationId);

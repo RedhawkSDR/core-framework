@@ -85,7 +85,7 @@ module BULKIO {
 
     typedef sequence<UsesPortStatistics> UsesPortStatisticsSequence;
 
-    interface UsesPortStatisticsProvider : ExtendedCF::NegotiableUsesPort {
+    interface UsesPortStatisticsProvider : ExtendedCF::QueryablePort {
         readonly attribute UsesPortStatisticsSequence statistics;
     };
 };

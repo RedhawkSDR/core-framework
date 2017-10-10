@@ -95,7 +95,7 @@ namespace redhawk {
 
     class UsesPort : public Port_Uses_base_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
-                   , public virtual POA_ExtendedCF::NegotiableUsesPort
+                   , public virtual POA_ExtendedCF::QueryablePort
 #endif
     {
     public:
@@ -149,8 +149,6 @@ namespace redhawk {
         virtual void disconnectPort(const char* connectionId);
 
         virtual ExtendedCF::UsesConnectionSequence* connections();
-
-        virtual ExtendedCF::ConnectionStatusSequence* connectionStatus();
 
         void setLogger(LOGGER newLogger);
 
@@ -234,12 +232,19 @@ namespace redhawk {
     };
 
     class NegotiableUsesPort : public UsesPort
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+                             , public virtual POA_ExtendedCF::NegotiableUsesPort
+#endif
     {
     public:
         NegotiableUsesPort(const std::string& name);
         virtual ~NegotiableUsesPort();
 
         virtual void initializePort();
+
+        virtual ExtendedCF::TransportInfoSequence* supportedTransports();
+
+        virtual ExtendedCF::ConnectionStatusSequence* connectionStatus();
 
     protected:
         virtual void _initializeTransports()
