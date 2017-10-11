@@ -6,6 +6,7 @@
 #include <ossie/shm/HeapClient.h>
 #include <ossie/ProvidesPort.h>
 
+#include <BulkioTransport.h>
 #include <bulkio_in_port.h>
 
 #include "ipcfifo.h"
@@ -13,12 +14,12 @@
 namespace bulkio {
 
     template <typename PortType>
-    class IngressThread : public redhawk::ProvidesTransport {
+    class IngressThread : public InputTransport<PortType> {
     public:
         typedef InPort<PortType> InPortType;
         
         IngressThread(InPortType* port) :
-            _inPort(port)
+            InputTransport<PortType>(port)
         {
         }
 
@@ -43,17 +44,9 @@ namespace bulkio {
             _run();
         }
 
-        typedef typename InPortType::BufferType BufferType;
-
-        inline void _queuePacket(const BufferType& data, const BULKIO::PrecisionUTCTime& T, bool eos, const std::string& streamID)
-        {
-          _inPort->queuePacket(data, T, eos, streamID);
-        }
-
         virtual void _threadStarted() { }
         virtual void _run() = 0;
 
-        InPortType* _inPort;
         boost::thread _thread;
     };
 

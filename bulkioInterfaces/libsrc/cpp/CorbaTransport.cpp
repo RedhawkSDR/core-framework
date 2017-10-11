@@ -28,16 +28,16 @@
 namespace bulkio {
 
     template <typename PortType>
-    class CorbaTransport : public PortTransport<PortType>
+    class CorbaTransport : public OutputTransport<PortType>
     {
     public:
         typedef typename PortType::_ptr_type PtrType;
-        typedef typename PortTransport<PortType>::BufferType BufferType;
+        typedef typename OutputTransport<PortType>::BufferType BufferType;
         typedef typename CorbaTraits<PortType>::SequenceType SequenceType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
         CorbaTransport(const std::string& connectionId, const std::string& name, PtrType port) :
-            PortTransport<PortType>(connectionId, name, port)
+            OutputTransport<PortType>(connectionId, name, port)
         {
         }
 
@@ -61,7 +61,7 @@ namespace bulkio {
             // Set a timeout for the duration of this call, in case the remote
             // side is in a bad state.
             omniORB::setClientCallTimeout(this->_port, 1000);
-            PortTransport<PortType>::disconnect();
+            OutputTransport<PortType>::disconnect();
             omniORB::setClientCallTimeout(this->_port, 0);
         }
 
@@ -124,7 +124,7 @@ namespace bulkio {
     {
     public:
         typedef typename PortType::_ptr_type PtrType;
-        typedef typename PortTransport<PortType>::BufferType BufferType;
+        typedef typename OutputTransport<PortType>::BufferType BufferType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
         ChunkingTransport(const std::string& connectionId, const std::string& name, PtrType port) :
@@ -197,13 +197,13 @@ namespace bulkio {
     };
 
     template <typename PortType>
-    PortTransport<PortType>* CorbaTransportFactory<PortType>::Create(const std::string& connectionId, const std::string& name, PtrType port)
+    OutputTransport<PortType>* CorbaTransportFactory<PortType>::Create(const std::string& connectionId, const std::string& name, PtrType port)
     {
         return new ChunkingTransport<PortType>(connectionId, name, port);
     }
 
     template <>
-    PortTransport<BULKIO::dataFile>*
+    OutputTransport<BULKIO::dataFile>*
     CorbaTransportFactory<BULKIO::dataFile>::Create(const std::string& connectionId,
                                                     const std::string& name,
                                                     PtrType port)
@@ -212,7 +212,7 @@ namespace bulkio {
     }
 
     template <>
-    PortTransport<BULKIO::dataXML>*
+    OutputTransport<BULKIO::dataXML>*
     CorbaTransportFactory<BULKIO::dataXML>::Create(const std::string& connectionId,
                                                    const std::string& name,
                                                    PtrType port)

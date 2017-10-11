@@ -23,22 +23,23 @@
 #include "ipcfifo.h"
 #include "MessageBuffer.h"
 
-#include <bulkio/bulkio_in_port.h>
+#include <bulkio_in_port.h>
+#include <bulkio_out_port.h>
 
 #include "bulkio_p.h"
 
 namespace bulkio {
 
     template <typename PortType>
-    class ShmTransport : public PortTransport<PortType>
+    class ShmTransport : public OutputTransport<PortType>
     {
     public:
         typedef typename PortType::_ptr_type PtrType;
-        typedef typename PortTransport<PortType>::BufferType BufferType;
+        typedef typename OutputTransport<PortType>::BufferType BufferType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
         ShmTransport(const std::string& connectionId, const std::string& name, IPCFifo* fifo, PtrType port) :
-            PortTransport<PortType>(connectionId, name, port),
+            OutputTransport<PortType>(connectionId, name, port),
             _fifo(fifo)
         {
         }
@@ -65,7 +66,7 @@ namespace bulkio {
 
         virtual void disconnect()
         {
-            PortTransport<PortType>::disconnect();
+            OutputTransport<PortType>::disconnect();
             _fifo->close();
         }
 
@@ -137,22 +138,22 @@ namespace bulkio {
     };
 
     template <typename PortType>
-    ShmUsesTransportManager<PortType>::ShmUsesTransportManager(const std::string& name) :
-        _name(name)
+    ShmOutputManager<PortType>::ShmOutputManager(OutPort<PortType>* port) :
+        OutputManager<PortType>(port)
     {
     }
 
     template <typename PortType>
-    std::string ShmUsesTransportManager<PortType>::transportName()
+    std::string ShmOutputManager<PortType>::transportName()
     {
         return "shmipc";
     }
 
     template <typename PortType>
-    redhawk::UsesTransport*
-    ShmUsesTransportManager<PortType>::createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
-                                                           const std::string& connectionId,
-                                                           const CF::Properties& properties)
+    OutputTransport<PortType>*
+    ShmOutputManager<PortType>::createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
+                                                    const std::string& connectionId,
+                                                    const CF::Properties& properties)
     {
         // For testing, allow disabling
         const char* shm_env = getenv("BULKIO_SHM");
@@ -173,7 +174,7 @@ namespace bulkio {
         }
 
         RH_NL_DEBUG("ShmTransport", "Attempting to negotiate shared memory IPC");
-        IPCFifo* fifo = new IPCFifoServer(_name + "-fifo");
+        IPCFifo* fifo = new IPCFifoServer(this->_port->getName() + "-fifo");
         redhawk::PropertyMap props;
         props["fifo"] = fifo->name();
         fifo->beginConnect();
@@ -188,11 +189,11 @@ namespace bulkio {
         fifo->finishConnect();
 
         typename PortType::_var_type bulkio_port = ossie::corba::_narrowSafe<PortType>(negotiablePort);
-        return new ShmTransport<PortType>(connectionId, _name, fifo, bulkio_port);
+        return new ShmTransport<PortType>(connectionId, this->_port->getName(), fifo, bulkio_port);
     }
 
     template <typename PortType>
-    class ShmTransportFactory : public redhawk::TransportFactory
+    class ShmTransportFactory : public BulkioTransportFactory<PortType>
     {
     public:
         ShmTransportFactory()
@@ -204,27 +205,20 @@ namespace bulkio {
             return "shmipc";
         }
 
-        virtual std::string repid()
+        virtual InputManager<PortType>* createInputManager(InPort<PortType>* port)
         {
-            return PortType::_PD_repoId;
+            return new ShmInputManager<PortType>(port);
         }
 
-        virtual redhawk::ProvidesTransportManager* createProvidesManager(redhawk::NegotiableProvidesPortBase* port)
+        virtual OutputManager<PortType>* createOutputManager(OutPort<PortType>* port)
         {
-            typedef InPort<PortType> InPortType;
-            InPortType* bulkio_port = dynamic_cast<InPortType*>(port);
-            return new ShmProvidesTransportManager<PortType>(bulkio_port);
-        }
-
-        virtual ShmUsesTransportManager<PortType>* createUsesManager(redhawk::NegotiableUsesPort* port)
-        {
-            return new ShmUsesTransportManager<PortType>(port->getName());
+            return new ShmOutputManager<PortType>(port);
         }
     };
 
 #define INSTANTIATE_TEMPLATE(x)                 \
     template class ShmTransport<x>;             \
-    template class ShmUsesTransportManager<x>;  \
+    template class ShmOutputManager<x>;         \
     template class ShmTransportFactory<x>;
 
     FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_TEMPLATE);

@@ -20,7 +20,7 @@
 #ifndef __bulkio_corbatransport_h
 #define __bulkio_corbatransport_h
 
-#include "bulkio_transport.h"
+#include <BulkioTransport.h>
 
 namespace bulkio {
 
@@ -29,9 +29,9 @@ namespace bulkio {
     public:
         typedef typename PortType::_ptr_type PtrType;
 
-        static PortTransport<PortType>* Create(const std::string& connectionId,
-                                               const std::string& name,
-                                               PtrType port);
+        static OutputTransport<PortType>* Create(const std::string& connectionId,
+                                                 const std::string& name,
+                                                 PtrType port);
     };
 
 }

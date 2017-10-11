@@ -41,6 +41,7 @@ namespace redhawk {
         ~NegotiableProvidesPortBase();
 
         virtual void initializePort();
+        virtual void releasePort();
 
         virtual ExtendedCF::TransportInfoSequence* supportedTransports();
         virtual ExtendedCF::NegotiationResult* negotiateTransport(const char* protocol, const CF::Properties& props);

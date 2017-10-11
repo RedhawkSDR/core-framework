@@ -27,14 +27,12 @@
 #include "ingress_thread.h"
 
 namespace bulkio {
-    template <typename PortType>
-    class InPort;
 
     template <typename PortType>
-    class ShmProvidesTransportManager : public redhawk::ProvidesTransportManager {
+    class ShmInputManager : public InputManager<PortType> {
     public:
-        ShmProvidesTransportManager(InPort<PortType>* port) :
-            _port(port)
+        ShmInputManager(InPort<PortType>* port) :
+            InputManager<PortType>(port)
         {
         }
 
@@ -66,9 +64,6 @@ namespace bulkio {
             ossie::corba::push_back(properties, redhawk::PropertyType("hostname", std::string(host)));
             return properties;
         }
-
-    private:
-        InPort<PortType>* _port;
     };
 }
 

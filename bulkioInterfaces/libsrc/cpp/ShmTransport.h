@@ -24,24 +24,21 @@
 #include <ossie/ProvidesPort.h>
 #include <ossie/UsesPort.h>
 
-#include "bulkio_transport.h"
+#include <BulkioTransport.h>
 
 namespace bulkio {
 
     template <typename PortType>
-    class ShmUsesTransportManager : public redhawk::UsesTransportManager
+    class ShmOutputManager : public OutputManager<PortType>
     {
     public:
-        ShmUsesTransportManager(const std::string& name);
+        ShmOutputManager(OutPort<PortType>* port);
 
         virtual std::string transportName();
 
-        virtual redhawk::UsesTransport* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
-                                                            const std::string& connectionId,
-                                                            const CF::Properties& properties);
-
-    private:
-        const std::string _name;
+        virtual OutputTransport<PortType>* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
+                                                               const std::string& connectionId,
+                                                               const CF::Properties& properties);
     };
 
 }

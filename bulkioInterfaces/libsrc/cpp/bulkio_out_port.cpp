@@ -17,16 +17,13 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-/*******************************************************************************************
 
-
- *******************************************************************************************/
-#include "bulkio_out_port.h"
-#include "bulkio_p.h"
-#include "bulkio_transport.h"
+#include <bulkio_out_port.h>
+#include <BulkioTransport.h>
 
 #include "LocalTransport.h"
 #include "CorbaTransport.h"
+#include "bulkio_p.h"
 
 // Suppress warnings for access to deprecated currentSRI member (on gcc 4.4, at
 // least, the implicit destructor call from OutPort's destructor emits a

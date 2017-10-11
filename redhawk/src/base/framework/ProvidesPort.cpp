@@ -42,6 +42,13 @@ namespace redhawk {
         _addTransportManager(transport->transportType(), transport->createProvidesManager(this));
     }
 
+    void NegotiableProvidesPortBase::releasePort()
+    {
+        for (TransportMap::iterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
+            transport->second->stop();
+        }
+    }
+
     ExtendedCF::TransportInfoSequence* NegotiableProvidesPortBase::supportedTransports()
     {
         ExtendedCF::TransportInfoSequence_var transports = new ExtendedCF::TransportInfoSequence;

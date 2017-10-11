@@ -18,15 +18,16 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#include "bulkio_transport.h"
+#include <BulkioTransport.h>
 #include "bulkio_typetraits.h"
 #include "bulkio_in_port.h"
+#include "bulkio_out_port.h"
 #include "bulkio_p.h"
 
 namespace bulkio {
 
     template <typename PortType>
-    PortTransport<PortType>::PortTransport(const std::string& connectionId, const std::string& name, PtrType objref) :
+    OutputTransport<PortType>::OutputTransport(const std::string& connectionId, const std::string& name, PtrType objref) :
         redhawk::UsesTransport(connectionId, objref),
         stats(name, sizeof(NativeType)),
         _port(PortType::_duplicate(objref))
@@ -34,12 +35,12 @@ namespace bulkio {
     }
 
     template <typename PortType>
-    PortTransport<PortType>::~PortTransport()
+    OutputTransport<PortType>::~OutputTransport()
     {
     }
 
     template <typename PortType>
-    void PortTransport<PortType>::disconnect()
+    void OutputTransport<PortType>::disconnect()
     {
         // Send an end-of-stream for all active streams
         for (VersionMap::iterator stream = _sriVersions.begin(); stream != _sriVersions.end(); ++stream) {
@@ -53,7 +54,7 @@ namespace bulkio {
     }
 
     template <typename PortType>
-    void PortTransport<PortType>::pushSRI(const std::string& streamID, const BULKIO::StreamSRI& sri, int version)
+    void OutputTransport<PortType>::pushSRI(const std::string& streamID, const BULKIO::StreamSRI& sri, int version)
     {
         VersionMap::iterator existing = _sriVersions.find(streamID);
         if (existing != _sriVersions.end()) {
@@ -68,7 +69,7 @@ namespace bulkio {
     }
 
     template <typename PortType>
-    void PortTransport<PortType>::pushPacket(const BufferType& data,
+    void OutputTransport<PortType>::pushPacket(const BufferType& data,
                                              const BULKIO::PrecisionUTCTime& T,
                                              bool EOS,
                                              const std::string& streamID,
@@ -81,13 +82,13 @@ namespace bulkio {
     }
 
     template <typename PortType>
-    typename PortTransport<PortType>::PtrType PortTransport<PortType>::port()
+    typename OutputTransport<PortType>::PtrType OutputTransport<PortType>::port()
     {
         return _port;
     }
 
     template <typename PortType>
-    void PortTransport<PortType>::_sendPacket(const BufferType& data,
+    void OutputTransport<PortType>::_sendPacket(const BufferType& data,
                                               const BULKIO::PrecisionUTCTime& T,
                                               bool EOS,
                                               const std::string& streamID,
@@ -98,19 +99,81 @@ namespace bulkio {
     }
 
     template <typename PortType>
-    size_t PortTransport<PortType>::_dataLength(const BufferType& data)
+    size_t OutputTransport<PortType>::_dataLength(const BufferType& data)
     {
         return data.size();
     }
 
     template <>
-    size_t PortTransport<BULKIO::dataFile>::_dataLength(const std::string& /*unused*/)
+    size_t OutputTransport<BULKIO::dataFile>::_dataLength(const std::string& /*unused*/)
     {
         return 1;
     }
 
+    //
+    // InputTransport
+    //
+    template <typename PortType>
+    InputTransport<PortType>::InputTransport(InPortType* port) :
+        _port(port)
+    {
+    }
+
+    //
+    // OutputManager
+    //
+    template <typename PortType>
+    OutputManager<PortType>::OutputManager(OutPortType* port) :
+        _port(port)
+    {
+    }
+
+    //
+    // InputManager
+    //
+    template <typename PortType>
+    InputManager<PortType>::InputManager(InPortType* port) :
+        _port(port)
+    {
+    }
+
+    //
+    // TransportFactory
+    //
+    template <typename PortType>
+    std::string BulkioTransportFactory<PortType>::repid()
+    {
+        return PortType::_PD_repoId;
+    }
+
+    template <typename PortType>
+    redhawk::ProvidesTransportManager*
+    BulkioTransportFactory<PortType>::createProvidesManager(redhawk::NegotiableProvidesPortBase* port)
+    {
+        InPortType* bulkio_port = dynamic_cast<InPortType*>(port);
+        if (!bulkio_port) {
+            throw std::logic_error("incorrect input port type for BulkIO transport factory " + repid());
+        }
+        return this->createInputManager(bulkio_port);
+    }
+
+    template <typename PortType>
+    redhawk::UsesTransportManager*
+    BulkioTransportFactory<PortType>::createUsesManager(redhawk::NegotiableUsesPort* port)
+    {
+        OutPortType* bulkio_port = dynamic_cast<OutPortType*>(port);
+        if (!bulkio_port) {
+            throw std::logic_error("incorrect output port type for BulkIO transport factory " + repid());
+        }
+        return this->createOutputManager(bulkio_port);
+    }
+
 #define INSTANTIATE_TEMPLATE(x)                 \
-    template class PortTransport<x>;
+    template class OutputTransport<x>;          \
+    template class OutputManager<x>;            \
+    template class InputTransport<x>;           \
+    template class InputManager<x>;             \
+    template class BulkioTransportFactory<x>;
 
     FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
 }

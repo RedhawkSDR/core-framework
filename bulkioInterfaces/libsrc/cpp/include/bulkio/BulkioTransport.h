@@ -17,18 +17,24 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-#ifndef __bulkio_transport_h
-#define __bulkio_transport_h
+#ifndef __bulkio_BulkioTransport_h
+#define __bulkio_BulkioTransport_h
 
-#include <ossie/UsesPort.h>
+#include <ossie/Transport.h>
 
 #include "bulkio_base.h"
 #include "bulkio_typetraits.h"
 
 namespace bulkio {
 
+    template <class PortType>
+    class InPort;
+
+    template <class PortType>
+    class OutPort;
+
     template <typename PortType>
-    class PortTransport : public redhawk::UsesTransport
+    class OutputTransport : public redhawk::UsesTransport
     {
     public:
         typedef typename PortType::_var_type VarType;
@@ -36,9 +42,9 @@ namespace bulkio {
         typedef typename NativeTraits<PortType>::NativeType NativeType;
         typedef typename BufferTraits<PortType>::BufferType BufferType;
 
-        PortTransport(const std::string& connectionId, const std::string& name, PtrType objref);
+        OutputTransport(const std::string& connectionId, const std::string& name, PtrType objref);
 
-        virtual ~PortTransport();
+        virtual ~OutputTransport();
 
         virtual void disconnect();
 
@@ -80,6 +86,70 @@ namespace bulkio {
         VersionMap _sriVersions;
     };
 
+    template <class PortType>
+    class InputTransport : public redhawk::ProvidesTransport
+    {
+    public:
+        typedef InPort<PortType> InPortType;
+
+    protected:
+        typedef typename InPortType::BufferType BufferType;
+
+        InputTransport(InPortType* port);
+
+        inline void _queuePacket(const BufferType& data, const BULKIO::PrecisionUTCTime& T, bool eos, const std::string& streamID)
+        {
+          _port->queuePacket(data, T, eos, streamID);
+        }
+
+        InPortType* _port;
+    };
+
+    template <class PortType>
+    class OutputManager : public redhawk::UsesTransportManager
+    {
+    public:
+        typedef OutPort<PortType> OutPortType;
+        typedef OutputTransport<PortType> TransportType;
+        typedef typename PortType::_ptr_type PtrType;
+
+        virtual TransportType* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
+                                                   const std::string& connectionId,
+                                                   const CF::Properties& properties) = 0;
+
+    protected:
+        OutputManager(OutPortType* port);
+
+        OutPortType* _port;
+    };
+
+    template <class PortType>
+    class InputManager : public redhawk::ProvidesTransportManager
+    {
+        typedef InPort<PortType> InPortType;
+
+    protected:
+        InputManager(InPortType* port);
+
+        InPortType* _port;
+    };
+
+    template <class PortType>
+    class BulkioTransportFactory : public redhawk::TransportFactory
+    {
+    public:
+        typedef InPort<PortType> InPortType;
+        typedef OutPort<PortType> OutPortType;
+
+        virtual std::string repid();
+
+        virtual InputManager<PortType>* createInputManager(InPortType* port) = 0;
+        virtual OutputManager<PortType>* createOutputManager(OutPortType* port) = 0;
+
+    private:
+        virtual redhawk::ProvidesTransportManager* createProvidesManager(redhawk::NegotiableProvidesPortBase* port);
+        virtual redhawk::UsesTransportManager* createUsesManager(redhawk::NegotiableUsesPort* port);
+    };
 }
 
-#endif // __bulkio_transport_h
+#endif // __bulkio_BulkioTransport_h

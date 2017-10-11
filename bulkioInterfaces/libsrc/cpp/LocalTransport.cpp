@@ -41,7 +41,7 @@ namespace bulkio {
     template <typename PortType>
     LocalTransport<PortType>::LocalTransport(const std::string& connectionId, const std::string& name,
                                              LocalPortType* localPort, PtrType port) :
-        PortTransport<PortType>(connectionId, name, port),
+        OutputTransport<PortType>(connectionId, name, port),
         _localPort(localPort)
     {
         _localPort->_add_ref();

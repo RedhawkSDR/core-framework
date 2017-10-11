@@ -99,17 +99,6 @@ namespace bulkio {
 
 
   template <typename PortType>
-  void InPort<PortType>::releasePort()
-  {
-    TRACE_ENTER(logger, "InPort::releasePort");
-    for (typename IngressThreadList::iterator thread = ingressThreads.begin(); thread != ingressThreads.end(); ++thread) {
-        (*thread)->stop();
-    }
-    TRACE_EXIT(logger, "InPort::releasePort");
-  }
-  
-
-  template <typename PortType>
   BULKIO::PortStatistics * InPort<PortType>::statistics()
   {
     SCOPED_LOCK lock(dataBufferLock);

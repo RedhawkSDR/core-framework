@@ -20,7 +20,7 @@
 #ifndef __bulkio_localtransport_h
 #define __bulkio_localtransport_h
 
-#include "bulkio_transport.h"
+#include <BulkioTransport.h>
 
 namespace bulkio {
 
@@ -28,11 +28,11 @@ namespace bulkio {
     class InPort;
 
     template <typename PortType>
-    class LocalTransport : public PortTransport<PortType>
+    class LocalTransport : public OutputTransport<PortType>
     {
     public:
         typedef typename PortType::_ptr_type PtrType;
-        typedef typename PortTransport<PortType>::BufferType BufferType;
+        typedef typename OutputTransport<PortType>::BufferType BufferType;
         typedef InPort<PortType> LocalPortType;
 
         static LocalTransport* Factory(const std::string& connectionId, const std::string& name,

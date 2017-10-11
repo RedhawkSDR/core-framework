@@ -47,8 +47,7 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/bulkio_time_operators.cpp \
     cpp/bulkio_datablock.cpp \
     cpp/bulkio_p.h \
-    cpp/bulkio_transport.h \
-    cpp/bulkio_transport.cpp \
+    cpp/BulkioTransport.cpp \
     cpp/CorbaTransport.h \
     cpp/CorbaTransport.cpp \
     cpp/LocalTransport.h \
@@ -64,6 +63,7 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
 library_includedir = $(includedir)/bulkio
 library_include_HEADERS = cpp/include/bulkio/bulkio.h \
 	cpp/include/bulkio/BULKIO_Interfaces.h \
+	cpp/include/bulkio/BulkioTransport.h \
 	cpp/include/bulkio/bulkio_base.h \
 	cpp/include/bulkio/bulkio_callbacks.h \
 	cpp/include/bulkio/bulkio_traits.h \

@@ -42,7 +42,7 @@ namespace bulkio {
   class LocalTransport;
 
   template <typename PortType>
-  class IngressThread;
+  class InputTransport;
 
   template <class PortType>
   struct InStreamTraits {
@@ -225,9 +225,6 @@ namespace bulkio {
     //
     virtual void stopPort();
 
-    //
-    virtual void releasePort();
-
     /*
      * blocked
      *
@@ -386,10 +383,7 @@ namespace bulkio {
     std::multimap<std::string,StreamType> pendingStreams;
 
     // Allow non-CORBA data ingress (shared memory, VITA49)
-    friend class IngressThread<PortType>;
-    typedef IngressThread<PortType> IngressThreadType;
-    typedef std::vector<IngressThreadType*> IngressThreadList;
-    IngressThreadList ingressThreads;
+    friend class InputTransport<PortType>;
 
     //
     // Queues a packet received via pushPacket; in most cases, this method maps
