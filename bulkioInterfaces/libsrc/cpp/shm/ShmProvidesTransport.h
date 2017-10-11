@@ -24,7 +24,7 @@
 #include <ossie/ProvidesPort.h>
 
 #include "ipcfifo.h"
-#include "ingress_thread.h"
+#include "ShmInputTransport.h"
 
 namespace bulkio {
 
@@ -36,7 +36,7 @@ namespace bulkio {
         {
         }
 
-        IngressThread<PortType>* createProvidesTransport(const redhawk::PropertyMap& properties)
+        ShmInputTransport<PortType>* createProvidesTransport(const redhawk::PropertyMap& properties)
         {
             if (!properties.contains("fifo")) {
                 throw ExtendedCF::NegotiationError("Invalid properties for shared memory connection");
@@ -50,7 +50,7 @@ namespace bulkio {
                 std::string message = "Failed to connect to FIFO " + location;
                 throw ExtendedCF::NegotiationError(message.c_str());
             }
-            return new ShmIngressThread<PortType>(this->_port, fifo);
+            return new ShmInputTransport<PortType>(this->_port, fifo);
         }
 
         virtual CF::Properties transportProperties()

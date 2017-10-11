@@ -1,4 +1,4 @@
-#include "ingress_thread.h"
+#include "ShmInputTransport.h"
 #include "ipcfifo.h"
 #include "MessageBuffer.h"
 #include "bulkio_p.h"
@@ -6,28 +6,36 @@
 namespace bulkio {
 
     template <class PortType>
-    ShmIngressThread<PortType>::ShmIngressThread(InPortType* port, IPCFifo* fifo) :
-        IngressThread<PortType>(port),
+    ShmInputTransport<PortType>::ShmInputTransport(InPortType* port, IPCFifo* fifo) :
+        InputTransport<PortType>(port),
         _fifo(fifo)
     {
     }
 
     template <class PortType>
-    ShmIngressThread<PortType>::~ShmIngressThread()
+    ShmInputTransport<PortType>::~ShmInputTransport()
     {
         _fifo->close();
         delete _fifo;
     }
 
     template <class PortType>
-    void ShmIngressThread<PortType>::_threadStarted()
+    void ShmInputTransport<PortType>::start()
     {
-        _fifo->finishConnect();
+        _thread = boost::thread(&ShmInputTransport::_run, this);
     }
 
     template <class PortType>
-    void ShmIngressThread<PortType>::_run()
+    void ShmInputTransport<PortType>::stop()
     {
+        // TODO: stop input thread
+    }
+
+    template <class PortType>
+    void ShmInputTransport<PortType>::_run()
+    {
+        _fifo->finishConnect();
+
         while (true) {
             BULKIO::PrecisionUTCTime T;
             bool EOS;
@@ -99,8 +107,7 @@ namespace bulkio {
     }
 
 #define INSTANTIATE_NUMERIC_TEMPLATE(x) \
-    template class IngressThread<x>;    \
-    template class ShmIngressThread<x>;
+    template class ShmInputTransport<x>;
 
     FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
 }

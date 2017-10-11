@@ -1,6 +1,8 @@
 #ifndef __bulkio_messagebuffer_h
 #define __bulkio_messagebuffer_h
 
+#include <vector>
+
 namespace bulkio {
     class MessageBuffer {
     public:
