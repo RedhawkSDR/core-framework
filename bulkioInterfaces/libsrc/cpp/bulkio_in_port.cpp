@@ -27,7 +27,6 @@
 
 #include "ipcfifo.h"
 #include "ingress_thread.h"
-#include "ShmProvidesTransport.h"
 
 namespace bulkio {
 
@@ -808,12 +807,6 @@ namespace bulkio {
   InNumericPort<PortType>::InNumericPort(std::string port_name, void* /*unused*/) :
     InPort<PortType>(port_name, LOGGER_PTR())
   {
-  }
-
-  template <typename PortType>
-  void InNumericPort<PortType>::_initializeTransports()
-  {
-      _addTransportManager("shmipc", new ShmProvidesTransportManager<PortType>(this));
   }
 
   template <typename PortType>

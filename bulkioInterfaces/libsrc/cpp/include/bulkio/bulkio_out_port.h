@@ -335,8 +335,6 @@ namespace bulkio {
     //
     virtual ~OutNumericPort();
 
-    virtual void _initializeTransports();
-
     /*
      * pushPacket
      *     maps to data<Type> BULKIO method call for passing a limited amount of data from a source vector

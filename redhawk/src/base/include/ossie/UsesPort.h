@@ -2,14 +2,14 @@
  * This file is protected by Copyright. Please refer to the COPYRIGHT file
  * distributed with this source distribution.
  *
- * This file is part of REDHAWK GPP.
+ * This file is part of REDHAWK core.
  *
- * REDHAWK GPP is free software: you can redistribute it and/or modify it
+ * REDHAWK core is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by the
  * Free Software Foundation, either version 3 of the License, or (at your
  * option) any later version.
  *
- * REDHAWK GPP is distributed in the hope that it will be useful, but WITHOUT
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
  * for more details.
@@ -32,66 +32,9 @@
 #include "Port_impl.h"
 #include "callback.h"
 #include "debug.h"
+#include "Transport.h"
 
 namespace redhawk {
-    class TransportError : public std::runtime_error
-    {
-    public:
-        TransportError(const std::string& message) :
-            std::runtime_error(message)
-        {
-        }
-    };
-
-    class TransportTimeoutError : public TransportError
-    {
-    public:
-        TransportTimeoutError(const std::string& message) :
-            TransportError(message)
-        {
-        }
-    };
-
-    class FatalTransportError : public TransportError
-    {
-    public:
-        FatalTransportError(const std::string& message) :
-            TransportError(message)
-        {
-        }
-    };
-
-    class UsesTransport
-    {
-    public:
-        UsesTransport(const std::string& connectionId, CORBA::Object_ptr objref);
-        virtual ~UsesTransport() { }
-
-        const std::string& connectionId() const;
-        CORBA::Object_ptr objref() const;
-
-        virtual std::string transportType() const
-        {
-            return "";
-        }
-
-        virtual CF::Properties transportInfo() const
-        {
-            return CF::Properties();
-        }
-
-        virtual std::string getDescription() const;
-
-        bool isAlive() const;
-        void setAlive(bool alive);
-
-        virtual void disconnect() { }
-
-    private:
-        const std::string _connectionId;
-        CORBA::Object_var _objref;
-        bool _alive;
-    };
 
     class UsesPort : public Port_Uses_base_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
@@ -217,20 +160,6 @@ namespace redhawk {
         ossie::notification<void (const std::string&)> _portDisconnected;
     };
 
-    class UsesTransportManager
-    {
-    public:
-        virtual ~UsesTransportManager()
-        {
-        }
-
-        virtual std::string transportName() = 0;
-
-        virtual UsesTransport* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
-                                                   const std::string& connectionId,
-                                                   const CF::Properties& properties) = 0;
-    };
-
     class NegotiableUsesPort : public UsesPort
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
                              , public virtual POA_ExtendedCF::NegotiableUsesPort
@@ -247,10 +176,6 @@ namespace redhawk {
         virtual ExtendedCF::ConnectionStatusSequence* connectionStatus();
 
     protected:
-        virtual void _initializeTransports()
-        {
-        }
-
         virtual UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
         virtual UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);

@@ -27,7 +27,6 @@
 
 #include "LocalTransport.h"
 #include "CorbaTransport.h"
-#include "ShmTransport.h"
 
 // Suppress warnings for access to deprecated currentSRI member (on gcc 4.4, at
 // least, the implicit destructor call from OutPort's destructor emits a
@@ -433,12 +432,6 @@ namespace bulkio {
   template <typename PortType>
   OutNumericPort<PortType>::~OutNumericPort()
   {
-  }
-
-  template <typename PortType>
-  void OutNumericPort<PortType>::_initializeTransports()
-  {
-      this->_transportManagers.push_back(new ShmUsesTransportManager<PortType>(this->name));
   }
 
   template <typename PortType>

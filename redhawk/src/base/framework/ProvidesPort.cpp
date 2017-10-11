@@ -35,7 +35,11 @@ namespace redhawk {
      
     void NegotiableProvidesPortBase::initializePort()
     {
-        _initializeTransports();
+        const std::string repid = getRepid();
+        TransportFactory* transport = TransportRegistry::GetTransport(repid);
+        RH_NL_INFO("NegotiableProvidesPortBase", "Adding provides transport '" << transport->transportType()
+                   << "' for '" << transport->repid() << "'");
+        _addTransportManager(transport->transportType(), transport->createProvidesManager(this));
     }
 
     ExtendedCF::TransportInfoSequence* NegotiableProvidesPortBase::supportedTransports()

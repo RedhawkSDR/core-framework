@@ -508,8 +508,6 @@ namespace bulkio {
     // Shared buffer type used for local transfers
     typedef typename InPort<PortType>::BufferType BufferType;
 
-    void _initializeTransports();
-
     typedef InPort<PortType> super;
     using super::packetWaiters;
     using super::logger;

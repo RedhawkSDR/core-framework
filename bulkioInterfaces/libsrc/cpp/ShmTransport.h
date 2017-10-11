@@ -21,6 +21,8 @@
 #define __bulkio_shmtransport_h
 
 #include <ossie/PropertyMap.h>
+#include <ossie/ProvidesPort.h>
+#include <ossie/UsesPort.h>
 
 #include "bulkio_transport.h"
 

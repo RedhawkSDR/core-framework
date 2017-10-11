@@ -2,14 +2,14 @@
  * This file is protected by Copyright. Please refer to the COPYRIGHT file
  * distributed with this source distribution.
  *
- * This file is part of REDHAWK GPP.
+ * This file is part of REDHAWK core.
  *
- * REDHAWK GPP is free software: you can redistribute it and/or modify it
+ * REDHAWK core is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by the
  * Free Software Foundation, either version 3 of the License, or (at your
  * option) any later version.
  *
- * REDHAWK GPP is distributed in the hope that it will be useful, but WITHOUT
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
  * for more details.
@@ -216,7 +216,11 @@ namespace redhawk {
 
     void NegotiableUsesPort::initializePort()
     {
-        _initializeTransports();
+        const std::string repid = getRepid();
+        TransportFactory* transport = TransportRegistry::GetTransport(repid);
+        RH_INFO(logger, "Adding uses transport '" << transport->transportType()
+                << "' for '" << transport->repid() << "'");
+        _transportManagers.push_back(transport->createUsesManager(this));
     }
 
     ExtendedCF::TransportInfoSequence* NegotiableUsesPort::supportedTransports()

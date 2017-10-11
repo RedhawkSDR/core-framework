@@ -27,43 +27,9 @@
 #include "CF/NegotiablePort.h"
 #include "Port_impl.h"
 #include "Autocomplete.h"
+#include "Transport.h"
 
 namespace redhawk {
-
-    class ProvidesTransport
-    {
-    public:
-        ProvidesTransport()
-        {
-        }
-
-        virtual ~ProvidesTransport()
-        {
-        }
-
-        virtual void start()
-        {
-        }
-
-        virtual void stop()
-        {
-        }
-    };
-
-    class ProvidesTransportManager
-    {
-    public:
-        ProvidesTransportManager()
-        {
-        }
-
-        virtual ProvidesTransport* createInput(const CF::Properties& properties) = 0;
-
-        virtual CF::Properties transportProperties()
-        {
-            return CF::Properties();
-        }
-    };
 
     class NegotiableProvidesPortBase : public Port_Provides_base_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
@@ -81,10 +47,6 @@ namespace redhawk {
         virtual void disconnectTransport(const char* connectionId);
 
     protected:
-        virtual void _initializeTransports()
-        {
-        }
-
         void _addTransportManager(const std::string& transport, ProvidesTransportManager* manager);
 
         ProvidesTransportManager* _getTransportManager(const std::string& protocol);

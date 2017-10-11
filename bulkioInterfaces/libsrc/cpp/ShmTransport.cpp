@@ -19,8 +19,11 @@
  */
 
 #include "ShmTransport.h"
+#include "ShmProvidesTransport.h"
 #include "ipcfifo.h"
 #include "MessageBuffer.h"
+
+#include <bulkio/bulkio_in_port.h>
 
 #include "bulkio_p.h"
 
@@ -188,9 +191,51 @@ namespace bulkio {
         return new ShmTransport<PortType>(connectionId, _name, fifo, bulkio_port);
     }
 
+    template <typename PortType>
+    class ShmTransportFactory : public redhawk::TransportFactory
+    {
+    public:
+        ShmTransportFactory()
+        {
+        }
+
+        virtual std::string transportType()
+        {
+            return "shmipc";
+        }
+
+        virtual std::string repid()
+        {
+            return PortType::_PD_repoId;
+        }
+
+        virtual redhawk::ProvidesTransportManager* createProvidesManager(redhawk::NegotiableProvidesPortBase* port)
+        {
+            typedef InPort<PortType> InPortType;
+            InPortType* bulkio_port = dynamic_cast<InPortType*>(port);
+            return new ShmProvidesTransportManager<PortType>(bulkio_port);
+        }
+
+        virtual ShmUsesTransportManager<PortType>* createUsesManager(redhawk::NegotiableUsesPort* port)
+        {
+            return new ShmUsesTransportManager<PortType>(port->getName());
+        }
+    };
+
 #define INSTANTIATE_TEMPLATE(x)                 \
     template class ShmTransport<x>;             \
-    template class ShmUsesTransportManager<x>;
+    template class ShmUsesTransportManager<x>;  \
+    template class ShmTransportFactory<x>;
 
     FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_TEMPLATE);
+
+    static int initializeModule()
+    {
+#define REGISTER_FACTORY(x) redhawk::TransportRegistry::RegisterTransport(new ShmTransportFactory<x>);
+        FOREACH_NUMERIC_PORT_TYPE(REGISTER_FACTORY);
+
+        return 0;
+    }
+
+    static int initialized = initializeModule();
 }
