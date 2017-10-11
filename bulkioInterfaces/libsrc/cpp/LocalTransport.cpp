@@ -20,7 +20,8 @@
 
 #include "LocalTransport.h"
 
-#include <bulkio/bulkio_in_port.h>
+#include <bulkio_in_port.h>
+
 #include "bulkio_p.h"
 
 namespace bulkio {
