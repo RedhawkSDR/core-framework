@@ -69,7 +69,7 @@ namespace redhawk {
             throw ExtendedCF::NegotiationError(message.c_str());
         }
 
-        ProvidesTransport* transport = manager->createInput(props);
+        ProvidesTransport* transport = manager->createProvidesTransport(redhawk::PropertyMap::cast(props));
         transport->start();
 
         std::string negotiationId = ossie::generateUUID();

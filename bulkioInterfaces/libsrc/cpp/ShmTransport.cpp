@@ -153,7 +153,7 @@ namespace bulkio {
     OutputTransport<PortType>*
     ShmOutputManager<PortType>::createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
                                                     const std::string& connectionId,
-                                                    const CF::Properties& properties)
+                                                    const redhawk::PropertyMap& properties)
     {
         // For testing, allow disabling
         const char* shm_env = getenv("BULKIO_SHM");
@@ -161,14 +161,12 @@ namespace bulkio {
             return 0;
         }
 
-        const redhawk::PropertyMap& transportProps = redhawk::PropertyMap::cast(properties);
-
         // If the other end of the connection has a different hostname, it
         // is reasonable to assume that we cannot use shared memory
         char host[HOST_NAME_MAX+1];
         gethostname(host, sizeof(host));
         const std::string hostname(host);
-        if (transportProps.get("hostname", "").toString() != hostname) {
+        if (properties.get("hostname", "").toString() != hostname) {
             RH_NL_TRACE("ShmTransport", "Connection '" << connectionId << "' is on another host");
             return 0;
         }

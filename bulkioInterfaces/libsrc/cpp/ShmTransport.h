@@ -38,7 +38,7 @@ namespace bulkio {
 
         virtual OutputTransport<PortType>* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
                                                                const std::string& connectionId,
-                                                               const CF::Properties& properties);
+                                                               const redhawk::PropertyMap& properties);
     };
 
 }

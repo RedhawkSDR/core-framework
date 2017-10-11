@@ -28,6 +28,7 @@
 #include <omniORB4/CORBA.h>
 
 #include "CF/NegotiablePort.h"
+#include "PropertyMap.h"
 
 namespace redhawk {
 
@@ -100,9 +101,14 @@ namespace redhawk {
 
         virtual std::string transportName() = 0;
 
+        virtual CF::Properties transportProperties()
+        {
+            return CF::Properties();
+        }
+
         virtual UsesTransport* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
                                                    const std::string& connectionId,
-                                                   const CF::Properties& properties) = 0;
+                                                   const redhawk::PropertyMap& properties) = 0;
     };
 
     class ProvidesTransport
@@ -132,7 +138,7 @@ namespace redhawk {
         {
         }
 
-        virtual ProvidesTransport* createInput(const CF::Properties& properties) = 0;
+        virtual ProvidesTransport* createProvidesTransport(const redhawk::PropertyMap& properties) = 0;
 
         virtual CF::Properties transportProperties()
         {

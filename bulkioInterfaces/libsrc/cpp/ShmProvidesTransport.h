@@ -36,13 +36,12 @@ namespace bulkio {
         {
         }
 
-        IngressThread<PortType>* createInput(const CF::Properties& properties)
+        IngressThread<PortType>* createProvidesTransport(const redhawk::PropertyMap& properties)
         {
-            const redhawk::PropertyMap& shm_props = redhawk::PropertyMap::cast(properties);
-            if (!shm_props.contains("fifo")) {
+            if (!properties.contains("fifo")) {
                 throw ExtendedCF::NegotiationError("Invalid properties for shared memory connection");
             }
-            const std::string location = shm_props["fifo"].toString();
+            const std::string location = properties["fifo"].toString();
             IPCFifo* fifo = new IPCFifoClient(location);
             try {
                 fifo->beginConnect();

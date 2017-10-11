@@ -115,7 +115,7 @@ namespace bulkio {
 
         virtual TransportType* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
                                                    const std::string& connectionId,
-                                                   const CF::Properties& properties) = 0;
+                                                   const redhawk::PropertyMap& properties) = 0;
 
     protected:
         OutputManager(OutPortType* port);
@@ -127,6 +127,9 @@ namespace bulkio {
     class InputManager : public redhawk::ProvidesTransportManager
     {
         typedef InPort<PortType> InPortType;
+        typedef InputTransport<PortType> TransportType;
+
+        virtual TransportType* createProvidesTransport(const redhawk::PropertyMap& properties) = 0;
 
     protected:
         InputManager(InPortType* port);
