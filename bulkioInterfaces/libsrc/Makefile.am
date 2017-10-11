@@ -52,12 +52,14 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/CorbaTransport.cpp \
     cpp/LocalTransport.h \
     cpp/LocalTransport.cpp \
-    cpp/ShmTransport.h \
-    cpp/ShmTransport.cpp \
-    cpp/ipcfifo.h \
-    cpp/ipcfifo.cpp \
-    cpp/ingress_thread.h \
-    cpp/ingress_thread.cpp
+    cpp/shm/MessageBuffer.h \
+    cpp/shm/ShmProvidesTransport.h \
+    cpp/shm/ShmTransport.h \
+    cpp/shm/ShmTransport.cpp \
+    cpp/shm/ipcfifo.h \
+    cpp/shm/ipcfifo.cpp \
+    cpp/shm/ingress_thread.h \
+    cpp/shm/ingress_thread.cpp
 
 ## Define the list of public header files and their install location.
 library_includedir = $(includedir)/bulkio

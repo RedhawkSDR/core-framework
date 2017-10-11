@@ -25,9 +25,6 @@
 #include <bulkio_p.h>
 #include <bulkio_in_port.h>
 
-#include "ipcfifo.h"
-#include "ingress_thread.h"
-
 namespace bulkio {
 
   // ----------------------------------------------------------------------------------------
