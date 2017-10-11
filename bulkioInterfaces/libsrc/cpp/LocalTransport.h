@@ -25,9 +25,6 @@
 namespace bulkio {
 
     template <typename PortType>
-    class InPort;
-
-    template <typename PortType>
     class LocalTransport : public OutputTransport<PortType>
     {
     public:
@@ -36,7 +33,7 @@ namespace bulkio {
         typedef InPort<PortType> LocalPortType;
 
         static LocalTransport* Factory(const std::string& connectionId, const std::string& name,
-                                       PortBase* localPort, PtrType port);
+                                       PortBase* port);
 
         LocalTransport(const std::string& connectionId, const std::string& name,
                        LocalPortType* localPort, PtrType port);

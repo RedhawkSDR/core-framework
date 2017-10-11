@@ -258,8 +258,7 @@ namespace bulkio {
   redhawk::UsesTransport*
   OutPort<PortType>::_createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId)
   {
-      PortVarType bulkio_port = ossie::corba::_narrowSafe<PortType>(object);
-      return LocalTransport<PortType>::Factory(connectionId, name, port, bulkio_port);
+      return LocalTransport<PortType>::Factory(connectionId, name, port);
   }
 
   template <typename PortType>
