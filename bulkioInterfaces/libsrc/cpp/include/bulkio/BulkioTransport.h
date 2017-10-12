@@ -58,7 +58,7 @@ namespace bulkio {
 
         PtrType port();
 
-        linkStatistics stats;
+        BULKIO::PortStatistics getStatistics();
 
     protected:
         virtual void _pushSRI(const BULKIO::StreamSRI& sri) = 0;
@@ -74,6 +74,8 @@ namespace bulkio {
                                  bool EOS,
                                  const std::string& streamID) = 0;
 
+        void _recordPush(const std::string& streamID, size_t elements, bool endOfStream);
+
         //
         // Returns the total number of elements of data in a pushPacket call, for
         // statistical tracking; enables XML and File specialization, which have
@@ -84,6 +86,9 @@ namespace bulkio {
         VarType _port;
         typedef std::map<std::string,int> VersionMap;
         VersionMap _sriVersions;
+
+    private:
+        linkStatistics _stats;
     };
 
     template <class PortType>

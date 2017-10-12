@@ -29,8 +29,8 @@ namespace bulkio {
     template <typename PortType>
     OutputTransport<PortType>::OutputTransport(const std::string& connectionId, const std::string& name, PtrType objref) :
         redhawk::UsesTransport(connectionId, objref),
-        stats(name, sizeof(NativeType)),
-        _port(PortType::_duplicate(objref))
+        _port(PortType::_duplicate(objref)),
+        _stats(name, sizeof(NativeType))
     {
     }
 
@@ -88,14 +88,26 @@ namespace bulkio {
     }
 
     template <typename PortType>
+    BULKIO::PortStatistics OutputTransport<PortType>::getStatistics()
+    {
+        return _stats.retrieve();
+    }
+
+    template <typename PortType>
     void OutputTransport<PortType>::_sendPacket(const BufferType& data,
-                                              const BULKIO::PrecisionUTCTime& T,
-                                              bool EOS,
-                                              const std::string& streamID,
-                                              const BULKIO::StreamSRI& sri)
+                                                const BULKIO::PrecisionUTCTime& T,
+                                                bool EOS,
+                                                const std::string& streamID,
+                                                const BULKIO::StreamSRI& sri)
     {
         this->_pushPacket(data, T, EOS, streamID);
-        stats.update(this->_dataLength(data), 0, EOS, streamID);
+        this->_recordPush(streamID, this->_dataLength(data), EOS);
+    }
+
+    template <typename PortType>
+    void OutputTransport<PortType>::_recordPush(const std::string& streamID, size_t elements, bool endOfStream)
+    {
+        _stats.update(elements, 0.0, endOfStream, streamID);
     }
 
     template <typename PortType>

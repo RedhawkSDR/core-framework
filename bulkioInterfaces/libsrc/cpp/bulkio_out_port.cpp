@@ -228,7 +228,7 @@ namespace bulkio {
           PortTransportType* port = *iter;
           BULKIO::UsesPortStatistics stat;
           stat.connectionId = port->connectionId().c_str();
-          stat.statistics = port->stats.retrieve();
+          stat.statistics = port->getStatistics();
           ossie::corba::push_back(recStat, stat);
       }
       return recStat._retn();
@@ -248,10 +248,7 @@ namespace bulkio {
   template <typename PortType>
   void OutPort<PortType>::enableStats(bool enable)
   {
-      SCOPED_LOCK lock(updatingPortsLock);
-      for (TransportIterator port = _transports.begin(); port != _transports.end(); ++port) {
-          (*port)->stats.setEnabled(enable);
-      }
+      // Statistics are always collected
   }
 
   template <typename PortType>
