@@ -242,6 +242,7 @@ void CppTestDevice_i::deallocate_memory(const memory_allocation_struct& capacity
 }
 
 bool CppTestDevice_i::allocate_load(const float& capacity) {
+    const float MAX_LOAD = 4.0;
 	if (this->load_average + capacity > MAX_LOAD) {
 		return false;
 	}
