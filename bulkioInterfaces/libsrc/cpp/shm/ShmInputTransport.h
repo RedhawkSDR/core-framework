@@ -19,11 +19,11 @@ namespace bulkio {
         typedef InPort<PortType> InPortType;
         typedef typename NativeTraits<PortType>::NativeType NativeType;
 
-        ShmInputTransport(InPortType* port, IPCFifo* fifo);
+        ShmInputTransport(InPortType* port, const std::string& transportId, IPCFifo* fifo);
         ~ShmInputTransport();
 
-        void start();
-        void stop();
+        void startTransport();
+        void stopTransport();
 
     protected:
         void _run();

@@ -119,21 +119,35 @@ namespace redhawk {
     class ProvidesTransport
     {
     public:
-        ProvidesTransport()
-        {
-        }
+        ProvidesTransport(NegotiableProvidesPortBase* port, const std::string& transportId);
 
         virtual ~ProvidesTransport()
         {
         }
 
-        virtual void start()
+        const std::string& transportId() const;
+
+        virtual std::string transportType() const
+        {
+            return "";
+        }
+
+        virtual CF::Properties transportInfo() const
+        {
+            return CF::Properties();
+        }
+
+        virtual void startTransport()
         {
         }
 
-        virtual void stop()
+        virtual void stopTransport()
         {
         }
+
+    protected:
+        NegotiableProvidesPortBase* _port;
+        const std::string _transportId;
     };
 
     class ProvidesTransportManager
@@ -143,7 +157,8 @@ namespace redhawk {
         {
         }
 
-        virtual ProvidesTransport* createProvidesTransport(const redhawk::PropertyMap& properties) = 0;
+        virtual ProvidesTransport* createProvidesTransport(const std::string& transportId,
+                                                           const redhawk::PropertyMap& properties) = 0;
 
         virtual CF::Properties transportProperties()
         {

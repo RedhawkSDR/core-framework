@@ -36,7 +36,8 @@ namespace bulkio {
         {
         }
 
-        ShmInputTransport<PortType>* createProvidesTransport(const redhawk::PropertyMap& properties)
+        ShmInputTransport<PortType>* createProvidesTransport(const std::string& transportId,
+                                                             const redhawk::PropertyMap& properties)
         {
             if (!properties.contains("fifo")) {
                 throw ExtendedCF::NegotiationError("Invalid properties for shared memory connection");
@@ -50,7 +51,7 @@ namespace bulkio {
                 std::string message = "Failed to connect to FIFO " + location;
                 throw ExtendedCF::NegotiationError(message.c_str());
             }
-            return new ShmInputTransport<PortType>(this->_port, fifo);
+            return new ShmInputTransport<PortType>(this->_port, transportId, fifo);
         }
 
         virtual CF::Properties transportProperties()

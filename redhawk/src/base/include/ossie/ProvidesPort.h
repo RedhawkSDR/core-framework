@@ -54,6 +54,8 @@ namespace redhawk {
 
         ProvidesTransport* _getTransport(const std::string identifier);
 
+        boost::mutex _transportMutex;
+
         typedef std::map<std::string,ProvidesTransportManager*> TransportManagerMap;
         TransportManagerMap _transportManagers;
 

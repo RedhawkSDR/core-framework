@@ -121,8 +121,8 @@ namespace bulkio {
     // InputTransport
     //
     template <typename PortType>
-    InputTransport<PortType>::InputTransport(InPortType* port) :
-        _port(port)
+    InputTransport<PortType>::InputTransport(InPortType* port, const std::string& transportId) :
+        redhawk::ProvidesTransport(port, transportId)
     {
     }
 

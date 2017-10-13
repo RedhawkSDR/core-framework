@@ -6,8 +6,8 @@
 namespace bulkio {
 
     template <class PortType>
-    ShmInputTransport<PortType>::ShmInputTransport(InPortType* port, IPCFifo* fifo) :
-        InputTransport<PortType>(port),
+    ShmInputTransport<PortType>::ShmInputTransport(InPortType* port, const std::string& transportId, IPCFifo* fifo) :
+        InputTransport<PortType>(port, transportId),
         _fifo(fifo)
     {
     }
@@ -20,13 +20,13 @@ namespace bulkio {
     }
 
     template <class PortType>
-    void ShmInputTransport<PortType>::start()
+    void ShmInputTransport<PortType>::startTransport()
     {
         _thread = boost::thread(&ShmInputTransport::_run, this);
     }
 
     template <class PortType>
-    void ShmInputTransport<PortType>::stop()
+    void ShmInputTransport<PortType>::stopTransport()
     {
         // TODO: stop input thread
     }

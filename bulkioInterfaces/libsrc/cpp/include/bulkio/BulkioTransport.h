@@ -100,7 +100,7 @@ namespace bulkio {
     protected:
         typedef typename InPortType::BufferType BufferType;
 
-        InputTransport(InPortType* port);
+        InputTransport(InPortType* port, const std::string& transportId);
 
         inline void _queuePacket(const BufferType& data, const BULKIO::PrecisionUTCTime& T, bool eos, const std::string& streamID)
         {
@@ -134,7 +134,8 @@ namespace bulkio {
         typedef InPort<PortType> InPortType;
         typedef InputTransport<PortType> TransportType;
 
-        virtual TransportType* createProvidesTransport(const redhawk::PropertyMap& properties) = 0;
+        virtual TransportType* createProvidesTransport(const std::string& transportId,
+                                                       const redhawk::PropertyMap& properties) = 0;
 
     protected:
         InputManager(InPortType* port);

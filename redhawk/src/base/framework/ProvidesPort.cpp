@@ -24,6 +24,18 @@
 
 namespace redhawk {
 
+    ProvidesTransport::ProvidesTransport(NegotiableProvidesPortBase* port, const std::string& transportId) :
+        _port(port),
+        _transportId(transportId)
+    {
+    }
+
+    const std::string& ProvidesTransport::transportId() const
+    {
+        return _transportId;
+    }
+
+
     NegotiableProvidesPortBase::NegotiableProvidesPortBase(const std::string& name) :
         Port_Provides_base_impl(name)
     {
@@ -45,7 +57,7 @@ namespace redhawk {
     void NegotiableProvidesPortBase::releasePort()
     {
         for (TransportMap::iterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
-            transport->second->stop();
+            transport->second->stopTransport();
         }
     }
 
@@ -63,25 +75,36 @@ namespace redhawk {
 
     ExtendedCF::NegotiationResult* NegotiableProvidesPortBase::negotiateTransport(const char* protocol, const CF::Properties& props)
     {
+        boost::mutex::scoped_lock lock(_transportMutex);
         ProvidesTransportManager* manager = _getTransportManager(protocol);
         if (!manager) {
             std::string message = "Cannot negotiate protocol '" + std::string(protocol) + "'";
             throw ExtendedCF::NegotiationError(message.c_str());
         }
 
-        ProvidesTransport* transport = manager->createProvidesTransport(redhawk::PropertyMap::cast(props));
-        transport->start();
+        std::string transport_id = ossie::generateUUID();
+        const redhawk::PropertyMap& transport_props = redhawk::PropertyMap::cast(props);
+        ProvidesTransport* transport = manager->createProvidesTransport(transport_id, transport_props);
+        transport->startTransport();
 
-        std::string negotiationId = ossie::generateUUID();
-        _transports[negotiationId] = transport;
+        _transports[transport_id] = transport;
 
         ExtendedCF::NegotiationResult_var result = new ExtendedCF::NegotiationResult;
-        result->negotiationId = negotiationId.c_str();
+        result->negotiationId = transport_id.c_str();
         return result._retn();
     }
 
     void NegotiableProvidesPortBase::disconnectTransport(const char* connectionId)
     {
+        boost::mutex::scoped_lock lock(_transportMutex);
+        TransportMap::iterator transport = _transports.find(connectionId);
+        if (transport == _transports.end()) {
+            // TODO: throw exception
+            return;
+        }
+        transport->second->stopTransport();
+        delete transport->second;
+        _transports.erase(transport);
     }
 
     ProvidesTransportManager* NegotiableProvidesPortBase::_getTransportManager(const std::string& protocol)
