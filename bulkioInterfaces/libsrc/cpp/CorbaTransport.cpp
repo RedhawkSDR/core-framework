@@ -36,8 +36,8 @@ namespace bulkio {
         typedef typename CorbaTraits<PortType>::SequenceType SequenceType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
-        CorbaTransport(const std::string& connectionId, const std::string& name, PtrType port) :
-            OutputTransport<PortType>(connectionId, name, port)
+        CorbaTransport(OutPort<PortType>* parent, const std::string& connectionId, PtrType port) :
+            OutputTransport<PortType>(parent, connectionId, port)
         {
         }
 
@@ -60,16 +60,16 @@ namespace bulkio {
         {
             // Set a timeout for the duration of this call, in case the remote
             // side is in a bad state.
-            omniORB::setClientCallTimeout(this->_port, 1000);
+            omniORB::setClientCallTimeout(this->_objref, 1000);
             OutputTransport<PortType>::disconnect();
-            omniORB::setClientCallTimeout(this->_port, 0);
+            omniORB::setClientCallTimeout(this->_objref, 0);
         }
 
     protected:
         virtual void _pushSRI(const BULKIO::StreamSRI& sri)
         {
             try {
-                this->_port->pushSRI(sri);
+                this->_objref->pushSRI(sri);
             } catch (const CORBA::SystemException& exc) {
                 throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
             }
@@ -97,7 +97,7 @@ namespace bulkio {
         {
             const TransportType* ptr = reinterpret_cast<const TransportType*>(data.data());
             const SequenceType buffer(data.size(), data.size(), const_cast<TransportType*>(ptr), false);
-            this->_port->pushPacket(buffer, T, EOS, streamID);
+            this->_objref->pushPacket(buffer, T, EOS, streamID);
         }
     };
 
@@ -107,7 +107,7 @@ namespace bulkio {
                                                             bool EOS,
                                                             const char* streamID)
     {
-        _port->pushPacket(data.c_str(), T, EOS, streamID);
+        _objref->pushPacket(data.c_str(), T, EOS, streamID);
     }
 
     template <>
@@ -116,7 +116,7 @@ namespace bulkio {
                                                            bool EOS,
                                                            const char* streamID)
     {
-        _port->pushPacket(data.c_str(), EOS, streamID);
+        _objref->pushPacket(data.c_str(), EOS, streamID);
     }
 
     template <typename PortType>
@@ -127,8 +127,8 @@ namespace bulkio {
         typedef typename OutputTransport<PortType>::BufferType BufferType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
-        ChunkingTransport(const std::string& connectionId, const std::string& name, PtrType port) :
-            CorbaTransport<PortType>(connectionId, name, port)      
+        ChunkingTransport(OutPort<PortType>* parent, const std::string& connectionId, PtrType port) :
+            CorbaTransport<PortType>(parent, connectionId, port)      
         {
             // Multiply by some number < 1 to leave some margin for the CORBA header
             const size_t maxPayloadSize = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
@@ -197,27 +197,29 @@ namespace bulkio {
     };
 
     template <typename PortType>
-    OutputTransport<PortType>* CorbaTransportFactory<PortType>::Create(const std::string& connectionId, const std::string& name, PtrType port)
+    OutputTransport<PortType>* CorbaTransportFactory<PortType>::Create(OutPort<PortType>* parent,
+                                                                       const std::string& connectionId,
+                                                                       PtrType port)
     {
-        return new ChunkingTransport<PortType>(connectionId, name, port);
+        return new ChunkingTransport<PortType>(parent, connectionId, port);
     }
 
     template <>
     OutputTransport<BULKIO::dataFile>*
-    CorbaTransportFactory<BULKIO::dataFile>::Create(const std::string& connectionId,
-                                                    const std::string& name,
+    CorbaTransportFactory<BULKIO::dataFile>::Create(OutPort<BULKIO::dataFile>* parent,
+                                                    const std::string& connectionId,
                                                     PtrType port)
     {
-        return new CorbaTransport<BULKIO::dataFile>(connectionId, name, port);
+        return new CorbaTransport<BULKIO::dataFile>(parent, connectionId, port);
     }
 
     template <>
     OutputTransport<BULKIO::dataXML>*
-    CorbaTransportFactory<BULKIO::dataXML>::Create(const std::string& connectionId,
-                                                   const std::string& name,
+    CorbaTransportFactory<BULKIO::dataXML>::Create(OutPort<BULKIO::dataXML>* parent,
+                                                   const std::string& connectionId,
                                                    PtrType port)
     {
-        return new CorbaTransport<BULKIO::dataXML>(connectionId, name, port);
+        return new CorbaTransport<BULKIO::dataXML>(parent, connectionId, port);
     }
 
 #define INSTANTIATE_TEMPLATE(x)                 \

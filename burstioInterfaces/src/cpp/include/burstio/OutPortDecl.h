@@ -230,7 +230,7 @@ namespace burstio {
             std::string streamID_;
         };
 
-        class RemoteTransport;
+        class CorbaTransport;
         class LocalTransport;
 
         friend class Queue;

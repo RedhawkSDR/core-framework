@@ -24,8 +24,8 @@
 class MessageSupplierPort::MessageTransport : public redhawk::UsesTransport
 {
 public:
-    MessageTransport(const std::string& connectionId, CosEventChannelAdmin::EventChannel_ptr channel) :
-        redhawk::UsesTransport(connectionId, channel),
+    MessageTransport(MessageSupplierPort* port, const std::string& connectionId, CosEventChannelAdmin::EventChannel_ptr channel) :
+        redhawk::UsesTransport(port, connectionId, channel),
         _channel(CosEventChannelAdmin::EventChannel::_duplicate(channel))
     {
     }
@@ -44,11 +44,11 @@ private:
     CosEventChannelAdmin::EventChannel_var _channel;
 };
 
-class MessageSupplierPort::RemoteTransport : public MessageSupplierPort::MessageTransport
+class MessageSupplierPort::CorbaTransport : public MessageSupplierPort::MessageTransport
 {
 public:
-    RemoteTransport(const std::string& connectionId, CosEventChannelAdmin::EventChannel_ptr channel) :
-        MessageTransport(connectionId, channel)
+    CorbaTransport(MessageSupplierPort* port, const std::string& connectionId, CosEventChannelAdmin::EventChannel_ptr channel) :
+        MessageTransport(port, connectionId, channel)
     {
         CosEventChannelAdmin::SupplierAdmin_var supplier_admin = channel->for_suppliers();
         _consumer = supplier_admin->obtain_push_consumer();
@@ -122,9 +122,9 @@ private:
 class MessageSupplierPort::LocalTransport : public MessageSupplierPort::MessageTransport
 {
 public:
-    LocalTransport(const std::string& connectionId, MessageConsumerPort* consumer,
+    LocalTransport(MessageSupplierPort* port, const std::string& connectionId, MessageConsumerPort* consumer,
                    CosEventChannelAdmin::EventChannel_ptr channel) :
-        MessageTransport(connectionId, channel),
+        MessageTransport(port, connectionId, channel),
         _consumer(consumer)
     {
     }
@@ -262,9 +262,9 @@ redhawk::UsesTransport* MessageSupplierPort::_createTransport(CORBA::Object_ptr 
 
     MessageConsumerPort* local_port = ossie::corba::getLocalServant<MessageConsumerPort>(channel);
     if (local_port) {
-        return new LocalTransport(connectionId, local_port, channel);
+        return new LocalTransport(this, connectionId, local_port, channel);
     } else {
-        return new RemoteTransport(connectionId, channel);
+        return new CorbaTransport(this, connectionId, channel);
     }
 }
 

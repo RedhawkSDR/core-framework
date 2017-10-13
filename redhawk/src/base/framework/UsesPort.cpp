@@ -25,7 +25,8 @@
 
 namespace redhawk {
     
-    UsesTransport::UsesTransport(const std::string& connectionId, CORBA::Object_ptr objref) :
+    UsesTransport::UsesTransport(UsesPort* port, const std::string& connectionId, CORBA::Object_ptr objref) :
+        _port(port),
         _connectionId(connectionId),
         _objref(CORBA::Object::_duplicate(objref)),
         _alive(true)
@@ -202,7 +203,7 @@ namespace redhawk {
 
     UsesTransport* UsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
     {
-        return new UsesTransport(connectionId, object);
+        return new UsesTransport(this, connectionId, object);
     }
 
     NegotiableUsesPort::NegotiableUsesPort(const std::string& name) :

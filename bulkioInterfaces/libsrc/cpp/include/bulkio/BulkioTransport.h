@@ -37,12 +37,13 @@ namespace bulkio {
     class OutputTransport : public redhawk::UsesTransport
     {
     public:
+        typedef OutPort<PortType> OutPortType;
         typedef typename PortType::_var_type VarType;
         typedef typename PortType::_ptr_type PtrType;
         typedef typename NativeTraits<PortType>::NativeType NativeType;
         typedef typename BufferTraits<PortType>::BufferType BufferType;
 
-        OutputTransport(const std::string& connectionId, const std::string& name, PtrType objref);
+        OutputTransport(OutPortType* port, const std::string& connectionId, PtrType objref);
 
         virtual ~OutputTransport();
 
@@ -55,8 +56,6 @@ namespace bulkio {
                         bool EOS,
                         const std::string& streamID,
                         const BULKIO::StreamSRI& sri);
-
-        PtrType port();
 
         BULKIO::PortStatistics getStatistics();
 
@@ -83,7 +82,8 @@ namespace bulkio {
         //
         size_t _dataLength(const BufferType& data);
 
-        VarType _port;
+        OutPortType* _port;
+        VarType _objref;
         typedef std::map<std::string,int> VersionMap;
         VersionMap _sriVersions;
 

@@ -96,7 +96,7 @@ protected:
     void _sendMessageQueue();
 
     class MessageTransport;
-    class RemoteTransport;
+    class CorbaTransport;
     class LocalTransport;
 
     typedef redhawk::UsesPort::TransportIteratorAdapter<MessageTransport> TransportIterator;

@@ -29,8 +29,8 @@ namespace bulkio {
     public:
         typedef typename PortType::_ptr_type PtrType;
 
-        static OutputTransport<PortType>* Create(const std::string& connectionId,
-                                                 const std::string& name,
+        static OutputTransport<PortType>* Create(OutPort<PortType>* parent,
+                                                 const std::string& connectionId,
                                                  PtrType port);
     };
 

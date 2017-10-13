@@ -255,7 +255,7 @@ namespace bulkio {
   redhawk::UsesTransport*
   OutPort<PortType>::_createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId)
   {
-      return LocalTransport<PortType>::Factory(connectionId, name, port);
+      return LocalTransport<PortType>::Factory(this, connectionId, port);
   }
 
   template <typename PortType>
@@ -273,7 +273,7 @@ namespace bulkio {
           throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
 
-      return CorbaTransportFactory<PortType>::Create(connectionId, name, port);
+      return CorbaTransportFactory<PortType>::Create(this, connectionId, port);
   }
 
 
@@ -360,7 +360,8 @@ namespace bulkio {
 
     for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
         PortTransportType* port = *iter;
-        outConnections.push_back(std::make_pair(PortType::_duplicate(port->port()), port->connectionId()));
+        PortVarType port_var = ossie::corba::_narrowSafe<PortType>(port->objref());
+        outConnections.push_back(std::make_pair(port_var, port->connectionId()));
     }
 
     return outConnections;

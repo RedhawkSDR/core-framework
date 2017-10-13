@@ -27,10 +27,11 @@
 namespace bulkio {
 
     template <typename PortType>
-    OutputTransport<PortType>::OutputTransport(const std::string& connectionId, const std::string& name, PtrType objref) :
-        redhawk::UsesTransport(connectionId, objref),
-        _port(PortType::_duplicate(objref)),
-        _stats(name, sizeof(NativeType))
+    OutputTransport<PortType>::OutputTransport(OutPortType* port, const std::string& connectionId, PtrType objref) :
+        redhawk::UsesTransport(port, connectionId, objref),
+        _port(port),
+        _objref(PortType::_duplicate(objref)),
+        _stats(port->getName(), sizeof(NativeType))
     {
     }
 
@@ -79,12 +80,6 @@ namespace bulkio {
         if (EOS) {
             _sriVersions.erase(streamID);
         }
-    }
-
-    template <typename PortType>
-    typename OutputTransport<PortType>::PtrType OutputTransport<PortType>::port()
-    {
-        return _port;
     }
 
     template <typename PortType>

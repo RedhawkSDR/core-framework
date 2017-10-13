@@ -38,8 +38,8 @@ namespace bulkio {
         typedef typename OutputTransport<PortType>::BufferType BufferType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
-        ShmTransport(const std::string& connectionId, const std::string& name, IPCFifo* fifo, PtrType port) :
-            OutputTransport<PortType>(connectionId, name, port),
+        ShmTransport(OutPort<PortType>* parent, const std::string& connectionId, IPCFifo* fifo, PtrType port) :
+            OutputTransport<PortType>(parent, connectionId, port),
             _fifo(fifo)
         {
         }
@@ -74,7 +74,7 @@ namespace bulkio {
         virtual void _pushSRI(const BULKIO::StreamSRI& sri)
         {
             try {
-                this->_port->pushSRI(sri);
+                this->_objref->pushSRI(sri);
             } catch (const CORBA::SystemException& exc) {
                 throw redhawk::FatalTransportError(ossie::corba::describeException(exc));
             }
@@ -187,7 +187,7 @@ namespace bulkio {
         fifo->finishConnect();
 
         typename PortType::_var_type bulkio_port = ossie::corba::_narrowSafe<PortType>(negotiablePort);
-        return new ShmTransport<PortType>(connectionId, this->_port->getName(), fifo, bulkio_port);
+        return new ShmTransport<PortType>(this->_port, connectionId, fifo, bulkio_port);
     }
 
     template <typename PortType>

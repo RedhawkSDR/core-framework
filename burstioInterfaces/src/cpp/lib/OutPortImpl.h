@@ -36,14 +36,14 @@ namespace burstio {
     {
     public:
         typedef typename Traits::PortType PortType;
-        typedef typename PortType::_var_type VarType;
+        typedef typename PortType::_ptr_type PtrType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
         typedef typename Traits::ElementType ElementType;
 
-        BurstTransport(typename PortType::_ptr_type port, const std::string& connectionId, const std::string& name) :
-            redhawk::UsesTransport(connectionId, port),
-            port_(PortType::_duplicate(port)),
-            stats_(name, sizeof(ElementType) * 8)
+        BurstTransport(OutPort<Traits>* port, const std::string& connectionId, PtrType objref) :
+            redhawk::UsesTransport(port, connectionId, objref),
+            _port(port),
+            _stats(port->getName(), sizeof(ElementType) * 8)
         {
         }
 
@@ -51,26 +51,28 @@ namespace burstio {
 
         BULKIO::PortStatistics* getStatistics() const
         {
-            return stats_.retrieve();
+            return _stats.retrieve();
         }
 
     protected:
-        VarType port_;
-        SenderStatistics stats_;
+        OutPort<Traits>* _port;
+        SenderStatistics _stats;
     };
 
     template <class Traits>
-    class OutPort<Traits>::RemoteTransport : public BurstTransport<Traits>
+    class OutPort<Traits>::CorbaTransport : public BurstTransport<Traits>
     {
     public:
         typedef BurstTransport<Traits> super;
         typedef typename Traits::PortType PortType;
+        typedef typename PortType::_var_type VarType;
+        typedef typename PortType::_ptr_type PtrType;
         typedef typename Traits::BurstType BurstType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
 
-        RemoteTransport(OutPort<Traits>* parent, typename PortType::_ptr_type port, const std::string& connectionId) :
-            super(port, connectionId, parent->name),
-            parent_(parent)
+        CorbaTransport(OutPort<Traits>* parent, const std::string& connectionId, PtrType objref) :
+            super(parent, connectionId, objref),
+            _objref(PortType::_duplicate(objref))
         {
         }
 
@@ -97,16 +99,16 @@ namespace burstio {
                 if (bursts.length() > 1) {
                     partitionBursts(bursts, startTime, queueDepth);
                 } else {
-                    RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed because the burst size is too long");
+                    RH_ERROR(_port->logger, "pushBursts to " << this->connectionId() << " failed because the burst size is too long");
                 }
             } catch (const CORBA::Exception& ex) {
                 if (this->isAlive()) {
-                    RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
+                    RH_ERROR(_port->logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
                 }
                 this->setAlive(false);
             } catch (...) {
                 if (this->isAlive()) {
-                    RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed");
+                    RH_ERROR(_port->logger, "pushBursts to " << this->connectionId() << " failed");
                 }
                 this->setAlive(false);
             }
@@ -118,7 +120,7 @@ namespace burstio {
             // Record delay from queueing of first burst to now
             boost::posix_time::time_duration delay = boost::get_system_time() - startTime;
 
-            this->port_->pushBursts(bursts);
+            _objref->pushBursts(bursts);
             this->setAlive(true);
 
             // Count up total elements
@@ -126,7 +128,7 @@ namespace burstio {
             for (CORBA::ULong index = 0; index < bursts.length(); ++index) {
                 total_elements += bursts[index].data.length();
             }
-            this->stats_.record(bursts.length(), total_elements, queueDepth, delay.total_microseconds() * 1e-6);
+            this->_stats.record(bursts.length(), total_elements, queueDepth, delay.total_microseconds() * 1e-6);
         }
 
         void partitionBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth)
@@ -144,7 +146,8 @@ namespace burstio {
             pushBursts(right, startTime, queueDepth);
         }
 
-        OutPort<Traits>* parent_;
+        using super::_port;
+        VarType _objref;
     };
 
     template <class Traits>
@@ -153,12 +156,12 @@ namespace burstio {
     public:
         typedef BurstTransport<Traits> super;
         typedef typename Traits::PortType PortType;
+        typedef typename PortType::_ptr_type PtrType;
         typedef typename Traits::BurstType BurstType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
 
-        LocalTransport(OutPort<Traits>* parent, InPort<Traits>* localPort, typename PortType::_ptr_type port, const std::string& connectionId) :
-            super(port, connectionId, parent->name),
-            parent_(parent),
+        LocalTransport(OutPort<Traits>* parent, const std::string& connectionId, InPort<Traits>* localPort, PtrType objref) :
+            super(parent, connectionId, objref),
             localPort_(localPort)
         {
         }
@@ -193,16 +196,16 @@ namespace burstio {
 
                 localPort_->pushBursts(bursts);
 
-                this->stats_.record(total_bursts, total_elements, queueDepth, delay.total_microseconds() * 1e-6);
+                this->_stats.record(total_bursts, total_elements, queueDepth, delay.total_microseconds() * 1e-6);
             } catch (const CORBA::Exception& ex) {
-                RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
+                RH_ERROR(_port->logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
             } catch (...) {
-                RH_ERROR(parent_->logger, "pushBursts to " << this->connectionId() << " failed");
+                RH_ERROR(_port->logger, "pushBursts to " << this->connectionId() << " failed");
             }
         }
 
     private:
-        OutPort<Traits>* parent_;
+        using super::_port;
         InPort<Traits>* localPort_;
     };
 
@@ -612,15 +615,15 @@ namespace burstio {
 
     template <class Traits>
     redhawk::UsesTransport* OutPort<Traits>::_createTransport (CORBA::Object_ptr object,
-                                                                const std::string& connectionId)
+                                                               const std::string& connectionId)
     {
         typedef typename PortType::_var_type var_type;
         var_type port = ossie::corba::_narrowSafe<PortType>(object);
         InPort<Traits>* local_port = ossie::corba::getLocalServant<InPort<Traits> >(port);
         if (local_port) {
-            return new LocalTransport(this, local_port, port, connectionId);
+            return new LocalTransport(this, connectionId, local_port, port);
         } else {
-            return new RemoteTransport(this, port, connectionId);
+            return new CorbaTransport(this, connectionId, port);
         }
     }
 

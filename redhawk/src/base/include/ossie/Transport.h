@@ -32,6 +32,10 @@
 
 namespace redhawk {
 
+    class NegotiableProvidesPortBase;
+    class UsesPort;
+    class NegotiableUsesPort;
+
     class TransportError : public std::runtime_error
     {
     public:
@@ -62,7 +66,7 @@ namespace redhawk {
     class UsesTransport
     {
     public:
-        UsesTransport(const std::string& connectionId, CORBA::Object_ptr objref);
+        UsesTransport(UsesPort* port, const std::string& connectionId, CORBA::Object_ptr objref);
         virtual ~UsesTransport() { }
 
         const std::string& connectionId() const;
@@ -86,6 +90,7 @@ namespace redhawk {
         virtual void disconnect() { }
 
     private:
+        UsesPort* _port;
         const std::string _connectionId;
         CORBA::Object_var _objref;
         bool _alive;
@@ -145,9 +150,6 @@ namespace redhawk {
             return CF::Properties();
         }
     };
-
-    class NegotiableProvidesPortBase;
-    class NegotiableUsesPort;
 
     class TransportFactory
     {
