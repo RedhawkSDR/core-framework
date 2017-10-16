@@ -125,7 +125,7 @@ class svc_startorder(CF__POA.Resource):
 
     def start(self):
         self._log.info("starting "+self.name)
-        devs = self.getDeviceManager().ref.registeredDevices
+        devs = self.getDeviceManager().ref._get_registeredDevices()
         for dev in devs:
             if dev._get_label() == 'dev_startorder_1':
                 if len(self.port_output._get_connections())==0:
