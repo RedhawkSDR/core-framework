@@ -45,10 +45,12 @@ namespace bulkio {
     redhawk::NegotiableUsesPort(name)
   {
 
-    if ( !logger ) {
+    if (!logger) {
         std::string pname("redhawk.bulkio.outport.");
         pname = pname + name;
         setLogger(rh_logger::Logger::getLogger(pname));
+    } else {
+        setLogger(logger);
     }
 
     if ( connectCB ) {

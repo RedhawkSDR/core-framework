@@ -47,12 +47,16 @@ namespace redhawk {
         virtual ExtendedCF::NegotiationResult* negotiateTransport(const char* protocol, const CF::Properties& props);
         virtual void disconnectTransport(const char* connectionId);
 
+        void setLogger(LOGGER newLogger);
+
     protected:
         void _addTransportManager(const std::string& transport, ProvidesTransportManager* manager);
 
         ProvidesTransportManager* _getTransportManager(const std::string& protocol);
 
         ProvidesTransport* _getTransport(const std::string identifier);
+
+        LOGGER logger;
 
         boost::mutex _transportMutex;
 

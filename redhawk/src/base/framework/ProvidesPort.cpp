@@ -56,8 +56,8 @@ namespace redhawk {
 
         for (TransportStack::iterator iter = transports->begin(); iter != transports->end(); ++iter) {
             TransportFactory* transport = *iter;
-            RH_NL_INFO("NegotiableProvidesPortBase", "Adding provides transport '" << transport->transportType()
-                       << "' for '" << repid << "'");
+            RH_INFO(logger, "Adding provides transport '" << transport->transportType()
+                    << "' for '" << repid << "'");
             _addTransportManager(transport->transportType(), transport->createProvidesManager(this));
         }
     }
@@ -113,6 +113,11 @@ namespace redhawk {
         transport->second->stopTransport();
         delete transport->second;
         _transports.erase(transport);
+    }
+
+    void NegotiableProvidesPortBase::setLogger(LOGGER newLogger)
+    {
+        logger = newLogger;
     }
 
     ProvidesTransportManager* NegotiableProvidesPortBase::_getTransportManager(const std::string& protocol)

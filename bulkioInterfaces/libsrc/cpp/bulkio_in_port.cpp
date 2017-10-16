@@ -42,16 +42,17 @@ namespace bulkio {
     maxQueue(100),
     breakBlock(false),
     blocking(false),
-    stats(new linkStatistics(port_name, sizeof(TransportType))),
-    logger(logger)
+    stats(new linkStatistics(port_name, sizeof(TransportType)))
   {
     std::string _cmpMsg("USER_DEFINED");
     std::string _sriMsg("EMPTY");
 
-    if ( !logger  ) {
+    if (!logger) {
         std::string pname("redhawk.bulkio.inport.");
         pname = pname + port_name;
-        logger = rh_logger::Logger::getLogger(pname);
+        setLogger(rh_logger::Logger::getLogger(pname));
+    } else {
+        setLogger(logger);
     }
 
 

@@ -268,8 +268,6 @@ namespace bulkio {
 
     void setNewStreamListener(SriListener *newListener);
 
-    void setLogger( LOGGER_PTR logger );
-
 	// Return the interface that this Port supports
     std::string getRepid () const;
 
@@ -358,8 +356,6 @@ namespace bulkio {
     //  Statistics provider object used by the port monitoring interface
     //
     linkStatistics                                 *stats;
-
-    LOGGER_PTR                                     logger;
 
     //
     // Synchronized waiter list for use in poll()
