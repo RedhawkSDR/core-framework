@@ -29,7 +29,7 @@ class dev_startorder_i(dev_startorder_base):
     def start(self):
         self._log.info("starting "+self._id)
         if self._id == 'devmgr_startorder:dev_startorder_2':
-            svc = self.getDeviceManager().ref.registeredServices[0]
+            svc = self.getDeviceManager().ref._get_registeredServices()[0]
             if len(self.port_output._get_connections())==0:
                 self.port_output.connectPort(svc.serviceObject, 'service_connection')
         val = CF.DataType(id='start_from', value=any.to_any(self.start_from+","+self._id))
