@@ -127,6 +127,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
     def tearDown(self):
         super(ComponentTests, self).tearDown()
+        sproc="./spacely sprockets"
+        try:
+            os.remove(sproc)
+        except:
+            pass
         try:
             # kill all busy.py just in case
             os.system('pkill -9 -f busy.py')
@@ -622,7 +627,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         # start up subprocess with spaces in the name...
         proc="./busy.py"
-        sproc="/tmp/spacely sprockets"
+        sproc="./spacely sprockets"
         shutil.copy(proc,sproc)
         procs = subprocess.Popen(sproc)
         self.assertEqual(procs.poll(), None )

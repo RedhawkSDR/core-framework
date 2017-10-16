@@ -1774,7 +1774,6 @@ void GPP_i::set_resource_affinity( const CF::Properties& options, const pid_t rs
  {
 
    RH_DEBUG( redhawk::affinity::get_affinity_logger(), "Affinity Options....GPP/Resource: " << label() << "/" << rsc_name << " options" << options.length()  );   
-   boost::recursive_mutex::scoped_lock(load_execute_lock);
 
    // check if we override incoming affinity requests...
    if ( affinity.force_override ) {
@@ -1843,7 +1842,6 @@ void GPP_i::set_resource_affinity( const CF::Properties& options, const pid_t rs
      }
 
    }
-
 }
 
 
