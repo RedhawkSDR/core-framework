@@ -199,10 +199,8 @@ bulkio_builddir = src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)
 libbulkioInterfaces_la_CXXFLAGS = -Wall -I src/cpp -g $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
 libbulkioInterfaces_la_LIBS = $(OSSIE_LIBS)
 
-$(bulkio_builddir):
-	$(AM_V_at)mkdir -p $@
-
-$(bulkio_builddir)/%DynSK.cpp $(bulkio_builddir)/%SK.cpp $(bulkio_builddir)/%.h: idl/ossie/BULKIO/%.idl | $(bulkio_builddir)
+$(bulkio_builddir)/%DynSK.cpp $(bulkio_builddir)/%SK.cpp $(bulkio_builddir)/%.h: idl/ossie/BULKIO/%.idl
+	$(AM_V_at)mkdir -p $(dir $@)
 	$(AM_V_GEN)$(IDL) -I idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C $(dir $@) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
 
 ###############################################################################
@@ -226,6 +224,7 @@ PY_IDL_INCLUDES := -I idl
 $(PY_SRC_OUT_DIR)/__init__.py: $(PY_IDL_SRCS)
 	$(AM_V_at)mkdir -p $(PY_SRC_OUT_DIR)
 	$(AM_V_GEN)$(IDL) $(PY_IDL_INCLUDES) $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C src/python -bpython -Wbpackage=$(PYTHON_PACKAGE) $(PY_IDL_EXTERNS) $^
+	$(AM_V_at)touch $@
 
 # Mimic automake silent rules
 OSSIE_V_pysetup = $(ossie__v_pysetup_$(V))
