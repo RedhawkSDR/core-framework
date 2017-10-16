@@ -180,11 +180,13 @@ namespace redhawk {
         virtual UsesTransportManager* createUsesManager(redhawk::NegotiableUsesPort* port) = 0;
     };
 
+    typedef std::vector<TransportFactory*> TransportStack;
+
     class TransportRegistry
     {
     public:
         static void RegisterTransport(TransportFactory* transport);
-        static TransportFactory* GetTransport(const std::string& repid);
+        static TransportStack* GetTransports(const std::string& repid);
 
     private:
         TransportRegistry();
@@ -193,9 +195,9 @@ namespace redhawk {
         static TransportRegistry* _instance;
 
         void _registerTransport(TransportFactory* transport);
-        TransportFactory* _getTransport(const std::string& repid);
+        TransportStack* _getTransport(const std::string& repid);
 
-        typedef std::map<std::string,TransportFactory*> TransportMap;
+        typedef std::map<std::string,TransportStack> TransportMap;
         TransportMap _registry;
     };
 }

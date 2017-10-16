@@ -32,7 +32,7 @@ namespace redhawk {
         Instance()._registerTransport(transport);
     }
 
-    TransportFactory* TransportRegistry::GetTransport(const std::string& repid)
+    TransportStack* TransportRegistry::GetTransports(const std::string& repid)
     {
         return Instance()._getTransport(repid);
     }
@@ -40,18 +40,14 @@ namespace redhawk {
     void TransportRegistry::_registerTransport(TransportFactory* transport)
     {
         const std::string repid = transport->repid();
-        if (_registry.count(repid)) {
-            RH_NL_WARN("TransportRegistry", "Duplicate repid '" << repid << "'");
-            return;
-        }
-        _registry[repid] = transport;
+        _registry[repid].push_back(transport);
     }
 
-    TransportFactory* TransportRegistry::_getTransport(const std::string& repid)
+    TransportStack* TransportRegistry::_getTransport(const std::string& repid)
     {
         TransportMap::iterator transport = _registry.find(repid);
         if (transport != _registry.end()) {
-            return transport->second;
+            return &(transport->second);
         }
         return 0;
     }

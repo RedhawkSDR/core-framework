@@ -217,11 +217,19 @@ namespace redhawk {
 
     void NegotiableUsesPort::initializePort()
     {
-        const std::string repid = getRepid();
-        TransportFactory* transport = TransportRegistry::GetTransport(repid);
-        RH_INFO(logger, "Adding uses transport '" << transport->transportType()
-                << "' for '" << transport->repid() << "'");
-        _transportManagers.push_back(transport->createUsesManager(this));
+        const std::string repo_id = getRepid();
+        TransportStack* transports = TransportRegistry::GetTransports(repo_id);
+        if (!transports) {
+            // No registered transports for this port type
+            return;
+        }
+
+        for (TransportStack::iterator iter = transports->begin(); iter != transports->end(); ++iter) {
+            TransportFactory* transport = *iter;
+            RH_INFO(logger, "Adding uses transport '" << transport->transportType()
+                    << "' for '" << repo_id << "'");
+            _transportManagers.push_back(transport->createUsesManager(this));
+        }
     }
 
     ExtendedCF::TransportInfoSequence* NegotiableUsesPort::supportedTransports()
