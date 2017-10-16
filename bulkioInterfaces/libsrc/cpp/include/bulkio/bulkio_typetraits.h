@@ -27,35 +27,34 @@
 #include <ossie/shared_buffer.h>
 
 #include "BULKIO_Interfaces.h"
-#include <ossie/BULKIO/bio_dataExt.h>
+#include <ossie/BULKIO/internal/bio_dataExt.h>
 
 namespace bulkio {
 
     template <class PortType>
     struct CorbaTraits {
     };
-
-#define DEFINE_CORBA_TRAITS(NAME,TT,ST)         \
-    template <>                                 \
-    struct CorbaTraits<NAME> {                  \
-        typedef POA_##NAME##Ext POAType;        \
-        typedef TT TransportType;               \
-        typedef ST SequenceType;                \
+    
+#define DEFINE_CORBA_TRAITS(NAME,TT,ST)                         \
+    template <>                                                 \
+    struct CorbaTraits<BULKIO::NAME> {                          \
+        typedef POA_BULKIO::internal::NAME##Ext POAType;        \
+        typedef TT TransportType;                               \
+        typedef ST SequenceType;                                \
     };
 
-#define DEFINE_CORBA_EXT_TRAITS(NAME,TT,ST) DEFINE_CORBA_TRAITS(NAME,POA_##NAME##Ext,TT,ST)
-    DEFINE_CORBA_TRAITS(BULKIO::dataChar, CORBA::Char, PortTypes::CharSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataOctet, CORBA::Octet, CF::OctetSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataShort, CORBA::Short, PortTypes::ShortSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataUshort, CORBA::UShort, PortTypes::UshortSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataLong, CORBA::Long, PortTypes::LongSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataUlong, CORBA::ULong, PortTypes::UlongSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataLongLong, CORBA::LongLong, PortTypes::LongLongSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataUlongLong, CORBA::ULongLong, PortTypes::UlongLongSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataFloat, CORBA::Float, PortTypes::FloatSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataDouble, CORBA::Double, PortTypes::DoubleSequence);
-    DEFINE_CORBA_TRAITS(BULKIO::dataFile, char, char*);
-    DEFINE_CORBA_TRAITS(BULKIO::dataXML, char, char*);
+    DEFINE_CORBA_TRAITS(dataChar, CORBA::Char, PortTypes::CharSequence);
+    DEFINE_CORBA_TRAITS(dataOctet, CORBA::Octet, CF::OctetSequence);
+    DEFINE_CORBA_TRAITS(dataShort, CORBA::Short, PortTypes::ShortSequence);
+    DEFINE_CORBA_TRAITS(dataUshort, CORBA::UShort, PortTypes::UshortSequence);
+    DEFINE_CORBA_TRAITS(dataLong, CORBA::Long, PortTypes::LongSequence);
+    DEFINE_CORBA_TRAITS(dataUlong, CORBA::ULong, PortTypes::UlongSequence);
+    DEFINE_CORBA_TRAITS(dataLongLong, CORBA::LongLong, PortTypes::LongLongSequence);
+    DEFINE_CORBA_TRAITS(dataUlongLong, CORBA::ULongLong, PortTypes::UlongLongSequence);
+    DEFINE_CORBA_TRAITS(dataFloat, CORBA::Float, PortTypes::FloatSequence);
+    DEFINE_CORBA_TRAITS(dataDouble, CORBA::Double, PortTypes::DoubleSequence);
+    DEFINE_CORBA_TRAITS(dataFile, char, char*);
+    DEFINE_CORBA_TRAITS(dataXML, char, char*);
 
 #undef DEFINE_CORBA_TRAITS
 

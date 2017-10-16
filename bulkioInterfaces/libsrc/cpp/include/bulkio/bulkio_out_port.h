@@ -67,7 +67,7 @@ namespace bulkio {
   template <typename PortType>
   class OutPort : public redhawk::NegotiableUsesPort
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
-                , public virtual POA_BULKIO::UsesPortStatisticsProviderExt
+                , public virtual POA_BULKIO::internal::UsesPortStatisticsProviderExt
 #endif
   {
 

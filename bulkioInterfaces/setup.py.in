@@ -7,5 +7,7 @@ setup(name='bulkioInterfaces',
       packages=['bulkio',
                 'bulkio.bulkioInterfaces',
                 'bulkio.bulkioInterfaces.BULKIO',
-                'bulkio.bulkioInterfaces.BULKIO__POA']
+                'bulkio.bulkioInterfaces.BULKIO.internal',
+                'bulkio.bulkioInterfaces.BULKIO__POA',
+                'bulkio.bulkioInterfaces.BULKIO__POA.internal']
 )

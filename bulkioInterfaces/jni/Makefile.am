@@ -51,8 +51,7 @@ nodist_libbulkiojni_la_SOURCES = \
 	ossie/BULKIO/jni_bio_dataLongLong.cpp \
 	ossie/BULKIO/jni_bio_dataUlongLong.cpp \
 	ossie/BULKIO/jni_bio_dataSDDS.cpp \
-        ossie/BULKIO/jni_bio_dataVITA49.cpp \
-        ossie/BULKIO/jni_bio_dataExt.cpp
+        ossie/BULKIO/jni_bio_dataVITA49.cpp
 nobase_nodist_include_HEADERS = \
 	ossie/BULKIO/jni_bulkioDataTypes.h \
 	ossie/BULKIO/jni_bio_runtimeStats.h \
@@ -70,6 +69,5 @@ nobase_nodist_include_HEADERS = \
 	ossie/BULKIO/jni_bio_dataLongLong.h \
 	ossie/BULKIO/jni_bio_dataUlongLong.h \
 	ossie/BULKIO/jni_bio_dataSDDS.h \
-	ossie/BULKIO/jni_bio_dataVITA49.h \
-	ossie/BULKIO/jni_bio_dataExt.h
+	ossie/BULKIO/jni_bio_dataVITA49.h
 CLEANFILES = $(nodist_libbulkiojni_la_SOURCES) $(nobase_nodist_include_HEADERS)
