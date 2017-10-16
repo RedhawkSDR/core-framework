@@ -141,12 +141,23 @@ namespace bulkio {
     ShmOutputManager<PortType>::ShmOutputManager(OutPort<PortType>* port) :
         OutputManager<PortType>(port)
     {
+        char host[HOST_NAME_MAX+1];
+        gethostname(host, sizeof(host));
+        _hostname = host;
     }
 
     template <typename PortType>
     std::string ShmOutputManager<PortType>::transportName()
     {
         return "shmipc";
+    }
+
+    template <typename PortType>
+    CF::Properties ShmOutputManager<PortType>::transportProperties()
+    {
+        CF::Properties properties;
+        ossie::corba::push_back(properties, redhawk::PropertyType("hostname", _hostname));
+        return properties;
     }
 
     template <typename PortType>
@@ -163,10 +174,7 @@ namespace bulkio {
 
         // If the other end of the connection has a different hostname, it
         // is reasonable to assume that we cannot use shared memory
-        char host[HOST_NAME_MAX+1];
-        gethostname(host, sizeof(host));
-        const std::string hostname(host);
-        if (properties.get("hostname", "").toString() != hostname) {
+        if (properties.get("hostname", "").toString() != _hostname) {
             RH_NL_TRACE("ShmTransport", "Connection '" << connectionId << "' is on another host");
             return 0;
         }

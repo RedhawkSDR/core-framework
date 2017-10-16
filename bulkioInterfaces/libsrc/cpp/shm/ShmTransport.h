@@ -36,9 +36,14 @@ namespace bulkio {
 
         virtual std::string transportName();
 
+        virtual CF::Properties transportProperties();
+
         virtual OutputTransport<PortType>* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
                                                                const std::string& connectionId,
                                                                const redhawk::PropertyMap& properties);
+
+    private:
+        std::string _hostname;
     };
 
 }
