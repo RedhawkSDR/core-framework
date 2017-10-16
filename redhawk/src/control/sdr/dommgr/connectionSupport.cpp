@@ -278,7 +278,7 @@ std::string DomainConnectionManager::restoreConnection(const std::string& device
 
 void DomainConnectionManager::breakConnection(const std::string& connectionRecordId)
 {
-    boost::mutex::scoped_lock(_connectionMutex);
+    boost::mutex::scoped_lock lock(_connectionLock);
     std::map< std::string, std::pair<std::string, std::string> >::iterator _gC_it = _globalConnections.find(connectionRecordId);
     if (_gC_it == _globalConnections.end()) {
         // connection already broken
@@ -303,7 +303,7 @@ void DomainConnectionManager::breakConnection(const std::string& connectionRecor
 void DomainConnectionManager::deviceManagerUnregistered(const std::string& deviceManagerName)
 {
     TRACE_ENTER(DomainConnectionManager);
-    boost::mutex::scoped_lock(_connectionLock);
+    boost::mutex::scoped_lock lock(_connectionLock);
     ConnectionTable::iterator devMgr = _connectionsByRequester.find(deviceManagerName);
     if (devMgr == _connectionsByRequester.end()) {
         // DeviceManager has no connections.
@@ -395,7 +395,7 @@ const ConnectionTable& DomainConnectionManager::getConnections() const
 
 std::string DomainConnectionManager::addConnection_(const std::string& requesterId, const ConnectionNode& connection)
 {
-    boost::mutex::scoped_lock(_connectionMutex);
+    boost::mutex::scoped_lock lock(_connectionLock);
     if (_connectionsByRequester.find(requesterId) == _connectionsByRequester.end()) {
         _connectionsByRequester[requesterId] = ConnectionList();
     }
