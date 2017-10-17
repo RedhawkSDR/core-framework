@@ -28,8 +28,8 @@ Prefix:         %{_sdrroot}
 Prefix:         %{_sysconfdir}
 
 Name:           redhawk-services
-Version:        2.1.2
-Release:        2%{?dist}
+Version:        2.1.3
+Release:        1%{?dist}
 Summary:        REDHAWK System Services
 
 Group:          Applications/Engineering
@@ -37,16 +37,15 @@ License:        LGPLv3+
 URL:            http://redhawksdr.org/
 Vendor:         REDHAWK
 BuildArch:      noarch
-BuildRoot:      %{_builddir}/%{name}-root
 Source0:        redhawk-services-%{version}.tar.gz
 
 Requires:       bash
 Requires:       crudini
 Requires:       binutils
-Requires:        python
-Requires:       redhawk >= 2.0
-Requires:       redhawk-sdrroot-dom-mgr >= 2.0
-Requires:       redhawk-sdrroot-dev-mgr >= 2.0
+Requires:       python
+Requires:       redhawk = %{version}
+Requires:       redhawk-sdrroot-dom-mgr = %{version}
+Requires:       redhawk-sdrroot-dev-mgr = %{version}
 
 %if 0%{?with_systemd}
 %{?systemd_requires}
